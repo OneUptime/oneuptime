@@ -1,0 +1,12 @@
+$ openstack region list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "RegionOne",
+    "description": "",
+    "parent_region_id": null
+  }
+]

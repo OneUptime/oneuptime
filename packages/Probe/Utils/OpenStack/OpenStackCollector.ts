@@ -38,10 +38,12 @@ import {
   OpenStackComputeInventory,
   OpenStackContainerInfraInventory,
   OpenStackIdentityInventory,
+  OpenStackBareMetalInventory,
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackPlacementInventory,
+  OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
 } from "./OpenStackInventory";
 import { buildOpenStackInstanceActionLogs } from "./OpenStackInstanceActions";
@@ -88,6 +90,12 @@ import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
 import collectOrchestration from "./Collectors/OrchestrationCollector";
 import collectPlacement from "./Collectors/PlacementCollector";
+import collectBareMetal, {
+  IRONIC_MICROVERSION,
+} from "./Collectors/BareMetalCollector";
+import collectSharedFileSystems, {
+  SHARED_FILE_SYSTEMS_MICROVERSION_HEADERS,
+} from "./Collectors/SharedFileSystemsCollector";
 import collectVolume, {
   CINDER_MICROVERSION,
 } from "./Collectors/VolumeCollector";
@@ -190,9 +198,12 @@ export function getSlowServiceIntervalInMs(
 const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Identity,
   OpenStackServiceType.Image,
+  // As often as the agent's job for it reads it, which the alert templates count on.
+  OpenStackServiceType.BareMetal,
   // As the agent's jobs read every service a cloud may not run.
   OpenStackServiceType.Orchestration,
   OpenStackServiceType.ContainerInfra,
+  OpenStackServiceType.SharedFileSystems,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -442,7 +453,8 @@ function countRollingDatapoints(
       (inventory.image?.images?.length || 0) * 2 +
       (inventory.identity?.projects?.length || 0) +
       (inventory.orchestration?.stacks?.length || 0) +
-      (inventory["container-infra"]?.clusters?.length || 0) * 3;
+      (inventory["container-infra"]?.clusters?.length || 0) * 3 +
+      (inventory.sharev2?.shares?.length || 0) * 2;
   }
 
   return count;
@@ -1338,6 +1350,12 @@ export default class OpenStackCollector {
             work = collectVolume(context(inventory));
             break;
           }
+          case OpenStackServiceType.BareMetal: {
+            const inventory: OpenStackBareMetalInventory = {};
+            byService.baremetal = inventory;
+            work = collectBareMetal(context(inventory));
+            break;
+          }
           case OpenStackServiceType.Orchestration: {
             const inventory: OpenStackOrchestrationInventory = {};
             byService.orchestration = inventory;
@@ -1348,6 +1366,12 @@ export default class OpenStackCollector {
             const inventory: OpenStackContainerInfraInventory = {};
             byService["container-infra"] = inventory;
             work = collectContainerInfra(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.SharedFileSystems: {
+            const inventory: OpenStackSharedFileSystemsInventory = {};
+            byService.sharev2 = inventory;
+            work = collectSharedFileSystems(context(inventory));
             break;
           }
           default: {
@@ -1847,8 +1871,16 @@ export default class OpenStackCollector {
             return { "OpenStack-API-Version": `volume ${CINDER_MICROVERSION}` };
           }
 
+          if (client.service === OpenStackServiceType.BareMetal) {
+            return { "X-OpenStack-Ironic-API-Version": IRONIC_MICROVERSION };
+          }
+
           if (client.service === OpenStackServiceType.ContainerInfra) {
             return CONTAINER_INFRA_MICROVERSION_HEADERS;
+          }
+
+          if (client.service === OpenStackServiceType.SharedFileSystems) {
+            return SHARED_FILE_SYSTEMS_MICROVERSION_HEADERS;
           }
 
           if (client.service !== OpenStackServiceType.Compute) {

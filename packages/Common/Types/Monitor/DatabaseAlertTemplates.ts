@@ -381,6 +381,32 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
     source: "agent-query",
   },
 
+  /*
+   * Where a server stands in a Galera cluster, which the mysql receiver does
+   * not report: the Database Agent reads it with SHOW GLOBAL STATUS
+   * (agents/DatabaseAgent/configs/mysql.yaml, sqlquery/oneuptime).
+   */
+  {
+    engine: "mysql",
+    receiver: "mysql",
+    // wsrep_local_state: 4 is Synced, and a node outside the Primary reads 0.
+    metricName: "mysql.wsrep.local_state",
+    kind: "gauge",
+    unit: "{state}",
+    enabledByDefault: false,
+    source: "agent-query",
+  },
+  {
+    engine: "mysql",
+    receiver: "mysql",
+    // wsrep_desync_count: above 0 while someone asked it to fall out of step.
+    metricName: "mysql.wsrep.desync_count",
+    kind: "gauge",
+    unit: "{requests}",
+    enabledByDefault: false,
+    source: "agent-query",
+  },
+
   // MySQL / MariaDB — mysqlreceiver.
   {
     engine: "mysql",
@@ -1572,6 +1598,48 @@ const mysqlTemplates: Array<DatabaseAlertTemplate> = [
       thresholdLabel: "at or above 30 seconds",
       incidentDescription:
         "This replica is 30 seconds or more behind its source, so reads from it are stale. Check SHOW REPLICA STATUS for a long-running statement on the SQL thread, and the replica's disk and CPU.",
+    },
+  }),
+  /*
+   * A node falling behind reads the same wsrep_local_state of 2 as one someone
+   * took out on purpose for a backup, so it asks that nobody did. A server in no
+   * cluster has neither series and stays quiet.
+   */
+  buildDatabaseTemplate({
+    id: "database-mysql-galera-node-out-of-sync",
+    name: "Galera Node Out of Sync",
+    description:
+      "Alert when a Galera node stays out of step with its cluster for 10 minutes, with nobody having asked it to: a node cut off from the others, one falling behind, or one stuck on a long lock. A node someone took out with wsrep_desync for a backup does not fire this. Reads mysql.wsrep.local_state and mysql.wsrep.desync_count, which the Database Agent's config enables with SQL of its own. Check SHOW GLOBAL STATUS LIKE 'wsrep_%' on it, and what it can reach.",
+    category: "Availability",
+    severity: "Warning",
+    engine: MYSQL,
+    queries: [
+      {
+        alias: "galera_state",
+        metricName: "mysql.wsrep.local_state",
+        aggregationType: MetricsAggregationType.Min,
+      },
+      {
+        alias: "galera_desyncs",
+        metricName: "mysql.wsrep.desync_count",
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    rollingTime: RollingTime.Past10Minutes,
+    criteria: {
+      metricAlias: "galera_state",
+      filterType: FilterType.LessThan,
+      // 4 is Synced.
+      threshold: 4,
+      thresholdLabel: "not Synced (4)",
+      additionalFilter: {
+        metricAlias: "galera_desyncs",
+        filterType: FilterType.LessThan,
+        value: 1,
+        label: "nobody has asked it to fall out of step",
+      },
+      incidentDescription:
+        "This Galera node has been out of step with its cluster for 10 minutes, and nobody asked it to be. It may be cut off from the others, falling behind, or stuck on a long lock, and it may not take queries. Check SHOW GLOBAL STATUS LIKE 'wsrep_%' on it, and whether it can reach the other nodes.",
     },
   }),
 ];

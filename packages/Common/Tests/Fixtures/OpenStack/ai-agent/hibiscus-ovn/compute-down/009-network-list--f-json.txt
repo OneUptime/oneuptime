@@ -1,0 +1,61 @@
+$ openstack network list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "name": "private",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "shared": false,
+    "router:external": false,
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451",
+    "mtu": 1442,
+    "subnets": [
+      "8e9b0a45-d1e7-4fc6-8076-4dfcfaf4b263",
+      "b1b73687-a8b2-4b65-b172-e1aa7a7c3f3f"
+    ]
+  },
+  {
+    "id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "name": "public",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "shared": false,
+    "router:external": true,
+    "project_id": "7d12d4f1273942508ecbab053dd52b4f",
+    "mtu": 1500,
+    "subnets": [
+      "8e84684c-2f1b-494a-b8f3-ed1e71c692e2",
+      "a4a43c4c-e6a0-4212-8ccc-b686ea01c332"
+    ]
+  },
+  {
+    "id": "5f3755d2-bd6f-4696-bbd3-df5ea611d0e4",
+    "name": "ou-net",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "shared": false,
+    "router:external": false,
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372",
+    "mtu": 1442,
+    "subnets": [
+      "fa214541-6b48-475e-992f-64928760622f"
+    ]
+  },
+  {
+    "id": "cabef246-cc67-4c29-9b90-9d4273ad18f1",
+    "name": "ou-research-net",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "shared": false,
+    "router:external": false,
+    "project_id": "b9e66b583ae5401b8ec2edf04f41c61a",
+    "mtu": 1442,
+    "subnets": [
+      "16097571-80dc-4789-9e86-c7c247c02e6d"
+    ]
+  }
+]

@@ -36,7 +36,7 @@ tell them apart:
   makes a recording's cloud one with no such service. A service a cloud may not run has a group of
   its own: `?recording=services-heat-magnum/magnum-failed` on its own, or
   `?recording=gazpacho-ovs/healthy&also=services-heat-magnum/access/admin` beside a whole cloud.
-- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|usage`
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|magnum|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
@@ -102,7 +102,11 @@ the pages while working on them.
 
 ## What the walks hold
 
+`OpenStackBareMetal.spec.ts`: Ironic on a real DevStack with fake hardware: no trace of it on a cloud without it, its section and alerts on one with it, the Overview naming both failed nodes, the step from the menu to a node's page, a half-enrolled node, what the Services page says of conductors, and a phone. What only a probe reads, and an instance on a node, are in the jsdom suite on rows written by hand.
+
 `OpenStackOptionalServices.spec.ts`: a service a cloud may not run. A cloud without it shows no trace of it in the menu, on Services, on the Overview or in Recommendations, and an old link says so rather than breaking. A cloud with it gets its menu entries, its lists and its part's pages, a failed stack and a failed cluster reach Needs attention by name and land on their own pages, and each page says what the agent can't see, at every width.
+
+`OpenStackManila.spec.ts`: Manila, the same way: no trace on a cloud without it, its shares under Storage on one with it, a share in error from Needs attention to its own page, its API stopped, Topology, and every width.
 
 `DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
 
@@ -115,7 +119,7 @@ German and Persian.
 `OpenStackProjectsAndTopology.spec.ts`: Projects with quota data (`?estate=tenants`, a project
 at 90% of a quota and a nova-compute stopped under two projects) and without it (`?estate=calm`,
 which is most clouds), a project's page and who is told, Domains, a list opened on a project, and
-the Topology with that host red. No recording holds a quota series, so `tenants` is made up in the
+the Topology with that host red. No recorded project is at 90% of a quota, so `tenants` is made up in the
 shape the snapshot scan writes.
 
 `OpenStackPartPages.spec.ts`: the compute, network and storage lists and part pages, the step

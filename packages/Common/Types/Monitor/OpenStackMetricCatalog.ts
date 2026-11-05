@@ -20,6 +20,7 @@ import {
 } from "../OpenStack/OpenStackCapacitySeries";
 import { OpenStackServiceType } from "../OpenStack/OpenStackResourceKind";
 import { translationKey } from "../Translator";
+import { OpenStackCheckMetric } from "../../Utils/OpenStack/OpenStackCheckMetrics";
 
 export type OpenStackMetricCategory =
   | "Availability"
@@ -38,6 +39,7 @@ export type OpenStackMetricCategory =
   | "Orchestration"
   | "Bare Metal"
   | "Projects"
+  | "Checks"
   | "Capacity";
 
 export interface OpenStackMetricDefinition {
@@ -95,6 +97,12 @@ export interface OpenStackMetricDefinition {
    * (OpenStackScale), in place of a series per instance. Nothing collects these.
    */
   fromSummaryMode?: boolean;
+  /*
+   * What a probe found from outside the cloud, and the cloud's API checks said each minute
+   * (OpenStackCheckMetrics). Empty until someone turns the checks on, and nothing collects these.
+   */
+  fromCheck?: boolean;
+
   /*
    * Written by OneUptime itself, from a cloud's rows, for every cloud that reports (see
    * OpenStackCapacitySeries). Nothing collects these either.
@@ -231,6 +239,32 @@ function metric(
         ? `${data.description} Off by default: delete the --disable-metric=${data.offByDefault} line from the exporter to turn it on.`
         : data.description,
   };
+}
+
+/*
+ * What the checks from outside report. The region is a label on every one, as on everything
+ * else, so it is not named among each one's own.
+ */
+function check(data: {
+  metricName: OpenStackCheckMetric;
+  friendlyName: string;
+  description: string;
+  defaultAggregation: MetricsAggregationType;
+  service: OpenStackServiceType;
+  identityAttributes: ReadonlyArray<string>;
+  unit?: string | undefined;
+}): OpenStackMetricDefinition {
+  return metric({
+    category: "Checks",
+    fromCheck: true,
+    friendlyName: data.friendlyName,
+    description: data.description,
+    metricName: data.metricName,
+    defaultAggregation: data.defaultAggregation,
+    service: data.service,
+    identityAttributes: data.identityAttributes,
+    ...(data.unit ? { unit: data.unit } : {}),
+  });
 }
 
 const IRONIC_NODE_TIME_LABELS: ReadonlyArray<string> = [
@@ -1918,6 +1952,138 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "How many instances those series add up, so a total can be told from a total with some of them missing.",
     identityAttributes: HYPERVISOR_USAGE_LABELS,
   }),
+  check({
+    metricName: OpenStackCheckMetric.TokenSuccess,
+    friendlyName: translationKey("Token Issued"),
+    description:
+      "Whether Keystone issued a token to the probe checking this cloud from outside: 1 when it did, 0 when it did not. Every region says the same, so a monitor narrowed to a region finds it.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Identity,
+    identityAttributes: [],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.TokenDuration,
+    friendlyName: translationKey("Token Issue Time"),
+    description: "How long Keystone took to issue that token.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Identity,
+    identityAttributes: [],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.ApiSuccess,
+    friendlyName: translationKey("Service API Answered"),
+    description:
+      "Whether a service in the catalog answered a one-row read from a probe outside the cloud: 1 when it answered, or refused this credential, because then its API is working, and 0 when it failed, timed out or could not be reached. One series for each service the catalog names, whatever it is.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["service_type", "service_name", "outcome"],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.ApiDuration,
+    friendlyName: translationKey("Service API Answer Time"),
+    description: "How long a service in the catalog took to answer that read.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["service_type", "service_name"],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.CertificateExpiry,
+    friendlyName: translationKey("Certificate Days Left"),
+    description:
+      "Days until the certificate on an endpoint the catalog names expires, read off the connection the check made. It reads negative once it has expired.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Identity,
+    identityAttributes: ["host", "port"],
+    unit: "d",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleSuccess,
+    friendlyName: translationKey("Lifecycle Run Passed"),
+    description:
+      "Whether the last lifecycle run to finish in a region passed every step: 1 when it did, 0 when one failed. Said again each minute until the next run finishes, so at any moment it reads whether someone could have booted an instance, and its average over a month is how much of the month they could.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecyclePhaseSuccess,
+    friendlyName: translationKey("Lifecycle Phase Passed"),
+    description:
+      "What each part of the lifecycle check last came to, in the phase label: credential, boot, floating_ip, volume or cleanup. 1 when it passed and 0 when it failed. A part a run did not reach keeps what it last came to.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["phase"],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleStepSuccess,
+    friendlyName: translationKey("Lifecycle Step Passed"),
+    description:
+      "Whether each step of the last lifecycle run passed, in the step label: server_create, server_active, ping and the rest. Steps it did not reach have no series.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["step"],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleStepDuration,
+    friendlyName: translationKey("Lifecycle Step Time"),
+    description:
+      "How long each step of the last lifecycle run took, in the step label, for the steps that passed. server_active is the boot itself: from Nova accepting the request to the server being ACTIVE.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["step"],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleRunDuration,
+    friendlyName: translationKey("Lifecycle Run Time"),
+    description:
+      "How long the last lifecycle run took, from its first request to its last.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleRunAge,
+    friendlyName: translationKey("Lifecycle Run Age"),
+    description:
+      "How long ago the last lifecycle run finished. Past its interval and a run's time, runs are not finishing.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleLeftovers,
+    friendlyName: translationKey("Lifecycle Leftovers"),
+    description:
+      "How many things the last lifecycle run could not delete. The janitor removes them once they are older than two intervals. A few for a while is a cloud in trouble, and many is a quota about to run out.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "count",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleJanitorRemoved,
+    friendlyName: translationKey("Lifecycle Janitor Removed"),
+    description:
+      "How many things the janitor removed at the start of the last lifecycle run: what a run that died left behind.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "count",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleRefused,
+    friendlyName: translationKey("Lifecycle Credential Refused"),
+    description:
+      "1 while the lifecycle check refuses to write with its credential, because it could reach further than the check's own project, and so no run has a verdict. 0 otherwise.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+  }),
 
   // What the cloud stands on, as each exporter says it. Keep these to what something reads.
   metric({
@@ -2432,6 +2598,91 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["hostname", "service", "adminState", "disabledReason"],
     onlyFromProbe: true,
   }),
+  // Shared file systems: Manila, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_sharev2_up",
+    friendlyName: translationKey("Shared File Systems API Up"),
+    description:
+      "Whether Manila's API answered the exporter's calls (1) or every one of them failed (0). A stopped API does read 0, and every credential that can log in reads 1, so unlike the other services a cloud may not run this says only that. A stopped manila-share leaves this at 1. Only a cloud whose catalog names Manila has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_gb",
+    friendlyName: translationKey("Share Size"),
+    description:
+      "One series per share, its value how many GiB it was asked for. It carries the share's status as a label, and its value is never 0, so it is what says a share holds a status for a while. share_type_name is empty from the exporter, because it asks for no microversion. share_type holds the type's name.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [
+      "availability_zone",
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "status",
+    ],
+    probeOnlyAttributes: ["access_rules_status", "host"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_status",
+    friendlyName: translationKey("Share Status"),
+    description:
+      "One series per share. The value is a code for its status, and creating's code is 0, so read the `status` label for the word (available, error, creating). A plain reader gets its own project's shares here, and no error says so.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "size",
+      "status",
+    ],
+    probeOnlyAttributes: ["access_rules_status", "host"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_status_counter",
+    friendlyName: translationKey("Shares by Status"),
+    description:
+      "How many shares hold each status, per region, the nineteen words the exporter knows reading 0 until a share holds one. A count: it can't say which share, or tell one stuck from a stream passing through.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: ["status"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_shares_counter",
+    friendlyName: translationKey("Shares"),
+    description:
+      "How many shares Manila listed for this credential, per region. A plain reader counts its own project's.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_sharev2_agent_state",
+    friendlyName: translationKey("Manila Service Up"),
+    description:
+      "Whether Manila lists each service as up (1) or not (0). `state` says which of two ways it isn't: stopped when it shut down cleanly, recorded at once, and down only when it died and its heartbeat has grown old. Only a probe sends this, because the exporter never reads Manila's services, and only an admin may.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
+    onlyFromProbe: true,
+  }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_ironic_up",
@@ -2501,7 +2752,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     unit: "seconds",
   }),
   metric({
-    metricName: "openstack_ironic_conductor_state",
+    metricName: "openstack_ironic_agent_state",
     friendlyName: translationKey("Bare Metal Conductor Alive"),
     description:
       "1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list.",
@@ -2515,6 +2766,13 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
 
 export function getAllOpenStackMetrics(): Array<OpenStackMetricDefinition> {
   return openStackMetricCatalog;
+}
+
+// What the checks from outside report, for pages that only show those.
+export function getOpenStackCheckMetrics(): Array<OpenStackMetricDefinition> {
+  return openStackMetricCatalog.filter((m: OpenStackMetricDefinition) => {
+    return m.fromCheck === true;
+  });
 }
 
 export function getOpenStackMetricsByCategory(
@@ -2559,6 +2817,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Orchestration",
     "Bare Metal",
     "Projects",
+    "Checks",
     "Capacity",
   ];
 }

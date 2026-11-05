@@ -1,0 +1,7 @@
+$ openstack volume service list --service cinder-volume
+success: true
+exit code: 0
+
+[stdout]
+status   backend_state  binary         disabled_reason  frozen  host                       replication_status  state  updated_at                  zone
+enabled  up             cinder-volume                   false   compute-01@lvmdriver-1  disabled            up     2026-11-05T05:29:36.000000  nova

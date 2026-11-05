@@ -102,6 +102,9 @@ const CALM_VALUES: Record<string, number> = {
   "Sum|mysql.buffer_pool.data_pages|status=dirty": 120,
   "Sum|mysql.buffer_pool.pages|kind=total": 8192,
   "Max|mysql.replica.time_behind_source|": 0,
+  // MySQL: where a server stands in a Galera cluster, read with the agent's own SQL.
+  "Min|mysql.wsrep.local_state|": 4,
+  "Max|mysql.wsrep.desync_count|": 0,
   // Redis / Valkey
   "Count|redis.uptime|": 1,
   "Min|redis.uptime|": 86_400,
@@ -547,6 +550,40 @@ interface CriteriaFilterLike {
   filterType: FilterType;
   value: number | string;
 }
+
+/*
+ * As a real three-node MariaDB Galera read (run 41957567444, the Database Agent's own SQL): a node
+ * someone asked to fall out of step reads wsrep_local_state 2 with wsrep_desync_count 1, one cut
+ * off from the others reads 0 with no request standing, and a server in no cluster sends neither.
+ */
+describe("DatabaseHealth - a Galera node", () => {
+  const GALERA_LINE: string = "database-mysql-galera-node-out-of-sync";
+
+  function foundOn(values: Record<string, number>): Array<string> {
+    return assess(connectedRow("mariadb", values)).findings.flatMap(
+      (finding: DatabaseHealthFinding): Array<string> => {
+        return finding.templateIds;
+      },
+    );
+  }
+
+  test.each([
+    ["Synced", 4, 0, false],
+    ["asked to fall out of step for a backup", 2, 1, false],
+    ["out of step with nobody having asked", 2, 0, true],
+    ["outside the Primary component", 0, 0, true],
+  ])(
+    "%s",
+    (_state: string, localState: number, desyncs: number, found: boolean) => {
+      expect(
+        foundOn({
+          "Min|mysql.wsrep.local_state|": localState,
+          "Max|mysql.wsrep.desync_count|": desyncs,
+        }).includes(GALERA_LINE),
+      ).toBe(found);
+    },
+  );
+});
 
 describe("DatabaseHealth - the page's lines are the monitor's (seeded property test)", () => {
   test.each(

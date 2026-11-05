@@ -53,6 +53,7 @@ export interface OpenStackInventorySummary {
   storageUsedBytes: number;
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
   // The services a cloud may not run that this one does, in the region being read.
   optionalServices: Array<OpenStackServiceType>;
 }
@@ -96,6 +97,7 @@ export function toOpenStackInventorySummary(
     storageUsedBytes: readNumber("storageUsedBytes"),
     stackCount: readNumber("stackCount"),
     containerClusterCount: readNumber("containerClusterCount"),
+    shareCount: readNumber("shareCount"),
     optionalServices: getOpenStackOptionalServicesOf(services),
   };
 }
@@ -125,20 +127,6 @@ export async function fetchOpenStackInventorySummary(
   }
 
   return toOpenStackInventorySummary(response.data);
-}
-
-/*
- * Whether Ironic is here at all: it said so of itself, or there are rows from when it did. A cloud
- * without it never has either, because only Ironic's own series make them: an empty scrape of it
- * makes nothing (OpenStackSnapshotScan).
- */
-export function isOpenStackRunningBareMetal(
-  summary: Pick<OpenStackInventorySummary, "bareMetalNodeCount" | "services">,
-): boolean {
-  return (
-    summary.bareMetalNodeCount > 0 ||
-    summary.services.includes(OpenStackServiceType.BareMetal)
-  );
 }
 
 /*

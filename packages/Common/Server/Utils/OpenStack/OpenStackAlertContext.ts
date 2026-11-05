@@ -1,4 +1,5 @@
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudCheck from "../../../Models/DatabaseModels/OpenStackCloudCheck";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "../../../Types/Monitor/OpenStackAlertTemplates";
 import { JSONObject } from "../../../Types/JSON";
@@ -6,6 +7,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
   OpenStackBlastRadius,
+  OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
@@ -24,6 +26,12 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  OpenStackCheckFindings,
+  getOpenStackCheckFindings,
+  isOpenStackCheckMonitor,
+  openStackCheckFindingsToMarkdown,
+} from "../../../Utils/OpenStack/OpenStackCheckFindings";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
@@ -50,6 +58,7 @@ import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import MetricService from "../../Services/MetricService";
+import OpenStackCloudCheckService from "../../Services/OpenStackCloudCheckService";
 import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import OpenStackResourceService from "../../Services/OpenStackResourceService";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -301,6 +310,8 @@ export interface OpenStackAlertContextResult {
    * responsible, with how long each is waiting where the source says.
    */
   busiestInstances?: Array<OpenStackBusyInstance> | undefined;
+  // On a check's series, what the run met: the step, and the fault in the service's own words.
+  checkFindings?: OpenStackCheckFindings | undefined;
   /*
    * What the cloud stands on that is down right now and would take this part with it: the
    * first thing whoever this wakes asks. Most of the time an alert like this waits for that
@@ -380,6 +391,26 @@ export default class OpenStackAlertContext {
       domainId: null,
       partKind: null,
     };
+
+    /*
+     * A check's series name a region and no part of it, and what makes its incident worth reading
+     * is on the check's own row, not in a label.
+     */
+    if (isOpenStackCheckMonitor(data.metricNames || [])) {
+      const findings: OpenStackCheckFindings | null =
+        await this.readCheckFindings({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          seriesLabels: data.seriesLabels,
+          metricNames: data.metricNames || [],
+        });
+
+      if (findings) {
+        result.checkFindings = findings;
+      }
+
+      return result;
+    }
 
     for (const candidate of getOpenStackPartOfSeries(
       data.seriesLabels,
@@ -521,6 +552,38 @@ export default class OpenStackAlertContext {
     }
 
     return result;
+  }
+
+  // Never in the way: the incident still opens, and the check's page says what the run met.
+  public static async readCheckFindings(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    seriesLabels: JSONObject | undefined;
+    metricNames: ReadonlyArray<string>;
+  }): Promise<OpenStackCheckFindings | null> {
+    try {
+      const check: OpenStackCloudCheck | null =
+        await OpenStackCloudCheckService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+          },
+          select: { apiCheckResult: true, lifecycleRecords: true },
+          props: { isRoot: true },
+        });
+
+      return getOpenStackCheckFindings({
+        labels: data.seriesLabels,
+        metricNames: data.metricNames,
+        apiCheckResult: check?.apiCheckResult,
+        lifecycleRecords: check?.lifecycleRecords,
+      });
+    } catch (error) {
+      logger.warn(
+        `Could not read what an OpenStack check met: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
   }
 
   // Never in the way: an alert that cannot say why still fires, and says what it can.
@@ -701,6 +764,10 @@ export default class OpenStackAlertContext {
   public static toMarkdown(context: OpenStackAlertContextResult): string {
     const sections: Array<MarkdownText> = [];
 
+    if (context.checkFindings) {
+      sections.push(openStackCheckFindingsToMarkdown(context.checkFindings));
+    }
+
     // First, because it is what whoever this wakes needs before anything else here.
     if (context.probableCauses && context.probableCauses.length > 0) {
       sections.push(
@@ -766,8 +833,18 @@ export default class OpenStackAlertContext {
       const name: string = owner.name || owner.externalId;
       sections.push(
         owner.kind === OpenStackResourceKind.ContainerCluster
-          ? mdText`**Built for Kubernetes cluster:** ${name}. A failure of this stack is a failure of that cluster.`
+          ? mdText`**Part of Kubernetes cluster:** ${name}. A failure here is a failure of that cluster, and openstack coe cluster show says which node group failed.`
           : mdText`**Built with Heat stack:** ${name}. openstack stack failures list on it says what failed.`,
+      );
+    }
+
+    if (radius?.magnumClusters && radius.magnumClusters.length > 0) {
+      sections.push(
+        mdText`**Kubernetes clusters with a server on it:** ${radius.magnumClusters
+          .map((owner: OpenStackBlastRadiusOwner): string => {
+            return owner.name || owner.externalId;
+          })
+          .join(", ")}.`,
       );
     }
 

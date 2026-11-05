@@ -8,7 +8,10 @@ import {
   OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -59,6 +62,12 @@ export const OPENSTACK_STACK_STUCK_MINUTES: number = 120;
 export const OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES: number = 120;
 
 /*
+ * Manila has no timeout of its own for a share a backend is slow with, so one can stay `creating` for
+ * as long as the backend takes, recorded for 50 minutes on a backend told to take that long, and a
+ * backend that hung reads just the same. Longer than a volume's, because a share's backend does more.
+ */
+export const OPENSTACK_SHARE_STUCK_MINUTES: number = 60;
+/*
  * Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node is then
  * in a failed state, which says so itself. Past twice that and as long again, Ironic has not given
  * up and nothing has moved. A long disk erase can honestly take this long: the page sees its
@@ -93,6 +102,20 @@ export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
  * somebody probably forgot it.
  */
 export const OPENSTACK_SERVICE_DISABLED_WARNING_DAYS: number = 7;
+
+/*
+ * How close a public endpoint's certificate may come to its end. A month is when someone can
+ * still renew it in working hours, and a week is when it is about to take every user with it.
+ */
+export const OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 30;
+export const OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS: number = 7;
+
+/*
+ * How long a lifecycle run's server may take to reach ACTIVE before a boot counts as slow. Tempest's
+ * own build_timeout, which is how long OpenStack's own tests give a server, and well under what a
+ * run waits before calling a boot failed.
+ */
+export const OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS: number = 300;
 
 /*
  * The same for a node: in maintenance on purpose, until it has been there so long that somebody
@@ -169,7 +192,8 @@ export function isOpenStackServiceDown(data: {
   adminState?: string | null | undefined;
 }): boolean {
   return (
-    data.status === OPENSTACK_SERVICE_STATUS_DOWN &&
+    (data.status === OPENSTACK_SERVICE_STATUS_DOWN ||
+      data.status === OPENSTACK_SERVICE_STATUS_STOPPED) &&
     !isOpenStackAdminDisabled(data.adminState)
   );
 }
@@ -422,6 +446,24 @@ export function isOpenStackBareMetalNodeId(
     }
   }
   return true;
+}
+
+export function isOpenStackShareInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_SHARE_ERROR_STATUSES.has(status));
+}
+
+export function isOpenStackShareStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (!data.status || !OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(data.status)) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return minutes !== null && minutes >= OPENSTACK_SHARE_STUCK_MINUTES;
 }
 
 export function isOpenStackVolumeInError(

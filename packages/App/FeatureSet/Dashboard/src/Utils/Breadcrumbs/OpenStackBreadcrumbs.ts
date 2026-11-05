@@ -104,6 +104,14 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL,
       ["Project", "OpenStack", "View Cloud", "Routers", "Router Detail"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+      ["Project", "OpenStack", "View Cloud", "Bare Metal"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+      ["Project", "OpenStack", "View Cloud", "Bare Metal", "Node Detail"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS, [
       "Project",
       "OpenStack",
@@ -242,6 +250,19 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
         "Kubernetes Cluster Detail",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SHARES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Shares",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Shares",
+      "Share Detail",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE,
       ["Project", "OpenStack", "View Cloud", "What It Stands On"],
@@ -320,6 +341,12 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "OpenStack",
       "View Cloud",
       "Traces",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_CHECKS, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Checks",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, [
       "Project",

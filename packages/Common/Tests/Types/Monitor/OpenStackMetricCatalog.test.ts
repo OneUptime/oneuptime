@@ -1,3 +1,4 @@
+import { OpenStackCheckMetric } from "../../../Utils/OpenStack/OpenStackCheckMetrics";
 import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
@@ -140,8 +141,14 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_ironic_up",
   // Always 1: what it says is in its labels, as a status series' word is.
   "openstack_ironic_node",
-  "openstack_ironic_conductor_state",
+  "openstack_ironic_agent_state",
   "up",
+  "openstack_check_token_success",
+  "openstack_check_api_success",
+  "openstack_check_lifecycle_success",
+  "openstack_check_lifecycle_phase_success",
+  "openstack_check_lifecycle_step_success",
+  "openstack_check_lifecycle_refused",
   "openstack_identity_up",
   "openstack_nova_up",
   "openstack_neutron_up",
@@ -153,6 +160,9 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_container_infra_up",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
+  "openstack_sharev2_up",
+  "openstack_sharev2_share_status",
+  "openstack_sharev2_agent_state",
   "openstack_placement_up",
   "openstack_nova_agent_state",
   "openstack_neutron_agent_state",
@@ -201,6 +211,7 @@ describe("OpenStackMetricCatalog", () => {
             metric.onlyFromProbe !== true &&
             metric.fromInstanceSource !== true &&
             metric.fromSummaryMode !== true &&
+            metric.fromCheck !== true &&
             metric.fromCapacity !== true
           );
         })
@@ -229,8 +240,9 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_snapshot_gb",
         "openstack_container_infra_agent_state",
         "openstack_heat_agent_state",
-        "openstack_ironic_conductor_state",
+        "openstack_ironic_agent_state",
         "openstack_placement_flavor_fits",
+        "openstack_sharev2_agent_state",
       ]);
 
       for (const metric of onlyFromProbe) {
@@ -274,6 +286,8 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_nova_server_status",
         "openstack_nova_up",
         "openstack_placement_up",
+        "openstack_sharev2_share_gb",
+        "openstack_sharev2_share_status",
       ]);
 
       for (const metric of marked) {
@@ -293,6 +307,7 @@ describe("OpenStackMetricCatalog", () => {
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
           metricCase[1].fromSummaryMode !== true &&
+          metricCase[1].fromCheck !== true &&
           metricCase[1].fromCapacity !== true &&
           !metricCase[1].dependency
         );
@@ -306,6 +321,26 @@ describe("OpenStackMetricCatalog", () => {
         expect(metric.service).toBe(OPENSTACK_EXPORTER_SERIES[name]!.service);
       },
     );
+
+    test("every series the checks from outside send is here, and says so", () => {
+      expect(
+        METRICS.filter((metric: OpenStackMetricDefinition): boolean => {
+          return metric.fromCheck === true;
+        })
+          .map((metric: OpenStackMetricDefinition): string => {
+            return metric.metricName;
+          })
+          .sort(),
+      ).toEqual([...Object.values(OpenStackCheckMetric)].sort());
+
+      for (const metric of METRICS) {
+        if (metric.fromCheck) {
+          expect(metric.category).toBe("Checks");
+          // The exporter has none of them: these stand on nothing it could change.
+          expect(OPENSTACK_EXPORTER_SERIES[metric.metricName]).toBeUndefined();
+        }
+      }
+    });
 
     test("every series worked out from libvirt or Ceilometer is here, and says so", () => {
       const named: Array<string> = METRICS.filter(
