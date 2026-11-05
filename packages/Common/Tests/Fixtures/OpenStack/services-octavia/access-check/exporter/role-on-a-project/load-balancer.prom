@@ -1,14 +1,14 @@
 # HELP openstack_loadbalancer_loadbalancer_status loadbalancer_status
 # TYPE openstack_loadbalancer_loadbalancer_status gauge
-openstack_loadbalancer_loadbalancer_status{id="27c8eb38-e43d-4f03-82b9-e6f4e714fa38",name="ou-lb",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.124"} 0
-openstack_loadbalancer_loadbalancer_status{id="3ababc03-93f7-4b7f-90be-3aec0b457dc6",name="ou-lb-ha",operating_status="DEGRADED",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.147"} -1
-openstack_loadbalancer_loadbalancer_status{id="c5b33ea0-43bb-4f9e-823e-10a848867f50",name="ou-lb-failed",operating_status="OFFLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="amphora",provisioning_status="ERROR",vip_address="10.77.0.64"} 2
-openstack_loadbalancer_loadbalancer_status{id="fd511df0-8732-465f-a86c-c5ed171bd45a",name="ou-lb-ovn",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",provider="ovn",provisioning_status="ACTIVE",vip_address="10.77.0.91"} 0
+openstack_loadbalancer_loadbalancer_status{id="26ad4550-f695-4a4f-9840-f2b4f692703b",name="ou-lb-ovn",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="ovn",provisioning_status="ACTIVE",vip_address="10.77.0.74"} 0
+openstack_loadbalancer_loadbalancer_status{id="47126dd6-08cb-42a3-b6f3-aa2e50c3850e",name="ou-lb-failed",operating_status="OFFLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="amphora",provisioning_status="ERROR",vip_address="10.77.0.199"} 2
+openstack_loadbalancer_loadbalancer_status{id="86e276ff-1f82-4ff2-80c8-ddefae0c9b92",name="ou-lb",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.165"} 0
+openstack_loadbalancer_loadbalancer_status{id="ad0ffee2-b6c7-4351-908d-53828afc6367",name="ou-lb-ha",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.85"} 0
 # HELP openstack_loadbalancer_pool_status pool_status
 # TYPE openstack_loadbalancer_pool_status gauge
-openstack_loadbalancer_pool_status{id="191471d8-1ec1-4158-a922-b009bfdaac33",lb_algorithm="ROUND_ROBIN",loadbalancers="27c8eb38-e43d-4f03-82b9-e6f4e714fa38",name="ou-lb-pool",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",protocol="HTTP",provisioning_status="ACTIVE"} 0
-openstack_loadbalancer_pool_status{id="40b78599-cb3d-4380-b0be-e08061b3ef4f",lb_algorithm="ROUND_ROBIN",loadbalancers="3ababc03-93f7-4b7f-90be-3aec0b457dc6",name="ou-lb-ha-pool",operating_status="DEGRADED",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",protocol="HTTP",provisioning_status="ACTIVE"} 0
-openstack_loadbalancer_pool_status{id="a32f3ed1-80e4-4d98-968e-c9849d1fdc9b",lb_algorithm="SOURCE_IP_PORT",loadbalancers="fd511df0-8732-465f-a86c-c5ed171bd45a",name="ou-lb-ovn-pool",operating_status="ONLINE",project_id="1e59c0ba8e5c4bce9ce2fe412624b16a",protocol="TCP",provisioning_status="ACTIVE"} 0
+openstack_loadbalancer_pool_status{id="a7b18438-fecf-4868-abbe-dda2fe0dd054",lb_algorithm="ROUND_ROBIN",loadbalancers="ad0ffee2-b6c7-4351-908d-53828afc6367",name="ou-lb-ha-pool",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",protocol="HTTP",provisioning_status="ACTIVE"} 0
+openstack_loadbalancer_pool_status{id="c8be32a6-b417-47e0-925c-83682f0c85f5",lb_algorithm="SOURCE_IP_PORT",loadbalancers="26ad4550-f695-4a4f-9840-f2b4f692703b",name="ou-lb-ovn-pool",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",protocol="TCP",provisioning_status="ACTIVE"} 0
+openstack_loadbalancer_pool_status{id="de863bbd-74a7-4453-95bc-eb4d350fc62a",lb_algorithm="ROUND_ROBIN",loadbalancers="86e276ff-1f82-4ff2-80c8-ddefae0c9b92",name="ou-lb-pool",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",protocol="HTTP",provisioning_status="ACTIVE"} 0
 # HELP openstack_loadbalancer_total_loadbalancers total_loadbalancers
 # TYPE openstack_loadbalancer_total_loadbalancers gauge
 openstack_loadbalancer_total_loadbalancers 4

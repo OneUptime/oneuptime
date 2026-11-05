@@ -65,13 +65,14 @@ import ObjectID from "Common/Types/ObjectID";
  * the real dependency suppression and the real incident creators and resolve pass. What is stood
  * in for is storage: ClickHouse by the folded rows, Postgres by the records below.
  *
- * WHERE THE PROOF STOPS. No OneUptime ran beside the cloud. The drills lasted 3 to 5 minutes and a
- * template's window is 5 to 10, so a drill's last minute is held until 14 minutes in, which nobody
- * recorded. So is its one reading after recovery, and the exporter's series behind it (below) are
- * held back for LAG_MINUTES, because the agent collects those every 2 to 5 minutes while the
- * recording read them as they were. The series are what the exporters really said, the agent's
- * collector having made them what it sends is OpenStackControlPlaneScenes' work, and the single
- * node of a DevStack is one machine of everything.
+ * WHERE THE PROOF STOPS. Storage is stood in for here. Tests/Ops/openstack-e2e/live-oneuptime.py
+ * sends the same drills to a running OneUptime and reads the same answer back from its API (run
+ * 41990785805). Neither has a cloud beside it. The drills lasted 3 to 5 minutes and a template's
+ * window is 5 to 10, so a drill's last minute is held until 14 minutes in, which nobody recorded.
+ * So is its one reading after recovery, and the exporter's series behind it (below) are held back
+ * for LAG_MINUTES, because the agent collects those every 2 to 5 minutes while the recording read
+ * them as they were. The series are what the exporters really said, and the single node of a
+ * DevStack is one machine of everything.
  */
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {

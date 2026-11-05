@@ -861,6 +861,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/openstack": {
+    title: "Monitoring for OpenStack | Clouds & Instances | OneUptime",
+    description:
+      "Monitor an OpenStack cloud from what needs someone first down to the hypervisor, instance, network and volume behind it, with incidents, on-call and status pages in the same product. Agent or agentless, self-hosted and air-gap capable. Open source.",
+    canonicalPath: "/product/openstack",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "OpenStack", url: "/product/openstack" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Monitoring for OpenStack",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor an OpenStack cloud with one agent or a probe and no agent: a triage-first overview, services, hypervisors, instances, networks, volumes, storage pools, projects, capacity and spend, ready-made alert templates, and incidents with on-call and status pages in a single product.",
+      features: [
+        "Overview that lists what needs someone first",
+        "Services, hypervisors, instances, networks, volumes, storage pools, images and projects",
+        "Capacity: how many more of each flavor fit, and days until full",
+        "Spend and unused resources by project",
+        "More than 90 ready-made alert templates",
+        "What the cloud stands on: RabbitMQ, MariaDB and Galera, Memcached, HAProxy, OVN",
+        "Service logs, lifecycle events and audit trails",
+        "Checks from outside, including booting an instance",
+        "Incidents, on-call and status pages in the same product",
+        "Agent or agentless collection",
+        "Self-hosted and air-gap capable",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/docker-swarm": {
     title: "Docker Swarm Monitoring | Nodes & Services | OneUptime",
     description:

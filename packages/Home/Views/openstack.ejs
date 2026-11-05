@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+  <%- include('./Partials/tailwind-stylesheet') -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="openstack-hero-section">
+      <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(14,165,233,0.09),transparent_70%)]" aria-hidden="true"></div>
+
+      <div class="pb-8 pt-20 sm:pt-28 lg:pt-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <p class="text-sm font-medium text-sky-600 mb-4">OpenTelemetry-native monitoring for OpenStack</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Know what to fix first in your OpenStack cloud
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Open the Overview and it starts with what needs someone: a worker that is down, a pool filling up, an instance that never finished building. Every hypervisor, network and volume is one click below, and the incident, on-call and status page are in the same product.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Triage first</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>The whole stack in one place</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Agent or no agent</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Self-hosted and air-gap capable</span>
+            </div>
+          </div>
+
+          <!-- Hero visual: the triage list -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-3xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <div class="bg-gray-50 px-5 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <%- include('./Partials/icons/openstack', {iconClass: 'h-4 w-4'}) %>
+                      <span class="text-sm text-gray-700 font-semibold">Needs attention</span>
+                    </div>
+                    <span class="text-xs text-gray-400">Example data</span>
+                  </div>
+                  <div class="divide-y divide-gray-100">
+                    <div class="flex items-center justify-between gap-3 px-4 py-3">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-medium text-gray-900">Compute Service Down</p>
+                        <p class="truncate text-xs text-gray-500">nova-compute on compute-07 · RegionOne</p>
+                      </div>
+                      <span class="flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset bg-rose-50 text-rose-700 ring-rose-200">Critical</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 px-4 py-3">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-medium text-gray-900">Storage Pool Warning</p>
+                        <p class="truncate text-xs text-gray-500">cinder pool ceph-ssd · 86% full</p>
+                      </div>
+                      <span class="flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-200">Warning</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 px-4 py-3">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-medium text-gray-900">Instance Stuck Building</p>
+                        <p class="truncate text-xs text-gray-500">web-canary · project payments · 41 min</p>
+                      </div>
+                      <span class="flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-200">Warning</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 px-4 py-3">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-medium text-gray-900">Router Without Active Agent</p>
+                        <p class="truncate text-xs text-gray-500">router-edge-2 · RegionTwo</p>
+                      </div>
+                      <span class="flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset bg-rose-50 text-rose-700 ring-rose-200">Critical</span>
+                    </div>
+                  </div>
+                  <div class="bg-gray-50 px-5 py-3 text-xs text-gray-500 border-t border-gray-100">Everything else is fine, and one click shows it.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Triage First -->
+    <div class="relative bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">Triage first</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Start with the problem, not the inventory</h2>
+          <p class="mt-4 text-lg text-gray-600">A cloud has thousands of parts and only a few of them need you. The Overview lists those first and says how many others are fine.</p>
+        </div>
+        <ul class="mx-auto max-w-2xl space-y-3 text-gray-600">
+          <li class="flex gap-3"><svg class="h-4 w-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>A worker that is down says which host, and the topology shows what it takes with it.</span></li>
+          <li class="flex gap-3"><svg class="h-4 w-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Planned work never pages. A host in maintenance or a service someone disabled is not an emergency.</span></li>
+          <li class="flex gap-3"><svg class="h-4 w-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Allocation is not usage. A hypervisor that has promised its memory to instances is a capacity question, not an outage.</span></li>
+          <li class="flex gap-3"><svg class="h-4 w-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Alerts recover on their own when the cause goes away, and each one watches several collections so a single bad read does not wake anyone.</span></li>
+          <li class="flex gap-3"><svg class="h-4 w-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>On a very large cloud the pages stay small, because none of them reads the whole cloud.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Whole stack -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">The whole stack in one place</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">From the API to the database underneath it</h2>
+          <p class="mt-4 text-lg text-gray-600">Most OpenStack outages begin under the cloud. OneUptime reads the services, the machines and what they stand on together, so you do not stitch three tools to find one cause.</p>
+        </div>
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Control plane</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Keystone, Nova, Neutron, Cinder, Glance and Placement each report on their own, so a failing Nova costs only Nova's charts. Services and agents show which worker is down on which host.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Hypervisors and instances</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Every hypervisor, its vCPU, memory and disk allocation against what it can give, and every instance in every project, with the ones in error or stuck building first.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Networks and routers</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Networks, subnets, routers, floating IPs and the agents behind them, with alerts for a router with no active agent, a floating IP that stopped being active and an external pool nearly full.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Volumes, pools and images</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Volumes, snapshots, storage pools and images. Pool alerts need the full view, which the setup page explains before you pick a credential.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Projects and domains</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">What each project runs and what needs attention in it, so you can send a project's alerts to its team. Quotas are off until you turn them on.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Capacity and spend</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">How many more of each flavor fit, host by host, and how many days until each pool or resource is full. Spend shows vCPU-hours, memory and storage by project, at your prices or as CloudKitty rated them.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">What the cloud stands on</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">RabbitMQ, MariaDB and Galera, Memcached, HAProxy, Open vSwitch and OVN, and libvirt, read from the exporters they already have. Off until you name them, and a dependency you have not named reads as not watched, never as healthy.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Logs, events and audit</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Service logs parsed, with a request followed across services. Instance lifecycle events on the feed. Keystone's audit trail into Security Events. All optional, all off until you turn them on.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Checks from outside</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">API checks from a probe outside the cloud, and an optional check that boots a real instance and cleans up after itself, so you learn that nobody can boot before a user tells you.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-900">Heat, Magnum, Manila, Ironic</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">If your cloud runs them, stacks, Kubernetes clusters, shares and bare metal nodes get their own pages and alerts. If it does not, there is no trace of them.</p>
+          </div>
+        </div>
+        <p class="mt-8 text-center text-sm text-gray-500">More than 90 ready-made alert templates cover these, and the cloud only shows the ones for what it runs.</p>
+      </div>
+    </div>
+
+    <!-- Incident flow -->
+    <div class="relative bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">From alert to resolution</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">The incident, the on-call page and the status page are the same product</h2>
+          <p class="mt-4 text-lg text-gray-600">An alert that fires on your cloud opens an incident on that cloud. On-call policies page the right person, the status page tells your users, and OneUptime AI can look into it with read-only commands and cite what it ran. No exporter, Alertmanager and pager to wire together.</p>
+        </div>
+        <div class="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-4 text-center">
+          <a href="/product/monitoring" class="rounded-xl border border-gray-200 p-5 hover:border-sky-200 hover:shadow-md"><p class="text-sm font-semibold text-gray-900">Monitor</p><p class="mt-1 text-xs text-gray-500">Alert templates on your cloud</p></a>
+          <a href="/product/incident-management" class="rounded-xl border border-gray-200 p-5 hover:border-sky-200 hover:shadow-md"><p class="text-sm font-semibold text-gray-900">Incident</p><p class="mt-1 text-xs text-gray-500">Opened on the right cloud</p></a>
+          <a href="/product/on-call" class="rounded-xl border border-gray-200 p-5 hover:border-sky-200 hover:shadow-md"><p class="text-sm font-semibold text-gray-900">On-call</p><p class="mt-1 text-xs text-gray-500">Page the right person</p></a>
+          <a href="/product/status-page" class="rounded-xl border border-gray-200 p-5 hover:border-sky-200 hover:shadow-md"><p class="text-sm font-semibold text-gray-900">Status page</p><p class="mt-1 text-xs text-gray-500">Tell your users</p></a>
+        </div>
+        <p class="mx-auto mt-8 max-w-2xl text-center text-sm text-gray-500">Already run Prometheus Alertmanager? Point it at OneUptime and every alert that fires becomes an incident from the first hour, with nothing to install.</p>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">How it works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">From a credential to a reporting cloud</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6">
+            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sm font-semibold text-sky-700 ring-1 ring-sky-200">1</div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Make a credential</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">An application credential limited to reading is the best one. The setup page says what each level of access sees and gives you the commands.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6">
+            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sm font-semibold text-sky-700 ring-1 ring-sky-200">2</div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Run the agent, or connect a probe</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">One install script (Docker, Docker Compose or no Docker) on a machine outside the cloud, or enter the address and credential in OneUptime and let a probe collect it. Nothing to install.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6">
+            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sm font-semibold text-sky-700 ring-1 ring-sky-200">3</div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">See the cloud</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">It appears under its name within a few minutes, with its regions, hypervisors and projects. The Overview starts with what needs attention.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6">
+            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sm font-semibold text-sky-700 ring-1 ring-sky-200">4</div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Turn on alerts</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">The Recommendations page offers ready-made alert templates for what your cloud runs. Pick the ones you want, and route them to on-call.</p>
+          </div>
+        </div>
+        <p class="mt-8 text-center text-sm text-gray-600">Setup guides: <a href="/docs/telemetry/openstack" class="font-medium text-sky-600 hover:text-sky-700">agent</a>, <a href="/docs/telemetry/openstack-agentless" class="font-medium text-sky-600 hover:text-sky-700">no agent</a>, <a href="/docs/telemetry/openstack-deployment-tools" class="font-medium text-sky-600 hover:text-sky-700">by deployment tool</a> and <a href="/docs/monitor/openstack-monitor" class="font-medium text-sky-600 hover:text-sky-700">monitors and alerts</a>.</p>
+      </div>
+    </div>
+
+    <!-- What has been tested -->
+    <div class="relative bg-white py-24 sm:py-32" id="openstack-tested">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-12">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">What has been tested</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Said plainly, so you know what to check</h2>
+          <p class="mt-4 text-lg text-gray-600">What the product reads was recorded from real clouds running Epoxy, Flamingo, Gazpacho and Hibiscus. A live OneUptime took a real DevStack's data from an agent installed with the docs' own commands. How far each deployment tool's guide has been run:</p>
+        </div>
+        <dl class="divide-y divide-gray-200 border-y border-gray-200">
+          <div class="py-5 sm:grid sm:grid-cols-4 sm:gap-6">
+            <dt class="text-sm font-semibold text-gray-900">Kolla-Ansible</dt>
+            <dd class="mt-1 text-sm text-gray-600 leading-relaxed sm:col-span-3 sm:mt-0">Its guide was followed on a real all-in-one deployment: the agent, its exporters and the logs profile. Its Alertmanager posted nothing in our test, so no alert has gone from a Kolla-Ansible stack to OneUptime.</dd>
+          </div>
+          <div class="py-5 sm:grid sm:grid-cols-4 sm:gap-6">
+            <dt class="text-sm font-semibold text-gray-900">OpenStack-Ansible</dt>
+            <dd class="mt-1 text-sm text-gray-600 leading-relaxed sm:col-span-3 sm:mt-0">Its settings for RabbitMQ and HAProxy were applied on a real all-in-one and each exporter answered. The agent steps have not yet been run on a cloud it deployed.</dd>
+          </div>
+          <div class="py-5 sm:grid sm:grid-cols-4 sm:gap-6">
+            <dt class="text-sm font-semibold text-gray-900">OpenStack-Helm and Atmosphere</dt>
+            <dd class="mt-1 text-sm text-gray-600 leading-relaxed sm:col-span-3 sm:mt-0">The probe and the Kubernetes agent were each run on their own. The guides themselves were written from the tools' docs and source.</dd>
+          </div>
+          <div class="py-5 sm:grid sm:grid-cols-4 sm:gap-6">
+            <dt class="text-sm font-semibold text-gray-900">Red Hat OpenStack on OpenShift</dt>
+            <dd class="mt-1 text-sm text-gray-600 leading-relaxed sm:col-span-3 sm:mt-0">The OpenShift preset and Ceilometer's exporter were each run on their own.</dd>
+          </div>
+          <div class="py-5 sm:grid sm:grid-cols-4 sm:gap-6">
+            <dt class="text-sm font-semibold text-gray-900">Canonical Sunbeam and Mirantis MOSK</dt>
+            <dd class="mt-1 text-sm text-gray-600 leading-relaxed sm:col-span-3 sm:mt-0">Written from the tools' docs and source. Not run on either.</dd>
+          </div>
+        </dl>
+        <p class="mt-6 text-sm text-gray-500">The docs carry the same table and are updated first. If your tool says "not run", the agent and the probe still read the cloud's standard APIs, and the guide's tool-specific steps are the part to test.</p>
+      </div>
+    </div>
+
+    <!-- Open source, self-hosted, air-gapped -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">Open source, on your terms</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Run it where your cloud runs</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <h3 class="text-xl font-semibold text-gray-900">OneUptime Cloud</h3>
+            <p class="mt-3 text-gray-600 leading-relaxed">Usage-based: you pay for the telemetry you send, not per hypervisor, per instance or per core. The defaults read gently, and the docs say what a cloud of each size sends and costs your control plane.</p>
+            <a href="/pricing" class="mt-6 inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700">See pricing <span aria-hidden="true">&rarr;</span></a>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <h3 class="text-xl font-semibold text-gray-900">Self-hosted and air-gapped</h3>
+            <p class="mt-3 text-gray-600 leading-relaxed">OneUptime is open source. Run all of it, OpenStack included, on your own Kubernetes cluster or Docker host and keep every metric inside your network. Behind an air gap, your install serves the agent's installer and you copy its four images to your own registry.</p>
+            <ul class="mt-6 space-y-2 text-sm text-gray-600">
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Agent images, and how to mirror them, are listed in the docs</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>A probe on your network can collect a cloud with no agent</li>
+            </ul>
+            <a href="/enterprise/air-gapped/infrastructure" class="mt-6 inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700">Air-gapped infrastructure <span aria-hidden="true">&rarr;</span></a>
+            <span class="mx-2 text-gray-300">|</span>
+            <a href="/enterprise/self-hosted" class="mt-6 inline-flex items-center gap-1 text-sm font-medium text-sky-600 hover:text-sky-700">Self-hosting guide <span aria-hidden="true">&rarr;</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="relative bg-white py-24 sm:py-32" id="openstack-faq">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">FAQ</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Questions OpenStack operators ask</h2>
+        </div>
+        <dl class="divide-y divide-gray-200">
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Which OpenStack releases does it work with?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">It was built and checked against recordings from real clouds running Epoxy, Flamingo, Gazpacho (with OVN and with Open vSwitch) and Hibiscus. It reads the standard service APIs, so other releases that answer the same calls should work, but those are the ones we have recordings of.</dd>
+          </div>
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Do I need to install anything on my controllers or compute nodes?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">No. The agent runs on a machine outside the cloud and reads its APIs. A probe needs nothing installed at all. Nothing runs on your controllers or compute nodes unless you choose the optional logs or traces profiles.</dd>
+          </div>
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">What does the credential need?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">OpenStack has no global read-only role, so there are three levels. A credential with admin on a project of its own, limited to reading by access rules, sees everything. The monitoring role sees all of compute and placement but not every project's networks and volumes. A plain reader on a project sees only that project. The setup page lists exactly what each level reads, from what real clouds answered.</dd>
+          </div>
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Which deployment tools does it work with?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">The agent and the probe read the standard APIs, so they do not depend on how the cloud was deployed. The setup guide adds the steps that are particular to each tool: Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Canonical Sunbeam, Red Hat OpenStack on OpenShift and Mirantis MOSK. How far each guide has been run is in the table above, and the docs say the same.</dd>
+          </div>
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">How large a cloud can it watch?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Its load on your control plane is counted and limited by design, and the largest size was tested with an hour of collections against a simulated cloud of 5,000 hypervisors and 200,000 instances. That was a simulation that answers at once, not a real cloud of that size, and no cloud that large has run against it. Clouds past 5,000 instances use a summary mode, which the docs describe along with what it gives up.</dd>
+          </div>
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Does it work with no internet?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Yes. The installer comes from your own OneUptime, and the agent's four images are copied to a registry you run. The docs list them and the commands. The install without Docker downloads from GitHub and has no mirror option, so use Docker behind an air gap.</dd>
+          </div>
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Is this an OpenStack project?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">No. OneUptime is not part of the OpenStack project and is not endorsed by or affiliated with the OpenInfra Foundation. OpenStack is a trademark of the OpenInfra Foundation, and this page uses the name only to say which software OneUptime monitors.</dd>
+          </div>
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Where do I start?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Create a project, open <strong class="font-medium text-gray-800">OpenStack</strong> in the sidebar and connect a cloud. The <a href="/docs/telemetry/openstack" class="text-sky-600 hover:text-sky-700 font-medium">agent guide</a> and the <a href="/docs/telemetry/openstack-agentless" class="text-sky-600 hover:text-sky-700 font-medium">guide for the probe</a> take you from a credential to a cloud that reports.</dd>
+          </div>
+        </dl>
+        <p class="mt-12 text-xs text-gray-400">OpenStack is a trademark of the OpenInfra Foundation. OneUptime is not an OpenStack project and is not endorsed by or affiliated with the OpenInfra Foundation.</p>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>
