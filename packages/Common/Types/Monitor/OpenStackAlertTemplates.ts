@@ -286,6 +286,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.KeyManager]: RollingTime.Past15Minutes,
   [OpenStackServiceType.ObjectStore]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Metric]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Dns]: RollingTime.Past15Minutes,
@@ -307,6 +308,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
   [OpenStackServiceType.Database]: "openstack_trove_up",
+  [OpenStackServiceType.KeyManager]: "openstack_barbican_up",
   [OpenStackServiceType.ObjectStore]: "openstack_object_store_up",
   [OpenStackServiceType.Metric]: "openstack_gnocchi_up",
   [OpenStackServiceType.Dns]: "openstack_designate_up",
@@ -3206,6 +3208,44 @@ const objectContainerGrowthTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Key manager: Barbican, on a cloud a probe collects ---
+
+const keyManagerApiDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-key-manager-api-down",
+  name: "Key Manager API Down",
+  forService: OpenStackServiceType.KeyManager,
+  requiresProbe: true,
+  summary: "Barbican's API does not answer, on a cloud a probe collects.",
+  description:
+    "Alert when Barbican's API does not answer for 15 minutes (openstack_barbican_up reads 0, which only a probe sends: the exporter has no reader for Barbican at all, recorded). One incident per region. A credential Barbican refuses still reads as answering, because it did. Check the barbican-api service and its log, then `openstack secret list` with a credential that works.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.KeyManager,
+      hasOwnAnchor: true,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "api_up",
+          metricName:
+            OPENSTACK_API_UP_METRIC_BY_SERVICE[OpenStackServiceType.KeyManager],
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Key Manager API Down",
+        incidentDescription:
+          "Barbican's API is not answering, so nothing can read or store a secret: whatever keeps its encryption keys there, such as an encrypted volume, can't be attached. Check the barbican-api service and its log, then openstack secret list with a credential that works. The incident resolves on its own once it answers again.",
+        criteriaName: "Key Manager API Down - not answering",
+        criteriaDescription:
+          "Triggers when Barbican's API does not answer for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
@@ -3791,6 +3831,7 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     shareInErrorTemplate,
     shareStuckTemplate,
     databaseApiDownTemplate,
+    keyManagerApiDownTemplate,
     objectStoreApiDownTemplate,
     objectContainerGrowthTemplate,
     metricApiDownTemplate,

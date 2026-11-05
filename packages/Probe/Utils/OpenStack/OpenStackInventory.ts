@@ -1427,6 +1427,13 @@ export interface OpenStackObjectStoreInventory {
   containers?: Array<SwiftContainerRecord> | undefined;
 }
 
+// Only how many: OneUptime reads no secret, and a list says only that one exists.
+export interface OpenStackKeyManagerInventory {
+  secretCount?: number | undefined;
+  orderCount?: number | undefined;
+  containerCount?: number | undefined;
+}
+
 export interface OpenStackDatabaseInventory {
   instances?: Array<TroveInstanceRecord> | undefined;
 }
@@ -1452,6 +1459,7 @@ export interface OpenStackInventoryByService {
   rating?: OpenStackRatingInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
   database?: OpenStackDatabaseInventory | undefined;
+  "key-manager"?: OpenStackKeyManagerInventory | undefined;
   "object-store"?: OpenStackObjectStoreInventory | undefined;
   dns?: OpenStackDnsInventory | undefined;
   gnocchi?: OpenStackMetricInventory | undefined;

@@ -237,6 +237,18 @@ const FACTS_ON_AN_API_ROW: ReadonlyMap<string, OpenStackApiRowFact> = new Map<
   OpenStackApiRowFact
 >([
   [
+    "openstack_barbican_secrets",
+    { service: OpenStackServiceType.KeyManager, fact: "secretCount" },
+  ],
+  [
+    "openstack_barbican_orders",
+    { service: OpenStackServiceType.KeyManager, fact: "orderCount" },
+  ],
+  [
+    "openstack_barbican_containers",
+    { service: OpenStackServiceType.KeyManager, fact: "containerCount" },
+  ],
+  [
     "openstack_gnocchi_status_measures_to_process",
     {
       service: OpenStackServiceType.Metric,

@@ -895,6 +895,32 @@ export interface OpenStackApiTile {
 const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
   Record<string, ReadonlyArray<OpenStackApiTile>>
 > = {
+  [OpenStackServiceType.KeyManager]: [
+    {
+      key: "secrets",
+      title: translationKey("Secrets"),
+      fact: "secretCount",
+      description: translationKey(
+        "How many secrets this credential's own project holds. Barbican answers about one project at a time, and OneUptime reads no secret itself.",
+      ),
+    },
+    {
+      key: "orders",
+      title: translationKey("Orders"),
+      fact: "orderCount",
+      description: translationKey(
+        "How many orders this credential's own project holds.",
+      ),
+    },
+    {
+      key: "containers",
+      title: translationKey("Containers"),
+      fact: "containerCount",
+      description: translationKey(
+        "How many secret containers this credential's own project holds.",
+      ),
+    },
+  ],
   [OpenStackServiceType.Metric]: [
     {
       key: "measures",
@@ -944,6 +970,7 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",
   [OpenStackServiceType.Database]: "openstack-database-api-down",
+  [OpenStackServiceType.KeyManager]: "openstack-key-manager-api-down",
   [OpenStackServiceType.ObjectStore]: "openstack-object-store-api-down",
   [OpenStackServiceType.Metric]: "openstack-metric-api-down",
   [OpenStackServiceType.Dns]: "openstack-dns-api-down",

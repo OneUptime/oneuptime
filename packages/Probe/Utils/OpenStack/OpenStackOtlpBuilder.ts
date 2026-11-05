@@ -7,6 +7,7 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackDatabaseInventory,
+  OpenStackKeyManagerInventory,
   OpenStackObjectStoreInventory,
   OpenStackDnsInventory,
   OpenStackMetricInventory,
@@ -80,6 +81,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
   [OpenStackServiceType.Database]: "openstack_trove",
+  [OpenStackServiceType.KeyManager]: "openstack_barbican",
   [OpenStackServiceType.ObjectStore]: "openstack_object_store",
   [OpenStackServiceType.Metric]: "openstack_gnocchi",
   [OpenStackServiceType.Dns]: "openstack_designate",
@@ -318,6 +320,7 @@ export interface OpenStackServiceReading {
     | OpenStackRatingInventory
     | OpenStackSharedFileSystemsInventory
     | OpenStackDatabaseInventory
+    | OpenStackKeyManagerInventory
     | OpenStackObjectStoreInventory
     | OpenStackDnsInventory
     | OpenStackMetricInventory
@@ -1767,6 +1770,16 @@ function writeMetric(
   writer.add("status_metricd_processors", {}, inventory.status.processors);
 }
 
+// Barbican's own counts. A count it refused to say is left out, rather than read as none.
+function writeKeyManager(
+  writer: SeriesWriter,
+  inventory: OpenStackKeyManagerInventory,
+): void {
+  writer.add("secrets", {}, inventory.secretCount ?? null);
+  writer.add("orders", {}, inventory.orderCount ?? null);
+  writer.add("containers", {}, inventory.containerCount ?? null);
+}
+
 function writeDatabase(
   writer: SeriesWriter,
   inventory: OpenStackDatabaseInventory,
@@ -1846,6 +1859,12 @@ function writeInventory(
       return;
     case OpenStackServiceType.Database:
       writeDatabase(writer, reading.inventory as OpenStackDatabaseInventory);
+      return;
+    case OpenStackServiceType.KeyManager:
+      writeKeyManager(
+        writer,
+        reading.inventory as OpenStackKeyManagerInventory,
+      );
       return;
     case OpenStackServiceType.ObjectStore:
       writeObjectStore(
