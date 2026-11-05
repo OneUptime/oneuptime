@@ -2038,6 +2038,8 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.ContainerInfra,
     identityAttributes: ["hostname", "service", "adminState", "disabledReason"],
+    onlyFromProbe: true,
+  }),
   // Shared file systems: Manila, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_sharev2_up",

@@ -2231,6 +2231,7 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_container_infra_cluster_status":
       foldContainerCluster({ buffer, attributes, region, observedAt });
+      return;
     case "openstack_sharev2_share_gb":
     case "openstack_sharev2_share_status":
       foldShare({ buffer, attributes, region, value, observedAt, metricName });

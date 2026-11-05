@@ -27,6 +27,7 @@ export interface OpenStackProjectSummary {
   floatingIpCount: number;
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
 }
 
 export interface OpenStackProjectSummaries {

@@ -199,6 +199,8 @@ export const OPENSTACK_WORKER_FAMILY_BY_SERVICE: Partial<
   [OpenStackServiceType.BareMetal]: OpenStackServiceFamily.BareMetal,
   [OpenStackServiceType.Orchestration]: OpenStackServiceFamily.Orchestration,
   [OpenStackServiceType.ContainerInfra]: OpenStackServiceFamily.ContainerInfra,
+  [OpenStackServiceType.SharedFileSystems]:
+    OpenStackServiceFamily.SharedFileSystems,
 };
 
 /*

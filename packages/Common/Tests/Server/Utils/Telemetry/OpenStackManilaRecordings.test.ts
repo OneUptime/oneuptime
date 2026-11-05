@@ -36,6 +36,12 @@ import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
+import { buildOpenStackTopology } from "../../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/Builders/OpenStackTopology";
+import {
+  ResourceTopologyGraph,
+  ResourceTopologyNode,
+} from "../../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyModel";
+import PageMap from "../../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 
 /*
  * MANILA, ON WHAT A REAL CLOUD SAID.
@@ -369,6 +375,73 @@ describe("recovered: everything started again", () => {
     expect(recorded.api(OpenStackServiceType.SharedFileSystems)?.status).toBe(
       "up",
     );
+  });
+});
+
+describe("Topology", () => {
+  function graphOf(rows: Array<OpenStackResource>): ResourceTopologyGraph {
+    return buildOpenStackTopology({
+      cloud: { id: "cloud-id", name: "devstack", lastSeenAt: RECORDED_AT },
+      rows,
+      now: RECORDED_AT,
+    });
+  }
+
+  function sharesOf(graph: ResourceTopologyGraph): Array<ResourceTopologyNode> {
+    return Array.from(graph.nodes.values()).filter(
+      (node: ResourceTopologyNode): boolean => {
+        return node.kind === "openstack.share";
+      },
+    );
+  }
+
+  test("draws each share under its region's Storage, and links to its page", () => {
+    const recorded: RecordedServiceScene = scene("share-stuck");
+    const nodes: Array<ResourceTopologyNode> = sharesOf(
+      graphOf(recorded.rows),
+    );
+
+    expect(
+      nodes
+        .map((node: ResourceTopologyNode): string => {
+          return node.name;
+        })
+        .sort(),
+    ).toEqual([
+      "ou-share-admin",
+      "ou-share-error",
+      "ou-share-payments",
+      "ou-share-stuck",
+    ]);
+    for (const node of nodes) {
+      expect(node.parentId).toBe("section:RegionOne/storage");
+      expect(node.link?.page).toBe(PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL);
+    }
+  });
+
+  test("by the same rules as Needs attention", () => {
+    const nodes: Array<ResourceTopologyNode> = sharesOf(
+      graphOf(scene("share-stuck").rows),
+    );
+    const healthOf: (name: string) => string | undefined = (
+      name: string,
+    ): string | undefined => {
+      return nodes.find((node: ResourceTopologyNode): boolean => {
+        return node.name === name;
+      })?.health;
+    };
+
+    expect(healthOf("ou-share-error")).toBe("warning");
+    expect(healthOf("ou-share-payments")).toBe("healthy");
+    // On its way, as far as anyone can say this soon.
+    expect(healthOf("ou-share-stuck")).toBe("healthy");
+  });
+
+  test("a cloud without Manila has no such node, and no Storage to hold one", () => {
+    expect(sharesOf(graphOf([]))).toEqual([]);
+    expect(
+      Array.from(graphOf(scene("api-down").rows).nodes.keys()),
+    ).not.toContain("section:RegionOne/storage");
   });
 });
 

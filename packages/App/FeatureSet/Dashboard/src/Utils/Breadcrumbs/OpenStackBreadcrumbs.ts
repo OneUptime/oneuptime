@@ -242,6 +242,19 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
         "Kubernetes Cluster Detail",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SHARES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Shares",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Shares",
+      "Share Detail",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE,
       ["Project", "OpenStack", "View Cloud", "What It Stands On"],

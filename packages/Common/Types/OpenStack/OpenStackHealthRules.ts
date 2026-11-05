@@ -11,6 +11,7 @@ import {
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -177,7 +178,8 @@ export function isOpenStackServiceDown(data: {
   adminState?: string | null | undefined;
 }): boolean {
   return (
-    data.status === OPENSTACK_SERVICE_STATUS_DOWN &&
+    (data.status === OPENSTACK_SERVICE_STATUS_DOWN ||
+      data.status === OPENSTACK_SERVICE_STATUS_STOPPED) &&
     !isOpenStackAdminDisabled(data.adminState)
   );
 }
