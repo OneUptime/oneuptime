@@ -116,6 +116,54 @@ test.describe("on a real cloud's answers", () => {
   });
 });
 
+test.describe("on three real hosts, on a real Placement", () => {
+  test("a flavor that fits as one pool and on no host of the zone says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(
+      page,
+      "capacity",
+      "recording=hibiscus-ovn/capacity/healthy",
+    );
+
+    const fragmented: Locator = flavorRow(page, "ou.fragmented");
+
+    // Hand's numbers: OpenStackCapacityRecordings.test.ts.
+    await expect(fragmented).toContainText("ou-zone-a 0");
+    await expect(flavorRow(page, "m1.small")).toContainText("ou-zone-a 5");
+    await expect(flavorRow(page, "m1.medium")).toContainText("ou-zone-a 1");
+    await expect(
+      page.locator(
+        '[data-testid="openstack-capacity-headroom"][data-state="can-lose-a-host"]',
+      ),
+    ).not.toHaveCount(0);
+  });
+
+  test("with its largest host lost, the zone can't lose another", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(
+      page,
+      "capacity",
+      "recording=hibiscus-ovn/capacity/host-lost",
+    );
+
+    await expect(
+      page.getByTestId("openstack-capacity-not-counted"),
+    ).toContainText("ou-cap-2");
+    await expect(
+      page.locator(
+        '[data-testid="openstack-capacity-shortage"][data-kind="headroom-gone"]',
+      ),
+    ).toContainText("ou-zone-a");
+    await expect(flavorRow(page, "m1.medium")).toContainText("ou-zone-a 0");
+  });
+});
+
 test.describe("with something short", () => {
   test("what is short comes first, soonest first, each in its own words", async ({
     page,

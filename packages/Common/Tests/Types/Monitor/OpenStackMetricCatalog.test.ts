@@ -89,6 +89,17 @@ const DISABLED_METRICS: Array<string> = Array.from(
 
 const METRICS: Array<OpenStackMetricDefinition> = getAllOpenStackMetrics();
 
+/*
+ * What the cloud stands on is read from each dependency's own exporter, and not from
+ * openstack-exporter, so what that exporter has says nothing of them. OpenStackControlPlaneScenes
+ * holds those to what real ones said.
+ */
+const OF_THE_EXPORTER: Array<OpenStackMetricDefinition> = METRICS.filter(
+  (metric: OpenStackMetricDefinition): boolean => {
+    return !metric.dependency;
+  },
+);
+
 type MetricCase = [string, OpenStackMetricDefinition];
 
 const METRIC_CASES: Array<MetricCase> = METRICS.map(
@@ -108,6 +119,24 @@ function metricNames(): Array<string> {
  * is 0 or 1, and Placement's resource series change unit with their resourcetype.
  */
 const NO_UNIT_SERIES: ReadonlyArray<string> = [
+  // What the cloud stands on says 0 or 1, or a state's code.
+  "erlang_vm_dist_node_state",
+  "haproxy_backend_status",
+  "haproxy_server_status",
+  "libvirt_up",
+  "memcached_up",
+  "mysql_global_status_wsrep_cluster_status",
+  "mysql_global_status_wsrep_local_state",
+  "mysql_global_status_wsrep_ready",
+  "mysql_global_variables_wsrep_desync",
+  "mysql_global_variables_wsrep_on",
+  "mysql_up",
+  "ovn_northd_status",
+  "ovn_raft_cluster_leader",
+  "ovnc_encap_ip",
+  "ovs_build_info",
+  "rabbitmq_alarms_free_disk_space_watermark",
+  "rabbitmq_alarms_memory_used_watermark",
   "openstack_ironic_up",
   // Always 1: what it says is in its labels, as a status series' word is.
   "openstack_ironic_node",
@@ -118,6 +147,12 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_neutron_up",
   "openstack_cinder_up",
   "openstack_glance_up",
+  "openstack_heat_up",
+  "openstack_heat_stack_status",
+  "openstack_heat_agent_state",
+  "openstack_container_infra_up",
+  "openstack_container_infra_cluster_status",
+  "openstack_container_infra_agent_state",
   "openstack_placement_up",
   "openstack_nova_agent_state",
   "openstack_neutron_agent_state",
@@ -156,7 +191,7 @@ describe("OpenStackMetricCatalog", () => {
     });
 
     test("names nothing the exporter does not have, but the collection's own two and what only the probe sends", () => {
-      const extra: Array<string> = METRICS.filter(
+      const extra: Array<string> = OF_THE_EXPORTER.filter(
         (metric: OpenStackMetricDefinition): boolean => {
           return !OPENSTACK_EXPORTER_SERIES[metric.metricName];
         },
@@ -192,6 +227,8 @@ describe("OpenStackMetricCatalog", () => {
       ).toEqual([
         "openstack_cinder_backup_gb",
         "openstack_cinder_snapshot_gb",
+        "openstack_container_infra_agent_state",
+        "openstack_heat_agent_state",
         "openstack_ironic_conductor_state",
         "openstack_placement_flavor_fits",
       ]);
@@ -220,8 +257,12 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_pool_capacity_total_gb",
         "openstack_cinder_up",
         "openstack_cinder_volume_gb",
+        "openstack_container_infra_cluster_status",
+        "openstack_container_infra_up",
         "openstack_glance_image_bytes",
         "openstack_glance_up",
+        "openstack_heat_stack_status",
+        "openstack_heat_up",
         "openstack_identity_up",
         "openstack_ironic_node",
         "openstack_neutron_agent_state",
@@ -252,7 +293,8 @@ describe("OpenStackMetricCatalog", () => {
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
           metricCase[1].fromSummaryMode !== true &&
-          metricCase[1].fromCapacity !== true
+          metricCase[1].fromCapacity !== true &&
+          !metricCase[1].dependency
         );
       }),
     )(

@@ -117,6 +117,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
+      # hosted runner's can be 65, which stops stack.sh with "string too long".
+      - name: Give the runner a name a certificate can hold
+        run: |
+          sudo hostnamectl set-hostname devstack
+          echo "127.0.1.1 devstack" | sudo tee -a /etc/hosts
+          hostname -f
+
       - name: Deploy DevStack with every API behind TLS
         uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
         with:

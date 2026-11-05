@@ -1,0 +1,970 @@
+{
+  "reads": [
+    {
+      "service": "identity",
+      "read": "projects",
+      "path": "/v3/projects",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 11,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_projects."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 11,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 11,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "domains",
+      "path": "/v3/domains",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_domains."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "regions",
+      "path": "/v3/regions",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "services",
+      "path": "/v3/services",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 8,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_services."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 8,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 8,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "read": "endpoints",
+      "path": "/v3/endpoints",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 9,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "You are not authorized to perform the requested action: identity:list_endpoints."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 9,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 9,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "servers, all projects",
+      "path": "/servers/detail?all_tenants=1&limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:detail:get_all_tenants to be performed."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "services",
+      "path": "/os-services",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-services:list to be performed."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "hypervisors",
+      "path": "/os-hypervisors/detail",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-hypervisors:list-detail to be performed."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "aggregates",
+      "path": "/os-aggregates",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:index to be performed."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "availability zones, detail",
+      "path": "/os-availability-zone/detail",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-availability-zone:detail to be performed."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "flavors",
+      "path": "/flavors/detail?is_public=None",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 13,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 13,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 13,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 13,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "read": "usage per project",
+      "path": "/os-simple-tenant-usage?start=2000-01-01T00:00:00",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Policy doesn't allow os_compute_api:os-simple-tenant-usage:list to be performed."
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "placement",
+      "read": "resource providers",
+      "path": "/resource_providers",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": ""
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 7,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "agents",
+      "path": "/v2.0/agents",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "networks",
+      "path": "/v2.0/networks",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "subnets",
+      "path": "/v2.0/subnets",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 2,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 2,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "routers",
+      "path": "/v2.0/routers",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "floating IPs",
+      "path": "/v2.0/floatingips",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "IP availabilities",
+      "path": "/v2.0/network-ip-availabilities",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 2,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "security groups",
+      "path": "/v2.0/security-groups",
+      "results": {
+        "admin": {
+          "status": 404,
+          "count": null,
+          "seesAll": false,
+          "reason": "The resource could not be found."
+        },
+        "reader": {
+          "status": 404,
+          "count": null,
+          "seesAll": false,
+          "reason": "The resource could not be found."
+        },
+        "monitoring-role": {
+          "status": 404,
+          "count": null,
+          "seesAll": false,
+          "reason": "The resource could not be found."
+        },
+        "role-on-a-project": {
+          "status": 404,
+          "count": null,
+          "seesAll": false,
+          "reason": "The resource could not be found."
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "ports",
+      "path": "/v2.0/ports?limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "quotas",
+      "path": "/v2.0/quotas",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 0,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "rule:get_quota is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "rule:get_quota is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "rule:get_quota is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "image",
+      "read": "images",
+      "path": "/v2/images?limit=1000",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 4,
+          "seesAll": true
+        }
+      }
+    },
+    {
+      "service": "baremetal",
+      "read": "nodes",
+      "path": "/v1/nodes/detail",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 5,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        },
+        "monitoring-role": {
+          "status": 200,
+          "count": 0,
+          "seesAll": false
+        },
+        "role-on-a-project": {
+          "status": 200,
+          "count": 1,
+          "seesAll": false
+        }
+      }
+    },
+    {
+      "service": "baremetal",
+      "read": "conductors",
+      "path": "/v1/conductors",
+      "results": {
+        "admin": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": ""
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": ""
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": ""
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": ""
+        }
+      }
+    },
+    {
+      "service": "object-store",
+      "read": "own account",
+      "path": "",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": null,
+          "seesAll": true
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "<html><h1>Forbidden</h1><p>Access was denied to this resource.</p></html>"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "<html><h1>Forbidden</h1><p>Access was denied to this resource.</p></html>"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "<html><h1>Forbidden</h1><p>Access was denied to this resource.</p></html>"
+        }
+      }
+    }
+  ],
+  "writes": [
+    {
+      "service": "compute",
+      "write": "create a flavor",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-flavor-manage:create to be performed."
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-flavor-manage:create to be performed."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-flavor-manage:create to be performed."
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "write": "create an aggregate",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:create to be performed."
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:create to be performed."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:os-aggregates:create to be performed."
+        }
+      }
+    },
+    {
+      "service": "compute",
+      "write": "boot an instance",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:create to be performed."
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:create to be performed."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "Policy doesn't allow os_compute_api:servers:create to be performed."
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a network",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_network is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_network is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_network is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a router",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_router is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_router is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_router is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "create a security group",
+      "results": {
+        "reader": {
+          "status": 404,
+          "wrote": false,
+          "reason": "The resource could not be found."
+        },
+        "monitoring-role": {
+          "status": 404,
+          "wrote": false,
+          "reason": "The resource could not be found."
+        },
+        "role-on-a-project": {
+          "status": 404,
+          "wrote": false,
+          "reason": "The resource could not be found."
+        }
+      }
+    },
+    {
+      "service": "network",
+      "write": "take a floating IP",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_floatingip is disallowed by policy"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_floatingip is disallowed by policy"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "rule:create_floatingip is disallowed by policy"
+        }
+      }
+    },
+    {
+      "service": "image",
+      "write": "create an image",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to complete add_image action.<br /><br />\n\n\n"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to complete add_image action.<br /><br />\n\n\n"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to complete add_image action.<br /><br />\n\n\n"
+        }
+      }
+    },
+    {
+      "service": "identity",
+      "write": "create a project",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to perform the requested action: identity:create_project."
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to perform the requested action: identity:create_project."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "You are not authorized to perform the requested action: identity:create_project."
+        }
+      }
+    },
+    {
+      "service": "baremetal",
+      "write": "enroll a node",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": ""
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": ""
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": ""
+        }
+      }
+    },
+    {
+      "service": "object-store",
+      "write": "create a container",
+      "results": {
+        "reader": {
+          "status": 403,
+          "wrote": false,
+          "reason": "<html><h1>Forbidden</h1><p>Access was denied to this resource.</p></html>"
+        },
+        "monitoring-role": {
+          "status": 403,
+          "wrote": false,
+          "reason": "<html><h1>Forbidden</h1><p>Access was denied to this resource.</p></html>"
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "wrote": false,
+          "reason": "<html><h1>Forbidden</h1><p>Access was denied to this resource.</p></html>"
+        }
+      }
+    }
+  ],
+  "credentials": [
+    "admin",
+    "reader",
+    "monitoring-role",
+    "role-on-a-project"
+  ]
+}

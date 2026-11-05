@@ -677,6 +677,8 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_CLOUD_NAME\` | Yes | The cloud's name in OneUptime, stamped on every metric as the \`openstack.cloud.name\` resource attribute. Keep it stable: changing it registers a new cloud |
 | \`OPENSTACK_EXPORTER_CLOUDS\` | Yes | The \`clouds.yaml\` entries to read, one per region and named for the region, in square brackets: \`[RegionOne,RegionTwo]\` |${authUrl}
 | \`OPENSTACK_EXPORTER_ADDRESS\` | No | \`host:port\` of your own exporter, with no scheme. Leave it out for the bundled one |
+| \`OPENSTACK_QUOTA_CLOUDS\` | No | The \`clouds.yaml\` entries to read each project's quotas from, once an hour. The install script sets it when run with \`OPENSTACK_COLLECT_QUOTAS=true\` |
+| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | No | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
 | \`OPENSTACK_EXPORTER_USER\` | No | The \`uid:gid\` the exporter's container runs as, which must own \`clouds.yaml\` (default: \`65532:65532\`) |
 | \`OPENSTACK_CA_FILE\` | No | A PEM file with the certificate authority of a cloud that has its own |
 | \`COMPOSE_PROFILES\` | Bundled exporter | \`openstack-exporter\` starts the bundled exporter, and \`openstack-ai-agent\` the OneUptime AI agent |

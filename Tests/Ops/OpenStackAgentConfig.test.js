@@ -613,6 +613,8 @@ describe("the access the agent asks for", () => {
       ["baremetal", "/v1/nodes/detail"],
       ["orchestration", "/v1/*/stacks"],
       ["container-infra", "/v1/clusters"],
+      // One cluster's own read, the only thing that says whose it is: a probe's, not the exporter's.
+      ["container-infra", "/v1/clusters/*"],
       ["sharev2", "/v2/shares/detail"],
       ["shared-file-system", "/v2/shares/detail"],
       ["dns", "/v2/zones"],

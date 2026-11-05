@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
   afterEach,
   beforeEach,
@@ -163,7 +164,10 @@ describe("a healthy cloud", () => {
     expect(report.summary?.datapointCount).toBeGreaterThan(100);
 
     for (const service of Object.values(OpenStackServiceType)) {
-      expect(summaryOf(report, service)?.outcome).toBe("Succeeded");
+      // This cloud runs none of those a cloud may not, and its report says nothing of them.
+      expect(summaryOf(report, service)?.outcome).toBe(
+        isOpenStackOptionalService(service) ? undefined : "Succeeded",
+      );
     }
   });
 
@@ -2437,7 +2441,11 @@ describe("what a collection asks of a cloud", () => {
     for (const request of cloud.requests.slice(before)) {
       const pathname: string = new globalThis.URL(request.url).pathname;
 
-      if (!INSTANCE_ACTIONS.test(pathname)) {
+      // What Placement would decide is counted in OpenStackAllocationCandidates.test.ts.
+      if (
+        !INSTANCE_ACTIONS.test(pathname) &&
+        pathname !== "/placement/allocation_candidates"
+      ) {
         const service: string = pathname.split("/")[1] as string;
         calls[service] = (calls[service] || 0) + 1;
       }

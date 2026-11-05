@@ -16,6 +16,24 @@ jest.mock("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   };
 });
 
+/*
+ * What a cloud runs is the server's to say (fetchOpenStackInventorySummary), whose real module needs
+ * a browser `window` too. What each answer does to the context is pinned below.
+ */
+const mockOpenStackSummary: jest.Mock = jest.fn();
+
+jest.mock(
+  "../../FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackResourceUtils",
+  () => {
+    return {
+      __esModule: true,
+      fetchOpenStackInventorySummary: (id: unknown): Promise<unknown> => {
+        return mockOpenStackSummary(id);
+      },
+    };
+  },
+);
+
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
@@ -25,6 +43,8 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import {
   OPENSHIFT_OPERATOR_DEGRADED_TEMPLATE_ID,
@@ -1270,6 +1290,134 @@ describe("RecommendationResourceRegistry", () => {
    * page shows an error instead of cards. So anyone who can read the
    * resource's name must be able to read every context column too.
    */
+  describe("OpenStack cloud context", () => {
+    const CLOUD_ID: string = "71000000-0000-4000-8000-000000000001";
+
+    function cloudOf(collectionMethod: unknown): OpenStackCloud {
+      const model: OpenStackCloud = new OpenStackCloud();
+      const fields: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+      fields["_id"] = CLOUD_ID;
+      fields["collectionMethod"] = collectionMethod;
+      return model;
+    }
+
+    async function loadedContext(
+      summary: unknown,
+      collectionMethod: unknown = OpenStackCollectionMethod.Agent,
+    ): Promise<MonitorRecommendationContext> {
+      mockOpenStackSummary.mockReset();
+      if (summary instanceof Error) {
+        mockOpenStackSummary.mockRejectedValue(summary);
+      } else {
+        mockOpenStackSummary.mockResolvedValue(summary);
+      }
+      return await RecommendationResourceRegistry.loadContext({
+        resourceType: MonitorRecommendationResourceType.OpenStack,
+        model: cloudOf(collectionMethod),
+      });
+    }
+
+    function idsOffered(context: MonitorRecommendationContext): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.OpenStack,
+        context,
+      ).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      });
+    }
+
+    test("how a cloud is collected comes from its row, which selects the column", () => {
+      expect(
+        getDefinitionOrFail(MonitorRecommendationResourceType.OpenStack)
+          .contextFieldNames,
+      ).toEqual(["collectionMethod"]);
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.OpenStack,
+          model: cloudOf(OpenStackCollectionMethod.Probe),
+        }).openStackIsCollectedByProbe,
+      ).toBe(true);
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.OpenStack,
+          model: cloudOf(OpenStackCollectionMethod.Agent),
+        }).openStackIsCollectedByProbe,
+      ).toBe(false);
+    });
+
+    test("what it runs comes from the server, asked about this cloud", async () => {
+      const context: MonitorRecommendationContext = await loadedContext({
+        services: ["orchestration"],
+      });
+
+      expect(mockOpenStackSummary).toHaveBeenCalledTimes(1);
+      expect(mockOpenStackSummary.mock.calls[0]?.[0]?.toString()).toBe(
+        CLOUD_ID,
+      );
+      expect(context.openStackServices).toEqual(["orchestration"]);
+      expect(idsOffered(context)).toContain("openstack-stack-failed");
+      expect(idsOffered(context)).not.toContain(
+        "openstack-container-cluster-failed",
+      );
+    });
+
+    test("a cloud that runs neither is offered neither, and told nothing about them", async () => {
+      const context: MonitorRecommendationContext = await loadedContext({
+        services: [],
+      });
+
+      expect(context.openStackServices).toEqual([]);
+      expect(
+        idsOffered(context).filter((id: string): boolean => {
+          return /openstack-stack-|container|orchestration|heat|magnum/.test(id);
+        }),
+      ).toEqual([]);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.OpenStack,
+          context,
+        }),
+      ).toBeUndefined();
+    });
+
+    test("one that runs them is told why the list is longer, by what people call them", async () => {
+      const note: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.OpenStack,
+          context: await loadedContext({
+            services: ["orchestration", "container-infra"],
+          }),
+        });
+
+      expect(note).toContain("Orchestration (Heat)");
+      expect(note).toContain("Kubernetes Clusters (Magnum)");
+    });
+
+    test("only a probe's cloud is offered what only a probe sends", async () => {
+      const summary: unknown = { services: ["orchestration"] };
+
+      expect(
+        idsOffered(await loadedContext(summary, OpenStackCollectionMethod.Probe)),
+      ).toContain("openstack-orchestration-engine-down");
+      expect(
+        idsOffered(await loadedContext(summary, OpenStackCollectionMethod.Agent)),
+      ).not.toContain("openstack-orchestration-engine-down");
+    });
+
+    test("a question that failed, or a summary that says nothing, leaves what every cloud has", async () => {
+      for (const summary of [new Error("not now"), null]) {
+        const context: MonitorRecommendationContext =
+          await loadedContext(summary);
+
+        expect(idsOffered(context)).toContain("openstack-compute-api-down");
+        expect(idsOffered(context)).not.toContain("openstack-stack-failed");
+      }
+    });
+  });
+
   describe("context columns are readable by whoever can read the name", () => {
     test.each(
       RecommendationResourceRegistry.getDefinitions().filter(

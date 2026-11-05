@@ -60,8 +60,8 @@ export interface AlertsProps {
   templateIds: Array<string>;
   part: OpenStackPart;
   /*
-   * What the cloud reports, where these alerts are about a service it may not run. A page of one
-   * of its parts knows it does.
+   * What this part says of its cloud, where these alerts need something a cloud may not have. A
+   * page of one of a service's parts knows the cloud runs it.
    */
   context?: MonitorRecommendationContext | undefined;
 }
@@ -76,9 +76,9 @@ export const OpenStackPartAlerts: FunctionComponent<AlertsProps> = (
       description={props.description}
       resourceType={MonitorRecommendationResourceType.OpenStack}
       templateIds={props.templateIds}
+      context={props.context}
       resourceId={props.part.openStackCloudId}
       resourceIdentifier={props.part.cloudName}
-      context={props.context}
       getRecommendationsRoute={props.part.routes.getRecommendationsRoute}
       getMonitorRoute={props.part.routes.getMonitorRoute}
       refreshToken={props.part.refreshToken}

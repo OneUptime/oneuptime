@@ -20,7 +20,7 @@
 # (6912 MB). The tests hold the product's counts to a hand calculation on these answers.
 #
 #   capacity-healthy        the estate as above
-#   capacity-host-lost      ou-cap-2's nova-compute stopped: Placement still offers it
+#   capacity-host-lost      ou-cap-2's nova-compute frozen: Placement still offers it
 #   capacity-host-disabled  ou-cap-3 disabled: Placement stops offering it (COMPUTE_STATUS_DISABLED)
 #   capacity-orphan         an allocation on ou-cap-1 no instance owns, and what
 #                           nova-manage placement audit says of it
@@ -77,8 +77,15 @@ start_host() {
     --config-file "$STATE/$name.conf" >/dev/null
 }
 
-stop_host() {
-  sudo systemctl stop "ou-capacity-$1"
+# A lost host is frozen rather than stopped. To Nova and Placement it is the same: its heartbeat
+# ages out and Placement goes on offering it. A fake host can't come back from a stop: it has no
+# compute_id for Nova to find on a second start, and it would have forgotten its instances.
+freeze_host() {
+  sudo systemctl kill --signal=SIGSTOP "ou-capacity-$1"
+}
+
+thaw_host() {
+  sudo systemctl kill --signal=SIGCONT "ou-capacity-$1"
 }
 
 add_host() {
@@ -211,10 +218,10 @@ sleep 30
 record capacity-healthy
 
 log "ou-cap-2 lost: Placement still offers it"
-stop_host ou-cap-2
+freeze_host ou-cap-2
 wait_until "ou-cap-2 is down" 60 host_is ou-cap-2 down
 record capacity-host-lost
-start_host ou-cap-2
+thaw_host ou-cap-2
 wait_until "ou-cap-2 is up" 60 host_is ou-cap-2 up
 
 log "ou-cap-3 disabled: Placement stops offering it"
