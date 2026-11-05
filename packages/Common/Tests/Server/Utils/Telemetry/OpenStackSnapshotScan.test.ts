@@ -1070,6 +1070,38 @@ describe("networks", () => {
     });
   });
 
+  describe("what an instance booted from", () => {
+    function instanceWith(labels: LabelMap): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_nova_server_status", {
+        value: 0,
+        labels: { id: "server-1", uuid: "server-1", status: "ACTIVE", ...labels },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Instance, "server-1");
+    }
+
+    test("a probe names its image, and that is no metadata an operator chose", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+        image_id: "image-1",
+      });
+      expect(row.facts["imageId"]).toBe("image-1");
+      expect(row.facts["labels"]).toEqual({});
+    });
+
+    test("a probe naming none says so, which is how one that was rebuilt onto a volume clears", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+      });
+      expect(Object.keys(row.facts)).toContain("imageId");
+      expect(row.facts["imageId"]).toBeNull();
+    });
+
+    test("the exporter saying nothing isn't the same as there being none", () => {
+      expect(Object.keys(instanceWith({}).facts)).not.toContain("imageId");
+    });
+  });
+
   describe("a Nova worker an operator forced down", () => {
     const COMPUTE: string = "RegionOne/compute/compute-01/nova-compute";
 

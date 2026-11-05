@@ -1235,7 +1235,13 @@ function partsRow(row) {
   if (row.kind === "Instance" && row.name === "batch-worker-7") {
     return {
       ...row,
-      facts: { ...row.facts, addressIpv4: "10.77.0.12" },
+      facts: {
+        ...row.facts,
+        addressIpv4: "10.77.0.12",
+        // The stuck image of this estate, which is what it says it booted from.
+        imageId: openStackUuid("79490afb", 3),
+        updatedAt: new Date(row.lastSeenAt).toISOString(),
+      },
     };
   }
   // A probe was told which pool holds each of these. The third pool holds none of them.
