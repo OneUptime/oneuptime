@@ -154,6 +154,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.ChartBar}
         />
+        <SideMenuItem
+          link={{
+            title: "Spend",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SPEND] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Wallet}
+        />
       </SideMenuSection>
 
       {/*
