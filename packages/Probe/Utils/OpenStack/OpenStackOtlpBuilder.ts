@@ -1,8 +1,10 @@
 import {
   OpenStackComputeInventory,
+  OpenStackContainerInfraInventory,
   OpenStackIdentityInventory,
   OpenStackImageInventory,
   OpenStackNetworkInventory,
+  OpenStackOrchestrationInventory,
   OpenStackPlacementInventory,
   OpenStackVolumeInventory,
   NovaFlavorRecord,
@@ -65,6 +67,8 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.Network]: "openstack_neutron",
   [OpenStackServiceType.Volume]: "openstack_cinder",
   [OpenStackServiceType.Image]: "openstack_glance",
+  [OpenStackServiceType.Orchestration]: "openstack_heat",
+  [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
 };
 
@@ -139,6 +143,64 @@ const VOLUME_STATUSES: ReadonlyArray<string> = [
   "extending",
 ];
 
+/*
+ * knownStackStatuses, the exporter's heat.go, and knownClusterStatuses, its containerinfra.go. Each
+ * series' value is the word's code, recorded, and -1 for a word its source doesn't know.
+ */
+const STACK_STATUS_CODES: Readonly<Record<string, number>> = {
+  INIT_IN_PROGRESS: 0,
+  INIT_FAILED: 1,
+  INIT_COMPLETE: 2,
+  CREATE_IN_PROGRESS: 3,
+  CREATE_FAILED: 4,
+  CREATE_COMPLETE: 5,
+  DELETE_IN_PROGRESS: 6,
+  DELETE_FAILED: 7,
+  DELETE_COMPLETE: 8,
+  UPDATE_IN_PROGRESS: 9,
+  UPDATE_FAILED: 10,
+  UPDATE_COMPLETE: 11,
+  ROLLBACK_IN_PROGRESS: 12,
+  ROLLBACK_FAILED: 13,
+  ROLLBACK_COMPLETE: 14,
+  SUSPEND_IN_PROGRESS: 15,
+  SUSPEND_FAILED: 16,
+  SUSPEND_COMPLETE: 17,
+  RESUME_IN_PROGRESS: 18,
+  RESUME_FAILED: 19,
+  RESUME_COMPLETE: 20,
+  ADOPT_IN_PROGRESS: 21,
+  ADOPT_FAILED: 22,
+  ADOPT_COMPLETE: 23,
+  SNAPSHOT_IN_PROGRESS: 24,
+  SNAPSHOT_FAILED: 25,
+  SNAPSHOT_COMPLETE: 26,
+  CHECK_IN_PROGRESS: 27,
+  CHECK_FAILED: 28,
+  CHECK_COMPLETE: 29,
+};
+
+const CLUSTER_STATUS_CODES: Readonly<Record<string, number>> = {
+  CREATE_COMPLETE: 0,
+  CREATE_FAILED: 1,
+  CREATE_IN_PROGRESS: 2,
+  UPDATE_IN_PROGRESS: 3,
+  UPDATE_FAILED: 4,
+  UPDATE_COMPLETE: 5,
+  DELETE_IN_PROGRESS: 6,
+  DELETE_FAILED: 7,
+  DELETE_COMPLETE: 8,
+  RESUME_COMPLETE: 9,
+  RESUME_FAILED: 10,
+  RESTORE_COMPLETE: 11,
+  ROLLBACK_IN_PROGRESS: 12,
+  ROLLBACK_FAILED: 13,
+  ROLLBACK_COMPLETE: 14,
+  SNAPSHOT_COMPLETE: 15,
+  CHECK_COMPLETE: 16,
+  ADOPT_COMPLETE: 17,
+};
+
 type Labels = Record<string, string | number | boolean | null | undefined>;
 
 function labelText(
@@ -188,6 +250,8 @@ export interface OpenStackServiceReading {
     | OpenStackNetworkInventory
     | OpenStackVolumeInventory
     | OpenStackImageInventory
+    | OpenStackOrchestrationInventory
+    | OpenStackContainerInfraInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
   apiUp: boolean | null;
@@ -1237,6 +1301,118 @@ function writeImage(
   }
 }
 
+/*
+ * Nothing but an admin's read of Heat says whose a stack is, and a label with an empty value is no
+ * label, so anything less sends none: the exporter's series read the same. What it never asks for,
+ * its status reason and parent, are marked in the catalogue.
+ */
+function writeOrchestration(
+  writer: SeriesWriter,
+  inventory: OpenStackOrchestrationInventory,
+): void {
+  if (inventory.stacks) {
+    const counts: Record<string, number> = {};
+    for (const status of Object.keys(STACK_STATUS_CODES)) {
+      counts[status] = 0;
+    }
+
+    for (const stack of inventory.stacks) {
+      const status: string = stack.status || "";
+      counts[status] = (counts[status] || 0) + 1;
+      writer.add(
+        "stack_status",
+        {
+          id: stack.id,
+          name: stack.name,
+          project_id: stack.projectId,
+          status: stack.status,
+          status_reason: toBound(stack.statusReason || ""),
+          parent_id: stack.parentId,
+        },
+        STACK_STATUS_CODES[status] ?? -1,
+      );
+    }
+
+    for (const status of Object.keys(counts).sort()) {
+      writer.add("stack_status_counter", { status }, counts[status] as number);
+    }
+  }
+
+  // The exporter has no series for these, so these are a native read's own.
+  for (const engine of inventory.engines || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: engine.host,
+        service: engine.binary,
+        id: engine.id,
+      },
+      engine.isUp ? 1 : 0,
+    );
+  }
+}
+
+/*
+ * Magnum's project, why a cluster failed and the rest of what its own read says only reach the series
+ * on a cluster that has been read. The exporter sends an empty project_id, which is no label.
+ */
+function writeContainerInfra(
+  writer: SeriesWriter,
+  inventory: OpenStackContainerInfraInventory,
+): void {
+  if (inventory.clusters) {
+    writer.add("total_clusters", {}, inventory.clusters.length);
+
+    for (const cluster of inventory.clusters) {
+      const shared: Labels = {
+        uuid: cluster.uuid,
+        name: cluster.name,
+        stack_id: cluster.stackId,
+        status: cluster.status,
+        project_id: cluster.projectId,
+      };
+      writer.add(
+        "cluster_masters",
+        { ...shared, node_count: cluster.nodeCount },
+        cluster.masterCount,
+      );
+      writer.add(
+        "cluster_nodes",
+        { ...shared, master_count: cluster.masterCount },
+        cluster.nodeCount,
+      );
+      writer.add(
+        "cluster_status",
+        {
+          ...shared,
+          node_count: cluster.nodeCount,
+          master_count: cluster.masterCount,
+          status_reason: toBound(cluster.statusReason || ""),
+          health_status: cluster.healthStatus,
+          cluster_template_id: cluster.clusterTemplateId,
+          cluster_template_name: cluster.clusterTemplateName,
+          coe_version: cluster.coeVersion,
+          api_address: cluster.apiAddress,
+        },
+        CLUSTER_STATUS_CODES[cluster.status || ""] ?? -1,
+      );
+    }
+  }
+
+  for (const conductor of inventory.conductors || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: conductor.host,
+        service: conductor.binary,
+        adminState: conductor.isDisabled ? "disabled" : "enabled",
+        disabledReason: conductor.disabledReason,
+      },
+      conductor.isUp ? 1 : 0,
+    );
+  }
+}
+
 function writeInventory(
   writer: SeriesWriter,
   reading: OpenStackServiceReading,
@@ -1263,6 +1439,18 @@ function writeInventory(
       return;
     case OpenStackServiceType.Image:
       writeImage(writer, reading.inventory as OpenStackImageInventory);
+      return;
+    case OpenStackServiceType.Orchestration:
+      writeOrchestration(
+        writer,
+        reading.inventory as OpenStackOrchestrationInventory,
+      );
+      return;
+    case OpenStackServiceType.ContainerInfra:
+      writeContainerInfra(
+        writer,
+        reading.inventory as OpenStackContainerInfraInventory,
+      );
       return;
     default:
       return;

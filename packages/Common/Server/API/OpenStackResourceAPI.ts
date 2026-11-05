@@ -6,7 +6,6 @@ import OneUptimeDate from "../../Types/Date";
 import OpenStackResourceService, {
   OpenStackAttentionRows,
   OpenStackDomainSummary,
-  OpenStackInventorySummary,
   OpenStackProjectOverview,
   OpenStackProjectSummary,
   OpenStackTopologyRead,
@@ -1346,17 +1345,16 @@ export default class OpenStackResourceAPI extends BaseAPI<
     const { projectId, openStackCloudId } =
       await this.resolveCloudForRequest(req);
 
-    const summary: OpenStackInventorySummary =
-      await this.service.getInventorySummary({
-        projectId,
-        openStackCloudId,
-        regionName: this.readRegionName(req),
-      });
+    const regionName: string | null | undefined = this.readRegionName(req);
 
     return Response.sendJsonObjectResponse(
       req,
       res,
-      summary as unknown as JSONObject,
+      (await this.service.getInventorySummary({
+        projectId,
+        openStackCloudId,
+        regionName,
+      })) as unknown as JSONObject,
     );
   }
 }
