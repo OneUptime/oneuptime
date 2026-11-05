@@ -12,6 +12,7 @@ jest.mock("../../../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { CUSTOM_FIELD_RECORD_KINDS } from "../../../../../Types/CustomField/CustomFieldRecordKinds";
 import CustomFieldType from "../../../../../Types/CustomField/CustomFieldType";
@@ -92,6 +93,42 @@ describe("loadCustomFields", () => {
     const call: ListCall = getList.mock.calls[0]?.[0] as ListCall;
 
     expect(new call.modelType().tableName).toBe(definition);
+  });
+
+  test.each(
+    CUSTOM_FIELD_RECORD_KINDS.map(
+      (kind: { recordTableName: string }): [string] => {
+        return [kind.recordTableName];
+      },
+    ),
+  )(
+    "%s sorts by a column its definition table has: a read sorted by one it does not is refused",
+    async (record: string) => {
+      answer([]);
+
+      await loadCustomFields(record);
+
+      const call: ListCall = getList.mock.calls[0]?.[0] as ListCall;
+      const definition: BaseModel = new call.modelType() as BaseModel;
+
+      for (const column of Object.keys(call.sort)) {
+        expect([
+          definition.tableName,
+          column,
+          Boolean(definition.getTableColumnMetadata(column)),
+        ]).toEqual([definition.tableName, column, true]);
+      }
+    },
+  );
+
+  test("a kind whose list has no order of its own is in the order it was added", async () => {
+    answer([]);
+
+    await loadCustomFields("Alert");
+
+    expect((getList.mock.calls[0]?.[0] as ListCall).sort).toEqual({
+      createdAt: SortOrder.Ascending,
+    });
   });
 
   test("every definition table exists as a model", () => {
