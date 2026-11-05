@@ -616,16 +616,19 @@ openstack-exporter is the collector operators know, and three of its open issues
 
 **To share a cloud between agents**, give each the same `OPENSTACK_CLOUD_NAME` and its own share. `OPENSTACK_EXPORTER_CLOUDS` names its regions, and `OPENSTACK_AGENT_SERVICES` its services, such as `compute|placement`. A region and a service belong to one agent, and Keystone to one agent for the whole cloud, or their series arrive twice. Set `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` on an agent with a large share: it holds a scrape in memory on its way out, and the default is `512`.
 
-**Past 1,500 hypervisors or 100,000 instances** a scrape of the APIs runs out of time, because the exporter asks Placement three things per hypervisor one call at a time, and reads every instance on every scrape. Those clouds can be read from their databases with [`openstack_database_exporter`](https://github.com/vexxhost/openstack_database_exporter), which `COMPOSE_PROFILES=openstack-database-exporter` starts:
+**Past 1,500 hypervisors or 100,000 instances** a scrape of the APIs runs out of time, because the exporter asks Placement three things per hypervisor one call at a time, and reads every instance on every scrape. Those clouds can be read from their databases with [`openstack_database_exporter`](https://github.com/vexxhost/openstack_database_exporter), which the `openstack-database-exporter` profile starts:
 
 | Setting | What it is |
 | --- | --- |
+| `COMPOSE_PROFILES` | `openstack-database-exporter,openstack-ai-agent`, for that exporter and the [AI agent](#oneuptime-ai-agent), which reads the first entry of `clouds.yaml` here |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | `[openstack-database-exporter:9180]`, with `OPENSTACK_EXPORTER_CLOUDS=[]`, or every series arrives twice |
 | `NOVA_DATABASE_URL`, `NOVA_API_DATABASE_URL`, `PLACEMENT_DATABASE_URL`, `NEUTRON_DATABASE_URL`, `CINDER_DATABASE_URL`, `GLANCE_DATABASE_URL`, `KEYSTONE_DATABASE_URL` | oslo.db's form, with a read-only account: `mysql+pymysql://oneuptime:secret@db.example:3306/nova`. A database left out is a service it leaves alone |
 | `OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX` | What a hypervisor's full name adds to Nova's host name, such as `.example.org`, so an instance finds the hypervisor it runs on |
 | `OPENSTACK_WORKER_STATE_CLOUDS` | The `clouds.yaml` entries to read two small lists from, such as `[RegionOne]`: whether each Nova worker is alive, and how full each storage pool is. A database says neither |
 
 It needs a route from this machine to those databases, and one exporter per region and Nova cell. It cannot say whether an API answers, only whether its database does, so watch the APIs themselves. It has been read from its source and its own tests, and has not been run here against a real database.
+
+To upgrade, run `install.sh` again, as on any agent: it keeps all of this, and checks the credential with Keystone for the entries `OPENSTACK_WORKER_STATE_CLOUDS` names. While the targets are set, it refuses a region in `OPENSTACK_EXPORTER_CLOUDS`, because every series would arrive twice.
 
 ## Upgrading
 

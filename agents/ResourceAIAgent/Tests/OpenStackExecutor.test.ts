@@ -2355,6 +2355,12 @@ describe("the settings", () => {
       }).connection?.regionName,
       "RegionTwo",
     );
+    // On the database path the agent reads no region per service, and the list is empty.
+    assert.strictEqual(
+      resolved({ ...base, [OPENSTACK_EXPORTER_CLOUDS_ENV]: "[]" }).connection
+        ?.regionName,
+      "RegionOne",
+    );
     assert.match(
       resolved({ ...base, [AI_OPENSTACK_CLOUD_ENV]: "Nope" }).problem as string,
       /names no entry of clouds\.yaml.*RegionOne, RegionTwo/,
