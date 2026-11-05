@@ -8,6 +8,8 @@
  * no queries, no model imports.
  */
 
+import { JSONObject } from "../../Types/JSON";
+
 /*
  * A parent monitor whose current status matches the suppression rule.
  * statusName is carried for user-facing messages ("parent monitor
@@ -22,6 +24,14 @@ export interface SuppressingParent {
 export interface DependencySuppressionResult {
   isSuppressed: boolean;
   suppressingParents: Array<SuppressingParent>;
+  /*
+   * Which of a grouped monitor's series its parents speak for, when that is
+   * not all of them: a RabbitMQ gone in one region says nothing of a worker
+   * in another. Left out, as it is for every monitor but those that say so
+   * (OpenStackDependencySuppression), a suppressing parent speaks for the
+   * whole monitor. Series labels are all this reads, so the rule stays pure.
+   */
+  coversSeries?: ((labels: JSONObject) => boolean) | undefined;
 }
 
 // The status facts about one parent monitor that the decision needs.
@@ -65,6 +75,35 @@ export default class MonitorDependencyRule {
     }
 
     return suppressing;
+  }
+
+  /*
+   * Whether a suppressing parent speaks for the whole of this evaluation, so
+   * that nothing is to be created at all, rather than for some of its series.
+   */
+  public static isWholeMonitorSuppressed(
+    suppression: DependencySuppressionResult | undefined,
+  ): boolean {
+    return Boolean(suppression?.isSuppressed && !suppression.coversSeries);
+  }
+
+  /*
+   * Whether one series is to open nothing. A check that is not split into
+   * series has nothing to narrow by, so its parents speak for it.
+   */
+  public static isSeriesSuppressed(data: {
+    suppression: DependencySuppressionResult | undefined;
+    labels: JSONObject | undefined;
+  }): boolean {
+    if (!data.suppression?.isSuppressed) {
+      return false;
+    }
+
+    if (!data.suppression.coversSeries || !data.labels) {
+      return true;
+    }
+
+    return data.suppression.coversSeries(data.labels);
   }
 
   /*

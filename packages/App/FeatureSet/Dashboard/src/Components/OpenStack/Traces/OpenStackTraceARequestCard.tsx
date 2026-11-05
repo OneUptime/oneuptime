@@ -33,8 +33,9 @@ import CopyableCommand from "../../SetupGuide/CopyableCommand";
 
 /*
  * Trace a request: the commands that sign one, for this cloud, and the way from what the
- * client prints to the trace. OneUptime never holds the key: signing happens where the
- * person runs `openstack`, with the same key their services were given.
+ * client prints to the trace. Signing happens where the person runs `openstack`, with the same
+ * key their services were given. Nothing here keeps it: the one place OneUptime holds a key is the
+ * lifecycle check's, if someone gives it one, encrypted and write-only (OpenStackCloudCheck).
  */
 
 export function getOpenStackTraceRoute(traceId: string): Route {

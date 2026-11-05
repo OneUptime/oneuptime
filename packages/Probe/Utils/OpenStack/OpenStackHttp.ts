@@ -1,4 +1,5 @@
 import { OpenStackVerifyingAgent } from "./OpenStackTls";
+import { OpenStackPresentedCertificate } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import OpenStackAuthUrl from "Common/Utils/OpenStack/OpenStackAuthUrl";
 import http from "http";
 import https from "https";
@@ -98,6 +99,10 @@ export function createOpenStackTransport(data: {
   resolve: (url: string) => Promise<Array<string>>;
   connectTimeoutInMs: number;
   maxResponseBytes: number;
+  // What each new connection's certificate is, for whoever wants to know when it expires.
+  onCertificate?:
+    | ((certificate: OpenStackPresentedCertificate) => void)
+    | undefined;
 }): OpenStackTransportHandle {
   const agents: Map<string, Promise<OpenStackVerifyingAgent>> = new Map();
 
@@ -123,6 +128,7 @@ export function createOpenStackTransport(data: {
             pinnedAddresses: pinnedAddresses,
             trustedFingerprints: data.trustedFingerprints,
             connectTimeoutInMs: data.connectTimeoutInMs,
+            onCertificate: data.onCertificate,
           });
         });
 

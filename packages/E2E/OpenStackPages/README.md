@@ -36,7 +36,7 @@ tell them apart:
   makes a recording's cloud one with no such service. A service a cloud may not run has a group of
   its own: `?recording=services-heat-magnum/magnum-failed` on its own, or
   `?recording=gazpacho-ovs/healthy&also=services-heat-magnum/access/admin` beside a whole cloud.
-- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|usage`
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|magnum|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
@@ -117,7 +117,7 @@ German and Persian.
 `OpenStackProjectsAndTopology.spec.ts`: Projects with quota data (`?estate=tenants`, a project
 at 90% of a quota and a nova-compute stopped under two projects) and without it (`?estate=calm`,
 which is most clouds), a project's page and who is told, Domains, a list opened on a project, and
-the Topology with that host red. No recording holds a quota series, so `tenants` is made up in the
+the Topology with that host red. No recorded project is at 90% of a quota, so `tenants` is made up in the
 shape the snapshot scan writes.
 
 `OpenStackPartPages.spec.ts`: the compute, network and storage lists and part pages, the step

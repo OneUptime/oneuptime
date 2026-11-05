@@ -1,10 +1,17 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   OPENSTACK_SNAPSHOT_METRIC_NAMES,
   OpenStackResourceBufferEntry,
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
+  isOpenStackSnapshotDatapoint,
 } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import {
+  OpenStackRecordedSeries,
+  readOpenStackScene,
+} from "../../../Helpers/OpenStackRecordings";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import {
   OPENSTACK_QUOTA_STALE_MINUTES,
@@ -22,10 +29,13 @@ import {
 /*
  * What a project may use and has used, as the scan folds it onto the project's row.
  *
- * No recording holds these series, because the agent leaves them off, so the series here
- * are written from the exporter's source, label for label (nova.go ListComputeLimits,
- * cinder.go ListVolumeLimits, neutron.go collectNeutronQuotaDetail). The parser takes
- * only those exact names and labels, and these tests are what holds it to that.
+ * The rig records these on real clouds (quota-record.sh), from the exporter the agent starts
+ * for them and through the agent's real collector config, and the last tests here read those
+ * recordings against what `openstack limits show` said about the same projects. A recording
+ * only holds what estate.sh's projects happen to be at, so the tests above it write series by
+ * hand, label for label as the exporter's source does (nova.go ListComputeLimits, cinder.go
+ * ListVolumeLimits, neutron.go collectNeutronQuotaDetail), for what no recording shows: a
+ * project at 90%, a reading gone stale, and a series that is not there.
  */
 
 const OBSERVED_AT_MS: number = Date.UTC(2026, 10, 4, 12, 0, 0);
@@ -633,3 +643,316 @@ describe("Nova metadata an operator chose to see", () => {
     expect(server({ team: "" })["labels"]).toEqual({});
   });
 });
+
+describe.each(["gazpacho-ovs", "hibiscus-ovn"])(
+  "what a real cloud's exporter said about each project, on %s",
+  (release: string) => {
+    const scene: string = path.join(
+      __dirname,
+      "../../../Fixtures/OpenStack",
+      release,
+      "quotas",
+    );
+    const cli: string = fs.readFileSync(path.join(scene, "cli.txt"), "utf8");
+
+    // A number from what the openstack command said, in its section about that project.
+    const cliSays: (section: string, name: string) => number = (
+      section: string,
+      name: string,
+    ): number => {
+      const start: number = cli.indexOf(`== ${section}\n`);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const end: number = cli.indexOf("\n== ", start + 1);
+      const row: RegExpExecArray | null = new RegExp(
+        `^\\| ${name} +\\| +(-?\\d+) \\|$`,
+        "m",
+      ).exec(cli.substring(start, end));
+      expect({ section, name, found: row !== null }).toEqual({
+        section,
+        name,
+        found: true,
+      });
+      return Number.parseInt(row![1]!, 10);
+    };
+
+    const foldScene: () => Array<OpenStackResourceBufferEntry> =
+      (): Array<OpenStackResourceBufferEntry> => {
+        const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
+        for (const series of readOpenStackScene(release, "quotas")) {
+          const datapoint: JSONObject = point({
+            labels: {
+              ...series.labels,
+              "openstack.region.name": "RegionOne",
+            },
+            value: series.value,
+          });
+          if (
+            isOpenStackSnapshotDatapoint({
+              metricName: series.name,
+              datapoint,
+            })
+          ) {
+            bufferOpenStackSnapshotMetric({
+              metricName: series.name,
+              datapoint,
+              buffer,
+            });
+          }
+        }
+        return finishOpenStackBatch(buffer.values());
+      };
+
+    const quotasOfProject: (
+      entries: Array<OpenStackResourceBufferEntry>,
+      name: string,
+      now: Date,
+    ) => Map<OpenStackQuotaResource, OpenStackProjectQuota> = (
+      entries: Array<OpenStackResourceBufferEntry>,
+      name: string,
+      now: Date,
+    ): Map<OpenStackQuotaResource, OpenStackProjectQuota> => {
+      const project: OpenStackResourceBufferEntry | undefined = entries.find(
+        (entry: OpenStackResourceBufferEntry): boolean => {
+          return (
+            entry.kind === OpenStackResourceKind.Project && entry.name === name
+          );
+        },
+      );
+      expect(project).toBeDefined();
+      return new Map(
+        getOpenStackProjectQuotas(project!.facts, now).map(
+          (
+            quota: OpenStackProjectQuota,
+          ): [OpenStackQuotaResource, OpenStackProjectQuota] => {
+            return [quota.resource, quota];
+          },
+        ),
+      );
+    };
+
+    const expectAsTheCliSays: (
+      entries: Array<OpenStackResourceBufferEntry>,
+      name: string,
+      now: Date,
+    ) => void = (
+      entries: Array<OpenStackResourceBufferEntry>,
+      name: string,
+      now: Date,
+    ): void => {
+      const quotas: Map<OpenStackQuotaResource, OpenStackProjectQuota> =
+        quotasOfProject(entries, name, now);
+      const limits: string = `openstack limits show --absolute --project ${name}`;
+      const quotaShow: string = `openstack quota show ${name}`;
+
+      expect(quotas.get(OpenStackQuotaResource.Instances)).toMatchObject({
+        used: cliSays(limits, "total_instances_used"),
+        limit: cliSays(limits, "max_total_instances"),
+        isStale: false,
+      });
+      expect(quotas.get(OpenStackQuotaResource.Cores)).toMatchObject({
+        used: cliSays(limits, "total_cores_used"),
+        limit: cliSays(limits, "max_total_cores"),
+      });
+      expect(quotas.get(OpenStackQuotaResource.RamMib)).toMatchObject({
+        used: cliSays(limits, "total_ram_used"),
+        limit: cliSays(limits, "max_total_ram_size"),
+      });
+      expect(quotas.get(OpenStackQuotaResource.Gigabytes)).toMatchObject({
+        used: cliSays(limits, "total_gigabytes_used"),
+        limit: cliSays(limits, "max_total_volume_gigabytes"),
+      });
+      expect(quotas.get(OpenStackQuotaResource.Networks)?.limit).toBe(
+        cliSays(quotaShow, "networks"),
+      );
+      expect(quotas.get(OpenStackQuotaResource.Ports)?.limit).toBe(
+        cliSays(quotaShow, "ports"),
+      );
+      // Each release of the command spells this one its own way.
+      expect(quotas.get(OpenStackQuotaResource.FloatingIps)?.limit).toBe(
+        cliSays(quotaShow, "floating[-_]ips"),
+      );
+      // All seven of what the pages show, and none of what they leave out.
+      expect(quotas.size).toBe(7);
+    };
+
+    test.each(["ou-payments", "ou-research"])(
+      "%s reads as `openstack limits show` and `quota show` say",
+      (name: string) => {
+        expectAsTheCliSays(foldScene(), name, NOW);
+      },
+    );
+
+    test("each project holds what estate.sh set it to, in the exporter's own notation", () => {
+      const payments: Map<OpenStackQuotaResource, OpenStackProjectQuota> =
+        quotasOfProject(foldScene(), "ou-payments", NOW);
+
+      expect(payments.get(OpenStackQuotaResource.Instances)?.limit).toBe(4);
+      expect(payments.get(OpenStackQuotaResource.Cores)?.limit).toBe(8);
+      // 2.097152e+06 as the exporter writes it.
+      expect(payments.get(OpenStackQuotaResource.RamMib)?.limit).toBe(2097152);
+      expect(payments.get(OpenStackQuotaResource.Instances)?.percent).toBe(75);
+      expect(payments.get(OpenStackQuotaResource.Instances)?.isAtLine).toBe(
+        false,
+      );
+
+      const research: Map<OpenStackQuotaResource, OpenStackProjectQuota> =
+        quotasOfProject(foldScene(), "ou-research", NOW);
+
+      expect(research.get(OpenStackQuotaResource.Instances)?.limit).toBe(20);
+      expect(research.get(OpenStackQuotaResource.Cores)?.limit).toBe(40);
+      expect(research.get(OpenStackQuotaResource.RamMib)?.limit).toBe(40960);
+    });
+
+    test("every project Keystone holds has a row, whether or not it runs anything", () => {
+      const ids: Set<string> = new Set(
+        readOpenStackScene(release, "quotas").flatMap(
+          (series: OpenStackRecordedSeries): Array<string> => {
+            return series.labels["tenant_id"]
+              ? [series.labels["tenant_id"]]
+              : [];
+          },
+        ),
+      );
+
+      expect(ids.size).toBeGreaterThan(2);
+      expect(
+        foldScene()
+          .filter((entry: OpenStackResourceBufferEntry): boolean => {
+            return entry.kind === OpenStackResourceKind.Project;
+          })
+          .map((entry: OpenStackResourceBufferEntry): string => {
+            return entry.externalId;
+          })
+          .sort(),
+      ).toEqual(Array.from(ids).sort());
+    });
+
+    describe("through the agent's hourly jobs, as its real collector config sent them", () => {
+      interface ExportedPoint {
+        metricName: string;
+        datapoint: JSONObject;
+      }
+
+      const exported: Array<ExportedPoint> = fs
+        .readFileSync(path.join(scene, "otlp", "metrics.json"), "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .flatMap((line: string): Array<ExportedPoint> => {
+          const points: Array<ExportedPoint> = [];
+          const batch: JSONObject = JSON.parse(line);
+          for (const resource of batch["resourceMetrics"] as JSONArray) {
+            for (const scopeMetrics of (resource as JSONObject)[
+              "scopeMetrics"
+            ] as JSONArray) {
+              for (const metric of (scopeMetrics as JSONObject)[
+                "metrics"
+              ] as JSONArray) {
+                const data: JSONObject = ((metric as JSONObject)["gauge"] ||
+                  (metric as JSONObject)["sum"]) as JSONObject;
+                for (const datapoint of data["dataPoints"] as JSONArray) {
+                  points.push({
+                    metricName: (metric as JSONObject)["name"] as string,
+                    datapoint: datapoint as JSONObject,
+                  });
+                }
+              }
+            }
+          }
+          return points;
+        });
+
+      const labelsOf: (datapoint: JSONObject) => Record<string, string> = (
+        datapoint: JSONObject,
+      ): Record<string, string> => {
+        const labels: Record<string, string> = {};
+        for (const attribute of datapoint["attributes"] as JSONArray) {
+          const key: string = (attribute as JSONObject)["key"] as string;
+          labels[key] = ((attribute as JSONObject)["value"] as JSONObject)[
+            "stringValue"
+          ] as string;
+        }
+        return labels;
+      };
+
+      test("a project's quotas read the same", () => {
+        const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
+        let latestMs: number = 0;
+        for (const { metricName, datapoint } of exported) {
+          latestMs = Math.max(
+            latestMs,
+            Number(BigInt(datapoint["timeUnixNano"] as string) / 1000000n),
+          );
+          if (isOpenStackSnapshotDatapoint({ metricName, datapoint })) {
+            bufferOpenStackSnapshotMetric({ metricName, datapoint, buffer });
+          }
+        }
+        const entries: Array<OpenStackResourceBufferEntry> =
+          finishOpenStackBatch(buffer.values());
+        const now: Date = new Date(latestMs + 60 * 1000);
+
+        expectAsTheCliSays(entries, "ou-payments", now);
+        expectAsTheCliSays(entries, "ou-research", now);
+      });
+
+      test("each series says its service and region, and nothing of how the job chose it", () => {
+        const quotas: Array<ExportedPoint> = exported.filter(
+          (one: ExportedPoint): boolean => {
+            return (
+              one.metricName.includes("_limits_") ||
+              one.metricName.includes("_quota_")
+            );
+          },
+        );
+
+        expect(quotas.length).toBeGreaterThan(50);
+        for (const { metricName, datapoint } of quotas) {
+          const labels: Record<string, string> = labelsOf(datapoint);
+          expect({ metricName, service: labels["openstack_service"] }).toEqual({
+            metricName,
+            service: metricName.startsWith("openstack_nova")
+              ? "compute"
+              : metricName.startsWith("openstack_neutron")
+                ? "network"
+                : "volume",
+          });
+          expect(labels["openstack.region.name"]).toBe("RegionOne");
+          expect(labels["openstack_quota_service"]).toBeUndefined();
+        }
+      });
+
+      // The scan reads a failed `up` with a service on it as that service's API being down.
+      test("the scrape's own `up` names no service, so a failed read of limits downs no API", () => {
+        const ups: Array<ExportedPoint> = exported.filter(
+          (one: ExportedPoint): boolean => {
+            return one.metricName === "up";
+          },
+        );
+
+        expect(ups.length).toBeGreaterThan(0);
+        for (const { datapoint } of ups) {
+          expect(labelsOf(datapoint)["openstack_service"]).toBeUndefined();
+        }
+      });
+
+      test("an exporter that reads nothing else was asked for nothing else", () => {
+        const names: Set<string> = new Set(
+          exported
+            .filter((one: ExportedPoint): boolean => {
+              return one.metricName.startsWith("openstack_");
+            })
+            .map((one: ExportedPoint): string => {
+              return one.metricName;
+            }),
+        );
+
+        for (const name of names) {
+          expect(name).toMatch(
+            /^openstack_(nova_limits|cinder_limits|cinder_volume_type_quota|neutron_quota)_/,
+          );
+        }
+        // Not its API's own `up`, which the agent's main jobs already say every five minutes.
+        expect(names.has("openstack_nova_up")).toBe(false);
+      });
+    });
+  },
+);

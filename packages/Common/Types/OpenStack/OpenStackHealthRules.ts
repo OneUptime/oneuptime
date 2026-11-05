@@ -104,6 +104,20 @@ export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
 export const OPENSTACK_SERVICE_DISABLED_WARNING_DAYS: number = 7;
 
 /*
+ * How close a public endpoint's certificate may come to its end. A month is when someone can
+ * still renew it in working hours, and a week is when it is about to take every user with it.
+ */
+export const OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 30;
+export const OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS: number = 7;
+
+/*
+ * How long a lifecycle run's server may take to reach ACTIVE before a boot counts as slow. Tempest's
+ * own build_timeout, which is how long OpenStack's own tests give a server, and well under what a
+ * run waits before calling a boot failed.
+ */
+export const OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS: number = 300;
+
+/*
  * The same for a node: in maintenance on purpose, until it has been there so long that somebody
  * probably forgot it, and the machine has been out of what the cloud can give all that time.
  */

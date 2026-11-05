@@ -1,0 +1,1 @@
+{"quotas": [{"project_id": "8823f59e179b4110b41ed566c8000b82", "loadbalancer": null, "load_balancer": null, "listener": null, "member": null, "pool": null, "healthmonitor": null, "health_monitor": null, "l7policy": null, "l7rule": null, "tenant_id": "8823f59e179b4110b41ed566c8000b82"}], "quotas_links": []}

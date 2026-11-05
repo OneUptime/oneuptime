@@ -22,6 +22,10 @@ import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceK
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import {
+  BACKOFF_BASE_IN_MS,
+  MAX_BACKOFF_IN_MS,
+} from "../../../Utils/OpenStack/OpenStackBackoff";
 import OpenStackCollector, {
   DEFAULT_OPENSTACK_COLLECTOR_DEPENDENCIES,
   OpenStackCollectorDependencies,
@@ -124,14 +128,21 @@ function liveRun(): LiveRun {
   };
 }
 
-function waitForKeystone(): void {
+function run(command: string): void {
+  execSync(command, { stdio: "inherit", shell: "/bin/bash" });
+}
+
+// A service that was stopped takes a moment to answer again, and the next test needs it to.
+function waitUntilTheCliGetsAnAnswer(command: string): void {
   run(
-    `for attempt in $(seq 1 60); do openstack --os-cloud devstack-admin token issue -f value -c id >/dev/null 2>&1 && exit 0; sleep 5; done; exit 1`,
+    `for attempt in $(seq 1 60); do openstack --os-cloud devstack-admin ${command} >/dev/null 2>&1 && exit 0; sleep 5; done; exit 1`,
   );
 }
 
-function run(command: string): void {
-  execSync(command, { stdio: "inherit", shell: "/bin/bash" });
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise<void>((resolve: () => void): void => {
+    setTimeout(resolve, milliseconds);
+  });
 }
 
 function scanAsIngest(
@@ -630,6 +641,7 @@ describeLive("the probe against a real cloud, over real TLS", () => {
           ).toBeGreaterThan(0);
         } finally {
           run(`sudo systemctl start ${NEUTRON_UNIT}`);
+          waitUntilTheCliGetsAnAnswer("network list -f value -c ID");
         }
       },
       LONG_TEST_IN_MS,
@@ -665,21 +677,40 @@ describeLive("the probe against a real cloud, over real TLS", () => {
 
           expect(asked).toBeGreaterThan(0);
 
-          // Right away, and a minute on: nothing goes near it.
+          // Right away, and half a minute on: nothing goes near it.
+          await OpenStackCollector.collect(collectionJob(), live.dependencies);
+          expect(live.answered.length).toBe(asked);
+
+          live.advance(BACKOFF_BASE_IN_MS / 2);
           await OpenStackCollector.collect(collectionJob(), live.dependencies);
           expect(live.answered.length).toBe(asked);
         } finally {
           run(`sudo systemctl start ${KEYSTONE_UNIT}`);
-          waitForKeystone();
+          waitUntilTheCliGetsAnAnswer("token issue -f value -c id");
         }
 
-        // Past the longest it waits, it is tried again, and it answers.
-        live.advance(31 * 60 * 1000);
+        /*
+         * Past the longest it waits, it is tried again, and it answers. Each service asks Keystone
+         * about a token too, so one may take a moment longer to come back than Keystone did.
+         */
+        let after: OpenStackCollectionReport | undefined = undefined;
 
-        const after: OpenStackCollectionReport =
-          await OpenStackCollector.collect(collectionJob(), live.dependencies);
+        for (
+          let attempt: number = 0;
+          attempt < 6 && after?.status !== "Succeeded";
+          attempt++
+        ) {
+          await sleep(attempt === 0 ? 0 : 20_000);
+          live.advance(MAX_BACKOFF_IN_MS + 60_000);
+          after = await OpenStackCollector.collect(
+            collectionJob(),
+            live.dependencies,
+          );
+        }
 
-        expect(after.status).toBe("Succeeded");
+        keep("collection-keystone-back", after?.summary);
+
+        expect(after?.status).toBe("Succeeded");
       },
       LONG_TEST_IN_MS,
     );

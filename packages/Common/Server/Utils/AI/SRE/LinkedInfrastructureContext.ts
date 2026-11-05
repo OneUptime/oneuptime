@@ -24,12 +24,16 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { isCloudResourceKindResource } from "../../../../Types/Cloud/CloudResourceKind";
 import { JSONObject } from "../../../../Types/JSON";
 import {
+  OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
   isOpenStackBlastRadiusEmpty,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
-import { OPENSTACK_SERVICE_TITLES } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICE_TITLES,
+  OpenStackResourceKind,
+} from "../../../../Types/OpenStack/OpenStackResourceKind";
 import {
   OpenStackAttentionRow,
   OpenStackAttentionSummary,
@@ -1065,6 +1069,21 @@ export default class LinkedInfrastructureContext {
           `- and ${context.radius.projectCount - context.radius.projects.length} more projects`,
         );
       }
+    }
+
+    for (const owner of context.radius?.belongsTo || []) {
+      lines.push(
+        `Part of ${owner.kind === OpenStackResourceKind.ContainerCluster ? "Magnum Kubernetes cluster" : "Heat stack"} ${JSON.stringify(owner.name || owner.externalId)}${owner.status ? `, which reads ${owner.status}` : ""}.`,
+      );
+    }
+    if (context.radius?.magnumClusters?.length) {
+      lines.push(
+        `Magnum Kubernetes clusters with a server on it: ${context.radius.magnumClusters
+          .map((owner: OpenStackBlastRadiusOwner): string => {
+            return JSON.stringify(owner.name || owner.externalId);
+          })
+          .join(", ")}.`,
+      );
     }
 
     const reach: OpenStackReachAcrossProducts | null | undefined =

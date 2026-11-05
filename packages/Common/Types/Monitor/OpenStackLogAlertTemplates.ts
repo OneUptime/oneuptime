@@ -69,7 +69,9 @@ export const OPENSTACK_DATABASE_LOST_MIN_LINES: number = 5;
 
 /*
  * One expired token is someone's stale session. Many in five minutes is what a controller
- * whose Fernet keys differ from the others looks like.
+ * whose Fernet keys differ from the others looks like, and no line says more than that: with its
+ * keys swapped, a real Keystone on Epoxy, Flamingo and Hibiscus writes what it writes for any
+ * refusal, and never that it could not read a token (OpenStack's service-logs fixtures).
  */
 export const OPENSTACK_TOKEN_FAILING_MIN_LINES: number = 10;
 

@@ -1,0 +1,6 @@
+mysql_global_status_slow_queries 0
+mysql_global_status_threads_connected 119
+mysql_global_status_threads_running 3
+mysql_global_status_uptime 1848
+mysql_global_variables_max_connections 1024
+mysql_up 1
