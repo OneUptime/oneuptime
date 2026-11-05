@@ -279,6 +279,13 @@ jest.mock("Common/Server/Utils/Response", () => {
 // Importing the router registers every handler on the mock router above.
 import "../../../FeatureSet/Identity/API/StatusPageAuthentication";
 
+/*
+ * The first write as a teammate loads this on its way (OwnedScopePermission),
+ * and with it every owner table's service: half a minute on a busy machine,
+ * which would otherwise count against whichever test writes as a teammate first.
+ */
+import "Common/Server/Types/Database/Permissions/OwnerTableRegistry";
+
 type Row = Record<string, unknown>;
 
 let readers: Array<Row>;
