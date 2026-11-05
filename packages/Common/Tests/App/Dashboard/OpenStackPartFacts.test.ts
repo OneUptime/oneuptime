@@ -43,6 +43,7 @@ import {
   OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS,
   OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS,
   OpenStackAllocationLine,
+  OpenStackEmptyWords,
   OpenStackForecast,
   OpenStackGrowthSample,
   OpenStackHostGroup,
@@ -161,9 +162,12 @@ describe("what an instance booted from", () => {
       { updatedAt: "2026-11-04T11:00:00Z" },
       { state: "booted-from-volume" },
     ],
-  ])("%s", (_name: string, facts: JSONObject, wanted: OpenStackInstanceImage) => {
-    expect(getOpenStackInstanceImage(rowWith(facts))).toEqual(wanted);
-  });
+  ])(
+    "%s",
+    (_name: string, facts: JSONObject, wanted: OpenStackInstanceImage) => {
+      expect(getOpenStackInstanceImage(rowWith(facts))).toEqual(wanted);
+    },
+  );
 
   test("no row at all is not known either", () => {
     expect(getOpenStackInstanceImage(null)).toEqual({ state: "not-collected" });
@@ -1770,6 +1774,48 @@ describe("what an empty list means", () => {
     ).toMatch(/Full view or Infrastructure only[\s\S]*troubleshoot\.sh/);
   });
 
+  test.each([
+    OpenStackResourceKind.Hypervisor,
+    OpenStackResourceKind.StoragePool,
+    OpenStackResourceKind.Service,
+    OpenStackResourceKind.Domain,
+  ])(
+    "on a cloud a probe collects, %s says the same closed list, and the credential is changed from the dashboard",
+    (kind: OpenStackResourceKind) => {
+      const words: OpenStackEmptyWords | null = getOpenStackEmptyWords({
+        kind,
+        api: "up",
+        isProbeCollected: true,
+      });
+
+      expect(words?.title).toBe(
+        getOpenStackEmptyWords({ kind, api: "up" })?.title,
+      );
+      expect(words?.description).toContain(
+        "with Edit Connection, and Test Connection says what it can read",
+      );
+      expect(words?.description).not.toMatch(/the agent|troubleshoot\.sh/);
+    },
+  );
+
+  test("a probe lists its own project's instances, so an empty list there can really be empty", () => {
+    expect(
+      getOpenStackEmptyWords({
+        kind: OpenStackResourceKind.Instance,
+        api: "up",
+        hypervisorsAreListed: false,
+        isProbeCollected: true,
+      }),
+    ).toBeNull();
+    expect(
+      getOpenStackEmptyWords({
+        kind: OpenStackResourceKind.Instance,
+        api: "up",
+        hypervisorsAreListed: false,
+      })?.title,
+    ).toBe("This credential can't list instances");
+  });
+
   test("an API that doesn't answer says that, for any kind", () => {
     expect(
       getOpenStackEmptyWords({
@@ -1823,10 +1869,7 @@ describe("what an empty list means", () => {
 });
 
 describe("DHCP agents", () => {
-  function rowWith(
-    name: string,
-    facts: JSONObject,
-  ): OpenStackResource {
+  function rowWith(name: string, facts: JSONObject): OpenStackResource {
     return Object.assign(new OpenStackResource(), { name, facts });
   }
 

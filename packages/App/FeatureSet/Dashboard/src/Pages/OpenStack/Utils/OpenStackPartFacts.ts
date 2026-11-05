@@ -1369,6 +1369,36 @@ const CANNOT_LIST: Partial<Record<OpenStackResourceKind, OpenStackEmptyWords>> =
     },
   };
 
+// The same lists on a cloud a probe collects: its credential is changed from the dashboard.
+const CANNOT_LIST_ON_A_PROBE: Partial<
+  Record<OpenStackResourceKind, OpenStackEmptyWords>
+> = {
+  [OpenStackResourceKind.Hypervisor]: {
+    title: translationKey("This credential can't list hypervisors"),
+    description: translationKey(
+      "Nova answers, and shows it no hypervisors. They take the Full view or Infrastructure only credential, because hypervisors and Placement are closed to a project's reader. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.StoragePool]: {
+    title: translationKey("This credential can't list storage pools"),
+    description: translationKey(
+      "Cinder answers, and shows it no pools. Only the Full view credential reads them: Cinder's own code asks for an admin, whatever the policy says. Give the probe that credential with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.Service]: {
+    title: translationKey("This credential can't list network agents"),
+    description: translationKey(
+      "Neutron answers, and shows it no agents. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.Domain]: {
+    title: translationKey("This credential can't list domains"),
+    description: translationKey(
+      "Keystone answers, and shows it no domains. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+};
+
 /*
  * A cloud can really have no instances, so an empty list alone says nothing. A credential
  * that can't list hypervisors either is another matter: the agent's exporter asks Nova for
@@ -1391,15 +1421,24 @@ export function getOpenStackEmptyWords(data: {
   api: OpenStackApiState;
   // Whether this credential lists any hypervisor, when a list of instances has asked.
   hypervisorsAreListed?: boolean | undefined;
+  // A probe collects this cloud, so there is no agent to give a credential to.
+  isProbeCollected?: boolean | undefined;
 }): OpenStackEmptyWords | null {
   if (data.api === "down") {
     return NOT_ANSWERING;
   }
   if (data.api === "up") {
     if (data.kind === OpenStackResourceKind.Instance) {
-      return data.hypervisorsAreListed === false ? CANNOT_LIST_INSTANCES : null;
+      // A probe lists its own project's instances, and that project can really have none.
+      return data.hypervisorsAreListed === false && !data.isProbeCollected
+        ? CANNOT_LIST_INSTANCES
+        : null;
     }
-    return CANNOT_LIST[data.kind] || null;
+    return (
+      (data.isProbeCollected ? CANNOT_LIST_ON_A_PROBE : CANNOT_LIST)[
+        data.kind
+      ] || null
+    );
   }
   return null;
 }

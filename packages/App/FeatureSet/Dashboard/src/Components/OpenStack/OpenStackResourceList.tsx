@@ -84,6 +84,7 @@ import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
 } from "./Part/OpenStackPartRoutes";
+import useIsOpenStackProbeCollected from "./Part/UseIsOpenStackProbeCollected";
 
 /*
  * Every inventory list of an OpenStack cloud. A cloud can hold hundreds of
@@ -563,6 +564,10 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     return getOpenStackPartRoutes(props.openStackCloudId);
   }, [props.openStackCloudId]);
 
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(
+    props.openStackCloudId,
+  );
+
   /*
    * A column no row on the page holds is left out. Until a page has arrived, none of the
    * ones that can be empty are drawn, so a column never appears and then goes.
@@ -811,6 +816,7 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     kind: props.kind,
     api: apiState,
     hypervisorsAreListed: hypervisorsAreListed,
+    isProbeCollected: isProbeCollected,
   });
 
   const filters: Array<Filter<OpenStackResource>> = useMemo(() => {
