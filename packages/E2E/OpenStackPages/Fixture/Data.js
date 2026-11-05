@@ -1706,7 +1706,7 @@ function usageInventory(context) {
  * One machine under the cloud, in the shape the control plane scan writes for what its exporter
  * said (Common/Tests/Fixtures/OpenStack/control-plane holds real ones).
  */
-function controlPlaneMachine(context, dependency, host, fields = {}) {
+function machineUnderTheCloud(context, dependency, host, fields = {}) {
   return stamped(
     {
       kind: "ControlPlane",
@@ -1728,12 +1728,12 @@ function controlPlaneInventory(context) {
   return [
     ...calmInventory(context),
     ...["10.0.0.11", "10.0.0.12", "10.0.0.13"].map((host) => {
-      return controlPlaneMachine(context, "rabbitmq", host, {
+      return machineUnderTheCloud(context, "rabbitmq", host, {
         status: "down",
         facts: { scrapeFailed: true },
       });
     }),
-    controlPlaneMachine(context, "mariadb", "10.0.0.11", {
+    machineUnderTheCloud(context, "mariadb", "10.0.0.11", {
       facts: {
         galeraOn: true,
         clusterPrimary: true,
@@ -1744,7 +1744,7 @@ function controlPlaneInventory(context) {
         maxConnections: 4096,
       },
     }),
-    controlPlaneMachine(context, "mariadb", "10.0.0.12", {
+    machineUnderTheCloud(context, "mariadb", "10.0.0.12", {
       facts: {
         galeraOn: true,
         clusterPrimary: true,
@@ -1756,7 +1756,7 @@ function controlPlaneInventory(context) {
         maxConnections: 4096,
       },
     }),
-    controlPlaneMachine(context, "mariadb", "10.0.0.13", {
+    machineUnderTheCloud(context, "mariadb", "10.0.0.13", {
       facts: {
         galeraOn: true,
         clusterPrimary: true,
@@ -1768,11 +1768,11 @@ function controlPlaneInventory(context) {
       },
     }),
     ...["10.0.0.11", "10.0.0.12"].map((host) => {
-      return controlPlaneMachine(context, "memcached", host, {
+      return machineUnderTheCloud(context, "memcached", host, {
         facts: { currentConnections: 41, askedAt: now },
       });
     }),
-    controlPlaneMachine(context, "network", "10.0.0.21", {
+    machineUnderTheCloud(context, "network", "10.0.0.21", {
       facts: {
         ovsSeenAt: now,
         ovsDatabaseSeenAt: now,
@@ -1781,7 +1781,7 @@ function controlPlaneInventory(context) {
         bridgePorts: 8,
       },
     }),
-    controlPlaneMachine(context, "network", "10.0.0.22", {
+    machineUnderTheCloud(context, "network", "10.0.0.22", {
       facts: {
         ovsSeenAt: now,
         ovsDatabaseSeenAt: now,
