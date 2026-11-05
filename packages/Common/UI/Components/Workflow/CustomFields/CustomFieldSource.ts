@@ -35,8 +35,11 @@ export const hasCustomFields: HasCustomFieldsFunction = (
 };
 
 /**
- * The fields of a table's records, in the order the project keeps them. Rejects
- * when the person may not read them.
+ * The fields of a table's records, in the order the project keeps them: by the
+ * column their list is ordered by, where they have one (only an incident's
+ * custom fields do), else the order they were added in. Sorting by a column a
+ * table does not have is refused, and would look like there being no fields.
+ * Rejects when the person may not read them.
  */
 export const loadCustomFields: LoadCustomFieldsFunction = async (
   recordTableName: string,
@@ -63,7 +66,10 @@ export const loadCustomFields: LoadCustomFieldsFunction = async (
       customFieldType: true,
       dropdownOptions: true,
     } as Select<BaseModel>,
-    sort: { sortOrder: SortOrder.Ascending } as Sort<BaseModel>,
+    sort: {
+      [new modelType().getListOrder()?.column || "createdAt"]:
+        SortOrder.Ascending,
+    } as Sort<BaseModel>,
   });
 
   const fields: Array<WorkflowCustomField> = [];
