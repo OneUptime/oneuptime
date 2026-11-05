@@ -539,9 +539,7 @@ describe("the workflow", () => {
   });
 
   test("a run that only installs the agent does not cancel a full one", () => {
-    expect(workflow.concurrency.group).toContain(
-      "inputs.agent_install_only && 'agent-install'",
-    );
+    expect(workflow.concurrency.group).toContain("github.run_id");
   });
 
   test("keeps what it did even when it fails, under a name of its own", () => {
