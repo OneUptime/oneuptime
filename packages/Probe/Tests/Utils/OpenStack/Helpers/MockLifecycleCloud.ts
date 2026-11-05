@@ -79,6 +79,8 @@ export interface MockLifecycleOptions {
   pollsUntilDetached?: number | undefined;
   pollsUntilVolumeGone?: number | undefined;
   pollsUntilServerGone?: number | undefined;
+  // Nova reads a deleted server as DELETED, in a show and in its list, before it stops naming it.
+  readsDeletedBeforeGoing?: boolean | undefined;
   // The server goes to ERROR, with this as its fault, when it would have reached ACTIVE.
   bootFault?: { code: number; message: string } | undefined;
   // It stays in BUILD: nothing that wakes it is running.
@@ -735,6 +737,13 @@ export default class MockLifecycleCloud {
       server.deletePolls += 1;
 
       if (server.deletePolls > (this.options.pollsUntilServerGone ?? 0)) {
+        if (this.options.readsDeletedBeforeGoing) {
+          server.row["status"] = "DELETED";
+          server.row["OS-EXT-STS:task_state"] = null;
+
+          return response(200, { server: server.row }, now);
+        }
+
         this.servers.delete(id);
 
         // A server's deletion takes its attachments with it, and its volumes are free again.

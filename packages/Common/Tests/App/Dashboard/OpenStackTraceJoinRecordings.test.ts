@@ -68,10 +68,6 @@ describe.each(getRecordedTraceReleases())(
       ["neutron-server", "network"],
       ["glance-api", "image"],
     ])("%s goes to the row of the %s API", (service: string, type: string) => {
-      if (service === "neutron-server" && recording.neutronWasLeftOut()) {
-        return;
-      }
-
       const traced: TracedService | undefined = servicesOfBoot(recording).find(
         (candidate: TracedService): boolean => {
           return candidate.service === service;

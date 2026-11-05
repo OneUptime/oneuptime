@@ -44,6 +44,7 @@ export interface ResourceCounts {
   floatingIps?: number | undefined;
   volumes?: number | undefined;
   projects?: number | undefined;
+  bareMetalNodes?: number | undefined;
   stacks?: number | undefined;
   containerClusters?: number | undefined;
   shares?: number | undefined;
@@ -171,6 +172,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.ChartBar}
         />
+        <SideMenuItem
+          link={{
+            title: "Spend",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SPEND] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Wallet}
+        />
       </SideMenuSection>
 
       {/*
@@ -291,6 +302,26 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.RectangleStack}
         />
       </SideMenuSection>
+
+      {runs(OpenStackServiceType.BareMetal) ? (
+        <SideMenuSection title="Bare Metal">
+          <SideMenuItem
+            link={{
+              title: "Nodes",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES
+                ] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Server}
+            badge={counts.bareMetalNodes}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Network">
         <SideMenuItem

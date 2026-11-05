@@ -242,6 +242,26 @@ describe("a check of a healthy cloud", () => {
     expect(resultOf(result, "compute_legacy").read).toBe("GET /");
   });
 
+  test("Placement is asked at the microversion its read came in at, because at the default a healthy one answers 404", async () => {
+    const harness: Harness = createHarness();
+
+    await OpenStackApiCheck.run(apiJob(), harness.deps);
+
+    const placement: OpenStackHttpRequest | undefined = harness.requests.find(
+      (request: OpenStackHttpRequest): boolean => {
+        return request.url.includes("/placement/");
+      },
+    );
+
+    expect(placement?.headers["OpenStack-API-Version"]).toBe("placement 1.2");
+
+    for (const request of harness.requests) {
+      if (!request.url.includes("/placement/")) {
+        expect(request.headers["OpenStack-API-Version"]).toBeUndefined();
+      }
+    }
+  });
+
   test("the token goes with every read, and the secret only to Keystone", async () => {
     const harness: Harness = createHarness();
 

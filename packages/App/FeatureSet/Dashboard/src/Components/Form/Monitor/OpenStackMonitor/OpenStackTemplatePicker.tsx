@@ -25,6 +25,8 @@ export interface ComponentProps {
     | {
         services: ReadonlyArray<string>;
         isCollectedByProbe: boolean;
+        isApiCheckOn?: boolean | undefined;
+        isLifecycleCheckOn?: boolean | undefined;
       }
     | undefined;
 }

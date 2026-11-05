@@ -53,6 +53,10 @@ import {
   OpenStackTopConsumers,
 } from "../../Types/OpenStack/OpenStackOverview";
 import {
+  OPENSTACK_BARE_METAL_CLASS_LIMIT,
+  OpenStackBareMetalClass,
+} from "../../Types/OpenStack/OpenStackBareMetal";
+import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusCount,
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
@@ -1722,9 +1726,10 @@ export class Service extends DatabaseService<Model> {
    *    nobody there can manage any of it.
    *  - A stack and the Magnum cluster built with it: each names the other, because a failure of
    *    one is the same failure. Only a cluster's stack_id says so, which is on every cluster's
-   *    series. What else a stack owns takes a read of its resources, which nothing makes yet.
+   *    series.
    *  - An instance that is a server of a Magnum cluster names that cluster, and a hypervisor names
    *    the clusters with a server on it, by what Magnum's driver names a server.
+   *  - An instance or a volume a stack's own read names, which only a probe makes, names that stack.
    */
   @CaptureSpan()
   public async getBlastRadius(data: {
@@ -1897,11 +1902,31 @@ export class Service extends DatabaseService<Model> {
     if (part.kind === OpenStackResourceKind.Instance) {
       return {
         ...getEmptyOpenStackBlastRadius(false),
-        belongsTo: await this.readMagnumClustersOfServers({
+        belongsTo: [
+          ...(await this.readMagnumClustersOfServers({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            regionName: part.regionName,
+            serverNames: [part.name],
+          })),
+          ...(await this.readStacksOwning({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            fact: "ownedInstanceIds",
+            externalId: part.externalId,
+          })),
+        ],
+      };
+    }
+
+    if (part.kind === OpenStackResourceKind.Volume) {
+      return {
+        ...getEmptyOpenStackBlastRadius(false),
+        belongsTo: await this.readStacksOwning({
           projectId: data.projectId,
           openStackCloudId: data.openStackCloudId,
-          regionName: part.regionName,
-          serverNames: [part.name],
+          fact: "ownedVolumeIds",
+          externalId: part.externalId,
         }),
       };
     }
@@ -2226,6 +2251,34 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  /*
+   * The stacks whose own read of their resources names this part, which only a probe makes. A stack is
+   * a few rows in any cloud, so this is no walk of anything however large the cloud.
+   */
+  private async readStacksOwning(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    fact: "ownedInstanceIds" | "ownedVolumeIds";
+    externalId?: string | null | undefined;
+  }): Promise<Array<OpenStackBlastRadiusOwner>> {
+    if (!data.externalId) {
+      return [];
+    }
+    return await this.getRepository().manager.query(
+      `SELECT "kind", "externalId", "name", "status" FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Stack}' AND "deletedAt" IS NULL
+         AND "facts"->'${data.fact}' ? $3
+       ORDER BY "name", "externalId"
+       LIMIT ${OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT}`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.externalId,
+      ],
+    );
+  }
+
   // The Magnum cluster a stack was built for. More than one would be a guess: see OpenStackLinks.
   private async readClustersOfStack(data: {
     projectId: ObjectID;
@@ -2240,7 +2293,11 @@ export class Service extends DatabaseService<Model> {
            AND "deletedAt" IS NULL
            AND "facts"->>'stackId' = $3
          LIMIT 2`,
-        [data.projectId.toString(), data.openStackCloudId.toString(), data.stackId],
+        [
+          data.projectId.toString(),
+          data.openStackCloudId.toString(),
+          data.stackId,
+        ],
       );
     return rows.length === 1 ? rows : [];
   }
@@ -2262,6 +2319,65 @@ export class Service extends DatabaseService<Model> {
         data.stackIds,
       ],
     );
+  }
+
+  /**
+   * What there is of each resource class, for the Bare Metal page: one statement over a node's rows,
+   * so it reads the same however many there are. What can take an instance is
+   * canOpenStackBareMetalNodeTakeAnInstance, which a test holds this to on the same rows.
+   */
+  @CaptureSpan()
+  public async getBareMetalClasses(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    regionName?: string | null | undefined;
+  }): Promise<Array<OpenStackBareMetalClass>> {
+    const rows: Array<{
+      resourceClass: string | null;
+      nodeCount: string;
+      availableCount: string;
+      deployedCount: string;
+      maintenanceCount: string;
+      failedCount: string;
+    }> = await this.getRepository().manager.query(
+      `SELECT "facts"->>'resourceClass' AS "resourceClass",
+              COUNT(*)::text AS "nodeCount",
+              COUNT(*) FILTER (
+                WHERE "status" = 'available'
+                  AND COALESCE("adminState", '') <> '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+                  AND COALESCE("facts"->>'powerState', '') NOT IN ('', 'error')
+                  AND COALESCE("facts"->>'isRetired', 'false') <> 'true'
+              )::text AS "availableCount",
+              COUNT(*) FILTER (WHERE "status" = 'active')::text AS "deployedCount",
+              COUNT(*) FILTER (
+                WHERE "adminState" = '${OPENSTACK_BARE_METAL_IN_MAINTENANCE}'
+              )::text AS "maintenanceCount",
+              COUNT(*) FILTER (WHERE "status" = ANY($3::text[]))::text AS "failedCount"
+       FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.BareMetalNode}' AND "deletedAt" IS NULL
+         AND ($4::text IS NULL OR "regionName" = $4)
+       GROUP BY "facts"->>'resourceClass'
+       ORDER BY COUNT(*) DESC, "facts"->>'resourceClass' ASC NULLS LAST
+       LIMIT ${OPENSTACK_BARE_METAL_CLASS_LIMIT}`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        Array.from(OPENSTACK_BARE_METAL_ERROR_STATES),
+        data.regionName || null,
+      ],
+    );
+
+    return rows.map((row: (typeof rows)[number]): OpenStackBareMetalClass => {
+      return {
+        resourceClass: row.resourceClass,
+        nodeCount: Number.parseInt(row.nodeCount, 10) || 0,
+        availableCount: Number.parseInt(row.availableCount, 10) || 0,
+        deployedCount: Number.parseInt(row.deployedCount, 10) || 0,
+        maintenanceCount: Number.parseInt(row.maintenanceCount, 10) || 0,
+        failedCount: Number.parseInt(row.failedCount, 10) || 0,
+      };
+    });
   }
 
   /**

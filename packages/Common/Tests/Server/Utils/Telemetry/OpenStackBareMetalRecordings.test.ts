@@ -41,17 +41,24 @@ import {
  * BARE METAL, ON WHAT A REAL CLOUD SAID.
  *
  * Tests/Ops/openstack-e2e/services-ironic.sh ran Ironic on a real stable/2026.1 DevStack with fake
- * hardware: its API, conductor and state machine are real, only the power and the disks are not. Six
- * of its ten scenes are in Tests/Fixtures/OpenStack/services-ironic, each what the agent's exporter
- * answered once Ironic had got there by itself:
+ * hardware: its API, conductor and state machine are real, only the power and the disks are not, and
+ * Nova ran its Ironic driver. All ten of its scenes are in Tests/Fixtures/OpenStack/services-ironic,
+ * each what the agent's exporter answered once Ironic had got there by itself:
  *
- *   half-enrolled, maintenance, clean-failed, wait-call-back, deploy-failed, api-down
+ *   baseline, half-enrolled, maintenance, clean-failed, wait-call-back, deploy-failed,
+ *   power-off-while-active, conductor-down, api-down, recovered
  *
- * Not recorded yet, so not asserted here: baseline, power-off-while-active, conductor-down, recovered,
- * Nova's hypervisor list with a node in it, and what a system-scoped credential reads.
+ * Each was read twice. The agent's own scrape is a project's admin, which Ironic shows only what that
+ * project owns, and that project owns five of the seven nodes. The other is the same moment with
+ * system scope, which reads them all (baremetal-as-devstack-system-admin.prom), and is what holds the
+ * one node that was ever deployed, because another project owns it.
+ *
+ * Not recorded, so not asserted here: an instance on a node, which fake hardware's deploy didn't put
+ * there, and a node Nova could really schedule to, since Placement reserves every one of these.
  */
 
 const IRONIC: string = path.join(OPENSTACK_FIXTURES_FOLDER, "services-ironic");
+const SYSTEM_SCOPE: string = "devstack-system-admin";
 const OBSERVED_AT_MS: number = 1793841200000;
 const NOW: Date = new Date(OBSERVED_AT_MS);
 
@@ -77,8 +84,12 @@ class Scene {
   public readonly entries: Array<OpenStackResourceBufferEntry>;
   public readonly rows: Array<OpenStackResource>;
 
-  public constructor(scene: string, folder: string = "exporter") {
-    this.series = readRecordedSeries(path.join(IRONIC, scene, folder));
+  public constructor(
+    scene: string,
+    folder: string = "exporter",
+    asCloud?: string | undefined,
+  ) {
+    this.series = readRecordedSeries(path.join(IRONIC, scene, folder), asCloud);
     this.entries = scanRecordedSeries(this.series, OBSERVED_AT_MS);
     this.rows = this.entries.map(toRow);
   }
@@ -110,6 +121,49 @@ class Scene {
   }
 }
 
+// The same moment, as a credential that reads every node did.
+function withSystemScope(scene: string): Scene {
+  return new Scene(scene, "exporter", SYSTEM_SCOPE);
+}
+
+function apiAnswer(scene: string, call: string): Array<JSONObject> {
+  const answer: JSONObject = JSON.parse(
+    fs.readFileSync(path.join(IRONIC, scene, "api", `${call}.json`), "utf8"),
+  );
+
+  return (answer["nodes"] ||
+    answer["conductors"] ||
+    answer["hypervisors"]) as Array<JSONObject>;
+}
+
+function apiStatus(scene: string, call: string): number | undefined {
+  for (const line of fs
+    .readFileSync(path.join(IRONIC, scene, "api-status.txt"), "utf8")
+    .split("\n")) {
+    const [status, name] = line.split(" ");
+
+    if (name === call) {
+      return Number(status);
+    }
+  }
+  return undefined;
+}
+
+// The hosts Nova's series name, as a host's own series do.
+function novaHostsOf(recorded: Scene): Array<string> {
+  return [
+    ...new Set(
+      recorded.series
+        .filter((one: RecordedSeries): boolean => {
+          return one.name === "openstack_nova_running_vms";
+        })
+        .map((one: RecordedSeries): string => {
+          return one.labels["hostname"] as string;
+        }),
+    ),
+  ].sort();
+}
+
 function assess(row: OpenStackResource, now: Date = NOW): OpenStackAssessment {
   return assessOpenStackResource({ row, now });
 }
@@ -127,11 +181,15 @@ function factsOf(row: OpenStackResource): JSONObject {
 }
 
 const SCENES_WITH_NODES: Array<string> = [
+  "baseline",
   "half-enrolled",
   "maintenance",
   "clean-failed",
   "wait-call-back",
   "deploy-failed",
+  "power-off-while-active",
+  "conductor-down",
+  "recovered",
 ];
 
 describe("every scene with Ironic answering", () => {
@@ -144,31 +202,47 @@ describe("every scene with Ironic answering", () => {
       expect(recorded.api(OpenStackServiceType.Compute)?.status).toBe("up");
       expect(recorded.api(OpenStackServiceType.Placement)?.status).toBe("up");
 
-      // Placement holds every node under its UUID, with one of its own class and nothing else.
+      /*
+       * The only hosts on this cloud are its nodes, and Nova and Placement both list every one under
+       * its UUID. So nothing here is a host, whatever Nova says each has in use: a node reads the
+       * 512 MiB Nova keeps back for a host.
+       */
+      expect(novaHostsOf(recorded).length).toBeGreaterThan(0);
+      expect(
+        recorded.series.some((one: RecordedSeries): boolean => {
+          return (
+            one.name === "openstack_nova_memory_used_bytes" && one.value > 0
+          );
+        }),
+      ).toBe(true);
       expect(recorded.ofKind(OpenStackResourceKind.Hypervisor)).toEqual([]);
-      expect(getOpenStackHostsToReconcile(recorded.entries)).not.toContain(
-        recorded.ofKind(OpenStackResourceKind.BareMetalNode)[0]?.externalId,
-      );
+      // So none of them costs a read to look for a nova-compute of that name.
+      expect(getOpenStackHostsToReconcile(recorded.entries)).toEqual([
+        "compute-01",
+      ]);
     },
   );
 
-  test.each(SCENES_WITH_NODES)(
-    "%s: each node's row is what the API said of it",
-    (scene: string) => {
-      const recorded: Scene = new Scene(scene);
-      const answer: { nodes: Array<JSONObject> } = JSON.parse(
-        fs.readFileSync(
-          path.join(IRONIC, scene, "api", "ironic-nodes.json"),
-          "utf8",
-        ),
-      );
+  test.each(
+    SCENES_WITH_NODES.flatMap(
+      (scene: string): Array<[string, string, Scene]> => {
+        return [
+          [scene, "ironic-nodes", new Scene(scene)],
+          [scene, "ironic-nodes-as-system", withSystemScope(scene)],
+        ];
+      },
+    ),
+  )(
+    "%s: each node's row is what the API said of it, in %s",
+    (scene: string, call: string, recorded: Scene) => {
+      const answer: Array<JSONObject> = apiAnswer(scene, call);
       const nodes: Array<OpenStackResource> = recorded.ofKind(
         OpenStackResourceKind.BareMetalNode,
       );
 
-      expect(nodes.length).toBe(answer.nodes.length);
+      expect(nodes.length).toBe(answer.length);
 
-      for (const said of answer.nodes) {
+      for (const said of answer) {
         const row: OpenStackResource = recorded.node(said["name"] as string);
 
         expect({
@@ -201,18 +275,24 @@ describe("every scene with Ironic answering", () => {
   test.each(SCENES_WITH_NODES)(
     "%s: Placement's providers are what capacity adds up, with one of its own class each",
     (scene: string) => {
-      const recorded: Scene = new Scene(scene);
+      const recorded: Scene = withSystemScope(scene);
       const providers: Array<OpenStackResource> = recorded.ofKind(
         OpenStackResourceKind.PlacementProvider,
       );
 
-      // A half-enrolled node has a provider with no inventory, so no series and no row.
       const ids: Array<string> = providers.map(
         (row: OpenStackResource): string => {
           return row.name as string;
         },
       );
-      expect(ids).not.toContain(recorded.node("ou-node-half").externalId);
+
+      // A half-enrolled node has a provider with no inventory, so no series and no row.
+      for (const node of recorded.ofKind(OpenStackResourceKind.BareMetalNode)) {
+        if (!factsOf(node)["resourceClass"]) {
+          expect(ids).not.toContain(node.externalId);
+        }
+      }
+
       /*
        * Each is a node's. Not always all of them: Nova only finds a new node on its next periodic,
        * so what these say trails what Ironic says by up to a minute or so.
@@ -242,11 +322,12 @@ describe("every scene with Ironic answering", () => {
   test.each(SCENES_WITH_NODES)(
     "%s: Nova's Ironic driver would reserve every one, as Placement recorded",
     (scene: string) => {
-      const recorded: Scene = new Scene(scene);
+      const recorded: Scene = withSystemScope(scene);
 
       /*
        * Every node here has no power state or is not available, which is what the driver reports
-       * reserved for, and the recording agrees: the rule and Placement say one thing.
+       * reserved for, and the recording agrees: the rule and Placement say one thing. So what is
+       * never recorded is a node the rule says could take an instance.
        */
       for (const provider of recorded.ofKind(
         OpenStackResourceKind.PlacementProvider,
@@ -274,6 +355,64 @@ describe("every scene with Ironic answering", () => {
   );
 });
 
+describe("baseline: nodes owned by a project, another project and nobody", () => {
+  const recorded: Scene = new Scene("baseline");
+  const everything: Scene = withSystemScope("baseline");
+
+  test("a project is shown what it owns, as the API says", () => {
+    expect(
+      namesOf(recorded.ofKind(OpenStackResourceKind.BareMetalNode)),
+    ).toEqual(["ou-node-available"]);
+  });
+
+  test("Nova and Placement list all three, which is how a page can say the list is partial", () => {
+    const ids: Array<string> = everything
+      .ofKind(OpenStackResourceKind.BareMetalNode)
+      .map((row: OpenStackResource): string => {
+        return row.externalId as string;
+      })
+      .sort();
+
+    expect(ids.length).toBe(3);
+    expect(novaHostsOf(recorded)).toEqual(ids);
+    expect(
+      recorded
+        .ofKind(OpenStackResourceKind.PlacementProvider)
+        .map((row: OpenStackResource): string => {
+          return row.name as string;
+        })
+        .sort(),
+    ).toEqual(ids);
+  });
+
+  test("system scope reads all three, and what each is", () => {
+    expect(
+      everything
+        .ofKind(OpenStackResourceKind.BareMetalNode)
+        .map((row: OpenStackResource): Array<unknown> => {
+          return [row.name, row.status];
+        })
+        .sort(),
+    ).toEqual([
+      ["ou-node-active", "active"],
+      ["ou-node-available", "available"],
+      ["ou-node-unowned", "available"],
+    ]);
+  });
+
+  test("the cloud is Healthy, seen either way", () => {
+    for (const scene of [recorded, everything]) {
+      const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+        rows: scene.rows,
+        now: NOW,
+      });
+
+      expect(items).toEqual([]);
+      expect(getOpenStackHealth(items)).toBe("Healthy");
+    }
+  });
+});
+
 describe("half-enrolled: a node left in enroll with nothing filled in", () => {
   const recorded: Scene = new Scene("half-enrolled");
 
@@ -291,6 +430,32 @@ describe("half-enrolled: a node left in enroll with nothing filled in", () => {
         return one.name === "openstack_ironic_up";
       })?.value,
     ).toBe(1);
+  });
+
+  test("Nova has nothing at all to say of it, and the exporter makes zeros of that", () => {
+    const half: OpenStackResource = recorded.node("ou-node-half");
+    const said: JSONObject | undefined = apiAnswer(
+      "half-enrolled",
+      "nova-hypervisors-before-2-88",
+    ).find((one: JSONObject): boolean => {
+      return one["hypervisor_hostname"] === half.externalId;
+    });
+
+    expect(said?.["running_vms"]).toBe(null);
+    expect(said?.["free_ram_mb"]).toBe(null);
+    expect(
+      recorded.series
+        .filter((one: RecordedSeries): boolean => {
+          return (
+            one.labels["hostname"] === half.externalId &&
+            one.name.startsWith("openstack_nova_")
+          );
+        })
+        .every((one: RecordedSeries): boolean => {
+          return one.value === 0;
+        }),
+    ).toBe(true);
+    expect(novaHostsOf(recorded)).toContain(half.externalId);
   });
 
   test("reads what it is, with no resource class or power state, and nothing to do about it", () => {
@@ -409,9 +574,31 @@ describe("clean-failed: the conductor could not run a step", () => {
   });
 
   test("Ironic says when it failed, which outlasts a read that was not watching", () => {
-    expect(factsOf(node)["provisionUpdatedAt"]).toBe(
-      new Date(1793840982 * 1000).toISOString(),
+    const said: RecordedSeries | undefined = recorded.series.find(
+      (one: RecordedSeries): boolean => {
+        return (
+          one.name === "openstack_ironic_node_provision_updated_at" &&
+          one.labels["name"] === "ou-node-clean-failed"
+        );
+      },
     );
+
+    expect(said?.value).toBeGreaterThan(0);
+    expect(factsOf(node)["provisionUpdatedAt"]).toBe(
+      new Date((said?.value as number) * 1000).toISOString(),
+    );
+  });
+
+  test("and the API's own reason doesn't last: it has gone by the next scene but one", () => {
+    const later: JSONObject | undefined = apiAnswer(
+      "power-off-while-active",
+      "ironic-nodes",
+    ).find((one: JSONObject): boolean => {
+      return one["name"] === "ou-node-clean-failed";
+    });
+
+    expect(later?.["provision_state"]).toBe("clean failed");
+    expect(later?.["last_error"]).toBe(null);
   });
 });
 
@@ -495,6 +682,127 @@ describe("deploy-failed: the callback never came, and Ironic gave up", () => {
   });
 });
 
+describe("power-off-while-active: a deployed node someone powered off", () => {
+  const recorded: Scene = new Scene("power-off-while-active");
+  const everything: Scene = withSystemScope("power-off-while-active");
+  const node: OpenStackResource = everything.node("ou-node-active");
+
+  test("Ironic leaves it active and says the power is off", () => {
+    expect(node.status).toBe("active");
+    expect(factsOf(node)["powerState"]).toBe("power off");
+  });
+
+  test("it needs someone, by what it is, and no fake hardware's node before it did", () => {
+    expect(assess(node)).toEqual({
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: "Deployed, with its power off" }],
+    });
+    expect(assess(withSystemScope("baseline").node("ou-node-active"))).toEqual({
+      severity: null,
+      reasons: [],
+    });
+  });
+
+  test("once it is on again, it doesn't", () => {
+    const after: OpenStackResource =
+      withSystemScope("recovered").node("ou-node-active");
+
+    expect(factsOf(after)["powerState"]).toBe("power on");
+    expect(assess(after)).toEqual({ severity: null, reasons: [] });
+  });
+
+  test("a project that doesn't own it never hears of it, and Placement still lists it", () => {
+    expect(
+      namesOf(recorded.ofKind(OpenStackResourceKind.BareMetalNode)),
+    ).not.toContain("ou-node-active");
+    expect(
+      recorded
+        .ofKind(OpenStackResourceKind.PlacementProvider)
+        .map((row: OpenStackResource): string | undefined => {
+          return row.name;
+        }),
+    ).toContain(node.externalId);
+  });
+
+  test("the rest of this cloud reads as it did", () => {
+    expect(
+      getOpenStackAttentionItems({ rows: recorded.rows, now: NOW })
+        .map((item: ResourceAttentionItem): string => {
+          return item.name;
+        })
+        .sort(),
+    ).toEqual(["ou-node-clean-failed", "ou-node-deploy-failed"]);
+    expect(
+      getOpenStackAttentionItems({ rows: everything.rows, now: NOW })
+        .map((item: ResourceAttentionItem): string => {
+          return item.name;
+        })
+        .sort(),
+    ).toEqual([
+      "ou-node-active",
+      "ou-node-clean-failed",
+      "ou-node-deploy-failed",
+    ]);
+  });
+});
+
+describe("conductor-down: Ironic's conductor stopped, with its API still up", () => {
+  const recorded: Scene = new Scene("conductor-down");
+
+  test("the exporter can't tell: it says up, and every node reads as it did", () => {
+    expect(recorded.api(OpenStackServiceType.BareMetal)?.status).toBe("up");
+    expect(
+      namesOf(recorded.ofKind(OpenStackResourceKind.BareMetalNode)),
+    ).toEqual(
+      namesOf(
+        new Scene("deploy-failed").ofKind(OpenStackResourceKind.BareMetalNode),
+      ),
+    );
+    expect(
+      recorded.series.filter((one: RecordedSeries): boolean => {
+        return one.name.startsWith("openstack_ironic_agent");
+      }),
+    ).toEqual([]);
+  });
+
+  test("the API says so, to system scope alone", () => {
+    expect(apiAnswer("baseline", "ironic-conductors-as-system")).toEqual([
+      { hostname: "compute-01", conductor_group: "", alive: true },
+    ]);
+    expect(apiAnswer("conductor-down", "ironic-conductors-as-system")).toEqual([
+      { hostname: "compute-01", conductor_group: "", alive: false },
+    ]);
+    expect(apiStatus("conductor-down", "ironic-conductors")).toBe(403);
+  });
+});
+
+describe("recovered: everything started again", () => {
+  const recorded: Scene = new Scene("recovered");
+
+  test("its API says up, and a failed node stays failed", () => {
+    expect(recorded.api(OpenStackServiceType.BareMetal)?.status).toBe("up");
+    expect(
+      getOpenStackAttentionItems({ rows: recorded.rows, now: NOW })
+        .map((item: ResourceAttentionItem): string => {
+          return item.name;
+        })
+        .sort(),
+    ).toEqual(["ou-node-clean-failed", "ou-node-deploy-failed"]);
+  });
+
+  test("the node in maintenance is still there, with its reason", () => {
+    expect(recorded.node("ou-node-maintenance").disabledReason).toBe(
+      "OneUptime drill: a disk being swapped",
+    );
+  });
+
+  test("the conductor is alive again, as the API says", () => {
+    expect(apiAnswer("recovered", "ironic-conductors-as-system")).toEqual([
+      { hostname: "compute-01", conductor_group: "", alive: true },
+    ]);
+  });
+});
+
 describe("api-down: Ironic's API stopped", () => {
   const recorded: Scene = new Scene("api-down");
 
@@ -560,11 +868,49 @@ describe("api-down: Ironic's API stopped", () => {
   test("Placement still holds the nodes it knew, so what capacity adds up does not go with it", () => {
     expect(
       recorded.ofKind(OpenStackResourceKind.PlacementProvider).length,
-    ).toBe(4);
+    ).toBe(6);
+  });
+
+  test("and Nova its hypervisors, which are still no hosts", () => {
+    expect(novaHostsOf(recorded).length).toBe(7);
+    expect(recorded.ofKind(OpenStackResourceKind.Hypervisor)).toEqual([]);
   });
 });
 
-describe("the access check: what a project's admin reads through the exporter", () => {
+describe("the access check: what each credential reads through the exporter", () => {
+  test("Ironic answers each with what its project owns, and tells nobody so", () => {
+    const matrix: {
+      reads: Array<{
+        service: string;
+        read: string;
+        results: Record<string, { status: number; count: number | null }>;
+      }>;
+    } = JSON.parse(
+      fs.readFileSync(path.join(IRONIC, "access-check", "matrix.json"), "utf8"),
+    );
+    const nodes: Record<string, { status: number; count: number | null }> =
+      matrix.reads.find((read: { service: string; read: string }): boolean => {
+        return read.service === "baremetal" && read.read === "nodes";
+      })?.results as Record<string, { status: number; count: number | null }>;
+
+    expect(nodes).toMatchObject({
+      admin: { status: 200, count: 5 },
+      reader: { status: 200, count: 1 },
+      "monitoring-role": { status: 200, count: 0 },
+      "role-on-a-project": { status: 200, count: 1 },
+    });
+  });
+
+  test("nothing owned reads up, with no nodes, which a page can only explain", () => {
+    const recorded: Scene = new Scene(
+      "access-check",
+      "exporter/monitoring-role",
+    );
+
+    expect(recorded.api(OpenStackServiceType.BareMetal)?.status).toBe("up");
+    expect(recorded.ofKind(OpenStackResourceKind.BareMetalNode)).toEqual([]);
+  });
+
   test("the same nodes the other scenes hold, because it owns every one it created", () => {
     const recorded: Scene = new Scene("access-check", "exporter/admin");
 

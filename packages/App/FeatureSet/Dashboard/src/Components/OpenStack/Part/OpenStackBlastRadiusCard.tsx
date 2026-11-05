@@ -261,7 +261,9 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
         {data.magnumClusters && data.magnumClusters.length > 0 ? (
           <div data-testid={`${props.testId}-magnum-clusters`}>
             <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
-              {translator.translateText("Kubernetes clusters with a server here")}
+              {translator.translateText(
+                "Kubernetes clusters with a server here",
+              )}
             </p>
             <ul className={listClassName}>
               {data.magnumClusters.map(

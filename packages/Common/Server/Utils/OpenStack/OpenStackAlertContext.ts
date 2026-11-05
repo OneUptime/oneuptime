@@ -834,7 +834,9 @@ export default class OpenStackAlertContext {
       sections.push(
         owner.kind === OpenStackResourceKind.ContainerCluster
           ? mdText`**Part of Kubernetes cluster:** ${name}. A failure here is a failure of that cluster, and openstack coe cluster show says which node group failed.`
-          : mdText`**Built with Heat stack:** ${name}. openstack stack failures list on it says what failed.`,
+          : context.partKind === OpenStackResourceKind.ContainerCluster
+            ? mdText`**Built with Heat stack:** ${name}. openstack stack failures list on it says what failed.`
+            : mdText`**Part of Heat stack:** ${name}. What happens to this happens to that stack.`,
       );
     }
 

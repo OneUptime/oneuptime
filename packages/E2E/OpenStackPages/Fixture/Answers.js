@@ -8,6 +8,13 @@
  * tests (Common/Tests/Server/Services/OpenStackResourcePostgres.test.ts) hold the SQL.
  */
 import {
+  canOpenStackBareMetalNodeTakeAnInstance,
+  isOpenStackBareMetalMaintenanceTooLong,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeInMaintenance,
+  isOpenStackBareMetalNodeStuck,
+  isOpenStackBareMetalPowerUnexpected,
+  isOpenStackServiceQuiet,
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
@@ -117,6 +124,8 @@ export function getInventorySummary(allRows, regionName) {
     downServiceCount: services.filter((row) => {
       return row.status === "down" && !isAdminDown(row);
     }).length,
+    bareMetalNodeCount: ofKind(rows, "BareMetalNode").length,
+    bareMetalProviderCount: ofKind(rows, "PlacementProvider").length,
     vcpuCapacity: sum(giving, "vcpuCapacity"),
     vcpuAllocated: sum(giving, "vcpuAllocated"),
     memoryCapacityBytes: sum(giving, "memoryCapacityBytes"),
@@ -223,8 +232,40 @@ function stuckSince(row, minutes, now) {
 const ATTENTION_QUERIES = [
   {
     kind: "Api",
-    where: (row) => {
-      return row.status === "down";
+    where: (row, now) => {
+      return (
+        row.status === "down" ||
+        isOpenStackServiceQuiet({
+          service: row.name,
+          lastSeenAt: row.lastSeenAt,
+          now,
+        })
+      );
+    },
+  },
+  {
+    kind: "BareMetalNode",
+    where: (row, now) => {
+      return (
+        isOpenStackBareMetalNodeInError(row.status) ||
+        isOpenStackBareMetalNodeStuck({
+          status: row.status,
+          adminState: row.adminState,
+          stateChangedAt: row.stateChangedAt,
+          provisionUpdatedAt: row.facts?.provisionUpdatedAt,
+          now,
+        }) ||
+        isOpenStackBareMetalMaintenanceTooLong({
+          adminState: row.adminState,
+          stateChangedAt: row.stateChangedAt,
+          now,
+        }) ||
+        isOpenStackBareMetalPowerUnexpected({
+          status: row.status,
+          adminState: row.adminState,
+          powerState: row.facts?.powerState,
+        })
+      );
     },
   },
   { kind: "Service", where: () => true, whole: true },
@@ -379,6 +420,37 @@ function countsByProject(rows) {
   });
 }
 
+// What the server's statement counts: OpenStackResourceService.getBareMetalClasses.
+export function getBareMetalClasses(allRows, regionName) {
+  const classes = new Map();
+  for (const row of ofKind(ofRegion(allRows, regionName), "BareMetalNode")) {
+    const resourceClass = row.facts?.resourceClass || null;
+    const one = classes.get(resourceClass) || {
+      resourceClass,
+      nodeCount: 0,
+      availableCount: 0,
+      deployedCount: 0,
+      maintenanceCount: 0,
+      failedCount: 0,
+    };
+    const inMaintenance = isOpenStackBareMetalNodeInMaintenance(row.adminState);
+    one.nodeCount += 1;
+    one.availableCount += canOpenStackBareMetalNodeTakeAnInstance({
+      status: row.status,
+      adminState: row.adminState,
+      powerState: row.facts?.powerState,
+      isRetired: row.facts?.isRetired,
+    })
+      ? 1
+      : 0;
+    one.deployedCount += row.status === "active" ? 1 : 0;
+    one.maintenanceCount += inMaintenance ? 1 : 0;
+    one.failedCount += isOpenStackBareMetalNodeInError(row.status) ? 1 : 0;
+    classes.set(resourceClass, one);
+  }
+  return Array.from(classes.values());
+}
+
 export function getBlastRadius(allRows, part) {
   const projectNames = {};
   for (const row of ofKind(allRows, "Project")) {
@@ -445,8 +517,27 @@ export function getBlastRadius(allRows, part) {
     };
   }
 
+  // The stacks whose own read names this part, as readStacksOwning reads them.
+  const stacksOwning = (fact) => {
+    return ofKind(allRows, "Stack")
+      .filter((row) => {
+        return (row.facts?.[fact] || []).includes(part.externalId);
+      })
+      .map(ownerOf);
+  };
+
   if (part.kind === "Instance") {
-    return { ...finish([], false), belongsTo: magnumClustersOf([part.name]) };
+    return {
+      ...finish([], false),
+      belongsTo: [
+        ...magnumClustersOf([part.name]),
+        ...stacksOwning("ownedInstanceIds"),
+      ],
+    };
+  }
+
+  if (part.kind === "Volume") {
+    return { ...finish([], false), belongsTo: stacksOwning("ownedVolumeIds") };
   }
 
   if (part.kind === "Service" && part.name === "nova-compute") {
@@ -501,6 +592,17 @@ export function getBlastRadius(allRows, part) {
     ]);
   }
 
+  if (part.kind === "BareMetalNode") {
+    return buildOpenStackBlastRadius({
+      counts: [
+        {
+          count: "instanceCount",
+          byProject: countsByProject(instancesOn(part.externalId)),
+        },
+      ],
+      projectNames,
+    });
+  }
   if (part.kind === "Router") {
     return finish([
       {

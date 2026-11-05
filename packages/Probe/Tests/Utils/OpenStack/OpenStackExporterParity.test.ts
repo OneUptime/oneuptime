@@ -310,6 +310,8 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "dhcpNetworkCount",
     // What an instance booted from, nor for this.
     "imageId",
+    // Whether someone said to keep an image, which it doesn't report either.
+    "isProtected",
     // Nor which networks it has an address on.
     "networkNames",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
@@ -888,10 +890,7 @@ describe("what only a probe adds, in the rows it fills", () => {
       async (release: string) => {
         const scene: RecordedScene = loadScene(release, "compute-forced-down");
 
-        for (const rows of [
-          await rowsOfScene(scene),
-          exporterRowsOf(scene),
-        ]) {
+        for (const rows of [await rowsOfScene(scene), exporterRowsOf(scene)]) {
           const hypervisors: Array<OpenStackResourceBufferEntry> = rowsOf(
             rows,
             OpenStackResourceKind.Hypervisor,
@@ -922,7 +921,9 @@ describe("what only a probe adds, in the rows it fills", () => {
         ],
       ).toBeUndefined();
       expect(
-        namedIn(rows, OpenStackResourceKind.Router, "router1").facts["l3Agents"],
+        namedIn(rows, OpenStackResourceKind.Router, "router1").facts[
+          "l3Agents"
+        ],
       ).toBeDefined();
     });
 
@@ -1343,7 +1344,9 @@ describe("what only a probe adds, in the rows it fills", () => {
           return request.url.includes("dhcp-networks");
         }),
       ).toEqual([]);
-      expect(recordedJson(scene, "neutron-agent-dhcp-networks")).toBeUndefined();
+      expect(
+        recordedJson(scene, "neutron-agent-dhcp-networks"),
+      ).toBeUndefined();
     });
 
     test("nothing but DHCP agents say so", async () => {
@@ -1614,7 +1617,7 @@ describe("the catalogue says who collects what", () => {
       "openstack_cinder_snapshot_gb",
       "openstack_container_infra_agent_state",
       "openstack_heat_agent_state",
-      "openstack_ironic_conductor_state",
+      "openstack_ironic_agent_state",
       "openstack_placement_flavor_fits",
       "openstack_sharev2_agent_state",
     ]);

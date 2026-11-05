@@ -104,6 +104,14 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL,
       ["Project", "OpenStack", "View Cloud", "Routers", "Router Detail"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+      ["Project", "OpenStack", "View Cloud", "Bare Metal"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+      ["Project", "OpenStack", "View Cloud", "Bare Metal", "Node Detail"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS, [
       "Project",
       "OpenStack",
@@ -294,6 +302,12 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "OpenStack",
       "View Cloud",
       "Capacity",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SPEND, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Spend",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS, [
       "Project",

@@ -11,6 +11,9 @@ import {
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
   isOpenStackAdminDisabled,
+  isOpenStackBareMetalMaintenanceTooLong,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeStuck,
   isOpenStackContainerClusterFailed,
   isOpenStackFloatingIpAssociated,
   isOpenStackServiceDown,
@@ -55,6 +58,7 @@ import {
   assessOpenStackResource,
   formatOpenStackDuration,
   getOpenStackAttentionItems,
+  getOpenStackBareMetalProvisionUpdatedAt,
   getOpenStackHealth,
 } from "./OpenStackHealth";
 
@@ -136,6 +140,13 @@ export const OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS: Array<string> = [
 export const OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-volumes-in-error",
   "openstack-volume-stuck",
+];
+
+export const OPENSTACK_BARE_METAL_NODE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-bare-metal-node-in-error",
+  "openstack-bare-metal-node-stuck",
+  "openstack-bare-metal-node-maintenance-too-long",
+  "openstack-bare-metal-power-state-unexpected",
 ];
 
 export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
@@ -334,6 +345,7 @@ export function getOpenStackRowState(
           disabledReason: row.disabledReason,
           isScrapeFailed: factsOf(row)["scrapeFailed"] === true,
           stateChangedAt: row.stateChangedAt,
+          provisionUpdatedAt: getOpenStackBareMetalProvisionUpdatedAt(row),
           now,
         });
 
@@ -1063,6 +1075,18 @@ const EXPLAIN_POOL_FULL: string = translationKey(
 const EXPLAIN_POOL_FILLING: string = translationKey(
   "This pool is filling up. Add capacity or free space before Cinder's scheduler runs out of room for new volumes.",
 );
+const EXPLAIN_NODE_FAILED: string = translationKey(
+  "This node failed at what it was doing, and it stays failed until someone acts: Ironic retries none of these by itself. The machine is out of what the cloud can give until then.",
+);
+const EXPLAIN_NODE_STUCK: string = translationKey(
+  "This node has held one state on the way to another far past when Ironic gives up on waiting by default, and Ironic's own time has not moved. Look at the conductor's log.",
+);
+const EXPLAIN_NODE_MAINTENANCE_LONG: string = translationKey(
+  "This node has been in maintenance for more than a week, so somebody has probably forgotten it, and the machine has been out of what the cloud can give all that time.",
+);
+const EXPLAIN_NODE_POWER_OFF: string = translationKey(
+  "This node is deployed with its power off, so whatever runs on it has stopped, and nothing says anyone meant it.",
+);
 const EXPLAIN_SHARE_ERROR: string = translationKey(
   "Manila couldn't do what this share was asked for, and it stays like this until someone deals with it. Whoever asked for it doesn't have what they asked for. openstack share message list says what Manila recorded about it. A share with no zone never reached a backend, which is what a share type nothing matches looks like.",
 );
@@ -1132,6 +1156,8 @@ export function getOpenStackPartExplanation(
         : EXPLAIN_POOL_FILLING;
     case OpenStackResourceKind.Image:
       return EXPLAIN_IMAGE_STUCK;
+    case OpenStackResourceKind.BareMetalNode:
+      return getOpenStackBareMetalExplanation(row, now);
     case OpenStackResourceKind.Share:
       return isOpenStackShareInError(row.status)
         ? EXPLAIN_SHARE_ERROR
@@ -1151,6 +1177,40 @@ export function getOpenStackPartExplanation(
     default:
       return null;
   }
+}
+
+/*
+ * One thing to read first, the worst of what the rules said: a failed node stays failed whatever else
+ * is true of it, and a node with its power off may be stuck in nothing.
+ */
+function getOpenStackBareMetalExplanation(
+  row: OpenStackResource,
+  now: Date,
+): string | null {
+  if (isOpenStackBareMetalNodeInError(row.status)) {
+    return EXPLAIN_NODE_FAILED;
+  }
+  if (
+    isOpenStackBareMetalNodeStuck({
+      status: row.status,
+      adminState: row.adminState,
+      stateChangedAt: row.stateChangedAt,
+      provisionUpdatedAt: getOpenStackBareMetalProvisionUpdatedAt(row),
+      now,
+    })
+  ) {
+    return EXPLAIN_NODE_STUCK;
+  }
+  if (
+    isOpenStackBareMetalMaintenanceTooLong({
+      adminState: row.adminState,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return EXPLAIN_NODE_MAINTENANCE_LONG;
+  }
+  return EXPLAIN_NODE_POWER_OFF;
 }
 
 /*
@@ -1217,6 +1277,11 @@ export function isOpenStackIssueAbout(
         readSeriesLabel(labels, "id") === row.externalId
       );
     case OpenStackResourceKind.Image:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
+    case OpenStackResourceKind.BareMetalNode:
       return (
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
@@ -1333,6 +1398,7 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.Backup]: OpenStackServiceType.Volume,
   [OpenStackResourceKind.Image]: OpenStackServiceType.Image,
   [OpenStackResourceKind.Domain]: OpenStackServiceType.Identity,
+  [OpenStackResourceKind.BareMetalNode]: OpenStackServiceType.BareMetal,
   [OpenStackResourceKind.Stack]: OpenStackServiceType.Orchestration,
   [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
   [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,

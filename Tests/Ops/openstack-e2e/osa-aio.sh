@@ -125,7 +125,8 @@ estate() {
   "$OSA_HOME/venv/bin/pip" install -q -U pip
   "$OSA_HOME/venv/bin/pip" install -q python-openstackclient \
     -c "https://releases.openstack.org/constraints/upper/$OSA_RELEASE"
-  in_utility 'cat /root/.config/openstack/clouds.yaml' >"$OS_CLIENT_CONFIG_FILE"
+  # Through a pipe, because lxc-attach gives whatever file its output goes to to root, mode 0700.
+  in_utility 'cat /root/.config/openstack/clouds.yaml' | cat >"$OS_CLIENT_CONFIG_FILE"
   chmod 0600 "$OS_CLIENT_CONFIG_FILE"
   openstack service list
   openstack compute service list

@@ -82,16 +82,41 @@ export function parsePrometheusText(text: string): Array<RecordedSeries> {
   return series;
 }
 
-export function readRecordedSeries(folder: string): Array<RecordedSeries> {
-  const series: Array<RecordedSeries> = [];
-  for (const file of fs.readdirSync(folder).sort()) {
-    if (file.endsWith(".prom")) {
-      series.push(
-        ...parsePrometheusText(
-          fs.readFileSync(path.join(folder, file), "utf8"),
-        ),
-      );
+/*
+ * The files of one scrape. A scene can also hold a service as another credential read it, which
+ * record.sh's EXPORTER_ALSO writes as <service>-as-<cloud>.prom: the same moment seen by someone
+ * else. So that stands in for the service's own file when it is what's asked for, and is otherwise
+ * no part of what the agent sent.
+ */
+export function getRecordedScrapeFiles(
+  folder: string,
+  asCloud?: string | undefined,
+): Array<string> {
+  const files: Array<string> = fs
+    .readdirSync(folder)
+    .sort()
+    .filter((file: string): boolean => {
+      return file.endsWith(".prom");
+    });
+  const ending: string = `-as-${asCloud}.prom`;
+
+  return files.filter((file: string): boolean => {
+    if (file.includes("-as-")) {
+      return file.endsWith(ending);
     }
+    return !files.includes(file.replace(/\.prom$/, ending));
+  });
+}
+
+export function readRecordedSeries(
+  folder: string,
+  asCloud?: string | undefined,
+): Array<RecordedSeries> {
+  const series: Array<RecordedSeries> = [];
+  for (const file of getRecordedScrapeFiles(folder, asCloud)) {
+    series.push(
+      ...parsePrometheusText(fs.readFileSync(path.join(folder, file), "utf8")),
+    );
   }
   return series;
 }

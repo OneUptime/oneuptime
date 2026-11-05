@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 import {
   OPENSTACK_CEPH_STATUS_FACT,
   OPENSTACK_STORAGE_POOL_CEPH_LINK_FACT,
@@ -597,7 +601,7 @@ describe("in words", () => {
 });
 
 describe("a Magnum cluster and the Kubernetes cluster it is", () => {
-  const STACK: string = "ou-cluster-real-rfhmez6mgxk3";
+  const STACK: string = "ou-cluster-real-6uc6ctkch4l4";
 
   describe("the stack a server's name says built it", () => {
     test.each<[string, string]>([
@@ -627,7 +631,10 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
       ["a role nothing gives", `${STACK}-worker-1`],
       ["a dash after the number", `${STACK}-master-1-`],
       ["a capital in the role", `${STACK}-Master-1`],
-    ])("%s names no stack", (_name: string, serverName) => {
+    ])("%s names no stack", (
+      _name: string,
+      serverName: string | null | undefined,
+    ) => {
       expect(getOpenStackStackNameOfServer(serverName)).toBeNull();
     });
 
@@ -664,7 +671,10 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
       ["null", null],
       ["none", 0],
       ["a nonsense count", -5],
-    ])("a count that is %s still looks at the first few", (_name, count) => {
+    ])("a count that is %s still looks at the first few", (
+      _name: string,
+      count: number | null | undefined,
+    ) => {
       const names: Array<string> = getOpenStackServerNamesOfStack({
         stackName: STACK,
         masterCount: count,
@@ -769,12 +779,24 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
     });
 
     test.each<
-      [string, Array<OpenStackServerOfNode>, Array<OpenStackMagnumClusterOfStack>]
+      [
+        string,
+        Array<OpenStackServerOfNode>,
+        Array<OpenStackMagnumClusterOfStack>,
+      ]
     >([
       ["no servers", [], [cluster("one", "a")]],
       ["no clusters", [server("a-master-0")], []],
-      ["no name that says anything", [server("web-1"), server(null)], [cluster("one", "web")]],
-      ["a stack no cluster names", [server("c-master-0")], [cluster("one", "a")]],
+      [
+        "no name that says anything",
+        [server("web-1"), server(null)],
+        [cluster("one", "web")],
+      ],
+      [
+        "a stack no cluster names",
+        [server("c-master-0")],
+        [cluster("one", "a")],
+      ],
       [
         "servers of two clusters",
         [server("a-master-0"), server("b-node-0")],
@@ -799,11 +821,18 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
         "a server whose UUID two clouds hold",
         [
           server("a-master-0", { instanceId: "same" }),
-          server("a-master-0", { instanceId: "same", openStackCloudId: "cloud-b" }),
+          server("a-master-0", {
+            instanceId: "same",
+            openStackCloudId: "cloud-b",
+          }),
         ],
         [cluster("one", "a")],
       ],
-    ])("%s: no link", (_name, servers, clusters) => {
+    ])("%s: no link", (
+      _name: string,
+      servers: Array<OpenStackServerOfNode>,
+      clusters: Array<OpenStackMagnumClusterOfStack>,
+    ) => {
       expect(answer(servers, clusters)).toBeNull();
     });
 

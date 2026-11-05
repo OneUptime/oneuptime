@@ -37,6 +37,8 @@ const RELEASES: ReadonlyArray<string> = [
   "gazpacho-ovn",
   "gazpacho-ovs",
   "hibiscus-ovn",
+  // A real Kolla-Ansible all-in-one, which is the release Kolla-Ansible itself pins 1.7.0 for.
+  "kolla-aio",
 ];
 
 // The same words in all three places, so each is held to the same list.
@@ -260,6 +262,8 @@ describe("what the pages go without on exporter 1.7.0", () => {
 
       expect(missing).toEqual([
         "Api/volume",
+        // Kolla-Ansible turns it on by default, and DevStack does not.
+        ...(release === "kolla-aio" ? ["Service/cinder-backup"] : []),
         "Service/cinder-scheduler",
         "Service/cinder-volume",
       ]);
@@ -289,7 +293,11 @@ describe("what the pages go without on exporter 1.7.0", () => {
       ];
 
       expect(lost).toEqual({
-        Hypervisor: ["instanceCount"],
+        // The recordings from DevStack have no aggregate to lose, where this estate's host has two.
+        Hypervisor:
+          release === "kolla-aio"
+            ? ["facts.aggregates", "instanceCount"]
+            : ["instanceCount"],
         Image: [
           "facts.createdAtSeconds",
           "facts.isHidden",

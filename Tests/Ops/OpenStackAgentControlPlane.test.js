@@ -149,7 +149,8 @@ describe("control-plane-targets.py, over the file Kolla-Ansible renders", () => 
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_RABBITMQ_TARGETS:
         "[10.0.0.11:15692,10.0.0.12:15692,10.0.0.13:15692]",
-      OPENSTACK_MARIADB_TARGETS: "[10.0.0.11:9104,10.0.0.12:9104,10.0.0.13:9104]",
+      OPENSTACK_MARIADB_TARGETS:
+        "[10.0.0.11:9104,10.0.0.12:9104,10.0.0.13:9104]",
       OPENSTACK_MEMCACHED_TARGETS: "[10.0.0.11:9150,10.0.0.12:9150]",
       OPENSTACK_HAPROXY_TARGETS: "[10.0.0.11:9101,10.0.0.12:9101]",
       OPENSTACK_NETWORK_EXPORTER_TARGETS: "[10.0.0.21:1981,10.0.0.22:1981]",
@@ -159,7 +160,10 @@ describe("control-plane-targets.py, over the file Kolla-Ansible renders", () => 
 
   test("Alertmanager's address never lands on the job before it", () => {
     const run = runHelper(
-      RENDERED_BY_KOLLA.replace(/ {2}- job_name: alertmanager[\s\S]*?\n\n/, "\n"),
+      RENDERED_BY_KOLLA.replace(
+        / {2}- job_name: alertmanager[\s\S]*?\n\n/,
+        "\n",
+      ),
     );
 
     expect(settings(run.stdout).OPENSTACK_NETWORK_EXPORTER_TARGETS).toBe(
@@ -211,9 +215,10 @@ describe("control-plane-targets.py, over the file Kolla-Ansible renders", () => 
       '["[fd00::11]:15692","[fd00::12]:15692"]',
     );
     // And that is a list of two for the collector, which reads it as YAML.
-    expect(
-      yaml.load(settings(run.stdout).OPENSTACK_RABBITMQ_TARGETS),
-    ).toEqual(["[fd00::11]:15692", "[fd00::12]:15692"]);
+    expect(yaml.load(settings(run.stdout).OPENSTACK_RABBITMQ_TARGETS)).toEqual([
+      "[fd00::11]:15692",
+      "[fd00::12]:15692",
+    ]);
   });
 
   test("a list written on one line is read too", () => {
@@ -243,6 +248,36 @@ describe("control-plane-targets.py, over the file Kolla-Ansible renders", () => 
     expect(run.stderr).toContain("No scrape jobs found");
   });
 
+  test("reads the prometheus.yml a real Kolla-Ansible rendered, as the guide says to", () => {
+    const deployment = path.join(
+      __dirname,
+      "../../packages/Common/Tests/Fixtures/OpenStack/kolla-aio/deployment",
+    );
+    const printed = spawnSync(
+      "python3",
+      ["-I", HELPER, "--region", "RegionOne"],
+      {
+        input: fs.readFileSync(path.join(deployment, "prometheus.yml"), "utf8"),
+        encoding: "utf8",
+      },
+    );
+
+    expect(printed.status).toBe(0);
+    expect(printed.stdout.trim()).toBe(
+      fs
+        .readFileSync(
+          path.join(deployment, "control-plane-targets.txt"),
+          "utf8",
+        )
+        .trim(),
+    );
+    // Each exporter Kolla-Ansible ran, which the rig then read: Alertmanager's address is none of them.
+    expect(printed.stdout).toContain(
+      "OPENSTACK_RABBITMQ_TARGETS=[192.168.100.10:15692]",
+    );
+    expect(printed.stdout).not.toContain(":9093");
+  });
+
   test("uses only the standard library, because it runs on a controller", () => {
     const imports = Array.from(
       agentFile("control-plane-targets.py").matchAll(/^import (\w+)$/gm),
@@ -263,7 +298,8 @@ describe("control-plane-targets.py, over the file Kolla-Ansible renders", () => 
 
 describe("the collector's jobs for what the cloud stands on", () => {
   const config = yaml.load(agentFile("otel-collector-config.yaml"));
-  const jobs = config.receivers["prometheus/control-plane"].config.scrape_configs;
+  const jobs =
+    config.receivers["prometheus/control-plane"].config.scrape_configs;
 
   const JOBS = {
     "oneuptime-openstack-rabbitmq": ["rabbitmq", "OPENSTACK_RABBITMQ_TARGETS"],
@@ -272,7 +308,10 @@ describe("the collector's jobs for what the cloud stands on", () => {
       "OPENSTACK_RABBITMQ_TARGETS",
     ],
     "oneuptime-openstack-mariadb": ["mariadb", "OPENSTACK_MARIADB_TARGETS"],
-    "oneuptime-openstack-memcached": ["memcached", "OPENSTACK_MEMCACHED_TARGETS"],
+    "oneuptime-openstack-memcached": [
+      "memcached",
+      "OPENSTACK_MEMCACHED_TARGETS",
+    ],
     "oneuptime-openstack-haproxy": ["haproxy", "OPENSTACK_HAPROXY_TARGETS"],
     "oneuptime-openstack-network-exporter": [
       "network",
@@ -319,7 +358,9 @@ describe("the collector's jobs for what the cloud stands on", () => {
 
     const [keep, drop] = job.metric_relabel_configs;
 
-    expect(keep.regex).toBe("rabbitmq_detailed_queue_(messages_ready|consumers)");
+    expect(keep.regex).toBe(
+      "rabbitmq_detailed_queue_(messages_ready|consumers)",
+    );
     expect(drop.action).toBe("drop");
     expect(drop.source_labels).toEqual(["queue"]);
 
@@ -438,19 +479,22 @@ describe("the collector's jobs for what the cloud stands on", () => {
       "forward/control-plane-increases",
     ]);
     expect(pipelines.metrics.processors).toContain("resource");
-    expect(pipelines.metrics.processors).toContain("transform/openstack-identity");
+    expect(pipelines.metrics.processors).toContain(
+      "transform/openstack-identity",
+    );
   });
 
   test("the single-cloud job gives up before Kolla-Ansible's HAProxy does, and asks no more than the bundled exporter", () => {
-    const job = config.receivers["prometheus/single-cloud-exporter"].config
-      .scrape_configs[0];
+    const job =
+      config.receivers["prometheus/single-cloud-exporter"].config
+        .scrape_configs[0];
 
     expect(job.job_name).toBe("oneuptime-openstack-single-cloud-exporter");
     expect(Number.parseInt(job.scrape_timeout, 10)).toBeLessThan(45);
     expect(job.scrape_interval).toBe("120s");
-    expect(job.metrics_path === undefined || job.metrics_path === "/metrics").toBe(
-      true,
-    );
+    expect(
+      job.metrics_path === undefined || job.metrics_path === "/metrics",
+    ).toBe(true);
   });
 });
 

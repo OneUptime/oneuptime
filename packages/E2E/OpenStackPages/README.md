@@ -48,6 +48,8 @@ estate has to say nothing beyond its rows. `Fixture/Links.js` answers what a clo
 in OneUptime the same way, with the real matching rules, from what else the estate holds: its
 hosts, Kubernetes nodes, services and Ceph clusters (`OTHER_PRODUCTS` in `Fixture/Data.js`).
 
+A cloud's Spend page and Recommendations read what the worker keeps about its usage, so `Fixture/Spend.js` works that out from the estate's rows by the same code. A recording is one moment, so its hours are made up, as if each project had held what it holds now since the 1st. `?spend=none|priced|partial|zero|cloudkitty|gap` says what's priced, and `?waste=old` runs the waste rules 31 days after the recording.
+
 A cloud's Traces page reads spans, so it has a recording of its own: `?traces=flamingo-ovn/signed-boot`
 is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
 (`Fixture/TraceRecordings.js`). With none, the cloud has no traces, which is how every cloud starts.
@@ -101,6 +103,8 @@ Screenshots are written to `output/playwright/openstack-pages-ui/`.
 the pages while working on them.
 
 ## What the walks hold
+
+`OpenStackBareMetal.spec.ts`: Ironic on a real DevStack with fake hardware: no trace of it on a cloud without it, its section and alerts on one with it, the Overview naming both failed nodes, the step from the menu to a node's page, a half-enrolled node, what the Services page says of conductors, and a phone. What only a probe reads, and an instance on a node, are in the jsdom suite on rows written by hand.
 
 `OpenStackOptionalServices.spec.ts`: a service a cloud may not run. A cloud without it shows no trace of it in the menu, on Services, on the Overview or in Recommendations, and an old link says so rather than breaking. A cloud with it gets its menu entries, its lists and its part's pages, a failed stack and a failed cluster reach Needs attention by name and land on their own pages, and each page says what the agent can't see, at every width.
 

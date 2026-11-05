@@ -38,6 +38,7 @@ import {
   OpenStackComputeInventory,
   OpenStackContainerInfraInventory,
   OpenStackIdentityInventory,
+  OpenStackBareMetalInventory,
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
@@ -89,6 +90,9 @@ import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
 import collectOrchestration from "./Collectors/OrchestrationCollector";
 import collectPlacement from "./Collectors/PlacementCollector";
+import collectBareMetal, {
+  IRONIC_MICROVERSION,
+} from "./Collectors/BareMetalCollector";
 import collectSharedFileSystems, {
   SHARED_FILE_SYSTEMS_MICROVERSION_HEADERS,
 } from "./Collectors/SharedFileSystemsCollector";
@@ -194,6 +198,8 @@ export function getSlowServiceIntervalInMs(
 const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.Identity,
   OpenStackServiceType.Image,
+  // As often as the agent's job for it reads it, which the alert templates count on.
+  OpenStackServiceType.BareMetal,
   // As the agent's jobs read every service a cloud may not run.
   OpenStackServiceType.Orchestration,
   OpenStackServiceType.ContainerInfra,
@@ -1344,6 +1350,12 @@ export default class OpenStackCollector {
             work = collectVolume(context(inventory));
             break;
           }
+          case OpenStackServiceType.BareMetal: {
+            const inventory: OpenStackBareMetalInventory = {};
+            byService.baremetal = inventory;
+            work = collectBareMetal(context(inventory));
+            break;
+          }
           case OpenStackServiceType.Orchestration: {
             const inventory: OpenStackOrchestrationInventory = {};
             byService.orchestration = inventory;
@@ -1857,6 +1869,10 @@ export default class OpenStackCollector {
         ): Promise<Record<string, string>> => {
           if (client.service === OpenStackServiceType.Volume) {
             return { "OpenStack-API-Version": `volume ${CINDER_MICROVERSION}` };
+          }
+
+          if (client.service === OpenStackServiceType.BareMetal) {
+            return { "X-OpenStack-Ironic-API-Version": IRONIC_MICROVERSION };
           }
 
           if (client.service === OpenStackServiceType.ContainerInfra) {
