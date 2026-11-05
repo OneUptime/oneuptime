@@ -10,7 +10,6 @@ import {
 } from "Common/Types/OpenStack/OpenStackCapacity";
 import {
   OPENSTACK_CAPACITY_MAIN_CLASSES,
-  OPENSTACK_CAPACITY_FORECAST_WINDOW_HOURS,
   OpenStackCapacityFlavorRow,
   OpenStackCapacityForecastRow,
   OpenStackCapacityHostNotCounted,
@@ -66,6 +65,7 @@ import {
 import { getOpenStackHostGroupId } from "../Utils/OpenStackPartFacts";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 
 /*
  * CAN WE FIT THIS?
@@ -78,21 +78,29 @@ import Route from "Common/Types/API/Route";
  * what a cloud of one does.
  */
 
-const TABLE_CLASS_NAME: string = "min-w-full text-left text-sm";
+const TABLE_CLASS_NAME: string = "min-w-full text-start text-sm";
 const HEAD_CLASS_NAME: string =
   "border-b border-gray-200 text-xs font-medium uppercase tracking-wide text-gray-500";
-const CELL_CLASS_NAME: string = "py-2 pe-4 align-top";
+// A browser centres a heading cell by itself.
+const CELL_CLASS_NAME: string = "py-2 pe-4 text-start align-top";
 // What a phone can go without: the row's own page has it, or a person can read it on a wider one.
 const WIDE_CELL_CLASS_NAME: string = `${CELL_CLASS_NAME} hidden md:table-cell`;
 const ROW_CLASS_NAME: string = "border-b border-gray-100 last:border-0";
 const LINK_CLASS_NAME: string =
   "font-medium text-indigo-600 hover:text-indigo-700 hover:underline";
 
-const ORPHANED_ALLOCATIONS_DOCS: Route = Route.fromString(
+const ORPHANED_ALLOCATIONS_DOCS: URL = URL.fromString(
   "https://docs.openstack.org/nova/latest/admin/troubleshooting/orphaned-allocations.html",
 );
 
 const ZONE_NO_NAME: string = translationKey("No zone");
+
+const TILE_TITLES: Readonly<Record<string, string>> = {
+  VCPU: translationKey("vCPUs Allocated"),
+  PCPU: translationKey("Pinned CPUs Allocated"),
+  MEMORY_MB: translationKey("Memory Allocated"),
+  DISK_GB: translationKey("Local Disk Allocated"),
+};
 
 const HEADROOM_WORDS: Readonly<Record<string, string>> = {
   "can-lose-a-host": translationKey("Yes"),
@@ -245,16 +253,23 @@ const ShortageRow: FunctionComponent<{
         </span>
         <span className="ms-2 text-sm text-gray-600">{sentence}</span>
       </div>
-      <span
-        className={`flex-shrink-0 text-sm ${shortage.isUrgent ? "font-medium text-red-700" : "text-gray-500"}`}
-      >
-        {shortage.days <= 0
-          ? translator.translateText("Now")
-          : translator.translatePlural(
-              { one: "~{{count}} day", other: "~{{count}} days" },
-              Math.max(1, Math.round(shortage.days)),
-            )}
-      </span>
+      {
+        // `days` only sorts one of these last: it isn't filling up, so nothing says when.
+        shortage.kind === "allocations-disagree" ? (
+          <></>
+        ) : (
+          <span
+            className={`flex-shrink-0 text-sm ${shortage.isUrgent ? "font-medium text-red-700" : "text-gray-500"}`}
+          >
+            {shortage.days <= 0
+              ? translator.translateText("Now")
+              : translator.translatePlural(
+                  { one: "~{{count}} day", other: "~{{count}} days" },
+                  Math.max(1, Math.round(shortage.days)),
+                )}
+          </span>
+        )
+      }
     </li>
   );
 };
@@ -983,7 +998,7 @@ const OpenStackCloudCapacity: FunctionComponent<
             return resource ? (
               <GoldenMetricTile
                 key={name}
-                title={`${getOpenStackCapacityResourceTitle(name)} Allocated`}
+                title={TILE_TITLES[name] || name}
                 icon={IconProp.ChartBar}
                 iconColor="blue"
                 value={`${Math.round(resource.percent ?? 0)}%`}
@@ -999,7 +1014,7 @@ const OpenStackCloudCapacity: FunctionComponent<
           })}
           <OpenStackForecastTile
             forecast={soonest ? soonest.forecast : { state: "not-enough-history" }}
-            windowHours={OPENSTACK_CAPACITY_FORECAST_WINDOW_HOURS}
+            windowWords={translationKey("until full, at this week's growth")}
             description={
               soonest
                 ? translator.translateTemplate(

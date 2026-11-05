@@ -2528,7 +2528,10 @@ export class Service extends DatabaseService<Model> {
         return `("facts"->>'${getOpenStackInventoryFactKey(resourceClass, field as OpenStackInventoryField)}')::numeric`;
       };
 
-      return `TRUNC(GREATEST(0, ${number("total")} - ${number("reserved")}) * ${number("ratio")} * ${scale})`;
+      const unreserved: string = `(${number("total")} - ${number("reserved")})`;
+
+      // Not GREATEST: it skips a null, so a host with no reserved reading yet would read as 0.
+      return `TRUNC((CASE WHEN ${unreserved} < 0 THEN 0 ELSE ${unreserved} END) * ${number("ratio")} * ${scale})`;
     };
 
     const vcpu: string = capacity("VCPU", 1);

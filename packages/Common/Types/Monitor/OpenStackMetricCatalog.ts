@@ -440,7 +440,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_placement_flavor_fits",
     friendlyName: translationKey("Placement Flavor Fits"),
     description:
-      "How many more of a flavor Placement says would fit, counted host by host, from GET /allocation_candidates: one series for the region and one for each zone and aggregate (scope and scope_name). Read in turns, a few flavors a collection, and sent as last read in between. Only a probe asks this.",
+      "How many more of a flavor Placement says would fit, counted host by host, from GET /allocation_candidates: one series for the region and one for each zone and aggregate (scope and scope_name). Read in turns, a few flavors a collection, and sent as last read in between. Only a probe asks this. Only a probe sends this: the agent's exporter never asks Placement this.",
     category: "Compute",
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Placement,
@@ -1900,5 +1900,6 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Images",
     "Identity",
     "Projects",
+    "Capacity",
   ];
 }

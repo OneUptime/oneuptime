@@ -2015,7 +2015,7 @@ const capacityForecastUnderDaysTemplate: OpenStackAlertTemplate = {
   id: "openstack-capacity-forecast-under-days",
   name: `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
   summary: `Something fills up in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth this week.`,
-  description: `Alert when a zone's vCPUs, memory or disk, an external network's IPv4 addresses or a storage pool will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days, for 10 minutes, at its growth over the last week. Reads openstack_capacity_days_until_full: a straight line through what was allocated, against what there is today. One incident per zone and resource class, network or pool. A new cloud stays quiet until it has a day of history, and something not growing has nothing to project. This is allocation, not load: it is how soon Placement runs out of things to promise. Check the cloud's Capacity page, which lists what fills up soonest first, then add capacity, or find what is growing and ask its owner.`,
+  description: `Alert when a zone's vCPUs, memory or disk, an external network's IPv4 addresses or a storage pool will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days, for 10 minutes, at its growth over the last week. Reads openstack_capacity_days_until_full: a straight line through what was allocated, against what there is today. One incident per zone and resource class, network or pool. A new cloud stays quiet until it has a day of history, and something not growing has nothing to project. This is allocation, not load: it is how soon Placement runs out of things to promise. Check the cloud's Capacity page, which lists what fills up soonest first, and \`openstack server list --all-projects --long\` for what is growing, then add capacity or ask its owner.`,
   category: "Capacity",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2033,7 +2033,7 @@ const capacityForecastUnderDaysTemplate: OpenStackAlertTemplate = {
       value: OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
       words: {
         incidentTitle: `[OpenStack] Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
-        incidentDescription: `What is named above will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth over the last week. The cloud's Capacity page lists what fills up soonest first. Add capacity before it does, or find what is growing and ask its owner: openstack server list --all-projects for a zone, openstack floating ip list --network for an external network, and openstack volume list --all-projects for a pool. The incident resolves on its own once it has longer than that.`,
+        incidentDescription: `What is named above will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth over the last week. The cloud's Capacity page lists what fills up soonest first. Check openstack server list --all-projects for a zone, openstack floating ip list --network for an external network and openstack volume list --all-projects for a pool to find what is growing, then add capacity before it fills, or ask its owner. The incident resolves on its own once it has longer than that.`,
         criteriaName: `Capacity Forecast - days until full < ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS}`,
         criteriaDescription: `Triggers when something will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its recent growth, for the whole window.`,
       },
@@ -2050,7 +2050,7 @@ const reservedHeadroomGoneTemplate: OpenStackAlertTemplate = {
   id: "openstack-reserved-headroom-gone",
   name: "Reserved Headroom Gone",
   summary: "A zone can't lose its largest host and still fit what runs on it.",
-  description: `Alert when a zone could not lose its largest host and still fit what runs on it, for 10 minutes: what is allocated, on any host in the zone, against what its other hosts could promise. Reads openstack_capacity_can_lose_a_host, one series per zone and resource class. One incident per zone. A zone with fewer than two hosts has nothing to say, and neither does one with a host someone disabled, because that is planned work and it says so on the Capacity page. It compares amounts rather than where each instance would land, so passing means an evacuation has room, not that every instance finds a host: the Capacity page's flavor table shows what is fragmented. This is allocation, not load. Add capacity, or move instances out of the zone.`,
+  description: `Alert when a zone could not lose its largest host and still fit what runs on it, for 10 minutes: what is allocated, on any host in the zone, against what its other hosts could promise. Reads openstack_capacity_can_lose_a_host, one series per zone and resource class. One incident per zone. A zone with fewer than two hosts has nothing to say, and neither does one with a host someone disabled, because that is planned work and it says so on the Capacity page. It compares amounts rather than where each instance would land, so passing means an evacuation has room, not that every instance finds a host: the Capacity page's flavor table shows what is fragmented. This is allocation, not load. Check \`openstack hypervisor list --long\` for what each host holds, then add capacity, or move instances out of the zone.`,
   category: "Capacity",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -2067,7 +2067,7 @@ const reservedHeadroomGoneTemplate: OpenStackAlertTemplate = {
       ],
       words: {
         incidentTitle: "[OpenStack] Reserved Headroom Gone",
-        incidentDescription: `If this zone lost its largest host now, its other hosts could not fit what runs on it, so some instances would have nowhere to be evacuated to. The cloud's Capacity page says which resource is short and by how much. Add capacity, or move instances out of the zone. The incident resolves on its own once it could lose a host again.`,
+        incidentDescription: `If this zone lost its largest host now, its other hosts could not fit what runs on it, so some instances would have nowhere to be evacuated to. Check openstack hypervisor list --long and the cloud's Capacity page, which says which resource is short and by how much, then add capacity, or move instances out of the zone. The incident resolves on its own once it could lose a host again.`,
         criteriaName: "Reserved Headroom Gone - can lose a host < 1",
         criteriaDescription:
           "Triggers when a zone could not lose its largest host and still fit what runs on it for the whole window.",

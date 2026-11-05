@@ -6,8 +6,6 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
-import Query from "../../../Types/BaseDatabase/Query";
-import Metric from "../../../Models/AnalyticsModels/Metric";
 import { OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -550,17 +548,15 @@ export default class OpenStackCapacityRefresh {
     limit: number;
     groupByAttributeKeys: Array<string>;
   }): Promise<AggregatedResult> {
-    const query: Query<Metric> = {
-      projectId: data.projectId,
-      time: new InBetween<Date>(data.startDate, data.endDate),
-      name: data.metricName,
-      attributes: {
-        [OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE]: data.cloudName,
-      },
-    } as Query<Metric>;
-
     return await MetricService.aggregateBy({
-      query,
+      query: {
+        projectId: data.projectId,
+        time: new InBetween<Date>(data.startDate, data.endDate),
+        name: data.metricName,
+        attributes: {
+          [OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE]: data.cloudName,
+        },
+      } as never,
       aggregationType: AggregationType.Max,
       aggregationInterval: data.aggregationInterval,
       aggregateColumnName: "value",
@@ -582,7 +578,7 @@ export default class OpenStackCapacityRefresh {
       id: data.openStackCloudId,
       data: {
         capacitySnapshot: data.snapshot as unknown as JSONObject,
-      },
+      } as never,
       props: { isRoot: true, ignoreHooks: true },
     });
   }

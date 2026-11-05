@@ -125,6 +125,8 @@ test.describe("with something short", () => {
 
     expect(kinds).toEqual([
       "flavor-cannot-be-placed",
+      // Neither zone could lose a host: zone-b is already down one, and holds what ran on it.
+      "headroom-gone",
       "headroom-gone",
       "fills-up",
       "fills-up",
@@ -253,7 +255,7 @@ test.describe("however large the cloud", () => {
 
     const record: FixtureRecord = await fixtureRecord(page);
     const capacityReads: Array<unknown> = record.itemRequests.filter(
-      (request: { select: unknown }): boolean => {
+      (request: FixtureRecord["itemRequests"][number]): boolean => {
         return JSON.stringify(request.select).includes("capacitySnapshot");
       },
     );

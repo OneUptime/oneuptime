@@ -9,6 +9,7 @@ import { OpenStackInstanceMetricsMode } from "../../../Types/OpenStack/OpenStack
 import { OpenStackServiceType } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES,
+  OPENSTACK_CANDIDATE_READS_PER_COLLECTION,
   OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
   OPENSTACK_INSTANCES_BY_STATUS_SERIES,
   OPENSTACK_LARGE_CLOUD,
@@ -395,10 +396,13 @@ describe("the load on the control plane", () => {
         toMinute: 180,
       });
 
+    // A first collection reads each host's aggregates, and asks no candidates: it has no flavors yet.
     expect(
       first[OpenStackServiceType.Placement] -
         later[OpenStackServiceType.Placement],
-    ).toBe(OPENSTACK_SMALL_CLOUD.hypervisors);
+    ).toBe(
+      OPENSTACK_SMALL_CLOUD.hypervisors - OPENSTACK_CANDIDATE_READS_PER_COLLECTION,
+    );
   });
 
   test("the exporter reads three things per hypervisor on every scrape, however many there are", () => {
