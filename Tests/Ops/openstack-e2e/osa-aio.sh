@@ -64,6 +64,10 @@ prepare_host() {
   # A runner's image writes this line with a stray word in it, which breaks name resolution.
   sudo sed -i 's/^-e \+//g' /etc/hosts
 
+  # A runner's image has two AppArmor profiles for its Microsoft Edge, which stops every aa-disable
+  # with an error, and the Neutron role runs one whenever something is pinging. A real host has none.
+  sudo rm -f /etc/apparmor.d/microsoft-edge-stable
+
   log "No Docker, and none of its firewall, while this runs"
   sudo systemctl stop docker.socket docker containerd || true
   sudo iptables -F
