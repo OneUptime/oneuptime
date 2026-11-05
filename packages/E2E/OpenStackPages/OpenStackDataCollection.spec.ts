@@ -844,7 +844,7 @@ test.describe("the Settings page's Data Collection card", () => {
     await expect(
       page.getByRole("dialog", { name: "Collect With a Probe" }),
     ).toContainText(
-      "Stop the OpenStack agent after the first collection, or every metric arrives twice.",
+      "Stop the OpenStack agent after its first collection, or metrics double.",
     );
 
     await page.getByTestId("openstack-auth-url").fill(AUTH_URL);
@@ -1019,7 +1019,7 @@ test.describe("the Settings page's Data Collection card", () => {
       "Costs four API calls per project, on every collection.",
     );
     await expect(options).toContainText(
-      "An unscoped list of ports can saturate Neutron on a large cloud.",
+      "Name networks or projects: listing every port can saturate Neutron.",
     );
 
     // Nothing to save until something changes.
