@@ -654,7 +654,7 @@ describe("each alerting page's incident title", () => {
 
     expect(titles).toEqual(["DiskFull on web-1", "DiskFull on web-1"]);
     expect(englishPage(ALERTMANAGER)).toContain(
-      "Two incidents open, one per `fingerprint`, each titled `DiskFull on web-1`.",
+      "Two incidents open, one per `fingerprint`, each titled `DiskFull on web-1` and then what tells them apart, as in `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`.",
     );
   });
 

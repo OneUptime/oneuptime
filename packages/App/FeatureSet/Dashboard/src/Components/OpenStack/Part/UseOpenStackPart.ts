@@ -1,12 +1,22 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICE_STATUS_DOWN,
+  OpenStackResourceKind,
+  OpenStackServiceFamily,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
-import { fetchOpenStackRow } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
+import {
+  fetchOpenStackRow,
+  fetchOpenStackRows,
+} from "../../../Pages/OpenStack/Utils/OpenStackPartData";
+import { getOpenStackRowsAsThisCredentialReadsThem } from "../../../Pages/OpenStack/Utils/OpenStackServices";
 import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
@@ -36,6 +46,52 @@ export interface OpenStackPart {
   retry: () => void;
 }
 
+/*
+ * A Placement this credential can't read says down, as a stopped one does. It takes what else
+ * this credential reads to tell them apart, and only that row's page needs to ask.
+ */
+async function asThisCredentialReadsIt(
+  row: OpenStackResource,
+  openStackCloudId: ObjectID,
+): Promise<OpenStackResource> {
+  if (
+    row.kind !== OpenStackResourceKind.Api ||
+    row.name !== OpenStackServiceType.Placement ||
+    row.status !== OPENSTACK_SERVICE_STATUS_DOWN
+  ) {
+    return row;
+  }
+  try {
+    const facts: JSONObject = { family: OpenStackServiceFamily.Compute };
+    const [apis, workers]: [
+      Array<OpenStackResource>,
+      Array<OpenStackResource>,
+    ] = await Promise.all([
+      fetchOpenStackRows({
+        openStackCloudId,
+        kind: OpenStackResourceKind.Api,
+        limit: 200,
+      }),
+      fetchOpenStackRows({
+        openStackCloudId,
+        kind: OpenStackResourceKind.Service,
+        query: { facts: facts },
+        limit: 200,
+      }),
+    ]);
+    return (
+      getOpenStackRowsAsThisCredentialReadsThem({
+        rows: [row],
+        apis: apis,
+        workers: workers,
+      })[0] || row
+    );
+  } catch {
+    // The row's own word stands when nothing can be said against it.
+    return row;
+  }
+}
+
 export default function useOpenStackPart(
   kind: OpenStackResourceKind,
 ): OpenStackPart {
@@ -61,6 +117,9 @@ export default function useOpenStackPart(
   const readRow: () => void = (): void => {
     const current: number = ++sequence.current;
     fetchOpenStackRow({ openStackCloudId, kind, externalId })
+      .then((found: OpenStackResource | null) => {
+        return found ? asThisCredentialReadsIt(found, openStackCloudId) : found;
+      })
       .then((found: OpenStackResource | null) => {
         if (current !== sequence.current) {
           return;

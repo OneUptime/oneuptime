@@ -1,0 +1,6 @@
+300 barbican-versions
+200 barbican-secrets
+200 barbican-orders
+200 barbican-containers
+200 barbican-secrets-ou-payments
+200 barbican-orders-ou-payments

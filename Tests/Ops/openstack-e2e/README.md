@@ -11,10 +11,41 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | `start-agent.sh` | Starts the OpenStack agent's pinned exporter and collector, with the real `agents/OpenStackAgent/otel-collector-config.yaml`, writing to a file in place of OneUptime. Beside it, the exporter's last non-alpha release, so the two can be compared. |
 | `access-matrix.sh` | Tests least privilege on the cloud's real policies: what an admin, a plain reader, the OneUptime monitoring role and an application credential limited by access rules can each read, that the last two cannot write, and what the agent's own exporter gets with each. Restarts the API services once, because access rules need `service_type` set on each. `merge-policy.py` merges the overrides over what a service's policy file already holds. |
 | `drills.sh` | Breaks the cloud one way at a time (`record.sh` after each) and puts it back: a compute service disabled on purpose and another forced down, `nova-compute`, a Neutron agent, `cinder-volume` and `nova-scheduler` stopped, Nova's API down, and an external network with no addresses left. On ML2/OVS also a router taken off its only L3 agent, and the L3 agent stopped with a floating IP associated while it is. |
-| `record.sh <scene>` | Records one scene: the exporter's answer per service with how long it took, each read-only API call's answer, and what the `openstack` CLI says, for a person to check a page against. |
+| `record.sh <scene>` | Records one scene: the exporter's answer per service with how long it took, each read-only API call's answer, and what the `openstack` CLI says, for a person to check a page against. A service that is not in the catalog costs one empty scrape, and nothing else. `RECORD_SERVICES` narrows which services it scrapes. |
 | `instance-metrics.sh` | After the drills, boots `ou-burner`, which spins on its CPU, writes to its disk and sends packets, and records what both sources say about it, the idle `ou-running` and the shut-off `ou-stopped`, at the same moments, every 30 seconds for six minutes. |
+| `instance-metrics-drill.sh` | Only with `instance_metrics_only`, in place of everything else above from the access matrix on, because it records for over an hour. A noisy instance, then a noisy neighbour, then quiet, each for long enough that an alert template's window fills and empties, with Ceilometer polling at its real default of five minutes. Then a hard reboot, a shut-off and a delete. What the collector would have sent is what gets replayed. |
 | `stop-agent.sh` | Stops the agent, keeps its logs, and fails if the collector exported nothing. |
 | `agent-install.sh` | In a job of its own, and only that with `-f agent_install_only=true`: installs the agent the way its docs say, with and without Docker, as a person with no rights and with `sudo`, on this runner and on machines with nothing on them. See below. |
+| `probe-live.sh` | In a job of its own, on a DevStack with `tls-proxy`, because a probe never sends a credential over plain HTTP, and only that with `-f probe_tls_only=true`: runs the probe's real collector and connection test (`packages/Probe/Tests/Utils/OpenStack/OpenStackLiveCloud.test.ts`) against it, over real TLS. Every other test of the probe replays recordings made with curl, so only this shows a real cloud accepts the probe's own requests. It also meets DNS, TCP, TLS, certificate, credential and project failures on a real network, then stops Neutron and Keystone. What it found is uploaded as `openstack-recording-probe-tls`. |
+
+`capacity-record.sh` is a run of its own (`-f capacity_only=true`, and weekly). A DevStack's one host can't show what capacity is about, so it adds three hosts on Nova's fake driver with allocation ratios and reserved amounts that differ, fills them until memory is spread too thinly for a large flavor, loses one, disables one and leaves an allocation no instance owns. Nova and Placement are real throughout, and it asks Placement what `GET /allocation_candidates` says of every flavor (`capacity-placement.py`). `import-capacity-recording.py` copies what the tests read to `packages/Common/Tests/Fixtures/OpenStack/<release>/capacity/`.
+
+## Real deployments, and the guides followed on them
+
+The rest of this page is about DevStack. These deploy what customers run, and follow the guide for it with the guide's own commands: `gh workflow run test.openstack-e2e.yaml --ref <branch> -f kolla_aio=true`, or `-f osa_aio=true`. Each takes hours and most of a runner, so neither runs on a schedule.
+
+| Script | What it does |
+| --- | --- |
+| `kolla-aio.sh`, `osa-aio.sh` | Deploy an all-in-one of that tool, as its quick start says. What differs from its defaults is in the script, each with its reason. |
+| `kolla-guide.sh`, `osa-guide.sh` | Follow its guide, one part at a time. Every block after `follow` is the guide's own text: `OpenStackDeploymentGuides.test.ts` fails when one and the guide differ. |
+| `guide-follow.sh` | What following any guide takes: running a block with its placeholders filled in and a person's answers on its standard input. |
+| `fake-oneuptime.py`, `collector-sink.yaml` | The OneUptime those commands name: it serves the install scripts from this checkout, hands OTLP to a real collector that decodes and keeps it, and keeps each webhook. It proves what reaches OneUptime, not what OneUptime does with it. |
+| `live-oneuptime.py` | That part, with `-f live_oneuptime=true`: a real OneUptime, its app built from the branch and the rest from its test images, sent what a real agent and a real Alertmanager sent, and read back through its API. |
+
+The artifact is `openstack-recording-kolla-aio` or `openstack-recording-osa-aio`:
+
+```
+guide/commands.log            every command the guide says, what it printed and how it exited
+guide/problems.txt            what did not go as the guide says
+guide/<part>/otlp/metrics.json  what the agent really sent, decoded, per way of running it
+guide/<part>/otlp/logs.json     the same for the logs profile
+kolla/ or osa/                what was deployed, how long each step took, and the tool's own files
+healthy/                      record.sh's scene: each API, and each exporter (see below)
+control-plane/                each exporter under the cloud, as the tool's Prometheus reads it
+alertmanager/webhook-*.json   what its Alertmanager posted, byte for byte
+```
+
+`import-guide-recording.py` keeps what the tests replay.
 
 ## What comes out
 
@@ -39,11 +70,55 @@ instance-metrics/scrape-01/libvirt.prom     what the libvirt exporter said, scra
 instance-metrics/scrape-01/ceilometer.prom  what Ceilometer's exporter said at the same moment
 instance-metrics/scrape-01/at.txt           when, in seconds since the epoch
 instance-metrics/servers.json               what Nova says each of those instances is, and where
+instance-metrics-drill/timeline.txt         when each thing in the long drill happened, in seconds since the epoch
+instance-metrics-drill/servers.json         what Nova says each instance is, at the end of it
 otlp/metrics.json            what the collector would have sent to OneUptime
 logs/                        the containers' logs
+traces/otlp-driver.json.gz   on the entries that record it: what OSProfiler's driver sent for each signed request
+traces/otlp-agent.json.gz    what the agent's traces profile would have sent to OneUptime for them
+traces/scenes.jsonl          each scene: how long, its exit code, its Trace IDs, its spans
+traces/summary.json          each scene's trace, service by service
+traces/check.txt             whether the issue's "done when" held on this run
+traces/native-summary.json   what OpenStack's own OpenTelemetry tracing made, where a release ships it
+traces/journal.jsonl.gz      what the services logged, to hold a trace's requests against
 ```
 
+`-f logs_only=true -f traces_only=true` runs only the traces step, on Hibiscus and Flamingo. `traces-record.sh` says what each scene is for. Its fixtures come from `python3 -I import-trace-recording.py <release> <artifact>/traces`, into `packages/Common/Tests/Fixtures/OpenStack/traces/<release>/`.
+
 Tokens are scrubbed and addresses replaced, although nothing here is a secret: it is a throwaway cloud on a runner that is gone when the job ends.
+
+## The services a cloud may not run
+
+Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove and Gnocchi are recorded by a job of their own, `record-services`, only when asked. Each group has a runner to itself, because a runner has 4 vCPUs and 16 GB:
+
+```bash
+gh workflow run test.openstack-e2e.yaml --ref <branch> -f services_only=true
+# One entry, or several: a retry cancels only a run that asked for the same.
+gh workflow run test.openstack-e2e.yaml --ref <branch> -f services_only=true -f services_filter=services-trove
+```
+
+| Entry | What it deploys, on `stable/2026.1` | Script |
+| --- | --- | --- |
+| `services-octavia` | Octavia with its amphora provider, on the runner's KVM, and its OVN provider | `services-octavia.sh` |
+| `services-ironic` | Ironic with fake hardware, and Nova's Ironic driver | `services-ironic.sh` |
+| `services-heat-magnum` | Heat, and Magnum on it | `services-heat-magnum.sh` |
+| `services-manila` | Manila with its dummy driver, on two backends, one held slow | `services-manila.sh` |
+| `services-designate-barbican-swift` | Designate on bind9, Barbican and Swift | `services-designate-barbican-swift.sh` |
+| `services-trove` | Trove, with the guest image its plugin builds | `services-trove.sh` |
+| `services-gnocchi` | Gnocchi, deployed by Ceilometer's plugin, since its own repository no longer has one | `services-gnocchi.sh` |
+
+The configs start from what Gophercloud's own CI runs on this same action and branch. The top of each script says what its scenes are. `services-lib.sh` is what they share, and is why a scene going wrong never costs the scene after it: each scene is recorded whichever way it went, its `how.txt` says how the cloud got there, on its own or written into a row, and a `failed.txt` says why it never did. `scenes.txt` says what became of each.
+
+After the scenes, `access-matrix.sh` runs on the same cloud with the group's `EXPORTER_SERVICES`, on its own, because it restarts APIs. It covers each of these services' reads and writes wherever a catalog has them, and a group can try more credentials with `EXTRA_CREDENTIALS`.
+
+To copy one into the fixtures, which writes only `packages/Common/Tests/Fixtures/OpenStack/services-<group>/`, and leaves out a scene that has a `failed.txt`:
+
+```bash
+gh run download <run id> --pattern 'openstack-recording-services-*' --dir /tmp/services-recordings
+python3 -I Tests/Ops/openstack-e2e/import-services-recording.py /tmp/services-recordings packages/Common/Tests/Fixtures/OpenStack
+```
+
+A scene is never called `healthy`, and a group's access recording goes in `access-check/`: the tests of the releases read a folder holding `healthy/exporter` as a release, and the generated access table reads one holding `access/`. The importer refuses both.
 
 ## The install, as the docs say
 

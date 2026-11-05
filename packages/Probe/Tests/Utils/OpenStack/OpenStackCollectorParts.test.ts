@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { OpenStackCredential } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import {
   WANTED_COMPUTE_MICROVERSION,
@@ -294,6 +294,21 @@ describe("what a record keeps of an answer", () => {
       hypervisorHostname: null,
       faultMessage: "No valid host was found.",
     });
+  });
+
+  test.each<[string, JSONValue | undefined, string | null]>([
+    [
+      "the image it booted from",
+      { id: "image-1", links: [{ rel: "bookmark", href: "https://x" }] },
+      "image-1",
+    ],
+    // The API reference's words, and what a server booted from a volume answers.
+    ["nothing, booted from a volume: Nova says an empty string", "", null],
+    ["nothing, on an answer with no such field", undefined, null],
+    ["nothing, on an answer that says null", null, null],
+    ["nothing, on an image with no id", { links: [] }, null],
+  ])("%s", (_name: string, image: JSONValue | undefined, imageId: string | null) => {
+    expect(toNovaServer({ id: "s1", image: image })?.imageId).toBe(imageId);
   });
 
   test("a fault's traceback stays with Nova", () => {

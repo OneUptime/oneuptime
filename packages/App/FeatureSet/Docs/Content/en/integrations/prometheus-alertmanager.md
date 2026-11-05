@@ -86,6 +86,8 @@ A self-hosted install has its own host in place of `oneuptime.com`.
 > [!WARNING]
 > Group by a value that differs from alert to alert inside one notification. Alertmanager's `fingerprint` is a hash of an alert's whole label set, so it always does. A label in your route's `group_by` never does: it is what puts the alerts in one notification. Grouping by `requestBody.alerts[*].labels.alertname` with the route below folds every alert of a notification into one incident, which takes the first alert's status.
 
+On an OpenStack cloud, link the monitor to the cloud as well. An Incoming Request monitor's own settings name no cloud, so its incidents would reach **Incidents** and not the cloud. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud: each incident is then on that cloud's **Incidents** page too. [OpenStack by Deployment Tool](/docs/telemetry/openstack-deployment-tools) has the receiver for each tool that runs an Alertmanager, in the place that tool reads it from.
+
 ## Name the incidents
 
 The title above reads labels every alert of the notification shares: `commonLabels` holds those labels, and `commonAnnotations` the annotations they share. With the route below, which groups by `alertname` and `instance`, both are there. Under **Description**, give the incident an **Incident Description** such as:
@@ -136,10 +138,6 @@ curl -X POST http://localhost:9093/-/reload
 
 The route keeps Alertmanager's timing defaults. It waits `30s` before it sends a new group (`group_wait`), `5m` before it sends a group again with new alerts in it (`group_interval`), and `4h` before it repeats a notification that has not changed (`repeat_interval`).
 
-## On an OpenStack cloud
-
-An Incoming Request monitor's own settings name no cloud, so its incidents would reach **Incidents** and not the cloud. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud: each incident is then on that cloud's **Incidents** page as well. [OpenStack by Deployment Tool](/docs/telemetry/openstack-deployment-tools) has the receiver for each tool that runs an Alertmanager, in the place that tool reads it from.
-
 ## Test it
 
 Send OneUptime a notification of two firing alerts, as Alertmanager would:
@@ -170,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-Two incidents open, one per `fingerprint`, each titled `DiskFull on web-1`. Send the same request with every `status` set to `resolved`, and both are resolved.
+Two incidents open, one per `fingerprint`, each titled `DiskFull on web-1` and then what tells them apart, as in `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Send the same request with every `status` set to `resolved`, and both are resolved.
 
 To test the whole path from Alertmanager, fire an alert with `amtool`. Alertmanager sends it after `group_wait`, and sends its recovery when the alert expires a few minutes later:
 

@@ -1,0 +1,2 @@
+Heat's engine stopped, with stacks in progress.
+On its own: the engine is stopped. Heat's API takes its lists from an engine over RPC, so whatever it answers here is what it answers.

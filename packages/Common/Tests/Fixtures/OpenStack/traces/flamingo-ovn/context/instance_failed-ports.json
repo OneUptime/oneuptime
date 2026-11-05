@@ -1,0 +1,62 @@
+[
+  {
+    "ID": "29069f15-76e2-4615-8c9a-6f6b9b31c688",
+    "Name": "",
+    "MAC Address": "fa:16:3e:76:2a:e6",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "856c6808-f296-46d6-8c70-38af474f20d8",
+        "ip_address": "192.0.2.10"
+      }
+    ],
+    "Status": "ACTIVE"
+  },
+  {
+    "ID": "2f42cb3c-5a89-4d5f-9b94-48902c864f41",
+    "Name": "",
+    "MAC Address": "fa:16:3e:34:48:0e",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "856c6808-f296-46d6-8c70-38af474f20d8",
+        "ip_address": "192.0.2.10"
+      }
+    ],
+    "Status": "ACTIVE"
+  },
+  {
+    "ID": "e2b8cac1-d7f4-49c5-b7ac-a9e97fb189d7",
+    "Name": "",
+    "MAC Address": "fa:16:3e:b3:dc:6b",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "856c6808-f296-46d6-8c70-38af474f20d8",
+        "ip_address": "192.0.2.10"
+      }
+    ],
+    "Status": "ACTIVE"
+  },
+  {
+    "ID": "e6a3b326-36ec-41fb-ab07-e24826b7ec0f",
+    "Name": "",
+    "MAC Address": "fa:16:3e:0a:8c:a0",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "856c6808-f296-46d6-8c70-38af474f20d8",
+        "ip_address": "192.0.2.10"
+      }
+    ],
+    "Status": "DOWN"
+  },
+  {
+    "ID": "ec0f4389-417b-49e1-8e65-2aa5e573bbf4",
+    "Name": "",
+    "MAC Address": "fa:16:3e:51:40:c1",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "856c6808-f296-46d6-8c70-38af474f20d8",
+        "ip_address": "192.0.2.10"
+      }
+    ],
+    "Status": "DOWN"
+  }
+]

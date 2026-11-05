@@ -1,4 +1,8 @@
 import {
+  OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+  OpenStackInstanceMetricSource,
+} from "Common/Types/OpenStack/OpenStackInstanceMetrics";
+import {
   OPENSTACK_SERVICE_TITLES,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -7,10 +11,13 @@ import {
   OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
   OpenStackCloudCounts,
+  OpenStackInstanceMetricsCost,
   OpenStackRequestsByService,
   OpenStackVolumeEstimate,
+  estimateOpenStackInstanceMetricsCost,
   estimateOpenStackVolume,
   getOpenStackCountsOfSize,
+  getOpenStackExporterRequestsPerMinute,
   getOpenStackProbeRequestsPerMinute,
   isOpenStackDatabasePathOffered,
 } from "Common/Types/OpenStack/OpenStackScale";
@@ -49,9 +56,19 @@ export interface OpenStackCostView {
   counts: OpenStackCloudCounts;
   isSummaryMode: boolean;
   isDatabasePathOffered: boolean;
+  // Through the agent, which sends every series every scrape.
   volume: OpenStackVolumeEstimate;
   everySeries: OpenStackVolumeEstimate;
+  // Through a probe, which past the summary size sends what has not changed in turns.
+  probeVolume: OpenStackVolumeEstimate;
   requestsPerMinute: OpenStackRequestsByService;
+  exporterRequestsPerMinute: OpenStackRequestsByService;
+  // What real usage per instance adds on top, were every instance to keep it.
+  instanceMetrics: {
+    isOnByDefault: boolean;
+    libvirt: OpenStackInstanceMetricsCost;
+    ceilometer: OpenStackInstanceMetricsCost;
+  };
 }
 
 // Exported for tests: every number on the card, from what was typed.
@@ -63,6 +80,10 @@ export function getOpenStackCostView(data: {
   const counts: OpenStackCloudCounts = getOpenStackCountsOfSize(data);
   const isSummaryMode: boolean =
     counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT;
+  // One in a thousand in a state an alert watches, as a usual day has.
+  const keptInstances: number = isSummaryMode
+    ? Math.ceil(counts.instances / 1000)
+    : 0;
 
   return {
     counts: counts,
@@ -71,11 +92,29 @@ export function getOpenStackCostView(data: {
     volume: estimateOpenStackVolume({
       counts: counts,
       isSummaryMode: isSummaryMode,
-      // One in a thousand in a state an alert watches, as a usual day has.
-      keptInstances: isSummaryMode ? Math.ceil(counts.instances / 1000) : 0,
+      keptInstances: keptInstances,
     }),
     everySeries: estimateOpenStackVolume({ counts: counts }),
+    probeVolume: estimateOpenStackVolume({
+      counts: counts,
+      isSummaryMode: isSummaryMode,
+      keptInstances: keptInstances,
+      collectionIntervalInMinutes: 2,
+    }),
     requestsPerMinute: getOpenStackProbeRequestsPerMinute(counts),
+    exporterRequestsPerMinute: getOpenStackExporterRequestsPerMinute(counts),
+    instanceMetrics: {
+      isOnByDefault:
+        counts.instances <= OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+      libvirt: estimateOpenStackInstanceMetricsCost({
+        source: OpenStackInstanceMetricSource.Libvirt,
+        instances: counts.instances,
+      }),
+      ceilometer: estimateOpenStackInstanceMetricsCost({
+        source: OpenStackInstanceMetricSource.Ceilometer,
+        instances: counts.instances,
+      }),
+    },
   };
 }
 
@@ -190,28 +229,145 @@ const OpenStackCostCalculator: FunctionComponent = (): ReactElement => {
           </div>
         </dl>
 
+        {view.probeVolume.gigabytesPerDay < view.volume.gigabytesPerDay ? (
+          <p
+            className="mt-2 text-sm text-gray-600"
+            data-testid="openstack-cost-probe-volume"
+          >
+            {translator.translateTemplate(
+              "That is through the agent. A probe sends about {{gigabytes}} GB a day, because past that size it sends what has not changed once a cycle rather than every time.",
+              { gigabytes: rounded(view.probeVolume.gigabytesPerDay) },
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+
         <div className="mt-5 text-sm">
           <div className="font-medium text-gray-900">
+            {translator.translateText("Requests a minute, by service")}
+          </div>
+          <table className="mt-1 w-full text-gray-700">
+            <thead>
+              <tr className="text-left text-xs text-gray-500">
+                <th className="py-1 pr-4 font-normal">
+                  {translator.translateText("Service")}
+                </th>
+                <th className="py-1 pr-4 text-right font-normal">
+                  {translator.translateText("A probe")}
+                </th>
+                <th className="py-1 text-right font-normal">
+                  {translator.translateText("The agent")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {SERVICES.map((service: OpenStackServiceType): ReactElement => {
+                return (
+                  <tr
+                    key={service}
+                    data-testid={`openstack-cost-requests-${service}`}
+                  >
+                    <td className="py-0.5 pr-4">
+                      {OPENSTACK_SERVICE_TITLES[service]}
+                    </td>
+                    <td
+                      className="py-0.5 pr-4 text-right text-gray-900"
+                      data-testid={`openstack-cost-probe-requests-${service}`}
+                    >
+                      {rounded(view.requestsPerMinute[service])}
+                    </td>
+                    <td
+                      className="py-0.5 text-right text-gray-900"
+                      data-testid={`openstack-cost-agent-requests-${service}`}
+                    >
+                      {rounded(view.exporterRequestsPerMinute[service])}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="mt-1 text-xs text-gray-500">
             {translator.translateText(
-              "Requests a minute a probe makes, by service",
+              "A probe's are counted from the collector itself. The agent's are counted from its exporter's source, and its exporter has not been run at these sizes.",
+            )}
+          </p>
+        </div>
+
+        <div
+          className="mt-5 text-sm"
+          data-testid="openstack-cost-instance-metrics"
+        >
+          <div className="font-medium text-gray-900">
+            {translator.translateText(
+              "Real CPU, memory, disk and network per instance, on top of that",
             )}
           </div>
-          <ul className="mt-1 grid grid-cols-1 gap-x-6 gap-y-1 text-gray-700 sm:grid-cols-2">
-            {SERVICES.map((service: OpenStackServiceType): ReactElement => {
-              return (
-                <li
-                  key={service}
-                  className="flex justify-between"
-                  data-testid={`openstack-cost-requests-${service}`}
-                >
-                  <span>{OPENSTACK_SERVICE_TITLES[service]}</span>
-                  <span className="text-gray-900">
-                    {rounded(view.requestsPerMinute[service])}
-                  </span>
-                </li>
-              );
-            })}
+          <ul className="mt-1 space-y-1 text-gray-700">
+            <li
+              className="flex flex-wrap justify-between gap-x-4"
+              data-testid="openstack-cost-instance-metrics-libvirt"
+            >
+              <span>{translator.translateText("From libvirt's exporter")}</span>
+              <span className="text-gray-900">
+                {translator.translateTemplate(
+                  "{{gigabytes}} GB a day, ${{dollars}} a month",
+                  {
+                    gigabytes: rounded(
+                      view.instanceMetrics.libvirt.gigabytesPerDay,
+                    ),
+                    dollars: rounded(
+                      view.instanceMetrics.libvirt.costInUSDPerMonth,
+                    ),
+                  },
+                )}
+              </span>
+            </li>
+            <li
+              className="flex flex-wrap justify-between gap-x-4"
+              data-testid="openstack-cost-instance-metrics-ceilometer"
+            >
+              <span>
+                {translator.translateText("From Ceilometer's exporter")}
+              </span>
+              <span className="text-gray-900">
+                {translator.translateTemplate(
+                  "{{gigabytes}} GB a day, ${{dollars}} a month",
+                  {
+                    gigabytes: rounded(
+                      view.instanceMetrics.ceilometer.gigabytesPerDay,
+                    ),
+                    dollars: rounded(
+                      view.instanceMetrics.ceilometer.costInUSDPerMonth,
+                    ),
+                  },
+                )}
+              </span>
+            </li>
           </ul>
+          <p
+            className="mt-1 text-gray-600"
+            data-testid="openstack-cost-instance-metrics-default"
+          >
+            {view.instanceMetrics.isOnByDefault
+              ? translator.translateTemplate(
+                  "Once you point the agent at one of them, a cloud this size keeps these for every instance, until it passes {{limit}}.",
+                  {
+                    limit: translator.formatNumber(
+                      OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+                    ),
+                  },
+                )
+              : translator.translateTemplate(
+                  "Past {{limit}} instances a cloud keeps only each hypervisor's totals until you choose. That is what these would cost for every instance: choose the projects and aggregates that are worth it in the cloud's Settings.",
+                  {
+                    limit: translator.formatNumber(
+                      OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+                    ),
+                  },
+                )}
+          </p>
         </div>
 
         {view.isSummaryMode ? (

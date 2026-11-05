@@ -1,0 +1,1 @@
+{"pools": [{"id": "794ccc2c-d751-44fe-b57f-8894c9f5c842", "project_id": null, "name": "default", "description": "DevStack BIND Pool", "attributes": {}, "ns_records": [{"priority": 1, "hostname": "ns1.devstack.org."}], "created_at": null, "updated_at": "2026-11-05T01:29:46.000000"}]}

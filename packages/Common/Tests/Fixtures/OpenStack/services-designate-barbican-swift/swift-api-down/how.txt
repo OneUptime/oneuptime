@@ -1,0 +1,2 @@
+Swift's proxy stopped, with what /recon says.
+On its own: Swift's proxy, its API, is stopped. Its storage servers still answer recon.

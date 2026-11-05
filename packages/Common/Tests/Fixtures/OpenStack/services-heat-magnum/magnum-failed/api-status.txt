@@ -1,0 +1,7 @@
+200 magnum-clusters
+200 magnum-clustertemplates
+200 magnum-services
+200 magnum-cluster-ou-cluster-times-out
+200 magnum-nodegroups-ou-cluster-times-out
+200 magnum-cluster-ou-cluster-long
+200 magnum-nodegroups-ou-cluster-long

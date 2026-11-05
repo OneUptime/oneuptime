@@ -1,0 +1,3 @@
+# HELP openstack_designate_up up
+# TYPE openstack_designate_up gauge
+openstack_designate_up 0

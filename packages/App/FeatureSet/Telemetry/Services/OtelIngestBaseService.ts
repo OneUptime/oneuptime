@@ -8,6 +8,7 @@ import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
 import OpenStackAcrossProducts from "Common/Server/Utils/OpenStack/OpenStackAcrossProducts";
+import { isOpenStackInstanceId } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
 import { OpenStackPlacement } from "Common/Types/OpenStack/OpenStackLinks";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
@@ -1249,6 +1250,20 @@ export default abstract class OtelIngestBaseService {
       projectId: data.projectId,
       entities,
       retiredEntities: extraction.retiredEntities,
+    });
+
+    /*
+     * A service whose telemetry says which OpenStack instance it is on. Fire-and-forget like
+     * the registry, and fenced: nothing is asked of a resource whose host.id isn't one.
+     */
+    void this.tryPlaceServiceOnOpenStack({
+      projectId: data.projectId,
+      serviceName: this.getStringAttribute(data.attributes, "service.name"),
+      serviceNamespace: this.getStringAttribute(
+        data.attributes,
+        "service.namespace",
+      ),
+      hostIdAttribute: this.getStringAttribute(data.attributes, "host.id"),
     });
 
     /*
@@ -5930,7 +5945,7 @@ export default abstract class OtelIngestBaseService {
       if (!isLinked) {
         const host: Host | null = await HostService.findOneById({
           id: data.hostId,
-          select: { _id: true, openStackCloudId: true },
+          select: { _id: true, openStackCloudId: true, hostId: true },
           props: { isRoot: true },
         });
         if (!host) {
@@ -5938,10 +5953,14 @@ export default abstract class OtelIngestBaseService {
         }
 
         if (!host.openStackCloudId) {
+          /*
+           * A batch that doesn't carry host.id still comes from the host that once said it:
+           * without it, a guest called what a hypervisor is called would read as that machine.
+           */
           const openStackCloudId: ObjectID | null =
             await OpenStackAcrossProducts.findCloudOfHost({
               projectId: data.projectId,
-              hostIdAttribute: data.hostIdAttribute,
+              hostIdAttribute: data.hostIdAttribute || host.hostId,
               hostIdentifier: data.hostName,
             });
           if (!openStackCloudId) {
@@ -5977,6 +5996,45 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Host → OpenStack link failed for host ${data.hostId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Topology's Infrastructure view draws a service under the instance its own
+   * telemetry names, whether or not OneUptime's agent reports that host. At
+   * most one read per (service, instance) per fence window, and none at all
+   * for a host.id that isn't shaped like an instance's. Failures are logged
+   * and swallowed: ingest never depends on the OpenStack inventory.
+   */
+  protected static async tryPlaceServiceOnOpenStack(data: {
+    projectId: ObjectID;
+    serviceName: string | null;
+    serviceNamespace: string | null;
+    hostIdAttribute: string | null;
+  }): Promise<void> {
+    if (!data.serviceName || !isOpenStackInstanceId(data.hostIdAttribute)) {
+      return;
+    }
+    try {
+      const fenced: boolean = await this.shouldRunMaintenance(
+        "service-openstack-placement",
+        `${data.projectId.toString()}:${data.hostIdAttribute}:${data.serviceNamespace || ""}:${data.serviceName}`,
+      );
+      if (!fenced) {
+        return;
+      }
+      await OpenStackAcrossProducts.reconcileServiceOnInstance({
+        projectId: data.projectId,
+        instanceId: data.hostIdAttribute as string,
+        serviceName: data.serviceName,
+        serviceNamespace: data.serviceNamespace,
+      });
+    } catch (err) {
+      logger.warn(
+        `Service → OpenStack placement failed for ${data.serviceName}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

@@ -17,6 +17,7 @@ import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackReso
 import {
   BURNER_ID,
   InstanceTruth,
+  ceilometerText,
   libvirtText,
   parsePrometheusExposition,
   prometheusToEnvelope,
@@ -159,6 +160,115 @@ describe("a batch through ingest", () => {
     }
     // Its row, and its hypervisor's for the aggregates. Then from memory.
     expect(findBy).toHaveBeenCalledTimes(2);
+  });
+
+  describe("a source that doesn't say how many vCPUs an instance has", () => {
+    // Ceilometer's lines, without its vcpus, as Epoxy and the polling.yaml it ships leave them.
+    function ceilometerAt(minute: number): JSONObject {
+      return prometheusToEnvelope({
+        series: parsePrometheusExposition(
+          ceilometerText([
+            { ...TRUTH, cpuSeconds: 1000 + (minute / 5) * 300 },
+          ])
+            .split("\n")
+            .filter((line: string): boolean => {
+              return !line.startsWith("ceilometer_vcpus");
+            })
+            .join("\n"),
+        ),
+        timeMs: START_MS + minute * 60000,
+        exporterHost: "compute-01",
+      });
+    }
+
+    function withFlavor(vcpuCapacity: number | undefined): void {
+      jest
+        .spyOn(OpenStackResourceService, "findBy")
+        .mockImplementation((async (data: {
+          query: { kind: OpenStackResourceKind };
+        }) => {
+          if (data.query.kind === OpenStackResourceKind.Instance) {
+            return [
+              {
+                externalId: BURNER_ID,
+                hypervisorName: "compute-01.example.internal",
+                regionName: "RegionOne",
+                openStackProjectId: "p1",
+                facts: { flavorId: "f1" },
+              },
+            ];
+          }
+          if (data.query.kind === OpenStackResourceKind.Flavor) {
+            return vcpuCapacity
+              ? [{ externalId: "RegionOne/f1", vcpuCapacity }]
+              : [];
+          }
+          return [{ hypervisorName: "compute-01.example.internal", facts: {} }];
+        }) as never);
+    }
+
+    async function utilizationAfterThreePolls(): Promise<number | undefined> {
+      const openStackCloudId: ObjectID = aCloud();
+      let last: JSONObject = {};
+      for (const minute of [0, 5, 10]) {
+        last = ceilometerAt(minute);
+        await OpenStackInstanceMetricsIngest.normalizeEnvelope({
+          projectId: PROJECT_ID,
+          openStackCloudId,
+          envelope: last,
+        });
+      }
+      const metric: JSONObject | undefined = (
+        last["scopeMetrics"] as Array<JSONObject>
+      )
+        .flatMap((scope: JSONObject): Array<JSONObject> => {
+          return scope["metrics"] as Array<JSONObject>;
+        })
+        .find((one: JSONObject): boolean => {
+          return one["name"] === OpenStackInstanceMetric.CpuUtilization;
+        });
+      return metric
+        ? (
+            (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>
+          )[0]!["asDouble"] as number
+        : undefined;
+    }
+
+    test("what its flavor says is what its CPU is a share of", async () => {
+      withFlavor(4);
+      // One thread busy of the four its flavor gives it.
+      expect(await utilizationAfterThreePolls()).toBeCloseTo(25);
+    });
+
+    test("its flavor is asked for by how a flavor's row is keyed, and once", async () => {
+      withFlavor(4);
+      await utilizationAfterThreePolls();
+      const calls: Array<Array<unknown>> = (
+        OpenStackResourceService.findBy as unknown as jest.Mock
+      ).mock.calls as Array<Array<unknown>>;
+      const flavorCalls: Array<Array<unknown>> = calls.filter(
+        (call: Array<unknown>): boolean => {
+          return (
+            (call[0] as { query: { kind: OpenStackResourceKind } }).query
+              .kind === OpenStackResourceKind.Flavor
+          );
+        },
+      );
+      expect(flavorCalls).toHaveLength(1);
+      expect(
+        JSON.stringify(
+          (flavorCalls[0]![0] as { query: { externalId: unknown } }).query
+            .externalId,
+        ),
+      ).toContain("RegionOne/f1");
+      // Its row, its hypervisor's and its flavor's, then from memory.
+      expect(calls).toHaveLength(3);
+    });
+
+    test("with a flavor nobody knows, it has no share, rather than a made-up one", async () => {
+      withFlavor(undefined);
+      expect(await utilizationAfterThreePolls()).toBeUndefined();
+    });
   });
 
   test("a batch from anything else costs no read at all", async () => {

@@ -10,7 +10,10 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
-import { OpenStackRouterList } from "../../../Components/OpenStack/OpenStackLists";
+import {
+  OpenStackNetworkList,
+  OpenStackRouterList,
+} from "../../../Components/OpenStack/OpenStackLists";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
 import {
   OpenStackPartAlerts,
@@ -31,24 +34,30 @@ import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
 import {
   OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS,
   OpenStackNetworkBackend,
+  getOpenStackDhcpNetworkCount,
+  isOpenStackDhcpAgent,
   isOpenStackL3Agent,
 } from "../Utils/OpenStackPartFacts";
 import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
 
 /*
- * One Neutron agent, and what it serves where the backend reports that. Only an L3 agent's
- * routers are in what the agent collects, by the l3_agent_of_router series. Nothing the
- * agent collects says which networks a DHCP agent serves, and OVN's agents hold no routers,
- * so those pages say that rather than listing nothing.
+ * One Neutron agent, and what it serves where the backend reports that. An L3 agent's routers are
+ * in what either collector sends, by the l3_agent_of_router series. A DHCP agent's networks only a
+ * probe reads, and OVN's agents hold no routers, so a page with nothing to list says that rather
+ * than listing nothing.
  */
 const NOTHING_REPORTED: string = translationKey(
   "What this agent serves isn't in what's collected: the exporter only says which routers an L3 agent holds. openstack network agent show has what it reports about itself.",
+);
+const DHCP_NETWORKS_NOT_COLLECTED: string = translationKey(
+  "Which networks this DHCP agent serves isn't in what's collected: the agent's exporter doesn't say, and a probe only reads it with a credential that may, on a cloud under the summary size. openstack network list --agent {{id}} has them.",
 );
 
 const AgentOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
 }> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  const translator: Translator = useTranslator();
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -60,6 +69,7 @@ const AgentOverview: FunctionComponent<{
 
   const host: string = getOpenStackFactText(row, "host");
   const agentId: string = getOpenStackFactText(row, "agentId");
+  const dhcpNetworkCount: number | null = getOpenStackDhcpNetworkCount(row);
 
   const detailRows: Array<ResourcePartDetailRow> = [
     {
@@ -102,6 +112,15 @@ const AgentOverview: FunctionComponent<{
       value: row.availabilityZone,
     });
   }
+  if (dhcpNetworkCount !== null) {
+    detailRows.push({
+      key: "dhcp-networks",
+      label: "Networks it serves",
+      value: translator.formatNumber(dhcpNetworkCount),
+      description:
+        "As Neutron last said. It is asked every ten minutes, in turns on a cloud with many DHCP agents.",
+    });
+  }
   if (row.regionName) {
     detailRows.push({ key: "region", label: "Region", value: row.regionName });
   }
@@ -127,8 +146,15 @@ const AgentOverview: FunctionComponent<{
         description="What about this agent is broken or needs a look."
       />
 
-      {isOpenStackL3Agent(row) ? (
+      {isOpenStackL3Agent(row) ||
+      (isOpenStackDhcpAgent(row) && dhcpNetworkCount !== null) ? (
         <></>
+      ) : isOpenStackDhcpAgent(row) ? (
+        <OpenStackPartNotice testId="openstack-network-agent-serves-unknown">
+          {translator.translateTemplate(DHCP_NETWORKS_NOT_COLLECTED, {
+            id: agentId,
+          })}
+        </OpenStackPartNotice>
       ) : (
         <OpenStackPartNotice
           testId="openstack-network-agent-serves-unknown"
@@ -216,6 +242,32 @@ const OpenStackCloudNetworkAgentDetail: FunctionComponent<
       }}
       tabs={(tabRow: OpenStackResource): Array<Tab> => {
         const agentId: string = getOpenStackFactText(tabRow, "agentId");
+        if (
+          agentId &&
+          isOpenStackDhcpAgent(tabRow) &&
+          getOpenStackDhcpNetworkCount(tabRow) !== null
+        ) {
+          // A network names the agents serving it, and the search matches an agent's own id.
+          const dhcpFacts: JSONObject = {
+            dhcpAgentIds: new Search(agentId) as never,
+          };
+          return [
+            {
+              name: "Networks",
+              children: (
+                <OpenStackNetworkList
+                  openStackCloudId={part.openStackCloudId}
+                  query={{ facts: dhcpFacts }}
+                  tableId="openstack-network-agent-networks-table"
+                  title="Networks this agent serves"
+                  description="The networks Neutron has scheduled on this DHCP agent, as Neutron last said."
+                  emptyTitle="No networks on this agent"
+                  emptyDescription="Neutron has scheduled no network here, or this credential can't see the ones it has."
+                />
+              ),
+            },
+          ];
+        }
         if (!isOpenStackL3Agent(tabRow) || !agentId) {
           return [];
         }

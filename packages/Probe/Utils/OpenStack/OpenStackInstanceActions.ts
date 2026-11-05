@@ -1,4 +1,8 @@
 import {
+  OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER,
+  OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION,
+} from "Common/Types/OpenStack/OpenStackScale";
+import {
   OpenStackApiError,
   OpenStackBudgetExceededError,
 } from "./OpenStackCollectionErrors";
@@ -40,10 +44,12 @@ import { OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX } from "Common/Utils/OpenStack/Op
  *     instance deleted while reading, is an answer and not an error.
  */
 
-export const MAX_SERVERS_READ_PER_COLLECTION: number = 25;
+export const MAX_SERVERS_READ_PER_COLLECTION: number =
+  OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION;
 export const MAX_ACTIONS_READ_PER_SERVER: number = 10;
 // How many instances may wait for a later collection. Past this, the oldest are dropped.
-export const MAX_SERVERS_LEFT_FOR_LATER: number = 500;
+export const MAX_SERVERS_LEFT_FOR_LATER: number =
+  OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER;
 // The most action keys remembered, enough for the overlap of two collections.
 export const MAX_ACTIONS_REMEMBERED: number = 2000;
 /*

@@ -198,6 +198,11 @@ export interface OpenStackServiceReading {
    * being sent. openstack_<service>_up says so, because it is what vouches for those rows.
    */
   refreshCycleInMinutes?: number | undefined;
+  /*
+   * This read says nothing about the rows it did not send: they have not all come round yet, or
+   * did not fit. The stale-row rule goes on measuring from the last read that did.
+   */
+  doesNotVouchForRows?: boolean | undefined;
 }
 
 interface MetricBeingBuilt {
@@ -539,6 +544,7 @@ function writeCompute(
           adminState: service.status,
           zone: service.zone,
           disabledReason: service.disabledReason,
+          forced_down: service.forcedDown,
         },
         service.state === "up" ? 1 : 0,
       );
@@ -604,6 +610,7 @@ function writeCompute(
             server.flavorId ??
             (server.flavorName ? flavorIdByName.get(server.flavorName) : null),
           instance_libvirt: server.instanceName,
+          image_id: server.imageId,
           task_state: server.taskState,
           updated_at: server.updatedAt,
           fault_message: server.faultMessage,
@@ -692,6 +699,23 @@ function writeNetwork(
   writer: SeriesWriter,
   inventory: OpenStackNetworkInventory,
 ): void {
+  /*
+   * Which DHCP agents serve each network, and how many each serves, on series that already exist:
+   * a large cloud pays for this in calls to Neutron and not again in datapoints.
+   */
+  const networksOfDhcpAgent: Map<string, number> = new Map();
+  const dhcpAgentsOfNetwork: Map<string, Array<string>> = new Map();
+
+  for (const record of inventory.dhcpAgentNetworks || []) {
+    networksOfDhcpAgent.set(record.agentId, record.networkIds.length);
+
+    for (const networkId of record.networkIds) {
+      const agentIds: Array<string> = dhcpAgentsOfNetwork.get(networkId) || [];
+      agentIds.push(record.agentId);
+      dhcpAgentsOfNetwork.set(networkId, agentIds);
+    }
+  }
+
   for (const agent of inventory.agents || []) {
     writer.add(
       "agent_state",
@@ -701,6 +725,9 @@ function writeNetwork(
         service: agent.binary,
         adminState: agent.isAdminUp ? "up" : "down",
         availability_zone: agent.availabilityZone,
+        dhcp_network_count: agent.id
+          ? networksOfDhcpAgent.get(agent.id)
+          : undefined,
       },
       agent.isAlive ? 1 : 0,
     );
@@ -725,6 +752,9 @@ function writeNetwork(
           subnets: network.subnets.join(","),
           tags: network.tags.join(","),
           mtu: network.mtu,
+          dhcp_agent_ids: network.id
+            ? [...(dhcpAgentsOfNetwork.get(network.id) || [])].sort().join(",")
+            : undefined,
         },
         network.status ? NETWORK_STATUS_CODES[network.status] ?? -1 : -1,
       );
@@ -1208,7 +1238,10 @@ export default class OpenStackOtlpBuilder {
       if (reading.apiUp !== null) {
         writer.add(
           "up",
-          { refresh_cycle_minutes: reading.refreshCycleInMinutes },
+          {
+            refresh_cycle_minutes: reading.refreshCycleInMinutes,
+            vouches_for_rows: reading.doesNotVouchForRows ? "false" : undefined,
+          },
           reading.apiUp ? 1 : 0,
         );
       }

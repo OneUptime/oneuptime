@@ -45,7 +45,29 @@ describe("the OpenStack agent's collector config", () => {
     return job.params.include_services;
   };
 
-  test("gives every core OpenStack service a scrape job of its own", () => {
+  // Every name the pinned exporter takes in include_services, from its
+  // exporters.SupportedExporters: Barbican has no reader there, so no job here.
+  const SERVICES_EVERY_CLOUD_RUNS = [
+    "compute",
+    "identity",
+    "image",
+    "network",
+    "placement",
+    "volume",
+  ];
+  const SERVICES_A_CLOUD_MAY_NOT_RUN = [
+    "baremetal",
+    "container-infra",
+    "database",
+    "dns",
+    "gnocchi",
+    "load-balancer",
+    "object-store",
+    "orchestration",
+    "sharev2",
+  ];
+
+  test("gives every OpenStack service the exporter can read a scrape job of its own", () => {
     const services = jobs.map(includeServicesOf);
     for (const included of services) {
       expect(included).toHaveLength(1);
@@ -53,8 +75,65 @@ describe("the OpenStack agent's collector config", () => {
       expect(included[0]).not.toContain(",");
     }
     expect(services.flat().sort()).toEqual(
-      ["compute", "identity", "image", "network", "placement", "volume"].sort(),
+      [...SERVICES_EVERY_CLOUD_RUNS, ...SERVICES_A_CLOUD_MAY_NOT_RUN].sort(),
     );
+  });
+
+  test.each(SERVICES_A_CLOUD_MAY_NOT_RUN)(
+    "%s costs a cloud that does not run it one login every 5 minutes, and is named as it is everywhere else",
+    (service) => {
+      const job = jobs.find((candidate) => {
+        return candidate.params.include_services[0] === service;
+      });
+      expect(job.job_name).toBe(`oneuptime-openstack-${service}`);
+      expect(job.scrape_interval).toBe("300s");
+      expect(job.scrape_timeout).toBe("120s");
+    },
+  );
+
+  test("the jobs are in the receiver the metrics pipeline reads, so these get exported too", () => {
+    expect(config.service.pipelines.metrics.receivers).toContain("prometheus");
+  });
+
+  test("an exporter on /metrics labels each of these services' series as the jobs do", () => {
+    const rules =
+      config.receivers["prometheus/single-cloud-exporter"].config
+        .scrape_configs[0].metric_relabel_configs;
+    const serviceOf = (seriesName) => {
+      return rules.find((rule) => {
+        return (
+          rule.target_label === "openstack_service" &&
+          new RegExp(`^(?:${rule.regex})$`).test(seriesName)
+        );
+      })?.replacement;
+    };
+    expect(
+      Object.fromEntries(
+        [
+          "openstack_loadbalancer_loadbalancer_status",
+          "openstack_ironic_node",
+          "openstack_heat_stack_status",
+          "openstack_container_infra_cluster_status",
+          "openstack_sharev2_share_status",
+          "openstack_designate_zone_status",
+          "openstack_object_store_bytes",
+          "openstack_trove_instance_status",
+          "openstack_gnocchi_status_measures_to_process",
+        ].map((seriesName) => {
+          return [seriesName, serviceOf(seriesName)];
+        }),
+      ),
+    ).toEqual({
+      openstack_loadbalancer_loadbalancer_status: "load-balancer",
+      openstack_ironic_node: "baremetal",
+      openstack_heat_stack_status: "orchestration",
+      openstack_container_infra_cluster_status: "container-infra",
+      openstack_sharev2_share_status: "sharev2",
+      openstack_designate_zone_status: "dns",
+      openstack_object_store_bytes: "object-store",
+      openstack_trove_instance_status: "database",
+      openstack_gnocchi_status_measures_to_process: "gnocchi",
+    });
   });
 
   test("no scrape can run into the next one", () => {
@@ -173,6 +252,8 @@ describe("the OpenStack agent's compose file", () => {
       "--disable-metric=neutron-subnets_total",
       // A route Nova no longer has, which only fills the exporter's log.
       "--disable-metric=nova-security_groups",
+      // Every metric in Gnocchi, page by page, for one count.
+      "--disable-metric=gnocchi-total_metrics",
     ]);
   });
 
@@ -219,6 +300,67 @@ describe("the access the agent asks for", () => {
       expect(rule.method).toBe("GET");
       expect(Object.keys(rule).sort()).toEqual(["method", "path", "service"]);
     }
+  });
+
+  describe("what the access rules let the exporter read of the services a cloud may not run", () => {
+    const rules = JSON.parse(
+      read(
+        path.join(AGENT, "access", "application-credential-access-rules.json"),
+      ),
+    );
+    const pathsOf = (service) => {
+      return rules
+        .filter((rule) => {
+          return rule.service === service;
+        })
+        .map((rule) => {
+          return rule.path;
+        });
+    };
+
+    // Each read the pinned exporter's client makes, in its own words: its Octavia client
+    // says v2.0 where the docs say v2, and a rule for one does not match the other.
+    test.each([
+      ["load-balancer", "/v2.0/lbaas/loadbalancers"],
+      ["load-balancer", "/v2.0/lbaas/pools"],
+      ["load-balancer", "/v2.0/octavia/amphorae"],
+      ["baremetal", "/v1/nodes/detail"],
+      ["orchestration", "/v1/*/stacks"],
+      ["container-infra", "/v1/clusters"],
+      ["sharev2", "/v2/shares/detail"],
+      ["shared-file-system", "/v2/shares/detail"],
+      ["dns", "/v2/zones"],
+      ["dns", "/v2/zones/*/recordsets"],
+      ["object-store", "/v1/*"],
+      ["database", "/v1.0/*/mgmt/instances"],
+      ["metric", "/v1/status"],
+    ])("%s %s", (service, rulePath) => {
+      expect(pathsOf(service)).toContain(rulePath);
+    });
+
+    test("Manila's rules are the same under each name a catalog gives it", () => {
+      expect(pathsOf("shared-file-system")).toEqual(pathsOf("sharev2"));
+    });
+
+    test("no secret's payload, and no object in anyone's container", () => {
+      expect(pathsOf("key-manager").sort()).toEqual(
+        ["/v1/containers", "/v1/orders", "/v1/secrets"].sort(),
+      );
+      expect(pathsOf("object-store")).toEqual(["/v1/*"]);
+    });
+
+    test("no rule opens everything under a service but Cinder's, which has always been that way", () => {
+      expect(
+        rules
+          .filter((rule) => {
+            return rule.path.includes("**");
+          })
+          .map((rule) => {
+            return rule.service;
+          })
+          .sort(),
+      ).toEqual(["block-storage", "volume", "volumev3"]);
+    });
   });
 });
 

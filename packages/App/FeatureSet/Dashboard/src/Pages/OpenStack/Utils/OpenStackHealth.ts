@@ -10,6 +10,7 @@ import {
   OpenStackL3AgentFact,
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_REDUNDANT_WORKERS,
   OPENSTACK_SERVICE_DISABLED_WARNING_DAYS,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
@@ -21,6 +22,7 @@ import {
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
   isOpenStackServiceDown,
+  isOpenStackServiceForcedDown,
   isOpenStackVolumeInError,
   isOpenStackVolumeStuck,
   minutesInState,
@@ -94,6 +96,8 @@ const REASON_SCRAPE_FAILED: string = translationKey(
   "Not answering: the last read of it failed",
 );
 const REASON_SERVICE_DOWN: string = translationKey("Down");
+export const OPENSTACK_REASON_FORCED_DOWN: string =
+  translationKey("Forced down by an operator");
 const REASON_SERVICE_DOWN_WITH_INSTANCES: { one: string; other: string } = {
   one: "Down, with {{count}} instance on it",
   other: "Down, with {{count}} instances on it",
@@ -236,15 +240,7 @@ export const OPENSTACK_ATTENTION_KIND_ORDER: Array<string> = [
   KIND_PROJECT,
 ];
 
-/*
- * Workers where one down of several is a warning, because the others carry on. All
- * of them down is a control-plane outage, which getOpenStackAttentionItems says once
- * rather than once per worker.
- */
-const REDUNDANT_WORKERS: ReadonlySet<string> = new Set([
-  "nova-scheduler",
-  "nova-conductor",
-]);
+const REDUNDANT_WORKERS: ReadonlySet<string> = OPENSTACK_REDUNDANT_WORKERS;
 
 function formatPercent(percent: number): string {
   return `${Math.round(percent)}%`;
@@ -315,10 +311,18 @@ export function assessOpenStackService(data: {
     return FINE;
   }
 
+  // Read as down, as Nova reads it, and said to be an operator's doing.
+  const forced: Array<ResourceAttentionText> = isOpenStackServiceForcedDown({
+    status: row.status,
+    facts: row.facts as JSONObject | undefined,
+  })
+    ? [{ text: OPENSTACK_REASON_FORCED_DOWN }]
+    : [];
+
   if (REDUNDANT_WORKERS.has(row.name || "")) {
     return {
       severity: ResourceAttentionSeverity.Warning,
-      reasons: [{ text: REASON_SERVICE_DOWN }],
+      reasons: [{ text: REASON_SERVICE_DOWN }, ...forced],
     };
   }
 
@@ -332,6 +336,7 @@ export function assessOpenStackService(data: {
           values: { count: `${count}` },
           plural: { one: REASON_SERVICE_DOWN_WITH_INSTANCES.one, count },
         },
+        ...forced,
         ...(data.projectCount
           ? [
               {
@@ -350,7 +355,7 @@ export function assessOpenStackService(data: {
 
   return {
     severity: ResourceAttentionSeverity.Critical,
-    reasons: [{ text: REASON_SERVICE_DOWN }],
+    reasons: [{ text: REASON_SERVICE_DOWN }, ...forced],
   };
 }
 

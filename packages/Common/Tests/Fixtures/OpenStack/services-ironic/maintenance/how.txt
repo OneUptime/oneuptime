@@ -1,0 +1,2 @@
+A node someone put in maintenance on purpose, with their reason.
+On its own: an operator put it in maintenance, with a reason.

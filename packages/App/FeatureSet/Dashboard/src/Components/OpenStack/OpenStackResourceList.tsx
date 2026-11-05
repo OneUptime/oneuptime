@@ -37,6 +37,7 @@ import {
 } from "../Infrastructure/ResourceTable";
 import { formatBytes } from "../TelemetryResource/telemetryFormat";
 import {
+  countOpenStackRows,
   fetchOpenStackApiStates,
   fetchOpenStackNames,
 } from "../../Pages/OpenStack/Utils/OpenStackPartData";
@@ -73,6 +74,7 @@ import {
   OpenStackRegionState,
   useOpenStackRegion,
 } from "./OpenStackRegionContext";
+import OpenStackResourceListAPI from "./OpenStackResourceListAPI";
 import { OPENSTACK_STATUS_WORDS } from "./OpenStackStatus";
 import useOpenStackDomainFilter, {
   OPENSTACK_PROJECT_OWNED_KINDS,
@@ -83,6 +85,7 @@ import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
 } from "./Part/OpenStackPartRoutes";
+import useIsOpenStackProbeCollected from "./Part/UseIsOpenStackProbeCollected";
 
 /*
  * Every inventory list of an OpenStack cloud. A cloud can hold hundreds of
@@ -562,6 +565,10 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
     return getOpenStackPartRoutes(props.openStackCloudId);
   }, [props.openStackCloudId]);
 
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(
+    props.openStackCloudId,
+  );
+
   /*
    * A column no row on the page holds is left out. Until a page has arrived, none of the
    * ones that can be empty are drawn, so a column never appears and then goes.
@@ -573,9 +580,36 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
   const showsProject: boolean = props.columns.includes(OpenStackColumn.Project);
 
   const [apiState, setApiState] = useState<OpenStackApiState>("not-reported");
+  const [hypervisorsAreListed, setHypervisorsAreListed] = useState<
+    boolean | undefined
+  >(undefined);
 
   const serviceType: OpenStackServiceType | undefined =
     OPENSTACK_SERVICE_OF_KIND[props.kind];
+
+  // An empty list of instances can be a cloud with none: only a closed list of hosts says otherwise.
+  useEffect(() => {
+    if (!props.checkAccess || props.kind !== OpenStackResourceKind.Instance) {
+      return;
+    }
+    let ignore: boolean = false;
+    countOpenStackRows({
+      openStackCloudId: props.openStackCloudId,
+      kind: OpenStackResourceKind.Hypervisor,
+    })
+      .then((count: number) => {
+        if (!ignore) {
+          setHypervisorsAreListed(count > 0);
+        }
+      })
+      .catch(() => {
+        // The page's own words for an empty list are still true.
+      });
+    // eslint-disable-next-line consistent-return
+    return () => {
+      ignore = true;
+    };
+  }, [props.checkAccess, props.openStackCloudId.toString(), props.kind]);
 
   useEffect(() => {
     if (!props.checkAccess || !serviceType) {
@@ -782,6 +816,8 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
   const emptyWords: OpenStackEmptyWords | null = getOpenStackEmptyWords({
     kind: props.kind,
     api: apiState,
+    hypervisorsAreListed: hypervisorsAreListed,
+    isProbeCollected: isProbeCollected,
   });
 
   const filters: Array<Filter<OpenStackResource>> = useMemo(() => {
@@ -1109,6 +1145,7 @@ const OpenStackResourceList: FunctionComponent<ComponentProps> = (
   return (
     <ModelTable<OpenStackResource>
       modelType={OpenStackResource}
+      modelAPI={OpenStackResourceListAPI}
       id={props.tableId}
       userPreferencesKey={props.tableId}
       name={props.title}
