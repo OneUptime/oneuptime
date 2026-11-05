@@ -796,17 +796,17 @@ test.describe("a service's page", () => {
     ).toContainText("ctl-01@lvmdriver-1");
     await expect
       .poll(async (): Promise<Array<unknown>> => {
-        return (await fixtureRecord(page)).listRequests
-          .filter((request: { modelName: string }): boolean => {
-            return request.modelName === "Host";
+        return (await fixtureRecord(page)).apiRequests
+          .filter((request: { url: string }): boolean => {
+            return request.url.includes("/openstack-resource/host-of-machine/");
           })
           .map(
-            (request: { query: Record<string, unknown> | null }): unknown => {
-              return JSON.stringify(request.query);
+            (request: { body: Record<string, unknown> | null }): unknown => {
+              return request.body?.["machineName"];
             },
           );
       })
-      .toEqual([expect.stringContaining('"ctl-01"')]);
+      .toEqual(["ctl-01"]);
   });
 
   test("one disabled on purpose: Disabled with its reason, nothing to attend to, and nothing to take", async ({
