@@ -321,6 +321,33 @@ export function keyForKubernetesPod(
 }
 
 /**
+ * `k8s.cluster.name` + `k8s.node.name` is the node identity (mirrors the
+ * k8s.node resolver in `InventoryItem.extractEntities`, which is
+ * name-preferring and folds in the cluster only when the resource carries it).
+ * Pass the cluster's `clusterIdentifier` and the node's name.
+ */
+export function keyForKubernetesNode(
+  projectId: string,
+  data: {
+    clusterName?: string | null | undefined;
+    nodeName: string;
+  },
+): string {
+  const identifyingAttributes: Dictionary<string> = {};
+
+  if (isIdentityBearing(data.clusterName)) {
+    identifyingAttributes["k8s.cluster.name"] = data.clusterName;
+  }
+  identifyingAttributes["k8s.node.name"] = data.nodeName;
+
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.KubernetesNode,
+    identifyingAttributes,
+  });
+}
+
+/**
  * `k8s.cluster.name` + `k8s.namespace.name` + `k8s.deployment.name` is the
  * deployment identity (mirrors the k8s.deployment resolver). Pass the
  * cluster's `clusterIdentifier`, the namespace and the Deployment name.

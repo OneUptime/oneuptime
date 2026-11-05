@@ -120,9 +120,39 @@ function idsReadBy(
 
 describe("the host that is a machine", () => {
   const request: JSONObject = {
-    params: { resourceId: PROJECT_ID.toString() },
+    params: { cloudId: CLOUD_ID.toString() },
     body: { machineName: "compute-01" },
   };
+
+  test("is looked for in the cloud being read, which is where its name means anything", async () => {
+    const join: unknown = jest
+      .spyOn(OpenStackAcrossProducts, "getHostOfMachine")
+      .mockResolvedValue(null as never);
+
+    await api().getHostOfMachine(request, {});
+
+    expect(join).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+      machineName: "compute-01",
+    });
+  });
+
+  test("is asked of nothing for someone who can't read the cloud", async () => {
+    const links: LinksApi = api();
+    links.resolveCloudForRequest = async (): Promise<unknown> => {
+      throw new NotFoundException("OpenStack Cloud not found");
+    };
+    const join: unknown = jest.spyOn(
+      OpenStackAcrossProducts,
+      "getHostOfMachine",
+    );
+
+    await expect(links.getHostOfMachine(request, {})).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(join).not.toHaveBeenCalled();
+  });
 
   test("is said to someone who can read it", async () => {
     jest
@@ -170,20 +200,17 @@ describe("the host that is a machine", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  test.each<[string, JSONObject]>([
-    [
-      "a project that isn't an ID",
-      { params: { resourceId: "x" }, body: { machineName: "compute-01" } },
-    ],
-    ["no machine", { params: { resourceId: PROJECT_ID.toString() }, body: {} }],
-  ])("%s is refused before anything is read", async (_name: string, req: JSONObject) => {
+  test("no machine is refused before anything is read", async () => {
     const join: unknown = jest.spyOn(
       OpenStackAcrossProducts,
       "getHostOfMachine",
     );
-    await expect(api().getHostOfMachine(req, {})).rejects.toThrow(
-      BadDataException,
-    );
+    await expect(
+      api().getHostOfMachine(
+        { params: { cloudId: CLOUD_ID.toString() }, body: {} },
+        {},
+      ),
+    ).rejects.toThrow(BadDataException);
     expect(join).not.toHaveBeenCalled();
   });
 });
@@ -456,18 +483,79 @@ describe("a pool and Ceph", () => {
   test.each<[string, JSONObject]>([
     ["no answer", { externalId: "p" }],
     ["a cluster that isn't an ID", { externalId: "p", cephClusterId: "x" }],
-  ])("%s is refused before anything is written", async (_name: string, body: JSONObject) => {
+  ])(
+    "%s is refused before anything is written",
+    async (_name: string, body: JSONObject) => {
+      jest
+        .spyOn(ModelPermission, "checkUpdateQueryPermissions")
+        .mockResolvedValue(undefined as never);
+      const confirm: unknown = jest.spyOn(
+        OpenStackAcrossProducts,
+        "confirmStoragePoolCephLink",
+      );
+      await expect(
+        api().confirmStoragePoolCeph({ params: {}, body }, {}),
+      ).rejects.toThrow(BadDataException);
+      expect(confirm).not.toHaveBeenCalled();
+    },
+  );
+
+  test("taking an answer back takes the same permission", async () => {
+    jest
+      .spyOn(ModelPermission, "checkUpdateQueryPermissions")
+      .mockRejectedValue(new NotAuthorizedException("No") as never);
+    const forget: unknown = jest.spyOn(
+      OpenStackAcrossProducts,
+      "forgetStoragePoolCephLink",
+    );
+    await expect(
+      api().confirmStoragePoolCeph(
+        { params: {}, body: { externalId: "p", forget: true } },
+        {},
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+    expect(forget).not.toHaveBeenCalled();
+  });
+
+  test("taking an answer back forgets it, and doesn't write a new one", async () => {
     jest
       .spyOn(ModelPermission, "checkUpdateQueryPermissions")
       .mockResolvedValue(undefined as never);
+    jest.spyOn(Response, "sendEmptySuccessResponse").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    const forget: unknown = jest
+      .spyOn(OpenStackAcrossProducts, "forgetStoragePoolCephLink")
+      .mockResolvedValue(true as never);
     const confirm: unknown = jest.spyOn(
       OpenStackAcrossProducts,
       "confirmStoragePoolCephLink",
     );
-    await expect(
-      api().confirmStoragePoolCeph({ params: {}, body }, {}),
-    ).rejects.toThrow(BadDataException);
+    await api().confirmStoragePoolCeph(
+      { params: {}, body: { externalId: "p", forget: true } },
+      {},
+    );
+    expect(forget).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      openStackCloudId: CLOUD_ID,
+      externalId: "p",
+    });
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  test("taking back an answer about a pool that isn't there is not found", async () => {
+    jest
+      .spyOn(ModelPermission, "checkUpdateQueryPermissions")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(OpenStackAcrossProducts, "forgetStoragePoolCephLink")
+      .mockResolvedValue(false as never);
+    await expect(
+      api().confirmStoragePoolCeph(
+        { params: {}, body: { externalId: "nope", forget: true } },
+        {},
+      ),
+    ).rejects.toThrow(NotFoundException);
   });
 
   test("a cluster in another project is not found, and nothing is said about why", async () => {

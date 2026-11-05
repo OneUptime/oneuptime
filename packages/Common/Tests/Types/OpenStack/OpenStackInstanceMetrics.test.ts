@@ -80,6 +80,22 @@ describe("a Kubernetes node's spec.providerID", () => {
   ])("%s is %s", (value: unknown, expected: unknown) => {
     expect(getOpenStackInstanceIdOfProviderId(value as string)).toBe(expected);
   });
+
+  test("far longer than a provider ID can be is no provider ID, and no pattern reads it", () => {
+    expect(
+      getOpenStackInstanceIdOfProviderId(
+        `openstack://${"a".repeat(1000000)}/${UUID}`,
+      ),
+    ).toBeNull();
+  });
+
+  test("a region's name is allowed to be long enough to be one", () => {
+    expect(
+      getOpenStackInstanceIdOfProviderId(
+        `openstack://${"a".repeat(255)}/${UUID}`,
+      ),
+    ).toBe(UUID);
+  });
 });
 
 describe("what a cloud chose to keep", () => {
