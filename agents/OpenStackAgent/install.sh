@@ -987,6 +987,9 @@ if ! mkdir -p "$INSTALL_DIR"; then
     echo "Run this with sudo, or name a folder this user can write to: INSTALL_DIR=\$HOME/oneuptime-openstack-agent bash install.sh"
     exit 1
 fi
+# Root runs what this folder holds, so nobody else may change it, whatever this machine gives a
+# new folder: on a GitHub runner it came out 777, even under a umask of 077.
+chmod go-w "$INSTALL_DIR" 2>/dev/null || true
 
 # ----------------------------------------------------------------------------
 # Where the agent's files come from
