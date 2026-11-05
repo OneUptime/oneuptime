@@ -9,6 +9,7 @@
 
 const { spawnSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
 
@@ -82,6 +83,47 @@ describe("the whole-path job", () => {
     expect(stepNamed("Walk the whole path").env.ONEUPTIME_URL).toBe(
       "http://localhost:8880",
     );
+  });
+
+  test("moves them on a config.env as the merge leaves it, with no newline at its end", () => {
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), "whole-path-env-"));
+
+    try {
+      fs.copyFileSync(
+        path.join(ROOT, "config.example.env"),
+        path.join(folder, "config.example.env"),
+      );
+      fs.writeFileSync(path.join(folder, "config.env"), "");
+
+      const merged = spawnSync(
+        "node",
+        [path.join(ROOT, "Scripts/Install/MergeEnvTemplate.js")],
+        { cwd: folder, encoding: "utf8" },
+      );
+
+      expect(merged.status).toBe(0);
+
+      const start = stepNamed("Start OneUptime").run;
+      const moved = start.slice(
+        start.indexOf("{\n"),
+        start.indexOf(">>config.env") + ">>config.env".length,
+      );
+      const ran = spawnSync("bash", ["-euo", "pipefail", "-c", moved], {
+        cwd: folder,
+        encoding: "utf8",
+      });
+
+      expect(ran.stderr).toBe("");
+
+      const lines = fs
+        .readFileSync(path.join(folder, "config.env"), "utf8")
+        .split("\n");
+
+      expect(lines).toContain("ONEUPTIME_HTTP_PORT=8880");
+      expect(lines).toContain("STATUS_PAGE_HTTPS_PORT=8843");
+    } finally {
+      fs.rmSync(folder, { recursive: true, force: true });
+    }
   });
 
   test("keeps what it found whichever way the walk ends", () => {
