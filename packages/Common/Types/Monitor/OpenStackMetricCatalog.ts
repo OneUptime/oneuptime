@@ -2680,13 +2680,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.SharedFileSystems,
-    identityAttributes: [
-      "hostname",
-      "service",
-      "state",
-      "zone",
-      "adminState",
-    ],
+    identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
     onlyFromProbe: true,
   }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
@@ -2758,7 +2752,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     unit: "seconds",
   }),
   metric({
-    metricName: "openstack_ironic_conductor_state",
+    metricName: "openstack_ironic_agent_state",
     friendlyName: translationKey("Bare Metal Conductor Alive"),
     description:
       "1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list.",

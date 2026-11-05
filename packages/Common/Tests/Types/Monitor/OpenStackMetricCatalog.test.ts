@@ -141,7 +141,7 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_ironic_up",
   // Always 1: what it says is in its labels, as a status series' word is.
   "openstack_ironic_node",
-  "openstack_ironic_conductor_state",
+  "openstack_ironic_agent_state",
   "up",
   "openstack_check_token_success",
   "openstack_check_api_success",
@@ -240,7 +240,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_snapshot_gb",
         "openstack_container_infra_agent_state",
         "openstack_heat_agent_state",
-        "openstack_ironic_conductor_state",
+        "openstack_ironic_agent_state",
         "openstack_placement_flavor_fits",
         "openstack_sharev2_agent_state",
       ]);

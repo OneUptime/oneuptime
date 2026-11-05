@@ -93,6 +93,9 @@ export const OPENSTACK_STUCK_LABEL: string = translationKey("Stuck");
 
 export const OPENSTACK_LOST_LABEL: string = translationKey("Lost");
 
+// A service a cloud may not run that has stopped reporting: never Down, which nothing here can say.
+export const OPENSTACK_QUIET_LABEL: string = translationKey("Quiet");
+
 export const OPENSTACK_CLOSED_LABEL: string = translationKey(
   "Closed to this credential",
 );

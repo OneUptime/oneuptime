@@ -532,7 +532,7 @@ Only a cloud that runs Ironic sends these, and a cloud without it shows no trace
 | `openstack_ironic_node` | | Max | One series per node Ironic shows this credential, always 1: what it says is in its labels, its provision state, power state and whether it is in maintenance. Ironic shows a project only the nodes it owns. |
 | `openstack_ironic_node_provision_updated_at` | `seconds` | Max | When Ironic last saw this node's provision state move, as a Unix time. A deploy agent's heartbeats move it too, so a long erase is not a node stuck. A node that has never moved has no such series. |
 | `openstack_ironic_node_updated_at` | `seconds` | Max | When this node's record last changed, as a Unix time. A node that has never changed has no such series. |
-| `openstack_ironic_conductor_state` | | Min | 1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list. |
+| `openstack_ironic_agent_state` | | Min | 1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list. |
 
 ### Projects
 

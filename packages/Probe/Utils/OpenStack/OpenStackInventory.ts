@@ -886,6 +886,77 @@ export function toGlanceImage(item: JSONObject): GlanceImageRecord {
 }
 
 /*
+ * One machine Ironic manages, of the fields asked for (IRONIC_NODE_FIELDS), which is every one a page
+ * reads and none that says how to reach its controller.
+ */
+export interface IronicNodeRecord {
+  uuid: string | null;
+  name: string | null;
+  provisionState: string | null;
+  // Null until something has set it, which the exporter leaves as nothing too.
+  powerState: string | null;
+  targetProvisionState: string | null;
+  targetPowerState: string | null;
+  isInMaintenance: boolean;
+  maintenanceReason: string | null;
+  fault: string | null;
+  lastError: string | null;
+  resourceClass: string | null;
+  driver: string | null;
+  instanceUuid: string | null;
+  owner: string | null;
+  lessee: string | null;
+  conductor: string | null;
+  conductorGroup: string | null;
+  isRetired: boolean;
+  retiredReason: string | null;
+  isConsoleEnabled: boolean;
+  provisionUpdatedAt: string | null;
+  updatedAt: string | null;
+}
+
+export function toIronicNode(item: JSONObject): IronicNodeRecord {
+  return {
+    uuid: text(item["uuid"]),
+    name: text(item["name"]),
+    provisionState: text(item["provision_state"]),
+    powerState: text(item["power_state"]),
+    targetProvisionState: text(item["target_provision_state"]),
+    targetPowerState: text(item["target_power_state"]),
+    isInMaintenance: item["maintenance"] === true,
+    maintenanceReason: text(item["maintenance_reason"]),
+    fault: text(item["fault"]),
+    lastError: text(item["last_error"]),
+    resourceClass: text(item["resource_class"]),
+    driver: text(item["driver"]),
+    instanceUuid: text(item["instance_uuid"]),
+    owner: text(item["owner"]),
+    lessee: text(item["lessee"]),
+    conductor: text(item["conductor"]),
+    conductorGroup: text(item["conductor_group"]),
+    isRetired: item["retired"] === true,
+    retiredReason: text(item["retired_reason"]),
+    isConsoleEnabled: item["console_enabled"] === true,
+    provisionUpdatedAt: text(item["provision_updated_at"]),
+    updatedAt: text(item["updated_at"]),
+  };
+}
+
+export interface IronicConductorRecord {
+  hostname: string | null;
+  conductorGroup: string | null;
+  isAlive: boolean;
+}
+
+export function toIronicConductor(item: JSONObject): IronicConductorRecord {
+  return {
+    hostname: text(item["hostname"]),
+    conductorGroup: text(item["conductor_group"]),
+    isAlive: item["alive"] === true,
+  };
+}
+
+/*
  * A stack as Heat's list says it. `project` is there for an admin, recorded on a real cloud, and
  * anything less gets its own project's stacks without it. Its reason is what Heat recorded about its
  * last action, in its own words, and `parent` is the stack it is nested in, which a plain list leaves
@@ -1127,6 +1198,11 @@ export interface OpenStackImageInventory {
   images?: Array<GlanceImageRecord> | undefined;
 }
 
+export interface OpenStackBareMetalInventory {
+  nodes?: Array<IronicNodeRecord> | undefined;
+  conductors?: Array<IronicConductorRecord> | undefined;
+}
+
 export interface OpenStackOrchestrationInventory {
   stacks?: Array<HeatStackRecord> | undefined;
   engines?: Array<HeatEngineRecord> | undefined;
@@ -1149,6 +1225,7 @@ export interface OpenStackInventoryByService {
   network?: OpenStackNetworkInventory | undefined;
   volume?: OpenStackVolumeInventory | undefined;
   image?: OpenStackImageInventory | undefined;
+  baremetal?: OpenStackBareMetalInventory | undefined;
   // Keyed by what each service is called, so a reading finds its own by that.
   orchestration?: OpenStackOrchestrationInventory | undefined;
   "container-infra"?: OpenStackContainerInfraInventory | undefined;

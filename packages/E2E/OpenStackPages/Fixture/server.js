@@ -55,7 +55,8 @@ function readRecordings() {
         }
         const files = {};
         for (const file of fs.readdirSync(exporter).sort()) {
-          if (file.endsWith(".prom")) {
+          // <service>-as-<cloud>.prom is another credential's view: no part of what the agent sent.
+          if (file.endsWith(".prom") && !file.includes("-as-")) {
             files[file] = fs.readFileSync(path.join(exporter, file), "utf8");
           }
         }

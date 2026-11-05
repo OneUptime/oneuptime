@@ -213,6 +213,13 @@ const CAPPED_KINDS: Array<CappedKind> = [
       "{{shown}} of {{total}} floating IPs that may need someone are listed here.",
     ),
   },
+  {
+    kind: OpenStackResourceKind.BareMetalNode,
+    page: PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+    sentence: translationKey(
+      "{{shown}} of {{total}} bare metal nodes that may need someone are listed here.",
+    ),
+  },
 ];
 
 /*
@@ -308,6 +315,18 @@ function getCountChips(
       page: PageMap.OPENSTACK_CLOUD_VIEW_VOLUMES,
     },
     {
+      key: "bare-metal-nodes",
+      icon: IconProp.Server,
+      label: translator.translatePlural(
+        {
+          one: "{{count}} bare metal node",
+          other: "{{count}} bare metal nodes",
+        },
+        summary.bareMetalNodeCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+    },
+    {
       key: "projects",
       icon: IconProp.Folder,
       label: translator.translatePlural(
@@ -358,6 +377,7 @@ function getCountChips(
     routers: summary.routerCount,
     "floating-ips": summary.floatingIpCount,
     volumes: summary.volumeCount,
+    "bare-metal-nodes": summary.bareMetalNodeCount,
     projects: summary.projectCount,
     stacks: summary.stackCount,
     "container-clusters": summary.containerClusterCount,
