@@ -474,6 +474,89 @@ describe("the message issue 5761 reported", () => {
   });
 });
 
+describe("a related record asked for without naming any of its fields", () => {
+  /*
+   * A read of {"monitor": true} returns the monitor's ID and not its name
+   * (SelectUtil.sanitizeSelect; RecordFieldsWithNoValuePostgres reads it for
+   * real), which is what the trigger's read hands over here.
+   */
+  const monitorWithOnlyItsId: () => Monitor = (): Monitor => {
+    const monitor: Monitor = new Monitor();
+
+    monitor._id = MONITOR_ID;
+
+    return monitor;
+  };
+
+  test("its name comes through empty, with a warning saying what to add", async () => {
+    const result: RunResult = await runGraph({
+      nodes: [
+        alertTrigger({ _id: true, monitor: true }),
+        slackNode(`*Monitor:* ${MONITOR_NAME}`),
+      ],
+      edges: [then("alert-on-create-1", "slack-1")],
+      alert: alertWith({ monitor: monitorWithOnlyItsId() }),
+    });
+
+    expect(result.status).toBe(WorkflowStatus.Success);
+    expect(result.slackMessages).toEqual(["*Monitor:* "]);
+    expect(warningsOn(result, "slack-1")).toEqual([
+      {
+        message: `${MONITOR_NAME} in "Message Text" came through empty: "On Create Alert" does not pass on monitor.name. Add it to that step's Fields to pass on.`,
+        argumentId: "text",
+        unresolvedReferences: [MONITOR_NAME],
+      },
+    ]);
+  });
+
+  test("its ID is there, with nothing to warn of", async () => {
+    const result: RunResult = await runGraph({
+      nodes: [
+        alertTrigger({ _id: true, monitor: true }),
+        slackNode(`*Monitor:* {{${MODEL}.monitor._id}}`),
+      ],
+      edges: [then("alert-on-create-1", "slack-1")],
+      alert: alertWith({ monitor: monitorWithOnlyItsId() }),
+    });
+
+    expect(result.slackMessages).toEqual([`*Monitor:* ${MONITOR_ID}`]);
+    expect(warningsOn(result, "slack-1")).toEqual([]);
+  });
+});
+
+/*
+ * With nothing else in the message there is no message. Slack is not sent a
+ * blank; the step stops, and the run says both what came through empty and why
+ * it stopped.
+ */
+describe("a message that is nothing but a field with nothing in it", () => {
+  test("has nothing to send, and the run says so", async () => {
+    const result: RunResult = await runGraph({
+      nodes: [alertTrigger(PASSES_ON_THE_MONITOR), slackNode(MONITOR_NAME)],
+      edges: [then("alert-on-create-1", "slack-1")],
+      alert: alertWith({ monitor: null }),
+    });
+
+    expect(result.slackMessages).toEqual([]);
+    expect(result.status).toBe(WorkflowStatus.Error);
+    expect(result.logs).toContain(
+      `${MONITOR_NAME} in "Message Text" has no value in this run, so it came through empty.`,
+    );
+    expect(result.logs).toContain("Slack message not found");
+  });
+
+  test("still goes out for an alert that has the field", async () => {
+    const result: RunResult = await runGraph({
+      nodes: [alertTrigger(PASSES_ON_THE_MONITOR), slackNode(MONITOR_NAME)],
+      edges: [then("alert-on-create-1", "slack-1")],
+      alert: alertWith({ monitor: monitorNamed("Checkout API") }),
+    });
+
+    expect(result.status).toBe(WorkflowStatus.Success);
+    expect(result.slackMessages).toEqual(["Checkout API"]);
+  });
+});
+
 describe("a field its step does not pass on", () => {
   test("comes through empty, as the builder and the docs say it does", async () => {
     const result: RunResult = await runGraph({
@@ -777,24 +860,26 @@ describe("If / Else asks the record what it has", () => {
  */
 describe("a step that reads or writes records never gets an empty ID", () => {
   type ServiceSpies = {
-    findBy: jest.SpyInstance;
-    deleteBy: jest.SpyInstance;
-    updateBy: jest.SpyInstance;
-    create: jest.SpyInstance;
+    findBy: RecordedSpy;
+    deleteBy: RecordedSpy;
+    updateBy: RecordedSpy;
+    create: RecordedSpy;
   };
 
   const spyOnWrites: () => ServiceSpies = (): ServiceSpies => {
     return {
-      findBy: jest.spyOn(AlertService, "findBy").mockResolvedValue([] as never),
+      findBy: jest
+        .spyOn(AlertService, "findBy")
+        .mockResolvedValue([] as never) as unknown as RecordedSpy,
       deleteBy: jest
         .spyOn(AlertService, "deleteBy")
-        .mockResolvedValue(0 as never),
+        .mockResolvedValue(0 as never) as unknown as RecordedSpy,
       updateBy: jest
         .spyOn(AlertService, "updateBy")
-        .mockResolvedValue(0 as never),
+        .mockResolvedValue(0 as never) as unknown as RecordedSpy,
       create: jest
         .spyOn(AlertService, "create")
-        .mockResolvedValue(new Alert() as never),
+        .mockResolvedValue(new Alert() as never) as unknown as RecordedSpy,
     };
   };
 
