@@ -78,6 +78,10 @@ def request(method, path, body=None, headers=None, raw=None):
 
 def api(method, path, body=None):
     status, parsed = request(method, "/api" + path, body)
+    if status == 401:
+        # A session lasts 15 minutes, and a browser renews its own. A wait here can outlast one.
+        log_in()
+        status, parsed = request(method, "/api" + path, body)
     if status >= 300:
         raise RuntimeError(f"{method} {path} answered {status}: {json.dumps(parsed)[:1500]}")
     return parsed
@@ -85,6 +89,21 @@ def api(method, path, body=None):
 
 def value_of(field):
     return field.get("value") if isinstance(field, dict) and "value" in field else field
+
+
+def log_in():
+    status, parsed = request(
+        "POST",
+        "/api/identity/login",
+        {
+            "data": {
+                "email": {"_type": "Email", "value": EMAIL},
+                "password": {"_type": "HashedString", "value": PASSWORD},
+            }
+        },
+    )
+    if status >= 300:
+        raise RuntimeError(f"Sign in answered {status}: {json.dumps(parsed)[:1500]}")
 
 
 def sign_in():
@@ -104,18 +123,7 @@ def sign_in():
     )
     if status >= 300:
         raise RuntimeError(f"Sign up answered {status}: {json.dumps(parsed)[:1500]}")
-    status, parsed = request(
-        "POST",
-        "/api/identity/login",
-        {
-            "data": {
-                "email": {"_type": "Email", "value": EMAIL},
-                "password": {"_type": "HashedString", "value": PASSWORD},
-            }
-        },
-    )
-    if status >= 300:
-        raise RuntimeError(f"Sign in answered {status}: {json.dumps(parsed)[:1500]}")
+    log_in()
 
     for _ in range(30):
         found = api("POST", "/project/get-list", {"query": {}, "select": {"_id": True, "name": True}, "limit": 1})

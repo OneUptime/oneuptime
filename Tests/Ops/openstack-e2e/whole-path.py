@@ -475,8 +475,9 @@ def make_credential(name):
             keep_output=False,
         ).out
     )
-    # The client's words differ by release.
-    return secret(answer.get("id") or answer["ID"]), secret(answer.get("secret") or answer["Secret"])
+    # The client's words differ by release: id or ID, secret or Secret.
+    fields = {key.lower(): value for key, value in answer.items()}
+    return secret(fields["id"]), secret(fields["secret"])
 
 
 def level_one_credential():
@@ -677,6 +678,124 @@ def compute_down_alerts():
     return [row for row in rows if "Compute Service Down" in (row.get("title") or "")]
 
 
+def said(read):
+    """What a read says, for a finding's detail. One that fails says so, and costs no finding."""
+    try:
+        return read()
+    except Exception as error:  # pylint: disable=broad-except
+        return f"(could not read it: {type(error).__name__}: {error})"
+
+
+def status_timeline(monitor_id):
+    rows = live.rows(
+        "/monitor-status-timeline",
+        {"monitorId": typed_id(monitor_id)},
+        {"createdAt": True, "startsAt": True, "monitorStatus": {"name": True}},
+        limit=50,
+    )
+    return [{"at": row.get("startsAt") or row.get("createdAt"), "status": (row.get("monitorStatus") or {}).get("name")} for row in rows]
+
+
+def stage(name, body):
+    """What can fail in one stage of a part costs that stage: firing and recovering are read apart."""
+    try:
+        body()
+    except Exception as error:  # pylint: disable=broad-except
+        check(f"{name} was read to its end", False, f"{type(error).__name__}: {error}")
+
+
+def while_stopped(cloud_id, monitor_id, stopped_at):
+    down, waited = wait_for(lambda: nova_compute_state() == "down", 300, gap=5)
+    check("the cloud itself says nova-compute is down", bool(down), f"after {waited}s")
+
+    def row_down():
+        row = nova_compute_row(cloud_id)
+        return row if row and row.get("status") == "down" else None
+
+    row, waited = wait_for(row_down, 480)
+    check(
+        "nova-compute's row on the Services page goes down",
+        bool(row),
+        f"{round(time.time() - stopped_at)}s after the stop: {row}" if row else f"still {said(lambda: nova_compute_row(cloud_id))} after {waited}s",
+    )
+    found("the row while it was down", row)
+    found("the hypervisor while it was down", said(lambda: short(rows_of(cloud_id, "Hypervisor"))))
+    counted, _ = wait_for(lambda: cloud_row(cloud_id).get("downServiceCount"), 240)
+    found("the cloud's row while it was down", said(lambda: cloud_row(cloud_id)))
+    check("the cloud's row counts it as a down service", bool(counted), counted)
+
+    # The template's whole window, ten minutes, as a person waits it: nothing here shortens it.
+    opened, waited = wait_for(compute_down_incidents, 1500, gap=20)
+    check(
+        "the monitor opens an incident, having waited its whole window",
+        bool(opened),
+        f"{round(time.time() - stopped_at)}s after the stop"
+        if opened
+        else f"nothing {waited}s on; the monitor reads {said(lambda: monitor_status(monitor_id))}; {STATE.get('last error', '')}",
+    )
+    found("the monitor's status timeline, while it was down", said(lambda: status_timeline(monitor_id)))
+    if not opened:
+        return
+    incident = opened[0]
+    found("the incident", incident)
+    found("seconds from the stop to the incident", round(time.time() - stopped_at))
+    title = incident.get("title") or ""
+    check("its title names the template", "[OpenStack] Compute Service Down" in title, title)
+    check(f"and the host, {STATE['host']}", f"Host: {STATE['host']}" in title, title)
+    check("exactly one incident opened", len(opened) == 1, [row.get("title") for row in opened])
+    clouds = [cloud.get("_id") for cloud in incident.get("openStackClouds") or []]
+    check("the incident is on that cloud's Incidents page", clouds == [cloud_id], incident.get("openStackClouds"))
+    status, _ = wait_for(lambda: monitor_status(monitor_id).get("isOfflineState"), 120, gap=10)
+    check("the monitor reads offline", bool(status), said(lambda: monitor_status(monitor_id)))
+    alerts, _ = wait_for(compute_down_alerts, 120, gap=10)
+    found("the alert", alerts)
+    check("its alert opened with it", bool(alerts) and len(alerts) == 1, [row.get("title") for row in alerts or []])
+
+
+def once_started(cloud_id, monitor_id, started_at):
+    up, waited = wait_for(lambda: nova_compute_state() == "up", 300, gap=5)
+    check("the cloud itself says nova-compute is up again", bool(up), f"after {waited}s")
+
+    def row_up():
+        row = nova_compute_row(cloud_id)
+        return row if row and row.get("status") == "up" else None
+
+    row, waited = wait_for(row_up, 480)
+    check(
+        "nova-compute's row comes back up",
+        bool(row),
+        f"{round(time.time() - started_at)}s after the start" if row else f"still {said(lambda: nova_compute_row(cloud_id))} after {waited}s",
+    )
+
+    def settled():
+        rows = compute_down_incidents()
+        return rows if rows and all((row.get("currentIncidentState") or {}).get("isResolvedState") for row in rows) else None
+
+    resolved, waited = wait_for(settled, 1500, gap=20)
+    check(
+        "the incident resolves on its own",
+        bool(resolved),
+        f"{round(time.time() - started_at)}s after the start"
+        if resolved
+        else f"{said(compute_down_incidents)} after {waited}s; the monitor reads {said(lambda: monitor_status(monitor_id))}; {STATE.get('last error', '')}",
+    )
+    found("the monitor's status timeline, at the end", said(lambda: status_timeline(monitor_id)))
+    if resolved:
+        found("the incident, resolved", resolved)
+        found("seconds from the start to the resolve", round(time.time() - started_at))
+        check("nothing else opened", len(resolved) == 1, [row.get("title") for row in resolved])
+    status, _ = wait_for(lambda: monitor_status(monitor_id).get("isOperationalState"), 120, gap=10)
+    check("the monitor reads online again", bool(status), said(lambda: monitor_status(monitor_id)))
+
+    def alerts_settled():
+        rows = compute_down_alerts()
+        return rows if rows and all((row.get("currentAlertState") or {}).get("isResolvedState") for row in rows) else None
+
+    alerts, _ = wait_for(alerts_settled, 180, gap=10)
+    found("the alert, afterwards", alerts or said(compute_down_alerts))
+    check("its alert resolved with it", bool(alerts), said(compute_down_alerts))
+
+
 def part_break():
     cloud_id = STATE["agent cloud"]
     monitor_id, monitor_name = template_monitor(AGENT_CLOUD)
@@ -695,94 +814,12 @@ def part_break():
     must("break", f"sudo systemctl stop {COMPUTE_UNIT}")
     say(f"{COMPUTE_UNIT} stopped")
     try:
-        down, waited = wait_for(lambda: nova_compute_state() == "down", 300, gap=5)
-        check("the cloud itself says nova-compute is down", bool(down), f"after {waited}s")
-
-        def row_down():
-            row = nova_compute_row(cloud_id)
-            return row if row and row.get("status") == "down" else None
-
-        row, waited = wait_for(row_down, 480)
-        check(
-            "nova-compute's row on the Services page goes down",
-            bool(row),
-            f"{round(time.time() - stopped_at)}s after the stop: {row}" if row else f"still {nova_compute_row(cloud_id)} after {waited}s",
-        )
-        found("the row while it was down", row)
-        found("the hypervisor while it was down", short(rows_of(cloud_id, "Hypervisor")))
-        counted, _ = wait_for(lambda: cloud_row(cloud_id).get("downServiceCount"), 240)
-        found("the cloud's row while it was down", cloud_row(cloud_id))
-        check("the cloud's row counts it as a down service", bool(counted), counted)
-
-        # The template's whole window, ten minutes, as a person waits it: nothing here shortens it.
-        opened, waited = wait_for(compute_down_incidents, 1500, gap=20)
-        check(
-            "the monitor opens an incident, having waited its whole window",
-            bool(opened),
-            f"{round(time.time() - stopped_at)}s after the stop" if opened else f"nothing {waited}s on; the monitor reads {monitor_status(monitor_id)}",
-        )
-        if opened:
-            incident = opened[0]
-            found("the incident", incident)
-            found("seconds from the stop to the incident", round(time.time() - stopped_at))
-            title = incident.get("title") or ""
-            check("its title names the template", "[OpenStack] Compute Service Down" in title, title)
-            check(f"and the host, {STATE['host']}", f"Host: {STATE['host']}" in title, title)
-            check("exactly one incident opened", len(opened) == 1, [row.get("title") for row in opened])
-            clouds = [cloud.get("_id") for cloud in incident.get("openStackClouds") or []]
-            check("the incident is on that cloud's Incidents page", clouds == [cloud_id], incident.get("openStackClouds"))
-            status, _ = wait_for(lambda: monitor_status(monitor_id).get("isOfflineState"), 120, gap=10)
-            check("the monitor reads offline", bool(status), monitor_status(monitor_id).get("name"))
-            alerts, _ = wait_for(compute_down_alerts, 120, gap=10)
-            found("the alert", alerts)
-            check("its alert opened with it", bool(alerts) and len(alerts) == 1, [row.get("title") for row in alerts or []])
+        stage("the time it was stopped", lambda: while_stopped(cloud_id, monitor_id, stopped_at))
     finally:
         started_at = time.time()
         must("break", f"sudo systemctl start {COMPUTE_UNIT}")
         say(f"{COMPUTE_UNIT} started")
-
-    up, waited = wait_for(lambda: nova_compute_state() == "up", 300, gap=5)
-    check("the cloud itself says nova-compute is up again", bool(up), f"after {waited}s")
-
-    def row_up():
-        row = nova_compute_row(cloud_id)
-        return row if row and row.get("status") == "up" else None
-
-    row, waited = wait_for(row_up, 480)
-    check(
-        "nova-compute's row comes back up",
-        bool(row),
-        f"{round(time.time() - started_at)}s after the start" if row else f"still {nova_compute_row(cloud_id)} after {waited}s",
-    )
-
-    def settled():
-        rows = compute_down_incidents()
-        return rows if rows and all((row.get("currentIncidentState") or {}).get("isResolvedState") for row in rows) else None
-
-    resolved, waited = wait_for(settled, 1500, gap=20)
-    check(
-        "the incident resolves on its own",
-        bool(resolved),
-        f"{round(time.time() - started_at)}s after the start" if resolved else f"{compute_down_incidents()} after {waited}s; the monitor reads {monitor_status(monitor_id)}",
-    )
-    if resolved:
-        found("the incident, resolved", resolved)
-        found("seconds from the start to the resolve", round(time.time() - started_at))
-        check("nothing else opened", len(resolved) == 1, [row.get("title") for row in resolved])
-    status, _ = wait_for(lambda: monitor_status(monitor_id).get("isOperationalState"), 120, gap=10)
-    check("the monitor reads online again", bool(status), monitor_status(monitor_id).get("name"))
-
-    def alerts_settled():
-        rows = compute_down_alerts()
-        return rows if rows and all((row.get("currentAlertState") or {}).get("isResolvedState") for row in rows) else None
-
-    alerts, _ = wait_for(alerts_settled, 180, gap=10)
-    found("the alert, afterwards", alerts or compute_down_alerts())
-    check(
-        "its alert resolved with it",
-        bool(alerts),
-        [(row.get("currentAlertState") or {}).get("name") for row in compute_down_alerts()],
-    )
+    stage("the time after it started", lambda: once_started(cloud_id, monitor_id, started_at))
 
 
 # ----------------------------------------------------------------------------------------------
