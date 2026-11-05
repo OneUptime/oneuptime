@@ -57,14 +57,16 @@ describe("what the agent sent from a real Kolla-Ansible", () => {
     },
   );
 
-  test("the version the agent pins names each volume, with its status", () => {
-    const volumes: Record<string, string | null> = statusByName(
-      pinned,
-      OpenStackResourceKind.Volume,
-    );
+  test("the version the agent pins names each volume, with its status, on the first credential too", () => {
+    for (const rows of [pinned, fullView]) {
+      const volumes: Record<string, string | null> = statusByName(
+        rows,
+        OpenStackResourceKind.Volume,
+      );
 
-    for (const [name, status] of Object.entries(VOLUMES)) {
-      expect({ name, status: volumes[name] }).toEqual({ name, status });
+      for (const [name, status] of Object.entries(VOLUMES)) {
+        expect({ name, status: volumes[name] }).toEqual({ name, status });
+      }
     }
   });
 

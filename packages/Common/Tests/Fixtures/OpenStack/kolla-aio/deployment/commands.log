@@ -22,6 +22,9 @@ OPENSTACK_NETWORK_EXPORTER_TARGETS=[192.168.100.10:1981]
 OPENSTACK_LIBVIRT_HEALTH_TARGETS=[192.168.100.10:9177]
 [exit 0]
 
+$ kolla-ansible reconfigure -i /opt/ou-kolla/all-in-one --tags cinder
+[exit 0]
+
 $ openstack project create --domain default oneuptime-monitoring
 openstack user create --domain default --password <password> oneuptime-monitoring
 openstack role add --project oneuptime-monitoring --user oneuptime-monitoring admin
@@ -34,7 +37,7 @@ openstack catalog list -f json | python3 access-rules-for-cloud.py \
 openstack application credential create oneuptime-agent \
   --role admin \
   --access-rules "$(cat access-rules-for-this-cloud.json)" \
-  --expiration 2027-11-05T06:16:08
+  --expiration 2027-11-05T13:09:58
 [exit 0]
 
 $ curl -fsSL http://192.168.100.10:8099/install/openstack-agent -o install.sh && bash install.sh
@@ -81,6 +84,6 @@ $ kolla-ansible reconfigure -i /opt/ou-kolla/all-in-one --tags nova,neutron,keys
 [exit 0]
 
 $ openstack application credential create oneuptime-agent \
-  --expiration 2027-11-05T06:56:32
+  --expiration 2027-11-05T13:43:39
 [exit 0]
 

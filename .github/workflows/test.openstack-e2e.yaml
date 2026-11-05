@@ -238,6 +238,8 @@ jobs:
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
           ONEUPTIME_URL: http://localhost
+          # What the agent sent from the same real Kolla-Ansible as the webhooks.
+          OTLP_FIXTURE: packages/Common/Tests/Fixtures/OpenStack/kolla-aio/otlp/full-view.json
         run: python3 -I Tests/Ops/openstack-e2e/live-oneuptime.py
       - name: Keep what the containers said
         if: always()

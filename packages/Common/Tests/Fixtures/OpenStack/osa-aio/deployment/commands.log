@@ -1,3 +1,6 @@
+$ openstack-ansible openstack.osa.cinder --tags cinder-config
+[exit 0]
+
 $ openstack project create --domain default oneuptime-monitoring
 openstack user create --domain default --password <password> oneuptime-monitoring
 openstack role add --project oneuptime-monitoring --user oneuptime-monitoring admin
@@ -13,7 +16,7 @@ openstack catalog list -f json | python3 access-rules-for-cloud.py \
 openstack application credential create oneuptime-agent \
   --role admin \
   --access-rules "$(cat access-rules-for-this-cloud.json)" \
-  --expiration 2027-11-05T12:12:41
+  --expiration 2027-11-05T13:30:56
 [exit 0]
 
 $ curl -fsSL http://172.29.236.100:8099/install/openstack-agent -o install.sh && bash install.sh
@@ -57,6 +60,6 @@ $ openstack-ansible openstack.osa.nova --tags nova-policy-override
 [exit 0]
 
 $ openstack application credential create oneuptime-agent \
-  --expiration 2027-11-05T12:24:56
+  --expiration 2027-11-05T13:45:45
 [exit 0]
 
