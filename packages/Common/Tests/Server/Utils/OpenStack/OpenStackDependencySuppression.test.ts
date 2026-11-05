@@ -156,6 +156,48 @@ describe("for a parent that is down now", () => {
     }
   });
 
+  test("a libvirt gone from one machine holds back only a nova-compute that says it disabled itself", async () => {
+    incidents.mockResolvedValue([
+      incidentAbout({
+        [REGION]: "RegionOne",
+        openstack_exporter_host: "10.0.0.21",
+      }),
+    ] as never);
+
+    const suppression: DependencySuppressionResult =
+      await OpenStackDependencySuppression.forEvaluation({
+        monitor: childMonitor(),
+        suppression: SUPPRESSED,
+      });
+
+    for (const [service, region, disabledReason, waits] of [
+      ["nova-compute", "RegionOne", "AUTO: Connection to libvirt lost: 1", true],
+      // Someone took a host out by hand: nothing libvirt says speaks for that.
+      ["nova-compute", "RegionOne", "", false],
+      ["nova-compute", "RegionOne", "swapping a disk", false],
+      ["nova-compute", "RegionOne", "see AUTO: above", false],
+      // Another region has its own libvirt to say so.
+      ["nova-compute", "RegionTwo", "AUTO: Connection to libvirt lost: 1", false],
+      // Only nova-compute writes this about itself.
+      ["cinder-volume", "RegionOne", "AUTO: anything", false],
+    ] as Array<[string, string, string, boolean]>) {
+      expect({
+        service,
+        region,
+        disabledReason,
+        waits: MonitorDependencyRule.isSeriesSuppressed({
+          suppression,
+          labels: {
+            [REGION]: region,
+            service,
+            hostname: "compute-1",
+            disabledReason,
+          },
+        }),
+      }).toEqual({ service, region, disabledReason, waits });
+    }
+  });
+
   test("a whole dependency and one machine in the same region: the whole one speaks for all of it", async () => {
     incidents.mockResolvedValue([
       incidentAbout({

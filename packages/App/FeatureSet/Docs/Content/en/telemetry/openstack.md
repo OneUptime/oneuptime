@@ -774,7 +774,7 @@ Nobody can read it until you add them under its **Private Users**, and a session
 
 An event linked to the cloud with no hosts or zones named is about the whole cloud.
 
-`openstack compute service set --disable` is expected during an event on that host, and the hypervisor's page says so. Outside one, nobody has said why, so the **Compute Service Disabled** template pages about it. Add that monitor if a host disabled by hand is something you want to hear about.
+`openstack compute service set --disable` is expected during an event on that host, and the hypervisor's page says so. Outside one, nobody has said why, so the **Compute Service Disabled** template pages about it. Add that monitor if a host disabled by hand is something you want to hear about. It pages you and tells no project, because what a project already runs there carries on. A `nova-compute` that disabled itself because libvirt went is one failure and one incident: **libvirt Service Down** says it, and this stays quiet while that is open.
 
 ## Joined up with the rest of OneUptime
 

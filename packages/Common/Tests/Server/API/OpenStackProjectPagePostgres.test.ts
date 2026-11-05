@@ -187,6 +187,7 @@ describePostgres(
     let pageB: ProjectPage;
     let realMonitor: ObjectID;
     let incidentId: ObjectID;
+    let announcementOfA: string;
 
     async function seedPage(data: {
       name: string;
@@ -300,9 +301,14 @@ describePostgres(
     async function overview(data: {
       pageId: ObjectID;
       cookies: Dictionary<string>;
+      route?: string;
+      params?: Dictionary<string>;
     }): Promise<{ payload: JSONObject | null; error: unknown }> {
       const req: ExpressRequest = {
-        params: { statusPageIdOrDomain: data.pageId.toString() },
+        params: {
+          statusPageIdOrDomain: data.pageId.toString(),
+          ...(data.params || {}),
+        },
         body: {},
         query: {},
         cookies: data.cookies,
@@ -322,7 +328,7 @@ describePostgres(
       const before: number = responseMock.mock.calls.length;
 
       await mockRouter
-        .match("post", OVERVIEW_ROUTE)
+        .match("post", data.route || OVERVIEW_ROUTE)
         .handlerFunction(req, res, next as unknown as NextFunction);
       await new Promise<void>((resolve: () => void) => {
         setTimeout(resolve, 0);
@@ -373,6 +379,11 @@ describePostgres(
         notice: pageA.notice,
         message,
       });
+
+      const announcements: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."StatusPageAnnouncement" LIMIT 1`,
+      );
+      announcementOfA = announcements[0]!._id;
     }
 
     beforeAll(async () => {
@@ -616,6 +627,7 @@ describePostgres(
       expect(text).not.toContain(realMonitor.toString());
       expect(text).not.toContain(pageA.monitorId.toString());
       expect(text).not.toContain("3 instances");
+      expect(text).not.toContain(announcementOfA);
 
       // Its own row is untouched.
       const monitors: Array<{ currentMonitorStatusId: string }> =
@@ -624,6 +636,81 @@ describePostgres(
           [pageB.monitorId.toString()],
         );
       expect(monitors[0]!.currentMonitorStatusId).toBe(onlineStatus.toString());
+    });
+
+    /*
+     * Every other way into a page's API, asked of B's page by B's own reader, for what is A's or the
+     * incident's. A page answers about its own rows, however a thing is asked for by its ID.
+     */
+    test.each<[string, string, () => Dictionary<string>]>([
+      ["the page in brief", "/status-page/summary/:statusPageIdOrDomain", () => {
+        return {};
+      }],
+      ["its incidents", "/status-page/incidents/:statusPageIdOrDomain", () => {
+        return {};
+      }],
+      [
+        "the incident that names everyone, by its ID",
+        "/status-page/incidents/:statusPageIdOrDomain/:incidentId",
+        () => {
+          return { incidentId: incidentId.toString() };
+        },
+      ],
+      [
+        "its planned maintenance",
+        "/status-page/scheduled-maintenance-events/:statusPageIdOrDomain",
+        () => {
+          return {};
+        },
+      ],
+      [
+        "its announcements",
+        "/status-page/announcements/:statusPageIdOrDomain",
+        () => {
+          return {};
+        },
+      ],
+      [
+        "the other project's announcement, by its ID",
+        "/status-page/announcements/:statusPageIdOrDomain/:announcementId",
+        () => {
+          return { announcementId: announcementOfA };
+        },
+      ],
+    ])(
+      "through %s, B reads nothing of A's",
+      async (_name: string, route: string, params: () => Dictionary<string>) => {
+        const read: { payload: JSONObject | null; error: unknown } =
+          await overview({
+            pageId: pageB.pageId,
+            cookies: cookieOf(pageB, pageB.pageId),
+            route,
+            params: params(),
+          });
+
+        const text: string = JSON.stringify(read.payload ?? {});
+
+        for (const word of [...WHAT_B_MUST_NEVER_READ, "3 instances"]) {
+          expect(text).not.toContain(word);
+        }
+        expect(text).not.toContain(realMonitor.toString());
+        expect(text).not.toContain(pageA.monitorId.toString());
+      },
+    );
+
+    test("and A's reader, asking for the incident that names everyone by its ID, gets no such thing either", async () => {
+      const read: { payload: JSONObject | null; error: unknown } =
+        await overview({
+          pageId: pageA.pageId,
+          cookies: cookieOf(pageA, pageA.pageId),
+          route: "/status-page/incidents/:statusPageIdOrDomain/:incidentId",
+          params: { incidentId: incidentId.toString() },
+        });
+
+      const text: string = JSON.stringify(read.payload ?? {});
+
+      expect(text).not.toContain("ou-research");
+      expect(text).not.toContain("Compute Service Down");
     });
   },
 );

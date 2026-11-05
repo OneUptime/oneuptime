@@ -482,6 +482,7 @@ describe("a label rule on a project", () => {
         labelRuleNames: ["ou-payments labels"],
         owners: [],
         ownerRuleNames: [],
+        ownersProjects: [],
       },
     });
 
@@ -600,6 +601,7 @@ describe("never in the way of the alert", () => {
       labelRuleNames: [],
       owners: [],
       ownerRuleNames: [],
+      ownersProjects: [],
     });
     expect(read).not.toHaveBeenCalled();
   });

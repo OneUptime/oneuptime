@@ -1048,6 +1048,7 @@ export default class MonitorIncident {
             incidentId: createdIncident.id!,
             isPrivate: incident.isPrivate,
             series: openStackSeries,
+            monitorSteps: input.monitor.monitorSteps,
           });
 
           /*

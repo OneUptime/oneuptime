@@ -751,6 +751,8 @@ describe("maintenance and project notices, replayed from what real clouds' expor
       expect(replay.opened[0]!.title).toContain(
         "[OpenStack] Compute Service Disabled",
       );
+      // What the project runs there carries on, so nothing here is true to tell it.
+      expect(recorded).toEqual([]);
       expect(replay.opened[0]!.seriesLabels).toMatchObject({
         hostname: hostOf(release, "compute-disabled"),
         service: "nova-compute",

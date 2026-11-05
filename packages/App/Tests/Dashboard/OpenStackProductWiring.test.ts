@@ -118,6 +118,7 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
   ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
   ["Spend.tsx", "OPENSTACK_CLOUD_VIEW_SPEND"],
+  ["StatusPages.tsx", "OPENSTACK_CLOUD_VIEW_STATUS_PAGES"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
   ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],

@@ -51,6 +51,7 @@ import logger from "../Logger";
 import {
   OpenStackAlertContextResult,
   OpenStackSeriesDescription,
+  isOpenStackMonitorOfDisabledWorkers,
 } from "./OpenStackAlertContext";
 import OpenStackMaintenanceReach from "./OpenStackMaintenanceReach";
 
@@ -266,20 +267,28 @@ export default class OpenStackProjectNotices {
 
   /*
    * An incident on a part: once the part is known and its reach read. A series that names no part is
-   * about nothing a project would recognise, and a private incident stays between its people.
+   * about nothing a project would recognise, a private incident stays between its people, and a worker
+   * someone disabled takes nothing from what a project runs, so saying it affects one would be untrue.
    */
   public static async recordForIncident(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
     isPrivate?: boolean | undefined;
     series: OpenStackSeriesDescription;
+    monitorSteps?: unknown;
   }): Promise<void> {
     try {
       const context: OpenStackAlertContextResult | undefined =
         data.series.context;
       const openStackCloudId: ObjectID | null = data.series.openStackCloudId;
 
-      if (!context || !openStackCloudId || !context.partKind || data.isPrivate) {
+      if (
+        !context ||
+        !openStackCloudId ||
+        !context.partKind ||
+        data.isPrivate ||
+        isOpenStackMonitorOfDisabledWorkers(data.monitorSteps)
+      ) {
         return;
       }
 

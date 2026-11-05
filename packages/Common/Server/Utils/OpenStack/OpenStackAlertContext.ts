@@ -198,13 +198,13 @@ export function getOpenStackPartOfSeries(
 }
 
 /*
- * The series an OpenStack monitor reads, from its steps. Step JSON is not schema-checked,
+ * What an OpenStack monitor's queries filter on, from its steps. Step JSON is not schema-checked,
  * so each step is read for what it holds rather than trusted to hold it.
  */
-export function getOpenStackMetricNamesOfMonitor(
+function getOpenStackQueryFiltersOfMonitor(
   monitorSteps: unknown,
-): Array<string> {
-  const names: Array<string> = [];
+): Array<JSONObject> {
+  const filters: Array<JSONObject> = [];
   const steps: unknown = (monitorSteps as JSONObject | undefined)?.["data"];
   const list: unknown = (steps as JSONObject | undefined)?.[
     "monitorStepsInstanceArray"
@@ -232,19 +232,53 @@ export function getOpenStackMetricNamesOfMonitor(
         continue;
       }
 
-      const name: unknown = (
+      const filterData: unknown = (
         (query as JSONObject)?.["metricQueryData"] as JSONObject | undefined
       )?.["filterData"];
-      const metricName: unknown = (name as JSONObject | undefined)?.[
-        "metricName"
-      ];
-      if (typeof metricName === "string") {
-        names.push(metricName);
+      if (filterData && typeof filterData === "object") {
+        filters.push(filterData as JSONObject);
       }
     }
   }
 
+  return filters;
+}
+
+// The series an OpenStack monitor reads, from its steps.
+export function getOpenStackMetricNamesOfMonitor(
+  monitorSteps: unknown,
+): Array<string> {
+  const names: Array<string> = [];
+
+  for (const filterData of getOpenStackQueryFiltersOfMonitor(monitorSteps)) {
+    const metricName: unknown = filterData["metricName"];
+    if (typeof metricName === "string") {
+      names.push(metricName);
+    }
+  }
+
   return names;
+}
+
+/*
+ * Whether all a monitor asks is which workers are disabled. Nothing a project already runs stops for
+ * that: only new work stops landing there, and whether it was meant is a question for whoever runs
+ * the cloud.
+ */
+export function isOpenStackMonitorOfDisabledWorkers(
+  monitorSteps: unknown,
+): boolean {
+  const filters: Array<JSONObject> =
+    getOpenStackQueryFiltersOfMonitor(monitorSteps);
+
+  return (
+    filters.length > 0 &&
+    filters.every((filterData: JSONObject): boolean => {
+      const attributes: unknown = filterData["attributes"];
+
+      return (attributes as JSONObject | undefined)?.["adminState"] === "disabled";
+    })
+  );
 }
 
 // The project a series names for itself, which needs no radius to find.

@@ -139,10 +139,18 @@ def part_page():
     check("its rows are the plan's", sorted(row.get("displayName") or "" for row in resources) == sorted(rows), resources)
     check("each is backed by a monitor or a group of them", all(row.get("monitorId") or row.get("monitorGroupId") for row in resources), resources)
 
-    again = post(f"{NOTICE_API}/status-page-plan/{cloud_id}")["plan"]
-    check("asked again, it has nothing left to make", again.get("monitorsToMake") == 0, again.get("monitorsToMake"))
+    answer = post(f"{NOTICE_API}/status-page-plan/{cloud_id}")
+    check("asked again, it has nothing left to make", answer["plan"].get("monitorsToMake") == 0, answer["plan"].get("monitorsToMake"))
     status, _ = live.request("POST", f"/api/status-page/overview/{page_id}", {})
     check("nobody signed in reads a private page", status >= 400, status)
+
+    # The same monitors, on a page anyone can read: what a failure shows the public is read from this.
+    public = post(f"{NOTICE_API}/make-status-page/{cloud_id}", {"planKey": answer["planKey"], "name": "For everyone", "isPublic": True})
+    check("a second page makes no second monitor", public.get("monitorsMade") == 0, public)
+    STATE["public page"] = public.get("statusPageId")
+    status, overview = live.request("POST", f"/api/status-page/overview/{STATE['public page']}", {})
+    check("anyone reads the public one", status < 300, status)
+    found("the public page, healthy", overview)
 
 
 def part_notices():
@@ -161,6 +169,35 @@ def part_notices():
             {"data": {"openStackCloudId": whole.typed_id(cloud_id), "openStackProjectId": project_id, "webhookUrl": {"_type": "URL", "value": f"{url}/{path}"}, "projectId": live.PROJECT_ID}},
         )
         return whole.id_of(created)
+
+    teams = live.rows("/team", {"projectId": live.PROJECT_ID}, {"_id": True, "name": True}, limit=1)
+    STATE["team"] = teams[0]["_id"]
+    post(
+        "/openstack-cloud-owner-rule",
+        {
+            "data": {
+                "projectId": live.PROJECT_ID,
+                "openStackCloudId": whole.typed_id(cloud_id),
+                "name": f"{PAID} owners",
+                "openStackProjectId": paid["externalId"],
+                "ownerTeams": [{"_id": STATE["team"]}],
+                "notifyOwners": False,
+            }
+        },
+    )
+    post(
+        "/openstack-cloud-owner-rule",
+        {
+            "data": {
+                "projectId": live.PROJECT_ID,
+                "openStackCloudId": whole.typed_id(cloud_id),
+                "name": "A rule on a project nobody has",
+                "openStackProjectId": "no-such-project",
+                "ownerTeams": [{"_id": STATE["team"]}],
+                "notifyOwners": False,
+            }
+        },
+    )
 
     STATE["paid notice"] = notice_for(paid["externalId"], "paid")
     STATE["other notice"] = notice_for(other["externalId"], "other")
@@ -210,6 +247,24 @@ def part_break():
             found("what it says", description)
             check(f"it names {PAID}", PAID in description, description[:800])
             check(f"and {OTHER}", OTHER in description, description[:800])
+
+            def owners():
+                rows = live.rows(
+                    "/incident-owner-team",
+                    {"incidentId": whole.typed_id(opened[0]["_id"])},
+                    {"teamId": True},
+                    limit=10,
+                )
+                return rows or None
+
+            added, _ = wait_for(owners, 120, gap=10)
+            check("and adds the team that owns the project", bool(added) and len(added) == 1 and added[0].get("teamId") == STATE["team"], added)
+
+            status, shown = live.request("POST", f"/api/status-page/overview/{STATE['public page']}", {})
+            found("the public page, while it is down", shown)
+            text = json.dumps(shown)
+            check("the public page shows the incident", status < 300 and "Compute Service Down" in text, status)
+            check("and names no project", PAID not in text and OTHER not in text and STATE["paid project"] not in text, text[:1200])
         told, waited = wait_for(lambda: bodies("/paid"), 300, gap=10)
         check("the project turned on is told", bool(told), f"after {waited}s; {RECEIVED}")
         if told:
@@ -331,8 +386,21 @@ def part_planned():
         found("what it was told", rows[-1])
     check("the project turned off hears nothing of it", not bodies("/other"), bodies("/other"))
 
-    move_event(event_id, ongoing)
+    # It starts by itself at its time, as any event does: the worker moves it, and this only waits.
+    def is_on():
+        event = whole.item_of(
+            post(
+                f"/scheduled-maintenance/{event_id}/get-item",
+                {"select": {"currentScheduledMaintenanceState": {"isOngoingState": True}}},
+            )
+        )
+        return (event.get("currentScheduledMaintenanceState") or {}).get("isOngoingState")
+
+    started, _ = wait_for(is_on, 240, gap=10)
+    if not started:
+        move_event(event_id, ongoing)
     time.sleep(60)
+    check("the event is on", bool(is_on()), started)
     incidents_before = len(incidents_about("Compute Service Down"))
     whole.must("break", f"sudo systemctl stop {COMPUTE_UNIT}")
     say(f"{COMPUTE_UNIT} stopped, with the event on")
@@ -344,6 +412,14 @@ def part_planned():
             [row.get("title") for row in incidents_about("Compute Service Down")],
         )
         check("and tells nobody", len(bodies("/paid")) == told_before + 1, len(bodies("/paid")))
+        watching = live.rows(
+            "/monitor",
+            {"projectId": live.PROJECT_ID},
+            {"name": True, "currentMonitorStatus": {"name": True, "isOperationalState": True}},
+            limit=200,
+        )
+        down = [row.get("name") for row in watching if "Compute Service Down" in (row.get("name") or "") and not (row.get("currentMonitorStatus") or {}).get("isOperationalState")]
+        check("and its status page row stays as it was", not down, down)
     finally:
         whole.must("break", f"sudo systemctl start {COMPUTE_UNIT}")
         say(f"{COMPUTE_UNIT} started")
@@ -389,6 +465,8 @@ def main():
     RESULTS["started"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     server = ThreadingServer(("0.0.0.0", SINK_PORT), Sink)
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    # OneUptime is in a container, and DevStack can leave this machine's firewall closed to it.
+    whole.run("sink", f"sudo iptables -I INPUT -p tcp --dport {SINK_PORT} -j ACCEPT")
 
     whole.part("oneuptime", "a person signs up, and makes an ingestion key", whole.part_oneuptime)
     whole.part("agent", "the agent, installed as the docs say", whole.part_agent, needs=["oneuptime"])

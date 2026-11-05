@@ -241,11 +241,7 @@ const OpenStackProjectNoticesCard: FunctionComponent<ComponentProps> = (
               return (
                 <Pill
                   color={item.isEnabled ? Green : Gray500}
-                  text={
-                    item.isEnabled
-                      ? translator.translateText("On")
-                      : translator.translateText("Off")
-                  }
+                  text={item.isEnabled ? "On" : "Off"}
                 />
               );
             },

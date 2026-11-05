@@ -66,7 +66,9 @@ export interface OpenStackScopedRulesMatch {
    * Which project brought each rule's owners in, and what it holds on the part: a hypervisor's
    * failure reaches many projects, and each owner wants to find their own among them.
    */
-  ownersProjects: Array<{ ruleName: string; project: OpenStackReachedProject }>;
+  ownersProjects?:
+    | Array<{ ruleName: string; project: OpenStackReachedProject }>
+    | undefined;
 }
 
 function emptyMatch(): OpenStackScopedRulesMatch {
@@ -466,7 +468,12 @@ export default class OpenStackScopedRules {
       },
     );
 
-    const theirOwn: Array<MarkdownText> = match.ownersProjects
+    const ownersProjects: Array<{
+      ruleName: string;
+      project: OpenStackReachedProject;
+    }> = match.ownersProjects || [];
+
+    const theirOwn: Array<MarkdownText> = ownersProjects
       .slice(0, OWNERS_PROJECTS_IN_A_FEED_LINE)
       .map(
         (one: {
@@ -480,8 +487,7 @@ export default class OpenStackScopedRules {
             : mdText`${one.ruleName}: ${name}`;
         },
       );
-    const left: number =
-      match.ownersProjects.length - OWNERS_PROJECTS_IN_A_FEED_LINE;
+    const left: number = ownersProjects.length - OWNERS_PROJECTS_IN_A_FEED_LINE;
 
     if (left > 0) {
       theirOwn.push(mdText`and ${left} more`);

@@ -280,6 +280,27 @@ export const OPENSTACK_AGENTS_ON_A_MACHINES_SWITCH: ReadonlyArray<string> = [
 ];
 
 /*
+ * Why someone or something disabled a worker, as openstack_nova_agent_state says it. When libvirt
+ * goes, nova-compute disables itself and starts its reason with this, and Nova enables again only
+ * what starts so, which is how it tells its own from an operator's. Recorded: "AUTO: Connection to
+ * libvirt lost: 1".
+ */
+export const OPENSTACK_DISABLED_REASON_LABEL: string = "disabledReason";
+const NOVA_DISABLED_ITSELF_PREFIX: string = "AUTO: ";
+
+export function isOpenStackComputeServiceDisabledByItself(
+  labels: JSONObject,
+): boolean {
+  const reason: unknown = labels[OPENSTACK_DISABLED_REASON_LABEL];
+
+  return (
+    labels["service"] === "nova-compute" &&
+    typeof reason === "string" &&
+    reason.startsWith(NOVA_DISABLED_ITSELF_PREFIX)
+  );
+}
+
+/*
  * Facts a row holds one of per backend, server or database, one key each. A scrape can
  * reach OneUptime split across batches and `facts` merges key by key, so a list in one fact
  * would be overwritten by whichever part arrived last. A value is when it was last seen in

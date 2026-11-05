@@ -1148,6 +1148,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OpenStackProjectNoticePostgres.test.ts --forceExit
 
+      # Clones what a status page reads: two projects' private pages and an incident that names both,
+      # through the real endpoints and the real sign-in check, for what each can read of the other's.
+      - name: Test what an OpenStack project's private status page shows on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/OpenStackProjectPagePostgres.test.ts --forceExit
+
       # Clones the migrated tables behind a cloud's links into an isolated schema: what is one
       # machine from both ends, a Kubernetes node's provider ID out of its jsonb, services through
       # the entity graph, and a pool's Ceph cluster. Every estate that must link to neither runs

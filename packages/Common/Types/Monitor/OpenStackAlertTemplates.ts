@@ -93,6 +93,7 @@ import {
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackServiceType,
 } from "../OpenStack/OpenStackResourceKind";
+import { OPENSTACK_DISABLED_REASON_LABEL } from "../OpenStack/OpenStackControlPlane";
 import { isOpenStackOptionalService } from "../OpenStack/OpenStackOptionalServices";
 
 export type OpenStackAlertTemplateCategory =
@@ -1066,6 +1067,10 @@ const computeServiceDownTemplate: OpenStackAlertTemplate = {
  * its label, so its rows are the whole of the question. One a maintenance event covers is suppressed
  * per series like everything else on that host (MonitorMaintenanceSuppression), which is the only
  * difference between planned work and someone taking a host out by hand.
+ *
+ * Its reason is on its series because Nova's own says something an operator's never does: it disabled
+ * itself because libvirt went. So a libvirt monitor can speak for that series and for no other
+ * (OpenStackDependencySuppression), and a stopped libvirt stays one incident.
  */
 const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
   id: "openstack-compute-service-disabled",
@@ -1073,7 +1078,7 @@ const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
   summary:
     "A nova-compute is disabled with no maintenance event covering its host.",
   description:
-    "Alert when a nova-compute stays disabled for 10 minutes (openstack_nova_agent_state filtered to adminState disabled, whose rows say it is there whether it is up or down) and no maintenance event in progress covers its host, its availability zone or the whole cloud. One incident per host. During an event on the host a disable is expected and this stays quiet, so `openstack compute service set --disable` as part of planned work says nothing. Outside one, nothing new can be scheduled there and nobody said why. Check `openstack compute service list --long` for the reason someone gave.",
+    "Alert when a nova-compute stays disabled for 10 minutes (openstack_nova_agent_state filtered to adminState disabled, whose rows say it is there whether it is up or down) and no maintenance event in progress covers its host, its availability zone or the whole cloud. One incident per host. During an event on the host a disable is expected and this stays quiet, so `openstack compute service set --disable` as part of planned work says nothing. Outside one, nothing new can be scheduled there and nobody said why. A nova-compute that disabled itself because libvirt went (its reason starts AUTO:) stays quiet while libvirt Service Down is open, and that is the one that speaks. Projects are not told of this incident, because what they already run there carries on. Check `openstack compute service list --long` for the reason.",
   category: "Control Plane",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -1082,7 +1087,7 @@ const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
     return buildCeilingStep({
       args,
       service: OpenStackServiceType.Compute,
-      groupByAttributeKeys: WORKER_GROUP,
+      groupByAttributeKeys: [...WORKER_GROUP, OPENSTACK_DISABLED_REASON_LABEL],
       queries: [
         {
           alias: metricAlias,
@@ -1096,7 +1101,7 @@ const computeServiceDisabledTemplate: OpenStackAlertTemplate = {
       value: 0,
       words: {
         incidentTitle: "[OpenStack] Compute Service Disabled",
-        incidentDescription: `A nova-compute was disabled with no maintenance event in progress covering its host, so nothing new can be scheduled there and nobody has said why. Check openstack compute service list --long for the reason someone gave. If this is planned work, put a maintenance event on the host, and this stays quiet for as long as it is on. If it is not, openstack compute service set --enable puts the host back. The incident resolves on its own once it is enabled again, or an event covers it.`,
+        incidentDescription: `A nova-compute was disabled with no maintenance event in progress covering its host, so nothing new can be scheduled there. The reason it gives is named above, if it gives one, and a reason starting AUTO: means Nova disabled it itself, so check libvirt on that host. If this is planned work, put a maintenance event on the host, and this stays quiet for as long as it is on. If it is not, openstack compute service set --enable puts the host back. The incident resolves on its own once it is enabled again, or an event covers it.`,
         criteriaName: "Compute Service Disabled - no maintenance event",
         criteriaDescription:
           "Triggers when a nova-compute stays disabled for the whole window.",
