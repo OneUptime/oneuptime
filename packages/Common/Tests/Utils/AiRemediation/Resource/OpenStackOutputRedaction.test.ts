@@ -240,7 +240,9 @@ describe("metadata marked secret", () => {
     const pretty: string = redact(
       JSON.stringify(recordedServer({ metadata }), null, 2),
     );
-    const compact: string = redact(JSON.stringify(recordedServer({ metadata })));
+    const compact: string = redact(
+      JSON.stringify(recordedServer({ metadata })),
+    );
     const line: string = redact(`metadata: ${JSON.stringify(metadata)}`);
 
     expect(pretty).not.toContain(SECRET);
@@ -276,12 +278,42 @@ describe("metadata marked secret", () => {
 
 describe("tokens and credentials", () => {
   test.each([
-    ["a Fernet token on its own", (): string => FERNET],
-    ["in a sentence", (): string => `Authentication with ${FERNET} failed`],
-    ["as an auth header", (): string => `X-Auth-Token: ${FERNET}`],
-    ["as a subject header", (): string => `X-Subject-Token: ${FERNET}`],
-    ["in JSON", (): string => JSON.stringify({ "X-Auth-Token": FERNET })],
-    ["in a fault's text", (): string => JSON.stringify({ details: `token ${FERNET} expired` })],
+    [
+      "a Fernet token on its own",
+      (): string => {
+        return FERNET;
+      },
+    ],
+    [
+      "in a sentence",
+      (): string => {
+        return `Authentication with ${FERNET} failed`;
+      },
+    ],
+    [
+      "as an auth header",
+      (): string => {
+        return `X-Auth-Token: ${FERNET}`;
+      },
+    ],
+    [
+      "as a subject header",
+      (): string => {
+        return `X-Subject-Token: ${FERNET}`;
+      },
+    ],
+    [
+      "in JSON",
+      (): string => {
+        return JSON.stringify({ "X-Auth-Token": FERNET });
+      },
+    ],
+    [
+      "in a fault's text",
+      (): string => {
+        return JSON.stringify({ details: `token ${FERNET} expired` });
+      },
+    ],
   ])("masks %s", (_what: string, build: () => string) => {
     expect(redact(build())).not.toContain(FERNET);
   });
@@ -301,14 +333,16 @@ describe("tokens and credentials", () => {
 
   test("a connection string in a fault's traceback", () => {
     const text: string = redact(
-      JSON.stringify(recordedServer({
-        fault: {
-          code: 500,
-          message: "DB error",
-          details:
-            "OperationalError: mysql+pymysql://nova:db-pass-1234@10.0.0.5/nova refused",
-        },
-      })),
+      JSON.stringify(
+        recordedServer({
+          fault: {
+            code: 500,
+            message: "DB error",
+            details:
+              "OperationalError: mysql+pymysql://nova:db-pass-1234@10.0.0.5/nova refused",
+          },
+        }),
+      ),
     );
 
     expect(text).not.toContain("db-pass-1234");
@@ -346,11 +380,14 @@ describe("what a recorded answer keeps", () => {
     ["placement-providers"],
     ["placement-usages"],
     ["keystone-endpoints"],
-  ])("%s has nothing to mask: an investigation reads it whole", (name: string) => {
-    const text: string = JSON.stringify(readFixture(name), null, 2);
+  ])(
+    "%s has nothing to mask: an investigation reads it whole",
+    (name: string) => {
+      const text: string = JSON.stringify(readFixture(name), null, 2);
 
-    expect(redact(text)).toBe(text);
-  });
+      expect(redact(text)).toBe(text);
+    },
+  );
 
   test("a recorded server list keeps every fact a report names", () => {
     const text: string = redact(
@@ -380,7 +417,7 @@ describe("hostile output", () => {
       '"user_data": ',
       '"user_data": "',
       '"user_data": "unterminated value with no end',
-      'user_data=',
+      "user_data=",
       "| user_data |",
       '\\"user_data\\": \\"unterminated',
     ]) {

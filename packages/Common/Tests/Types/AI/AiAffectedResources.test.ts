@@ -173,7 +173,9 @@ describe("the kinds OneUptime AI links", () => {
         AiAffectedResourceKind.KubernetesCluster as string,
         AiAffectedResourceKind.CloudResource as string,
         ...ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-          return !isCloudAiResourceType(type) && !isReadOnlyAiResourceType(type);
+          return (
+            !isCloudAiResourceType(type) && !isReadOnlyAiResourceType(type)
+          );
         }).map((type: string): string => {
           return type;
         }),

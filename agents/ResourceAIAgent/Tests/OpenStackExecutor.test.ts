@@ -44,6 +44,7 @@ import OpenStackExecutor, {
   resolveOpenStackConnection,
   toServiceBaseUrl,
   unwrapObjectAnswer,
+  OpenStackToken,
 } from "../Executors/OpenStackExecutor";
 import {
   ExecResult,
@@ -52,6 +53,7 @@ import {
   PreparedCommand,
   ResourceCommandRequest,
   ResourcePostureProbe,
+  ResourceExecutor,
 } from "../Executors/ResourceExecutor";
 import { fakePolicy } from "./Helpers/FakeExecutor";
 import { makeTempDir } from "./Helpers/FakeBinary";
@@ -176,10 +178,11 @@ function request(
   overrides: Partial<ResourceCommandRequest> = {},
 ): ResourceCommandRequest {
   const argv: Array<string> = command.split(" ");
-  const policy: ResourceCommandPolicyResult = ResourceCommandPolicy.evaluateArgv({
-    resourceType: AiResourceType.OpenStackCloud,
-    argv,
-  });
+  const policy: ResourceCommandPolicyResult =
+    ResourceCommandPolicy.evaluateArgv({
+      resourceType: AiResourceType.OpenStackCloud,
+      argv,
+    });
 
   return {
     payload: {
@@ -626,7 +629,11 @@ const MAPPED: ReadonlyArray<MappedCommand> = [
       return "/volume/v3/volumes/detail?all_tenants=1&limit=50";
     },
     prints: (): Array<string> => {
-      return ["ou-vol-bad", "ou-vol-used", "compute-01@lvmdriver-1#lvmdriver-1"];
+      return [
+        "ou-vol-bad",
+        "ou-vol-used",
+        "compute-01@lvmdriver-1#lvmdriver-1",
+      ];
     },
   },
   {
@@ -865,7 +872,9 @@ describe("every command of the allowlist, against recorded answers", () => {
       "openstack server list --all-projects --limit 50",
     );
 
-    assert.ok(result.output.length < h.cloud.readFile("nova-servers").length / 3);
+    assert.ok(
+      result.output.length < h.cloud.readFile("nova-servers").length / 3,
+    );
 
     for (const column of [
       "host",
@@ -890,8 +899,8 @@ describe("what is sent, exactly", () => {
 
     assert.strictEqual(h.cloud.logins().length, 1);
 
-    const login: OpenStackHttpRequest = h.cloud
-      .logins()[0] as OpenStackHttpRequest;
+    const login: OpenStackHttpRequest =
+      h.cloud.logins()[0] as OpenStackHttpRequest;
 
     assert.strictEqual(login.url, `${AUTH_URL}/auth/tokens`);
     assert.deepStrictEqual(JSON.parse(login.body as string), {
@@ -1085,7 +1094,10 @@ describe("what is sent, exactly", () => {
     const noService: ExecResult = await run(h, "openstack region list");
 
     assert.strictEqual(noService.success, false);
-    assert.match(noService.errorMessage as string, /no public endpoint for Keystone/);
+    assert.match(
+      noService.errorMessage as string,
+      /no public endpoint for Keystone/,
+    );
   });
 
   test("the interface clouds.yaml or the agent says is the one used, never another", async () => {
@@ -1428,7 +1440,10 @@ describe("what comes back is capped and redacted", () => {
     const result: ExecResult = await run(h, "openstack compute service list");
 
     assert.strictEqual(result.success, true);
-    assert.match(result.output, /is larger than .* bytes, so the agent does not print it/);
+    assert.match(
+      result.output,
+      /is larger than .* bytes, so the agent does not print it/,
+    );
   });
 
   test("output is capped, whole rows at a time", async () => {
@@ -1506,10 +1521,14 @@ describe("a list says when there is more", () => {
     );
 
     assert.ok(
-      !result.output.includes((servers[0] as Record<string, string>)["name"] as string),
+      !result.output.includes(
+        (servers[0] as Record<string, string>)["name"] as string,
+      ),
     );
     assert.ok(
-      result.output.includes((servers[2] as Record<string, string>)["name"] as string),
+      result.output.includes(
+        (servers[2] as Record<string, string>)["name"] as string,
+      ),
     );
     assert.ok(!result.output.includes("There may be more"));
   });
@@ -1629,7 +1648,11 @@ describe("a failure reads as what it is", () => {
         override: (
           sent: OpenStackHttpRequest,
         ): OpenStackHttpResponse | undefined => {
-          if (sent.method === "GET" && refused === 0 && sent.url.includes("regions")) {
+          if (
+            sent.method === "GET" &&
+            refused === 0 &&
+            sent.url.includes("regions")
+          ) {
             refused++;
             return fakeReply({}, 401);
           }
@@ -1790,7 +1813,9 @@ describe("a failure reads as what it is", () => {
 });
 
 describe("the login", () => {
-  function loginAnswers(answer: OpenStackHttpResponse | Error): FakeOpenStackOptions {
+  function loginAnswers(
+    answer: OpenStackHttpResponse | Error,
+  ): FakeOpenStackOptions {
     return {
       override: (
         sent: OpenStackHttpRequest,
@@ -1801,8 +1826,16 @@ describe("the login", () => {
   }
 
   for (const [what, answer, words] of [
-    ["refused", fakeReply({ error: { message: "x" } }, 401), /refused the credential/],
-    ["forbidden", fakeReply({ error: { message: "not you" } }, 403), /would not give.*not you/],
+    [
+      "refused",
+      fakeReply({ error: { message: "x" } }, 401),
+      /refused the credential/,
+    ],
+    [
+      "forbidden",
+      fakeReply({ error: { message: "not you" } }, 403),
+      /would not give.*not you/,
+    ],
     ["failing", fakeReply({ error: { message: "db" } }, 503), /HTTP 503.*db/],
     ["redirected", fakeReply("", 302), /redirect/],
     ["not Keystone", fakeReply("<html/>", 201), /is not Keystone/],
@@ -1910,12 +1943,15 @@ describe("the settings", () => {
       JSON.parse(buildKeystoneAuthBody(result.connection!.credential))["auth"][
         "scope"
       ],
-      { project: { name: "oneuptime-monitoring", domain: { name: "Default" } } },
+      {
+        project: { name: "oneuptime-monitoring", domain: { name: "Default" } },
+      },
     );
   });
 
   test("a project's ID wins over its name, and a domain's ID over its name", () => {
-    const body: Record<string, any> = JSON.parse(// eslint-disable-line @typescript-eslint/no-explicit-any
+    const body: Record<string, any> = JSON.parse(
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       buildKeystoneAuthBody({
         kind: "password",
         username: "a",
@@ -2019,9 +2055,8 @@ describe("the settings", () => {
 
   test("half a credential of the agent's own is refused", () => {
     assert.match(
-      resolved(
-        openStackEnv({ [AI_OPENSTACK_CREDENTIAL_ID_ENV]: "agent-id" }),
-      ).problem as string,
+      resolved(openStackEnv({ [AI_OPENSTACK_CREDENTIAL_ID_ENV]: "agent-id" }))
+        .problem as string,
       /is set but .*SECRET is not/,
     );
     assert.match(
@@ -2137,20 +2172,24 @@ describe("the settings", () => {
     );
   });
 
-  test("a file only its owner may read says to run as its owner", {
-    skip:
-      process.getuid && process.getuid() === 0
-        ? "running as root, which reads everything"
-        : false,
-  }, () => {
-    const file: string = write(CLOUDS_YAML);
+  test(
+    "a file only its owner may read says to run as its owner",
+    {
+      skip:
+        process.getuid && process.getuid() === 0
+          ? "running as root, which reads everything"
+          : false,
+    },
+    () => {
+      const file: string = write(CLOUDS_YAML);
 
-    fs.chmodSync(file, 0o000);
-    assert.match(
-      resolved({ [OPENSTACK_CLOUDS_FILE_ENV]: file }).problem as string,
-      /OPENSTACK_EXPORTER_USER/,
-    );
-  });
+      fs.chmodSync(file, 0o000);
+      assert.match(
+        resolved({ [OPENSTACK_CLOUDS_FILE_ENV]: file }).problem as string,
+        /OPENSTACK_EXPORTER_USER/,
+      );
+    },
+  );
 
   test("normalizeAuthUrl", () => {
     for (const [given, expected] of [
@@ -2217,7 +2256,7 @@ describe("parseCloudsYaml", () => {
             "    auth:",
             "      auth_url: 'https://k.example/v3'",
             "      username: 'it''s me'",
-            "      password: \"p#w\"",
+            '      password: "p#w"',
             "    interface: internal",
             "  other:",
             "    auth:",
@@ -2314,21 +2353,49 @@ describe("parseCloudsYaml refuses what it cannot read", () => {
 describe("pieces", () => {
   test("toServiceBaseUrl reads what real catalogs say", () => {
     for (const [service, url, expected] of [
-      ["compute", "https://c.example/compute/v2.1", "https://c.example/compute/v2.1"],
-      ["compute", "https://c.example:8774/v2.1/", "https://c.example:8774/v2.1"],
-      ["compute", "https://c.example:8774/v2/abc", "https://c.example:8774/v2.1"],
+      [
+        "compute",
+        "https://c.example/compute/v2.1",
+        "https://c.example/compute/v2.1",
+      ],
+      [
+        "compute",
+        "https://c.example:8774/v2.1/",
+        "https://c.example:8774/v2.1",
+      ],
+      [
+        "compute",
+        "https://c.example:8774/v2/abc",
+        "https://c.example:8774/v2.1",
+      ],
       ["compute", "https://c.example:8774", "https://c.example:8774/v2.1"],
-      ["network", "https://c.example/networking", "https://c.example/networking/v2.0"],
+      [
+        "network",
+        "https://c.example/networking",
+        "https://c.example/networking/v2.0",
+      ],
       ["network", "https://c.example:9696/", "https://c.example:9696/v2.0"],
       ["network", "https://c.example:9696/v2.0", "https://c.example:9696/v2.0"],
       ["image", "https://c.example/image", "https://c.example/image/v2"],
       ["image", "https://c.example:9292/v2", "https://c.example:9292/v2"],
       ["volume", "https://c.example/volume/v3", "https://c.example/volume/v3"],
-      ["volume", "https://c.example:8776/v3/abc", "https://c.example:8776/v3/abc"],
+      [
+        "volume",
+        "https://c.example:8776/v3/abc",
+        "https://c.example:8776/v3/abc",
+      ],
       ["volume", "https://c.example:8776", "https://c.example:8776/v3"],
-      ["identity", "https://c.example/identity", "https://c.example/identity/v3"],
+      [
+        "identity",
+        "https://c.example/identity",
+        "https://c.example/identity/v3",
+      ],
       ["identity", "https://c.example:5000/v3/", "https://c.example:5000/v3"],
-      ["placement", "https://c.example/placement", "https://c.example/placement"],
+      [
+        "placement",
+        "https://c.example/placement",
+        "https://c.example/placement",
+      ],
     ] as Array<[Parameters<typeof toServiceBaseUrl>[0], string, string]>) {
       assert.strictEqual(toServiceBaseUrl(service, url), expected, url);
     }
@@ -2375,10 +2442,13 @@ describe("pieces", () => {
       microversion: "2.60",
       newest: "2.60",
     });
-    assert.deepStrictEqual(chooseComputeMicroversion(version("2.200", "2.95")), {
-      microversion: "2.95",
-      newest: "2.200",
-    });
+    assert.deepStrictEqual(
+      chooseComputeMicroversion(version("2.200", "2.95")),
+      {
+        microversion: "2.95",
+        newest: "2.200",
+      },
+    );
     assert.deepStrictEqual(chooseComputeMicroversion(version("")), {
       microversion: null,
       newest: null,
@@ -2405,13 +2475,16 @@ describe("pieces", () => {
     ]).request as OpenStackApiRequest;
 
     assert.strictEqual(
-      buildOpenStackUrl({ baseUrl: "https://n.example/v2.0/", request: parsed }),
+      buildOpenStackUrl({
+        baseUrl: "https://n.example/v2.0/",
+        request: parsed,
+      }),
       "https://n.example/v2.0/ports?binding%3Ahost_id=compute-01&limit=5",
     );
   });
 
   test("the token's answer, and a catalog with holes in it", () => {
-    const token = parseKeystoneToken({
+    const token: OpenStackToken = parseKeystoneToken({
       tokenId: "t",
       body: {
         token: {
@@ -2461,7 +2534,10 @@ describe("pieces", () => {
   });
 
   test("Cinder's catalog name: block-storage first, then volumev3", () => {
-    const service = (type: string, url: string): Record<string, unknown> => {
+    const service: (type: string, url: string) => Record<string, unknown> = (
+      type: string,
+      url: string,
+    ): Record<string, unknown> => {
       return {
         type,
         endpoints: [{ url, interfaceName: "public", regionName: "R" }],
@@ -2516,7 +2592,7 @@ describe("pieces", () => {
   });
 
   test("maskSecretFields keeps null and empty, and masks what hides deep", () => {
-    const isSecret = (name: string): boolean => {
+    const isSecret: (name: string) => boolean = (name: string): boolean => {
       return name === "secret";
     };
 
@@ -2542,7 +2618,9 @@ describe("pieces", () => {
       deep = { deeper: deep };
     }
 
-    assert.ok(!JSON.stringify(maskSecretFields(deep, isSecret)).includes('"a"'));
+    assert.ok(
+      !JSON.stringify(maskSecretFields(deep, isSecret)).includes('"a"'),
+    );
   });
 
   test("a zone's nested hosts and services become rows", () => {
@@ -2582,7 +2660,7 @@ describe("pieces", () => {
 
 describe("an agent's life", () => {
   test("the factory builds this executor for this type", () => {
-    const executor = createExecutor({
+    const executor: ResourceExecutor = createExecutor({
       config: agentConfig(),
       env: openStackEnv(),
       tmpDir,
@@ -2593,7 +2671,9 @@ describe("an agent's life", () => {
   });
 
   test("it registers with the same cloud identity the collector reports", () => {
-    const config: AgentConfig = agentConfig({ OPENSTACK_CLOUD_NAME: "prod-eu" });
+    const config: AgentConfig = agentConfig({
+      OPENSTACK_CLOUD_NAME: "prod-eu",
+    });
 
     assert.strictEqual(config.resourceType, AiResourceType.OpenStackCloud);
     assert.strictEqual(config.resourceIdentifier, "prod-eu");
@@ -2743,7 +2823,11 @@ describe("a stopped nova-compute, on recorded answers", () => {
     ] as Array<[string, string]>) {
       const result: ExecResult = await run(h, command);
 
-      assert.strictEqual(result.success, true, `${command}: ${result.errorMessage}`);
+      assert.strictEqual(
+        result.success,
+        true,
+        `${command}: ${result.errorMessage}`,
+      );
       outputs[name] = result.output;
     }
 
@@ -2763,7 +2847,10 @@ describe("a stopped nova-compute, on recorded answers", () => {
       const outputs: Record<string, string> = await investigate(scene);
 
       // The host, and the cause: its nova-compute is enabled and down.
-      const service: string = rowOf(outputs["services"] as string, "nova-compute");
+      const service: string = rowOf(
+        outputs["services"] as string,
+        "nova-compute",
+      );
 
       assert.match(service, /compute-01/);
       assert.match(service, /enabled/);
@@ -2793,7 +2880,10 @@ describe("a stopped nova-compute, on recorded answers", () => {
       assert.ok(!instances.includes("ou-failed"));
 
       // What it is not: the network agents and storage are fine.
-      assert.match(rowOf(outputs["agents"] as string, "ovn-controller"), /true/);
+      assert.match(
+        rowOf(outputs["agents"] as string, "ovn-controller"),
+        /true/,
+      );
       assert.match(
         rowOf(outputs["volumes"] as string, "cinder-volume"),
         /\bup\b/,
@@ -2803,10 +2893,13 @@ describe("a stopped nova-compute, on recorded answers", () => {
 
   test("on a healthy cloud the same commands read differently", async () => {
     const outputs: Record<string, string> = await investigate("healthy");
-    const service: string = rowOf(outputs["services"] as string, "nova-compute");
+    const service: string = rowOf(
+      outputs["services"] as string,
+      "nova-compute",
+    );
 
     assert.match(service, /\bup\b/);
-    assert.ok(!/\bdown\b/.test(service));
+    assert.doesNotMatch(service, /\bdown\b/);
     assert.match(
       rowOf(outputs["hypervisors"] as string, "compute-01.example.internal"),
       /\bup\b/,

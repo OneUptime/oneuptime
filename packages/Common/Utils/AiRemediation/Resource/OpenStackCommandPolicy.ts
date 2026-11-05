@@ -1414,9 +1414,7 @@ function analyzeRoute(
       }
 
       if (seen.has(name)) {
-        return deny(
-          `--${name} is given more than once: give each option once`,
-        );
+        return deny(`--${name} is given more than once: give each option once`);
       }
 
       seen.add(name);

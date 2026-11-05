@@ -63,6 +63,8 @@ on:
         default: false
       ai_agent_only:
         description: Only run the OpenStack AI agent's real code against one DevStack, healthy and with nova-compute stopped, and keep what each command printed
+        type: boolean
+        default: false
       probe_tls_only:
         description: Only run the probe's real collector against one DevStack behind tls-proxy, and break it
         type: boolean

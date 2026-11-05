@@ -57,8 +57,7 @@ function toolOf(argv: Array<string>): ResourceCommandPolicyResult {
 }
 
 function words(command: string): Array<string> {
-  const argv: Array<string> | undefined =
-    tokenizeResourceCommand(command).argv;
+  const argv: Array<string> | undefined = tokenizeResourceCommand(command).argv;
 
   if (!argv) {
     throw new Error(`"${command}" does not tokenize`);
@@ -133,9 +132,9 @@ describe("the type and the policy", () => {
   });
 
   test("is what ResourceCommandPolicy asks for this type", () => {
-    expect(ResourceCommandPolicy.getToolPolicy(AiResourceType.OpenStackCloud)).toBe(
-      OpenStackCommandPolicy,
-    );
+    expect(
+      ResourceCommandPolicy.getToolPolicy(AiResourceType.OpenStackCloud),
+    ).toBe(OpenStackCommandPolicy);
     expect(OpenStackCommandPolicy.name).toBe("openstack");
     expect([...OpenStackCommandPolicy.programs]).toEqual([OPENSTACK_PROGRAM]);
   });
@@ -516,33 +515,34 @@ describe("every command of the allowlist", () => {
     );
   });
 
-  test.each(ALLOWLIST.map((row: AllowedRow) => [row.command, row]))(
-    "%s is one GET",
-    (_command: unknown, row: unknown) => {
-      const expected: AllowedRow = row as AllowedRow;
-      const result: ResourceCommandPolicyResult = policyOf(expected.command);
+  test.each(
+    ALLOWLIST.map((row: AllowedRow) => {
+      return [row.command, row];
+    }),
+  )("%s is one GET", (_command: unknown, row: unknown) => {
+    const expected: AllowedRow = row as AllowedRow;
+    const result: ResourceCommandPolicyResult = policyOf(expected.command);
 
-      expect(result.tier).toBe(ResourceCommandTier.Read);
-      expect(result.verb).toBe(expected.route);
-      expect(result.program).toBe("openstack");
-      expect(result.targets).toEqual([]);
-      expect(result.requiresHuman).toBeUndefined();
-      expect(result.reason).toContain("changes nothing");
-      expect(result.displayCommand).toBe(expected.command);
+    expect(result.tier).toBe(ResourceCommandTier.Read);
+    expect(result.verb).toBe(expected.route);
+    expect(result.program).toBe("openstack");
+    expect(result.targets).toEqual([]);
+    expect(result.requiresHuman).toBeUndefined();
+    expect(result.reason).toContain("changes nothing");
+    expect(result.displayCommand).toBe(expected.command);
 
-      expect(requestOf(expected.command)).toEqual({
-        method: "GET",
-        service: expected.service,
-        path: expected.path,
-        query: expected.query,
-        regionName: null,
-        outputFormat: null,
-        route: expected.route,
-        listKey: expected.listKey ?? null,
-        limit: expected.limit ?? null,
-      });
-    },
-  );
+    expect(requestOf(expected.command)).toEqual({
+      method: "GET",
+      service: expected.service,
+      path: expected.path,
+      query: expected.query,
+      regionName: null,
+      outputFormat: null,
+      route: expected.route,
+      listKey: expected.listKey ?? null,
+      limit: expected.limit ?? null,
+    });
+  });
 });
 
 /*
@@ -614,9 +614,7 @@ function withLimitWhenRequired(
     route.paging?.limitAlwaysRequired === true ||
     (route.paging?.limitRequiredWith || []).includes(optionName);
 
-  return required && optionName !== "limit"
-    ? [...argv, "--limit", "10"]
-    : argv;
+  return required && optionName !== "limit" ? [...argv, "--limit", "10"] : argv;
 }
 
 describe("every option of every command", () => {
@@ -740,18 +738,19 @@ describe("every option of every command", () => {
     }
   });
 
-  test.each(ALLOWLIST.map((row: AllowedRow) => [row.command]))(
-    "%s takes the region and the output format",
-    (command: string) => {
-      const request: OpenStackApiRequest = requestOf(
-        `${command} --os-region-name RegionTwo -f json`,
-      );
+  test.each(
+    ALLOWLIST.map((row: AllowedRow) => {
+      return [row.command];
+    }),
+  )("%s takes the region and the output format", (command: string) => {
+    const request: OpenStackApiRequest = requestOf(
+      `${command} --os-region-name RegionTwo -f json`,
+    );
 
-      expect(request.regionName).toBe("RegionTwo");
-      expect(request.outputFormat).toBe("json");
-      expect(requestOf(`${command} --format table`).outputFormat).toBe("table");
-    },
-  );
+    expect(request.regionName).toBe("RegionTwo");
+    expect(request.outputFormat).toBe("json");
+    expect(requestOf(`${command} --format table`).outputFormat).toBe("table");
+  });
 });
 
 describe("reads an investigation reaches for", () => {
@@ -1415,10 +1414,7 @@ describe("refused: very long input", () => {
     ["a long option", ["openstack", "server", "list", `--${longWord}`]],
     ["a long value", ["openstack", "server", "list", "--host", longWord]],
     ["a long ID", ["openstack", "server", "show", longWord]],
-    [
-      "many words",
-      ["openstack", ...new Array<string>(70).fill("server")],
-    ],
+    ["many words", ["openstack", ...new Array<string>(70).fill("server")]],
     [
       "many flags",
       ["openstack", "server", "list", ...new Array<string>(70).fill("--long")],
@@ -1674,9 +1670,9 @@ describe("nothing here changes a cloud", () => {
 
   test("the write guide offers nothing, and the read guide no change", () => {
     expect(OpenStackCommandPolicy.writeCommandGuide).toMatch(/^- None/);
-    expect(ResourceCommandPolicy.getWriteCommandGuide(AiResourceType.OpenStackCloud)).toBe(
-      OpenStackCommandPolicy.writeCommandGuide,
-    );
+    expect(
+      ResourceCommandPolicy.getWriteCommandGuide(AiResourceType.OpenStackCloud),
+    ).toBe(OpenStackCommandPolicy.writeCommandGuide);
     expect(OpenStackCommandPolicy.readCommandGuide).not.toMatch(
       /`(?:openstack )?[a-z ]*(?:create|delete|set|reboot|stop|start)\b/,
     );
@@ -1789,31 +1785,28 @@ describe("the access rules a level 1 credential ships with", () => {
     OPENSTACK_COMMAND_ROUTES.map((route: OpenStackRoute) => {
       return [route.command, route] as [string, OpenStackRoute];
     }),
-  )(
-    "lists what %s reads",
-    (_command: string, route: OpenStackRoute) => {
-      const service: {
-        services: ReadonlyArray<string>;
-        prefix: string;
-      } = SERVICE_RULES[route.service];
-      const requestPath: string = `${service.prefix}${route.path.replace(
-        /\{[a-z]+\}/g,
-        "abc",
-      )}`;
+  )("lists what %s reads", (_command: string, route: OpenStackRoute) => {
+    const service: {
+      services: ReadonlyArray<string>;
+      prefix: string;
+    } = SERVICE_RULES[route.service];
+    const requestPath: string = `${service.prefix}${route.path.replace(
+      /\{[a-z]+\}/g,
+      "abc",
+    )}`;
 
-      for (const name of service.services) {
-        expect({
-          command: route.command,
-          service: name,
-          listed: rules.some((rule: AccessRule): boolean => {
-            return (
-              rule.service === name &&
-              rule.method === "GET" &&
-              ruleMatches(rule.path, requestPath)
-            );
-          }),
-        }).toEqual({ command: route.command, service: name, listed: true });
-      }
-    },
-  );
+    for (const name of service.services) {
+      expect({
+        command: route.command,
+        service: name,
+        listed: rules.some((rule: AccessRule): boolean => {
+          return (
+            rule.service === name &&
+            rule.method === "GET" &&
+            ruleMatches(rule.path, requestPath)
+          );
+        }),
+      }).toEqual({ command: route.command, service: name, listed: true });
+    }
+  });
 });

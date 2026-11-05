@@ -1205,6 +1205,43 @@ describe("what AI may do, set where the agent runs", () => {
     },
   );
 
+  test("a resource AI only reads has the one setting, and says the others do nothing", () => {
+    const variables: Array<{ name: string; description: string }> =
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.OpenStackCloud,
+        resourceId: "71000000-0000-4000-8000-000000000001",
+        identity: "prod-eu",
+      }).variables;
+    const descriptionOf: (name: string) => string | undefined = (
+      name: string,
+    ): string | undefined => {
+      return variables.find((variable: { name: string }): boolean => {
+        return variable.name === name;
+      })?.description;
+    };
+
+    for (const name of [
+      "ONEUPTIME_AI_FIXES",
+      "ONEUPTIME_AI_ALLOW_WRITES",
+      "ONEUPTIME_AI_WRITE_TARGETS",
+    ]) {
+      expect(descriptionOf(name)).toBe(
+        "Has no effect yet: this agent only reads, whatever this says.",
+      );
+    }
+    expect(descriptionOf("ONEUPTIME_AI_INVESTIGATION")).toContain(
+      "whether AI may run read-only commands",
+    );
+
+    const code: string | undefined = getResourceAiAgentSettingsInstructions({
+      resourceType: AiResourceType.OpenStackCloud,
+      choice: { investigation: false, fixes: "Disabled" },
+      doesAgentReportSettings: true,
+    }).steps[0]?.ways[0]?.code;
+
+    expect(code).toBe("ONEUPTIME_AI_INVESTIGATION=false");
+  });
+
   test("a Docker host: how to do it with install.sh first, then the .env and the restart", () => {
     const instructions: AgentAiSettingsInstructions =
       getResourceAiAgentSettingsInstructions({
@@ -1306,10 +1343,12 @@ describe("what AI may do, set where the agent runs", () => {
 
       // The same .env lines first.
       expect(instructions.steps[0]!.ways[0]!.code).toBe(
-        getResourceAiAgentSettingsEnv({
-          investigation: true,
-          fixes: "RequireApproval",
-        }),
+        isReadOnlyAiResourceType(type)
+          ? "ONEUPTIME_AI_INVESTIGATION=true"
+          : getResourceAiAgentSettingsEnv({
+              investigation: true,
+              fixes: "RequireApproval",
+            }),
       );
       expect(instructions.steps[1]!.title).toBe(
         RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,

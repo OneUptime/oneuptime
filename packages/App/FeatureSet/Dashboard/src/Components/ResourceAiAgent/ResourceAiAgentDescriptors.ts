@@ -414,9 +414,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     commandsCardTitle: translationKey("openstack commands"),
     toolVersionLabel: "Nova API",
     identityColumn: "name",
-    writeExamples: translationKey(
-      "nothing: it only reads an OpenStack cloud",
-    ),
+    writeExamples: translationKey("nothing: it only reads an OpenStack cloud"),
     alwaysHumanExamples: null,
     riskierExamples: translationKey(
       "no changes: it only reads an OpenStack cloud",

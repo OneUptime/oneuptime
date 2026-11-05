@@ -625,7 +625,7 @@ function getVerifyStep(context: GuideContext): SetupGuideStep {
       ]),
     )}
 
-\`docker compose ps\` lists the collector (\`${OPENSTACK_AGENT_CONTAINER}\`) and the bundled exporter (\`${OPENSTACK_EXPORTER_CONTAINER}\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cloud then appears in the **OpenStack** section by itself. Give it about five minutes to fill in: compute, network, volume and Placement are read every 2 minutes, identity and images every 5.`,
+\`docker compose ps\` lists the collector (\`${OPENSTACK_AGENT_CONTAINER}\`), the bundled exporter (\`${OPENSTACK_EXPORTER_CONTAINER}\`) and the OneUptime AI agent (\`oneuptime-openstack-ai-agent\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cloud then appears in the **OpenStack** section by itself. Give it about five minutes to fill in: compute, network, volume and Placement are read every 2 minutes, identity and images every 5.`,
   };
 }
 
@@ -690,6 +690,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_CONTROL_PLANE_REGION\` | No | The region of a target above that does not say its own. A target can: \`RegionTwo@10.1.0.11:15692\` |
 | \`OPENSTACK_LIBVIRT_EXPORTER_TARGETS\` | No | The same exporter, for what each instance is really doing. Per-instance series multiply fast |
 | \`OPENSTACK_CEILOMETER_EXPORTER_TARGETS\` | No | Ceilometer's exporter on each compute node, usually on \`9101\`, for the same |
+| \`OPENSTACK_QUOTA_CLOUDS\`, \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | No | What the installer sets for \`OPENSTACK_COLLECT_QUOTAS=true\`: the \`clouds.yaml\` entries the second exporter reads each project's quotas from, and where it answers |
 
 \`clouds.yaml\` alone holds the credential.
 

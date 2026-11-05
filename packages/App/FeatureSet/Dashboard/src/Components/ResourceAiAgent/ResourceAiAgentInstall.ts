@@ -3,6 +3,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
@@ -1019,6 +1020,11 @@ export function getHostAiAgentInstallerAsksText(data: {
   );
 }
 
+// What the settings for fixes do on a resource AI only reads, said on each.
+const READ_ONLY_FIX_SETTING: string = translationKey(
+  "Has no effect yet: this agent only reads, whatever this says.",
+);
+
 export function getResourceAiAgentInstall(data: {
   resourceType: AiResourceType;
   resourceId: string;
@@ -1028,6 +1034,7 @@ export function getResourceAiAgentInstall(data: {
 }): ResourceAiAgentInstall {
   const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
   const spec: InstallSpec = getInstallSpec(data.resourceType);
+  const isReadOnly: boolean = isReadOnlyAiResourceType(data.resourceType);
   const identity: string | null = data.identity || null;
   // Where the installer comes from, and the URL it is answered with.
   const oneuptimeUrl: string = data.oneuptimeUrl || SETUP_GUIDE_URL_PLACEHOLDER;
@@ -1188,19 +1195,23 @@ export function getResourceAiAgentInstall(data: {
       {
         name: AI_FIXES_ENV,
         value: "(empty)",
-        description:
-          "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: the agent's default, ask-for-approval when writes are allowed, else off.",
+        description: isReadOnly
+          ? READ_ONLY_FIX_SETTING
+          : "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: the agent's default, ask-for-approval when writes are allowed, else off.",
       },
       {
         name: RESOURCE_AI_ALLOW_WRITES_ENV,
         value: "false",
-        description:
-          "true lets the agent apply fixes. Anything else — unset included — keeps it read-only, whatever this page says.",
+        description: isReadOnly
+          ? READ_ONLY_FIX_SETTING
+          : "true lets the agent apply fixes. Anything else — unset included — keeps it read-only, whatever this page says.",
       },
       {
         name: RESOURCE_AI_WRITE_TARGETS_ENV,
         value: "(empty)",
-        description: spec.writeTargetNoun
+        description: isReadOnly
+          ? READ_ONLY_FIX_SETTING
+          : spec.writeTargetNoun
           ? translateTemplate(
               "Optional: comma-separated {{targets}} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.",
               { targets: translatableTerm(spec.writeTargetNoun) },
@@ -1411,7 +1422,10 @@ export function getResourceAiAgentSettingsInstructions(data: {
         ways: [
           {
             label: RESOURCE_AI_SETTINGS_ENV_STEP_TITLE,
-            code: getResourceAiAgentSettingsEnv(data.choice),
+            // A resource AI only reads has the one setting.
+            code: isReadOnlyAiResourceType(data.resourceType)
+              ? `${AI_INVESTIGATION_ENV}=${data.choice.investigation ? "true" : "false"}`
+              : getResourceAiAgentSettingsEnv(data.choice),
             dataTestId: "agent-ai-settings-env",
           },
         ],

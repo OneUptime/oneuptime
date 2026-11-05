@@ -3722,7 +3722,7 @@ describe("every resource type", () => {
       );
 
       expect(line).toHaveTextContent(
-        `AI investigations are on by default: once the ${descriptor.agentName} connects, OneUptime AI runs ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun} whenever it investigates an incident or alert here. Fixes stay off until you allow them.`,
+        `AI investigations are on by default: once the ${descriptor.agentName} connects, OneUptime AI runs ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun} whenever it investigates an incident or alert here. ${descriptor.isReadOnly ? "It has no command that changes one." : "Fixes stay off until you allow them."}`,
       );
     },
   );

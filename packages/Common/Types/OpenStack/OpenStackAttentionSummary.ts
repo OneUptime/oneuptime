@@ -134,7 +134,9 @@ function whyOf(row: JSONObject, now: Date): string | null {
     case OpenStackResourceKind.Volume:
     case OpenStackResourceKind.Image:
       return `status ${status || "unknown"}${
-        status === "ERROR" || status === "error" ? "" : ", for longer than it should take"
+        status === "ERROR" || status === "error"
+          ? ""
+          : ", for longer than it should take"
       }`;
     case OpenStackResourceKind.Network:
       return "almost out of addresses";

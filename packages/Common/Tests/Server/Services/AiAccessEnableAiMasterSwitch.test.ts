@@ -67,7 +67,6 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   carries the retired columns, both false, changes nothing.
  */
 
-
 // Only these can be ready for fixes: an OpenStack cloud is only ever read.
 const TYPES_WITH_FIXES: ReadonlyArray<AiResourceType> =
   ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {

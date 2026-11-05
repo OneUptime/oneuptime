@@ -389,7 +389,10 @@ export class FakeOpenStack {
   }
 
   public readFile(file: string): string {
-    return fs.readFileSync(path.join(this.apiDirectory, `${file}.json`), "utf8");
+    return fs.readFileSync(
+      path.join(this.apiDirectory, `${file}.json`),
+      "utf8",
+    );
   }
 
   public readRows(file: string, key: string): Array<Json> {

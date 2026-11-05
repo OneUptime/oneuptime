@@ -489,10 +489,11 @@ export default class LinkedInfrastructureContext {
           projectId: data.projectId,
           resources,
         }),
-      openStackAttention: await LinkedInfrastructureContext.readOpenStackAttention({
-        projectId: data.projectId,
-        resources,
-      }),
+      openStackAttention:
+        await LinkedInfrastructureContext.readOpenStackAttention({
+          projectId: data.projectId,
+          resources,
+        }),
     };
   }
 
@@ -545,10 +546,11 @@ export default class LinkedInfrastructureContext {
           projectId: data.projectId,
           resources,
         }),
-      openStackAttention: await LinkedInfrastructureContext.readOpenStackAttention({
-        projectId: data.projectId,
-        resources,
-      }),
+      openStackAttention:
+        await LinkedInfrastructureContext.readOpenStackAttention({
+          projectId: data.projectId,
+          resources,
+        }),
     };
   }
 

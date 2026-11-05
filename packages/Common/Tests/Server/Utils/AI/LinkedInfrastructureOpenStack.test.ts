@@ -834,9 +834,7 @@ describe("what the cloud's page says needs attention", () => {
 });
 
 describe("the part's logs", () => {
-  function logs(
-    partLogAttributes: Record<string, string> | undefined,
-  ): string {
+  function logs(partLogAttributes: Record<string, string> | undefined): string {
     return LinkedInfrastructureContext.buildContextSection(
       linked({
         radius: null,

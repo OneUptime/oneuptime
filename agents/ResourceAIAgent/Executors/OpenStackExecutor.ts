@@ -466,7 +466,10 @@ function readCredentialFromEntry(
     return auth[name] || null;
   };
 
-  if (auth["application_credential_id"] || auth["application_credential_secret"]) {
+  if (
+    auth["application_credential_id"] ||
+    auth["application_credential_secret"]
+  ) {
     if (
       !auth["application_credential_id"] ||
       !auth["application_credential_secret"]
@@ -854,20 +857,22 @@ export function nodeTransport(
         agent.destroy();
       };
 
-      const fail: (kind: OpenStackTransportFailureKind, err: unknown) => void =
-        (kind: OpenStackTransportFailureKind, err: unknown): void => {
-          settle((): void => {
-            reject(
-              new OpenStackTransportError({
-                kind,
-                message: errorText(err),
-                code: errorCode(err),
-              }),
-            );
-          });
+      const fail: (
+        kind: OpenStackTransportFailureKind,
+        err: unknown,
+      ) => void = (kind: OpenStackTransportFailureKind, err: unknown): void => {
+        settle((): void => {
+          reject(
+            new OpenStackTransportError({
+              kind,
+              message: errorText(err),
+              code: errorCode(err),
+            }),
+          );
+        });
 
-          clientRequest?.destroy();
-        };
+        clientRequest?.destroy();
+      };
 
       const options: https.RequestOptions = {
         method: request.method,
@@ -920,10 +925,7 @@ export function nodeTransport(
             return;
           }
 
-          const room: number = Math.max(
-            0,
-            request.maxResponseBytes - received,
-          );
+          const room: number = Math.max(0, request.maxResponseBytes - received);
 
           if (chunk.length > room) {
             chunks.push(chunk.subarray(0, room));
@@ -1069,7 +1071,10 @@ export function buildKeystoneAuthBody(credential: OpenStackCredential): string {
         : credential.projectName
           ? {
               scope: {
-                project: { name: credential.projectName, domain: projectDomain },
+                project: {
+                  name: credential.projectName,
+                  domain: projectDomain,
+                },
               },
             }
           : {}),
@@ -1739,7 +1744,10 @@ function flattenAvailabilityZones(rows: Array<unknown>): Array<Row> {
   return flat;
 }
 
-export function projectListRows(route: string, rows: Array<unknown>): Array<Row> {
+export function projectListRows(
+  route: string,
+  rows: Array<unknown>,
+): Array<Row> {
   if (route === "availability zone list") {
     return flattenAvailabilityZones(rows);
   }
@@ -1801,7 +1809,10 @@ export function maskSecretFields(
 
   for (const [name, field] of Object.entries(value)) {
     masked[name] =
-      isSecretName(name) && field !== null && field !== "" && field !== undefined
+      isSecretName(name) &&
+      field !== null &&
+      field !== "" &&
+      field !== undefined
         ? RESOURCE_REDACTED_MARKER
         : maskSecretFields(field, isSecretName, depth + 1);
   }
@@ -2399,8 +2410,9 @@ export default class OpenStackExecutor implements ResourceExecutor {
     ca: string | null;
     timeoutInMs: number;
   }): Promise<{ microversion: string | null; newest: string | null }> {
-    const known: { microversion: string | null; newest: string | null } | undefined =
-      this.computeVersions.get(data.baseUrl);
+    const known:
+      | { microversion: string | null; newest: string | null }
+      | undefined = this.computeVersions.get(data.baseUrl);
 
     if (known) {
       return known;
@@ -2660,7 +2672,9 @@ export default class OpenStackExecutor implements ResourceExecutor {
     const projected: Array<Row> = projectListRows(request.route, rows);
 
     if (projected.length === 0) {
-      return format === "json" ? "[]" : `[No ${request.listKey} in this answer.]`;
+      return format === "json"
+        ? "[]"
+        : `[No ${request.listKey} in this answer.]`;
     }
 
     const rendered: RenderedData = renderProxmoxData(

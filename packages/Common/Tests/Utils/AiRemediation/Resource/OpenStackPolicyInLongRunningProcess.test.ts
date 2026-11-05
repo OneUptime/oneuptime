@@ -243,7 +243,13 @@ const SCRIPT: string = String.raw`
 function runInLongRunningProcess(): ProcessReport {
   const output: string = childProcess.execFileSync(
     process.execPath,
-    ["--no-regexp-optimization", "--max-old-space-size=8192", "--expose-gc", "-e", SCRIPT],
+    [
+      "--no-regexp-optimization",
+      "--max-old-space-size=8192",
+      "--expose-gc",
+      "-e",
+      SCRIPT,
+    ],
     {
       cwd: COMMON_ROOT,
       encoding: "utf8",

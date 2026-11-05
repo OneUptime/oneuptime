@@ -15,6 +15,7 @@ import {
   ResourceAccessTestResult,
   ResourceAiAgentCardCommand,
   RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT,
+  RESOURCE_AI_READ_ONLY_SETTINGS_SET_BY_TEXT,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   ResourceAiAgentGapAction,
   ResourceAiAgentMeta,
@@ -441,18 +442,18 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       getResourceRemediationModeOptionDescriptions(descriptor);
 
     const investigationField: Field<ResourceAiAccessSettingsFormValues> = {
-        field: { isAiInvestigationEnabled: true },
-        title: descriptor.investigateTitle,
-        description: translator.translateTemplate(
-          "Read-only: {{readExamples}}. An investigation never changes this {{noun}}.",
-          {
-            readExamples: translatableTerm(descriptor.readExamples),
-            noun: translatableTerm(descriptor.noun),
-          },
-        ),
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        dataTestId: "ai-investigation-field",
+      field: { isAiInvestigationEnabled: true },
+      title: descriptor.investigateTitle,
+      description: translator.translateTemplate(
+        "Read-only: {{readExamples}}. An investigation never changes this {{noun}}.",
+        {
+          readExamples: translatableTerm(descriptor.readExamples),
+          noun: translatableTerm(descriptor.noun),
+        },
+      ),
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      dataTestId: "ai-investigation-field",
     };
 
     // A resource OneUptime AI only reads has no fixes to choose.
@@ -461,30 +462,30 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         ? [investigationField]
         : [
             investigationField,
-      {
-        // One card per mode, each saying what it does.
-        field: { aiRemediationMode: true },
-        title: AI_ACCESS_FIXES_ROW_TITLE,
-        description: getAiFixesFieldDescription(descriptor.noun),
-        fieldType: FormFieldSchemaType.CardSelect,
-        cardSelectSingleColumn: true,
-        required: true,
-        dataTestId: "ai-remediation-mode-field",
-        cardSelectOptions: modes.map(
-          (mode: ResourceAiRemediationMode): CardSelectOption => {
-            return {
-              value: mode,
-              title: getAiFixesModeCardTitle({
-                mode,
-                savedMode: saved.aiRemediationMode,
-                shortNames: RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
-              }),
-              description: modeDescriptions[mode],
-              icon: AI_FIXES_MODE_ICONS[mode],
-            };
-          },
-        ),
-      },
+            {
+              // One card per mode, each saying what it does.
+              field: { aiRemediationMode: true },
+              title: AI_ACCESS_FIXES_ROW_TITLE,
+              description: getAiFixesFieldDescription(descriptor.noun),
+              fieldType: FormFieldSchemaType.CardSelect,
+              cardSelectSingleColumn: true,
+              required: true,
+              dataTestId: "ai-remediation-mode-field",
+              cardSelectOptions: modes.map(
+                (mode: ResourceAiRemediationMode): CardSelectOption => {
+                  return {
+                    value: mode,
+                    title: getAiFixesModeCardTitle({
+                      mode,
+                      savedMode: saved.aiRemediationMode,
+                      shortNames: RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
+                    }),
+                    description: modeDescriptions[mode],
+                    icon: AI_FIXES_MODE_ICONS[mode],
+                  };
+                },
+              ),
+            },
           ];
 
     // While the agent sets them, its .env changes them, not this form.
@@ -653,7 +654,8 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             />
           )}
 
-          {saved ? (
+          {/* Protected in every fix mode: a resource AI only reads has none. */}
+          {saved && !descriptor.isReadOnly ? (
             <AiAccessProtections
               protections={formatAiAccessProtections(
                 getEveryModeProtections(descriptor),
@@ -1953,7 +1955,9 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             text={translator.translateTemplate(
               descriptor.isCloudAccount && isSetByAgent
                 ? RESOURCE_AI_CLOUD_SETTINGS_SET_BY_TEXT
-                : RESOURCE_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
+                : (descriptor.isReadOnly
+                    ? RESOURCE_AI_READ_ONLY_SETTINGS_SET_BY_TEXT
+                    : RESOURCE_AI_SETTINGS_SET_BY_TEXT)[aiSettingsSource],
               { agent: translatableTerm(descriptor.agentName) },
             )}
             isSetByAgent={isSetByAgent}

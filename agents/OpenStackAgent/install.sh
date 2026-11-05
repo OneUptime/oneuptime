@@ -538,9 +538,15 @@ OPENSTACK_EXPORTER_ADDRESS="${OPENSTACK_EXPORTER_ADDRESS%/}"
 case "$OPENSTACK_EXPORTER_ADDRESS" in
     "" | "openstack-exporter:9180") OPENSTACK_EXPORTER_ADDRESS="$BUNDLED_EXPORTER_ADDRESS" ;;
 esac
+# Your own exporter leaves no clouds.yaml beside the AI agent, so it starts only when someone
+# gave it a credential of its own and asked for it: a re-run keeps that.
+OWN_EXPORTER_PROFILES=""
+case ",$COMPOSE_PROFILES," in
+    *,openstack-ai-agent,*) OWN_EXPORTER_PROFILES="openstack-ai-agent" ;;
+esac
 if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
     BUNDLED_EXPORTER=0
-    COMPOSE_PROFILES=""
+    COMPOSE_PROFILES="$OWN_EXPORTER_PROFILES"
 elif [ "$OPENSTACK_EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ]; then
     BUNDLED_EXPORTER=1
     if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
@@ -551,7 +557,7 @@ elif [ "$OPENSTACK_EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ]; then
     fi
 else
     BUNDLED_EXPORTER=0
-    COMPOSE_PROFILES=""
+    COMPOSE_PROFILES="$OWN_EXPORTER_PROFILES"
     if [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
         case "$OPENSTACK_EXPORTER_ADDRESS" in
             localhost:* | 127.0.0.1:*)

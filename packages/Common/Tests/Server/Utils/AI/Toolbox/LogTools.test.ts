@@ -244,16 +244,19 @@ describe("search_logs", () => {
     ["a list", ["req-5a1d"]],
     ["a value that is itself an object", { key: { nested: "x" } }],
     ["a value too long to be one", { key: "x".repeat(2000) }],
-  ])("refuses attributes that are %s", async (_name: string, value: unknown) => {
-    const findBy: jest.SpyInstance = jest
-      .spyOn(LogService, "findBy")
-      .mockResolvedValue([]);
+  ])(
+    "refuses attributes that are %s",
+    async (_name: string, value: unknown) => {
+      const findBy: jest.SpyInstance = jest
+        .spyOn(LogService, "findBy")
+        .mockResolvedValue([]);
 
-    await expect(
-      SearchLogsTool.execute({ attributes: value as JSONObject }, context()),
-    ).rejects.toThrow(/attribute/i);
-    expect(findBy).not.toHaveBeenCalled();
-  });
+      await expect(
+        SearchLogsTool.execute({ attributes: value as JSONObject }, context()),
+      ).rejects.toThrow(/attribute/i);
+      expect(findBy).not.toHaveBeenCalled();
+    },
+  );
 
   test("ignores empty, whitespace-only and wrongly-typed filters", async () => {
     const findBy: jest.SpyInstance = jest

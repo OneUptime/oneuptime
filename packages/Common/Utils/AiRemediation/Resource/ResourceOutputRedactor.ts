@@ -2903,9 +2903,7 @@ function maskOpenStackField(
       const comma: number = bare.indexOf(",");
 
       if (
-        isOpenStackHarmlessBareValue(
-          comma >= 0 ? bare.slice(0, comma) : bare,
-        )
+        isOpenStackHarmlessBareValue(comma >= 0 ? bare.slice(0, comma) : bare)
       ) {
         searchFrom = index;
         continue;

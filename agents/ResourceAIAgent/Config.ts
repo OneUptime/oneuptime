@@ -908,7 +908,9 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
       identityDetails: identity ? identity.details : {},
       allowWrites,
       allowWritesSetting,
-      aiSettings: isReadOnly ? { ...ai.settings, fixes: "Disabled" } : ai.settings,
+      aiSettings: isReadOnly
+        ? { ...ai.settings, fixes: "Disabled" }
+        : ai.settings,
       writesOffByFixes: writeSwitch && !ai.allowWrites,
       writeTargets: writeTargets.targets,
       protectedTargets: protectedTargets.targets,

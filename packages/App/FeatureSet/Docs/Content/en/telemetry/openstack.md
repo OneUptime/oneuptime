@@ -300,7 +300,7 @@ docker compose ps
 docker logs oneuptime-openstack-agent
 ```
 
-`docker compose ps` lists the collector (`oneuptime-openstack-agent`) and the bundled exporter (`oneuptime-openstack-exporter`). The collector's logs should show this line once it has started:
+`docker compose ps` lists the collector (`oneuptime-openstack-agent`), the bundled exporter (`oneuptime-openstack-exporter`) and the [AI agent](#ai-agent) (`oneuptime-openstack-ai-agent`). The collector's logs should show this line once it has started:
 
 ```text
 Everything is ready. Begin running and processing data.

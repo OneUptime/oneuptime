@@ -176,8 +176,9 @@ describe("what an agent reports", () => {
   )(
     "an agent whose configuration says %s changes nothing",
     async (fixes: AgentAiFixesMode) => {
-      const update: jest.SpiedFunction<typeof OpenStackCloudService.updateOneBy> =
-        jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
+      const update: jest.SpiedFunction<
+        typeof OpenStackCloudService.updateOneBy
+      > = jest.spyOn(OpenStackCloudService, "updateOneBy").mockResolvedValue(1);
 
       const applied: ResourceAiAgentSettingsApplied | null =
         await ResourceAiAgentService.applyReportedAiSettings({

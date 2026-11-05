@@ -677,7 +677,7 @@ describe("each project's quotas", () => {
 
     expect(run.status).toBe(0);
     const env = composeReadAll(run.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent");
     expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("false");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
     expect(run.output).not.toContain("quotas are read once an hour");
@@ -692,7 +692,7 @@ describe("each project's quotas", () => {
 
     expect(run.status).toBe(0);
     const env = composeReadAll(run.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-quotas");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent,openstack-quotas");
     expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("true");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
     expect(env.OPENSTACK_QUOTA_EXPORTER_ADDRESS).toBe(
@@ -717,7 +717,7 @@ describe("each project's quotas", () => {
 
     expect(again.status).toBe(0);
     const env = composeReadAll(again.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-quotas");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent,openstack-quotas");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
   });
 
@@ -734,7 +734,7 @@ describe("each project's quotas", () => {
 
     expect(off.status).toBe(0);
     const env = composeReadAll(off.envFile);
-    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter");
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent");
     expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
   });
 
@@ -1544,6 +1544,40 @@ describe("bring your own exporter", () => {
       env: { OPENSTACK_EXPORTER_ADDRESS: OWN, ...env },
     });
   }
+
+  test("starts no AI agent, and a re-run keeps one someone asked for with a credential of its own", () => {
+    const dir = scratch();
+    const installDir = path.join(dir, "agent");
+    fs.mkdirSync(installDir);
+    fs.writeFileSync(
+      path.join(installDir, ".env"),
+      [
+        `ONEUPTIME_URL=${URL}`,
+        `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+        "OPENSTACK_CLOUD_NAME=prod",
+        "OPENSTACK_EXPORTER_CLOUDS=[RegionOne]",
+        `OPENSTACK_EXPORTER_ADDRESS=${OWN}`,
+        "COMPOSE_PROFILES=openstack-ai-agent",
+        "OPENSTACK_AI_CLOUDS_FILE=/dev/null",
+        "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=its-own-id",
+        "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=its-own-secret",
+        "",
+      ].join("\n"),
+    );
+
+    const run = install(dir, {});
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile)).toMatchObject({
+      COMPOSE_PROFILES: "openstack-ai-agent",
+      OPENSTACK_AI_CLOUDS_FILE: "/dev/null",
+      ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID: "its-own-id",
+      ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET: "its-own-secret",
+    });
+    expect(
+      envLines(ownExporter(scratch()).envFile).COMPOSE_PROFILES,
+    ).toBe("''");
+  });
 
   test("asks for no credential, asks Keystone nothing, writes no clouds.yaml, and turns the profile off", () => {
     const dir = scratch();
