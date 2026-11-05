@@ -19,13 +19,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 const GAP_WORDS: Record<OpenStackTraceGap, string> = {
   [OpenStackTraceGap.DriverCannotStart]: translationKey(
-    "OSProfiler's driver cannot start here as OpenStack ships it, so this sends nothing. Placement, in the guide below, has the one line that should fix it.",
+    "OSProfiler's driver cannot start here as OpenStack ships it, so this sends nothing. One line fixes it: Placement, in the guide below.",
   ),
   [OpenStackTraceGap.ForkedWorkers]: translationKey(
-    "These send nothing while they run more than one worker, because nothing a forked worker made arrived. One worker each should bring them into a trace, and costs what it costs: Nova's conductor and scheduler, in the guide below.",
+    "On 2025.2 these send nothing while they run more than one worker, because nothing a forked worker made arrived. One worker each brings them into a trace, and costs what it costs: Nova's conductor and scheduler, in the guide below. On 2026.2 they send spans as they are.",
   ),
   [OpenStackTraceGap.AlwaysForks]: translationKey(
-    "This always runs in a forked worker, so it sends nothing, and there is no setting for that.",
+    "On 2025.2 this always runs in a forked worker, so it sends nothing, and there is no setting for that.",
   ),
 };
 

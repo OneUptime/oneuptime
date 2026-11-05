@@ -233,7 +233,7 @@ const OpenStackTraceContextCard: FunctionComponent<ComponentProps> = (
             </ul>
             <p className="mt-1 text-gray-500">
               {translator.translateText(
-                "A request reaches these, and on a stock cloud they send nothing. That is why a span below can name a parent that never arrived: it was called by one of them. Their lines are still in the logs of this request.",
+                "A request reaches these, and on a stock cloud they can send nothing, depending on the release. That is why a span below can name a parent that never arrived: it was called by one of them. Their lines are still in the logs of this request.",
               )}
             </p>
           </Row>
