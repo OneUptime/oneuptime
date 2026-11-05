@@ -473,9 +473,9 @@ describe("what is over", () => {
     jest
       .spyOn(
         ScheduledMaintenanceStateService,
-        "getIncompleteScheduledMaintenanceStateIds",
+        "getOverScheduledMaintenanceStateIds",
       )
-      .mockResolvedValue([ONGOING_STATE_ID]);
+      .mockResolvedValue([ENDED_STATE_ID]);
     jest
       .spyOn(OpenStackProjectNoticeDeliveryService, "findBy")
       .mockImplementation((async () => {

@@ -133,7 +133,8 @@ describe("one rule decides where a scheduled maintenance event is in its life", 
      * getEndedState) or ScheduledMaintenanceStateService
      * (getWaitingToStartScheduledMaintenanceStateIds,
      * getWaitingToStartEventQueriesOfEveryProject,
-     * getIncompleteScheduledMaintenanceStateIds) instead.
+     * getIncompleteScheduledMaintenanceStateIds,
+     * getOverScheduledMaintenanceStateIds) instead.
      */
     expect(unexpectedIn(flagReads, ALLOWED_FLAG_READS)).toEqual([]);
   });
