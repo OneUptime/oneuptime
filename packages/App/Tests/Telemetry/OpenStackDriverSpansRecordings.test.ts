@@ -249,7 +249,7 @@ describe.each(getRecordedTraceReleases())(
         expect.arrayContaining([
           `${CLOUD}/nova-api`,
           `${CLOUD}/nova-compute`,
-          ...(recording.neutronWasLeftOut() ? [] : [`${CLOUD}/neutron-server`]),
+          `${CLOUD}/neutron-server`,
           `${CLOUD}/keystone`,
           `${CLOUD}/glance-api`,
         ]),
@@ -389,21 +389,13 @@ describe.each(getRecordedTraceReleases())(
       }
 
       expect(Array.from(calls)).toEqual(
-        expect.arrayContaining(
-          recording.neutronWasLeftOut()
-            ? [
-                `${CLOUD}/nova-api -> ${CLOUD}/glance-api`,
-                `${CLOUD}/nova-conductor -> ${CLOUD}/nova-compute`,
-                `${CLOUD}/nova-conductor -> ${CLOUD}/nova-scheduler`,
-              ]
-            : [
-                `${CLOUD}/nova-api -> ${CLOUD}/neutron-server`,
-                `${CLOUD}/nova-api -> ${CLOUD}/glance-api`,
-                `${CLOUD}/nova-compute -> ${CLOUD}/neutron-server`,
-                `${CLOUD}/neutron-server -> ${CLOUD}/nova-api`,
-                `${CLOUD}/nova-api -> ${CLOUD}/nova-compute`,
-              ],
-        ),
+        expect.arrayContaining([
+          `${CLOUD}/nova-api -> ${CLOUD}/neutron-server`,
+          `${CLOUD}/nova-api -> ${CLOUD}/glance-api`,
+          `${CLOUD}/nova-compute -> ${CLOUD}/neutron-server`,
+          `${CLOUD}/neutron-server -> ${CLOUD}/nova-api`,
+          `${CLOUD}/nova-api -> ${CLOUD}/nova-compute`,
+        ]),
       );
     });
   },

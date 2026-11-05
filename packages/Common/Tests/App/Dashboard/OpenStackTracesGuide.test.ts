@@ -151,6 +151,7 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
   test("it warns about the SDK version that hung the rig's cloud, and asks for less", () => {
     expect(guideOf(tool).intro).toContain("below version 1.44");
     expect(guideOf(tool).intro).toContain("opentelemetry-python/issues/5789");
+    expect(guideOf(tool).intro).toContain("that held on the same cloud");
     expect(
       stepTitled(tool, "Give each service the libraries").markdown,
     ).toContain("<1.44");
