@@ -292,6 +292,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudHypervisorDetail
@@ -308,6 +309,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudInstanceDetail
@@ -322,6 +324,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudFlavorDetail
@@ -352,6 +355,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudAvailabilityZoneDetail
@@ -382,6 +386,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudAggregateDetail
@@ -439,6 +444,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudBareMetalNodeDetail
@@ -469,6 +475,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudNetworkDetail
@@ -497,6 +504,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudSubnetDetail
@@ -511,6 +519,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudRouterDetail
@@ -525,6 +534,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudFloatingIpDetail
@@ -555,6 +565,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudNetworkAgentDetail
@@ -612,6 +623,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudVolumeDetail
@@ -626,6 +638,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudStoragePoolDetail
@@ -656,6 +669,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudImageDetail
@@ -683,6 +697,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudStackDetail
@@ -713,6 +728,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudContainerClusterDetail
@@ -744,6 +760,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudDnsZoneDetail
@@ -775,6 +792,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudObjectContainerDetail
@@ -808,6 +826,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudDatabaseInstanceDetail
@@ -837,6 +856,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudShareDetail
@@ -866,6 +886,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudLoadBalancerDetail
@@ -882,6 +903,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudLoadBalancerPoolDetail
@@ -898,6 +920,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL,
+            2,
           )}
           element={
             <OpenStackCloudAmphoraDetail
@@ -970,6 +993,7 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+            2,
           )}
           element={
             <OpenStackCloudControlPlaneDependency
