@@ -43,6 +43,7 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
@@ -425,6 +426,18 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.GreaterThanOrEqualTo,
     value: OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
   },
+  "openstack-flavor-cannot-be-placed": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-capacity-forecast-under-days": {
+    filterType: FilterType.LessThan,
+    value: OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+  },
+  "openstack-reserved-headroom-gone": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-hypervisor-cpu-saturated": {
     filterType: FilterType.GreaterThan,
     value: OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
@@ -606,6 +619,18 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { in_creating: 10 },
     healthy: { in_creating: 0 },
   },
+  "openstack-flavor-cannot-be-placed": {
+    breached: { room_for: 0 },
+    healthy: { room_for: 3 },
+  },
+  "openstack-capacity-forecast-under-days": {
+    breached: { days_until_full: 9 },
+    healthy: { days_until_full: 40 },
+  },
+  "openstack-reserved-headroom-gone": {
+    breached: { can_lose_a_host: 0 },
+    healthy: { can_lose_a_host: 1 },
+  },
   "openstack-image-stuck": {
     // When it was created, as a Unix time, which only says the row is there.
     breached: { in_queued: 1793795520 },
@@ -775,6 +800,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Volume Stuck",
         "Image Stuck",
         "Project Quota Nearly Reached",
+        "Flavor Can No Longer Be Placed",
+        `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
+        "Reserved Headroom Gone",
       ].sort(),
     );
 
@@ -800,6 +828,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Network",
         "Storage",
         "Projects",
+        "Capacity",
       ] as const
     ).reduce(
       (total: number, category: OpenStackAlertTemplateCategory): number => {
@@ -1450,6 +1479,20 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ).toBe(95);
     });
 
+    test("a forecast recovers past a dead band, so it doesn't flap on its line", () => {
+      const recovery: MonitorCriteriaInstance = recoveryOf(
+        stepOf(
+          getOpenStackAlertTemplateById(
+            "openstack-capacity-forecast-under-days",
+          )!,
+        ),
+      );
+
+      expect(recovery.data!.filters[0]!.value).toBeGreaterThan(
+        OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+      );
+    });
+
     test("a threshold has a dead band, except where the value is a whole count", () => {
       const quota: MonitorCriteriaInstance = recoveryOf(
         stepOf(
@@ -1573,7 +1616,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           expect(
             Boolean(OPENSTACK_EXPORTER_SERIES[metricName]) ||
               OPENSTACK_RECEIVER_SERIES.includes(metricName) ||
-              getOpenStackMetricByMetricName(metricName)!.fromInstanceSource,
+              getOpenStackMetricByMetricName(metricName)!.fromInstanceSource ||
+              getOpenStackMetricByMetricName(metricName)!.fromCapacity,
           ).toBe(true);
         }
       },
