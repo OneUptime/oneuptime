@@ -77,8 +77,11 @@ import MockOpenStackCloud, {
  *   OPENSTACK_INVENTORY_TEST_DATABASE_HOST=127.0.0.1 \
  *   OPENSTACK_INVENTORY_TEST_DATABASE_PORT=5400 DATABASE_PASSWORD=... \
  *   OPENSTACK_SOAK_MEASURES=/tmp/soak.json \
- *   node --max-old-space-size=8192 node_modules/.bin/jest --runInBand \
+ *   node --max-old-space-size=8192 node_modules/.bin/jest --no-watchman --runInBand \
  *     Tests/Utils/OpenStack/OpenStackSoak.test.ts --forceExit
+ *
+ * The hour the docs publish is in Common/Tests/Fixtures/OpenStackSoak/measured.json, and
+ * OpenStackScale.test.ts holds the page to it. To publish another, replace that with what a run wrote.
  *
  * The clock is real, so a machine busy with other things can overrun a time budget by itself. The
  * request counts cannot: they are exact, for the collections that were made, and fail on any machine
