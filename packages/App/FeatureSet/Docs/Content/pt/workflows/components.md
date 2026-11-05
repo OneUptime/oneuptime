@@ -510,7 +510,7 @@ Uma consulta sempre fica limitada ao projeto em que o workflow roda. Você não 
 
 Uma chave que não é coluna é ignorada em vez de recusada — o log da execução nomeia as que foram descartadas, então confira lá quando um campo não for gravado. **Fields to pass on**, nos componentes Find e nos gatilhos, é escolhido em uma lista; o **Editar como JSON** dele mostra as mesmas chaves de coluna com valores `true`: `{"_id": true, "name": true}`. Os campos de um registro relacionado ficam sob a chave dele, como em `{"monitor": {"name": true}}`: `{"monitor": true}` repassa apenas o ID dele.
 
-Os **campos personalizados** são uma única coluna, `customFields`, que guarda o valor de cada campo personalizado sob o nome do campo. Os componentes Update só alteram os campos personalizados que você nomeia, e todos os outros mantêm o valor:
+Os **Campos personalizados** são uma única coluna, `customFields`, que guarda o valor de cada campo personalizado sob o nome do campo. Os componentes Update só alteram os campos personalizados que você nomeia, e todos os outros mantêm o valor:
 
 ```json
 { "customFields": { "Notification Count": 1 } }

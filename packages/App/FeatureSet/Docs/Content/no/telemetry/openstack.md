@@ -1598,7 +1598,7 @@ Skyens **AI-agent**-side tilbyr en kjørebok for hver av disse, som du kan legge
 
 ### Rettelser fra en arbeidsflyt
 
-En arbeidsflyt kan starte fra et OpenStack-varsel og foreslå en rettelse: trinnet **Foreslå en OpenStack-rettelse** tar varselet eller hendelsen, og kommandoen. Det går gjennom den samme policyen, det samme skriveomfanget og den samme lesingen av hva en endring rører som en rettelse OneUptime KI foreslår, det trenger ingen KI-modell, og en person godkjenner det på varselet. En arbeidsflyt kan ikke gjøre endringen selv eller godkjenne det den foreslår, uansett hva skyens rettelsesmodus er. Malen **Propose taking a failing OpenStack compute service out of scheduling** er et sted å begynne.
+En arbeidsflyt kan starte fra et OpenStack-varsel og foreslå en rettelse: trinnet **Propose an OpenStack fix** tar varselet eller hendelsen, og kommandoen. Det går gjennom den samme policyen, det samme skriveomfanget og den samme lesingen av hva en endring rører som en rettelse OneUptime KI foreslår, det trenger ingen KI-modell, og en person godkjenner det på varselet. En arbeidsflyt kan ikke gjøre endringen selv eller godkjenne det den foreslår, uansett hva skyens rettelsesmodus er. Malen **Propose taking a failing OpenStack compute service out of scheduling** er et sted å begynne.
 
 ## Kjør som en systemd-tjeneste
 

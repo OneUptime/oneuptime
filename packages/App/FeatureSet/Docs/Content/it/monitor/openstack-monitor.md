@@ -52,12 +52,12 @@ In **OpenStack Monitor Configuration**, scegli il cloud da **Cloud OpenStack**. 
 Un nuovo monitor parte da **Cloud Stopped Reporting**, sotto **Su cosa avvisare**. Per controllare altro:
 
 - **Cambia** - scegli un altro [template](#template-di-avviso-predefiniti). Imposta la metrica, i filtri sugli attributi, l'aggregazione, l'intervallo di tempo, il raggruppamento e le soglie, e sostituisce i criteri sottostanti con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
-- **Metrica personalizzata** (sotto **Altri campi**) - scegli una metrica da **Metrica OpenStack**, poi imposta **Aggregazione** e **Intervallo di tempo**, e restringi con i [filtri](#impostazioni-del-monitor).
+- **Custom Metric** (sotto **Altri campi**) - scegli una metrica da **Metrica OpenStack**, poi imposta **Aggregazione** e **Intervallo di tempo**, e restringi con i [filtri](#impostazioni-del-monitor).
 - **Avanzato** (sotto **Altri campi**) - costruisci tu stesso query e formule in **Seleziona metriche**, con filtri su attributi come `status`, `adminState` o `resourcetype`. Usa **Raggruppa per** un [attributo di identità](#attributi-di-identità) per valutare ogni parte separatamente.
 
 ### Controlla i criteri
 
-Apri ogni criterio sotto **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un template li compila. Con **Metrica personalizzata** o **Avanzato**, il monitor parte con i criteri predefiniti, che si accorgono solo dell'assenza di dati dalla metrica, quindi imposta una soglia tua.
+Apri ogni criterio sotto **Criteri del monitor** e controlla **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un template li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i criteri predefiniti, che si accorgono solo dell'assenza di dati dalla metrica, quindi imposta una soglia tua.
 
 ### Crea il monitor
 
@@ -79,12 +79,12 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **ID Progetto** | Metrica personalizzata, Avanzato | Facoltativo. Un progetto: `tenant_id` sulle serie di Nova e Cinder e su reti e subnet, `project_id` su floating IP, router e disponibilità degli indirizzi. |
 | **Metrica OpenStack** | Metrica personalizzata | Una metrica dal [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Metrica personalizzata | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
-| **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Ultimo minuto** a **Ultimi 365 giorni**. Un nuovo monitor parte da **Ultimi 15 minuti**; i template impostano il proprio. |
+| **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Ultimi 15 minuti**; i template impostano il proprio. |
 | **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 Un filtro restringe solo una serie che porta la sua etichetta: `openstack_nova_up` non ha un progetto, quindi un filtro sul progetto la lascia com'è.
 
-Mantieni la finestra a tre raccolte o più di ciò che leggi: 6 minuti per compute, network, volume e placement, 15 per identity e image. Una finestra più corta non contiene abbastanza raccolte perché **Tutti i valori** valga come durata.
+Mantieni la finestra a tre raccolte o più di ciò che leggi: 6 minuti per compute, network, volume e placement, 15 per identity e image. Una finestra più corta non contiene abbastanza raccolte perché **All Values** valga come durata.
 
 ## Attributi di identità
 
@@ -752,12 +752,12 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | Campo | Cosa fa |
 | --- | --- |
 | **Metrica** | La query o formula da controllare, tramite il nome della sua variabile. |
-| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Valore massimo**, **Valore minimo**, **Tutti i valori** (ogni valore deve corrispondere, su tutta la finestra) o **Qualsiasi valore** (ne basta uno). |
-| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalmente alto**, **Anomalmente basso** o **Anomalo**. **Nessun dato** corrisponde quando la query non ha inviato nulla nella finestra, **Dati presenti** quando ha inviato qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando l'andamento della metrica sulla finestra supererà la soglia entro la fine dell'**Orizzonte**. |
+| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Nessun dato** corrisponde quando la query non ha inviato nulla nella finestra, **Dati presenti** quando ha inviato qualcosa. **Previsto sopra** e **Previsto sotto** corrispondono quando l'andamento della metrica sulla finestra supererà la soglia entro la fine dell'**Orizzonte**. |
 | **Soglia** | Il valore con cui confrontare. Accanto compare un elenco di unità quando la metrica ha un'unità. Non mostrata per le condizioni di anomalia. |
-| **Sensibilità** | Solo per le condizioni di anomalia. **Basso** (4σ), **Medio** (3σ, il valore predefinito) o **Alto** (2σ). |
+| **Sensibilità** | Solo per le condizioni di anomalia. **Bassa** (4σ), **Medio** (3σ, il valore predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo per le condizioni di anomalia. 14 giorni (il valore predefinito), 28, 60 o 90 giorni di storico. |
-| **Se nessun dato** | Sotto **Altri campi**. Cosa succede quando la finestra non ha campioni: **Ignora** (il valore predefinito), **Tratta come zero** o **Trigger**. |
+| **Se nessun dato** | Sotto **Altri campi**. Cosa succede quando la finestra non ha campioni: **Ignore** (il valore predefinito), **Treat As Zero** o **Trigger**. |
 
 Le condizioni di anomalia confrontano ogni valore con la stessa ora della settimana nel periodo di riferimento. Restano in stato "Apprendimento", e non generano nulla, finché la finestra di riferimento non contiene abbastanza storico. Questo monitor filtra le sue query per attributi, quindi ogni query, e ogni serie di una raggruppata, viene confrontata con il proprio storico, fin dove vengono conservate le tue metriche. Se è meno di due settimane, una Somma, un Conteggio o una query su un istogramma resta in quello stato per sempre, e tutto il resto viene confrontato con ogni serie della metrica. Un percentile di un istogramma resta sempre in quello stato.
 

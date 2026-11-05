@@ -510,7 +510,7 @@ Una consulta siempre se limita al proyecto en el que se ejecuta el flujo de trab
 
 Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Fields to pass on**, en los componentes Find y en los disparadores, se elige de una lista; su **Editar como JSON** muestra las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`. Los campos de un registro relacionado van bajo su clave, como en `{"monitor": {"name": true}}`: `{"monitor": true}` solo transmite su ID.
 
-Los **campos personalizados** son una sola columna, `customFields`, que guarda el valor de cada campo personalizado con el nombre del campo. Los componentes Update solo cambian los campos personalizados que nombras, y todos los demás conservan su valor:
+Los **Campos personalizados** son una sola columna, `customFields`, que guarda el valor de cada campo personalizado con el nombre del campo. Los componentes Update solo cambian los campos personalizados que nombras, y todos los demás conservan su valor:
 
 ```json
 { "customFields": { "Notification Count": 1 } }

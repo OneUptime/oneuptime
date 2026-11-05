@@ -49,7 +49,7 @@ Under **OpenStack Monitor Configuration** vælger du cloudet i **OpenStack-cloud
 
 ### Vælg, hvad der skal overvåges
 
-En ny monitor starter på **Cloud holdt op med at rapportere** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
+En ny monitor starter på **Cloud Stopped Reporting** under **Hvad der skal advares om**. Sådan overvåger du noget andet:
 
 - **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, gruppering og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) - vælg én metrik i **OpenStack-metrik**, indstil derefter **Aggregering** og **Tidsinterval**, og afgræns med [filtrene](#monitorindstillinger).
@@ -79,12 +79,12 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Projekt-ID** | Custom Metric, Avanceret | Valgfri. Ét projekt: `tenant_id` på Novas og Cinders serier og på netværk og subnet, `project_id` på floating IP'er, routere og adressetilgængelighed. |
 | **OpenStack-metrik** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter på metrikkens sædvanlige aggregering. |
-| **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Seneste 1 minut** til **Seneste 365 dage**. En ny monitor starter på **Seneste 15 minutter**; skabeloner sætter deres eget. |
+| **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Seneste 15 minutter**; skabeloner sætter deres eget. |
 | **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 Et filter afgrænser kun en serie, der har dets label: `openstack_nova_up` har intet projekt, så et projektfilter lader den være uændret.
 
-Hold vinduet på tre indsamlinger eller flere af det, du læser: 6 minutter for compute, netværk, volumen og placement, 15 for identitet og image. Et kortere vindue rummer ikke nok indsamlinger til, at **Alle værdier** kan betyde en varighed.
+Hold vinduet på tre indsamlinger eller flere af det, du læser: 6 minutter for compute, netværk, volumen og placement, 15 for identitet og image. Et kortere vindue rummer ikke nok indsamlinger til, at **All Values** kan betyde en varighed.
 
 ## Identitetsattributter
 
@@ -112,14 +112,14 @@ Hver skabelon læser mindst tre indsamlinger af det, den overvåger, og udløser
 
 | Skabelon | Kategori | Alvorlighed | Overvåger | Udløser når | Genopretter når |
 | --- | --- | --- | --- | --- | --- |
-| Cloud holdt op med at rapportere | Tilgængelighed | Kritisk | `openstack_identity_up`, Count over hele cloudet, **seneste 15 minutter** | Ingen data i hele vinduet: agenten stoppede eller kan ikke nå OneUptime, eller exporteren kan ikke logge ind i Keystone | Data kommer igen |
-| Identity-API nede | Tilgængelighed | Kritisk | `openstack_identity_up` og `scrape_samples_scraped` for `identity`, Min pr. region, **seneste 15 minutter** | Alle kald fejlede, eller indsamlingen kom tilbage tom, fordi exporteren ikke kunne logge ind | Begge viser 1 eller mere |
-| Compute-API nede | Tilgængelighed | Kritisk | `openstack_nova_up` og `scrape_samples_scraped` for `compute`, Min pr. region, **seneste 10 minutter** | Alle kald fejlede, eller indsamlingen kom tilbage tom, fordi exporteren ikke kunne nå Novas API | Begge viser 1 eller mere |
+| Cloud Stopped Reporting | Tilgængelighed | Kritisk | `openstack_identity_up`, Count over hele cloudet, **seneste 15 minutter** | Ingen data i hele vinduet: agenten stoppede eller kan ikke nå OneUptime, eller exporteren kan ikke logge ind i Keystone | Data kommer igen |
+| Identity API Down | Tilgængelighed | Kritisk | `openstack_identity_up` og `scrape_samples_scraped` for `identity`, Min pr. region, **seneste 15 minutter** | Alle kald fejlede, eller indsamlingen kom tilbage tom, fordi exporteren ikke kunne logge ind | Begge viser 1 eller mere |
+| Compute API Down | Tilgængelighed | Kritisk | `openstack_nova_up` og `scrape_samples_scraped` for `compute`, Min pr. region, **seneste 10 minutter** | Alle kald fejlede, eller indsamlingen kom tilbage tom, fordi exporteren ikke kunne nå Novas API | Begge viser 1 eller mere |
 | Netværks-API nede | Tilgængelighed | Kritisk | `openstack_neutron_up` og `up` for `network`, Min pr. region, **seneste 10 minutter** | Alle kald fejlede, eller exporteren svarede ikke | Begge viser 1 |
 | Bloklager-API nede | Tilgængelighed | Kritisk | `openstack_cinder_up` og `up` for `volume`, Min pr. region, **seneste 10 minutter** | Alle kald fejlede, eller exporteren svarede ikke | Begge viser 1 |
 | Image-API nede | Tilgængelighed | Kritisk | `openstack_glance_up` og `up` for `image`, Min pr. region, **seneste 15 minutter** | Alle kald fejlede, eller exporteren svarede ikke | Begge viser 1 |
-| Placement-API nede | Tilgængelighed | Kritisk | `openstack_placement_up` og `up` for `placement`, Min pr. region, **seneste 10 minutter** | Alle kald fejlede, eller exporteren svarede ikke | Begge viser 1 |
-| Compute-tjeneste nede | Kontrolplan | Kritisk | `openstack_nova_agent_state` filtreret på `service = nova-compute` og `adminState = enabled`, Min pr. vært, **seneste 10 minutter** | Under 1: en aktiveret nova-compute er nede. En, som nogen har deaktiveret, udløser aldrig | Oppe eller deaktiveret |
+| Placement API Down | Tilgængelighed | Kritisk | `openstack_placement_up` og `up` for `placement`, Min pr. region, **seneste 10 minutter** | Alle kald fejlede, eller exporteren svarede ikke | Begge viser 1 |
+| Compute Service Down | Kontrolplan | Kritisk | `openstack_nova_agent_state` filtreret på `service = nova-compute` og `adminState = enabled`, Min pr. vært, **seneste 10 minutter** | Under 1: en aktiveret nova-compute er nede. En, som nogen har deaktiveret, udløser aldrig | Oppe eller deaktiveret |
 | Compute-tjeneste deaktiveret | Kontrolplan | Advarsel | `openstack_nova_agent_state` filtreret på `service = nova-compute` og `adminState = disabled`, et Count pr. vært, **seneste 10 minutter** | Over 0: en `nova-compute` blev deaktiveret, og ingen igangværende vedligeholdelseshændelse dækker dens vært, dens tilgængelighedszone eller cloudet. En, der deaktiverede sig selv, fordi libvirt gik ned (dens årsag starter med `AUTO:`), forholder sig i ro, mens libvirt-tjeneste nede er åben. Projekter får ikke besked om den | Den er aktiveret igen, eller en hændelse dækker den |
 | Scheduler eller Conductor nede | Kontrolplan | Advarsel | `openstack_nova_agent_state` filtreret på `nova-scheduler` eller `nova-conductor` og `adminState = enabled`, Min pr. vært og binær fil, **seneste 10 minutter** | Under 1. De andre kører videre, så længe nogen er tilbage | Oppe eller deaktiveret |
 | Alle Schedulere eller Conductors nede | Kontrolplan | Kritisk | Det samme, Max pr. region og binær fil, **seneste 10 minutter** | Under 1: ingen er i live, så intet nyt kan starte | Én er oppe |
@@ -170,8 +170,8 @@ Hver skabelon læser mindst tre indsamlinger af det, den overvåger, og udløser
 | DNS-zone i fejl | Netværk | Advarsel | Et antal af `openstack_designate_zone_status` med `status=ERROR`, pr. zone, **seneste 15 minutter** | En zone viser `ERROR` i hele vinduet: dens worker opgav at skrive den til en DNS-server | Den viser noget andet |
 | DNS-zone hænger i afventende | Netværk | Advarsel | Et antal af `openstack_designate_zone_status` med `status=PENDING`, pr. zone, **seneste 30 minutter** | En zone viser `PENDING` i hele vinduet. Dens worker opgiver efter få minutter, så intet arbejder på den | Den viser noget andet |
 | DNS-recordset i fejl | Netværk | Advarsel | Et antal af `openstack_designate_recordsets_status` med `status=ERROR` og hver type, nogen beder om, pr. zone, **seneste 15 minutter** | Et recordset, der ikke er en zones egen SOA og NS, viser `ERROR`. Disse to viser `ERROR` sammen med deres zone, så DNS-zone i fejl fortæller det | Det viser noget andet |
-| Metrik-API nede | Tilgængelighed | Kritisk | `openstack_gnocchi_up` og `up` for `gnocchi`, Min pr. region, **seneste 15 minutter** | Exporterens læsning af Gnocchi fejlede, eller exporteren svarede ikke. En legitimation, som Gnocchi afviser, læses på samme måde, så et cloud, hvis legitimation aldrig har læst Gnocchi, får ikke tilbudt denne | Begge viser 1 |
-| Gnocchi uden processorer | Metrikker | Kritisk | `openstack_gnocchi_status_metricd_processors`, Max pr. region, **seneste 15 minutter** | Gnocchis status nævner ingen processor. Dens API svarer og modtager fortsat målinger, så **Metrik-API nede** siger intet om dette | Den nævner en |
+| Metrics API Down | Tilgængelighed | Kritisk | `openstack_gnocchi_up` og `up` for `gnocchi`, Min pr. region, **seneste 15 minutter** | Exporterens læsning af Gnocchi fejlede, eller exporteren svarede ikke. En legitimation, som Gnocchi afviser, læses på samme måde, så et cloud, hvis legitimation aldrig har læst Gnocchi, får ikke tilbudt denne | Begge viser 1 |
+| Gnocchi uden processorer | Metrikker | Kritisk | `openstack_gnocchi_status_metricd_processors`, Max pr. region, **seneste 15 minutter** | Gnocchis status nævner ingen processor. Dens API svarer og modtager fortsat målinger, så **Metrics API Down** siger intet om dette | Den nævner en |
 | Gnocchi-backlog vokser | Metrikker | Advarsel | `openstack_gnocchi_status_measures_to_process`, en linje gennem de **seneste 2 timer** | Linjen passerer 10.000 målinger inden for den næste time. En backlog over det, som falder, udløser ikke | Linjen når ikke længere 9.000 |
 | Objektlager-API nede | Tilgængelighed | Kritisk | `openstack_object_store_up` og `up` for `object-store`, Min pr. region, **seneste 15 minutter** | Exporterens læsning af Swift fejlede, eller exporteren svarede ikke. En legitimation, som Swift afviser, læses på samme måde, så et cloud, hvis legitimation aldrig har læst Swift, får ikke tilbudt denne | Begge viser 1 |
 | Prognose for vækst i objektcontainer | Lager | Advarsel | `openstack_object_store_bytes`, en linje gennem de **seneste 7 dage**, pr. container | Linjen passerer 1 TiB inden for den næste uge. Ændr den til det, dit cloud skal høre om | Linjen når ikke længere 90 % af det |
@@ -189,7 +189,7 @@ Hver skabelon læser mindst tre indsamlinger af det, den overvåger, og udløser
 | Bare metal-node hænger i overgang | Bare metal | Advarsel | `openstack_ironic_node` for hver gyldig `provision_state` med `maintenance = false`, Max pr. node, **seneste 2 timer** | I den tilstand ved hver indsamling i 2 timer. En lang diskrydning kan helt reelt tage så lang tid, hvilket en nodes side kan se, og dette ikke kan | Forlod den eller blev slettet |
 | Bare metal-node for længe i vedligeholdelse | Bare metal | Advarsel | `openstack_ironic_node` med `maintenance = true`, Max pr. node, **seneste 7 dage** | I vedligeholdelse ved hver indsamling i 7 dage. Kræver, at dine metrikker gemmes så længe | Ude af vedligeholdelse eller blev slettet |
 | Bare metal-strømtilstand uventet | Bare metal | Advarsel | `openstack_ironic_node` med `provision_state = active`, `power_state = power off` og `maintenance = false`, Max pr. node, **seneste 15 minutter** | Ved hver indsamling i 15 minutter. En instans, som dens ejer stoppede, viser det samme, hvilket en nodes side kan se, og dette ikke kan | Tændt eller ikke længere udrullet |
-| Projektkvote næsten nået | Projekter | Advarsel | `openstack_nova_limits_*` og `openstack_cinder_limits_volume_*`, brugt / max pr. projekt, **seneste 3 timer** | Over 90 % af dets kvote for vCPU, hukommelse, instanser eller volumener. Kræver, at [limits-serierne er slået til](#slå-limits-serierne-til) | Ved eller under 81 % |
+| Project Quota Nearly Reached | Projekter | Advarsel | `openstack_nova_limits_*` og `openstack_cinder_limits_volume_*`, brugt / max pr. projekt, **seneste 3 timer** | Over 90 % af dets kvote for vCPU, hukommelse, instanser eller volumener. Kræver, at [limits-serierne er slået til](#slå-limits-serierne-til) | Ved eller under 81 % |
 | Token-udstedelse fejler | Tilgængelighed | Kritisk | `openstack_check_token_success`, Min pr. region, **seneste 5 minutter**. Kræver, at API-tjek er slået til | Under 1: Keystone udstedte intet token til proben | Et token udstedes |
 | Tjeneste-API-tjek fejler | Tilgængelighed | Kritisk | `openstack_check_api_success`, Min pr. region og `service_type`, **seneste 5 minutter**. Kræver, at API-tjek er slået til | Under 1: den tjeneste svarede ikke, for enhver tjeneste i kataloget | Den svarer eller forlader kataloget |
 | Offentligt certifikat udløber inden for 30 dage | Tilgængelighed | Advarsel | `openstack_check_certificate_expiry_days`, Min pr. region, vært og port, **seneste 5 minutter**. Kræver, at API-tjek er slået til | Under 30 dage tilbage | 33 dage eller mere tilbage, eller endepunktet forlader kataloget |
@@ -205,12 +205,12 @@ Hver skabelon læser mindst tre indsamlinger af det, den overvåger, og udløser
 **Alvorlighed** er den label, vælgeren viser. Hændelsen og advarslen, en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 
 - **Op-, i-live- og tilstandsserier bruger Min**, så en enkelt nede viser 0. **Antal- og infoserier bruger Max.** Intet bruger Sum, fordi en monitor læser etminutshinks på tværs af serier og indsamlinger, og en Sum lægger dem sammen.
-- **Hver skabelon undtagen Cloud holdt op med at rapportere grupperer efter det, en hændelse handler om:** en workers vært og binære fil, et API's region, en instans, en router, et netværk, en pulje, et projekt. Hændelsen nævner det sammen med [kommandoerne, du skal køre bagefter](#kommandoer-at-køre-bagefter).
+- **Hver skabelon undtagen Cloud Stopped Reporting grupperer efter det, en hændelse handler om:** en workers vært og binære fil, et API's region, en instans, en router, et netværk, en pulje, et projekt. Hændelsen nævner det sammen med [kommandoerne, du skal køre bagefter](#kommandoer-at-køre-bagefter).
 - **En statusseries værdi er en kode**, ikke et antal: `openstack_nova_server_status` viser 4 for en instans i ERROR. Skabeloner filtrerer på ordet i `status`.
 - **En serie, der lige er dukket op, venter et helt vindue,** så en instans, volumen eller image, der er set én gang på vej til noget andet, udløser intet. Hver skabelon ved, hvor ofte dens tjeneste indsamles, ud fra den tjenestes egen `_up`-serie.
-- **En serie, der forsvinder, tæller som genoprettet:** en worker, som nogen deaktiverede, den sidste instans i ERROR slettet, en pulje fjernet. Hver skabelon læser sin tjenestes egen `_up`-serie ved siden af sin egen, så den kan skelne en del, der forsvandt, fra et cloud, der blev stille. Når der slet ikke kommer noget, forbliver dens hændelser åbne, og **Cloud holdt op med at rapportere** tager ordet.
+- **En serie, der forsvinder, tæller som genoprettet:** en worker, som nogen deaktiverede, den sidste instans i ERROR slettet, en pulje fjernet. Hver skabelon læser sin tjenestes egen `_up`-serie ved siden af sin egen, så den kan skelne en del, der forsvandt, fra et cloud, der blev stille. Når der slet ikke kommer noget, forbliver dens hændelser åbne, og **Cloud Stopped Reporting** tager ordet.
 - **Når et API er nede, forsvinder dets egne serier også**, så den tjenestes andre skabeloner genoprettes og udløser igen et vindue efter, at det er tilbage, hvis fejlen stadig er der. Hvis alle API'er viser nede på én gang, så kig først på exporteren.
-- **Et cloud, der ikke har en sådan tjeneste, forholder sig i ro.** Exporteren svarer med ingenting for en tjeneste, der ikke er i cloudets katalog, og **Netværk**, **Bloklager**, **Billede** og **Placement-API nede** læser ikke det som et udfald. **Identitet** og **Compute-API nede** gør, fordi det også er sådan, exporteren melder, at Keystones eller Novas API er stoppet helt, og alle clouds har dem.
+- **Et cloud, der ikke har en sådan tjeneste, forholder sig i ro.** Exporteren svarer med ingenting for en tjeneste, der ikke er i cloudets katalog, og **Netværk**, **Bloklager**, **Billede** og **Placement API Down** læser ikke det som et udfald. **Identitet** og **Compute API Down** gør, fordi det også er sådan, exporteren melder, at Keystones eller Novas API er stoppet helt, og alle clouds har dem.
 
 ### Når en udløses
 
@@ -218,9 +218,9 @@ Når `nova-compute` er stoppet, går dens række på cloudets side **Tjenester**
 
 ![Siden Tjenester med nova-compute nede på sin vært i 10 minutter, og alle andre tjenester og API'er oppe](/docs/static/images/OpenStackServicesComputeDown.png)
 
-Når det har varet i skabelonens hele vindue, åbner **Compute-tjeneste nede** én hændelse, som nævner værten og løses af sig selv, når tjenesten er tilbage:
+Når det har varet i skabelonens hele vindue, åbner **Compute Service Down** én hændelse, som nævner værten og løses af sig selv, når tjenesten er tilbage:
 
-![En hændelse fra skabelonen Compute-tjeneste nede, der nævner vært, tjeneste og region, beskriver hvad der skete, med monitoren og cloudet under Berørte ressourcer](/docs/static/images/OpenStackIncidentComputeDown.png)
+![En hændelse fra skabelonen Compute Service Down, der nævner vært, tjeneste og region, beskriver hvad der skete, med monitoren og cloudet under Berørte ressourcer](/docs/static/images/OpenStackIncidentComputeDown.png)
 
 ### Hvad tjenesterne siger
 
@@ -271,7 +271,7 @@ Disse læser det, [agenten læser under cloudet](/docs/telemetry/openstack#hvad-
 | Open vSwitch-tjeneste nede | Kritisk | `ovs_memory_rules_total`, **seneste 5 minutter** | Væk fra en maskine, der havde den, mens exporteren svarer | Maskine |
 | Exporter mistede Open vSwitchs database | Advarsel | `ovs_build_info`, **seneste 10 minutter** | Væk fra en maskine, der havde den, mens Open vSwitch svarer. Genstart exporteren | Maskine |
 | Netværksexporter-mål nede | Advarsel | `up`, **seneste 10 minutter** | openstack-network-exporter svarer ikke | Maskine |
-| libvirt-tjeneste nede | Kritisk | `libvirt_up`, **seneste 5 minutter** | Under 1. nova-compute deaktiverer sig selv, så Compute-tjeneste nede og Compute-tjeneste deaktiveret forholder sig i ro | Maskine |
+| libvirt-tjeneste nede | Kritisk | `libvirt_up`, **seneste 5 minutter** | Under 1. nova-compute deaktiverer sig selv, så Compute Service Down og Compute-tjeneste deaktiveret forholder sig i ro | Maskine |
 | libvirt-exporter-mål nede | Advarsel | `up`, **seneste 10 minutter** | prometheus-libvirt-exporter svarer ikke | Maskine |
 
 **Ét udfald åbner én hændelse.** En stoppet RabbitMQ tager `nova-compute` og, på ML2/OVS, Neutrons agenter med sig, hver med en skabelon for sig. Så det, der følger med noget, venter længere end det, og dets monitor er knyttet til den, det venter på: en monitorafhængighed, som oprettes for dig, når begge kommer fra disse skabeloner, uanset hvilken du opretter først. Mens RabbitMQ nede er åben i en region, åbner det, der afhænger af den, intet dér og viser nede på sin egen side. Det fortsætter med at vente i 10 minutter, efter RabbitMQ nede er løst, fordi agenten læser disse workers hvert 2. til 5. minut, og en worker, der stadig er nede efter det, har noget andet galt.
@@ -279,8 +279,8 @@ Disse læser det, [agenten læser under cloudet](/docs/telemetry/openstack#hvad-
 | Hvad går ned | Hvad venter på det |
 | --- | --- |
 | RabbitMQ nede | RabbitMQ-node nede, alle worker- og API-skabeloner, og logs' RabbitMQ-forbindelse tabt og For mange fejl fra en tjeneste |
-| MariaDB-klynge nede | Galeras node- og størrelsesskabeloner, alle worker- og API-skabeloner, Cloud holdt op med at rapportere, og logs' Databaseforbindelse tabt, Tokenvalidering fejler og For mange fejl fra en tjeneste |
-| HAProxy nede | HAProxys andre skabeloner, alle API-skabeloner og Cloud holdt op med at rapportere |
+| MariaDB-klynge nede | Galeras node- og størrelsesskabeloner, alle worker- og API-skabeloner, Cloud Stopped Reporting, og logs' Databaseforbindelse tabt, Tokenvalidering fejler og For mange fejl fra en tjeneste |
+| HAProxy nede | HAProxys andre skabeloner, alle API-skabeloner og Cloud Stopped Reporting |
 | OVN Controller kører ikke, Open vSwitch-tjeneste nede | Netværksagent nede, for `ovn-controller`, `neutron-ovn-agent` og `neutron-openvswitch-agent` og ingen andre, i den region |
 | Northbound- eller Southbound-database uden leder | OVN Northd ikke aktiv |
 
@@ -292,7 +292,7 @@ Hændelsen fortæller, hvad den tager med sig ned, og en advarsel på en worker,
 
 De tre **Kapacitet**-skabeloner læser serier, OneUptime selv skriver ud fra cloudets inventar, hvert andet minut, mens cloudet rapporterer. Ingen exporter-serie har en zone eller en flavors antal i sig. Se [Kapacitet](/docs/telemetry/openstack#kapacitet) for, hvad de betyder. Alle tre handler om allokering, det der er lovet væk, og ingen handler om belastning.
 
-**Projektkvote næsten nået** læser `openstack_nova_limits_*` og `openstack_cinder_limits_*`, som er slået fra som standard, fordi de koster API-kald pr. projekt. Skabelonen forholder sig i ro, indtil du slår dem til: kør agentens `install.sh` igen med `OPENSTACK_COLLECT_QUOTAS=true`. En anden exporter læser dem derefter en gang i timen, og skabelonen venter på tre af de aflæsninger. På et cloud, en probe læser, slår du **Projektgrænser** til under **Dataindsamling** på dets side **Indstillinger**.
+**Project Quota Nearly Reached** læser `openstack_nova_limits_*` og `openstack_cinder_limits_*`, som er slået fra som standard, fordi de koster API-kald pr. projekt. Skabelonen forholder sig i ro, indtil du slår dem til: kør agentens `install.sh` igen med `OPENSTACK_COLLECT_QUOTAS=true`. En anden exporter læser dem derefter en gang i timen, og skabelonen venter på tre af de aflæsninger. På et cloud, en probe læser, slår du **Projektgrænser** til under **Dataindsamling** på dets side **Indstillinger**.
 
 ### Kommandoer at køre bagefter
 
@@ -752,12 +752,12 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | Felt | Hvad det gør |
 | --- | --- |
 | **Metrik** | Forespørgslen eller formlen, der skal tjekkes, ved dens variabelnavn. |
-| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi**, **Alle værdier** (hver værdi skal passe, over hele vinduet) eller **Enhver værdi** (én er nok). |
-| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Unormalt høj**, **Unormalt lav** eller **Unormal**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** passer, når metrikkens tendens over vinduet vil være forbi tærsklen ved udgangen af **Tidshorisont**. |
+| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal passe, over hele vinduet) eller **Any Value** (én er nok). |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, **Har data**, når den sendte noget. **Forventes at stige over** og **Forventes at falde under** passer, når metrikkens tendens over vinduet vil være forbi tærsklen ved udgangen af **Tidshorisont**. |
 | **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
-| **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Middel** (3σ, standarden) eller **Høj** (2σ). |
+| **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |
-| **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ingen prøver har: **Ignorér** (standarden), **Behandl som nul** eller **Trigger**. |
+| **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ingen prøver har: **Ignore** (standarden), **Treat As Zero** eller **Trigger**. |
 
 Anomalibetingelser sammenligner hver værdi med den samme time på ugen i baseline. De forbliver i en "Lærer"-tilstand og udløser intet, indtil baseline-vinduet rummer nok historik. Denne monitor filtrerer sine forespørgsler efter attributter, så hver forespørgsel, og hver serie i en grupperet, sammenlignes med sin egen historik, så langt tilbage som dine metrikker gemmes. Hvis det er under to uger, forbliver en Sum, et Antal eller en forespørgsel på et histogram i den tilstand for altid, og alt andet sammenlignes med alle serier for metrikken. En percentil af et histogram forbliver altid i den tilstand.
 
@@ -774,8 +774,8 @@ En monitor, du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Passer når | Så |
 | --- | --- | --- | --- |
-| 1 | Tjek om _monitornavn_ er offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren **Offline** og udløser hændelsen "_monitornavn_ er offline", som løser sig selv, når monitoren genopretter. |
-| 2 | Tjek om _monitornavn_ er online | Den første forespørgsel har data | Markerer monitoren **I drift**. |
+| 1 | Check if _monitor name_ is offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren **Offline** og udløser hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren genopretter. |
+| 2 | Check if _monitor name_ is online | Den første forespørgsel har data | Markerer monitoren **I drift**. |
 
 > [!IMPORTANT]
 > En værdi på `0` er data, så en metrik, der ofte er nul, såsom genstarter eller fejl, gør ikke monitoren offline. Hvis du vil advare om en værdi, så start fra en skabelon eller tilføj et kriterium med en tærskel. Når der slet ingen data kommer, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: tavshed er ikke genopretning. Tid, hvor OneUptime selv ikke modtog, er aldrig ingen data: et tjek, hvis vindue rummer den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
@@ -818,7 +818,7 @@ monitor_steps = [{
 Et cloud registrerer sig selv ud fra agentens data. Kontrollér, at agentens containere kører, og at den kan nå OneUptime med sit token.
 :::
 
-:::details Projektkvote næsten nået udløses aldrig
+:::details Project Quota Nearly Reached udløses aldrig
 Dens serier er slået fra som standard. Se [Slå limits-serierne til](#slå-limits-serierne-til).
 :::
 
@@ -827,7 +827,7 @@ Et cloud på OVN har ingen L3-agenter, så `openstack_neutron_l3_agent_of_router
 :::
 
 :::details Bloklager-API nede udløstes ikke, da Keystone gik ned
-Uden Keystone kan exporteren ikke læse noget, for nogen tjeneste, og svarer på hver indsamling med ingenting. **Identity-API nede** og **Cloud holdt op med at rapportere** er dem, der udløses.
+Uden Keystone kan exporteren ikke læse noget, for nogen tjeneste, og svarer på hver indsamling med ingenting. **Identity API Down** og **Cloud Stopped Reporting** er dem, der udløses.
 :::
 
 :::details En worker, jeg deaktiverede, vises stadig på et diagram

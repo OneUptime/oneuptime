@@ -52,12 +52,12 @@ Em **OpenStack Monitor Configuration**, escolha a nuvem em **Nuvem OpenStack**. 
 Um novo monitor começa em **Cloud Stopped Reporting**, em **Sobre o que alertar**. Para observar outra coisa:
 
 - **Alterar** - escolha outro [template](#templates-de-alerta-prontos). Ele define a métrica, os filtros de atributos, a agregação, o intervalo de tempo, o agrupamento e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode alterar o **Intervalo de tempo**.
-- **Métrica personalizada** (em **Mais campos**) - escolha uma métrica em **Métrica do OpenStack**, defina **Agregação** e **Intervalo de tempo**, e restrinja com os [filtros](#configurações-do-monitor).
+- **Custom Metric** (em **Mais campos**) - escolha uma métrica em **Métrica do OpenStack**, defina **Agregação** e **Intervalo de tempo**, e restrinja com os [filtros](#configurações-do-monitor).
 - **Avançado** (em **Mais campos**) - monte consultas e fórmulas você mesmo em **Selecionar Métricas**, com filtros em atributos como `status`, `adminState` ou `resourcetype`. Use **Agrupar por** um [atributo de identidade](#atributos-de-identidade) para avaliar cada parte separadamente.
 
 ### Verifique os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um template preenche esses campos. Com **Métrica personalizada** ou **Avançado**, o monitor começa com os critérios padrão, que só percebem a métrica deixar de enviar dados, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um template preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os critérios padrão, que só percebem a métrica deixar de enviar dados, então defina o seu próprio limite.
 
 ### Crie o monitor
 
@@ -72,14 +72,14 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | Campo | Aba | O que faz |
 | --- | --- | --- |
 | **Nuvem OpenStack** | Todas | Obrigatório. Restringe toda consulta a `resource.openstack.cloud.name`. |
-| **Região** | Métrica personalizada, Avançado | Opcional. Uma região: `openstack.region.name`. Toda série a possui. |
-| **Zona de disponibilidade** | Métrica personalizada, Avançado | Opcional. Uma zona: `availability_zone` em hipervisores, instâncias, volumes e agentes do Neutron, `zone` nos workers do Nova e do Cinder. |
-| **Hipervisor** | Métrica personalizada, Avançado | Opcional. Um host: `hostname` em workers, hipervisores e Placement, `hypervisor_hostname` em instâncias. Os workers do Nova informam o nome curto do host, e hipervisores, Placement e instâncias o nome completo, então use o que a série informa. |
-| **Serviço** | Métrica personalizada, Avançado | Opcional. O binário de um worker, como `nova-compute`: `service`. |
-| **ID do Projeto** | Métrica personalizada, Avançado | Opcional. Um projeto: `tenant_id` nas séries do Nova e do Cinder e em redes e sub-redes, `project_id` em IPs flutuantes, roteadores e disponibilidade de endereços. |
-| **Métrica do OpenStack** | Métrica personalizada | Uma métrica do [catálogo](#métricas-coletadas). |
-| **Agregação** | Métrica personalizada | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação habitual da métrica. |
-| **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Último 1 minuto** a **Últimos 365 dias**. Um novo monitor começa em **Últimos 15 minutos**; os templates definem a sua própria. |
+| **Região** | Custom Metric, Avançado | Opcional. Uma região: `openstack.region.name`. Toda série a possui. |
+| **Zona de disponibilidade** | Custom Metric, Avançado | Opcional. Uma zona: `availability_zone` em hipervisores, instâncias, volumes e agentes do Neutron, `zone` nos workers do Nova e do Cinder. |
+| **Hipervisor** | Custom Metric, Avançado | Opcional. Um host: `hostname` em workers, hipervisores e Placement, `hypervisor_hostname` em instâncias. Os workers do Nova informam o nome curto do host, e hipervisores, Placement e instâncias o nome completo, então use o que a série informa. |
+| **Serviço** | Custom Metric, Avançado | Opcional. O binário de um worker, como `nova-compute`: `service`. |
+| **ID do Projeto** | Custom Metric, Avançado | Opcional. Um projeto: `tenant_id` nas séries do Nova e do Cinder e em redes e sub-redes, `project_id` em IPs flutuantes, roteadores e disponibilidade de endereços. |
+| **Métrica do OpenStack** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
+| **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação habitual da métrica. |
+| **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um novo monitor começa em **Últimos 15 minutos**; os templates definem a sua própria. |
 | **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
 Um filtro restringe apenas uma série que possui o seu rótulo: `openstack_nova_up` não tem projeto, então um filtro de projeto a deixa como está.
@@ -752,12 +752,12 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | Campo | O que faz |
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
-| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Valor máximo**, **Valor mínimo**, **Todos os valores** (todo valor deve corresponder, em toda a janela) ou **Qualquer valor** (um basta). |
-| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalamente alto**, **Anomalamente baixo** ou **Anômalo**. **Sem dados** corresponde quando a consulta não enviou nada na janela, **Com dados** quando enviou qualquer coisa. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela estará além do limite ao fim de **Horizonte**. |
+| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor deve corresponder, em toda a janela) ou **Any Value** (um basta). |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. **Sem dados** corresponde quando a consulta não enviou nada na janela, **Com dados** quando enviou qualquer coisa. **Previsão acima de** e **Previsão abaixo de** correspondem quando a tendência da métrica na janela estará além do limite ao fim de **Horizonte**. |
 | **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não é exibido para condições de anomalia. |
 | **Sensibilidade** | Somente condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Somente condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
-| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignorar** (o padrão), **Tratar como zero** ou **Gatilho**. |
+| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
 As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em estado de "Aprendendo", e não geram nada, até a janela de linha de base reunir histórico suficiente. Este monitor filtra suas consultas por atributos, então cada consulta, e cada série de uma agrupada, é comparada com o próprio histórico, tão longe quanto suas métricas forem mantidas. Se isso for menos de duas semanas, uma Soma, uma Contagem ou uma consulta sobre um histograma permanece nesse estado para sempre, e qualquer outra é comparada com todas as séries da métrica. Um percentil de um histograma sempre permanece nesse estado.
 
@@ -774,8 +774,8 @@ Um monitor que você não monta a partir de um template começa com dois critér
 
 | Ordem | Critério | Corresponde quando | Então |
 | --- | --- | --- | --- |
-| 1 | Verificar se _nome do monitor_ está offline | A primeira consulta não tem dados durante toda a janela | Marca o monitor como **Offline** e declara o incidente "_nome do monitor_ está offline", que se resolve sozinho quando o monitor se recupera. |
-| 2 | Verificar se _nome do monitor_ está online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
+| 1 | Check if _monitor name_ is offline | A primeira consulta não tem dados durante toda a janela | Marca o monitor como **Offline** e declara o incidente "_monitor name_ is offline", que se resolve sozinho quando o monitor se recupera. |
+| 2 | Check if _monitor name_ is online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
 > Um valor `0` é dado, então uma métrica que costuma ser zero, como reinicializações ou erros, não deixa o monitor offline. Para alertar sobre um valor, comece de um template ou adicione um critério com um limite. Quando não chega nenhum dado e nenhum critério corresponde, o monitor mantém seu status e os incidentes abertos permanecem abertos: silêncio não é recuperação. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela o contém espera, como [Quando o OneUptime não está recebendo dados](/docs/monitor/when-oneuptime-is-not-receiving) explica.

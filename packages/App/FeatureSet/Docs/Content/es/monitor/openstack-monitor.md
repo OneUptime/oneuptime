@@ -52,12 +52,12 @@ En **OpenStack Monitor Configuration**, elige la nube en **Nube OpenStack**. En 
 Un monitor nuevo empieza con **Cloud Stopped Reporting**, en **Sobre qué alertar**. Para vigilar otra cosa:
 
 - **Cambiar** - elige otra [plantilla](#pre-built-alert-templates). Define la métrica, los filtros de atributos, la agregación, el intervalo de tiempo, la agrupación y los umbrales, y sustituye los criterios de abajo por los suyos. Aun así puedes cambiar el **Intervalo de tiempo**.
-- **Métrica personalizada** (en **Más campos**) - elige una métrica en **Métrica de OpenStack**, define la **Agregación** y el **Intervalo de tiempo**, y acótala con los [filtros](#ajustes-del-monitor).
+- **Custom Metric** (en **Más campos**) - elige una métrica en **Métrica de OpenStack**, define la **Agregación** y el **Intervalo de tiempo**, y acótala con los [filtros](#ajustes-del-monitor).
 - **Avanzado** (en **Más campos**) - crea tú mismo las consultas y fórmulas en **Seleccionar métricas**, con filtros sobre atributos como `status`, `adminState` o `resourcetype`. Usa **Agrupar por** un [atributo de identidad](#atributos-de-identidad) para juzgar cada pieza por separado.
 
 ### Revisa los criterios
 
-Abre cada criterio en **Criterios del monitor** y comprueba su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Métrica personalizada** o **Avanzado**, el monitor empieza con los criterios por defecto, que solo detectan que la métrica deja de enviar datos, así que define tu propio umbral.
+Abre cada criterio en **Criterios del monitor** y comprueba su **Métrica**, **Agregación**, **Condición** y **Umbral**. Una plantilla los rellena. Con **Custom Metric** o **Avanzado**, el monitor empieza con los criterios por defecto, que solo detectan que la métrica deja de enviar datos, así que define tu propio umbral.
 
 ### Crea el monitor
 
@@ -79,12 +79,12 @@ Haz clic en **Crear monitor**. OneUptime abre la página del monitor y lo evalú
 | **ID del proyecto** | Métrica personalizada, Avanzado | Opcional. Un proyecto: `tenant_id` en las series de Nova y Cinder y en redes y subredes, `project_id` en IP flotantes, routers y disponibilidad de direcciones. |
 | **Métrica de OpenStack** | Métrica personalizada | Una métrica del [catálogo](#métricas-recopiladas). |
 | **Agregación** | Métrica personalizada | Cómo se combinan las muestras: **Promedio**, **Máximo**, **Mínimo**, **Suma** o **Recuento**. Empieza con la agregación habitual de la métrica. |
-| **Intervalo de tiempo** | Todas | La ventana móvil que lee la consulta, desde **Último minuto** hasta **Últimos 365 días**. Un monitor nuevo empieza en **Últimos 15 minutos**; las plantillas fijan la suya. |
+| **Intervalo de tiempo** | Todas | La ventana móvil que lee la consulta, desde **Past 1 Minute** hasta **Past 365 Days**. Un monitor nuevo empieza en **Últimos 15 minutos**; las plantillas fijan la suya. |
 | **Seleccionar métricas** | Avanzado | El generador de consultas: **Métrica**, **Agregar por**, **Filtrar por atributos**, **Agrupar por**, además de **Añadir métrica** y **Añadir fórmula** para combinar consultas. |
 
 Un filtro solo acota una serie que lleva su etiqueta: `openstack_nova_up` no tiene proyecto, así que un filtro por proyecto la deja como está.
 
-Mantén la ventana en tres recopilaciones o más de lo que lees: 6 minutos para compute, network, volume y placement, 15 para identity e image. Una ventana más corta no contiene suficientes recopilaciones para que **Todos los valores** signifique una duración.
+Mantén la ventana en tres recopilaciones o más de lo que lees: 6 minutos para compute, network, volume y placement, 15 para identity e image. Una ventana más corta no contiene suficientes recopilaciones para que **All Values** signifique una duración.
 
 ## Atributos de identidad
 
@@ -752,12 +752,12 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | Campo | Qué hace |
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por el nombre de su variable. |
-| **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo**, **Todos los valores** (todos deben coincidir, en toda la ventana) o **Cualquier valor** (basta con uno). |
-| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anormalmente alto**, **Anormalmente bajo** o **Anómalo**. **Sin datos** coincide cuando la consulta no envió nada en la ventana, **Con datos** cuando envió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana estará más allá del umbral al final de **Plazo**. |
+| **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos deben coincidir, en toda la ventana) o **Any Value** (basta con uno). |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. **Sin datos** coincide cuando la consulta no envió nada en la ventana, **Con datos** cuando envió algo. **Previsto por encima de** y **Previsto por debajo de** coinciden cuando la tendencia de la métrica en la ventana estará más allá del umbral al final de **Plazo**. |
 | **Umbral** | El valor con el que comparar. Junto a él aparece una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
-| **Sensibilidad** | Solo condiciones de anomalía. **Baja** (4σ), **Media** (3σ, la predeterminada) o **Alta** (2σ). |
+| **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (la predeterminada), 28, 60 o 90 días de historial. |
-| **Si no hay datos** | En **Más campos**. Qué ocurre cuando la ventana no tiene muestras: **Ignorar** (la predeterminada), **Tratar como cero** o **Disparador**. |
+| **Si no hay datos** | En **Más campos**. Qué ocurre cuando la ventana no tiene muestras: **Ignore** (la predeterminada), **Treat As Zero** o **Disparador**. |
 
 Las condiciones de anomalía comparan cada valor con la misma hora de la semana en la referencia. Permanecen en estado "Aprendiendo", y no generan nada, hasta que la ventana de referencia contiene historial suficiente. Este monitor filtra sus consultas por atributos, así que cada consulta, y cada serie de una agrupada, se compara con su propio historial, hasta donde se conserven tus métricas. Si eso es menos de dos semanas, una Suma, un Recuento o una consulta sobre un histograma permanece en ese estado para siempre, y cualquier otra cosa se compara con todas las series de la métrica. Un percentil de un histograma permanece siempre en ese estado.
 

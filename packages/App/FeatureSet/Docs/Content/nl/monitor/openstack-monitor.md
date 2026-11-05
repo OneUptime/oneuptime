@@ -752,12 +752,12 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | Veld | Wat het doet |
 | --- | --- |
 | **Metriek** | De query of formule om te controleren, op zijn variabelenaam. |
-| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximumwaarde**, **Minimumwaarde**, **Alle waarden** (elke waarde moet overeenkomen, over het hele venster) of **Elke waarde** (één is genoeg). |
-| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Abnormaal hoog**, **Abnormaal laag** of **Abnormaal**. **Geen gegevens** komt overeen als de query niets stuurde in het venster, **Gegevens aanwezig** als hij iets stuurde. **Verwacht boven** en **Verwacht onder** komen overeen als de trend van de metriek over het venster aan het einde van **Termijn** voorbij de drempel zal zijn. |
+| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. **Geen gegevens** komt overeen als de query niets stuurde in het venster, **Gegevens aanwezig** als hij iets stuurde. **Verwacht boven** en **Verwacht onder** komen overeen als de trend van de metriek over het venster aan het einde van **Termijn** voorbij de drempel zal zijn. |
 | **Drempel** | De waarde om mee te vergelijken. Een eenhedenlijst staat ernaast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen aan geschiedenis. |
-| **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen samples heeft: **Negeren** (de standaard), **Behandelen als nul** of **Trigger**. |
+| **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen samples heeft: **Ignore** (de standaard), **Treat As Zero** of **Trigger**. |
 
 Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de baseline. Ze blijven in de status "Leren" en veroorzaken niets totdat het baseline-venster genoeg geschiedenis bevat. Deze monitor filtert zijn queries op attributen, dus elke query, en elke reeks van een gegroepeerde, wordt vergeleken met zijn eigen geschiedenis, zo ver terug als uw metrieken worden bewaard. Als dat minder dan twee weken is, blijft een Som, een Aantal of een query op een histogram voorgoed in die status, en wordt al het andere vergeleken met elke reeks van de metriek. Een percentiel van een histogram blijft altijd in die status.
 

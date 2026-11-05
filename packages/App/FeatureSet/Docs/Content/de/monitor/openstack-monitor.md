@@ -52,12 +52,12 @@ Wählen Sie unter **OpenStack Monitor Configuration** die Cloud bei **OpenStack-
 Ein neuer Monitor startet mit **Cloud Stopped Reporting** unter **Worüber benachrichtigt wird**. So überwachen Sie etwas anderes:
 
 - **Ändern** - wählen Sie eine andere [Vorlage](#vorgefertigte-warnungsvorlagen). Sie legt Metrik, Attributfilter, Aggregation, Zeitbereich, Gruppierung und Schwellenwerte fest und ersetzt die Kriterien darunter durch ihre eigenen. Den **Zeitbereich** können Sie weiterhin ändern.
-- **Benutzerdefinierte Metrik** (unter **Weitere Felder**) - wählen Sie eine Metrik bei **OpenStack-Metrik**, legen Sie dann **Aggregation** und **Zeitbereich** fest und grenzen Sie sie mit den [Filtern](#monitor-einstellungen) ein.
+- **Custom Metric** (unter **Weitere Felder**) - wählen Sie eine Metrik bei **OpenStack-Metrik**, legen Sie dann **Aggregation** und **Zeitbereich** fest und grenzen Sie sie mit den [Filtern](#monitor-einstellungen) ein.
 - **Erweitert** (unter **Weitere Felder**) - erstellen Sie Abfragen und Formeln selbst unter **Metriken auswählen**, mit Filtern auf Attributen wie `status`, `adminState` oder `resourcetype`. Mit **Gruppieren nach** einem [Identitätsattribut](#identitätsattribute) beurteilen Sie jeden Teil für sich.
 
 ### Kriterien prüfen
 
-Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Bei **Benutzerdefinierte Metrik** oder **Erweitert** startet der Monitor mit den Standardkriterien, die nur bemerken, dass die Metrik keine Daten sendet. Legen Sie daher Ihren eigenen Schwellenwert fest.
+Öffnen Sie jedes Kriterium unter **Monitor-Kriterien** und prüfen Sie **Metrik**, **Aggregation**, **Bedingung** und **Schwellenwert**. Eine Vorlage füllt diese aus. Bei **Custom Metric** oder **Erweitert** startet der Monitor mit den Standardkriterien, die nur bemerken, dass die Metrik keine Daten sendet. Legen Sie daher Ihren eigenen Schwellenwert fest.
 
 ### Monitor erstellen
 
@@ -79,12 +79,12 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 | **Projekt-ID** | Benutzerdefinierte Metrik, Erweitert | Optional. Ein Projekt: `tenant_id` bei den Serien von Nova und Cinder sowie bei Netzwerken und Subnetzen, `project_id` bei Floating IPs, Routern und Adressverfügbarkeit. |
 | **OpenStack-Metrik** | Benutzerdefinierte Metrik | Eine Metrik aus dem [Katalog](#erfasste-metriken). |
 | **Aggregation** | Benutzerdefinierte Metrik | Wie Messwerte zusammengefasst werden: **Durchschnitt**, **Maximum**, **Minimum**, **Summe** oder **Anzahl**. Beginnt mit der üblichen Aggregation der Metrik. |
-| **Zeitbereich** | Alle | Das gleitende Fenster, das die Abfrage liest, von **Letzte 1 Minute** bis **Letzte 365 Tage**. Ein neuer Monitor beginnt bei **Letzte 15 Minuten**; Vorlagen legen ihr eigenes fest. |
+| **Zeitbereich** | Alle | Das gleitende Fenster, das die Abfrage liest, von **Past 1 Minute** bis **Past 365 Days**. Ein neuer Monitor beginnt bei **Letzte 15 Minuten**; Vorlagen legen ihr eigenes fest. |
 | **Metriken auswählen** | Erweitert | Der Abfrage-Builder: **Metrik**, **Aggregieren nach**, **Nach Attributen filtern**, **Gruppieren nach**, dazu **Metrik hinzufügen** und **Formel hinzufügen**, um Abfragen zu kombinieren. |
 
 Ein Filter grenzt nur eine Serie ein, die sein Label trägt: `openstack_nova_up` hat kein Projekt, daher lässt ein Projektfilter sie unverändert.
 
-Halten Sie das Fenster bei mindestens drei Erfassungen dessen, was Sie lesen: 6 Minuten für Compute, Network, Volume und Placement, 15 für Identity und Image. Ein kürzeres Fenster enthält nicht genug Erfassungen, damit **Alle Werte** eine Dauer bedeutet.
+Halten Sie das Fenster bei mindestens drei Erfassungen dessen, was Sie lesen: 6 Minuten für Compute, Network, Volume und Placement, 15 für Identity und Image. Ein kürzeres Fenster enthält nicht genug Erfassungen, damit **All Values** eine Dauer bedeutet.
 
 ## Identitätsattribute
 
@@ -752,12 +752,12 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | Feld | Was es bewirkt |
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, mit ihrem Variablennamen. |
-| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Alle Werte** (jeder Wert muss passen, über das ganze Fenster) oder **Beliebiger Wert** (einer genügt). |
-| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomal hoch**, **Anomal niedrig** oder **Anomal**. **Keine Daten** trifft zu, wenn die Abfrage im Fenster nichts gesendet hat, **Daten vorhanden**, wenn sie irgendetwas gesendet hat. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik über das Fenster bis zum Ende von **Prognosezeitraum** den Schwellenwert überschritten haben wird. |
+| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss passen, über das ganze Fenster) oder **Any Value** (einer genügt). |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. **Keine Daten** trifft zu, wenn die Abfrage im Fenster nichts gesendet hat, **Daten vorhanden**, wenn sie irgendetwas gesendet hat. **Steigt voraussichtlich über** und **Fällt voraussichtlich unter** treffen zu, wenn der Trend der Metrik über das Fenster bis zum Ende von **Prognosezeitraum** den Schwellenwert überschritten haben wird. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
-| **Bei keinen Daten** | Unter **Weitere Felder**. Was passiert, wenn das Fenster keine Messwerte hat: **Ignorieren** (der Standard), **Als Null behandeln** oder **Auslöser**. |
+| **Bei keinen Daten** | Unter **Weitere Felder**. Was passiert, wenn das Fenster keine Messwerte hat: **Ignore** (der Standard), **Treat As Zero** oder **Auslöser**. |
 
 Anomaliebedingungen vergleichen jeden Wert mit derselben Stunde der Woche in der Baseline. Sie bleiben im Zustand „Learning“ und lösen nichts aus, bis das Baseline-Fenster genug Verlauf enthält. Dieser Monitor filtert seine Abfragen nach Attributen, sodass jede Abfrage und jede Serie einer gruppierten mit ihrem eigenen Verlauf verglichen wird, so weit zurück, wie Ihre Metriken aufbewahrt werden. Sind das weniger als zwei Wochen, bleibt eine Summe, eine Anzahl oder eine Abfrage auf einem Histogramm für immer in diesem Zustand, und alles andere wird mit jeder Serie der Metrik verglichen. Ein Perzentil eines Histogramms bleibt immer in diesem Zustand.
 
