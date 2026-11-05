@@ -374,6 +374,18 @@ export const OPENSTACK_ACCESS_READS: ReadonlyArray<OpenStackAccessReadDefinition
       tells: "adminOnly",
     },
     {
+      service: OpenStackServiceType.Database,
+      read: "instances, all projects",
+      path: "/mgmt/instances",
+      query: { include_clustered: "False", deleted: "False" },
+      key: "instances",
+      projectField: "-",
+      goesWithout:
+        "every database, because Trove lists them to nothing less, and anything less is refused its own project's too.",
+      fix: `To read them: ${USE_FULL_VIEW}.`,
+      tells: "adminOnly",
+    },
+    {
       service: OpenStackServiceType.SharedFileSystems,
       read: "shares, all projects",
       path: "/shares/detail",

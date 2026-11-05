@@ -3,7 +3,7 @@
 Nobody runs "OpenStack". They run a tool that deploys it, and each tool has its own paths, its own logs and its own idea of what is already running. This page is what the setup guide in OneUptime says for each one: open **OpenStack → All Clouds**, connect a cloud, and answer **How do you deploy OpenStack?**
 
 :::cards
-- [How far each guide has been tested](#how-far-each-guide-has-been-tested): Read this first. Kolla-Ansible's has been run on a real deployment, short of an alert. The others have not.
+- [How far each guide has been tested](#how-far-each-guide-has-been-tested): Read this first. Kolla-Ansible's has been run on a real deployment, short of an alert. OpenStack-Ansible's has been run in part. The others have not.
 - [Forward what is already firing](#forward-what-is-already-firing): Incidents from the first hour, with no agent.
 - [Kolla-Ansible](#kolla-ansible): Read the exporters it already runs.
 - [OpenStack-Ansible](#openstack-ansible): Journald logs, and overrides in `user_variables.yml`.

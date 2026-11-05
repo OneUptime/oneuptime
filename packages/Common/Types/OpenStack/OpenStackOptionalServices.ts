@@ -92,6 +92,7 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
     {
       service: OpenStackServiceType.Database,
       upMetricName: "openstack_trove_up",
+      isReadByProbe: true,
       readsDownWhenRefused: true,
     },
   ];

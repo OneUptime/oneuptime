@@ -312,7 +312,7 @@ export const ArchitectureTiers: Array<ArchitectureTier> = [
       {
         name: "Agents",
         description:
-          "Infrastructure, Docker, Docker Swarm, Podman, Proxmox, VMware, Kubernetes, Ceph, and Database agents report into the same ingest path.",
+          "Infrastructure, Docker, Docker Swarm, Podman, Proxmox, VMware, Kubernetes, Ceph, OpenStack, and Database agents report into the same ingest path.",
         scaling: "One per host or cluster",
       },
       {
