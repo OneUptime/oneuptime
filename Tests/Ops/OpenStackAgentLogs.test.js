@@ -272,6 +272,9 @@ describe.each([
     "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [\u001b[01;36mNone req-r \u001b[00;36madmin admin] {}",
     "2026-10-30 10:00:00.123 1234 INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [req-g req-r - - - - - -] {}",
     '{"message": "Started", "levelname": "INFO", "name": "nova.compute.manager"}',
+    // Keystone's extensions name their notifications with a colon.
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [None req-r admin admin] {}",
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [\u001b[01;36mNone req-r \u001b[00;36madmin admin] \u001b[01;35m{}",
   ])("starts a record: %s", (line) => {
     expect(isFirstEntry(line)).toBe(true);
   });

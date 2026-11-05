@@ -24,6 +24,15 @@ import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceBufferEntry,
+  getOpenStackRoutersWithoutAgents,
+} from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import {
+  readRecordedSeries,
+  scanRecordedSeries,
+} from "../../Helpers/OpenStackRecordedRows";
+import path from "path";
 import { DataSource } from "typeorm";
 
 /*
@@ -2100,6 +2109,101 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       for (const other of others) {
         expect(other.facts).toMatchObject({ l3Agents: AGENTS });
       }
+    });
+
+    test("a real router, as the rig recorded it before and after its only agent was taken off it", async () => {
+      const routersOf: (
+        scene: string,
+        observedAt: Date,
+      ) => Array<OpenStackResourceBufferEntry> = (
+        scene: string,
+        observedAt: Date,
+      ): Array<OpenStackResourceBufferEntry> => {
+        return scanRecordedSeries(
+          readRecordedSeries(
+            path.join(
+              __dirname,
+              "../../Fixtures/OpenStack/gazpacho-ovs",
+              scene,
+              "exporter",
+            ),
+          ),
+          observedAt.getTime(),
+        ).filter((entry: OpenStackResourceBufferEntry): boolean => {
+          return entry.kind === OpenStackResourceKind.Router;
+        });
+      };
+      const asRows: (
+        entries: Array<OpenStackResourceBufferEntry>,
+      ) => Array<ParsedOpenStackResource> = (
+        entries: Array<OpenStackResourceBufferEntry>,
+      ): Array<ParsedOpenStackResource> => {
+        return entries.map(
+          (entry: OpenStackResourceBufferEntry): ParsedOpenStackResource => {
+            return resource({
+              kind: entry.kind,
+              externalId: entry.externalId,
+              name: entry.name,
+              status: entry.status,
+              facts: entry.facts,
+              lastSeenAt: entry.observedAt,
+            });
+          },
+        );
+      };
+      const named: (
+        entries: Array<OpenStackResourceBufferEntry>,
+        name: string,
+      ) => string = (
+        entries: Array<OpenStackResourceBufferEntry>,
+        name: string,
+      ): string => {
+        return entries.find((entry: OpenStackResourceBufferEntry): boolean => {
+          return entry.name === name;
+        })!.externalId;
+      };
+
+      const before: Array<OpenStackResourceBufferEntry> = routersOf(
+        "compute-forced-down",
+        at(-30 * MINUTE_MS),
+      );
+      const after: Array<OpenStackResourceBufferEntry> = routersOf(
+        "router-agents-removed",
+        NOW,
+      );
+
+      await write(asRows(before));
+      await write(asRows(after));
+
+      // Facts merge key by key, so what the later scrape didn't say is still there.
+      expect(
+        (
+          await rowOf(
+            OpenStackResourceKind.Router,
+            named(after, "ou-router"),
+          )
+        )["facts"],
+      ).toHaveProperty("l3Agents");
+
+      await OpenStackResourceService.forgetAgentsOfRouters({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        routers: getOpenStackRoutersWithoutAgents(after),
+      });
+
+      expect(
+        (
+          await rowOf(
+            OpenStackResourceKind.Router,
+            named(after, "ou-router"),
+          )
+        )["facts"],
+      ).not.toHaveProperty("l3Agents");
+      expect(
+        (await rowOf(OpenStackResourceKind.Router, named(after, "router1")))[
+          "facts"
+        ],
+      ).toHaveProperty("l3Agents");
     });
 
     test("a cloud with no routers to ask about asks nothing", async () => {

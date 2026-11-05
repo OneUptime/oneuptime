@@ -197,6 +197,18 @@ describe("lines that are not oslo.log's", () => {
     expect(readOpenStackLogLine(text)).toBeNull();
   });
 
+  test("a logger can hold a colon, as a Keystone extension's notifications do", () => {
+    expect(
+      lineOf(
+        'INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [None req-1 admin admin] {"event_type": "x"}',
+      ).logger,
+    ).toBe("oslo.messaging.notification.identity.OS-TRUST:trust.created");
+  });
+
+  test("a colon after a word is no logger's, so that line is no oslo.log's", () => {
+    expect(readOpenStackLogLine("INFO nova.compute: it happened")).toBeNull();
+  });
+
   test("a level and a logger with nothing after them still read", () => {
     expect(lineOf("INFO nova.compute").logger).toBe("nova.compute");
   });
