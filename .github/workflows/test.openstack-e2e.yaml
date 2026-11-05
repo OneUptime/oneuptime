@@ -73,6 +73,10 @@ on:
         description: Only the whole path, on one runner, about three hours - a real DevStack, the agent and a project's probe reading it, into a OneUptime built from this branch, nova-compute stopped under them, and a signed boot
         type: boolean
         default: false
+      status_pages_live:
+        description: Only status pages and project notices, on one runner, about two hours - a real DevStack and a OneUptime built from this branch, a page made in one step, a notice told about a stopped host, and maintenance keeping it quiet
+        type: boolean
+        default: false
       agent_install_only:
         description: Only install the agent the way its docs say, with and without Docker, on one DevStack
         type: boolean
@@ -429,6 +433,171 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # What #5750 asks of a real cloud in a running OneUptime, which whole-path.py's first parts set up:
+  # status-pages-live.py says what it checks, and every check's finding is in the artifact. Only by hand.
+  status-pages-live:
+    name: status pages and project notices, on a real cloud and a running OneUptime
+    if: ${{ inputs.status_pages_live }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    # Tells prerun's configure.sh it is in CI, where it must not `git pull`.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/free-disk-space
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: ./.github/actions/setup-gomplate
+      - name: Preinstall
+        run: npm run prerun
+
+      # Before DevStack, which leaves a build less memory. The test images are as new as the last
+      # test-release run to finish, and the app and the probe are what is being tested.
+      - name: Build the app and the probe from this branch, and pull the rest of the stack
+        timeout-minutes: 60
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          source ./Scripts/GHA/retry.sh
+          version="$(tr -d ' \n' <VERSION)-test"
+          docker build --file ./packages/App/Dockerfile --target community \
+            --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "APP_VERSION=$version" \
+            --label com.oneuptime.edition=community --tag oneuptime/app:test .
+          docker build --file ./packages/Probe/Dockerfile \
+            --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "APP_VERSION=$version" \
+            --build-arg IS_ENTERPRISE_EDITION=false \
+            --label com.oneuptime.edition=community --tag oneuptime/probe:test .
+          services="$(docker compose -f docker-compose.yml config --services | grep -vxE 'app|probe-1' | tr '\n' ' ')"
+          retry_registry_read "Pulling the rest of the stack's images" docker compose -f docker-compose.yml pull $services
+          df -h /
+
+      # esbuild, for what prints a real alert template's monitor steps.
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
+      # hosted runner's can be 65, which stops stack.sh with "string too long". Before the action,
+      # because the RabbitMQ it installs names its node after this.
+      - name: Give the runner a name a certificate can hold
+        run: |
+          sudo hostnamectl set-hostname devstack
+          printf '\n127.0.1.1 devstack\n' | sudo tee -a /etc/hosts
+          hostname -f
+
+      # The record job's cloud, with every API behind TLS, because a probe never sends a credential
+      # over plain HTTP.
+      - name: Deploy DevStack with every API behind TLS
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          enabled_services: tls-proxy
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker compose version >/dev/null 2>&1 || sudo apt-get install -y docker-compose-v2
+          docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep '^oneuptime/'
+          free -m
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      # Beside DevStack, whose Apache holds 80 and 443: config.env's last assignment of each is the
+      # one read. Without the stack's global probe, because the probe tested is a project's own, as
+      # a person would run one, and the memory is the cloud's.
+      - name: Start OneUptime
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          # The first echo because the merge that writes config.env leaves no newline at its end,
+          # which would put the first of these on the end of its last setting.
+          {
+            echo
+            echo "ONEUPTIME_HTTP_PORT=8880"
+            echo "STATUS_PAGE_HTTPS_PORT=8843"
+            # The webhook this tells is a server on this runner.
+            echo "ALLOW_PRIVATE_NETWORK_WEBHOOKS=true"
+          } >>config.env
+          export $(grep -v '^#' config.env | xargs)
+          test "$ONEUPTIME_HTTP_PORT" = 8880
+          test "$STATUS_PAGE_HTTPS_PORT" = 8843
+          export APP_TAG=test
+          services="$(docker compose -f docker-compose.yml config --services | grep -vx 'probe-1' | tr '\n' ' ')"
+          docker compose -f docker-compose.yml up --remove-orphans -d $services
+          npm run status-check
+          # An agent runs on a machine of its own. Here it shares this one with OneUptime, and Docker
+          # can keep one bridge network from another, even at a port the other publishes.
+          sudo iptables -I DOCKER-USER -j ACCEPT || true
+          docker image inspect "oneuptime/app:test" "oneuptime/probe:test" \
+            --format '{{index .RepoTags 0}} built {{.Created}}, {{index .Config.Labels "org.opencontainers.image.revision"}}' || true
+
+      - name: Make a status page, tell a project, and plan some work
+        timeout-minutes: 170
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          ONEUPTIME_URL: http://localhost:8880
+          OS_CLOUD: devstack-admin
+        run: python3 -I Tests/Ops/openstack-e2e/status-pages-live.py
+
+      - name: Keep what the containers said
+        if: always()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/recording/containers"
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          docker compose -f docker-compose.yml ps -a >"${RUNNER_TEMP}/recording/containers/ps.txt" 2>&1 || true
+          docker compose -f docker-compose.yml logs --no-color --tail 5000 app >"${RUNNER_TEMP}/recording/containers/app.log" 2>&1 || true
+          for name in oneuptime-probe oneuptime-openstack-agent oneuptime-openstack-exporter oneuptime-openstack-traces; do
+            docker logs --tail 3000 "$name" >"${RUNNER_TEMP}/recording/containers/$name.log" 2>&1 || true
+          done
+          sudo journalctl -u devstack@n-cpu --no-pager -n 300 >"${RUNNER_TEMP}/recording/containers/nova-compute.txt" 2>&1 || true
+
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what each check found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-status-pages-live
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-status-pages-live
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
   # Every agent's collector config through the real collector, which the "Ops Config Test"
   # workflow also does, but never gets to when master moves faster than it runs.
   validate-collector-configs:
@@ -633,7 +802,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
+    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.status_pages_live && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -1287,7 +1456,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only }}
+    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.status_pages_live && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180
