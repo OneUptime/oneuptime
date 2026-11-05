@@ -611,6 +611,15 @@ function foldServiceState(data: {
     records[agentId] = data.value > 0;
     entry.facts[AGENT_RECORDS_FACT] = records;
   }
+  /*
+   * How many networks a DHCP agent serves, which only a probe reads. Null when nothing says, which
+   * is what a page reads as not known, and not as an agent that serves none.
+   */
+  if (binary === "neutron-dhcp-agent") {
+    entry.facts["dhcpNetworkCount"] = toNumberOrNull(
+      getLabel(data.attributes, "dhcp_network_count"),
+    );
+  }
 }
 
 /*
@@ -1080,6 +1089,20 @@ function foldNetwork(data: {
     getLabel(data.attributes, "provider_physical_network"),
   );
   setFact(entry, "mtu", toNumberOrNull(getLabel(data.attributes, "mtu")));
+  /*
+   * Which DHCP agents serve it, which only a probe reads. Written every time, because facts merge
+   * key by key and a network taken off its agents has no label left to say so. A label is cut at
+   * a length, far past what a network has, and then its last id is no id.
+   */
+  const dhcpAgentIds: string | null = getLabel(
+    data.attributes,
+    "dhcp_agent_ids",
+  );
+  entry.facts["dhcpAgentIds"] = dhcpAgentIds
+    ? dhcpAgentIds.split(",").filter((id: string): boolean => {
+        return Boolean(id) && !id.endsWith("…");
+      })
+    : null;
 }
 
 /*

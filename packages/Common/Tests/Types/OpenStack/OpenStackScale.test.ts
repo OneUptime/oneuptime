@@ -9,12 +9,14 @@ import { OpenStackInstanceMetricsMode } from "../../../Types/OpenStack/OpenStack
 import { OpenStackServiceType } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES,
+  OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
   OPENSTACK_INSTANCES_BY_STATUS_SERIES,
   OPENSTACK_LARGE_CLOUD,
   OPENSTACK_MEDIUM_CLOUD,
   OPENSTACK_SUMMARY_MODE_SERIES,
   OPENSTACK_SMALL_CLOUD,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
+  OpenStackCloudCounts,
   OpenStackVolumeEstimate,
   estimateOpenStackVolume,
   getOpenStackCountsOfSize,
@@ -34,6 +36,61 @@ import {
  * really does is OpenStackScaleBudget.test.ts's to prove, with the collector and a mock API. This
  * holds what they are made of: the rates the bill uses, and the shape of the answers.
  */
+
+describe("what a DHCP agent's networks cost", () => {
+  const OVS: OpenStackCloudCounts = { ...OPENSTACK_SMALL_CLOUD, dhcpAgents: 3 };
+
+  function neutronCallsPerHour(data: {
+    counts: OpenStackCloudCounts;
+    isOvs: boolean;
+    isSummaryMode?: boolean;
+  }): number {
+    return simulateOpenStackProbeRequests({
+      counts: data.counts,
+      fromMinute: 120,
+      toMinute: 180,
+      options: {
+        networkBackend: data.isOvs ? "ovs" : "ovn",
+        isSummaryMode: data.isSummaryMode ?? false,
+      },
+    })[OpenStackServiceType.Network];
+  }
+
+  function withoutDhcp(counts: OpenStackCloudCounts): OpenStackCloudCounts {
+    return { ...counts, dhcpAgents: 0 };
+  }
+
+  test("six rounds an hour, a call per agent, on ML2/OVS", () => {
+    expect(
+      neutronCallsPerHour({ counts: OVS, isOvs: true }) -
+        neutronCallsPerHour({ counts: withoutDhcp(OVS), isOvs: true }),
+    ).toBe(18);
+  });
+
+  test("however many agents a cloud runs, the same few a round", () => {
+    const many: OpenStackCloudCounts = { ...OPENSTACK_SMALL_CLOUD, dhcpAgents: 500 };
+
+    expect(
+      neutronCallsPerHour({ counts: many, isOvs: true }) -
+        neutronCallsPerHour({ counts: withoutDhcp(many), isOvs: true }),
+    ).toBe(6 * OPENSTACK_DHCP_AGENT_READS_PER_ROUND);
+  });
+
+  test("nothing past the summary size, and nothing on OVN", () => {
+    expect(
+      neutronCallsPerHour({ counts: OVS, isOvs: true, isSummaryMode: true }) -
+        neutronCallsPerHour({
+          counts: withoutDhcp(OVS),
+          isOvs: true,
+          isSummaryMode: true,
+        }),
+    ).toBe(0);
+    expect(
+      neutronCallsPerHour({ counts: OVS, isOvs: false }) -
+        neutronCallsPerHour({ counts: withoutDhcp(OVS), isOvs: false }),
+    ).toBe(0);
+  });
+});
 
 describe("the rates are the ones the bill uses", () => {
   test("the row size is what TelemetryUsageBillingService falls back on", () => {
