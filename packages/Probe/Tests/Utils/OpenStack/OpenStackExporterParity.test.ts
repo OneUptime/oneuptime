@@ -72,6 +72,14 @@ const SCENES: ReadonlyArray<{ release: string; scene: string }> = [
   { release: "epoxy-ovn", scene: "healthy" },
 ];
 
+const RECORDED_RELEASES: ReadonlyArray<string> = [
+  "hibiscus-ovn",
+  "gazpacho-ovs",
+  "gazpacho-ovn",
+  "flamingo-ovn",
+  "epoxy-ovn",
+];
+
 const SCRAPE_LABELS: ReadonlyArray<string> = [
   "openstack.region.name",
   "openstack_service",
@@ -283,8 +291,12 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "vouchedAt",
     // How long one collection took: its own reading on each path.
     "collectionSeconds",
+    // When a router's agents were last heard, which is each path's own time too.
+    "l3AgentsReportedAt",
     // What an operator told Nova, which the exporter has no label for.
     "forcedDown",
+    // What an instance booted from, nor for this.
+    "imageId",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
     "storageProtocol",
     "cephFsid",
@@ -978,6 +990,62 @@ describe("what only a probe adds, in the rows it fills", () => {
       expect(row.facts["pool"]).toBeNull();
       expect(row.diskCapacityBytes).toBeGreaterThan(0);
     }
+  });
+
+  test("each instance says what it booted from, in Nova's own answer", async () => {
+    const servers: Array<JSONObject> = recordedJson(SCENE, "nova-servers")?.[
+      "servers"
+    ] as Array<JSONObject>;
+
+    const instances: Array<OpenStackResourceBufferEntry> = rowsOf(
+      await rowsFrom(),
+      OpenStackResourceKind.Instance,
+    );
+
+    expect(instances).toHaveLength(servers.length);
+
+    for (const server of servers) {
+      const imageId: string = (server["image"] as JSONObject)["id"] as string;
+
+      expect(imageId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(
+        instances.find((row: OpenStackResourceBufferEntry): boolean => {
+          return row.externalId === server["id"];
+        })?.facts["imageId"],
+      ).toBe(imageId);
+    }
+  });
+
+  test("the exporter has no label for it, on any of Nova's series or release", () => {
+    const labels: Array<string> = RECORDED_RELEASES.flatMap(
+      (release: string): Array<string> => {
+        return loadScene(release, "healthy")
+          .exporter.filter((series: PrometheusSeries): boolean => {
+            return series.name.startsWith("openstack_nova_");
+          })
+          .flatMap((series: PrometheusSeries): Array<string> => {
+            return Object.keys(series.labels);
+          });
+      },
+    );
+
+    expect(labels.length).toBeGreaterThan(100);
+    expect(
+      labels.filter((label: string): boolean => {
+        return label.toLowerCase().includes("image");
+      }),
+    ).toEqual([]);
+  });
+
+  test("so a cloud the exporter collects says nothing of it, rather than none", () => {
+    const instance: OpenStackResourceBufferEntry | undefined = Array.from(
+      scanAsIngest(exporterAsOtlp(SCENE, `${COLLECTED_AT_MS}000000`)).values(),
+    ).find((row: OpenStackResourceBufferEntry): boolean => {
+      return row.kind === OpenStackResourceKind.Instance;
+    });
+
+    expect(instance).toBeDefined();
+    expect(Object.keys(instance?.facts || {})).not.toContain("imageId");
   });
 
   test("each snapshot is a row of its own, which the exporter only counts", async () => {

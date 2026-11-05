@@ -63,6 +63,25 @@ function readRecordings() {
         }
       }
     }
+    // What the exporter said with each credential: "hibiscus-ovn/access/reader".
+    const levels = path.join(releaseFolder, "access", "exporter");
+    if (fs.existsSync(levels) && fs.statSync(levels).isDirectory()) {
+      for (const level of fs.readdirSync(levels).sort()) {
+        const folder = path.join(levels, level);
+        if (!fs.statSync(folder).isDirectory()) {
+          continue;
+        }
+        const files = {};
+        for (const file of fs.readdirSync(folder).sort()) {
+          if (file.endsWith(".prom")) {
+            files[file] = fs.readFileSync(path.join(folder, file), "utf8");
+          }
+        }
+        if (Object.keys(files).length > 0) {
+          read[`${release}/access/${level}`] = files;
+        }
+      }
+    }
   }
   return read;
 }

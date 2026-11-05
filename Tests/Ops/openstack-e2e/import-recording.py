@@ -39,6 +39,9 @@ DEEP_RELEASES = ("hibiscus-ovn", "gazpacho-ovs")
 # the catalog answers with nothing.
 SERVICES = ("identity", "compute", "placement", "network", "volume", "image")
 
+# The levels of access the docs describe: Full view, Infrastructure only, and Project view.
+ACCESS_LEVELS_WALKED = ("monitoring-admin-get", "monitoring-role", "reader")
+
 # What each API answered, for the probe's own collector to read: its parity tests hold it
 # to what the exporter said about the same cloud at the same moment. Each call a scene
 # holds costs about 150 KiB, so only the scenes that say something different to a reader
@@ -405,6 +408,13 @@ def main():
                 path = os.path.join(status, level, "status.txt")
                 if os.path.isfile(path):
                     copy_text(path, os.path.join(target, "access", "exporter", f"{level}.txt"), short, full)
+                # What that credential's exporter said, for a page's walk to read: "can't list
+                # hypervisors" is only right if a real credential really gets what the page assumes.
+                if level in ACCESS_LEVELS_WALKED:
+                    for service in SERVICES:
+                        path = os.path.join(status, level, f"{service}.prom")
+                        if os.path.isfile(path):
+                            copy_text(path, os.path.join(target, "access", "exporter", level, f"{service}.prom"), short, full)
         total = sum(
             os.path.getsize(os.path.join(root, name))
             for root, _, names in os.walk(target)

@@ -252,6 +252,8 @@ export interface NovaServerRecord {
   flavorId: string | null;
   flavorName: string | null;
   instanceName: string | null;
+  // The image it booted from. One booted from a volume has none: Nova says "" there.
+  imageId: string | null;
   // What only a native collector reads: see OPENSTACK_PROBE_ONLY_LABELS.
   taskState: string | null;
   updatedAt: string | null;
@@ -331,6 +333,7 @@ export function toNovaServer(item: JSONObject): NovaServerRecord | null {
     flavorId: text(flavor["id"]),
     flavorName: text(flavor["original_name"]),
     instanceName: text(item["OS-EXT-SRV-ATTR:instance_name"]),
+    imageId: text(object(item["image"])["id"]),
     taskState: text(item["OS-EXT-STS:task_state"]),
     updatedAt: text(item["updated"]),
     // Only its message: `details` is a traceback, and stays with Nova.

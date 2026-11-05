@@ -4,6 +4,7 @@ import {
   isOpenStackVolumeStuck,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_API_STATUS_CLOSED,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
@@ -76,6 +77,10 @@ export const OPENSTACK_SCRAPE_FAILED_REASON: string = translationKey(
 export const OPENSTACK_STUCK_LABEL: string = translationKey("Stuck");
 
 export const OPENSTACK_LOST_LABEL: string = translationKey("Lost");
+
+export const OPENSTACK_CLOSED_LABEL: string = translationKey(
+  "Closed to this credential",
+);
 
 /*
  * Nova and Cinder say enabled and disabled, Neutron says up and down. Both mean
@@ -254,6 +259,15 @@ export function getOpenStackStatusReading(
   const word: string = (input.status || "").trim();
   if (!word) {
     return null;
+  }
+
+  // Ours, so it is looked up, and it says nothing about whether the API answers.
+  if (word === OPENSTACK_API_STATUS_CLOSED) {
+    return {
+      label: OPENSTACK_CLOSED_LABEL,
+      tone: "neutral",
+      isOpenStackWord: false,
+    };
   }
 
   if (

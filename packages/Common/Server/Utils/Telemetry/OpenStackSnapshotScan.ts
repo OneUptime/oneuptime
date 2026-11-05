@@ -172,6 +172,7 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
   "updated_at",
   "task_state",
   "fault_message",
+  "image_id",
   OPENSTACK_SERVICE_LABEL,
   OPENSTACK_REGION_ATTRIBUTE,
   "openstack_region",
@@ -272,6 +273,11 @@ export interface OpenStackResourceBufferEntry {
    * reason: its used and its limit are two series, and only the pair says anything.
    */
   quota?: Record<string, QuotaReading> | undefined;
+  /*
+   * When this batch heard a router's own series, which is what can say its agents have gone: a
+   * batch can hold a router's agents and not the router. See getOpenStackRoutersWithoutAgents.
+   */
+  routerSeenAt?: Date | undefined;
   facts: JSONObject;
   observedAt: Date;
 }
@@ -768,6 +774,8 @@ function setNativeInstanceFacts(
   entry.facts["updatedAt"] = updatedAt;
   entry.facts["taskState"] = getLabel(attributes, "task_state");
   entry.facts["faultMessage"] = getLabel(attributes, "fault_message");
+  // None, from a probe, is an instance booted from a volume: see getOpenStackInstanceImage.
+  entry.facts["imageId"] = getLabel(attributes, "image_id");
   // An instance that lost its floating IP or its port has no label left to say so.
   entry.facts["addressIpv4"] = getLabel(attributes, "address_ipv4");
   entry.facts["addressIpv6"] = getLabel(attributes, "address_ipv6");
@@ -1154,6 +1162,7 @@ function foldRouter(data: {
     openStackProjectId: getLabel(data.attributes, "project_id"),
   });
   setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  entry.routerSeenAt = data.observedAt;
   const adminUp: string | null = getLabel(data.attributes, "admin_state_up");
   if (adminUp !== null) {
     entry.adminState = adminUp === "true" ? "up" : "down";
@@ -1166,6 +1175,30 @@ function foldRouter(data: {
     data.attributes,
     "external_network_id",
   );
+}
+
+/*
+ * A router's agents are only said by a series per agent, so one that lost its last agent has no
+ * series left to say so, and facts merge key by key: it would name them for ever. So its agents
+ * say when they were last heard, and a router heard long after that has none
+ * (getOpenStackRoutersWithoutAgents, OpenStackResourceService.forgetAgentsOfRouters).
+ *
+ * Long after, and not in the same breath, because all of a scrape is not in one batch: past a
+ * request's size a collector cuts it anywhere, so a router can arrive first and its agents a moment
+ * later, and one read of one router's agents can fail while the rest answer. Neither is a router
+ * that lost them.
+ *
+ * To five minutes, which is as often as an unchanged row is rewritten anyway, so this rewrites
+ * nothing extra.
+ */
+const ROUTER_AGENTS_REPORTED_TO_MS: number = 5 * 60 * 1000;
+const ROUTER_AGENTS_GONE_AFTER_MS: number = 10 * 60 * 1000;
+
+function getRouterAgentsReportTime(observedAt: Date): string {
+  return new Date(
+    Math.floor(observedAt.getTime() / ROUTER_AGENTS_REPORTED_TO_MS) *
+      ROUTER_AGENTS_REPORTED_TO_MS,
+  ).toISOString();
 }
 
 /*
@@ -1198,6 +1231,9 @@ function foldL3AgentOfRouter(data: {
     haState: getLabel(data.attributes, "ha_state"),
   };
   entry.facts["l3Agents"] = agents;
+  entry.facts["l3AgentsReportedAt"] = getRouterAgentsReportTime(
+    data.observedAt,
+  );
 }
 
 function foldFloatingIp(data: {
@@ -1762,6 +1798,39 @@ export function getOpenStackHostsToReconcile(
   }
 
   return hosts;
+}
+
+export interface OpenStackRouterWithoutAgents {
+  externalId: string;
+  // Its agents are gone if they were last heard before this.
+  agentsReportedBefore: Date;
+}
+
+/*
+ * The routers a batch heard from with no agent beside them, on any cloud: most clouds' are all of
+ * them, because OVN has no L3 agents, and they have nothing to forget.
+ */
+export function getOpenStackRoutersWithoutAgents(
+  finished: ReadonlyArray<OpenStackResourceBufferEntry>,
+): Array<OpenStackRouterWithoutAgents> {
+  const routers: Array<OpenStackRouterWithoutAgents> = [];
+
+  for (const entry of finished) {
+    if (
+      entry.kind === OpenStackResourceKind.Router &&
+      entry.routerSeenAt &&
+      !entry.facts["l3Agents"]
+    ) {
+      routers.push({
+        externalId: entry.externalId,
+        agentsReportedBefore: new Date(
+          entry.routerSeenAt.getTime() - ROUTER_AGENTS_GONE_AFTER_MS,
+        ),
+      });
+    }
+  }
+
+  return routers;
 }
 
 /*
