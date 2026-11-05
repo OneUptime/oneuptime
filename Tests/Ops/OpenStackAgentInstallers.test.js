@@ -165,7 +165,13 @@ exit 0
         exit "\${answer#000 }"
         ;;
       201) cat "$STUB_DIR/keystone-catalog.json" 2>/dev/null ;;
-      *) printf '{"error":{"code":%s,"message":"Refused"}}' "$answer" ;;
+      *)
+        if [ -f "$STUB_DIR/keystone.body" ]; then
+          cat "$STUB_DIR/keystone.body"
+        else
+          printf '{"error":{"code":%s,"message":"Refused"}}' "$answer"
+        fi
+        ;;
     esac
     printf '\\n%s' "$answer"
     exit 0
@@ -460,6 +466,9 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
       COMPOSE_PROFILES: "'openstack-exporter'",
+      OPENSTACK_COLLECT_QUOTAS: "'false'",
+      OPENSTACK_QUOTA_CLOUDS: "'[]'",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "'openstack-quota-exporter:9180'",
       // The first region named, for a target that does not say its own.
       OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
@@ -665,6 +674,106 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
 });
 
 /* ========================================================== the regions */
+
+describe("each project's quotas", () => {
+  test("are off until asked for: no exporter of their own, and an empty list for the collector", () => {
+    const dir = scratch();
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(0);
+    const env = composeReadAll(run.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter");
+    expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("false");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+    expect(run.output).not.toContain("quotas are read once an hour");
+  });
+
+  test("one setting starts their exporter, for every region, and says what it costs", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      input: FRESH,
+      env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+    });
+
+    expect(run.status).toBe(0);
+    const env = composeReadAll(run.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-quotas");
+    expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("true");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
+    expect(env.OPENSTACK_QUOTA_EXPORTER_ADDRESS).toBe(
+      "openstack-quota-exporter:9180",
+    );
+    expect(run.output).toContain("quotas are read once an hour");
+    expect(run.output).toContain(
+      "four API\ncalls per project, per region, on each read.",
+    );
+  });
+
+  test("the upgrade keeps them on, and follows the regions the agent reads", () => {
+    const dir = scratch();
+    expect(
+      install(dir, {
+        input: FRESH,
+        env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+      }).status,
+    ).toBe(0);
+
+    const again = install(dir);
+
+    expect(again.status).toBe(0);
+    const env = composeReadAll(again.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-quotas");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
+  });
+
+  test("an upgrade told false takes the exporter off again", () => {
+    const dir = scratch();
+    expect(
+      install(dir, {
+        input: FRESH,
+        env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+      }).status,
+    ).toBe(0);
+
+    const off = install(dir, { env: { OPENSTACK_COLLECT_QUOTAS: "false" } });
+
+    expect(off.status).toBe(0);
+    const env = composeReadAll(off.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+  });
+
+  test("an exporter of your own has its own say, and the setting tells you so", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      input: answers(URL, KEY, "prod", "RegionOne"),
+      env: {
+        OPENSTACK_COLLECT_QUOTAS: "true",
+        OPENSTACK_EXPORTER_ADDRESS: "exporter.example:9180",
+      },
+    });
+
+    expect(run.status).toBe(0);
+    const env = composeReadAll(run.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+    expect(run.output).toContain("so it is left off");
+  });
+
+  test("anything but true or false stops the install, before anything is written", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      input: FRESH,
+      env: { OPENSTACK_COLLECT_QUOTAS: "yes please" },
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      "OPENSTACK_COLLECT_QUOTAS must be true or false",
+    );
+    expect(run.envFile).toBe("");
+  });
+});
 
 describe("the region names", () => {
   function withRegions(typed) {
@@ -1793,6 +1902,9 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_CA_FILE: "",
       COMPOSE_PROFILES: "openstack-exporter",
       // What it did not say takes its default, so the next hand has it to change.
+      OPENSTACK_COLLECT_QUOTAS: "false",
+      OPENSTACK_QUOTA_CLOUDS: "[]",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-quota-exporter:9180",
       OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
       OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
       OPENSTACK_RABBITMQ_TARGETS: "[]",
@@ -2206,6 +2318,8 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
       "COMPOSE_PROFILES",
       // This script and troubleshoot.sh.
       "OPENSTACK_AUTH_URL",
+      // This script: what turns on the exporter and the list that follow from it.
+      "OPENSTACK_COLLECT_QUOTAS",
     ];
     expect([...names].sort()).toEqual(expected.sort());
     expect(writtenNames(script)).toEqual(names);
@@ -2739,6 +2853,27 @@ describe("with the real curl, against a server that answers as OneUptime and Key
     expect(run.status).not.toBe(0);
     expect(run.output).toContain("this machine could not connect to");
     expect(run.output).toContain("Nothing was installed or changed.");
+  });
+});
+
+describe("an application credential Keystone no longer has", () => {
+  // What a deleted credential's login answered on a real cloud (run 41953871058): a 404, not a 401.
+  test("is called that, and never a wrong address", () => {
+    const dir = scratch();
+    fs.writeFileSync(path.join(dir, "keystone.answer"), "404");
+    fs.writeFileSync(
+      path.join(dir, "keystone.body"),
+      '{"error":{"code":404,"message":"Could not find Application Credential: 4c2f.","title":"Not Found"}}',
+    );
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "Error: Keystone has no such application credential (HTTP 404): it was deleted, or the ID is wrong.",
+    );
+    expect(run.output).toContain("Nothing was installed or changed.");
+    expect(run.output).not.toContain("nothing answers as Keystone");
+    expect(run.envFile).toBe("");
   });
 });
 

@@ -17,6 +17,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   OPENSTACK_CLOUD_SPAN_ATTRIBUTE,
+  OPENSTACK_REGION_SPAN_ATTRIBUTE,
   OpenStackTracedServices,
   OpenStackTraceRow,
   getOpenStackTracedServiceOfApi,
@@ -57,6 +58,8 @@ function getCloudSpanScope(cloudName: string): JSONObject {
 
 export async function fetchOpenStackTracedServices(
   cloudName: string,
+  // The traces of one region. Null reads the whole cloud's.
+  region: string | null = null,
 ): Promise<OpenStackTracedServices> {
   const now: Date = OneUptimeDate.getCurrentDate();
   const result: AnalyticsListResult<Span> =
@@ -70,6 +73,9 @@ export async function fetchOpenStackTracedServices(
         ),
         isEntrySpan: true,
         entityScope: getCloudSpanScope(cloudName),
+        ...(region
+          ? { attributes: { [OPENSTACK_REGION_SPAN_ATTRIBUTE]: region } }
+          : {}),
       } as unknown as Query<Span>,
       select: { startTime: true, traceId: true, attributes: true },
       sort: { startTime: SortOrder.Descending },

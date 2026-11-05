@@ -25,7 +25,7 @@ const PORTS_OFF_ON_A_PROBE: string = translationKey(
   "Ports are not counted, by choice: the list behind the count can saturate Neutron. Turn on Ports under Data Collection on this cloud's Settings page to count them.",
 );
 const GROUPS_BY_PROJECT_OFF: string = translationKey(
-  "Counted per region. Per project, these come from Neutron's quotas, which the agent leaves off: delete the --disable-metric=neutron-quota_network line from the exporter to see them.",
+  "Counted per region. Per project, these come from Neutron's quotas, which the agent leaves off: run its install.sh again with OPENSTACK_COLLECT_QUOTAS=true to see them.",
 );
 const GROUPS_BY_PROJECT_OFF_ON_A_PROBE: string = translationKey(
   "Counted per region. Per project, these come from Neutron's quotas: turn on Project limits under Data Collection on this cloud's Settings page to see them.",

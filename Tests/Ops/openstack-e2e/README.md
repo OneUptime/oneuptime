@@ -7,6 +7,7 @@ OpenStack answers differently by release, network backend and deployment tool, a
 | Script | What it does |
 | --- | --- |
 | `estate.sh` | Builds a known estate: two projects with quotas, instances running, shut off and in `ERROR`, volumes available, attached, in `error` and stuck in `attaching`, a network, router and floating IPs, a host in two aggregates, an image stuck in `queued` and an instance booted from a volume. Every name starts with `ou-`. |
+| `quota-record.sh` | On the entries that say so: starts the exporter the agent starts for each project's quotas, with its flags, and records what it says of `estate.sh`'s projects, what the agent's collector would send of it, and what the `openstack` CLI says of the same projects. |
 | `start-instance-metrics.sh` | Starts `prometheus-libvirt-exporter`, pinned by digest, against the runner's libvirt, and turns on Ceilometer's own exporter (`[polling] enable_prometheus_exporter`). DevStack's Ceilometer plugin runs only its polling agent here, and stores nothing. |
 | `start-agent.sh` | Starts the OpenStack agent's pinned exporter and collector, with the real `agents/OpenStackAgent/otel-collector-config.yaml`, writing to a file in place of OneUptime. Beside it, the exporter's last non-alpha release, so the two can be compared. |
 | `access-matrix.sh` | Tests least privilege on the cloud's real policies: what an admin, a plain reader, the OneUptime monitoring role and an application credential limited by access rules can each read, that the last two cannot write, and what the agent's own exporter gets with each. Restarts the API services once, because access rules need `service_type` set on each. `merge-policy.py` merges the overrides over what a service's policy file already holds. |
@@ -66,6 +67,9 @@ access/matrix-default-policy.json    what each credential could read and write, 
 access/matrix.json                   the same, with the policy overrides applied
 access/matrix-access-rules.json      the same, for the access-rule credential
 access/exporter/<level>/<service>.prom  what the agent's exporter got with that credential
+quotas/exporter/<service>.prom              what the quota exporter said, one service at a time
+quotas/otlp/metrics.json                    what the collector would have sent of it
+quotas/cli.txt                              what the openstack CLI said of the same projects
 instance-metrics/scrape-01/libvirt.prom     what the libvirt exporter said, scrape by scrape
 instance-metrics/scrape-01/ceilometer.prom  what Ceilometer's exporter said at the same moment
 instance-metrics/scrape-01/at.txt           when, in seconds since the epoch
@@ -129,7 +133,8 @@ A scene is never called `healthy`, and a group's access recording goes in `acces
 | `plain-docker` | Docker, as a user with the `docker` group and no other rights | The cloud reports, with its name, version and region. The docs' commands work from that account. `troubleshoot.sh` tells the truth on a healthy agent, a refused key, a stopped exporter, a stopped collector, a stopped Nova API and a revoked credential. Stopping Nova leaves the others reporting. A re-run with a refused secret leaves the agent alone, and a re-run upgrades it from an older release, keeping the answers and any edit. |
 | `root-docker` | Docker, with `sudo`, under a root umask of 077 | The exporter really runs as uid 65532 and reads a `clouds.yaml` of mode `0600` it owns, which `start-agent.sh` never exercises. The docs' systemd unit starts, stops and comes back after a kill. `clouds.yaml` given to root is called out, and a re-run puts it right. |
 | `without-docker` | The pinned releases, on this machine's systemd, with a password holding every character that could go wrong | The binaries run past their digest check. The units load, start on boot and come back after a kill, as the users they say, with no capabilities, on `127.0.0.1` alone, beside another collector on 8888. A re-run replaces the binary itself. The uninstall leaves nothing behind. |
-| `clean-ubuntu`, `clean-rocky`, `clean-docker` | The same commands on a machine with nothing on it but systemd, curl and sudo, in a container of its own on Docker's network | No tool the docs do not ask for is needed, on Ubuntu 24.04 and on Rocky 8's systemd 239, with Docker and without. |
+| `clean-ubuntu`, `clean-rocky`, `clean-docker` | The same commands on a machine with nothing on it but systemd, curl and sudo, in a container of its own on Docker's network | No tool the docs do not ask for is needed, on Ubuntu 24.04 and on Rocky 9, with Docker and without. |
+| `old-glibc` | The install without Docker on Rocky 8 | The exporter's release can't run on its glibc 2.28, so the install says so and changes nothing, rather than leave a service restarting for ever. |
 
 `-f agent_install_only=true` runs this alone, on one DevStack, in about an hour and a half. It also runs on the weekly run and on a pull request that changes the agent. `results.txt` in the `openstack-agent-install` artifact says how each check went, `oneuptime/bodies/` holds what the agent really sent, and each phase's folder holds what was run, with no secret in it (the last check looks).
 

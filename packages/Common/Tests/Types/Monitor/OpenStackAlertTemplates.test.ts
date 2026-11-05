@@ -33,7 +33,11 @@ import {
   getOpenStackAlertTemplatesByCategory,
   getOpenStackDefaultAlertTemplateId,
 } from "../../../Types/Monitor/OpenStackAlertTemplates";
-import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStackMetricCatalog";
+import {
+  OPENSTACK_QUOTA_EXPORTER_READS,
+  OpenStackMetricDefinition,
+  getOpenStackMetricByMetricName,
+} from "../../../Types/Monitor/OpenStackMetricCatalog";
 import { STOPPED_REPORTING_METRIC_ALIAS } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import ObjectID from "../../../Types/ObjectID";
@@ -73,7 +77,10 @@ import {
 import {
   SamplesByAlias,
   WINDOW_END_MS,
+  TemplateWalkStep,
+  TimedSample,
   evaluateTemplateCriteria,
+  walkTemplateCriteria,
   isCriteriaInstanceMet,
 } from "./Utils/TemplateCriteriaEvaluation";
 
@@ -256,8 +263,33 @@ function serviceOf(query: MetricQueryConfigData): OpenStackServiceType {
  */
 const CEILOMETER_POLLING_SECONDS: number = 300;
 
+/*
+ * A project's limits are read once an hour by an exporter of their own, whichever service
+ * they belong to, and each of the three jobs that asks it says so.
+ */
+function quotaIntervalSeconds(): number {
+  const seconds: Set<number> = new Set<number>();
+  const jobs: RegExp =
+    /job_name:\s*oneuptime-openstack-quotas-\w+\s*\n[\s\S]*?scrape_interval:\s*(\d+)s/g;
+
+  for (const match of COLLECTOR_CONFIG.matchAll(jobs)) {
+    seconds.add(Number(match[1]));
+  }
+
+  expect(Array.from(seconds)).toHaveLength(1);
+
+  return Array.from(seconds)[0]!;
+}
+
 function intervalSecondsOf(query: MetricQueryConfigData): number {
-  return getOpenStackMetricByMetricName(metricNameOf(query))?.fromInstanceSource
+  const metric: OpenStackMetricDefinition | undefined =
+    getOpenStackMetricByMetricName(metricNameOf(query));
+
+  if (metric?.fromQuotaExporter) {
+    return quotaIntervalSeconds();
+  }
+
+  return metric?.fromInstanceSource
     ? CEILOMETER_POLLING_SECONDS
     : INTERVALS[serviceOf(query)]!;
 }
@@ -1519,13 +1551,14 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           return getOpenStackMetricByMetricName(metricNameOf(query))!
             .offByDefault as string;
         })) {
-        // Each line it reads through is named, and is a line the agent has.
-        expect(description).toContain(`--disable-metric=${metric}`);
+        // The agent leaves each out of its main exporter, and its quota exporter reads them.
         expect(COMPOSE).toContain(`- --disable-metric=${metric}`);
+        expect(OPENSTACK_QUOTA_EXPORTER_READS).toContain(metric);
       }
 
-      expect(description).toContain("docker-compose.yml");
-      expect(description).toContain("oneuptime-openstack-exporter.service");
+      expect(description).toContain("OPENSTACK_COLLECT_QUOTAS=true");
+      expect(description).toContain("Project limits");
+      expect(description).toContain("3 hours");
     });
   });
 
@@ -1647,6 +1680,129 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         OPENSTACK_EXPORTER_SERIES["openstack_glance_image_created_at"]!.labels,
       ).toEqual(expect.arrayContaining(["id", "name", "status"]));
     });
+
+    /*
+     * One per status word exists only while something has that status, so the first thing seen
+     * in it, or the only thing, is one data point. Anything on its way to something else is seen
+     * that way, by whichever collection catches it, and that isn't stuck.
+     */
+    test.each([
+      ["openstack-image-stuck", "in_queued", 5],
+      ["openstack-image-stuck", "in_saving", 5],
+      ["openstack-volume-stuck", "in_creating", 2],
+      ["openstack-volume-stuck", "in_creating", 5],
+      ["openstack-instance-stuck-building", "in_build", 5],
+    ])(
+      "%s doesn't fire on %s seen at one collection, of every %s minutes",
+      async (id: string, alias: string, everyMinutes: number) => {
+        const step: MonitorStep = stepOf(getOpenStackAlertTemplateById(id)!);
+        const windowMinutes: number = windowMinutesOf(step);
+        const startMs: number = Date.UTC(2026, 10, 5, 0, 0, 0);
+        const anchor: Array<TimedSample> = [];
+
+        for (
+          let minute: number = 0;
+          minute <= 4 * windowMinutes;
+          minute += everyMinutes
+        ) {
+          anchor.push({ timeMs: startMs + minute * 60000, value: 1 });
+        }
+
+        const steps: Array<TemplateWalkStep> = await walkTemplateCriteria({
+          step,
+          viewConfig: monitorOf(step).metricViewConfig,
+          samplesByAlias: {
+            [OPENSTACK_ANCHOR_METRIC_ALIAS]: anchor,
+            [alias]: [
+              {
+                timeMs: startMs + 2 * windowMinutes * 60000,
+                value: 1793795520,
+              },
+            ],
+          },
+          windowMinutes,
+          startMs: startMs + windowMinutes * 60000,
+          endMs: startMs + 4 * windowMinutes * 60000,
+        });
+
+        expect(
+          steps.filter((one: TemplateWalkStep): boolean => {
+            return one.breached;
+          }),
+        ).toEqual([]);
+      },
+    );
+
+    test.each([
+      ["openstack-image-stuck", "in_queued", 5],
+      ["openstack-volume-stuck", "attaching", 5],
+    ])(
+      "%s does fire on %s held for its whole window, and goes when it does",
+      async (id: string, status: string, everyMinutes: number) => {
+        const step: MonitorStep = stepOf(getOpenStackAlertTemplateById(id)!);
+        const alias: string = status.startsWith("in_")
+          ? status
+          : `in_${status}`;
+        const windowMinutes: number = windowMinutesOf(step);
+        const startMs: number = Date.UTC(2026, 10, 5, 0, 0, 0);
+        const appearsAtMinute: number = 2 * windowMinutes;
+        const goesAtMinute: number = 4 * windowMinutes;
+        const anchor: Array<TimedSample> = [];
+        const held: Array<TimedSample> = [];
+
+        for (
+          let minute: number = 0;
+          minute <= 6 * windowMinutes;
+          minute += everyMinutes
+        ) {
+          const timeMs: number = startMs + minute * 60000;
+          anchor.push({ timeMs, value: 1 });
+          if (minute >= appearsAtMinute && minute <= goesAtMinute) {
+            held.push({ timeMs, value: 1793795520 });
+          }
+        }
+
+        const steps: Array<TemplateWalkStep> = await walkTemplateCriteria({
+          step,
+          viewConfig: monitorOf(step).metricViewConfig,
+          samplesByAlias: {
+            [OPENSTACK_ANCHOR_METRIC_ALIAS]: anchor,
+            [alias]: held,
+          },
+          windowMinutes,
+          startMs: startMs + windowMinutes * 60000,
+          endMs: startMs + 6 * windowMinutes * 60000,
+        });
+
+        const firedAt: TemplateWalkStep = steps.find(
+          (one: TemplateWalkStep): boolean => {
+            return one.breached;
+          },
+        )!;
+
+        // Within a collection or so of the window's end, and not before.
+        expect((firedAt.atMs - startMs) / 60000).toBeGreaterThanOrEqual(
+          appearsAtMinute + windowMinutes - 2 * everyMinutes,
+        );
+        expect((firedAt.atMs - startMs) / 60000).toBeLessThanOrEqual(
+          appearsAtMinute + windowMinutes + everyMinutes,
+        );
+
+        // Once gone, a window on it's healthy, and it doesn't fire again.
+        const after: Array<TemplateWalkStep> = steps.filter(
+          (one: TemplateWalkStep): boolean => {
+            return (
+              one.atMs > startMs + (goesAtMinute + windowMinutes + 1) * 60000
+            );
+          },
+        );
+
+        expect(after.length).toBeGreaterThan(0);
+        for (const one of after) {
+          expect(one).toMatchObject({ breached: false, healthy: true });
+        }
+      },
+    );
 
     test("an instance or a volume stuck is judged on its own, not on a stream of them", () => {
       expect(

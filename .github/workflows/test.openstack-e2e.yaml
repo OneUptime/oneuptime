@@ -34,6 +34,10 @@ on:
         description: Only build the estate and run the drills, on the two entries read at depth, which is what a new scene needs and about a third of the time
         type: boolean
         default: false
+      quotas_only:
+        description: With logs_only too, only record what each project's quotas say, on the entries that do
+        type: boolean
+        default: false
       instance_metrics_only:
         description: Only run the long real VM metrics drill, on the entries that do, which takes over an hour of recording and nothing else
         type: boolean
@@ -860,11 +864,14 @@ jobs:
           # first span with no parent, and 4.3.0 on Flamingo sends it a parent that is never
           # sent. What it records is on its own step, so losing it costs nothing else.
           # deep: every scene is kept from these two (import-recording.py), one per backend.
+          # quotas: the newest release, and the other network backend's, whose Neutron answers
+          # for a project's quotas with the same plugin but other agents behind it.
           - name: hibiscus-ovn
             branch: stable/2026.2
             conf_overrides: ""
             traces: true
             deep: true
+            quotas: true
             instance_metrics_drill: true
           - name: gazpacho-ovn
             branch: stable/2026.1
@@ -887,6 +894,7 @@ jobs:
             branch: stable/2026.1
             control_plane: true
             deep: true
+            quotas: true
             enabled_services: "-ovn-controller,-ovn-northd,-ovs-vswitchd,-ovsdb-server,-q-ovn-metadata-agent,-q-ovn-agent,q-agt,q-dhcp,q-l3,q-meta"
             conf_overrides: |
               Q_AGENT=openvswitch
@@ -897,7 +905,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy DevStack
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
         with:
           branch: ${{ matrix.branch }}
@@ -920,7 +928,7 @@ jobs:
           enable_workaround_docker_io: "false"
 
       - name: Docker still answers
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: |
           if ! docker info >/dev/null 2>&1; then
             # DevStack can leave the runner's Docker stopped or removed.
@@ -930,8 +938,17 @@ jobs:
           docker info --format 'Docker {{.ServerVersion}}'
 
       - name: Build the estate
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      # On its own, with an exporter of its own, so that a problem here costs nothing else.
+      - name: Record what each project's quotas say
+        if: ${{ matrix.quotas && (!inputs.logs_only || inputs.quotas_only) }}
+        continue-on-error: true
+        timeout-minutes: 20
+        run: bash Tests/Ops/openstack-e2e/quota-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
 
       # On its own, as the access matrix is: losing a source of VM metrics costs that
       # recording, not the drills.
@@ -1013,19 +1030,27 @@ jobs:
       # everything it changes, and they leave a cloud configured their own way.
       # Not for a run that only wants the logs, which would wait for it on the entries that do.
       - name: Record what OSProfiler's driver sends for a signed request
-        if: ${{ matrix.traces && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) && !inputs.scenes_only }}
+        if: ${{ matrix.traces && !inputs.quotas_only && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) && !inputs.scenes_only }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
+      # Whatever became of the step above, including its limit killing it: a hang there must not
+      # leave OSProfiler on for the steps after it.
+      - name: Put back whatever the traces step left
+        if: ${{ always() && matrix.traces }}
+        continue-on-error: true
+        timeout-minutes: 10
+        run: bash Tests/Ops/openstack-e2e/traces-put-back.sh
+
       # Last, because it changes every service's config and breaks things of its own, and
       # on its own, so that a problem here still leaves the drills recorded.
       # With a limit of its own, as the traces have, so that a cloud it has broken costs this
       # recording and not the job's limit, which takes the upload with it.
       - name: Record service logs, notifications and audit events
-        if: ${{ !inputs.traces_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
+        if: ${{ !inputs.traces_only && !inputs.quotas_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/logs-record.sh
