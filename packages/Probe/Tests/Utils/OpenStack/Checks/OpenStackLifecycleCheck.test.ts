@@ -27,7 +27,7 @@ import { readOpenStackCreatedAt } from "../../../../Utils/OpenStack/Checks/OpenS
 import {
   OSPROFILER_TRACE_HMAC_HEADER,
   OSPROFILER_TRACE_INFO_HEADER,
-} from "../../../../Utils/OpenStack/Checks/OpenStackTraceSigning";
+} from "Common/Server/Utils/OpenStack/OpenStackTraceSigning";
 import { OpenStackHttpRequest } from "../../../../Utils/OpenStack/OpenStackHttp";
 import {
   COLLECTED_AT_MS,

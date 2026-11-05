@@ -12,7 +12,7 @@ import OpenStackServiceClient, {
   OpenStackJsonAnswer,
   OpenStackListAnswer,
 } from "../OpenStackServiceClient";
-import { signOpenStackRequest } from "./OpenStackTraceSigning";
+import { getOpenStackTraceHeaders } from "Common/Server/Utils/OpenStack/OpenStackTraceSigning";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   OpenStackCheckFault,
@@ -25,6 +25,7 @@ import {
   ParsedOpenStackCheckName,
   parseOpenStackCheckName,
 } from "Common/Utils/OpenStack/OpenStackCheckName";
+import { readOpenStackTraceId } from "Common/Utils/OpenStack/OpenStackTraces";
 
 /*
  * THE ONLY CODE THAT WRITES TO A CUSTOMER'S CLOUD.
@@ -298,8 +299,10 @@ export default class OpenStackLifecycleCloud {
   }
 
   /*
-   * From here on this run's writes are signed, into one trace, until the next call. Returns its
-   * id, or null when there is no key to sign with.
+   * From here on this step's writes are signed, into one trace, until the next call, so that a slow
+   * boot has a trace holding the boot and nothing else. Only its writes: a signed request does more
+   * work in every service it crosses, and a wait of minutes is dozens of polls saying nothing the
+   * boot's own trace does not. Returns the id a trace is stored under, or null with no key.
    */
   public beginTrace(): string | null {
     if (!this.osProfilerKey) {
@@ -309,10 +312,7 @@ export default class OpenStackLifecycleCloud {
 
     this.traceBaseId = this.randomUuid();
 
-    return signOpenStackRequest({
-      key: this.osProfilerKey,
-      baseId: this.traceBaseId,
-    }).traceId;
+    return readOpenStackTraceId(this.traceBaseId);
   }
 
   public endTrace(): void {
@@ -667,10 +667,10 @@ export default class OpenStackLifecycleCloud {
           "User-Agent": this.userAgent,
           "X-Auth-Token": token.id,
           ...(this.traceBaseId && this.osProfilerKey
-            ? signOpenStackRequest({
-                key: this.osProfilerKey,
-                baseId: this.traceBaseId,
-              }).headers
+            ? getOpenStackTraceHeaders({
+                hmacKey: this.osProfilerKey,
+                traceId: this.traceBaseId,
+              })
             : {}),
         },
         body: data.body ? JSON.stringify(data.body) : undefined,

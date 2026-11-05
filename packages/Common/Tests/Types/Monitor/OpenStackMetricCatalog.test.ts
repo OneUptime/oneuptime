@@ -1,3 +1,4 @@
+import { OpenStackCheckMetric } from "../../../Utils/OpenStack/OpenStackCheckMetrics";
 import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
@@ -154,7 +155,8 @@ describe("OpenStackMetricCatalog", () => {
           return (
             metric.onlyFromProbe !== true &&
             metric.fromInstanceSource !== true &&
-            metric.fromSummaryMode !== true
+            metric.fromSummaryMode !== true &&
+            metric.fromCheck !== true
           );
         })
         .map((metric: OpenStackMetricDefinition): string => {
@@ -232,7 +234,8 @@ describe("OpenStackMetricCatalog", () => {
           !OPENSTACK_RECEIVER_SERIES.includes(metricCase[0]) &&
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
-          metricCase[1].fromSummaryMode !== true
+          metricCase[1].fromSummaryMode !== true &&
+          metricCase[1].fromCheck !== true
         );
       }),
     )(
@@ -244,6 +247,26 @@ describe("OpenStackMetricCatalog", () => {
         expect(metric.service).toBe(OPENSTACK_EXPORTER_SERIES[name]!.service);
       },
     );
+
+    test("every series the checks from outside send is here, and says so", () => {
+      expect(
+        METRICS.filter((metric: OpenStackMetricDefinition): boolean => {
+          return metric.fromCheck === true;
+        })
+          .map((metric: OpenStackMetricDefinition): string => {
+            return metric.metricName;
+          })
+          .sort(),
+      ).toEqual([...Object.values(OpenStackCheckMetric)].sort());
+
+      for (const metric of METRICS) {
+        if (metric.fromCheck) {
+          expect(metric.category).toBe("Checks");
+          // The exporter has none of them: these stand on nothing it could change.
+          expect(OPENSTACK_EXPORTER_SERIES[metric.metricName]).toBeUndefined();
+        }
+      }
+    });
 
     test("every series worked out from libvirt or Ceilometer is here, and says so", () => {
       const named: Array<string> = METRICS.filter(
