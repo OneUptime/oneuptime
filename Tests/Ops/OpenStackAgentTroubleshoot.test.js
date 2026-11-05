@@ -171,8 +171,21 @@ const ROW_OF = {
   "image:images": (project, visibility = "private") => {
     return { id: `image-${project}`, owner: project, visibility };
   },
+  "baremetal:nodes": (project) => {
+    return { uuid: `node-${project}`, owner: project };
+  },
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
+  },
+  "sharev2:shares, all projects": (project) => {
+    return { id: `share-${project}`, project_id: project };
+  },
+  "dns:zones, all projects": (project) => {
+    return { id: `zone-${project}`, project_id: project };
+  },
+  // Heat's own list says "project", and only to someone who may read every project's.
+  "orchestration:stacks": (project) => {
+    return { id: `stack-${project}`, project };
   },
 };
 
@@ -227,6 +240,17 @@ function projectView(read) {
     case "block-storage:services":
     case "block-storage:pools":
     case "load-balancer:amphorae":
+    case "orchestration:services":
+    case "container-infra:services":
+    case "baremetal:conductors":
+    case "sharev2:services":
+    case "sharev2:pools":
+    case "dns:zones, all projects":
+    case "key-manager:secrets":
+    case "key-manager:orders":
+    case "object-store:own account":
+    case "database:instances, all projects":
+    case "metric:status":
       return { status: 403 };
     case "network:networks":
       return {
@@ -321,6 +345,14 @@ const SERVICE_PATH = {
   image: "image",
   "load-balancer": "load-balancer",
   baremetal: "baremetal",
+  orchestration: "heat-api/v1/own-project",
+  "container-infra": "container-infra/v1",
+  sharev2: "share/v2",
+  dns: "dns",
+  "key-manager": "key-manager",
+  "object-store": "swift/v1/AUTH_own-project",
+  database: "database/v1.0/own-project",
+  metric: "metric",
 };
 
 /*
@@ -337,6 +369,7 @@ function startCloud({
   tokenExtra = {},
   roles = ["admin"],
   loginStatus = 201,
+  loginMessage,
   serviceStatus = {},
   catalogNames = {},
   holds = [],
@@ -402,7 +435,9 @@ function startCloud({
           return send(401, { error: { code: 401, title: "Unauthorized" } });
         }
         if (loginStatus !== 201) {
-          return send(loginStatus, { error: { code: loginStatus } });
+          return send(loginStatus, {
+            error: { code: loginStatus, message: loginMessage },
+          });
         }
         const base = `http://${request.headers.host}`;
         return send(
@@ -870,6 +905,11 @@ describe("the reads it makes", () => {
     const VERSION_IN_THE_RULES = {
       compute: "/v2.1",
       "block-storage": "/v3",
+      orchestration: "/v1/own-project",
+      "container-infra": "/v1",
+      sharev2: "/v2",
+      "object-store": "/v1/AUTH_own-project",
+      database: "/v1.0/own-project",
     };
     const allows = (service, wanted) => {
       return rules.some((rule) => {
@@ -968,7 +1008,7 @@ describe("the reads it makes", () => {
         const row = rowsIn(read, ["p"])[0];
         expect({ read: read.label, has: true }).toEqual({
           read: read.label,
-          has: Object.keys(row).includes(read.attr),
+          has: Object.keys(row).includes(read.attr.replace(/\?$/, "")),
         });
       }
     }
@@ -1005,7 +1045,9 @@ describe("a full-view credential", () => {
     const lines = accessLines(run);
     for (const read of matrixReads()) {
       expect(lineAbout(lines, `${read.service}: ${read.label}`)).toMatch(
-        /^✔ .* — reads everything/,
+        read.service === "key-manager"
+          ? /^✔ .* — reads its own project's/
+          : /^✔ .* — reads everything/,
       );
     }
     expect(run.output).toContain(
@@ -1237,6 +1279,20 @@ describe("a plain reader, and the trap", () => {
     ["load-balancer: load balancers"],
     ["load-balancer: amphorae"],
     ["baremetal: nodes"],
+    ["orchestration: stacks"],
+    ["orchestration: services"],
+    ["container-infra: clusters"],
+    ["sharev2: shares, all projects"],
+    ["sharev2: services"],
+    ["sharev2: pools"],
+    ["container-infra: services"],
+    ["baremetal: conductors"],
+    ["dns: zones, all projects"],
+    ["key-manager: secrets"],
+    ["key-manager: orders"],
+    ["object-store: own account"],
+    ["database: instances, all projects"],
+    ["metric: status"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(
       `• ${read} — not deployed (not in this region's catalog)`,
@@ -1592,14 +1648,72 @@ describe("what a 200 proves", () => {
     const run = await runDoctor(cloud);
     await cloud.close();
     expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
-      "✔ baremetal: nodes — reads everything",
+      "✔ baremetal: nodes — reads everything (no row is any project's)",
     );
   });
-});
 
-/* ----------------------------------------------------- what else can come back */
+  test("a project's own nodes are its own view, which is what a real project's admin was shown", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes"
+          ? { rows: [{ uuid: "n1", owner: "project-1" }] }
+          : fullView(read);
+      },
+      roles: ["reader"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toMatch(
+      /baremetal: nodes — .*(own project only|every row is in one project)/,
+    );
+  });
 
-describe("the other answers", () => {
+  test("none at all proves nothing, even to an admin: Ironic shows one only what its project owns", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.label === "nodes" ? { rows: [] } : fullView(read);
+      },
+      roles: ["admin"],
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "baremetal: nodes")).toBe(
+      "▲ baremetal: nodes — may be own project only (a 200 with nothing here to tell by)",
+    );
+  });
+
+  test("Barbican never reads as everything, and it is nothing to fix: it answers any credential about its own project alone", async () => {
+    const cloud = await startCloud({ scenario: fullView, roles: ["admin"] });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "key-manager: secrets")).toBe(
+      "✔ key-manager: secrets — reads its own project's (Barbican answers any credential about its own project alone)",
+    );
+  });
+
+  test("Swift's 500 to a credential with access rules says the setting that causes it", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.service === "object-store"
+          ? { status: 500 }
+          : fullView(read);
+      },
+      roles: ["admin"],
+      tokenExtra: {
+        application_credential: {
+          id: APP_ID,
+          restricted: true,
+          access_rules: [{ path: "/v2.1/servers" }],
+        },
+      },
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(run.output).toContain(
+      "Swift answers a credential with access rules 500 while [filter:authtoken] in proxy-server.conf has include_service_catalog = False.",
+    );
+  });
+
   test("404: the API is not deployed. 503: that says nothing about the credential, and the service is named", async () => {
     const cloud = await startCloud({
       serviceStatus: { "load-balancer": 503 },
@@ -1799,6 +1913,34 @@ describe("Keystone, DNS and TLS", () => {
         "For a cloud with its own CA: OPENSTACK_CA_FILE=/path/to/ca.pem bash install.sh",
       );
     }
+  });
+
+  // What a deleted credential's login answered on a real cloud (run 41953871058).
+  test("an application credential Keystone no longer has is called that, and never a wrong address", async () => {
+    const cloud = await startCloud({
+      loginStatus: 404,
+      loginMessage: "Could not find Application Credential: 4c2f.",
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "✗ Keystone has no such application credential (HTTP 404): it was deleted, or the ID in clouds.yaml is wrong.",
+    );
+    expect(run.output).toContain(
+      "ROOT CAUSE: the credential in clouds.yaml gets no token from Keystone.",
+    );
+    expect(run.output).not.toContain("does not answer as Keystone");
+  });
+
+  test("a 404 from anything else is still a wrong address", async () => {
+    const cloud = await startCloud({ loginStatus: 404 });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+
+    expect(run.output).toContain("does not answer as Keystone (HTTP 404)");
+    expect(run.output).not.toContain("no such application credential");
   });
 
   test("an answer that is no token says so", async () => {
@@ -2073,7 +2215,9 @@ describe("an exporter in single-cloud mode", () => {
     expect(run.output).toContain(
       "An exporter started with --multi-cloud only answers on /probe",
     );
-    expect(run.output).toContain("Set OPENSTACK_EXPORTER_ADDRESS to it instead");
+    expect(run.output).toContain(
+      "Set OPENSTACK_EXPORTER_ADDRESS to it instead",
+    );
   });
 
   test("one that cannot read Keystone says where its log is on Kolla-Ansible", async () => {
@@ -2128,6 +2272,152 @@ describe("an exporter in single-cloud mode", () => {
   });
 });
 
+/* --------------------------------------------- real usage per instance */
+
+describe("real usage per instance", () => {
+  const THERE = "[openstack-exporter:9180]";
+
+  // What a real exporter says, as it was recorded, for the lines this reads.
+  const LIBVIRT = [
+    "libvirt_up 1",
+    'libvirt_domain_openstack_info{domain="instance-00000001",instance_id="a"} 1',
+    'libvirt_domain_openstack_info{domain="instance-00000002",instance_id="b"} 1',
+    "",
+  ].join("\n");
+  const CEILOMETER = [
+    'ceilometer_cpu{counter="cpu",resource="a"} 5.19e+09',
+    'ceilometer_vcpus{counter="vcpus",resource="a"} 1.0',
+    'ceilometer_memory_resident{counter="memory.resident",resource="a"} 176.5',
+    'ceilometer_disk_device_write_latency{counter="disk.device.write.latency",resource="a-vda"} 1.0',
+    "",
+  ].join("\n");
+
+  function section(run) {
+    return sectionOf(run.output, "Real usage per instance").join("\n");
+  }
+
+  async function doctorWith(variable, metrics, extra = {}) {
+    const cloud = await startCloud({
+      metrics: () => {
+        return metrics;
+      },
+    });
+    const run = await runDoctor(cloud, {
+      env: { [variable]: THERE },
+      args: ["--skip-access"],
+      ...extra,
+    });
+    await cloud.close();
+    return run;
+  }
+
+  test("with neither named, says what the pages say without one, and how to add one", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(section(run)).toContain(
+      "None named, so an instance's and a hypervisor's pages say what is promised and not what is busy.",
+    );
+    expect(section(run)).toContain("OPENSTACK_LIBVIRT_EXPORTER_TARGETS");
+    expect(section(run)).toContain("OPENSTACK_CEILOMETER_EXPORTER_TARGETS");
+  });
+
+  test("libvirt's exporter says how many instances it knows", async () => {
+    const run = await doctorWith("OPENSTACK_LIBVIRT_EXPORTER_TARGETS", LIBVIRT);
+    expect(section(run)).toContain(
+      "✔ prometheus-libvirt-exporter at openstack-exporter:9180 answers, and says which instance each of its 2 domains is.",
+    );
+  });
+
+  test("libvirt's exporter that can't reach libvirt says so", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_LIBVIRT_EXPORTER_TARGETS",
+      "libvirt_up 0\n",
+    );
+    expect(section(run)).toContain(
+      "▲ prometheus-libvirt-exporter at openstack-exporter:9180 answers, and says it cannot reach libvirt (libvirt_up 0).",
+    );
+  });
+
+  test("the wrong port is told apart from a target that is down", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_LIBVIRT_EXPORTER_TARGETS",
+      "mysql_up 1\n",
+    );
+    expect(section(run)).toContain(
+      "✗ openstack-exporter:9180 answers, but with no libvirt_up: it is not prometheus-libvirt-exporter.",
+    );
+    expect(run.output).toContain(
+      "OPENSTACK_LIBVIRT_EXPORTER_TARGETS names openstack-exporter:9180, and what answers there is not prometheus-libvirt-exporter.",
+    );
+  });
+
+  test.each([
+    ["OPENSTACK_LIBVIRT_EXPORTER_TARGETS", "prometheus-libvirt-exporter"],
+    ["OPENSTACK_CEILOMETER_EXPORTER_TARGETS", "Ceilometer's exporter"],
+  ])(
+    "%s not answering costs that node's instances, and is a finding",
+    async (variable, what) => {
+      const cloud = await startCloud();
+      const run = await runDoctor(cloud, {
+        env: { [variable]: THERE },
+        files: { "curl-fails": `/metrics 7\n` },
+        args: ["--skip-access"],
+      });
+      await cloud.close();
+
+      expect(section(run)).toContain(
+        `✗ ${what} at openstack-exporter:9180 does not answer from the agent's network`,
+      );
+      expect(run.output).toContain(
+        `The collector cannot scrape ${what} at openstack-exporter:9180 (${variable})`,
+      );
+    },
+  );
+
+  test("Ceilometer polling everything the pages read has nothing to add", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_CEILOMETER_EXPORTER_TARGETS",
+      CEILOMETER,
+    );
+    const text = section(run);
+    expect(text).toContain(
+      "✔ Ceilometer's exporter at openstack-exporter:9180 answers.",
+    );
+    expect(text).not.toContain("Add it to polling.yaml");
+    expect(text).not.toContain("isn't polling vcpus");
+  });
+
+  test("Ceilometer on the polling.yaml it ships is told what to add, and what going without costs", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_CEILOMETER_EXPORTER_TARGETS",
+      'ceilometer_cpu{counter="cpu",resource="a"} 5.19e+09\n',
+    );
+    const text = section(run);
+    expect(text).toContain(
+      "▲ Ceilometer at openstack-exporter:9180 isn't polling memory.resident, so nothing says what its instances hold on the hypervisor, and Hypervisor Memory Pressure stays quiet. Add it to polling.yaml.",
+    );
+    expect(text).toContain(
+      "▲ Ceilometer at openstack-exporter:9180 isn't polling disk.device.write.latency, so it has no disk latency, and Instance Disk Latency High stays quiet. Add it to polling.yaml.",
+    );
+    // Only a note: an instance's flavor says the same thing.
+    expect(text).toContain(
+      "• Ceilometer at openstack-exporter:9180 isn't polling vcpus, so an instance's CPU is measured against what its flavor says.",
+    );
+  });
+
+  test("Ceilometer before its first polling cycle isn't called broken", async () => {
+    const run = await doctorWith(
+      "OPENSTACK_CEILOMETER_EXPORTER_TARGETS",
+      "python_info 1\n",
+    );
+    expect(section(run)).toContain(
+      "▲ Ceilometer's exporter at openstack-exporter:9180 answers, but says nothing about any instance's CPU.",
+    );
+  });
+});
+
 /* --------------------------------------------- what the cloud stands on */
 
 describe("what the cloud stands on", () => {
@@ -2165,7 +2455,23 @@ describe("what the cloud stands on", () => {
       "openstack-network-exporter",
       'ovs_build_info{version="3.5.0"} 1',
     ],
-    ["OPENSTACK_LIBVIRT_HEALTH_TARGETS", "prometheus-libvirt-exporter", "libvirt_up 1"],
+    // A host of only OVN's databases, and its standby: nothing about it is down.
+    [
+      "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+      "openstack-network-exporter",
+      "ovn_northd_status 0",
+    ],
+    // Open vSwitch has restarted, which the exporter does not reconnect to its database after.
+    [
+      "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+      "openstack-network-exporter",
+      "ovs_memory_rules_total 1435",
+    ],
+    [
+      "OPENSTACK_LIBVIRT_HEALTH_TARGETS",
+      "prometheus-libvirt-exporter",
+      "libvirt_up 1",
+    ],
   ])("%s answering as %s passes", async (variable, what, line) => {
     const cloud = await startCloud({
       metrics: () => {
@@ -2178,7 +2484,9 @@ describe("what the cloud stands on", () => {
     });
     await cloud.close();
 
-    expect(section(run)).toContain(`✔ ${what} at openstack-exporter:9180 answers.`);
+    expect(section(run)).toContain(
+      `✔ ${what} at openstack-exporter:9180 answers.`,
+    );
   });
 
   test("an exporter that says what is behind it is down says that", async () => {
@@ -2242,7 +2550,9 @@ describe("what the cloud stands on", () => {
       },
     });
     const run = await runDoctor(cloud, {
-      env: { OPENSTACK_MEMCACHED_TARGETS: "[RegionTwo@openstack-exporter:9180]" },
+      env: {
+        OPENSTACK_MEMCACHED_TARGETS: "[RegionTwo@openstack-exporter:9180]",
+      },
       args: ["--skip-access"],
     });
     await cloud.close();
@@ -2289,6 +2599,47 @@ describe("the exporter", () => {
       "ROOT CAUSE: the collector has no OpenStack metrics to ship (exporter scrape failing).",
     );
     expect(run.status).toBe(1);
+  });
+
+  test("a failed login is explained from the exporter's log, past the services this cloud does not run", async () => {
+    // A line for each of them on every scrape, which would otherwise crowd out the reason.
+    const noEndpoint = (service) => {
+      return `level=ERROR msg="Enabling exporter for service failed" service=${service} error="No suitable endpoint could be found in the service catalog."`;
+    };
+    const cloud = await startCloud({
+      probe: () => {
+        return "";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      files: {
+        "collector.log": `${[
+          `level=ERROR msg="Enabling exporter for service failed" service=identity error="Authentication failed: 401 Unauthorized"`,
+          ...[
+            "load-balancer",
+            "baremetal",
+            "orchestration",
+            "container-infra",
+            "sharev2",
+            "dns",
+            "object-store",
+            "database",
+            "gnocchi",
+          ].map(noEndpoint),
+        ].join("\n")}\n`,
+      },
+    });
+    await cloud.close();
+
+    // The stub answers every container's log with this file, so only section 2 is the exporter's.
+    const section = run.output.slice(
+      run.output.indexOf("── 2."),
+      run.output.indexOf("── 3."),
+    );
+    expect(section).toContain("The exporter's log shows:");
+    expect(section).toContain("Authentication failed: 401 Unauthorized");
+    expect(section).not.toContain("No suitable endpoint");
   });
 
   test("an exporter that cannot be reached says so", async () => {
@@ -2442,6 +2793,97 @@ describe("the exporter", () => {
 });
 
 /* ------------------------------------------------------------------- the rest */
+
+describe("each project's quotas", () => {
+  test("off says so, and asks the exporter nothing about them", async () => {
+    const cloud = await startCloud();
+    const run = await runDoctor(cloud, { args: ["--skip-access"] });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Project quotas are off, so a project's page shows none.",
+    );
+    expect(
+      cloud.requests.filter((request) => {
+        return (
+          request.path === "/probe" &&
+          request.query.get("include_services") === "compute"
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("on, says how many projects' limits its exporter reads", async () => {
+    const cloud = await startCloud({
+      probe: (url) => {
+        return url.searchParams.get("include_services") === "compute"
+          ? 'openstack_nova_limits_vcpus_max{tenant="a",tenant_id="1"} 8\nopenstack_nova_limits_vcpus_max{tenant="b",tenant_id="2"} 20\n'
+          : "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Quota exporter 'oneuptime-openstack-quota-exporter' is running",
+    );
+    expect(run.output).toContain(
+      "Region RegionOne: the quota exporter reads the limits of 2 projects.",
+    );
+  });
+
+  test("on, with an exporter that reads none, says where to look", async () => {
+    const cloud = await startCloud({
+      probe: () => {
+        return "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      args: ["--skip-access"],
+      // The curl stand-in sends this one address to the fake cloud's exporter.
+      env: {
+        OPENSTACK_QUOTA_CLOUDS: "[RegionOne]",
+        OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-exporter:9180",
+      },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Region RegionOne: the quota exporter answers, with no project's limits.",
+    );
+  });
+
+  test("on, without Docker, it looks at its service", async () => {
+    const cloud = await startCloud({
+      probe: (url) => {
+        return url.searchParams.get("include_services") === "compute"
+          ? 'openstack_nova_limits_vcpus_max{tenant="a",tenant_id="1"} 8\n'
+          : "openstack_identity_up 1\n";
+      },
+    });
+    const run = await runDoctor(cloud, {
+      native: true,
+      args: ["--skip-access"],
+      env: { OPENSTACK_QUOTA_CLOUDS: "[RegionOne]" },
+      files: { "oneuptime-openstack-quota-exporter.inactive": "" },
+    });
+    await cloud.close();
+
+    expect(run.output).toContain(
+      "Service 'oneuptime-openstack-quota-exporter' is NOT active",
+    );
+    expect(run.output).toContain(
+      "journalctl -u oneuptime-openstack-quota-exporter",
+    );
+  });
+});
 
 describe("the rest of the chain", () => {
   test("--skip-access asks nothing of the services, and --help prints the usage", async () => {
@@ -2666,4 +3108,39 @@ describe("the script's helpers", () => {
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
   });
+});
+
+describe("a folder this user cannot look inside", () => {
+  // Root looks inside anything, so there is nothing to see as root.
+  const asAnyoneButRoot =
+    process.getuid && process.getuid() === 0 ? test.skip : test;
+
+  asAnyoneButRoot(
+    "says to use sudo, rather than that the agent and its credential are not there",
+    () => {
+      const dir = scratch();
+      const agent = path.join(dir, "agent");
+      fs.mkdirSync(agent);
+      fs.writeFileSync(path.join(agent, "clouds.yaml"), "clouds: {}\n");
+      // What a umask of 077 leaves when root runs install.sh.
+      fs.chmodSync(agent, 0o000);
+      let result;
+      try {
+        result = spawnSync("bash", [SCRIPT, "-d", agent, "--no-color"], {
+          encoding: "utf8",
+          env: { PATH: process.env.PATH, HOME: dir },
+        });
+      } finally {
+        fs.chmodSync(agent, 0o700);
+      }
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain(
+        `This user cannot look inside ${agent}, so nothing below could be read. Run this with sudo.`,
+      );
+      expect(result.stdout).not.toContain("does not exist");
+      // It stops there: no check of the chain follows, each to say the same.
+      expect(result.stdout).not.toContain("1. Runtime");
+    },
+  );
 });

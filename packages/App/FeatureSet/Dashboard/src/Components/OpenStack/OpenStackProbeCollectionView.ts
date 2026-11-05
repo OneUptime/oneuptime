@@ -1,6 +1,7 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionErrorCode, {
   OpenStackCollectionErrorAdvice,
@@ -46,6 +47,12 @@ import OpenStackCollectionSettings from "Common/Utils/OpenStack/OpenStackCollect
  * caller hands in. What a probe reports in words (its error messages, its warnings, what
  * each read rests on) is shown as it wrote it.
  */
+
+/*
+ * What a collection reads beyond the defaults, as a place on the Settings page: a link that
+ * names it opens that fold, and lands on it (OpenStackCollectionOptionsFold).
+ */
+export const OPENSTACK_COLLECTION_OPTIONS_ANCHOR: string = "collection-options";
 
 // How often a page asks again while a test or a first collection is pending.
 export const OPENSTACK_TEST_POLL_INTERVAL_IN_MS: number = 2000;
@@ -407,6 +414,33 @@ export interface OpenStackCollectionStatusView {
   isPending: boolean;
 }
 
+/*
+ * How long a cloud can stay due before it is said that no probe has come for it. A probe asks
+ * every ten seconds, and a collection still running holds the next one back for at most its time
+ * budget of ten minutes. Past that, nothing is asking: the probe is offline, or too old.
+ */
+export const OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS: number = 15 * 60 * 1000;
+
+/*
+ * Whether the probe has stopped coming for this cloud. Claiming a cloud moves its
+ * nextCollectionAt on, and saving new settings sets it to now, so one far in the past means
+ * nothing claimed it. The last report would otherwise go on reading as the cloud's state: a
+ * probe that went offline left its card saying "Collecting", or a new cloud's "Checking", for good.
+ */
+export function isOpenStackCollectionOverdue(
+  cloud: Pick<OpenStackCloud, "nextCollectionAt">,
+  now: Date,
+): boolean {
+  if (!cloud.nextCollectionAt) {
+    return false;
+  }
+
+  return (
+    now.getTime() - new Date(cloud.nextCollectionAt).getTime() >
+    OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS
+  );
+}
+
 // How a probe-collected cloud's collection stands, in words.
 export function getOpenStackCollectionStatusView(
   cloud: Pick<
@@ -415,9 +449,32 @@ export function getOpenStackCollectionStatusView(
     | "collectionErrorCode"
     | "collectionError"
     | "presentedCertificate"
+    | "nextCollectionAt"
   >,
   translator: Translator,
+  now: Date = new Date(),
 ): OpenStackCollectionStatusView {
+  if (isOpenStackCollectionOverdue(cloud, now)) {
+    const advice: OpenStackCollectionErrorAdvice =
+      OpenStackCollectionErrorUtil.getAdvice(
+        OpenStackCollectionErrorCode.ProbeNotAvailable,
+      );
+
+    return {
+      tone: OpenStackCollectionTone.Failing,
+      label: translator.translateText("Not collecting") as string,
+      title: translator.translateText(advice.title) as string,
+      message: translator.translateTemplate(
+        "This cloud was due to be collected {{time}}, and no probe has come for it.",
+        { time: OneUptimeDate.fromNow(cloud.nextCollectionAt as Date) },
+      ),
+      nextStep: translator.translateText(advice.nextStep) as string,
+      certificate: null,
+      // It says so until the probe is back, which nobody has to reload the page to see.
+      isPending: true,
+    };
+  }
+
   if (cloud.collectionStatus === OpenStackCollectionStatus.Succeeded) {
     return {
       tone: OpenStackCollectionTone.Collecting,
@@ -587,7 +644,7 @@ export function getOpenStackSummaryModeLine(
     return null;
   }
 
-  return translator.translatePlural(
+  const line: string = translator.translatePlural(
     {
       one: "This cloud is large enough to keep counts rather than a series per instance. A part that has not changed is sent again every {{count}} minute.",
       other:
@@ -595,6 +652,18 @@ export function getOpenStackSummaryModeLine(
     },
     summary.refreshCycleInMinutes || 0,
   );
+
+  if (!summary.firstCycleEndsAt) {
+    return line;
+  }
+
+  // A new cloud, or a probe that has just restarted: what the rows say is arriving a share at a time.
+  return `${line} ${translator.translateTemplate(
+    "Its lists are still filling: every part will have arrived {{time}}.",
+    {
+      time: OneUptimeDate.fromNow(new Date(summary.firstCycleEndsAt)),
+    },
+  )}`;
 }
 
 // What a collection read, as short phrases a person scans: "48 hypervisors".
@@ -665,6 +734,18 @@ export function getOpenStackConnectionTestBlocker(
 ): string | null {
   if (!input.authUrl.trim() || !input.probeId) {
     return translationKey("Enter Keystone's address and pick a probe first.");
+  }
+
+  /*
+   * An edit can reach the test with any address typed, and the server would only refuse it.
+   * Said here, this is where a person hears that plain HTTP will not do, and what instead.
+   */
+  const address: OpenStackAddressResult = OpenStackAuthUrl.normalize(
+    input.authUrl,
+  );
+
+  if (!address.address) {
+    return address.error;
   }
 
   // A secret typed here goes with what names it, on the form.

@@ -1,0 +1,89 @@
+$ openstack server show cc6e577a-bb98-409f-aef6-c9aaee0494b0 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "accessIPv4": "",
+  "accessIPv6": "",
+  "addresses": {
+    "ou-research-net": [
+      {
+        "version": 4,
+        "addr": "10.78.0.182",
+        "OS-EXT-IPS:type": "fixed",
+        "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:21:b0:f2"
+      }
+    ]
+  },
+  "created": "2026-11-05T05:29:33Z",
+  "flavor": {
+    "vcpus": 1,
+    "ram": 128,
+    "disk": 1,
+    "ephemeral": 0,
+    "swap": 0,
+    "original_name": "ou.tiny",
+    "extra_specs": {}
+  },
+  "hostId": "bcf57afdbcfa98a2cffdc9114155ae9d2585e57de59a1f8fe0af5748",
+  "id": "cc6e577a-bb98-409f-aef6-c9aaee0494b0",
+  "image": {
+    "id": "26d0ad3c-ceda-4a56-a37f-97c592896bdf",
+    "links": [
+      {
+        "rel": "bookmark",
+        "href": "http://10.1.0.196/compute/images/26d0ad3c-ceda-4a56-a37f-97c592896bdf"
+      }
+    ]
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://10.1.0.196/compute/v2.1/servers/cc6e577a-bb98-409f-aef6-c9aaee0494b0"
+    },
+    {
+      "rel": "bookmark",
+      "href": "http://10.1.0.196/compute/servers/cc6e577a-bb98-409f-aef6-c9aaee0494b0"
+    }
+  ],
+  "metadata": {},
+  "name": "ou-user-data",
+  "status": "ACTIVE",
+  "tenant_id": "b9e66b583ae5401b8ec2edf04f41c61a",
+  "user_id": "4a532d8e0b2c42aeb60370f0e764e42c",
+  "updated": "2026-11-05T05:29:36Z",
+  "OS-DCF:diskConfig": "MANUAL",
+  "progress": 0,
+  "OS-EXT-AZ:availability_zone": "nova",
+  "config_drive": "",
+  "key_name": null,
+  "OS-SRV-USG:launched_at": "2026-11-05T05:29:35.000000",
+  "OS-SRV-USG:terminated_at": null,
+  "security_groups": [
+    {
+      "name": "default"
+    }
+  ],
+  "OS-EXT-SRV-ATTR:host": "compute-01",
+  "OS-EXT-SRV-ATTR:instance_name": "instance-00000005",
+  "OS-EXT-SRV-ATTR:hypervisor_hostname": "compute-01.example.internal",
+  "OS-EXT-SRV-ATTR:hostname": "ou-user-data",
+  "OS-EXT-SRV-ATTR:kernel_id": "",
+  "OS-EXT-SRV-ATTR:launch_index": 0,
+  "OS-EXT-SRV-ATTR:ramdisk_id": "",
+  "OS-EXT-SRV-ATTR:reservation_id": "r-obml55mi",
+  "OS-EXT-SRV-ATTR:root_device_name": "/dev/vda",
+  "OS-EXT-SRV-ATTR:user_data": "[redacted]",
+  "OS-EXT-STS:task_state": null,
+  "OS-EXT-STS:vm_state": "active",
+  "OS-EXT-STS:power_state": 1,
+  "os-extended-volumes:volumes_attached": [],
+  "locked": false,
+  "host_status": "UNKNOWN",
+  "description": null,
+  "tags": [],
+  "trusted_image_certificates": null,
+  "server_groups": [],
+  "locked_reason": null
+}

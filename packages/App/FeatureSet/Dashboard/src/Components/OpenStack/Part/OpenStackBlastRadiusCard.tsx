@@ -1,6 +1,8 @@
 import ObjectID from "Common/Types/ObjectID";
 import {
   OpenStackBlastRadius,
+  OpenStackBlastRadiusCount,
+  OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
   isOpenStackBlastRadiusEmpty,
 } from "Common/Types/OpenStack/OpenStackBlastRadius";
@@ -43,6 +45,59 @@ export interface ComponentProps {
 }
 
 const BLAST_RADIUS_TITLE: string = translationKey("What it takes with it");
+
+interface CountWords {
+  count: OpenStackBlastRadiusCount;
+  key: string;
+  words: { one: string; other: string };
+}
+
+// How each of what a radius counts reads, each on its own so it is translated whole.
+const COUNT_WORDS: ReadonlyArray<CountWords> = [
+  {
+    count: "instanceCount",
+    key: "instances",
+    words: { one: "{{count}} instance", other: "{{count}} instances" },
+  },
+  {
+    count: "volumeCount",
+    key: "volumes",
+    words: { one: "{{count}} volume", other: "{{count}} volumes" },
+  },
+  {
+    count: "routerCount",
+    key: "routers",
+    words: { one: "{{count}} router", other: "{{count}} routers" },
+  },
+  {
+    count: "floatingIpCount",
+    key: "floating-ips",
+    words: { one: "{{count}} floating IP", other: "{{count}} floating IPs" },
+  },
+  {
+    count: "stackCount",
+    key: "stacks",
+    words: { one: "{{count}} stack", other: "{{count}} stacks" },
+  },
+  {
+    count: "containerClusterCount",
+    key: "container-clusters",
+    words: {
+      one: "{{count}} Kubernetes cluster",
+      other: "{{count}} Kubernetes clusters",
+    },
+  },
+  {
+    count: "shareCount",
+    key: "shares",
+    words: { one: "{{count}} share", other: "{{count}} shares" },
+  },
+  {
+    count: "databaseInstanceCount",
+    key: "databases",
+    words: { one: "{{count}} database", other: "{{count}} databases" },
+  },
+];
 
 const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -96,41 +151,13 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
   }
 
   const counts: Array<{ key: string; text: string }> = [];
-  if (data.instanceCount > 0) {
-    counts.push({
-      key: "instances",
-      text: translator.translatePlural(
-        { one: "{{count}} instance", other: "{{count}} instances" },
-        data.instanceCount,
-      ),
-    });
-  }
-  if (data.volumeCount > 0) {
-    counts.push({
-      key: "volumes",
-      text: translator.translatePlural(
-        { one: "{{count}} volume", other: "{{count}} volumes" },
-        data.volumeCount,
-      ),
-    });
-  }
-  if (data.routerCount > 0) {
-    counts.push({
-      key: "routers",
-      text: translator.translatePlural(
-        { one: "{{count}} router", other: "{{count}} routers" },
-        data.routerCount,
-      ),
-    });
-  }
-  if (data.floatingIpCount > 0) {
-    counts.push({
-      key: "floating-ips",
-      text: translator.translatePlural(
-        { one: "{{count}} floating IP", other: "{{count}} floating IPs" },
-        data.floatingIpCount,
-      ),
-    });
+  for (const entry of COUNT_WORDS) {
+    if (data[entry.count] > 0) {
+      counts.push({
+        key: entry.key,
+        text: translator.translatePlural(entry.words, data[entry.count]),
+      });
+    }
   }
   if (data.projectCount > 0) {
     counts.push({
@@ -197,44 +224,14 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
                           <bdi>{project.name || project.projectId}</bdi>
                         </Link>
                         <span className="text-xs text-gray-500">
-                          {[
-                            project.instanceCount > 0
+                          {COUNT_WORDS.map((entry: CountWords): string => {
+                            return project[entry.count] > 0
                               ? translator.translatePlural(
-                                  {
-                                    one: "{{count}} instance",
-                                    other: "{{count}} instances",
-                                  },
-                                  project.instanceCount,
+                                  entry.words,
+                                  project[entry.count],
                                 )
-                              : "",
-                            project.volumeCount > 0
-                              ? translator.translatePlural(
-                                  {
-                                    one: "{{count}} volume",
-                                    other: "{{count}} volumes",
-                                  },
-                                  project.volumeCount,
-                                )
-                              : "",
-                            project.routerCount > 0
-                              ? translator.translatePlural(
-                                  {
-                                    one: "{{count}} router",
-                                    other: "{{count}} routers",
-                                  },
-                                  project.routerCount,
-                                )
-                              : "",
-                            project.floatingIpCount > 0
-                              ? translator.translatePlural(
-                                  {
-                                    one: "{{count}} floating IP",
-                                    other: "{{count}} floating IPs",
-                                  },
-                                  project.floatingIpCount,
-                                )
-                              : "",
-                          ]
+                              : "";
+                          })
                             .filter((part: string): boolean => {
                               return Boolean(part);
                             })
@@ -266,9 +263,56 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
             )}
           </div>
         )}
+        {data.magnumClusters && data.magnumClusters.length > 0 ? (
+          <div data-testid={`${props.testId}-magnum-clusters`}>
+            <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
+              {translator.translateText(
+                "Kubernetes clusters with a server here",
+              )}
+            </p>
+            <ul className={listClassName}>
+              {data.magnumClusters.map(
+                (owner: OpenStackBlastRadiusOwner): ReactElement => {
+                  return (
+                    <li
+                      key={owner.externalId}
+                      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
+                    >
+                      <Link
+                        to={props.routes.getPartRoute(
+                          OpenStackResourceKind.ContainerCluster,
+                          owner.externalId,
+                        )}
+                        className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                      >
+                        <bdi>{owner.name || owner.externalId}</bdi>
+                      </Link>
+                      {owner.status ? (
+                        <span className="text-xs text-gray-500">
+                          <bdi>{owner.status}</bdi>
+                        </span>
+                      ) : (
+                        <></>
+                      )}
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        ) : (
+          <></>
+        )}
         {data.acrossProducts && !isOpenStackReachEmpty(data.acrossProducts) ? (
           <div data-testid={`${props.testId}-across-products`}>
-            <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
+            {/* A ruled list runs to the card's edge, so what follows one starts past that. */}
+            <p
+              className={`${
+                !isOpenStackBlastRadiusEmpty(data) && shown.length > 0
+                  ? "pt-10"
+                  : "pt-4"
+              } pb-2 text-xs font-medium text-gray-500`}
+            >
               {translator.translateText("Beyond this cloud")}
             </p>
             <OpenStackReachList

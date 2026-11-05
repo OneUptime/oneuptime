@@ -1,0 +1,2 @@
+How far a cluster on the real Fedora CoreOS image gets on a runner.
+A cluster on the real image fedora-coreos-35.20220116.3.0-openstack.x86_64, with 25 minutes to finish, reached CREATE_FAILED on this runner.

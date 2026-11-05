@@ -1,0 +1,25 @@
+$ openstack router list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "1b93de0a-f162-472e-a6f4-6148f8381b5f",
+    "name": "ou-router",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "ha": true,
+    "external_network": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  },
+  {
+    "id": "c171783b-0239-488e-82e2-3edacfbfab67",
+    "name": "router1",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "ha": true,
+    "external_network": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451"
+  }
+]

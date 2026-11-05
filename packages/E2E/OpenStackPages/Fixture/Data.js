@@ -24,12 +24,21 @@
  *
  *   busy          (default) one region, ML2/OVS, something wrong of every kind.
  *   calm          the same cloud with nothing wrong, and a host disabled on purpose.
+ *   forced-down   calm, with a host an operator told Nova is down and one that just stopped.
  *   new           a cloud that exists and has reported nothing yet.
  *   multi-region  two regions: RegionOne is calm, RegionTwo has lost its compute API.
  *   overflow      more instances in ERROR than Needs attention reads.
  *   ovn-stale     a calm cloud on OVN, with a stale record beside a live agent.
  *   parts         busy, with what a part's page has to say that busy does not hold: hosts
  *                 in zones and aggregates, an image stuck saving, what the probe lists.
+ *   links         a cloud joined to the rest of OneUptime: an agent on a hypervisor and on a
+ *                 guest, a Kubernetes node, services, a Ceph-backed pool, and beside each of
+ *                 those the same names twice over, which must link to nothing.
+ *   usage         calm, with real usage: a hypervisor past its line, a neighbour burning all
+ *                 of it, and one instance made to wait.
+ *   control-plane calm, standing on a RabbitMQ with every node stopped, a Galera with a node
+ *                 out of sync, a Memcached that is fine and a machine whose ovn-controller
+ *                 stopped, with HAProxy and libvirt never named.
  */
 
 export const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -132,10 +141,7 @@ export function worker(context, family, host, binary, region, fields = {}) {
       facts: {
         family,
         host,
-        agentId: openStackUuid(
-          "d7ef14b8",
-          (host.length * 31 + binary.length * 7) % 9973,
-        ),
+        agentId: neutronAgentId(host, binary),
         ...(fields.facts || {}),
       },
     },
@@ -275,6 +281,13 @@ export function storagePool(context, name, region, fields = {}) {
  * A network (gazpacho-ovs/healthy): addresses used and total are added up across its
  * subnets, and are what the external pool rules read.
  */
+function neutronAgentId(host, binary) {
+  return openStackUuid(
+    "d7ef14b8",
+    (host.length * 31 + binary.length * 7) % 9973,
+  );
+}
+
 export function network(context, number, name, region, fields = {}) {
   const total = fields.ipsTotal ?? 253;
   const used = fields.ipsUsed ?? 20;
@@ -976,6 +989,36 @@ function calmInventory(context) {
 }
 
 /*
+ * forced-down: a calm cloud where an operator told Nova compute-02 is down, as a probe reports
+ * it, which is the one collector that can say so. compute-01 is a plain stopped service with
+ * nothing saying which it is, as the agent's exporter leaves it. No recording is a probe's rows,
+ * so these are made up in the shape the scan writes.
+ */
+function forcedDownInventory(context) {
+  return calmInventory(context).map((row) => {
+    if (row.kind !== "Service" || row.name !== "nova-compute") {
+      return row;
+    }
+    if (row.externalId.includes("compute-02")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+        facts: { ...row.facts, forcedDown: true },
+      };
+    }
+    if (row.externalId.includes("compute-01")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+      };
+    }
+    return { ...row, facts: { ...row.facts, forcedDown: false } };
+  });
+}
+
+/*
  * ---------------------------------------------------------------------------
  * multi-region: RegionOne is calm. RegionTwo has lost its compute API, and a
  * nova-compute with instances on it. The same host name in both regions is two hosts.
@@ -1166,6 +1209,12 @@ const PARTS_HOSTS = {
   "compute-05.acme.example": { zone: "az-b", aggregates: null },
 };
 
+const PARTS_VOLUME_POOLS = {
+  "payments-db-data": "ctl-02@ceph#rbd-fast",
+  "research-archive": "ctl-02@ceph#rbd-fast",
+  "web-assets": "ctl-01@lvmdriver-1#lvmdriver-1",
+};
+
 function partsRow(row) {
   if (row.kind === "Hypervisor") {
     const place = PARTS_HOSTS[row.name];
@@ -1181,6 +1230,23 @@ function partsRow(row) {
   if (row.kind === "StoragePool" && row.name === "ctl-02@ceph#rbd-fast") {
     return { ...row, growsPerDay: 512 };
   }
+  // A probe read Nova's addresses too, and this one never got one.
+  // Which networks a DHCP agent serves, which only a probe says.
+  if (row.kind === "Service" && row.name === "neutron-dhcp-agent") {
+    return {
+      ...row,
+      facts: { ...row.facts, dhcpNetworkCount: 1 },
+    };
+  }
+  if (row.kind === "Network" && row.name === "research-net") {
+    return {
+      ...row,
+      facts: {
+        ...row.facts,
+        dhcpAgentIds: [neutronAgentId("ctl-01", "neutron-dhcp-agent")],
+      },
+    };
+  }
   if (row.kind === "Instance" && row.name === "ou-failed") {
     return {
       ...row,
@@ -1188,13 +1254,38 @@ function partsRow(row) {
         ...row.facts,
         faultMessage:
           "No valid host was found. There are not enough hosts available.",
+        updatedAt: "2026-11-04T11:00:00Z",
+        addressIpv4: null,
+        addressIpv6: null,
+        networkNames: [],
       },
     };
   }
   if (row.kind === "Instance" && row.name === "batch-worker-7") {
     return {
       ...row,
-      facts: { ...row.facts, addressIpv4: "10.77.0.12" },
+      facts: {
+        ...row.facts,
+        addressIpv4: "10.77.0.12",
+        networkNames: ["public-dmz"],
+        // The stuck image of this estate, which is what it says it booted from.
+        imageId: openStackUuid("79490afb", 3),
+        updatedAt: "2026-11-04T11:00:00Z",
+      },
+    };
+  }
+  // Nova says which networks each is on, to a probe. "public-dmz" is the shared one here.
+  if (row.kind === "Instance") {
+    return {
+      ...row,
+      facts: { ...row.facts, networkNames: ["public-dmz"] },
+    };
+  }
+  // A probe was told which pool holds each of these. The third pool holds none of them.
+  if (row.kind === "Volume" && PARTS_VOLUME_POOLS[row.name]) {
+    return {
+      ...row,
+      facts: { ...row.facts, pool: PARTS_VOLUME_POOLS[row.name] },
     };
   }
   return row;
@@ -1224,10 +1315,499 @@ function partsInventory(context) {
   ];
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * links: a cloud joined to the rest of OneUptime.
+ *
+ * What the issue's own estate holds, and beside each join what looks like one and isn't. Every
+ * record is made up. No recording holds a Ceph-backed pool, because the rig's DevStacks run LVM,
+ * and the other products' rows are in the shape each product stores (Fixture/Links.js reads them
+ * with the real rules).
+ * ---------------------------------------------------------------------------
+ */
+export const LINKS_MACHINE = "compute-01.acme.example";
+export const LINKS_FSID = "0f3e8f6a-4d1c-4f7a-9c11-2b6f1e0a9d33";
+
+export function instanceIdOf(number) {
+  return openStackUuid("2e1cfc3e", number);
+}
+
+export function controlPlaneMachine(context, dependency, machine, region) {
+  return stamped(
+    {
+      kind: "ControlPlane",
+      externalId: `${region}/${dependency}/${machine}`,
+      name: machine,
+      regionName: region,
+      status: "up",
+      facts: { dependency, node: machine, scrapeFailed: false },
+    },
+    context,
+  );
+}
+
+function linksInventory(context) {
+  const region = REGION_ONE;
+  const onMachine = (name) => {
+    return {
+      hypervisorName: name,
+      openStackProjectId: projectIdOf(1),
+    };
+  };
+  return [
+    ...projects(context),
+    ...apis(context, region),
+    ...flavorsAndImages(context, region),
+    // The machine with OneUptime's agent, and Nova's short and full names for it.
+    novaCompute(context, "compute-01", region),
+    hypervisor(context, LINKS_MACHINE, region, { instanceCount: 5 }),
+    // A guest with the agent, a Kubernetes node, and an instance that is nothing else.
+    instance(context, 1, "web-1", region, onMachine(LINKS_MACHINE)),
+    instance(context, 2, "k8s-worker-1", region, onMachine(LINKS_MACHINE)),
+    instance(context, 3, "batch-1", region, onMachine(LINKS_MACHINE)),
+    // A node on this instance, whose UUID a restored copy of this cloud holds too.
+    instance(context, 5, "restored-1", region, onMachine(LINKS_MACHINE)),
+
+    // One host's short name fits both of these.
+    hypervisor(context, "compute-07.east.acme.example", region),
+    hypervisor(context, "compute-07.west.acme.example", region),
+    // Two hosts' names fit this one.
+    hypervisor(context, "compute-08.acme.example", region),
+    // A guest is called what this is called, and its ID says it is that guest.
+    hypervisor(context, "compute-09.acme.example", region),
+    instance(context, 4, "compute-09", region, {
+      hypervisorName: LINKS_MACHINE,
+      openStackProjectId: projectIdOf(2),
+    }),
+
+    // Cinder's driver names this cluster, and the pool reads half empty whatever Ceph says.
+    storagePool(context, "ctl-01@rbd#volumes", region, {
+      diskAllocatedBytes: 4 * TIB,
+      facts: {
+        storageProtocol: "ceph",
+        cephFsid: LINKS_FSID,
+        cephPool: "volumes",
+      },
+    }),
+    // Only a name in one cluster, and one pool: a suggestion.
+    storagePool(context, "ctl-01@rbd-images#images", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+    // A name two clusters hold.
+    storagePool(context, "ctl-01@rbd-shared#shared", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+    // A name two Cinder pools hold, in one cluster.
+    storagePool(context, "ctl-01@rbd-backups#backups", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+    storagePool(context, "ctl-02@rbd-backups#backups", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+
+    controlPlaneMachine(context, "rabbitmq", "ctl-01", region),
+    controlPlaneMachine(context, "mariadb", "ctl-01", region),
+  ];
+}
+
+const LINKS_CLUSTER_ID = uuid("76000000", 1);
+
+const LINKS_OTHER_PRODUCTS = {
+  hosts: [
+    {
+      _id: uuid("74000000", 11),
+      name: "compute-01",
+      hostIdentifier: "compute-01",
+      hostId: "0123456789abcdef0123456789abcdef",
+    },
+    {
+      _id: uuid("74000000", 12),
+      name: "web-1",
+      hostIdentifier: "web-1",
+      hostId: instanceIdOf(1),
+    },
+    {
+      _id: uuid("74000000", 13),
+      name: "compute-07",
+      hostIdentifier: "compute-07",
+    },
+    {
+      _id: uuid("74000000", 14),
+      name: "compute-08",
+      hostIdentifier: "compute-08",
+    },
+    {
+      _id: uuid("74000000", 15),
+      name: "compute-08.acme.example",
+      hostIdentifier: "compute-08.acme.example",
+    },
+    {
+      _id: uuid("74000000", 16),
+      name: "compute-09",
+      hostIdentifier: "compute-09",
+      hostId: instanceIdOf(4),
+    },
+  ],
+  kubernetesNodes: [
+    {
+      clusterId: LINKS_CLUSTER_ID,
+      clusterName: "acme-prod-k8s",
+      nodeName: "k8s-worker-1",
+      providerId: `openstack:///${instanceIdOf(2)}`,
+    },
+    {
+      clusterId: LINKS_CLUSTER_ID,
+      clusterName: "acme-prod-k8s",
+      nodeName: "k8s-worker-2",
+      providerId: `openstack:///${instanceIdOf(5)}`,
+    },
+    {
+      clusterId: LINKS_CLUSTER_ID,
+      clusterName: "acme-prod-k8s",
+      nodeName: "k8s-worker-3",
+      providerId: "aws:///eu-west-1a/i-0abc",
+    },
+  ],
+  services: [
+    { id: uuid("77000000", 1), name: "api", onHosts: ["web-1"] },
+    { id: uuid("77000000", 2), name: "checkout", onNodes: ["k8s-worker-1"] },
+    { id: uuid("77000000", 3), name: "agentd", onHosts: ["compute-01"] },
+    {
+      id: uuid("77000000", 4),
+      name: "everywhere",
+      onHosts: ["web-1", "compute-01"],
+      onNodes: ["k8s-worker-1"],
+    },
+    { id: uuid("77000000", 5), name: "billing", onHosts: ["bare-metal-9"] },
+  ],
+  cephClusters: [
+    {
+      id: uuid("75000000", 1),
+      name: "ceph-east",
+      fsid: LINKS_FSID,
+      poolNames: ["volumes", "images", "shared", "backups"],
+      healthStatus: 2,
+      capacityUsedPercent: 71,
+    },
+    {
+      id: uuid("75000000", 2),
+      name: "ceph-west",
+      fsid: null,
+      poolNames: ["shared"],
+      healthStatus: 0,
+      capacityUsedPercent: 12,
+    },
+  ],
+  instancesInOtherClouds: [instanceIdOf(5)],
+};
+
+// A worker's page links to the Hosts product when a host reports under its name.
+const BUSY_OTHER_PRODUCTS = {
+  hosts: [
+    {
+      _id: uuid("74000000", 1),
+      name: "compute-03",
+      hostIdentifier: "compute-03",
+    },
+  ],
+  kubernetesNodes: [],
+  services: [],
+  cephClusters: [],
+  instancesInOtherClouds: [],
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * magnum: a cluster Magnum built, with OneUptime's Kubernetes agent on it. Made up: no runner has
+ * brought a Magnum cluster up, let alone run the agent on one. What Magnum and Heat call each thing is
+ * what a real cloud recorded (services-heat-magnum/access-check), and the links are the real rule.
+ * ---------------------------------------------------------------------------
+ */
+export const MAGNUM_CLUSTER = "ece79e88-fe71-4268-8080-ed81e6887df4";
+export const MAGNUM_CLUSTER_WITHOUT_AGENT = "ba479656-39aa-4ab4-825f-e2b179837022";
+export const MAGNUM_KUBERNETES_CLUSTER = uuid("76000000", 2);
+export const MAGNUM_MACHINE = "compute-01.acme.example";
+const MAGNUM_STACK = "ou-cluster-real-6uc6ctkch4l4";
+
+export function magnumServerIdOf(number) {
+  return instanceIdOf(number);
+}
+
+function magnumInventory(context) {
+  const region = REGION_ONE;
+  const onMachine = {
+    hypervisorName: MAGNUM_MACHINE,
+    openStackProjectId: projectIdOf(1),
+  };
+  const part = (fields) => {
+    return stamped(
+      { regionName: region, openStackProjectId: projectIdOf(1), ...fields },
+      context,
+    );
+  };
+  return [
+    ...projects(context),
+    ...apis(context, region),
+    api(context, "orchestration", region),
+    api(context, "container-infra", region),
+    ...flavorsAndImages(context, region),
+    novaCompute(context, "compute-01", region),
+    hypervisor(context, MAGNUM_MACHINE, region, { instanceCount: 3 }),
+    instance(context, 1, `${MAGNUM_STACK}-master-0`, region, onMachine),
+    instance(context, 2, `${MAGNUM_STACK}-node-0`, region, onMachine),
+    instance(context, 3, "web-1", region, onMachine),
+    part({
+      kind: "Stack",
+      externalId: "483a2b85-e4e7-4cbc-9aec-2addd10fec70",
+      name: MAGNUM_STACK,
+      status: "CREATE_COMPLETE",
+      facts: {
+        ownedInstanceIds: [instanceIdOf(1), instanceIdOf(2)],
+        ownedInstanceCount: 2,
+        ownedVolumeIds: [],
+        ownedVolumeCount: 0,
+      },
+    }),
+    part({
+      kind: "ContainerCluster",
+      externalId: MAGNUM_CLUSTER,
+      name: "ou-cluster-real",
+      status: "CREATE_COMPLETE",
+      facts: {
+        stackId: "483a2b85-e4e7-4cbc-9aec-2addd10fec70",
+        masterCount: 1,
+        nodeCount: 1,
+      },
+    }),
+    part({
+      kind: "Stack",
+      externalId: "e2fc0fa8-a09b-45c5-b917-68d79adb0ec4",
+      name: "ou-cluster-times-out-abc123",
+      status: "CREATE_COMPLETE",
+    }),
+    part({
+      kind: "ContainerCluster",
+      externalId: MAGNUM_CLUSTER_WITHOUT_AGENT,
+      name: "ou-cluster-times-out",
+      status: "CREATE_COMPLETE",
+      facts: {
+        stackId: "e2fc0fa8-a09b-45c5-b917-68d79adb0ec4",
+        masterCount: 1,
+        nodeCount: 1,
+      },
+    }),
+  ];
+}
+
+const MAGNUM_OTHER_PRODUCTS = {
+  hosts: [],
+  kubernetesNodes: [
+    {
+      clusterId: MAGNUM_KUBERNETES_CLUSTER,
+      clusterName: "from-magnum",
+      nodeName: "ou-cluster-real-master-0",
+      providerId: `openstack:///${instanceIdOf(1)}`,
+    },
+    {
+      clusterId: MAGNUM_KUBERNETES_CLUSTER,
+      clusterName: "from-magnum",
+      nodeName: "ou-cluster-real-node-0",
+      providerId: `openstack:///${instanceIdOf(2)}`,
+    },
+  ],
+  services: [],
+  cephClusters: [],
+  instancesInOtherClouds: [],
+};
+
+const OTHER_PRODUCTS = {
+  busy: BUSY_OTHER_PRODUCTS,
+  parts: BUSY_OTHER_PRODUCTS,
+  links: LINKS_OTHER_PRODUCTS,
+  magnum: MAGNUM_OTHER_PRODUCTS,
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * usage: calm, with what libvirt's or Ceilometer's exporter says on compute-01. The numbers are
+ * made up to put it over a line. What real clouds really said goes through the same pages in
+ * OpenStackUsagePagesRecordings.test.tsx, and these are for what only a browser shows.
+ * ---------------------------------------------------------------------------
+ */
+export const USAGE_HOST = "compute-01.acme.example";
+const MIB = 1024 * 1024;
+
+function usageOfInstance(index) {
+  if (index === 0) {
+    // The noisy neighbour: nearly all of its 32 vCPUs, which is nearly all of the host's 32 threads.
+    return {
+      flavorId: "huge",
+      cpuCores: 29.4,
+      cpuPercent: 91.9,
+      contentionPercent: 2,
+      memoryUsageBytes: 56 * GIB,
+      memoryResidentBytes: 60 * GIB,
+      disks: {
+        vda: { read: 40 * MIB, write: 120 * MIB, readMs: 3, writeMs: 7 },
+        vdb: { read: 0, write: 900 * MIB, writeMs: 64 },
+      },
+      interfaces: { "tap5e2d1c0a-44": { receive: 25 * MIB, transmit: 310 * MIB } },
+    };
+  }
+  // Everyone else, on m1.xlarge's 8 vCPUs, doing very little and being made to wait for it.
+  return {
+    flavorId: "5",
+    cpuCores: 0.3 + index / 10,
+    cpuPercent: ((0.3 + index / 10) / 8) * 100,
+    contentionPercent: 24 - index,
+    memoryUsageBytes: 2 * GIB,
+    memoryResidentBytes: (4 + index) * GIB,
+    disks: { vda: { read: 200 * 1024, write: 400 * 1024, readMs: 2, writeMs: 3 } },
+    interfaces: { [`tap${index}abc1234-0${index}`]: { receive: 8192, transmit: 4096 } },
+  };
+}
+
+function usageInventory(context) {
+  let index = -1;
+  const rows = calmInventory(context).map((row) => {
+    if (row.kind === "Hypervisor" && row.name === USAGE_HOST) {
+      return {
+        ...row,
+        vcpuCapacity: 128,
+        facts: {
+          ...row.facts,
+          resourceTotals: { VCPU: 32, MEMORY_MB: 512 * 1024 },
+        },
+        hypervisorUsage: {
+          cpuCores: 31.2,
+          cpuPercent: 97.5,
+          memoryResidentBytes: 180 * GIB,
+          memoryPercent: 35.2,
+          reporting: 10,
+        },
+      };
+    }
+    if (row.kind === "Instance" && row.hypervisorName === USAGE_HOST) {
+      index += 1;
+      const usage = usageOfInstance(index);
+      return {
+        ...row,
+        facts: { ...row.facts, flavorId: usage.flavorId },
+        usage,
+      };
+    }
+    return row;
+  });
+  return [
+    ...rows,
+    flavor(context, "huge", "m1.huge", REGION_ONE, {
+      vcpuCapacity: 32,
+      memoryCapacityBytes: 64 * GIB,
+      diskCapacityBytes: 320 * GIB,
+    }),
+  ];
+}
+
+/*
+ * One machine under the cloud, in the shape the control plane scan writes for what its exporter
+ * said (Common/Tests/Fixtures/OpenStack/control-plane holds real ones).
+ */
+function machineUnderTheCloud(context, dependency, host, fields = {}) {
+  return stamped(
+    {
+      kind: "ControlPlane",
+      externalId: `RegionOne/${dependency}/${host}`,
+      name: host,
+      regionName: "RegionOne",
+      status: "up",
+      ...fields,
+      facts: { dependency, scrapeFailed: false, ...(fields.facts || {}) },
+    },
+    context,
+  );
+}
+
+function controlPlaneInventory(context) {
+  const now = new Date(context.lastSeenAt).toISOString();
+  const earlier = new Date(context.lastSeenAt - 30 * MINUTE).toISOString();
+
+  return [
+    ...calmInventory(context),
+    ...["10.0.0.11", "10.0.0.12", "10.0.0.13"].map((host) => {
+      return machineUnderTheCloud(context, "rabbitmq", host, {
+        status: "down",
+        facts: { scrapeFailed: true },
+      });
+    }),
+    machineUnderTheCloud(context, "mariadb", "10.0.0.11", {
+      facts: {
+        galeraOn: true,
+        clusterPrimary: true,
+        ready: true,
+        clusterSize: 3,
+        localState: 4,
+        threadsConnected: 40,
+        maxConnections: 4096,
+      },
+    }),
+    machineUnderTheCloud(context, "mariadb", "10.0.0.12", {
+      facts: {
+        galeraOn: true,
+        clusterPrimary: true,
+        ready: true,
+        clusterSize: 3,
+        localState: 2,
+        desynced: false,
+        threadsConnected: 40,
+        maxConnections: 4096,
+      },
+    }),
+    machineUnderTheCloud(context, "mariadb", "10.0.0.13", {
+      facts: {
+        galeraOn: true,
+        clusterPrimary: true,
+        ready: true,
+        clusterSize: 3,
+        localState: 4,
+        threadsConnected: 40,
+        maxConnections: 4096,
+      },
+    }),
+    ...["10.0.0.11", "10.0.0.12"].map((host) => {
+      return machineUnderTheCloud(context, "memcached", host, {
+        facts: { currentConnections: 41, askedAt: now },
+      });
+    }),
+    machineUnderTheCloud(context, "network", "10.0.0.21", {
+      facts: {
+        ovsSeenAt: now,
+        ovsDatabaseSeenAt: now,
+        ovnChassisSeenAt: now,
+        ovnControllerSeenAt: earlier,
+        bridgePorts: 8,
+      },
+    }),
+    machineUnderTheCloud(context, "network", "10.0.0.22", {
+      facts: {
+        ovsSeenAt: now,
+        ovsDatabaseSeenAt: now,
+        ovnChassisSeenAt: now,
+        ovnControllerSeenAt: now,
+        bridgePorts: 8,
+      },
+    }),
+  ];
+}
+
 const ESTATES = {
   busy: busyInventory,
+  "control-plane": controlPlaneInventory,
   parts: partsInventory,
+  links: linksInventory,
+  magnum: magnumInventory,
+  usage: usageInventory,
   calm: calmInventory,
+  "forced-down": forcedDownInventory,
   "ovn-stale": ovnStaleInventory,
   new: () => {
     return [];
@@ -1297,5 +1877,8 @@ export function buildEstate(scenario, loadedAt) {
           : {},
     ),
     inventory,
+    otherProducts: scenario.recordedRows
+      ? undefined
+      : OTHER_PRODUCTS[scenario.estate],
   };
 }

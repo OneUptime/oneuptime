@@ -1,4 +1,5 @@
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudCheck from "../../../Models/DatabaseModels/OpenStackCloudCheck";
 import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource";
 import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "../../../Types/Monitor/OpenStackAlertTemplates";
 import { JSONObject } from "../../../Types/JSON";
@@ -6,16 +7,31 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
   OpenStackBlastRadius,
+  OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
   isOpenStackBlastRadiusEmpty,
 } from "../../../Types/OpenStack/OpenStackBlastRadius";
-import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackProbableCause,
+  describeOpenStackProbableCause,
+  getOpenStackProbableCauses,
+} from "../../../Types/OpenStack/OpenStackControlPlane";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "../../../Types/OpenStack/OpenStackResourceKind";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  OpenStackCheckFindings,
+  getOpenStackCheckFindings,
+  isOpenStackCheckMonitor,
+  openStackCheckFindingsToMarkdown,
+} from "../../../Utils/OpenStack/OpenStackCheckFindings";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
@@ -26,11 +42,15 @@ import {
   rankOpenStackInstancesByCpu,
 } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import {
+  OpenStackLinkedHost,
+  OpenStackLinkedInstance,
+  OpenStackLinkedKubernetesNode,
   OpenStackLinkedService,
   OpenStackReachAcrossProducts,
   describeOpenStackReachAcrossProducts,
   isOpenStackReachEmpty,
 } from "../../../Types/OpenStack/OpenStackLinks";
+import { OpenStackReachedProject } from "../../../Types/OpenStack/OpenStackScopedRule";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
@@ -38,12 +58,14 @@ import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import MetricService from "../../Services/MetricService";
+import OpenStackCloudCheckService from "../../Services/OpenStackCloudCheckService";
 import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import OpenStackResourceService from "../../Services/OpenStackResourceService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import { OPENSTACK_API_UP_METRIC_NAMES } from "../Telemetry/OpenStackSnapshotScan";
 import OpenStackAcrossProducts from "./OpenStackAcrossProducts";
+import { getOpenStackPartLogAttributes } from "../../../Utils/OpenStack/OpenStackPartLogFacts";
 
 /*
  * WHAT AN ALERT OR INCIDENT ON A PART OF AN OPENSTACK CLOUD TAKES WITH IT, AND WHOSE IT IS.
@@ -53,9 +75,10 @@ import OpenStackAcrossProducts from "./OpenStackAcrossProducts";
  * radius (OpenStackResourceService.getBlastRadius, the one answer every page reads), so
  * the alert can say "3 instances in 2 projects" and name them.
  *
- * Naming them is also what reaches their owners. An owner or label rule on one project
- * matches the marker this writes (getOpenStackProjectMarker), so a project's incidents
- * reach the team that runs it through the rules every alert already goes through.
+ * Reaching them is also what reaches their owners. An OpenStack cloud's owner or label rule
+ * on one project or domain adds to what this says reaches it (OpenStackScopedRules). The
+ * markers this writes stay, so an Alert or Incident rule written to match one keeps working
+ * (getOpenStackProjectMarker).
  *
  * Never in the way of the alert: if any of this fails, the alert opens without it.
  */
@@ -95,7 +118,13 @@ export function getOpenStackPartOfSeries(
   const parts: Array<OpenStackSeriesPart> = [];
 
   if (service && host) {
-    for (const family of ["compute", "network", "volume"]) {
+    for (const family of [
+      "compute",
+      "network",
+      "volume",
+      "orchestration",
+      "container-infra",
+    ]) {
       parts.push({
         kind: OpenStackResourceKind.Service,
         externalId: `${region}/${family}/${host}/${service}`,
@@ -132,6 +161,8 @@ export function getOpenStackPartOfSeries(
       { kind: OpenStackResourceKind.Router, externalId: id },
       { kind: OpenStackResourceKind.Instance, externalId: id },
       { kind: OpenStackResourceKind.Volume, externalId: id },
+      { kind: OpenStackResourceKind.Stack, externalId: id },
+      { kind: OpenStackResourceKind.ContainerCluster, externalId: id },
     );
   }
 
@@ -222,6 +253,42 @@ export function getOpenStackProjectOfSeries(
   return readLabel(labels, "tenant_id") || readLabel(labels, "project_id");
 }
 
+/*
+ * When what failed is a whole region's API rather than one part of the region. Its radius is
+ * then every project in the region with anything there, and whoever reads it should know
+ * that this is what they are reading. Keystone is global, so its reach is the whole cloud's,
+ * whichever region's exporter said so.
+ */
+export interface OpenStackRegionWide {
+  regionName: string | null;
+  service: OpenStackServiceType;
+  isWholeCloud: boolean;
+}
+
+export function getOpenStackRegionWide(part: {
+  kind?: OpenStackResourceKind | null | undefined;
+  name?: string | null | undefined;
+  regionName?: string | null | undefined;
+}): OpenStackRegionWide | null {
+  if (
+    part.kind !== OpenStackResourceKind.Api ||
+    !part.name ||
+    !Object.values(OpenStackServiceType).includes(
+      part.name as OpenStackServiceType,
+    )
+  ) {
+    return null;
+  }
+
+  const service: OpenStackServiceType = part.name as OpenStackServiceType;
+
+  return {
+    regionName: part.regionName || null,
+    service,
+    isWholeCloud: service === OpenStackServiceType.Identity,
+  };
+}
+
 export interface OpenStackAlertContextResult {
   radius: OpenStackBlastRadius | null;
   // A project the series itself names, whether or not it has a radius.
@@ -231,11 +298,63 @@ export interface OpenStackAlertContextResult {
   partKind: OpenStackResourceKind | null;
   // Its row's id, when the series names a part with a row.
   partExternalId?: string | undefined;
+  // Set when the part is a whole region's API, which is what the radius then reads.
+  regionWide?: OpenStackRegionWide | undefined;
+  /*
+   * What picks this part's lines out of the cloud's logs, for search_logs to read. Absent for a
+   * kind no line can be said to be about.
+   */
+  partLogAttributes?: Record<string, string> | undefined;
   /*
    * On a hypervisor that has passed a line on what its instances really use, the instances
    * responsible, with how long each is waiting where the source says.
    */
   busiestInstances?: Array<OpenStackBusyInstance> | undefined;
+  // On a check's series, what the run met: the step, and the fault in the service's own words.
+  checkFindings?: OpenStackCheckFindings | undefined;
+  /*
+   * What the cloud stands on that is down right now and would take this part with it: the
+   * first thing whoever this wakes asks. Most of the time an alert like this waits for that
+   * one's incident (OpenStackMonitorDependencies), so this is for the ones that get through.
+   */
+  probableCauses?: Array<OpenStackProbableCause> | undefined;
+}
+
+/*
+ * Every project an alert or incident reaches: the one its series names and each its part
+ * holds something of, past what a description lists.
+ */
+export function getOpenStackProjectsReached(
+  context: OpenStackAlertContextResult,
+): Array<OpenStackReachedProject> {
+  const reached: Map<string, OpenStackReachedProject> = new Map();
+
+  if (context.projectId) {
+    reached.set(context.projectId, {
+      projectId: context.projectId,
+      domainId: context.domainId,
+    });
+  }
+
+  for (const project of context.radius?.everyProject ||
+    context.radius?.projects ||
+    []) {
+    if (!reached.has(project.projectId)) {
+      reached.set(project.projectId, {
+        projectId: project.projectId,
+        domainId: project.domainId,
+      });
+    }
+  }
+
+  return Array.from(reached.values());
+}
+
+// What a series adds to an alert or incident about it, and which projects that reaches.
+export interface OpenStackSeriesDescription {
+  description: string | undefined;
+  reached: Array<OpenStackReachedProject>;
+  openStackCloudId: ObjectID | null;
 }
 
 // One of a hypervisor's instances, by the name people know it by.
@@ -248,7 +367,13 @@ const HYPERVISOR_USAGE_METRICS: ReadonlyArray<string> = Object.values(
   OpenStackHypervisorMetric,
 );
 
+// A cloud has a few machines of each thing it stands on, so a page of them is all of them.
+const OPENSTACK_CONTROL_PLANE_ROWS_READ: number = 500;
+
 const BUSIEST_INSTANCES_IN_AN_ALERT: number = 5;
+// Enough to tell whose night this is. The hypervisor's page has the rest of them.
+const INSTANCES_NAMED_IN_AN_ALERT: number = 20;
+const KUBERNETES_NODES_NAMED_IN_AN_ALERT: number = 10;
 // As long as the templates' own window, so what is named is what fired it.
 const BUSIEST_INSTANCES_WINDOW_MINUTES: number = 15;
 
@@ -266,6 +391,26 @@ export default class OpenStackAlertContext {
       domainId: null,
       partKind: null,
     };
+
+    /*
+     * A check's series name a region and no part of it, and what makes its incident worth reading
+     * is on the check's own row, not in a label.
+     */
+    if (isOpenStackCheckMonitor(data.metricNames || [])) {
+      const findings: OpenStackCheckFindings | null =
+        await this.readCheckFindings({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          seriesLabels: data.seriesLabels,
+          metricNames: data.metricNames || [],
+        });
+
+      if (findings) {
+        result.checkFindings = findings;
+      }
+
+      return result;
+    }
 
     for (const candidate of getOpenStackPartOfSeries(
       data.seriesLabels,
@@ -298,6 +443,20 @@ export default class OpenStackAlertContext {
       result.partKind = candidate.kind;
       result.partExternalId = candidate.externalId;
       result.projectId = result.projectId || part.openStackProjectId || null;
+      const workerHost: unknown = (part.facts as JSONObject | undefined)?.[
+        "host"
+      ];
+      const partLogAttributes: Record<string, string> | null =
+        getOpenStackPartLogAttributes({
+          kind: candidate.kind,
+          externalId: candidate.externalId,
+          name: part.name,
+          hypervisorName: part.hypervisorName,
+          workerHost: typeof workerHost === "string" ? workerHost : null,
+        });
+      if (partLogAttributes) {
+        result.partLogAttributes = partLogAttributes;
+      }
       result.radius = await OpenStackResourceService.getBlastRadius({
         projectId: data.projectId,
         openStackCloudId: data.openStackCloudId,
@@ -309,7 +468,16 @@ export default class OpenStackAlertContext {
           externalId: part.externalId,
           facts: part.facts,
         },
+        includeEveryProject: true,
       });
+      const regionWide: OpenStackRegionWide | null = getOpenStackRegionWide({
+        kind: candidate.kind,
+        name: part.name,
+        regionName: part.regionName,
+      });
+      if (regionWide) {
+        result.regionWide = regionWide;
+      }
       /*
        * Beyond the cloud: best effort on its own, so a Kubernetes or Host read that fails
        * leaves the alert with what the cloud itself said.
@@ -334,6 +502,19 @@ export default class OpenStackAlertContext {
         logger.warn(
           `Could not read what an OpenStack part reaches beyond the cloud: ${error instanceof Error ? error.message : String(error)}`,
         );
+      }
+      if (
+        candidate.kind === OpenStackResourceKind.Service ||
+        candidate.kind === OpenStackResourceKind.Api
+      ) {
+        result.probableCauses = await this.readProbableCauses({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          partKind: candidate.kind,
+          partName: readLabel(data.seriesLabels, "service"),
+          partHost: readLabel(data.seriesLabels, "hostname"),
+          regionName: part.regionName,
+        });
       }
       if (
         candidate.kind === OpenStackResourceKind.Hypervisor &&
@@ -371,6 +552,83 @@ export default class OpenStackAlertContext {
     }
 
     return result;
+  }
+
+  // Never in the way: the incident still opens, and the check's page says what the run met.
+  public static async readCheckFindings(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    seriesLabels: JSONObject | undefined;
+    metricNames: ReadonlyArray<string>;
+  }): Promise<OpenStackCheckFindings | null> {
+    try {
+      const check: OpenStackCloudCheck | null =
+        await OpenStackCloudCheckService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+          },
+          select: { apiCheckResult: true, lifecycleRecords: true },
+          props: { isRoot: true },
+        });
+
+      return getOpenStackCheckFindings({
+        labels: data.seriesLabels,
+        metricNames: data.metricNames,
+        apiCheckResult: check?.apiCheckResult,
+        lifecycleRecords: check?.lifecycleRecords,
+      });
+    } catch (error) {
+      logger.warn(
+        `Could not read what an OpenStack check met: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
+  // Never in the way: an alert that cannot say why still fires, and says what it can.
+  public static async readProbableCauses(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    partKind: OpenStackResourceKind;
+    partName: string | null;
+    partHost: string | null;
+    regionName: string | null | undefined;
+  }): Promise<Array<OpenStackProbableCause>> {
+    try {
+      const rows: Array<OpenStackResource> =
+        await OpenStackResourceService.findBy({
+          query: {
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            kind: OpenStackResourceKind.ControlPlane,
+          },
+          select: {
+            name: true,
+            regionName: true,
+            status: true,
+            facts: true,
+            lastSeenAt: true,
+          },
+          limit: OPENSTACK_CONTROL_PLANE_ROWS_READ,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      return getOpenStackProbableCauses({
+        partKind: data.partKind,
+        partName: data.partName,
+        partHost: data.partHost,
+        regionName: data.regionName,
+        rows,
+        now: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (error) {
+      logger.warn(
+        `Could not read what an OpenStack part's failure is probably caused by: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
+    }
   }
 
   // Never in the way: an alert with no names beside it still fires, and its page has them.
@@ -506,6 +764,24 @@ export default class OpenStackAlertContext {
   public static toMarkdown(context: OpenStackAlertContextResult): string {
     const sections: Array<MarkdownText> = [];
 
+    if (context.checkFindings) {
+      sections.push(openStackCheckFindingsToMarkdown(context.checkFindings));
+    }
+
+    // First, because it is what whoever this wakes needs before anything else here.
+    if (context.probableCauses && context.probableCauses.length > 0) {
+      sections.push(
+        mdText`**Probably caused by:**`,
+        FeedMarkdown.bulletList(
+          context.probableCauses.map(
+            (cause: OpenStackProbableCause): MarkdownText => {
+              return mdText`${describeOpenStackProbableCause(cause)}`;
+            },
+          ),
+        ),
+      );
+    }
+
     if (context.projectId) {
       const domain: MarkdownText = context.domainId
         ? mdText`, OpenStack domain ${FeedMarkdown.code(context.domainId)}`
@@ -533,24 +809,81 @@ export default class OpenStackAlertContext {
         );
       }
 
-      sections.push(
-        mdText`**What this affects:** ${describeOpenStackBlastRadius(radius)}.`,
-      );
+      const regionWide: OpenStackRegionWide | undefined = context.regionWide;
+      if (regionWide?.isWholeCloud) {
+        sections.push(
+          mdText`**What this affects across the whole cloud:** ${describeOpenStackBlastRadius(radius)}.`,
+        );
+      } else if (regionWide?.regionName) {
+        sections.push(
+          mdText`**What this affects across region ${regionWide.regionName}:** ${describeOpenStackBlastRadius(radius)}.`,
+        );
+      } else {
+        sections.push(
+          mdText`**What this affects:** ${describeOpenStackBlastRadius(radius)}.`,
+        );
+      }
 
       if (projectLines.length > 0) {
         sections.push(FeedMarkdown.bulletList(projectLines));
       }
     }
 
+    for (const owner of radius?.belongsTo || []) {
+      const name: string = owner.name || owner.externalId;
+      sections.push(
+        owner.kind === OpenStackResourceKind.ContainerCluster
+          ? mdText`**Part of Kubernetes cluster:** ${name}. A failure here is a failure of that cluster, and openstack coe cluster show says which node group failed.`
+          : context.partKind === OpenStackResourceKind.ContainerCluster
+            ? mdText`**Built with Heat stack:** ${name}. openstack stack failures list on it says what failed.`
+            : mdText`**Part of Heat stack:** ${name}. What happens to this happens to that stack.`,
+      );
+    }
+
+    if (radius?.magnumClusters && radius.magnumClusters.length > 0) {
+      sections.push(
+        mdText`**Kubernetes clusters with a server on it:** ${radius.magnumClusters
+          .map((owner: OpenStackBlastRadiusOwner): string => {
+            return owner.name || owner.externalId;
+          })
+          .join(", ")}.`,
+      );
+    }
+
     const reach: OpenStackReachAcrossProducts | null | undefined =
       radius?.acrossProducts;
+    if (reach?.instances && reach.instances.length > 0) {
+      const shown: Array<OpenStackLinkedInstance> = reach.instances.slice(
+        0,
+        INSTANCES_NAMED_IN_AN_ALERT,
+      );
+      const more: number = (reach.instanceCount || 0) - shown.length;
+      const names: MarkdownText = FeedMarkdown.join(
+        shown.map((instance: OpenStackLinkedInstance): string => {
+          return instance.name || instance.id;
+        }),
+      );
+      const andMore: MarkdownText =
+        more > 0 ? mdText`, and ${more} more` : FeedMarkdown.empty();
+      sections.push(mdText`**Instances:** ${names}${andMore}.`);
+    }
     if (reach && !isOpenStackReachEmpty(reach)) {
       const lines: Array<MarkdownText> = [
+        ...reach.hosts.map((host: OpenStackLinkedHost): MarkdownText => {
+          return host.isHypervisor
+            ? mdText`Host ${host.name}: this machine`
+            : mdText`Host ${host.name}`;
+        }),
         ...reach.kubernetesClusters.map(
           (cluster: { name: string; nodeCount: number }): MarkdownText => {
             return mdText`Kubernetes cluster ${cluster.name}: ${cluster.nodeCount} ${cluster.nodeCount === 1 ? "node" : "nodes"}`;
           },
         ),
+        ...reach.kubernetesNodes
+          .slice(0, KUBERNETES_NODES_NAMED_IN_AN_ALERT)
+          .map((node: OpenStackLinkedKubernetesNode): MarkdownText => {
+            return mdText`Kubernetes node ${node.nodeName} in ${node.clusterName}`;
+          }),
         ...reach.services.map(
           (service: OpenStackLinkedService): MarkdownText => {
             return mdText`Service ${service.name}`;
@@ -592,10 +925,55 @@ export default class OpenStackAlertContext {
   }
 
   /*
-   * A description with what the series affects added, or as it was. Takes the clouds the
-   * alert or incident was just linked to, since only an OpenStack monitor's series has
-   * any of this to say.
+   * A description with what the series affects added, or as it was, and which projects
+   * that reaches. Takes the clouds the alert or incident was just linked to, since only an
+   * OpenStack monitor's series has any of this to say.
    */
+  public static async describeSeries(data: {
+    description: string | undefined;
+    projectId: ObjectID;
+    clouds: Array<OpenStackCloud> | undefined;
+    seriesLabels: JSONObject | undefined;
+    monitorSteps?: unknown;
+  }): Promise<OpenStackSeriesDescription> {
+    const cloudId: ObjectID | null = data.clouds?.[0]?.id || null;
+    const unchanged: OpenStackSeriesDescription = {
+      description: data.description,
+      reached: [],
+      openStackCloudId: cloudId,
+    };
+
+    if (!cloudId || !data.seriesLabels) {
+      return unchanged;
+    }
+
+    try {
+      const context: OpenStackAlertContextResult =
+        await OpenStackAlertContext.read({
+          projectId: data.projectId,
+          openStackCloudId: cloudId,
+          seriesLabels: data.seriesLabels,
+          metricNames: getOpenStackMetricNamesOfMonitor(data.monitorSteps),
+        });
+      const lines: string = OpenStackAlertContext.toMarkdown(context);
+
+      return {
+        description: !lines
+          ? data.description
+          : data.description
+            ? `${data.description}\n\n${lines}`
+            : lines,
+        reached: getOpenStackProjectsReached(context),
+        openStackCloudId: cloudId,
+      };
+    } catch (error) {
+      logger.error(
+        `Could not say what an OpenStack alert affects: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return unchanged;
+    }
+  }
+
   public static async addToDescription(data: {
     description: string | undefined;
     projectId: ObjectID;
@@ -603,32 +981,6 @@ export default class OpenStackAlertContext {
     seriesLabels: JSONObject | undefined;
     monitorSteps?: unknown;
   }): Promise<string | undefined> {
-    const cloudId: ObjectID | null | undefined = data.clouds?.[0]?.id;
-
-    if (!cloudId || !data.seriesLabels) {
-      return data.description;
-    }
-
-    try {
-      const lines: string = OpenStackAlertContext.toMarkdown(
-        await OpenStackAlertContext.read({
-          projectId: data.projectId,
-          openStackCloudId: cloudId,
-          seriesLabels: data.seriesLabels,
-          metricNames: getOpenStackMetricNamesOfMonitor(data.monitorSteps),
-        }),
-      );
-
-      if (!lines) {
-        return data.description;
-      }
-
-      return data.description ? `${data.description}\n\n${lines}` : lines;
-    } catch (error) {
-      logger.error(
-        `Could not say what an OpenStack alert affects: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return data.description;
-    }
+    return (await OpenStackAlertContext.describeSeries(data)).description;
   }
 }

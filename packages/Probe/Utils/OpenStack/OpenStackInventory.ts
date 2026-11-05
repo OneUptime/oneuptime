@@ -1,4 +1,9 @@
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  OpenStackFlavorRequest,
+  OpenStackPlacementAnswer,
+  getOpenStackFlavorRequest,
+} from "Common/Types/OpenStack/OpenStackCapacity";
 
 /*
  * What the collectors read, reduced to what the series need. Each API's answer is far
@@ -114,9 +119,13 @@ export interface NovaServiceRecord {
   status: string | null;
   state: string | null;
   disabledReason: string | null;
+  // Whether an operator told Nova it is down. Null before microversion 2.11, which says nothing.
+  forcedDown: boolean | null;
 }
 
 export function toNovaService(item: JSONObject): NovaServiceRecord {
+  const forcedDown: JSONValue | undefined = item["forced_down"];
+
   return {
     id: text(item["id"]),
     binary: text(item["binary"]),
@@ -125,6 +134,7 @@ export function toNovaService(item: JSONObject): NovaServiceRecord {
     status: text(item["status"]),
     state: text(item["state"]),
     disabledReason: text(item["disabled_reason"]),
+    forcedDown: typeof forcedDown === "boolean" ? forcedDown : null,
   };
 }
 
@@ -218,6 +228,9 @@ export interface NovaFlavorRecord {
   ram: number | null;
   disk: number | null;
   isPublic: boolean;
+  isDisabled: boolean;
+  // What Nova would ask Placement for one of these, with what only its extra specs say.
+  request: OpenStackFlavorRequest;
 }
 
 export function toNovaFlavor(item: JSONObject): NovaFlavorRecord {
@@ -228,6 +241,16 @@ export function toNovaFlavor(item: JSONObject): NovaFlavorRecord {
     ram: numeric(item["ram"]),
     disk: numeric(item["disk"]),
     isPublic: item["os-flavor-access:is_public"] === true,
+    isDisabled: item["OS-FLV-DISABLED:disabled"] === true,
+    request: getOpenStackFlavorRequest({
+      vcpus: numeric(item["vcpus"]),
+      ramMib: numeric(item["ram"]),
+      diskGib: numeric(item["disk"]),
+      ephemeralGib: numeric(item["OS-FLV-EXT-DATA:ephemeral"]),
+      // An older Nova says an empty string for none.
+      swapMib: numeric(item["swap"]),
+      extraSpecs: object(item["extra_specs"]),
+    }),
   };
 }
 
@@ -237,8 +260,11 @@ export interface NovaServerRecord {
   status: string | null;
   tenantId: string | null;
   userId: string | null;
-  accessIpv4: string | null;
-  accessIpv6: string | null;
+  // The address a person reaches it at: see readServerAddress.
+  addressIpv4: string | null;
+  addressIpv6: string | null;
+  // The networks it has an address on, by name, which is all a server says of them.
+  networkNames: Array<string>;
   hostId: string | null;
   hypervisorHostname: string | null;
   availabilityZone: string | null;
@@ -246,10 +272,62 @@ export interface NovaServerRecord {
   flavorId: string | null;
   flavorName: string | null;
   instanceName: string | null;
+  // The image it booted from. One booted from a volume has none: Nova says "" there.
+  imageId: string | null;
   // What only a native collector reads: see OPENSTACK_PROBE_ONLY_LABELS.
   taskState: string | null;
   updatedAt: string | null;
   faultMessage: string | null;
+}
+
+/*
+ * The address a person reaches a server at. accessIPv4 and accessIPv6 are for someone to say
+ * exactly that, and nobody does: every recording has them empty, which is all the exporter
+ * reads. What it really has is in `addresses`, network by network, so that is read when they
+ * are empty.
+ *
+ * A floating address before a fixed one, because it is the one reachable from outside. And in
+ * the order of the networks' names, because this goes on a series as a label: the same server
+ * has to say the same address from one collection to the next, however Nova listed them.
+ */
+function readServerAddress(
+  item: JSONObject,
+  accessField: string,
+  version: number,
+): string | null {
+  const access: string | null = text(item[accessField]);
+
+  if (access) {
+    return access;
+  }
+
+  const networks: JSONObject = object(item["addresses"]);
+  let fixed: string | null = null;
+
+  for (const network of Object.keys(networks).sort()) {
+    const entries: JSONValue = networks[network] as JSONValue;
+
+    if (!Array.isArray(entries)) {
+      continue;
+    }
+
+    for (const entry of entries as Array<JSONValue>) {
+      const address: JSONObject = object(entry);
+      const value: string | null = text(address["addr"]);
+
+      if (!value || numeric(address["version"]) !== version) {
+        continue;
+      }
+
+      if (address["OS-EXT-IPS:type"] === "floating") {
+        return value;
+      }
+
+      fixed = fixed || value;
+    }
+  }
+
+  return fixed;
 }
 
 export function toNovaServer(item: JSONObject): NovaServerRecord | null {
@@ -267,14 +345,16 @@ export function toNovaServer(item: JSONObject): NovaServerRecord | null {
     status: text(item["status"]),
     tenantId: text(item["tenant_id"]),
     userId: text(item["user_id"]),
-    accessIpv4: text(item["accessIPv4"]),
-    accessIpv6: text(item["accessIPv6"]),
+    addressIpv4: readServerAddress(item, "accessIPv4", 4),
+    addressIpv6: readServerAddress(item, "accessIPv6", 6),
+    networkNames: Object.keys(object(item["addresses"])).sort(),
     hostId: text(item["hostId"]),
     hypervisorHostname: text(item["OS-EXT-SRV-ATTR:hypervisor_hostname"]),
     availabilityZone: text(item["OS-EXT-AZ:availability_zone"]),
     flavorId: text(flavor["id"]),
     flavorName: text(flavor["original_name"]),
     instanceName: text(item["OS-EXT-SRV-ATTR:instance_name"]),
+    imageId: text(object(item["image"])["id"]),
     taskState: text(item["OS-EXT-STS:task_state"]),
     updatedAt: text(item["updated"]),
     // Only its message: `details` is a traceback, and stays with Nova.
@@ -438,6 +518,12 @@ export interface NeutronL3AgentRecord {
   haState: string | null;
   isAlive: boolean;
   isAdminUp: boolean;
+}
+
+// The networks one DHCP agent serves, which is all that is kept of Neutron's answer.
+export interface NeutronDhcpAgentNetworksRecord {
+  agentId: string;
+  networkIds: Array<string>;
 }
 
 export interface NeutronFloatingIpRecord {
@@ -679,6 +765,14 @@ export interface CinderVolumeRecord {
   userId: string | null;
   volumeType: string | null;
   serverId: string | null;
+  /*
+   * The pool that holds it, in the name Cinder's pool list gives that pool: "host@backend#pool".
+   * Only a credential Cinder treats as an admin is told this, and a volume not scheduled yet
+   * has none.
+   */
+  poolName: string | null;
+  // The image it was made from, which that image is in use for as long as this volume lasts.
+  imageId: string | null;
   sizeGb: number | null;
   updatedAt: string | null;
 }
@@ -698,6 +792,8 @@ export function toCinderVolume(item: JSONObject): CinderVolumeRecord {
     userId: text(item["user_id"]),
     volumeType: text(item["volume_type"]),
     serverId: attachments[0] ? text(object(attachments[0])["server_id"]) : null,
+    poolName: text(item["os-vol-host-attr:host"]),
+    imageId: text(object(item["volume_image_metadata"])["image_id"]),
     sizeGb: numeric(item["size"]),
     updatedAt: text(item["updated_at"]),
   };
@@ -710,6 +806,7 @@ export interface CinderSnapshotRecord {
   tenantId: string | null;
   volumeId: string | null;
   sizeGb: number | null;
+  createdAt: string | null;
   updatedAt: string | null;
 }
 
@@ -721,6 +818,7 @@ export function toCinderSnapshot(item: JSONObject): CinderSnapshotRecord {
     tenantId: text(item["os-extended-snapshot-attributes:project_id"]),
     volumeId: text(item["volume_id"]),
     sizeGb: numeric(item["size"]),
+    createdAt: text(item["created_at"]),
     updatedAt: text(item["updated_at"]),
   };
 }
@@ -771,6 +869,8 @@ export interface GlanceImageRecord {
   status: string | null;
   visibility: string | null;
   isHidden: boolean;
+  // Someone said to keep it, which a list of what could go has to respect.
+  isProtected: boolean;
   imageType: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -786,9 +886,325 @@ export function toGlanceImage(item: JSONObject): GlanceImageRecord {
     status: text(item["status"]),
     visibility: text(item["visibility"]),
     isHidden: item["os_hidden"] === true,
+    isProtected: item["protected"] === true,
     imageType: text(item["image_type"]),
     createdAt: text(item["created_at"]),
     updatedAt: text(item["updated_at"]),
+  };
+}
+
+/*
+ * One machine Ironic manages, of the fields asked for (IRONIC_NODE_FIELDS), which is every one a page
+ * reads and none that says how to reach its controller.
+ */
+export interface IronicNodeRecord {
+  uuid: string | null;
+  name: string | null;
+  provisionState: string | null;
+  // Null until something has set it, which the exporter leaves as nothing too.
+  powerState: string | null;
+  targetProvisionState: string | null;
+  targetPowerState: string | null;
+  isInMaintenance: boolean;
+  maintenanceReason: string | null;
+  fault: string | null;
+  lastError: string | null;
+  resourceClass: string | null;
+  driver: string | null;
+  instanceUuid: string | null;
+  owner: string | null;
+  lessee: string | null;
+  conductor: string | null;
+  conductorGroup: string | null;
+  isRetired: boolean;
+  retiredReason: string | null;
+  isConsoleEnabled: boolean;
+  provisionUpdatedAt: string | null;
+  updatedAt: string | null;
+}
+
+export function toIronicNode(item: JSONObject): IronicNodeRecord {
+  return {
+    uuid: text(item["uuid"]),
+    name: text(item["name"]),
+    provisionState: text(item["provision_state"]),
+    powerState: text(item["power_state"]),
+    targetProvisionState: text(item["target_provision_state"]),
+    targetPowerState: text(item["target_power_state"]),
+    isInMaintenance: item["maintenance"] === true,
+    maintenanceReason: text(item["maintenance_reason"]),
+    fault: text(item["fault"]),
+    lastError: text(item["last_error"]),
+    resourceClass: text(item["resource_class"]),
+    driver: text(item["driver"]),
+    instanceUuid: text(item["instance_uuid"]),
+    owner: text(item["owner"]),
+    lessee: text(item["lessee"]),
+    conductor: text(item["conductor"]),
+    conductorGroup: text(item["conductor_group"]),
+    isRetired: item["retired"] === true,
+    retiredReason: text(item["retired_reason"]),
+    isConsoleEnabled: item["console_enabled"] === true,
+    provisionUpdatedAt: text(item["provision_updated_at"]),
+    updatedAt: text(item["updated_at"]),
+  };
+}
+
+export interface IronicConductorRecord {
+  hostname: string | null;
+  conductorGroup: string | null;
+  isAlive: boolean;
+}
+
+export function toIronicConductor(item: JSONObject): IronicConductorRecord {
+  return {
+    hostname: text(item["hostname"]),
+    conductorGroup: text(item["conductor_group"]),
+    isAlive: item["alive"] === true,
+  };
+}
+
+/*
+ * A stack as Heat's list says it. `project` is there for an admin, recorded on a real cloud, and
+ * anything less gets its own project's stacks without it. Its reason is what Heat recorded about its
+ * last action, in its own words, and `parent` is the stack it is nested in, which a plain list leaves
+ * out, but a list can be asked for them.
+ */
+export interface HeatStackRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  statusReason: string | null;
+  parentId: string | null;
+  // What it owns, from its own read of its resources. Left out until that read is made.
+  resources?: HeatStackResources | undefined;
+}
+
+// What a stack's resources say it owns, by what Nova and Cinder know each by.
+export interface HeatStackResources {
+  // The status it was read at: it is read again when that moves.
+  status: string | null;
+  instanceIds: Array<string>;
+  volumeIds: Array<string>;
+}
+
+/*
+ * Only a resource that exists says anything: one that failed before Nova made it has an empty
+ * physical_resource_id (recorded). A volume attachment's physical id is its volume's, so it isn't one
+ * of its own.
+ */
+export function toHeatStackResources(data: {
+  status: string | null;
+  resources: JSONArray;
+}): HeatStackResources {
+  const idsOf: (resourceType: string) => Array<string> = (
+    resourceType: string,
+  ): Array<string> => {
+    const ids: Set<string> = new Set();
+    for (const resource of data.resources as Array<JSONObject>) {
+      const id: string | null = text(resource["physical_resource_id"]);
+      if (resource["resource_type"] === resourceType && id) {
+        ids.add(id);
+      }
+    }
+    return Array.from(ids).sort();
+  };
+  return {
+    status: data.status,
+    instanceIds: idsOf("OS::Nova::Server"),
+    volumeIds: idsOf("OS::Cinder::Volume"),
+  };
+}
+
+export function toHeatStack(item: JSONObject): HeatStackRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["stack_name"]),
+    projectId: text(item["project"]),
+    status: text(item["stack_status"]),
+    statusReason: text(item["stack_status_reason"]),
+    parentId: text(item["parent"]),
+  };
+}
+
+// One heat-engine process, as Heat lists them: several to a host, recorded two.
+export interface HeatEngineRecord {
+  id: string | null;
+  host: string | null;
+  binary: string | null;
+  isUp: boolean;
+}
+
+export function toHeatEngine(item: JSONObject): HeatEngineRecord {
+  return {
+    id: text(item["engine_id"]) || text(item["id"]),
+    host: text(item["hostname"]) || text(item["host"]),
+    binary: text(item["binary"]),
+    isUp: text(item["status"]) === "up",
+  };
+}
+
+/*
+ * A cluster as Magnum's list says it, then what its own read adds. The list has no project, no reason
+ * and no version, recorded on every scene, which is why the exporter has no project for one either.
+ */
+export interface MagnumClusterRecord {
+  uuid: string | null;
+  name: string | null;
+  stackId: string | null;
+  status: string | null;
+  healthStatus: string | null;
+  nodeCount: number | null;
+  masterCount: number | null;
+  clusterTemplateId: string | null;
+  clusterTemplateName?: string | undefined;
+  // From a cluster's own read, when one has been made.
+  projectId?: string | null | undefined;
+  statusReason?: string | null | undefined;
+  coeVersion?: string | null | undefined;
+  apiAddress?: string | null | undefined;
+}
+
+export function toMagnumCluster(item: JSONObject): MagnumClusterRecord {
+  return {
+    uuid: text(item["uuid"]),
+    name: text(item["name"]),
+    stackId: text(item["stack_id"]),
+    status: text(item["status"]),
+    healthStatus: text(item["health_status"]),
+    nodeCount: numeric(item["node_count"]),
+    masterCount: numeric(item["master_count"]),
+    clusterTemplateId: text(item["cluster_template_id"]),
+  };
+}
+
+// What a cluster's own read says that its list doesn't.
+export interface MagnumClusterDetails {
+  // The status it was read at: a change of status is what makes it worth reading again.
+  status: string | null;
+  projectId: string | null;
+  statusReason: string | null;
+  coeVersion: string | null;
+  apiAddress: string | null;
+}
+
+export function toMagnumClusterDetails(body: JSONObject): MagnumClusterDetails {
+  return {
+    status: text(body["status"]),
+    projectId: text(body["project_id"]),
+    statusReason: text(body["status_reason"]),
+    coeVersion: text(body["coe_version"]),
+    apiAddress: text(body["api_address"]),
+  };
+}
+
+export interface MagnumConductorRecord {
+  host: string | null;
+  binary: string | null;
+  isUp: boolean;
+  isDisabled: boolean;
+  disabledReason: string | null;
+}
+
+export function toMagnumConductor(item: JSONObject): MagnumConductorRecord {
+  return {
+    host: text(item["host"]),
+    binary: text(item["binary"]),
+    isUp: text(item["state"]) === "up",
+    isDisabled: item["disabled"] === true,
+    disabledReason: text(item["disabled_reason"]),
+  };
+}
+
+/*
+ * A share as Manila's list says it at the microversion it is asked at. Its type's name and its access
+ * rules' status are only there at one, and its backend's host only for an admin. A share nothing placed
+ * has no zone and no host, recorded.
+ */
+export interface ManilaShareRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  sizeGb: number | null;
+  availabilityZone: string | null;
+  protocol: string | null;
+  shareTypeName: string | null;
+  accessRulesStatus: string | null;
+  host: string | null;
+}
+
+export function toManilaShare(item: JSONObject): ManilaShareRecord {
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["project_id"]),
+    status: text(item["status"]),
+    sizeGb: numeric(item["size"]),
+    availabilityZone: text(item["availability_zone"]),
+    protocol: text(item["share_proto"]),
+    shareTypeName: text(item["share_type_name"]),
+    accessRulesStatus: text(item["access_rules_status"]),
+    host: text(item["host"]),
+  };
+}
+
+// One Manila service, one to each of a host's backends. Its state is Manila's own word for it.
+export interface ManilaServiceRecord {
+  host: string | null;
+  binary: string | null;
+  zone: string | null;
+  state: string | null;
+  isDisabled: boolean;
+}
+
+export function toManilaService(item: JSONObject): ManilaServiceRecord {
+  return {
+    host: text(item["host"]),
+    binary: text(item["binary"]),
+    zone: text(item["zone"]),
+    state: text(item["state"]),
+    isDisabled: text(item["status"]) === "disabled",
+  };
+}
+
+/*
+ * A database as Trove's mgmt API lists it. `used` is there only for a running instance, and the exporter
+ * reads none of what's after `used` here: why one failed and what it was doing, recorded.
+ */
+export interface TroveInstanceRecord {
+  id: string | null;
+  name: string | null;
+  projectId: string | null;
+  status: string | null;
+  regionName: string | null;
+  datastoreType: string | null;
+  datastoreVersion: string | null;
+  healthStatus: string | null;
+  volumeSizeGb: number | null;
+  volumeUsedGb: number | null;
+  faultMessage: string | null;
+  taskDescription: string | null;
+}
+
+export function toTroveInstance(item: JSONObject): TroveInstanceRecord {
+  const datastore: JSONObject = (item["datastore"] as JSONObject) || {};
+  const volume: JSONObject = (item["volume"] as JSONObject) || {};
+  const fault: JSONObject = (item["fault"] as JSONObject) || {};
+  return {
+    id: text(item["id"]),
+    name: text(item["name"]),
+    projectId: text(item["tenant_id"]),
+    status: text(item["status"]),
+    regionName: text(item["region"]),
+    datastoreType: text(datastore["type"]),
+    datastoreVersion: text(datastore["version"]),
+    healthStatus: text(item["operating_status"]),
+    volumeSizeGb: numeric(volume["size"]),
+    volumeUsedGb: numeric(volume["used"]),
+    faultMessage: text(fault["message"]),
+    taskDescription: text(item["task_description"]),
   };
 }
 
@@ -823,8 +1239,16 @@ export interface OpenStackComputeInventory {
   instanceActionNotifications?: Array<JSONObject> | undefined;
 }
 
+// What Placement last said of a flavor, kept and sent until it is asked again.
+export interface PlacementFlavorAnswer extends OpenStackPlacementAnswer {
+  flavorId: string;
+  flavorName: string | null;
+  askedAt: string;
+}
+
 export interface OpenStackPlacementInventory {
   providers?: Array<PlacementProviderRecord> | undefined;
+  flavorAnswers?: Array<PlacementFlavorAnswer> | undefined;
 }
 
 export interface OpenStackNetworkInventory {
@@ -833,6 +1257,7 @@ export interface OpenStackNetworkInventory {
   subnets?: Array<NeutronSubnetRecord> | undefined;
   routers?: Array<NeutronRouterRecord> | undefined;
   l3Agents?: Array<NeutronL3AgentRecord> | undefined;
+  dhcpAgentNetworks?: Array<NeutronDhcpAgentNetworksRecord> | undefined;
   floatingIps?: Array<NeutronFloatingIpRecord> | undefined;
   ipAvailabilities?: Array<NeutronSubnetAvailabilityRecord> | undefined;
   securityGroupCount?: number | undefined;
@@ -858,6 +1283,30 @@ export interface OpenStackImageInventory {
   images?: Array<GlanceImageRecord> | undefined;
 }
 
+export interface OpenStackBareMetalInventory {
+  nodes?: Array<IronicNodeRecord> | undefined;
+  conductors?: Array<IronicConductorRecord> | undefined;
+}
+
+export interface OpenStackOrchestrationInventory {
+  stacks?: Array<HeatStackRecord> | undefined;
+  engines?: Array<HeatEngineRecord> | undefined;
+}
+
+export interface OpenStackContainerInfraInventory {
+  clusters?: Array<MagnumClusterRecord> | undefined;
+  conductors?: Array<MagnumConductorRecord> | undefined;
+}
+
+export interface OpenStackSharedFileSystemsInventory {
+  shares?: Array<ManilaShareRecord> | undefined;
+  services?: Array<ManilaServiceRecord> | undefined;
+}
+
+export interface OpenStackDatabaseInventory {
+  instances?: Array<TroveInstanceRecord> | undefined;
+}
+
 export interface OpenStackInventoryByService {
   identity?: OpenStackIdentityInventory | undefined;
   compute?: OpenStackComputeInventory | undefined;
@@ -865,4 +1314,10 @@ export interface OpenStackInventoryByService {
   network?: OpenStackNetworkInventory | undefined;
   volume?: OpenStackVolumeInventory | undefined;
   image?: OpenStackImageInventory | undefined;
+  baremetal?: OpenStackBareMetalInventory | undefined;
+  // Keyed by what each service is called, so a reading finds its own by that.
+  orchestration?: OpenStackOrchestrationInventory | undefined;
+  "container-infra"?: OpenStackContainerInfraInventory | undefined;
+  sharev2?: OpenStackSharedFileSystemsInventory | undefined;
+  database?: OpenStackDatabaseInventory | undefined;
 }

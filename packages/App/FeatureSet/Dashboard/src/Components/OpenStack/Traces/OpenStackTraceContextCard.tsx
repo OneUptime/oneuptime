@@ -220,6 +220,27 @@ const OpenStackTraceContextCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {context.leftOut.length > 0 ? (
+          <Row title="Not in this trace" testId="openstack-trace-left-out">
+            <ul className="flex flex-wrap gap-x-4 gap-y-1">
+              {context.leftOut.map((service: string): ReactElement => {
+                return (
+                  <li key={service}>
+                    <bdi className="font-mono text-xs">{service}</bdi>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-1 text-gray-500">
+              {translator.translateText(
+                "A request reaches these, and on a stock cloud they can send nothing, depending on the release. That is why a span below can name a parent that never arrived: it was called by one of them. Their lines are still in the logs of this request.",
+              )}
+            </p>
+          </Row>
+        ) : (
+          <></>
+        )}
+
         {cloudId && context.requests.length > 0 ? (
           <Row title="In the logs" testId="openstack-trace-requests">
             <p className="text-gray-500">

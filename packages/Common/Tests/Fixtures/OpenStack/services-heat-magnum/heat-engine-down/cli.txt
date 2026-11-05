@@ -1,0 +1,6 @@
+$ openstack stack list --all-projects
+ERROR: You are not authorized to use stacks:global_index.
+$ openstack stack list
+ERROR: Internal Error
+$ openstack orchestration service list
+ERROR: All heat engines are down.

@@ -20,6 +20,10 @@ services:
       - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[RegionOne]}
       # host:port of the exporter (no scheme). The default is the service below.
       - OPENSTACK_EXPORTER_ADDRESS=${OPENSTACK_EXPORTER_ADDRESS:-openstack-exporter:9180}
+      # Each project's quotas, read once an hour by an exporter of their own, and only
+      # with OPENSTACK_COLLECT_QUOTAS=true in install.sh. Empty reads none.
+      - OPENSTACK_QUOTA_CLOUDS=${OPENSTACK_QUOTA_CLOUDS:-[]}
+      - OPENSTACK_QUOTA_EXPORTER_ADDRESS=${OPENSTACK_QUOTA_EXPORTER_ADDRESS:-openstack-quota-exporter:9180}
       # The compute nodes to read real instance usage from, whichever a cloud runs, in
       # square brackets: [compute-01:9177,compute-02:9177]. Empty reads none, which is
       # the default because per-instance series multiply fast.
@@ -62,7 +66,8 @@ services:
   # mode, for example the one Kolla-Ansible deploys.
   #
   # Gentle by default, because monitoring must never be what takes a cloud down:
-  #  - the slow metrics (quotas and limits per project, usage per server) are off;
+  #  - the slow metrics (quotas and limits per project, usage per server) are off, and
+  #    openstack-quota-exporter below reads the quotas once an hour when they are asked for;
   #  - the per-port series are off. Listing every port with an admin credential
   #    can saturate Neutron on a large cloud (openstack-exporter issue 540).
   # README.md says what each one gives up, and how to turn it on.
@@ -104,6 +109,8 @@ services:
       - --disable-metric=neutron-subnets_total
       # Nova no longer has this route, so it only fills the exporter's log:
       - --disable-metric=nova-security_groups
+      # Every metric in Gnocchi, page by page, for one count. A Gnocchi holds millions:
+      - --disable-metric=gnocchi-total_metrics
     volumes:
       # The cloud's credential: an application credential, one entry per region.
       # install.sh writes it readable only by the user the exporter runs as.
@@ -112,6 +119,67 @@ services:
       # to ./ca.pem, sets OPENSTACK_CA_FILE=./ca.pem and names it in clouds.yaml
       # (`cacert: /etc/openstack/ca.pem`). Without one, nothing is mounted here
       # that anything reads.
+      - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Each project's quotas, read once an hour instead of with everything else, because they
+  # change slowly and cost four API calls per project: Nova one, Cinder two, Neutron one.
+  # An exporter reads what its flags say whichever job asks, so reading them less often takes
+  # an exporter of their own. COMPOSE_PROFILES=openstack-quotas starts it, and
+  # OPENSTACK_COLLECT_QUOTAS=true in install.sh sets that. Everything it does not read is
+  # turned off by the series that reads it: a series that only hangs from another read is not
+  # enough, and the read goes on and panics.
+  openstack-quota-exporter:
+    image: ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a
+    container_name: oneuptime-openstack-quota-exporter
+    profiles: ["openstack-quotas"]
+    user: "${OPENSTACK_EXPORTER_USER:-65532:65532}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --multi-cloud
+      - --os-client-config=/etc/openstack/clouds.yaml
+      # Left on: nova-limits_vcpus_max, neutron-quota_network, cinder-limits_volume_max_gb.
+      - --disable-metric=nova-flavors
+      - --disable-metric=nova-availability_zones
+      - --disable-metric=nova-security_groups
+      - --disable-metric=nova-total_vms
+      - --disable-metric=nova-agent_state
+      - --disable-metric=nova-running_vms
+      - --disable-metric=nova-server_local_gb
+      - --disable-metric=nova-quota_cores
+      - --disable-metric=neutron-floating_ips
+      - --disable-metric=neutron-networks
+      - --disable-metric=neutron-security_groups
+      - --disable-metric=neutron-subnets
+      - --disable-metric=neutron-port
+      - --disable-metric=neutron-ports
+      - --disable-metric=neutron-ports_no_ips
+      - --disable-metric=neutron-ports_lb_not_active
+      - --disable-metric=neutron-routers
+      - --disable-metric=neutron-vpn_endpoint_groups
+      - --disable-metric=neutron-vpn_ike_policies
+      - --disable-metric=neutron-vpn_ipsec_policies
+      - --disable-metric=neutron-vpn_services
+      - --disable-metric=neutron-vpn_siteconnections
+      - --disable-metric=neutron-agent_state
+      - --disable-metric=neutron-network_ip_availabilities_total
+      - --disable-metric=neutron-subnets_total
+      - --disable-metric=cinder-volumes
+      - --disable-metric=cinder-snapshots
+      - --disable-metric=cinder-agent_state
+      - --disable-metric=cinder-volume_status
+      - --disable-metric=cinder-pool_capacity_free_gb
+    volumes:
+      - ./clouds.yaml:/etc/openstack/clouds.yaml:ro
       - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
     restart: unless-stopped
     logging:
@@ -156,7 +224,9 @@ services:
 
   # What the database exporter cannot say: whether each Nova worker is alive, and how full each
   # storage pool is. The same pinned openstack-exporter, with every other read of Nova and Cinder
-  # off and nothing else asked of it, so each scrape is one small list and one login.
+  # off and nothing else asked of it, so each scrape is one small list and one login. Each line
+  # names the series whose read fills the rest. Naming one of the rest panics the exporter on its
+  # first scrape, because the read goes on and has nowhere to write it.
   openstack-worker-state-exporter:
     image: ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a
     container_name: oneuptime-openstack-worker-state-exporter
@@ -174,18 +244,103 @@ services:
       - --disable-metric=nova-availability_zones
       - --disable-metric=nova-security_groups
       - --disable-metric=nova-total_vms
-      - --disable-metric=nova-current_workload
+      - --disable-metric=nova-running_vms
       - --disable-metric=nova-quota_cores
       - --disable-metric=nova-limits_vcpus_max
       - --disable-metric=nova-server_local_gb
       - --disable-metric=cinder-volumes
       - --disable-metric=cinder-snapshots
-      - --disable-metric=cinder-backups
+      - --disable-metric=cinder-volume_status
       - --disable-metric=cinder-agent_state
       - --disable-metric=cinder-limits_volume_max_gb
     volumes:
       - ./clouds.yaml:/etc/openstack/clouds.yaml:ro
       - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # The OpenStack AI agent: runs the `openstack` commands OneUptime AI asks for while it
+  # investigates an incident or alert on this cloud. It only ever reads: there is no write
+  # command for it to run, whatever is set here. There is no openstack client in it: each
+  # command becomes one read of the cloud's API, with the credential in clouds.yaml
+  # (OneUptime never sends it any), so that credential's roles and access rules are the hard
+  # limit. It registers as the cloud named OPENSTACK_CLOUD_NAME, exactly like the collector
+  # above, and shows up on that cloud's AI -> AI agent page. COMPOSE_PROFILES in .env starts
+  # it, which is what install.sh writes when it writes clouds.yaml. See README.md
+  # ("OneUptime AI agent").
+  oneuptime-openstack-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-openstack-ai-agent
+    profiles: ["openstack-ai-agent"]
+    # clouds.yaml is readable by its owner alone, so the agent runs as the file's owner, as
+    # the exporter does. It only talks HTTPS to the cloud's APIs and to OneUptime: no root,
+    # no capabilities, a read-only root filesystem and a tmpfs for /tmp.
+    user: "${OPENSTACK_EXPORTER_USER:-65532:65532}"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      # The credential the exporter reads. A credential of the agent's own, below, needs
+      # none of it: set OPENSTACK_AI_CLOUDS_FILE=/dev/null then.
+      - ${OPENSTACK_AI_CLOUDS_FILE:-./clouds.yaml}:/etc/openstack/clouds.yaml:ro
+      - ${OPENSTACK_CA_FILE:-/dev/null}:/etc/openstack/ca.pem:ro
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=openstack
+      # Must match the collector's, so the agent serves the same cloud.
+      - OPENSTACK_CLOUD_NAME=${OPENSTACK_CLOUD_NAME:-openstack}
+      # Which entry of clouds.yaml to use: the first of these it holds.
+      - OPENSTACK_EXPORTER_CLOUDS=${OPENSTACK_EXPORTER_CLOUDS:-[RegionOne]}
+      # The Keystone a credential of the agent's own logs in to. clouds.yaml says its own.
+      - OPENSTACK_AUTH_URL=${OPENSTACK_AUTH_URL:-}
+      # Another entry of clouds.yaml than the first.
+      - ONEUPTIME_AI_OPENSTACK_CLOUD=${ONEUPTIME_AI_OPENSTACK_CLOUD:-}
+      # An application credential of the agent's own, used instead of clouds.yaml's when
+      # set. Set both or neither.
+      - ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID:-}
+      - ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=${ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET:-}
+      # The region a command reads when it names none, and which endpoints to use: public,
+      # internal or admin. clouds.yaml says both unless these do.
+      - ONEUPTIME_AI_OPENSTACK_REGION=${ONEUPTIME_AI_OPENSTACK_REGION:-}
+      - ONEUPTIME_AI_OPENSTACK_INTERFACE=${ONEUPTIME_AI_OPENSTACK_INTERFACE:-}
+      # A cloud with its own certificate authority: clouds.yaml names it (install.sh writes
+      # /etc/openstack/ca.pem) unless this does.
+      - ONEUPTIME_AI_OPENSTACK_CA_FILE=${ONEUPTIME_AI_OPENSTACK_CA_FILE:-}
+      # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION (true or
+      # false). It only reads a cloud, so the three below it change nothing yet: fixes stay
+      # off, and the agent says so at start-up if they are set.
+      - ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Overrides OPENSTACK_CLOUD_NAME as the name the AI agent registers under.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:3877/status/live",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     logging:
       driver: json-file

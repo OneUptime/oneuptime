@@ -36,6 +36,292 @@ const read = (file) => {
   return fs.readFileSync(file, "utf8");
 };
 
+/*
+ * Each project's quotas: slow to change and four API calls per project, so read once an hour.
+ * An exporter reads the same things whichever job asks, so this takes an exporter of its own.
+ */
+describe("the agent's hourly read of each project's quotas", () => {
+  const config = yaml.load(
+    read(path.join(AGENT, "otel-collector-config.yaml")),
+  );
+  const jobs = config.receivers["prometheus/quotas"].config.scrape_configs;
+  const compose = yaml.load(read(path.join(AGENT, "docker-compose.yml")));
+  const exporter = compose.services["openstack-quota-exporter"];
+  const main = compose.services["openstack-exporter"];
+  const flagsOf = (service) => {
+    return service.command.filter((flag) => {
+      return flag.startsWith("--disable-metric=");
+    });
+  };
+  const seconds = (value) => {
+    return Number.parseInt(value, 10);
+  };
+
+  test("is a job per service, as the rest are, because one service failing costs only its own", () => {
+    expect(
+      jobs
+        .map((job) => {
+          return job.params.include_services;
+        })
+        .flat()
+        .sort(),
+    ).toEqual(["compute", "network", "volume"]);
+    expect(
+      jobs.map((job) => {
+        return job.job_name;
+      }),
+    ).toEqual([
+      "oneuptime-openstack-quotas-compute",
+      "oneuptime-openstack-quotas-network",
+      "oneuptime-openstack-quotas-volume",
+    ]);
+  });
+
+  test("reads once an hour, and no read runs into the next", () => {
+    for (const job of jobs) {
+      expect(seconds(job.scrape_interval)).toBe(3600);
+      expect(seconds(job.scrape_timeout)).toBeLessThan(
+        seconds(job.scrape_interval),
+      );
+    }
+  });
+
+  test("is three of the readings the stale rule and the alert's window wait for", () => {
+    // Common/Types/OpenStack/OpenStackQuota.ts: OPENSTACK_QUOTA_STALE_MINUTES.
+    const quota = read(
+      path.join(ROOT, "packages/Common/Types/OpenStack/OpenStackQuota.ts"),
+    );
+    expect(quota).toContain("OPENSTACK_QUOTA_STALE_MINUTES: number = 180");
+    expect(
+      (seconds(jobs[0].scrape_interval) * 3) / 60,
+    ).toBe(180);
+  });
+
+  test("asks an exporter of its own, for each region, and nothing until someone turns it on", () => {
+    for (const job of jobs) {
+      expect(job.metrics_path).toBe("/probe");
+      expect(job.static_configs[0].targets).toBe(
+        "${env:OPENSTACK_QUOTA_CLOUDS}",
+      );
+      expect(job.relabel_configs).toEqual(
+        expect.arrayContaining([
+          {
+            source_labels: ["__address__"],
+            target_label: "__param_cloud",
+          },
+          {
+            source_labels: ["__param_cloud"],
+            target_label: "openstack_region",
+          },
+          {
+            target_label: "__address__",
+            replacement: "${env:OPENSTACK_QUOTA_EXPORTER_ADDRESS}",
+          },
+        ]),
+      );
+    }
+    expect(compose.services["oneuptime-openstack-agent"].environment).toEqual(
+      expect.arrayContaining([
+        "OPENSTACK_QUOTA_CLOUDS=${OPENSTACK_QUOTA_CLOUDS:-[]}",
+        "OPENSTACK_QUOTA_EXPORTER_ADDRESS=${OPENSTACK_QUOTA_EXPORTER_ADDRESS:-openstack-quota-exporter:9180}",
+      ]),
+    );
+  });
+
+  test("a service an agent is told not to read, it does not read the quotas of either", () => {
+    for (const job of jobs) {
+      expect(job.relabel_configs[0]).toEqual({
+        source_labels: ["openstack_quota_service"],
+        regex: "${env:OPENSTACK_AGENT_SERVICES}",
+        action: "keep",
+      });
+    }
+  });
+
+  /*
+   * The scan reads a failed scrape's `up`, with its service, as that service's API being down.
+   * So a read of one project's limits failing must not carry the service on its `up`:
+   * metric_relabel_configs leave the scrape's own series alone, and the target's labels do not.
+   */
+  test("a failed read never says the service is down", () => {
+    for (const job of jobs) {
+      expect(job.static_configs[0].labels.openstack_service).toBeUndefined();
+      expect(job.relabel_configs).toEqual(
+        expect.arrayContaining([
+          { regex: "openstack_quota_service", action: "labeldrop" },
+        ]),
+      );
+      expect(job.metric_relabel_configs[1]).toEqual({
+        target_label: "openstack_service",
+        replacement: job.params.include_services[0],
+      });
+    }
+  });
+
+  test("keeps the quota series alone, and never a service's _up", () => {
+    const keptBy = (service) => {
+      return new RegExp(
+        `^(?:${
+          jobs.find((job) => {
+            return job.params.include_services[0] === service;
+          }).metric_relabel_configs[0].regex
+        })$`,
+      );
+    };
+
+    for (const [service, name] of [
+      ["compute", "openstack_nova_limits_vcpus_max"],
+      ["compute", "openstack_nova_limits_memory_used"],
+      ["network", "openstack_neutron_quota_network"],
+      ["network", "openstack_neutron_quota_floatingip"],
+      ["volume", "openstack_cinder_limits_volume_max_gb"],
+      ["volume", "openstack_cinder_limits_backup_used_gb"],
+      ["volume", "openstack_cinder_volume_type_quota_gigabytes"],
+    ]) {
+      expect({ name, kept: keptBy(service).test(name) }).toEqual({
+        name,
+        kept: true,
+      });
+    }
+
+    for (const [service, name] of [
+      ["compute", "openstack_nova_up"],
+      ["network", "openstack_neutron_up"],
+      ["volume", "openstack_cinder_up"],
+      ["compute", "openstack_nova_agent_state"],
+      ["network", "openstack_neutron_agent_state"],
+      ["volume", "openstack_cinder_volume_gb"],
+    ]) {
+      expect({ name, kept: keptBy(service).test(name) }).toEqual({
+        name,
+        kept: false,
+      });
+    }
+  });
+
+  test("goes down the metrics pipeline, so it is stamped and sent like everything else", () => {
+    expect(config.service.pipelines.metrics.receivers).toContain(
+      "prometheus/quotas",
+    );
+  });
+
+  test("the main exporter still leaves them out, or they would be read every two minutes too", () => {
+    expect(flagsOf(main)).toEqual(
+      expect.arrayContaining([
+        "--disable-metric=nova-limits_vcpus_max",
+        "--disable-metric=neutron-quota_network",
+        "--disable-metric=cinder-limits_volume_max_gb",
+      ]),
+    );
+  });
+
+  test("its own exporter leaves them on, and starts only when asked", () => {
+    expect(exporter.profiles).toEqual(["openstack-quotas"]);
+    expect(exporter.image).toBe(main.image);
+    for (const flag of [
+      "--disable-metric=nova-limits_vcpus_max",
+      "--disable-metric=neutron-quota_network",
+      "--disable-metric=cinder-limits_volume_max_gb",
+    ]) {
+      expect(flagsOf(exporter)).not.toContain(flag);
+    }
+  });
+
+  /*
+   * What a read costs: from the pinned exporter's source (exporters/{nova,neutron,cinder}.go), every
+   * entry with a read of its own, by the name its flag takes. Turning off a series that only hangs
+   * from a read leaves the read running, and at this revision that panics, so these are the
+   * reads. Whatever it does not turn off here it reads on every hourly scrape.
+   */
+  test("turns off every read but the three quotas, by the series that reads it", () => {
+    const reads = {
+      compute: [
+        "nova-flavors",
+        "nova-availability_zones",
+        "nova-security_groups",
+        "nova-total_vms",
+        "nova-agent_state",
+        "nova-running_vms",
+        "nova-server_local_gb",
+        "nova-quota_cores",
+      ],
+      network: [
+        "neutron-floating_ips",
+        "neutron-networks",
+        "neutron-security_groups",
+        "neutron-subnets",
+        "neutron-port",
+        "neutron-ports",
+        "neutron-ports_no_ips",
+        "neutron-ports_lb_not_active",
+        "neutron-routers",
+        "neutron-vpn_endpoint_groups",
+        "neutron-vpn_ike_policies",
+        "neutron-vpn_ipsec_policies",
+        "neutron-vpn_services",
+        "neutron-vpn_siteconnections",
+        "neutron-agent_state",
+        "neutron-network_ip_availabilities_total",
+        "neutron-subnets_total",
+      ],
+      volume: [
+        "cinder-volumes",
+        "cinder-snapshots",
+        "cinder-agent_state",
+        "cinder-volume_status",
+        "cinder-pool_capacity_free_gb",
+      ],
+    };
+
+    expect(flagsOf(exporter).sort()).toEqual(
+      Object.values(reads)
+        .flat()
+        .map((name) => {
+          return `--disable-metric=${name}`;
+        })
+        .sort(),
+    );
+  });
+
+  test("without Docker, its unit is started with those same flags", () => {
+    const unit = read(
+      path.join(
+        AGENT,
+        "systemd",
+        "oneuptime-openstack-quota-exporter-native.service",
+      ),
+    );
+
+    for (const flag of flagsOf(exporter)) {
+      expect(unit).toContain(` ${flag}`);
+    }
+    expect(unit).toContain("--web.listen-address=127.0.0.1:9182");
+    expect(
+      read(
+        path.join(
+          AGENT,
+          "systemd",
+          "oneuptime-openstack-agent-native.service",
+        ),
+      ),
+    ).toEqual(
+      expect.stringContaining(
+        "Environment=OPENSTACK_QUOTA_EXPORTER_ADDRESS=127.0.0.1:9182",
+      ),
+    );
+  });
+
+  test("the rig records it with the flags that ship", () => {
+    const rig = read(path.join(RIG, "quota-record.sh"));
+
+    expect(rig).toContain(
+      "sed -n '/^  openstack-quota-exporter:$/,/^  [a-z-]*:$/p'",
+    );
+    expect(rig).toContain("otel-collector-config.yaml");
+    expect(read(WORKFLOW)).toContain("Tests/Ops/openstack-e2e/quota-record.sh");
+  });
+});
+
 describe("the OpenStack agent's collector config", () => {
   const config = yaml.load(
     read(path.join(AGENT, "otel-collector-config.yaml")),
@@ -45,7 +331,29 @@ describe("the OpenStack agent's collector config", () => {
     return job.params.include_services;
   };
 
-  test("gives every core OpenStack service a scrape job of its own", () => {
+  // Every name the pinned exporter takes in include_services, from its
+  // exporters.SupportedExporters: Barbican has no reader there, so no job here.
+  const SERVICES_EVERY_CLOUD_RUNS = [
+    "compute",
+    "identity",
+    "image",
+    "network",
+    "placement",
+    "volume",
+  ];
+  const SERVICES_A_CLOUD_MAY_NOT_RUN = [
+    "baremetal",
+    "container-infra",
+    "database",
+    "dns",
+    "gnocchi",
+    "load-balancer",
+    "object-store",
+    "orchestration",
+    "sharev2",
+  ];
+
+  test("gives every OpenStack service the exporter can read a scrape job of its own", () => {
     const services = jobs.map(includeServicesOf);
     for (const included of services) {
       expect(included).toHaveLength(1);
@@ -53,8 +361,65 @@ describe("the OpenStack agent's collector config", () => {
       expect(included[0]).not.toContain(",");
     }
     expect(services.flat().sort()).toEqual(
-      ["compute", "identity", "image", "network", "placement", "volume"].sort(),
+      [...SERVICES_EVERY_CLOUD_RUNS, ...SERVICES_A_CLOUD_MAY_NOT_RUN].sort(),
     );
+  });
+
+  test.each(SERVICES_A_CLOUD_MAY_NOT_RUN)(
+    "%s costs a cloud that does not run it one login every 5 minutes, and is named as it is everywhere else",
+    (service) => {
+      const job = jobs.find((candidate) => {
+        return candidate.params.include_services[0] === service;
+      });
+      expect(job.job_name).toBe(`oneuptime-openstack-${service}`);
+      expect(job.scrape_interval).toBe("300s");
+      expect(job.scrape_timeout).toBe("120s");
+    },
+  );
+
+  test("the jobs are in the receiver the metrics pipeline reads, so these get exported too", () => {
+    expect(config.service.pipelines.metrics.receivers).toContain("prometheus");
+  });
+
+  test("an exporter on /metrics labels each of these services' series as the jobs do", () => {
+    const rules =
+      config.receivers["prometheus/single-cloud-exporter"].config
+        .scrape_configs[0].metric_relabel_configs;
+    const serviceOf = (seriesName) => {
+      return rules.find((rule) => {
+        return (
+          rule.target_label === "openstack_service" &&
+          new RegExp(`^(?:${rule.regex})$`).test(seriesName)
+        );
+      })?.replacement;
+    };
+    expect(
+      Object.fromEntries(
+        [
+          "openstack_loadbalancer_loadbalancer_status",
+          "openstack_ironic_node",
+          "openstack_heat_stack_status",
+          "openstack_container_infra_cluster_status",
+          "openstack_sharev2_share_status",
+          "openstack_designate_zone_status",
+          "openstack_object_store_bytes",
+          "openstack_trove_instance_status",
+          "openstack_gnocchi_status_measures_to_process",
+        ].map((seriesName) => {
+          return [seriesName, serviceOf(seriesName)];
+        }),
+      ),
+    ).toEqual({
+      openstack_loadbalancer_loadbalancer_status: "load-balancer",
+      openstack_ironic_node: "baremetal",
+      openstack_heat_stack_status: "orchestration",
+      openstack_container_infra_cluster_status: "container-infra",
+      openstack_sharev2_share_status: "sharev2",
+      openstack_designate_zone_status: "dns",
+      openstack_object_store_bytes: "object-store",
+      openstack_trove_instance_status: "database",
+      openstack_gnocchi_status_measures_to_process: "gnocchi",
+    });
   });
 
   test("no scrape can run into the next one", () => {
@@ -173,6 +538,8 @@ describe("the OpenStack agent's compose file", () => {
       "--disable-metric=neutron-subnets_total",
       // A route Nova no longer has, which only fills the exporter's log.
       "--disable-metric=nova-security_groups",
+      // Every metric in Gnocchi, page by page, for one count.
+      "--disable-metric=gnocchi-total_metrics",
     ]);
   });
 
@@ -219,6 +586,123 @@ describe("the access the agent asks for", () => {
       expect(rule.method).toBe("GET");
       expect(Object.keys(rule).sort()).toEqual(["method", "path", "service"]);
     }
+  });
+
+  describe("what the access rules let the exporter read of the services a cloud may not run", () => {
+    const rules = JSON.parse(
+      read(
+        path.join(AGENT, "access", "application-credential-access-rules.json"),
+      ),
+    );
+    const pathsOf = (service) => {
+      return rules
+        .filter((rule) => {
+          return rule.service === service;
+        })
+        .map((rule) => {
+          return rule.path;
+        });
+    };
+
+    // Each read the pinned exporter's client makes, in its own words: its Octavia client
+    // says v2.0 where the docs say v2, and a rule for one does not match the other.
+    test.each([
+      ["load-balancer", "/v2.0/lbaas/loadbalancers"],
+      ["load-balancer", "/v2.0/lbaas/pools"],
+      ["load-balancer", "/v2.0/octavia/amphorae"],
+      // The exporter reads Octavia's versions before anything else, and with that refused it
+      // answers nothing at all: recorded, 0 series on an access-rule credential. Behind a path,
+      // the fitter builds that read's rule from this one.
+      ["load-balancer", "/"],
+      ["baremetal", "/v1/nodes/detail"],
+      ["orchestration", "/v1/*/stacks"],
+      ["container-infra", "/v1/clusters"],
+      // One cluster's own read, the only thing that says whose it is: a probe's, not the exporter's.
+      ["container-infra", "/v1/clusters/*"],
+      ["sharev2", "/v2/shares/detail"],
+      ["shared-file-system", "/v2/shares/detail"],
+      ["dns", "/v2/zones"],
+      ["dns", "/v2/zones/*/recordsets"],
+      ["object-store", "/v1/*"],
+      // The exporter lists an account with a trailing slash, which /v1/* does not match:
+      // recorded, a 401 from Swift and openstack_object_store_up 0.
+      ["object-store", "/v1/*/"],
+      ["database", "/v1.0/*/mgmt/instances"],
+      ["metric", "/v1/status"],
+    ])("%s %s", (service, rulePath) => {
+      expect(pathsOf(service)).toContain(rulePath);
+    });
+
+    test("Manila's rules are the same under each name a catalog gives it", () => {
+      expect(pathsOf("shared-file-system")).toEqual(pathsOf("sharev2"));
+    });
+
+    test("no secret's payload, and no object in anyone's container", () => {
+      expect(pathsOf("key-manager").sort()).toEqual(
+        ["/v1/containers", "/v1/orders", "/v1/secrets"].sort(),
+      );
+      expect(pathsOf("object-store")).toEqual(["/v1/*", "/v1/*/"]);
+    });
+
+    test("a service's root is fitted as Apache hands it to the service, behind a path", () => {
+      const fitted = JSON.parse(
+        childProcess.execFileSync(
+          "python3",
+          [
+            "-I",
+            path.join(AGENT, "access", "access-rules-for-cloud.py"),
+            path.join(
+              AGENT,
+              "access",
+              "application-credential-access-rules.json",
+            ),
+          ],
+          {
+            input: JSON.stringify([
+              {
+                Type: "load-balancer",
+                Endpoints: [
+                  {
+                    interface: "public",
+                    url: "http://cloud.example/load-balancer",
+                  },
+                ],
+              },
+            ]),
+            encoding: "utf8",
+          },
+        ),
+      );
+      const paths = fitted
+        .filter((rule) => {
+          return rule.service === "load-balancer";
+        })
+        .map((rule) => {
+          return rule.path;
+        });
+      // Recorded: with /load-balancer/ in its rules, GET /load-balancer/ was still a 401.
+      expect(paths).toEqual(
+        expect.arrayContaining([
+          "/",
+          "/load-balancer/",
+          "/load-balancer//",
+          "/load-balancer/v2.0/lbaas/loadbalancers",
+        ]),
+      );
+    });
+
+    test("no rule opens everything under a service but Cinder's, which has always been that way", () => {
+      expect(
+        rules
+          .filter((rule) => {
+            return rule.path.includes("**");
+          })
+          .map((rule) => {
+            return rule.service;
+          })
+          .sort(),
+      ).toEqual(["block-storage", "volume", "volumev3"]);
+    });
   });
 });
 
@@ -302,6 +786,50 @@ describe("the recording rig", () => {
       { env: { ...process.env, AGENT_DIR: AGENT }, encoding: "utf8" },
     );
     expect(readFlags.trim().split(" ")).toEqual(flags);
+  });
+
+  test.each(["start-agent.sh", "control-plane-clusters.sh"])(
+    "%s starts the collector with every variable its config reads",
+    (name) => {
+      // A collector missing one refuses its config and exits as it starts, and a run
+      // only learns that at its end, from a recording with no OTLP in it.
+      const config = read(path.join(AGENT, "otel-collector-config.yaml"));
+      const readByConfig = [
+        ...new Set(
+          [...config.matchAll(/\$\{env:([A-Z0-9_]+)\}/g)].map((match) => {
+            return match[1];
+          }),
+        ),
+      ];
+      expect(readByConfig.length).toBeGreaterThan(10);
+      const script = read(path.join(RIG, name));
+      const missing = readByConfig.filter((variable) => {
+        return !new RegExp(`-e '?"?${variable}\\b`).test(script);
+      });
+      expect(missing).toEqual([]);
+    },
+  );
+
+  test("a recording survives a step that ran out of time", () => {
+    const workflow = yaml.load(read(WORKFLOW));
+    const steps = workflow.jobs.record.steps;
+    const logs = steps.find((step) => {
+      return step.run === "bash Tests/Ops/openstack-e2e/logs-record.sh";
+    });
+    expect(logs["continue-on-error"]).toBe(true);
+    expect(logs["timeout-minutes"]).toBeLessThan(
+      workflow.jobs.record["timeout-minutes"] / 2,
+    );
+    const names = steps.findIndex((step) => {
+      return String(step.run).includes("safe-artifact-names.sh");
+    });
+    const upload = steps.findIndex((step) => {
+      return step.name === "Upload the recordings";
+    });
+    expect(names).toBeGreaterThan(-1);
+    expect(names).toBeLessThan(upload);
+    expect(steps[names].if).toBe("always()");
+    expect(steps[names].run).toContain("chown -R");
   });
 
   test("the recording only replaces where the data goes", () => {

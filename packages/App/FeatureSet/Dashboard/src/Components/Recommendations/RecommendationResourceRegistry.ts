@@ -35,6 +35,18 @@ import {
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
+import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
+import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
+import {
+  OPENSTACK_SERVICE_TITLES,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackChecksOn,
+  OpenStackInventorySummary,
+  fetchOpenStackChecksOn,
+  fetchOpenStackInventorySummary,
+} from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 
 /*
@@ -250,11 +262,79 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },
+  /*
+   * Some of an OpenStack cloud's recommendations need a service it may not run, or a series only a
+   * probe sends (OpenStackAlertTemplate.forService, requiresProbe). Its row says how it is collected,
+   * and only its inventory says what it runs: asked for whole, not a region at a time, because a
+   * monitor is for the cloud. A read that fails leaves them withheld, which is what the page shows
+   * anyway on a cloud that has none of them.
+   */
   {
     resourceType: MonitorRecommendationResourceType.OpenStack,
     modelType: OpenStackCloud,
     identifierFieldName: "name",
     displayNameFieldName: "name",
+    contextFieldNames: ["collectionMethod"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return {
+        openStackIsCollectedByProbe:
+          (model as unknown as Record<string, unknown>)["collectionMethod"] ===
+          OpenStackCollectionMethod.Probe,
+      };
+    },
+    loadContext: async (data: {
+      model: BaseModel;
+      context: MonitorRecommendationContext;
+    }): Promise<MonitorRecommendationContext> => {
+      const [summary, checks]: [
+        OpenStackInventorySummary | null,
+        OpenStackChecksOn,
+      ] = await Promise.all([
+        fetchOpenStackInventorySummary(data.model.id as ObjectID),
+        fetchOpenStackChecksOn(data.model.id as ObjectID),
+      ]);
+      return {
+        ...data.context,
+        /*
+         * A service that has never let this credential in has nothing for its alerts to read but its
+         * API, and that would read down for as long as the credential stays as it is.
+         */
+        openStackServices: summary
+          ? getOpenStackOptionalServicesOf(summary.services).filter(
+              (service: string): boolean => {
+                return !summary.closedServices.includes(service);
+              },
+            )
+          : null,
+        openStackIsApiCheckOn: checks.isApiCheckOn,
+        openStackIsLifecycleCheckOn: checks.isLifecycleCheckOn,
+      };
+    },
+    /*
+     * Said only where what a cloud runs changed the list. A cloud without them is offered what
+     * every cloud is, which needs no note, and is told nothing about what it doesn't run.
+     */
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      const services: ReadonlyArray<string> = context.openStackServices || [];
+      if (services.length === 0) {
+        return undefined;
+      }
+      return translateTemplate(
+        "This cloud runs {{services}}, so the recommendations below include alerts on them.",
+        {
+          services: services
+            .map((service: string): string => {
+              return (
+                OPENSTACK_SERVICE_TITLES[service as OpenStackServiceType] ||
+                service
+              );
+            })
+            .join(", "),
+        },
+      );
+    },
   },
   {
     resourceType: MonitorRecommendationResourceType.VMware,

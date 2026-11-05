@@ -30,6 +30,7 @@ import {
 import { getOpenStackForecastText } from "../../../Components/OpenStack/Part/OpenStackForecastTile";
 import OpenStackLimitedViewNotice from "../../../Components/OpenStack/Part/OpenStackLimitedViewNotice";
 import OpenStackNetworkCountsCard from "../../../Components/OpenStack/Part/OpenStackNetworkCountsCard";
+import useIsOpenStackProbeCollected from "../../../Components/OpenStack/Part/UseIsOpenStackProbeCollected";
 import useOpenStackCloudName from "../../../Components/OpenStack/Part/UseOpenStackCloudName";
 import useOpenStackRead, {
   OpenStackRead,
@@ -64,6 +65,7 @@ const OpenStackCloudNetworks: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const cloudName: string = useOpenStackCloudName(modelId);
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(modelId);
 
   const { region }: OpenStackRegionState = useOpenStackRegion();
 
@@ -145,7 +147,11 @@ const OpenStackCloudNetworks: FunctionComponent<
         query={hasExternal ? OTHER_QUERY : undefined}
       />
       {cloudName ? (
-        <OpenStackNetworkCountsCard cloudName={cloudName} regionName={region} />
+        <OpenStackNetworkCountsCard
+          cloudName={cloudName}
+          regionName={region}
+          isProbeCollected={isProbeCollected}
+        />
       ) : (
         <></>
       )}

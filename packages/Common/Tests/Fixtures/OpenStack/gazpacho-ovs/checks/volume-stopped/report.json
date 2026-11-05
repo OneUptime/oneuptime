@@ -1,0 +1,110 @@
+[
+  {
+    "runId": "20261105064250-78ee92",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:42:50.532Z",
+    "finishedAt": "2026-11-05T06:43:17.529Z",
+    "status": "Failed",
+    "failedStep": "volume_create",
+    "fault": {
+      "source": "cinder",
+      "message": "schedule allocate volume:Could not find any available weighted backend."
+    },
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 30
+      },
+      {
+        "step": "credential_check",
+        "status": "Passed",
+        "durationInMs": 40
+      },
+      {
+        "step": "prepare",
+        "status": "Passed",
+        "durationInMs": 206
+      },
+      {
+        "step": "janitor",
+        "status": "Passed",
+        "durationInMs": 1
+      },
+      {
+        "step": "security_group_create",
+        "status": "Passed",
+        "durationInMs": 155
+      },
+      {
+        "step": "server_create",
+        "status": "Passed",
+        "durationInMs": 198
+      },
+      {
+        "step": "server_active",
+        "status": "Passed",
+        "durationInMs": 16438
+      },
+      {
+        "step": "floating_ip_create",
+        "status": "Passed",
+        "durationInMs": 1014
+      },
+      {
+        "step": "ping",
+        "status": "Passed",
+        "durationInMs": 1504
+      },
+      {
+        "step": "volume_create",
+        "status": "Failed",
+        "durationInMs": 1280,
+        "fault": {
+          "source": "cinder",
+          "message": "schedule allocate volume:Could not find any available weighted backend."
+        }
+      },
+      {
+        "step": "volume_delete",
+        "status": "Passed",
+        "durationInMs": 175
+      },
+      {
+        "step": "floating_ip_delete",
+        "status": "Passed",
+        "durationInMs": 442
+      },
+      {
+        "step": "server_delete",
+        "status": "Passed",
+        "durationInMs": 5314
+      },
+      {
+        "step": "security_group_delete",
+        "status": "Passed",
+        "durationInMs": 71
+      }
+    ],
+    "phases": {
+      "credential": "Passed",
+      "boot": "Passed",
+      "floating_ip": "Passed",
+      "volume": "Failed",
+      "cleanup": "Passed"
+    },
+    "janitor": {
+      "removed": [],
+      "remainingCount": 0,
+      "errors": []
+    },
+    "leftoverCount": 0,
+    "verifiedProjectId": "8a5d2d8979d04b4fb3e5dd9a89b731b2",
+    "verifiedProjectName": "oneuptime-checks",
+    "requestCount": 39,
+    "writeCount": 9,
+    "warnings": [
+      "Project oneuptime-checks also holds 1 server and 2 volumes this check did not make, so it is not a project of its own. They are not touched, but they share its quota."
+    ]
+  }
+]

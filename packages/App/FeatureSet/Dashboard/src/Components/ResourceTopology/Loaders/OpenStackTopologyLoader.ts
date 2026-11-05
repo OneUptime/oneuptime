@@ -1,4 +1,7 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import { getOpenStackRowsAsThisCredentialReadsThem } from "../../../Pages/OpenStack/Utils/OpenStackServices";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -25,6 +28,8 @@ import {
   areOpenIssuesUnreadable,
   loadOpenIssues,
 } from "../ResourceTopologyIssuesLoader";
+import { isOpenStackIssueInRegion } from "../../../Pages/OpenStack/Utils/OpenStackRegion";
+import { OpenIssueRecord } from "../ResourceTopologyIssues";
 import { masterTopologyRouteFor } from "../ResourceTopologyLinks";
 import { ResourceTopologyGraph } from "../ResourceTopologyModel";
 import { ResourceTopologyData } from "../ResourceTopologyPage";
@@ -37,6 +42,8 @@ import { ResourceTopologyData } from "../ResourceTopologyPage";
 
 export async function loadOpenStackTopology(
   cloudId: ObjectID,
+  // One region's map. Null draws the whole cloud.
+  regionName: string | null = null,
 ): Promise<ResourceTopologyData> {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -54,7 +61,7 @@ export async function loadOpenStackTopology(
       url: URL.fromString(APP_API_URL.toString())
         .addRoute("/openstack-resource/topology/")
         .addRoute(cloudId.toString()),
-      data: {},
+      data: regionName ? { regionName } : {},
       headers: { ...ModelAPI.getCommonHeaders() },
     }),
     projectId
@@ -80,10 +87,24 @@ export async function loadOpenStackTopology(
       name: name,
       lastSeenAt: cloud?.lastSeenAt || null,
     },
-    rows: answer.rows,
+    // Past the stated size it holds no healthy workers, so they can't say what is closed.
+    rows: answer.isSummarized
+      ? answer.rows
+      : getOpenStackRowsAsThisCredentialReadsThem({
+          rows: answer.rows,
+          apis: answer.rows.filter((row: OpenStackResource): boolean => {
+            return row.kind === OpenStackResourceKind.Api;
+          }),
+          workers: answer.rows.filter((row: OpenStackResource): boolean => {
+            return row.kind === OpenStackResourceKind.Service;
+          }),
+        }),
     instancesByHost: answer.instancesByHost,
     projectNames: answer.projectNames,
-    issues: issues?.records || [],
+    // Another region's are not on this map, and would land on the cloud at the top of it.
+    issues: (issues?.records || []).filter((record: OpenIssueRecord) => {
+      return isOpenStackIssueInRegion(record.seriesLabels, regionName);
+    }),
     now: new Date(),
     truncations: getOpenStackTopologyTruncations(answer),
   });

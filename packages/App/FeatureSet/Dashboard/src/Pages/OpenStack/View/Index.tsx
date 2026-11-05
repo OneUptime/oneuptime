@@ -1,4 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
@@ -11,6 +14,7 @@ import { OpenStackBlastRadius } from "Common/Types/OpenStack/OpenStackBlastRadiu
 import { isOpenStackServiceDown } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackRegionSummary,
+  OpenStackRowsLeftOut,
   OpenStackTopConsumers,
 } from "Common/Types/OpenStack/OpenStackOverview";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -103,6 +107,7 @@ import {
   OpenStackServiceGroup,
   OpenStackWorkerCounts,
   getOpenStackAccessGaps,
+  getOpenStackRowsAsThisCredentialReadsThem,
   getOpenStackAttentionName,
   getOpenStackFullestPoolPercent,
   getOpenStackHypervisorCounts,
@@ -208,6 +213,13 @@ const CAPPED_KINDS: Array<CappedKind> = [
       "{{shown}} of {{total}} floating IPs that may need someone are listed here.",
     ),
   },
+  {
+    kind: OpenStackResourceKind.BareMetalNode,
+    page: PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+    sentence: translationKey(
+      "{{shown}} of {{total}} bare metal nodes that may need someone are listed here.",
+    ),
+  },
 ];
 
 /*
@@ -303,6 +315,18 @@ function getCountChips(
       page: PageMap.OPENSTACK_CLOUD_VIEW_VOLUMES,
     },
     {
+      key: "bare-metal-nodes",
+      icon: IconProp.Server,
+      label: translator.translatePlural(
+        {
+          one: "{{count}} bare metal node",
+          other: "{{count}} bare metal nodes",
+        },
+        summary.bareMetalNodeCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+    },
+    {
       key: "projects",
       icon: IconProp.Folder,
       label: translator.translatePlural(
@@ -310,6 +334,45 @@ function getCountChips(
         summary.projectCount,
       ),
       page: PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS,
+    },
+    {
+      key: "stacks",
+      icon: IconProp.Layers,
+      label: translator.translatePlural(
+        { one: "{{count}} stack", other: "{{count}} stacks" },
+        summary.stackCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_STACKS,
+    },
+    {
+      key: "container-clusters",
+      icon: IconProp.Kubernetes,
+      label: translator.translatePlural(
+        {
+          one: "{{count}} Kubernetes cluster",
+          other: "{{count}} Kubernetes clusters",
+        },
+        summary.containerClusterCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+    },
+    {
+      key: "shares",
+      icon: IconProp.Folder,
+      label: translator.translatePlural(
+        { one: "{{count}} share", other: "{{count}} shares" },
+        summary.shareCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
+    },
+    {
+      key: "databases",
+      icon: IconProp.Database,
+      label: translator.translatePlural(
+        { one: "{{count}} database", other: "{{count}} databases" },
+        summary.databaseInstanceCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
     },
   ];
 
@@ -323,7 +386,12 @@ function getCountChips(
     routers: summary.routerCount,
     "floating-ips": summary.floatingIpCount,
     volumes: summary.volumeCount,
+    "bare-metal-nodes": summary.bareMetalNodeCount,
     projects: summary.projectCount,
+    stacks: summary.stackCount,
+    "container-clusters": summary.containerClusterCount,
+    shares: summary.shareCount,
+    databases: summary.databaseInstanceCount,
   };
 
   const reported: Array<CountChip> = chips.filter(
@@ -762,7 +830,7 @@ const OpenStackCloudOverview: FunctionComponent<
       <OpenStackDocumentationCard
         cloudName={cloud.name || ""}
         title="Connect this cloud"
-        description="Nothing has been reported yet. Install the OneUptime OpenStack agent on a machine outside the cloud, and its services, hypervisors and instances appear here once data arrives."
+        description="Nothing has been reported yet. Say how you deploy OpenStack and follow the steps for it, and its services, hypervisors and instances appear here once data arrives."
       />
     );
   }
@@ -782,6 +850,7 @@ const OpenStackCloudOverview: FunctionComponent<
     RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION] as Route,
     { modelId: modelId },
   );
+  const isProbeCollected: boolean = isOpenStackProbeCollected(cloud);
   const cloudRoute: Route = routes.cloudRoute;
 
   const inScope: (row: OpenStackResource) => boolean = (
@@ -793,10 +862,30 @@ const OpenStackCloudOverview: FunctionComponent<
     );
   };
 
-  const rows: Array<OpenStackResource> = (attention?.rows || []).filter(
-    inScope,
-  );
-  const apisInScope: Array<OpenStackResource> = apis.filter(inScope);
+  /*
+   * Only rows that were read can say a credential is closed to something: with its workers
+   * unread, a stopped Placement stays a stopped Placement.
+   */
+  const asCredentialReadsThem: (
+    read: Array<OpenStackResource>,
+  ) => Array<OpenStackResource> = (
+    read: Array<OpenStackResource>,
+  ): Array<OpenStackResource> => {
+    return attention
+      ? getOpenStackRowsAsThisCredentialReadsThem({
+          rows: read,
+          apis: apis,
+          workers: attention.rows.filter((row: OpenStackResource): boolean => {
+            return row.kind === OpenStackResourceKind.Service;
+          }),
+        })
+      : read;
+  };
+  const rows: Array<OpenStackResource> = asCredentialReadsThem(
+    attention?.rows || [],
+  ).filter(inScope);
+  const apisInScope: Array<OpenStackResource> =
+    asCredentialReadsThem(apis).filter(inScope);
   const hypervisors: Array<OpenStackResource> = rows.filter(
     (row: OpenStackResource): boolean => {
       return row.kind === OpenStackResourceKind.Hypervisor;
@@ -807,6 +896,12 @@ const OpenStackCloudOverview: FunctionComponent<
       return row.kind === OpenStackResourceKind.Service;
     },
   );
+
+  const leftOut: Array<OpenStackRowsLeftOut> = (
+    attention?.leftOut || []
+  ).filter((group: OpenStackRowsLeftOut): boolean => {
+    return !region || !group.regionName || group.regionName === region;
+  });
 
   const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: rows,
@@ -826,6 +921,7 @@ const OpenStackCloudOverview: FunctionComponent<
           apis: apisInScope,
           workers: workers,
           hypervisors: hypervisors,
+          leftOut: leftOut,
           hasStoragePools: Boolean(summary && summary.storageCapacityBytes > 0),
         })
       : [];
@@ -847,6 +943,7 @@ const OpenStackCloudOverview: FunctionComponent<
   const groups: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
     apis: apisInScope,
     workers: workers,
+    leftOut: leftOut,
     now: now,
   });
 
@@ -876,9 +973,12 @@ const OpenStackCloudOverview: FunctionComponent<
   const apisUp: number = apisInScope.filter((row: OpenStackResource) => {
     return row.status === "up";
   }).length;
-  const workerCounts: OpenStackWorkerCounts = getOpenStackWorkerCounts(workers);
+  const workerCounts: OpenStackWorkerCounts = getOpenStackWorkerCounts(
+    workers,
+    leftOut,
+  );
   const hypervisorCounts: OpenStackHypervisorCounts =
-    getOpenStackHypervisorCounts(hypervisors);
+    getOpenStackHypervisorCounts(hypervisors, leftOut);
   const isCurrent: boolean = isConnected && attention !== null;
   const hasAccessGap: (key: string) => boolean = (key: string): boolean => {
     return accessGaps.some((gap: OpenStackAccessGap): boolean => {
@@ -1081,7 +1181,7 @@ const OpenStackCloudOverview: FunctionComponent<
                   to={documentationRoute}
                   className="text-sm font-medium text-indigo-600 hover:underline"
                 >
-                  {translator.translateText("Setup guide") || "Setup guide"}
+                  {translator.translateText("Setup guide")}
                 </Link>
               )}
             </div>
@@ -1158,6 +1258,14 @@ const OpenStackCloudOverview: FunctionComponent<
       <OpenStackAccessNotice
         gaps={accessGaps}
         documentationRoute={documentationRoute}
+        settingsRouteOfProbeCloud={
+          isProbeCollected
+            ? RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )
+            : null
+        }
       />
 
       {/*
@@ -1208,7 +1316,7 @@ const OpenStackCloudOverview: FunctionComponent<
                   )}
                   className="font-medium text-indigo-600 hover:underline"
                 >
-                  {translator.translateText("See them all") || "See them all"}
+                  {translator.translateText("See them all")}
                 </Link>
               </li>
             );
@@ -1402,7 +1510,15 @@ const OpenStackCloudOverview: FunctionComponent<
         <></>
       )}
 
-      {isCurrent ? <OpenStackControlPlaneCard modelId={modelId} /> : <></>}
+      {isCurrent ? (
+        <OpenStackControlPlaneCard
+          modelId={modelId}
+          isProbeCollected={isProbeCollected}
+          hidesWhenNothingIsWatched={isProbeCollected}
+        />
+      ) : (
+        <></>
+      )}
 
       {/*
        * What Security Events found about this cloud this week, for whoever may read it:
@@ -1448,6 +1564,15 @@ const OpenStackCloudOverview: FunctionComponent<
           RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE] as Route,
           { modelId: modelId },
         )}
+      />
+
+      {/*
+       * Last on the page: the OpenStack AI agent's connection and whether AI may
+       * investigate, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.OpenStackCloud)}
+        resourceId={modelId}
       />
     </Fragment>
   );

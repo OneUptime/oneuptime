@@ -1,0 +1,91 @@
+$ openstack volume list --all-projects --limit 50 -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "8089892e-d947-4853-ad64-ce517ff65bc1",
+    "name": "ou-boot-volume",
+    "status": "in-use",
+    "size": 1,
+    "volume_type": "lvmdriver-1",
+    "bootable": "true",
+    "attached_to": "8bf79fce-384f-4b97-b84a-ca6e460aeb01",
+    "availability_zone": "nova",
+    "migration_status": null,
+    "updated_at": "2026-11-05T05:29:08.000000",
+    "host": "compute-01@lvmdriver-1#lvmdriver-1",
+    "project_id": "b9e66b583ae5401b8ec2edf04f41c61a"
+  },
+  {
+    "id": "5f7b72cc-4823-4a57-b3e1-24989e88a9f6",
+    "name": "image-26d0ad3c-ceda-4a56-a37f-97c592896bdf",
+    "status": "available",
+    "size": 1,
+    "volume_type": "lvmdriver-1",
+    "bootable": "false",
+    "attached_to": "",
+    "availability_zone": "nova",
+    "migration_status": null,
+    "updated_at": "2026-11-05T05:28:59.000000",
+    "host": "compute-01@lvmdriver-1#lvmdriver-1",
+    "project_id": "66a4216256c64b76b86cb4b20dbe21cf"
+  },
+  {
+    "id": "1894fdad-4d3d-48cb-8303-4162be46e1ca",
+    "name": "ou-vol-stuck",
+    "status": "attaching",
+    "size": 1,
+    "volume_type": "lvmdriver-1",
+    "bootable": "false",
+    "attached_to": "",
+    "availability_zone": "nova",
+    "migration_status": null,
+    "updated_at": "2026-11-05T05:28:36.000000",
+    "host": "compute-01@lvmdriver-1#lvmdriver-1",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  },
+  {
+    "id": "6fefbf2b-cdc7-4346-a81b-4a507867b8f9",
+    "name": "ou-vol-bad",
+    "status": "error",
+    "size": 1,
+    "volume_type": "lvmdriver-1",
+    "bootable": "false",
+    "attached_to": "",
+    "availability_zone": "nova",
+    "migration_status": null,
+    "updated_at": "2026-11-05T05:28:30.000000",
+    "host": "compute-01@lvmdriver-1#lvmdriver-1",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  },
+  {
+    "id": "2bba1c9b-2539-4589-a6e5-99fe2d0b6216",
+    "name": "ou-vol-used",
+    "status": "in-use",
+    "size": 1,
+    "volume_type": "lvmdriver-1",
+    "bootable": "false",
+    "attached_to": "e6591b80-42a0-4c02-8a0d-9438949af8e5",
+    "availability_zone": "nova",
+    "migration_status": null,
+    "updated_at": "2026-11-05T05:28:21.000000",
+    "host": "compute-01@lvmdriver-1#lvmdriver-1",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  },
+  {
+    "id": "6ac48b18-5dc7-4025-be21-2805d6d63baf",
+    "name": "ou-vol-free",
+    "status": "available",
+    "size": 1,
+    "volume_type": "lvmdriver-1",
+    "bootable": "false",
+    "attached_to": "",
+    "availability_zone": "nova",
+    "migration_status": null,
+    "updated_at": "2026-11-05T05:28:11.000000",
+    "host": "compute-01@lvmdriver-1#lvmdriver-1",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  }
+]

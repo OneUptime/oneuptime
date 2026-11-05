@@ -17,6 +17,7 @@ import {
   assessOpenStackHost,
   assessOpenStackInstanceOnHost,
   assessOpenStackNetwork,
+  assessOpenStackResource,
   assessOpenStackRouter,
   assessOpenStackService,
   assessOpenStackStoragePool,
@@ -56,15 +57,17 @@ import {
  *
  *   cloud > region > availability zone > hypervisor > instance > volume
  *   region > Network > external network > router > floating IP
- *   region > Storage > storage pool
+ *   region > Storage > storage pool, share
+ *   region > Databases > database
  *   region > Control plane > APIs and workers
  *
  * What the agent's exporter says, and so what is drawn. A volume names the instance it
  * is attached to. A floating IP names its router, a router its external network and a
- * subnet its network. An instance names no network, and a volume no pool, so those two
- * joins are not drawn at all rather than guessed, and the page says so
- * (getOpenStackTopologyGaps). A native collector that says which pool holds a volume
- * joins the two with a relation.
+ * subnet its network. To the exporter an instance names no network, and a volume no pool,
+ * so from it those two joins are not drawn at all rather than guessed, and the page says
+ * so (getOpenStackTopologyGap). A probe says both: which pool holds a volume, and the
+ * networks an instance has an address on, by name. Each joins with a relation, wherever
+ * the name says which one it means.
  *
  * Health is OpenStackHealth's, the same rules as Needs attention: a host whose
  * nova-compute stopped is critical and says how many instances it held, and its
@@ -99,12 +102,15 @@ export interface OpenStackTopologyInput {
 
 const SECTION_NETWORK: string = translationKey("Network");
 const SECTION_STORAGE: string = translationKey("Storage");
+const SECTION_DATABASES: string = translationKey("Databases");
 const SECTION_CONTROL_PLANE: string = translationKey("Control plane");
 const SECTION_NO_REGION: string = translationKey("No region reported");
 const SECTION_NO_ZONE: string = translationKey("No availability zone reported");
 
 const RELATION_STORED_IN: string = translationKey("Stored in");
 const RELATION_STORES: string = translationKey("Stores");
+const RELATION_ON_NETWORK: string = translationKey("Connected to");
+const RELATION_HAS_INSTANCE: string = translationKey("Connects");
 const RELATION_HELD_BY: string = translationKey("Held by");
 const RELATION_HOLDS: string = translationKey("Holds");
 const RELATION_RUNS_ON: string = translationKey("Runs on");
@@ -112,6 +118,47 @@ const RELATION_RUNS_HERE: string = translationKey("Runs here");
 
 function factsOf(row: OpenStackResource): JSONObject {
   return (row.facts as JSONObject | undefined) || {};
+}
+
+// What a probe says an instance is on, or null while nothing has said. None is an answer too.
+function getOpenStackInstanceNetworkNames(
+  row: OpenStackResource,
+): Array<string> | null {
+  const names: unknown = factsOf(row)["networkNames"];
+  return Array.isArray(names) ? (names as Array<string>) : null;
+}
+
+/*
+ * The network an instance means by a name. Neutron does not keep names unique, and every
+ * project can have its own "private", so its own project's comes first, then one shared with
+ * it, then any by that name. Two at the first place one is found, and the name does not say
+ * which, so nothing is drawn rather than guessed.
+ */
+function getNetworkNamedByInstance(data: {
+  instance: OpenStackResource;
+  networks: Array<OpenStackResource>;
+}): OpenStackResource | null {
+  const ownProject: Array<OpenStackResource> = data.networks.filter(
+    (network: OpenStackResource): boolean => {
+      return network.openStackProjectId === data.instance.openStackProjectId;
+    },
+  );
+  const shared: Array<OpenStackResource> = data.networks.filter(
+    (network: OpenStackResource): boolean => {
+      return (
+        factsOf(network)["isShared"] === true ||
+        factsOf(network)["isExternal"] === true
+      );
+    },
+  );
+
+  for (const candidates of [ownProject, shared, data.networks]) {
+    if (candidates.length > 0) {
+      return candidates.length === 1 ? candidates[0]! : null;
+    }
+  }
+
+  return null;
 }
 
 function text(
@@ -589,10 +636,87 @@ export function buildOpenStackTopology(
   }
 
   const networkIds: Map<string, string> = new Map();
+  const networksByName: Map<string, Array<OpenStackResource>> = new Map();
+
+  /*
+   * What a cloud may not run has no node on one that doesn't, and a share names no pool or instance
+   * of its own in anything the exporter says, so it stands in Storage.
+   */
+  for (const row of rowsOf(OpenStackResourceKind.Share)) {
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+
+    nodes.push({
+      id: `share:${row.externalId}`,
+      parentId: sectionId(row.regionName, "storage", SECTION_STORAGE),
+      kind: "openstack.share",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      facts: projectFacts(row),
+      context: projectName(row),
+      keywords: projectKeywords(row),
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
+
+  /*
+   * A database runs on an instance Nova runs, in a project Trove keeps out of the way, and nothing the
+   * exporter says names it. So it stands in a section of its own.
+   */
+  for (const row of rowsOf(OpenStackResourceKind.DatabaseInstance)) {
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+
+    nodes.push({
+      id: `database:${row.externalId}`,
+      parentId: sectionId(row.regionName, "databases", SECTION_DATABASES),
+      kind: "openstack.database",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      facts: projectFacts(row),
+      context: projectName(row),
+      keywords: projectKeywords(row),
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
 
   for (const row of rowsOf(OpenStackResourceKind.Network)) {
     const id: string = `network:${row.externalId}`;
     networkIds.set(row.externalId!, id);
+    const nameKey: string = `${row.regionName || ""}/${row.name || ""}`;
+    const sameName: Array<OpenStackResource> | undefined =
+      networksByName.get(nameKey);
+    if (sameName) {
+      sameName.push(row);
+    } else {
+      networksByName.set(nameKey, [row]);
+    }
     const verdict: {
       health: ResourceTopologyHealth;
       reasons: Array<ResourceTopologyText>;
@@ -617,6 +741,23 @@ export function buildOpenStackTopology(
         row.externalId!,
       ),
     });
+  }
+
+  for (const row of rowsOf(OpenStackResourceKind.Instance)) {
+    for (const name of getOpenStackInstanceNetworkNames(row) || []) {
+      const network: OpenStackResource | null = getNetworkNamedByInstance({
+        instance: row,
+        networks: networksByName.get(`${row.regionName || ""}/${name}`) || [],
+      });
+      if (network) {
+        relations.push({
+          from: `instance:${row.externalId}`,
+          to: `network:${network.externalId}`,
+          label: RELATION_ON_NETWORK,
+          inverseLabel: RELATION_HAS_INSTANCE,
+        });
+      }
+    }
   }
 
   for (const row of rowsOf(OpenStackResourceKind.Subnet)) {
@@ -959,6 +1100,9 @@ export function getOpenStackTopologyFocus(
 export const OPENSTACK_TOPOLOGY_GAP_NETWORKS: string = translationKey(
   "Instances are not joined to their networks: what this cloud reports does not say which network an instance is on.",
 );
+export const OPENSTACK_TOPOLOGY_GAP_POOLS: string = translationKey(
+  "Volumes are not joined to their storage pools: what this cloud reports does not say which pool holds a volume.",
+);
 export const OPENSTACK_TOPOLOGY_GAP_NETWORKS_AND_POOLS: string = translationKey(
   "Instances are not joined to their networks, nor volumes to their storage pools: what this cloud reports says neither.",
 );
@@ -969,13 +1113,14 @@ export const OPENSTACK_TOPOLOGY_SUMMARIZED: string = translationKey(
 export function getOpenStackTopologyGap(
   rows: Array<OpenStackResource>,
 ): string | null {
-  let hasInstance: boolean = false;
+  let hasUnjoinedInstance: boolean = false;
   let hasUnplacedVolume: boolean = false;
   let hasPool: boolean = false;
 
   for (const row of rows) {
     if (row.kind === OpenStackResourceKind.Instance) {
-      hasInstance = true;
+      hasUnjoinedInstance =
+        hasUnjoinedInstance || getOpenStackInstanceNetworkNames(row) === null;
     } else if (row.kind === OpenStackResourceKind.StoragePool) {
       hasPool = true;
     } else if (
@@ -986,9 +1131,15 @@ export function getOpenStackTopologyGap(
     }
   }
 
-  if (hasPool && hasUnplacedVolume) {
+  const volumesHaveNoPool: boolean = hasPool && hasUnplacedVolume;
+
+  if (hasUnjoinedInstance && volumesHaveNoPool) {
     return OPENSTACK_TOPOLOGY_GAP_NETWORKS_AND_POOLS;
   }
 
-  return hasInstance ? OPENSTACK_TOPOLOGY_GAP_NETWORKS : null;
+  if (volumesHaveNoPool) {
+    return OPENSTACK_TOPOLOGY_GAP_POOLS;
+  }
+
+  return hasUnjoinedInstance ? OPENSTACK_TOPOLOGY_GAP_NETWORKS : null;
 }

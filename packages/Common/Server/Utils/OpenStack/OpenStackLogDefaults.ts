@@ -25,7 +25,9 @@ import logger from "../Logger";
  * of each API every few seconds, and the notifications that only say nothing changed.
  * These are the project's own drop filters, added the first time its OpenStack logs arrive,
  * so they are seen on the Logs settings page, counted, and one toggle away from off. Turned
- * off there, they stay off: only a project with none of them gets them.
+ * off there, they stay off, and so does one deleted: only a project holding none of a kind
+ * gets that kind. What says they were added is in the cache, which a restart can empty, and a
+ * filter someone took away coming back would silently drop what they chose to keep.
  *
  * Each one reads what OpenStackLogs stamped, so it can only ever match a record of a cloud.
  *
@@ -123,8 +125,14 @@ export default class OpenStackLogDefaults {
         return;
       }
 
-      await this.addDropFilters(projectId);
-      await this.addScrubRules(projectId);
+      try {
+        await this.addDropFilters(projectId);
+        await this.addScrubRules(projectId);
+      } catch (error) {
+        // Asked again with the next batch, rather than left without them for ten years.
+        await GlobalCache.deleteKey(CACHE_NAMESPACE, projectId.toString());
+        throw error;
+      }
     } catch (error) {
       logger.warn(
         `OpenStack's default log filters could not be added to project ${projectId.toString()}: ${
@@ -142,19 +150,18 @@ export default class OpenStackLogDefaults {
       skip: 0,
       props: { isRoot: true },
     });
-    const names: Set<string> = new Set(
-      existing.map((row: LogDropFilter): string => {
-        return row.name || "";
-      }),
-    );
+
+    if (
+      existing.some((row: LogDropFilter): boolean => {
+        return (row.name || "").startsWith(OPENSTACK_DEFAULTS_NAME_PREFIX);
+      })
+    ) {
+      return;
+    }
 
     let sortOrder: number = existing.length;
 
     for (const filter of OPENSTACK_DEFAULT_DROP_FILTERS) {
-      if (names.has(filter.name)) {
-        continue;
-      }
-
       const row: LogDropFilter = new LogDropFilter();
       row.projectId = projectId;
       row.name = filter.name;
@@ -179,19 +186,18 @@ export default class OpenStackLogDefaults {
       skip: 0,
       props: { isRoot: true },
     });
-    const names: Set<string> = new Set(
-      existing.map((row: LogScrubRule): string => {
-        return row.name || "";
-      }),
-    );
+
+    if (
+      existing.some((row: LogScrubRule): boolean => {
+        return (row.name || "").startsWith(OPENSTACK_DEFAULTS_NAME_PREFIX);
+      })
+    ) {
+      return;
+    }
 
     let sortOrder: number = existing.length;
 
     for (const rule of OPENSTACK_DEFAULT_SCRUB_RULES) {
-      if (names.has(rule.name)) {
-        continue;
-      }
-
       const row: LogScrubRule = new LogScrubRule();
       row.projectId = projectId;
       row.name = rule.name;

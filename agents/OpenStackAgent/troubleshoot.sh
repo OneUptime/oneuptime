@@ -51,6 +51,8 @@ AGENT_CONTAINER="oneuptime-openstack-agent"
 EXPORTER_CONTAINER="oneuptime-openstack-exporter"
 AGENT_SERVICE="oneuptime-openstack-agent"
 EXPORTER_SERVICE="oneuptime-openstack-exporter"
+QUOTA_EXPORTER_CONTAINER="oneuptime-openstack-quota-exporter"
+QUOTA_EXPORTER_SERVICE="oneuptime-openstack-quota-exporter"
 EXPORTER_SYSTEM_USER="oneuptime-openstack"
 
 while [ $# -gt 0 ]; do
@@ -409,6 +411,13 @@ explain_curl_exit() {
 printf "%s%sOneUptime OpenStack Agent — Diagnostic%s\n" "$C_BOLD" "$C_BLU" "$C_OFF"
 printf "%sInstall dir:%s %s\n" "$C_DIM" "$C_OFF" "$DIR"
 
+# A folder this user cannot look inside reads as one with nothing in it: no agent, no
+# clouds.yaml. Installed under a strict umask, it is root's alone.
+if [ -d "$DIR" ] && [ ! -x "$DIR" ]; then
+  fail "This user cannot look inside $DIR, so nothing below could be read. Run this with sudo."
+  exit 1
+fi
+
 # ----------------------------------------------------------------------------
 section "1. Runtime"
 # ----------------------------------------------------------------------------
@@ -515,6 +524,35 @@ else
   else
     fail "Bundled exporter '$EXPORTER_CONTAINER' does not exist."
     add_finding "The agent scrapes the bundled exporter, and it never started. Set COMPOSE_PROFILES=openstack-exporter in $ENV_FILE and run: cd $DIR && docker compose up -d. Or, if you run your own, set OPENSTACK_EXPORTER_ADDRESS to it."
+  fi
+fi
+
+# Each project's quotas, from an exporter of their own, once someone turned them on.
+QUOTA_CLOUDS=$(agent_env OPENSTACK_QUOTA_CLOUDS)
+[ "$QUOTA_CLOUDS" = "[]" ] && QUOTA_CLOUDS=""
+QUOTA_EXPORTER_RUNNING=0
+if [ -z "$QUOTA_CLOUDS" ]; then
+  info "Project quotas are off, so a project's page shows none. OPENSTACK_COLLECT_QUOTAS=true in install.sh turns them on (README.md, \"What it costs\")."
+elif [ "$NATIVE" = 1 ]; then
+  QUOTA_STATE=$(systemctl is-active "$QUOTA_EXPORTER_SERVICE" 2>/dev/null || true)
+  if [ "$QUOTA_STATE" = "active" ]; then
+    pass "Service '$QUOTA_EXPORTER_SERVICE' is active"
+    QUOTA_EXPORTER_RUNNING=1
+  else
+    fail "Service '$QUOTA_EXPORTER_SERVICE' is NOT active: ${QUOTA_STATE:-unknown}"
+    add_finding "The agent asks for each project's quotas and nothing answers. Look at why: journalctl -u $QUOTA_EXPORTER_SERVICE -n 100 --no-pager"
+  fi
+else
+  QUOTA_STATE=$(docker inspect -f '{{.State.Status}}' "$QUOTA_EXPORTER_CONTAINER" 2>/dev/null)
+  if [ "$QUOTA_STATE" = "running" ]; then
+    pass "Quota exporter '$QUOTA_EXPORTER_CONTAINER' is running"
+    QUOTA_EXPORTER_RUNNING=1
+  elif [ -n "$QUOTA_STATE" ]; then
+    fail "Quota exporter '$QUOTA_EXPORTER_CONTAINER' is NOT running (state: $QUOTA_STATE)"
+    add_finding "The agent asks for each project's quotas and nothing answers. Check: docker logs $QUOTA_EXPORTER_CONTAINER"
+  else
+    fail "Quota exporter '$QUOTA_EXPORTER_CONTAINER' does not exist."
+    add_finding "The agent asks for each project's quotas and it never started. Run install.sh again with OPENSTACK_COLLECT_QUOTAS=true, which sets COMPOSE_PROFILES for it."
   fi
 fi
 
@@ -639,7 +677,9 @@ for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
     detail "Response head: $(printf '%s' "$SCRAPE_OUT" | head -c 200)"
     add_finding "The exporter has no clouds.yaml entry named \"$REGION\", or cannot log in with it. Each region needs an entry named for it. Check the exporter's log. An exporter started without --multi-cloud, as Kolla-Ansible starts it, has no /probe: set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS and OPENSTACK_EXPORTER_CLOUDS=[] instead."
     if [ "$EXPORTER_RUNNING" = 1 ] && [ "$NATIVE" = 0 ]; then
-      AUTHERR=$(docker logs --tail 50 "$EXPORTER_CONTAINER" 2>&1 | grep -iE '401|auth|permission|denied|x509|could not|failed' | tail -3)
+      # A service this cloud does not run is a line too, on every scrape, and says nothing
+      # about why this one failed.
+      AUTHERR=$(docker logs --tail 200 "$EXPORTER_CONTAINER" 2>&1 | grep -v 'No suitable endpoint could be found' | grep -iE '401|auth|permission|denied|x509|could not|failed' | tail -3)
       if [ -n "$AUTHERR" ]; then
         warn "The exporter's log shows:"
         printf '%s\n' "$AUTHERR" | while read -r l; do detail "$(printf '%s' "$l" | head -c 160)"; done
@@ -647,6 +687,33 @@ for REGION in ${REGIONS[@]+"${REGIONS[@]}"}; do
     fi
   fi
 done
+
+# What the hourly job asks of the quota exporter, for one region's Nova. It costs a call per
+# project, so only when someone turned them on, and it may take as long as the job allows.
+if [ "$QUOTA_EXPORTER_RUNNING" = 1 ]; then
+  QUOTA_ADDRESS=$(agent_env OPENSTACK_QUOTA_EXPORTER_ADDRESS)
+  if [ -z "$QUOTA_ADDRESS" ]; then
+    if [ "$NATIVE" = 1 ]; then
+      QUOTA_ADDRESS="127.0.0.1:9182"
+    else
+      QUOTA_ADDRESS="openstack-quota-exporter:9180"
+    fi
+  fi
+  QUOTA_REGION=$(printf '%s' "$QUOTA_CLOUDS" | sed 's/^\[//; s/\]$//' | tr ',' '\n' | sed "s/^[[:space:]\"']*//; s/[[:space:]\"']*\$//" | head -1)
+  QUOTA_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 300 "http://${QUOTA_ADDRESS}/probe?cloud=${QUOTA_REGION// /%20}&include_services=compute")
+  QUOTA_EXIT=$?
+  QUOTA_PROJECTS=$(printf '%s\n' "$QUOTA_OUT" | grep -c '^openstack_nova_limits_vcpus_max' 2>/dev/null || true)
+  if [ "$QUOTA_EXIT" != "0" ]; then
+    warn "Region $QUOTA_REGION: the quota exporter did not answer within five minutes."
+    detail "curl: $(printf '%s' "$QUOTA_OUT" | tr '\n' ' ' | head -c 200)"
+    add_finding "The quota exporter at $QUOTA_ADDRESS did not answer in time. Its job allows half an hour, so a cloud of many projects can be fine. Otherwise look at its log."
+  elif [ "$QUOTA_PROJECTS" = "0" ]; then
+    warn "Region $QUOTA_REGION: the quota exporter answers, with no project's limits."
+    add_finding "The quota exporter reads no project's limits in region $QUOTA_REGION. Look at its log: it may be refused, and the access check below says what this credential may read."
+  else
+    pass "Region $QUOTA_REGION: the quota exporter reads the limits of $QUOTA_PROJECTS projects."
+  fi
+fi
 
 # ----------------------------------------------------------------------------
 section "3. Keystone: DNS, TLS and the credential"
@@ -724,7 +791,15 @@ else
     LOGIN_EXIT=$?
     LOGIN_CODE=$(printf '%s\n' "$LOGIN" | sed -n 's/^OUSTATUS:\([0-9]\{3\}\).*/\1/p' | head -1)
     [ -z "$LOGIN_CODE" ] && LOGIN_CODE="000"
+    # Keystone answers 404 for an application credential it no longer has, which is no wrong URL.
+    if [ "$LOGIN_CODE" = "404" ] && printf '%s' "$LOGIN" | grep -qi 'application credential'; then
+      LOGIN_CODE="no-such-credential"
+    fi
     case "$LOGIN_CODE" in
+      no-such-credential)
+        fail "Keystone has no such application credential (HTTP 404): it was deleted, or the ID in clouds.yaml is wrong."
+        add_finding "Keystone no longer has the application credential in $CLOUDS_FILE. Make a new one (README.md, \"Access\"), move clouds.yaml aside and run install.sh again."
+        ;;
       200|201)
         pass "DNS and TLS are fine, and Keystone accepted the credential (HTTP $LOGIN_CODE)."
         KEYSTONE_OK=1
@@ -802,7 +877,7 @@ fi
 # than one type, and which it uses depends on the release.
 catalog_url() {
   local service="$1" region="$2" type="" url=""
-  for type in "$service" $([ "$service" = "block-storage" ] && echo "volumev3 volume"); do
+  for type in "$service" $([ "$service" = "block-storage" ] && echo "volumev3 volume") $([ "$service" = "sharev2" ] && echo "shared-file-system"); do
     url=$(printf '%s\n' "$CATALOG" | awk -F '\t' -v t="$type" -v r="$region" '$1 == t && $2 == r && $3 == "public" { print $4; exit }')
     if [ -n "$url" ]; then
       printf '%s' "${url%/}"
@@ -918,7 +993,7 @@ classify_read() {
     return 0
   fi
   flat=$(printf '%s\n' "$RESP_BODY" | json_flatten)
-  summary=$(list_summary "$flat" "$key" "$attr")
+  summary=$(list_summary "$flat" "$key" "${attr%\?}")
   rows="${summary%% *}"
   summary="${summary#* }"
   projects="${summary%% *}"
@@ -926,6 +1001,10 @@ classify_read() {
   names="${names# }"
   if [ "$attr" = "*" ] && [ "$rows" -gt 0 ]; then
     RESULT="all"
+  # Rows that are nobody's: Ironic shows those to no project, so this is more than one's view.
+  elif [ "${attr%\?}" != "$attr" ] && [ "$rows" -gt 0 ] && [ "$projects" = 0 ]; then
+    RESULT="all"
+    REASON=" (no row is any project's)"
   elif [ "$projects" -ge 2 ]; then
     RESULT="all"
     REASON=" ($projects projects in $rows rows)"
@@ -935,7 +1014,8 @@ classify_read() {
   elif [ "$projects" = 1 ]; then
     RESULT="own"
     REASON=" (every row is in one project)"
-  elif [ "$HAS_ADMIN_ROLE" = 1 ]; then
+  # Ironic shows even an admin only what its project owns, so empty is no likely truth there.
+  elif [ "$HAS_ADMIN_ROLE" = 1 ] && [ "${attr%\?}" = "$attr" ]; then
     RESULT="all"
     REASON=" (nothing here to tell by, and the credential has the admin role)"
   else
@@ -1018,6 +1098,11 @@ report_read() {
   case "$RESULT" in
     all)
       pass "$service: $read — reads everything$REASON"
+      COUNT_ALL=$((COUNT_ALL+1))
+      ;;
+    project)
+      # All there is: nothing to fix, and no credential reads more.
+      pass "$service: $read — reads its own project's$REASON"
       COUNT_ALL=$((COUNT_ALL+1))
       ;;
     own)
@@ -1104,7 +1189,17 @@ else
         RESULT="own"
         REASON=" (as for the networks: a subnet of a shared network is anyone's to see)"
       fi
+      # Recorded: Barbican has no list across projects, for anyone.
+      if [ "$SERVICE" = "key-manager" ] && [ "$RESULT" = "all" ]; then
+        RESULT="project"
+        REASON=" (Barbican answers any credential about its own project alone)"
+      fi
       report_read "$SERVICE" "$READ" "$COST" "$FIX"
+      # Recorded: keystonemiddleware checks access rules against the token's catalog, and with
+      # none Swift raises KeyError: 'catalog'.
+      if [ "$SERVICE" = "object-store" ] && [ "$RESP_CODE" = "500" ] && [ "$HAS_ACCESS_RULES" = 1 ]; then
+        detail "Swift answers a credential with access rules 500 while [filter:authtoken] in proxy-server.conf has include_service_catalog = False. Set it to True beside service_type = object-store, and restart the proxy."
+      fi
     done 3<<'READS'
 identity|projects|/v3/projects|projects|-|-|the Projects page, and project names on instances, volumes and networks.|policy:keystone:"identity:list_projects": "rule:admin_required or role:oneuptime_monitoring"
 identity|domains|/v3/domains|domains|-|-|domains on the Projects page.|policy:keystone:"identity:list_domains": "rule:admin_required or role:oneuptime_monitoring"
@@ -1127,7 +1222,7 @@ network|floating IPs|/v2.0/floatingips?limit=100&fields=project_id|floatingips|p
 network|IP availabilities|/v2.0/network-ip-availabilities|network_ip_availabilities|project_id|-|address pools, and the alerts on running out of addresses.|policy:neutron:"get_network_ip_availability": "role:admin or role:oneuptime_monitoring"
 network|security groups|/v2.0/security-groups?limit=100&fields=project_id&fields=shared|security_groups|project_id|-|security group counts for other projects.|code:Neutron
 network|ports|/v2.0/ports?limit=100&fields=project_id|ports|project_id|-|nothing by default: only the per-port series read every port, and they are off (README.md, "What it costs").|code:Neutron
-network|quotas|/v2.0/quotas|quotas|-|-|network quotas per project. The agent only reads them with --disable-metric=neutron-quota_network taken out (README.md, "What it costs").|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+network|quotas|/v2.0/quotas|quotas|-|-|network quotas per project. The agent only reads them with OPENSTACK_COLLECT_QUOTAS=true (README.md, "What it costs").|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 block-storage|volumes, all projects|/volumes/detail?all_tenants=1&limit=100|volumes|os-vol-tenant-attr:tenant_id|OpenStack-API-Version: volume 3.50|volumes in other projects on the Volumes page, and the alerts on them.|code:Cinder
 block-storage|services|/os-services|services|-|OpenStack-API-Version: volume 3.50|cinder-volume and cinder-scheduler state on the Services page and Needs attention, and the alerts on them.|text:Cinder's own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").
 block-storage|pools|/scheduler-stats/get_pools?detail=true|pools|-|OpenStack-API-Version: volume 3.50|storage pools, and the alerts on a filling pool.|text:Cinder's own code asks for an admin here, after policy has already passed, so no policy line opens it. Only a full-view credential reads it (README.md, "Level 1: Full view").
@@ -1137,7 +1232,21 @@ block-storage|volume types|/types|volume_types|-|OpenStack-API-Version: volume 3
 image|images|/v2/images?limit=100|images|owner|-|private images in other projects.|text:Glance shows any credential the public images and its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|load balancers|/v2/lbaas/loadbalancers?limit=100&fields=project_id|loadbalancers|project_id|-|load balancers in other projects.|text:Octavia shows a project reader its own. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 load-balancer|amphorae|/v2/octavia/amphorae?limit=100|amphorae|-|-|amphorae.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
-baremetal|nodes|/v1/nodes/detail?limit=100|nodes|*|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes.|text:Ironic shows a project only the nodes it owns. To read them all: use a full-view credential (README.md, "Level 1: Full view").
+baremetal|nodes|/v1/nodes/detail?limit=100|nodes|owner?|X-OpenStack-Ironic-API-Version: 1.82|bare metal nodes other projects own.|text:Ironic shows a project only the nodes it owns. To read them all, a credential needs baremetal:node:list_all in Ironic's policy, or system scope (README.md, "Bare metal").
+orchestration|stacks|/stacks|stacks|project|-|other projects' stacks, and whose each one is.|text:Heat shows anything less its own project's with no project on them, or refuses. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+orchestration|services|/services|services|-|-|Heat's engines.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+container-infra|clusters|/clusters|clusters|*|OpenStack-API-Version: container-infra latest|other projects' Kubernetes clusters.|text:Magnum shows anything less none of them, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+container-infra|services|/mservices|mservices|-|OpenStack-API-Version: container-infra latest|Magnum's conductors.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+baremetal|conductors|/v1/conductors|conductors|-|X-OpenStack-Ironic-API-Version: 1.82|Ironic's conductors on the Services page.|text:Only system scope reads these: Ironic refuses a project's credential, an admin's too.
+sharev2|shares, all projects|/shares/detail?all_tenants=1|shares|project_id|-|other projects' shares.|text:Manila shows anything less its own project's, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|services|/services|services|-|X-OpenStack-Manila-API-Version: 2.65|Manila's services.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|pools|/scheduler-stats/pools/detail|pools|-|X-OpenStack-Manila-API-Version: 2.65|Manila's pools.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+dns|zones, all projects|/v2/zones?limit=100|zones|project_id|X-Auth-All-Projects: true|zones and recordsets in other projects, and the alerts on them.|text:Designate refuses anything less a list of every project's zones. To read them: use a full-view credential (README.md, "Level 1: Full view").
+key-manager|secrets|/v1/secrets?limit=100|secrets|-|-|how many secrets this project holds. OneUptime reads no secret itself.|text:Barbican refuses a plain reader, and answers an admin about its own project alone. To read this project's: use a full-view credential (README.md, "Level 1: Full view").
+key-manager|orders|/v1/orders?limit=100|orders|-|-|how many orders this project holds, and any that failed.|text:Barbican refuses a plain reader, and answers an admin about its own project alone. To read this project's: use a full-view credential (README.md, "Level 1: Full view").
+object-store|own account|?limit=100|containers|-|-|this project's containers and how much they hold.|text:Swift refuses a plain reader, and answers about one project's account at a time. To read this one: use a full-view credential (README.md, "Level 1: Full view").
+database|instances, all projects|/mgmt/instances?include_clustered=False&deleted=False&limit=100|instances|-|-|database instances, and the alerts on them.|text:Only an admin reads Trove's management API: use a full-view credential (README.md, "Level 1: Full view").
+metric|status|/v1/status?details=true|storage|-|-|Gnocchi's backlog and what is processing it, and the alerts on them.|text:Only an admin reads this: use a full-view credential (README.md, "Level 1: Full view").
 READS
     check_project_holdings "$REGION"
   done
@@ -1169,7 +1278,7 @@ section "What the cloud stands on"
 #   check_control_plane <variable> <what it is> <a series that says it answers>
 CONTROL_PLANE_NAMED=0
 check_control_plane() {
-  local variable="$1" what="$2" series="$3" list="" target="" answer="" code=""
+  local variable="$1" what="$2" series="$3" zero_means_down="${4:-yes}" list="" target="" answer="" code=""
   list=$(agent_env "$variable")
   if [ -z "$list" ] || [ "$list" = "[]" ]; then
     return 0
@@ -1181,7 +1290,7 @@ check_control_plane() {
     if [ "$code" != "0" ]; then
       fail "$what at $target does not answer from the agent's network: $(explain_curl_exit "$code")."
       add_finding "The collector cannot scrape $what at $target ($variable). Check the address, and that this machine has a route to the network it listens on."
-    elif printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? 0"; then
+    elif [ "$zero_means_down" = "yes" ] && printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? 0"; then
       warn "$what at $target answers, and says the service behind it is down ($series 0)."
     elif printf '%s\n' "$answer" | grep -Eq "^${series}(\{[^}]*\})? "; then
       pass "$what at $target answers."
@@ -1195,10 +1304,63 @@ check_control_plane OPENSTACK_RABBITMQ_TARGETS "RabbitMQ's Prometheus plugin" ra
 check_control_plane OPENSTACK_MARIADB_TARGETS "mysqld_exporter" mysql_up
 check_control_plane OPENSTACK_MEMCACHED_TARGETS "memcached_exporter" memcached_up
 check_control_plane OPENSTACK_HAPROXY_TARGETS "HAProxy's Prometheus exporter" haproxy_process_uptime_seconds
-check_control_plane OPENSTACK_NETWORK_EXPORTER_TARGETS "openstack-network-exporter" ovs_build_info
+# Any of its series: a host of only OVN's databases has no Open vSwitch to report, and it reports
+# no Open vSwitch database from the moment Open vSwitch restarts until it restarts itself. A 0 says
+# little here: its coverage series all read 0 with nothing behind them.
+check_control_plane OPENSTACK_NETWORK_EXPORTER_TARGETS "openstack-network-exporter" '(ovs|ovn|ovnc)_[a-z0-9_]+' no
 check_control_plane OPENSTACK_LIBVIRT_HEALTH_TARGETS "prometheus-libvirt-exporter" libvirt_up
 if [ "$CONTROL_PLANE_NAMED" = 0 ]; then
   info "None named, so the cloud's Control Plane card says each is not watched. README.md says how to name them."
+fi
+
+# ----------------------------------------------------------------------------
+section "Real usage per instance"
+# ----------------------------------------------------------------------------
+# Whichever of these a cloud runs, read only when someone named it. What Ceilometer says is
+# up to its polling.yaml, and the file it ships leaves out some of what the pages read.
+USAGE_NAMED=0
+for TARGET in $(target_addresses "$(agent_env OPENSTACK_LIBVIRT_EXPORTER_TARGETS)"); do
+  USAGE_NAMED=1
+  USAGE_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 30 "http://${TARGET}/metrics")
+  USAGE_EXIT=$?
+  if [ "$USAGE_EXIT" != "0" ]; then
+    fail "prometheus-libvirt-exporter at $TARGET does not answer from the agent's network: $(explain_curl_exit "$USAGE_EXIT")."
+    add_finding "The collector cannot scrape prometheus-libvirt-exporter at $TARGET (OPENSTACK_LIBVIRT_EXPORTER_TARGETS), so that compute node's instances have no real usage. Check the address, and that this machine has a route to it."
+  elif ! printf '%s\n' "$USAGE_OUT" | grep -Eq '^libvirt_up '; then
+    fail "$TARGET answers, but with no libvirt_up: it is not prometheus-libvirt-exporter."
+    add_finding "OPENSTACK_LIBVIRT_EXPORTER_TARGETS names $TARGET, and what answers there is not prometheus-libvirt-exporter. Check the port: it is usually 9177."
+  elif printf '%s\n' "$USAGE_OUT" | grep -Eq '^libvirt_up 0'; then
+    warn "prometheus-libvirt-exporter at $TARGET answers, and says it cannot reach libvirt (libvirt_up 0)."
+  else
+    USAGE_COUNT=$(printf '%s\n' "$USAGE_OUT" | grep -c '^libvirt_domain_openstack_info' 2>/dev/null || true)
+    pass "prometheus-libvirt-exporter at $TARGET answers, and says which instance each of its $USAGE_COUNT domains is."
+  fi
+done
+for TARGET in $(target_addresses "$(agent_env OPENSTACK_CEILOMETER_EXPORTER_TARGETS)"); do
+  USAGE_NAMED=1
+  USAGE_OUT=$(network_curl "$AGENT_NETWORK" -sS -m 30 "http://${TARGET}/metrics")
+  USAGE_EXIT=$?
+  if [ "$USAGE_EXIT" != "0" ]; then
+    fail "Ceilometer's exporter at $TARGET does not answer from the agent's network: $(explain_curl_exit "$USAGE_EXIT")."
+    add_finding "The collector cannot scrape Ceilometer's exporter at $TARGET (OPENSTACK_CEILOMETER_EXPORTER_TARGETS), so that compute node's instances have no real usage. Check enable_prometheus_exporter and prometheus_listen_addresses under [polling] in ceilometer.conf."
+  elif ! printf '%s\n' "$USAGE_OUT" | grep -Eq '^ceilometer_cpu\{'; then
+    warn "Ceilometer's exporter at $TARGET answers, but says nothing about any instance's CPU. It says nothing until its first polling cycle, and only what polling.yaml asks for."
+  else
+    pass "Ceilometer's exporter at $TARGET answers."
+    for USAGE_METER in "ceilometer_memory_resident|memory.resident|nothing says what its instances hold on the hypervisor, and Hypervisor Memory Pressure stays quiet" \
+      "ceilometer_disk_device_write_latency|disk.device.write.latency|it has no disk latency, and Instance Disk Latency High stays quiet"; do
+      if ! printf '%s\n' "$USAGE_OUT" | grep -Eq "^${USAGE_METER%%|*}\{"; then
+        USAGE_REST="${USAGE_METER#*|}"
+        warn "Ceilometer at $TARGET isn't polling ${USAGE_REST%%|*}, so ${USAGE_REST#*|}. Add it to polling.yaml."
+      fi
+    done
+    if ! printf '%s\n' "$USAGE_OUT" | grep -Eq '^ceilometer_vcpus\{'; then
+      info "Ceilometer at $TARGET isn't polling vcpus, so an instance's CPU is measured against what its flavor says. Epoxy has no such meter."
+    fi
+  fi
+done
+if [ "$USAGE_NAMED" = 0 ]; then
+  info "None named, so an instance's and a hypervisor's pages say what is promised and not what is busy. Set OPENSTACK_LIBVIRT_EXPORTER_TARGETS or OPENSTACK_CEILOMETER_EXPORTER_TARGETS: README.md says how."
 fi
 
 # ----------------------------------------------------------------------------

@@ -92,12 +92,12 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 4,
+          "count": 5,
           "seesAll": true
         },
         "monitoring-admin-get": {
           "status": 200,
-          "count": 4,
+          "count": 5,
           "seesAll": true
         }
       }
@@ -143,12 +143,12 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 0,
+          "count": 2,
           "seesAll": true
         },
         "monitoring-admin-get": {
           "status": 200,
-          "count": 0,
+          "count": 2,
           "seesAll": true
         }
       }
@@ -347,12 +347,12 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 13,
+          "count": 14,
           "seesAll": true
         },
         "monitoring-admin-get": {
           "status": 200,
-          "count": 13,
+          "count": 14,
           "seesAll": true
         }
       }
@@ -381,12 +381,12 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 7,
+          "count": 10,
           "seesAll": true
         },
         "monitoring-admin-get": {
           "status": 200,
-          "count": 7,
+          "count": 10,
           "seesAll": true
         }
       }
@@ -483,13 +483,43 @@
       "results": {
         "admin": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
         },
         "monitoring-admin-get": {
           "status": 200,
-          "count": 1,
+          "count": 2,
           "seesAll": true
+        }
+      }
+    }
+  ],
+  "partReads": [
+    {
+      "service": "network",
+      "read": "a router's L3 agents",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1
+        },
+        "monitoring-admin-get": {
+          "status": 200,
+          "count": 1
+        }
+      }
+    },
+    {
+      "service": "network",
+      "read": "a DHCP agent's networks",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 4
+        },
+        "monitoring-admin-get": {
+          "status": 200,
+          "count": 4
         }
       }
     }

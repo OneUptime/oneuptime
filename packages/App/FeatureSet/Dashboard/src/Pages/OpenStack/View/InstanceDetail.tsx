@@ -3,6 +3,7 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { OpenStackBlastRadiusOwner } from "Common/Types/OpenStack/OpenStackBlastRadius";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Link from "Common/UI/Components/Link/Link";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -37,13 +38,16 @@ import ResourcePartDetailsCard, {
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
 import {
   fetchOpenStackComputeServiceOf,
+  fetchOpenStackBlastRadius,
   fetchOpenStackRow,
 } from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_INSTANCE_ALERT_TEMPLATE_IDS,
+  OpenStackInstanceImage,
   getOpenStackFlavorExternalId,
   getOpenStackHostGroupId,
   getOpenStackInstanceAddresses,
+  getOpenStackInstanceImage,
   getOpenStackPartExplanation,
   getOpenStackTimeInState,
   isOpenStackInstanceUnplaced,
@@ -55,10 +59,10 @@ import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
  * been in its state. An instance that failed before it was placed has no hypervisor, which
  * is its story and not a gap.
  *
- * What neither collector says is said to be not collected, with where to look instead: an
- * instance's fixed addresses and its image. A failed instance's fault only comes from a
- * probe. The exporter's address labels are empty on a real cloud, and an empty cell would
- * read as an instance with no address.
+ * What a collector doesn't say is said to be not collected, with where to look instead: an
+ * instance's image, a failed instance's fault and its addresses only come from a probe. The
+ * exporter's address labels are empty on a real cloud, and an empty cell would read as an instance
+ * with no address.
  */
 
 const LINK_CLASS_NAME: string =
@@ -68,7 +72,10 @@ const ADDRESSES_NOT_COLLECTED: string = translationKey(
   "Not collected: the agent's exporter leaves these empty. openstack server show {{id}} has them.",
 );
 const IMAGE_NOT_COLLECTED: string = translationKey(
-  "Not collected: neither the agent's exporter nor a probe says which image an instance booted from. openstack server show {{id}} has it.",
+  "Not collected: the agent's exporter doesn't say which image an instance booted from. openstack server show {{id}} has it.",
+);
+const BOOTED_FROM_VOLUME: string = translationKey(
+  "None: it booted from a volume",
 );
 const FAULT_NOT_COLLECTED: string = translationKey(
   "Not collected: only a probe reads what Nova recorded. openstack server show {{id}} has it.",
@@ -78,6 +85,8 @@ interface InstanceSurroundings {
   flavor: OpenStackResource | null;
   // What says its hypervisor is down.
   computeService: OpenStackResource | null;
+  // What it booted from, when that image is still in the cloud.
+  image: OpenStackResource | null;
 }
 
 const InstanceOverview: FunctionComponent<{
@@ -89,10 +98,12 @@ const InstanceOverview: FunctionComponent<{
   const now: Date = OneUptimeDate.getCurrentDate();
   const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
   const flavorId: string = getOpenStackFactText(row, "flavorId");
+  const image: OpenStackInstanceImage = getOpenStackInstanceImage(row);
 
   const around: OpenStackRead<InstanceSurroundings> =
     useOpenStackRead<InstanceSurroundings>(async () => {
-      const [flavor, computeService]: [
+      const [flavor, computeService, imageRow]: [
+        OpenStackResource | null,
         OpenStackResource | null,
         OpenStackResource | null,
       ] = await Promise.all([
@@ -113,8 +124,29 @@ const InstanceOverview: FunctionComponent<{
               regionName: row.regionName,
             })
           : Promise.resolve(null),
+        image.state === "image"
+          ? fetchOpenStackRow({
+              openStackCloudId: part.openStackCloudId,
+              kind: OpenStackResourceKind.Image,
+              externalId: image.imageId,
+            })
+          : Promise.resolve(null),
       ]);
-      return { flavor, computeService };
+      return { flavor, computeService, image: imageRow };
+    }, [part.externalId, part.refreshToken]);
+
+  // What it is part of: a Magnum cluster, from its name, and a stack, from that stack's own read.
+  const owners: OpenStackRead<Array<OpenStackBlastRadiusOwner>> =
+    useOpenStackRead<Array<OpenStackBlastRadiusOwner>>(async () => {
+      return (
+        (
+          await fetchOpenStackBlastRadius({
+            openStackCloudId: part.openStackCloudId,
+            kind: OpenStackResourceKind.Instance,
+            externalId: part.externalId,
+          })
+        ).belongsTo || []
+      );
     }, [part.externalId, part.refreshToken]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
@@ -232,13 +264,31 @@ const InstanceOverview: FunctionComponent<{
           .filter((address: string): boolean => {
             return Boolean(address);
           })
-          .join(", ")
+          .join(", ") ||
+        translator.translateText("None") ||
+        "None"
       : notCollected(ADDRESSES_NOT_COLLECTED),
   });
   detailRows.push({
     key: "image",
     label: "Image",
-    value: notCollected(IMAGE_NOT_COLLECTED),
+    value:
+      image.state === "image" ? (
+        <Link
+          to={part.routes.getPartRoute(
+            OpenStackResourceKind.Image,
+            image.imageId,
+          )}
+          className={LINK_CLASS_NAME}
+          dataTestId="openstack-instance-image-link"
+        >
+          <bdi>{around.data?.image?.name || image.imageId}</bdi>
+        </Link>
+      ) : image.state === "booted-from-volume" ? (
+        translator.translateText(BOOTED_FROM_VOLUME) || BOOTED_FROM_VOLUME
+      ) : (
+        notCollected(IMAGE_NOT_COLLECTED)
+      ),
   });
   if (row.status === "ERROR") {
     detailRows.push({
@@ -265,6 +315,25 @@ const InstanceOverview: FunctionComponent<{
       value: facts["libvirtName"] as string,
       mono: true,
       copyText: facts["libvirtName"] as string,
+    });
+  }
+  for (const owner of owners.data || []) {
+    const isCluster: boolean =
+      owner.kind === OpenStackResourceKind.ContainerCluster;
+    detailRows.push({
+      key: `owner-${owner.externalId}`,
+      label: isCluster ? "Kubernetes Cluster" : "Heat Stack",
+      value: (
+        <Link
+          to={part.routes.getPartRoute(owner.kind, owner.externalId)}
+          className={LINK_CLASS_NAME}
+        >
+          <bdi>{owner.name || owner.externalId}</bdi>
+        </Link>
+      ),
+      description: isCluster
+        ? "Magnum built this server for that cluster, which is what its name says."
+        : "That stack says it owns this instance. What happens to the stack happens to this.",
     });
   }
   if (typeof facts["userId"] === "string") {
@@ -444,12 +513,12 @@ const OpenStackCloudInstanceDetail: FunctionComponent<
       overview={(overviewRow: OpenStackResource): ReactElement => {
         return <InstanceOverview part={part} row={overviewRow} />;
       }}
-      tabs={(): Array<Tab> => {
+      tabs={(tabRow: OpenStackResource): Array<Tab> => {
         const facts: JSONObject = { attachedToInstance: part.externalId };
         return [
           {
             name: "Usage",
-            children: <OpenStackInstanceUsageCharts part={part} />,
+            children: <OpenStackInstanceUsageCharts part={part} row={tabRow} />,
           },
           {
             name: "Volumes",

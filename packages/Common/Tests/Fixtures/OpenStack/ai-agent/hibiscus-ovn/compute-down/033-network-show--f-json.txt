@@ -1,0 +1,35 @@
+$ openstack network show 1875f08e-6c0d-4041-a9a6-c6c784c65836 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+  "name": "private",
+  "tenant_id": "e71c5446a4554b279a7bfa4c63d0b451",
+  "project_id": "e71c5446a4554b279a7bfa4c63d0b451",
+  "admin_state_up": true,
+  "mtu": 1442,
+  "status": "ACTIVE",
+  "subnets": [
+    "8e9b0a45-d1e7-4fc6-8076-4dfcfaf4b263",
+    "b1b73687-a8b2-4b65-b172-e1aa7a7c3f3f"
+  ],
+  "shared": false,
+  "availability_zone_hints": [],
+  "availability_zones": [],
+  "ipv4_address_scope": null,
+  "ipv6_address_scope": null,
+  "router:external": false,
+  "qinq": false,
+  "vlan_transparent": false,
+  "description": "",
+  "port_security_enabled": true,
+  "tags": [],
+  "created_at": "2026-11-05T05:25:59Z",
+  "updated_at": "2026-11-05T05:26:02Z",
+  "revision_number": 3,
+  "provider:network_type": "geneve",
+  "provider:physical_network": null,
+  "provider:segmentation_id": 35292
+}

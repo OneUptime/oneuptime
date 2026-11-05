@@ -61,6 +61,15 @@ class Ingest extends OtelIngestBaseService {
   }): Promise<void> {
     return this.tryLinkHostToOpenStack(data);
   }
+
+  public static place(data: {
+    projectId: ObjectID;
+    serviceName: string | null;
+    serviceNamespace: string | null;
+    hostIdAttribute: string | null;
+  }): Promise<void> {
+    return this.tryPlaceServiceOnOpenStack(data);
+  }
 }
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -94,10 +103,11 @@ function link(): Promise<void> {
   });
 }
 
-function hostHasCloud(cloud: ObjectID | null): void {
+function hostHasCloud(cloud: ObjectID | null, hostId?: string): void {
   jest.spyOn(HostService, "findOneById").mockResolvedValue({
     _id: HOST_ID.toString(),
     openStackCloudId: cloud || undefined,
+    hostId,
   } as never);
 }
 
@@ -151,6 +161,29 @@ describe("a host's link to its cloud", () => {
         data: { openStackCloudId: CLOUD_ID },
       }),
     );
+  });
+
+  test("a batch that doesn't say host.id is still from the host that said it before", async () => {
+    hostHasCloud(null, INSTANCE_ID);
+    const findCloud: unknown = jest
+      .spyOn(OpenStackAcrossProducts, "findCloudOfHost")
+      .mockResolvedValue(CLOUD_ID as never);
+    jest
+      .spyOn(HostService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await Ingest.link({
+      projectId: PROJECT_ID,
+      hostId: HOST_ID,
+      hostName: "web-1",
+      hostIdAttribute: null,
+    });
+
+    expect(findCloud).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      hostIdAttribute: INSTANCE_ID,
+      hostIdentifier: "web-1",
+    });
   });
 
   test("is never written over: a cloud already there stays", async () => {
@@ -234,5 +267,79 @@ describe("a host's link to its cloud", () => {
       .spyOn(HostService, "findOneById")
       .mockRejectedValue(new Error("database is gone") as never);
     await expect(link()).resolves.toBeUndefined();
+  });
+});
+
+type PlacementFields = {
+  serviceName?: string | null;
+  hostIdAttribute?: string | null;
+};
+
+describe("a service whose own telemetry names its instance", () => {
+  function place(fields?: PlacementFields): Promise<void> {
+    return Ingest.place({
+      projectId: PROJECT_ID,
+      serviceName: "api",
+      serviceNamespace: "shop",
+      hostIdAttribute: INSTANCE_ID,
+      ...fields,
+    });
+  }
+
+  function reconcile(): unknown {
+    return jest
+      .spyOn(OpenStackAcrossProducts, "reconcileServiceOnInstance")
+      .mockResolvedValue(undefined as never);
+  }
+
+  test("is told to Topology, with the namespace that is part of who it is", async () => {
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockResolvedValue(true as never);
+    const told: unknown = reconcile();
+    await place();
+    expect(told).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      instanceId: INSTANCE_ID,
+      serviceName: "api",
+      serviceNamespace: "shop",
+    });
+  });
+
+  test("is told once a window, however many batches say it", async () => {
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockResolvedValue(false as never);
+    const told: unknown = reconcile();
+    await place({ serviceName: "fenced" });
+    expect(told).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "a host.id that is a machine-id",
+      { hostIdAttribute: "0123456789abcdef0123456789abcdef" },
+    ],
+    ["no host.id", { hostIdAttribute: null }],
+    ["no service", { serviceName: null }],
+  ])(
+    "%s costs nothing, not even a fence",
+    async (_name: string, fields: PlacementFields) => {
+      const fence: unknown = jest.spyOn(GlobalCache, "setStringIfNotExists");
+      const told: unknown = reconcile();
+      await place(fields);
+      expect(fence).not.toHaveBeenCalled();
+      expect(told).not.toHaveBeenCalled();
+    },
+  );
+
+  test("never gets in the way of ingest", async () => {
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockResolvedValue(true as never);
+    jest
+      .spyOn(OpenStackAcrossProducts, "reconcileServiceOnInstance")
+      .mockRejectedValue(new Error("database is gone") as never);
+    await expect(place({ serviceName: "fails" })).resolves.toBeUndefined();
   });
 });

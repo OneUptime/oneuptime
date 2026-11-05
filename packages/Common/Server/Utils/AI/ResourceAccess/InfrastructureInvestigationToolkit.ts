@@ -54,7 +54,7 @@ import ToolOutputPager, {
  * The run-scoped, READ-ONLY infrastructure command toolkit for an
  * investigation — the sibling of KubectlInvestigationToolkit for every
  * resource with a resource AI agent (Docker and Podman hosts, Docker Swarm,
- * Proxmox, VMware and Ceph clusters, database servers, hosts).
+ * Proxmox, VMware and Ceph clusters, OpenStack clouds, database servers, hosts).
  *
  * One instance backs one AIRun. It is handed to the agent loop as
  * extraTools and only ever offers resources the access service called
@@ -260,7 +260,7 @@ export default class InfrastructureInvestigationToolkit {
     return {
       definition: {
         name: LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
-        description: `List the infrastructure resources (Docker and Podman hosts, Docker Swarm, Proxmox, VMware and Ceph clusters, database servers, hosts) linked to this signal that OneUptime AI may inspect with read-only commands through their AI agents, with their resourceId and the programs each one runs. Call this once before ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} if you are unsure which resource to target.`,
+        description: `List the infrastructure resources (Docker and Podman hosts, Docker Swarm, Proxmox, VMware and Ceph clusters, OpenStack clouds, database servers, hosts) linked to this signal that OneUptime AI may inspect with read-only commands through their AI agents, with their resourceId and the programs each one runs. Call this once before ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} if you are unsure which resource to target.`,
         inputSchema: { type: "object", properties: {} },
       },
       execute: async (): Promise<ToolCallOutcome> => {
@@ -320,7 +320,7 @@ export default class InfrastructureInvestigationToolkit {
             command: {
               type: "string",
               description:
-                'The command, starting with one of the resource\'s programs, e.g. "docker ps -a", "docker logs --tail 100 web", "systemctl status nginx --no-pager", "pvesh get /cluster/resources", "ceph health detail" or "db sessions --limit 20". One line, no shell operators.',
+                'The command, starting with one of the resource\'s programs, e.g. "docker ps -a", "docker logs --tail 100 web", "systemctl status nginx --no-pager", "pvesh get /cluster/resources", "ceph health detail", "openstack compute service list" or "db sessions --limit 20". One line, no shell operators.',
             },
             rationale: {
               type: "string",

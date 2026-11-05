@@ -1,0 +1,2 @@
+Clusters CREATE_IN_PROGRESS.
+On its own: Magnum accepted both, and Heat is building their stacks.

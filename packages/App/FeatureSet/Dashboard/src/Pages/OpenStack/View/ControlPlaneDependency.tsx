@@ -33,6 +33,7 @@ import OpenStackControlPlaneCard, {
   useOpenStackDependencyLine,
 } from "../../../Components/OpenStack/OpenStackControlPlaneCard";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
+import useIsOpenStackProbeCollected from "../../../Components/OpenStack/Part/UseIsOpenStackProbeCollected";
 import {
   OpenStackPartRoutes,
   getOpenStackPartRoutes,
@@ -47,7 +48,7 @@ import ResourcePartAlertsCard from "../../../Components/ResourcePart/ResourcePar
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
 import ResourcePartRow from "../../../Components/ResourcePart/ResourcePartRow";
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   OpenStackControlPlaneAssessment,
   OpenStackDependencySummary,
@@ -252,10 +253,11 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const listClassName: string = useCardRuledListClassName();
-  const lineOf: (summary: OpenStackDependencySummary) => string =
-    useOpenStackDependencyLine();
   const factsOfRow: (row: OpenStackResource) => Array<string> = useRowFacts();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
+  const isProbeCollected: boolean = useIsOpenStackProbeCollected(modelId);
+  const lineOf: (summary: OpenStackDependencySummary) => string =
+    useOpenStackDependencyLine(isProbeCollected);
   const word: string = Navigation.getLastParamAsString();
   const { region } = useOpenStackRegion();
   const now: Date = useMemo(() => {
@@ -351,9 +353,11 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
 
   const deeperRoute: Route | undefined =
     definition.deeperProduct === "queues"
-      ? (RouteMap[PageMap.MESSAGE_QUEUES] as Route)
+      ? RouteUtil.populateRouteParams(RouteMap[PageMap.MESSAGE_QUEUES] as Route)
       : definition.deeperProduct === "databases"
-        ? (RouteMap[PageMap.DATABASE_ROOT] as Route)
+        ? RouteUtil.populateRouteParams(
+            RouteMap[PageMap.DATABASE_SERVERS] as Route,
+          )
         : undefined;
 
   return (
@@ -398,17 +402,21 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
           tone="warning"
         >
           <span>
-            {translator.translateTemplate(
-              "Nothing reads this, so nothing here says whether it is fine. Name its targets in {{variable}} in the agent's .env, then run docker compose up -d.",
-              { variable: definition.targetsVariable },
-            )}{" "}
+            {isProbeCollected
+              ? translator.translateTemplate(
+                  "Nothing reads this, so nothing here says whether it is fine. A probe reads the cloud's APIs and not what they stand on. To read it, collect this cloud with the OpenStack agent, from its Settings page, and name its targets in {{variable}} in the agent's .env.",
+                  { variable: definition.targetsVariable },
+                )
+              : translator.translateTemplate(
+                  "Nothing reads this, so nothing here says whether it is fine. Name its targets in {{variable}} in the agent's .env, then run docker compose up -d.",
+                  { variable: definition.targetsVariable },
+                )}{" "}
             <Link
               to={new Route("/docs/telemetry/openstack-deployment-tools")}
               openInNewTab={true}
               className="underline"
             >
-              {translator.translateText("Each deployment tool's steps") ||
-                "Each deployment tool's steps"}
+              {translator.translateText("Each deployment tool's steps")}
             </Link>
           </span>
         </OpenStackPartNotice>
@@ -442,12 +450,14 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
                 });
                 const lines: Array<string> = isCurrent
                   ? [
-                      ...own.reasons.map((reason: ResourceAttentionText): string => {
-                        return translator.translateTemplate(
-                          reason.text,
-                          reason.values || {},
-                        );
-                      }),
+                      ...own.reasons.map(
+                        (reason: ResourceAttentionText): string => {
+                          return translator.translateTemplate(
+                            reason.text,
+                            reason.values || {},
+                          );
+                        },
+                      ),
                       ...factsOfRow(row),
                     ]
                   : [];

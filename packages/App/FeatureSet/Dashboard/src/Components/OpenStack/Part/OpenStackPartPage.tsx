@@ -32,7 +32,7 @@ import { OpenStackPart } from "./UseOpenStackPart";
 
 const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.Api]: translationKey(
-    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or the agent may not have collected it yet.",
+    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or it may not have been collected yet.",
   ),
   [OpenStackResourceKind.Hypervisor]: translationKey(
     "This hypervisor is not in this cloud's inventory. It may have gone, or Nova may not have reported it yet.",
@@ -64,8 +64,23 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.StoragePool]: translationKey(
     "This storage pool is not in this cloud's inventory. It may have gone, or Cinder may not have reported it yet.",
   ),
+  [OpenStackResourceKind.BareMetalNode]: translationKey(
+    "This node is not in this cloud's inventory. It may have been removed, or Ironic may not show it to this credential: it answers a project with only the nodes that project owns.",
+  ),
   [OpenStackResourceKind.Image]: translationKey(
     "This image is not in this cloud's inventory. It may have been deleted, or Glance may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.Stack]: translationKey(
+    "This stack is not in this cloud's inventory. It may have been deleted, or Heat may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.ContainerCluster]: translationKey(
+    "This Kubernetes cluster is not in this cloud's inventory. It may have been deleted, or Magnum may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.DatabaseInstance]: translationKey(
+    "This database is not in this cloud's inventory. It may have been deleted, or Trove may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.Share]: translationKey(
+    "This share is not in this cloud's inventory. It may have been deleted, or Manila may not have reported it yet.",
   ),
 };
 

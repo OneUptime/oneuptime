@@ -1,3 +1,4 @@
+import OpenStackCloudCheck from "Common/Models/DatabaseModels/OpenStackCloudCheck";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -6,7 +7,11 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
+import { getOpenStackOptionalServicesOf } from "Common/Types/OpenStack/OpenStackOptionalServices";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -33,12 +38,29 @@ export interface OpenStackInventorySummary {
   projectCount: number;
   serviceCount: number;
   downServiceCount: number;
+  bareMetalNodeCount: number;
+  /*
+   * How many nodes Placement holds, whatever Ironic shows this credential: it answers a project
+   * with what that project owns, and Placement answers everyone.
+   */
+  bareMetalProviderCount: number;
+  bareMetalProvidersNotListedCount: number;
+  // The services a read has heard from, by what Keystone's catalog calls them.
+  services: Array<string>;
+  // Of those, the ones that have never once let this credential in.
+  closedServices: Array<string>;
   vcpuCapacity: number;
   vcpuAllocated: number;
   memoryCapacityBytes: number;
   memoryAllocatedBytes: number;
   storageCapacityBytes: number;
   storageUsedBytes: number;
+  stackCount: number;
+  containerClusterCount: number;
+  shareCount: number;
+  databaseInstanceCount: number;
+  // The services a cloud may not run that this one does, in the region being read.
+  optionalServices: Array<OpenStackServiceType>;
 }
 
 export function toOpenStackInventorySummary(
@@ -48,6 +70,13 @@ export function toOpenStackInventorySummary(
     const value: JSONValue = summary[key];
     return typeof value === "number" && Number.isFinite(value) ? value : 0;
   };
+  const services: Array<string> = Array.isArray(summary["services"])
+    ? (summary["services"] as Array<JSONValue>).filter(
+        (service: JSONValue): service is string => {
+          return typeof service === "string";
+        },
+      )
+    : [];
 
   return {
     regionCount: readNumber("regionCount"),
@@ -62,13 +91,64 @@ export function toOpenStackInventorySummary(
     projectCount: readNumber("projectCount"),
     serviceCount: readNumber("serviceCount"),
     downServiceCount: readNumber("downServiceCount"),
+    bareMetalNodeCount: readNumber("bareMetalNodeCount"),
+    bareMetalProviderCount: readNumber("bareMetalProviderCount"),
+    bareMetalProvidersNotListedCount: readNumber(
+      "bareMetalProvidersNotListedCount",
+    ),
+    services: services,
+    closedServices: Array.isArray(summary["closedServices"])
+      ? (summary["closedServices"] as Array<JSONValue>).filter(
+          (service: JSONValue): service is string => {
+            return typeof service === "string";
+          },
+        )
+      : [],
     vcpuCapacity: readNumber("vcpuCapacity"),
     vcpuAllocated: readNumber("vcpuAllocated"),
     memoryCapacityBytes: readNumber("memoryCapacityBytes"),
     memoryAllocatedBytes: readNumber("memoryAllocatedBytes"),
     storageCapacityBytes: readNumber("storageCapacityBytes"),
     storageUsedBytes: readNumber("storageUsedBytes"),
+    stackCount: readNumber("stackCount"),
+    containerClusterCount: readNumber("containerClusterCount"),
+    shareCount: readNumber("shareCount"),
+    databaseInstanceCount: readNumber("databaseInstanceCount"),
+    optionalServices: getOpenStackOptionalServicesOf(services),
   };
+}
+
+export interface OpenStackChecksOn {
+  isApiCheckOn: boolean;
+  isLifecycleCheckOn: boolean;
+}
+
+/*
+ * Whether a cloud's checks from outside are on, for what is offered on it. Off, with no row or when
+ * the server would not answer: an offer goes without, which is what a cloud with neither shows.
+ */
+export async function fetchOpenStackChecksOn(
+  openStackCloudId: ObjectID,
+): Promise<OpenStackChecksOn> {
+  try {
+    const list: ListResult<OpenStackCloudCheck> =
+      await ModelAPI.getList<OpenStackCloudCheck>({
+        modelType: OpenStackCloudCheck,
+        query: { openStackCloudId: openStackCloudId },
+        limit: 1,
+        skip: 0,
+        select: { isApiCheckEnabled: true, isLifecycleCheckEnabled: true },
+        sort: {},
+      });
+    const check: OpenStackCloudCheck | undefined = list.data[0];
+
+    return {
+      isApiCheckOn: check?.isApiCheckEnabled === true,
+      isLifecycleCheckOn: check?.isLifecycleCheckEnabled === true,
+    };
+  } catch {
+    return { isApiCheckOn: false, isLifecycleCheckOn: false };
+  }
 }
 
 // Null when the server would not answer: the caller says so, or goes without.
@@ -115,7 +195,8 @@ export function isOpenStackInventoryEmpty(
     summary.routerCount === 0 &&
     summary.floatingIpCount === 0 &&
     summary.projectCount === 0 &&
-    summary.serviceCount === 0
+    summary.serviceCount === 0 &&
+    summary.bareMetalNodeCount === 0
   );
 }
 

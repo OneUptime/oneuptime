@@ -49,6 +49,7 @@ export const REMEDIATION_ROUND_RESOURCE_NOUNS: Readonly<
   [AiResourceType.AwsAccount]: translationKey("AWS account"),
   [AiResourceType.AzureSubscription]: translationKey("Azure subscription"),
   [AiResourceType.GoogleCloudProject]: translationKey("Google Cloud project"),
+  [AiResourceType.OpenStackCloud]: translationKey("OpenStack cloud"),
 };
 
 // A round's name for a type that has no noun of its own.

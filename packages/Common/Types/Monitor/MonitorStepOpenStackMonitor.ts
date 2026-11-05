@@ -186,6 +186,12 @@ export default interface MonitorStepOpenStackMonitor {
   resourceFilters: OpenStackResourceFilters;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;
+  /*
+   * Only the machines whose control plane row holds this fact. Something can go away leaving
+   * its machine reading exactly as one that never had it, as Open vSwitch does: only a machine
+   * it was seen on can lose it. See OpenStackMachinesSeen.
+   */
+  onlyWhereSeen?: string | undefined;
 }
 
 export class MonitorStepOpenStackMonitorUtil {

@@ -30,7 +30,9 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import { getOpenStackRegionIssueQuery } from "../Utils/OpenStackRegion";
 
 // From the inventory summary. A kind it doesn't count shows no badge.
 export interface ResourceCounts {
@@ -42,17 +44,38 @@ export interface ResourceCounts {
   floatingIps?: number | undefined;
   volumes?: number | undefined;
   projects?: number | undefined;
+  bareMetalNodes?: number | undefined;
+  stacks?: number | undefined;
+  containerClusters?: number | undefined;
+  shares?: number | undefined;
+  databases?: number | undefined;
+  /*
+   * The services a cloud may not run that this one does, in the region being read. What decides
+   * whether their entries are here at all: a cloud without one shows no trace of it.
+   */
+  optionalServices?: ReadonlyArray<OpenStackServiceType> | undefined;
 }
 
 export interface ComponentProps {
   modelId: ObjectID;
   resourceCounts?: ResourceCounts | undefined;
+  // The region being read, so a badge says what its page will list.
+  region?: string | null | undefined;
 }
 
 const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const counts: ResourceCounts = props.resourceCounts || {};
+  const runs: (service: OpenStackServiceType) => boolean = (
+    service: OpenStackServiceType,
+  ): boolean => {
+    return Boolean(counts.optionalServices?.includes(service));
+  };
+  const runsHeat: boolean = runs(OpenStackServiceType.Orchestration);
+  const runsMagnum: boolean = runs(OpenStackServiceType.ContainerInfra);
+  const runsManila: boolean = runs(OpenStackServiceType.SharedFileSystems);
+  const runsTrove: boolean = runs(OpenStackServiceType.Database);
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -141,6 +164,64 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.FlowDiagram}
         />
+        <SideMenuItem
+          link={{
+            title: "Capacity",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ChartBar}
+        />
+        <SideMenuItem
+          link={{
+            title: "Spend",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SPEND] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Wallet}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on a Kubernetes cluster: what OneUptime AI
+       * learned here (Insights), everything it did (Logs), and the OpenStack AI agent it
+       * works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Control Plane">
@@ -222,7 +303,44 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.RectangleStack}
         />
+        {runsTrove ? (
+          <SideMenuItem
+            link={{
+              title: "Databases",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES
+                ] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Database}
+            badge={counts.databases}
+          />
+        ) : (
+          <></>
+        )}
       </SideMenuSection>
+
+      {runs(OpenStackServiceType.BareMetal) ? (
+        <SideMenuSection title="Bare Metal">
+          <SideMenuItem
+            link={{
+              title: "Nodes",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES
+                ] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Server}
+            badge={counts.bareMetalNodes}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Network">
         <SideMenuItem
@@ -322,7 +440,61 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Image}
         />
+        {runsManila ? (
+          <SideMenuItem
+            link={{
+              title: "Shares",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SHARES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Folder}
+            badge={counts.shares}
+          />
+        ) : (
+          <></>
+        )}
       </SideMenuSection>
+
+      {runsHeat || runsMagnum ? (
+        <SideMenuSection title="Orchestration">
+          {runsHeat ? (
+            <SideMenuItem
+              link={{
+                title: "Stacks",
+                to: RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STACKS] as Route,
+                  { modelId: props.modelId },
+                ),
+              }}
+              icon={IconProp.Layers}
+              badge={counts.stacks}
+            />
+          ) : (
+            <></>
+          )}
+          {runsMagnum ? (
+            <SideMenuItem
+              link={{
+                title: "Kubernetes Clusters",
+                to: RouteUtil.populateRouteParams(
+                  RouteMap[
+                    PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS
+                  ] as Route,
+                  { modelId: props.modelId },
+                ),
+              }}
+              icon={IconProp.Kubernetes}
+              badge={counts.containerClusters}
+            />
+          ) : (
+            <></>
+          )}
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Tenancy">
         <SideMenuItem
@@ -379,6 +551,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Workflow}
         />
+        <SideMenuItem
+          link={{
+            title: "Checks",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_CHECKS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Activity}
+        />
         <RecommendationsSideMenuItem
           link={{
             title: "Recommendations",
@@ -407,6 +589,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           countQuery={{
             projectId: projectId!,
             openStackClouds: new Includes([props.modelId]),
+            ...(props.region
+              ? { seriesLabels: getOpenStackRegionIssueQuery(props.region) }
+              : {}),
             currentIncidentStateId: new Includes(
               unresolvedIncidentStates.map((state: IncidentState) => {
                 return state.id!;
@@ -428,6 +613,9 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           countQuery={{
             projectId: projectId!,
             openStackClouds: new Includes([props.modelId]),
+            ...(props.region
+              ? { seriesLabels: getOpenStackRegionIssueQuery(props.region) }
+              : {}),
             currentAlertStateId: new Includes(
               unresolvedAlertStates.map((state: AlertState) => {
                 return state.id!;

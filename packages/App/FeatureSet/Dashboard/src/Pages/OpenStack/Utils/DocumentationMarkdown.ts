@@ -16,6 +16,11 @@ import {
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import {
+  OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT,
+  OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT,
+  OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
+} from "Common/Types/OpenStack/OpenStackScale";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   DEFAULT_OPENSTACK_DEPLOYMENT_TOOL,
@@ -170,7 +175,7 @@ export const OPENSTACK_AGENT_IDENTITY_CONFIG: string = `processors:
         value: \${env:OPENSTACK_CLOUD_NAME}
         action: upsert
       - key: oneuptime.agent.version
-        value: "0.161.0"
+        value: "0.161.3"
         action: upsert
       - key: service.name
         action: delete
@@ -400,7 +405,7 @@ openstack application credential create ${OPENSTACK_CREDENTIAL_NAME} \\
 
 - Copy the \`id\` and the \`secret\` it prints: the secret is shown only once.
 - Never add \`--unrestricted\`, which would let it make more credentials.
-- Access rules work only where each service sets \`service_type\` in its \`[keystone_authtoken]\` section and has been restarted since: \`compute\`, \`network\`, \`block-storage\` (the rules also carry \`volumev3\`, for a Cinder configured that way), \`image\` and \`placement\`. Keystone needs nothing. Without that, the services refuse the credential with a \`401\`.
+- Access rules work only where each service sets \`service_type\` in its \`[keystone_authtoken]\` section and has been restarted since: \`compute\`, \`network\`, \`block-storage\` (the rules also carry \`volume\` and \`volumev3\`, for a Cinder configured that way), \`image\` and \`placement\`. Keystone needs nothing. Without that, the services refuse the credential with a \`401\`.
 - If you won't change that, leave out \`--access-rules\`. That makes a plain admin application credential, which can write as well as read, so keep it as safe as an admin password.
 - It stops working when it expires. To replace it, make the second credential before you delete the first.`;
 }
@@ -540,7 +545,7 @@ ${asked
   })
   .join("\n")}
 
-It checks the credential with Keystone before it installs anything, installs to \`${OPENSTACK_AGENT_INSTALL_DIR}\`, writes a \`.env\` file and a \`clouds.yaml\` only their owner can read, and starts everything with Docker Compose. Running it again reuses all of that instead of asking again, so it is also how you upgrade.`,
+It checks the credential with Keystone before it installs anything, installs to \`${OPENSTACK_AGENT_INSTALL_DIR}\` (or to \`oneuptime-openstack-agent\` in your home folder if you have no rights on \`/opt\`, and it says which), writes a \`.env\` file and a \`clouds.yaml\` only their owner can read, and starts everything with Docker Compose. Running it again reuses all of that instead of asking again, so it is also how you upgrade.`,
   };
 }
 
@@ -588,12 +593,12 @@ ${codeBlock(
 ONEUPTIME_TELEMETRY_INGESTION_KEY=${context.apiKey}
 OPENSTACK_CLOUD_NAME=${shellQuote(context.cloudName)}
 OPENSTACK_EXPORTER_CLOUDS=[${OPENSTACK_EXAMPLE_REGION}]
-COMPOSE_PROFILES=openstack-exporter`,
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`,
 )}
 
 - ${getCloudNameNote(context)}
 - List every region in \`OPENSTACK_EXPORTER_CLOUDS\`, in square brackets, such as \`[RegionOne,RegionTwo]\`.
-- \`COMPOSE_PROFILES=openstack-exporter\` starts the bundled exporter, which reads the cloud with \`clouds.yaml\`.
+- \`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent\` starts the bundled exporter, which reads the cloud with \`clouds.yaml\`, and the OneUptime AI agent, which reads it with the same file while OneUptime AI investigates.
 
 Both files hold secrets, so keep them to their owner. The exporter runs as uid 65532, and must be the one account that can read \`clouds.yaml\`. Then start the agent:
 
@@ -620,7 +625,7 @@ function getVerifyStep(context: GuideContext): SetupGuideStep {
       ]),
     )}
 
-\`docker compose ps\` lists the collector (\`${OPENSTACK_AGENT_CONTAINER}\`) and the bundled exporter (\`${OPENSTACK_EXPORTER_CONTAINER}\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cloud then appears in the **OpenStack** section by itself. Give it about five minutes to fill in: compute, network, volume and Placement are read every 2 minutes, identity and images every 5.`,
+\`docker compose ps\` lists the collector (\`${OPENSTACK_AGENT_CONTAINER}\`), the bundled exporter (\`${OPENSTACK_EXPORTER_CONTAINER}\`) and the OneUptime AI agent (\`oneuptime-openstack-ai-agent\`). In the collector's logs, look for \`Everything is ready. Begin running and processing data.\` The cloud then appears in the **OpenStack** section by itself. Give it about five minutes to fill in: compute, network, volume and Placement are read every 2 minutes, identity and images every 5.`,
   };
 }
 
@@ -661,7 +666,8 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 
   return {
     title: "Environment variables",
-    summary: "Every setting the collector and the bundled exporter read.",
+    summary:
+      "Every setting the collector, the bundled exporter and the OneUptime AI agent read.",
     markdown: `${where} After changing one, apply it with \`docker compose up -d\` in ${agentFolder(context.method)}.
 
 | Variable | Required | Description |
@@ -671,9 +677,11 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_CLOUD_NAME\` | Yes | The cloud's name in OneUptime, stamped on every metric as the \`openstack.cloud.name\` resource attribute. Keep it stable: changing it registers a new cloud |
 | \`OPENSTACK_EXPORTER_CLOUDS\` | Yes | The \`clouds.yaml\` entries to read, one per region and named for the region, in square brackets: \`[RegionOne,RegionTwo]\` |${authUrl}
 | \`OPENSTACK_EXPORTER_ADDRESS\` | No | \`host:port\` of your own exporter, with no scheme. Leave it out for the bundled one |
+| \`OPENSTACK_QUOTA_CLOUDS\` | No | The \`clouds.yaml\` entries to read each project's quotas from, once an hour. The install script sets it when run with \`OPENSTACK_COLLECT_QUOTAS=true\` |
+| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | No | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
 | \`OPENSTACK_EXPORTER_USER\` | No | The \`uid:gid\` the exporter's container runs as, which must own \`clouds.yaml\` (default: \`65532:65532\`) |
 | \`OPENSTACK_CA_FILE\` | No | A PEM file with the certificate authority of a cloud that has its own |
-| \`COMPOSE_PROFILES\` | Bundled exporter | \`openstack-exporter\` starts the bundled exporter |
+| \`COMPOSE_PROFILES\` | Bundled exporter | \`openstack-exporter\` starts the bundled exporter, and \`openstack-ai-agent\` the OneUptime AI agent |
 | \`OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS\` | No | An exporter already running without \`--multi-cloud\`, such as Kolla-Ansible's: \`[10.0.0.254:9198]\`. Set \`OPENSTACK_EXPORTER_CLOUDS=[]\` with it |
 | \`OPENSTACK_RABBITMQ_TARGETS\` | No | RabbitMQ's Prometheus plugin on each node: \`[10.0.0.11:15692,10.0.0.12:15692]\` |
 | \`OPENSTACK_MARIADB_TARGETS\` | No | mysqld_exporter beside each MariaDB node, usually on \`9104\` |
@@ -685,7 +693,35 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_LIBVIRT_EXPORTER_TARGETS\` | No | The same exporter, for what each instance is really doing. Per-instance series multiply fast |
 | \`OPENSTACK_CEILOMETER_EXPORTER_TARGETS\` | No | Ceilometer's exporter on each compute node, usually on \`9101\`, for the same |
 
-\`clouds.yaml\` alone holds the credential.`,
+\`clouds.yaml\` alone holds the credential.
+
+Only the largest clouds need these, and none is asked for:
+
+| Variable | Description |
+|----------|-------------|
+| \`OPENSTACK_AGENT_SERVICES\` | Which services this agent reads, as a pattern: \`compute\\|placement\` here and the rest on a second agent. Every service by default. No two agents should read one service of one region |
+| \`OPENSTACK_AGENT_MEMORY_LIMIT_MIB\` | The memory the collector may use, in MiB (default: \`512\`). It holds a whole scrape, so raise this past tens of thousands of instances |
+| \`OPENSTACK_DATABASE_EXPORTER_TARGETS\` | Reading each service's database rather than its API, with a read-only account: where that exporter answers. Set \`OPENSTACK_EXPORTER_CLOUDS=[]\` with it, or every series arrives twice |
+| \`NOVA_DATABASE_URL\`, \`NOVA_API_DATABASE_URL\`, \`PLACEMENT_DATABASE_URL\`, \`NEUTRON_DATABASE_URL\`, \`CINDER_DATABASE_URL\`, \`GLANCE_DATABASE_URL\`, \`KEYSTONE_DATABASE_URL\` | The database of each service it reads, as \`mysql+pymysql://oneuptime:secret@db.example:3306/nova\`. One left empty is a service it leaves alone. Each holds a password, and \`.env\` is readable by its owner alone |
+| \`OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX\` | What Nova adds to a host's name to make a hypervisor's, such as \`.example.org\`, so an instance finds the hypervisor it runs on |
+| \`OPENSTACK_WORKER_STATE_CLOUDS\` | The \`clouds.yaml\` entries to read from Nova's and Cinder's APIs what their databases cannot say: whether each worker is alive, and how full each pool is |
+| \`OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
+| \`OPENSTACK_QUOTA_CLOUDS\` | The \`clouds.yaml\` entries to read each project's quotas from, once an hour. Empty reads none, and \`OPENSTACK_COLLECT_QUOTAS=true\` in the install script fills it in |
+| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
+
+The OneUptime AI agent reads the credential in \`clouds.yaml\` unless these say otherwise, and none is asked for:
+
+| Variable | Description |
+|----------|-------------|
+| \`ONEUPTIME_AI_INVESTIGATION\` | \`false\` stops OneUptime AI investigating this cloud with the agent |
+| \`OPENSTACK_AI_CLOUDS_FILE\` | The \`clouds.yaml\` it mounts. \`/dev/null\` when it has a credential of its own and there is no such file beside it |
+| \`ONEUPTIME_AI_OPENSTACK_CLOUD\` | The entry of \`clouds.yaml\` to use, when it is not the first of \`OPENSTACK_EXPORTER_CLOUDS\` |
+| \`ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID\`, \`ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET\` | A credential of its own, used instead of \`clouds.yaml\`'s. Set both, with \`OPENSTACK_AUTH_URL\` |
+| \`OPENSTACK_AUTH_URL\` | The Keystone a credential of its own logs in to |
+| \`ONEUPTIME_AI_OPENSTACK_REGION\`, \`ONEUPTIME_AI_OPENSTACK_INTERFACE\`, \`ONEUPTIME_AI_OPENSTACK_CA_FILE\` | The region a command reads when it names none, which endpoints it uses (\`public\`, \`internal\` or \`admin\`), and a certificate authority. \`clouds.yaml\` says these unless they do |
+| \`ONEUPTIME_AI_AGENT_RESOURCE_NAME\` | The name it registers under, when it is not \`OPENSTACK_CLOUD_NAME\` |
+| \`LOG_LEVEL\` | How much it logs |
+| \`ONEUPTIME_AI_FIXES\`, \`ONEUPTIME_AI_ALLOW_WRITES\`, \`ONEUPTIME_AI_WRITE_TARGETS\`, \`ONEUPTIME_AI_PROTECTED_TARGETS\` | Change nothing here: OneUptime AI only reads an OpenStack cloud, and the agent says so when it starts |`,
   };
 }
 
@@ -702,6 +738,21 @@ function getRegionsTopic(context: GuideContext): SetupGuideTopic {
     markdown: `A cloud is one Keystone, however many regions it has, and one agent reads them all. ${how} Each entry must be named for its region: the collector stamps that name on the exporter's series as \`openstack.region.name\`, because the series do not say which region they are from. Every list in OneUptime then filters by region.
 
 Regions with a Keystone of their own are separate clouds to OneUptime: run one agent for each.`,
+  };
+}
+
+function getVeryLargeCloudTopic(): SetupGuideTopic {
+  return {
+    title: "Very large clouds",
+    summary:
+      "What changes past 5,000 instances, how to share a cloud between agents, and reading it from its databases.",
+    markdown: `**[Very Large OpenStack Clouds](/docs/telemetry/openstack-very-large-clouds)** has what each size costs and how each of these works.
+
+**Past ${OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT.toLocaleString("en-US")} instances, summary mode.** The cloud keeps a row for every part and counts per hypervisor, project and status, and its series per instance and per volume stop. It gives up the history of each settled instance's and volume's status, and a chart or a monitor over those series. An instance or volume in a state an alert watches keeps its series, so every alert template goes on working. To keep them for some, choose their projects under **Real usage per instance** on the cloud's **Settings** page.
+
+**Sharing a cloud between agents.** Run one agent per region, or per service for the largest clouds, each with the same \`OPENSTACK_CLOUD_NAME\`. A region and a service belong to one agent, and Keystone to one agent for the whole cloud, or their series arrive twice. List an agent's regions in \`OPENSTACK_EXPORTER_CLOUDS\`, and its services in \`OPENSTACK_AGENT_SERVICES\`, such as \`compute|placement\`.
+
+**Past ${OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT.toLocaleString("en-US")} hypervisors or ${OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT.toLocaleString("en-US")} instances, the database path.** The agent can read the cloud's databases rather than its APIs, which at that size cannot be read in a scrape's time. It asks for a read-only account on each service's database, a route to them from this machine, and one exporter per region and Nova cell. It reads the same series, but for whether each Nova worker is alive and how full each storage pool is, which it still reads from the API, and it cannot say whether an API answers. It has not yet been run against a real database.`,
   };
 }
 
@@ -744,7 +795,7 @@ function getWithoutDockerTopic(context: GuideContext): SetupGuideTopic {
   return {
     title: "Run without Docker",
     summary: "The same collector and exporter releases, as systemd services.",
-    markdown: `On Linux (x86_64 or arm64) with systemd 235 or later, the install script can run the same collector and exporter releases as systemd services instead:
+    markdown: `On Linux (x86_64 or arm64) with systemd 235 or later and glibc 2.34 or later (not RHEL 8), the install script can run the same collector and exporter releases as systemd services instead:
 
 ${codeBlock(
   "bash",
@@ -773,7 +824,8 @@ function getCollectedDataTopic(): SetupGuideTopic {
 
 - Each service is read on its own, so a failing Nova costs only Nova's numbers, and the rest keep reporting.
 - A read never outlasts its interval, so a slow one never stacks on the next.
-- Quotas and limits per project, and usage per server, are off. To turn one on, delete its \`--disable-metric\` line from the exporter's \`command\` in \`docker-compose.yml\`. The cost is one call per project per scrape. Neutron's quotas answer only **Full view**.
+- Each project's quotas are off. To turn them on, run the installer again with \`OPENSTACK_COLLECT_QUOTAS=true\`: a second exporter reads them once an hour, at four calls per project per region. Neutron's quotas answer only **Full view**.
+- Nova's own quota lists and usage per server are off. To turn one on, delete its \`--disable-metric\` line from the exporter's \`command\` in \`docker-compose.yml\`. The cost is one call per project per scrape.
 - The per-port series are off: listing every port with an admin credential can saturate Neutron on a large cloud.`,
   };
 }
@@ -871,6 +923,7 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
     getAccessLevelsTopic(),
     getCollectedDataTopic(),
     getRegionsTopic(context),
+    getVeryLargeCloudTopic(),
     getEnvironmentVariablesTopic(context),
     getOwnExporterTopic(context),
     getCertificateTopic(context),
@@ -958,8 +1011,12 @@ It needs \`sudo\` to read \`clouds.yaml\`, or it skips the credential checks. It
 ${codeBlock(
   "ini",
   `# nova.conf, for example. neutron.conf: network. glance-api.conf: image.
-# cinder.conf: block-storage. The rules also carry volumev3, for a Cinder configured that way.
+# cinder.conf: block-storage. The rules also carry volume and volumev3, for a Cinder configured that way.
 # placement.conf: placement. Keystone needs nothing.
+# Where your cloud runs them: octavia.conf: load-balancer. ironic.conf: baremetal. heat.conf: orchestration.
+# magnum.conf: container-infra. manila.conf: sharev2. designate.conf: dns. barbican.conf: key-manager.
+# trove.conf: database. gnocchi.conf: metric. Swift's proxy-server.conf: object-store, under
+# [filter:authtoken], with include_service_catalog = True beside it, or Swift answers 500.
 [keystone_authtoken]
 service_type = compute`,
 )}
@@ -1016,6 +1073,7 @@ export function getOpenStackSetupGuide(
   // A probe reads this tool's cloud, so the agent's own steps would only mislead.
   if (!doesOpenStackToolUseAgent(tool)) {
     return {
+      needsNoKey: true,
       wrapLongLines: true,
       intro: intro,
       steps: [...guide.firstSteps, ...guide.lastSteps],

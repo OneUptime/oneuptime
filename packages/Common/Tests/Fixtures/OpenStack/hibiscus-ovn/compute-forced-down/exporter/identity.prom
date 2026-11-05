@@ -1,0 +1,30 @@
+# HELP openstack_identity_domain_info domain_info
+# TYPE openstack_identity_domain_info gauge
+openstack_identity_domain_info{description="The default domain",enabled="true",id="default",name="Default"} 1
+# HELP openstack_identity_domains domains
+# TYPE openstack_identity_domains gauge
+openstack_identity_domains 1
+# HELP openstack_identity_groups groups
+# TYPE openstack_identity_groups gauge
+openstack_identity_groups 2
+# HELP openstack_identity_project_info project_info
+# TYPE openstack_identity_project_info gauge
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="1c61b51935ab4628b5188bf39d898801",is_domain="false",name="alt_demo",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="3033f069dbf7473797aa93343cc20ce7",is_domain="false",name="demo",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="7622e22f031a49e8987163af8348d696",is_domain="false",name="service",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="9dba60460a684e0b812f47b5153c16ef",is_domain="false",name="invisible_to_admin",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="Bootstrap project for initializing the cloud.",domain_id="default",enabled="true",id="689c8d45bd214be89f75eff5f6a116b5",is_domain="false",name="admin",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="25c790d647944d2aadac14b7133c859d",is_domain="false",name="ou-payments",parent_id="default",tags=""} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="dda6920fc7244c46bd8a2be2551f4648",is_domain="false",name="ou-research",parent_id="default",tags=""} 1
+# HELP openstack_identity_projects projects
+# TYPE openstack_identity_projects gauge
+openstack_identity_projects 7
+# HELP openstack_identity_regions regions
+# TYPE openstack_identity_regions gauge
+openstack_identity_regions 1
+# HELP openstack_identity_up up
+# TYPE openstack_identity_up gauge
+openstack_identity_up 1
+# HELP openstack_identity_users users
+# TYPE openstack_identity_users gauge
+openstack_identity_users 14

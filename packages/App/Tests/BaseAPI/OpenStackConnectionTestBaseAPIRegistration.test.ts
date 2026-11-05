@@ -1,5 +1,7 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
+import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -37,6 +39,18 @@ const REGISTRATIONS: Array<Registration> = [
     modelName: "OpenStackCloudConnectionTest",
     serviceName: "OpenStackCloudConnectionTestService",
     route: "/openstack-cloud-connection-test",
+  },
+  {
+    model: OpenStackProjectUsage,
+    modelName: "OpenStackProjectUsage",
+    serviceName: "OpenStackProjectUsageService",
+    route: "/openstack-project-usage",
+  },
+  {
+    model: OpenStackBudget,
+    modelName: "OpenStackBudget",
+    serviceName: "OpenStackBudgetService",
+    route: "/openstack-budget",
   },
 ];
 

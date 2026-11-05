@@ -6,6 +6,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
+import { isOpenStackBareMetalNodeInMaintenance } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Column from "Common/UI/Components/ModelTable/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -19,9 +20,11 @@ import {
   OpenStackRouterAgentReading,
   getOpenStackAddressesFree,
   getOpenStackAddressesTone,
+  getOpenStackContainerClusterNodeCounts,
   getOpenStackFlavorExternalId,
   getOpenStackFloatingIpAssociation,
   getOpenStackInstanceAddresses,
+  getOpenStackInstanceImage,
   getOpenStackRouterAgentReading,
   isOpenStackNetworkExternal,
   isOpenStackNetworkShared,
@@ -35,7 +38,12 @@ import {
 import { ResourceColumnTone } from "../Infrastructure/ResourceTable";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import {
+  OPENSTACK_BARE_METAL_STATE_PRESETS,
+  OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS,
   OPENSTACK_IMAGE_STATE_PRESETS,
+  OPENSTACK_DATABASE_INSTANCE_STATE_PRESETS,
+  OPENSTACK_SHARE_STATE_PRESETS,
+  OPENSTACK_STACK_STATE_PRESETS,
   OPENSTACK_INSTANCE_STATE_PRESETS,
   OPENSTACK_VOLUME_STATE_PRESETS,
   OpenStackStatePreset,
@@ -199,6 +207,24 @@ const INSTANCE_FLAVOR_COLUMN: OpenStackListColumn = getOpenStackLinkColumn({
   },
 });
 
+// Only a probe says, so on a cloud the agent collects this column isn't there at all.
+const INSTANCE_IMAGE_COLUMN: OpenStackListColumn = getOpenStackLinkColumn({
+  id: "image",
+  title: "Image",
+  hideOnMobile: true,
+  getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+    const image: ReturnType<typeof getOpenStackInstanceImage> =
+      getOpenStackInstanceImage(row);
+    return image.state === "image"
+      ? {
+          kind: OpenStackResourceKind.Image,
+          externalId: image.imageId,
+          fallbackText: image.imageId,
+        }
+      : null;
+  },
+});
+
 const INSTANCE_ADDRESS_COLUMN: OpenStackListColumn = getOpenStackFactColumn({
   id: "address",
   title: "Address",
@@ -215,6 +241,7 @@ const INSTANCE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
   OpenStackColumn.Status,
   OpenStackColumn.Project,
   INSTANCE_FLAVOR_COLUMN,
+  INSTANCE_IMAGE_COLUMN,
   OpenStackColumn.Hypervisor,
   OpenStackColumn.AvailabilityZone,
   OpenStackColumn.TimeInState,
@@ -253,13 +280,14 @@ export const OpenStackInstanceList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No instances reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Nova. Only the Full view credential sees every project's. With Infrastructure only or Project view, only the projects it has a role on are listed."
+        "These come from Nova. The Full view and Infrastructure only credentials see every project's."
       }
       columns={INSTANCE_COLUMNS}
       filters={[]}
       facets={facets}
       statePresets={OPENSTACK_INSTANCE_STATE_PRESETS}
       getViewRoute={routes.routeFor}
+      checkAccess={!props.query}
       searchPlaceholder="Search by name or ID"
     />
   );
@@ -377,7 +405,7 @@ export const OpenStackFlavorList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No flavors reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Nova. A credential that can reach Nova lists the flavors it may use, so check that the agent is running and can read the Compute API."
+        "These come from Nova. A credential that can reach Nova lists the flavors it may use, so check that the agent or probe collecting this cloud is running and can read the Compute API."
       }
       columns={columns}
       filters={[]}
@@ -880,7 +908,7 @@ export const OpenStackNetworkAgentList: FunctionComponent<
       title={props.title || "Network Agents"}
       description={
         props.description ||
-        "Neutron's agents, as openstack network agent list shows them. Each one says which routers it holds, where the backend reports that."
+        "Neutron's agents, as openstack network agent list shows them. Each one says which routers it holds and which networks it serves, where the backend reports that."
       }
       singularName="network agent"
       pluralName="network agents"
@@ -897,6 +925,123 @@ export const OpenStackNetworkAgentList: FunctionComponent<
       checkAccess={true}
       getViewRoute={routes.routeFor}
       searchPlaceholder="Search by agent or host"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Bare metal nodes
+ * ---------------------------------------------------------------------------
+ *
+ * Ironic's word for where each node is, which a person reads in `openstack baremetal node list`
+ * too. What only its API says, the driver and the instance, shows only for a cloud a probe collects:
+ * a column no row holds is left out (OpenStackResourceList).
+ */
+const BARE_METAL_POWER_OPTIONS: Array<{ value: string; label: string }> = [
+  "power on",
+  "power off",
+].map((word: string) => {
+  return { value: word, label: word };
+});
+
+const BARE_METAL_NODE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackFactColumn({
+    id: "power-state",
+    title: "Power",
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "powerState");
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "maintenance",
+    title: "Maintenance",
+    getText: (row: OpenStackResource): string => {
+      if (!isOpenStackBareMetalNodeInMaintenance(row.adminState)) {
+        return "";
+      }
+      return (
+        row.disabledReason ||
+        translateText("In maintenance") ||
+        "In maintenance"
+      );
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "resource-class",
+    title: "Resource Class",
+    hideOnMobile: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "resourceClass");
+    },
+  }),
+  OpenStackColumn.TimeInState,
+  getOpenStackLinkColumn({
+    id: "instance",
+    title: "Instance",
+    hideOnMobile: true,
+    getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+      const instanceId: string = getOpenStackFactText(row, "instanceId");
+      return instanceId
+        ? { kind: OpenStackResourceKind.Instance, externalId: instanceId }
+        : null;
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "driver",
+    title: "Driver",
+    hideOnMobile: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "driver");
+    },
+  }),
+  OpenStackColumn.Region,
+];
+
+export const OpenStackBareMetalNodeList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.BareMetalNode),
+      getOpenStackFactFacet({
+        key: "power-state",
+        label: "Power",
+        factName: "powerState",
+        options: BARE_METAL_POWER_OPTIONS,
+      }),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.BareMetalNode}
+      query={props.query}
+      tableId={props.tableId || "openstack-bare-metal-nodes-table"}
+      title={props.title || "Nodes"}
+      description={
+        props.description ||
+        "Every machine Ironic shows this credential, as openstack baremetal node list shows them: where each is in Ironic's state machine, its power, and whether someone put it in maintenance."
+      }
+      singularName="node"
+      pluralName="nodes"
+      emptyTitle={props.emptyTitle || "No nodes reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Ironic, which answers a project with only the nodes that project owns."
+      }
+      nameTitle="Node"
+      statusTitle="Provision State"
+      columns={BARE_METAL_NODE_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_BARE_METAL_STATE_PRESETS}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
     />
   );
 };
@@ -939,6 +1084,16 @@ const VOLUME_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
   OpenStackColumn.Project,
   OpenStackColumn.AvailabilityZone,
   OpenStackColumn.Region,
+  // Only a probe says, and a long name: for someone who asks for it in Customize Columns.
+  getOpenStackFactColumn({
+    id: "storage-pool",
+    title: "Storage Pool",
+    hideOnMobile: true,
+    isHiddenByDefault: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "pool");
+    },
+  }),
 ];
 
 export const OpenStackVolumeList: FunctionComponent<OpenStackListProps> = (
@@ -1065,7 +1220,7 @@ export const OpenStackStoragePoolList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No storage pools reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Cinder's scheduler, which takes the Full view or Infrastructure only credential. A Project view credential can't list storage pools."
+        "These come from Cinder's scheduler, which only the Full view credential reads: Cinder's own code asks for an admin, whatever the policy says."
       }
       nameTitle="Pool"
       statusTitle="State"
@@ -1154,7 +1309,7 @@ export const OpenStackImageList: FunctionComponent<OpenStackListProps> = (
       emptyTitle={props.emptyTitle || "No images reported yet"}
       emptyDescription={
         props.emptyDescription ||
-        "These come from Glance. A credential lists the public images and its own project's, so check that the agent is running and can read the Image API."
+        "These come from Glance. A credential lists the public images and its own project's, so check that the agent or probe collecting this cloud is running and can read the Image API."
       }
       columns={IMAGE_COLUMNS}
       filters={[]}
@@ -1305,3 +1460,314 @@ export const ADDRESSES_FREE_COLUMN: OpenStackListColumn =
       return free === null ? "" : formatOpenStackCount(free);
     },
   });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Stacks and Kubernetes clusters
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Heat or Magnum. Why one failed is a probe's to say, so it is folded
+ * away until someone asks for it, and a cluster's project comes from its Heat stack where this
+ * credential can read that.
+ */
+const STACK_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  OpenStackColumn.TimeInState,
+  OpenStackColumn.Project,
+  OpenStackColumn.Region,
+  getOpenStackFactColumn({
+    id: "status-reason",
+    title: "Why",
+    hideOnMobile: true,
+    isHiddenByDefault: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "statusReason");
+    },
+  }),
+];
+
+export const OpenStackStackList: FunctionComponent<OpenStackListProps> = (
+  props: OpenStackListProps,
+): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.Stack),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.Stack}
+      query={props.query}
+      tableId={props.tableId || "openstack-stacks-table"}
+      title={props.title || "Stacks"}
+      description={
+        props.description ||
+        "Every Heat stack in this cloud, its status in Heat's own words, and whose it is."
+      }
+      singularName="stack"
+      pluralName="stacks"
+      emptyTitle={props.emptyTitle || "No stacks reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Heat. Only the Full view credential sees every project's: Heat shows anything less its own project's stacks or none, and no error says so."
+      }
+      columns={STACK_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_STACK_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+export const OpenStackContainerClusterList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.ContainerCluster),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  const columns: Array<OpenStackColumn | OpenStackListColumn> = useMemo(() => {
+    return [
+      OpenStackColumn.Status,
+      getOpenStackFactColumn({
+        id: "nodes",
+        title: "Nodes",
+        description:
+          "How many nodes this cluster was asked for, which is what Magnum reports whether or not they came up.",
+        getText: (row: OpenStackResource): string => {
+          const { controlPlane, workers } =
+            getOpenStackContainerClusterNodeCounts(row);
+          if (controlPlane === null || workers === null) {
+            return "";
+          }
+          return translator.translateTemplate(
+            "{{controlPlane}} control plane, {{workers}}",
+            {
+              controlPlane: `${controlPlane}`,
+              workers: translator.translatePlural(
+                { one: "{{count}} worker", other: "{{count}} workers" },
+                workers,
+              ),
+            },
+          );
+        },
+      }),
+      OpenStackColumn.TimeInState,
+      OpenStackColumn.Project,
+      OpenStackColumn.Region,
+      getOpenStackLinkColumn({
+        id: "stack",
+        title: "Heat Stack",
+        hideOnMobile: true,
+        isHiddenByDefault: true,
+        getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+          const stackId: string = getOpenStackFactText(row, "stackId");
+          return stackId
+            ? { kind: OpenStackResourceKind.Stack, externalId: stackId }
+            : null;
+        },
+      }),
+      getOpenStackFactColumn({
+        id: "status-reason",
+        title: "Why",
+        hideOnMobile: true,
+        isHiddenByDefault: true,
+        getText: (row: OpenStackResource): string => {
+          return getOpenStackFactText(row, "statusReason");
+        },
+      }),
+    ];
+  }, [translator]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.ContainerCluster}
+      query={props.query}
+      tableId={props.tableId || "openstack-container-clusters-table"}
+      title={props.title || "Kubernetes Clusters"}
+      description={
+        props.description ||
+        "Every Kubernetes cluster Magnum built in this cloud, and its status in Magnum's own words."
+      }
+      singularName="Kubernetes cluster"
+      pluralName="Kubernetes clusters"
+      emptyTitle={props.emptyTitle || "No Kubernetes clusters reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Magnum. Only the Full view credential sees every project's: Magnum shows anything less none at all, and no error says so."
+      }
+      columns={columns}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Shares
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Manila. Its status in Manila's own word, and a share with no zone never
+ * reached a backend, recorded, which the zone's empty cell says by itself.
+ */
+const SHARE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackSizeColumn({
+    title: "Size",
+    field: "diskCapacityBytes",
+    format: formatOpenStackBytes,
+  }),
+  OpenStackColumn.TimeInState,
+  OpenStackColumn.Project,
+  getOpenStackFactColumn({
+    id: "share-protocol",
+    title: "Protocol",
+    hideOnMobile: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "shareProtocol");
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "share-type",
+    title: "Type",
+    hideOnMobile: true,
+    isHiddenByDefault: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "shareType");
+    },
+  }),
+  OpenStackColumn.AvailabilityZone,
+  OpenStackColumn.Region,
+];
+
+export const OpenStackShareList: FunctionComponent<OpenStackListProps> = (
+  props: OpenStackListProps,
+): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.Share),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.Share}
+      query={props.query}
+      tableId={props.tableId || "openstack-shares-table"}
+      title={props.title || "Shares"}
+      description={
+        props.description ||
+        "Every Manila share in this cloud, its status in Manila's own words, and whose it is."
+      }
+      singularName="share"
+      pluralName="shares"
+      emptyTitle={props.emptyTitle || "No shares reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Manila. Only the Full view credential sees every project's: Manila shows anything less its own project's or none, and no error says so."
+      }
+      columns={SHARE_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_SHARE_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Databases
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Trove. What its volume holds reads as nothing on an instance that isn't
+ * running: it says 0, recorded, whatever is in it. How much of it is used is on the instance's own page.
+ */
+const DATABASE_INSTANCE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> =
+  [
+    OpenStackColumn.Status,
+    getOpenStackFactColumn({
+      id: "datastore",
+      title: "Datastore",
+      getText: (row: OpenStackResource): string => {
+        const datastore: string = getOpenStackFactText(row, "datastoreType");
+        const version: string = getOpenStackFactText(row, "datastoreVersion");
+        return version ? `${datastore} ${version}` : datastore;
+      },
+    }),
+    getOpenStackSizeColumn({
+      title: "Volume",
+      field: "diskCapacityBytes",
+      format: formatOpenStackBytes,
+    }),
+    OpenStackColumn.TimeInState,
+    OpenStackColumn.Project,
+    OpenStackColumn.Region,
+  ];
+
+export const OpenStackDatabaseInstanceList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.DatabaseInstance),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.DatabaseInstance}
+      query={props.query}
+      tableId={props.tableId || "openstack-database-instances-table"}
+      title={props.title || "Databases"}
+      description={
+        props.description ||
+        "Every database Trove runs in this cloud, its status in Trove's own words, and whose it is."
+      }
+      singularName="database"
+      pluralName="databases"
+      emptyTitle={props.emptyTitle || "No databases reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Trove, and it can really have none."
+      }
+      columns={DATABASE_INSTANCE_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_DATABASE_INSTANCE_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};

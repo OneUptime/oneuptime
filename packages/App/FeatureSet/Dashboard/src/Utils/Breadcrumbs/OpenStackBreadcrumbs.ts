@@ -21,6 +21,27 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "View Cloud",
       "Topology",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "AI",
+      "AI agent",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, [
       "Project",
       "OpenStack",
@@ -82,6 +103,14 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL,
       ["Project", "OpenStack", "View Cloud", "Routers", "Router Detail"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+      ["Project", "OpenStack", "View Cloud", "Bare Metal"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+      ["Project", "OpenStack", "View Cloud", "Bare Metal", "Node Detail"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS, [
       "Project",
@@ -194,6 +223,54 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "Images",
       "Image Detail",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_STACKS, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Stacks",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Stacks",
+      "Stack Detail",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+      ["Project", "OpenStack", "View Cloud", "Kubernetes Clusters"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
+      [
+        "Project",
+        "OpenStack",
+        "View Cloud",
+        "Kubernetes Clusters",
+        "Kubernetes Cluster Detail",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
+      ["Project", "OpenStack", "View Cloud", "Databases"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
+      ["Project", "OpenStack", "View Cloud", "Databases", "Database Detail"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SHARES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Shares",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Shares",
+      "Share Detail",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE,
       ["Project", "OpenStack", "View Cloud", "What It Stands On"],
@@ -228,6 +305,18 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS,
       ["Project", "OpenStack", "View Cloud", "Recommendations"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Capacity",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_SPEND, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Spend",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS, [
       "Project",
       "OpenStack",
@@ -266,6 +355,12 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       "OpenStack",
       "View Cloud",
       "Traces",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_CHECKS, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Checks",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, [
       "Project",

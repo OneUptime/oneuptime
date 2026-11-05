@@ -241,30 +241,40 @@ function firstEntryOf(config) {
 
   expect(matches).toHaveLength(3);
 
-  // not ((A and not B) or C)
   return (body) => {
-    return !(
-      (matches[0].test(body) && !matches[1].test(body)) ||
-      matches[2].test(body)
-    );
+    return matches.some((match) => {
+      return match.test(body);
+    });
   };
 }
 
 describe.each([
   ["files", filesConfig],
   ["journal", journalConfig],
-])("a stack trace is one record, in the %s profile", (_name, config) => {
+])("a record is one record, in the %s profile", (_name, config) => {
   const isFirstEntry = firstEntryOf(config);
+  const COLOUR = "\u001b[01;35m";
 
   test.each([
-    // Hand-written, from oslo.log's format: the rig records the real ones.
+    // Hand-written, from oslo.log's format. The describe below this one reads real ones.
     "2026-10-30 10:00:00.123 1234 INFO nova.compute.manager [req-g req-r 1a2b 3c4d - - default default] Started",
     "2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager [req-g req-r 1a2b 3c4d - - default default] [instance: 1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0] Failed to build",
     "2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager [-] Failed",
+    "2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager [None req-r - - - - - -] Failed",
     "ERROR nova.compute.manager [None req-r demo admin] [instance: 1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0] Failed",
     "\u001b[01;31mERROR nova.compute.manager [\u001b[01;36mNone req-r \u001b[00;36mdemo admin\u001b[01;31m] \u001b[01;35mFailed\u001b[00m",
+    "ERROR nova.compute.manager [\u001b[01;36mNone req-r \u001b[00;36mdemo admin] \u001b[01;35m[instance: 1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0] Failed\u001b[00m",
+    "ERROR oslo.messaging._drivers.impl_rabbit [\u001b[00;36m-] \u001b[01;35m[abc] AMQP server on 10.0.0.1:5672 is unreachable\u001b[00m",
     "2026-10-30 10:00:00.123 1234 WARNING oslo.messaging._drivers.impl_rabbit [-] Connection lost",
-    "A sentence a service printed on its own",
+    "2026-10-30 10:00:00.123 1234 DEBUG nova.virt.libvirt.driver Written with no request by a format of someone's own",
+    "INFO nova.compute.manager Written with no request by a format of someone's own",
+    // Read off a recording: a logger named after what it notifies of.
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [\u001b[01;36mNone req-r \u001b[00;36madmin admin] {}",
+    "2026-10-30 10:00:00.123 1234 INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [req-g req-r - - - - - -] {}",
+    '{"message": "Started", "levelname": "INFO", "name": "nova.compute.manager"}',
+    // Keystone's extensions name their notifications with a colon.
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [None req-r admin admin] {}",
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [\u001b[01;36mNone req-r \u001b[00;36madmin admin] \u001b[01;35m{}",
   ])("starts a record: %s", (line) => {
     expect(isFirstEntry(line)).toBe(true);
   });
@@ -274,12 +284,24 @@ describe.each([
     '2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager   File "/opt/stack/nova/nova/compute/manager.py", line 2437, in _build',
     "2026-10-30 10:00:00.123 1234 ERROR nova.compute.manager nova.exception.PortBindingFailed: Binding failed",
     "2026-10-30 10:00:00.123 1234 TRACE nova.compute.manager Traceback (most recent call last):",
-    "ERROR nova.compute.manager   File \"/opt/stack/nova/nova/compute/manager.py\", line 2437, in _build",
+    'ERROR nova.compute.manager   File "/opt/stack/nova/nova/compute/manager.py", line 2437, in _build',
+    `ERROR nova.compute.manager ${COLOUR}[instance: 1cd8b1e6-41ab-4e40-a4c6-b8b1a7d1f9f0] \u001b[00mTraceback (most recent call last):`,
+    `ERROR keystone.server.flask.application ${COLOUR}\u001b[00mTraceback (most recent call last):`,
     "Traceback (most recent call last):",
     '  File "/opt/stack/nova/nova/compute/manager.py", line 2437, in _build',
     "ValueError: nothing to see",
     "oslo_messaging.exceptions.MessagingTimeout: Timed out",
-  ])("joins the one before: %s", (line) => {
+    // A message that held a newline: what its record is dropped with, or kept with.
+    "(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+    "[SQL: INSERT INTO queries (db, op, count) VALUES (%(db)s, %(op)s, %(count)s)]",
+    "</domainCapabilities>",
+    "  <value>virtio</value>",
+    "",
+    "\r",
+    "\u001b[00m \u001b[00;33m{{(pid=86900) handle /opt/stack/neutron/neutron/agent/ovn/metadata/server.py:50}}\u001b[00m",
+    "/opt/stack/data/venv/lib/python3.12/site-packages/pycadf/identifier.py:70: UserWarning: Invalid uuid: unknown.",
+    "A sentence a service printed on its own",
+  ])("joins the one before: %j", (line) => {
     expect(isFirstEntry(line)).toBe(false);
   });
 
@@ -293,27 +315,103 @@ describe.each([
   });
 });
 
-describe("the files profile keeps two workers apart", () => {
+/*
+ * The same rule on what real services wrote, from a recording's own lines: what comes after a
+ * line of oslo's at ERROR with no context of its own belongs to it, and everything else starts one.
+ */
+const SERVICE_LOGS = path.resolve(
+  __dirname,
+  "../../packages/Common/Tests/Fixtures/OpenStack/service-logs",
+);
+
+function recordedLines(release, ...parts) {
+  const file = path.join(SERVICE_LOGS, release, ...parts);
+
+  return fs.existsSync(file)
+    ? fs
+        .readFileSync(file, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          return JSON.parse(line);
+        })
+    : [];
+}
+
+function isPartOfTraceback(line) {
+  const plain = line.replace(/\u001b\[[0-9;]*m/g, "");
+
+  return (
+    /(?:ERROR|TRACE) \S+\s+File "/.test(plain) ||
+    /^\s+File "/.test(plain) ||
+    /^(?:\S+ \S+ \d+ )?(?:ERROR|TRACE) \S+ (?:\[instance: [0-9a-f-]+\] )?\s*Traceback \(most recent call last\)/.test(
+      plain,
+    ) ||
+    /^\s*Traceback \(most recent call last\)/.test(plain)
+  );
+}
+
+function hasALevelOfItsOwn(line) {
+  return /^(?:\S+ \S+ \d+ )?(?:DEBUG|INFO|AUDIT|WARNING) \S+/.test(
+    line.replace(/\u001b\[[0-9;]*m/g, ""),
+  );
+}
+
+const RECORDED_RELEASES = fs.readdirSync(SERVICE_LOGS).filter((release) => {
+  return fs.existsSync(path.join(SERVICE_LOGS, release, "ids.json"));
+});
+
+describe.each(
+  RECORDED_RELEASES.length > 0 ? RECORDED_RELEASES : ["no recording yet"],
+)("the recombine rule, on what %s's services wrote", (release) => {
+  const inFiles = recordedLines(release, "files", "oslo-default.jsonl").map(
+    (entry) => {
+      return entry.line;
+    },
+  );
+  const inJournal = recordedLines(release, "journal", "devstack.jsonl").map(
+    (entry) => {
+      return entry.MESSAGE;
+    },
+  );
+
+  test.each([
+    ["files", filesConfig, () => inFiles],
+    ["journal", journalConfig, () => inJournal],
+  ])("%s", (_name, config, linesOf) => {
+    const isFirstEntry = firstEntryOf(config);
+    const lines = linesOf();
+    const parts = lines.filter(isPartOfTraceback);
+    const starts = lines.filter(hasALevelOfItsOwn);
+
+    if (RECORDED_RELEASES.includes(release)) {
+      expect(lines.length).toBeGreaterThan(50);
+      expect(parts.length).toBeGreaterThan(5);
+      expect(starts.length).toBeGreaterThan(5);
+    }
+
+    expect(parts.filter(isFirstEntry)).toEqual([]);
+    expect(
+      starts.filter((line) => {
+        return !isFirstEntry(line);
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("the files profile, reading one file", () => {
   const operators = filesConfig.receivers.filelog.operators;
   const recombine = operators.find((operator) => {
     return operator.type === "recombine";
   });
 
-  test("joins only within one process of one file", () => {
-    expect(recombine.source_identifier).toBe(
-      'attributes["openstack.log.stream"]',
-    );
-
-    const stream = operators.filter((operator) => {
-      return (
-        operator.type === "add" &&
-        operator.field === 'attributes["openstack.log.stream"]'
-      );
-    });
-
-    expect(stream).toHaveLength(2);
-    expect(stream[0].value).toContain('attributes["process.pid"]');
-    expect(stream[0].value).toContain('attributes["log.file.path"]');
+  /*
+   * oslo.log writes a whole record at once, so a record's lines stand together however many
+   * workers share its file: OpenStackRecordedLogs.test.ts holds that on what real ones wrote. A
+   * process could not be asked anyway: a line with no prefix does not say which one wrote it.
+   */
+  test("joins lines by the file they are in, which every line can say", () => {
+    expect(recombine.source_identifier).toBe('attributes["log.file.path"]');
   });
 
   test("reads the time and process off the front of a line, in the zone it was written in", () => {
@@ -336,15 +434,10 @@ describe("the files profile keeps two workers apart", () => {
     expect(parser.on_error).toBe("send_quiet");
   });
 
-  test("the temporary stream name does not reach OneUptime", () => {
-    const removed = operators.filter((operator) => {
-      return (
-        operator.type === "remove" &&
-        operator.field === 'attributes["openstack.log.stream"]'
-      );
-    });
-
-    expect(removed).toHaveLength(1);
+  test("leaves dnsmasq's own log to itself", () => {
+    expect(filesConfig.receivers.filelog.exclude).toContain(
+      "/var/log/kolla/neutron/dnsmasq*.log",
+    );
   });
 });
 
@@ -355,9 +448,71 @@ describe("the journal profile, which reads OpenStack-Ansible's and DevStack's", 
     expect(receiver.units).toBe("${env:OPENSTACK_LOGS_UNITS}");
     // DevStack's colours make journalctl write a line as a list of bytes.
     expect(receiver.convert_message_bytes).toBe(true);
+    // Without it, a line over 4096 bytes arrives empty.
+    expect(receiver.all).toBe(true);
     // OpenStack-Ansible passes its containers' journals through.
     expect(receiver.merge).toBe(true);
     expect(receiver.storage).toBe("file_storage");
+  });
+
+  /*
+   * journalctl writes a field over 4096 bytes as null without --all. The rig's first recording lost
+   * a stack trace and most of Nova's notifications that way, with no word of it but an empty body.
+   */
+  test("reads a long line whole", () => {
+    expect(receiver.all).toBe(true);
+  });
+
+  test("joins lines only within one process of one unit", () => {
+    const operators = receiver.operators;
+    const recombine = operators.find((operator) => {
+      return operator.type === "recombine";
+    });
+    const stream = operators.find((operator) => {
+      return (
+        operator.type === "add" &&
+        operator.field === 'attributes["openstack.log.stream"]'
+      );
+    });
+
+    expect(recombine.source_identifier).toBe(
+      'attributes["openstack.log.stream"]',
+    );
+    expect(stream.value).toContain('attributes["process.pid"]');
+    expect(stream.value).toContain('attributes["journald.unit"]');
+    expect(
+      operators.filter((operator) => {
+        return (
+          operator.type === "remove" &&
+          operator.field === 'attributes["openstack.log.stream"]'
+        );
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a record its own journal handler wrote, and systemd's own lines, each stand alone", () => {
+    const recombine = receiver.operators.find((operator) => {
+      return operator.type === "recombine";
+    });
+
+    expect(recombine.is_first_entry).toContain(
+      'attributes["journald.logger_name"] != nil',
+    );
+    expect(recombine.is_first_entry).toContain(
+      'attributes["process.pid"] == "1"',
+    );
+  });
+
+  test("files systemd's lines about a service under that service", () => {
+    const fromUnit = receiver.operators.find((operator) => {
+      return operator.from === "body.UNIT";
+    });
+    const movesTheUnit = receiver.operators.findIndex((operator) => {
+      return operator.from === "body._SYSTEMD_UNIT";
+    });
+
+    expect(fromUnit.to).toBe("body._SYSTEMD_UNIT");
+    expect(receiver.operators.indexOf(fromUnit)).toBeLessThan(movesTheUnit);
   });
 
   test.each([
@@ -440,12 +595,41 @@ describe("both profiles send the same record", () => {
     expect(keys).toEqual(
       expect.arrayContaining([
         "openstack.cloud.name",
+        "openstack.region.name",
         "openstack.node.name",
         "oneuptime.agent.version",
       ]),
     );
     expect(config.service.pipelines.logs.processors[0]).toBe("memory_limiter");
     expect(config.service.pipelines.logs.exporters).toEqual(["otlphttp"]);
+  });
+
+  /*
+   * A log line says nothing of its region, and a cloud's Logs page narrows by it, on the
+   * resource: what a probe's instance actions already say, and what the traces profile sends.
+   */
+  test.each(Object.entries({ files: filesConfig, journald: journalConfig }))(
+    "the %s profile says which region the machine serves",
+    (_name, config) => {
+      expect(
+        config.processors.resource.attributes.find((attribute) => {
+          return attribute.key === "openstack.region.name";
+        }),
+      ).toEqual({
+        key: "openstack.region.name",
+        value: "${env:OPENSTACK_REGION_NAME}",
+        action: "upsert",
+      });
+    },
+  );
+
+  test("the compose file and the journal's service both default it", () => {
+    expect(
+      compose.services["oneuptime-openstack-logs"].environment,
+    ).toContain("OPENSTACK_REGION_NAME=${OPENSTACK_REGION_NAME:-RegionOne}");
+    expect(read("systemd/oneuptime-openstack-logs-native.service")).toContain(
+      "Environment=OPENSTACK_REGION_NAME=RegionOne",
+    );
   });
 });
 
@@ -511,6 +695,57 @@ describe("the installer is served with the agent's other files", () => {
   });
 });
 
+describe("the region a machine says it serves", () => {
+  test("is asked, and takes the answer", () => {
+    const dir = scratch();
+    const result = install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "" },
+      input: "RegionTwo\n",
+      args: ["files"],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.envFile).toContain("OPENSTACK_REGION_NAME='RegionTwo'");
+  });
+
+  test("is asked of nobody when it is set, as across a fleet", () => {
+    const dir = scratch();
+    const result = install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "eu-west" },
+      args: ["files"],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output).not.toContain("The region this machine serves");
+    expect(result.envFile).toContain("OPENSTACK_REGION_NAME='eu-west'");
+  });
+
+  test("is kept by the upgrade, which is running it again", () => {
+    const dir = scratch();
+    install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "eu-west" },
+      args: ["files"],
+    });
+    const again = install(dir, { env: {}, args: ["files"] });
+
+    expect(again.status).toBe(0);
+    expect(again.envFile).toContain("OPENSTACK_REGION_NAME='eu-west'");
+  });
+
+  test("reaches the journal's service too", () => {
+    const dir = scratch();
+    const script = withRelease(dir);
+    const result = install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "eu-west" },
+      args: ["journald"],
+      script,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.envFile).toContain('OPENSTACK_REGION_NAME="eu-west"');
+  });
+});
+
 describe("installing the files profile", () => {
   test("writes every answer, starts it, and shows the key to nobody", () => {
     const dir = scratch();
@@ -523,6 +758,7 @@ describe("installing the files profile", () => {
       `ONEUPTIME_TELEMETRY_INGESTION_KEY='${KEY}'`,
     );
     expect(result.envFile).toContain("OPENSTACK_CLOUD_NAME='production'");
+    expect(result.envFile).toContain("OPENSTACK_REGION_NAME='RegionOne'");
     expect(result.envFile).toContain("OPENSTACK_NODE_NAME='compute-01'");
     expect(result.envFile).toContain("OPENSTACK_LOGS_TIMEZONE='UTC'");
     expect(

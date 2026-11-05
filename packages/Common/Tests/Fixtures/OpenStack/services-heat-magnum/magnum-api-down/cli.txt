@@ -1,0 +1,6 @@
+$ openstack coe cluster list
+Service Unavailable (HTTP 503)
+$ openstack coe cluster template list
+Service Unavailable (HTTP 503)
+$ openstack coe service list
+Service Unavailable (HTTP 503)

@@ -1,0 +1,4 @@
+Secrets and orders, in two projects.
+Barbican refused an order for a one-bit key outright: 4xx Client error: Bad Request: Provided field value is not supported
+Bad Request: Provided field value is not supported
+On their own.

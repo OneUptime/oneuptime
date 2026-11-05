@@ -69,6 +69,7 @@ import {
   getOpenStackPartRoutes,
   openStackIdFromRouteParam,
 } from "./OpenStackPartRoutes";
+import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
 
 /*
@@ -240,6 +241,8 @@ export const OpenStackHostGroupList: FunctionComponent<{
 }> = (props: { kind: OpenStackHostGroupKind }): ReactElement => {
   const translator: Translator = useTranslator();
   const openStackCloudId: ObjectID = getCloudIdFromAddress(1);
+  const isProbeCollected: boolean =
+    useIsOpenStackProbeCollected(openStackCloudId);
   const words: HostGroupWords = WORDS[props.kind];
 
   const routes: OpenStackPartRoutes = useMemo(() => {
@@ -355,6 +358,7 @@ export const OpenStackHostGroupList: FunctionComponent<{
     : getOpenStackEmptyWords({
         kind: OpenStackResourceKind.Hypervisor,
         api: (service && api.data?.[service]) || "not-reported",
+        isProbeCollected: isProbeCollected,
       });
 
   return (
@@ -612,7 +616,7 @@ export const OpenStackHostGroupPage: FunctionComponent<{
           title={words.instancesTitle}
           description="Every instance here, a page at a time."
           emptyTitle="No instances here"
-          emptyDescription="Nova has placed nothing here, or this credential can't see what it placed. Only the Full view credential sees every project's."
+          emptyDescription="Nova has placed nothing here."
         />
       ),
     },

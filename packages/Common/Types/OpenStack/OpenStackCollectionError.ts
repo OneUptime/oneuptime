@@ -187,9 +187,9 @@ const ADVICE: Record<
       "The message below is what it said. If it keeps happening, check that service's health.",
   },
   [OpenStackCollectionErrorCode.ServiceOverloaded]: {
-    title: "A service is too busy to answer",
+    title: "A service is stopped or too busy to answer",
     nextStep:
-      "It kept answering 429 or a server error, so the probe waits longer between collections until it recovers. Collect less often, or check its load.",
+      "It kept answering 429 or a server error, so the probe waits longer between collections until it recovers. Check that it is running, then its load. Collecting less often helps a busy one.",
   },
   [OpenStackCollectionErrorCode.TimedOut]: {
     title: "Collecting took too long",

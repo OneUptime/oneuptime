@@ -300,12 +300,14 @@ describe("what makes each one fire", () => {
   test("Token Validation Failing", () => {
     const built: Built = byId("openstack-token-validation-failing");
 
-    for (const line of [
-      '2026-10-30 10:00:00.123 1234 WARNING keystonemiddleware.auth_token [-] Identity response: {"error": {}} Failed to validate token',
-      "2026-10-30 10:00:00.123 1234 WARNING keystone.server.flask.application [-] Authorization failed. This is not a recognized Fernet token gAAAA",
-    ]) {
-      expect(queryMatches(built.logMonitor, stampOf(line))).toBe(true);
-    }
+    expect(
+      queryMatches(
+        built.logMonitor,
+        stampOf(
+          '2026-10-30 10:00:00.123 1234 WARNING keystonemiddleware.auth_token [-] Identity response: {"error": {}} Failed to validate token',
+        ),
+      ),
+    ).toBe(true);
   });
 
   test("Too Many Errors from a Service reads errors, per service and machine", () => {

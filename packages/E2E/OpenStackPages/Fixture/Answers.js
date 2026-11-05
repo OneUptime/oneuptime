@@ -8,17 +8,38 @@
  * tests (Common/Tests/Server/Services/OpenStackResourcePostgres.test.ts) hold the SQL.
  */
 import {
+  canOpenStackBareMetalNodeTakeAnInstance,
+  isOpenStackBareMetalMaintenanceTooLong,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeInMaintenance,
+  isOpenStackBareMetalNodeStuck,
+  isOpenStackBareMetalPowerUnexpected,
+  isOpenStackServiceQuiet,
+  OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
+  isOpenStackDatabaseVolumeNearlyFull,
+  OPENSTACK_SHARE_STUCK_MINUTES,
+  OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
 } from "../../../Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
 } from "../../../Common/Types/OpenStack/OpenStackResourceKind";
@@ -26,6 +47,8 @@ import {
   buildOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../../Common/Types/OpenStack/OpenStackBlastRadius";
+import { getOpenStackStackNameOfServer } from "../../../Common/Types/OpenStack/OpenStackLinks";
+import { isOpenStackApiClosedToThisCredential } from "../../../Common/Types/OpenStack/OpenStackOptionalServices";
 import { getOpenStackProjectQuotas } from "../../../Common/Types/OpenStack/OpenStackQuota";
 
 const ATTENTION_ROWS_PER_KIND = 100;
@@ -106,12 +129,43 @@ export function getInventorySummary(allRows, regionName) {
     downServiceCount: services.filter((row) => {
       return row.status === "down" && !isAdminDown(row);
     }).length,
+    bareMetalNodeCount: ofKind(rows, "BareMetalNode").length,
+    bareMetalProviderCount: ofKind(rows, "PlacementProvider").length,
+    bareMetalProvidersNotListedCount: ofKind(rows, "PlacementProvider").filter(
+      (provider) => {
+        return !ofKind(rows, "BareMetalNode").some((node) => {
+          return node.externalId === provider.name;
+        });
+      },
+    ).length,
     vcpuCapacity: sum(giving, "vcpuCapacity"),
     vcpuAllocated: sum(giving, "vcpuAllocated"),
     memoryCapacityBytes: sum(giving, "memoryCapacityBytes"),
     memoryAllocatedBytes: sum(giving, "memoryAllocatedBytes"),
     storageCapacityBytes: sum(pools, "diskCapacityBytes"),
     storageUsedBytes: sum(pools, "diskAllocatedBytes"),
+    stackCount: ofKind(rows, "Stack").length,
+    containerClusterCount: ofKind(rows, "ContainerCluster").length,
+    shareCount: ofKind(rows, "Share").length,
+    databaseInstanceCount: ofKind(rows, "DatabaseInstance").length,
+    closedServices: Array.from(
+      new Set(
+        ofKind(rows, "Api")
+          .filter((row) => {
+            return isOpenStackApiClosedToThisCredential(row);
+          })
+          .map((row) => {
+            return row.name;
+          }),
+      ),
+    ),
+    services: Array.from(
+      new Set(
+        ofKind(rows, "Api").map((row) => {
+          return row.name;
+        }),
+      ),
+    ),
   };
 }
 
@@ -202,18 +256,53 @@ function stuckSince(row, minutes, now) {
 const ATTENTION_QUERIES = [
   {
     kind: "Api",
-    where: (row) => {
-      return row.status === "down";
+    where: (row, now) => {
+      return (
+        row.status === "down" ||
+        isOpenStackServiceQuiet({
+          service: row.name,
+          lastSeenAt: row.lastSeenAt,
+          now,
+        })
+      );
+    },
+  },
+  {
+    kind: "BareMetalNode",
+    where: (row, now) => {
+      return (
+        isOpenStackBareMetalNodeInError(row.status) ||
+        isOpenStackBareMetalNodeStuck({
+          status: row.status,
+          adminState: row.adminState,
+          stateChangedAt: row.stateChangedAt,
+          provisionUpdatedAt: row.facts?.provisionUpdatedAt,
+          now,
+        }) ||
+        isOpenStackBareMetalMaintenanceTooLong({
+          adminState: row.adminState,
+          stateChangedAt: row.stateChangedAt,
+          now,
+        }) ||
+        isOpenStackBareMetalPowerUnexpected({
+          status: row.status,
+          adminState: row.adminState,
+          powerState: row.facts?.powerState,
+        })
+      );
     },
   },
   { kind: "Service", where: () => true, whole: true },
   { kind: "Hypervisor", where: () => true, whole: true },
+  { kind: "ControlPlane", where: () => true, whole: true },
   {
     kind: "StoragePool",
     where: (row) => {
       return (
         row.diskAllocatedBytes * 100 >
-        row.diskCapacityBytes * OPENSTACK_STORAGE_POOL_WARNING_PERCENT
+          row.diskCapacityBytes * OPENSTACK_STORAGE_POOL_WARNING_PERCENT ||
+        Boolean(row.facts?.cephLink) ||
+        Boolean(row.facts?.cephFsid)
       );
     },
   },
@@ -243,6 +332,51 @@ const ATTENTION_QUERIES = [
       return (
         OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status) &&
         stuckSince(row, OPENSTACK_IMAGE_STUCK_MINUTES, now)
+      );
+    },
+  },
+  {
+    kind: "DatabaseInstance",
+    where: (row, now) => {
+      return (
+        OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES.has(row.status) ||
+        (OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES, now)) ||
+        isOpenStackDatabaseVolumeNearlyFull({
+          usedBytes: row.diskAllocatedBytes,
+          sizeBytes: row.diskCapacityBytes,
+        })
+      );
+    },
+  },
+  {
+    kind: "Share",
+    where: (row, now) => {
+      return (
+        OPENSTACK_SHARE_ERROR_STATUSES.has(row.status) ||
+        (OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_SHARE_STUCK_MINUTES, now))
+      );
+    },
+  },
+  {
+    kind: "Stack",
+    where: (row, now) => {
+      return (
+        OPENSTACK_STACK_FAILED_STATUSES.has(row.status) ||
+        (OPENSTACK_STACK_IN_PROGRESS_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_STACK_STUCK_MINUTES, now))
+      );
+    },
+  },
+  {
+    kind: "ContainerCluster",
+    where: (row, now) => {
+      return (
+        OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES.has(row.status) ||
+        (OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(row.status) &&
+          stuckSince(row, OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES, now)) ||
+        row.facts?.healthStatus === OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY
       );
     },
   },
@@ -324,6 +458,37 @@ function countsByProject(rows) {
   });
 }
 
+// What the server's statement counts: OpenStackResourceService.getBareMetalClasses.
+export function getBareMetalClasses(allRows, regionName) {
+  const classes = new Map();
+  for (const row of ofKind(ofRegion(allRows, regionName), "BareMetalNode")) {
+    const resourceClass = row.facts?.resourceClass || null;
+    const one = classes.get(resourceClass) || {
+      resourceClass,
+      nodeCount: 0,
+      availableCount: 0,
+      deployedCount: 0,
+      maintenanceCount: 0,
+      failedCount: 0,
+    };
+    const inMaintenance = isOpenStackBareMetalNodeInMaintenance(row.adminState);
+    one.nodeCount += 1;
+    one.availableCount += canOpenStackBareMetalNodeTakeAnInstance({
+      status: row.status,
+      adminState: row.adminState,
+      powerState: row.facts?.powerState,
+      isRetired: row.facts?.isRetired,
+    })
+      ? 1
+      : 0;
+    one.deployedCount += row.status === "active" ? 1 : 0;
+    one.maintenanceCount += inMaintenance ? 1 : 0;
+    one.failedCount += isOpenStackBareMetalNodeInError(row.status) ? 1 : 0;
+    classes.set(resourceClass, one);
+  }
+  return Array.from(classes.values());
+}
+
 export function getBlastRadius(allRows, part) {
   const projectNames = {};
   for (const row of ofKind(allRows, "Project")) {
@@ -341,13 +506,76 @@ export function getBlastRadius(allRows, part) {
     return buildOpenStackBlastRadius({ counts, projectNames, isKnown });
   };
 
+  const ownerOf = (row) => {
+    return {
+      kind: row.kind,
+      externalId: row.externalId,
+      name: row.name || null,
+      status: row.status || null,
+    };
+  };
+
+  // The Magnum clusters these servers are part of, as readMagnumClustersOfServers reads them.
+  const magnumClustersOf = (serverNames) => {
+    const stackNames = serverNames
+      .map(getOpenStackStackNameOfServer)
+      .filter(Boolean);
+    const stackIds = ofKind(allRows, "Stack")
+      .filter((row) => {
+        return (
+          stackNames.includes(row.name) && row.regionName === part.regionName
+        );
+      })
+      .map((row) => {
+        return row.externalId;
+      });
+    return ofKind(allRows, "ContainerCluster")
+      .filter((row) => {
+        return (
+          stackIds.includes(row.facts?.stackId) &&
+          row.regionName === part.regionName
+        );
+      })
+      .map(ownerOf);
+  };
+
   if (part.kind === "Hypervisor") {
-    return finish([
-      {
-        count: "instanceCount",
-        byProject: countsByProject(instancesOn(part.hypervisorName)),
-      },
-    ]);
+    return {
+      ...finish([
+        {
+          count: "instanceCount",
+          byProject: countsByProject(instancesOn(part.hypervisorName)),
+        },
+      ]),
+      magnumClusters: magnumClustersOf(
+        instancesOn(part.hypervisorName).map((row) => {
+          return row.name;
+        }),
+      ),
+    };
+  }
+
+  // The stacks whose own read names this part, as readStacksOwning reads them.
+  const stacksOwning = (fact) => {
+    return ofKind(allRows, "Stack")
+      .filter((row) => {
+        return (row.facts?.[fact] || []).includes(part.externalId);
+      })
+      .map(ownerOf);
+  };
+
+  if (part.kind === "Instance") {
+    return {
+      ...finish([], false),
+      belongsTo: [
+        ...magnumClustersOf([part.name]),
+        ...stacksOwning("ownedInstanceIds"),
+      ],
+    };
+  }
+
+  if (part.kind === "Volume") {
+    return { ...finish([], false), belongsTo: stacksOwning("ownedVolumeIds") };
   }
 
   if (part.kind === "Service" && part.name === "nova-compute") {
@@ -402,6 +630,17 @@ export function getBlastRadius(allRows, part) {
     ]);
   }
 
+  if (part.kind === "BareMetalNode") {
+    return buildOpenStackBlastRadius({
+      counts: [
+        {
+          count: "instanceCount",
+          byProject: countsByProject(instancesOn(part.externalId)),
+        },
+      ],
+      projectNames,
+    });
+  }
   if (part.kind === "Router") {
     return finish([
       {
@@ -416,13 +655,41 @@ export function getBlastRadius(allRows, part) {
   }
 
   if (part.kind === "StoragePool") {
-    const volumes = ofKind(allRows, "Volume").filter((row) => {
+    const inRegion = ofKind(allRows, "Volume").filter((row) => {
+      return row.regionName === part.regionName;
+    });
+    const volumes = inRegion.filter((row) => {
       return row.facts?.pool === part.name;
     });
     return finish(
       [{ count: "volumeCount", byProject: countsByProject(volumes) }],
-      volumes.length > 0,
+      // A volume naming any pool says this one holds nothing, rather than that nobody knows.
+      inRegion.some((row) => {
+        return Boolean(row.facts?.pool);
+      }),
     );
+  }
+
+  // As OpenStackResourceService says it: a stack and its Magnum cluster name each other.
+  if (part.kind === "Stack") {
+    const clusters = ofKind(allRows, "ContainerCluster").filter((row) => {
+      return row.facts?.stackId === part.externalId;
+    });
+    return {
+      ...finish([]),
+      belongsTo: clusters.length === 1 ? clusters.map(ownerOf) : [],
+    };
+  }
+
+  if (part.kind === "ContainerCluster") {
+    return {
+      ...finish([]),
+      belongsTo: ofKind(allRows, "Stack")
+        .filter((row) => {
+          return row.externalId === part.facts?.stackId;
+        })
+        .map(ownerOf),
+    };
   }
 
   if (part.kind === "Api") {
@@ -432,6 +699,34 @@ export function getBlastRadius(allRows, part) {
       });
     };
     switch (part.name) {
+      case "database":
+        return finish([
+          {
+            count: "databaseInstanceCount",
+            byProject: countsByProject(inRegion("DatabaseInstance")),
+          },
+        ]);
+      case "sharev2":
+        return finish([
+          {
+            count: "shareCount",
+            byProject: countsByProject(inRegion("Share")),
+          },
+        ]);
+      case "orchestration":
+        return finish([
+          {
+            count: "stackCount",
+            byProject: countsByProject(inRegion("Stack")),
+          },
+        ]);
+      case "container-infra":
+        return finish([
+          {
+            count: "containerClusterCount",
+            byProject: countsByProject(inRegion("ContainerCluster")),
+          },
+        ]);
       case "compute":
         return finish([
           {
@@ -559,6 +854,10 @@ export function getProjectSummaries(allRows, projectIds) {
       networkCount: count("Network"),
       routerCount: count("Router"),
       floatingIpCount: count("FloatingIp"),
+      stackCount: count("Stack"),
+      containerClusterCount: count("ContainerCluster"),
+      shareCount: count("Share"),
+      databaseInstanceCount: count("DatabaseInstance"),
     };
   });
 }
@@ -657,7 +956,7 @@ export function getProjectIdsOfDomain(allRows, domainId) {
 }
 
 // What a cloud's map reads. No estate here is past the stated size, so all of it.
-export function getTopologyRead(allRows) {
+export function getTopologyRead(allRows, regionName) {
   const drawn = new Set([
     "Api",
     "Service",
@@ -672,7 +971,8 @@ export function getTopologyRead(allRows) {
   ]);
   const totalsByKind = {};
   const hosts = new Map();
-  for (const row of allRows) {
+  const rows = ofRegion(allRows, regionName);
+  for (const row of rows) {
     totalsByKind[row.kind] = (totalsByKind[row.kind] || 0) + 1;
     if (row.kind === "Instance" && row.hypervisorName) {
       const key = `${row.regionName}/${row.hypervisorName}`;
@@ -688,7 +988,7 @@ export function getTopologyRead(allRows) {
     projectNames[row.externalId] = row.name;
   }
   return {
-    rows: allRows
+    rows: rows
       .filter((row) => {
         return drawn.has(row.kind);
       })

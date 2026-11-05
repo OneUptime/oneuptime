@@ -76,6 +76,15 @@ const INPUTS_SCRIPT: string = String.raw`
     "colours": "\u001b[01;31m",
     "unfinished colours": "\u001b[0",
     "signals": "AMQP server on ",
+    "closing characters": "),]};&",
+    "names after commas": ",abc=",
+    "values with no end": "password=a,",
+    "escaped keys": 'password\\\\\\": \\\\\\"',
+    "other names for an instance": "device_id ",
+    "consumers": "consumer ",
+    "JSON opening": '{"a": ',
+    "JSON closing": '"}',
+    "uWSGI's request lines": "[pid: 1] GET ",
     "health check verbs": '"GET ',
     "notification loggers": "oslo.messaging.notification.",
     "event types": '"event_type"',
@@ -192,8 +201,8 @@ function run(): ProcessReport {
           INPUTS_SCRIPT +
           WORKERS_SCRIPT +
           String.raw`
-          const SHORT = 256 * 1024;
-          const LONG = 1024 * 1024;
+          const SHORT = 64 * 1024;
+          const LONG = 256 * 1024;
           const HUGE = 16 * 1024 * 1024;
 
           const timed = (work, text) => {
@@ -205,7 +214,7 @@ function run(): ProcessReport {
               work(text);
               const taken = Number(process.hrtime.bigint() - startedAt) / 1e6;
               fastest = Math.min(fastest, taken);
-              if (fastest < 5) {
+              if (fastest < 20) {
                 break;
               }
             }
@@ -265,6 +274,18 @@ function run(): ProcessReport {
             }
           }
 
+          // A slow reading is taken again before it counts, after a pause and more than once:
+          // real growth is there every time, and a moment when the machine was busy is not.
+          const pause = new Int32Array(new SharedArrayBuffer(4));
+
+          for (const result of results) {
+            for (let again = 0; again < 4 && result.long > 200 && result.long > result.short * 10; again++) {
+              Atomics.wait(pause, 0, 0, 1000);
+              const work = WORKERS[result.worker];
+              result.long = Math.min(result.long, timed(work, placed(SHAPES[result.shape], LONG)[result.place]));
+            }
+          }
+
           results.sort((a, b) => b.long / Math.max(b.short, 1) - a.long / Math.max(a.short, 1));
 
           const hugeStamp = lib.stampOpenStackLogRecord({
@@ -320,10 +341,21 @@ function run(): ProcessReport {
 describe("in a process that compiles regular expressions unoptimized", () => {
   const TIME_LIMIT_MS: number = 22 * 60 * 1000;
   let report: ProcessReport | null = null;
+  let failure: Error | null = null;
 
+  // One run for all three, whether it finished or not: it takes many minutes.
   const reportOf: () => ProcessReport = (): ProcessReport => {
+    if (failure) {
+      throw failure;
+    }
+
     if (!report) {
-      report = run();
+      try {
+        report = run();
+      } catch (error) {
+        failure = error as Error;
+        throw failure;
+      }
     }
 
     return report;

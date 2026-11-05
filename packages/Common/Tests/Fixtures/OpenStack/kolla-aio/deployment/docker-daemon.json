@@ -1,0 +1,9 @@
+{
+    "bridge": "none",
+    "ip-forward": false,
+    "iptables": false,
+    "log-opts": {
+        "max-file": "5",
+        "max-size": "50m"
+    }
+}

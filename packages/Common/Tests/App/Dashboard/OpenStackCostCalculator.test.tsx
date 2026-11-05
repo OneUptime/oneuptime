@@ -11,12 +11,18 @@ import {
 } from "../../../Types/OpenStack/OpenStackProbeCollection";
 import { OpenStackServiceType } from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
+  OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT,
+  OpenStackInstanceMetricSource,
+  estimateOpenStackInstanceMetricsVolume,
+} from "../../../Types/OpenStack/OpenStackInstanceMetrics";
+import {
   OPENSTACK_LARGE_CLOUD,
   OPENSTACK_MEDIUM_CLOUD,
   OPENSTACK_SMALL_CLOUD,
   OpenStackCloudCounts,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
   estimateOpenStackVolume,
+  getOpenStackExporterRequestsPerMinute,
   getOpenStackProbeRequestsPerMinute,
 } from "../../../Types/OpenStack/OpenStackScale";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
@@ -49,21 +55,27 @@ describe("the numbers behind the card", () => {
     ["small", OPENSTACK_SMALL_CLOUD],
     ["medium", OPENSTACK_MEDIUM_CLOUD],
     ["large", OPENSTACK_LARGE_CLOUD],
-  ])("a %s cloud reads what the scale module says", (_size: string, counts: OpenStackCloudCounts) => {
-    const view: OpenStackCostView = getOpenStackCostView({
-      hypervisors: counts.hypervisors,
-      instances: counts.instances,
-      projects: counts.projects,
-    });
+  ])(
+    "a %s cloud reads what the scale module says",
+    (_size: string, counts: OpenStackCloudCounts) => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: counts.hypervisors,
+        instances: counts.instances,
+        projects: counts.projects,
+      });
 
-    expect(view.requestsPerMinute).toEqual(
-      getOpenStackProbeRequestsPerMinute(counts),
-    );
-    expect(view.everySeries).toEqual(estimateOpenStackVolume({ counts }));
-    expect(view.isSummaryMode).toBe(
-      counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
-    );
-  });
+      expect(view.requestsPerMinute).toEqual(
+        getOpenStackProbeRequestsPerMinute(counts),
+      );
+      expect(view.exporterRequestsPerMinute).toEqual(
+        getOpenStackExporterRequestsPerMinute(counts),
+      );
+      expect(view.everySeries).toEqual(estimateOpenStackVolume({ counts }));
+      expect(view.isSummaryMode).toBe(
+        counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
+      );
+    },
+  );
 
   test("a cloud in summary mode costs less than one that keeps every series, and says what it would have", () => {
     const view: OpenStackCostView = getOpenStackCostView({
@@ -77,9 +89,93 @@ describe("the numbers behind the card", () => {
     );
     expect(view.isDatabasePathOffered).toBe(true);
   });
+
+  describe("real usage per instance", () => {
+    test.each([
+      [100, true],
+      [OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT, true],
+      [OPENSTACK_INSTANCE_METRICS_AUTOMATIC_LIMIT + 1, false],
+      [5000, false],
+    ])(
+      "%i instances are on by default: %s, at the size the agent stops by itself",
+      (instances: number, isOn: boolean) => {
+        expect(
+          getOpenStackCostView({
+            hypervisors: 10,
+            instances,
+            projects: 10,
+          }).instanceMetrics.isOnByDefault,
+        ).toBe(isOn);
+      },
+    );
+
+    test("costs what the row count comes to, at the same row size and price as the rest", () => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: 10,
+        instances: 100,
+        projects: 10,
+      });
+      const rows: number = estimateOpenStackInstanceMetricsVolume({
+        source: OpenStackInstanceMetricSource.Libvirt,
+        instances: 100,
+      }).rowsPerHour;
+      const expected: number = (rows * 24 * 1024) / (1024 * 1024 * 1024);
+      expect(view.instanceMetrics.libvirt.gigabytesPerDay).toBeCloseTo(
+        expected,
+        6,
+      );
+      // $0.10 a GB kept 15 days, for 30 days.
+      expect(view.instanceMetrics.libvirt.costInUSDPerMonth).toBeCloseTo(
+        expected * 0.1 * 30,
+        6,
+      );
+    });
+
+    test("Ceilometer costs less than libvirt, because it adds rows once a poll", () => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: 10,
+        instances: 100,
+        projects: 10,
+      });
+      expect(view.instanceMetrics.ceilometer.rowsPerHour).toBeLessThan(
+        view.instanceMetrics.libvirt.rowsPerHour,
+      );
+    });
+
+    test("an empty cloud costs nothing", () => {
+      const view: OpenStackCostView = getOpenStackCostView({
+        hypervisors: 0,
+        instances: 0,
+        projects: 0,
+      });
+      expect(view.instanceMetrics.libvirt.costInUSDPerMonth).toBe(0);
+    });
+  });
 });
 
 describe("the card", () => {
+  test("says what real usage per instance costs from each exporter, and whether a cloud this size gets it", () => {
+    render(<OpenStackCostCalculator />);
+    // It starts at 2,000 instances, which is past where it stops by itself.
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-libvirt").textContent,
+    ).toContain("GB a day");
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-ceilometer")
+        .textContent,
+    ).toContain("a month");
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-default").textContent,
+    ).toContain("keeps only each hypervisor's totals until you choose");
+
+    fireEvent.change(screen.getByTestId("openstack-cost-instances"), {
+      target: { value: "100" },
+    });
+    expect(
+      screen.getByTestId("openstack-cost-instance-metrics-default").textContent,
+    ).toContain("until it passes 500");
+  });
+
   test("starts on a cloud someone could have, and follows what is typed", () => {
     render(<OpenStackCostCalculator />);
 
@@ -98,9 +194,15 @@ describe("the card", () => {
     expect(screen.getByTestId("openstack-cost-database-path")).toBeTruthy();
     expect(
       screen.getByTestId(
-        `openstack-cost-requests-${OpenStackServiceType.Placement}`,
+        `openstack-cost-probe-requests-${OpenStackServiceType.Placement}`,
       ).textContent,
-    ).toContain("1,001");
+    ).toBe("1,001");
+    expect(
+      screen.getByTestId(
+        `openstack-cost-agent-requests-${OpenStackServiceType.Placement}`,
+      ).textContent,
+    ).toBe("7,501");
+    expect(screen.getByTestId("openstack-cost-probe-volume")).toBeTruthy();
   });
 });
 
@@ -175,5 +277,24 @@ describe("what the Data Collection card says", () => {
       ),
     ).toContain("44");
     expect(getOpenStackSummaryModeLine(summary([]), translator)).toBeNull();
+  });
+
+  test("a new cloud in summary mode says its lists are still filling, and until when", () => {
+    const filling: string | null = getOpenStackSummaryModeLine(
+      summary([], {
+        isSummaryMode: true,
+        refreshCycleInMinutes: 44,
+        firstCycleEndsAt: new Date(Date.now() + 44 * 60_000).toISOString(),
+      }),
+      translator,
+    );
+
+    expect(filling).toContain("still filling");
+    expect(
+      getOpenStackSummaryModeLine(
+        summary([], { isSummaryMode: true, refreshCycleInMinutes: 44 }),
+        translator,
+      ),
+    ).not.toContain("still filling");
   });
 });

@@ -16,11 +16,13 @@ import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
+import { isOpenStackApiClosedToThisCredential } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import ObjectID from "Common/Types/ObjectID";
 import {
   OpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "Common/Types/OpenStack/OpenStackBlastRadius";
+import { OpenStackBareMetalClass } from "Common/Types/OpenStack/OpenStackBareMetal";
 import {
   OpenStackCountBy,
   OpenStackCountRow,
@@ -227,6 +229,18 @@ export async function fetchOpenStackBlastRadius(data: {
 }
 
 // How many of a kind there are by one of what they hold, counted on the server.
+export async function fetchOpenStackBareMetalClasses(data: {
+  openStackCloudId: ObjectID;
+  regionName?: string | null | undefined;
+}): Promise<Array<OpenStackBareMetalClass>> {
+  const answer: JSONObject = await postToCloud({
+    path: "/openstack-resource/bare-metal-classes/",
+    openStackCloudId: data.openStackCloudId,
+    ...(data.regionName ? { body: { regionName: data.regionName } } : {}),
+  });
+  return (answer["classes"] as unknown as Array<OpenStackBareMetalClass>) || [];
+}
+
 export async function fetchOpenStackCounts(data: {
   openStackCloudId: ObjectID;
   kind: OpenStackResourceKind;
@@ -266,14 +280,22 @@ export async function fetchOpenStackApiStates(
       },
       limit: 200,
       skip: 0,
-      select: { name: true, status: true },
+      select: { name: true, status: true, facts: true },
       sort: {},
     });
   const states: Record<string, OpenStackApiState> = {};
   for (const row of result.data) {
     const name: string = row.name || "";
     if (name && states[name] !== "down") {
-      states[name] = row.status === "down" ? "down" : "up";
+      states[name] = isOpenStackApiClosedToThisCredential({
+        name: row.name,
+        status: row.status,
+        facts: row.facts as JSONObject | undefined,
+      })
+        ? "closed"
+        : row.status === "down"
+          ? "down"
+          : "up";
     }
   }
   return states;
@@ -299,6 +321,22 @@ export async function fetchOpenStackNetworkAgentNames(
     });
   return result.data.map((row: OpenStackResource): string => {
     return row.name || "";
+  });
+}
+
+// A region's DHCP agents, of which there are few, for a network to name its own by id.
+export async function fetchOpenStackDhcpAgents(data: {
+  openStackCloudId: ObjectID;
+  regionName?: string | undefined;
+}): Promise<Array<OpenStackResource>> {
+  return await fetchOpenStackRows({
+    openStackCloudId: data.openStackCloudId,
+    kind: OpenStackResourceKind.Service,
+    query: {
+      name: "neutron-dhcp-agent",
+      ...(data.regionName ? { regionName: data.regionName } : {}),
+    },
+    limit: 200,
   });
 }
 
@@ -336,13 +374,14 @@ export async function fetchOpenStackComputeServiceOf(data: {
  * host two hypervisors could both be. That takes every host and hypervisor in the project to
  * say, so the server does, the same way it does for a blast radius.
  */
-export async function fetchOpenStackHostOf(
-  machineName: string,
-): Promise<Host | null> {
+export async function fetchOpenStackHostOf(data: {
+  openStackCloudId: ObjectID;
+  machineName: string;
+}): Promise<Host | null> {
   const answer: JSONObject = await postToCloud({
     path: "/openstack-resource/host-of-machine",
-    openStackCloudId: ProjectUtil.getCurrentProjectId()!,
-    body: { machineName },
+    openStackCloudId: data.openStackCloudId,
+    body: { machineName: data.machineName },
   });
   const found: JSONObject | null | undefined = answer["host"] as
     | JSONObject

@@ -40,6 +40,7 @@ const COMPONENT_OF_API: Readonly<Record<string, string>> = {
   [OpenStackServiceType.Image]: "glance",
   [OpenStackServiceType.Identity]: "keystone",
   [OpenStackServiceType.Placement]: "placement",
+  [OpenStackServiceType.BareMetal]: "ironic",
 };
 
 /*
@@ -148,16 +149,25 @@ export function getOpenStackPartChangeAttributes(
 }
 
 /*
- * The audit-event attributes that say someone did something to this part: its id as the
- * API call's target. A Service's calls name the service record, which this cannot know, so
- * they are read from its change events' actor instead.
+ * The audit-event attributes that say someone did something to this part: its id, which an
+ * API call's path holds and its target does not. A Service's calls name the service record,
+ * which this cannot know, so they are read from its change events' actor instead.
  */
 export function getOpenStackPartAuditAttributes(
   part: OpenStackPartLogFacts,
 ): Record<string, string> | null {
   if (KINDS_WITH_THEIR_OWN_EVENTS.has(String(part.kind))) {
-    return { [OpenStackAuditAttribute.TargetId]: part.externalId };
+    return { [OpenStackAuditAttribute.PartId]: part.externalId };
   }
 
   return null;
+}
+
+/*
+ * What a person's call did to a part, in the audit filter's words: update/os-stop for what
+ * Nova's action says, and create, update or delete for the rest. A refused read changed
+ * nothing, so it is nobody's answer to who changed this.
+ */
+export function isOpenStackAuditReadAction(action: string): boolean {
+  return action === "read" || action.startsWith("read/");
 }

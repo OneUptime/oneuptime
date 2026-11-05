@@ -34,6 +34,9 @@ export const OPENSTACK_PART_READ_ERROR_TITLES: Partial<
     "Couldn't load this storage pool",
   ),
   [OpenStackResourceKind.Image]: translationKey("Couldn't load this image"),
+  [OpenStackResourceKind.BareMetalNode]: translationKey(
+    "Couldn't load this node",
+  ),
 };
 
 export interface ComponentProps {

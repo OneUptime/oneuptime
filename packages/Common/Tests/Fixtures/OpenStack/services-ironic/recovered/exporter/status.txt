@@ -1,0 +1,6 @@
+baremetal 200 0.121424s
+compute 200 0.136273s
+placement 200 0.152955s
+identity 200 0.065848s
+baremetal-as-devstack-system-admin 200 0.095838s
+all-at-once 200 0.531737s

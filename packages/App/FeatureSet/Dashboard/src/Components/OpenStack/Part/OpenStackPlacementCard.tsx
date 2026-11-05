@@ -1,5 +1,8 @@
 import ObjectID from "Common/Types/ObjectID";
-import { OpenStackPlacement } from "Common/Types/OpenStack/OpenStackLinks";
+import {
+  OpenStackContainerClusterLink,
+  OpenStackPlacement,
+} from "Common/Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
@@ -20,15 +23,12 @@ import {
 const LINK_CLASS_NAME: string =
   "font-medium text-indigo-600 hover:text-indigo-700 hover:underline";
 
-export const OpenStackPlacementLines: FunctionComponent<{
-  placement: OpenStackPlacement;
-}> = (props: { placement: OpenStackPlacement }): ReactElement => {
+function usePlacementRow(): (
+  label: string,
+  value: ReactElement,
+  testId: string,
+) => ReactElement {
   const translator: Translator = useTranslator();
-  const { placement } = props;
-  const routes: OpenStackPartRoutes = getOpenStackPartRoutes(
-    new ObjectID(placement.openStackCloudId),
-  );
-
   const row: (
     label: string,
     value: ReactElement,
@@ -49,6 +49,61 @@ export const OpenStackPlacementLines: FunctionComponent<{
       </div>
     );
   };
+  return row;
+}
+
+// The Magnum cluster a Kubernetes cluster is, for that cluster's own page.
+export const OpenStackMagnumClusterLines: FunctionComponent<{
+  link: OpenStackContainerClusterLink;
+}> = (props: { link: OpenStackContainerClusterLink }): ReactElement => {
+  const { link } = props;
+  const row: ReturnType<typeof usePlacementRow> = usePlacementRow();
+  const routes: OpenStackPartRoutes = getOpenStackPartRoutes(
+    new ObjectID(link.openStackCloudId),
+  );
+  return (
+    <div>
+      {row(
+        translationKey("OpenStack cloud"),
+        <Link to={routes.cloudRoute} className={LINK_CLASS_NAME}>
+          <bdi>{link.cloudName || link.openStackCloudId}</bdi>
+        </Link>,
+        "openstack-placement-cloud",
+      )}
+      {row(
+        translationKey("Magnum cluster"),
+        <Link
+          to={routes.getPartRoute(
+            OpenStackResourceKind.ContainerCluster,
+            link.externalId,
+          )}
+          className={LINK_CLASS_NAME}
+        >
+          <bdi>{link.name || link.externalId}</bdi>
+        </Link>,
+        "openstack-placement-magnum-cluster",
+      )}
+      {link.status ? (
+        row(
+          translationKey("Status"),
+          <bdi>{link.status}</bdi>,
+          "openstack-placement-magnum-status",
+        )
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
+export const OpenStackPlacementLines: FunctionComponent<{
+  placement: OpenStackPlacement;
+}> = (props: { placement: OpenStackPlacement }): ReactElement => {
+  const { placement } = props;
+  const routes: OpenStackPartRoutes = getOpenStackPartRoutes(
+    new ObjectID(placement.openStackCloudId),
+  );
+  const row: ReturnType<typeof usePlacementRow> = usePlacementRow();
 
   const lines: Array<ReactElement> = [
     row(
@@ -133,6 +188,56 @@ export const OpenStackPlacementLines: FunctionComponent<{
   }
 
   return <div>{lines}</div>;
+};
+
+// One of several places a thing runs: which instance, on which hypervisor, in which zone.
+export const OpenStackPlacementRow: FunctionComponent<{
+  placement: OpenStackPlacement;
+}> = (props: { placement: OpenStackPlacement }): ReactElement => {
+  const { placement } = props;
+  const routes: OpenStackPartRoutes = getOpenStackPartRoutes(
+    new ObjectID(placement.openStackCloudId),
+  );
+  return (
+    <li
+      data-testid="openstack-placement-row"
+      className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm md:px-6"
+    >
+      {placement.kind === "instance" ? (
+        <Link
+          to={routes.getPartRoute(
+            OpenStackResourceKind.Instance,
+            placement.externalId,
+          )}
+          className={LINK_CLASS_NAME}
+        >
+          <bdi>{placement.name || placement.externalId}</bdi>
+        </Link>
+      ) : (
+        <></>
+      )}
+      <span className="flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
+        {placement.hypervisorName ? (
+          <Link
+            to={routes.getHypervisorRoute(
+              placement.regionName,
+              placement.hypervisorName,
+            )}
+            className={LINK_CLASS_NAME}
+          >
+            <bdi>{placement.hypervisorName}</bdi>
+          </Link>
+        ) : (
+          <></>
+        )}
+        {placement.availabilityZone ? (
+          <bdi>{placement.availabilityZone}</bdi>
+        ) : (
+          <></>
+        )}
+      </span>
+    </li>
+  );
 };
 
 const OpenStackPlacementCard: FunctionComponent<{

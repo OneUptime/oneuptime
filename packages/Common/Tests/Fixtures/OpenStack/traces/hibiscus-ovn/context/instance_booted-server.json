@@ -1,0 +1,70 @@
+{
+  "OS-DCF:diskConfig": "MANUAL",
+  "OS-EXT-AZ:availability_zone": "nova",
+  "OS-EXT-SRV-ATTR:host": null,
+  "OS-EXT-SRV-ATTR:hostname": "ou-trace-vm",
+  "OS-EXT-SRV-ATTR:hypervisor_hostname": null,
+  "OS-EXT-SRV-ATTR:instance_name": null,
+  "OS-EXT-SRV-ATTR:kernel_id": null,
+  "OS-EXT-SRV-ATTR:launch_index": null,
+  "OS-EXT-SRV-ATTR:ramdisk_id": null,
+  "OS-EXT-SRV-ATTR:reservation_id": null,
+  "OS-EXT-SRV-ATTR:root_device_name": null,
+  "OS-EXT-SRV-ATTR:user_data": null,
+  "OS-EXT-STS:power_state": 1,
+  "OS-EXT-STS:task_state": null,
+  "OS-EXT-STS:vm_state": "active",
+  "OS-SRV-USG:launched_at": "2026-11-05T05:39:24.000000",
+  "OS-SRV-USG:terminated_at": null,
+  "accessIPv4": "",
+  "accessIPv6": "",
+  "addresses": {
+    "ou-net": [
+      "192.0.2.10"
+    ]
+  },
+  "config_drive": "",
+  "created": "2026-11-05T05:39:19Z",
+  "description": null,
+  "flavor": {
+    "name": "ou.tiny",
+    "original_name": "ou.tiny",
+    "description": null,
+    "disk": 1,
+    "is_public": true,
+    "ram": 128,
+    "vcpus": 1,
+    "swap": 0,
+    "ephemeral": 0,
+    "is_disabled": null,
+    "rxtx_factor": null,
+    "extra_specs": {},
+    "id": "ou.tiny",
+    "location": null
+  },
+  "hostId": "ae6f4f655504bc8afab2e50217d157c2f40feee49bae66d96a8798f1",
+  "host_status": null,
+  "id": "c2d61566-3fc2-4636-8d8b-82ae0b159f84",
+  "image": "cirros-0.6.3-x86_64-disk (e0904732-ff5c-4f82-9012-1b21d69b38c2)",
+  "key_name": null,
+  "locked": false,
+  "locked_reason": null,
+  "name": "ou-trace-vm",
+  "pinned_availability_zone": null,
+  "progress": 0,
+  "project_id": "01fb260c64934a0783e50490f2df1219",
+  "properties": {},
+  "scheduler_hints": {},
+  "security_groups": [
+    {
+      "name": "default"
+    }
+  ],
+  "server_groups": null,
+  "status": "ACTIVE",
+  "tags": [],
+  "trusted_image_certificates": null,
+  "updated": "2026-11-05T05:39:24Z",
+  "user_id": "33470d1895ea45c58f8ea6a83db72343",
+  "volumes_attached": []
+}

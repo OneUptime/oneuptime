@@ -21,6 +21,7 @@ The user documentation — install, what each resource may run, how fixes work, 
 | `aws` | AWS account | `AWS_ACCOUNT_ID` (defaults to the account STS says the agent is in) | `cloud` — one operation of a fixed catalog, as the one AWS API call it maps to |
 | `azure` | Azure subscription | `AZURE_SUBSCRIPTION_ID` (defaults to the one subscription its managed identity can read) | `cloud`, as one Azure Resource Manager call |
 | `gcp` (or `google-cloud`) | Google Cloud project | `GOOGLE_CLOUD_PROJECT` (defaults to the metadata server's project) | `cloud`, as one Compute Engine, Cloud Run or Cloud SQL call |
+| `openstack` | OpenStack cloud | `OPENSTACK_CLOUD_NAME` | `openstack` commands, each one read of the cloud's APIs. It only reads |
 
 The agent registers with the **same identity the collector reports**, so it serves exactly the resource the collector's telemetry created in OneUptime. If the collector still uses its default name (`docker-host`, `ceph`, …), every host installed with that default reports into the same resource — the agent warns about it at start-up. Give each one a unique name, on the collector and the agent alike.
 
@@ -37,6 +38,7 @@ The agent runs as one more service in the resource's collector `docker-compose.y
 | VMware vCenter | `agents/VMwareAgent/docker-compose.yml` | `oneuptime-vmware-ai-agent` |
 | Ceph cluster | `agents/CephAgent/docker-compose.yml` | `oneuptime-ceph-ai-agent` |
 | Database server | `agents/DatabaseAgent/docker-compose.yml` | `oneuptime-database-ai-agent` (no fixed container name) |
+| OpenStack cloud | `agents/OpenStackAgent/docker-compose.yml` (profile `openstack-ai-agent`) | `oneuptime-openstack-ai-agent` |
 | Host | `agents/HostAIAgent/docker-compose.yml`, with its own `install.sh` | `oneuptime-host-ai-agent` |
 
 The shape of the service (the collector's compose file carries the complete, per-resource version, with its socket, keyring or connection settings):
@@ -85,11 +87,11 @@ Programs then run as an argument list (never through a shell), with an environme
 
 ## Security model
 
-- **OneUptime never sends credentials.** The agent uses only what its own environment and mounts give it: the Docker socket, a Proxmox API token, vCenter credentials, a Ceph keyring, a database user, the host's namespaces. A job that carries a credential is refused.
+- **OneUptime never sends credentials.** The agent uses only what its own environment and mounts give it: the Docker socket, a Proxmox API token, vCenter credentials, a Ceph keyring, an OpenStack application credential, a database user, the host's namespaces. A job that carries a credential is refused.
 - **Least privilege is the hard limit.** Give the agent a read-only identity (a Proxmox auditor token, a read-only vCenter role, a `client.oneuptime-ai` keyring with `allow r` caps, a database user with monitoring grants) and nothing the policy allows can change anything. For a Docker or Podman socket and a host agent there is no finer-grained identity: the policy, the write switch and the write targets are the limit.
 - **Read-only by default**, and a typo never turns writes on: only the exact value `true` does.
 - **The agent protects itself.** It never changes its own container, the collector beside it, or `ONEUPTIME_AI_PROTECTED_TARGETS`.
-- The container runs as UID 1000 by default with a read-only root filesystem (the Proxmox, VMware, Ceph and database services also drop every capability). The Docker, Podman, Docker Swarm and host kinds run as root because the socket and the host's namespaces require it — and that is root on the host: whoever can use a Docker or Podman socket (`:ro` or not) or enter the host's namespaces can do anything there. For those four the command policy, the write switch and the write targets are the limit.
+- The container runs as UID 1000 by default with a read-only root filesystem (the Proxmox, VMware, Ceph and database services also drop every capability; the OpenStack service does too, and runs as the owner of `clouds.yaml`). The Docker, Podman, Docker Swarm and host kinds run as root because the socket and the host's namespaces require it — and that is root on the host: whoever can use a Docker or Podman socket (`:ro` or not) or enter the host's namespaces can do anything there. For those four the command policy, the write switch and the write targets are the limit.
 
 ## How it talks to OneUptime
 
@@ -111,7 +113,7 @@ It needs the same OneUptime version as the image, or newer. With an older server
 | --- | --- | --- |
 | `ONEUPTIME_URL` | — (required) | Your OneUptime address, e.g. `https://oneuptime.com`. |
 | `ONEUPTIME_API_KEY` / `ONEUPTIME_TELEMETRY_INGESTION_KEY` / `ONEUPTIME_SERVICE_TOKEN` | — (one required) | The project's telemetry ingestion key; the first one set is used (the collectors already set one). |
-| `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` | — (required) | `docker`, `podman`, `docker-swarm`, `proxmox`, `vmware`, `ceph`, `database`, `host`, `aws`, `azure` or `gcp`. |
+| `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` | — (required) | `docker`, `podman`, `docker-swarm`, `proxmox`, `vmware`, `ceph`, `database`, `host`, `aws`, `azure`, `gcp` or `openstack`. |
 | The collector's identity variable | — (required) | See [Supported resources](#supported-resources). |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | — | Overrides the identity read from the collector's variable. |
 | `ONEUPTIME_AI_INVESTIGATION` | on | `true` or `false`: whether OneUptime AI may run read-only commands while it investigates. A value it cannot read means off. |
@@ -203,6 +205,14 @@ Each type below lists the service that runs it, the settings it reads (all from 
 - **Settings:** the identity is the account the cloud says the agent is in, or `AWS_ACCOUNT_ID` / `AZURE_SUBSCRIPTION_ID` / `GOOGLE_CLOUD_PROJECT`; `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` (the OneUptime cloud account the setup command was written for) is sent when it registers. `ONEUPTIME_AI_CLOUD_OPERATIONS`: the catalog changes it may make, comma-separated (all of them when empty; a name it does not know is a warning, and a list with no name it knows enables nothing). `ONEUPTIME_AI_CLOUD_REQUIRED_TAG`: `key=value`, and only resources carrying exactly that tag (a label on Google Cloud, compared lowercased) are changed. AWS: `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN`, the role each change assumes; credentials from `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` or the ECS task role (`AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`, or `AWS_CONTAINER_CREDENTIALS_FULL_URI` with `AWS_CONTAINER_AUTHORIZATION_TOKEN(_FILE)`), the Region from `AWS_REGION` / `AWS_DEFAULT_REGION`. Azure: the Container Apps identity endpoint (`IDENTITY_ENDPOINT`, `IDENTITY_HEADER`), else IMDS; `AZURE_CLIENT_ID` for a user-assigned identity. Google Cloud: the metadata server.
 - **Runs** `cloud` — not a program, but one operation of the closed catalog (`packages/Common/Utils/AiRemediation/Resource/CloudOperationCatalog.ts`), each the ONE API call it maps to, signed with the agent's own identity (SigV4 for AWS, without an SDK). `cloud whoami` is the only read it runs; the other reads run on OneUptime through the account's read-only connection. Before a change it reads what the change replaces and checks its bounds (a scale stays within the group's own limits, or at most doubles a count nothing limits) and the required tag; a change's output starts with the value it replaced (`oneuptime-replaced-value: {...}`), the line OneUptime reads to undo it exactly. With a write role, each AWS change assumes it for 15 minutes with a session policy that allows that change alone: its changes on its one resource, its reads on `*`. Long-running operations are followed within the command's time limit.
 - **Targets and protection:** targets are the resources' ids (an ARN, an Azure resource ID — compared without case — or a Google Cloud full resource name), and only those of the agent's own account. It never changes what its setup command created (its stack, cluster and service, roles, resource group, Cloud Run service and service account), its own service as it finds it where it runs (from the ECS task metadata, `CONTAINER_APP_NAME`, `K_SERVICE`), or `ONEUPTIME_AI_PROTECTED_TARGETS`. The role's permissions are the hard limit.
+
+### OpenStack cloud
+
+- **Service:** `oneuptime-openstack-ai-agent` in `agents/OpenStackAgent/docker-compose.yml`, under the `openstack-ai-agent` profile. It runs as `OPENSTACK_EXPORTER_USER` (the owner of `clouds.yaml`), no capabilities, `no-new-privileges`, read-only root filesystem.
+- **Settings:** `OPENSTACK_CLOUD_NAME` (the identity). The credential: `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` when either is set (half a pair is refused), with `ONEUPTIME_AI_OPENSTACK_AUTH_URL` or `OPENSTACK_AUTH_URL`; else the entry of `clouds.yaml` (`OS_CLIENT_CONFIG_FILE`, by default `/etc/openstack/clouds.yaml`) named by `ONEUPTIME_AI_OPENSTACK_CLOUD`, else the first of `OPENSTACK_EXPORTER_CLOUDS` it holds. `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE` and `ONEUPTIME_AI_OPENSTACK_CA_FILE` say which region, which endpoints and which certificate authority, when `clouds.yaml` does not.
+- **Runs** no binary and no shell: an `openstack <command> [ID...] [--name value]` command is parsed by the policy (the same analysis that tiered it, `parseOpenStackCommand` in `packages/Common/Utils/AiRemediation/Resource/OpenStackCommandPolicy.ts`) into exactly one `GET` to the service the command's route names, found in the catalog Keystone gives it, over its own connection, never through the proxy and never following a redirect. A token is kept until a minute before it expires; a `401` on a kept token means one new login and one retry. A list prints the columns that say what is wrong, or `-f json` the whole answer, and is redacted: `user_data`, `adminPass`, `direct_url` and `provider_auth` on top of the generic rules.
+- **Fixes:** none. The policy has no command that changes a cloud, the agent refuses anything that is not a `GET` even if one reached it, and the server keeps the cloud's fix mode at off, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing and the agent warns if they are set.
+- **Targets and protection:** there are none to set. The credential's own role and access rules are the hard limit (`agents/OpenStackAgent/access/application-credential-access-rules.json` lists every path the policy can read, and only `GET`).
 
 ## Behind a proxy
 

@@ -2,6 +2,7 @@ import CloudResourceService from "../../../../../Server/Services/CloudResourceSe
 import DockerHostService from "../../../../../Server/Services/DockerHostService";
 import HostService from "../../../../../Server/Services/HostService";
 import KubernetesClusterService from "../../../../../Server/Services/KubernetesClusterService";
+import OpenStackCloudService from "../../../../../Server/Services/OpenStackCloudService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import NetworkDeviceService from "../../../../../Server/Services/NetworkDeviceService";
 import PodmanHostService from "../../../../../Server/Services/PodmanHostService";
@@ -180,6 +181,9 @@ beforeEach(() => {
     cluster: jest
       .spyOn(KubernetesClusterService, "findBy")
       .mockResolvedValue([]),
+    openStackCloud: jest
+      .spyOn(OpenStackCloudService, "findBy")
+      .mockResolvedValue([]),
     device: jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue([]),
     service: jest.spyOn(ServiceService, "findBy").mockResolvedValue([]),
     user: jest.spyOn(UserService, "findBy").mockResolvedValue([]),
@@ -207,6 +211,9 @@ describe("the kinds of record a log row names", () => {
     expect(getLogResourceKind(ServiceType.KubernetesCluster)).toBe(
       SecurityConnectionKind.KubernetesCluster,
     );
+    expect(getLogResourceKind(ServiceType.OpenStackCloud)).toBe(
+      SecurityConnectionKind.OpenStackCloud,
+    );
     expect(getLogResourceKind(ServiceType.CloudResource)).toBe(
       SecurityConnectionKind.CloudResource,
     );
@@ -216,7 +223,7 @@ describe("the kinds of record a log row names", () => {
     // A monitor's logs are OneUptime's own checks of it, not its target's.
     expect(getLogResourceKind(ServiceType.Monitor)).toBeNull();
     expect(getLogResourceKind("Unknown")).toBeNull();
-    expect(LOG_RESOURCE_KINDS.length).toBe(8);
+    expect(LOG_RESOURCE_KINDS.length).toBe(9);
   });
 
   test("a read refused for who is asking is told from one that failed", () => {
@@ -326,6 +333,61 @@ describe("names", () => {
       certainty: SecurityConnectionCertainty.Possible,
       matches: [{ reason: SecurityConnectionReason.UntypedValue }],
     });
+  });
+
+  test("an OpenStack cloud by its openstack.cloud.name, whole: never by a short form", async () => {
+    spies["openStackCloud"]!.mockResolvedValue([
+      { id: new ObjectID(CLUSTER_ID), name: "prod-eu" },
+    ] as never);
+
+    const exact: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Host, value: "prod-eu" },
+    ]);
+
+    expect(
+      record(exact, SecurityConnectionKind.OpenStackCloud, CLUSTER_ID)
+        ?.matches[0],
+    ).toMatchObject({
+      certainty: SecurityConnectionCertainty.Exact,
+      reason: SecurityConnectionReason.CloudName,
+    });
+
+    const short: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Host, value: "prod-eu.example.internal" },
+    ]);
+
+    expect(
+      record(short, SecurityConnectionKind.OpenStackCloud, CLUSTER_ID),
+    ).toBeUndefined();
+  });
+
+  test("an OpenStack cloud a case only says the name of may be another thing of that name", async () => {
+    spies["openStackCloud"]!.mockResolvedValue([
+      { id: new ObjectID(CLUSTER_ID), name: "prod-eu" },
+    ] as never);
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Other, value: "prod-eu" },
+    ]);
+
+    expect(
+      record(result, SecurityConnectionKind.OpenStackCloud, CLUSTER_ID)
+        ?.matches[0],
+    ).toMatchObject({
+      certainty: SecurityConnectionCertainty.Possible,
+      reason: SecurityConnectionReason.UntypedValue,
+    });
+  });
+
+  test("a project and an instance a case names are not looked for among the machines", async () => {
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.Other, value: "project payments" },
+      { type: SecurityEntityType.Other, value: "instance web-1" },
+    ]);
+
+    expect(result.records).toEqual([]);
+    expect(spies["host"]).not.toHaveBeenCalled();
+    expect(spies["openStackCloud"]).not.toHaveBeenCalled();
   });
 
   test("a cluster by its k8s.cluster.name, whole: never by a short form", async () => {

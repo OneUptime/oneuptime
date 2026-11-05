@@ -14,6 +14,9 @@
  * read, so a stopped Nova API's says nothing of Nova's workers, hypervisors or instances,
  * and the rows OneUptime holds for them stay as they were. Without them a page could never
  * be asked what it says about a last-known row, which is what that failure is about.
+ *
+ * "hibiscus-ovn/access/reader" is what the exporter answered that credential on a healthy
+ * cloud, for each level of access the docs describe (Tests/Ops/openstack-e2e/access-matrix.sh).
  */
 import RECORDINGS from "openstack-recordings";
 import {
@@ -23,6 +26,18 @@ import {
 } from "../../../Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
 
 export const RECORDING_NAMES = Object.keys(RECORDINGS).sort();
+
+/*
+ * Drills recorded by a later run than their cloud's healthy recording. Every run deploys its own
+ * cloud with its own IDs, so on top of that recording each part would read twice. Each is a whole
+ * scrape, so it needs nothing under it: nothing in these stops an API that would leave a gap.
+ */
+const SCENES_OF_A_LATER_RUN = new Set([
+  "compute-forced-down",
+  "external-network-full",
+  "router-agents-removed",
+  "l3-agent-down",
+]);
 
 export function hasRecording(name) {
   return Boolean(RECORDINGS[name]);
@@ -169,7 +184,11 @@ function onTopOf(earlierRows, laterRows) {
 function readScene(name, data) {
   const files = RECORDINGS[name];
   const buffer = new Map();
-  for (const text of Object.values(files)) {
+  for (const [file, text] of Object.entries(files)) {
+    // A service this cloud doesn't run answers nothing at all, so its series never existed.
+    if (data.without && file === `${data.without}.prom`) {
+      continue;
+    }
     for (const series of parsePrometheusText(text)) {
       const datapoint = toDatapoint(series, data.region, data.loadedAt);
       if (
@@ -195,7 +214,18 @@ export function rowsFromRecording(name, data) {
     );
   }
   const healthy = `${name.split("/")[0]}/healthy`;
-  return name !== healthy && hasRecording(healthy)
+  /*
+   * A credential's answers are all there ever was: it never could read the rest. Another
+   * exporter's answer stands alone: it is the only one that cloud's rows ever came from. And a
+   * capacity scene is a run of its own, whose cloud's IDs are in no other recording.
+   */
+  const isItsOwnWhole =
+    name === healthy ||
+    name.includes("/access/") ||
+    name.includes("/capacity/") ||
+    name.includes("@") ||
+    SCENES_OF_A_LATER_RUN.has(name.split("/")[1]);
+  return !isItsOwnWhole && hasRecording(healthy)
     ? onTopOf(readScene(healthy, data), readScene(name, data))
     : readScene(name, data);
 }

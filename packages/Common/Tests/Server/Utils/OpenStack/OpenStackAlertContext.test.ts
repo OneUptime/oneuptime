@@ -3,26 +3,48 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertOwnerRule from "../../../../Models/DatabaseModels/AlertOwnerRule";
 import IncidentOwnerRule from "../../../../Models/DatabaseModels/IncidentOwnerRule";
 import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudCheck from "../../../../Models/DatabaseModels/OpenStackCloudCheck";
 import OpenStackResource from "../../../../Models/DatabaseModels/OpenStackResource";
 import Team from "../../../../Models/DatabaseModels/Team";
 import AlertOwnerRuleEngineService from "../../../../Server/Services/AlertOwnerRuleEngineService";
+import OpenStackCloudCheckService from "../../../../Server/Services/OpenStackCloudCheckService";
 import OpenStackResourceService from "../../../../Server/Services/OpenStackResourceService";
 import { OwnerRulePlan } from "../../../../Server/Utils/Rules/OwnerRulePlan";
+import {
+  OpenStackLifecycleRun,
+  OpenStackLifecycleStep,
+} from "../../../../Types/OpenStack/OpenStackCheck";
 import OpenStackAlertContext, {
   OpenStackAlertContextResult,
+  OpenStackRegionWide,
   OpenStackSeriesPart,
   getOpenStackMetricNamesOfMonitor,
   getOpenStackPartOfSeries,
   getOpenStackProjectOfSeries,
+  getOpenStackRegionWide,
 } from "../../../../Server/Utils/OpenStack/OpenStackAlertContext";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   OpenStackBlastRadius,
   describeOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
+import { getEmptyOpenStackReachAcrossProducts } from "../../../../Types/OpenStack/OpenStackLinks";
 import { OPENSTACK_ANCHOR_METRIC_ALIAS } from "../../../../Types/Monitor/OpenStackAlertTemplates";
-import { OpenStackResourceKind } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackResourceKind,
+  OpenStackServiceType,
+} from "../../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  RecordedReading,
+  RecordedScene,
+  SCENE_REGION,
+  StoredMetricRow,
+  foldIntoInventory,
+  readClusterScene,
+  rowsOfReading,
+} from "../../../Types/Monitor/Utils/OpenStackControlPlaneScenes";
 import { getOpenStackScopePattern } from "../../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackScopedRulesCard";
 
 /*
@@ -101,6 +123,8 @@ describe("which part a series is about", () => {
       "Service:RegionOne/compute/compute-1/nova-compute",
       "Service:RegionOne/network/compute-1/nova-compute",
       "Service:RegionOne/volume/compute-1/nova-compute",
+      "Service:RegionOne/orchestration/compute-1/nova-compute",
+      "Service:RegionOne/container-infra/compute-1/nova-compute",
       "Hypervisor:RegionOne/compute-1",
     ]);
   });
@@ -116,11 +140,13 @@ describe("which part a series is about", () => {
     ).toEqual(["Hypervisor:RegionTwo/compute-1.example.internal"]);
   });
 
-  test("an ID could be a router, an instance or a volume, and the rows decide", () => {
+  test("an ID could be a router, an instance, a volume, a stack or a cluster, and the rows decide", () => {
     expect(kinds(getOpenStackPartOfSeries({ id: "x" }))).toEqual([
       "Router:x",
       "Instance:x",
       "Volume:x",
+      "Stack:x",
+      "ContainerCluster:x",
     ]);
   });
 
@@ -400,6 +426,544 @@ describe("adding it to a description", () => {
     findOneBy.mockRestore();
     getBlastRadius.mockRestore();
   });
+
+  /*
+   * A worker's own alert, read while what it stands on is down, as a real RabbitMQ with every
+   * node stopped left the rows: an incident that opens anyway (a monitor with no dependency, or
+   * one someone made by hand) says what it is probably caused by.
+   */
+  describe("what it is probably caused by", () => {
+    function rowsAfter(sceneName: string): Array<OpenStackResource> {
+      const scene: RecordedScene = readClusterScene(sceneName);
+      const now: number = Date.now();
+
+      return foldIntoInventory(
+        scene.readings.flatMap(
+          (reading: RecordedReading, index: number): Array<StoredMetricRow> => {
+            return rowsOfReading({
+              scene,
+              reading,
+              time: new Date(now - (scene.readings.length - index) * 60000),
+            });
+          },
+        ),
+      );
+    }
+
+    async function describeWorkerWith(
+      rows: Array<OpenStackResource>,
+    ): Promise<string | undefined> {
+      jest
+        .spyOn(OpenStackResourceService, "findOneBy")
+        .mockImplementation((async (data: {
+          query: { kind: OpenStackResourceKind; externalId: string };
+        }): Promise<OpenStackResource | null> => {
+          return data.query.kind === OpenStackResourceKind.Service
+            ? Object.assign(new OpenStackResource(), {
+                kind: OpenStackResourceKind.Service,
+                name: "nova-compute",
+                regionName: SCENE_REGION,
+                externalId: data.query.externalId,
+                facts: { host: "compute-1" },
+              })
+            : null;
+        }) as never);
+      jest
+        .spyOn(OpenStackResourceService, "getBlastRadius")
+        .mockResolvedValue(radius());
+      jest
+        .spyOn(OpenStackResourceService, "findBy")
+        .mockResolvedValue(rows as never);
+
+      const description: string | undefined =
+        await OpenStackAlertContext.addToDescription({
+          description: "nova-compute is down on compute-1.",
+          projectId: PROJECT_ID,
+          clouds: [cloud],
+          seriesLabels: {
+            hostname: "compute-1",
+            service: "nova-compute",
+            "openstack.region.name": SCENE_REGION,
+          },
+        });
+
+      jest.restoreAllMocks();
+
+      return description;
+    }
+
+    test("a worker's alert with RabbitMQ gone says so, and what that takes down", async () => {
+      const description: string | undefined = await describeWorkerWith(
+        rowsAfter("rabbitmq-cluster-down"),
+      );
+
+      expect(description).toContain("nova-compute is down on compute-1.");
+      expect(description).toContain("**Probably caused by:**");
+      expect(description).toContain(`RabbitMQ is down in ${SCENE_REGION}.`);
+      expect(description).toContain("Every OpenStack service talks through");
+    });
+
+    test("with RabbitMQ answering it says nothing of it", async () => {
+      expect(
+        await describeWorkerWith(rowsAfter("rabbitmq-healthy")),
+      ).not.toContain("Probably caused by");
+    });
+
+    test("a failed read leaves the alert as it was", async () => {
+      jest
+        .spyOn(OpenStackResourceService, "findBy")
+        .mockRejectedValue(new Error("Postgres went away") as never);
+
+      expect(
+        await OpenStackAlertContext.readProbableCauses({
+          projectId: PROJECT_ID,
+          openStackCloudId: PROJECT_ID,
+          partKind: OpenStackResourceKind.Service,
+          partName: "nova-compute",
+          partHost: "compute-1",
+          regionName: SCENE_REGION,
+        }),
+      ).toEqual([]);
+
+      jest.restoreAllMocks();
+    });
+  });
+});
+
+describe("a check's incident", () => {
+  const cloud: OpenStackCloud = Object.assign(new OpenStackCloud(), {
+    _id: CLOUD_ID.toString(),
+    id: CLOUD_ID,
+  });
+
+  function steps(metricName: string): JSONObject {
+    return {
+      data: {
+        monitorStepsInstanceArray: [
+          {
+            data: {
+              openstackMonitor: {
+                metricViewConfig: {
+                  queryConfigs: [
+                    { metricQueryData: { filterData: { metricName } } },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    } as unknown as JSONObject;
+  }
+
+  function failedRun(message: string): OpenStackLifecycleRun {
+    return {
+      runId: "20261105010203-abcdef",
+      regionName: "RegionOne",
+      startedAt: "2026-11-05T01:02:03.000Z",
+      finishedAt: "2026-11-05T01:12:03.000Z",
+      status: "Failed",
+      failedStep: OpenStackLifecycleStep.ServerActive,
+      fault: { source: "nova", code: 500, message },
+      steps: [
+        {
+          step: OpenStackLifecycleStep.ServerCreate,
+          status: "Passed",
+          durationInMs: 900,
+        },
+        {
+          step: OpenStackLifecycleStep.ServerActive,
+          status: "Failed",
+          durationInMs: 600000,
+          fault: { source: "nova", code: 500, message },
+        },
+      ],
+      phases: {},
+      leftoverCount: 0,
+      requestCount: 12,
+      writeCount: 3,
+      warnings: [],
+    };
+  }
+
+  function mockCheck(
+    run: OpenStackLifecycleRun,
+  ): ReturnType<typeof jest.spyOn> {
+    return jest
+      .spyOn(OpenStackCloudCheckService, "findOneBy")
+      .mockResolvedValue(
+        Object.assign(new OpenStackCloudCheck(), {
+          lifecycleRecords: {
+            RegionOne: {
+              regionName: "RegionOne",
+              lastVerdict: run,
+              phaseVerdicts: {},
+              recent: [],
+            },
+          },
+        }) as never,
+      );
+  }
+
+  test("names the step and Nova's fault, and reads no part of the cloud to do it", async () => {
+    const check: ReturnType<typeof jest.spyOn> = mockCheck(
+      failedRun("No valid host was found."),
+    );
+    const findPart: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      OpenStackResourceService,
+      "findOneBy",
+    );
+
+    const description: string | undefined =
+      await OpenStackAlertContext.addToDescription({
+        description: "An instance would not boot.",
+        projectId: PROJECT_ID,
+        clouds: [cloud],
+        seriesLabels: { "openstack.region.name": "RegionOne" },
+        monitorSteps: steps("openstack_check_lifecycle_phase_success"),
+      });
+
+    expect(description).toContain("An instance would not boot.");
+    expect(description).toContain("Wait for ACTIVE");
+    expect(description).toContain("Nova said");
+    expect(description).toContain("No valid host was found.");
+    expect(description).toContain("in RegionOne");
+    expect(findPart).not.toHaveBeenCalled();
+    check.mockRestore();
+    findPart.mockRestore();
+  });
+
+  test("what Nova wrote is text from outside, and cannot act as Markdown", async () => {
+    const check: ReturnType<typeof jest.spyOn> = mockCheck(
+      failedRun("![tracker](https://evil.example/x.png) <@channel>"),
+    );
+
+    const description: string | undefined =
+      await OpenStackAlertContext.addToDescription({
+        description: "",
+        projectId: PROJECT_ID,
+        clouds: [cloud],
+        seriesLabels: { "openstack.region.name": "RegionOne" },
+        monitorSteps: steps("openstack_check_lifecycle_phase_success"),
+      });
+
+    expect(description).toContain("\\![tracker]");
+    expect(description).not.toContain("<@channel>");
+    check.mockRestore();
+  });
+
+  test("a read that fails leaves the incident as it was", async () => {
+    const check: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackCloudCheckService, "findOneBy")
+      .mockRejectedValue(new Error("database is gone") as never);
+
+    expect(
+      await OpenStackAlertContext.addToDescription({
+        description: "An instance would not boot.",
+        projectId: PROJECT_ID,
+        clouds: [cloud],
+        seriesLabels: { "openstack.region.name": "RegionOne" },
+        monitorSteps: steps("openstack_check_lifecycle_phase_success"),
+      }),
+    ).toBe("An instance would not boot.");
+    check.mockRestore();
+  });
+});
+
+describe("a whole region's API", () => {
+  const cloud: OpenStackCloud = Object.assign(new OpenStackCloud(), {
+    _id: CLOUD_ID.toString(),
+  });
+
+  function apiRow(service: string, region: string): OpenStackResource {
+    return Object.assign(new OpenStackResource(), {
+      kind: OpenStackResourceKind.Api,
+      name: service,
+      regionName: region,
+      externalId: `${region}/${service}`,
+      facts: {},
+    });
+  }
+
+  // Reads the series as the alert opening on it would, against rows that hold this one API.
+  async function read(data: {
+    row: OpenStackResource;
+    labels: JSONObject;
+    metricNames?: Array<string> | undefined;
+    radius?: OpenStackBlastRadius | undefined;
+  }): Promise<{
+    result: OpenStackAlertContextResult;
+    asked: Array<{ kind: string; externalId: string }>;
+  }> {
+    const asked: Array<{ kind: string; externalId: string }> = [];
+    const findOneBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "findOneBy")
+      .mockImplementation((async (args: {
+        query: { kind: OpenStackResourceKind; externalId: string };
+      }): Promise<OpenStackResource | null> => {
+        asked.push({
+          kind: args.query.kind,
+          externalId: args.query.externalId,
+        });
+        return args.query.kind === data.row.kind &&
+          args.query.externalId === data.row.externalId
+          ? data.row
+          : null;
+      }) as never);
+    const getBlastRadius: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "getBlastRadius")
+      .mockResolvedValue(data.radius || radius());
+
+    try {
+      return {
+        result: await OpenStackAlertContext.read({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          seriesLabels: data.labels,
+          metricNames: data.metricNames,
+        }),
+        asked,
+      };
+    } finally {
+      findOneBy.mockRestore();
+      getBlastRadius.mockRestore();
+    }
+  }
+
+  const REGION_LABELS: JSONObject = { "openstack.region.name": "RegionTwo" };
+
+  test("says it is the region's, not one part's", async () => {
+    const { result } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_nova_up"],
+    });
+
+    expect(result.partKind).toBe(OpenStackResourceKind.Api);
+    expect(result.regionWide).toEqual({
+      regionName: "RegionTwo",
+      service: OpenStackServiceType.Compute,
+      isWholeCloud: false,
+    });
+    expect(OpenStackAlertContext.toMarkdown(result)).toContain(
+      "**What this affects across region RegionTwo:** 3 instances in 2 projects.",
+    );
+  });
+
+  test("still names each project it reaches, which is how their owners hear", async () => {
+    const { result } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_nova_up"],
+    });
+    const markdown: string = OpenStackAlertContext.toMarkdown(result);
+
+    expect(markdown).toContain("ou-payments");
+    expect(markdown).toContain(OU_PAYMENTS);
+    expect(markdown).toContain(OU_RESEARCH);
+  });
+
+  test("Keystone's reach is the whole cloud's, whichever region's exporter said so", async () => {
+    const { result } = await read({
+      row: apiRow("identity", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_identity_up"],
+    });
+
+    expect(result.regionWide?.isWholeCloud).toBe(true);
+    expect(OpenStackAlertContext.toMarkdown(result)).toContain(
+      "**What this affects across the whole cloud:** 3 instances in 2 projects.",
+    );
+  });
+
+  test("without the monitor's metrics, a region's series names no part at all", async () => {
+    const { result, asked } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+    });
+
+    expect(asked).toEqual([]);
+    expect(result.radius).toBeNull();
+    expect(result.regionWide).toBeUndefined();
+  });
+
+  test("a part of the region is not the region", async () => {
+    const { result } = await read({
+      row: Object.assign(new OpenStackResource(), {
+        kind: OpenStackResourceKind.Hypervisor,
+        name: "compute-1",
+        regionName: "RegionTwo",
+        hypervisorName: "compute-1",
+        externalId: "RegionTwo/compute-1",
+      }),
+      labels: { hostname: "compute-1", ...REGION_LABELS },
+      metricNames: ["openstack_nova_up"],
+    });
+
+    expect(result.partKind).toBe(OpenStackResourceKind.Hypervisor);
+    expect(result.regionWide).toBeUndefined();
+    expect(OpenStackAlertContext.toMarkdown(result)).toContain(
+      "**What this affects:** 3 instances in 2 projects.",
+    );
+  });
+
+  test("an API whose row is gone says nothing rather than guessing", async () => {
+    const { result } = await read({
+      row: apiRow("volume", "RegionOne"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_cinder_up"],
+    });
+
+    expect(result.radius).toBeNull();
+    expect(result.regionWide).toBeUndefined();
+  });
+
+  test("an empty region says nothing about what it takes", async () => {
+    const { result } = await read({
+      row: apiRow("compute", "RegionTwo"),
+      labels: REGION_LABELS,
+      metricNames: ["openstack_nova_up"],
+      radius: getEmptyOpenStackBlastRadius(),
+    });
+
+    expect(OpenStackAlertContext.toMarkdown(result)).toBe("");
+  });
+
+  test("a region someone named strangely is written as text", () => {
+    const markdown: string = OpenStackAlertContext.toMarkdown(
+      context({
+        radius: radius(),
+        regionWide: {
+          regionName: "**[click](https://evil.example)**",
+          service: OpenStackServiceType.Compute,
+          isWholeCloud: false,
+        },
+      }),
+    );
+
+    expect(markdown).not.toContain("[click](https://evil.example)");
+  });
+
+  test("the description written when a region's API alert opens says it all", async () => {
+    const findOneBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "findOneBy")
+      .mockImplementation((async (args: {
+        query: { kind: OpenStackResourceKind; externalId: string };
+      }): Promise<OpenStackResource | null> => {
+        return args.query.kind === OpenStackResourceKind.Api
+          ? apiRow("network", "RegionTwo")
+          : null;
+      }) as never);
+    const getBlastRadius: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(OpenStackResourceService, "getBlastRadius")
+      .mockResolvedValue(radius());
+
+    const description: string | undefined =
+      await OpenStackAlertContext.addToDescription({
+        description: "The Network API is down.",
+        projectId: PROJECT_ID,
+        clouds: [cloud],
+        seriesLabels: REGION_LABELS,
+        monitorSteps: {
+          data: {
+            monitorStepsInstanceArray: [
+              {
+                data: {
+                  openstackMonitor: {
+                    metricViewConfig: {
+                      queryConfigs: [
+                        {
+                          metricQueryData: {
+                            filterData: { metricName: "openstack_neutron_up" },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+
+    expect(description).toContain("The Network API is down.");
+    expect(description).toContain("across region RegionTwo");
+    findOneBy.mockRestore();
+    getBlastRadius.mockRestore();
+  });
+});
+
+describe("which rows count as a whole region's API", () => {
+  test.each<
+    [
+      string,
+      {
+        kind?: OpenStackResourceKind;
+        name?: string;
+        regionName?: string;
+      },
+      OpenStackRegionWide | null,
+    ]
+  >([
+    [
+      "compute in a region",
+      {
+        kind: OpenStackResourceKind.Api,
+        name: "compute",
+        regionName: "RegionOne",
+      },
+      {
+        regionName: "RegionOne",
+        service: OpenStackServiceType.Compute,
+        isWholeCloud: false,
+      },
+    ],
+    [
+      "identity, which is global",
+      {
+        kind: OpenStackResourceKind.Api,
+        name: "identity",
+        regionName: "RegionOne",
+      },
+      {
+        regionName: "RegionOne",
+        service: OpenStackServiceType.Identity,
+        isWholeCloud: true,
+      },
+    ],
+    [
+      "a cloud that names no region",
+      { kind: OpenStackResourceKind.Api, name: "network" },
+      {
+        regionName: null,
+        service: OpenStackServiceType.Network,
+        isWholeCloud: false,
+      },
+    ],
+    [
+      "a service this product does not know",
+      { kind: OpenStackResourceKind.Api, name: "object-store" },
+      null,
+    ],
+    ["no name", { kind: OpenStackResourceKind.Api }, null],
+    [
+      "a worker",
+      { kind: OpenStackResourceKind.Service, name: "compute" },
+      null,
+    ],
+    ["a hypervisor", { kind: OpenStackResourceKind.Hypervisor }, null],
+    ["nothing", {}, null],
+  ])(
+    "%s",
+    (
+      _name: string,
+      part: Parameters<typeof getOpenStackRegionWide>[0],
+      expected: ReturnType<typeof getOpenStackRegionWide>,
+    ) => {
+      expect(getOpenStackRegionWide(part)).toEqual(expected);
+    },
+  );
 });
 
 describe("an owner rule on a project assigns its team", () => {
@@ -560,6 +1124,97 @@ describe("what an alert on a hypervisor says beyond the cloud", () => {
     };
   }
 
+  test("it names the Magnum clusters with a server on it, whether or not the Kubernetes agent runs on them", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 3,
+          magnumClusters: [
+            {
+              kind: OpenStackResourceKind.ContainerCluster,
+              externalId: "c1",
+              name: "ou-cluster",
+              status: "CREATE_COMPLETE",
+            },
+            {
+              kind: OpenStackResourceKind.ContainerCluster,
+              externalId: "c2",
+              name: null,
+              status: null,
+            },
+          ],
+        },
+      }),
+    );
+    expect(text).toContain(
+      "**Kubernetes clusters with a server on it:** ou-cluster, c2.",
+    );
+  });
+
+  test("a hypervisor with none on it says nothing of them", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 3,
+          magnumClusters: [],
+        },
+      }),
+    );
+    expect(text).not.toContain("Kubernetes clusters");
+  });
+
+  test("a server of a Magnum cluster names it, though it can't say what the server holds", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        partKind: OpenStackResourceKind.Instance,
+        radius: {
+          ...getEmptyOpenStackBlastRadius(false),
+          belongsTo: [
+            {
+              kind: OpenStackResourceKind.ContainerCluster,
+              externalId: "c1",
+              name: "ou-cluster",
+              status: "CREATE_FAILED",
+            },
+          ],
+        },
+      }),
+    );
+    expect(text).toContain("**Part of Kubernetes cluster:** ou-cluster.");
+  });
+
+  test("an instance a stack owns names that stack, and a cluster names the stack it was built with", () => {
+    const stack: OpenStackBlastRadius = {
+      ...getEmptyOpenStackBlastRadius(false),
+      belongsTo: [
+        {
+          kind: OpenStackResourceKind.Stack,
+          externalId: "s1",
+          name: "ou-stack",
+          status: "CREATE_FAILED",
+        },
+      ],
+    };
+    expect(
+      OpenStackAlertContext.toMarkdown(
+        contextWith({
+          partKind: OpenStackResourceKind.Instance,
+          radius: stack,
+        }),
+      ),
+    ).toContain("**Part of Heat stack:** ou-stack.");
+    expect(
+      OpenStackAlertContext.toMarkdown(
+        contextWith({
+          partKind: OpenStackResourceKind.ContainerCluster,
+          radius: stack,
+        }),
+      ),
+    ).toContain("**Built with Heat stack:** ou-stack.");
+  });
+
   test("it lists the hosts, Kubernetes clusters and services it takes with it", () => {
     const text: string = OpenStackAlertContext.toMarkdown(
       contextWith({
@@ -583,6 +1238,97 @@ describe("what an alert on a hypervisor says beyond the cloud", () => {
     );
     expect(text).toContain("Kubernetes cluster prod: 2 nodes");
     expect(text).toContain("Service checkout");
+  });
+
+  test("it names the hosts and Kubernetes nodes themselves, and which host is the machine", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 2,
+          acrossProducts: {
+            hostCount: 2,
+            hosts: [
+              { id: "h1", name: "compute-07", isHypervisor: true },
+              { id: "h2", name: "web-guest", isHypervisor: false },
+            ],
+            kubernetesNodeCount: 1,
+            kubernetesNodes: [
+              {
+                clusterId: "c",
+                clusterName: "prod",
+                nodeName: "node-1",
+                instanceId: "i",
+              },
+            ],
+            kubernetesClusters: [{ id: "c", name: "prod", nodeCount: 1 }],
+            serviceCount: 0,
+            services: [],
+          },
+        },
+      }),
+    );
+    expect(text).toContain("Host compute-07: this machine");
+    expect(text).toContain("Host web-guest");
+    expect(text).not.toContain("Host web-guest: this machine");
+    expect(text).toContain("Kubernetes node node-1 in prod");
+  });
+
+  test("it names the instances, up to a limit, and says how many more", () => {
+    const instances: Array<{ id: string; name: string | null }> = [];
+    for (let index: number = 0; index < 50; index++) {
+      instances.push({ id: `id-${index}`, name: `web${index}` });
+    }
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 50,
+          acrossProducts: {
+            ...getEmptyOpenStackReachAcrossProducts(),
+            instanceCount: 53,
+            instances,
+          },
+        },
+      }),
+    );
+    expect(text).toContain("**Instances:** web0, web1,");
+    expect(text).toContain("web19, and 33 more.");
+    expect(text).not.toContain("web20");
+  });
+
+  test("an instance with no name goes by its ID", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 1,
+          acrossProducts: {
+            ...getEmptyOpenStackReachAcrossProducts(),
+            instanceCount: 1,
+            instances: [{ id: "abc", name: null }],
+          },
+        },
+      }),
+    );
+    expect(text).toContain("**Instances:** abc.");
+  });
+
+  test("an instance's name can't write markdown into the description", () => {
+    const text: string = OpenStackAlertContext.toMarkdown(
+      contextWith({
+        radius: {
+          ...getEmptyOpenStackBlastRadius(),
+          instanceCount: 1,
+          acrossProducts: {
+            ...getEmptyOpenStackReachAcrossProducts(),
+            instanceCount: 1,
+            instances: [{ id: "abc", name: "**bold**" }],
+          },
+        },
+      }),
+    );
+    expect(text).not.toContain("**bold**");
   });
 
   test("a hypervisor with nothing beyond the cloud says nothing about it", () => {

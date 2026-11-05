@@ -398,6 +398,11 @@ describe("with traces", () => {
       }),
       resource({
         kind: OpenStackResourceKind.Service,
+        name: "heat-engine",
+        facts: { family: "orchestration" },
+      }),
+      resource({
+        kind: OpenStackResourceKind.Service,
         name: "neutron-ovn-metadata-agent",
         facts: { family: "network" },
       }),
@@ -413,14 +418,88 @@ describe("with traces", () => {
       "openstack-traces-services-not-seen",
     );
 
-    expect(notSeen).toHaveTextContent("cinder-volume");
+    expect(notSeen).toHaveTextContent("heat-engine");
     // nova-api is what the compute API's row means to a trace, and it was seen.
     expect(notSeen).not.toHaveTextContent("nova-api");
+    // It sends nothing as shipped, however many requests reach it, and says so on its own.
+    expect(notSeen).not.toHaveTextContent("cinder-volume");
+    expect(
+      screen.getByTestId("openstack-traces-gap-services-always-forks"),
+    ).toHaveTextContent("cinder-volume");
     // No request is signed through a Neutron agent.
     expect(notSeen).not.toHaveTextContent("neutron-ovn-metadata-agent");
     expect(screen.getByTestId("openstack-traces-status")).toHaveTextContent(
       "no fault",
     );
+  });
+
+  test("each service that sends nothing as shipped says why, in its own words", async () => {
+    stand.spans = [tracedSpan()];
+    stand.resources = [
+      resource({ kind: OpenStackResourceKind.Api, name: "placement" }),
+      resource({
+        kind: OpenStackResourceKind.Service,
+        name: "nova-conductor",
+        facts: { family: "compute" },
+      }),
+      resource({
+        kind: OpenStackResourceKind.Service,
+        name: "nova-scheduler",
+        facts: { family: "compute" },
+      }),
+      resource({
+        kind: OpenStackResourceKind.Service,
+        name: "cinder-volume",
+        facts: { family: "volume" },
+      }),
+    ];
+
+    renderPage();
+
+    const placement: HTMLElement = await screen.findByTestId(
+      "openstack-traces-gap-driver-cannot-start",
+    );
+
+    expect(placement).toHaveTextContent("placement-api");
+    expect(placement).toHaveTextContent("One line fixes it");
+
+    const nova: HTMLElement = screen.getByTestId(
+      "openstack-traces-gap-forked-workers",
+    );
+
+    expect(nova).toHaveTextContent("nova-conductor");
+    expect(nova).toHaveTextContent("nova-scheduler");
+    expect(nova).toHaveTextContent("more than one worker");
+    expect(
+      screen.getByTestId("openstack-traces-gap-always-forks"),
+    ).toHaveTextContent("no setting");
+    // None of them is left to read as if a request simply had not reached it.
+    expect(
+      screen.queryByTestId("openstack-traces-services-not-seen"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a service that has sent spans is simply in a trace, whatever a stock cloud does", async () => {
+    stand.spans = [
+      tracedSpan({
+        attributes: {
+          "openstack.service": "placement-api",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+        },
+      }),
+    ];
+    stand.resources = [
+      resource({ kind: OpenStackResourceKind.Api, name: "placement" }),
+    ];
+
+    renderPage();
+
+    expect(
+      await screen.findByTestId("openstack-traces-services-seen"),
+    ).toHaveTextContent("placement-api");
+    expect(
+      screen.queryByTestId("openstack-traces-gap-driver-cannot-start"),
+    ).not.toBeInTheDocument();
   });
 
   test("its list is the cloud's, by the same key a host's or a cluster's page uses", async () => {
@@ -720,6 +799,49 @@ describe("the card above a trace", () => {
     );
   });
 
+  test("a span under something that sent nothing says what a stock cloud leaves out", async () => {
+    stand.spans = [
+      tracedSpan({
+        spanId: "aaaaaaaaaaaaaaaa",
+        parentSpanId: "never-sent",
+        attributes: {
+          "openstack.service": "nova-compute",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+        },
+      }),
+    ];
+
+    renderCard();
+
+    const leftOut: HTMLElement = await screen.findByTestId(
+      "openstack-trace-left-out",
+    );
+
+    expect(leftOut).toHaveTextContent("nova-conductor");
+    expect(leftOut).toHaveTextContent("placement-api");
+    expect(leftOut).toHaveTextContent("never arrived");
+  });
+
+  test("a trace with nothing missing has nothing to explain", async () => {
+    stand.spans = [
+      tracedSpan({
+        spanId: "aaaaaaaaaaaaaaaa",
+        parentSpanId: "",
+        attributes: {
+          "openstack.service": "nova-api",
+          "resource.openstack.cloud.name": CLOUD_NAME,
+        },
+      }),
+    ];
+
+    renderCard();
+
+    expect(await screen.findByTestId("openstack-trace-services")).toBeDefined();
+    expect(
+      screen.queryByTestId("openstack-trace-left-out"),
+    ).not.toBeInTheDocument();
+  });
+
   test("spans with no cloud say what would join them, and link nothing", async () => {
     stand.spans = [
       tracedSpan({ attributes: { "openstack.service": "nova-api" } }),
@@ -968,5 +1090,32 @@ describe("a part's Traces tab", () => {
     expect((props["entityScope"] as JSONObject)["entityKeys"]).toEqual([
       keyForOpenStackCloud(PROJECT_ID, CLOUD_NAME),
     ]);
+    expect(props["emptyMessage"]).toContain("No traced request has reached");
   });
+
+  test.each([
+    [OpenStackResourceKind.Api, "placement"],
+    [OpenStackResourceKind.Service, "nova-conductor"],
+    [OpenStackResourceKind.Service, "nova-scheduler"],
+    [OpenStackResourceKind.Service, "cinder-volume"],
+  ])(
+    "an empty one on a %s named %s does not say no request reached it",
+    (kind: OpenStackResourceKind, name: string) => {
+      render(
+        <MemoryRouter>
+          <OpenStackPartTraces
+            part={partOf(kind, `RegionOne/${name}`)}
+            row={resource({ kind, name, facts: { family: "compute" } })}
+          />
+        </MemoryRouter>,
+      );
+
+      const props: JSONObject = JSON.parse(
+        screen.getByTestId("traces-viewer").textContent || "{}",
+      );
+
+      expect(props["emptyMessage"]).toContain("sends no spans as OpenStack");
+      expect(props["emptyMessage"]).not.toContain("has reached");
+    },
+  );
 });

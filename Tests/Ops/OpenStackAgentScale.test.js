@@ -54,7 +54,7 @@ describe("sharing a cloud between agents", () => {
   const jobs = config.receivers.prometheus.config.scrape_configs;
 
   test("every service's job can be turned off by name, in one setting", () => {
-    expect(jobs).toHaveLength(6);
+    expect(jobs).toHaveLength(15);
 
     for (const job of jobs) {
       expect(job.relabel_configs).toEqual(
@@ -86,7 +86,31 @@ describe("sharing a cloud between agents", () => {
     ["compute|placement", ["compute", "placement"]],
     ["identity|image", ["identity", "image"]],
     ["network", ["network"]],
-    [".*", ["identity", "compute", "placement", "network", "volume", "image"]],
+    [
+      ".*",
+      [
+        "identity",
+        "compute",
+        "placement",
+        "network",
+        "volume",
+        "image",
+        "load-balancer",
+        "baremetal",
+        "orchestration",
+        "container-infra",
+        "sharev2",
+        "dns",
+        "object-store",
+        "database",
+        "gnocchi",
+      ],
+    ],
+    // How someone goes back to the core services, as the docs say.
+    [
+      "identity|compute|placement|network|volume|image",
+      ["identity", "compute", "placement", "network", "volume", "image"],
+    ],
   ])("%s keeps the jobs it names, and no others", (regex, expected) => {
     // Prometheus anchors a relabel regex at both ends.
     const anchored = new RegExp(`^(?:${regex})$`);
@@ -158,7 +182,7 @@ describe("the database path", () => {
       expect(install).toContain(name);
     }
 
-    expect(install).toContain('for name in $VERY_LARGE_CLOUD_NAMES; do');
+    expect(install).toContain('for name in $VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES; do');
   });
 
   test("is read on /metrics, with the service and region the per-service jobs give", () => {
@@ -285,16 +309,22 @@ describe("the database path", () => {
     for (const flag of [
       // Each names the series whose read fills the rest.
       "nova-total_vms",
-      "nova-current_workload",
+      "nova-running_vms",
       "nova-flavors",
       "nova-availability_zones",
       "cinder-volumes",
+      "cinder-volume_status",
       "cinder-snapshots",
-      "cinder-backups",
       "cinder-agent_state",
     ]) {
       expect(off).toContain(`--disable-metric=${flag}`);
     }
+
+    /*
+     * Read at the exporter's pinned revision and seen on the rig: ListHypervisors reads on when
+     * nova-current_workload alone is off, and panics writing it at exporters/nova.go:223.
+     */
+    expect(off).not.toContain("--disable-metric=nova-current_workload");
 
     expect(workers.image).toBe(
       compose.services["openstack-exporter"].image,

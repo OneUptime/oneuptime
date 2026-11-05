@@ -1,10 +1,17 @@
 import {
   OpenStackResourceBufferEntry,
   OPENSTACK_API_UP_METRIC_NAMES,
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SNAPSHOT_METRIC_NAMES,
+  OpenStackOptionalServiceScrape,
+  bufferOpenStackOptionalServiceScrape,
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
   finishOpenStackResource,
+  getOpenStackApiRowExternalId,
+  getOpenStackRoutersWithoutAgents,
+  hasOpenStackContainerClusterProjectToJoin,
+  isOpenStackOptionalServiceScrapeDatapoint,
   isOpenStackSnapshotDatapoint,
 } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONObject } from "../../../../Types/JSON";
@@ -129,6 +136,84 @@ describe("isOpenStackSnapshotDatapoint", () => {
       }),
     ).toBe(false);
   });
+});
+
+/*
+ * The agent asks for every service the exporter can read, on every cloud. Recorded on a
+ * DevStack with none of these: each answered 200 with nothing, so `up` reads 1 with no
+ * series beside it, and when the exporter is down it reads 0 for all of them.
+ *
+ * Adding one of these to OpenStackServiceType must not change this, or every cloud gets a
+ * row for a service it does not run, on Services and Topology, and a red one whenever the
+ * exporter restarts. A row for one comes from the series the exporter says about it.
+ */
+describe("a scrape of a service this cloud may not run", () => {
+  const SERVICES_A_CLOUD_MAY_NOT_RUN: Array<string> = [
+    "load-balancer",
+    "baremetal",
+    "orchestration",
+    "container-infra",
+    "sharev2",
+    "dns",
+    "object-store",
+    "database",
+    "gnocchi",
+  ];
+
+  test.each(SERVICES_A_CLOUD_MAY_NOT_RUN)(
+    "%s: an empty scrape, and an exporter that is down, leave no trace",
+    (service: string) => {
+      for (const [metricName, value] of [
+        ["up", 1],
+        ["up", 0],
+        ["scrape_duration_seconds", 0.013],
+      ] as Array<[string, number]>) {
+        expect(
+          isOpenStackSnapshotDatapoint({
+            metricName,
+            datapoint: datapoint({
+              value,
+              labels: { openstack_service: service },
+            }),
+          }),
+        ).toBe(false);
+      }
+    },
+  );
+
+  test("the services every cloud runs keep their rows, so a failed scrape still reads down", () => {
+    for (const service of OPENSTACK_SERVICES_EVERY_CLOUD_RUNS) {
+      for (const metricName of ["up", "scrape_duration_seconds"]) {
+        expect(
+          isOpenStackSnapshotDatapoint({
+            metricName,
+            datapoint: datapoint({
+              value: 0,
+              labels: { openstack_service: service },
+            }),
+          }),
+        ).toBe(true);
+      }
+    }
+    expect(Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS).sort()).toEqual(
+      ["compute", "identity", "image", "network", "placement", "volume"].sort(),
+    );
+  });
+
+  test.each(["libvirt", "ceilometer"])(
+    "%s, which reads compute nodes, is no API to list either",
+    (service: string) => {
+      expect(
+        isOpenStackSnapshotDatapoint({
+          metricName: "up",
+          datapoint: datapoint({
+            value: 1,
+            labels: { openstack_service: service },
+          }),
+        }),
+      ).toBe(false);
+    },
+  );
 });
 
 describe("an API's state", () => {
@@ -497,6 +582,7 @@ describe("a hypervisor's capacity", () => {
     const buffer: Buffer = new Map();
     resource(buffer, "total", "VCPU", 2);
     resource(buffer, "reserved", "VCPU", 4);
+    resource(buffer, "allocation_ratio", "VCPU", 1);
     expect(
       rowOf(buffer, OpenStackResourceKind.Hypervisor, "RegionOne/compute-01")
         .vcpuCapacity,
@@ -544,6 +630,7 @@ describe("a hypervisor's capacity", () => {
     fold(buffer, "openstack_nova_vcpus_available", { value: 32, labels });
     fold(buffer, "openstack_nova_vcpus_used", { value: 4, labels });
     resource(buffer, "total", "VCPU", 32);
+    resource(buffer, "reserved", "VCPU", 0);
     resource(buffer, "allocation_ratio", "VCPU", 4);
     resource(buffer, "usage", "VCPU", 8);
     const row: OpenStackResourceBufferEntry = rowOf(
@@ -689,12 +776,28 @@ describe("instances", () => {
       expect(row.facts["faultMessage"]).toBeNull();
     });
 
+    test("an address a probe says is kept, and one that went is written down as gone", () => {
+      expect(
+        instanceRow({
+          updated_at: "2026-11-04T11:00:00Z",
+          address_ipv4: "172.24.4.33",
+          address_ipv6: "fd00::5",
+        }).facts,
+      ).toMatchObject({ addressIpv4: "172.24.4.33", addressIpv6: "fd00::5" });
+
+      expect(
+        instanceRow({ updated_at: "2026-11-04T11:00:00Z" }).facts,
+      ).toMatchObject({ addressIpv4: null, addressIpv6: null });
+    });
+
     test("the exporter saying nothing of them is not the same as there being none", () => {
       const row: OpenStackResourceBufferEntry = instanceRow({});
 
       expect(Object.keys(row.facts)).not.toContain("updatedAt");
       expect(Object.keys(row.facts)).not.toContain("taskState");
       expect(Object.keys(row.facts)).not.toContain("faultMessage");
+      expect(Object.keys(row.facts)).not.toContain("addressIpv4");
+      expect(Object.keys(row.facts)).not.toContain("addressIpv6");
     });
 
     test("none of it is mistaken for metadata an operator chose to see", () => {
@@ -711,6 +814,41 @@ describe("instances", () => {
 });
 
 describe("storage", () => {
+  describe("which pool holds a volume", () => {
+    function volumeRow(labels: LabelMap): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+
+      fold(buffer, "openstack_cinder_volume_gb", {
+        value: 10,
+        labels: { id: "vol-1", status: "available", ...labels },
+      });
+
+      return rowOf(buffer, OpenStackResourceKind.Volume, "vol-1");
+    }
+
+    test("a probe that was told says it", () => {
+      expect(
+        volumeRow({
+          updated_at: "2026-11-04T10:00:00.000000",
+          pool: "host@lvm#lvm",
+        }).facts["pool"],
+      ).toBe("host@lvm#lvm");
+    });
+
+    test("a probe no longer told writes it down as gone, or it would stay for ever", () => {
+      const row: OpenStackResourceBufferEntry = volumeRow({
+        updated_at: "2026-11-04T10:00:00.000000",
+      });
+
+      expect(Object.keys(row.facts)).toContain("pool");
+      expect(row.facts["pool"]).toBeNull();
+    });
+
+    test("the exporter, which never knows, leaves what is there alone", () => {
+      expect(Object.keys(volumeRow({}).facts)).not.toContain("pool");
+    });
+  });
+
   test("a volume keeps Cinder's word, its size, and what it is attached to", () => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_cinder_volume_gb", {
@@ -755,6 +893,70 @@ describe("storage", () => {
       "vol-1",
     );
     expect(row.facts).toHaveProperty("attachedToInstance", null);
+  });
+
+  /*
+   * What says an image is in use, and how old a snapshot is. A probe always writes the first, none
+   * included, so a row that doesn't have it at all is one nobody can tell about: the exporter's.
+   */
+  test("a probe's volume says which image it came from, and none when it came from none", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_cinder_volume_gb", {
+      value: 10,
+      labels: {
+        id: "from-image",
+        status: "in-use",
+        image_id: "image-1",
+        updated_at: "2026-11-04T10:58:17Z",
+      },
+    });
+    fold(buffer, "openstack_cinder_volume_gb", {
+      value: 10,
+      labels: {
+        id: "blank",
+        status: "in-use",
+        updated_at: "2026-11-04T10:58:17Z",
+      },
+    });
+    fold(buffer, "openstack_cinder_volume_gb", {
+      value: 10,
+      labels: { id: "exporters", status: "in-use" },
+    });
+
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Volume, "from-image").facts["imageId"],
+    ).toBe("image-1");
+    expect(rowOf(buffer, OpenStackResourceKind.Volume, "blank").facts).toHaveProperty(
+      "imageId",
+      null,
+    );
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Volume, "exporters").facts,
+    ).not.toHaveProperty("imageId");
+  });
+
+  test("a probe's snapshot says when it was made, and its image whether it's protected", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_cinder_snapshot_gb", {
+      value: 1,
+      labels: {
+        id: "snap",
+        status: "available",
+        created_at: "2026-08-01T00:00:00.000000",
+        updated_at: "2026-11-04T10:58:17Z",
+      },
+    });
+    fold(buffer, "openstack_glance_image_created_at", {
+      value: 1793795532,
+      labels: { id: "image", status: "active", protected: "true" },
+    });
+
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Snapshot, "snap").facts["createdAt"],
+    ).toBe("2026-08-01T00:00:00.000000");
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Image, "image").facts["isProtected"],
+    ).toBe(true);
   });
 
   test("a backup is a row of its own, which only a probe sends", () => {
@@ -1019,6 +1221,330 @@ describe("networks", () => {
     });
   });
 
+  describe("what an instance booted from", () => {
+    function instanceWith(labels: LabelMap): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_nova_server_status", {
+        value: 0,
+        labels: {
+          id: "server-1",
+          uuid: "server-1",
+          status: "ACTIVE",
+          ...labels,
+        },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Instance, "server-1");
+    }
+
+    test("a probe names its image, and that is no metadata an operator chose", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+        image_id: "image-1",
+      });
+      expect(row.facts["imageId"]).toBe("image-1");
+      expect(row.facts["labels"]).toEqual({});
+    });
+
+    test("a probe says which networks it is on, and that is no metadata either", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+        network_names: '["private","a, b"]',
+      });
+      expect(row.facts["networkNames"]).toEqual(["private", "a, b"]);
+      expect(row.facts["labels"]).toEqual({});
+    });
+
+    test("none is an answer, and one cut short is not", () => {
+      expect(
+        instanceWith({
+          updated_at: "2026-11-04T11:00:00Z",
+          network_names: "[]",
+        }).facts["networkNames"],
+      ).toEqual([]);
+      expect(
+        instanceWith({
+          updated_at: "2026-11-04T11:00:00Z",
+          network_names: '["private","sto',
+        }).facts["networkNames"],
+      ).toBeNull();
+    });
+
+    test("a probe naming none says so, which is how one that was rebuilt onto a volume clears", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+      });
+      expect(Object.keys(row.facts)).toContain("imageId");
+      expect(row.facts["imageId"]).toBeNull();
+    });
+
+    test("the exporter saying nothing isn't the same as there being none", () => {
+      expect(Object.keys(instanceWith({}).facts)).not.toContain("imageId");
+    });
+  });
+
+  describe("a Nova worker an operator forced down", () => {
+    const COMPUTE: string = "RegionOne/compute/compute-01/nova-compute";
+
+    function foldWorker(data: {
+      value: number;
+      forcedDown?: string | undefined;
+    }): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_nova_agent_state", {
+        value: data.value,
+        labels: {
+          hostname: "compute-01",
+          service: "nova-compute",
+          adminState: "enabled",
+          ...(data.forcedDown === undefined
+            ? {}
+            : { forced_down: data.forcedDown }),
+        },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Service, COMPUTE);
+    }
+
+    test.each<[string, number, string | undefined, string, boolean | null]>([
+      // What Nova really sends: forced down is down.
+      ["forced down, and Nova says down", 0, "true", "down", true],
+      // Nova's service_is_up can't say this. If anything ever does, the operator wins.
+      ["forced down, and the series says up", 1, "true", "down", true],
+      ["not forced, and up", 1, "false", "up", false],
+      ["not forced, and stopped", 0, "false", "down", false],
+      // The exporter's series, which has no such label, and a Nova before 2.11.
+      ["not said, and up", 1, undefined, "up", null],
+      ["not said, and down", 0, undefined, "down", null],
+    ])(
+      "%s",
+      (
+        _name: string,
+        value: number,
+        forcedDown: string | undefined,
+        status: string,
+        fact: boolean | null,
+      ) => {
+        const row: OpenStackResourceBufferEntry = foldWorker({
+          value,
+          forcedDown,
+        });
+        expect(row.status).toBe(status);
+        expect(row.facts["forcedDown"]).toBe(fact);
+      },
+    );
+
+    test("a collector that doesn't say leaves nothing of what the last one said", () => {
+      // Facts merge key by key on the way in, so this has to be there to overwrite the old one.
+      expect(Object.keys(foldWorker({ value: 1 }).facts)).toContain(
+        "forcedDown",
+      );
+    });
+
+    test("only Nova has this: a Neutron agent's and a Cinder service's rows never say it", () => {
+      for (const metric of [
+        "openstack_neutron_agent_state",
+        "openstack_cinder_agent_state",
+      ]) {
+        const buffer: Buffer = new Map();
+        fold(buffer, metric, {
+          value: 1,
+          labels: {
+            hostname: "compute-01",
+            service: "some-agent",
+            adminState: "up",
+          },
+        });
+        const [row] = Array.from(buffer.values());
+        expect(Object.keys(row!.facts)).not.toContain("forcedDown");
+      }
+    });
+  });
+
+  describe("a router that lost its agents", () => {
+    const ROUTER_LABELS: LabelMap = {
+      id: "router-1",
+      name: "edge",
+      project_id: "payments",
+      admin_state_up: "true",
+      status: "ACTIVE",
+    };
+    const AGENT_LABELS: LabelMap = {
+      router_id: "router-1",
+      l3_agent_id: "agent-1",
+      ha_state: "",
+      agent_alive: "true",
+      agent_admin_up: "true",
+      agent_host: "network-01",
+    };
+
+    function batch(
+      series: Array<[string, LabelMap]>,
+      atMs: number = BASE_MS,
+    ): Array<OpenStackResourceBufferEntry> {
+      const buffer: Buffer = new Map();
+      for (const [metric, labels] of series) {
+        fold(buffer, metric, { value: 1, atMs, labels });
+      }
+      return finishOpenStackBatch(buffer.values());
+    }
+
+    test("a router heard with its agents has nothing to forget", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([
+            ["openstack_neutron_router", ROUTER_LABELS],
+            ["openstack_neutron_l3_agent_of_router", AGENT_LABELS],
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("a router heard with none is one that might have, ten minutes on", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_router", ROUTER_LABELS]]),
+        ),
+      ).toEqual([
+        {
+          externalId: "router-1",
+          agentsReportedBefore: new Date(BASE_MS - 10 * 60 * 1000),
+        },
+      ]);
+    });
+
+    test("agents heard with no router say nothing about the router: it may be in the next batch", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_l3_agent_of_router", AGENT_LABELS]]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("nothing else a batch holds is a router", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([
+            [
+              "openstack_neutron_network",
+              { id: "net-1", name: "public", status: "ACTIVE" },
+            ],
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("agents say when they were heard, to five minutes, so an unchanged row isn't rewritten for it", () => {
+      const reportedAt: (atMs: number) => unknown = (atMs: number): unknown => {
+        return batch(
+          [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
+          atMs,
+        )[0]!.facts["l3AgentsReportedAt"];
+      };
+      const start: number = Date.UTC(2026, 10, 4, 12, 0, 0);
+
+      expect(reportedAt(start)).toBe("2026-11-04T12:00:00.000Z");
+      // Two scrapes, at the agent's two minutes, say the same.
+      expect(reportedAt(start + 2 * 60 * 1000)).toBe(reportedAt(start));
+      expect(reportedAt(start + 299 * 1000)).toBe(reportedAt(start));
+      expect(reportedAt(start + 300 * 1000)).toBe("2026-11-04T12:05:00.000Z");
+    });
+
+    /*
+     * The line this draws. What a batch says at any moment against the last time its agents were
+     * heard: nothing here can read as gone inside what one scrape's batches can take to arrive.
+     */
+    test.each<[string, number, boolean]>([
+      ["heard in the same scrape", 0, false],
+      [
+        "heard one scrape ago, as a router arriving before its agents reads",
+        2,
+        false,
+      ],
+      ["heard two scrapes ago, with one read of its agents failing", 4, false],
+      ["heard five minutes ago", 5, false],
+      ["heard well past the window", 16, true],
+    ])("%s", (_name: string, minutesAgo: number, isGone: boolean) => {
+      const now: number = Date.UTC(2026, 10, 4, 12, 3, 0);
+      const [heard] = batch(
+        [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
+        now - minutesAgo * 60 * 1000,
+      );
+      const [router] = getOpenStackRoutersWithoutAgents(
+        batch([["openstack_neutron_router", ROUTER_LABELS]], now),
+      );
+
+      expect(
+        new Date(heard!.facts["l3AgentsReportedAt"] as string).getTime() <
+          router!.agentsReportedBefore.getTime(),
+      ).toBe(isGone);
+    });
+  });
+
+  describe("which DHCP agents serve a network", () => {
+    function networkWith(labels: LabelMap): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_neutron_network", {
+        value: 0,
+        labels: { id: "net-1", name: "private", status: "ACTIVE", ...labels },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Network, "net-1");
+    }
+
+    test.each<[string, LabelMap, Array<string> | null]>([
+      ["one agent", { dhcp_agent_ids: "agent-1" }, ["agent-1"]],
+      ["two agents", { dhcp_agent_ids: "a,b" }, ["a", "b"]],
+      // A label is cut at a length, and then its last id is no id.
+      ["a cut label loses its cut id", { dhcp_agent_ids: "a,b…" }, ["a"]],
+      // Written, because facts merge key by key and one taken off its agents has no label.
+      ["none said", {}, null],
+    ])(
+      "%s",
+      (_name: string, labels: LabelMap, wanted: Array<string> | null) => {
+        const row: OpenStackResourceBufferEntry = networkWith(labels);
+        expect(Object.keys(row.facts)).toContain("dhcpAgentIds");
+        expect(row.facts["dhcpAgentIds"]).toEqual(wanted);
+      },
+    );
+
+    test("an agent says how many it serves, and only a DHCP agent has anything to say", () => {
+      const agentRow: (
+        binary: string,
+        labels: LabelMap,
+      ) => OpenStackResourceBufferEntry = (
+        binary: string,
+        labels: LabelMap,
+      ): OpenStackResourceBufferEntry => {
+        const buffer: Buffer = new Map();
+        fold(buffer, "openstack_neutron_agent_state", {
+          value: 1,
+          labels: { hostname: "net-01", service: binary, id: "a1", ...labels },
+        });
+        return rowOf(
+          buffer,
+          OpenStackResourceKind.Service,
+          `RegionOne/network/net-01/${binary}`,
+        );
+      };
+
+      expect(
+        agentRow("neutron-dhcp-agent", { dhcp_network_count: "3" }).facts[
+          "dhcpNetworkCount"
+        ],
+      ).toBe(3);
+      expect(
+        agentRow("neutron-dhcp-agent", { dhcp_network_count: "0" }).facts[
+          "dhcpNetworkCount"
+        ],
+      ).toBe(0);
+      // Nothing says, as on the agent, which a page reads as not known.
+      expect(
+        agentRow("neutron-dhcp-agent", {}).facts["dhcpNetworkCount"],
+      ).toBeNull();
+      expect(Object.keys(agentRow("neutron-l3-agent", {}).facts)).not.toContain(
+        "dhcpNetworkCount",
+      );
+    });
+  });
+
   test("a floating IP is named by its address, and a spare one has no router", () => {
     const buffer: Buffer = new Map();
     fold(buffer, "openstack_neutron_floating_ip", {
@@ -1273,5 +1799,464 @@ describe("a batch's rows, joined", () => {
     });
     expect(hypervisorOf(buffer).status).toBeNull();
     expect(hypervisorOf(buffer).adminState).toBeNull();
+  });
+});
+
+/*
+ * Rows of the services a cloud may not run come from what the exporter says about each. These read
+ * labels off the shapes a real cloud sent: the scenes are in OpenStackHeatMagnumRecordings.test.ts.
+ */
+describe("a Heat stack", () => {
+  const LABELS: LabelMap = {
+    id: "2931cfa5-85d1-43be-bd8f-8a3f9a22cfc3",
+    name: "ou-stack-failed",
+    project_id: "08945d5897854ec2a11d65d907ec6251",
+    status: "CREATE_FAILED",
+  };
+
+  test("is its own row, by Heat's ID, whose name and project it holds", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_stack_status", { value: 4, labels: LABELS });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Stack,
+      LABELS["id"] as string,
+    );
+    expect(row.name).toBe("ou-stack-failed");
+    expect(row.openStackProjectId).toBe("08945d5897854ec2a11d65d907ec6251");
+    expect(row.regionName).toBe("RegionOne");
+    expect(row.status).toBe("CREATE_FAILED");
+  });
+
+  test("reads its status from the word: the value is only that word's code", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 0,
+      labels: { ...LABELS, status: "INIT_IN_PROGRESS" },
+    });
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Stack, LABELS["id"] as string).status,
+    ).toBe("INIT_IN_PROGRESS");
+  });
+
+  test("the newest word in a batch wins", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 9,
+      atMs: BASE_MS + 60000,
+      labels: { ...LABELS, status: "UPDATE_IN_PROGRESS" },
+    });
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 4,
+      atMs: BASE_MS,
+      labels: LABELS,
+    });
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Stack, LABELS["id"] as string).status,
+    ).toBe("UPDATE_IN_PROGRESS");
+  });
+
+  test("with no project, as anything below an admin reads it, holds none rather than an empty one", () => {
+    const buffer: Buffer = new Map();
+    const { project_id: _ignored, ...withoutProject } = LABELS;
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 4,
+      labels: { ...withoutProject, project_id: "" },
+    });
+    expect(
+      rowOf(buffer, OpenStackResourceKind.Stack, LABELS["id"] as string)
+        .openStackProjectId,
+    ).toBeNull();
+  });
+
+  test("with no ID is nothing anyone could link to, and has no row", () => {
+    const buffer: Buffer = new Map();
+    const { id: _ignored, ...withoutId } = LABELS;
+    fold(buffer, "openstack_heat_stack_status", {
+      value: 4,
+      labels: withoutId,
+    });
+    expect(buffer.size).toBe(0);
+  });
+
+  test("says why it failed only when a probe does, and otherwise says nothing is known", () => {
+    const fromAgent: Buffer = new Map();
+    fold(fromAgent, "openstack_heat_stack_status", {
+      value: 4,
+      labels: LABELS,
+    });
+    expect(
+      rowOf(fromAgent, OpenStackResourceKind.Stack, LABELS["id"] as string)
+        .facts["statusReason"],
+    ).toBeNull();
+
+    const fromProbe: Buffer = new Map();
+    fold(fromProbe, "openstack_heat_stack_status", {
+      value: 4,
+      labels: {
+        ...LABELS,
+        status_reason: "Resource CREATE failed: No valid host was found.",
+      },
+    });
+    expect(
+      rowOf(fromProbe, OpenStackResourceKind.Stack, LABELS["id"] as string)
+        .facts["statusReason"],
+    ).toBe("Resource CREATE failed: No valid host was found.");
+  });
+});
+
+describe("a Magnum cluster", () => {
+  const LABELS: LabelMap = {
+    uuid: "9f6c221b-9ba3-4d20-ad26-e906bc1b3803",
+    name: "ou-cluster-times-out",
+    stack_id: "66b02f15-9492-45b2-84aa-a82a4edf21f7",
+    status: "CREATE_FAILED",
+    node_count: "3",
+    master_count: "1",
+    project_id: "",
+  };
+
+  test("is its own row, by Magnum's ID, holding what its one series says", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: LABELS,
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.ContainerCluster,
+      LABELS["uuid"] as string,
+    );
+    expect(row.name).toBe("ou-cluster-times-out");
+    expect(row.status).toBe("CREATE_FAILED");
+    expect(row.facts).toMatchObject({
+      stackId: LABELS["stack_id"],
+      nodeCount: 3,
+      masterCount: 1,
+    });
+  });
+
+  test("has no project from the exporter, and takes one where a probe says", () => {
+    const fromAgent: Buffer = new Map();
+    fold(fromAgent, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: LABELS,
+    });
+    expect(
+      rowOf(
+        fromAgent,
+        OpenStackResourceKind.ContainerCluster,
+        LABELS["uuid"] as string,
+      ).openStackProjectId,
+    ).toBeNull();
+
+    const fromProbe: Buffer = new Map();
+    fold(fromProbe, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: {
+        ...LABELS,
+        project_id: "4d0acfc18c9d4a0b994a7fe34516bf65",
+        status_reason: "default-master failed, default-worker failed",
+        health_status: "UNKNOWN",
+        cluster_template_id: "4203498b-8224-4477-b31e-bd0d55236ac6",
+        cluster_template_name: "ou-template",
+        coe_version: "v1.18.16",
+      },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      fromProbe,
+      OpenStackResourceKind.ContainerCluster,
+      LABELS["uuid"] as string,
+    );
+    expect(row.openStackProjectId).toBe("4d0acfc18c9d4a0b994a7fe34516bf65");
+    expect(row.facts).toMatchObject({
+      statusReason: "default-master failed, default-worker failed",
+      healthStatus: "UNKNOWN",
+      clusterTemplateId: "4203498b-8224-4477-b31e-bd0d55236ac6",
+      clusterTemplateName: "ou-template",
+      coeVersion: "v1.18.16",
+    });
+  });
+
+  test("its counts are numbers, or nothing when the label is no number", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_container_infra_cluster_status", {
+      value: 1,
+      labels: { ...LABELS, node_count: "not-a-number" },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.ContainerCluster,
+      LABELS["uuid"] as string,
+    );
+    expect(row.facts["nodeCount"]).toBeNull();
+    expect(row.facts["masterCount"]).toBe(1);
+  });
+
+  test("the two series that only repeat it are read by nothing here", () => {
+    for (const metricName of [
+      "openstack_container_infra_cluster_masters",
+      "openstack_container_infra_cluster_nodes",
+      "openstack_container_infra_total_clusters",
+      "openstack_heat_stack_status_counter",
+    ]) {
+      expect(OPENSTACK_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(false);
+    }
+  });
+});
+
+describe("what a batch of them asks of the rows", () => {
+  test("a stack or a cluster can settle a cluster's project, and nothing else can", () => {
+    const batch: Buffer = new Map();
+    fold(batch, "openstack_nova_up", { value: 1 });
+    expect(
+      hasOpenStackContainerClusterProjectToJoin(
+        finishOpenStackBatch(batch.values()),
+      ),
+    ).toBe(false);
+
+    fold(batch, "openstack_heat_stack_status", {
+      value: 5,
+      labels: { id: "a-stack", status: "CREATE_COMPLETE" },
+    });
+    expect(
+      hasOpenStackContainerClusterProjectToJoin(
+        finishOpenStackBatch(batch.values()),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("workers only a native read of an API lists", () => {
+  test("a heat-engine is a worker of its own family, held by host and binary", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_agent_state", {
+      value: 1,
+      labels: {
+        hostname: "compute-01",
+        service: "heat-engine",
+        id: "474df757-7278-4081-b385-fc69599a2da6",
+      },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Service,
+      "RegionOne/orchestration/compute-01/heat-engine",
+    );
+    expect(row.status).toBe("up");
+    expect(row.facts["family"]).toBe("orchestration");
+    expect(row.hypervisorName).toBeNull();
+  });
+
+  /*
+   * Heat keeps a record per engine process, recorded two to a host. A stopped engine keeps its record
+   * for a while after a new one starts, which the rig's own engine_status allows for.
+   */
+  test("one engine's stale record beside a live one is no outage", () => {
+    const buffer: Buffer = new Map();
+    for (const [id, value] of [
+      ["engine-old", 0],
+      ["engine-new", 1],
+    ] as Array<[string, number]>) {
+      fold(buffer, "openstack_heat_agent_state", {
+        value,
+        labels: { hostname: "compute-01", service: "heat-engine", id },
+      });
+    }
+    const [row]: Array<OpenStackResourceBufferEntry> = finishOpenStackBatch(
+      buffer.values(),
+    );
+    expect(row!.status).toBe("up");
+    expect(row!.facts["staleAgentIds"]).toEqual(["engine-old"]);
+  });
+
+  test("with every engine's record stale, the engine is down", () => {
+    const buffer: Buffer = new Map();
+    for (const id of ["engine-a", "engine-b"]) {
+      fold(buffer, "openstack_heat_agent_state", {
+        value: 0,
+        labels: { hostname: "compute-01", service: "heat-engine", id },
+      });
+    }
+    const [row]: Array<OpenStackResourceBufferEntry> = finishOpenStackBatch(
+      buffer.values(),
+    );
+    expect(row!.status).toBe("down");
+    expect(row!.facts["staleAgentIds"]).toBeNull();
+  });
+
+  test("a magnum-conductor is a worker too, with what an operator set on it", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_container_infra_agent_state", {
+      value: 0,
+      labels: {
+        hostname: "compute-01",
+        service: "magnum-conductor",
+        adminState: "enabled",
+      },
+    });
+    const row: OpenStackResourceBufferEntry = rowOf(
+      buffer,
+      OpenStackResourceKind.Service,
+      "RegionOne/container-infra/compute-01/magnum-conductor",
+    );
+    expect(row.status).toBe("down");
+    expect(row.adminState).toBe("enabled");
+    expect(row.facts["family"]).toBe("container-infra");
+  });
+});
+
+/*
+ * What a scrape says of a service a cloud may not run, kept apart from everything that can make a row.
+ * Recorded on a real cloud with the service and with none: up 1 and 0 samples.
+ */
+describe("a scrape of a service this product knows and a cloud may not run", () => {
+  type Scrapes = Map<string, OpenStackOptionalServiceScrape>;
+
+  const scrapeOf: (
+    points: Array<[string, number]>,
+    service?: string,
+  ) => OpenStackOptionalServiceScrape = (
+    points: Array<[string, number]>,
+    service: string = "orchestration",
+  ): OpenStackOptionalServiceScrape => {
+    const buffer: Scrapes = new Map();
+    for (const [metricName, value] of points) {
+      bufferOpenStackOptionalServiceScrape({
+        metricName,
+        datapoint: datapoint({
+          value,
+          labels: { openstack_service: service },
+        }),
+        buffer,
+      });
+    }
+    return buffer.get(`RegionOne/${service}`)!;
+  };
+
+  test.each(["up", "scrape_samples_scraped", "scrape_duration_seconds"])(
+    "%s is kept, on its own path and never the one that makes a row",
+    (metricName: string) => {
+      const point: JSONObject = datapoint({
+        value: 1,
+        labels: { openstack_service: "orchestration" },
+      });
+      expect(
+        isOpenStackOptionalServiceScrapeDatapoint({
+          metricName,
+          datapoint: point,
+        }),
+      ).toBe(true);
+      expect(
+        isOpenStackSnapshotDatapoint({ metricName, datapoint: point }),
+      ).toBe(false);
+    },
+  );
+
+  test.each([
+    ["a core service, which has its own path", "compute"],
+    ["a service nothing here knows yet", "dns"],
+    ["no service at all", null],
+  ])("%s is not kept", (_why: string, service: string | null) => {
+    expect(
+      isOpenStackOptionalServiceScrapeDatapoint({
+        metricName: "up",
+        datapoint: datapoint({
+          value: 1,
+          labels: service ? { openstack_service: service } : {},
+        }),
+      }),
+    ).toBe(false);
+  });
+
+  test("another agent's series of the same name is nothing to do with this", () => {
+    expect(
+      isOpenStackOptionalServiceScrapeDatapoint({
+        metricName: "http_requests_total",
+        datapoint: datapoint({
+          value: 1,
+          labels: { openstack_service: "orchestration" },
+        }),
+      }),
+    ).toBe(false);
+  });
+
+  test("an answer with nothing in it, as a cloud without the service gives", () => {
+    expect(
+      scrapeOf([
+        ["up", 1],
+        ["scrape_samples_scraped", 0],
+        ["scrape_duration_seconds", 0.013],
+      ]),
+    ).toMatchObject({
+      service: "orchestration",
+      regionName: "RegionOne",
+      answered: true,
+      samples: 0,
+      seconds: 0.013,
+    });
+  });
+
+  test("a failed one", () => {
+    expect(
+      scrapeOf([
+        ["up", 0],
+        ["scrape_samples_scraped", 0],
+      ]),
+    ).toMatchObject({ answered: false, samples: 0, seconds: null });
+  });
+
+  test("what isn't said stays unknown, for a batch that parts them", () => {
+    expect(scrapeOf([["scrape_duration_seconds", 2]])).toMatchObject({
+      answered: null,
+      samples: null,
+      seconds: 2,
+    });
+  });
+
+  test("a value that is no number says nothing", () => {
+    const buffer: Scrapes = new Map();
+    bufferOpenStackOptionalServiceScrape({
+      metricName: "up",
+      datapoint: {
+        attributes: [
+          { key: "openstack_service", value: { stringValue: "orchestration" } },
+        ],
+        timeUnixNano: `${BASE_MS}000000`,
+      },
+      buffer,
+    });
+    expect(buffer.size).toBe(0);
+  });
+
+  test("each region's is its own", () => {
+    const buffer: Scrapes = new Map();
+    for (const region of ["RegionOne", "RegionTwo"]) {
+      bufferOpenStackOptionalServiceScrape({
+        metricName: "up",
+        datapoint: datapoint({
+          value: 1,
+          region,
+          labels: { openstack_service: "orchestration" },
+        }),
+        buffer,
+      });
+    }
+    expect(Array.from(buffer.keys()).sort()).toEqual([
+      "RegionOne/orchestration",
+      "RegionTwo/orchestration",
+    ]);
+  });
+
+  test("is keyed as the row it may change is", () => {
+    const buffer: Buffer = new Map();
+    fold(buffer, "openstack_heat_up", { value: 1 });
+    expect(
+      rowOf(
+        buffer,
+        OpenStackResourceKind.Api,
+        getOpenStackApiRowExternalId("RegionOne", "orchestration"),
+      ).name,
+    ).toBe("orchestration");
   });
 });

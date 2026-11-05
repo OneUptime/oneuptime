@@ -9,18 +9,39 @@ import {
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
+import { OpenStackDependency } from "../OpenStack/OpenStackControlPlane";
+import {
+  OPENSTACK_CAPACITY_ALLOCATED_SERIES,
+  OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+  OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+  OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+  OPENSTACK_CAPACITY_SERIES_LABELS,
+  OPENSTACK_CAPACITY_TOTAL_SERIES,
+} from "../OpenStack/OpenStackCapacitySeries";
 import { OpenStackServiceType } from "../OpenStack/OpenStackResourceKind";
 import { translationKey } from "../Translator";
+import { OpenStackCheckMetric } from "../../Utils/OpenStack/OpenStackCheckMetrics";
 
 export type OpenStackMetricCategory =
   | "Availability"
   | "Control Plane"
+  | "RabbitMQ"
+  | "MariaDB and Galera"
+  | "Memcached"
+  | "HAProxy"
+  | "OVN and Open vSwitch"
+  | "libvirt"
   | "Compute"
   | "Network"
   | "Storage"
   | "Images"
   | "Identity"
-  | "Projects";
+  | "Orchestration"
+  | "Bare Metal"
+  | "Databases"
+  | "Projects"
+  | "Checks"
+  | "Capacity";
 
 export interface OpenStackMetricDefinition {
   id: string;
@@ -30,8 +51,16 @@ export interface OpenStackMetricDefinition {
   category: OpenStackMetricCategory;
   // Up, alive and state series read Min; counts, sizes and info series read Max.
   defaultAggregation: MetricsAggregationType;
-  // The agent's scrape job that collects it, so how often it reports.
-  service: OpenStackServiceType;
+  /*
+   * The agent's scrape job that collects it, so how often it reports. What a cloud stands on
+   * says which of that in `dependency` instead.
+   */
+  service?: OpenStackServiceType | undefined;
+  /*
+   * What the cloud stands on that this is read from, by one of the agent's control plane jobs.
+   * Empty until someone names that job's targets, and collected every 60 seconds.
+   */
+  dependency?: OpenStackDependency | undefined;
   /*
    * The exporter's own labels on this series, as openstack-exporter spells them.
    * Every series also carries the `openstack.cloud.name` resource attribute, and
@@ -45,6 +74,12 @@ export interface OpenStackMetricDefinition {
    * (agents/OpenStackAgent/docker-compose.yml). Deleting it turns the series on.
    */
   offByDefault?: string;
+  /*
+   * Read once an hour by the agent's quota exporter, when someone turns that on with
+   * OPENSTACK_COLLECT_QUOTAS=true, rather than by deleting its line above. Filled in from
+   * offByDefault: see OPENSTACK_QUOTA_EXPORTER_READS.
+   */
+  fromQuotaExporter?: boolean;
   /*
    * Labels only the probe's native collector sends on this series, beside the
    * exporter's: what it can read from the APIs that the exporter leaves behind. A query
@@ -63,6 +98,17 @@ export interface OpenStackMetricDefinition {
    * (OpenStackScale), in place of a series per instance. Nothing collects these.
    */
   fromSummaryMode?: boolean;
+  /*
+   * What a probe found from outside the cloud, and the cloud's API checks said each minute
+   * (OpenStackCheckMetrics). Empty until someone turns the checks on, and nothing collects these.
+   */
+  fromCheck?: boolean;
+
+  /*
+   * Written by OneUptime itself, from a cloud's rows, for every cloud that reports (see
+   * OpenStackCapacitySeries). Nothing collects these either.
+   */
+  fromCapacity?: boolean;
   unit?: string;
 }
 
@@ -133,6 +179,9 @@ const HYPERVISOR_USAGE_LABELS: ReadonlyArray<string> = [
   OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
 ];
 
+// What a job names each series with, whichever exporter it is from.
+const DEPENDENCY_LABELS: ReadonlyArray<string> = ["openstack_exporter_host"];
+
 const FROM_INSTANCE_SOURCE: string =
   "Reported only where libvirt's or Ceilometer's exporter is read.";
 
@@ -155,9 +204,34 @@ function usage(data: {
   });
 }
 
+/*
+ * What the agent's quota exporter reads (openstack-quota-exporter in its docker-compose.yml), by
+ * the line that keeps each off its main exporter. Hourly, because these change slowly and cost
+ * four API calls per project. Nova's own quota lists are not here: no page reads them, so they
+ * stay a line someone deletes.
+ */
+export const OPENSTACK_QUOTA_EXPORTER_READS: ReadonlyArray<string> = [
+  "nova-limits_vcpus_max",
+  "neutron-quota_network",
+  "cinder-limits_volume_max_gb",
+];
+
 function metric(
   data: Omit<OpenStackMetricDefinition, "id">,
 ): OpenStackMetricDefinition {
+  const fromQuotaExporter: boolean = OPENSTACK_QUOTA_EXPORTER_READS.includes(
+    data.offByDefault || "",
+  );
+
+  if (fromQuotaExporter) {
+    return {
+      ...data,
+      id: data.metricName.replace(/_/g, "-"),
+      fromQuotaExporter: true,
+      description: `${data.description} Off by default: run the agent's install.sh with OPENSTACK_COLLECT_QUOTAS=true to read it once an hour.`,
+    };
+  }
+
   return {
     ...data,
     id: data.metricName.replace(/_/g, "-"),
@@ -167,6 +241,49 @@ function metric(
         : data.description,
   };
 }
+
+const DATABASE_INSTANCE_LABELS: ReadonlyArray<string> = [
+  "datastore_type",
+  "datastore_version",
+  "health_status",
+  "id",
+  "name",
+  "region",
+  "status",
+  "tenant_id",
+];
+
+/*
+ * What the checks from outside report. The region is a label on every one, as on everything
+ * else, so it is not named among each one's own.
+ */
+function check(data: {
+  metricName: OpenStackCheckMetric;
+  friendlyName: string;
+  description: string;
+  defaultAggregation: MetricsAggregationType;
+  service: OpenStackServiceType;
+  identityAttributes: ReadonlyArray<string>;
+  unit?: string | undefined;
+}): OpenStackMetricDefinition {
+  return metric({
+    category: "Checks",
+    fromCheck: true,
+    friendlyName: data.friendlyName,
+    description: data.description,
+    metricName: data.metricName,
+    defaultAggregation: data.defaultAggregation,
+    service: data.service,
+    identityAttributes: data.identityAttributes,
+    ...(data.unit ? { unit: data.unit } : {}),
+  });
+}
+
+const IRONIC_NODE_TIME_LABELS: ReadonlyArray<string> = [
+  "id",
+  "name",
+  "provision_state",
+];
 
 const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   // Availability: the receiver's own two, then each API's.
@@ -263,7 +380,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_nova_agent_state",
     friendlyName: translationKey("Compute Service Alive"),
     description:
-      "Whether a Nova worker (nova-compute, nova-scheduler, nova-conductor) is up (1) or down (0), one series per worker. adminState says enabled or disabled, and a disabled one is planned work, with its reason in disabledReason. hostname is Nova's short host name, where hypervisor and Placement series say the full name.",
+      "Whether a Nova worker (nova-compute, nova-scheduler, nova-conductor) is up (1) or down (0), one series per worker. adminState says enabled or disabled, and a disabled one is planned work, with its reason in disabledReason. hostname is Nova's short host name, where hypervisor and Placement series say the full name. forced_down says an operator told Nova it is down: only a probe sends it.",
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Compute,
@@ -275,15 +392,17 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "zone",
       "disabledReason",
     ],
+    probeOnlyAttributes: ["forced_down"],
   }),
   metric({
     metricName: "openstack_neutron_agent_state",
     friendlyName: translationKey("Network Agent Alive"),
     description:
-      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work.",
+      "Whether a Neutron agent is alive (1) or not (0), one series per host and binary. adminState says up or down, and one set down is planned work. dhcp_network_count says how many networks a DHCP agent serves: only a probe sends it.",
     category: "Control Plane",
     defaultAggregation: MetricsAggregationType.Min,
     service: OpenStackServiceType.Network,
+    probeOnlyAttributes: ["dhcp_network_count"],
     identityAttributes: [
       "id",
       "hostname",
@@ -361,6 +480,83 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Placement,
     identityAttributes: PLACEMENT_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_ALLOCATED_SERIES,
+    friendlyName: translationKey("Capacity Allocated"),
+    description:
+      "What is allocated of something that fills up: a zone's resource class, an external network's IPv4 addresses or a storage pool's bytes (capacity_scope and capacity_name say which, and resourcetype what). Counts what lost and disabled hosts hold, because those instances exist. This is allocation, not load. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_TOTAL_SERIES,
+    friendlyName: translationKey("Capacity Total"),
+    description:
+      "What can be allocated of it, from the hosts that can give: (total - reserved) x allocation ratio, for a zone. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+    friendlyName: translationKey("Capacity Days Until Full"),
+    description:
+      "How many days until it is full, at its growth over the last week, and 0 when it is. No series with too little history to tell, or when it isn't growing. OneUptime works this out from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: OPENSTACK_CAPACITY_SERIES_LABELS,
+    fromCapacity: true,
+    unit: "d",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+    friendlyName: translationKey("Flavor Room"),
+    description:
+      "How many more of a flavor fit, counted host by host, in each region. source says whether Placement answered or inventories were added up. Only flavors someone can ask for, and none too large for every host. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: ["flavor_id", "flavor", "source"],
+    fromCapacity: true,
+    unit: "count",
+  }),
+  metric({
+    metricName: OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+    friendlyName: translationKey("Zone Can Lose a Host"),
+    description:
+      "1 when a zone could lose its largest host and still fit what runs on it, and 0 when it couldn't, per resource class. No series for a zone of one host, or with a host someone disabled. OneUptime writes this from the cloud's rows.",
+    category: "Capacity",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: ["availability_zone", "resourcetype"],
+    fromCapacity: true,
+  }),
+  metric({
+    metricName: "openstack_placement_flavor_fits",
+    friendlyName: translationKey("Placement Flavor Fits"),
+    description:
+      "How many more of a flavor Placement says would fit, counted host by host, from GET /allocation_candidates: one series for the region and one for each zone and aggregate (scope and scope_name). Read in turns, a few flavors a collection, and sent as last read in between. Only a probe sends this: the agent's exporter never asks Placement.",
+    category: "Compute",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Placement,
+    identityAttributes: [
+      "flavor_id",
+      "flavor",
+      "scope",
+      "scope_name",
+      "asked_at",
+      "hosts_with_room",
+      "is_capped",
+    ],
+    onlyFromProbe: true,
     unit: "count",
   }),
   metric({
@@ -476,7 +672,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_nova_server_status",
     friendlyName: translationKey("Instance Status"),
     description:
-      "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. address_ipv4 and address_ipv6 are empty on a real cloud, and hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled.",
+      "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the status label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves address_ipv4 and address_ipv6 empty on a real cloud, and a probe fills them in from the addresses Nova lists. hypervisor_hostname, host_id and availability_zone are empty until the instance is scheduled. image_id names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
     category: "Compute",
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
@@ -495,7 +691,13 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "flavor_id",
       "instance_libvirt",
     ],
-    probeOnlyAttributes: ["task_state", "updated_at", "fault_message"],
+    probeOnlyAttributes: [
+      "task_state",
+      "updated_at",
+      "fault_message",
+      "image_id",
+      "network_names",
+    ],
   }),
   metric({
     metricName: "openstack_nova_server_local_gb",
@@ -561,6 +763,12 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
     identityAttributes: ["id", "name", "vcpus", "ram", "disk", "is_public"],
+    probeOnlyAttributes: [
+      "placement_resources",
+      "placement_required",
+      "placement_forbidden",
+      "is_disabled",
+    ],
     unit: "count",
   }),
   metric({
@@ -651,6 +859,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
   metric({
     metricName: "openstack_neutron_network",
     friendlyName: translationKey("Network Info"),
+    probeOnlyAttributes: ["dhcp_agent_ids"],
     description:
       "One series per network, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, DOWN is 2, ERROR is 3. Whether it is external is in the is_external label.",
     category: "Network",
@@ -1004,7 +1213,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: "openstack_cinder_volume_gb",
     friendlyName: translationKey("Volume Size"),
     description:
-      "One series per volume, whose value is its size, with its status word in the status label.",
+      "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the pool label says which pool holds it, for a credential Cinder treats as an admin.",
     category: "Storage",
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Volume,
@@ -1019,7 +1228,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "volume_type",
       "server_id",
     ],
-    probeOnlyAttributes: ["updated_at"],
+    probeOnlyAttributes: ["updated_at", "pool", "image_id"],
     unit: "GiB",
   }),
   metric({
@@ -1036,6 +1245,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "status",
       "tenant_id",
       "volume_id",
+      "created_at",
       "updated_at",
     ],
     onlyFromProbe: true,
@@ -1140,6 +1350,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "hidden",
       "status",
     ],
+    probeOnlyAttributes: ["protected"],
     unit: "seconds",
   }),
 
@@ -1651,7 +1862,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: OpenStackInstanceMetric.CpuContention,
     friendlyName: translationKey("Instance CPU Contention"),
     description:
-      "How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter, and from Ceilometer on releases that have its cpu.delay meter.",
+      "How much of the time the instance's vCPUs wanted to run and the hypervisor made them wait, as a share of its vCPUs: the guest calls this steal. It says a neighbour is the problem rather than the instance. From libvirt's exporter. No released Ceilometer has its cpu.delay meter yet, and it is read when one does.",
     identityAttributes: INSTANCE_LABELS,
   }),
   usage({
@@ -1665,7 +1876,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     metricName: OpenStackInstanceMetric.MemoryResident,
     friendlyName: translationKey("Instance Memory on Host"),
     description:
-      "What the instance really holds of its hypervisor's memory, whatever the guest says it is using.",
+      "What the instance really holds of its hypervisor's memory, whatever the guest says it is using, which is more than its flavor's size because QEMU itself is in it.",
     identityAttributes: INSTANCE_LABELS,
   }),
   usage({
@@ -1755,10 +1966,889 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "How many instances those series add up, so a total can be told from a total with some of them missing.",
     identityAttributes: HYPERVISOR_USAGE_LABELS,
   }),
+  check({
+    metricName: OpenStackCheckMetric.TokenSuccess,
+    friendlyName: translationKey("Token Issued"),
+    description:
+      "Whether Keystone issued a token to the probe checking this cloud from outside: 1 when it did, 0 when it did not. Every region says the same, so a monitor narrowed to a region finds it.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Identity,
+    identityAttributes: [],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.TokenDuration,
+    friendlyName: translationKey("Token Issue Time"),
+    description: "How long Keystone took to issue that token.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Identity,
+    identityAttributes: [],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.ApiSuccess,
+    friendlyName: translationKey("Service API Answered"),
+    description:
+      "Whether a service in the catalog answered a one-row read from a probe outside the cloud: 1 when it answered, or refused this credential, because then its API is working, and 0 when it failed, timed out or could not be reached. One series for each service the catalog names, whatever it is.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["service_type", "service_name", "outcome"],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.ApiDuration,
+    friendlyName: translationKey("Service API Answer Time"),
+    description: "How long a service in the catalog took to answer that read.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["service_type", "service_name"],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.CertificateExpiry,
+    friendlyName: translationKey("Certificate Days Left"),
+    description:
+      "Days until the certificate on an endpoint the catalog names expires, read off the connection the check made. It reads negative once it has expired.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Identity,
+    identityAttributes: ["host", "port"],
+    unit: "d",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleSuccess,
+    friendlyName: translationKey("Lifecycle Run Passed"),
+    description:
+      "Whether the last lifecycle run to finish in a region passed every step: 1 when it did, 0 when one failed. Said again each minute until the next run finishes, so at any moment it reads whether someone could have booted an instance, and its average over a month is how much of the month they could.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecyclePhaseSuccess,
+    friendlyName: translationKey("Lifecycle Phase Passed"),
+    description:
+      "What each part of the lifecycle check last came to, in the phase label: credential, boot, floating_ip, volume or cleanup. 1 when it passed and 0 when it failed. A part a run did not reach keeps what it last came to.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["phase"],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleStepSuccess,
+    friendlyName: translationKey("Lifecycle Step Passed"),
+    description:
+      "Whether each step of the last lifecycle run passed, in the step label: server_create, server_active, ping and the rest. Steps it did not reach have no series.",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["step"],
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleStepDuration,
+    friendlyName: translationKey("Lifecycle Step Time"),
+    description:
+      "How long each step of the last lifecycle run took, in the step label, for the steps that passed. server_active is the boot itself: from Nova accepting the request to the server being ACTIVE.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: ["step"],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleRunDuration,
+    friendlyName: translationKey("Lifecycle Run Time"),
+    description:
+      "How long the last lifecycle run took, from its first request to its last.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleRunAge,
+    friendlyName: translationKey("Lifecycle Run Age"),
+    description:
+      "How long ago the last lifecycle run finished. Past its interval and a run's time, runs are not finishing.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "s",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleLeftovers,
+    friendlyName: translationKey("Lifecycle Leftovers"),
+    description:
+      "How many things the last lifecycle run could not delete. The janitor removes them once they are older than two intervals. A few for a while is a cloud in trouble, and many is a quota about to run out.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "count",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleJanitorRemoved,
+    friendlyName: translationKey("Lifecycle Janitor Removed"),
+    description:
+      "How many things the janitor removed at the start of the last lifecycle run: what a run that died left behind.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+    unit: "count",
+  }),
+  check({
+    metricName: OpenStackCheckMetric.LifecycleRefused,
+    friendlyName: translationKey("Lifecycle Credential Refused"),
+    description:
+      "1 while the lifecycle check refuses to write with its credential, because it could reach further than the check's own project, and so no run has a verdict. 0 otherwise.",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Compute,
+    identityAttributes: [],
+  }),
+
+  // What the cloud stands on, as each exporter says it. Keep these to what something reads.
+  metric({
+    metricName: "erlang_vm_dist_node_state",
+    friendlyName: translationKey("RabbitMQ Link State"),
+    description:
+      "The state of this node's link to another: 3 is up, 1 is pending, which is what a peer cut off by a partition reads. A peer that stopped has no series at all.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: [...DEPENDENCY_LABELS, "peer"],
+  }),
+  metric({
+    metricName: "rabbitmq_alarms_memory_used_watermark",
+    friendlyName: translationKey("RabbitMQ Memory Alarm"),
+    description:
+      "1 while this node has passed its memory watermark. RabbitMQ stops every publisher in the cluster while it lasts.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "rabbitmq_alarms_free_disk_space_watermark",
+    friendlyName: translationKey("RabbitMQ Disk Alarm"),
+    description:
+      "1 while this node has less free disk than its limit. RabbitMQ stops every publisher in the cluster while it lasts.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "rabbitmq_process_open_fds",
+    friendlyName: translationKey("RabbitMQ Open File Descriptors"),
+    description:
+      "File descriptors this node has open. Each connection holds one.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_process_max_fds",
+    friendlyName: translationKey("RabbitMQ File Descriptor Limit"),
+    description: "How many file descriptors this node may open.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_queue_messages_unacked",
+    friendlyName: translationKey("RabbitMQ Messages Unacknowledged"),
+    description:
+      "Messages this node's queues have delivered and not had acknowledged. A count that only climbs is a consumer that has stopped working without letting go.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_queue_messages",
+    friendlyName: translationKey("RabbitMQ Messages"),
+    description: "Messages in this node's queues, ready or unacknowledged.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_connections",
+    friendlyName: translationKey("RabbitMQ Connections"),
+    description: "Connections this node holds.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_detailed_queue_messages_ready",
+    friendlyName: translationKey("RabbitMQ Queue Messages Ready"),
+    description:
+      "Messages waiting in one queue, from RabbitMQ's detailed endpoint. Reply and fanout queues are left out.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: [...DEPENDENCY_LABELS, "vhost", "queue"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "rabbitmq_detailed_queue_consumers",
+    friendlyName: translationKey("RabbitMQ Queue Consumers"),
+    description:
+      "Consumers on one queue, from RabbitMQ's detailed endpoint. Reply and fanout queues are left out.",
+    category: "RabbitMQ",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.RabbitMq,
+    identityAttributes: [...DEPENDENCY_LABELS, "vhost", "queue"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_up",
+    friendlyName: translationKey("MariaDB Answering"),
+    description:
+      "Whether MariaDB answered its exporter (1) or not (0). The exporter sits beside it, so a stopped MariaDB leaves this reading 0 rather than going away.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_cluster_status",
+    friendlyName: translationKey("Galera Primary Component"),
+    description:
+      "1 while this node is in the Primary component, 0 otherwise. A MariaDB nobody clustered reads 0 too, so read it beside Galera On.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_variables_wsrep_on",
+    friendlyName: translationKey("Galera On"),
+    description:
+      "1 where Galera is on. MariaDB's packages build Galera in, so a server nobody clustered also reports the rest of these series, with this at 0.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_cluster_size",
+    friendlyName: translationKey("Galera Cluster Size"),
+    description: "How many nodes this node says the cluster has.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_ready",
+    friendlyName: translationKey("Galera Node Ready"),
+    description: "1 while this node takes queries, 0 while it refuses them.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_wsrep_local_state",
+    friendlyName: translationKey("Galera Local State"),
+    description:
+      "Where this node stands, as a code rather than an amount: 4 is Synced, 3 Joined, 2 Donor or Desynced, 1 Joining, and 0 outside the Primary component.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_variables_wsrep_desync",
+    friendlyName: translationKey("Galera Desynced on Purpose"),
+    description:
+      "1 while someone has told this node to fall out of step, usually for a backup. That is planned work, and no alert fires on it.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "mysql_global_status_threads_connected",
+    friendlyName: translationKey("MariaDB Connections"),
+    description: "Connections this node holds.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_global_variables_max_connections",
+    friendlyName: translationKey("MariaDB Connection Limit"),
+    description: "How many connections this node takes.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "mysql_slow_queries_increase",
+    friendlyName: translationKey("MariaDB Slow Queries"),
+    description:
+      "How many queries over long_query_time this node counted since the last collection: how much mysql_global_status_slow_queries grew.",
+    category: "MariaDB and Galera",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.MariaDb,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "memcached_up",
+    friendlyName: translationKey("Memcached Answering"),
+    description:
+      "Whether Memcached answered its exporter (1) or not (0). The exporter sits beside it, so a stopped Memcached leaves this reading 0 rather than going away.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "memcached_current_connections",
+    friendlyName: translationKey("Memcached Connections"),
+    description:
+      "Connections this Memcached holds. It never reads 0, because its own listeners and the exporter hold a few.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "memcached_commands_increase",
+    friendlyName: translationKey("Memcached Commands"),
+    description:
+      "How many times this Memcached was asked each thing since the last collection: how much memcached_commands_total grew.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: [...DEPENDENCY_LABELS, "command", "status"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "memcached_items_evicted_increase",
+    friendlyName: translationKey("Memcached Evictions"),
+    description:
+      "How many items this Memcached threw out early to make room since the last collection: how much memcached_items_evicted_total grew.",
+    category: "Memcached",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Memcached,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "haproxy_backend_status",
+    friendlyName: translationKey("HAProxy Backend Status"),
+    description:
+      "One series per state a backend could be in, with 1 on the state it is in. The state label is the word.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy", "state"],
+  }),
+  metric({
+    metricName: "haproxy_server_status",
+    friendlyName: translationKey("HAProxy Server Status"),
+    description:
+      "One series per state a backend's server could be in, with 1 on the state it is in. The state label is the word. Maintenance reads as neither up nor down.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy", "server", "state"],
+  }),
+  metric({
+    metricName: "haproxy_backend_active_servers",
+    friendlyName: translationKey("HAProxy Backend Servers Up"),
+    description:
+      "How many servers each backend has up. A section with no servers reads 0 for ever, so this alone never says a backend is down.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "haproxy_backend_http_responses_increase",
+    friendlyName: translationKey("HAProxy Responses"),
+    description:
+      "How many responses each backend gave since the last collection, by class: 2xx, 3xx, 4xx and 5xx. HAProxy counts them no finer, so a 401 is a 4xx.",
+    category: "HAProxy",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.HaProxy,
+    identityAttributes: [...DEPENDENCY_LABELS, "proxy", "code"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "ovnc_encap_ip",
+    friendlyName: translationKey("OVN Chassis"),
+    description:
+      "1 on a machine set up as an OVN chassis, labelled with its tunnel address. It is read from Open vSwitch, so it stays while ovn-controller is stopped and goes with Open vSwitch.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "ovnc_rconn_queued",
+    friendlyName: translationKey("ovn-controller Messages Queued"),
+    description:
+      "How many OpenFlow messages ovn-controller has queued since it started. Only a running ovn-controller has this series, which is what it is read for here.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "ovn_raft_cluster_leader",
+    friendlyName: translationKey("OVN Database Leader"),
+    description:
+      "1 on the member of an OVN database that leads it, and 0 on the others. openstack-network-exporter reads Southbound on a machine with both databases' sockets, so Northbound shows only where a machine has no Southbound to read.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: [...DEPENDENCY_LABELS, "database"],
+  }),
+  metric({
+    metricName: "ovn_northd_status",
+    friendlyName: translationKey("ovn-northd Active"),
+    description:
+      "1 on the ovn-northd that is active, and 0 on a standby. It reads 0 everywhere with OVN's databases stopped.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "ovs_memory_rules_total",
+    friendlyName: translationKey("Open vSwitch Rules"),
+    description:
+      "How many OpenFlow rules ovs-vswitchd holds. It is asked over ovs-vswitchd's own socket, so this goes when it stops and comes straight back when it starts.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+    unit: "count",
+  }),
+  metric({
+    metricName: "ovs_build_info",
+    friendlyName: translationKey("Open vSwitch Database Read"),
+    description:
+      "1 while openstack-network-exporter can read Open vSwitch's database, labelled with its version. Version 0.3.0 connects to that database once, so after Open vSwitch restarts this stays gone until the exporter restarts too.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  metric({
+    metricName: "ovs_interface_tx_errors_increase",
+    friendlyName: translationKey("Tunnel Transmit Errors"),
+    description:
+      "How many transmit errors a machine's Geneve tunnels reported since the last collection. The agent keeps Geneve's interfaces and none of the others, because a machine has one interface per port.",
+    category: "OVN and Open vSwitch",
+    defaultAggregation: MetricsAggregationType.Max,
+    dependency: OpenStackDependency.Network,
+    identityAttributes: [...DEPENDENCY_LABELS, "interface", "type"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "libvirt_up",
+    friendlyName: translationKey("libvirt Answering"),
+    description:
+      "Whether libvirt answered its exporter (1) or not (0). The exporter sits beside it, so a stopped libvirt leaves it answering with this at 0.",
+    category: "libvirt",
+    defaultAggregation: MetricsAggregationType.Min,
+    dependency: OpenStackDependency.Libvirt,
+    identityAttributes: DEPENDENCY_LABELS,
+  }),
+  // Orchestration: only on a cloud that runs Heat or Magnum.
+  metric({
+    metricName: "openstack_heat_up",
+    friendlyName: translationKey("Orchestration API Up"),
+    description:
+      "Whether Heat's API answered the exporter's calls (1) or every one of them failed (0). Heat's API asks an engine for its lists, so a stopped heat-engine reads 0 too, after a minute's wait. Only a cloud whose catalog names Heat has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
+  }),
+  metric({
+    metricName: "openstack_container_infra_up",
+    friendlyName: translationKey("Kubernetes Clusters API Up"),
+    description:
+      "Whether Magnum's API answered the exporter's calls (1) or every one of them failed (0). A stopped magnum-conductor leaves this at 1. Only a cloud whose catalog names Magnum has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
+  }),
+  metric({
+    metricName: "openstack_heat_stack_status",
+    friendlyName: translationKey("Stack Status"),
+    description:
+      "One series per stack. The value is a code for its status: read the `status` label for the word (CREATE_FAILED, UPDATE_IN_PROGRESS). An admin's list holds every project's stacks, with `project_id`. Any lesser credential gets its own project's with `project_id` empty, or none.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: ["id", "name", "project_id", "status"],
+    probeOnlyAttributes: [
+      "status_reason",
+      "parent_id",
+      "resources_read",
+      "owned_instance_ids",
+      "owned_instance_count",
+      "owned_volume_ids",
+      "owned_volume_count",
+    ],
+  }),
+  metric({
+    metricName: "openstack_heat_stack_status_counter",
+    friendlyName: translationKey("Stacks by Status"),
+    description:
+      "How many stacks hold each status, per region, every word read as 0 until a stack holds it. A count: it cannot say which stack, or tell one stuck from a stream passing through.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: ["status"],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_heat_agent_state",
+    friendlyName: translationKey("Heat Engine Up"),
+    description:
+      "Whether Heat lists each heat-engine as up (1) or down (0), one series per engine record. Only a probe sends this, because the exporter never reads Heat's services, and only an admin may. With every engine stopped Heat's API can't list them, so this goes away and Orchestration API Up reads 0.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Orchestration,
+    identityAttributes: ["hostname", "service", "id"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_container_infra_total_clusters",
+    friendlyName: translationKey("Kubernetes Clusters"),
+    description:
+      "How many clusters Magnum listed for this credential, per region. Anything below an admin is shown none of another project's, and no error says so.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_container_infra_cluster_status",
+    friendlyName: translationKey("Kubernetes Cluster Status"),
+    description:
+      "One series per cluster. The value is a code for its status: read the `status` label for the word (CREATE_FAILED, CREATE_IN_PROGRESS). `stack_id` is its Heat stack. `project_id` is empty from the exporter, because Magnum says it only on a cluster's own read.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [
+      "uuid",
+      "name",
+      "stack_id",
+      "status",
+      "node_count",
+      "master_count",
+      "project_id",
+    ],
+    probeOnlyAttributes: [
+      "status_reason",
+      "health_status",
+      "cluster_template_id",
+      "cluster_template_name",
+      "coe_version",
+      "api_address",
+    ],
+  }),
+  metric({
+    metricName: "openstack_container_infra_cluster_masters",
+    friendlyName: translationKey("Kubernetes Cluster Control Plane Nodes"),
+    description:
+      "How many control plane nodes each cluster was asked for, one series per cluster.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [
+      "uuid",
+      "name",
+      "stack_id",
+      "status",
+      "node_count",
+      "project_id",
+    ],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_container_infra_cluster_nodes",
+    friendlyName: translationKey("Kubernetes Cluster Worker Nodes"),
+    description:
+      "How many worker nodes each cluster was asked for, one series per cluster.",
+    category: "Orchestration",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: [
+      "uuid",
+      "name",
+      "stack_id",
+      "status",
+      "master_count",
+      "project_id",
+    ],
+    unit: "count",
+  }),
+  metric({
+    metricName: "openstack_container_infra_agent_state",
+    friendlyName: translationKey("Magnum Conductor Up"),
+    description:
+      "Whether Magnum lists each magnum-conductor as up (1) or down (0). Only a probe sends this, because the exporter never reads Magnum's services, and only an admin may. Magnum's API carries on answering without a conductor, so nothing else says one has stopped.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ContainerInfra,
+    identityAttributes: ["hostname", "service", "adminState", "disabledReason"],
+    onlyFromProbe: true,
+  }),
+  // Shared file systems: Manila, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_sharev2_up",
+    friendlyName: translationKey("Shared File Systems API Up"),
+    description:
+      "Whether Manila's API answered the exporter's calls (1) or every one of them failed (0). A stopped API does read 0, and every credential that can log in reads 1, so unlike the other services a cloud may not run this says only that. A stopped manila-share leaves this at 1. Only a cloud whose catalog names Manila has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_gb",
+    friendlyName: translationKey("Share Size"),
+    description:
+      "One series per share, its value how many GiB it was asked for. It carries the share's status as a label, and its value is never 0, so it is what says a share holds a status for a while. share_type_name is empty from the exporter, because it asks for no microversion. share_type holds the type's name.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [
+      "availability_zone",
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "status",
+    ],
+    probeOnlyAttributes: ["access_rules_status", "host"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_status",
+    friendlyName: translationKey("Share Status"),
+    description:
+      "One series per share. The value is a code for its status, and creating's code is 0, so read the `status` label for the word (available, error, creating). A plain reader gets its own project's shares here, and no error says so.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "size",
+      "status",
+    ],
+    probeOnlyAttributes: ["access_rules_status", "host"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_share_status_counter",
+    friendlyName: translationKey("Shares by Status"),
+    description:
+      "How many shares hold each status, per region, the nineteen words the exporter knows reading 0 until a share holds one. A count: it can't say which share, or tell one stuck from a stream passing through.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: ["status"],
+  }),
+  metric({
+    metricName: "openstack_sharev2_shares_counter",
+    friendlyName: translationKey("Shares"),
+    description:
+      "How many shares Manila listed for this credential, per region. A plain reader counts its own project's.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_sharev2_agent_state",
+    friendlyName: translationKey("Manila Service Up"),
+    description:
+      "Whether Manila lists each service as up (1) or not (0). `state` says which of two ways it isn't: stopped when it shut down cleanly, recorded at once, and down only when it died and its heartbeat has grown old. Only a probe sends this, because the exporter never reads Manila's services, and only an admin may.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.SharedFileSystems,
+    identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
+    onlyFromProbe: true,
+  }),
+  // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_trove_up",
+    friendlyName: translationKey("Databases API Up"),
+    description:
+      "Whether the exporter's read of Trove answered (1) or failed (0). It reads Trove's mgmt API, which only an admin may, so any credential short of that reads 0 just as a stopped API does, recorded. A stopped trove-taskmanager leaves this at 1. Only a cloud whose catalog names Trove has this series.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Database,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_trove_total_instances",
+    friendlyName: translationKey("Database Instances"),
+    description: "How many database instances Trove listed, per region.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.Database,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_trove_instance_status",
+    friendlyName: translationKey("Database Instance Status"),
+    description:
+      "One series per database instance. The value is a code for its status, so read the `status` label for the word (ACTIVE, BUILD, ERROR).",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+    probeOnlyAttributes: ["fault_message", "task_description"],
+  }),
+  metric({
+    metricName: "openstack_trove_instance_volume_size_gb",
+    friendlyName: translationKey("Database Volume Size"),
+    description:
+      "How many GiB each database instance's volume holds, one series per instance.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+  }),
+  metric({
+    metricName: "openstack_trove_instance_volume_used_gb",
+    friendlyName: translationKey("Database Volume Used"),
+    description:
+      "How many GiB of each database instance's volume its database has used, as its guest reports. An instance that isn't running reads 0, recorded in BUILD and ERROR, which says nothing about what it holds.",
+    category: "Databases",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "GiB",
+    service: OpenStackServiceType.Database,
+    identityAttributes: DATABASE_INSTANCE_LABELS,
+  }),
+  // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_ironic_up",
+    friendlyName: translationKey("Bare Metal API Up"),
+    description:
+      "1 when a read of Ironic got far enough to say. Stopped, the exporter the OpenStack Agent runs answers an empty 200, as for a cloud without Ironic, so this series goes quiet rather than reading 0: a probe and exporter 1.7.0 can say 0.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_ironic_node",
+    friendlyName: translationKey("Bare Metal Node"),
+    description:
+      "One series per node Ironic shows this credential, always 1: what it says is in its labels, its provision state, power state and whether it is in maintenance. Ironic shows a project only the nodes it owns.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: [
+      "console_enabled",
+      "deploy_kernel",
+      "deploy_ramdisk",
+      "id",
+      "maintenance",
+      "maintenance_reason",
+      "name",
+      "power_state",
+      "provision_state",
+      "resource_class",
+      "retired",
+      "retired_reason",
+    ],
+    probeOnlyAttributes: [
+      "driver",
+      "owner",
+      "lessee",
+      "instance_uuid",
+      "conductor",
+      "conductor_group",
+      "fault",
+      "target_provision_state",
+      "target_power_state",
+      "last_error",
+    ],
+  }),
+  metric({
+    metricName: "openstack_ironic_node_provision_updated_at",
+    friendlyName: translationKey("Bare Metal Node Provision State Updated"),
+    description:
+      "When Ironic last saw this node's provision state move, as a Unix time. A deploy agent's heartbeats move it too, so a long erase is not a node stuck. A node that has never moved has no such series.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: IRONIC_NODE_TIME_LABELS,
+    unit: "seconds",
+  }),
+  metric({
+    metricName: "openstack_ironic_node_updated_at",
+    friendlyName: translationKey("Bare Metal Node Updated"),
+    description:
+      "When this node's record last changed, as a Unix time. A node that has never changed has no such series.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: IRONIC_NODE_TIME_LABELS,
+    unit: "seconds",
+  }),
+  metric({
+    metricName: "openstack_ironic_agent_state",
+    friendlyName: translationKey("Bare Metal Conductor Alive"),
+    description:
+      "1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list.",
+    category: "Bare Metal",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.BareMetal,
+    identityAttributes: ["hostname", "service", "conductor_group"],
+    onlyFromProbe: true,
+  }),
 ];
 
 export function getAllOpenStackMetrics(): Array<OpenStackMetricDefinition> {
   return openStackMetricCatalog;
+}
+
+// What the checks from outside report, for pages that only show those.
+export function getOpenStackCheckMetrics(): Array<OpenStackMetricDefinition> {
+  return openStackMetricCatalog.filter((m: OpenStackMetricDefinition) => {
+    return m.fromCheck === true;
+  });
 }
 
 export function getOpenStackMetricsByCategory(
@@ -1789,11 +2879,22 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
   return [
     "Availability",
     "Control Plane",
+    "RabbitMQ",
+    "MariaDB and Galera",
+    "Memcached",
+    "HAProxy",
+    "OVN and Open vSwitch",
+    "libvirt",
     "Compute",
     "Network",
     "Storage",
     "Images",
     "Identity",
+    "Orchestration",
+    "Bare Metal",
+    "Databases",
     "Projects",
+    "Checks",
+    "Capacity",
   ];
 }

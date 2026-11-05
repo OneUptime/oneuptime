@@ -1,0 +1,10 @@
+baseline recorded
+half-enrolled recorded
+maintenance recorded
+clean-failed recorded
+wait-call-back recorded
+deploy-failed recorded
+power-off-while-active recorded
+conductor-down recorded
+api-down recorded
+recovered recorded

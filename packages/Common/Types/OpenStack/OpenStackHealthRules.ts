@@ -1,8 +1,21 @@
 import { JSONObject, JSONValue } from "../JSON";
 import {
+  OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
+  OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
+  OPENSTACK_BARE_METAL_ERROR_STATES,
+  OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES,
+  OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
+  OPENSTACK_SERVICE_STATUS_STOPPED,
+  OPENSTACK_STACK_FAILED_STATUSES,
+  OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
 } from "./OpenStackResourceKind";
@@ -39,12 +52,42 @@ export const OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT: number = 90;
 // How long a part may sit in a state on the way to something else.
 export const OPENSTACK_INSTANCE_STUCK_MINUTES: number = 60;
 export const OPENSTACK_VOLUME_STUCK_MINUTES: number = 30;
-/*
- * No alert template draws this one yet, so it is the one line here with nothing to
- * agree with. An image left in queued is what a failed upload looks like: nothing ever
- * moves it on, and instances that ask for it fail.
- */
+// An image left in queued is what a failed upload looks like: nothing ever moves it on.
 export const OPENSTACK_IMAGE_STUCK_MINUTES: number = 60;
+/*
+ * Twice the hour Heat and Magnum each give a stack or cluster of their own accord. Past their
+ * timeouts they fail it themselves, so what is left in progress has a longer timeout someone
+ * chose, or an engine that stopped and left it (recorded: restarting Heat's engine did not move
+ * either stack it had been working on).
+ */
+export const OPENSTACK_STACK_STUCK_MINUTES: number = 120;
+export const OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES: number = 120;
+
+/*
+ * Manila has no timeout of its own for a share a backend is slow with, so one can stay `creating` for
+ * as long as the backend takes, recorded for 50 minutes on a backend told to take that long, and a
+ * backend that hung reads just the same. Longer than a volume's, because a share's backend does more.
+ */
+export const OPENSTACK_SHARE_STUCK_MINUTES: number = 60;
+/*
+ * Trove gives up on a guest that does not report by itself (usage_timeout, a quarter of an hour by
+ * default, and it reached ERROR in two minutes when Nova refused, recorded). So what stays on its way
+ * for an hour has nothing working on it, and with no list of Trove's own workers to read, this is the
+ * only thing that says trove-taskmanager stopped.
+ */
+export const OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES: number = 60;
+/*
+ * A database's volume, of the part of it the database has used. Past this, it stops taking writes
+ * without much warning. The same line as a storage pool's.
+ */
+export const OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT: number = 85;
+/*
+ * Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node is then
+ * in a failed state, which says so itself. Past twice that and as long again, Ironic has not given
+ * up and nothing has moved. A long disk erase can honestly take this long: the page sees its
+ * heartbeats through provision_updated_at, and an alert only sees the word.
+ */
+export const OPENSTACK_BARE_METAL_STUCK_MINUTES: number = 120;
 
 /*
  * What a hypervisor's instances really use, as apart from what is promised on it. Past
@@ -75,9 +118,83 @@ export const OPENSTACK_INSTANCE_CPU_CONTENTION_WARNING_PERCENT: number = 10;
 export const OPENSTACK_SERVICE_DISABLED_WARNING_DAYS: number = 7;
 
 /*
+ * How close a public endpoint's certificate may come to its end. A month is when someone can
+ * still renew it in working hours, and a week is when it is about to take every user with it.
+ */
+export const OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 30;
+export const OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS: number = 7;
+
+/*
+ * How long a lifecycle run's server may take to reach ACTIVE before a boot counts as slow. Tempest's
+ * own build_timeout, which is how long OpenStack's own tests give a server, and well under what a
+ * run waits before calling a boot failed.
+ */
+export const OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS: number = 300;
+
+/*
+ * The same for a node: in maintenance on purpose, until it has been there so long that somebody
+ * probably forgot it, and the machine has been out of what the cloud can give all that time.
+ */
+export const OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS: number = 7;
+
+/*
+ * What fills up within this many days is what Capacity Forecast Under N Days alerts on, and what
+ * the Capacity page marks. Two weeks: about what it takes to find a host a home, or to clean up.
+ */
+export const OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS: number = 14;
+
+/*
+ * A host's allocations and its instances can disagree for a moment whenever one is starting or
+ * going away. Disagreeing for this long is no moment.
+ */
+export const OPENSTACK_ALLOCATION_MISMATCH_MINUTES: number = 30;
+
+/*
+ * A service a cloud may not run says nothing when it stops. Asked about one whose API is not
+ * answering, the exporter the agent runs answers 200 with nothing, exactly as it does for a cloud
+ * that never had the service: recorded on Ironic (services-ironic/api-down) and on Designate. So all
+ * anyone can say is that a service which was reporting has gone quiet: stopped, or taken away. Three
+ * of its collections, at 5 minutes each, and one more to be sure, before a page says that.
+ */
+export const OPENSTACK_QUIET_SERVICE_MINUTES: number = 20;
+
+/*
+ * A cloud that took a service away for good has no way to say so, and no read of it will ever vouch
+ * for its rows again, so they would stay for ever. This long after the rest of the cloud last
+ * reported without it, they go. It comes back with its rows if it was only stopped.
+ */
+export const OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS: number = 14;
+
+/*
  * What an operator set: Nova and Cinder say enabled or disabled, Neutron says up or
  * down. Nothing here is a failure, whichever word it is in.
  */
+/*
+ * Workers where one down of several is a warning, because the others carry on. All of them down is a
+ * control-plane outage. There are a few of these in a region however large it is.
+ */
+export const OPENSTACK_REDUNDANT_WORKERS: ReadonlySet<string> = new Set([
+  "nova-scheduler",
+  "nova-conductor",
+  // Its nodes move to the others on Ironic's hash ring, so one down of several loses nothing.
+  "ironic-conductor",
+]);
+
+export function isOpenStackServiceQuiet(data: {
+  service?: string | null | undefined;
+  lastSeenAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (!data.service || OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(data.service)) {
+    return false;
+  }
+  const minutes: number | null = minutesInState({
+    stateChangedAt: data.lastSeenAt,
+    now: data.now,
+  });
+  return minutes !== null && minutes >= OPENSTACK_QUIET_SERVICE_MINUTES;
+}
+
 export function isOpenStackAdminDisabled(
   adminState: string | null | undefined,
 ): boolean {
@@ -89,8 +206,24 @@ export function isOpenStackServiceDown(data: {
   adminState?: string | null | undefined;
 }): boolean {
   return (
-    data.status === OPENSTACK_SERVICE_STATUS_DOWN &&
+    (data.status === OPENSTACK_SERVICE_STATUS_DOWN ||
+      data.status === OPENSTACK_SERVICE_STATUS_STOPPED) &&
     !isOpenStackAdminDisabled(data.adminState)
+  );
+}
+
+/*
+ * An operator told Nova this service is down, usually so its instances can be evacuated. It reads
+ * down whatever the service is doing, and only until someone lets it back up. Only a native read
+ * of Nova says so: the exporter's series have no such label, and then this is simply not known.
+ */
+export function isOpenStackServiceForcedDown(data: {
+  status?: string | null | undefined;
+  facts?: JSONObject | null | undefined;
+}): boolean {
+  return (
+    data.status === OPENSTACK_SERVICE_STATUS_DOWN &&
+    data.facts?.["forcedDown"] === true
   );
 }
 
@@ -188,10 +321,262 @@ export function isOpenStackImageStuck(data: {
   return minutes !== null && minutes >= OPENSTACK_IMAGE_STUCK_MINUTES;
 }
 
+export function isOpenStackBareMetalNodeInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_BARE_METAL_ERROR_STATES.has(status));
+}
+
+export function isOpenStackBareMetalNodeInMaintenance(
+  adminState: string | null | undefined,
+): boolean {
+  return adminState === OPENSTACK_BARE_METAL_IN_MAINTENANCE;
+}
+
+/*
+ * When Ironic last saw a node move, or OneUptime last saw it change state when Ironic has not said.
+ * provision_updated_at is the better of the two: it says what happened before anyone was watching,
+ * and a step that heartbeats keeps moving it, so a long erase is not a node stuck.
+ */
+function getOpenStackBareMetalMovedAt(data: {
+  stateChangedAt?: Date | string | null | undefined;
+  provisionUpdatedAt?: Date | string | null | undefined;
+}): Date | string | null | undefined {
+  return data.provisionUpdatedAt || data.stateChangedAt;
+}
+
+// A node someone put in maintenance is planned, whatever word it stopped at.
+export function isOpenStackBareMetalNodeStuck(data: {
+  status?: string | null | undefined;
+  adminState?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  provisionUpdatedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (
+    !data.status ||
+    !OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(data.status) ||
+    isOpenStackBareMetalNodeInMaintenance(data.adminState)
+  ) {
+    return false;
+  }
+  const minutes: number | null = minutesInState({
+    stateChangedAt: getOpenStackBareMetalMovedAt(data),
+    now: data.now,
+  });
+  return minutes !== null && minutes >= OPENSTACK_BARE_METAL_STUCK_MINUTES;
+}
+
+export function isOpenStackBareMetalMaintenanceTooLong(data: {
+  adminState?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (!isOpenStackBareMetalNodeInMaintenance(data.adminState)) {
+    return false;
+  }
+  const minutes: number | null = minutesInState({
+    stateChangedAt: data.stateChangedAt,
+    now: data.now,
+  });
+  return (
+    minutes !== null &&
+    minutes >= OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS * 24 * 60
+  );
+}
+
+/*
+ * A deployed node with its power off: whatever runs on it has stopped. Nothing else counts. An
+ * empty power state is not known rather than wrong (recorded: an `available` node reads None until
+ * something has set it), and a node that is not deployed may be on or off for good reason: a failed
+ * deploy leaves it on, and fast-track keeps one on between deploys.
+ *
+ * An instance someone stopped does this too, and that is planned: Nova powers its node off and
+ * Ironic leaves it active. Only something holding that instance's status can tell, which a page and
+ * the server's read can, and an alert cannot: it reads one series.
+ */
+export function isOpenStackBareMetalPowerUnexpected(data: {
+  status?: string | null | undefined;
+  adminState?: string | null | undefined;
+  powerState?: string | null | undefined;
+  instanceStatus?: string | null | undefined;
+}): boolean {
+  return (
+    data.status === "active" &&
+    data.powerState === "power off" &&
+    data.instanceStatus !== "SHUTOFF" &&
+    !isOpenStackBareMetalNodeInMaintenance(data.adminState)
+  );
+}
+
+/*
+ * Whether Nova could put an instance on a node, by the rule its Ironic driver reports to Placement
+ * (_node_resources_unavailable): in `available`, out of maintenance, and with a power state it can
+ * read. Recorded: services-ironic holds `available` nodes reading None, and Placement has each of
+ * them all reserved. A retired node is on its way out, and Ironic will not make it available again.
+ */
+export function canOpenStackBareMetalNodeTakeAnInstance(data: {
+  status?: string | null | undefined;
+  adminState?: string | null | undefined;
+  powerState?: string | null | undefined;
+  isRetired?: boolean | null | undefined;
+}): boolean {
+  return (
+    data.status === "available" &&
+    !isOpenStackBareMetalNodeInMaintenance(data.adminState) &&
+    Boolean(data.powerState) &&
+    data.powerState !== "error" &&
+    data.isRetired !== true
+  );
+}
+
+/*
+ * What Nova's Ironic driver calls a node, as a hypervisor and as a Placement provider: its UUID. No
+ * other driver names a hypervisor that way (libvirt's is its host name, VMware's a domain and a
+ * UUID), though a host could be called anything, so nothing reads this alone: see
+ * OpenStackSnapshotScan. Linear, and on a short value anyway: a label is a host name.
+ */
+const UUID_GROUP_LENGTHS: ReadonlyArray<number> = [8, 4, 4, 4, 12];
+const HEX_DIGITS: string = "0123456789abcdefABCDEF";
+
+export function isOpenStackBareMetalNodeId(
+  name: string | null | undefined,
+): boolean {
+  if (!name || name.length !== 36) {
+    return false;
+  }
+  let at: number = 0;
+  for (const [index, length] of UUID_GROUP_LENGTHS.entries()) {
+    for (let digit: number = 0; digit < length; digit++, at++) {
+      if (!HEX_DIGITS.includes(name.charAt(at))) {
+        return false;
+      }
+    }
+    if (index < UUID_GROUP_LENGTHS.length - 1) {
+      if (name.charAt(at) !== "-") {
+        return false;
+      }
+      at++;
+    }
+  }
+  return true;
+}
+
+export function isOpenStackShareInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_SHARE_ERROR_STATUSES.has(status));
+}
+
+export function isOpenStackShareStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (!data.status || !OPENSTACK_SHARE_TRANSITIONAL_STATUSES.has(data.status)) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return minutes !== null && minutes >= OPENSTACK_SHARE_STUCK_MINUTES;
+}
+
+export function isOpenStackDatabaseInstanceInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(
+    status && OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES.has(status),
+  );
+}
+
+export function isOpenStackDatabaseInstanceStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (
+    !data.status ||
+    !OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES.has(data.status)
+  ) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return (
+    minutes !== null && minutes >= OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES
+  );
+}
+
+/*
+ * How full a database's volume is. An instance that isn't running reads 0 of its volume used,
+ * recorded in BUILD and ERROR, and that is no reading: only a real read of a guest says anything, so
+ * only a used amount above 0 does. Null when nothing says.
+ */
+export function getOpenStackDatabaseVolumePercent(data: {
+  usedBytes?: number | null | undefined;
+  sizeBytes?: number | null | undefined;
+}): number | null {
+  if (!data.usedBytes || data.usedBytes <= 0) {
+    return null;
+  }
+  return percentOf(data.usedBytes, data.sizeBytes);
+}
+
+export function isOpenStackDatabaseVolumeNearlyFull(data: {
+  usedBytes?: number | null | undefined;
+  sizeBytes?: number | null | undefined;
+}): boolean {
+  const percent: number | null = getOpenStackDatabaseVolumePercent(data);
+  return (
+    percent !== null && percent >= OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT
+  );
+}
+
 export function isOpenStackVolumeInError(
   status: string | null | undefined,
 ): boolean {
   return Boolean(status && OPENSTACK_VOLUME_ERROR_STATUSES.has(status));
+}
+
+export function isOpenStackStackFailed(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_STACK_FAILED_STATUSES.has(status));
+}
+
+export function isOpenStackStackStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (!data.status || !OPENSTACK_STACK_IN_PROGRESS_STATUSES.has(data.status)) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return minutes !== null && minutes >= OPENSTACK_STACK_STUCK_MINUTES;
+}
+
+export function isOpenStackContainerClusterFailed(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(
+    status && OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES.has(status),
+  );
+}
+
+export function isOpenStackContainerClusterStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (
+    !data.status ||
+    !OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES.has(data.status)
+  ) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return (
+    minutes !== null && minutes >= OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES
+  );
 }
 
 // A share of a whole, or null when there is no whole to share.

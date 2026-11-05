@@ -3,8 +3,12 @@ import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import Label from "Common/Models/DatabaseModels/Label";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudLabelRule from "Common/Models/DatabaseModels/OpenStackCloudLabelRule";
+import OpenStackCloudOwnerRule from "Common/Models/DatabaseModels/OpenStackCloudOwnerRule";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -22,6 +26,7 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -36,16 +41,15 @@ import React, {
 /*
  * WHICH TEAM OR LABELS A PROJECT'S OR DOMAIN'S ALERTS AND INCIDENTS GET.
  *
- * "A project maps to a team, so its incidents reach the people who run it." An alert or
- * incident on an OpenStack part names each project and domain it reaches, by ID, in its
- * description (OpenStackAlertContext). So a project's owner rule is an ordinary Alert
- * Owner Rule and Incident Owner Rule that match that line: they run when every alert and
- * incident is created, say so in its feed, notify as owners are notified, and import and
- * export where those rules do. This card writes and reads the two together, and each pair
- * stays visible and editable under Alerts and Incidents.
+ * "A project maps to a team, so its incidents reach the people who run it." A rule here is
+ * an OpenStack Cloud Owner or Label Rule that names the project or domain by its ID
+ * (OpenStackScopedRule), and adds to each alert and incident reaching it, whichever of the
+ * cloud's monitors opens it (OpenStackScopedRules). It stays visible and editable under the
+ * cloud rules' settings. A domain's ID repeats across clouds, "default" in all of them, so
+ * a domain's rule also names the cloud.
  *
- * A rule's conditions can only name a column of its own table, and no rule table has a
- * project column, so this matches what every such alert and incident writes instead.
+ * These used to be a pair of Alert and Incident rules matching a marker in the description.
+ * Those keep working, so they are listed here too, and removed here too, until each is gone.
  */
 
 export type OpenStackRuleMode = "owner" | "label";
@@ -56,7 +60,7 @@ export interface OpenStackRuleScope {
   name: string;
 }
 
-// The description pattern for a scope: its marker, read as a literal.
+// The description pattern of a rule written as a marker's pair, read as a literal.
 export function getOpenStackScopePattern(scope: OpenStackRuleScope): string {
   return escapeRegExp(
     scope.kind === "project"
@@ -65,17 +69,21 @@ export function getOpenStackScopePattern(scope: OpenStackRuleScope): string {
   );
 }
 
+// What a domain's rule says about its cloud, by the only thing a rule can match it on.
+export function getOpenStackCloudNamePattern(cloudName: string): string {
+  return `^${escapeRegExp(cloudName)}$`;
+}
+
 /*
- * A rule's name, for the Alerts and Incidents pages it also shows on. A tenant's name can
- * be as long as Keystone allows and the column is shorter than that, so it is cut here
- * rather than refused there.
+ * A rule's name, for the settings page it also shows on. A tenant's name can be as long as
+ * Keystone allows and the column is shorter than that, so it is cut here rather than
+ * refused there.
  */
 const SCOPE_NAME_LIMIT: number = 40;
 
 export function getOpenStackScopeRuleName(data: {
   scope: OpenStackRuleScope;
   mode: OpenStackRuleMode;
-  subject: "Alerts" | "Incidents";
 }): string {
   const word: string = data.scope.kind === "project" ? "project" : "domain";
   const what: string =
@@ -84,7 +92,7 @@ export function getOpenStackScopeRuleName(data: {
     data.scope.name.length > SCOPE_NAME_LIMIT
       ? `${data.scope.name.substring(0, SCOPE_NAME_LIMIT)}…`
       : data.scope.name;
-  return `OpenStack ${word} ${name}: ${what} ${data.subject.toLowerCase()}`;
+  return `OpenStack ${word} ${name}: ${what} alerts and incidents`;
 }
 
 // What a stored pattern says it is about, for the list of every project's rules.
@@ -103,9 +111,11 @@ function idsOf(values: unknown): Array<string> {
   });
 }
 
+type ScopedRuleTable = "Cloud" | "Alerts" | "Incidents";
+
 interface ScopedRule {
   id: ObjectID;
-  subject: "Alerts" | "Incidents";
+  table: ScopedRuleTable;
   name: string;
   pattern: string;
   adds: Array<string>;
@@ -117,6 +127,8 @@ export interface ComponentProps {
   scope?: OpenStackRuleScope | undefined;
   // Or the ones this can add a rule for, picked when adding: a page's domains.
   choices?: Array<OpenStackRuleScope> | undefined;
+  // The cloud a domain picked here is in, which its rule has to name.
+  openStackCloudId?: ObjectID | undefined;
 }
 
 interface AddFormValues {
@@ -126,97 +138,65 @@ interface AddFormValues {
   labels?: Array<unknown> | undefined;
 }
 
-/*
- * The two rule rows one choice is: one for alerts and one for incidents, because they are
- * two tables, and a project's incidents and alerts both have to reach its people.
- */
+// The one rule a choice is, on the cloud rules' own table.
 export async function createOpenStackScopeRules(data: {
   projectId: ObjectID;
   scope: OpenStackRuleScope;
   mode: OpenStackRuleMode;
+  cloudName?: string | undefined;
   teamIds?: Array<string> | undefined;
   userIds?: Array<string> | undefined;
   labelIds?: Array<string> | undefined;
 }): Promise<void> {
-  const pattern: string = getOpenStackScopePattern(data.scope);
-  const nameFor: (subject: "Alerts" | "Incidents") => string = (
-    subject: "Alerts" | "Incidents",
-  ): string => {
-    return getOpenStackScopeRuleName({
-      scope: data.scope,
-      mode: data.mode,
-      subject,
-    });
-  };
+  const rule: OpenStackCloudOwnerRule | OpenStackCloudLabelRule =
+    data.mode === "owner"
+      ? new OpenStackCloudOwnerRule()
+      : new OpenStackCloudLabelRule();
 
-  if (data.mode === "owner") {
-    const teams: Array<Team> = (data.teamIds || []).map((id: string): Team => {
+  rule.projectId = data.projectId;
+  rule.name = getOpenStackScopeRuleName({
+    scope: data.scope,
+    mode: data.mode,
+  });
+  rule.isEnabled = true;
+
+  if (data.scope.kind === "project") {
+    rule.openStackProjectId = data.scope.id;
+  } else {
+    rule.openStackDomainId = data.scope.id;
+    if (data.cloudName) {
+      rule.openStackCloudNamePattern = getOpenStackCloudNamePattern(
+        data.cloudName,
+      );
+    }
+  }
+
+  if (rule instanceof OpenStackCloudOwnerRule) {
+    rule.ownerTeams = (data.teamIds || []).map((id: string): Team => {
       const team: Team = new Team();
       team._id = id;
       return team;
     });
-    const users: Array<User> = (data.userIds || []).map((id: string): User => {
+    rule.ownerUsers = (data.userIds || []).map((id: string): User => {
       const user: User = new User();
       user._id = id;
       return user;
     });
-
-    const alertRule: AlertOwnerRule = new AlertOwnerRule();
-    alertRule.projectId = data.projectId;
-    alertRule.name = nameFor("Alerts");
-    alertRule.alertDescriptionPattern = pattern;
-    alertRule.ownerTeams = teams;
-    alertRule.ownerUsers = users;
-    alertRule.isEnabled = true;
-
-    const incidentRule: IncidentOwnerRule = new IncidentOwnerRule();
-    incidentRule.projectId = data.projectId;
-    incidentRule.name = nameFor("Incidents");
-    incidentRule.incidentDescriptionPattern = pattern;
-    incidentRule.ownerTeams = teams;
-    incidentRule.ownerUsers = users;
-    incidentRule.isEnabled = true;
-
-    await ModelAPI.create<AlertOwnerRule>({
-      model: alertRule,
-      modelType: AlertOwnerRule,
-    });
-    await ModelAPI.create<IncidentOwnerRule>({
-      model: incidentRule,
-      modelType: IncidentOwnerRule,
+    await ModelAPI.create<OpenStackCloudOwnerRule>({
+      model: rule,
+      modelType: OpenStackCloudOwnerRule,
     });
     return;
   }
 
-  const labels: Array<Label> = (data.labelIds || []).map(
-    (id: string): Label => {
-      const label: Label = new Label();
-      label._id = id;
-      return label;
-    },
-  );
-
-  const alertRule: AlertLabelRule = new AlertLabelRule();
-  alertRule.projectId = data.projectId;
-  alertRule.name = nameFor("Alerts");
-  alertRule.alertDescriptionPattern = pattern;
-  alertRule.labelsToAdd = labels;
-  alertRule.isEnabled = true;
-
-  const incidentRule: IncidentLabelRule = new IncidentLabelRule();
-  incidentRule.projectId = data.projectId;
-  incidentRule.name = nameFor("Incidents");
-  incidentRule.incidentDescriptionPattern = pattern;
-  incidentRule.labelsToAdd = labels;
-  incidentRule.isEnabled = true;
-
-  await ModelAPI.create<AlertLabelRule>({
-    model: alertRule,
-    modelType: AlertLabelRule,
+  rule.labelsToAdd = (data.labelIds || []).map((id: string): Label => {
+    const label: Label = new Label();
+    label._id = id;
+    return label;
   });
-  await ModelAPI.create<IncidentLabelRule>({
-    model: incidentRule,
-    modelType: IncidentLabelRule,
+  await ModelAPI.create<OpenStackCloudLabelRule>({
+    model: rule,
+    modelType: OpenStackCloudLabelRule,
   });
 }
 
@@ -232,9 +212,82 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
 
   const isOwner: boolean = props.mode === "owner";
 
+  /*
+   * These are Alerts' and Incidents' own rules. A role that reads OpenStack and not those has
+   * nothing here it may see, which is no error on a page it may: the card isn't drawn.
+   */
+  const mayRead: boolean =
+    PermissionGate.check(
+      isOwner ? new AlertOwnerRule() : new AlertLabelRule(),
+      ModelAction.Read,
+    ).isAllowed &&
+    PermissionGate.check(
+      isOwner ? new IncidentOwnerRule() : new IncidentLabelRule(),
+      ModelAction.Read,
+    ).isAllowed;
+
   const load: () => void = useCallback((): void => {
+    if (!mayRead) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError("");
+
+    // What a rule of this kind names, so one read finds exactly what this card lists.
+    const cloudRuleQueries: Array<{
+      openStackProjectId?: string | NotNull;
+      openStackDomainId?: string | NotNull;
+    }> = props.scope
+      ? [
+          props.scope.kind === "project"
+            ? { openStackProjectId: props.scope.id }
+            : { openStackDomainId: props.scope.id },
+        ]
+      : props.choices
+        ? [{ openStackDomainId: new NotNull() }]
+        : [
+            { openStackProjectId: new NotNull() },
+            { openStackDomainId: new NotNull() },
+          ];
+
+    const readCloudRules: Promise<
+      Array<ListResult<OpenStackCloudOwnerRule | OpenStackCloudLabelRule>>
+    > = Promise.all(
+      cloudRuleQueries.map(
+        (query: {
+          openStackProjectId?: string | NotNull;
+          openStackDomainId?: string | NotNull;
+        }): Promise<
+          ListResult<OpenStackCloudOwnerRule | OpenStackCloudLabelRule>
+        > => {
+          return isOwner
+            ? ModelAPI.getList<OpenStackCloudOwnerRule>({
+                modelType: OpenStackCloudOwnerRule,
+                query: query as never,
+                limit: 200,
+                skip: 0,
+                select: {
+                  name: true,
+                  ownerTeams: { name: true },
+                  ownerUsers: { name: true },
+                },
+                sort: {},
+              })
+            : ModelAPI.getList<OpenStackCloudLabelRule>({
+                modelType: OpenStackCloudLabelRule,
+                query: query as never,
+                limit: 200,
+                skip: 0,
+                select: {
+                  name: true,
+                  labelsToAdd: { name: true },
+                },
+                sort: {},
+              });
+        },
+      ),
+    );
 
     // Each marker starts with this, so one read finds a project's and a domain's alike.
     const pattern: string | Search<string> = props.scope
@@ -303,10 +356,10 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
         });
 
     const toRule: (
-      subject: "Alerts" | "Incidents",
+      table: ScopedRuleTable,
       row: Record<string, unknown>,
     ) => ScopedRule = (
-      subject: "Alerts" | "Incidents",
+      table: ScopedRuleTable,
       row: Record<string, unknown>,
     ): ScopedRule => {
       const named: Array<{ name?: string }> = [
@@ -316,7 +369,7 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       ];
       return {
         id: row["_id"] as unknown as ObjectID,
-        subject,
+        table,
         name: String(row["name"] || ""),
         pattern: String(
           row["alertDescriptionPattern"] ||
@@ -331,14 +384,46 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       };
     };
 
-    Promise.all([readAlerts, readIncidents])
+    Promise.all([readCloudRules, readAlerts, readIncidents])
       .then(
-        ([alerts, incidents]: [
+        ([cloudRules, alerts, incidents]: [
+          Array<ListResult<OpenStackCloudOwnerRule | OpenStackCloudLabelRule>>,
           ListResult<AlertOwnerRule | AlertLabelRule>,
           ListResult<IncidentOwnerRule | IncidentLabelRule>,
         ]) => {
-          setRules(
-            [
+          const seen: Set<string> = new Set();
+
+          setRules([
+            // A rule naming both a project and a domain comes back from both reads.
+            ...cloudRules
+              .flatMap(
+                (
+                  result: ListResult<
+                    OpenStackCloudOwnerRule | OpenStackCloudLabelRule
+                  >,
+                ): Array<OpenStackCloudOwnerRule | OpenStackCloudLabelRule> => {
+                  return result.data;
+                },
+              )
+              .map(
+                (
+                  row: OpenStackCloudOwnerRule | OpenStackCloudLabelRule,
+                ): ScopedRule => {
+                  return toRule(
+                    "Cloud",
+                    row as unknown as Record<string, unknown>,
+                  );
+                },
+              )
+              .filter((rule: ScopedRule): boolean => {
+                const id: string = rule.id.toString();
+                if (seen.has(id)) {
+                  return false;
+                }
+                seen.add(id);
+                return true;
+              }),
+            ...[
               ...alerts.data.map((row: AlertOwnerRule | AlertLabelRule) => {
                 return toRule(
                   "Alerts",
@@ -362,7 +447,7 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
                 pattern.startsWith(OPENSTACK_DOMAIN_MARKER_START)
               );
             }),
-          );
+          ]);
         },
       )
       .catch((err: unknown) => {
@@ -371,7 +456,13 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       .finally(() => {
         setIsLoading(false);
       });
-  }, [props.mode, props.scope?.kind, props.scope?.id, Boolean(props.choices)]);
+  }, [
+    mayRead,
+    props.mode,
+    props.scope?.kind,
+    props.scope?.id,
+    Boolean(props.choices),
+  ]);
 
   useEffect(() => {
     load();
@@ -391,10 +482,21 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       throw new Error("Pick what this rule is for.");
     }
 
+    // A domain's ID repeats across clouds, so its rule has to say which cloud it means.
+    const cloud: OpenStackCloud | null =
+      scope.kind === "domain" && props.openStackCloudId
+        ? await ModelAPI.getItem<OpenStackCloud>({
+            modelType: OpenStackCloud,
+            id: props.openStackCloudId,
+            select: { name: true },
+          })
+        : null;
+
     await createOpenStackScopeRules({
       projectId: ProjectUtil.getCurrentProjectId()!,
       scope,
       mode: props.mode,
+      cloudName: cloud?.name,
       teamIds: idsOf(values.teams),
       userIds: idsOf(values.users),
       labelIds: idsOf(values.labels),
@@ -404,7 +506,13 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
   const removeRule: (rule: ScopedRule) => Promise<void> = async (
     rule: ScopedRule,
   ): Promise<void> => {
-    if (rule.subject === "Alerts") {
+    if (rule.table === "Cloud") {
+      await ModelAPI.deleteItem(
+        isOwner
+          ? { modelType: OpenStackCloudOwnerRule, id: rule.id }
+          : { modelType: OpenStackCloudLabelRule, id: rule.id },
+      );
+    } else if (rule.table === "Alerts") {
       await ModelAPI.deleteItem(
         isOwner
           ? { modelType: AlertOwnerRule, id: rule.id }
@@ -418,6 +526,10 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       );
     }
   };
+
+  if (!mayRead) {
+    return <></>;
+  }
 
   return (
     <Card
@@ -455,13 +567,17 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
             data-testid="openstack-scoped-rules-empty"
             className="px-4 py-3 text-sm text-gray-600"
           >
-            {props.scope
+            {!props.scope
               ? translator.translateText(
-                  "No rule names this yet, so what opens about it goes only to the cloud's own owners.",
-                )
-              : translator.translateText(
                   "No project or domain has a rule yet. Add one from a project's page or the Domains page.",
-                )}
+                )
+              : isOwner
+                ? translator.translateText(
+                    "No rule names this yet, so what opens about it goes only to the cloud's own owners.",
+                  )
+                : translator.translateText(
+                    "No rule names this yet, so what opens about it gets no labels from here.",
+                  )}
           </p>
         ) : null}
         {rules.length > 0 ? (
@@ -469,7 +585,7 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
             {rules.map((rule: ScopedRule): ReactElement => {
               return (
                 <li
-                  key={`${rule.subject}/${rule.id.toString()}`}
+                  key={`${rule.table}/${rule.id.toString()}`}
                   data-testid="openstack-scoped-rule"
                   className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 text-sm"
                 >

@@ -26,6 +26,13 @@ import Input from "Common/UI/Components/Input/Input";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import OpenStackTemplatePicker from "./OpenStackTemplatePicker";
+import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
+import {
+  OpenStackChecksOn,
+  OpenStackInventorySummary,
+  fetchOpenStackChecksOn,
+  fetchOpenStackInventorySummary,
+} from "../../../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import OpenStackMetricPicker from "./OpenStackMetricPicker";
 import {
   OpenStackAlertTemplate,
@@ -182,6 +189,7 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
         _id: true,
         lastSeenAt: true,
         name: true,
+        collectionMethod: true,
       },
       toOption: (cloud: OpenStackCloud): DropdownOption => {
         return {
@@ -193,6 +201,61 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
         return cloud.lastSeenAt;
       },
     });
+
+  const chosenCloud: OpenStackCloud | undefined = resources.records.find(
+    (cloud: OpenStackCloud): boolean => {
+      return cloud.name === monitorStepOpenStackMonitor.cloudIdentifier;
+    },
+  );
+  const chosenCloudId: string = chosenCloud?.id?.toString() || "";
+
+  /*
+   * Some templates need a service a cloud may not run, or a series only a probe sends. A read that
+   * fails goes without, and leaves the whole catalogue on offer: nothing here depends on it.
+   */
+  const [chosenCloudOffer, setChosenCloudOffer] = React.useState<
+    | {
+        services: ReadonlyArray<string>;
+        isCollectedByProbe: boolean;
+        isApiCheckOn: boolean;
+        isLifecycleCheckOn: boolean;
+      }
+    | undefined
+  >(undefined);
+
+  useEffect(() => {
+    setChosenCloudOffer(undefined);
+    if (!chosenCloud?.id) {
+      return;
+    }
+    let ignore: boolean = false;
+    Promise.all([
+      fetchOpenStackInventorySummary(chosenCloud.id),
+      fetchOpenStackChecksOn(chosenCloud.id),
+    ])
+      .then(
+        ([summary, checks]: [
+          OpenStackInventorySummary | null,
+          OpenStackChecksOn,
+        ]) => {
+          if (!ignore && summary) {
+            setChosenCloudOffer({
+              services: summary.optionalServices,
+              isCollectedByProbe:
+                chosenCloud.collectionMethod ===
+                OpenStackCollectionMethod.Probe,
+              isApiCheckOn: checks.isApiCheckOn,
+              isLifecycleCheckOn: checks.isLifecycleCheckOn,
+            });
+          }
+        },
+      )
+      .catch(() => {});
+    // eslint-disable-next-line consistent-return
+    return () => {
+      ignore = true;
+    };
+  }, [chosenCloudId]);
 
   useEffect(() => {
     if (rollingTime === monitorStepOpenStackMonitor.rollingTime) {
@@ -437,6 +500,7 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4">
         <OpenStackTemplatePicker
+          cloud={chosenCloudOffer}
           selectedTemplateId={selectedTemplateId}
           onTemplateSelected={(template: OpenStackAlertTemplate) => {
             handleTemplateSelection(template);

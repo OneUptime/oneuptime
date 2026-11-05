@@ -44,6 +44,7 @@ import PodmanResource from "./PodmanResource";
 import ProxmoxCluster from "./ProxmoxCluster";
 import OpenStackCloud from "./OpenStackCloud";
 import OpenStackCloudConnectionTest from "./OpenStackCloudConnectionTest";
+import OpenStackCloudCheck from "./OpenStackCloudCheck";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import ProxmoxClusterOwnerTeam from "./ProxmoxClusterOwnerTeam";
 import OpenStackCloudOwnerTeam from "./OpenStackCloudOwnerTeam";
@@ -53,6 +54,8 @@ import OpenStackCloudOwnerUser from "./OpenStackCloudOwnerUser";
 import DockerSwarmClusterOwnerUser from "./DockerSwarmClusterOwnerUser";
 import ProxmoxResource from "./ProxmoxResource";
 import OpenStackResource from "./OpenStackResource";
+import OpenStackProjectUsage from "./OpenStackProjectUsage";
+import OpenStackBudget from "./OpenStackBudget";
 import DockerSwarmResource from "./DockerSwarmResource";
 import IoTFleet from "./IoTFleet";
 import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
@@ -1198,6 +1201,7 @@ const AllModelTypes: Array<{
   ProxmoxCluster,
   OpenStackCloud,
   OpenStackCloudConnectionTest,
+  OpenStackCloudCheck,
   DockerSwarmCluster,
   ProxmoxClusterOwnerTeam,
   OpenStackCloudOwnerTeam,
@@ -1207,6 +1211,8 @@ const AllModelTypes: Array<{
   DockerSwarmClusterOwnerUser,
   ProxmoxResource,
   OpenStackResource,
+  OpenStackProjectUsage,
+  OpenStackBudget,
   DockerSwarmResource,
   IoTFleet,
   IoTFleetOwnerTeam,
