@@ -13,6 +13,8 @@ Clique em um modelo para ver o que ele faz: o gatilho, os blocos que o compõem 
 
 Os workflows são criados desligados, então o gatilho deles não os inicia até você ligá-los. Um novo workflow abre no **Construtor**, o canvas onde você o projeta.
 
+Você também pode descrever um workflow ao Ask AI e deixar que ele o crie para você. Ele encontra o gatilho e as etapas, configura-os e conecta-os, e pede sua aprovação antes de salvar o workflow. Um novo workflow começa desativado: leia-o no Builder, preencha senhas, tokens ou URLs de webhook que ele deixou para você, pois o Ask AI nunca os pede na conversa, e então ative-o você mesmo. O Ask AI pode alterar um workflow da mesma forma. Na página de um workflow, "este workflow" significa aquele. Ele salva em seu nome, então só pode fazer o que você pode fazer no Builder, e o Builder mostra as alterações assim que são salvas.
+
 ## O canvas
 
 Um workflow criado do zero abre com um único bloco tracejado escrito **Escolha o que inicia este fluxo de trabalho**. Esse bloco é o ponto de partida: clique nele para escolher um gatilho. Um workflow criado a partir de um modelo abre com os blocos já no lugar.

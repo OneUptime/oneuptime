@@ -21,6 +21,7 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
@@ -29,6 +30,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
+import EventName from "../../Utils/EventName";
+import WorkflowChangesSeen from "./WorkflowChangedByAi";
 import AIChatUnavailableReason, {
   getAIChatUnavailableReason,
 } from "./AIChatAvailability";
@@ -196,6 +199,8 @@ export function useAiChat(options: {
 
   const activeConversationIdRef: React.MutableRefObject<string | undefined> =
     useRef<string | undefined>(undefined);
+  const workflowChangesSeen: React.MutableRefObject<WorkflowChangesSeen> =
+    useRef<WorkflowChangesSeen>(new WorkflowChangesSeen());
   activeConversationIdRef.current = activeConversationId;
 
   const selectedProviderIdRef: React.MutableRefObject<string | undefined> =
@@ -437,6 +442,16 @@ export function useAiChat(options: {
         if (signature !== messagesSignatureRef.current) {
           messagesSignatureRef.current = signature;
           setMessages(ordered);
+        }
+
+        // A workflow's Builder behind the panel reads what was just done to it.
+        for (const workflowId of workflowChangesSeen.current.read({
+          conversationId: conversationId.toString(),
+          messages: ordered,
+        })) {
+          GlobalEvents.dispatchEvent(EventName.WORKFLOW_CHANGED_BY_AI, {
+            workflowId: workflowId,
+          });
         }
 
         const workingMessage: AIConversationMessage | undefined =
