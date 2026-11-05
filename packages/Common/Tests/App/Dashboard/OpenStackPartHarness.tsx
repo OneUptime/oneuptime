@@ -1,3 +1,4 @@
+import { OpenStackContainerClusterLink } from "../../../Types/OpenStack/OpenStackLinks";
 import { jest } from "@jest/globals";
 import { act, render, screen, within } from "@testing-library/react";
 import * as React from "react";
@@ -78,6 +79,7 @@ export interface OpenStackTestServer {
   // Reads of a kind that fail, as a server that is down does.
   failKinds: Set<string>;
   failPosts: Set<string>;
+  magnumLink: OpenStackContainerClusterLink | null;
   listCalls: Array<ListCall>;
   countCalls: Array<ListCall>;
   postCalls: Array<{ path: string; body: JSONObject }>;
@@ -92,6 +94,7 @@ export const server: OpenStackTestServer = {
   cloud: null,
   failKinds: new Set<string>(),
   failPosts: new Set<string>(),
+  magnumLink: null,
   listCalls: [],
   countCalls: [],
   postCalls: [],
@@ -396,6 +399,7 @@ export function resetServer(): void {
   server.history = {};
   server.cloud = Object.assign(new OpenStackCloud(), { name: CLOUD_NAME });
   server.failKinds = new Set<string>();
+  server.magnumLink = null;
   server.failPosts = new Set<string>();
   server.listCalls = [];
   server.countCalls = [];
@@ -518,6 +522,9 @@ export function resetServer(): void {
         };
       case "blast-radius":
         return { data: blastRadiusOf(body) };
+      case "kubernetes-cluster-of-magnum-cluster":
+      case "magnum-cluster-of-kubernetes-cluster":
+        return { data: { link: server.magnumLink || null } };
       case "counts":
         return { data: { rows: countsOf(body) } };
       case "domain-projects":

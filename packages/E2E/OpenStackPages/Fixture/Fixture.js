@@ -142,6 +142,7 @@ import CloudFeed from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Vie
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
 import {
   OpenStackPlacementOfHost,
+  OpenStackPlacementOfKubernetesCluster,
   OpenStackPlacementOfKubernetesNode,
   OpenStackPlacementOfService,
 } from "../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementOfHost";
@@ -213,6 +214,8 @@ import {
   answerStoragePoolCeph,
   getHostOfMachine,
   getPlacementOfHost,
+  getKubernetesClusterOfMagnumCluster,
+  getMagnumClusterOfKubernetesCluster,
   getPlacementOfKubernetesNode,
   getPlacementsOfService,
   getReachOfInstance,
@@ -2182,6 +2185,34 @@ async function handleApi(method, options) {
         ),
       });
     }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/magnum-cluster-of-kubernetes-cluster/",
+      )
+    ) {
+      return ok({
+        link: getMagnumClusterOfKubernetesCluster(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          parsed.pathname.split("/").pop(),
+        ),
+      });
+    }
+    if (
+      parsed.pathname.includes(
+        "/openstack-resource/kubernetes-cluster-of-magnum-cluster/",
+      )
+    ) {
+      return ok({
+        link: getKubernetesClusterOfMagnumCluster(
+          estate.inventory,
+          otherProductsOf(estate),
+          estate.cloud,
+          body.externalId,
+        ),
+      });
+    }
     if (parsed.pathname.includes("/openstack-resource/placement-of-service/")) {
       return ok({
         placements: getPlacementsOfService(
@@ -2489,6 +2520,16 @@ const OTHER_PRODUCT_PAGES = [
       return (
         <OpenStackPlacementOfService
           serviceId={new ObjectID(path[path.length - 1])}
+        />
+      );
+    }),
+  ],
+  [
+    PageMap.KUBERNETES_CLUSTER_VIEW,
+    otherProductPage("other-product-kubernetes-cluster", (path) => {
+      return (
+        <OpenStackPlacementOfKubernetesCluster
+          clusterId={new ObjectID(path[path.length - 1])}
         />
       );
     }),

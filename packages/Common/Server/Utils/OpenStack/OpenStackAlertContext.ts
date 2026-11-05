@@ -7,6 +7,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
   OpenStackBlastRadius,
+  OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
@@ -832,8 +833,18 @@ export default class OpenStackAlertContext {
       const name: string = owner.name || owner.externalId;
       sections.push(
         owner.kind === OpenStackResourceKind.ContainerCluster
-          ? mdText`**Built for Kubernetes cluster:** ${name}. A failure of this stack is a failure of that cluster.`
+          ? mdText`**Part of Kubernetes cluster:** ${name}. A failure here is a failure of that cluster, and openstack coe cluster show says which node group failed.`
           : mdText`**Built with Heat stack:** ${name}. openstack stack failures list on it says what failed.`,
+      );
+    }
+
+    if (radius?.magnumClusters && radius.magnumClusters.length > 0) {
+      sections.push(
+        mdText`**Kubernetes clusters with a server on it:** ${radius.magnumClusters
+          .map((owner: OpenStackBlastRadiusOwner): string => {
+            return owner.name || owner.externalId;
+          })
+          .join(", ")}.`,
       );
     }
 
