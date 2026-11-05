@@ -433,7 +433,7 @@ Um dispositivo de rede recebe ping a cada coleta e só é varrido por SNMP quand
 | `collectionIssueSummary` | Uma linha sobre cada grupo indisponível, pronta para um título. Vazia quando tudo foi coletado. | `string` |
 | `metrics` | Os valores coletados, por nome de série. | `Object` |
 
-Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database.connections.used.percent`, e um caminho lê cada ponto como um passo dentro de um objeto, então um modelo não consegue tirar um único valor de `metrics`. Coloque `{{metrics}}` inteiro, como JSON, ou use `{{collectionIssueSummary}}`. Uma métrica que não foi coletada fica ausente de `metrics`, não vale zero. Para agir sobre um valor, compare-o no critério com uma [expressão JavaScript](/docs/monitor/javascript-expression).
+Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database.connections.used.percent`, e mesmo assim um modelo consegue tirar um valor: escreva o nome inteiro depois de `metrics.`, como em `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Coloque `{{metrics}}` inteiro, como JSON, ou use `{{collectionIssueSummary}}`. Uma métrica que não foi coletada fica ausente de `metrics`, não vale zero. Para agir sobre um valor, compare-o no critério com uma [expressão JavaScript](/docs/monitor/javascript-expression).
 
 ### Monitores de páginas de status externas
 

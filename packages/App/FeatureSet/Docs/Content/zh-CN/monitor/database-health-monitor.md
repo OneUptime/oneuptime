@@ -396,7 +396,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-要在表达式中读取某个指标，请对整个 `metrics` 对象使用下标——序列名称中带有点，因此不能放在花括号里：
+要在表达式中读取某个指标，可以把带点的序列名称直接写在花括号里，也可以对整个 `metrics` 对象使用下标——两种方式都可行：
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

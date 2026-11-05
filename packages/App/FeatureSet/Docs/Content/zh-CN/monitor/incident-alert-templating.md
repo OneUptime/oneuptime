@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | 关于每个不可用组的一行文字，可直接用于标题。全部收集成功时为空。 | `string` |
 | `metrics` | 收集到的值，按序列名称。 | `Object` |
 
-`metrics` 中的序列名称包含点号，例如 `oneuptime.monitor.database.connections.used.percent`，而路径会把每个点号当作进入对象的一步，因此模板无法从 `metrics` 中取出单个值。请把 `{{metrics}}` 作为 JSON 整体放入，或使用 `{{collectionIssueSummary}}`。未收集到的指标在 `metrics` 中不存在，而不是零。要针对单个值作出判断，请在条件中用 [JavaScript 表达式](/docs/monitor/javascript-expression) 进行比较。
+`metrics` 中的序列名称包含点号，例如 `oneuptime.monitor.database.connections.used.percent`，模板仍然可以取出单个值：在 `metrics.` 后写出完整名称，如 `{{metrics.oneuptime.monitor.database.connections.used.percent}}`。请把 `{{metrics}}` 作为 JSON 整体放入，或使用 `{{collectionIssueSummary}}`。未收集到的指标在 `metrics` 中不存在，而不是零。要针对单个值作出判断，请在条件中用 [JavaScript 表达式](/docs/monitor/javascript-expression) 进行比较。
 
 ### 外部状态页监视器
 

@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | 利用できなかったすべてのグループについての 1 行。タイトルにそのまま使えます。すべて収集できたときは空です。 | `string` |
 | `metrics` | 収集した値をシリーズ名ごとに。 | `Object` |
 
-`metrics` のシリーズ名には `oneuptime.monitor.database.connections.used.percent` のようにドットが含まれ、パスは各ドットをオブジェクトの中に入る 1 ステップとして読むため、テンプレートでは `metrics` から 1 つの値を取り出せません。`{{metrics}}` を JSON として丸ごと入れるか、`{{collectionIssueSummary}}` を使ってください。収集されなかったメトリクスは `metrics` に存在せず、ゼロにはなりません。1 つの値で判断したいときは、条件の中で [JavaScript 式](/docs/monitor/javascript-expression) を使って比較してください。
+`metrics` のシリーズ名には `oneuptime.monitor.database.connections.used.percent` のようにドットが含まれ、テンプレートでも 1 つの値を取り出せます。`{{metrics.oneuptime.monitor.database.connections.used.percent}}` のように、`metrics.` の後に名前全体を書いてください。`{{metrics}}` を JSON として丸ごと入れるか、`{{collectionIssueSummary}}` を使ってください。収集されなかったメトリクスは `metrics` に存在せず、ゼロにはなりません。1 つの値で判断したいときは、条件の中で [JavaScript 式](/docs/monitor/javascript-expression) を使って比較してください。
 
 ### 外部ステータスページ モニター
 

@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | یک خط درباره هر گروهی که در دسترس نبود، آماده برای یک عنوان. وقتی همه چیز جمع شده خالی است. | `string` |
 | `metrics` | مقدارهای جمع‌شده، بر پایه نام سری. | `Object` |
 
-نام‌های سری در `metrics` نقطه دارند، مانند `oneuptime.monitor.database.connections.used.percent`، و یک مسیر هر نقطه را گامی به درون یک شیء می‌خواند، پس یک قالب نمی‌تواند یک مقدار را از `metrics` بیرون بکشد. `{{metrics}}` را به‌صورت کامل، به شکل JSON، بگذارید، یا از `{{collectionIssueSummary}}` استفاده کنید. متریکی که جمع نشده در `metrics` غایب است، نه اینکه صفر باشد. برای عمل بر پایه یک مقدار، آن را در معیار با یک [عبارت JavaScript](/docs/monitor/javascript-expression) مقایسه کنید.
+نام‌های سری در `metrics` نقطه دارند، مانند `oneuptime.monitor.database.connections.used.percent`، و یک قالب همچنان می‌تواند یکی را بیرون بکشد: کل نام را بعد از `metrics.` بنویسید، مانند `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. `{{metrics}}` را به‌صورت کامل، به شکل JSON، بگذارید، یا از `{{collectionIssueSummary}}` استفاده کنید. متریکی که جمع نشده در `metrics` غایب است، نه اینکه صفر باشد. برای عمل بر پایه یک مقدار، آن را در معیار با یک [عبارت JavaScript](/docs/monitor/javascript-expression) مقایسه کنید.
 
 ### مانیتورهای صفحه وضعیت خارجی
 

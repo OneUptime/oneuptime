@@ -123,7 +123,7 @@ For en monitor for SQL-spørringer der spørringen returnerer et antall, varsle 
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-For en monitor for databasehelse leser du én måling ved å slå opp i hele objektet `metrics` — navnene på seriene inneholder punktum, så de kan ikke stå inne i klammeparentesene:
+For en monitor for databasehelse leser du én måling ved å skrive serienavnet med punktum inne i klammeparentesene eller ved å slå opp i hele objektet `metrics` — begge deler fungerer:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

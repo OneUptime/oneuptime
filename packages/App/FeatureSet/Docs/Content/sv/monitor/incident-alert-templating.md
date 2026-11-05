@@ -433,7 +433,7 @@ En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när
 | `collectionIssueSummary` | En rad om varje otillgänglig grupp, klar för en titel. Tom när allt samlades in. | `string` |
 | `metrics` | De insamlade värdena, efter serienamn. | `Object` |
 
-Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.connections.used.percent`, och en sökväg läser varje punkt som ett steg in i ett objekt, så en mall kan inte plocka ut ett enskilt värde ur `metrics`. Sätt in `{{metrics}}` i sin helhet, som JSON, eller använd `{{collectionIssueSummary}}`. Ett mätvärde som inte samlades in saknas i `metrics`; det är inte noll. För att agera på ett värde jämför du det i kriteriet med ett [JavaScript-uttryck](/docs/monitor/javascript-expression).
+Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.connections.used.percent`, och en mall kan ändå plocka ut ett: skriv hela namnet efter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sätt in `{{metrics}}` i sin helhet, som JSON, eller använd `{{collectionIssueSummary}}`. Ett mätvärde som inte samlades in saknas i `metrics`; det är inte noll. För att agera på ett värde jämför du det i kriteriet med ett [JavaScript-uttryck](/docs/monitor/javascript-expression).
 
 ### Monitorer för externa statussidor
 

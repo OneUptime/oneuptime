@@ -123,7 +123,7 @@ For en monitor for SQL-forespørgsler, hvis forespørgsel returnerer et antal, s
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-For en monitor for databasetilstand skal du læse én måling ved at slå op i hele objektet `metrics` — seriernes navne indeholder punktummer, så de kan ikke stå inden i klammerne:
+For en monitor for databasetilstand læser du én måling ved at skrive det prikkede serienavn inden i klammerne eller ved at slå op i hele objektet `metrics` — begge dele virker:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
