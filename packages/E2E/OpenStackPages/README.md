@@ -32,7 +32,7 @@ tell them apart:
   `?recording=hibiscus-ovn/access/reader` is what the exporter answered one credential on a healthy
   cloud, for each level of access the docs describe: `reader`, `monitoring-role` and
   `monitoring-admin-get`. `&without=volume` makes a recording's cloud one with no such service.
-- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|usage`
+- **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
   instances on it. Every record is made up, for an "Acme Cloud" workspace.
@@ -40,7 +40,9 @@ tell them apart:
 Every read is answered from one estate's rows. `Fixture/Answers.js` works out the
 inventory summary, Needs attention and the blast radius from the rows the way
 `OpenStackResourceService` works them out in SQL, down to answering a bigint as text, so an
-estate has to say nothing beyond its rows.
+estate has to say nothing beyond its rows. `Fixture/Links.js` answers what a cloud is elsewhere
+in OneUptime the same way, with the real matching rules, from what else the estate holds: its
+hosts, Kubernetes nodes, services and Ceph clusters (`OTHER_PRODUCTS` in `Fixture/Data.js`).
 
 A cloud's Traces page reads spans, so it has a recording of its own: `?traces=flamingo-ovn/signed-boot`
 is what OSProfiler's driver really sent for a signed boot, through the real reader ingest runs
@@ -120,6 +122,17 @@ each page says what is missing and how to add it. And what it costs on a cloud's
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service
 someone disabled raising nothing.
+
+`OpenStackLinks.spec.ts`: a cloud joined to the rest of OneUptime (`?estate=links`, every record
+made up): a hypervisor and the host on its machine with its real load beside what Nova has
+promised, an instance and the host, Kubernetes node and services it also is, each one's way
+there and back, a Ceph-backed pool and its cluster's trouble in Needs attention, what someone
+answers about a pool and how they change it, and a failed hypervisor's blast radius past the
+cloud. Beside each of those the same names twice over, which must link to nothing from either
+end. A host's, a Kubernetes node's and a service's page are the real card on a bare page here,
+and `HostPages`, `KubernetesPages` and `ResourceOverviews` hold that their real pages mount it.
+Whether the server's SQL says the same is `OpenStackAcrossProductsPostgres.test.ts`, on what a
+real DevStack answered.
 
 `OpenStackProductArea.spec.ts`: the clouds list and Archived, archive from a row and from Settings,
 delete, an owner added from the cloud's page, labels added from the list, the rule pages and their

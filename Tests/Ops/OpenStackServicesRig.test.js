@@ -83,15 +83,8 @@ describe("the job that records them", () => {
     );
   });
 
-  test("a run of it never cancels another kind of run, and a retry cancels only itself", () => {
-    expect(workflow.concurrency.group).toContain(
-      "inputs.services_only && format('services-{0}', inputs.services_filter)",
-    );
-    // The others keep the groups they had.
-    expect(workflow.concurrency.group).toContain(
-      "inputs.control_plane_only && 'control-plane'",
-    );
-    expect(workflow.concurrency.group).toContain("inputs.traces_only && 'traces'");
+  test("a run of it is in a group of its own, so it never cancels another run", () => {
+    expect(workflow.concurrency.group).toContain("github.run_id");
   });
 
   test("runs one group per runner, on the action and runner the rest of the rig uses", () => {

@@ -35,6 +35,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import OpenStackInstanceMetricsCard from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackInstanceMetricsCard";
 import { formatOpenStackBytes } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackResourceList";
+import OpenStackCloudOfHostCard from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackCloudOfHostCard";
 import OpenStackPlacementCard from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackPlacementCard";
 import {
   OpenStackPlacementOfHost,
@@ -878,8 +879,8 @@ describe("a storage pool's page", () => {
     expect(screen.queryByTestId("openstack-storage-pool-ceph")).toBeNull();
   });
 
-  test("says nothing once someone said it isn't on Ceph", async () => {
-    await openPool({
+  test("says someone said it isn't on Ceph, and lets them take that back", async () => {
+    const posted: jest.Mock = await openPool({
       link: {
         state: "not-ceph",
         clusterId: null,
@@ -887,7 +888,66 @@ describe("a storage pool's page", () => {
         cephPoolName: null,
       },
     });
+    expect(
+      screen.getByTestId("openstack-storage-pool-ceph-not-ceph"),
+    ).toHaveTextContent("Someone said this pool isn't on Ceph");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("openstack-storage-pool-ceph-change"));
+    });
+    await settle();
+    expect(posted).toHaveBeenCalledWith({
+      externalId: POOL_ID,
+      forget: true,
+    });
+  });
+
+  test("says nothing of an old answer once there are no clusters it could be on", async () => {
+    await openPool({
+      link: {
+        state: "not-ceph",
+        clusterId: null,
+        clusterName: null,
+        cephPoolName: null,
+      },
+      clusters: [],
+    });
     expect(screen.queryByTestId("openstack-storage-pool-ceph")).toBeNull();
+  });
+
+  test("someone's choice can be taken back, and a fact the driver states can't", async () => {
+    const posted: jest.Mock = await openPool({
+      link: {
+        state: "confirmed",
+        clusterId: CLUSTER_ID,
+        clusterName: "ceph-east",
+        cephPoolName: "volumes",
+      },
+      health: 0,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("openstack-storage-pool-ceph-change"));
+    });
+    await settle();
+    expect(posted).toHaveBeenCalledWith({
+      externalId: POOL_ID,
+      forget: true,
+    });
+  });
+
+  test("a cluster the driver names has no answer to change", async () => {
+    await openPool({
+      link: {
+        state: "from-fsid",
+        clusterId: CLUSTER_ID,
+        clusterName: "ceph-east",
+        cephPoolName: "volumes",
+      },
+      health: 0,
+    });
+    expect(
+      screen.queryByTestId("openstack-storage-pool-ceph-change"),
+    ).toBeNull();
   });
 
   test("a name only suggests a cluster, and asks", async () => {
@@ -1058,7 +1118,14 @@ describe("another product's page", () => {
   test("a service says where it runs, through the host its telemetry names", async () => {
     jest.spyOn(API, "post").mockResolvedValue({
       data: {
-        placements: [{ hostName: "web-1", hostId: null, placement: PLACEMENT }],
+        placements: [
+          {
+            hostName: "web-1",
+            hostId: null,
+            kubernetesClusterId: null,
+            placement: PLACEMENT,
+          },
+        ],
       },
     } as never);
     await renderIt(
@@ -1067,6 +1134,96 @@ describe("another product's page", () => {
     expect(screen.getByTestId("service-openstack-placement")).toHaveTextContent(
       HYPERVISOR_NAME,
     );
+    expect(screen.getByTestId("openstack-placement-project")).toHaveTextContent(
+      "payments",
+    );
+  });
+
+  test("a service on several machines gets one card, with a line for each", async () => {
+    jest.spyOn(API, "post").mockResolvedValue({
+      data: {
+        placements: [
+          {
+            hostName: "web-1",
+            hostId: null,
+            kubernetesClusterId: null,
+            placement: PLACEMENT,
+          },
+          {
+            hostName: "node-1",
+            hostId: null,
+            kubernetesClusterId: "c1",
+            placement: {
+              ...PLACEMENT,
+              externalId: "a1b2c3d4-0000-4000-8000-000000000009",
+              name: "k8s-worker-1",
+              hypervisorName: "compute-09",
+            },
+          },
+        ],
+      },
+    } as never);
+    await renderIt(
+      <OpenStackPlacementOfService serviceId={ObjectID.generate()} />,
+    );
+    expect(screen.getAllByTestId("service-openstack-placement")).toHaveLength(
+      1,
+    );
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "openstack-placement-row",
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("web-1");
+    expect(rows[1]).toHaveTextContent("k8s-worker-1");
+    expect(rows[1]).toHaveTextContent("compute-09");
+    for (const link of within(rows[1] as HTMLElement).getAllByRole("link")) {
+      expect(link).toHaveAttribute("href", expect.stringContaining(CLOUD_ID));
+    }
+  });
+
+  test("a service on no cloud says nothing at all", async () => {
+    jest.spyOn(API, "post").mockResolvedValue({
+      data: { placements: [] },
+    } as never);
+    await renderIt(
+      <OpenStackPlacementOfService serviceId={ObjectID.generate()} />,
+    );
+    expect(screen.queryByTestId("service-openstack-placement")).toBeNull();
+  });
+});
+
+describe("a host's settings", () => {
+  async function renderIt(): Promise<void> {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <OpenStackCloudOfHostCard hostId={ObjectID.generate()} />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+  }
+
+  test("a project with no clouds is never asked which one", async () => {
+    jest.spyOn(ModelAPI, "count").mockResolvedValue(0 as never);
+    await renderIt();
+    expect(screen.queryByTestId("host-openstack-cloud")).toBeNull();
+  });
+
+  test("a read that fails leaves the page as it would be for anything else", async () => {
+    jest.spyOn(ModelAPI, "count").mockRejectedValue(new Error("no") as never);
+    await renderIt();
+    expect(screen.queryByTestId("host-openstack-cloud")).toBeNull();
+    expect(screen.queryByText("no")).toBeNull();
+  });
+
+  test("a project with a cloud can choose, and is told a choice is never written over", async () => {
+    jest.spyOn(ModelAPI, "count").mockResolvedValue(2 as never);
+    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(null as never);
+    await renderIt();
+    const card: HTMLElement = screen.getByTestId("host-openstack-cloud");
+    expect(card).toHaveTextContent("OpenStack Cloud");
+    expect(card).toHaveTextContent("Your choice is never written over");
   });
 });
 

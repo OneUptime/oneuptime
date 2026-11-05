@@ -14,7 +14,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { getKubernetesPartRoute } from "../../../Pages/Kubernetes/Utils/KubernetesPartRoutes";
-import { fetchOpenStackReachOfInstance } from "../../../Pages/OpenStack/Utils/OpenStackUsageReads";
+import { fetchOpenStackReachOfInstance } from "../../../Pages/OpenStack/Utils/OpenStackLinkReads";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
