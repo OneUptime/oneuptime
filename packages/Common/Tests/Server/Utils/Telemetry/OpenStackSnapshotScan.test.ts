@@ -577,6 +577,7 @@ describe("a hypervisor's capacity", () => {
     const buffer: Buffer = new Map();
     resource(buffer, "total", "VCPU", 2);
     resource(buffer, "reserved", "VCPU", 4);
+    resource(buffer, "allocation_ratio", "VCPU", 1);
     expect(
       rowOf(buffer, OpenStackResourceKind.Hypervisor, "RegionOne/compute-01")
         .vcpuCapacity,
@@ -624,6 +625,7 @@ describe("a hypervisor's capacity", () => {
     fold(buffer, "openstack_nova_vcpus_available", { value: 32, labels });
     fold(buffer, "openstack_nova_vcpus_used", { value: 4, labels });
     resource(buffer, "total", "VCPU", 32);
+    resource(buffer, "reserved", "VCPU", 0);
     resource(buffer, "allocation_ratio", "VCPU", 4);
     resource(buffer, "usage", "VCPU", 8);
     const row: OpenStackResourceBufferEntry = rowOf(
@@ -1155,7 +1157,12 @@ describe("networks", () => {
       const buffer: Buffer = new Map();
       fold(buffer, "openstack_nova_server_status", {
         value: 0,
-        labels: { id: "server-1", uuid: "server-1", status: "ACTIVE", ...labels },
+        labels: {
+          id: "server-1",
+          uuid: "server-1",
+          status: "ACTIVE",
+          ...labels,
+        },
       });
       return rowOf(buffer, OpenStackResourceKind.Instance, "server-1");
     }
@@ -1167,6 +1174,30 @@ describe("networks", () => {
       });
       expect(row.facts["imageId"]).toBe("image-1");
       expect(row.facts["labels"]).toEqual({});
+    });
+
+    test("a probe says which networks it is on, and that is no metadata either", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+        network_names: '["private","a, b"]',
+      });
+      expect(row.facts["networkNames"]).toEqual(["private", "a, b"]);
+      expect(row.facts["labels"]).toEqual({});
+    });
+
+    test("none is an answer, and one cut short is not", () => {
+      expect(
+        instanceWith({
+          updated_at: "2026-11-04T11:00:00Z",
+          network_names: "[]",
+        }).facts["networkNames"],
+      ).toEqual([]);
+      expect(
+        instanceWith({
+          updated_at: "2026-11-04T11:00:00Z",
+          network_names: '["private","sto',
+        }).facts["networkNames"],
+      ).toBeNull();
     });
 
     test("a probe naming none says so, which is how one that was rebuilt onto a volume clears", () => {
@@ -1354,28 +1385,29 @@ describe("networks", () => {
      */
     test.each<[string, number, boolean]>([
       ["heard in the same scrape", 0, false],
-      ["heard one scrape ago, as a router arriving before its agents reads", 2, false],
+      [
+        "heard one scrape ago, as a router arriving before its agents reads",
+        2,
+        false,
+      ],
       ["heard two scrapes ago, with one read of its agents failing", 4, false],
       ["heard five minutes ago", 5, false],
       ["heard well past the window", 16, true],
-    ])(
-      "%s",
-      (_name: string, minutesAgo: number, isGone: boolean) => {
-        const now: number = Date.UTC(2026, 10, 4, 12, 3, 0);
-        const [heard] = batch(
-          [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
-          now - minutesAgo * 60 * 1000,
-        );
-        const [router] = getOpenStackRoutersWithoutAgents(
-          batch([["openstack_neutron_router", ROUTER_LABELS]], now),
-        );
+    ])("%s", (_name: string, minutesAgo: number, isGone: boolean) => {
+      const now: number = Date.UTC(2026, 10, 4, 12, 3, 0);
+      const [heard] = batch(
+        [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
+        now - minutesAgo * 60 * 1000,
+      );
+      const [router] = getOpenStackRoutersWithoutAgents(
+        batch([["openstack_neutron_router", ROUTER_LABELS]], now),
+      );
 
-        expect(
-          new Date(heard!.facts["l3AgentsReportedAt"] as string).getTime() <
-            router!.agentsReportedBefore.getTime(),
-        ).toBe(isGone);
-      },
-    );
+      expect(
+        new Date(heard!.facts["l3AgentsReportedAt"] as string).getTime() <
+          router!.agentsReportedBefore.getTime(),
+      ).toBe(isGone);
+    });
   });
 
   describe("which DHCP agents serve a network", () => {

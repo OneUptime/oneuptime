@@ -244,7 +244,7 @@ ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
-COMPOSE_PROFILES=openstack-exporter
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
 ```
 
 And start it: `docker compose up -d`.
@@ -305,7 +305,7 @@ Kolla-Ansible serves it on its internal VIP on `9198`, behind an HAProxy that gi
 | Everything of Cinder's | It asks the catalog for `volumev3`, and finds no such thing where Cinder registers as `block-storage` | **Volumes** and **Storage pools** stay empty, and **Services** has no Block Storage API, `cinder-volume` or `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** and **Volume Stuck** stay quiet |
 | How many instances a hypervisor holds, and its aggregates | Nova's list of hypervisors fails at the newest microversion, which Kolla-Ansible asks for | Those two on **Hypervisors**, and what a lost host says it takes with it. Its vCPUs, memory and disk are still there: they come from Placement |
 | Domains | It has no such series | **Domains** stays empty |
-| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**, and an image stuck on its way to `active` goes unnoticed |
+| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**. **Image Stuck** stays quiet, so an image stuck on its way to `active` goes unnoticed |
 | A network's MTU | It has no such label | That line on a network's page |
 
 ## What the cloud stands on
@@ -363,6 +363,34 @@ Nothing arrives until a request is signed with that key: only a signed request i
 | `OPENSTACK_TRACES_LISTEN_ADDRESS` | `127.0.0.1:4318` | Without Docker: where it listens. For services in containers of their own, such as OpenStack-Ansible's in LXC |
 | `OPENSTACK_TRACES_PUBLISH_ADDRESS` | `127.0.0.1` | With Docker: the address the port is published on |
 
+## OneUptime AI agent
+
+`docker-compose.yml` also has `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`, profile `openstack-ai-agent`). With it, OneUptime AI reads the cloud while it investigates an incident or alert, and cites what it ran. It shares this folder's `.env`, and registers under the same `OPENSTACK_CLOUD_NAME` the collector reports.
+
+It only reads. It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each command becomes one `GET` to the service that answers it. Its policy has no command that changes a cloud, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
+
+`install.sh` starts it beside the exporter it bundles (`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`). To start it yourself:
+
+```bash
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent docker compose up -d
+```
+
+- **The credential.** It uses the entry of `clouds.yaml` the exporter reads: what the access level you chose lets that credential see is what it can read. A credential made with access rules needs to be [replaced](#replacing-a-credential) from the current `access/application-credential-access-rules.json`, which gained a few `GET` paths for the agent; until then, the commands those paths answer come back with a `403` and everything else works.
+- **Your own exporter.** There is no `clouds.yaml` here then. Make a credential for the agent, and set in `.env`:
+
+  ```bash
+  COMPOSE_PROFILES=openstack-ai-agent
+  OPENSTACK_AI_CLOUDS_FILE=/dev/null
+  OPENSTACK_AUTH_URL=https://keystone.example.com:5000
+  ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=...
+  ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=...
+  ```
+
+- **Without Docker.** `install.sh --without-docker` does not run it. Run the Docker install to have OneUptime AI read this cloud.
+- **Other settings.** `ONEUPTIME_AI_INVESTIGATION=false` stops investigations. `ONEUPTIME_AI_OPENSTACK_CLOUD` picks another entry of `clouds.yaml`, `ONEUPTIME_AI_OPENSTACK_REGION` and `ONEUPTIME_AI_OPENSTACK_INTERFACE` the region and endpoints a command reads, and `ONEUPTIME_AI_OPENSTACK_CA_FILE` a certificate authority.
+
+What it may run, and how to troubleshoot it: [Infrastructure AI Agents](https://oneuptime.com/docs/ai/infrastructure-ai-agents#openstack-clouds).
+
 ## Settings
 
 Answers to the installer. Set any of them in the environment to skip its question, and to change one later. The first group lives in `.env`; `clouds.yaml` alone holds the credential.
@@ -379,7 +407,7 @@ Answers to the installer. Set any of them in the environment to skip its questio
 | `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none |
 | `OPENSTACK_CA_FILE` | No | A PEM file with the CA of a cloud that has its own. The installer keeps a copy as `ca.pem` next to `clouds.yaml`, and `.env` then says `./ca.pem` |
 | `OPENSTACK_EXPORTER_USER` | No | The `uid:gid` the exporter's container runs as, which must own `clouds.yaml`. The installer sets it (default: `65532:65532`) |
-| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter. The installer sets it |
+| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter, and `openstack-ai-agent` the [AI agent](#oneuptime-ai-agent). The installer sets it |
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | `host:port` of [an exporter running without `--multi-cloud`](#bring-your-own-exporter). `.env` holds it in brackets |
 | `OPENSTACK_RABBITMQ_TARGETS`, `OPENSTACK_MARIADB_TARGETS`, `OPENSTACK_MEMCACHED_TARGETS`, `OPENSTACK_HAPROXY_TARGETS`, `OPENSTACK_NETWORK_EXPORTER_TARGETS`, `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | [What the cloud stands on](#what-the-cloud-stands-on). The installer keeps them across a re-run, and never asks |
 | `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target in those lists that does not say its own (default: the first region) |

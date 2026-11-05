@@ -15,6 +15,7 @@ import { MonitorStepIoTMonitorUtil } from "Common/Types/Monitor/MonitorStepIoTMo
 import { MonitorStepKubernetesMonitorUtil } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepMetricMonitorUtil } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import { MonitorStepPodmanMonitorUtil } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
+import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
@@ -278,6 +279,18 @@ const WITH_A_HEARTBEAT: Partial<Record<MonitorType, HeartbeatCase>> = {
     },
     metricNames: ["pve_up"],
     scope: { "resource.proxmox.cluster.name": "pve-01" },
+  },
+  [MonitorType.OpenStack]: {
+    step: (view: MetricsViewConfig): MonitorStep => {
+      return new MonitorStep().setOpenStackMonitor({
+        ...MonitorStepOpenStackMonitorUtil.getDefault(),
+        cloudIdentifier: "prod-cloud",
+        metricViewConfig: view,
+        rollingTime: ROLLING_TIME,
+      });
+    },
+    metricNames: ["openstack_identity_up"],
+    scope: { "resource.openstack.cloud.name": "prod-cloud" },
   },
   [MonitorType.VMware]: {
     step: (view: MetricsViewConfig): MonitorStep => {

@@ -1,0 +1,4 @@
+503 gnocchi-versions
+503 gnocchi-status
+503 gnocchi-archive-policies
+503 gnocchi-metrics-some

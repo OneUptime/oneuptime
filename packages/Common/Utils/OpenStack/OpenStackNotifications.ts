@@ -246,21 +246,10 @@ const IMAGE_STATUSES_ON_THE_WAY: ReadonlySet<string> = new Set([
   "importing",
 ]);
 
-/*
- * All Cinder says of an attach made through its attachments API, which is how Nova attaches a
- * volume: a real cloud sends this, and no volume.attach.end follows. So on a volume's own feed,
- * and for when its state moved, this is the word that it happened.
- */
-const VOLUME_ATTACH_START: string = "volume.attach.start";
-
 function isTrailEvent(
   type: string,
   fields: Record<string, unknown> | null,
 ): boolean {
-  if (type === VOLUME_ATTACH_START) {
-    return false;
-  }
-
   return (
     endsWith(type, ".start") ||
     endsWith(type, "_scheduled") ||
@@ -795,10 +784,6 @@ function buildTitle(data: {
       : `${subject}: ${step} failed`;
   }
 
-  if (type === VOLUME_ATTACH_START) {
-    return `${subject}: being attached`;
-  }
-
   // Only a change is drawn anywhere, and what has only started has not done anything yet.
   if (outcome === OpenStackEventOutcome.Started) {
     return `${subject}: ${type}`;
@@ -871,8 +856,7 @@ function readMovesState(data: {
 
   if (
     !part ||
-    (outcome === OpenStackEventOutcome.Started &&
-      data.type !== VOLUME_ATTACH_START) ||
+    outcome === OpenStackEventOutcome.Started ||
     data.type.indexOf(".delete") !== -1
   ) {
     return false;

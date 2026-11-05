@@ -49,7 +49,12 @@ import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaInc
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
-import OpenStackAlertContext from "../OpenStack/OpenStackAlertContext";
+import OpenStackAlertContext, {
+  OpenStackSeriesDescription,
+} from "../OpenStack/OpenStackAlertContext";
+import OpenStackScopedRules, {
+  OpenStackScopedRulesMatch,
+} from "../OpenStack/OpenStackScopedRules";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -928,8 +933,8 @@ export default class MonitorIncident {
           });
 
           // What a part of an OpenStack cloud takes with it, and whose that is.
-          const description: string | undefined =
-            await OpenStackAlertContext.addToDescription({
+          const openStackSeries: OpenStackSeriesDescription =
+            await OpenStackAlertContext.describeSeries({
               description: incident.description,
               projectId: input.monitor.projectId!,
               clouds: incident.openStackClouds,
@@ -937,9 +942,16 @@ export default class MonitorIncident {
               monitorSteps: input.monitor.monitorSteps,
             });
 
-          if (description !== undefined) {
-            incident.description = description;
+          if (openStackSeries.description !== undefined) {
+            incident.description = openStackSeries.description;
           }
+
+          const openStackRules: OpenStackScopedRulesMatch =
+            await OpenStackScopedRules.read({
+              projectId: input.monitor.projectId!,
+              openStackCloudId: openStackSeries.openStackCloudId,
+              reached: openStackSeries.reached,
+            });
 
           /*
            * On-call policies and labels from the criteria. IncidentService
@@ -981,6 +993,8 @@ export default class MonitorIncident {
             return label;
           });
 
+          OpenStackScopedRules.addLabels(incident, openStackRules);
+
           incident.isCreatedAutomatically = true;
 
           // Set status page visibility (defaults to true if not specified)
@@ -1019,6 +1033,12 @@ export default class MonitorIncident {
             props: {
               isRoot: true,
             },
+          });
+
+          await OpenStackScopedRules.finishIncident({
+            projectId: input.monitor.projectId!,
+            incidentId: createdIncident.id!,
+            match: openStackRules,
           });
 
           /*

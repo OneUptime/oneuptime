@@ -54,6 +54,7 @@ const RESOURCE_SENTENCE_NAMES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.AwsAccount]: "AWS account",
   [AiResourceType.AzureSubscription]: "Azure subscription",
   [AiResourceType.GoogleCloudProject]: "Google Cloud project",
+  [AiResourceType.OpenStackCloud]: "OpenStack cloud",
 };
 
 export function getResourceSentenceName(resourceType: AiResourceType): string {
@@ -104,6 +105,8 @@ export const RESOURCE_AI_ALLOWLIST_EXAMPLES: Readonly<
     "cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web",
   [AiResourceType.GoogleCloudProject]:
     "cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1",
+  // OneUptime AI only reads an OpenStack cloud: nothing to pre-approve.
+  [AiResourceType.OpenStackCloud]: "",
 };
 
 /*

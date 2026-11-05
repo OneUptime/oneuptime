@@ -1,10 +1,13 @@
 import {
+  isOpenStackBareMetalNodeStuck,
   isOpenStackImageStuck,
   isOpenStackInstanceStuck,
   isOpenStackVolumeStuck,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_API_STATUS_CLOSED,
+  OPENSTACK_BARE_METAL_ERROR_STATES,
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_SERVICE_STATUS_DOWN,
@@ -52,6 +55,8 @@ export interface OpenStackStatusInput {
    * look at.
    */
   stateChangedAt?: Date | string | null | undefined;
+  // When Ironic itself says a node last moved, which is better than when a read noticed.
+  provisionUpdatedAt?: Date | string | null | undefined;
   now?: Date | undefined;
 }
 
@@ -170,6 +175,23 @@ function floatingIpTone(word: string): ResourceStatusTone {
   return upper === "ERROR" ? "danger" : "neutral";
 }
 
+/*
+ * `available` and `active` are what a node is for. The rest of what is not failed or on its way, such
+ * as enroll and manageable, is where someone left it, and says nothing is wrong.
+ */
+function bareMetalTone(word: string): ResourceStatusTone {
+  const lower: string = word.toLowerCase();
+  if (lower === "available" || lower === "active") {
+    return "positive";
+  }
+  if (OPENSTACK_BARE_METAL_ERROR_STATES.has(lower)) {
+    return "danger";
+  }
+  return OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(lower)
+    ? "warning"
+    : "neutral";
+}
+
 function enabledTone(word: string): ResourceStatusTone {
   return word.toLowerCase() === "enabled" ? "positive" : "neutral";
 }
@@ -196,6 +218,8 @@ function toneOf(
       return networkTone(word);
     case OpenStackResourceKind.FloatingIp:
       return floatingIpTone(word);
+    case OpenStackResourceKind.BareMetalNode:
+      return bareMetalTone(word);
     case OpenStackResourceKind.Project:
     case OpenStackResourceKind.Domain:
       return enabledTone(word);
@@ -220,6 +244,12 @@ function isStuck(input: OpenStackStatusInput, word: string): boolean {
       return isOpenStackVolumeStuck(reading);
     case OpenStackResourceKind.Image:
       return isOpenStackImageStuck(reading);
+    case OpenStackResourceKind.BareMetalNode:
+      return isOpenStackBareMetalNodeStuck({
+        ...reading,
+        adminState: input.adminState,
+        provisionUpdatedAt: input.provisionUpdatedAt,
+      });
     default:
       return false;
   }
@@ -234,6 +264,8 @@ function isOnTheWay(kind: string | null | undefined, word: string): boolean {
       return OPENSTACK_VOLUME_TRANSITIONAL_STATUSES.has(word);
     case OpenStackResourceKind.Image:
       return OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(word);
+    case OpenStackResourceKind.BareMetalNode:
+      return OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(word);
     default:
       return false;
   }
@@ -369,4 +401,16 @@ export const OPENSTACK_STATUS_WORDS: Partial<
   [OpenStackResourceKind.Router]: ["ACTIVE", "ALLOCATED", "DOWN", "ERROR"],
   [OpenStackResourceKind.FloatingIp]: ["ACTIVE", "DOWN", "ERROR"],
   [OpenStackResourceKind.Project]: ["enabled", "disabled"],
+  [OpenStackResourceKind.BareMetalNode]: [
+    "available",
+    "active",
+    ...OPENSTACK_BARE_METAL_ERROR_STATES,
+    ...OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
+    "enroll",
+    "manageable",
+    "rescue",
+    "deploy hold",
+    "clean hold",
+    "service hold",
+  ],
 };

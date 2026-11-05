@@ -249,6 +249,10 @@ const LEVELS: ReadonlySet<string> = new Set([
   "FATAL",
 ]);
 
+/*
+ * A colon as well: oslo.messaging names a logger after what it notifies of, and Keystone's
+ * extensions name their records OS-TRUST:trust and OS-OAUTH1:consumer.
+ */
 function isLoggerCharacter(code: number): boolean {
   return (
     isDigit(code) ||
@@ -256,7 +260,8 @@ function isLoggerCharacter(code: number): boolean {
     (code >= 97 && code <= 122) ||
     code === 95 ||
     code === 46 ||
-    code === 45
+    code === 45 ||
+    code === 58
   );
 }
 
@@ -462,7 +467,12 @@ export function readOpenStackLogLine(text: string): OpenStackLogLine | null {
     position++;
   }
 
-  if (position === loggerStart || position - loggerStart > MAX_LOGGER_LENGTH) {
+  // "ERROR something: went wrong" is a sentence, which no logger's name ends like.
+  if (
+    position === loggerStart ||
+    position - loggerStart > MAX_LOGGER_LENGTH ||
+    header.charCodeAt(position - 1) === 58
+  ) {
     return null;
   }
 

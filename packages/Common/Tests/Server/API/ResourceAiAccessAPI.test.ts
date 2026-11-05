@@ -8,6 +8,7 @@ import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertService from "../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
+import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
@@ -323,6 +324,14 @@ const KINDS: Array<Kind> = [
     editPermission: Permission.EditCloudResource,
     subjectRelation: "cloudResources",
     sentenceName: "Google Cloud project",
+  },
+  {
+    resourceType: AiResourceType.OpenStackCloud,
+    service: OpenStackCloudService,
+    readPermission: Permission.ReadOpenStackCloud,
+    editPermission: Permission.EditOpenStackCloud,
+    subjectRelation: "openStackClouds",
+    sentenceName: "OpenStack cloud",
   },
 ];
 
@@ -973,7 +982,7 @@ describe("ResourceAiAccessAPI", () => {
       );
 
       expect((result.thrownToNext as Error).message).toBe(
-        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, AwsAccount, AzureSubscription, GoogleCloudProject.",
+        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, AwsAccount, AzureSubscription, GoogleCloudProject, OpenStackCloud.",
       );
     });
   });
@@ -3159,6 +3168,7 @@ describe("ResourceAiAccessAPI", () => {
       [AiResourceType.AwsAccount]: "cloud.account.id",
       [AiResourceType.AzureSubscription]: "cloud.account.id",
       [AiResourceType.GoogleCloudProject]: "cloud.account.id",
+      [AiResourceType.OpenStackCloud]: "openstack.cloud.name",
     };
 
     const INSIGHTS: AiActivityInsights = {

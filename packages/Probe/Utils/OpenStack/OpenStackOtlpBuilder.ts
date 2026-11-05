@@ -65,6 +65,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.Network]: "openstack_neutron",
   [OpenStackServiceType.Volume]: "openstack_cinder",
   [OpenStackServiceType.Image]: "openstack_glance",
+  [OpenStackServiceType.BareMetal]: "openstack_ironic",
 };
 
 // knownServerStatuses, the exporter's nova.go.
@@ -614,6 +615,8 @@ function writeCompute(
           user_id: server.userId,
           address_ipv4: server.addressIpv4,
           address_ipv6: server.addressIpv6,
+          // As JSON, because a network's name can hold whatever a separator would be.
+          network_names: JSON.stringify(server.networkNames),
           host_id: server.hostId,
           hypervisor_hostname: server.hypervisorHostname,
           uuid: server.id,

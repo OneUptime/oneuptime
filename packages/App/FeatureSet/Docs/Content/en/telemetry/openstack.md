@@ -265,10 +265,10 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
-COMPOSE_PROFILES=openstack-exporter
+COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
 ```
 
-`OPENSTACK_EXPORTER_CLOUDS` lists every region, in square brackets, and `COMPOSE_PROFILES=openstack-exporter` starts the bundled exporter. Both files hold secrets. The exporter runs as uid 65532, and must be the one account that can read `clouds.yaml`. Start the agent:
+`OPENSTACK_EXPORTER_CLOUDS` lists every region, in square brackets, and `COMPOSE_PROFILES` starts the bundled exporter and the [AI agent](#ai-agent). Both files hold secrets. The exporter runs as uid 65532, and must be the one account that can read `clouds.yaml`. Start the agent:
 
 ```bash
 chmod 600 .env
@@ -301,7 +301,7 @@ docker compose ps
 docker logs oneuptime-openstack-agent
 ```
 
-`docker compose ps` lists the collector (`oneuptime-openstack-agent`) and the bundled exporter (`oneuptime-openstack-exporter`). The collector's logs should show this line once it has started:
+`docker compose ps` lists the collector (`oneuptime-openstack-agent`), the bundled exporter (`oneuptime-openstack-exporter`) and the [AI agent](#ai-agent) (`oneuptime-openstack-ai-agent`). The collector's logs should show this line once it has started:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -328,7 +328,7 @@ The install script writes these to `/opt/oneuptime-openstack-agent/.env`; a Dock
 | `OPENSTACK_EXPORTER_ADDRESS` | No | `host:port`, no scheme, of your own exporter. Leave it out for the bundled one. |
 | `OPENSTACK_CA_FILE` | No | A PEM file with the certificate authority of a cloud that has its own. The install script keeps a copy as `ca.pem` next to `clouds.yaml`. |
 | `OPENSTACK_EXPORTER_USER` | No | The `uid:gid` the exporter's container runs as, which must own `clouds.yaml`. Defaults to `65532:65532`. |
-| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter. |
+| `COMPOSE_PROFILES` | Bundled exporter | `openstack-exporter` starts the bundled exporter, and `openstack-ai-agent` the [AI agent](#ai-agent). |
 | `OPENSTACK_LIBVIRT_EXPORTER_TARGETS` | No | The compute nodes to read [real usage](#real-usage) from through `prometheus-libvirt-exporter`, in square brackets, such as `[compute-01:9177,compute-02:9177]`. Defaults to none. |
 | `OPENSTACK_CEILOMETER_EXPORTER_TARGETS` | No | The same through Ceilometer's own exporter, such as `[compute-01:9101]`. Defaults to none. |
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | An exporter already running without `--multi-cloud`, such as Kolla-Ansible's: `[10.0.0.254:9198]`. See [Use the exporter you already run](/docs/telemetry/openstack-deployment-tools#use-the-exporter-you-already-run). |
@@ -569,9 +569,11 @@ A cloud holds many tenants, so OneUptime keeps track of whose everything is.
 
 On a project's page, add a rule under **Who is told about this** or **Labels on what opens about this**. **Domains** has the same two for a whole domain. From then on, every alert and incident that reaches that project or domain gets those owners or labels.
 
-An alert or incident on a part of the cloud names the projects it reaches in its description, by ID, as ``OpenStack project `<id>` `` and ``OpenStack domain `<id>` ``. A rule here is an ordinary alert rule and an ordinary incident rule that match those words, so the pair also appears under each one's **Owner Rules** or **Label Rules** settings.
+A rule here is an **OpenStack Cloud Owner Rule** or **OpenStack Cloud Label Rule** with the project's or domain's ID on it, so it also appears under the cloud's **Owner Rules** or **Label Rules** settings, where you can write one by hand under **One project or domain**. A rule with either ID adds nothing to the cloud itself. Conditions on the cloud still apply, and a rule made from **Domains** names its cloud, because every cloud has a domain called `default`. If you rename that cloud, update the rule's name condition.
 
-Only what a monitor opens carries those words, and it names at most 50 of the projects it reaches. An incident someone declares by hand carries none, so these rules do not reach it.
+An alert or incident on a part of the cloud reaches each project with something on that part, however many there are. Only a monitor can say what it reaches, so a rule like this does not reach an incident someone declares by hand. Labels go on as the alert opens, and owners right after.
+
+Rules written earlier as a pair of alert and incident rules, matching ``OpenStack project `<id>` `` or ``OpenStack domain `<id>` `` in the description, keep working and are listed here too. A description names at most 50 of the projects it reaches, so a pair like that stops there. Remove it and add the rule again to lift that limit.
 
 ### Quotas
 
@@ -600,7 +602,7 @@ A part's blast radius is what it takes with it, by count and by project:
 
 A part's page shows it. An alert or incident on the part says it in its description, such as "3 instances in 2 projects", with their names.
 
-The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says which pool holds a volume, when Cinder treats its credential as an admin, and then a pool's blast radius counts its volumes and the instances they are attached to.
+The exporter does not say which network an instance is on, or which pool holds a volume, so neither is drawn for a cloud the agent collects. The map says so, and a storage pool's blast radius says it cannot tell rather than answering none. A [probe](/docs/telemetry/openstack-agentless) says both. The map then joins a volume to its pool, when Cinder treats its credential as an admin, and a pool's blast radius counts its volumes and the instances they are attached to. It also joins an instance to each network it has an address on. Nova names those networks only by name, and Neutron allows two with one name, so the map looks for one in the instance's project, then one shared with it, then any by that name, and draws no join when two are equally likely. What is still unknown stays in the map's notice.
 
 ## Joined up with the rest of OneUptime
 
@@ -708,11 +710,11 @@ The cloud's **Recommendations** page offers these beside the other [alert templa
 
 A cloud writes a great deal nobody reads. The first time a project's OpenStack logs arrive, it gets these as [drop filters](/docs/telemetry/drop-filters-and-scrub-rules), where they can be counted, changed or turned off. Turned off, they stay off, and so does one you delete while either of the others is left. Delete all three and the next logs bring all three back, so turn off what you don't want.
 
-| Filter | What it drops | What it costs you |
-| --- | --- | --- |
-| **OpenStack: DEBUG lines** | Every `DEBUG` line. On a cloud with `debug = True` that is most of what it writes, and it is where its secrets have leaked | The detail you turn `debug` on to read. Turn this off while you debug a service |
-| **OpenStack: health checks** | A load balancer asking each API for `/` or `/healthcheck`: a line every few seconds, per API, per controller | Nothing a person reads. The same line from a person looks the same |
-| **OpenStack: routine notifications** | `metrics.update`, and every `*.exists` and `*.usage`. See [Lifecycle events](#lifecycle-events) | Nothing that says anything changed. Turn this off to keep every notification |
+| Filter | What it drops | What it saves | What it costs you |
+| --- | --- | --- | --- |
+| **OpenStack: DEBUG lines** | Every `DEBUG` line. It is where a cloud's secrets have leaked | With `debug = True`, most of what a cloud writes: 85 to 87% of lines and 70 to 76% of bytes on our test clouds, across three releases. Nothing with `debug = False` | The detail you turn `debug` on to read. Turn this off while you debug a service |
+| **OpenStack: health checks** | A load balancer asking each API for `/` or `/healthcheck`: a line every few seconds, per API, per controller | At one check every 2 seconds, 43,200 lines a day for each API on each controller. At the 220 to 490 bytes these lines were on our test clouds, that's 10 to 21 MB a day. This is arithmetic from the size of a line: our test clouds have no load balancer | Nothing a person reads. The same line from a person looks the same |
+| **OpenStack: routine notifications** | `metrics.update`, and every `*.exists` and `*.usage`. See [Lifecycle events](#lifecycle-events) | Not measured: our recordings are too short to hold many. It grows with the number of instances | Nothing that says anything changed. Turn this off to keep every notification |
 
 These filters match only what OneUptime read from a cloud's logs, so nothing else in a project is touched.
 
@@ -765,6 +767,8 @@ A cloud whose configuration isn't yours to change can still have failed actions.
 
 Nova keeps these only per instance, and with no record that changed nothing brings one up. A failed volume attach can leave its instance as it was, so a probe can't see it. Notifications can.
 
+Nova can also write off a build with nothing on its action: on our test clouds, a build that failed on its compute host left the action looking fine and the reason in the instance's fault. So the newest action of an instance in `ERROR` counts as failed, with that fault as the reason.
+
 ### What is kept
 
 Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them:
@@ -774,8 +778,6 @@ Three levels of event, as the [drop filter](#what-it-keeps-and-costs) reads them
 | Routine | `metrics.update`, `*.exists` and `*.usage`, which say nothing happened | Dropped, one setting away from kept. Kept, they are logs and go nowhere else |
 | Trail | Steps on the way: `*.start`, a port updated while an instance boots, `instance.update` | Logs, to follow a request by |
 | Change | Something happened | Logs, the feed, chart markers and OneUptime AI |
-
-Cinder's `volume.attach.start` counts as a change, because Cinder says nothing more about a volume Nova attaches. Nova's `instance.volume_attach.end` says when it finished, on the instance.
 
 ## Who did what
 
@@ -1023,6 +1025,19 @@ oslo.middleware 8.2.0 and oslo.messaging 18.3.1, on 2026.2, can trace with nothi
 - Those spans hold no request ID, and the RPC spans do.
 
 If you turn them on, their spans still reach this cloud's **Traces** page through the collector, under their own names.
+
+## AI agent
+
+The agent's `docker-compose.yml` also runs the **OpenStack AI agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cloud it runs read-only `openstack` commands through it — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — and cites what it ran. There is no `openstack` binary in the agent and no shell: each command becomes one `GET` to the service that answers it, with the agent's own credential. The agent registers with the same `OPENSTACK_CLOUD_NAME` the collector reports, so it serves this cloud.
+
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cloud with it, and the cloud's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs. **AI > Agent** has the agent's status, **Test connection**, **Reset agent** and the install instructions, **AI > Insights** what it has done, and **AI > Logs** the commands it ran.
+- **It only reads.** Its policy has no command that changes a cloud, whatever a setting says: `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES=true` change nothing here, and the agent says so when it starts. Keystone's users, credentials and role assignments are off-limits too, and so are consoles and Barbican's secrets.
+- **The credential is the hard limit.** It uses the credential in `clouds.yaml` that the exporter reads, so it sees what the level you chose in [Choose how much the agent sees](#choose-how-much-the-agent-sees) lets it see. If you made that credential with access rules, make a new one from the current [rules](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json): they gained a few `GET` paths for the agent (an instance's actions, one network, subnet, router, floating IP, port or image), and the old ones still work for everything else. To use a credential of its own, set `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`, `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` and `OPENSTACK_AUTH_URL`, and `OPENSTACK_AI_CLOUDS_FILE=/dev/null` if there is no `clouds.yaml` beside the agent, as with your own exporter.
+- **Secrets stay out.** An instance's `user_data`, its admin password, an image's `direct_url` and a volume's `provider_auth`, and the generic secrets every AI agent masks, are removed from the output before it reaches the model or a log.
+- `install.sh` starts it with the exporter it bundles (the `openstack-ai-agent` Compose profile). With your own exporter there is no `clouds.yaml` beside it, so it needs a credential of its own and starts when you add that profile to `COMPOSE_PROFILES` in `.env`. `install.sh --without-docker` does not run it: use the Docker install if you want OneUptime AI to read this cloud.
+- It runs as the owner of `clouds.yaml` with no capabilities and a read-only root filesystem. Delete the `oneuptime-openstack-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI: a re-run of `install.sh` keeps your edit.
+
+What it may run and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#openstack-clouds). OneUptime AI's investigations read this cloud's Needs attention, blast radius, service logs and lifecycle events as well, where you have turned them on.
 
 ## Run as a systemd service
 

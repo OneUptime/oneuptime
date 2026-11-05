@@ -84,6 +84,7 @@ import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/Kube
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllOpenStackAlertTemplates } from "../../../Types/Monitor/OpenStackAlertTemplates";
+import { getAllOpenStackLogAlertTemplates } from "../../../Types/Monitor/OpenStackLogAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
@@ -170,8 +171,16 @@ const CASES: Array<OrderCase> = [
     path: "openstack",
     templates: getAllOpenStackAlertTemplates(),
     categories: OPENSTACK_TEMPLATE_CATEGORIES,
-    // What its logs say are Logs monitors, which Quick Setup does not offer.
-    afterQuickSetup: ["Service Logs", "Events"],
+    // What a cloud's own services write and say: Logs monitors, after Quick Setup's.
+    afterQuickSetup: Array.from(
+      new Set(
+        getAllOpenStackLogAlertTemplates().map(
+          (template: { category: string }): string => {
+            return template.category;
+          },
+        ),
+      ),
+    ),
   },
   {
     name: "VMware",

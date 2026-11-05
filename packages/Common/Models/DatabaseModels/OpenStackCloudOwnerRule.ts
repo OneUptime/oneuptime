@@ -389,6 +389,78 @@ export default class OpenStackCloudOwnerRule extends RuleBaseModel {
   })
   public openStackCloudDescriptionPattern?: string = undefined;
 
+  /*
+   * One project or domain of a cloud, by Keystone's ID, because either can be renamed. A
+   * rule with one of these is about what opens there, not about the cloud: it adds its
+   * owners to the alerts and incidents that reach it, and none to the cloud itself
+   * (OpenStackScopedRules). The cloud conditions above still narrow which clouds it is for.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateOpenStackCloudOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadOpenStackCloudOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditOpenStackCloudOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "OpenStack Project ID",
+    description:
+      "Keystone's ID for one project. Set, this rule adds its owners to every alert and incident that reaches that project instead of to the cloud.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public openStackProjectId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateOpenStackCloudOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadOpenStackCloudOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditOpenStackCloudOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "OpenStack Domain ID",
+    description:
+      "Keystone's ID for one domain. Set, this rule adds its owners to every alert and incident that reaches a project in that domain instead of to the cloud.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public openStackDomainId?: string = undefined;
+
   // Action: Owner Users + Teams
 
   @ColumnAccessControl({

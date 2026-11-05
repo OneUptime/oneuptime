@@ -148,13 +148,13 @@ function run(): Report {
           });
         };
 
-        const timed = (work) => {
+        const timed = (work, attempts = 3, enough = 5) => {
           let fastest = Infinity;
-          for (let attempt = 0; attempt < 3; attempt++) {
+          for (let attempt = 0; attempt < attempts; attempt++) {
             const startedAt = process.hrtime.bigint();
             work();
             fastest = Math.min(fastest, Number(process.hrtime.bigint() - startedAt) / 1e6);
-            if (fastest < 5) {
+            if (fastest < enough) {
               break;
             }
           }
@@ -199,7 +199,9 @@ function run(): Report {
 
         // The path alone, however long: it is only ever read after being cut, but it should not need to be.
         const pathShort = timed(() => lib.readOpenStackPartOfPath(repeatTo("/servers", 1024 * 1024)));
-        const pathLong = timed(() => lib.readOpenStackPartOfPath(repeatTo("/servers", 4 * 1024 * 1024)));
+        // Half a million strings, so on a busy machine the garbage collector is most of one
+        // reading: the fastest of ten is the code's own time, and a machine only makes it slower.
+        const pathLong = timed(() => lib.readOpenStackPartOfPath(repeatTo("/servers", 4 * 1024 * 1024)), 10, 200);
 
         results.sort((a, b) => b.long / Math.max(b.short, 1) - a.long / Math.max(a.short, 1));
 
@@ -261,14 +263,9 @@ describe("the audit parser, in a process that compiles regular expressions unopt
     () => {
       const read: Report = reportOf();
 
-      /*
-       * Four megabytes split into half a million strings, so on a busy machine the garbage
-       * collector is most of what this measures: 76ms to 331ms on the same code in one minute.
-       * Reading it twice over, as anything quadratic would, takes minutes and not a second.
-       */
-      expect(
-        read.pathLong <= 1000 || read.pathLong <= read.pathShort * 10,
-      ).toBe(true);
+      expect(read.pathLong <= 200 || read.pathLong <= read.pathShort * 10).toBe(
+        true,
+      );
     },
     TIME_LIMIT_MS,
   );

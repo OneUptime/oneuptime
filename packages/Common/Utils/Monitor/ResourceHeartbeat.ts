@@ -1,5 +1,6 @@
 import Dictionary from "../../Types/Dictionary";
 import MonitorStep, { MonitorStepType } from "../../Types/Monitor/MonitorStep";
+import { OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE } from "../../Types/Monitor/MonitorStepOpenStackMonitor";
 
 /*
  * What a resource always sends while it reports, and the attributes that
@@ -100,6 +101,16 @@ export default class ResourceHeartbeatUtil {
         attributes: ResourceHeartbeatUtil.scopedTo(
           "resource.proxmox.cluster.name",
           data.proxmoxMonitor.clusterIdentifier,
+        ),
+      };
+    }
+
+    if (data.openstackMonitor) {
+      return {
+        metricNames: ["openstack_identity_up"],
+        attributes: ResourceHeartbeatUtil.scopedTo(
+          OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE,
+          data.openstackMonitor.cloudIdentifier,
         ),
       };
     }

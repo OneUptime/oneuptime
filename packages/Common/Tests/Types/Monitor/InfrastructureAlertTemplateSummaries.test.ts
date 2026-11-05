@@ -91,7 +91,11 @@ const CATALOGS: Array<Catalog> = [
   {
     name: "OpenStack",
     resourceType: MonitorRecommendationResourceType.OpenStack,
-    templates: getAllOpenStackAlertTemplates(),
+    // Its metric templates and the Logs monitors on what its services say.
+    templates: [
+      ...getAllOpenStackAlertTemplates(),
+      ...getAllOpenStackLogAlertTemplates(),
+    ],
   },
   {
     name: "VMware",

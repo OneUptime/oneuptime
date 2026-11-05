@@ -263,6 +263,8 @@ export interface NovaServerRecord {
   // The address a person reaches it at: see readServerAddress.
   addressIpv4: string | null;
   addressIpv6: string | null;
+  // The networks it has an address on, by name, which is all a server says of them.
+  networkNames: Array<string>;
   hostId: string | null;
   hypervisorHostname: string | null;
   availabilityZone: string | null;
@@ -345,6 +347,7 @@ export function toNovaServer(item: JSONObject): NovaServerRecord | null {
     userId: text(item["user_id"]),
     addressIpv4: readServerAddress(item, "accessIPv4", 4),
     addressIpv6: readServerAddress(item, "accessIPv6", 6),
+    networkNames: Object.keys(object(item["addresses"])).sort(),
     hostId: text(item["hostId"]),
     hypervisorHostname: text(item["OS-EXT-SRV-ATTR:hypervisor_hostname"]),
     availabilityZone: text(item["OS-EXT-AZ:availability_zone"]),

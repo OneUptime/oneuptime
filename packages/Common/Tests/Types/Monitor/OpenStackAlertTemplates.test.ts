@@ -44,6 +44,8 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
+  OPENSTACK_BARE_METAL_STUCK_MINUTES,
   OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
@@ -61,6 +63,8 @@ import {
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import {
+  OPENSTACK_BARE_METAL_ERROR_STATES,
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -427,6 +431,26 @@ const THRESHOLDS: Readonly<
   },
   "openstack-volume-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-image-stuck": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-bare-metal-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-bare-metal-node-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-bare-metal-node-stuck": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-bare-metal-node-maintenance-too-long": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-bare-metal-power-state-unexpected": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
   "openstack-project-quota-nearly-reached": {
     filterType: FilterType.GreaterThanOrEqualTo,
     value: OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
@@ -641,6 +665,27 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { in_queued: 1793795520 },
     healthy: { in_queued: 0 },
   },
+  "openstack-bare-metal-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  "openstack-bare-metal-node-in-error": {
+    // openstack_ironic_node always reads 1: the row being there is what it says.
+    breached: { in_clean_failed: 1 },
+    healthy: { in_clean_failed: 0 },
+  },
+  "openstack-bare-metal-node-stuck": {
+    breached: { in_wait_call_back: 1 },
+    healthy: { in_wait_call_back: 0 },
+  },
+  "openstack-bare-metal-node-maintenance-too-long": {
+    breached: { in_maintenance: 1 },
+    healthy: { in_maintenance: 0 },
+  },
+  "openstack-bare-metal-power-state-unexpected": {
+    breached: { deployed_with_power_off: 1 },
+    healthy: { deployed_with_power_off: 0 },
+  },
   "openstack-project-quota-nearly-reached": {
     breached: { vcpus_used: 95, vcpus_limit: 100 },
     healthy: { vcpus_used: 10, vcpus_limit: 100 },
@@ -804,6 +849,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Volumes in Error",
         "Volume Stuck",
         "Image Stuck",
+        // #5742. The issue's four, and what its API says of itself where anything can say so.
+        "Bare Metal API Down",
+        "Bare Metal Node in Error",
+        "Bare Metal Node Stuck Transitioning",
+        "Bare Metal Node in Maintenance Too Long",
+        "Bare Metal Power State Unexpected",
         "Project Quota Nearly Reached",
         "Flavor Can No Longer Be Placed",
         `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
@@ -832,6 +883,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Compute",
         "Network",
         "Storage",
+        "Bare Metal",
         "Projects",
         "Capacity",
       ] as const
@@ -1457,6 +1509,16 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         OPENSTACK_IMAGE_STUCK_MINUTES,
         RollingTime.Past1Hour,
       ],
+      [
+        "openstack-bare-metal-node-stuck",
+        OPENSTACK_BARE_METAL_STUCK_MINUTES,
+        RollingTime.Past2Hours,
+      ],
+      [
+        "openstack-bare-metal-node-maintenance-too-long",
+        OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS * 24 * 60,
+        RollingTime.Past7Days,
+      ],
     ])(
       "%s waits the health rules' %d minutes",
       (id: string, minutes: number, rollingTime: RollingTime) => {
@@ -1730,6 +1792,131 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ).toEqual(expect.arrayContaining(["id", "name", "status"]));
     });
 
+    describe("bare metal", () => {
+      const attributesOf: (id: string) => Array<Record<string, string>> = (
+        id: string,
+      ): Array<Record<string, string>> => {
+        return queriesOf(stepOf(getOpenStackAlertTemplateById(id)!))
+          .filter((query: MetricQueryConfigData): boolean => {
+            return aliasOf(query) !== OPENSTACK_ANCHOR_METRIC_ALIAS;
+          })
+          .map((query: MetricQueryConfigData): Record<string, string> => {
+            return (query.metricQueryData.filterData.attributes ||
+              {}) as Record<string, string>;
+          });
+      };
+
+      test("Node in Error reads every word the rules call failed, in maintenance or not", () => {
+        const attributes: Array<Record<string, string>> = attributesOf(
+          "openstack-bare-metal-node-in-error",
+        );
+
+        expect(
+          attributes
+            .map((one: Record<string, string>): string => {
+              return one["provision_state"] as string;
+            })
+            .sort(),
+        ).toEqual(Array.from(OPENSTACK_BARE_METAL_ERROR_STATES).sort());
+
+        for (const one of attributes) {
+          expect(one).not.toHaveProperty("maintenance");
+        }
+      });
+
+      test("Node Stuck reads every word the rules call on its way, and leaves maintenance out", () => {
+        const attributes: Array<Record<string, string>> = attributesOf(
+          "openstack-bare-metal-node-stuck",
+        );
+
+        expect(
+          attributes
+            .map((one: Record<string, string>): string => {
+              return one["provision_state"] as string;
+            })
+            .sort(),
+        ).toEqual(Array.from(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES).sort());
+
+        for (const one of attributes) {
+          expect(one["maintenance"]).toBe("false");
+        }
+      });
+
+      test("Power State Unexpected reads one thing: deployed, off, and not in maintenance", () => {
+        expect(
+          attributesOf("openstack-bare-metal-power-state-unexpected"),
+        ).toEqual([
+          {
+            provision_state: "active",
+            power_state: "power off",
+            maintenance: "false",
+          },
+        ]);
+      });
+
+      test("every label they filter on and group by is one the exporter has, by the same word", () => {
+        const labels: ReadonlyArray<string> =
+          OPENSTACK_EXPORTER_SERIES["openstack_ironic_node"]!.labels;
+
+        for (const id of [
+          "openstack-bare-metal-node-in-error",
+          "openstack-bare-metal-node-stuck",
+          "openstack-bare-metal-node-maintenance-too-long",
+          "openstack-bare-metal-power-state-unexpected",
+        ]) {
+          for (const one of attributesOf(id)) {
+            for (const key of Object.keys(one)) {
+              expect(labels).toContain(key);
+            }
+          }
+          const step: MonitorStep = stepOf(getOpenStackAlertTemplateById(id)!);
+          expect(MonitorStep.getGroupByAttributeKeys(step)).toEqual(
+            expect.arrayContaining(["id", "name"]),
+          );
+          for (const query of queriesOf(step)) {
+            if (aliasOf(query) !== OPENSTACK_ANCHOR_METRIC_ALIAS) {
+              expect(metricNameOf(query)).toBe("openstack_ironic_node");
+            }
+          }
+        }
+      });
+
+      test("every word the recording holds of a failed node is one Node in Error reads", () => {
+        for (const word of ["clean failed", "deploy failed"]) {
+          expect(OPENSTACK_BARE_METAL_ERROR_STATES.has(word)).toBe(true);
+        }
+        expect(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has("wait call-back")).toBe(
+          true,
+        );
+      });
+
+      test("API Down never reads the scrape's own up, which reads 0 for this job on every cloud when the exporter is down", () => {
+        const step: MonitorStep = stepOf(
+          getOpenStackAlertTemplateById("openstack-bare-metal-api-down")!,
+        );
+
+        expect(queriesOf(step).map(metricNameOf)).toEqual([
+          "openstack_ironic_up",
+        ]);
+      });
+
+      test("API Down says plainly where it can't speak", () => {
+        const template: OpenStackAlertTemplate = getOpenStackAlertTemplateById(
+          "openstack-bare-metal-api-down",
+        )!;
+
+        expect(template.description).toContain("stays quiet");
+        expect(template.description).toContain("a cloud without Ironic");
+      });
+
+      test("Maintenance Too Long says it needs its metrics kept that long", () => {
+        expect(
+          getOpenStackAlertTemplateById(
+            "openstack-bare-metal-node-maintenance-too-long",
+          )!.description,
+        ).toContain("kept for at least that long");
+      });
+    });
     /*
      * One per status word exists only while something has that status, so the first thing seen
      * in it, or the only thing, is one data point. Anything on its way to something else is seen

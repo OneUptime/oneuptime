@@ -34,7 +34,12 @@ import DataToProcess from "./DataToProcess";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import SeriesContextEnricher from "./SeriesContextEnricher";
-import OpenStackAlertContext from "../OpenStack/OpenStackAlertContext";
+import OpenStackAlertContext, {
+  OpenStackSeriesDescription,
+} from "../OpenStack/OpenStackAlertContext";
+import OpenStackScopedRules, {
+  OpenStackScopedRulesMatch,
+} from "../OpenStack/OpenStackScopedRules";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -857,8 +862,8 @@ export default class MonitorAlert {
           });
 
           // What a part of an OpenStack cloud takes with it, and whose that is.
-          const description: string | undefined =
-            await OpenStackAlertContext.addToDescription({
+          const openStackSeries: OpenStackSeriesDescription =
+            await OpenStackAlertContext.describeSeries({
               description: alert.description,
               projectId: input.monitor.projectId!,
               clouds: alert.openStackClouds,
@@ -866,9 +871,16 @@ export default class MonitorAlert {
               monitorSteps: input.monitor.monitorSteps,
             });
 
-          if (description !== undefined) {
-            alert.description = description;
+          if (openStackSeries.description !== undefined) {
+            alert.description = openStackSeries.description;
           }
+
+          const openStackRules: OpenStackScopedRulesMatch =
+            await OpenStackScopedRules.read({
+              projectId: input.monitor.projectId!,
+              openStackCloudId: openStackSeries.openStackCloudId,
+              reached: openStackSeries.reached,
+            });
 
           /*
            * On-call policies and labels from the criteria. AlertService
@@ -909,6 +921,8 @@ export default class MonitorAlert {
             label._id = id.toString();
             return label;
           });
+
+          OpenStackScopedRules.addLabels(alert, openStackRules);
 
           alert.isCreatedAutomatically = true;
 
@@ -982,6 +996,12 @@ export default class MonitorAlert {
             props: {
               isRoot: true,
             },
+          });
+
+          await OpenStackScopedRules.finishAlert({
+            projectId: input.monitor.projectId!,
+            alertId: createdAlert.id!,
+            match: openStackRules,
           });
 
           if (dataSubject) {

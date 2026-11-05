@@ -1257,6 +1257,7 @@ function partsRow(row) {
         updatedAt: "2026-11-04T11:00:00Z",
         addressIpv4: null,
         addressIpv6: null,
+        networkNames: [],
       },
     };
   }
@@ -1266,10 +1267,18 @@ function partsRow(row) {
       facts: {
         ...row.facts,
         addressIpv4: "10.77.0.12",
+        networkNames: ["public-dmz"],
         // The stuck image of this estate, which is what it says it booted from.
         imageId: openStackUuid("79490afb", 3),
         updatedAt: "2026-11-04T11:00:00Z",
       },
+    };
+  }
+  // Nova says which networks each is on, to a probe. "public-dmz" is the shared one here.
+  if (row.kind === "Instance") {
+    return {
+      ...row,
+      facts: { ...row.facts, networkNames: ["public-dmz"] },
     };
   }
   // A probe was told which pool holds each of these. The third pool holds none of them.
