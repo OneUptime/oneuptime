@@ -1264,6 +1264,11 @@ export interface OpenStackSharedFileSystemsInventory {
   services?: Array<ManilaServiceRecord> | undefined;
 }
 
+export interface OpenStackRatingInventory {
+  // Absent when it wasn't asked this time, which is most times: it's asked once an hour.
+  rated?: Array<{ projectId: string; period: string; rate: number }> | undefined;
+}
+
 export interface OpenStackInventoryByService {
   identity?: OpenStackIdentityInventory | undefined;
   compute?: OpenStackComputeInventory | undefined;
@@ -1275,5 +1280,6 @@ export interface OpenStackInventoryByService {
   // Keyed by what each service is called, so a reading finds its own by that.
   orchestration?: OpenStackOrchestrationInventory | undefined;
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
+  rating?: OpenStackRatingInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
 }

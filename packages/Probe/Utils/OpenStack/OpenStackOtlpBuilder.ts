@@ -6,6 +6,7 @@ import {
   OpenStackImageInventory,
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
+  OpenStackRatingInventory,
   OpenStackPlacementInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
@@ -71,6 +72,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.Image]: "openstack_glance",
   [OpenStackServiceType.Orchestration]: "openstack_heat",
   [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
+  [OpenStackServiceType.Rating]: "openstack_cloudkitty",
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
 };
@@ -289,6 +291,7 @@ export interface OpenStackServiceReading {
     | OpenStackBareMetalInventory
     | OpenStackOrchestrationInventory
     | OpenStackContainerInfraInventory
+    | OpenStackRatingInventory
     | OpenStackSharedFileSystemsInventory
     | undefined;
   // What openstack_<service>_up reads, and null to send no such series at all.
@@ -1416,6 +1419,20 @@ function writeBareMetal(
  * label, so anything less sends none: the exporter's series read the same. What it never asks for,
  * its status reason and parent, are marked in the catalogue.
  */
+// What CloudKitty rated, only when it was read: the figures stay on each project's row between reads.
+function writeRating(
+  writer: SeriesWriter,
+  inventory: OpenStackRatingInventory,
+): void {
+  for (const rated of inventory.rated || []) {
+    writer.add(
+      "rated",
+      { project_id: rated.projectId, period: rated.period },
+      rated.rate,
+    );
+  }
+}
+
 function writeOrchestration(
   writer: SeriesWriter,
   inventory: OpenStackOrchestrationInventory,
@@ -1635,6 +1652,9 @@ function writeInventory(
         writer,
         reading.inventory as OpenStackContainerInfraInventory,
       );
+      return;
+    case OpenStackServiceType.Rating:
+      writeRating(writer, reading.inventory as OpenStackRatingInventory);
       return;
     case OpenStackServiceType.SharedFileSystems:
       writeSharedFileSystems(

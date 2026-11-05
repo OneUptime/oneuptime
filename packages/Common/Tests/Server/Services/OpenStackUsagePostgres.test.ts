@@ -469,6 +469,73 @@ describePostgres(
         expect(Number(stored[0]!.sortValue)).toBeCloseTo(0.2175, 4);
       });
 
+      test("CloudKitty's figure is preferred where there is one, and prices are used where there isn't", async () => {
+        const month: string = "2026-11";
+
+        await write([
+          flavor("small", "m1.small", 1, 2),
+          instance("rated", "rated", "small"),
+          instance("priced", "priced", "small"),
+          resource({
+            kind: OpenStackResourceKind.Project,
+            externalId: "rated",
+            name: "Rated",
+            openStackProjectId: "rated",
+            facts: {
+              "rated:RegionOne": {
+                [month]: { total: 90, readAt: "2026-11-09T23:00:00.000Z" },
+                "2026-10": { total: 40, readAt: "2026-11-09T23:00:00.000Z" },
+              },
+              "rated:RegionTwo": {
+                [month]: { total: 9.5, readAt: "2026-11-09T23:30:00.000Z" },
+              },
+            },
+          }),
+          resource({
+            kind: OpenStackResourceKind.Project,
+            externalId: "priced",
+            name: "Priced",
+            openStackProjectId: "priced",
+          }),
+        ]);
+
+        const prices: OpenStackPriceList | null = readOpenStackPriceList({
+          vcpuHour: 1,
+        });
+
+        await readAt("2026-11-10T00:00:00.000Z", prices);
+
+        const reading: OpenStackUsageRefreshResult = await readAt(
+          "2026-11-10T01:00:00.000Z",
+          prices,
+        );
+
+        expect(reading.snapshot.source).toBe("cloudkitty-and-price-list");
+        expect(reading.snapshot.projectsRatedByCloudKitty).toBe(1);
+        expect(reading.snapshot.cloudKittyReadAt).toBe(
+          "2026-11-09T23:00:00.000Z",
+        );
+        // 90 and 9.5 rated, by a CloudKitty per region, and an hour of one vCPU at 1.
+        expect(reading.snapshot.thisMonth).toBe(100.5);
+
+        const stored: Array<{
+          openStackProjectId: string;
+          estimatedCost: string;
+          lastMonthCost: string | null;
+          costSource: string;
+        }> = await database.query(
+          `SELECT "openStackProjectId", "estimatedCost", "lastMonthCost", "costSource"
+           FROM "${schema}"."${USAGE}" WHERE "period" = '${month}'
+           ORDER BY "openStackProjectId"`,
+        );
+
+        expect(Number(stored[0]!.estimatedCost)).toBe(1);
+        expect(stored[0]!.costSource).toBe("price-list");
+        expect(Number(stored[1]!.estimatedCost)).toBe(99.5);
+        expect(Number(stored[1]!.lastMonthCost)).toBe(40);
+        expect(stored[1]!.costSource).toBe("cloudkitty");
+      });
+
       test("a time is counted once, however many workers read it at once", async () => {
         await write([
           flavor("small", "m1.small", 1, 2),

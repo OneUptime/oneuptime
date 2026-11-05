@@ -572,7 +572,9 @@ If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it
 
 - **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
 - **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **A CloudKitty per region adds up.** Each one is read in its own time, and a project's figure is what they rated between them. One CloudKitty the catalog lists for several regions is asked once.
 - **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
+- **If it stops answering,** what each project was rated stays where it was, and the page says when it was last read. **Rating API Down** alerts on that.
 - **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
 
 ### Budgets

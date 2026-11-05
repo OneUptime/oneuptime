@@ -57,6 +57,12 @@ export interface OpenStackOptionalService {
 
 export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService> =
   [
+    // Only a probe can read it: the agent's exporter has no series for CloudKitty.
+    {
+      service: OpenStackServiceType.Rating,
+      upMetricName: "openstack_cloudkitty_up",
+      isReadByProbe: true,
+    },
     {
       service: OpenStackServiceType.BareMetal,
       upMetricName: "openstack_ironic_up",

@@ -33,6 +33,7 @@ import {
   OPENSTACK_SUMMARY_MODE_SERIES,
   isOpenStackSeriesKeptInSummaryMode,
 } from "../../../Types/OpenStack/OpenStackScale";
+import { getOpenStackRatedFactKey } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
 import logger from "../Logger";
 import {
   foldOpenStackControlPlaneDatapoint,
@@ -251,6 +252,7 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_identity_project_info",
   "openstack_identity_domain_info",
   "openstack_heat_stack_status",
+  "openstack_cloudkitty_rated",
   "openstack_heat_agent_state",
   "openstack_container_infra_cluster_status",
   "openstack_container_infra_agent_state",
@@ -1992,6 +1994,44 @@ function foldProjectQuota(data: {
   entry.quota = quota;
 }
 
+/*
+ * What CloudKitty rated a project for a month. One series per project, month and region. A region's
+ * figures are one metric, which stays whole in an upload (OpenStackReportParts), so they replace the
+ * last of that region's whole, and another region's stay as they are: see getOpenStackRatedFactKey.
+ */
+function foldRated(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "project_id");
+  const period: string | null = getLabel(data.attributes, "period");
+
+  if (!id || !period || data.value <= 0) {
+    return;
+  }
+
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Project,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+
+  setIdentity(entry, { openStackProjectId: id });
+
+  const fact: string = getOpenStackRatedFactKey(data.region);
+  const rated: JSONObject = (entry.facts[fact] as JSONObject) || {};
+
+  rated[period] = {
+    total: data.value,
+    readAt: data.observedAt.toISOString(),
+  };
+  entry.facts[fact] = rated;
+}
+
 function foldDomain(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   attributes: JSONArray;
@@ -2261,6 +2301,9 @@ export function bufferOpenStackSnapshotMetric(data: {
       return;
     case "openstack_identity_domain_info":
       foldDomain({ buffer, attributes, observedAt });
+      return;
+    case "openstack_cloudkitty_rated":
+      foldRated({ buffer, attributes, region, value, observedAt });
       return;
     case "openstack_heat_stack_status":
       foldStack({ buffer, attributes, region, observedAt });

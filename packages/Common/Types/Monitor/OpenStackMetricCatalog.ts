@@ -2473,6 +2473,29 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     probeOnlyAttributes: ["refresh_cycle_minutes"],
   }),
   metric({
+    metricName: "openstack_cloudkitty_up",
+    friendlyName: translationKey("Rating API Up"),
+    description:
+      "Whether CloudKitty's API answered a probe (1) or not (0), on a cloud that runs it. Only a probe sends this: the agent's exporter has no series for CloudKitty.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Rating,
+    identityAttributes: [],
+    probeOnlyAttributes: ["refresh_cycle_minutes"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_cloudkitty_rated",
+    friendlyName: translationKey("Rated By CloudKitty"),
+    description:
+      "One series per project and month, whose value is what CloudKitty rated it, sent once an hour. A number, in whatever CloudKitty's rates are in. Only a probe sends this.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Rating,
+    identityAttributes: ["project_id", "period"],
+    onlyFromProbe: true,
+  }),
+  metric({
     metricName: "openstack_container_infra_up",
     friendlyName: translationKey("Kubernetes Clusters API Up"),
     description:

@@ -76,9 +76,9 @@ Each scrape's rows are what you are billed for: the first five lines arrive ever
 
 | Cloud | Series | GB a day, every series | GB a day, in summary mode | A month kept 15 days, in summary mode |
 | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instances, 20 projects | 1,057 | 0.7 | Not in summary mode | $2.10 |
-| 500 hypervisors, 20,000 instances, 1,000 projects | 123,829 | 84.5 | 16.6 | $49.69 |
-| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,165 | 844.5 | 164.9 | $494.71 |
+| 10 hypervisors, 100 instances, 20 projects | 1,066 | 0.7 | Not in summary mode | $2.11 |
+| 500 hypervisors, 20,000 instances, 1,000 projects | 123,838 | 84.5 | 16.6 | $49.70 |
+| 5,000 hypervisors, 200,000 instances, 10,000 projects | 1,237,174 | 844.5 | 164.9 | $494.72 |
 
 Those are through the agent, with one instance in a thousand in a state that keeps its series. A probe past the summary size sends what has not changed once a cycle rather than every collection, which comes to about 13.2 GB a day at the second size and 116 GB at the third.
 

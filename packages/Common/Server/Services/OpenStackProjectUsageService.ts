@@ -20,6 +20,7 @@ import {
   toOpenStackUsageMonth,
 } from "../../Types/OpenStack/OpenStackProjectUsage";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
+import { OPENSTACK_RATED_FACTS_SQL } from "../../Types/OpenStack/OpenStackSpendSnapshot";
 import {
   OPENSTACK_WASTE_ROWS_READ,
   OpenStackWasteRow,
@@ -334,7 +335,7 @@ export class Service extends DatabaseService<Model> {
       domainId: string | null;
       rated: unknown;
     }> = await this.getRepository().manager.query(
-      `SELECT "externalId", "name", "facts"->>'domainId' AS "domainId", "facts"->'rated' AS "rated"
+      `SELECT "externalId", "name", "facts"->>'domainId' AS "domainId", ${OPENSTACK_RATED_FACTS_SQL} AS "rated"
        FROM "OpenStackResource"
        WHERE "projectId" = $1 AND "openStackCloudId" = $2
          AND "kind" = '${OpenStackResourceKind.Project}' AND "deletedAt" IS NULL`,
