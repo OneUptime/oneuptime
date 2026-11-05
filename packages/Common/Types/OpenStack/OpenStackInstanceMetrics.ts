@@ -438,6 +438,8 @@ export function findOpenStackDeviceAfterInstanceId(
   return rest.startsWith("-") && rest.length > 1 ? rest.substring(1) : null;
 }
 
+const OPENSTACK_PROVIDER_ID_MAX_LENGTH: number = 512;
+
 /*
  * The instance behind a Kubernetes node's spec.providerID. openstack-cloud-controller-manager
  * writes `openstack:///<uuid>`, or `openstack://<region>/<uuid>` when it knows its region.
@@ -446,11 +448,14 @@ export function findOpenStackDeviceAfterInstanceId(
 export function getOpenStackInstanceIdOfProviderId(
   providerId: string | null | undefined,
 ): string | null {
+  const value: string = (providerId || "").trim();
+  // A region's name and a UUID are short. Longer is no provider ID, and no pattern reads it.
+  if (value.length > OPENSTACK_PROVIDER_ID_MAX_LENGTH) {
+    return null;
+  }
   const providerIdFormat: RegExp =
     /^openstack:\/\/[^/]*\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
-  const match: RegExpExecArray | null = providerIdFormat.exec(
-    (providerId || "").trim(),
-  );
+  const match: RegExpExecArray | null = providerIdFormat.exec(value);
   return match ? match[1]!.toLowerCase() : null;
 }
 

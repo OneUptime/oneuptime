@@ -31,6 +31,9 @@
  *   ovn-stale     a calm cloud on OVN, with a stale record beside a live agent.
  *   parts         busy, with what a part's page has to say that busy does not hold: hosts
  *                 in zones and aggregates, an image stuck saving, what the probe lists.
+ *   links         a cloud joined to the rest of OneUptime: an agent on a hypervisor and on a
+ *                 guest, a Kubernetes node, services, a Ceph-backed pool, and beside each of
+ *                 those the same names twice over, which must link to nothing.
  *   usage         calm, with real usage: a hypervisor past its line, a neighbour burning all
  *                 of it, and one instance made to wait.
  */
@@ -1302,6 +1305,213 @@ function partsInventory(context) {
 
 /*
  * ---------------------------------------------------------------------------
+ * links: a cloud joined to the rest of OneUptime.
+ *
+ * What the issue's own estate holds, and beside each join what looks like one and isn't. Every
+ * record is made up. No recording holds a Ceph-backed pool, because the rig's DevStacks run LVM,
+ * and the other products' rows are in the shape each product stores (Fixture/Links.js reads them
+ * with the real rules).
+ * ---------------------------------------------------------------------------
+ */
+export const LINKS_MACHINE = "compute-01.acme.example";
+export const LINKS_FSID = "0f3e8f6a-4d1c-4f7a-9c11-2b6f1e0a9d33";
+
+export function instanceIdOf(number) {
+  return openStackUuid("2e1cfc3e", number);
+}
+
+export function controlPlaneMachine(context, dependency, machine, region) {
+  return stamped(
+    {
+      kind: "ControlPlane",
+      externalId: `${region}/${dependency}/${machine}`,
+      name: machine,
+      regionName: region,
+      status: "up",
+      facts: { dependency, node: machine, scrapeFailed: false },
+    },
+    context,
+  );
+}
+
+function linksInventory(context) {
+  const region = REGION_ONE;
+  const onMachine = (name) => {
+    return {
+      hypervisorName: name,
+      openStackProjectId: projectIdOf(1),
+    };
+  };
+  return [
+    ...projects(context),
+    ...apis(context, region),
+    ...flavorsAndImages(context, region),
+    // The machine with OneUptime's agent, and Nova's short and full names for it.
+    novaCompute(context, "compute-01", region),
+    hypervisor(context, LINKS_MACHINE, region, { instanceCount: 5 }),
+    // A guest with the agent, a Kubernetes node, and an instance that is nothing else.
+    instance(context, 1, "web-1", region, onMachine(LINKS_MACHINE)),
+    instance(context, 2, "k8s-worker-1", region, onMachine(LINKS_MACHINE)),
+    instance(context, 3, "batch-1", region, onMachine(LINKS_MACHINE)),
+    // A node on this instance, whose UUID a restored copy of this cloud holds too.
+    instance(context, 5, "restored-1", region, onMachine(LINKS_MACHINE)),
+
+    // One host's short name fits both of these.
+    hypervisor(context, "compute-07.east.acme.example", region),
+    hypervisor(context, "compute-07.west.acme.example", region),
+    // Two hosts' names fit this one.
+    hypervisor(context, "compute-08.acme.example", region),
+    // A guest is called what this is called, and its ID says it is that guest.
+    hypervisor(context, "compute-09.acme.example", region),
+    instance(context, 4, "compute-09", region, {
+      hypervisorName: LINKS_MACHINE,
+      openStackProjectId: projectIdOf(2),
+    }),
+
+    // Cinder's driver names this cluster, and the pool reads half empty whatever Ceph says.
+    storagePool(context, "ctl-01@rbd#volumes", region, {
+      diskAllocatedBytes: 4 * TIB,
+      facts: {
+        storageProtocol: "ceph",
+        cephFsid: LINKS_FSID,
+        cephPool: "volumes",
+      },
+    }),
+    // Only a name in one cluster, and one pool: a suggestion.
+    storagePool(context, "ctl-01@rbd-images#images", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+    // A name two clusters hold.
+    storagePool(context, "ctl-01@rbd-shared#shared", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+    // A name two Cinder pools hold, in one cluster.
+    storagePool(context, "ctl-01@rbd-backups#backups", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+    storagePool(context, "ctl-02@rbd-backups#backups", region, {
+      diskAllocatedBytes: 4 * TIB,
+    }),
+
+    controlPlaneMachine(context, "rabbitmq", "ctl-01", region),
+    controlPlaneMachine(context, "mariadb", "ctl-01", region),
+  ];
+}
+
+const LINKS_CLUSTER_ID = uuid("76000000", 1);
+
+const LINKS_OTHER_PRODUCTS = {
+  hosts: [
+    {
+      _id: uuid("74000000", 11),
+      name: "compute-01",
+      hostIdentifier: "compute-01",
+      hostId: "0123456789abcdef0123456789abcdef",
+    },
+    {
+      _id: uuid("74000000", 12),
+      name: "web-1",
+      hostIdentifier: "web-1",
+      hostId: instanceIdOf(1),
+    },
+    {
+      _id: uuid("74000000", 13),
+      name: "compute-07",
+      hostIdentifier: "compute-07",
+    },
+    {
+      _id: uuid("74000000", 14),
+      name: "compute-08",
+      hostIdentifier: "compute-08",
+    },
+    {
+      _id: uuid("74000000", 15),
+      name: "compute-08.acme.example",
+      hostIdentifier: "compute-08.acme.example",
+    },
+    {
+      _id: uuid("74000000", 16),
+      name: "compute-09",
+      hostIdentifier: "compute-09",
+      hostId: instanceIdOf(4),
+    },
+  ],
+  kubernetesNodes: [
+    {
+      clusterId: LINKS_CLUSTER_ID,
+      clusterName: "acme-prod-k8s",
+      nodeName: "k8s-worker-1",
+      providerId: `openstack:///${instanceIdOf(2)}`,
+    },
+    {
+      clusterId: LINKS_CLUSTER_ID,
+      clusterName: "acme-prod-k8s",
+      nodeName: "k8s-worker-2",
+      providerId: `openstack:///${instanceIdOf(5)}`,
+    },
+    {
+      clusterId: LINKS_CLUSTER_ID,
+      clusterName: "acme-prod-k8s",
+      nodeName: "k8s-worker-3",
+      providerId: "aws:///eu-west-1a/i-0abc",
+    },
+  ],
+  services: [
+    { id: uuid("77000000", 1), name: "api", onHosts: ["web-1"] },
+    { id: uuid("77000000", 2), name: "checkout", onNodes: ["k8s-worker-1"] },
+    { id: uuid("77000000", 3), name: "agentd", onHosts: ["compute-01"] },
+    {
+      id: uuid("77000000", 4),
+      name: "everywhere",
+      onHosts: ["web-1", "compute-01"],
+      onNodes: ["k8s-worker-1"],
+    },
+    { id: uuid("77000000", 5), name: "billing", onHosts: ["bare-metal-9"] },
+  ],
+  cephClusters: [
+    {
+      id: uuid("75000000", 1),
+      name: "ceph-east",
+      fsid: LINKS_FSID,
+      poolNames: ["volumes", "images", "shared", "backups"],
+      healthStatus: 2,
+      capacityUsedPercent: 71,
+    },
+    {
+      id: uuid("75000000", 2),
+      name: "ceph-west",
+      fsid: null,
+      poolNames: ["shared"],
+      healthStatus: 0,
+      capacityUsedPercent: 12,
+    },
+  ],
+  instancesInOtherClouds: [instanceIdOf(5)],
+};
+
+// A worker's page links to the Hosts product when a host reports under its name.
+const BUSY_OTHER_PRODUCTS = {
+  hosts: [
+    {
+      _id: uuid("74000000", 1),
+      name: "compute-03",
+      hostIdentifier: "compute-03",
+    },
+  ],
+  kubernetesNodes: [],
+  services: [],
+  cephClusters: [],
+  instancesInOtherClouds: [],
+};
+
+const OTHER_PRODUCTS = {
+  busy: BUSY_OTHER_PRODUCTS,
+  parts: BUSY_OTHER_PRODUCTS,
+  links: LINKS_OTHER_PRODUCTS,
+};
+
+/*
+ * ---------------------------------------------------------------------------
  * usage: calm, with what libvirt's or Ceilometer's exporter says on compute-01. The numbers are
  * made up to put it over a line. What real clouds really said goes through the same pages in
  * OpenStackUsagePagesRecordings.test.tsx, and these are for what only a browser shows.
@@ -1384,6 +1594,7 @@ function usageInventory(context) {
 const ESTATES = {
   busy: busyInventory,
   parts: partsInventory,
+  links: linksInventory,
   usage: usageInventory,
   calm: calmInventory,
   "forced-down": forcedDownInventory,
@@ -1456,5 +1667,8 @@ export function buildEstate(scenario, loadedAt) {
           : {},
     ),
     inventory,
+    otherProducts: scenario.recordedRows
+      ? undefined
+      : OTHER_PRODUCTS[scenario.estate],
   };
 }

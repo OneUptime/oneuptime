@@ -14,6 +14,7 @@ import { OpenStackBlastRadius } from "Common/Types/OpenStack/OpenStackBlastRadiu
 import { isOpenStackServiceDown } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackRegionSummary,
+  OpenStackRowsLeftOut,
   OpenStackTopConsumers,
 } from "Common/Types/OpenStack/OpenStackOverview";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -832,6 +833,12 @@ const OpenStackCloudOverview: FunctionComponent<
     },
   );
 
+  const leftOut: Array<OpenStackRowsLeftOut> = (
+    attention?.leftOut || []
+  ).filter((group: OpenStackRowsLeftOut): boolean => {
+    return !region || !group.regionName || group.regionName === region;
+  });
+
   const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: rows,
     now: now,
@@ -850,6 +857,7 @@ const OpenStackCloudOverview: FunctionComponent<
           apis: apisInScope,
           workers: workers,
           hypervisors: hypervisors,
+          leftOut: leftOut,
           hasStoragePools: Boolean(summary && summary.storageCapacityBytes > 0),
         })
       : [];
@@ -871,6 +879,7 @@ const OpenStackCloudOverview: FunctionComponent<
   const groups: Array<OpenStackServiceGroup> = getOpenStackServiceGroups({
     apis: apisInScope,
     workers: workers,
+    leftOut: leftOut,
     now: now,
   });
 
@@ -900,9 +909,12 @@ const OpenStackCloudOverview: FunctionComponent<
   const apisUp: number = apisInScope.filter((row: OpenStackResource) => {
     return row.status === "up";
   }).length;
-  const workerCounts: OpenStackWorkerCounts = getOpenStackWorkerCounts(workers);
+  const workerCounts: OpenStackWorkerCounts = getOpenStackWorkerCounts(
+    workers,
+    leftOut,
+  );
   const hypervisorCounts: OpenStackHypervisorCounts =
-    getOpenStackHypervisorCounts(hypervisors);
+    getOpenStackHypervisorCounts(hypervisors, leftOut);
   const isCurrent: boolean = isConnected && attention !== null;
   const hasAccessGap: (key: string) => boolean = (key: string): boolean => {
     return accessGaps.some((gap: OpenStackAccessGap): boolean => {
