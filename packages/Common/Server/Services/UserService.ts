@@ -567,23 +567,30 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A new password ends the account's sign-in link (Types/Accounts/MagicLink),
-   * however it is set: the reset link's page, the profile page or a master
-   * admin's Set Password. A link stands in for the password, so somebody
-   * holding one when the owner changes it would still get past the first step
-   * of signing in, with the wrong two factor codes onUpdateSuccess forgets
-   * counted from nothing again.
+   * A new password ends the links already sent for the account, however it is
+   * set: the reset link's page, the profile page, a master admin's Set Password
+   * or an invited person claiming their account at sign up. Each link is a bearer
+   * credential found by its token's hash alone, and neither can outlive the
+   * password it was sent under:
+   *
+   *   - a sign-in link (Types/Accounts/MagicLink) stands in for the password.
+   *     Somebody holding one when the owner changes it would still get past the
+   *     first step of signing in, with the wrong two factor codes onUpdateSuccess
+   *     forgets counted from nothing again;
+   *   - a reset link replaces the password. Somebody holding one when the owner
+   *     changes it could, for up to a day, set another and sign the owner out:
+   *     undoing the very change the owner made to keep them out.
    *
    * Written here, after every permission check, and never in onBeforeUpdate:
-   * the link's columns are OneUptime's (update: []), and DatabaseService holds
+   * the links' columns are OneUptime's (update: []), and DatabaseService holds
    * what onBeforeUpdate leaves to the caller's column permissions - so written
    * there, they would refuse everybody changing their own password.
    *
    * And in the password's own UPDATE, not in one ahead of it as a new email
    * address does (expirePasswordResetTokensForEmailChange): there is no instant
-   * at which the new password is stored and the link still signs in, a link
-   * sent while the write is on its way is on the row for it to clear, and a
-   * write that fails leaves the password and the link as they were.
+   * at which the new password is stored and a link still works, a link sent
+   * while the write is on its way is on the row for it to clear, and a write
+   * that fails leaves the password and the links as they were.
    *
    * A hook-free write skips this, as it skips what onUpdateSuccess does for a
    * new password: any new caller that writes `password` with `ignoreHooks: true`
@@ -601,6 +608,8 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    updateBy.data.resetPasswordToken = null!;
+    updateBy.data.resetPasswordExpires = null!;
     updateBy.data.magicLinkToken = null!;
     updateBy.data.magicLinkExpires = null!;
   }
@@ -1709,10 +1718,10 @@ export class Service extends DatabaseService<Model> {
    *    and run scrypt over it. Pre-hashing here, or passing a bare string,
    *    would be rejected by that same code (see DatabaseService's salted-column
    *    guard) precisely because it would strand the row's salt;
-   *  - any outstanding reset link is invalidated in the SAME statement. A link
-   *    mailed before the admin intervened must not still be able to change the
-   *    password afterwards. A sign-in link ends in that statement too, by
-   *    `onUpdatePermitted`, as it does for any update that carries a password;
+   *  - any outstanding reset link or sign-in link ends in the SAME statement, by
+   *    `onUpdatePermitted`, as it does for any update that carries a password. A
+   *    link mailed before the admin intervened must not still be able to change
+   *    the password afterwards;
    *  - session revocation and the "Password Changed." email are NOT done here.
    *    `onUpdateSuccess` already does both for any update that carries a
    *    password, and doing it again would send the user two identical emails.
@@ -1751,8 +1760,6 @@ export class Service extends DatabaseService<Model> {
       id: user.id!,
       data: {
         password: new HashedString(data.password),
-        resetPasswordToken: null!,
-        resetPasswordExpires: null!,
       },
       props: {
         isRoot: true,

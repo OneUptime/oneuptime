@@ -73,6 +73,8 @@ Fold **Sikkerhed** ud i sidemenuen i **Brugerprofil**. Afsnittet har tre sider.
 3. Klik på **Opdater adgangskode**.
 :::
 
+En ny adgangskode logger alle enheder ud af din konto, og ethvert nulstillingslink eller login-link, der allerede er sendt, holder op med at virke.
+
 ### Tilføj en adgangsnøgle
 
 :::steps

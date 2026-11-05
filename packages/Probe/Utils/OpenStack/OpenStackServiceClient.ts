@@ -26,7 +26,9 @@ import {
  *   - A 429 or a server error is tried again later, as backoff says. What that does
  *     not fix, the caller stops asking this collection and asks less often after.
  *   - A slow answer slows the next request by as much, so a service that is falling
- *     behind gets room instead of the same pressure.
+ *     behind gets room instead of the same pressure. Slow means this service's own: far
+ *     past what it usually takes, or past a line no API should reach. Several reads at once
+ *     take turns while it lasts, so a pause does not end in a burst.
  *   - Nothing runs past the collection's deadline: each request's own timeout is
  *     shortened to it, and a wait that would cross it is not waited.
  */
@@ -59,6 +61,14 @@ export const SLOW_ANSWER_THRESHOLD_IN_MS: number = 5000;
 export const MAX_PACE_IN_MS: number = 30_000;
 
 /*
+ * Latency climbing before it gets that far: this many times what the service usually answers
+ * in, once it is at least this slow. Below the floor a multiple means nothing: an API that
+ * goes from 40 ms to 200 ms is not in trouble.
+ */
+export const LATENCY_CLIMB_FACTOR: number = 3;
+export const LATENCY_CLIMB_FLOOR_IN_MS: number = 1000;
+
+/*
  * More pages than this and something is wrong: at a thousand a page it is a million
  * things in one list.
  */
@@ -77,6 +87,10 @@ export type OpenStackPaging =
   | "links"
   // The answer's own `next`: Glance.
   | "next"
+  // <key>_links holds a rel "next", and it means an offset: a marker means nothing to Manila.
+  | "offset"
+  // The answer's own `links`: a list with a rel "next" (Trove), or an object with a `next` (Designate).
+  | "bodyLinks"
   // No paging at all: Keystone and Placement, and a few of Nova's and Neutron's.
   | "none";
 
@@ -155,6 +169,8 @@ export interface OpenStackServiceClientOptions {
   requestTimeoutInMs?: number | undefined;
   headers?: Record<string, string> | undefined;
   pageSize?: number | undefined;
+  // What this service usually answers in, from the collections before. Unknown at first.
+  usualAnswerInMs?: number | null | undefined;
 }
 
 export default class OpenStackServiceClient {
@@ -164,6 +180,9 @@ export default class OpenStackServiceClient {
   public readonly pageSize: number;
   public requestCount: number = 0;
   public headers: Record<string, string>;
+  // What the Data Collection card says of a service that was asked more gently.
+  public slowestAnswerInMs: number = 0;
+  public pausedForInMs: number = 0;
 
   private readonly transport: OpenStackTransport;
   private readonly clock: OpenStackClock;
@@ -171,7 +190,12 @@ export default class OpenStackServiceClient {
   private readonly session: OpenStackKeystoneSession;
   private readonly userAgent: string;
   private readonly requestTimeoutInMs: number;
+  private readonly usualAnswerInMs: number | null;
   private paceUntil: number = 0;
+  private lastPaceInMs: number = 0;
+  private waitingForPace: number = 0;
+  private answerCount: number = 0;
+  private answerTimeInMs: number = 0;
 
   public constructor(options: OpenStackServiceClientOptions) {
     this.service = options.service;
@@ -186,6 +210,17 @@ export default class OpenStackServiceClient {
       options.requestTimeoutInMs ?? OPENSTACK_REQUEST_TIMEOUT_IN_MS;
     this.headers = options.headers || {};
     this.pageSize = options.pageSize ?? DEFAULT_OPENSTACK_PAGE_SIZE;
+    this.usualAnswerInMs = options.usualAnswerInMs ?? null;
+  }
+
+  // Whether an answer this collection was slow enough to earn the service a pause.
+  public hasBeenSlow(): boolean {
+    return this.lastPaceInMs > 0;
+  }
+
+  // What its answers took on average, for the next collection to measure against.
+  public getAverageAnswerInMs(): number | null {
+    return this.answerCount > 0 ? this.answerTimeInMs / this.answerCount : null;
   }
 
   public getDeadlineAt(): number {
@@ -380,6 +415,9 @@ export default class OpenStackServiceClient {
           ...data.query,
           ...(data.paging === "none" ? {} : { limit: this.pageSize }),
           ...(marker === undefined ? {} : { marker: marker }),
+          ...(data.paging === "offset" && items.length > 0
+            ? { offset: items.length }
+            : {}),
         },
       });
 
@@ -421,6 +459,19 @@ export default class OpenStackServiceClient {
         };
       }
 
+      if (data.paging === "offset") {
+        // One that kept offering another page forever would be read forever without this.
+        if (pageCount >= MAX_PAGES_PER_LIST) {
+          throw new OpenStackApiError({
+            kind: "malformed",
+            status: 200,
+            url: `${this.baseUrl}${data.path}`,
+            message: `${this.describe()} kept offering another page of ${data.read}, so the probe stopped reading it.`,
+          });
+        }
+        continue;
+      }
+
       const last: JSONObject = page[page.length - 1] as JSONObject;
       const nextMarker: JSONValue | undefined = last?.[idField];
 
@@ -450,7 +501,24 @@ export default class OpenStackServiceClient {
       return typeof body["next"] === "string" && Boolean(body["next"]);
     }
 
-    if (paging === "links") {
+    if (paging === "bodyLinks") {
+      const links: JSONValue | undefined = body["links"];
+
+      if (Array.isArray(links)) {
+        return (links as Array<JSONObject>).some(
+          (link: JSONObject): boolean => {
+            return link?.["rel"] === "next";
+          },
+        );
+      }
+
+      const next: JSONValue | undefined = (links as JSONObject | undefined)?.[
+        "next"
+      ];
+      return typeof next === "string" && Boolean(next);
+    }
+
+    if (paging === "links" || paging === "offset") {
       const links: JSONValue | undefined = body[`${key}_links`];
 
       if (!Array.isArray(links)) {
@@ -505,18 +573,40 @@ export default class OpenStackServiceClient {
     return message ? `: ${message}` : ".";
   }
 
+  private getSlowAnswerLine(): number {
+    if (this.usualAnswerInMs === null) {
+      return SLOW_ANSWER_THRESHOLD_IN_MS;
+    }
+
+    return Math.min(
+      SLOW_ANSWER_THRESHOLD_IN_MS,
+      Math.max(
+        LATENCY_CLIMB_FLOOR_IN_MS,
+        this.usualAnswerInMs * LATENCY_CLIMB_FACTOR,
+      ),
+    );
+  }
+
   private pace(latency: number): void {
-    if (latency >= SLOW_ANSWER_THRESHOLD_IN_MS) {
-      this.paceUntil = this.clock.now() + Math.min(latency, MAX_PACE_IN_MS);
+    this.answerCount++;
+    this.answerTimeInMs += latency;
+    this.slowestAnswerInMs = Math.max(this.slowestAnswerInMs, latency);
+
+    if (latency >= this.getSlowAnswerLine()) {
+      this.lastPaceInMs = Math.min(latency, MAX_PACE_IN_MS);
+      this.paceUntil = this.clock.now() + this.lastPaceInMs;
     }
   }
 
   private async waitForPace(read: string): Promise<void> {
-    const wait: number = this.paceUntil - this.clock.now();
+    const remaining: number = this.paceUntil - this.clock.now();
 
-    if (wait <= 0) {
+    if (remaining <= 0) {
       return;
     }
+
+    // Reads waiting at once go one after another, each a pause behind the one before it.
+    const wait: number = remaining + this.waitingForPace * this.lastPaceInMs;
 
     if (this.clock.now() + wait >= this.deadlineAt) {
       throw new OpenStackBudgetExceededError(
@@ -524,7 +614,14 @@ export default class OpenStackServiceClient {
       );
     }
 
-    await this.clock.sleep(wait);
+    this.waitingForPace++;
+    this.pausedForInMs += wait;
+
+    try {
+      await this.clock.sleep(wait);
+    } finally {
+      this.waitingForPace--;
+    }
   }
 }
 

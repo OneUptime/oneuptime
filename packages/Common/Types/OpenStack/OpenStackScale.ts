@@ -1,0 +1,1040 @@
+import {
+  TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
+  TELEMETRY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_PRICE_RETENTION_IN_DAYS,
+} from "../Billing/PayAsYouGoPricing";
+import {
+  OpenStackInstanceMetricSource,
+  OpenStackInstanceMetricsMode,
+  OpenStackInstanceMetricsOptions,
+  OpenStackInstanceMetricsVolume,
+  estimateOpenStackInstanceMetricsVolume,
+} from "./OpenStackInstanceMetrics";
+import { OpenStackServiceType } from "./OpenStackResourceKind";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+} from "./OpenStackOptionalServices";
+
+/*
+ * WHAT A CLOUD OF ANY SIZE COSTS, BEFORE ANYTHING IS INSTALLED.
+ *
+ * Two numbers a reviewer wants first: how hard monitoring leans on the control plane, and how
+ * much data it sends. Both follow from a cloud's counts, so both are worked out here, in one
+ * place the docs, the guide's calculator and the tests read.
+ *
+ * Neither is a guess. OpenStackScaleBudget.test.ts runs the real collector against a mock API
+ * of each size and holds what it really asked for, and what it really sent, to these numbers
+ * exactly. A request count does not depend on the machine it was counted on.
+ *
+ * Pure, so the pages, the probe and the server all read it.
+ */
+
+export interface OpenStackCloudCounts {
+  regions: number;
+  hypervisors: number;
+  instances: number;
+  projects: number;
+  domains: number;
+  volumes: number;
+  snapshots: number;
+  backups: number;
+  networks: number;
+  subnets: number;
+  routers: number;
+  floatingIps: number;
+  securityGroups: number;
+  images: number;
+  flavors: number;
+  // Nova's own workers beside its nova-computes: schedulers and conductors.
+  novaControlServices: number;
+  // Neutron's agents, however many a hypervisor runs.
+  networkAgents: number;
+  // Those that are DHCP agents, which ML2/OVS runs on its network nodes, and OVN has none of.
+  dhcpAgents: number;
+  cinderServices: number;
+  storagePools: number;
+}
+
+/*
+ * The sizes the product is tested at. Only the first three numbers of each come from the issue:
+ * what a cloud holds besides is an assumption, stated here and in the docs, and a real cloud's
+ * own counts go in the calculator.
+ */
+export function getOpenStackCountsOfSize(data: {
+  hypervisors: number;
+  instances: number;
+  projects: number;
+  regions?: number | undefined;
+}): OpenStackCloudCounts {
+  const volumes: number = Math.ceil(data.instances / 2);
+
+  return {
+    regions: data.regions ?? 1,
+    hypervisors: data.hypervisors,
+    instances: data.instances,
+    projects: data.projects,
+    domains: 1,
+    volumes: volumes,
+    snapshots: Math.ceil(volumes / 10),
+    backups: Math.ceil(volumes / 10),
+    // One each per project, and the external network everyone shares.
+    networks: data.projects + 1,
+    subnets: data.projects + 1,
+    routers: data.projects,
+    floatingIps: Math.ceil(data.instances / 10),
+    securityGroups: data.projects,
+    images: Math.min(1000, Math.max(10, Math.ceil(data.projects / 10))),
+    flavors: 40,
+    novaControlServices: 6,
+    // OVN's controller and metadata agent on every hypervisor.
+    networkAgents: data.hypervisors * 2,
+    dhcpAgents: 3,
+    cinderServices: 6,
+    storagePools: Math.max(1, Math.ceil(data.hypervisors / 250)),
+  };
+}
+
+export const OPENSTACK_SMALL_CLOUD: OpenStackCloudCounts =
+  getOpenStackCountsOfSize({ hypervisors: 10, instances: 100, projects: 20 });
+export const OPENSTACK_MEDIUM_CLOUD: OpenStackCloudCounts =
+  getOpenStackCountsOfSize({
+    hypervisors: 500,
+    instances: 20000,
+    projects: 1000,
+  });
+export const OPENSTACK_LARGE_CLOUD: OpenStackCloudCounts =
+  getOpenStackCountsOfSize({
+    hypervisors: 5000,
+    instances: 200000,
+    projects: 10000,
+  });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Summary mode
+ * ---------------------------------------------------------------------------
+ *
+ * Past this many instances a cloud keeps counts and rows, and no series per instance or per
+ * volume. Where it sits: a cloud this size sends about 17 GB a day of per-instance series and
+ * about 4 GB a day of everything else (getOpenStackSeriesCounts, at the bill's row size), so from
+ * here those series are most of the bill, and they say what the rows and the counts already say.
+ */
+export const OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT: number = 5000;
+
+// One series per instance or instance's allocation, or per volume. The rows are read from these.
+export const OPENSTACK_SUMMARY_MODE_SERIES: ReadonlySet<string> = new Set([
+  "openstack_nova_server_status",
+  "openstack_nova_server_local_gb",
+  "openstack_placement_resource_provider_allocations",
+  "openstack_cinder_volume_gb",
+  "openstack_cinder_volume_status",
+]);
+
+/*
+ * The statuses that say nothing is wrong. Everything else is a state the alert templates watch
+ * (ERROR, or stuck in BUILD, RESIZE, attaching and the like), and a series that goes away reads
+ * as recovered, so a part in one of those keeps its series in summary mode too.
+ */
+const SETTLED_STATUSES: Readonly<Record<string, ReadonlySet<string>>> = {
+  openstack_nova_server_status: new Set([
+    "ACTIVE",
+    "SHUTOFF",
+    "SUSPENDED",
+    "PAUSED",
+    "SHELVED",
+    "SHELVED_OFFLOADED",
+  ]),
+  openstack_cinder_volume_gb: new Set(["available", "in-use"]),
+  openstack_cinder_volume_status: new Set(["available", "in-use"]),
+};
+
+export function isOpenStackSummaryMode(data: {
+  options: Pick<OpenStackInstanceMetricsOptions, "mode">;
+  instanceCount: number | null | undefined;
+  // For tests, so a scene with a few hundred instances can stand for a cloud past the line.
+  instanceLimit?: number | undefined;
+}): boolean {
+  return (
+    data.options.mode !== OpenStackInstanceMetricsMode.All &&
+    (data.instanceCount || 0) >
+      (data.instanceLimit ?? OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT)
+  );
+}
+
+/*
+ * Whether a datapoint of one of these series is kept in summary mode. A part in a project someone
+ * chose keeps its series: that is what the choice is for. So does one in a state an alert is
+ * watching. Anything that is not one of these series is no business of summary mode.
+ */
+export function isOpenStackSeriesKeptInSummaryMode(data: {
+  metricName: string;
+  status: string | null | undefined;
+  projectId: string | null | undefined;
+  keptProjectIds: ReadonlySet<string>;
+}): boolean {
+  if (!OPENSTACK_SUMMARY_MODE_SERIES.has(data.metricName)) {
+    return true;
+  }
+
+  const settled: ReadonlySet<string> | undefined =
+    SETTLED_STATUSES[data.metricName];
+
+  // An allocation names neither a project nor a state, and no page or alert reads one.
+  if (!settled) {
+    return false;
+  }
+
+  if (data.projectId && data.keptProjectIds.has(data.projectId)) {
+    return true;
+  }
+
+  return !settled.has(data.status || "");
+}
+
+/*
+ * What a probe sends of a large cloud's parts each collection: what changed, and a turn's share of
+ * the rest (OpenStackRollingSend), sized so a collection's upload stays about this large however
+ * large the cloud, within a stated time for a row to come round.
+ */
+export const OPENSTACK_ROLLING_TARGET_BYTES_PER_COLLECTION: number =
+  24 * 1024 * 1024;
+export const OPENSTACK_MAX_ROLLING_TURNS: number = 30;
+
+/*
+ * About what one such datapoint comes to as JSON, measured on the mock at each size: an instance's
+ * is about 1,300 bytes and a floating IP's about 550. It only sizes the turns.
+ */
+export const OPENSTACK_ROLLING_BYTES_PER_DATAPOINT: number = 1100;
+
+export function getOpenStackRollingTurns(
+  rollingDatapoints: number,
+  targetBytesPerCollection: number = OPENSTACK_ROLLING_TARGET_BYTES_PER_COLLECTION,
+): number {
+  return Math.min(
+    OPENSTACK_MAX_ROLLING_TURNS,
+    Math.max(
+      1,
+      Math.ceil(
+        (rollingDatapoints * OPENSTACK_ROLLING_BYTES_PER_DATAPOINT) /
+          targetBytesPerCollection,
+      ),
+    ),
+  );
+}
+
+// The datapoints sent in turns, per region: the same series OPENSTACK_ROLLING_SERIES names.
+export function getOpenStackRollingDatapoints(
+  counts: OpenStackCloudCounts,
+): number {
+  return (
+    counts.instances +
+    counts.volumes * 2 +
+    counts.snapshots +
+    counts.backups +
+    counts.networks +
+    counts.subnets +
+    counts.routers +
+    counts.floatingIps +
+    counts.images * 2 +
+    counts.projects
+  );
+}
+
+// What summary mode leaves in place of the series: per status and per project, in each region.
+export const OPENSTACK_INSTANCES_BY_STATUS_SERIES: string =
+  "openstack_nova_instances_by_status";
+export const OPENSTACK_INSTANCES_BY_PROJECT_SERIES: string =
+  "openstack_nova_instances_by_project";
+
+/*
+ * ---------------------------------------------------------------------------
+ * The database exporter
+ * ---------------------------------------------------------------------------
+ *
+ * Offered past these. The exporter of OpenStack's APIs reads Placement one call at a time, three
+ * calls per hypervisor, and a scrape has 110 seconds: at a brisk 20 ms a call that is about 1,800
+ * hypervisors. It reads /servers/detail a thousand at a time: at a second a page, about 110,000
+ * instances. Below these the APIs answer well enough, and the database path gives things up.
+ */
+export const OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT: number = 1500;
+export const OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT: number = 100000;
+
+export function isOpenStackDatabasePathOffered(
+  counts: Pick<OpenStackCloudCounts, "hypervisors" | "instances">,
+): boolean {
+  return (
+    counts.hypervisors > OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT ||
+    counts.instances > OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The load on the control plane
+ * ---------------------------------------------------------------------------
+ */
+
+// What the probe's own constants are, so a change to any of them moves the docs' numbers.
+export const OPENSTACK_LIST_PAGE_SIZE: number = 1000;
+export const OPENSTACK_FULL_INSTANCE_READ_EVERY_MINUTES: number = 30;
+export const OPENSTACK_TOKEN_LIFE_IN_MINUTES: number = 60;
+export const OPENSTACK_TOKEN_MARGIN_IN_MINUTES: number = 5;
+export const OPENSTACK_NEUTRON_EXTENSIONS_EVERY_MINUTES: number = 60;
+
+/*
+ * The most calls a collection makes that are one call per thing: a hypervisor's usages, a
+ * router's agents, a project's quotas. Past this a cloud's lists are read in turns rather than
+ * all at once. What was not read this time is sent as last read, so no series has a gap, and the
+ * load stays where it is however many more of them the cloud grows: only how fresh they are
+ * moves. Every two minutes that is about 17 calls a second on each of those services, four at a
+ * time at most.
+ */
+export const OPENSTACK_PER_PART_READS_PER_COLLECTION: number = 2000;
+
+// A project's quotas are four calls, and change on a person's timescale.
+export const OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION: number = 250;
+
+/*
+ * What asking Placement how many of a flavor fit costs. GET /allocation_candidates is the one read
+ * here that makes Placement work: it is what Nova's scheduler asks once for every boot. So it is
+ * asked about one shape of flavor at a time, at most this many a collection and in turns, however
+ * many flavors there are: a couple of boots' worth of work a minute. What was not asked this time
+ * is sent as it last stood. A first collection asks nothing, because nothing is known yet of what
+ * to ask about, and neither does one that has already been told to slow down.
+ */
+export const OPENSTACK_CANDIDATE_READS_PER_COLLECTION: number = 4;
+
+/*
+ * The most candidates one answer holds: Nova's own [scheduler] max_placement_results, so a read
+ * asks for what one boot does. An answer this long may not be all of them, so a count from it is
+ * a floor, and its page says so. Zero is exact either way, which is what an alert reads.
+ */
+export const OPENSTACK_CANDIDATE_RESULT_LIMIT: number = 1000;
+
+/*
+ * What happened to an instance that changed, which only Nova's own record says. A call per
+ * instance, this many a collection, and what is left waits for the next.
+ */
+export const OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION: number = 25;
+export const OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER: number = 500;
+
+/*
+ * Which networks a DHCP agent serves. Neutron answers with each of them in full, and takes no
+ * field list on that route, so one agent's answer costs Neutron what listing its networks does.
+ * And what it says hardly moves: a network gets its agents when its subnet is made, and changes
+ * them when an agent dies. So this is far gentler than the other calls per thing: a few at a
+ * time, and not on every collection. A cloud with more agents than that goes round them in turns.
+ */
+export const OPENSTACK_DHCP_AGENT_READS_PER_ROUND: number = 20;
+export const OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES: number = 10;
+
+export type OpenStackNetworkBackend = "ovn" | "ovs";
+
+export interface OpenStackProbeLoadOptions {
+  collectionIntervalInMinutes?: number | undefined;
+  networkBackend?: OpenStackNetworkBackend | undefined;
+  isSummaryMode?: boolean | undefined;
+  // The answer to changes-since on a collection between full reads, how many instances changed.
+  instancesChangedPerCollection?: number | undefined;
+  // Providers whose generation moved since the last collection: their inventories are read again.
+  providersChangedPerCollection?: number | undefined;
+  collectProjectLimits?: boolean | undefined;
+}
+
+export type OpenStackRequestsByService = Record<OpenStackServiceType, number>;
+
+function noRequests(): OpenStackRequestsByService {
+  return {
+    [OpenStackServiceType.Identity]: 0,
+    [OpenStackServiceType.Compute]: 0,
+    [OpenStackServiceType.Placement]: 0,
+    [OpenStackServiceType.Network]: 0,
+    [OpenStackServiceType.Volume]: 0,
+    [OpenStackServiceType.Image]: 0,
+    [OpenStackServiceType.Orchestration]: 0,
+    [OpenStackServiceType.ContainerInfra]: 0,
+    [OpenStackServiceType.SharedFileSystems]: 0,
+    [OpenStackServiceType.Database]: 0,
+    [OpenStackServiceType.BareMetal]: 0,
+  };
+}
+
+/*
+ * How many requests a list of this many takes, a thousand at a time. A page that comes back full
+ * offers another, so a list of exactly a thousand takes a second request, for nothing.
+ */
+export function getOpenStackListRequests(
+  rows: number,
+  pageSize: number = OPENSTACK_LIST_PAGE_SIZE,
+): number {
+  return Math.floor(rows / pageSize) + 1;
+}
+
+export function getOpenStackSlowServiceEveryMinutes(
+  collectionIntervalInMinutes: number,
+): number {
+  const minutes: number = Math.max(collectionIntervalInMinutes, 1);
+
+  return Math.max(Math.floor(5 / minutes), 1) * minutes;
+}
+
+/*
+ * The requests the probe makes over a stretch of time, per region: it walks the same schedule
+ * the collector keeps, collection by collection, starting cold at minute zero. So the first hour
+ * includes what only a first collection reads, and an hour later on does not.
+ */
+export function simulateOpenStackProbeRequests(data: {
+  counts: OpenStackCloudCounts;
+  fromMinute: number;
+  toMinute: number;
+  options?: OpenStackProbeLoadOptions | undefined;
+  // Collections that were not made, because the one before was still running.
+  skippedMinutes?: ReadonlySet<number> | undefined;
+}): OpenStackRequestsByService {
+  const { counts } = data;
+  const options: OpenStackProbeLoadOptions = data.options || {};
+  const interval: number = options.collectionIntervalInMinutes ?? 2;
+  const isOvs: boolean = options.networkBackend === "ovs";
+  const isSummary: boolean =
+    options.isSummaryMode ??
+    counts.instances > OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT;
+  const changed: number = options.instancesChangedPerCollection ?? 0;
+  const slowEvery: number = getOpenStackSlowServiceEveryMinutes(interval);
+
+  const requests: OpenStackRequestsByService = noRequests();
+  const add: (service: OpenStackServiceType, count: number) => void = (
+    service: OpenStackServiceType,
+    count: number,
+  ): void => {
+    requests[service] += count;
+  };
+
+  let tokenValidUntil: number = -1;
+  let extensionsReadAt: number = -Infinity;
+  let slowServicesReadAt: number = -Infinity;
+  let instancesReadWholeAt: number = -Infinity;
+  let actionReadsWaiting: number = 0;
+  let dhcpAgentsReadAt: number = -Infinity;
+
+  for (let minute: number = 0; minute < data.toMinute; minute += interval) {
+    if (data.skippedMinutes?.has(minute)) {
+      continue;
+    }
+
+    const isCounted: boolean = minute >= data.fromMinute;
+    const count: (service: OpenStackServiceType, value: number) => void = (
+      service: OpenStackServiceType,
+      value: number,
+    ): void => {
+      if (isCounted) {
+        add(service, value);
+      }
+    };
+
+    if (minute >= tokenValidUntil) {
+      tokenValidUntil =
+        minute +
+        OPENSTACK_TOKEN_LIFE_IN_MINUTES -
+        OPENSTACK_TOKEN_MARGIN_IN_MINUTES;
+      count(OpenStackServiceType.Identity, 1);
+    }
+
+    // Half a minute under, as the collector keeps it, so a turn isn't missed by being early.
+    if (minute - slowServicesReadAt >= slowEvery - 0.5) {
+      slowServicesReadAt = minute;
+      // Domains, projects, regions, users and groups: Keystone pages none of them.
+      count(OpenStackServiceType.Identity, 5);
+      count(
+        OpenStackServiceType.Image,
+        getOpenStackListRequests(counts.images),
+      );
+    }
+
+    const isFullRead: boolean =
+      minute - instancesReadWholeAt >=
+      OPENSTACK_FULL_INSTANCE_READ_EVERY_MINUTES;
+
+    if (isFullRead) {
+      instancesReadWholeAt = minute;
+    }
+
+    // Its versions, services, aggregates and zones, then the lists.
+    count(
+      OpenStackServiceType.Compute,
+      4 +
+        getOpenStackListRequests(counts.hypervisors) +
+        getOpenStackListRequests(counts.flavors) +
+        getOpenStackListRequests(isFullRead ? counts.instances : changed),
+    );
+
+    actionReadsWaiting += changed;
+
+    const actionReads: number = Math.min(
+      actionReadsWaiting,
+      OPENSTACK_INSTANCE_ACTION_READS_PER_COLLECTION,
+    );
+
+    actionReadsWaiting = Math.min(
+      actionReadsWaiting - actionReads,
+      OPENSTACK_INSTANCE_ACTION_READS_LEFT_FOR_LATER,
+    );
+    count(OpenStackServiceType.Compute, actionReads);
+
+    const perPartReads: number = Math.min(
+      counts.hypervisors,
+      OPENSTACK_PER_PART_READS_PER_COLLECTION,
+    );
+
+    /*
+     * A list of providers, and each one's usages. Its inventories only the first time, because
+     * Placement moves a provider's generation whenever they change. Allocations are one more
+     * call per provider, which summary mode has no use for. A first collection reads every
+     * provider there is, whatever the size, and cannot know yet that the cloud is past the
+     * summary size, so it reads a turn's worth of allocations.
+     */
+    count(
+      OpenStackServiceType.Placement,
+      minute === 0
+        ? 1 + counts.hypervisors * 2 + perPartReads
+        : 1 +
+            perPartReads +
+            (isSummary ? 0 : perPartReads) +
+            Math.min(
+              options.providersChangedPerCollection ?? 0,
+              OPENSTACK_PER_PART_READS_PER_COLLECTION,
+            ) +
+            // What each shape of flavor would be told: see above. None on a first collection.
+            Math.min(counts.flavors, OPENSTACK_CANDIDATE_READS_PER_COLLECTION),
+    );
+
+    // Agents, networks, subnets, routers, floating IPs, address pools and security groups.
+    let network: number =
+      getOpenStackListRequests(counts.networkAgents) +
+      getOpenStackListRequests(counts.networks) +
+      getOpenStackListRequests(counts.subnets) +
+      getOpenStackListRequests(counts.routers) +
+      getOpenStackListRequests(counts.floatingIps) +
+      getOpenStackListRequests(counts.networks) +
+      getOpenStackListRequests(counts.securityGroups);
+
+    if (
+      minute - extensionsReadAt >
+      OPENSTACK_NEUTRON_EXTENSIONS_EVERY_MINUTES
+    ) {
+      extensionsReadAt = minute;
+      network += 1;
+    }
+
+    if (isOvs) {
+      network += Math.min(
+        counts.routers,
+        OPENSTACK_PER_PART_READS_PER_COLLECTION,
+      );
+    }
+
+    // Half a minute under, as the collector keeps it, so a round isn't missed by being early.
+    if (
+      isOvs &&
+      !isSummary &&
+      minute - dhcpAgentsReadAt >=
+        OPENSTACK_DHCP_AGENT_ROUND_EVERY_MINUTES - 0.5
+    ) {
+      dhcpAgentsReadAt = minute;
+      network += Math.min(
+        counts.dhcpAgents,
+        OPENSTACK_DHCP_AGENT_READS_PER_ROUND,
+      );
+    }
+
+    count(OpenStackServiceType.Network, network);
+
+    // Services and pools, then the lists.
+    count(
+      OpenStackServiceType.Volume,
+      2 +
+        getOpenStackListRequests(counts.volumes) +
+        getOpenStackListRequests(counts.snapshots) +
+        getOpenStackListRequests(counts.backups),
+    );
+
+    if (options.collectProjectLimits) {
+      const projects: number = Math.min(
+        counts.projects,
+        OPENSTACK_PROJECT_LIMIT_READS_PER_COLLECTION,
+      );
+
+      count(OpenStackServiceType.Compute, projects * 2);
+      count(OpenStackServiceType.Network, projects);
+      count(OpenStackServiceType.Volume, projects);
+    }
+  }
+
+  for (const service of Object.keys(requests) as Array<OpenStackServiceType>) {
+    requests[service] *=
+      service === OpenStackServiceType.Identity ? 1 : counts.regions;
+  }
+
+  return requests;
+}
+
+// An hour once a collection has settled: what the docs state.
+export function getOpenStackProbeRequestsPerMinute(
+  counts: OpenStackCloudCounts,
+  options?: OpenStackProbeLoadOptions,
+): OpenStackRequestsByService {
+  const hour: OpenStackRequestsByService = simulateOpenStackProbeRequests({
+    counts: counts,
+    fromMinute: 120,
+    toMinute: 180,
+    options: options,
+  });
+  const perMinute: OpenStackRequestsByService = noRequests();
+
+  for (const service of Object.keys(hour) as Array<OpenStackServiceType>) {
+    perMinute[service] = hour[service] / 60;
+  }
+
+  return perMinute;
+}
+
+/*
+ * What the agent's exporter asks for on one scrape of a service, per region, counted from its
+ * source rather than measured: the exporter is not in these tests, and its own numbers wait for
+ * the rig. Every scrape logs in again, which is the first request here of each. It never reads
+ * what changed: every list is read whole. Placement is three calls per hypervisor, one at a time.
+ */
+export function getOpenStackExporterRequestsPerScrape(
+  counts: OpenStackCloudCounts,
+): OpenStackRequestsByService {
+  const requests: OpenStackRequestsByService = noRequests();
+
+  requests[OpenStackServiceType.Identity] = 1 + 5;
+  requests[OpenStackServiceType.Compute] =
+    1 +
+    // Its services, its aggregates and its zones.
+    3 +
+    getOpenStackListRequests(counts.hypervisors) +
+    getOpenStackListRequests(counts.flavors) +
+    getOpenStackListRequests(counts.instances);
+  requests[OpenStackServiceType.Placement] = 1 + 1 + counts.hypervisors * 3;
+  requests[OpenStackServiceType.Network] =
+    1 +
+    getOpenStackListRequests(counts.networkAgents) +
+    getOpenStackListRequests(counts.networks) +
+    getOpenStackListRequests(counts.subnets) +
+    getOpenStackListRequests(counts.routers) +
+    getOpenStackListRequests(counts.floatingIps) +
+    getOpenStackListRequests(counts.networks) +
+    getOpenStackListRequests(counts.securityGroups);
+  requests[OpenStackServiceType.Volume] =
+    1 +
+    2 +
+    getOpenStackListRequests(counts.volumes) +
+    getOpenStackListRequests(counts.snapshots);
+  requests[OpenStackServiceType.Image] =
+    1 + getOpenStackListRequests(counts.images);
+
+  return requests;
+}
+
+/*
+ * The same, a minute at a time, at the agent's own intervals: two minutes for most, five for
+ * Keystone and Glance. Each login is a request of Keystone's, whichever service it is for.
+ */
+export function getOpenStackExporterRequestsPerMinute(
+  counts: OpenStackCloudCounts,
+): OpenStackRequestsByService {
+  const scrape: OpenStackRequestsByService =
+    getOpenStackExporterRequestsPerScrape(counts);
+  const perMinute: OpenStackRequestsByService = noRequests();
+  const FAST: number = 720 / (24 * 60);
+  const SLOW: number = 288 / (24 * 60);
+
+  perMinute[OpenStackServiceType.Identity] =
+    scrape[OpenStackServiceType.Identity] * SLOW;
+
+  for (const service of [
+    OpenStackServiceType.Compute,
+    OpenStackServiceType.Placement,
+    OpenStackServiceType.Network,
+    OpenStackServiceType.Volume,
+  ]) {
+    perMinute[service] = (scrape[service] - 1) * FAST;
+    perMinute[OpenStackServiceType.Identity] += FAST;
+  }
+
+  perMinute[OpenStackServiceType.Image] =
+    (scrape[OpenStackServiceType.Image] - 1) * SLOW;
+  perMinute[OpenStackServiceType.Identity] += SLOW;
+
+  for (const service of Object.keys(perMinute) as Array<OpenStackServiceType>) {
+    perMinute[service] *=
+      service === OpenStackServiceType.Identity ? 1 : counts.regions;
+  }
+
+  return perMinute;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The volume of data
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * What TelemetryUsageBillingService bills a metric row as when ClickHouse has no size for it
+ * (AVERAGE_METRIC_ROW_SIZE_IN_BYTES, whose default this is). The bill itself reads byteSize(*)
+ * of the real rows, so this is an estimate: a series with many labels, such as an instance's,
+ * costs more than this, and one with none costs less.
+ */
+export const OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES: number = 1024;
+
+// A real cloud usually holds instances in about this many statuses at once.
+const STATUSES_USUALLY_PRESENT: number = 6;
+
+export const OPENSTACK_AGENT_FAST_SCRAPES_PER_DAY: number = 720;
+export const OPENSTACK_AGENT_SLOW_SCRAPES_PER_DAY: number = 288;
+
+const SCRAPE_SERIES_PER_READING: number = 3;
+const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
+
+export interface OpenStackSeriesCounts {
+  // Read every collection: Nova, Placement, Neutron and Cinder.
+  fast: number;
+  // Read about every five minutes: Keystone, Glance and the services a cloud may not run.
+  slow: number;
+  // What goes away in summary mode: an instance's status and three allocations, a volume's two.
+  perInstance: number;
+  /*
+   * Of the rest, what a probe sends in turns past the summary size, of those read every collection
+   * and those read about every five minutes. The agent's exporter sends these every scrape.
+   */
+  inTurnsFast: number;
+  inTurnsSlow: number;
+}
+
+/*
+ * How many series a cloud sends, per service. Exact for the series a default collection writes:
+ * OpenStackScaleBudget.test.ts holds this to what the collector really sent at each size, so a
+ * series added to the collector fails there until it is counted here.
+ */
+export function getOpenStackSeriesCounts(data: {
+  counts: OpenStackCloudCounts;
+  isSummaryMode?: boolean | undefined;
+  // In summary mode, the series that stay: chosen projects, and any part in a bad state.
+  keptInstances?: number | undefined;
+  isOvs?: boolean | undefined;
+  /*
+   * How many flavors a probe has had an answer from Placement about: all of them, once it has
+   * been round them. Each says the region's number and its zones', and this counts one zone. The
+   * agent's exporter never asks, so none unless this says so.
+   */
+  flavorsAnswered?: number | undefined;
+}): OpenStackSeriesCounts {
+  const { counts } = data;
+  const isSummary: boolean = Boolean(data.isSummaryMode);
+  const perInstance: number = isSummary
+    ? data.keptInstances || 0
+    : counts.instances * 4 + counts.volumes * 2;
+
+  const compute: number =
+    // Nine series a hypervisor.
+    counts.hypervisors * 9 +
+    // A worker's state, one per nova-compute and one per control service.
+    counts.hypervisors +
+    counts.novaControlServices +
+    counts.flavors +
+    // How many flavors, zones and instances, and whether the API is up.
+    4 +
+    SCRAPE_SERIES_PER_READING;
+
+  // Four series for each of three resource classes, and three usages.
+  const placement: number =
+    counts.hypervisors * 15 +
+    1 +
+    SCRAPE_SERIES_PER_READING +
+    (data.flavorsAnswered ?? 0) * 2;
+
+  const network: number =
+    counts.networkAgents +
+    counts.networks +
+    counts.subnets +
+    counts.routers +
+    counts.floatingIps +
+    // Used and total per subnet.
+    counts.subnets * 2 +
+    (data.isOvs ? counts.routers : 0) +
+    /*
+     * How many networks, subnets, routers (and how many not active), floating IPs (and how many
+     * associated and not active), security groups, and whether the API is up.
+     */
+    8 +
+    SCRAPE_SERIES_PER_READING;
+
+  const volume: number =
+    counts.cinderServices +
+    counts.storagePools * 2 +
+    counts.snapshots +
+    counts.backups +
+    // One per status it knows, however few hold any, and how many volumes and snapshots.
+    20 +
+    2 +
+    1 +
+    SCRAPE_SERIES_PER_READING;
+
+  const identity: number =
+    counts.projects +
+    counts.domains +
+    // How many domains, projects, regions, users and groups, and whether the API is up.
+    6 +
+    SCRAPE_SERIES_PER_READING;
+
+  const image: number = counts.images * 2 + 1 + 1 + SCRAPE_SERIES_PER_READING;
+
+  /*
+   * A service a cloud may not run still says its collection answered, with nothing, as the agent's
+   * scrape job for it does for ever: that is how a service that left the catalog is told from one
+   * that failed. What it lists on a cloud that runs it isn't here: stacks and clusters are few.
+   */
+  const optionalServices: number =
+    OPENSTACK_OPTIONAL_SERVICES.filter(
+      (entry: OpenStackOptionalService): boolean => {
+        return Boolean(entry.isReadByProbe);
+      },
+    ).length * SCRAPE_SERIES_PER_READING;
+
+  const summaryCounts: number = isSummary
+    ? STATUSES_USUALLY_PRESENT + counts.projects
+    : 0;
+
+  return {
+    fast:
+      (compute + placement + network + volume) * counts.regions +
+      perInstance +
+      summaryCounts * counts.regions,
+    slow: (identity + image + optionalServices) * counts.regions,
+    perInstance: perInstance,
+    inTurnsFast:
+      (counts.networks +
+        counts.subnets +
+        counts.routers +
+        counts.floatingIps +
+        counts.snapshots +
+        counts.backups) *
+      counts.regions,
+    inTurnsSlow: (counts.projects + counts.images * 2) * counts.regions,
+  };
+}
+
+export interface OpenStackVolumeEstimate {
+  series: number;
+  datapointsPerDay: number;
+  bytesPerDay: number;
+  gigabytesPerDay: number;
+  // At the retention given, and what TelemetryUsageBillingService charges for a GB kept that long.
+  costInUSDPerMonth: number;
+  // How much of the datapoints are series per instance.
+  perInstanceShare: number;
+}
+
+/*
+ * TelemetryMeteredPlan.getTotalCostInUSD: a GB times the days it is kept, billed for at least the
+ * minimum, at the advertised price for fifteen days.
+ */
+function getOpenStackTelemetryCostPerMonth(data: {
+  gigabytesPerDay: number;
+  retentionInDays: number;
+}): number {
+  return (
+    data.gigabytesPerDay *
+    Math.max(
+      data.retentionInDays,
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
+    ) *
+    (TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS) *
+    30
+  );
+}
+
+export function estimateOpenStackVolume(data: {
+  counts: OpenStackCloudCounts;
+  isSummaryMode?: boolean | undefined;
+  keptInstances?: number | undefined;
+  isOvs?: boolean | undefined;
+  retentionInDays?: number | undefined;
+  fastCollectionsPerDay?: number | undefined;
+  slowCollectionsPerDay?: number | undefined;
+  averageRowSizeInBytes?: number | undefined;
+  /*
+   * A probe rather than the agent's exporter: past the summary size it sends what has not changed
+   * once a cycle rather than every collection. How often it collects is its own setting.
+   */
+  collectionIntervalInMinutes?: number | undefined;
+}): OpenStackVolumeEstimate {
+  const probeInterval: number | undefined = data.collectionIntervalInMinutes;
+  const series: OpenStackSeriesCounts = getOpenStackSeriesCounts({
+    ...data,
+    flavorsAnswered: probeInterval !== undefined ? data.counts.flavors : 0,
+  });
+  const fastPerDay: number =
+    probeInterval !== undefined
+      ? (24 * 60) / probeInterval
+      : data.fastCollectionsPerDay ?? OPENSTACK_AGENT_FAST_SCRAPES_PER_DAY;
+  const slowPerDay: number =
+    probeInterval !== undefined
+      ? (24 * 60) / getOpenStackSlowServiceEveryMinutes(probeInterval)
+      : data.slowCollectionsPerDay ?? OPENSTACK_AGENT_SLOW_SCRAPES_PER_DAY;
+  const rowSize: number =
+    data.averageRowSizeInBytes ?? OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES;
+  const retention: number = data.retentionInDays ?? 15;
+  const turns: number =
+    probeInterval !== undefined && data.isSummaryMode
+      ? getOpenStackRollingTurns(getOpenStackRollingDatapoints(data.counts))
+      : 1;
+
+  const datapointsPerDay: number =
+    (series.fast - series.inTurnsFast + series.inTurnsFast / turns) *
+      fastPerDay +
+    (series.slow - series.inTurnsSlow + series.inTurnsSlow / turns) *
+      slowPerDay;
+  const bytesPerDay: number = datapointsPerDay * rowSize;
+  const gigabytesPerDay: number = bytesPerDay / BYTES_PER_GIB;
+
+  return {
+    series: series.fast + series.slow,
+    datapointsPerDay: datapointsPerDay,
+    bytesPerDay: bytesPerDay,
+    gigabytesPerDay: gigabytesPerDay,
+    costInUSDPerMonth: getOpenStackTelemetryCostPerMonth({
+      gigabytesPerDay,
+      retentionInDays: retention,
+    }),
+    perInstanceShare:
+      datapointsPerDay === 0
+        ? 0
+        : (series.perInstance * fastPerDay) / datapointsPerDay,
+  };
+}
+
+/*
+ * What each instance keeping real usage of its own adds on top of that, from either exporter. The
+ * same row size and the same price, so the calculator can put the two side by side. An upper bound
+ * for Ceilometer's: a disk with no requests has no latency, and so no such row.
+ */
+export interface OpenStackInstanceMetricsCost {
+  source: OpenStackInstanceMetricSource;
+  series: number;
+  rowsPerHour: number;
+  gigabytesPerDay: number;
+  costInUSDPerMonth: number;
+}
+
+export function estimateOpenStackInstanceMetricsCost(data: {
+  source: OpenStackInstanceMetricSource;
+  instances: number;
+  retentionInDays?: number | undefined;
+  averageRowSizeInBytes?: number | undefined;
+}): OpenStackInstanceMetricsCost {
+  const volume: OpenStackInstanceMetricsVolume =
+    estimateOpenStackInstanceMetricsVolume({
+      source: data.source,
+      instances: data.instances,
+    });
+  const gigabytesPerDay: number =
+    (volume.rowsPerHour *
+      24 *
+      (data.averageRowSizeInBytes ??
+        OPENSTACK_AVERAGE_METRIC_ROW_SIZE_IN_BYTES)) /
+    BYTES_PER_GIB;
+  return {
+    source: data.source,
+    series: volume.series,
+    rowsPerHour: volume.rowsPerHour,
+    gigabytesPerDay,
+    costInUSDPerMonth: getOpenStackTelemetryCostPerMonth({
+      gigabytesPerDay,
+      retentionInDays: data.retentionInDays ?? 15,
+    }),
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Sharding
+ * ---------------------------------------------------------------------------
+ *
+ * One agent or probe per region, or per service for the largest clouds. A pair of a region and
+ * a service belongs to one collector: two would send every one of its series twice, and a chart
+ * or a bill would read double. Keystone is one whichever region asks, so it belongs to one
+ * collector for the whole cloud. Pure, so the guide and a test can both ask.
+ */
+export interface OpenStackCollectorShard {
+  name: string;
+  regions: ReadonlyArray<string>;
+  services: ReadonlyArray<OpenStackServiceType>;
+}
+
+export interface OpenStackShardPlanProblem {
+  regionName: string;
+  service: OpenStackServiceType;
+  // No collector reads it, or more than one does.
+  problem: "missing" | "doubled";
+  collectors: Array<string>;
+}
+
+export function getOpenStackShardPlanProblems(data: {
+  regions: ReadonlyArray<string>;
+  services: ReadonlyArray<OpenStackServiceType>;
+  shards: ReadonlyArray<OpenStackCollectorShard>;
+}): Array<OpenStackShardPlanProblem> {
+  const problems: Array<OpenStackShardPlanProblem> = [];
+
+  for (const service of data.services) {
+    if (service === OpenStackServiceType.Identity) {
+      // Keystone answers for every region: each shard that reads it reads the same thing.
+      const collectors: Array<string> = data.shards
+        .filter((shard: OpenStackCollectorShard): boolean => {
+          return shard.services.includes(service);
+        })
+        .map((shard: OpenStackCollectorShard): string => {
+          return shard.name;
+        });
+
+      if (collectors.length !== 1) {
+        problems.push({
+          regionName: "*",
+          service: service,
+          problem: collectors.length === 0 ? "missing" : "doubled",
+          collectors: collectors,
+        });
+      }
+
+      continue;
+    }
+
+    for (const regionName of data.regions) {
+      const collectors: Array<string> = data.shards
+        .filter((shard: OpenStackCollectorShard): boolean => {
+          return (
+            shard.services.includes(service) &&
+            shard.regions.includes(regionName)
+          );
+        })
+        .map((shard: OpenStackCollectorShard): string => {
+          return shard.name;
+        });
+
+      if (collectors.length !== 1) {
+        problems.push({
+          regionName: regionName,
+          service: service,
+          problem: collectors.length === 0 ? "missing" : "doubled",
+          collectors: collectors,
+        });
+      }
+    }
+  }
+
+  return problems;
+}

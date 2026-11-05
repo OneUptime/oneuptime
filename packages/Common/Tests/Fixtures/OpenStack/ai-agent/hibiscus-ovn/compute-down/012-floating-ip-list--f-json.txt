@@ -1,0 +1,27 @@
+$ openstack floating ip list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "0e0d3092-0c52-4a8a-81e0-cba02c8725cf",
+    "floating_ip_address": "172.24.4.47",
+    "fixed_ip_address": "10.77.0.232",
+    "status": "ACTIVE",
+    "port_id": "aee31580-96eb-4516-9e56-f0553df63a1b",
+    "router_id": "1b93de0a-f162-472e-a6f4-6148f8381b5f",
+    "floating_network_id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  },
+  {
+    "id": "df67f8ff-db9c-499d-8b59-b7fb8cf9b79d",
+    "floating_ip_address": "172.24.4.19",
+    "fixed_ip_address": null,
+    "status": "DOWN",
+    "port_id": null,
+    "router_id": null,
+    "floating_network_id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  }
+]

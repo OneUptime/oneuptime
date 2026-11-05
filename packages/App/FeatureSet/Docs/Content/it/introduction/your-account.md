@@ -73,6 +73,8 @@ Espandi **Sicurezza** nel menu laterale di **Profilo utente**. Contiene tre pagi
 3. Fai clic su **Aggiorna password**.
 :::
 
+Una nuova password disconnette tutti i dispositivi dal tuo account, e qualsiasi link di reimpostazione o di accesso già inviato smette di funzionare.
+
 ### Aggiungere una passkey
 
 :::steps

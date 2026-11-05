@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
@@ -149,6 +150,14 @@ function loginAnswering(
   };
 }
 
+// What a cloud that runs none of those it may not is asked.
+const READS_EVERY_CLOUD_HAS: ReadonlyArray<OpenStackAccessReadDefinition> =
+  OPENSTACK_ACCESS_READS.filter(
+    (definition: OpenStackAccessReadDefinition): boolean => {
+      return !isOpenStackOptionalService(definition.service);
+    },
+  );
+
 describe("a credential that can read everything", () => {
   test("reads everything, and is told what it is", async () => {
     const { report, summary } = await runTest({});
@@ -169,9 +178,13 @@ describe("a credential that can read everything", () => {
       accessLevel: "FullView",
     });
     expect(summary.servicesByRegion[RECORDED_REGION]?.sort()).toEqual(
-      Object.values(OpenStackServiceType).sort(),
+      Object.values(OpenStackServiceType)
+        .filter((service: OpenStackServiceType): boolean => {
+          return !isOpenStackOptionalService(service);
+        })
+        .sort(),
     );
-    expect(summary.reads).toHaveLength(OPENSTACK_ACCESS_READS.length);
+    expect(summary.reads).toHaveLength(READS_EVERY_CLOUD_HAS.length);
 
     for (const read of summary.reads) {
       expect([read.read, read.access]).toEqual([read.read, "ReadsEverything"]);
@@ -975,7 +988,9 @@ describe("a catalog on plain HTTP", () => {
     });
 
     expect(report.status).toBe("Failed");
-    expect(report.errorCode).toBe(OpenStackCollectionErrorCode.InsecureEndpoint);
+    expect(report.errorCode).toBe(
+      OpenStackCollectionErrorCode.InsecureEndpoint,
+    );
     expect(report.errorMessage).toBe(
       "The catalog puts Networking (Neutron) on plain HTTP, such as http://10.0.0.5:9696. A credential's token is never sent unencrypted, so the probe read none of them. Turn on TLS for these APIs, pick another endpoint interface, or use the OpenStack agent for this cloud.",
     );
@@ -1011,7 +1026,9 @@ describe("a catalog on plain HTTP", () => {
       tokenOverrides: catalogOn("http://10.0.0.5:9696", "http://10.0.0.5:8774"),
     });
 
-    expect(report.errorCode).toBe(OpenStackCollectionErrorCode.InsecureEndpoint);
+    expect(report.errorCode).toBe(
+      OpenStackCollectionErrorCode.InsecureEndpoint,
+    );
     expect(report.errorMessage).toContain(
       "The catalog puts Compute (Nova), Networking (Neutron) on plain HTTP, such as http://10.0.0.5:8774.",
     );
@@ -1125,7 +1142,7 @@ describe("what each service can be missing", () => {
     expect(report.status).toBe("Failed");
     expect(report.errorCode).toBe(OpenStackCollectionErrorCode.NoPermission);
     expect(report.errorMessage).toContain("The list below");
-    expect(summary.reads).toHaveLength(OPENSTACK_ACCESS_READS.length);
+    expect(summary.reads).toHaveLength(READS_EVERY_CLOUD_HAS.length);
     expect(summary.accessLevel).toBe("Other");
   });
 
@@ -1691,7 +1708,14 @@ describe("classifyAccessFailure", () => {
     ["overloaded", 503, "Failing", "HTTP 503"],
     ["failing", 500, "Failing", "HTTP 500"],
     ["malformed", 200, "Failing", "HTTP 200"],
-  ] as const)(
+  ] as Array<
+    [
+      ConstructorParameters<typeof OpenStackApiError>[0]["kind"],
+      number,
+      string,
+      string,
+    ]
+  >)(
     "%s %s",
     (
       kind: ConstructorParameters<typeof OpenStackApiError>[0]["kind"],
@@ -1744,7 +1768,13 @@ describe("getOpenStackAccessLevel", () => {
     ["OwnProjectOnly", "OwnProjectOnly", "ProjectView"],
     // Nothing of its own to show for it either.
     ["Refused", "Refused", "Other"],
-  ] as const)(
+  ] as Array<
+    [
+      "ReadsEverything" | "Refused" | "OwnProjectOnly",
+      "ReadsEverything" | "OwnProjectOnly" | "Refused",
+      string,
+    ]
+  >)(
     "infrastructure %s, projects %s: %s",
     (
       infrastructure: "ReadsEverything" | "Refused" | "OwnProjectOnly",
@@ -1846,6 +1876,11 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Network]: "network",
     [OpenStackServiceType.Volume]: "block-storage",
     [OpenStackServiceType.Image]: "image",
+    [OpenStackServiceType.BareMetal]: "baremetal",
+    [OpenStackServiceType.Orchestration]: "orchestration",
+    [OpenStackServiceType.ContainerInfra]: "container-infra",
+    [OpenStackServiceType.SharedFileSystems]: "sharev2",
+    [OpenStackServiceType.Database]: "database",
   };
 
   test.each(
@@ -1921,20 +1956,35 @@ describe("the reads themselves", () => {
   );
 
   test("the matrix these are checked against covers every one", () => {
-    const matrix: Array<AccessMatrixRead> = loadAccessMatrix(
-      "hibiscus-ovn",
-      "matrix",
-    );
+    const matrix: Array<AccessMatrixRead> = [
+      ...loadAccessMatrix("hibiscus-ovn", "matrix"),
+      // The services a cloud may not run have recordings of their own.
+      ...loadAccessMatrix("services-heat-magnum", "matrix", "access-check"),
+      ...loadAccessMatrix("services-ironic", "matrix", "access-check"),
+      ...loadAccessMatrix("services-manila", "matrix", "access-check"),
+      ...loadAccessMatrix("services-trove", "matrix", "access-check"),
+    ];
 
     for (const definition of OPENSTACK_ACCESS_READS) {
-      expect(
-        matrix.some((read: AccessMatrixRead): boolean => {
+      expect({
+        read: `${definition.service}: ${definition.read}`,
+        isRecorded: matrix.some((read: AccessMatrixRead): boolean => {
           return (
             read.service === SCRIPT_SERVICE[definition.service] &&
-            read.read === definition.read
+            (read.read === definition.read ||
+              read.read === `${definition.read}, as the exporter asks` ||
+              // Trove's recording named it before the doctor did.
+              read.read ===
+                definition.read.replace(
+                  "instances, all projects",
+                  "instances, as the exporter asks",
+                ))
           );
         }),
-      ).toBe(true);
+      }).toEqual({
+        read: `${definition.service}: ${definition.read}`,
+        isRecorded: true,
+      });
     }
   });
 });

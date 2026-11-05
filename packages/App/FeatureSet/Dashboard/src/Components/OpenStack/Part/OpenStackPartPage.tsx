@@ -11,6 +11,15 @@ import OpenStackPartHero, {
   ComponentProps as HeroProps,
   OPENSTACK_PART_SLUGS,
 } from "./OpenStackPartHero";
+import {
+  OpenStackPartFeed,
+  OpenStackWhoChangedThis,
+  hasOpenStackPartFeed,
+} from "./OpenStackPartFeed";
+import OpenStackPartLogs, { hasOpenStackPartLogs } from "./OpenStackPartLogs";
+import OpenStackPartTraces, {
+  hasOpenStackPartTraces,
+} from "./OpenStackPartTraces";
 import OpenStackPartReadError from "./OpenStackPartReadError";
 import { OpenStackPart } from "./UseOpenStackPart";
 
@@ -23,7 +32,7 @@ import { OpenStackPart } from "./UseOpenStackPart";
 
 const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.Api]: translationKey(
-    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or the agent may not have collected it yet.",
+    "This API is not in this cloud's inventory. It may have left Keystone's catalog, or it may not have been collected yet.",
   ),
   [OpenStackResourceKind.Hypervisor]: translationKey(
     "This hypervisor is not in this cloud's inventory. It may have gone, or Nova may not have reported it yet.",
@@ -55,8 +64,23 @@ const NOT_REPORTED: Partial<Record<OpenStackResourceKind, string>> = {
   [OpenStackResourceKind.StoragePool]: translationKey(
     "This storage pool is not in this cloud's inventory. It may have gone, or Cinder may not have reported it yet.",
   ),
+  [OpenStackResourceKind.BareMetalNode]: translationKey(
+    "This node is not in this cloud's inventory. It may have been removed, or Ironic may not show it to this credential: it answers a project with only the nodes that project owns.",
+  ),
   [OpenStackResourceKind.Image]: translationKey(
     "This image is not in this cloud's inventory. It may have been deleted, or Glance may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.Stack]: translationKey(
+    "This stack is not in this cloud's inventory. It may have been deleted, or Heat may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.ContainerCluster]: translationKey(
+    "This Kubernetes cluster is not in this cloud's inventory. It may have been deleted, or Magnum may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.DatabaseInstance]: translationKey(
+    "This database is not in this cloud's inventory. It may have been deleted, or Trove may not have reported it yet.",
+  ),
+  [OpenStackResourceKind.Share]: translationKey(
+    "This share is not in this cloud's inventory. It may have been deleted, or Manila may not have reported it yet.",
   ),
 };
 
@@ -97,7 +121,10 @@ const OpenStackPartPage: FunctionComponent<ComponentProps> = (
       onRetry={part.retry}
     />
   ) : part.row ? (
-    props.overview(part.row)
+    <>
+      {props.overview(part.row)}
+      <OpenStackWhoChangedThis part={part} row={part.row} />
+    </>
   ) : (
     <p
       className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-500 shadow-sm"
@@ -108,9 +135,37 @@ const OpenStackPartPage: FunctionComponent<ComponentProps> = (
     </p>
   );
 
+  /*
+   * What a cloud's services said about this part, on every kind that a line or a
+   * notification can name. The page's own tabs come first.
+   */
   const tabs: Array<Tab> = [
     { name: "Overview", children: overview },
     ...(part.row && props.tabs ? props.tabs(part.row) : []),
+    ...(part.row && hasOpenStackPartLogs(part, part.row)
+      ? [
+          {
+            name: "Logs",
+            children: <OpenStackPartLogs part={part} row={part.row} />,
+          },
+        ]
+      : []),
+    ...(part.row && hasOpenStackPartTraces(part, part.row)
+      ? [
+          {
+            name: "Traces",
+            children: <OpenStackPartTraces part={part} row={part.row} />,
+          },
+        ]
+      : []),
+    ...(part.row && hasOpenStackPartFeed(part, part.row)
+      ? [
+          {
+            name: "Feed",
+            children: <OpenStackPartFeed part={part} row={part.row} />,
+          },
+        ]
+      : []),
   ];
 
   return (

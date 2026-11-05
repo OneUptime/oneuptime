@@ -153,9 +153,8 @@ export default class ChatInfrastructureAccess {
   /*
    * The resource AI agent type of a page's resource type, or null for a
    * resource without one (a Kubernetes cluster has its own agent, and
-   * OpenStack clouds, storage arrays, serverless functions, cloud
-   * environments, IoT fleets and network devices have none). The two enums
-   * share their values.
+   * storage arrays, serverless functions, cloud environments, IoT fleets and
+   * network devices have none). The two enums share their values.
    */
   public static getAiResourceType(
     resourceType: AIResourceType | undefined,

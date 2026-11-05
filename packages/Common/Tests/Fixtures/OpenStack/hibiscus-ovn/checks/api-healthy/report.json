@@ -1,0 +1,100 @@
+{
+  "startedAt": "2026-11-05T06:34:10.614Z",
+  "durationInMs": 261,
+  "regionNames": [
+    "RegionOne"
+  ],
+  "token": {
+    "status": "Passed",
+    "durationInMs": 41
+  },
+  "services": [
+    {
+      "regionName": "RegionOne",
+      "serviceType": "block-storage",
+      "serviceName": "cinder",
+      "read": "GET /volumes?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 164
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "compute",
+      "serviceName": "nova",
+      "read": "GET /servers?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 211
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "compute_legacy",
+      "serviceName": "nova_legacy",
+      "read": "GET /",
+      "outcome": "Answered",
+      "status": 404,
+      "durationInMs": 194
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "identity",
+      "serviceName": "keystone",
+      "read": "GET /auth/projects",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 93
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "image",
+      "serviceName": "glance",
+      "read": "GET /images?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 118
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "network",
+      "serviceName": "neutron",
+      "read": "GET /networks?limit=1",
+      "outcome": "Answered",
+      "status": 200,
+      "durationInMs": 178
+    },
+    {
+      "regionName": "RegionOne",
+      "serviceType": "placement",
+      "serviceName": "placement",
+      "read": "GET /resource_classes",
+      "outcome": "Refused",
+      "status": 403,
+      "durationInMs": 52,
+      "message": "Access was denied to this resource.\n\n Policy does not allow placement:resource_classes:list to be performed."
+    }
+  ],
+  "certificates": [
+    {
+      "host": "10.1.0.199",
+      "port": 443,
+      "validTo": "2027-11-05T06:25:13.000Z",
+      "subject": "CN=devstack, OU=DevStack Servers, O=OpenStack",
+      "issuer": "CN=Intermediate CA, OU=DevStack Certificate Authority, O=OpenStack",
+      "fingerprint256": "E3:67:6B:57:44:BA:A5:CA:92:A7:4E:29:01:9E:CB:82:88:49:30:3F:72:A6:44:03:80:46:0D:51:2D:74:47:DB",
+      "regionNames": [
+        "RegionOne"
+      ],
+      "serviceTypes": [
+        "identity",
+        "placement",
+        "compute_legacy",
+        "block-storage",
+        "image",
+        "compute",
+        "network"
+      ]
+    }
+  ],
+  "warnings": []
+}

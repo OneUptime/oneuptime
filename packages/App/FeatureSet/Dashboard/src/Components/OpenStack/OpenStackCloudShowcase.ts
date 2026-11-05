@@ -13,10 +13,10 @@ const OPENSTACK_CLOUD_SHOWCASE: ResourceShowcase = {
     "See every service, hypervisor and instance in OpenStack",
   ),
   description: translationKey(
-    "Run one agent outside the cloud with an application credential limited to reading. Services, hypervisors, instances, networks and volumes show up on their own, region by region.",
+    "Connect a cloud over HTTPS with an application credential limited to reading, and a OneUptime probe collects it, or run one agent outside the cloud. Services, hypervisors, instances, networks and volumes show up on their own, region by region.",
   ),
   highlights: [
-    translationKey("One agent per cloud"),
+    translationKey("A probe, or one agent per cloud"),
     translationKey("Gentle on the control plane"),
     translationKey("Nothing to install on your hypervisors"),
   ],

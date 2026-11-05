@@ -3,12 +3,21 @@ import path from "path";
 import OpenStackResource from "../../../../Models/DatabaseModels/OpenStackResource";
 import {
   OpenStackResourceBufferEntry,
+  OpenStackRouterWithoutAgents,
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
+  getOpenStackRoutersWithoutAgents,
   isOpenStackSnapshotDatapoint,
 } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
-import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import { JSONObject } from "../../../../Types/JSON";
 import {
+  RecordedSeries,
+  readRecordedSeries,
+  scanRecordedSeries,
+} from "../../../Helpers/OpenStackRecordedRows";
+import {
+  OPENSTACK_IMAGE_STUCK_MINUTES,
+  OPENSTACK_VOLUME_STUCK_MINUTES,
   getOpenStackShortHostName,
   isOpenStackFloatingIpAssociated,
 } from "../../../../Types/OpenStack/OpenStackHealthRules";
@@ -17,6 +26,13 @@ import {
   getOpenStackAttentionItems,
   getOpenStackHealth,
 } from "../../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackHealth";
+import {
+  OpenStackHostGroup,
+  getOpenStackHostGroups,
+  getOpenStackNetworkBackend,
+  getOpenStackPartExplanation,
+  getOpenStackRouterAgentReading,
+} from "../../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackPartFacts";
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -43,95 +59,7 @@ const NOW: Date = new Date(OBSERVED_AT_MS + 60 * 1000);
 const CRITICAL: ResourceAttentionSeverity = ResourceAttentionSeverity.Critical;
 const WARNING: ResourceAttentionSeverity = ResourceAttentionSeverity.Warning;
 
-interface Series {
-  name: string;
-  labels: Record<string, string>;
-  value: number;
-}
-
-/*
- * Prometheus' text format. A label value can hold anything a tenant typed, so this
- * reads escapes rather than splitting on commas.
- */
-function parsePrometheusText(text: string): Array<Series> {
-  const series: Array<Series> = [];
-  for (const line of text.split("\n")) {
-    if (!line.trim() || line.startsWith("#")) {
-      continue;
-    }
-    const labelsAt: number = line.indexOf("{");
-    const valueAt: number = line.lastIndexOf(" ");
-    if (labelsAt < 0) {
-      series.push({
-        name: line.substring(0, valueAt),
-        labels: {},
-        value: Number.parseFloat(line.substring(valueAt + 1)),
-      });
-      continue;
-    }
-
-    const labels: Record<string, string> = {};
-    let at: number = labelsAt + 1;
-    while (at < line.length && line[at] !== "}") {
-      const equals: number = line.indexOf("=", at);
-      const key: string = line.substring(at, equals);
-      at = equals + 2; // Past the = and the opening quote.
-      let value: string = "";
-      while (line[at] !== '"') {
-        if (line[at] === "\\") {
-          at += 1;
-          value += line[at] === "n" ? "\n" : line[at];
-        } else {
-          value += line[at];
-        }
-        at += 1;
-      }
-      labels[key] = value;
-      at += 1; // Past the closing quote.
-      if (line[at] === ",") {
-        at += 1;
-      }
-    }
-    series.push({
-      name: line.substring(0, labelsAt),
-      labels,
-      value: Number.parseFloat(line.substring(valueAt + 1)),
-    });
-  }
-  return series;
-}
-
-function readSeries(folder: string): Array<Series> {
-  const series: Array<Series> = [];
-  for (const file of fs.readdirSync(folder).sort()) {
-    if (file.endsWith(".prom")) {
-      series.push(
-        ...parsePrometheusText(
-          fs.readFileSync(path.join(folder, file), "utf8"),
-        ),
-      );
-    }
-  }
-  return series;
-}
-
-// What the agent's collector turns a series into before it reaches OneUptime.
-function toDatapoint(series: Series): JSONObject {
-  const attributes: JSONArray = Object.keys(series.labels).map(
-    (key: string): JSONObject => {
-      return { key, value: { stringValue: series.labels[key] as string } };
-    },
-  );
-  attributes.push({
-    key: "openstack.region.name",
-    value: { stringValue: "RegionOne" },
-  });
-  return {
-    attributes,
-    timeUnixNano: `${OBSERVED_AT_MS}000000`,
-    asDouble: series.value,
-  };
-}
+type Series = RecordedSeries;
 
 function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
   return Object.assign(new OpenStackResource(), {
@@ -161,21 +89,8 @@ class Scene {
   public readonly rows: Array<OpenStackResource>;
 
   public constructor(folder: string) {
-    this.series = readSeries(folder);
-    const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-    for (const series of this.series) {
-      const datapoint: JSONObject = toDatapoint(series);
-      if (
-        isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })
-      ) {
-        bufferOpenStackSnapshotMetric({
-          metricName: series.name,
-          datapoint,
-          buffer,
-        });
-      }
-    }
-    this.rows = finishOpenStackBatch(buffer.values()).map(toRow);
+    this.series = readRecordedSeries(folder);
+    this.rows = scanRecordedSeries(this.series, OBSERVED_AT_MS).map(toRow);
   }
 
   public ofKind(kind: OpenStackResourceKind): Array<OpenStackResource> {
@@ -234,7 +149,8 @@ function hasScene(release: string, scene: string): boolean {
 const RELEASES: Array<string> = fs
   .readdirSync(FIXTURES)
   .filter((entry: string) => {
-    return hasScene(entry, "healthy");
+    // A deployment tool's recording is no DevStack: OpenStackKollaRecording.test.ts holds it.
+    return !entry.endsWith("-aio") && hasScene(entry, "healthy");
   })
   .sort();
 
@@ -319,7 +235,10 @@ describe.each(RELEASES)("a healthy cloud, on %s", (release: string) => {
     expect(hypervisor.adminState).toBe("enabled");
     expect(hypervisor.availabilityZone).toBe("nova");
 
-    const reading = (metric: string, resource: string): number => {
+    const reading: (metric: string, resource: string) => number = (
+      metric: string,
+      resource: string,
+    ): number => {
       const found: Series | undefined = scene
         .seriesNamed(`openstack_placement_resource_${metric}`)
         .find((series: Series) => {
@@ -328,7 +247,9 @@ describe.each(RELEASES)("a healthy cloud, on %s", (release: string) => {
       expect(found).toBeDefined();
       return found!.value;
     };
-    const capacity = (resource: string): number => {
+    const capacity: (resource: string) => number = (
+      resource: string,
+    ): number => {
       return (
         (reading("total", resource) - reading("reserved", resource)) *
         reading("allocation_ratio", resource)
@@ -580,7 +501,9 @@ describe.each(RELEASES)("a healthy cloud, on %s", (release: string) => {
 
 describe.each(DRILLED_RELEASES)("a failure, on %s", (release: string) => {
   const healthy: Scene = sceneOf(release, "healthy", "exporter");
-  const newlyWrong = (scene: Scene): Array<string> => {
+  const newlyWrong: (scene: Scene) => Array<string> = (
+    scene: Scene,
+  ): Array<string> => {
     const before: Array<string> = namesIn(healthy.attention());
     return namesIn(scene.attention()).filter((name: string) => {
       return !before.includes(name);
@@ -814,7 +737,9 @@ describe.each(DRILLED_RELEASES)(
       buffer.values(),
     ).map(toRow);
 
-    const attribute = (key: string): JSONObject | undefined => {
+    const attribute: (key: string) => JSONObject | undefined = (
+      key: string,
+    ): JSONObject | undefined => {
       return resourceAttributes.find((candidate: JSONObject) => {
         return candidate["key"] === key;
       });
@@ -859,7 +784,10 @@ describe.each(DRILLED_RELEASES)(
     });
 
     test("carries the estate", () => {
-      const named = (kind: OpenStackResourceKind, name: string): boolean => {
+      const named: (kind: OpenStackResourceKind, name: string) => boolean = (
+        kind: OpenStackResourceKind,
+        name: string,
+      ): boolean => {
         return rows.some((row: OpenStackResource) => {
           return row.kind === kind && row.name === name;
         });
@@ -873,3 +801,299 @@ describe.each(DRILLED_RELEASES)(
     });
   },
 );
+
+/*
+ * A later run of the rig, on a bigger estate: a stuck image and volume, two aggregates and an
+ * instance booted from a volume (estate.sh), and what its drills broke (drills.sh). Its IDs aren't
+ * those of the healthy recordings above, so each of these reads as a whole. Its scenes each hold
+ * what was already wrong with the estate too, so this names what it's after, rather than comparing.
+ */
+describe.each(["hibiscus-ovn", "gazpacho-ovs"])(
+  "what a later run of the rig said, on %s",
+  (release: string) => {
+    const estate: Scene = sceneOf(release, "compute-forced-down", "exporter");
+
+    function itemNamed(
+      scene: Scene,
+      name: string,
+    ): ResourceAttentionItem | undefined {
+      return scene.attention().find((item: ResourceAttentionItem) => {
+        return item.name === name;
+      });
+    }
+
+    // Each row as it stands that long after it took that state: stateChangedAt is the upsert's.
+    function namesAfter(minutes: number): Array<string> {
+      return namesIn(
+        getOpenStackAttentionItems({
+          rows: estate.rows.map((row: OpenStackResource) => {
+            return Object.assign(new OpenStackResource(), row, {
+              stateChangedAt: new Date(OBSERVED_AT_MS),
+            });
+          }),
+          now: new Date(OBSERVED_AT_MS + minutes * 60 * 1000),
+        }),
+      );
+    }
+
+    test("an external network with no addresses left is critical by name, and its page says why", () => {
+      const scene: Scene = sceneOf(
+        release,
+        "external-network-full",
+        "exporter",
+      );
+      const row: OpenStackResource = scene.named(
+        OpenStackResourceKind.Network,
+        "ou-full-pool",
+      );
+
+      expect(row.facts?.["isExternal"]).toBe(true);
+      expect(row.facts?.["ipsUsed"]).toBe(5);
+      expect(row.facts?.["ipsTotal"]).toBe(5);
+      expect(itemNamed(scene, "ou-full-pool")?.severity).toBe(CRITICAL);
+      expect(getOpenStackPartExplanation(row, NOW)).toMatch(/no address/i);
+      expect(scene.health()).toBe("Unhealthy");
+
+      // The cloud's other external network has plenty, on the same recording.
+      expect(itemNamed(scene, "public")).toBeUndefined();
+    });
+
+    test("a compute service forced down reads as down by name, and the exporter can't say an operator did it", () => {
+      const worker: OpenStackResource = estate.named(
+        OpenStackResourceKind.Service,
+        "nova-compute",
+      );
+      const item: ResourceAttentionItem | undefined = itemNamed(
+        estate,
+        "nova-compute",
+      );
+
+      expect(worker.status).toBe("down");
+      expect(worker.adminState).toBe("enabled");
+      expect(item?.severity).toBe(CRITICAL);
+      expect(JSON.stringify(item?.reasons)).not.toMatch(/forced|operator/i);
+    });
+
+    test("a volume left attaching is stuck by name past the line, and not before", () => {
+      expect(
+        estate.named(OpenStackResourceKind.Volume, "ou-vol-stuck").status,
+      ).toBe("attaching");
+      expect(namesAfter(OPENSTACK_VOLUME_STUCK_MINUTES - 1)).not.toContain(
+        "ou-vol-stuck",
+      );
+      expect(namesAfter(OPENSTACK_VOLUME_STUCK_MINUTES)).toContain(
+        "ou-vol-stuck",
+      );
+    });
+
+    test("an image never uploaded is stuck by name past the line, and not before", () => {
+      expect(
+        estate.named(OpenStackResourceKind.Image, "ou-image-stuck").status,
+      ).toBe("queued");
+      expect(namesAfter(OPENSTACK_IMAGE_STUCK_MINUTES - 1)).not.toContain(
+        "ou-image-stuck",
+      );
+      expect(namesAfter(OPENSTACK_IMAGE_STUCK_MINUTES)).toContain(
+        "ou-image-stuck",
+      );
+    });
+
+    test("a host in two aggregates counts in both, and each lists it", () => {
+      const groups: Array<OpenStackHostGroup> = getOpenStackHostGroups({
+        rows: estate.rows,
+        kind: "aggregate",
+        now: NOW,
+      });
+
+      expect(
+        groups.map((group: OpenStackHostGroup) => {
+          return group.name;
+        }),
+      ).toEqual(["ou-fast", "ou-gpu"]);
+
+      for (const group of groups) {
+        expect(group.total).toBe(1);
+        expect(group.hypervisors[0]?.name).toBe(
+          estate.ofKind(OpenStackResourceKind.Hypervisor)[0]?.name,
+        );
+      }
+    });
+  },
+);
+
+describe("what a later run of the rig said of routers, on ML2/OVS", () => {
+  function itemNamed(
+    scene: Scene,
+    name: string,
+  ): ResourceAttentionItem | undefined {
+    return scene.attention().find((item: ResourceAttentionItem) => {
+      return item.name === name;
+    });
+  }
+
+  describe("with its only L3 agent stopped", () => {
+    const scene: Scene = sceneOf("gazpacho-ovs", "l3-agent-down", "exporter");
+
+    test("the agent reads as down by name", () => {
+      expect(
+        scene.named(OpenStackResourceKind.Service, "neutron-l3-agent").status,
+      ).toBe("down");
+      expect(itemNamed(scene, "neutron-l3-agent")).toBeDefined();
+    });
+
+    test.each(["ou-router", "router1"])(
+      "%s, which it held, is critical by name, and its page says why",
+      (name: string) => {
+        const row: OpenStackResource = scene.named(
+          OpenStackResourceKind.Router,
+          name,
+        );
+
+        // Neutron still calls the router ACTIVE. Only its agent says otherwise.
+        expect(row.status).toBe("ACTIVE");
+        expect(getOpenStackRouterAgentReading({ row, backend: "ovs" }).state).toBe(
+          "none-alive",
+        );
+        expect(itemNamed(scene, name)?.severity).toBe(CRITICAL);
+        expect(getOpenStackPartExplanation(row, NOW)).toMatch(/L3 agent/);
+      },
+    );
+
+    test("a floating IP associated while it's stopped stays down, and reaches attention by its address", () => {
+      const down: OpenStackResource = scene
+        .ofKind(OpenStackResourceKind.FloatingIp)
+        .find((row: OpenStackResource) => {
+          return row.status === "DOWN";
+        })!;
+
+      expect(isOpenStackFloatingIpAssociated(down.facts)).toBe(true);
+      expect(itemNamed(scene, down.name as string)?.severity).toBe(WARNING);
+      expect(getOpenStackPartExplanation(down, NOW)).toMatch(
+        /does not say it is ACTIVE/,
+      );
+
+      // The one that was already up says ACTIVE, as Neutron does, and nothing's asked of it.
+      const up: OpenStackResource = scene
+        .ofKind(OpenStackResourceKind.FloatingIp)
+        .find((row: OpenStackResource) => {
+          return row.status === "ACTIVE";
+        })!;
+
+      expect(itemNamed(scene, up.name as string)).toBeUndefined();
+    });
+  });
+
+  describe("with a router taken off the only agent holding it", () => {
+    const folder: string = path.join(
+      FIXTURES,
+      "gazpacho-ovs/router-agents-removed/exporter",
+    );
+    const scene: Scene = new Scene(folder);
+    const router: OpenStackResource = scene.named(
+      OpenStackResourceKind.Router,
+      "ou-router",
+    );
+
+    test("nothing is left to say so: it has no series of agents, and the other router does", () => {
+      const agentSeries: Array<Series> = scene.seriesNamed(
+        "openstack_neutron_l3_agent_of_router",
+      );
+
+      expect(
+        agentSeries.map((series: Series) => {
+          return series.labels["router_id"];
+        }),
+      ).toEqual([
+        scene.named(OpenStackResourceKind.Router, "router1").externalId,
+      ]);
+      expect(router.status).toBe("ACTIVE");
+      expect(router.facts?.["l3Agents"]).toBeUndefined();
+    });
+
+    test("so it is what the ingest is told to forget the agents of, ten minutes on", () => {
+      const heard: Array<OpenStackRouterWithoutAgents> =
+        getOpenStackRoutersWithoutAgents(
+          scanRecordedSeries(readRecordedSeries(folder), OBSERVED_AT_MS),
+        );
+
+      expect(heard).toEqual([
+        {
+          externalId: router.externalId,
+          agentsReportedBefore: new Date(OBSERVED_AT_MS - 10 * 60 * 1000),
+        },
+      ]);
+    });
+
+    test("its page reads none reported, and the floating IP it carried goes down by name", () => {
+      expect(
+        getOpenStackRouterAgentReading({ row: router, backend: "ovs" }).state,
+      ).toBe("not-reported");
+
+      const carried: OpenStackResource = scene
+        .ofKind(OpenStackResourceKind.FloatingIp)
+        .find((row: OpenStackResource) => {
+          return row.facts?.["routerId"] === router.externalId;
+        })!;
+
+      expect(carried.status).toBe("DOWN");
+      expect(itemNamed(scene, carried.name as string)?.severity).toBe(WARNING);
+    });
+  });
+});
+
+describe("what a later run of the rig said of routers and addresses, on OVN", () => {
+  const scene: Scene = sceneOf(
+    "hibiscus-ovn",
+    "compute-forced-down",
+    "exporter",
+  );
+
+  test("it is read as OVN, from what its agents report", () => {
+    expect(
+      getOpenStackNetworkBackend(
+        scene
+          .ofKind(OpenStackResourceKind.Service)
+          .map((row: OpenStackResource) => {
+            return row.name;
+          }),
+      ),
+    ).toBe("ovn");
+  });
+
+  test.each(["ou-router", "router1"])(
+    "%s has no L3 agent to miss, which reads as not applicable and raises nothing",
+    (name: string) => {
+      const row: OpenStackResource = scene.named(
+        OpenStackResourceKind.Router,
+        name,
+      );
+
+      expect(row.facts?.["l3Agents"]).toBeUndefined();
+      expect(getOpenStackRouterAgentReading({ row, backend: "ovn" }).state).toBe(
+        "not-applicable",
+      );
+      expect(namesIn(scene.attention())).not.toContain(name);
+    },
+  );
+
+  test("a spare floating IP is down, as it should be, and the one in use is active: neither raises anything", () => {
+    const addresses: Array<OpenStackResource> = scene.ofKind(
+      OpenStackResourceKind.FloatingIp,
+    );
+
+    expect(
+      addresses.map((row: OpenStackResource) => {
+        return [row.status, isOpenStackFloatingIpAssociated(row.facts)];
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        ["ACTIVE", true],
+        ["DOWN", false],
+      ]),
+    );
+
+    for (const row of addresses) {
+      expect(namesIn(scene.attention())).not.toContain(row.name);
+    }
+  });
+});

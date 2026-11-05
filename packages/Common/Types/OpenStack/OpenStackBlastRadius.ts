@@ -1,3 +1,7 @@
+import { OpenStackReachAcrossProducts } from "./OpenStackLinks";
+import { OpenStackResourceKind } from "./OpenStackResourceKind";
+import { OpenStackReachedProject } from "./OpenStackScopedRule";
+
 /*
  * WHAT A FAILED PART TAKES WITH IT, AND WHOSE IT IS.
  *
@@ -21,6 +25,10 @@ export interface OpenStackBlastRadiusProject {
   volumeCount: number;
   routerCount: number;
   floatingIpCount: number;
+  stackCount: number;
+  containerClusterCount: number;
+  shareCount: number;
+  databaseInstanceCount: number;
 }
 
 export interface OpenStackBlastRadius {
@@ -28,16 +36,45 @@ export interface OpenStackBlastRadius {
   volumeCount: number;
   routerCount: number;
   floatingIpCount: number;
+  // Only a cloud running Heat or Magnum has these, so only there do they read anything but 0.
+  stackCount: number;
+  containerClusterCount: number;
+  shareCount: number;
+  databaseInstanceCount: number;
   // The real number, which `projects` can be shorter than: see the cap.
   projectCount: number;
   // Most affected first, at most OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT of them.
   projects: Array<OpenStackBlastRadiusProject>;
+  /*
+   * All of them, past the cap, when asked for: a rule on the sixtieth project has to reach
+   * it even though a description stops naming projects at the fiftieth.
+   */
+  everyProject?: Array<OpenStackReachedProject> | undefined;
   /*
    * False when what was collected cannot say. The agent's exporter does not say which
    * pool a volume is on, so a pool's reach is only known from the probe's reads, and a
    * page says that rather than "0 volumes".
    */
   isKnown: boolean;
+  /*
+   * What it takes with it beyond the cloud: the hosts and Kubernetes nodes its instances
+   * are, and the services on them. Only a hypervisor has one, and only when it was asked for.
+   */
+  acrossProducts?: OpenStackReachAcrossProducts | undefined;
+  /*
+   * What a failed part belongs to, where a source says so: the cluster a stack was built for, and
+   * the stack a cluster is built with. A failure there is the same failure, seen from the other end.
+   */
+  belongsTo?: Array<OpenStackBlastRadiusOwner> | undefined;
+  // The Magnum clusters with a server on this hypervisor, which its failure reaches.
+  magnumClusters?: Array<OpenStackBlastRadiusOwner> | undefined;
+}
+
+export interface OpenStackBlastRadiusOwner {
+  kind: OpenStackResourceKind;
+  externalId: string;
+  name: string | null;
+  status: string | null;
 }
 
 export const OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT: number = 50;
@@ -50,6 +87,10 @@ export function getEmptyOpenStackBlastRadius(
     volumeCount: 0,
     routerCount: 0,
     floatingIpCount: 0,
+    stackCount: 0,
+    containerClusterCount: 0,
+    shareCount: 0,
+    databaseInstanceCount: 0,
     projectCount: 0,
     projects: [],
     isKnown,
@@ -60,7 +101,35 @@ export type OpenStackBlastRadiusCount =
   | "instanceCount"
   | "volumeCount"
   | "routerCount"
-  | "floatingIpCount";
+  | "floatingIpCount"
+  | "stackCount"
+  | "containerClusterCount"
+  | "shareCount"
+  | "databaseInstanceCount";
+
+/*
+ * Every count a radius holds and what it is called, which is all there is to adding one. What a page
+ * says of a count is its own to translate (OpenStackBlastRadiusCard reads this list); these words are
+ * what is read outside the Dashboard, in an alert's description and OneUptime AI's context.
+ */
+export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
+  count: OpenStackBlastRadiusCount;
+  one: string;
+  other: string;
+}> = [
+  { count: "instanceCount", one: "instance", other: "instances" },
+  { count: "volumeCount", one: "volume", other: "volumes" },
+  { count: "routerCount", one: "router", other: "routers" },
+  { count: "floatingIpCount", one: "floating IP", other: "floating IPs" },
+  { count: "stackCount", one: "stack", other: "stacks" },
+  {
+    count: "containerClusterCount",
+    one: "Kubernetes cluster",
+    other: "Kubernetes clusters",
+  },
+  { count: "shareCount", one: "share", other: "shares" },
+  { count: "databaseInstanceCount", one: "database", other: "databases" },
+];
 
 /*
  * A radius from each kind of thing's counts per project. A project with no ID in the
@@ -74,6 +143,7 @@ export function buildOpenStackBlastRadius(data: {
   projectNames?: Record<string, string> | undefined;
   projectDomains?: Record<string, string> | undefined;
   isKnown?: boolean | undefined;
+  includeEveryProject?: boolean | undefined;
 }): OpenStackBlastRadius {
   const radius: OpenStackBlastRadius = getEmptyOpenStackBlastRadius(
     data.isKnown ?? true,
@@ -95,6 +165,10 @@ export function buildOpenStackBlastRadius(data: {
         volumeCount: 0,
         routerCount: 0,
         floatingIpCount: 0,
+        stackCount: 0,
+        containerClusterCount: 0,
+        shareCount: 0,
+        databaseInstanceCount: 0,
       };
       project[count] += amount;
       projects.set(projectId, project);
@@ -104,15 +178,22 @@ export function buildOpenStackBlastRadius(data: {
   const reach: (project: OpenStackBlastRadiusProject) => number = (
     project: OpenStackBlastRadiusProject,
   ): number => {
-    return (
-      project.instanceCount +
-      project.volumeCount +
-      project.routerCount +
-      project.floatingIpCount
+    return OPENSTACK_BLAST_RADIUS_COUNTS.reduce(
+      (total: number, entry: { count: OpenStackBlastRadiusCount }): number => {
+        return total + project[entry.count];
+      },
+      0,
     );
   };
 
   radius.projectCount = projects.size;
+  if (data.includeEveryProject) {
+    radius.everyProject = Array.from(projects.values()).map(
+      (project: OpenStackBlastRadiusProject): OpenStackReachedProject => {
+        return { projectId: project.projectId, domainId: project.domainId };
+      },
+    );
+  }
   radius.projects = Array.from(projects.values())
     .sort(
       (
@@ -133,11 +214,10 @@ export function buildOpenStackBlastRadius(data: {
 export function isOpenStackBlastRadiusEmpty(
   radius: OpenStackBlastRadius,
 ): boolean {
-  return (
-    radius.instanceCount === 0 &&
-    radius.volumeCount === 0 &&
-    radius.routerCount === 0 &&
-    radius.floatingIpCount === 0
+  return OPENSTACK_BLAST_RADIUS_COUNTS.every(
+    (entry: { count: OpenStackBlastRadiusCount }): boolean => {
+      return radius[entry.count] === 0;
+    },
   );
 }
 
@@ -151,23 +231,14 @@ function countOf(count: number, one: string, many: string): string {
  * The Dashboard words its own in the reader's language.
  */
 export function describeOpenStackBlastRadiusCounts(
-  counts: Pick<
-    OpenStackBlastRadius,
-    "instanceCount" | "volumeCount" | "routerCount" | "floatingIpCount"
-  >,
+  counts: Partial<Pick<OpenStackBlastRadius, OpenStackBlastRadiusCount>>,
 ): string {
   const parts: Array<string> = [];
-  if (counts.instanceCount > 0) {
-    parts.push(countOf(counts.instanceCount, "instance", "instances"));
-  }
-  if (counts.volumeCount > 0) {
-    parts.push(countOf(counts.volumeCount, "volume", "volumes"));
-  }
-  if (counts.routerCount > 0) {
-    parts.push(countOf(counts.routerCount, "router", "routers"));
-  }
-  if (counts.floatingIpCount > 0) {
-    parts.push(countOf(counts.floatingIpCount, "floating IP", "floating IPs"));
+  for (const entry of OPENSTACK_BLAST_RADIUS_COUNTS) {
+    const count: number = counts[entry.count] || 0;
+    if (count > 0) {
+      parts.push(countOf(count, entry.one, entry.other));
+    }
   }
   return parts.join(", ");
 }

@@ -13,6 +13,7 @@ import { DATA_STORE_ID_SCOPE_ATTRIBUTE } from "../DataObservabilityAlertTemplate
 import { DATA_PIPELINE_ID_SCOPE_ATTRIBUTE } from "../DataPipelineAlertTemplates";
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../KubernetesEventAlertTemplates";
 import { PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE } from "../ProxmoxNotificationAlertTemplates";
+import { OPENSTACK_CLOUD_LOG_ATTRIBUTE } from "../../../Utils/OpenStack/OpenStackLogs";
 
 // The query filters that name the one resource a metric step watches.
 const ATTRIBUTE_SCOPES: ReadonlyArray<string> = [
@@ -24,11 +25,12 @@ const ATTRIBUTE_SCOPES: ReadonlyArray<string> = [
 /*
  * The log attributes that name the resource a recommended Logs monitor
  * watches: a Kubernetes cluster's warning events, a Proxmox cluster's own
- * notifications.
+ * notifications, an OpenStack cloud's service logs.
  */
 const LOG_SCOPE_RESOURCE_ATTRIBUTES: ReadonlyArray<string> = [
   KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE,
   PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE,
+  OPENSTACK_CLOUD_LOG_ATTRIBUTE,
 ];
 import MonitorRecommendationSeverityMapper from "./MonitorRecommendationSeverityMapper";
 import {

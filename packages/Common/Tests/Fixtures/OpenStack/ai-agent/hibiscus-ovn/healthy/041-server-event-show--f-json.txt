@@ -1,0 +1,27 @@
+$ openstack server event show cc6e577a-bb98-409f-aef6-c9aaee0494b0 req-b86b5713-3f8d-4e21-9a25-c8ba53f6b25a -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "action": "create",
+  "instance_uuid": "cc6e577a-bb98-409f-aef6-c9aaee0494b0",
+  "request_id": "req-b86b5713-3f8d-4e21-9a25-c8ba53f6b25a",
+  "user_id": "4a532d8e0b2c42aeb60370f0e764e42c",
+  "project_id": "b9e66b583ae5401b8ec2edf04f41c61a",
+  "start_time": "2026-11-05T05:29:33.000000",
+  "message": null,
+  "updated_at": "2026-11-05T05:29:36.000000",
+  "events": [
+    {
+      "event": "compute__do_build_and_run_instance",
+      "start_time": "2026-11-05T05:29:34.000000",
+      "finish_time": "2026-11-05T05:29:36.000000",
+      "result": "Success",
+      "traceback": null,
+      "host": "compute-01",
+      "hostId": "bcf57afdbcfa98a2cffdc9114155ae9d2585e57de59a1f8fe0af5748",
+      "details": null
+    }
+  ]
+}

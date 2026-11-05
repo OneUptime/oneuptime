@@ -1,6 +1,7 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionErrorCode, {
   OpenStackCollectionErrorAdvice,
@@ -46,6 +47,12 @@ import OpenStackCollectionSettings from "Common/Utils/OpenStack/OpenStackCollect
  * caller hands in. What a probe reports in words (its error messages, its warnings, what
  * each read rests on) is shown as it wrote it.
  */
+
+/*
+ * What a collection reads beyond the defaults, as a place on the Settings page: a link that
+ * names it opens that fold, and lands on it (OpenStackCollectionOptionsFold).
+ */
+export const OPENSTACK_COLLECTION_OPTIONS_ANCHOR: string = "collection-options";
 
 // How often a page asks again while a test or a first collection is pending.
 export const OPENSTACK_TEST_POLL_INTERVAL_IN_MS: number = 2000;
@@ -269,12 +276,17 @@ function getReadRows(
       return {
         key: `${read.regionName}/${read.service}/${read.read}`,
         access: read.access,
-        label: translator.translateText(READ_ACCESS_LABELS[read.access]) as string,
-        title: translator.translateTemplate("{{service}}, {{region}}: {{read}}", {
-          service: getServiceTitle(read.service),
-          region: read.regionName,
-          read: read.read,
-        }),
+        label: translator.translateText(
+          READ_ACCESS_LABELS[read.access],
+        ) as string,
+        title: translator.translateTemplate(
+          "{{service}}, {{region}}: {{read}}",
+          {
+            service: getServiceTitle(read.service),
+            region: read.regionName,
+            read: read.read,
+          },
+        ),
         reason: read.reason || null,
         goesWithout: read.goesWithout || null,
         fix: read.fix || null,
@@ -402,6 +414,33 @@ export interface OpenStackCollectionStatusView {
   isPending: boolean;
 }
 
+/*
+ * How long a cloud can stay due before it is said that no probe has come for it. A probe asks
+ * every ten seconds, and a collection still running holds the next one back for at most its time
+ * budget of ten minutes. Past that, nothing is asking: the probe is offline, or too old.
+ */
+export const OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS: number = 15 * 60 * 1000;
+
+/*
+ * Whether the probe has stopped coming for this cloud. Claiming a cloud moves its
+ * nextCollectionAt on, and saving new settings sets it to now, so one far in the past means
+ * nothing claimed it. The last report would otherwise go on reading as the cloud's state: a
+ * probe that went offline left its card saying "Collecting", or a new cloud's "Checking", for good.
+ */
+export function isOpenStackCollectionOverdue(
+  cloud: Pick<OpenStackCloud, "nextCollectionAt">,
+  now: Date,
+): boolean {
+  if (!cloud.nextCollectionAt) {
+    return false;
+  }
+
+  return (
+    now.getTime() - new Date(cloud.nextCollectionAt).getTime() >
+    OPENSTACK_COLLECTION_OVERDUE_AFTER_IN_MS
+  );
+}
+
 // How a probe-collected cloud's collection stands, in words.
 export function getOpenStackCollectionStatusView(
   cloud: Pick<
@@ -410,9 +449,32 @@ export function getOpenStackCollectionStatusView(
     | "collectionErrorCode"
     | "collectionError"
     | "presentedCertificate"
+    | "nextCollectionAt"
   >,
   translator: Translator,
+  now: Date = new Date(),
 ): OpenStackCollectionStatusView {
+  if (isOpenStackCollectionOverdue(cloud, now)) {
+    const advice: OpenStackCollectionErrorAdvice =
+      OpenStackCollectionErrorUtil.getAdvice(
+        OpenStackCollectionErrorCode.ProbeNotAvailable,
+      );
+
+    return {
+      tone: OpenStackCollectionTone.Failing,
+      label: translator.translateText("Not collecting") as string,
+      title: translator.translateText(advice.title) as string,
+      message: translator.translateTemplate(
+        "This cloud was due to be collected {{time}}, and no probe has come for it.",
+        { time: OneUptimeDate.fromNow(cloud.nextCollectionAt as Date) },
+      ),
+      nextStep: translator.translateText(advice.nextStep) as string,
+      certificate: null,
+      // It says so until the probe is back, which nobody has to reload the page to see.
+      isPending: true,
+    };
+  }
+
   if (cloud.collectionStatus === OpenStackCollectionStatus.Succeeded) {
     return {
       tone: OpenStackCollectionTone.Collecting,
@@ -526,6 +588,84 @@ export function getOpenStackServiceRows(
     });
 }
 
+export interface OpenStackGentlerRow {
+  key: string;
+  // "Compute (Nova), RegionOne".
+  title: string;
+  message: string;
+}
+
+/*
+ * The services the probe slowed down for in the last collection, because their answers were
+ * taking far longer than they usually do. Nothing is wrong enough to say it failed: this is the
+ * probe keeping out of a service's way, and a person looking at a slow cloud should know.
+ */
+export function getOpenStackGentlerRows(
+  summary: OpenStackCollectionSummary | null | undefined,
+  translator: Translator,
+): Array<OpenStackGentlerRow> {
+  const seconds: (milliseconds: number) => string = (
+    milliseconds: number,
+  ): string => {
+    return translator.formatNumber(Math.round(milliseconds / 100) / 10);
+  };
+
+  return (summary?.services || [])
+    .filter((service: OpenStackServiceSummary): boolean => {
+      return Boolean(service.pausedForInMs);
+    })
+    .map((service: OpenStackServiceSummary): OpenStackGentlerRow => {
+      return {
+        key: `${service.regionName}/${service.service}`,
+        title: translator.translateTemplate("{{service}}, {{region}}", {
+          service: getServiceTitle(service.service),
+          region: service.regionName,
+        }),
+        message: translator.translateTemplate(
+          "Its answers took up to {{slowest}} s, so the probe waited {{waited}} s in all between its requests.",
+          {
+            slowest: seconds(service.slowestAnswerInMs || 0),
+            waited: seconds(service.pausedForInMs || 0),
+          },
+        ),
+      };
+    });
+}
+
+/*
+ * What a cloud past the summary size keeps, which is less than a small cloud does and worth saying
+ * where someone will look for a series that is not there.
+ */
+export function getOpenStackSummaryModeLine(
+  summary: OpenStackCollectionSummary | null | undefined,
+  translator: Translator,
+): string | null {
+  if (!summary?.isSummaryMode) {
+    return null;
+  }
+
+  const line: string = translator.translatePlural(
+    {
+      one: "This cloud is large enough to keep counts rather than a series per instance. A part that has not changed is sent again every {{count}} minute.",
+      other:
+        "This cloud is large enough to keep counts rather than a series per instance. A part that has not changed is sent again every {{count}} minutes.",
+    },
+    summary.refreshCycleInMinutes || 0,
+  );
+
+  if (!summary.firstCycleEndsAt) {
+    return line;
+  }
+
+  // A new cloud, or a probe that has just restarted: what the rows say is arriving a share at a time.
+  return `${line} ${translator.translateTemplate(
+    "Its lists are still filling: every part will have arrived {{time}}.",
+    {
+      time: OneUptimeDate.fromNow(new Date(summary.firstCycleEndsAt)),
+    },
+  )}`;
+}
+
 // What a collection read, as short phrases a person scans: "48 hypervisors".
 export function getOpenStackInventoryPhrases(
   summary: OpenStackCollectionSummary | null | undefined,
@@ -594,6 +734,18 @@ export function getOpenStackConnectionTestBlocker(
 ): string | null {
   if (!input.authUrl.trim() || !input.probeId) {
     return translationKey("Enter Keystone's address and pick a probe first.");
+  }
+
+  /*
+   * An edit can reach the test with any address typed, and the server would only refuse it.
+   * Said here, this is where a person hears that plain HTTP will not do, and what instead.
+   */
+  const address: OpenStackAddressResult = OpenStackAuthUrl.normalize(
+    input.authUrl,
+  );
+
+  if (!address.address) {
+    return address.error;
   }
 
   // A secret typed here goes with what names it, on the form.

@@ -21,9 +21,7 @@ import {
   readOpenStackInstanceMetricSamples,
   removeOpenStackInstanceOriginals,
 } from "../../../../Server/Utils/Telemetry/OpenStackInstanceMetricsScan";
-import {
-  isOpenStackSnapshotDatapoint,
-} from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
+import { isOpenStackSnapshotDatapoint } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import {
   OPENSTACK_HYPERVISOR_ATTRIBUTE,
@@ -31,6 +29,7 @@ import {
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
   OPENSTACK_INSTANCE_PROJECT_ATTRIBUTE,
   OPENSTACK_INSTANCE_SOURCE_ATTRIBUTE,
+  OpenStackHypervisorCapacity,
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
   OpenStackInstanceMetricSource,
@@ -178,7 +177,8 @@ function valueOf(
   const point: JSONObject | undefined = pointsOf(decision, name).find(
     (one: JSONObject): boolean => {
       return (
-        !device || attribute(one, OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE) === device
+        !device ||
+        attribute(one, OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE) === device
       );
     },
   );
@@ -230,9 +230,9 @@ describe("rates", () => {
       expect(retried.rate).toBeNull();
       expect(retried.next).toEqual(second.next);
       // The next real reading is still measured from the last one.
-      expect(step(retried.next, START_MS + 2 * MINUTE_MS, 220).rate).toBeCloseTo(
-        1,
-      );
+      expect(
+        step(retried.next, START_MS + 2 * MINUTE_MS, 220).rate,
+      ).toBeCloseTo(1);
     });
 
     test("a batch that lost a race and came late changes nothing", () => {
@@ -251,9 +251,9 @@ describe("rates", () => {
         9000,
       );
       expect(later.rate).toBeNull();
-      expect(step(later.next, later.next[0] + MINUTE_MS, 9060).rate).toBeCloseTo(
-        1,
-      );
+      expect(
+        step(later.next, later.next[0] + MINUTE_MS, 9060).rate,
+      ).toBeCloseTo(1);
     });
 
     test("just inside the longest gap it is still a rate", () => {
@@ -288,18 +288,82 @@ describe("rates", () => {
       expect(repeated.rate).toBeNull();
     });
 
-    test("is measured from when it last changed, not from the last scrape", () => {
-      // Scraped every two minutes, polled every five: the trap is 300 / 120 = 2.5.
+    test("the first value says nothing about when it was polled, so the first change only starts the clock", () => {
+      // What Hibiscus really did: read 62.35, polled 30 seconds later, read 122.32. Not 2 threads.
+      const first: CounterStep = step(null, START_MS, 62.35);
+      const changed: CounterStep = step(first.next, START_MS + 30000, 122.32);
+      expect(changed.rate).toBeNull();
+      // The next poll is a whole cycle later, and that is a rate.
+      const repeated: CounterStep = step(
+        changed.next,
+        START_MS + 60000,
+        122.32,
+      );
+      expect(repeated.rate).toBeNull();
+      const next: CounterStep = step(repeated.next, START_MS + 90000, 182.31);
+      expect(next.rate).toBeCloseTo(0.9997, 3);
+    });
+
+    test("nor does a value first seen after a long gap", () => {
       const first: CounterStep = step(null, START_MS, 0);
-      const second: CounterStep = step(first.next, START_MS + 2 * MINUTE_MS, 0);
-      const third: CounterStep = step(second.next, START_MS + 4 * MINUTE_MS, 0);
+      const moved: CounterStep = step(first.next, START_MS + MINUTE_MS, 60);
+      const later: number =
+        START_MS + MINUTE_MS + OPENSTACK_CEILOMETER_LONGEST_GAP_MS + 1;
+      const afterGap: CounterStep = step(moved.next, later, 9000);
+      expect(afterGap.rate).toBeNull();
+      expect(step(afterGap.next, later + MINUTE_MS, 9060).rate).toBeNull();
+    });
+
+    test("is measured from when it last changed, not from the last scrape", () => {
+      // Scraped every two minutes, polled every six: the trap is 360 / 120 = 3.
+      const first: CounterStep = step(null, START_MS, 0);
+      const clock: CounterStep = step(first.next, START_MS + MINUTE_MS, 60);
+      const second: CounterStep = step(
+        clock.next,
+        START_MS + 3 * MINUTE_MS,
+        60,
+      );
+      const third: CounterStep = step(
+        second.next,
+        START_MS + 5 * MINUTE_MS,
+        60,
+      );
       const fourth: CounterStep = step(
         third.next,
-        START_MS + 6 * MINUTE_MS,
-        360,
+        START_MS + 7 * MINUTE_MS,
+        420,
       );
       expect(fourth.rate).toBeCloseTo(1);
     });
+
+    test.each([
+      ["five minutes, what a cloud left alone polls at", 300],
+      ["two minutes, what Red Hat's polls at", 120],
+      ["a minute", 60],
+      ["ten minutes", 600],
+    ])(
+      "read every minute, a steady load reads steady when it polls every %s",
+      (_name: string, pollSeconds: number) => {
+        let state: CounterState | null = null;
+        const rates: Array<number> = [];
+        for (let at: number = 7; at <= 7200; at += 60) {
+          const polledAt: number = Math.floor(at / pollSeconds) * pollSeconds;
+          const result: CounterStep = step(
+            state,
+            START_MS + at * 1000,
+            polledAt * 1.5,
+          );
+          state = result.next;
+          if (result.rate !== null) {
+            rates.push(result.rate);
+          }
+        }
+        expect(rates.length).toBeGreaterThan(0);
+        for (const rate of rates) {
+          expect(rate).toBeCloseTo(1.5, 5);
+        }
+      },
+    );
 
     test("over a long run it adds up to the truth, whatever the scrape and polling cycles are", () => {
       const random: (limit?: number) => number = seededRandom(5735);
@@ -309,7 +373,7 @@ describe("rates", () => {
         const truePerSecond: number = 1 + random(50);
         let state: CounterState | null = null;
         let reported: number = 0;
-        let firstValue: number | null = null;
+        let clockedFrom: number | null = null;
         let lastValue: number = 0;
         const total: number = 7200;
         for (let at: number = 0; at <= total; at += scrapeSeconds) {
@@ -318,16 +382,87 @@ describe("rates", () => {
           const value: number = polledAt * truePerSecond;
           const atMs: number = START_MS + at * 1000;
           const changedAt: number = state ? state[0] : atMs;
+          const wasOnlySeen: boolean = Boolean(state?.[4]);
           const result: CounterStep = step(state, atMs, value);
           if (result.rate !== null) {
             reported += result.rate * ((atMs - changedAt) / 1000);
           }
+          // Everything is measured from the first change anyone saw.
+          if (wasOnlySeen && !result.next[4]) {
+            clockedFrom = value;
+          }
           state = result.next;
-          firstValue = firstValue === null ? value : firstValue;
           lastValue = value;
         }
-        expect(reported).toBeCloseTo(lastValue - firstValue!, 3);
+        if (clockedFrom !== null) {
+          expect(reported).toBeCloseTo(lastValue - clockedFrom, 3);
+        }
       }
+    });
+
+    describe("once a poll has come through and left it as it was", () => {
+      test("it really did nothing: it reads 0", () => {
+        const first: CounterStep = step(null, START_MS, 100);
+        const result: CounterStep = advanceOpenStackCounter({
+          previous: first.next,
+          atMs: START_MS + 6 * MINUTE_MS,
+          value: 100,
+          behaviour: "polled",
+          lastPollAtMs: START_MS + 5 * MINUTE_MS,
+        });
+        expect(result.rate).toBe(0);
+      });
+
+      test("and what it adds at the next poll is measured from that poll, not from long ago", () => {
+        const first: CounterStep = step(null, START_MS, 100);
+        const flat: CounterStep = advanceOpenStackCounter({
+          previous: first.next,
+          atMs: START_MS + 6 * MINUTE_MS,
+          value: 100,
+          behaviour: "polled",
+          lastPollAtMs: START_MS + 5 * MINUTE_MS,
+        });
+        const burst: CounterStep = advanceOpenStackCounter({
+          previous: flat.next,
+          atMs: START_MS + 10 * MINUTE_MS,
+          value: 400,
+          behaviour: "polled",
+          lastPollAtMs: START_MS + 5 * MINUTE_MS,
+        });
+        // 300 in the five minutes since the last poll. Not 300 in ten.
+        expect(burst.rate).toBeCloseTo(1);
+      });
+
+      test("a poll no newer than what it last said tells it nothing", () => {
+        const first: CounterStep = step(null, START_MS, 100);
+        const clock: CounterStep = step(first.next, START_MS + MINUTE_MS, 160);
+        const result: CounterStep = advanceOpenStackCounter({
+          previous: clock.next,
+          atMs: START_MS + 2 * MINUTE_MS,
+          value: 160,
+          behaviour: "polled",
+          lastPollAtMs: START_MS + MINUTE_MS,
+        });
+        expect(result.rate).toBeNull();
+      });
+
+      test("a real counter doesn't care", () => {
+        const first: CounterStep = advanceOpenStackCounter({
+          previous: null,
+          atMs: START_MS,
+          value: 100,
+          behaviour: "counter",
+        });
+        expect(
+          advanceOpenStackCounter({
+            previous: first.next,
+            atMs: START_MS + MINUTE_MS,
+            value: 100,
+            behaviour: "counter",
+            lastPollAtMs: START_MS - MINUTE_MS,
+          }).rate,
+        ).toBe(0);
+      });
     });
 
     test("a value that hasn't moved for longer than two polling cycles really is idle: it reads 0", () => {
@@ -340,7 +475,8 @@ describe("rates", () => {
       expect(quiet.rate).toBe(0);
       // And no sooner.
       expect(
-        step(first.next, START_MS + OPENSTACK_CEILOMETER_QUIET_MS - 1, 100).rate,
+        step(first.next, START_MS + OPENSTACK_CEILOMETER_QUIET_MS - 1, 100)
+          .rate,
       ).toBeNull();
     });
 
@@ -360,20 +496,56 @@ describe("rates", () => {
     });
 
     test("an instance that rebooted restarts its cumulative gauge, and that counts what it has added since", () => {
+      const first: CounterStep = step(null, START_MS, 89000);
+      const clock: CounterStep = step(first.next, START_MS + MINUTE_MS, 90000);
+      const reset: CounterStep = step(
+        clock.next,
+        START_MS + 6 * MINUTE_MS,
+        300,
+      );
+      expect(reset.rate).toBeCloseTo(1);
+    });
+
+    test("a reset while only one value has been seen just starts the clock", () => {
       const first: CounterStep = step(null, START_MS, 90000);
       const reset: CounterStep = step(
         first.next,
         START_MS + 5 * MINUTE_MS,
         300,
       );
-      expect(reset.rate).toBeCloseTo(1);
+      expect(reset.rate).toBeNull();
+      expect(step(reset.next, START_MS + 10 * MINUTE_MS, 600).rate).toBeCloseTo(
+        1,
+      );
+    });
+
+    test("a reading saved before the clock was kept this way goes on as it was", () => {
+      // What Redis holds across the deploy that changes this: four numbers, no marker.
+      const saved: CounterState = [START_MS, 100, START_MS, null];
+      expect(step(saved, START_MS + MINUTE_MS, 160).rate).toBeCloseTo(1);
+    });
+
+    test("what it keeps survives being written to Redis and read back", () => {
+      const first: CounterStep = step(null, START_MS, 0);
+      const stored: CounterState = JSON.parse(
+        JSON.stringify(first.next),
+      ) as CounterState;
+      const clock: CounterStep = step(stored, START_MS + MINUTE_MS, 60);
+      expect(clock.rate).toBeNull();
+      const again: CounterState = JSON.parse(
+        JSON.stringify(clock.next),
+      ) as CounterState;
+      expect(step(again, START_MS + 2 * MINUTE_MS, 120).rate).toBeCloseTo(1);
     });
 
     test("past the longest gap it starts again", () => {
       const first: CounterStep = step(null, START_MS, 0);
       expect(
-        step(first.next, START_MS + OPENSTACK_CEILOMETER_LONGEST_GAP_MS + 1, 999)
-          .rate,
+        step(
+          first.next,
+          START_MS + OPENSTACK_CEILOMETER_LONGEST_GAP_MS + 1,
+          999,
+        ).rate,
       ).toBeNull();
     });
 
@@ -481,7 +653,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({ cpuSeconds: 1000 }),
       truthOf({ cpuSeconds: 1090 }),
     );
-    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(1.5);
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(
+      1.5,
+    );
     expect(
       valueOf(decision, OpenStackInstanceMetric.CpuUtilization),
     ).toBeCloseTo(75);
@@ -616,9 +790,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({}),
       truthOf({}),
     );
-    expect(
-      pointsOf(decision, OpenStackInstanceMetric.DiskReadLatency),
-    ).toEqual([]);
+    expect(pointsOf(decision, OpenStackInstanceMetric.DiskReadLatency)).toEqual(
+      [],
+    );
     expect(valueOf(decision, OpenStackInstanceMetric.DiskReadRate, "vda")).toBe(
       0,
     );
@@ -629,7 +803,9 @@ describe("what a batch from libvirt's exporter becomes", () => {
       truthOf({ cpuSeconds: 90000 }),
       truthOf({ cpuSeconds: 30 }),
     );
-    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(0.5);
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(
+      0.5,
+    );
   });
 
   test("every series names its instance, its source, its project, its hypervisor and its region", () => {
@@ -827,9 +1003,7 @@ describe("a scrape the collector split across batches", () => {
       OpenStackInstanceMetric.CpuContention,
       OpenStackInstanceMetric.MemoryUsage,
     ]) {
-      expect(valueOf(b.decision, name)).toBeCloseTo(
-        valueOf(a.decision, name)!,
-      );
+      expect(valueOf(b.decision, name)).toBeCloseTo(valueOf(a.decision, name)!);
     }
     expect(
       valueOf(b.decision, OpenStackInstanceMetric.DiskReadLatency, "vda"),
@@ -850,13 +1024,17 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
       readOpenStackInstanceMetricSamples(envelope);
     expect(
       samples.every(
-        (sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number]) => {
+        (
+          sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number],
+        ) => {
           return sample.instanceId === BURNER_ID;
         },
       ),
     ).toBe(true);
     const devices: Array<string | null> = samples.map(
-      (sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number]) => {
+      (
+        sample: ReturnType<typeof readOpenStackInstanceMetricSamples>[number],
+      ) => {
         return sample.device;
       },
     );
@@ -878,6 +1056,11 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
 
   test("nanoseconds become CPU threads", () => {
     const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    runBatch({
+      text: ceilometerText([truthOf({ cpuSeconds: 700 })]),
+      timeMs: START_MS - 5 * MINUTE_MS,
+      states,
+    });
     runBatch({
       text: ceilometerText([truthOf({ cpuSeconds: 1000 })]),
       timeMs: START_MS,
@@ -911,6 +1094,277 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
     }
   });
 
+  describe("what a poll left as it was", () => {
+    function poll(data: {
+      minute: number;
+      cpuSeconds: number;
+      diskWriteBytes?: number;
+      states: Map<string, OpenStackInstanceMetricsHostState>;
+    }): OpenStackInstanceMetricsDecision {
+      return runBatch({
+        text: ceilometerText([
+          truthOf({
+            cpuSeconds: data.cpuSeconds,
+            diskWriteBytes: data.diskWriteBytes ?? 2000000,
+          }),
+        ]),
+        timeMs: START_MS + data.minute * MINUTE_MS,
+        states: data.states,
+      }).decision;
+    }
+
+    test("reads 0 on the scrape after, at the pace of the polls, rather than saying nothing for 11 minutes", () => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      poll({ minute: 0, cpuSeconds: 1000, states });
+      const atThePoll: OpenStackInstanceMetricsDecision = poll({
+        minute: 5,
+        cpuSeconds: 1300,
+        states,
+      });
+      // A scrape can land with a poll half through it, so this says nothing yet.
+      expect(
+        valueOf(atThePoll, OpenStackInstanceMetric.DiskWriteRate, "vda"),
+      ).toBeUndefined();
+      const after: OpenStackInstanceMetricsDecision = poll({
+        minute: 6,
+        cpuSeconds: 1300,
+        states,
+      });
+      expect(valueOf(after, OpenStackInstanceMetric.DiskWriteRate, "vda")).toBe(
+        0,
+      );
+      // And only once for that poll.
+      expect(
+        pointsOf(
+          poll({ minute: 7, cpuSeconds: 1300, states }),
+          OpenStackInstanceMetric.DiskWriteRate,
+        ),
+      ).toEqual([]);
+    });
+
+    test("a poll that was still going through when it was scraped isn't read as nothing, then as five times the truth", () => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      // Polled every five minutes: 1000 bytes a second, which is 300000 a poll.
+      poll({ minute: 0, cpuSeconds: 1000, diskWriteBytes: 0, states });
+      poll({ minute: 5, cpuSeconds: 1300, diskWriteBytes: 300000, states });
+      // A scrape with this poll's CPU and the last poll's disk...
+      const half: OpenStackInstanceMetricsDecision = poll({
+        minute: 10,
+        cpuSeconds: 1600,
+        diskWriteBytes: 300000,
+        states,
+      });
+      expect(
+        valueOf(half, OpenStackInstanceMetric.DiskWriteRate, "vda"),
+      ).toBeUndefined();
+      // ...and the next with its disk, seen a minute late.
+      const rest: OpenStackInstanceMetricsDecision = poll({
+        minute: 11,
+        cpuSeconds: 1600,
+        diskWriteBytes: 600000,
+        states,
+      });
+      expect(
+        valueOf(rest, OpenStackInstanceMetric.DiskWriteRate, "vda"),
+      ).toBeCloseTo(300000 / 360);
+    });
+
+    test("however its batches fell: a batch that holds only the flat series goes by the poll the others said", () => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      const lines: (minute: number, cpuSeconds: number) => Array<string> = (
+        minute: number,
+        cpuSeconds: number,
+      ): Array<string> => {
+        return ceilometerText([truthOf({ cpuSeconds })]).split("\n");
+      };
+      const send: (minute: number, cpuSeconds: number) => void = (
+        minute: number,
+        cpuSeconds: number,
+      ): void => {
+        const all: Array<string> = lines(minute, cpuSeconds);
+        // The disk first, then the rest, as two batches.
+        const isDisk: (line: string) => boolean = (line: string): boolean => {
+          return line.startsWith("ceilometer_disk");
+        };
+        for (const part of [
+          all.filter(isDisk),
+          all.filter((line: string): boolean => {
+            return !isDisk(line);
+          }),
+        ]) {
+          runBatch({
+            text: part.join("\n"),
+            timeMs: START_MS + minute * MINUTE_MS,
+            states,
+          });
+        }
+      };
+      send(0, 1000);
+      send(5, 1300);
+      const { decision }: Run = runBatch({
+        text: lines(6, 1300).join("\n"),
+        timeMs: START_MS + 6 * MINUTE_MS,
+        states,
+      });
+      expect(
+        valueOf(decision, OpenStackInstanceMetric.DiskWriteRate, "vda"),
+      ).toBe(0);
+    });
+
+    test("a disk with no requests still has no latency, rather than a latency of 0", () => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      poll({ minute: 0, cpuSeconds: 1000, states });
+      poll({ minute: 5, cpuSeconds: 1300, states });
+      const after: OpenStackInstanceMetricsDecision = poll({
+        minute: 6,
+        cpuSeconds: 1300,
+        states,
+      });
+      expect(
+        pointsOf(after, OpenStackInstanceMetric.DiskWriteOperations),
+      ).toHaveLength(1);
+      expect(pointsOf(after, OpenStackInstanceMetric.DiskWriteLatency)).toEqual(
+        [],
+      );
+    });
+
+    test("what it holds in memory adds a row once a poll too, so its chart has no holes", () => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      poll({ minute: 0, cpuSeconds: 1000, states });
+      poll({ minute: 5, cpuSeconds: 1300, states });
+      expect(
+        pointsOf(
+          poll({ minute: 6, cpuSeconds: 1300, states }),
+          OpenStackInstanceMetric.MemoryResident,
+        ),
+      ).toHaveLength(1);
+      expect(
+        pointsOf(
+          poll({ minute: 7, cpuSeconds: 1300, states }),
+          OpenStackInstanceMetric.MemoryResident,
+        ),
+      ).toEqual([]);
+    });
+  });
+
+  test("what a poll adds only reads as a rate from its second, whatever the first one did", () => {
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    runBatch({
+      text: ceilometerText([truthOf({ cpuSeconds: 1000 })]),
+      timeMs: START_MS,
+      states,
+    });
+    const { decision }: Run = runBatch({
+      text: ceilometerText([truthOf({ cpuSeconds: 1300 })]),
+      timeMs: START_MS + MINUTE_MS,
+      states,
+    });
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeUndefined();
+  });
+
+  test("with no vcpus series, what its flavor says is what it is a share of", () => {
+    // Epoxy has no such series at all, and the polling.yaml Ceilometer ships doesn't ask for one.
+    const withoutVcpus: (cpuSeconds: number) => string = (
+      cpuSeconds: number,
+    ): string => {
+      return ceilometerText([truthOf({ cpuSeconds })])
+        .split("\n")
+        .filter((line: string): boolean => {
+          return !line.startsWith("ceilometer_vcpus");
+        })
+        .join("\n");
+    };
+    const known: Map<string, OpenStackInstancePlacement> = new Map([
+      [BURNER_ID, { ...PLACEMENT, vcpus: 4 }],
+    ]);
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    for (const [minute, cpuSeconds] of [
+      [0, 1000],
+      [5, 1300],
+    ] as Array<[number, number]>) {
+      runBatch({
+        text: withoutVcpus(cpuSeconds),
+        timeMs: START_MS + minute * MINUTE_MS,
+        states,
+        known,
+      });
+    }
+    const { decision }: Run = runBatch({
+      text: withoutVcpus(1600),
+      timeMs: START_MS + 10 * MINUTE_MS,
+      states,
+      known,
+    });
+    expect(
+      valueOf(decision, OpenStackInstanceMetric.CpuUtilization),
+    ).toBeCloseTo(25);
+  });
+
+  test("and with nothing saying how many it has, it has no share, and still says what it uses", () => {
+    const withoutVcpus: (cpuSeconds: number) => string = (
+      cpuSeconds: number,
+    ): string => {
+      return ceilometerText([truthOf({ cpuSeconds })])
+        .split("\n")
+        .filter((line: string): boolean => {
+          return !line.startsWith("ceilometer_vcpus");
+        })
+        .join("\n");
+    };
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    for (const [minute, cpuSeconds] of [
+      [0, 1000],
+      [5, 1300],
+    ] as Array<[number, number]>) {
+      runBatch({
+        text: withoutVcpus(cpuSeconds),
+        timeMs: START_MS + minute * MINUTE_MS,
+        states,
+      });
+    }
+    const { decision }: Run = runBatch({
+      text: withoutVcpus(1600),
+      timeMs: START_MS + 10 * MINUTE_MS,
+      states,
+    });
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(1);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUtilization)).toEqual(
+      [],
+    );
+  });
+
+  test("what the instance says of itself wins over what its flavor says", () => {
+    const known: Map<string, OpenStackInstancePlacement> = new Map([
+      [BURNER_ID, { ...PLACEMENT, vcpus: 99 }],
+    ]);
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    for (const [minute, cpuSeconds] of [
+      [0, 1000],
+      [5, 1300],
+    ] as Array<[number, number]>) {
+      runBatch({
+        text: ceilometerText([truthOf({ cpuSeconds })]),
+        timeMs: START_MS + minute * MINUTE_MS,
+        states,
+        known,
+      });
+    }
+    const { decision }: Run = runBatch({
+      text: ceilometerText([truthOf({ cpuSeconds: 1600 })]),
+      timeMs: START_MS + 10 * MINUTE_MS,
+      states,
+      known,
+    });
+    expect(
+      valueOf(decision, OpenStackInstanceMetric.CpuUtilization),
+    ).toBeCloseTo(50);
+  });
+
   test("across several polling cycles the rate holds still, however the scrapes fall", () => {
     const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
     const rates: Array<number> = [];
@@ -930,7 +1384,7 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
         rates.push(rate);
       }
     }
-    expect(rates.length).toBe(8);
+    expect(rates.length).toBe(7);
     for (const rate of rates) {
       /*
        * A polling cycle's five minutes seen across scrapes of two is either 4 or 6
@@ -976,9 +1430,10 @@ describe("the two sources produce one shape", () => {
         : ceilometerText([burn(minute)]);
     };
     runBatch({ text: text(0), timeMs: START_MS, states });
+    runBatch({ text: text(5), timeMs: START_MS + 5 * MINUTE_MS, states });
     return runBatch({
-      text: text(5),
-      timeMs: START_MS + 5 * MINUTE_MS,
+      text: text(10),
+      timeMs: START_MS + 10 * MINUTE_MS,
       states,
     }).decision;
   }
@@ -1068,6 +1523,99 @@ describe("a hypervisor's totals", () => {
     ];
   }
 
+  function withCapacity(
+    capacity: OpenStackHypervisorCapacity,
+  ): Map<string, OpenStackInstancePlacement> {
+    return new Map(
+      Array.from(known.entries()).map(
+        ([id, placement]: [string, OpenStackInstancePlacement]): [
+          string,
+          OpenStackInstancePlacement,
+        ] => {
+          return [id, { ...placement, hypervisorCapacity: capacity }];
+        },
+      ),
+    );
+  }
+
+  test("say what share of the hypervisor that is, in the same batch, so an alert can't miss it", () => {
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    const capacity: Map<string, OpenStackInstancePlacement> = withCapacity({
+      cores: 4,
+      memoryBytes: 2000 * 1024 * 1024,
+    });
+    runBatch({
+      text: libvirtText(estate(0)),
+      timeMs: START_MS,
+      states,
+      known: capacity,
+    });
+    const { decision }: Run = runBatch({
+      text: libvirtText(estate(1)),
+      timeMs: START_MS + MINUTE_MS,
+      states,
+      known: capacity,
+    });
+
+    // 2.1 threads of 4, and 1000 MiB of 2000.
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUtilization),
+    ).toBeCloseTo(52.5);
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesMemoryUtilization),
+    ).toBeCloseTo(50);
+    const point: JSONObject = pointsOf(
+      decision,
+      OpenStackHypervisorMetric.InstancesCpuUtilization,
+    )[0]!;
+    const total: JSONObject = pointsOf(
+      decision,
+      OpenStackHypervisorMetric.InstancesCpuUsage,
+    )[0]!;
+    expect(point["timeUnixNano"]).toBe(total["timeUnixNano"]);
+    expect(attribute(point, OPENSTACK_HYPERVISOR_ATTRIBUTE)).toBe(HYPERVISOR);
+  });
+
+  test.each([
+    ["no capacity read yet", undefined],
+    ["a capacity of nothing", { cores: 0, memoryBytes: 0 }],
+    ["only what is unknown", { cores: null, memoryBytes: null }],
+  ])(
+    "say no share with %s: a number against nothing is no number",
+    (_name: string, capacity: OpenStackHypervisorCapacity | undefined) => {
+      const states: Map<string, OpenStackInstanceMetricsHostState> =
+        newStates();
+      const given: Map<string, OpenStackInstancePlacement> = capacity
+        ? withCapacity(capacity)
+        : known;
+      runBatch({
+        text: libvirtText(estate(0)),
+        timeMs: START_MS,
+        states,
+        known: given,
+      });
+      const { decision }: Run = runBatch({
+        text: libvirtText(estate(1)),
+        timeMs: START_MS + MINUTE_MS,
+        states,
+        known: given,
+      });
+      expect(
+        pointsOf(decision, OpenStackHypervisorMetric.InstancesCpuUtilization),
+      ).toHaveLength(0);
+      expect(
+        pointsOf(
+          decision,
+          OpenStackHypervisorMetric.InstancesMemoryUtilization,
+        ),
+      ).toHaveLength(0);
+      // What it adds up to is still known, and still said.
+      expect(
+        valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
+      ).toBeCloseTo(2.1);
+    },
+  );
+
   test("add up what its instances use, and name it by Nova's own word for it", () => {
     const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
     runBatch({ text: libvirtText(estate(0)), timeMs: START_MS, states, known });
@@ -1148,29 +1696,23 @@ describe("a hypervisor's totals", () => {
     ).toBeCloseTo(2);
   });
 
-  test("a stopped instance, which libvirt reads as 0, adds nothing", () => {
+  // How libvirt's exporter really says it: a CPU time of 0, and no memory, disk or network.
+  function stoppedText(domain: string, id: string): string {
+    return [
+      `libvirt_domain_openstack_info{domain="${domain}",flavor_name="ou.tiny",instance_id="${id}",instance_name="stopped",project_id="${PROJECT_ID}",project_name="ou-research",user_id="u",user_name="admin"} 1`,
+      `libvirt_domain_info_virtual_cpus{domain="${domain}"} 1`,
+      `libvirt_domain_info_cpu_time_seconds_total{domain="${domain}"} 0`,
+    ].join("\n");
+  }
+
+  test("a stopped instance, which libvirt reads as 0, adds nothing and isn't counted", () => {
     const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
-    const withStopped: (minute: number) => Array<InstanceTruth> = (
-      minute: number,
-    ): Array<InstanceTruth> => {
-      return [
-        ...estate(minute),
-        truthOf({
-          instanceId: STOPPED_ID,
-          domain: "instance-00000003",
-          cpuSeconds: 0,
-          residentBytes: 0,
-        }),
-      ];
+    const text: (minute: number) => string = (minute: number): string => {
+      return `${libvirtText(estate(minute))}\n${stoppedText("instance-00000003", STOPPED_ID)}`;
     };
-    runBatch({
-      text: libvirtText(withStopped(0)),
-      timeMs: START_MS,
-      states,
-      known,
-    });
+    runBatch({ text: text(0), timeMs: START_MS, states, known });
     const { decision }: Run = runBatch({
-      text: libvirtText(withStopped(1)),
+      text: text(1),
       timeMs: START_MS + MINUTE_MS,
       states,
       known,
@@ -1178,6 +1720,69 @@ describe("a hypervisor's totals", () => {
     expect(
       valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
     ).toBeCloseTo(2.1);
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesReporting),
+    ).toBe(2);
+    // Neither a reading of 0, nor of anything else: Ceilometer says nothing about one either.
+    for (const name of [
+      OpenStackInstanceMetric.CpuUsage,
+      OpenStackInstanceMetric.CpuUtilization,
+    ]) {
+      expect(
+        pointsOf(decision, name).filter((point: JSONObject): boolean => {
+          return (
+            attribute(point, OPENSTACK_INSTANCE_ID_ATTRIBUTE) === STOPPED_ID
+          );
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("an instance that stops comes off its hypervisor's totals at once, not when its reading goes stale", () => {
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    runBatch({ text: libvirtText(estate(0)), timeMs: START_MS, states, known });
+    const before: Run = runBatch({
+      text: libvirtText(estate(1)),
+      timeMs: START_MS + MINUTE_MS,
+      states,
+      known,
+    });
+    expect(
+      valueOf(before.decision, OpenStackHypervisorMetric.InstancesCpuUsage),
+    ).toBeCloseTo(2.1);
+    const { decision }: Run = runBatch({
+      text: `${libvirtText([estate(2)[1]!])}\n${stoppedText("instance-00000001", BURNER_ID)}`,
+      timeMs: START_MS + 2 * MINUTE_MS,
+      states,
+      known,
+    });
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
+    ).toBeCloseTo(0.1);
+    expect(
+      valueOf(decision, OpenStackHypervisorMetric.InstancesReporting),
+    ).toBe(1);
+  });
+
+  test("and back on when it starts again, counting only what it has used since", () => {
+    const states: Map<string, OpenStackInstanceMetricsHostState> = newStates();
+    runBatch({ text: libvirtText(estate(0)), timeMs: START_MS, states, known });
+    runBatch({
+      text: stoppedText("instance-00000001", BURNER_ID),
+      timeMs: START_MS + MINUTE_MS,
+      states,
+      known,
+    });
+    const { decision }: Run = runBatch({
+      text: libvirtText([truthOf({ cpuSeconds: 60 })]),
+      timeMs: START_MS + 2 * MINUTE_MS,
+      states,
+      known,
+    });
+    // 60 seconds used in the two minutes since its last reading, and never a negative.
+    expect(valueOf(decision, OpenStackInstanceMetric.CpuUsage)).toBeCloseTo(
+      0.5,
+    );
   });
 
   test("are not written when nothing says which hypervisor this is", () => {
@@ -1214,7 +1819,9 @@ describe("a hypervisor's totals", () => {
       pointsOf(decision, OpenStackHypervisorMetric.InstancesCpuUsage),
     ).toEqual([]);
     // Each instance's own series don't need it.
-    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(2);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(
+      2,
+    );
   });
 });
 
@@ -1282,16 +1889,17 @@ describe("cost is a choice", () => {
       [BURNER_ID, { ...PLACEMENT, projectId: "chosen" }],
       [IDLE_ID, { ...PLACEMENT, projectId: "other" }],
     ]);
-    const isKept: (instance: { projectId: string | null }) => boolean = (
-      instance: { projectId: string | null },
-    ): boolean => {
+    const isKept: (instance: {
+      projectId: string | null;
+    }) => boolean = (instance: { projectId: string | null }): boolean => {
       return instance.projectId !== PROJECT_ID;
     };
     // Its series say which project it is in, so the labels decide it here.
     const text: (minute: number) => string = (minute: number): string => {
-      return libvirtText([
-        truthOf({ cpuSeconds: 1000 + minute * 60 }),
-      ]).replace(`project_id="${PROJECT_ID}"`, 'project_id="chosen"');
+      return libvirtText([truthOf({ cpuSeconds: 1000 + minute * 60 })]).replace(
+        `project_id="${PROJECT_ID}"`,
+        'project_id="chosen"',
+      );
     };
     runBatch({ text: text(0), timeMs: START_MS, states, known, isKept });
     const { decision }: Run = runBatch({
@@ -1301,7 +1909,9 @@ describe("cost is a choice", () => {
       known,
       isKept,
     });
-    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(1);
+    expect(pointsOf(decision, OpenStackInstanceMetric.CpuUsage)).toHaveLength(
+      1,
+    );
     expect(decision.droppedInstanceIds.size).toBe(0);
   });
 });
@@ -1351,9 +1961,9 @@ describe("the batch it hands back", () => {
       timeMs: START_MS + MINUTE_MS,
       states,
     });
-    expect(pointsOf(retried.decision, OpenStackInstanceMetric.CpuUsage)).toEqual(
-      [],
-    );
+    expect(
+      pointsOf(retried.decision, OpenStackInstanceMetric.CpuUsage),
+    ).toEqual([]);
   });
 
   test("a batch with nothing of either's isn't read at all", () => {
@@ -1418,13 +2028,22 @@ describe("the batch it hands back", () => {
 
 describe("what the agent keeps of each exporter", () => {
   const config: string = fs.readFileSync(
-    path.join(REPO_ROOT, "agents", "OpenStackAgent", "otel-collector-config.yaml"),
+    path.join(
+      REPO_ROOT,
+      "agents",
+      "OpenStackAgent",
+      "otel-collector-config.yaml",
+    ),
     "utf8",
   );
 
   function keepRegexOf(jobName: string): RegExp {
-    const job: string = config.substring(config.indexOf(`job_name: ${jobName}`));
-    const match: RegExpMatchArray | null = job.match(/regex: (\S+)\n\s+action: keep/);
+    const job: string = config.substring(
+      config.indexOf(`job_name: ${jobName}`),
+    );
+    const match: RegExpMatchArray | null = job.match(
+      /regex: (\S+)\n\s+action: keep/,
+    );
     expect(match).not.toBeNull();
     return new RegExp(`^(?:${match![1]!})$`);
   }

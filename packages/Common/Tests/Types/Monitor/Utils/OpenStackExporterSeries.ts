@@ -136,6 +136,39 @@ export const OPENSTACK_EXPORTER_SERIES: Readonly<
     service: OpenStackServiceType.Image,
     recorded: false,
   },
+  openstack_ironic_node: {
+    labels: [
+      "console_enabled",
+      "deploy_kernel",
+      "deploy_ramdisk",
+      "id",
+      "maintenance",
+      "maintenance_reason",
+      "name",
+      "power_state",
+      "provision_state",
+      "resource_class",
+      "retired",
+      "retired_reason",
+    ],
+    service: OpenStackServiceType.BareMetal,
+    recorded: true,
+  },
+  openstack_ironic_node_provision_updated_at: {
+    labels: ["id", "name", "provision_state"],
+    service: OpenStackServiceType.BareMetal,
+    recorded: true,
+  },
+  openstack_ironic_node_updated_at: {
+    labels: ["id", "name", "provision_state"],
+    service: OpenStackServiceType.BareMetal,
+    recorded: true,
+  },
+  openstack_ironic_up: {
+    labels: [],
+    service: OpenStackServiceType.BareMetal,
+    recorded: true,
+  },
   openstack_glance_image_created_at: {
     labels: ["hidden", "id", "name", "status", "tenant_id", "visibility"],
     service: OpenStackServiceType.Image,
@@ -149,6 +182,160 @@ export const OPENSTACK_EXPORTER_SERIES: Readonly<
   openstack_glance_up: {
     labels: [],
     service: OpenStackServiceType.Image,
+    recorded: true,
+  },
+  /*
+   * These two services' series, from exporters/{heat,containerinfra}.go, checked against a real
+   * stable/2026.1 DevStack (Fixtures/OpenStack/services-heat-magnum, run 41932253263).
+   */
+  openstack_heat_stack_status: {
+    labels: ["id", "name", "project_id", "status"],
+    service: OpenStackServiceType.Orchestration,
+    recorded: true,
+  },
+  openstack_heat_stack_status_counter: {
+    labels: ["status"],
+    service: OpenStackServiceType.Orchestration,
+    recorded: true,
+  },
+  openstack_heat_up: {
+    labels: [],
+    service: OpenStackServiceType.Orchestration,
+    recorded: true,
+  },
+  openstack_trove_up: {
+    labels: [],
+    service: OpenStackServiceType.Database,
+    recorded: true,
+  },
+  openstack_trove_total_instances: {
+    labels: [],
+    service: OpenStackServiceType.Database,
+    recorded: true,
+  },
+  openstack_trove_instance_status: {
+    labels: [
+      "datastore_type",
+      "datastore_version",
+      "health_status",
+      "id",
+      "name",
+      "region",
+      "status",
+      "tenant_id",
+    ],
+    service: OpenStackServiceType.Database,
+    recorded: true,
+  },
+  openstack_trove_instance_volume_size_gb: {
+    labels: [
+      "datastore_type",
+      "datastore_version",
+      "health_status",
+      "id",
+      "name",
+      "region",
+      "status",
+      "tenant_id",
+    ],
+    service: OpenStackServiceType.Database,
+    recorded: true,
+  },
+  openstack_trove_instance_volume_used_gb: {
+    labels: [
+      "datastore_type",
+      "datastore_version",
+      "health_status",
+      "id",
+      "name",
+      "region",
+      "status",
+      "tenant_id",
+    ],
+    service: OpenStackServiceType.Database,
+    recorded: true,
+  },
+  openstack_sharev2_up: {
+    labels: [],
+    service: OpenStackServiceType.SharedFileSystems,
+    recorded: true,
+  },
+  openstack_sharev2_share_gb: {
+    labels: [
+      "availability_zone",
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "status",
+    ],
+    service: OpenStackServiceType.SharedFileSystems,
+    recorded: true,
+  },
+  openstack_sharev2_share_status: {
+    labels: [
+      "id",
+      "name",
+      "project_id",
+      "share_proto",
+      "share_type",
+      "share_type_name",
+      "size",
+      "status",
+    ],
+    service: OpenStackServiceType.SharedFileSystems,
+    recorded: true,
+  },
+  openstack_sharev2_share_status_counter: {
+    labels: ["status"],
+    service: OpenStackServiceType.SharedFileSystems,
+    recorded: true,
+  },
+  openstack_sharev2_shares_counter: {
+    labels: [],
+    service: OpenStackServiceType.SharedFileSystems,
+    recorded: true,
+  },
+  openstack_container_infra_cluster_masters: {
+    labels: ["name", "node_count", "project_id", "stack_id", "status", "uuid"],
+    service: OpenStackServiceType.ContainerInfra,
+    recorded: true,
+  },
+  openstack_container_infra_cluster_nodes: {
+    labels: [
+      "master_count",
+      "name",
+      "project_id",
+      "stack_id",
+      "status",
+      "uuid",
+    ],
+    service: OpenStackServiceType.ContainerInfra,
+    recorded: true,
+  },
+  openstack_container_infra_cluster_status: {
+    labels: [
+      "master_count",
+      "name",
+      "node_count",
+      "project_id",
+      "stack_id",
+      "status",
+      "uuid",
+    ],
+    service: OpenStackServiceType.ContainerInfra,
+    recorded: true,
+  },
+  openstack_container_infra_total_clusters: {
+    labels: [],
+    service: OpenStackServiceType.ContainerInfra,
+    recorded: true,
+  },
+  openstack_container_infra_up: {
+    labels: [],
+    service: OpenStackServiceType.ContainerInfra,
     recorded: true,
   },
   openstack_identity_domain_info: {
@@ -813,3 +1000,63 @@ export const OPENSTACK_EXPORTER_VOLUME_STATUSES: ReadonlyArray<string> = [
   "retyping",
   "extending",
 ];
+
+// knownStackStatuses, heat.go: every word, in the code openstack_heat_stack_status reads for it.
+export const OPENSTACK_EXPORTER_STACK_STATUS_CODES: Readonly<
+  Record<string, number>
+> = {
+  INIT_IN_PROGRESS: 0,
+  INIT_FAILED: 1,
+  INIT_COMPLETE: 2,
+  CREATE_IN_PROGRESS: 3,
+  CREATE_FAILED: 4,
+  CREATE_COMPLETE: 5,
+  DELETE_IN_PROGRESS: 6,
+  DELETE_FAILED: 7,
+  DELETE_COMPLETE: 8,
+  UPDATE_IN_PROGRESS: 9,
+  UPDATE_FAILED: 10,
+  UPDATE_COMPLETE: 11,
+  ROLLBACK_IN_PROGRESS: 12,
+  ROLLBACK_FAILED: 13,
+  ROLLBACK_COMPLETE: 14,
+  SUSPEND_IN_PROGRESS: 15,
+  SUSPEND_FAILED: 16,
+  SUSPEND_COMPLETE: 17,
+  RESUME_IN_PROGRESS: 18,
+  RESUME_FAILED: 19,
+  RESUME_COMPLETE: 20,
+  ADOPT_IN_PROGRESS: 21,
+  ADOPT_FAILED: 22,
+  ADOPT_COMPLETE: 23,
+  SNAPSHOT_IN_PROGRESS: 24,
+  SNAPSHOT_FAILED: 25,
+  SNAPSHOT_COMPLETE: 26,
+  CHECK_IN_PROGRESS: 27,
+  CHECK_FAILED: 28,
+  CHECK_COMPLETE: 29,
+};
+
+// knownClusterStatuses, containerinfra.go.
+export const OPENSTACK_EXPORTER_CONTAINER_CLUSTER_STATUS_CODES: Readonly<
+  Record<string, number>
+> = {
+  CREATE_COMPLETE: 0,
+  CREATE_FAILED: 1,
+  CREATE_IN_PROGRESS: 2,
+  UPDATE_IN_PROGRESS: 3,
+  UPDATE_FAILED: 4,
+  UPDATE_COMPLETE: 5,
+  DELETE_IN_PROGRESS: 6,
+  DELETE_FAILED: 7,
+  DELETE_COMPLETE: 8,
+  RESUME_COMPLETE: 9,
+  RESUME_FAILED: 10,
+  RESTORE_COMPLETE: 11,
+  ROLLBACK_IN_PROGRESS: 12,
+  ROLLBACK_FAILED: 13,
+  ROLLBACK_COMPLETE: 14,
+  SNAPSHOT_COMPLETE: 15,
+  CHECK_COMPLETE: 16,
+  ADOPT_COMPLETE: 17,
+};

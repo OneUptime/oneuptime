@@ -139,6 +139,17 @@ enum EntityType {
    */
   MessageQueue = "message.queue",
   /*
+   * One part of an OpenStack cloud a span says it touched: an instance, a
+   * volume, a network and so on, by the id OpenStack calls it (the
+   * OpenStackResource table is its row). OneUptime-defined and MEMBERSHIP-ONLY,
+   * like the two above: ingest appends its key (`EntityKey.keyForOpenStackResource`)
+   * to the `entityKeys` of a span from OSProfiler's driver whose request names
+   * the part, so a part's page can find the traces that touched it without
+   * scanning every span's attributes. No resolver ever emits it, and it is never
+   * promoted to an InventoryItem row.
+   */
+  OpenStackResource = "openstack.resource",
+  /*
    * Inventory-mirrored types. Unlike everything above, these are never
    * derived from an OTLP resource — the estate they describe is collected
    * by pollers (SNMP, cloud APIs, MQTT) into rich typed tables, and the

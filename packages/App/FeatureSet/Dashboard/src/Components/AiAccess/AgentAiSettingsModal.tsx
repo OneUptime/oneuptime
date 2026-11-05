@@ -69,6 +69,8 @@ export interface ComponentProps {
   turnOnInvestigation?: boolean | undefined;
   fixesShortNames: Readonly<Record<AiFixesMode, string>>;
   fixesDescriptions: Readonly<Record<AiFixesMode, string>>;
+  // OneUptime AI only reads this resource: there are no fixes to choose.
+  hasNoFixes?: boolean | undefined;
   getInstructions: (
     choice: AgentAiSettingsChoice,
   ) => AgentAiSettingsInstructions;
@@ -224,23 +226,30 @@ const AgentAiSettingsModal: FunctionComponent<ComponentProps> = (
           />
         </div>
 
-        <div className="space-y-2">
-          <p id={fixesLabelId} className="text-sm font-semibold text-gray-900">
-            {translator.translateText(AI_ACCESS_FIXES_ROW_TITLE)}
-          </p>
-          <CardSelect
-            options={fixesOptions}
-            value={choice.fixes}
-            singleColumn={true}
-            ariaLabelledby={fixesLabelId}
-            dataTestId="agent-ai-settings-fixes"
-            onChange={(value: string) => {
-              setChoice((previous: AgentAiSettingsChoice) => {
-                return { ...previous, fixes: value as AiFixesMode };
-              });
-            }}
-          />
-        </div>
+        {props.hasNoFixes ? (
+          <></>
+        ) : (
+          <div className="space-y-2">
+            <p
+              id={fixesLabelId}
+              className="text-sm font-semibold text-gray-900"
+            >
+              {translator.translateText(AI_ACCESS_FIXES_ROW_TITLE)}
+            </p>
+            <CardSelect
+              options={fixesOptions}
+              value={choice.fixes}
+              singleColumn={true}
+              ariaLabelledby={fixesLabelId}
+              dataTestId="agent-ai-settings-fixes"
+              onChange={(value: string) => {
+                setChoice((previous: AgentAiSettingsChoice) => {
+                  return { ...previous, fixes: value as AiFixesMode };
+                });
+              }}
+            />
+          </div>
+        )}
 
         <div className="space-y-4" data-testid="agent-ai-settings-commands">
           <p className="text-sm font-semibold text-gray-900">

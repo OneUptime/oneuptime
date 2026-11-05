@@ -430,6 +430,12 @@ export interface KubernetesNodeObject {
     | {
         unschedulable: boolean;
         taints: Array<KubernetesNodeTaint>;
+        /*
+         * Which machine of its cloud this node is, as the cloud controller
+         * manager wrote it: `openstack:///<instance UUID>`, `aws:///<zone>/<id>`.
+         * Absent on a node no cloud provider set up.
+         */
+        providerID?: string | undefined;
       }
     | undefined;
   status: {
@@ -1350,6 +1356,7 @@ export function parseNodeObject(
         specKv,
         "taints",
       );
+      const providerID: string = getKvStringValue(specKv, "providerID");
       node.spec = {
         unschedulable: getKvStringValue(specKv, "unschedulable") === "true",
         taints:
@@ -1364,6 +1371,7 @@ export function parseNodeObject(
                 },
               )
             : [],
+        ...(providerID ? { providerID } : {}),
       };
     }
 

@@ -2760,6 +2760,256 @@ function shieldFromGenericRules(
 }
 
 /*
+ * openstack (a cloud's API, through the OpenStack AI agent). Nova hands an
+ * admin an instance's user data, base64 of whatever cloud-init was given, which
+ * is where people put passwords: nothing about the value looks like one. A
+ * Glance image's direct_url and a volume's provider_auth name how to reach the
+ * backend. Keystone's tokens are Fernet, which starts "gAAAA" and is the one
+ * shape recordings have ever needed to scrub. Metadata marked secret is masked
+ * by the generic rules, by its key's name.
+ *
+ * Masked in every shape the agent prints an answer in: JSON pairs (plain, or
+ * escaped inside another JSON string), "key: value" lines and table rows. Read
+ * with indexOf and loops, never a quantifier: a fault's traceback can be long,
+ * and an instance's user data is 64 KB by design.
+ */
+const OPENSTACK_SECRET_FIELDS: ReadonlyArray<string> = [
+  "user_data",
+  "userdata",
+  "adminPass",
+  "admin_pass",
+  "direct_url",
+  "provider_auth",
+];
+
+const OPENSTACK_FERNET_PREFIX: string = "gAAAA";
+const OPENSTACK_FERNET_MIN_LENGTH: number = 60;
+
+function isOpenStackFieldSpace(ch: string): boolean {
+  return ch === " " || ch === "\t";
+}
+
+function isOpenStackTableSeparator(ch: string): boolean {
+  return ch === "|" || ch === "│";
+}
+
+// A bare value that holds no secret: null, a boolean or a number.
+function isOpenStackHarmlessBareValue(value: string): boolean {
+  const word: string = value.trim();
+
+  if (
+    word === "" ||
+    word === "null" ||
+    word === "None" ||
+    word === "true" ||
+    word === "false"
+  ) {
+    return true;
+  }
+
+  for (let i: number = 0; i < word.length; i++) {
+    const ch: string = word.charAt(i);
+
+    if ((ch < "0" || ch > "9") && ch !== "." && ch !== "-") {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function isAlreadyMasked(value: string): boolean {
+  return value.startsWith(REDACTED_PREFIX);
+}
+
+function maskOpenStackField(
+  text: string,
+  field: string,
+): { text: string; count: number } {
+  const pieces: Array<string> = [];
+  let cursor: number = 0;
+  let count: number = 0;
+  let searchFrom: number = 0;
+
+  for (;;) {
+    const at: number = text.indexOf(field, searchFrom);
+
+    if (at < 0) {
+      break;
+    }
+
+    let index: number = at + field.length;
+
+    searchFrom = index;
+
+    // The key's closing quote, plain or escaped.
+    if (text.startsWith('\\"', index)) {
+      index += 2;
+    } else if (text.charAt(index) === '"') {
+      index += 1;
+    }
+
+    while (isOpenStackFieldSpace(text.charAt(index))) {
+      index++;
+    }
+
+    const separator: string = text.charAt(index);
+
+    if (
+      separator !== ":" &&
+      separator !== "=" &&
+      !isOpenStackTableSeparator(separator)
+    ) {
+      continue;
+    }
+
+    index++;
+
+    while (isOpenStackFieldSpace(text.charAt(index))) {
+      index++;
+    }
+
+    let start: number;
+    let end: number;
+
+    if (text.startsWith('\\"', index)) {
+      start = index + 2;
+      end = readJsonStringEnd(text, start, true);
+    } else if (text.charAt(index) === '"') {
+      start = index + 1;
+      end = readJsonStringEnd(text, start, false);
+    } else {
+      start = index;
+      end = index;
+
+      while (end < text.length) {
+        const ch: string = text.charAt(end);
+
+        if (
+          ch === "\n" ||
+          ch === "\r" ||
+          (isOpenStackTableSeparator(separator) &&
+            isOpenStackTableSeparator(ch)) ||
+          (separator === "=" && isOpenStackFieldSpace(ch))
+        ) {
+          break;
+        }
+
+        end++;
+      }
+
+      // A compact line goes on past the value: a number, or null, is not one.
+      const bare: string = text.slice(start, end);
+      const comma: number = bare.indexOf(",");
+
+      if (
+        isOpenStackHarmlessBareValue(comma >= 0 ? bare.slice(0, comma) : bare)
+      ) {
+        searchFrom = index;
+        continue;
+      }
+    }
+
+    const value: string = text.slice(start, end);
+
+    searchFrom = end;
+
+    if (value.trim() === "" || isAlreadyMasked(value)) {
+      continue;
+    }
+
+    pieces.push(text.slice(cursor, start), GENERIC_REDACTED_MARKER);
+    cursor = end;
+    count++;
+  }
+
+  if (count === 0) {
+    return { text, count: 0 };
+  }
+
+  pieces.push(text.slice(cursor));
+
+  return { text: pieces.join(""), count };
+}
+
+function isOpenStackFernetCharacter(ch: string): boolean {
+  return (
+    (ch >= "a" && ch <= "z") ||
+    (ch >= "A" && ch <= "Z") ||
+    (ch >= "0" && ch <= "9") ||
+    ch === "_" ||
+    ch === "-" ||
+    ch === "="
+  );
+}
+
+function maskOpenStackFernetTokens(text: string): {
+  text: string;
+  count: number;
+} {
+  const pieces: Array<string> = [];
+  let cursor: number = 0;
+  let count: number = 0;
+  let searchFrom: number = 0;
+
+  for (;;) {
+    const at: number = text.indexOf(OPENSTACK_FERNET_PREFIX, searchFrom);
+
+    if (at < 0) {
+      break;
+    }
+
+    let end: number = at + OPENSTACK_FERNET_PREFIX.length;
+
+    while (end < text.length && isOpenStackFernetCharacter(text.charAt(end))) {
+      end++;
+    }
+
+    searchFrom = end;
+
+    if (end - at < OPENSTACK_FERNET_MIN_LENGTH) {
+      continue;
+    }
+
+    pieces.push(text.slice(cursor, at), GENERIC_REDACTED_MARKER);
+    cursor = end;
+    count++;
+  }
+
+  if (count === 0) {
+    return { text, count: 0 };
+  }
+
+  pieces.push(text.slice(cursor));
+
+  return { text: pieces.join(""), count };
+}
+
+function maskOpenStackSecrets(data: {
+  resourceType: AiResourceType;
+  program: string;
+  text: string;
+}): ResourceOutputRedaction {
+  let text: string = data.text;
+  let redactionCount: number = 0;
+
+  for (const field of OPENSTACK_SECRET_FIELDS) {
+    const masked: { text: string; count: number } = maskOpenStackField(
+      text,
+      field,
+    );
+
+    text = masked.text;
+    redactionCount += masked.count;
+  }
+
+  const tokens: { text: string; count: number } =
+    maskOpenStackFernetTokens(text);
+
+  return { text: tokens.text, redactionCount: redactionCount + tokens.count };
+}
+
+/*
  * The per-program hooks, run on the raw output before the generic rules.
  * Keyed by argv[0]; a program with no entry gets the generic rules only.
  * Each tool's kit extends its program's list (pvesh `cipassword`, govc
@@ -2778,6 +3028,7 @@ export const RESOURCE_OUTPUT_REDACTION_HOOKS: Readonly<
   pvesh: [maskProxmoxSecrets],
   govc: [maskGovcSecrets],
   db: [redactDatabaseOutput],
+  openstack: [maskOpenStackSecrets],
 };
 
 // The hooks for one program; none for a program the table does not list.

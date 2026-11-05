@@ -80,6 +80,7 @@ import ProxmoxClusterService from "../Services/ProxmoxClusterService";
 import ResourceAiAccessService from "../Services/ResourceAiAccessService";
 import ResourceAiAgentService from "../Services/ResourceAiAgentService";
 import RunnerJobService from "../Services/RunnerJobService";
+import OpenStackCloudService from "../Services/OpenStackCloudService";
 import VMwareVCenterService from "../Services/VMwareVCenterService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -99,6 +100,7 @@ import {
   HostNameLabelKeys,
   PodmanHostIdLabelKeys,
   PodmanHostNameLabelKeys,
+  OpenStackCloudNameLabelKeys,
   ProxmoxClusterNameLabelKeys,
   VMwareVCenterNameLabelKeys,
 } from "../Utils/Monitor/SeriesResourceLabels";
@@ -219,6 +221,11 @@ export const RESOURCE_AI_ACCESS_KINDS: Readonly<
     service: ProxmoxClusterService,
     subjectRelation: "proxmoxClusters",
     scopeLabelKeys: [...ProxmoxClusterNameLabelKeys],
+  },
+  [AiResourceType.OpenStackCloud]: {
+    service: OpenStackCloudService,
+    subjectRelation: "openStackClouds",
+    scopeLabelKeys: [...OpenStackCloudNameLabelKeys],
   },
   [AiResourceType.VMwareVCenter]: {
     service: VMwareVCenterService,

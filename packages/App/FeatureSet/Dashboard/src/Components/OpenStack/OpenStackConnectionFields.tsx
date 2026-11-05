@@ -8,6 +8,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import {
@@ -119,6 +120,8 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
   OpenStackCollectionOptionsFieldProps
 > = (props: OpenStackCollectionOptionsFieldProps): ReactElement => {
   const translator: Translator = useTranslator();
+  const networksLabelId: string = useId();
+  const projectsLabelId: string = useId();
   const options: OpenStackCollectionOptions = readOpenStackOptions(props.value);
 
   const change: (changed: OpenStackCollectionOptions) => void = (
@@ -156,11 +159,15 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
       {options.collectPorts ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <div className="mb-1 text-xs font-medium text-gray-700">
+            <div
+              id={networksLabelId}
+              className="mb-1 text-xs font-medium text-gray-700"
+            >
               {translator.translateText("Only these networks")}
             </div>
             <OpenStackNamesField
               value={options.portNetworkIds || []}
+              ariaLabelledby={networksLabelId}
               placeholder={translator.translateText("Network IDs") as string}
               disabled={props.disabled}
               dataTestId="openstack-option-port-networks"
@@ -170,11 +177,15 @@ export const OpenStackCollectionOptionsField: FunctionComponent<
             />
           </div>
           <div>
-            <div className="mb-1 text-xs font-medium text-gray-700">
+            <div
+              id={projectsLabelId}
+              className="mb-1 text-xs font-medium text-gray-700"
+            >
               {translator.translateText("Only these projects")}
             </div>
             <OpenStackNamesField
               value={options.portProjectIds || []}
+              ariaLabelledby={projectsLabelId}
               placeholder={translator.translateText("Project IDs") as string}
               disabled={props.disabled}
               dataTestId="openstack-option-port-projects"

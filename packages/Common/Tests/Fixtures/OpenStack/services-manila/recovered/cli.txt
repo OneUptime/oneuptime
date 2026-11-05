@@ -1,0 +1,25 @@
+$ openstack share list --all-projects
++--------------------------------------+-------------------+------+-------------+-----------+-----------+-----------------+-----------------------------------------+-------------------+
+| ID                                   | Name              | Size | Share Proto | Status    | Is Public | Share Type Name | Host                                    | Availability Zone |
++--------------------------------------+-------------------+------+-------------+-----------+-----------+-----------------+-----------------------------------------+-------------------+
+| 9c7ff065-917f-4025-a3a4-f8d1fe1b7a3c | ou-share-admin    |    1 | NFS         | available | False     | ou-alpha        | compute-01@alpha#fake_pool_for_ALPHA | manila-zone-0     |
+| dc946347-57a2-4171-b8c7-b7935405cc1d | ou-share-error    |    1 | NFS         | error     | False     | ou-nowhere      |                                         | None              |
+| 8368778a-6846-4835-a47a-a5f23ef1f490 | ou-share-payments |    2 | NFS         | available | False     | ou-alpha        | compute-01@alpha#fake_pool_for_ALPHA | manila-zone-0     |
+| 2180dd6b-7f08-4327-82c1-02f25b1508d8 | ou-share-stuck    |    1 | NFS         | creating  | False     | ou-slow         | compute-01@slow#fake_pool_for_SLOW   | manila-zone-1     |
++--------------------------------------+-------------------+------+-------------+-----------+-----------+-----------------+-----------------------------------------+-------------------+
+$ openstack share service list
++----+------------------+---------------------+---------------+---------+-------+----------------------------+-----------------+----------+
+| ID | Binary           | Host                | Zone          | Status  | State | Updated At                 | Disabled Reason | Ensuring |
++----+------------------+---------------------+---------------+---------+-------+----------------------------+-----------------+----------+
+|  1 | manila-share     | compute-01@alpha | manila-zone-0 | enabled | up    | 2026-11-05T03:57:44.154048 | None            | False    |
+|  2 | manila-share     | compute-01@slow  | manila-zone-1 | enabled | up    | 2026-11-05T03:57:47.623941 | None            | False    |
+|  3 | manila-scheduler | compute-01       | nova          | enabled | up    | 2026-11-05T03:57:51.639954 | None            | False    |
+|  4 | manila-data      | compute-01       | nova          | enabled | up    | 2026-11-05T03:57:50.188868 | None            | False    |
++----+------------------+---------------------+---------------+---------+-------+----------------------------+-----------------+----------+
+$ openstack share pool list
++-----------------------------------------+---------------+---------+---------------------+
+| Name                                    | Host          | Backend | Pool                |
++-----------------------------------------+---------------+---------+---------------------+
+| compute-01@alpha#fake_pool_for_ALPHA | compute-01 | alpha   | fake_pool_for_ALPHA |
+| compute-01@slow#fake_pool_for_SLOW   | compute-01 | slow    | fake_pool_for_SLOW  |
++-----------------------------------------+---------------+---------+---------------------+

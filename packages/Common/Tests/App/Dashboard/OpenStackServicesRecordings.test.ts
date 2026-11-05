@@ -9,7 +9,10 @@ import {
   isOpenStackSnapshotDatapoint,
 } from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
-import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
+  OpenStackResourceKind,
+} from "../../../Types/OpenStack/OpenStackResourceKind";
 import {
   OPENSTACK_BACKEND_OVN,
   OPENSTACK_BACKEND_OVS,
@@ -29,6 +32,16 @@ import {
   getOpenStackWorkerRank,
   isOpenStackApiExternalId,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackServices";
+
+/*
+ * What these recordings' clouds run. The catalog's order also names what a cloud may not run, such
+ * as Ironic, which none of them does: a cloud has a card only for what it reports.
+ */
+const CATALOG_ORDER_OF_EVERY_CLOUD: Array<string> =
+  OPENSTACK_CATALOG_ORDER.filter((service: string): boolean => {
+    return OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(service);
+  });
+
 
 /*
  * What the Services page and the Overview's cards make of what real clouds' exporters
@@ -202,7 +215,8 @@ function hasScene(release: string, scene: string): boolean {
 const RELEASES: Array<string> = fs
   .readdirSync(FIXTURES)
   .filter((entry: string): boolean => {
-    return hasScene(entry, "healthy");
+    // A deployment tool's recording is no DevStack: OpenStackKollaRecording.test.ts holds it.
+    return !entry.endsWith("-aio") && hasScene(entry, "healthy");
   })
   .sort();
 
@@ -234,7 +248,7 @@ describe.each(RELEASES)(
         groups.map((group: OpenStackServiceGroup): string => {
           return group.service;
         }),
-      ).toEqual([...OPENSTACK_CATALOG_ORDER]);
+      ).toEqual(CATALOG_ORDER_OF_EVERY_CLOUD);
       for (const group of groups) {
         expect({ service: group.service, health: group.health }).toEqual({
           service: group.service,
@@ -503,7 +517,7 @@ describe("how long each API took to collect, from what the collector exports", (
         return row.kind === OpenStackResourceKind.Api;
       });
 
-    expect(apis.length).toBe(OPENSTACK_CATALOG_ORDER.length);
+    expect(apis.length).toBe(CATALOG_ORDER_OF_EVERY_CLOUD.length);
     for (const api of apis) {
       const seconds: number | null = getOpenStackCollectionSeconds(api);
       expect({ api: api.name, isSeconds: typeof seconds === "number" }).toEqual(

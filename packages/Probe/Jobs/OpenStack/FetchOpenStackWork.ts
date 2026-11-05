@@ -5,6 +5,7 @@ import {
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import OpenStackCollector from "../../Utils/OpenStack/OpenStackCollector";
+import { splitOpenStackReport } from "../../Utils/OpenStack/OpenStackReportParts";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -154,11 +155,26 @@ export async function fetchOpenStackWork(): Promise<OpenStackProbeWorkResponse> 
 }
 
 /*
- * Posts a collection report, gzip-compressed: a large cloud's metrics are megabytes of
- * JSON. Without blocking, because the same process runs this probe's monitors. Returns
- * whether the server accepted it.
+ * Posts a collection report, in as many uploads as its size takes. Returns whether the server
+ * accepted all of them. One that was refused costs its own part, and the others still go.
  */
 export async function postCollectionReport(
+  report: OpenStackCollectionReport,
+): Promise<boolean> {
+  let isAccepted: boolean = true;
+
+  for (const part of splitOpenStackReport(report)) {
+    isAccepted = (await postCollectionReportPart(part)) && isAccepted;
+  }
+
+  return isAccepted;
+}
+
+/*
+ * One upload, gzip-compressed: a large cloud's metrics are megabytes of JSON. Without
+ * blocking, because the same process runs this probe's monitors.
+ */
+async function postCollectionReportPart(
   report: OpenStackCollectionReport,
 ): Promise<boolean> {
   const url: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(

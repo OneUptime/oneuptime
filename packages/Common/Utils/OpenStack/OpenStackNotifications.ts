@@ -25,6 +25,14 @@ import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKi
 export const OPENSTACK_NOTIFICATION_LOGGER_PREFIX: string =
   "oslo.messaging.notification.";
 
+/*
+ * What the message ID of a probe's instance action starts with, which is the one way to tell
+ * one from what Nova itself sent: OpenStackEventRecorder leaves them out for a cloud whose
+ * own notifications are arriving.
+ */
+export const OPENSTACK_PROBE_ACTION_MESSAGE_PREFIX: string =
+  "os-instance-actions/";
+
 export enum OpenStackEventAttribute {
   Type = "openstack.event.type",
   Priority = "openstack.event.priority",
@@ -187,35 +195,66 @@ const ROUTINE_EVENT_TYPES: ReadonlySet<string> = new Set([
   "compute.metrics.update",
 ]);
 
+/*
+ * What a service says on a timer. Cinder's capacity.pool and capacity.backend are every
+ * backend's numbers each time it reports them, and Neutron's l3.meter its traffic counters.
+ */
+const ROUTINE_EVENT_PREFIXES: ReadonlyArray<string> = ["capacity.", "l3.meter"];
+
 // The only events a run of notifications says about nothing having happened.
 function isRoutineEvent(type: string): boolean {
   return (
     ROUTINE_EVENT_TYPES.has(type) ||
     endsWith(type, ".exists") ||
-    endsWith(type, ".usage")
+    endsWith(type, ".usage") ||
+    ROUTINE_EVENT_PREFIXES.some((prefix: string): boolean => {
+      return type.startsWith(prefix);
+    })
   );
 }
 
 /*
  * Steps of something bigger: the ports an instance's boot updates, the scheduler
  * choosing a host, the state changes on the way to a state. Worth following a request
- * through, and not worth a marker each.
+ * through, and not worth a marker each. A delete shuts its instance down on the way, and a
+ * resize or a cold migration prepares and moves it on the way to resize_finish, which is
+ * the step a person waits for. Each was read off what a real cloud sends for one action.
  */
 const TRAIL_EVENT_PREFIXES: ReadonlyArray<string> = [
   "port.",
   "instance.update",
   "compute.instance.update",
+  "instance.shutdown.",
+  "instance.resize_prep.",
+  "instance.resize.",
+  "instance.live_migration_pre.",
+  "instance.live_migration_post_dest.",
   "scheduler.",
   "compute_task.",
   "image.send",
   "image.prepare",
+  "image.upload",
   "identity.",
   "audit.",
 ];
 
-function isTrailEvent(type: string): boolean {
+// An image being uploaded says update for each step of it, and one made public says it once.
+const IMAGE_STATUSES_ON_THE_WAY: ReadonlySet<string> = new Set([
+  "queued",
+  "saving",
+  "uploading",
+  "importing",
+]);
+
+function isTrailEvent(
+  type: string,
+  fields: Record<string, unknown> | null,
+): boolean {
   return (
     endsWith(type, ".start") ||
+    endsWith(type, "_scheduled") ||
+    (type === "image.update" &&
+      IMAGE_STATUSES_ON_THE_WAY.has(readText(fields, "status"))) ||
     TRAIL_EVENT_PREFIXES.some((prefix: string): boolean => {
       return type.startsWith(prefix);
     })
@@ -291,9 +330,7 @@ function readReason(data: Record<string, unknown> | null): {
   const message: string =
     readFullText(holder, "exception_message") ||
     readFullText(holder, "message") ||
-    (typeof data["reason"] === "string"
-      ? readFullText(data, "reason")
-      : "") ||
+    (typeof data["reason"] === "string" ? readFullText(data, "reason") : "") ||
     (typeof data["fault"] === "string" ? readFullText(data, "fault") : "");
 
   return {
@@ -335,6 +372,44 @@ const NEUTRON_RESOURCES: ReadonlySet<string> = new Set([
   "trunk",
 ]);
 
+// What a resource with no page of its own is called: it still has a line on the cloud's feed.
+const PARTLESS_NOUNS: ReadonlyMap<string, string> = new Map<string, string>([
+  ["aggregate", "Aggregate"],
+  ["keypair", "Key pair"],
+  ["server_group", "Server group"],
+  ["security_group", "Security group"],
+  ["security_group_rule", "Security group rule"],
+  ["subnetpool", "Subnet pool"],
+  ["segment", "Network segment"],
+  ["trunk", "Trunk"],
+  ["port", "Port"],
+]);
+
+/*
+ * The object a Neutron resource's fields are in: payload.network for a network. Adding an
+ * interface to a router says payload.router_interface, whose id is the router's.
+ */
+function readNeutronResource(
+  family: string,
+  payload: Record<string, unknown>,
+): Record<string, unknown> | null {
+  return (
+    asObject(payload[family]) ||
+    (family === "router" ? asObject(payload["router_interface"]) : null)
+  );
+}
+
+// An instance's own port says so: the instance's Logs tab shows what names its UUID.
+function readInstanceOfResource(
+  family: string,
+  resource: Record<string, unknown> | null,
+): string {
+  return family === "port" &&
+    readText(resource, "device_owner").startsWith("compute:")
+    ? readText(resource, "device_id")
+    : "";
+}
+
 // The first word of an event type: nova's instance., compute.instance. and the rest.
 function readFamily(type: string): string {
   const unversioned: string = "compute.instance.";
@@ -346,6 +421,34 @@ function readFamily(type: string): string {
   const dot: number = type.indexOf(".");
 
   return dot === -1 ? type : type.slice(0, dot);
+}
+
+interface VolumeOfRequest {
+  id: string;
+  name: string;
+  projectId: string;
+  userId: string;
+}
+
+function readVolumeOfRequest(
+  payload: Record<string, unknown>,
+): VolumeOfRequest | null {
+  const request: Record<string, unknown> | null = asObject(
+    payload["request_spec"],
+  );
+  const volume: Record<string, unknown> | null = request
+    ? asObject(request["volume"])
+    : null;
+  const id: string = readText(request, "volume_id") || readText(volume, "id");
+
+  return id
+    ? {
+        id,
+        name: readText(volume, "display_name"),
+        projectId: readText(volume, "project_id"),
+        userId: readText(volume, "user_id"),
+      }
+    : null;
 }
 
 function readPart(data: {
@@ -377,11 +480,23 @@ function readPart(data: {
       const id: string =
         readText(fields, "instance_uuid", "uuid") || data.instanceFromLine;
 
-      return id
+      if (id) {
+        return {
+          kind: OpenStackResourceKind.Instance,
+          id,
+          name: "",
+          binary: "",
+        };
+      }
+
+      // Cinder's scheduler: what it could not place is in the request it was given.
+      const volume: VolumeOfRequest | null = readVolumeOfRequest(payload);
+
+      return volume
         ? {
-            kind: OpenStackResourceKind.Instance,
-            id,
-            name: "",
+            kind: OpenStackResourceKind.Volume,
+            id: volume.id,
+            name: volume.name,
             binary: "",
           }
         : null;
@@ -466,8 +581,9 @@ function readPart(data: {
         return null;
       }
 
-      const resource: Record<string, unknown> | null = asObject(
-        payload[family],
+      const resource: Record<string, unknown> | null = readNeutronResource(
+        family,
+        payload,
       );
       const id: string =
         readText(resource, "id") || readText(payload, `${family}_id`, "id");
@@ -495,6 +611,8 @@ const ACTION_WORDS: ReadonlyMap<string, string> = new Map<string, string>([
   ["reboot", "rebooted"],
   ["rebuild", "rebuilt"],
   ["resize", "resized"],
+  ["migrate", "migrated"],
+  ["live_migration", "live migrated"],
   ["resize_finish", "resize finished"],
   ["resize_prep", "resize prepared"],
   ["resize_confirm", "resize confirmed"],
@@ -540,6 +658,34 @@ const ACTION_WORDS: ReadonlyMap<string, string> = new Map<string, string>([
   ["update_prop", "properties updated"],
 ]);
 
+/*
+ * What the steps Nova's compute tasks and scheduler name are called when they fail. Nova
+ * says build_instances, and a person says build.
+ */
+const FAILED_STEP_WORDS: ReadonlyMap<string, string> = new Map<string, string>([
+  ["build_instances", "build"],
+  ["migrate_server", "migration"],
+  ["rebuild_server", "rebuild"],
+  ["unshelve_instance", "unshelve"],
+  ["select_destinations", "scheduling"],
+  ["create_volume", "create"],
+  ["live_migration", "live migration"],
+  ["live_migration_pre", "live migration"],
+  ["live_migration_post", "live migration"],
+  ["power_off", "stop"],
+  ["power_on", "start"],
+  ["volume_attach", "volume attach"],
+  ["volume_detach", "volume detach"],
+  ["interface_attach", "interface attach"],
+  ["interface_detach", "interface detach"],
+  ["resize_prep", "resize"],
+  ["resize_finish", "resize"],
+  ["resize_confirm", "resize confirm"],
+  ["resize_revert", "resize revert"],
+  ["shelve_offload", "shelve"],
+  ["soft_delete", "delete"],
+]);
+
 const KIND_NOUNS: Readonly<Partial<Record<OpenStackResourceKind, string>>> = {
   [OpenStackResourceKind.Instance]: "Instance",
   [OpenStackResourceKind.Service]: "Service",
@@ -571,10 +717,13 @@ function readAction(type: string): string {
 
 function buildTitle(data: {
   type: string;
+  family: string;
   part: OpenStackEventPart | null;
   outcome: OpenStackEventOutcome;
   reason: string;
   fields: Record<string, unknown> | null;
+  // A Neutron resource's own fields.
+  resource: Record<string, unknown> | null;
   host: string;
 }): string {
   const { type, part, outcome, reason } = data;
@@ -601,20 +750,47 @@ function buildTitle(data: {
     }
   }
 
-  const noun: string = part ? KIND_NOUNS[part.kind] || "Part" : "OpenStack";
-  const name: string = part ? part.name || part.id : "";
+  /*
+   * What has no row of its own still has a name a person calls it by, where its fields hold
+   * one: an aggregate, a security group, a key pair.
+   */
+  const partlessNoun: string | undefined = part
+    ? undefined
+    : PARTLESS_NOUNS.get(data.family);
+  const noun: string = part
+    ? KIND_NOUNS[part.kind] || "Part"
+    : partlessNoun || "OpenStack";
+  const name: string = part
+    ? part.name || part.id
+    : partlessNoun
+      ? readText(data.resource || data.fields, "name")
+      : "";
   const subject: string = name ? `${noun} ${name}` : noun;
 
   if (outcome === OpenStackEventOutcome.Failed) {
     if (type === "compute.exception") {
+      // Nova's versioned form names no instance, so what it says is about the machine.
+      const about: string = part || !data.host ? subject : `Host ${data.host}`;
+
       return reason
-        ? `${subject}: compute failed: ${reason}`
-        : `${subject}: compute failed`;
+        ? `${about}: compute failed: ${reason}`
+        : `${about}: compute failed`;
     }
 
+    const step: string = FAILED_STEP_WORDS.get(action) || action;
+
     return reason
-      ? `${subject}: ${action} failed: ${reason}`
-      : `${subject}: ${action} failed`;
+      ? `${subject}: ${step} failed: ${reason}`
+      : `${subject}: ${step} failed`;
+  }
+
+  // Only a change is drawn anywhere, and what has only started has not done anything yet.
+  if (outcome === OpenStackEventOutcome.Started) {
+    return `${subject}: ${type}`;
+  }
+
+  if (type.startsWith("router.interface.")) {
+    return `${subject}: interface ${action === "create" ? "added" : "removed"}`;
   }
 
   const word: string | undefined = ACTION_WORDS.get(action);
@@ -634,6 +810,9 @@ const INSTANCE_STATE_ACTIONS: ReadonlySet<string> = new Set([
   "shutdown",
   "reboot",
   "rebuild",
+  "resize",
+  "migrate",
+  "live_migration",
   "resize_finish",
   "resize_confirm",
   "resize_revert",
@@ -694,8 +873,8 @@ function readMovesState(data: {
 
         return Boolean(
           change &&
-          (change["old_state"] !== change["state"] ||
-            change["old_task_state"] !== change["new_task_state"]),
+            (change["old_state"] !== change["state"] ||
+              change["old_task_state"] !== change["new_task_state"]),
         );
       }
 
@@ -714,12 +893,23 @@ function readMovesState(data: {
     case OpenStackResourceKind.Service:
       return Boolean(
         fields &&
-        (typeof fields["disabled"] === "boolean" ||
-          typeof fields["forced_down"] === "boolean"),
+          (typeof fields["disabled"] === "boolean" ||
+            typeof fields["forced_down"] === "boolean"),
       );
     default:
       return false;
   }
+}
+
+/*
+ * The machine in what a service calls its host: cinder-volume says host@backend#pool. Glance
+ * says localhost whichever machine it is on, which names none.
+ */
+function readMachine(host: string): string {
+  const at: number = host.indexOf("@");
+  const machine: string = at > 0 ? host.slice(0, at) : host;
+
+  return machine === "localhost" ? "" : machine;
 }
 
 // A service.host publisher: nova-compute:compute-01, or image.localhost and volume.host.
@@ -732,7 +922,7 @@ function readPublisher(publisher: string): {
   if (colon > 0) {
     return {
       service: publisher.slice(0, colon),
-      host: publisher.slice(colon + 1),
+      host: readMachine(publisher.slice(colon + 1)),
     };
   }
 
@@ -741,7 +931,7 @@ function readPublisher(publisher: string): {
   if (dot > 0) {
     return {
       service: publisher.slice(0, dot),
-      host: publisher.slice(dot + 1),
+      host: readMachine(publisher.slice(dot + 1)),
     };
   }
 
@@ -762,9 +952,14 @@ export function readOpenStackNotification(data: {
   lineTime?: Date | null | undefined;
 }): OpenStackEvent | null {
   const message: Record<string, unknown> | null = asObject(data.message);
+
+  if (!message || typeof message["event_type"] !== "string") {
+    return null;
+  }
+
   const type: string = readText(message, "event_type");
 
-  if (!message || !type) {
+  if (!type) {
     return null;
   }
 
@@ -781,7 +976,11 @@ export function readOpenStackNotification(data: {
     readPublisher(publisher);
   const family: string = readFamily(type);
   const instanceFromLine: string = data.instanceId || "";
-  const part: OpenStackEventPart | null = NEUTRON_RESOURCES.has(family)
+  const isNeutron: boolean = NEUTRON_RESOURCES.has(family);
+  const resource: Record<string, unknown> | null = isNeutron
+    ? readNeutronResource(family, payload)
+    : null;
+  const part: OpenStackEventPart | null = isNeutron
     ? readPart({ family, payload, fields: payload, instanceFromLine })
     : readPart({ family, payload, fields, instanceFromLine });
   const outcome: OpenStackEventOutcome = readOutcome(type, priority);
@@ -791,7 +990,7 @@ export function readOpenStackNotification(data: {
       : { reason: "", exception: "" };
   const hypervisor: string = readText(fields, "node");
   const host: string =
-    readText(fields, "host") || fromPublisher.host || hypervisor;
+    readMachine(readText(fields, "host")) || fromPublisher.host || hypervisor;
 
   let importance: OpenStackEventImportance = OpenStackEventImportance.Change;
 
@@ -799,12 +998,13 @@ export function readOpenStackNotification(data: {
     importance = OpenStackEventImportance.Routine;
   } else if (
     outcome !== OpenStackEventOutcome.Failed &&
-    isTrailEvent(type)
+    isTrailEvent(type, fields)
   ) {
     importance = OpenStackEventImportance.Trail;
   }
 
   const movesState: boolean = readMovesState({ type, part, outcome, fields });
+  const volumeOfRequest: VolumeOfRequest | null = readVolumeOfRequest(payload);
 
   return {
     type,
@@ -828,25 +1028,38 @@ export function readOpenStackNotification(data: {
     part,
     title: buildTitle({
       type,
+      family,
       part,
       outcome,
       reason: why.reason,
       fields,
+      resource,
       host: getOpenStackShortHostName(host),
     }),
     reason: why.reason,
     exception: why.exception,
     projectId:
-      readText(fields, "action_initiator_project", "tenant_id", "project_id") ||
+      readText(
+        resource || fields,
+        "action_initiator_project",
+        "project_id",
+        "tenant_id",
+      ) ||
+      (volumeOfRequest ? volumeOfRequest.projectId : "") ||
       data.projectId ||
       "",
     userId:
-      readText(fields, "action_initiator_user", "user_id") || data.userId || "",
+      readText(fields, "action_initiator_user", "user_id") ||
+      (volumeOfRequest ? volumeOfRequest.userId : "") ||
+      data.userId ||
+      "",
     requestId: readText(fields, "request_id") || data.requestId || "",
     instanceId:
       part && part.kind === OpenStackResourceKind.Instance
         ? part.id
-        : readText(fields, "instance_uuid", "instance_id") || instanceFromLine,
+        : readText(fields, "instance_uuid", "instance_id") ||
+          readInstanceOfResource(family, resource) ||
+          instanceFromLine,
     host,
     hypervisor,
     movesState,

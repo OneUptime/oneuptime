@@ -5,6 +5,7 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import MonitorService from "Common/Server/Services/MonitorService";
+import OpenStackMachinesSeen from "Common/Server/Utils/OpenStack/OpenStackMachinesSeen";
 import HostService from "Common/Server/Services/HostService";
 import {
   HOST_ABSENCE_EXPECTED_WINDOW_MINUTES,
@@ -3309,7 +3310,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
     projectId: data.projectId,
   });
 
-  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+  const allSeries: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
       ? buildSeriesBreakdown({
           queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
@@ -3320,6 +3321,16 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
           projectId: data.projectId,
         })
       : undefined;
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    allSeries && openstackMonitorConfig.onlyWhereSeen
+      ? await OpenStackMachinesSeen.keepMachinesSeenWith({
+          projectId: data.projectId,
+          cloudIdentifier: openstackMonitorConfig.cloudIdentifier,
+          fact: openstackMonitorConfig.onlyWhereSeen,
+          series: allSeries,
+        })
+      : allSeries;
 
   return {
     projectId: data.projectId,

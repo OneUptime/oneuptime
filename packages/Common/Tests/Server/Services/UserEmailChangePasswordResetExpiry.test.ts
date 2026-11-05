@@ -502,7 +502,7 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
     test("a new password is no new address: this hook makes no write for it", async () => {
       /*
        * A new password ends a sign-in link too, but in its own write, after
-       * the permission checks (UserServiceNewPasswordEndsSignInLink.test.ts).
+       * the permission checks (UserServiceNewPasswordEndsLinks.test.ts).
        */
       await userService().onBeforeUpdate(
         updatePayload({

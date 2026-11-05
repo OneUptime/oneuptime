@@ -72,7 +72,8 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *    sent, and only while a master admin has not turned links off; of two
  *    requests carrying one link exactly one signs in;
  *  - a new password ends it, however the password is set - and with it a
- *    sign-in begun with the link, which even the right code cannot finish;
+ *    sign-in begun with the link, which even the right code cannot finish -
+ *    and ends a password reset link sent before it, the same way;
  *  - following a link verifies the address, and asks for no captcha;
  *  - neither the token nor any other secret reaches a response or a log.
  * ---------------------------------------------------------------------------
@@ -1986,7 +1987,7 @@ describe("POST /login does not take a sign-in link", () => {
 
 /*
  * Every way a password changes, through the real write, which is what ends the
- * link (Common's UserServiceNewPasswordEndsSignInLink.test.ts), and then the
+ * link (Common's UserServiceNewPasswordEndsLinks.test.ts), and then the
  * sign-in route itself, asked to sign in with it.
  */
 describe("a new password ends a sign-in link sent before it", () => {
@@ -2080,5 +2081,95 @@ describe("a new password ends a sign-in link sent before it", () => {
     await signInWithLink(TOKEN);
 
     expect(signedIn()).toBe(true);
+  });
+});
+
+/*
+ * The same for a password reset link, which a person holding it could otherwise
+ * spend to replace the password the owner has just set: every way a password
+ * changes, through the real write, and then the reset route itself.
+ */
+describe("a new password ends a reset link sent before it", () => {
+  const RESET_TOKEN: string = "2d3f8c7a-5e41-4a9c-9dae-3f4a5b6c7d8e";
+  const INVALID_RESET_LINK_MESSAGE: string =
+    "Invalid link. Please go to forgot password page again and request a new link.";
+
+  async function resetWithLink(password: string): Promise<void> {
+    await post("/reset-password", {
+      data: {
+        resetPasswordToken: RESET_TOKEN,
+        password: { _type: "HashedString", value: password },
+      },
+    });
+  }
+
+  beforeEach(async () => {
+    letWritesRunForReal();
+    row!["resetPasswordToken"] = await hashOf(RESET_TOKEN);
+    row!["resetPasswordExpires"] = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  });
+
+  it("with no new password the link works: this is what the rest of these end", async () => {
+    const oldPassword: unknown = row!["password"];
+
+    await resetWithLink("a brand new passphrase");
+
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(row!["password"]).not.toBe(oldPassword);
+  });
+
+  it.each<[string, () => Promise<void>]>([
+    ["the profile page", changePasswordOnProfilePage],
+    [
+      "a master admin's Set Password",
+      async (): Promise<void> => {
+        await UserService.setPassword({
+          userId: new ObjectID(USER_ID),
+          password: "a brand new passphrase",
+        });
+      },
+    ],
+    [
+      "the reset link itself, opened a second time",
+      async (): Promise<void> => {
+        await resetWithLink("a brand new passphrase");
+
+        expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+        sendEmptySuccessResponse.mockClear();
+        revokeAllSessionsByUserId.mockClear();
+      },
+    ],
+  ])(
+    "%s: the link no longer resets, and the password stays what the owner set",
+    async (_name: string, changePassword: () => Promise<void>) => {
+      await changePassword();
+
+      const passwordTheOwnerSet: unknown = row!["password"];
+
+      expect(row!["resetPasswordToken"]).toBeNull();
+      expect(row!["resetPasswordExpires"]).toBeNull();
+
+      await resetWithLink("the passphrase of whoever kept the link");
+
+      expect(errorMessage()).toBe(INVALID_RESET_LINK_MESSAGE);
+      expect(sendEmptySuccessResponse).not.toHaveBeenCalled();
+      expect(row!["password"]).toBe(passwordTheOwnerSet);
+    },
+  );
+
+  it("any other change to the account leaves the link working", async () => {
+    expect(
+      await UserService.updateOneById({
+        id: new ObjectID(USER_ID),
+        data: { timezone: Timezone.EuropeLondon } as never,
+        props: { userId: new ObjectID(USER_ID) },
+      }),
+    ).toBe(1);
+
+    await resetWithLink("a brand new passphrase");
+
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
   });
 });

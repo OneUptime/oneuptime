@@ -32,6 +32,7 @@ import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
+import OpenStackAuditJoin from "./OpenStackAuditJoin";
 import SecurityLogCases, {
   LOG_THREATS_PER_SCAN_LIMIT,
   SecurityLogThreatsResult,
@@ -503,6 +504,12 @@ export default class SecurityLogScanner {
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
   }): Promise<Array<NormalizedSecurityEvent>> {
+    // An OpenStack event says which project by ID: this names it, as a case will.
+    await OpenStackAuditJoin.enrichEvents({
+      projectId: data.projectId,
+      events: data.events,
+    });
+
     /*
      * Each event made from a line written inside a traced request is
      * followed into that request first: the trace says who sent it, what

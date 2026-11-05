@@ -165,7 +165,13 @@ exit 0
         exit "\${answer#000 }"
         ;;
       201) cat "$STUB_DIR/keystone-catalog.json" 2>/dev/null ;;
-      *) printf '{"error":{"code":%s,"message":"Refused"}}' "$answer" ;;
+      *)
+        if [ -f "$STUB_DIR/keystone.body" ]; then
+          cat "$STUB_DIR/keystone.body"
+        else
+          printf '{"error":{"code":%s,"message":"Refused"}}' "$answer"
+        fi
+        ;;
     esac
     printf '\\n%s' "$answer"
     exit 0
@@ -328,22 +334,42 @@ function newerUpstream() {
   return upstream;
 }
 
-// The variables a script's ENV_NAMES list names.
-function envNames(script) {
-  const match = script.match(/^ENV_NAMES="([^"]+)"$/m);
+// The variables a script's list names, with the lists it is made of written out.
+function namesIn(script, list) {
+  const match = script.match(new RegExp(`^${list}="([^"]+)"$`, "m"));
   expect(match).not.toBeNull();
-  return match[1].replace(/\\\n/g, " ").split(/\s+/).filter(Boolean);
+  return match[1]
+    .replace(/\\\n/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .flatMap((name) => {
+      return name.startsWith("$") ? namesIn(script, name.slice(1)) : [name];
+    });
 }
 
-// The variables the heredoc that writes .env sets, in order.
-function writtenNames(script) {
+function envNames(script) {
+  return namesIn(script, "ENV_NAMES");
+}
+
+// What the heredoc that writes .env sets, one a line.
+function heredocLines(script) {
   const heredoc = script.match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
   );
   expect(heredoc).not.toBeNull();
-  return heredoc[1].split("\n").map((line) => {
-    return line.split("=")[0];
-  });
+  return heredoc[1].split("\n");
+}
+
+// What the script writes to .env, in order: the heredoc, then the lists it writes after it.
+function writtenNames(script) {
+  return [
+    ...heredocLines(script).map((line) => {
+      return line.split("=")[0];
+    }),
+    ...namesIn(script, "TARGET_LIST_NAMES"),
+    ...namesIn(script, "VERY_LARGE_CLOUD_NAMES"),
+    ...namesIn(script, "AI_AGENT_NAMES"),
+  ];
 }
 
 // Every ${VAR} docker-compose.yml interpolates ($$ is a literal $).
@@ -440,7 +466,22 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       // Run as uid 1000, which cannot give the file to the image's own user.
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "''",
-      COMPOSE_PROFILES: "'openstack-exporter'",
+      COMPOSE_PROFILES: "'openstack-exporter,openstack-ai-agent'",
+      OPENSTACK_COLLECT_QUOTAS: "'false'",
+      OPENSTACK_QUOTA_CLOUDS: "'[]'",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "'openstack-quota-exporter:9180'",
+      // The first region named, for a target that does not say its own.
+      OPENSTACK_CONTROL_PLANE_REGION: "'RegionOne'",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "'[]'",
+      // Never asked for: whoever knows where these run names them by hand.
+      OPENSTACK_RABBITMQ_TARGETS: "'[]'",
+      OPENSTACK_MARIADB_TARGETS: "'[]'",
+      OPENSTACK_MEMCACHED_TARGETS: "'[]'",
+      OPENSTACK_HAPROXY_TARGETS: "'[]'",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "'[]'",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "'[]'",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "'[]'",
     });
     expect(mode(path.join(run.installDir, ".env"))).toBe(0o600);
     expect(run.output).not.toContain("reusing it");
@@ -634,6 +675,106 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
 });
 
 /* ========================================================== the regions */
+
+describe("each project's quotas", () => {
+  test("are off until asked for: no exporter of their own, and an empty list for the collector", () => {
+    const dir = scratch();
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(0);
+    const env = composeReadAll(run.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent");
+    expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("false");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+    expect(run.output).not.toContain("quotas are read once an hour");
+  });
+
+  test("one setting starts their exporter, for every region, and says what it costs", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      input: FRESH,
+      env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+    });
+
+    expect(run.status).toBe(0);
+    const env = composeReadAll(run.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent,openstack-quotas");
+    expect(env.OPENSTACK_COLLECT_QUOTAS).toBe("true");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
+    expect(env.OPENSTACK_QUOTA_EXPORTER_ADDRESS).toBe(
+      "openstack-quota-exporter:9180",
+    );
+    expect(run.output).toContain("quotas are read once an hour");
+    expect(run.output).toContain(
+      "four API\ncalls per project, per region, on each read.",
+    );
+  });
+
+  test("the upgrade keeps them on, and follows the regions the agent reads", () => {
+    const dir = scratch();
+    expect(
+      install(dir, {
+        input: FRESH,
+        env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+      }).status,
+    ).toBe(0);
+
+    const again = install(dir);
+
+    expect(again.status).toBe(0);
+    const env = composeReadAll(again.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent,openstack-quotas");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe(env.OPENSTACK_EXPORTER_CLOUDS);
+  });
+
+  test("an upgrade told false takes the exporter off again", () => {
+    const dir = scratch();
+    expect(
+      install(dir, {
+        input: FRESH,
+        env: { OPENSTACK_COLLECT_QUOTAS: "true" },
+      }).status,
+    ).toBe(0);
+
+    const off = install(dir, { env: { OPENSTACK_COLLECT_QUOTAS: "false" } });
+
+    expect(off.status).toBe(0);
+    const env = composeReadAll(off.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("openstack-exporter,openstack-ai-agent");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+  });
+
+  test("an exporter of your own has its own say, and the setting tells you so", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      input: answers(URL, KEY, "prod", "RegionOne"),
+      env: {
+        OPENSTACK_COLLECT_QUOTAS: "true",
+        OPENSTACK_EXPORTER_ADDRESS: "exporter.example:9180",
+      },
+    });
+
+    expect(run.status).toBe(0);
+    const env = composeReadAll(run.envFile);
+    expect(env.COMPOSE_PROFILES).toBe("");
+    expect(env.OPENSTACK_QUOTA_CLOUDS).toBe("[]");
+    expect(run.output).toContain("so it is left off");
+  });
+
+  test("anything but true or false stops the install, before anything is written", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      input: FRESH,
+      env: { OPENSTACK_COLLECT_QUOTAS: "yes please" },
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      "OPENSTACK_COLLECT_QUOTAS must be true or false",
+    );
+    expect(run.envFile).toBe("");
+  });
+});
 
 describe("the region names", () => {
   function withRegions(typed) {
@@ -1410,6 +1551,40 @@ describe("bring your own exporter", () => {
     });
   }
 
+  test("starts no AI agent, and a re-run keeps one someone asked for with a credential of its own", () => {
+    const dir = scratch();
+    const installDir = path.join(dir, "agent");
+    fs.mkdirSync(installDir);
+    fs.writeFileSync(
+      path.join(installDir, ".env"),
+      [
+        `ONEUPTIME_URL=${URL}`,
+        `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+        "OPENSTACK_CLOUD_NAME=prod",
+        "OPENSTACK_EXPORTER_CLOUDS=[RegionOne]",
+        `OPENSTACK_EXPORTER_ADDRESS=${OWN}`,
+        "COMPOSE_PROFILES=openstack-ai-agent",
+        "OPENSTACK_AI_CLOUDS_FILE=/dev/null",
+        "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID=its-own-id",
+        "ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET=its-own-secret",
+        "",
+      ].join("\n"),
+    );
+
+    const run = install(dir, {});
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile)).toMatchObject({
+      COMPOSE_PROFILES: "openstack-ai-agent",
+      OPENSTACK_AI_CLOUDS_FILE: "/dev/null",
+      ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID: "its-own-id",
+      ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET: "its-own-secret",
+    });
+    expect(
+      envLines(ownExporter(scratch()).envFile).COMPOSE_PROFILES,
+    ).toBe("''");
+  });
+
   test("asks for no credential, asks Keystone nothing, writes no clouds.yaml, and turns the profile off", () => {
     const dir = scratch();
     const run = ownExporter(dir);
@@ -1476,9 +1651,233 @@ describe("bring your own exporter", () => {
 
     expect(run.status).toBe(0);
     expect(composeReadAll(run.envFile).COMPOSE_PROFILES).toBe(
-      "openstack-exporter",
+      "openstack-exporter,openstack-ai-agent",
     );
     expect(run.cloudsText).not.toBe("");
+  });
+});
+
+/* ======================== an exporter without --multi-cloud, and what the cloud stands on */
+
+describe("an exporter already running without --multi-cloud, as Kolla-Ansible runs it", () => {
+  const KOLLA = "10.0.0.254:9198";
+
+  function kolla(dir, env = {}, input = answers(URL, KEY, "prod")) {
+    return install(dir, {
+      input,
+      env: {
+        OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: KOLLA,
+        OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+        ...env,
+      },
+    });
+  }
+
+  test("asks for no credential, starts no exporter, and asks it for nothing by region", () => {
+    const run = kolla(scratch());
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile)).toMatchObject({
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: `[${KOLLA}]`,
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+      // The per-service jobs read this list, and this exporter has no /probe to ask.
+      OPENSTACK_EXPORTER_CLOUDS: "[]",
+      OPENSTACK_AUTH_URL: "",
+      COMPOSE_PROFILES: "",
+    });
+    expect(fs.existsSync(path.join(run.installDir, "clouds.yaml"))).toBe(false);
+    expect(run.curlLog).not.toContain("/auth/tokens");
+  });
+
+  test("says what it reads, and that 1.7.0 says less", () => {
+    const run = kolla(scratch());
+
+    expect(run.output).toContain(
+      `NOTE: the agent reads your exporter at [${KOLLA}] on /metrics, for region`,
+    );
+    expect(run.output).toContain(
+      "Exporter 1.7.0 says less than the bundled one: README.md says what the pages go without.",
+    );
+  });
+
+  test("asks which region it reads, because a series from it does not say", () => {
+    const run = install(scratch(), {
+      input: answers(URL, KEY, "prod", "RegionTwo"),
+      env: { OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: KOLLA },
+    });
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile).OPENSTACK_CONTROL_PLANE_REGION).toBe(
+      "RegionTwo",
+    );
+  });
+
+  test("it reads one region, so two is refused, and how to do two is said", () => {
+    const run = kolla(scratch(), {
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne,RegionTwo",
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      "an exporter in single-cloud mode reads one region",
+    );
+    expect(run.output).toContain("Run one agent for each region");
+    expect(run.envFile).toBe("");
+  });
+
+  test("a re-run keeps it, and asks nothing", () => {
+    const dir = scratch();
+    const first = kolla(dir);
+    expect(first.status).toBe(0);
+
+    const rerun = install(dir);
+
+    expect(rerun.status).toBe(0);
+    expect(rerun.envFile).toBe(first.envFile);
+    expect(rerun.output).toContain("on /metrics, for region");
+  });
+
+  test("the plain bring-your-own note points to it, for whoever has this kind", () => {
+    const run = install(scratch(), {
+      input: answers(URL, KEY, "prod", "RegionOne"),
+      env: { OPENSTACK_EXPORTER_ADDRESS: "10.0.0.5:9180" },
+    });
+
+    expect(run.output).toContain(
+      "Started without --multi-cloud, as Kolla-Ansible starts it? Set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS instead.",
+    );
+  });
+});
+
+describe("what the cloud stands on, as lists of targets", () => {
+  const LISTS = [
+    "OPENSTACK_RABBITMQ_TARGETS",
+    "OPENSTACK_MARIADB_TARGETS",
+    "OPENSTACK_MEMCACHED_TARGETS",
+    "OPENSTACK_HAPROXY_TARGETS",
+    "OPENSTACK_NETWORK_EXPORTER_TARGETS",
+    "OPENSTACK_LIBVIRT_HEALTH_TARGETS",
+  ];
+
+  function withLists(dir, lists) {
+    return install(dir, {
+      input: FRESH,
+      env: lists,
+    });
+  }
+
+  test("nothing named is an empty list in .env, and nothing is asked", () => {
+    const run = withLists(scratch(), {});
+
+    expect(run.status).toBe(0);
+    for (const name of LISTS) {
+      expect(composeReadAll(run.envFile)[name]).toBe("[]");
+    }
+    expect(run.output).not.toContain("15692");
+  });
+
+  test.each([
+    ["10.0.0.11:15692", "[10.0.0.11:15692]"],
+    ["[10.0.0.11:15692]", "[10.0.0.11:15692]"],
+    [
+      " 10.0.0.11:15692 , 10.0.0.12:15692 ",
+      "[10.0.0.11:15692,10.0.0.12:15692]",
+    ],
+    [
+      "[10.0.0.11:15692,RegionTwo@10.1.0.11:15692]",
+      "[10.0.0.11:15692,RegionTwo@10.1.0.11:15692]",
+    ],
+    ["rabbit-1.example.com:15692", "[rabbit-1.example.com:15692]"],
+    ["[fd00::11]:15692", '["[fd00::11]:15692"]'],
+    [
+      '["[fd00::11]:15692","[fd00::12]:15692"]',
+      '["[fd00::11]:15692","[fd00::12]:15692"]',
+    ],
+  ])("%s is written as the collector reads a list: %s", (typed, written) => {
+    const run = withLists(scratch(), { OPENSTACK_RABBITMQ_TARGETS: typed });
+
+    expect(run.status).toBe(0);
+    expect(composeReadAll(run.envFile).OPENSTACK_RABBITMQ_TARGETS).toBe(written);
+    // It is valid YAML with one entry per target.
+    expect(yaml.load(written).length).toBe(written.split(",").length);
+  });
+
+  test.each([
+    ["10.0.0.11", "which has no port"],
+    ["10.0.0.11:", "which is not a host:port to scrape"],
+    ["http://10.0.0.11:15692", "which is not a host:port to scrape"],
+    ["10.0.0.11:15692;reboot", "which is not a host:port to scrape"],
+  ])("%s stops the install, and says why", (typed, why) => {
+    const run = withLists(scratch(), { OPENSTACK_RABBITMQ_TARGETS: typed });
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      `Error: OPENSTACK_RABBITMQ_TARGETS holds "${typed}", ${why}`,
+    );
+    expect(run.envFile).toBe("");
+  });
+
+  test.each([["localhost:15692"], ["127.0.0.1:15692"]])(
+    "%s is the agent's own container, so it is refused",
+    (typed) => {
+      const run = withLists(scratch(), { OPENSTACK_MARIADB_TARGETS: typed });
+
+      expect(run.status).not.toBe(0);
+      expect(run.output).toContain("OPENSTACK_MARIADB_TARGETS");
+      expect(run.output).toContain("where that is the");
+      expect(run.envFile).toBe("");
+    },
+  );
+
+  test("a re-run keeps every list, the VM agent's too", () => {
+    const dir = scratch();
+    const first = withLists(dir, {
+      OPENSTACK_RABBITMQ_TARGETS: "10.0.0.11:15692",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "10.0.0.11:1981",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "10.0.0.21:9177",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "10.0.0.21:9101",
+    });
+    expect(first.status).toBe(0);
+
+    const rerun = install(dir);
+
+    expect(rerun.status).toBe(0);
+    expect(composeReadAll(rerun.envFile)).toMatchObject({
+      OPENSTACK_RABBITMQ_TARGETS: "[10.0.0.11:15692]",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "[10.0.0.11:1981]",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[10.0.0.21:9177]",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[10.0.0.21:9101]",
+    });
+  });
+
+  test("a target's region defaults to the cloud's first", () => {
+    const run = withLists(scratch(), {});
+
+    expect(composeReadAll(run.envFile).OPENSTACK_CONTROL_PLANE_REGION).toBe(
+      "RegionOne",
+    );
+  });
+
+  test("a region given by hand is kept", () => {
+    const run = withLists(scratch(), {
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionTwo",
+    });
+
+    expect(composeReadAll(run.envFile).OPENSTACK_CONTROL_PLANE_REGION).toBe(
+      "RegionTwo",
+    );
+  });
+
+  test("the compose file reads every one of them", () => {
+    const compose = agentFile("docker-compose.yml");
+
+    for (const name of [
+      ...LISTS,
+      "OPENSTACK_CONTROL_PLANE_REGION",
+      "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS",
+    ]) {
+      expect(compose).toContain(`\${${name}:-`);
+    }
   });
 });
 
@@ -1536,7 +1935,22 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_EXPORTER_ADDRESS: "openstack-exporter:9180",
       OPENSTACK_EXPORTER_USER: "1000:1000",
       OPENSTACK_CA_FILE: "",
-      COMPOSE_PROFILES: "openstack-exporter",
+      // What a re-run starts: the bundled exporter, and now the AI agent beside it.
+      COMPOSE_PROFILES: "openstack-exporter,openstack-ai-agent",
+      // What it did not say takes its default, so the next hand has it to change.
+      OPENSTACK_COLLECT_QUOTAS: "false",
+      OPENSTACK_QUOTA_CLOUDS: "[]",
+      OPENSTACK_QUOTA_EXPORTER_ADDRESS: "openstack-quota-exporter:9180",
+      OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+      OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "[]",
+      OPENSTACK_RABBITMQ_TARGETS: "[]",
+      OPENSTACK_MARIADB_TARGETS: "[]",
+      OPENSTACK_MEMCACHED_TARGETS: "[]",
+      OPENSTACK_HAPROXY_TARGETS: "[]",
+      OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]",
+      OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]",
+      OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]",
     });
   });
 
@@ -1934,27 +2348,41 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
 
   test("keeps every variable docker-compose.yml reads and writes exactly those, with what it and the doctor read", () => {
     const names = envNames(script);
-    const expected = [
+    const expected = new Set([
       ...composeVariables(),
       // Compose itself reads which profiles to start from .env.
       "COMPOSE_PROFILES",
-      // This script and troubleshoot.sh.
+      // This script and troubleshoot.sh, and the AI agent's own credential in the compose file.
       "OPENSTACK_AUTH_URL",
-    ];
-    expect([...names].sort()).toEqual(expected.sort());
+      // This script: what turns on the exporter and the list that follow from it.
+      "OPENSTACK_COLLECT_QUOTAS",
+    ]);
+    expect([...names].sort()).toEqual([...expected].sort());
     expect(writtenNames(script)).toEqual(names);
   });
 
   test("quotes every value but the validated one for what reads the file", () => {
-    const heredoc = script.match(
-      /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
-    )[1];
-    for (const name of envNames(script)) {
+    const lines = heredocLines(script);
+    for (const name of lines.map((line) => {
+      return line.split("=")[0];
+    })) {
       const line =
         name === "OPENSTACK_EXPORTER_USER"
           ? `${name}=$${name}`
           : `${name}=$(env_value "$${name}")`;
-      expect(heredoc.split("\n")).toContain(line);
+      expect(lines).toContain(line);
+    }
+    // Each list is written one name at a time, by the same helper.
+    for (const list of [
+      "$TARGET_LIST_NAMES",
+      "$VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES",
+    ]) {
+      const head = `for name in ${list}; do`;
+      expect(script).toContain(head);
+      const loop = script.slice(script.indexOf(head));
+      expect(loop.slice(0, loop.indexOf("\ndone"))).toContain(
+        `printf '%s=%s\\n' "$name" "$(env_value "\${!name}")" >> "$ENV_FILE"`,
+      );
     }
   });
 
@@ -1990,7 +2418,7 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
 
   test("installs where the systemd unit and the doctor script look", () => {
     const installDir = "/opt/oneuptime-openstack-agent";
-    expect(script).toContain(`INSTALL_DIR="\${INSTALL_DIR:-${installDir}}"`);
+    expect(script).toContain(`DEFAULT_INSTALL_DIR="${installDir}"`);
     expect(agentFile("systemd/oneuptime-openstack-agent.service")).toContain(
       `WorkingDirectory=${installDir}\n`,
     );
@@ -2078,8 +2506,29 @@ describe("the .env the installer writes, as the real Docker Compose reads it (re
       const config = realComposeConfig(run.installDir);
       expect(Object.keys(config.services).sort()).toEqual([
         "oneuptime-openstack-agent",
+        "oneuptime-openstack-ai-agent",
         "openstack-exporter",
       ]);
+      // The AI agent serves the cloud the collector reports, with the same file.
+      const aiAgent = config.services["oneuptime-openstack-ai-agent"];
+      expect(
+        serviceEnvironment(config, "oneuptime-openstack-ai-agent"),
+      ).toMatchObject({
+        ONEUPTIME_URL: URL,
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
+        ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
+        OPENSTACK_CLOUD_NAME: cloudName,
+        OPENSTACK_EXPORTER_CLOUDS: "[RegionOne,RegionTwo]",
+        ONEUPTIME_AI_ALLOW_WRITES: "false",
+      });
+      expect(aiAgent.user).toBe("1000:1000");
+      expect(aiAgent.read_only).toBe(true);
+      expect(aiAgent.cap_drop).toEqual(["ALL"]);
+      expect(
+        aiAgent.volumes.map((volume) => {
+          return `${path.basename(volume.source)}:${volume.target}:${volume.read_only}`;
+        }),
+      ).toContain("clouds.yaml:/etc/openstack/clouds.yaml:true");
       expect(
         serviceEnvironment(config, "oneuptime-openstack-agent"),
       ).toMatchObject({
@@ -2467,4 +2916,138 @@ describe("with the real curl, against a server that answers as OneUptime and Key
     expect(run.output).toContain("this machine could not connect to");
     expect(run.output).toContain("Nothing was installed or changed.");
   });
+});
+
+describe("the folder root runs the agent from", () => {
+  // A GitHub runner's /opt gave a new folder 777, under a umask of 077 (run 41966979667).
+  test("is nobody else's to change, however it arrived", () => {
+    const dir = scratch();
+    const installDir = path.join(dir, "agent");
+    fs.mkdirSync(installDir);
+    fs.chmodSync(installDir, 0o777);
+
+    expect(install(dir, { input: FRESH }).status).toBe(0);
+
+    expect(mode(installDir) & 0o022).toBe(0);
+  });
+});
+
+describe("an application credential Keystone no longer has", () => {
+  // What a deleted credential's login answered on a real cloud (run 41953871058): a 404, not a 401.
+  test("is called that, and never a wrong address", () => {
+    const dir = scratch();
+    fs.writeFileSync(path.join(dir, "keystone.answer"), "404");
+    fs.writeFileSync(
+      path.join(dir, "keystone.body"),
+      '{"error":{"code":404,"message":"Could not find Application Credential: 4c2f.","title":"Not Found"}}',
+    );
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "Error: Keystone has no such application credential (HTTP 404): it was deleted, or the ID is wrong.",
+    );
+    expect(run.output).toContain("Nothing was installed or changed.");
+    expect(run.output).not.toContain("nothing answers as Keystone");
+    expect(run.envFile).toBe("");
+  });
+});
+
+describe("a person with the docker group and no rights on /opt", () => {
+  // What these are about can only be seen where /opt is closed to this user, as it is to most.
+  let optIsClosed = !fs.existsSync("/opt/oneuptime-openstack-agent");
+  try {
+    fs.accessSync("/opt", fs.constants.W_OK);
+    optIsClosed = false;
+  } catch {
+    // Closed, as hoped.
+  }
+  const whereOptIsClosed = optIsClosed ? test : test.skip;
+  const inHome = (dir) => {
+    return path.join(dir, "oneuptime-openstack-agent");
+  };
+  const fromHome = (dir, options = {}) => {
+    return install(dir, { ...options, env: { INSTALL_DIR: "", ...options.env } });
+  };
+
+  whereOptIsClosed(
+    "gets a folder in their home, told so, and an exporter that runs as them",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH });
+
+      expect(run.status).toBe(0);
+      expect(run.output).toContain(`Installing to: ${inHome(dir)}\n`);
+      expect(run.output).toContain(
+        "This user has no rights on /opt, so the agent goes in its home folder.",
+      );
+      expect(fs.existsSync(path.join(inHome(dir), "docker-compose.yml"))).toBe(
+        true,
+      );
+      const env = readIfExists(path.join(inHome(dir), ".env"));
+      expect(env).toContain("OPENSTACK_EXPORTER_USER=1000:1000\n");
+      expect(mode(path.join(inHome(dir), ".env"))).toBe(0o600);
+      expect(mode(path.join(inHome(dir), "clouds.yaml"))).toBe(0o600);
+      // Nothing to give away: the file is already the exporter's user's.
+      expect(run.chownLog).toBe("");
+    },
+  );
+
+  whereOptIsClosed(
+    "the doctor's line says which folder, because it would look in /opt",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH });
+
+      expect(run.output).toContain(`| bash -s -- -d ${inHome(dir)}\n`);
+    },
+  );
+
+  whereOptIsClosed("a re-run finds it there, and asks nothing", () => {
+    const dir = scratch();
+    fromHome(dir, { input: FRESH });
+    const again = fromHome(dir);
+
+    expect(again.status).toBe(0);
+    expect(again.output).toContain(`Found an existing configuration in ${inHome(dir)}/.env`);
+    expect(again.output).toContain(`Installing to: ${inHome(dir)}\n`);
+  });
+
+  whereOptIsClosed("a folder they name is the folder, and no more is said", () => {
+    const dir = scratch();
+    const run = install(dir, { input: FRESH });
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain(`Installing to: ${path.join(dir, "agent")}\n`);
+    expect(run.output).not.toContain("home folder");
+  });
+
+  whereOptIsClosed(
+    "an install without Docker still asks for root, with no home folder on offer",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH, args: ["--without-docker"] });
+
+      expect(run.status).toBe(1);
+      // Wherever this runs, one of the two stops it: this user is not root, and it may not be Linux.
+      expect(run.output).toMatch(/so it needs (root|Linux)/);
+      expect(fs.existsSync(inHome(dir))).toBe(false);
+    },
+  );
+
+  whereOptIsClosed(
+    "a machine that says root and still cannot write there is told what to do, after nothing has changed",
+    () => {
+      const dir = scratch();
+      const run = fromHome(dir, { input: FRESH, env: { FAKE_UID: "0" } });
+
+      expect(run.status).toBe(1);
+      expect(run.output).toContain(
+        "Error: could not create /opt/oneuptime-openstack-agent. Nothing was installed or changed.",
+      );
+      expect(run.output).toContain("INSTALL_DIR=$HOME/oneuptime-openstack-agent bash install.sh");
+      expect(fs.existsSync(inHome(dir))).toBe(false);
+      expect(composeCalls(run.docker)).toEqual([]);
+    },
+  );
 });

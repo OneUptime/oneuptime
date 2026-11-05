@@ -1,0 +1,902 @@
+{
+"resourceMetrics": [
+{
+"resource": {
+"attributes": [
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.161.2"
+}
+},
+{
+"key": "openstack.cloud.name",
+"value": {
+"stringValue": "devstack"
+}
+},
+{
+"key": "server.port",
+"value": {
+"stringValue": "9180"
+}
+},
+{
+"key": "url.scheme",
+"value": {
+"stringValue": "http"
+}
+}
+]
+},
+"scopeMetrics": [
+{
+"scope": {
+"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+"version": "0.161.0"
+},
+"metrics": [
+{
+"name": "openstack_trove_instance_volume_used_gb",
+"description": "instance_volume_used_gb",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "datastore_type",
+"value": {
+"stringValue": "mysql"
+}
+},
+{
+"key": "datastore_version",
+"value": {
+"stringValue": "8.4"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "05c54197-08e7-4989-a5b2-dda7b57eb018"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-db-no-host"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+},
+{
+"key": "region",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ERROR"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "be5872d641e34ab18a2151cc7c1cee73"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 0
+},
+{
+"attributes": [
+{
+"key": "datastore_type",
+"value": {
+"stringValue": "mysql"
+}
+},
+{
+"key": "datastore_version",
+"value": {
+"stringValue": "8.4"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "1bcb3905-8800-473c-83c6-e800c6922080"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-db-ok"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+},
+{
+"key": "region",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ERROR"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "be5872d641e34ab18a2151cc7c1cee73"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "openstack_trove_total_instances",
+"description": "total_instances",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 2
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "openstack_trove_up",
+"description": "up",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "up",
+"description": "The scraping was successful",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_duration_seconds",
+"description": "Duration of the scrape",
+"unit": "s",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 0.222434095
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_post_metric_relabeling",
+"description": "The number of samples remaining after metric relabeling was applied",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 8
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_scraped",
+"description": "The number of samples the target exposed",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 8
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_series_added",
+"description": "The approximate number of new series in this scrape",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 6
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "openstack_trove_instance_status",
+"description": "instance_status",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "datastore_type",
+"value": {
+"stringValue": "mysql"
+}
+},
+{
+"key": "datastore_version",
+"value": {
+"stringValue": "8.4"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "05c54197-08e7-4989-a5b2-dda7b57eb018"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-db-no-host"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+},
+{
+"key": "region",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ERROR"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "be5872d641e34ab18a2151cc7c1cee73"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 12
+},
+{
+"attributes": [
+{
+"key": "datastore_type",
+"value": {
+"stringValue": "mysql"
+}
+},
+{
+"key": "datastore_version",
+"value": {
+"stringValue": "8.4"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "1bcb3905-8800-473c-83c6-e800c6922080"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-db-ok"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+},
+{
+"key": "region",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ERROR"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "be5872d641e34ab18a2151cc7c1cee73"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 12
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "openstack_trove_instance_volume_size_gb",
+"description": "instance_volume_size_gb",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "datastore_type",
+"value": {
+"stringValue": "mysql"
+}
+},
+{
+"key": "datastore_version",
+"value": {
+"stringValue": "8.4"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "05c54197-08e7-4989-a5b2-dda7b57eb018"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-db-no-host"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+},
+{
+"key": "region",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ERROR"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "be5872d641e34ab18a2151cc7c1cee73"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 1
+},
+{
+"attributes": [
+{
+"key": "datastore_type",
+"value": {
+"stringValue": "mysql"
+}
+},
+{
+"key": "datastore_version",
+"value": {
+"stringValue": "8.4"
+}
+},
+{
+"key": "id",
+"value": {
+"stringValue": "1bcb3905-8800-473c-83c6-e800c6922080"
+}
+},
+{
+"key": "name",
+"value": {
+"stringValue": "ou-db-ok"
+}
+},
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "database"
+}
+},
+{
+"key": "region",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "status",
+"value": {
+"stringValue": "ERROR"
+}
+},
+{
+"key": "tenant_id",
+"value": {
+"stringValue": "be5872d641e34ab18a2151cc7c1cee73"
+}
+}
+],
+"timeUnixNano": "1793853554338000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+}
+]
+}
+]
+},
+{
+"resource": {
+"attributes": [
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.161.2"
+}
+},
+{
+"key": "openstack.cloud.name",
+"value": {
+"stringValue": "devstack"
+}
+},
+{
+"key": "server.port",
+"value": {
+"stringValue": "9180"
+}
+},
+{
+"key": "url.scheme",
+"value": {
+"stringValue": "http"
+}
+}
+]
+},
+"scopeMetrics": [
+{
+"scope": {
+"name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+"version": "0.161.0"
+},
+"metrics": [
+{
+"name": "scrape_duration_seconds",
+"description": "Duration of the scrape",
+"unit": "s",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793853253467000000",
+"asDouble": 0.029235682
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_scraped",
+"description": "The number of samples the target exposed",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793853253467000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_samples_post_metric_relabeling",
+"description": "The number of samples remaining after metric relabeling was applied",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793853253467000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "scrape_series_added",
+"description": "The approximate number of new series in this scrape",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793853253467000000",
+"asDouble": 0
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+},
+{
+"name": "up",
+"description": "The scraping was successful",
+"gauge": {
+"dataPoints": [
+{
+"attributes": [
+{
+"key": "openstack.region.name",
+"value": {
+"stringValue": "RegionOne"
+}
+},
+{
+"key": "openstack_service",
+"value": {
+"stringValue": "object-store"
+}
+}
+],
+"timeUnixNano": "1793853253467000000",
+"asDouble": 1
+}
+]
+},
+"metadata": [
+{
+"key": "prometheus.type",
+"value": {
+"stringValue": "gauge"
+}
+}
+]
+}
+]
+}
+]
+}
+]
+}

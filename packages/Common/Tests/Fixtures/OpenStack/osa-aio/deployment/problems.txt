@@ -1,0 +1,2 @@
+full-view: the credential's id and secret are not in what it printed
+infrastructure-only: the credential's id and secret are not in what it printed

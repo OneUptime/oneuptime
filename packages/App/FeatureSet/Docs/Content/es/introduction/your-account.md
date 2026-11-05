@@ -73,6 +73,8 @@ Despliega **Seguridad** en el menú lateral de **Perfil de usuario**. Tiene tres
 3. Haz clic en **Actualizar contraseña**.
 :::
 
+Una contraseña nueva cierra la sesión de tu cuenta en todos los dispositivos, y cualquier enlace de restablecimiento o de inicio de sesión ya enviado deja de funcionar.
+
 ### Añadir una llave de acceso
 
 :::steps

@@ -73,6 +73,8 @@ Expand **Security** in the side menu of **User Profile**. It has three pages.
 3. Click **Update Password**.
 :::
 
+A new password signs every device out of your account, and any password reset link or sign-in link already sent stops working.
+
 ### Add a passkey
 
 :::steps

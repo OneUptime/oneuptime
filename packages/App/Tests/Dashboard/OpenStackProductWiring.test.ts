@@ -1,7 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import yaml from "js-yaml";
 import {
   InstallScriptEntry,
   InstallScriptName,
@@ -31,6 +30,28 @@ import {
   getSetupGuideMarkdown,
 } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import OPENSTACK_CLOUD_SHOWCASE from "../../FeatureSet/Dashboard/src/Components/OpenStack/OpenStackCloudShowcase";
+
+/*
+ * js-yaml from Common/node_modules, as OpenTelemetryCollectorExampleDocs.test.ts loads it
+ * and for the same reason: Common declares js-yaml 4, App declares no YAML parser.
+ */
+interface JsYamlModule {
+  load: (text: string) => unknown;
+}
+
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+const yaml: JsYamlModule = require(
+  path.resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "node_modules",
+    "js-yaml",
+  ),
+);
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 /*
  * The OpenStack product is a lazy-loaded route group built on the shape of the
@@ -91,7 +112,12 @@ const stripComments: SquashFunction = (source: string): string => {
 // Every PageMap key a page of this merge lives at, mounted and linked.
 const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "OPENSTACK_CLOUD_VIEW"],
+  ["AI/Insights.tsx", "OPENSTACK_CLOUD_VIEW_AI_INSIGHTS"],
+  ["AI/Logs.tsx", "OPENSTACK_CLOUD_VIEW_AI_LOGS"],
+  ["AI/Agent.tsx", "OPENSTACK_CLOUD_VIEW_AI_AGENT"],
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
+  ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
+  ["Spend.tsx", "OPENSTACK_CLOUD_VIEW_SPEND"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
   ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],
@@ -115,6 +141,8 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["RouterDetail.tsx", "OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL"],
   ["FloatingIps.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IPS"],
   ["FloatingIpDetail.tsx", "OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL"],
+  ["BareMetalNodes.tsx", "OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES"],
+  ["BareMetalNodeDetail.tsx", "OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL"],
   ["NetworkAgents.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS"],
   ["NetworkAgentDetail.tsx", "OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL"],
   ["Volumes.tsx", "OPENSTACK_CLOUD_VIEW_VOLUMES"],
@@ -124,12 +152,33 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["StoragePoolDetail.tsx", "OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL"],
   ["Images.tsx", "OPENSTACK_CLOUD_VIEW_IMAGES"],
   ["ImageDetail.tsx", "OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL"],
+  ["Stacks.tsx", "OPENSTACK_CLOUD_VIEW_STACKS"],
+  ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
+  ["Shares.tsx", "OPENSTACK_CLOUD_VIEW_SHARES"],
+  ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
+  ["DatabaseInstances.tsx", "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES"],
+  [
+    "DatabaseInstanceDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL",
+  ],
+  ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
+  [
+    "ContainerClusterDetail.tsx",
+    "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL",
+  ],
   ["Projects.tsx", "OPENSTACK_CLOUD_VIEW_PROJECTS"],
   ["ProjectDetail.tsx", "OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL"],
   ["Domains.tsx", "OPENSTACK_CLOUD_VIEW_DOMAINS"],
+  ["ControlPlane.tsx", "OPENSTACK_CLOUD_VIEW_CONTROL_PLANE"],
+  [
+    "ControlPlaneDependency.tsx",
+    "OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY",
+  ],
   ["Topology.tsx", "OPENSTACK_CLOUD_VIEW_TOPOLOGY"],
   ["Metrics.tsx", "OPENSTACK_CLOUD_VIEW_METRICS"],
   ["Logs.tsx", "OPENSTACK_CLOUD_VIEW_LOGS"],
+  ["Traces.tsx", "OPENSTACK_CLOUD_VIEW_TRACES"],
+  ["Checks.tsx", "OPENSTACK_CLOUD_VIEW_CHECKS"],
   ["Incidents.tsx", "OPENSTACK_CLOUD_VIEW_INCIDENTS"],
   ["Alerts.tsx", "OPENSTACK_CLOUD_VIEW_ALERTS"],
   ["ScheduledMaintenance.tsx", "OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE"],
@@ -153,9 +202,6 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
 // Pages later issues build. Their keys stay; nothing mounts or links them yet.
 const LATER_PAGE_KEYS: ReadonlyArray<string> = [
   "OPENSTACK_CLOUD_VIEW_INSIGHTS",
-  "OPENSTACK_CLOUD_VIEW_AI_INSIGHTS",
-  "OPENSTACK_CLOUD_VIEW_AI_LOGS",
-  "OPENSTACK_CLOUD_VIEW_AI_AGENT",
 ];
 
 const VIEW_PAGE_KEYS: ReadonlyArray<string> = MOUNTED_VIEW_PAGES.map(
@@ -177,12 +223,6 @@ const EVERY_PAGE_KEY: ReadonlyArray<string> = [
   "OPENSTACK_SETTINGS_OWNER_RULE_VIEW",
   "OPENSTACK_SETTINGS_LABEL_RULE_VIEW",
   ...LATER_PAGE_KEYS,
-];
-
-const EVERY_ROUTED_FILE: ReadonlyArray<string> = [
-  "Routes/OpenStackRoutes.tsx",
-  "Pages/OpenStack/SideMenu.tsx",
-  "Pages/OpenStack/View/SideMenu.tsx",
 ];
 
 function linkedPageKeysOf(source: string): Array<string> {
@@ -325,7 +365,6 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   test("no page of a later issue, or of Proxmox's, is imported", () => {
     for (const page of [
       "Insights",
-      "AI/",
       "Nodes",
       "NodeDetail",
       "Guests",
@@ -345,16 +384,24 @@ describe("every page of this merge is mounted, and nothing else is", () => {
   });
 
   test("no View page on disk is left unrouted", () => {
-    const onDisk: Array<string> = fs
-      .readdirSync(path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View"))
-      .filter((file: string): boolean => {
-        return (
-          file.endsWith(".tsx") &&
-          file !== "Layout.tsx" &&
-          file !== "SideMenu.tsx"
-        );
-      })
-      .sort();
+    const onDisk: Array<string> = [
+      ...fs
+        .readdirSync(path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View"))
+        .filter((file: string): boolean => {
+          return (
+            file.endsWith(".tsx") &&
+            file !== "Layout.tsx" &&
+            file !== "SideMenu.tsx"
+          );
+        }),
+      ...fs
+        .readdirSync(
+          path.join(DASHBOARD_SRC, "Pages", "OpenStack", "View", "AI"),
+        )
+        .map((file: string): string => {
+          return `AI/${file}`;
+        }),
+    ].sort();
 
     expect(onDisk).toEqual(
       MOUNTED_VIEW_PAGES.map((entry: [string, string]): string => {
@@ -434,10 +481,13 @@ describe("the side menus have no dead links", () => {
 
     expect(titles).toEqual([
       "Basic",
+      "AI",
       "Control Plane",
       "Compute",
+      "Bare Metal",
       "Network",
       "Storage",
+      "Orchestration",
       "Tenancy",
       "Telemetry",
       "Activity",
@@ -451,9 +501,13 @@ describe("the side menus have no dead links", () => {
     );
 
     for (const key of VIEW_PAGE_KEYS) {
-      // The guide is linked from the Overview, and a part's page from its row.
+      /*
+       * The guide is linked from the Overview, a part's page from its row, and one thing
+       * the cloud stands on from its line on the Control Plane card.
+       */
       if (
         key === "OPENSTACK_CLOUD_VIEW_DOCUMENTATION" ||
+        key === "OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY" ||
         key.endsWith("_DETAIL")
       ) {
         continue;
@@ -463,6 +517,16 @@ describe("the side menus have no dead links", () => {
     expect(
       dense(readSource("Pages", "OpenStack", "View", "Index.tsx")),
     ).toContain("RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION]asRoute");
+    expect(
+      dense(
+        readSource("Components", "OpenStack", "OpenStackControlPlaneCard.tsx"),
+      ),
+    ).toContain("routes.getDependencyRoute(dependency)");
+    expect(
+      dense(
+        readSource("Components", "OpenStack", "Part", "OpenStackPartRoutes.ts"),
+      ),
+    ).toContain("PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY");
   });
 
   test("the badges come from the inventory summary, under the same names", () => {
@@ -490,6 +554,10 @@ describe("the side menus have no dead links", () => {
       ["floatingIpCount", "floatingIps"],
       ["volumeCount", "volumes"],
       ["projectCount", "projects"],
+      ["stackCount", "stacks"],
+      ["containerClusterCount", "containerClusters"],
+      ["shareCount", "shares"],
+      ["databaseInstanceCount", "databases"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
       expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
@@ -506,6 +574,62 @@ describe("the side menus have no dead links", () => {
       "openStackClouds: new Includes([props.modelId])",
     );
     expect(sideMenu).not.toContain("proxmoxClusters");
+  });
+});
+
+describe("a service a cloud may not run", () => {
+  const sideMenu: string = squash(
+    readSource("Pages", "OpenStack", "View", "SideMenu.tsx"),
+  );
+
+  test.each([
+    ["Stacks", "runsHeat"],
+    ["Shares", "runsManila"],
+    ["Databases", "runsTrove"],
+    ["Kubernetes Clusters", "runsMagnum"],
+  ])(
+    "%s is in the menu only for a cloud that runs it",
+    (title: string, flag: string) => {
+      const entry: number = sideMenu.indexOf(`title: "${title}"`);
+      expect(entry).toBeGreaterThan(0);
+      expect(
+        sideMenu.substring(0, entry).lastIndexOf(`{${flag} ? (`),
+      ).toBeGreaterThan(0);
+    },
+  );
+
+  test("the section itself only for a cloud that runs one of them", () => {
+    const section: number = sideMenu.indexOf(
+      '<SideMenuSection title="Orchestration">',
+    );
+    expect(sideMenu.substring(section - 30, section)).toContain(
+      "runsHeat || runsMagnum ? (",
+    );
+  });
+
+  test("what it runs is from its rows, in the region being read, never a setting", () => {
+    expect(
+      squash(readSource("Pages", "OpenStack", "View", "Layout.tsx")),
+    ).toContain("optionalServices: summary.optionalServices");
+    expect(
+      squash(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "packages",
+            "App",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Pages",
+            "OpenStack",
+            "Utils",
+            "OpenStackResourceUtils.ts",
+          ),
+          "utf8",
+        ),
+      ),
+    ).toContain("optionalServices: getOpenStackOptionalServicesOf(services)");
   });
 });
 
@@ -653,9 +777,58 @@ describe("the neutral icon, until the trademark check (#5751)", () => {
   });
 });
 
+/*
+ * A Ceph cluster is a Proxmox page's word, and nothing a Proxmox clone should carry here. A
+ * Cinder pool's link to the Ceph product is the one real exception, in the two files whose
+ * whole job it is, and they need one word for it: the ID of the cluster an operator chose.
+ * Any other Ceph identifier, in these two or anywhere else, is still a leftover.
+ */
+const CEPH_LINK_IDENTIFIER: string = "cephClusterId";
+const CEPH_LINK_FILES: ReadonlyArray<string> = [
+  path.join(
+    "Components",
+    "OpenStack",
+    "Part",
+    "OpenStackStoragePoolCephCard.tsx",
+  ),
+  path.join("Pages", "OpenStack", "Utils", "OpenStackLinkReads.ts"),
+];
+
+function withoutTheCephLink(relative: string, source: string): string {
+  return CEPH_LINK_FILES.includes(relative)
+    ? source.replace(new RegExp(`\\b${CEPH_LINK_IDENTIFIER}\\b`, "g"), "")
+    : source;
+}
+
 describe("no Proxmox concept leaked into the OpenStack pages", () => {
   test("there are OpenStack sources to scan", () => {
     expect(OWN_FILES.length).toBeGreaterThan(30);
+  });
+
+  test("the two files that link a pool to Ceph are scanned, and still need the word", () => {
+    const scanned: Array<string> = OWN_FILES.map((file: string): string => {
+      return path.relative(DASHBOARD_SRC, file);
+    });
+    for (const relative of CEPH_LINK_FILES) {
+      expect(scanned).toContain(relative);
+      expect(readSource(relative)).toContain(CEPH_LINK_IDENTIFIER);
+    }
+  });
+
+  test("the exception is that one word, and takes nothing else with it", () => {
+    const cephCard: string = CEPH_LINK_FILES[0] as string;
+    expect(
+      withoutTheCephLink(cephCard, "cephClusterId cephClusterName"),
+    ).toContain("cephCluster");
+    expect(
+      withoutTheCephLink(cephCard, "const cephClusterId: CephCluster"),
+    ).toContain("CephCluster");
+    expect(
+      withoutTheCephLink(
+        path.join("Pages", "OpenStack", "View", "Index.tsx"),
+        "cephClusterId",
+      ),
+    ).toContain("cephCluster");
   });
 
   test.each(
@@ -663,9 +836,17 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       return path.relative(DASHBOARD_SRC, file);
     }),
   )("%s carries no Proxmox identifiers", (relative: string) => {
-    const source: string = stripComments(
-      fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8"),
+    const source: string = withoutTheCephLink(
+      relative,
+      stripComments(
+        fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8"),
+      ),
     );
+
+    // A storage pool's page names the Ceph cluster behind it, which is no leak: it means to.
+    const mayNameCeph: boolean =
+      relative.endsWith("OpenStackStoragePoolCephCard.tsx") ||
+      relative.endsWith("OpenStackUsageReads.ts");
 
     for (const forbidden of [
       "ProxmoxCluster",
@@ -674,8 +855,7 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       "pve_",
       "pveVersion",
       "pve-",
-      "cephCluster",
-      "CephCluster",
+      ...(mayNameCeph ? [] : ["cephCluster", "CephCluster"]),
       "QEMU",
       "isBackedUp",
       "A OpenStack",
@@ -804,9 +984,9 @@ describe("the inventory lists read on the server", () => {
      */
     expect(page).toContain("fetchOpenStackServiceRows");
     expect(page).toContain("getOpenStackServiceGroups");
-    expect(page).toContain('testId="openstack-services-capped"');
+    expect(page).toContain("rows.leftOut");
     expect(reads).toContain("kind:kind");
-    expect(reads).toContain("limit:LIMIT_PER_PROJECT");
+    expect(reads).toContain("limit:OPENSTACK_WORKERS_READ_WHOLE");
     expect(reads).toContain("read(OpenStackResourceKind.Api)");
     expect(reads).toContain("read(OpenStackResourceKind.Service)");
     expect(reads).not.toContain("read(OpenStackResourceKind.Instance)");
@@ -1019,11 +1199,13 @@ describe("the setup guide is true for agents/OpenStackAgent", () => {
       "utf8",
     );
 
-    expect(script).toContain(`INSTALL_DIR:-${OPENSTACK_AGENT_INSTALL_DIR}`);
+    expect(script).toContain(
+      `DEFAULT_INSTALL_DIR="${OPENSTACK_AGENT_INSTALL_DIR}"`,
+    );
   });
 
   test("every file it downloads is served at /install/openstack-agent", () => {
-    const entry: InstallScriptEntry | undefined = getInstallScriptEntry(
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
       InstallScriptName.OpenStackAgent,
     );
     const pattern: RegExp =

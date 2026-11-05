@@ -64,6 +64,7 @@ Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appe
 | AWS account          | `aws`                              | Cloud AI agent        | `AWS_ACCOUNT_ID` (empty: the account it runs in)                                                | `cloud` — one operation from a fixed catalog, never an `aws` command                                                                               | the AWS APIs, with IAM roles of its own                                    |
 | Azure subscription   | `azure`                            | Cloud AI agent        | `AZURE_SUBSCRIPTION_ID` (its setup command sets it)                                             | `cloud` — one operation from a fixed catalog, never an `az` command                                                                                | Azure Resource Manager, as its Container App's managed identity            |
 | Google Cloud project | `gcp` (or `google-cloud`)          | Cloud AI agent        | `GOOGLE_CLOUD_PROJECT` (empty: the project it runs in)                                          | `cloud` — one operation from a fixed catalog, never a `gcloud` command                                                                             | the Google Cloud APIs, as a service account of its own                     |
+| OpenStack cloud      | `openstack`                        | OpenStack AI agent    | `OPENSTACK_CLOUD_NAME`                                                                          | `openstack` commands, sent to the cloud's APIs (there is no `openstack` binary in the agent) — it only reads, and has no command that changes a cloud |
 
 Database servers: the Database AI agent has diagnostics for PostgreSQL, MySQL (and MariaDB and Percona Server), Redis (and Valkey, KeyDB and Dragonfly) and MongoDB. For any other engine it runs nothing and says so on the database's AI agent page.
 
@@ -82,6 +83,7 @@ Database servers: the Database AI agent has diagnostics for PostgreSQL, MySQL (a
 | AWS account          | `cloud whoami`                                       |
 | Azure subscription   | `cloud whoami`                                       |
 | Google Cloud project | `cloud whoami`                                       |
+| OpenStack cloud      | `openstack endpoint list`, `openstack compute service list` |
 
 On a Docker Swarm worker `docker node ls` fails: the Docker Swarm AI agent must run on a manager node. One started on a worker does not register for the cluster until its node is a manager, and the Docker Swarm installer leaves it out on a node that is not a manager.
 
@@ -93,7 +95,7 @@ Every resource AI agent is the same image, `oneuptime/resource-ai-agent:release`
 
 ### Next to a collector
 
-For Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph and database servers, the agent runs beside the collector you already use for that resource, and shares its `.env`: it already has `ONEUPTIME_URL`, the ingestion key and the resource's name. Each collector's `docker-compose.yml` ships the agent as one more service, and its `install.sh` starts it.
+For Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack and database servers, the agent runs beside the collector you already use for that resource, and shares its `.env`: it already has `ONEUPTIME_URL`, the ingestion key and the resource's name. Each collector's `docker-compose.yml` ships the agent as one more service, and its `install.sh` starts it.
 
 | Resource             | Collector                                                   | AI agent service (and container)  | Where it is set up                                                                    |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -104,8 +106,9 @@ For Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph and database servers, th
 | VMware vCenter       | [VMware Agent](/docs/telemetry/vmware#ai-agent)             | `oneuptime-vmware-ai-agent`       | `agents/VMwareAgent/docker-compose.yml`                                               |
 | Ceph cluster         | [Ceph Agent](/docs/telemetry/ceph#ai-agent)                 | `oneuptime-ceph-ai-agent`         | `agents/CephAgent/docker-compose.yml`, with the agent's own Ceph client in `./ceph`   |
 | Database server      | [Database Agent](/docs/telemetry/databases#ai-agent)        | `oneuptime-database-ai-agent`     | `agents/DatabaseAgent/docker-compose.yml`                                             |
+| OpenStack cloud      | [OpenStack Agent](/docs/telemetry/openstack#ai-agent)       | `oneuptime-openstack-ai-agent`    | `agents/OpenStackAgent/docker-compose.yml`, with the credential in `clouds.yaml`      |
 
-A collector installed before the AI agent existed does not run it yet. Re-run its `install.sh`: it now starts the AI agent too (the Proxmox, VMware, Ceph, database and Docker Swarm installers download the current `docker-compose.yml`, which has the AI agent service). If you manage the files yourself, add the service from the collector's `docker-compose.yml` to yours and run `docker compose up -d`. The resource's AI agent page shows the exact service for that resource, with its name already filled in.
+A collector installed before the AI agent existed does not run it yet. Re-run its `install.sh`: it now starts the AI agent too (the Proxmox, VMware, Ceph, OpenStack, database and Docker Swarm installers download the current `docker-compose.yml`, which has the AI agent service). If you manage the files yourself, add the service from the collector's `docker-compose.yml` to yours and run `docker compose up -d`. The resource's AI agent page shows the exact service for that resource, with its name already filled in.
 
 Without the installers, the Docker AI agent is one `docker run`:
 
@@ -160,9 +163,9 @@ To change anything, run the command again: open **Let AI fix problems** once mor
 
 ### Connecting to OneUptime
 
-The agent registers with the **same identity the collector reports** — `DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, … (`ONEUPTIME_AI_AGENT_RESOURCE_NAME` overrides it) — so it serves exactly the resource the collector's telemetry created. When OneUptime has no resource of that name yet, registration creates it, so a name that differs from the collector's gives you a second, empty resource instead of an error. A database registers by `DATABASE_SERVER_ID` when it is set, else by its engine, address and port; a `DATABASE_SERVER_ID` that is not a database of this project is refused.
+The agent registers with the **same identity the collector reports** — `DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, `OPENSTACK_CLOUD_NAME`, … (`ONEUPTIME_AI_AGENT_RESOURCE_NAME` overrides it) — so it serves exactly the resource the collector's telemetry created. When OneUptime has no resource of that name yet, registration creates it, so a name that differs from the collector's gives you a second, empty resource instead of an error. A database registers by `DATABASE_SERVER_ID` when it is set, else by its engine, address and port; a `DATABASE_SERVER_ID` that is not a database of this project is refused.
 
-If the collector still uses its default name (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`), every resource installed with that default reports into the same resource in OneUptime, and commands for it could reach any of them. The agent warns about this in its log; give each resource a unique name, on the collector and the agent alike.
+If the collector still uses its default name (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`, `openstack`), every resource installed with that default reports into the same resource in OneUptime, and commands for it could reach any of them. The agent warns about this in its log; give each resource a unique name, on the collector and the agent alike.
 
 It authenticates with the project's telemetry ingestion key — the first one set of `ONEUPTIME_API_KEY`, `ONEUPTIME_TELEMETRY_INGESTION_KEY` and `ONEUPTIME_SERVICE_TOKEN`, which the collectors already set — and receives a key of its own. All of its calls are HTTPS `POST`s to `<ONEUPTIME_URL>/resource-ai-agent-ingest/…`: it registers once at start, heartbeats every 30 seconds (it counts as online for 5 minutes after the last one), asks for work every 3 seconds, and signs off when it stops. A second agent with the same identity is refused while the first one is online: a container that stops cleanly signs off, so its replacement is admitted at once, and after a crash or a kill the replacement takes over once the old one has sent nothing for 40 seconds after the first refusal. If it is still refused after 10 minutes, another live agent uses the same identity: the agent logs an error saying so and asks only every 5 minutes until you give each resource its own name or stop the other agent. A project holds at most 250 resource AI agents, and at most 30 new ones register per hour. Once the 250 are reached, agents not heard from in 7 days are removed to make room for a new one (the resource keeps its AI settings, and such an agent that comes back simply registers again).
 
@@ -230,6 +233,26 @@ The command comes first, then its flags, then names or inventory paths (govc ign
 - `govc events -n 50 /DC/vm/web-01`, `govc tasks -n 50` — recent events and tasks (at most 500, never `-f`).
 - `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`, `govc metric.ls /DC/vm/web-01`, `govc object.collect -s /DC/vm/web-01 runtime.powerState` (runtime and health properties only), `govc host.service.ls -host esx-01`, `govc host.date.info -host esx-01`, `govc tags.ls`.
 - Never: the connection, credential, TLS and debug flags (`-u`, `-k`, `-cert`, `-debug`, `-dump`, …), guest operations (`guest.*`), datastore file access, `esxcli`, `env` and every command not listed.
+
+### OpenStack clouds
+
+There is no `openstack` binary in the agent, and no shell. A command is written in `openstack` grammar — the words of the command, then IDs, then options as `--name value` — and the agent turns it into exactly one `GET` to the service that answers it (Nova, Neutron, Cinder, Glance, Placement or Keystone), with its own credential. `-f table|json` picks the output and `--os-region-name REGION` another region. `--name=value` is refused, and so is `-c`. An ID must be an ID: a list prints them, and a name is never looked up.
+
+- Instances: `openstack server list --all-projects --limit 50 --host compute-01`, with `--status`, `--name`, `--project`, `--availability-zone` and `--changes-since` to narrow it; `openstack server show 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11`, and `openstack server event list 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11`, which names the request behind each thing that happened to an instance (`req-...`), and `server event show` with that request's ID.
+- Compute and capacity: `openstack compute service list`, `openstack hypervisor list`, `openstack aggregate list`, `openstack availability zone list`, `openstack flavor list`, `openstack resource provider list`, and `hypervisor show`, `resource provider show`, `resource provider usage show` and `resource provider inventory list` with an ID.
+- Network: `openstack network agent list`, `openstack network list`, `openstack subnet list`, `openstack router list`, `openstack floating ip list`, `openstack ip availability list`, and `show` with an ID for each but the last; `port show` with an ID, and `openstack port list --limit 50 --host compute-01` with one of `--server`, `--network`, `--router`, `--device-id`, `--host` or `--project`.
+- Storage and images: `openstack volume service list`, `openstack volume backend pool list`, `openstack volume list --all-projects --limit 50`, `openstack volume snapshot list --all-projects --limit 50`, `openstack volume backup list --all-projects --limit 50`, `openstack image list`, and `volume show` and `image show` with an ID.
+- The cloud's shape: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list`, and `project show` with an ID.
+- A list across tenants must say `--limit N`, up to 200, and continues with `--marker ID`. Every other list stops at 100 rows unless it says otherwise, and says when there are more. The agent never follows a `next` link on its own.
+- Never: anything that changes the cloud — there is no such command to run — Keystone's users, credentials, role assignments and tokens, consoles and console logs, Barbican's secrets, `--os-cloud` and every other login or endpoint option.
+
+An instance's `user_data`, its admin password, an image's `direct_url`, a volume's `provider_auth` and anything else marked secret are masked before the output reaches the model or a log.
+
+A stopped `nova-compute` leaves its instances reading `ACTIVE`, so an investigation goes by the service's `state` (`down`) and the instances' `host_status` (`UNKNOWN`).
+
+An investigation does not start from nothing. On an incident or alert linked to a cloud, OneUptime AI is told what the cloud's page says **Needs attention**: the services that are down, and the hosts, instances, volumes and pools in trouble. Where the incident's series names a part, it also hears what that part takes with it (its blast radius: instances, projects, Kubernetes nodes and hosts), which attributes pick the part's logs out, and what changed on the cloud around that time.
+
+From there it follows a request. `server event list` prints each action's request ID, and `search_logs` takes that ID as an attribute (`openstack.request_root_id`) to read what every service wrote about it. The report cites each command it ran with its output, as it does for `kubectl`. The logs need the [service logs](/docs/telemetry/openstack#service-logs) profile and the changes need [lifecycle events](/docs/telemetry/openstack#lifecycle-events): without them, those reads come back empty.
 
 ### Ceph clusters
 
@@ -404,6 +427,10 @@ Before a person approves a fix that changes a cloud account, OneUptime dry-runs 
 
 On the fix's card and in its Slack and Microsoft Teams message, a cloud change also says what it does in plain words, above its exact command: "Scale the ECS service web out to 4 tasks". The words are read from the command by the catalog's grammar, never from what OneUptime AI wrote. When OneUptime AI plans a fix for an account, it is told what the incident or alert is linked to there: its Cloud resources, by the ids a change names them by, and its App Platforms environments, where a fix changes the services that run in them.
 
+### OpenStack clouds have no fixes yet
+
+OneUptime AI only reads an OpenStack cloud. Its policy has no command that changes one, so an investigation's report says what a person should change. **What AI may do** on a cloud has no fix mode to pick, and `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing there: the agent says so when it starts, and stays read-only.
+
 ### The command allowlist
 
 In **Automatic** mode, the resource's **Command allowlist** on the AI agent page lets riskier commands you name run without approval. It is matched word by word against the command, not as text:
@@ -449,6 +476,7 @@ The agent reports these settings to OneUptime with every heartbeat, so OneUptime
 | Database servers        | `session:<id>`                                                                                                                                                                                       | `session:*`             |
 | Hosts                   | full unit names (`nginx.service`), `pid:<pid>` for a process, `journal` for a journal vacuum                                                                                                         | `nginx.service,app-*`   |
 | Cloud accounts          | the resource's id: an ARN, an Azure resource ID in lowercase, or a Google Cloud full resource name                                                                                                   | `arn:aws:ecs:*:123456789012:service/prod/*` |
+| OpenStack clouds        | none: OneUptime AI only reads a cloud |
 
 ### What the agent protects on its own
 
@@ -474,6 +502,7 @@ The agent uses only the credentials in its own environment and mounts — mostly
 | Database server              | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (the collector's login), or `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` when set; `DATABASE_ENDPOINT` and the TLS settings                                            | The collector's monitoring login (`pg_monitor` on PostgreSQL)         | A login of the agent's own that may signal other sessions: `pg_signal_backend` (PostgreSQL), `CONNECTION_ADMIN` (MySQL 8), `+client\|kill` (Redis ACL), the `killop` action (MongoDB)                                        |
 | Host                         | Nothing: it runs privileged as root in the host's namespaces                                                                                                                                                                            | Leave `ONEUPTIME_AI_ALLOW_WRITES` unset                               | `ONEUPTIME_AI_WRITE_TARGETS` to the units AI may change                                                                                                                                                                      |
 | Cloud accounts               | The identity of where it runs: on AWS its ECS task's role, which may only assume the write role in `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN`; on Azure its Container App's managed identity; on Google Cloud the service account its VM or Cloud Run service runs as | Nothing: OneUptime reads the account through its read-only connection | The role its setup command writes: the permissions of the changes turned on and the reads they need, nothing else. On AWS each change assumes `OneUptimeAiAgentWrite` with a session policy for that one change on its one resource |
+| OpenStack cloud              | The application credential in `clouds.yaml` that the collector's exporter reads (`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS`, or `ONEUPTIME_AI_OPENSTACK_CLOUD` for another entry), or `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` when set, with `OPENSTACK_AUTH_URL`; `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
 The collectors' READMEs have the exact commands: the `pveum` commands for a Proxmox fixes token ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), the vSphere fixes role ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), the Ceph read and fixes caps ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) and the database grants per engine ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)). A Cloud AI agent's role is written by its setup command: turn a change off and run the command again, and its permissions leave the role.
 
@@ -492,8 +521,8 @@ Every command is an argument list, never a shell line, and the same command poli
 - One program, as an argument list, never through a shell: pipes, redirects, `;`, `&&` and `$(…)` are refused before anything runs, and so is `sudo`.
 - An environment built for that one command: nothing of the agent's own — not its ingestion key, not its proxy settings — reaches the program, and `docker`, `govc` and `ceph` get a private, empty home directory under `/tmp` for that one command. The `docker` CLI gets an empty private `DOCKER_CONFIG`, so no context or credential helper can change where it points; `govc` gets its credentials in its environment, never on its command line; `ceph` gets the agent's own `--conf`, `--keyring` and `--id`, and a command may not choose others.
 - A time limit (at most 2 minutes), after which the program is killed; output capped at 50 KB.
-- Secrets in the output — environment values in `docker inspect`, Proxmox cloud-init passwords, keys, tokens and passwords in logs and command lines — are masked on the agent before the output leaves it, and again by OneUptime before it is stored or shown to the model.
-- The containers run with a read-only root filesystem. The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities.
+- Secrets in the output — environment values in `docker inspect`, Proxmox cloud-init passwords, OpenStack `user_data`, keys, tokens and passwords in logs and command lines — are masked on the agent before the output leaves it, and again by OneUptime before it is stored or shown to the model.
+- The containers run with a read-only root filesystem. The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities. The OpenStack AI agent runs as the owner of `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), with none either.
 - A Cloud AI agent starts no program at all: `cloud` names one operation of its catalog, which the agent carries out as the one API call it maps to, with the credentials of where it runs. The reads run on OneUptime, through the account's read-only connection.
 
 ### The Docker socket and the Host AI agent are root on the host
@@ -520,7 +549,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-Use your resource's container name: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (with `podman` instead of `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. The database agent's service has no fixed container name, so use `docker compose logs --tail=100 oneuptime-database-ai-agent` and `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` in `/opt/oneuptime-database-agent`. The Host AI agent uses the host's network, so `curl -s http://127.0.0.1:3877/status` works on the host itself.
+Use your resource's container name: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (with `podman` instead of `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-openstack-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. The database agent's service has no fixed container name, so use `docker compose logs --tail=100 oneuptime-database-ai-agent` and `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` in `/opt/oneuptime-database-agent`. The Host AI agent uses the host's network, so `curl -s http://127.0.0.1:3877/status` works on the host itself.
 
 A Cloud AI agent runs in its cloud, with no container to `exec` into: read its log in the cloud's shell with `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` or `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (on Cloud Run, `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`), and its status on the account's **AI agent** page, which shows the same command.
 

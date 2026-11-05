@@ -1,3 +1,4 @@
+import { OpenStackContainerClusterLink } from "../../../Types/OpenStack/OpenStackLinks";
 import { jest } from "@jest/globals";
 import { act, render, screen, within } from "@testing-library/react";
 import * as React from "react";
@@ -18,11 +19,13 @@ import Search from "../../../Types/BaseDatabase/Search";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   OpenStackBlastRadius,
+  OpenStackBlastRadiusOwner,
   buildOpenStackBlastRadius,
   getEmptyOpenStackBlastRadius,
 } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import { OpenStackCountRow } from "../../../Types/OpenStack/OpenStackCounts";
 import {
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -35,7 +38,12 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
+import {
+  canOpenStackBareMetalNodeTakeAnInstance,
+  getOpenStackShortHostName,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeInMaintenance,
+} from "../../../Types/OpenStack/OpenStackHealthRules";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 /*
@@ -77,6 +85,7 @@ export interface OpenStackTestServer {
   // Reads of a kind that fail, as a server that is down does.
   failKinds: Set<string>;
   failPosts: Set<string>;
+  magnumLink: OpenStackContainerClusterLink | null;
   listCalls: Array<ListCall>;
   countCalls: Array<ListCall>;
   postCalls: Array<{ path: string; body: JSONObject }>;
@@ -91,6 +100,7 @@ export const server: OpenStackTestServer = {
   cloud: null,
   failKinds: new Set<string>(),
   failPosts: new Set<string>(),
+  magnumLink: null,
   listCalls: [],
   countCalls: [],
   postCalls: [],
@@ -245,6 +255,45 @@ function blastRadiusOf(body: JSONObject): OpenStackBlastRadius {
       projectNames[row.externalId] = row.name;
     }
   }
+  // As OpenStackResourceService says it: a stack and its Magnum cluster name each other.
+  const ownerOf: (row: Row) => OpenStackBlastRadiusOwner = (
+    row: Row,
+  ): OpenStackBlastRadiusOwner => {
+    return {
+      kind: row.kind as OpenStackResourceKind,
+      externalId: row.externalId as string,
+      name: (row.name as string) || null,
+      status: (row.status as string) || null,
+    };
+  };
+  if (part.kind === OpenStackResourceKind.Stack) {
+    return {
+      ...getEmptyOpenStackBlastRadius(),
+      belongsTo: server.rows
+        .filter((row: Row): boolean => {
+          return (
+            row.kind === OpenStackResourceKind.ContainerCluster &&
+            (row.facts as JSONObject | undefined)?.["stackId"] ===
+              part.externalId
+          );
+        })
+        .map(ownerOf),
+    };
+  }
+  if (part.kind === OpenStackResourceKind.ContainerCluster) {
+    return {
+      ...getEmptyOpenStackBlastRadius(),
+      belongsTo: server.rows
+        .filter((row: Row): boolean => {
+          return (
+            row.kind === OpenStackResourceKind.Stack &&
+            row.externalId ===
+              (part.facts as JSONObject | undefined)?.["stackId"]
+          );
+        })
+        .map(ownerOf),
+    };
+  }
   if (part.kind === OpenStackResourceKind.Hypervisor) {
     return buildOpenStackBlastRadius({
       counts: [
@@ -255,6 +304,24 @@ function blastRadiusOf(body: JSONObject): OpenStackBlastRadius {
               return (
                 row.kind === OpenStackResourceKind.Instance &&
                 row.hypervisorName === part.hypervisorName
+              );
+            }),
+          ),
+        },
+      ],
+      projectNames,
+    });
+  }
+  if (part.kind === OpenStackResourceKind.BareMetalNode) {
+    return buildOpenStackBlastRadius({
+      counts: [
+        {
+          count: "instanceCount",
+          byProject: byProject(
+            server.rows.filter((row: Row): boolean => {
+              return (
+                row.kind === OpenStackResourceKind.Instance &&
+                row.hypervisorName === part.externalId
               );
             }),
           ),
@@ -304,10 +371,107 @@ function attentionRows(): Array<Row> {
         );
       case OpenStackResourceKind.Image:
         return OPENSTACK_IMAGE_TRANSITIONAL_STATUSES.has(row.status || "");
+      case OpenStackResourceKind.BareMetalNode:
+        return (
+          isOpenStackBareMetalNodeInError(row.status) ||
+          OPENSTACK_BARE_METAL_TRANSITIONAL_STATES.has(row.status || "") ||
+          isOpenStackBareMetalNodeInMaintenance(row.adminState) ||
+          row.status === "active"
+        );
       default:
         return false;
     }
   });
+}
+
+// What the server's statement counts, by the same rules.
+function bareMetalClasses(body: JSONObject): Array<JSONObject> {
+  const classes: Map<string, JSONObject> = new Map();
+  for (const row of server.rows) {
+    if (
+      row.kind !== OpenStackResourceKind.BareMetalNode ||
+      (body["regionName"] && row.regionName !== body["regionName"])
+    ) {
+      continue;
+    }
+    const facts: JSONObject = (row.facts as JSONObject) || {};
+    const resourceClass: string | null =
+      (facts["resourceClass"] as string) || null;
+    const key: string = resourceClass || "";
+    const one: Record<string, number | string | null> = (classes.get(key) as
+      | Record<string, number | string | null>
+      | undefined) || {
+      resourceClass,
+      nodeCount: 0,
+      availableCount: 0,
+      deployedCount: 0,
+      maintenanceCount: 0,
+      failedCount: 0,
+    };
+    const add: (name: string, is: boolean) => void = (
+      name: string,
+      is: boolean,
+    ): void => {
+      one[name] = ((one[name] as number) || 0) + (is ? 1 : 0);
+    };
+    add("nodeCount", true);
+    add(
+      "availableCount",
+      canOpenStackBareMetalNodeTakeAnInstance({
+        status: row.status,
+        adminState: row.adminState,
+        powerState: (facts["powerState"] as string) || null,
+        isRetired: facts["isRetired"] === true,
+      }),
+    );
+    add("deployedCount", row.status === "active");
+    add(
+      "maintenanceCount",
+      isOpenStackBareMetalNodeInMaintenance(row.adminState),
+    );
+    add("failedCount", isOpenStackBareMetalNodeInError(row.status));
+    classes.set(key, one as unknown as JSONObject);
+  }
+  return Array.from(classes.values());
+}
+
+function inventorySummary(body: JSONObject): JSONObject {
+  const rows: Array<Row> = server.rows.filter((row: Row): boolean => {
+    return !body["regionName"] || row.regionName === body["regionName"];
+  });
+  const countOf: (kind: OpenStackResourceKind) => number = (
+    kind: OpenStackResourceKind,
+  ): number => {
+    return rows.filter((row: Row): boolean => {
+      return row.kind === kind;
+    }).length;
+  };
+  return {
+    regionCount: 1,
+    hypervisorCount: countOf(OpenStackResourceKind.Hypervisor),
+    instanceCount: countOf(OpenStackResourceKind.Instance),
+    serviceCount: countOf(OpenStackResourceKind.Service),
+    bareMetalNodeCount: countOf(OpenStackResourceKind.BareMetalNode),
+    bareMetalProviderCount: countOf(OpenStackResourceKind.PlacementProvider),
+    bareMetalProvidersNotListedCount: rows.filter((row: Row): boolean => {
+      return (
+        row.kind === OpenStackResourceKind.PlacementProvider &&
+        !rows.some((node: Row): boolean => {
+          return (
+            node.kind === OpenStackResourceKind.BareMetalNode &&
+            node.externalId === row.name
+          );
+        })
+      );
+    }).length,
+    services: rows
+      .filter((row: Row): boolean => {
+        return row.kind === OpenStackResourceKind.Api;
+      })
+      .map((row: Row): string => {
+        return row.name as string;
+      }),
+  };
 }
 
 function countsOf(body: JSONObject): Array<OpenStackCountRow> {
@@ -356,6 +520,7 @@ export function resetServer(): void {
   server.history = {};
   server.cloud = Object.assign(new OpenStackCloud(), { name: CLOUD_NAME });
   server.failKinds = new Set<string>();
+  server.magnumLink = null;
   server.failPosts = new Set<string>();
   server.listCalls = [];
   server.countCalls = [];
@@ -478,6 +643,13 @@ export function resetServer(): void {
         };
       case "blast-radius":
         return { data: blastRadiusOf(body) };
+      case "inventory-summary":
+        return { data: inventorySummary(body) };
+      case "bare-metal-classes":
+        return { data: { classes: bareMetalClasses(body) } };
+      case "kubernetes-cluster-of-magnum-cluster":
+      case "magnum-cluster-of-kubernetes-cluster":
+        return { data: { link: server.magnumLink || null } };
       case "counts":
         return { data: { rows: countsOf(body) } };
       case "domain-projects":
@@ -486,6 +658,12 @@ export function resetServer(): void {
             projectIds: server.domainProjects[String(body["domainId"])] || [],
           },
         };
+      case "host-of-machine": {
+        // The server's rule, which OpenStackAcrossProducts.test.ts holds: one host or none.
+        const hosts: Array<Record<string, unknown>> =
+          server.records["Host"] || [];
+        return { data: { host: hosts.length === 1 ? hosts[0] : null } };
+      }
       default:
         return { data: {} };
     }

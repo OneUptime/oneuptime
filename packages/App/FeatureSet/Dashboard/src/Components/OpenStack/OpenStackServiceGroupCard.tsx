@@ -1,6 +1,11 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  isOpenStackServiceForcedDown,
+  isOpenStackServiceQuiet,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackServiceFamily } from "Common/Types/OpenStack/OpenStackResourceKind";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
@@ -10,6 +15,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import ResourcePartRow from "../ResourcePart/ResourcePartRow";
+import { OPENSTACK_REASON_FORCED_DOWN } from "../../Pages/OpenStack/Utils/OpenStackHealth";
 import { getOpenStackTimeInState } from "../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import {
   OpenStackServiceGroup,
@@ -17,10 +23,12 @@ import {
   getOpenStackServiceTitle,
   getOpenStackStaleAgentIds,
   getOpenStackWorkerFamily,
+  getOpenStackWorkersNotListedWords,
   getOpenStackWorkerHost,
   getOpenStackWorkerRank,
   isOpenStackApiScrapeFailed,
 } from "../../Pages/OpenStack/Utils/OpenStackServices";
+import { OPENSTACK_QUIET_LABEL } from "./OpenStackStatus";
 import OpenStackStatusCell from "./OpenStackStatusCell";
 
 /*
@@ -44,6 +52,8 @@ export interface ComponentProps {
   showRegion: boolean;
   // The network backend the agents list reports, on Neutron's card.
   backendName?: string | null | undefined;
+  // How it is collected, which says why a service's workers can't be listed.
+  isCollectedByProbe?: boolean | undefined;
   getRowRoute: (row: OpenStackResource) => Route | undefined;
   now: Date;
 }
@@ -85,6 +95,10 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
   const zone: string = row.availabilityZone || "";
   // Planned work, until it has been so long that somebody probably forgot it.
   const isForgotten: boolean = getOpenStackWorkerRank(row, now) === 1;
+  const isForcedDown: boolean = isOpenStackServiceForcedDown({
+    status: row.status,
+    facts: row.facts as JSONObject | undefined,
+  });
 
   const facts: Array<string> = [
     getOpenStackAdminStateText(row, translator),
@@ -104,6 +118,7 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
       data-host={host}
       data-status={row.status}
       data-admin-state={row.adminState}
+      data-forced-down={isForcedDown ? "true" : undefined}
     >
       <ResourcePartRow
         to={props.to}
@@ -167,6 +182,11 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
             status={row.status}
             adminState={row.adminState}
             disabledReason={row.disabledReason}
+            reasons={
+              isForcedDown
+                ? [{ text: OPENSTACK_REASON_FORCED_DOWN }]
+                : undefined
+            }
           />
         </div>
       </ResourcePartRow>
@@ -183,6 +203,10 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
   const { group } = props;
 
   const seconds: number | null = getOpenStackCollectionSeconds(group.api);
+  const workersNotListed: string | null = getOpenStackWorkersNotListedWords({
+    group,
+    isCollectedByProbe: Boolean(props.isCollectedByProbe),
+  });
   const shown: Array<OpenStackResource> = isExpanded
     ? group.workers
     : group.workers.slice(0, OPENSTACK_SERVICE_GROUP_WORKERS_SHOWN);
@@ -254,13 +278,38 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
                     : ""}
                 </div>
                 <div className="min-w-0 sm:w-48">
-                  <OpenStackStatusCell
-                    kind={group.api.kind}
-                    status={group.api.status}
-                    isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
-                  />
+                  {group.api.status !== "down" &&
+                  isOpenStackServiceQuiet({
+                    service: group.api.name,
+                    lastSeenAt: group.api.lastSeenAt,
+                    now: props.now,
+                  }) ? (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      label={OPENSTACK_QUIET_LABEL}
+                      isOpenStackWord={false}
+                      tone="warning"
+                    />
+                  ) : (
+                    <OpenStackStatusCell
+                      kind={group.api.kind}
+                      status={group.api.status}
+                      isScrapeFailed={isOpenStackApiScrapeFailed(group.api)}
+                    />
+                  )}
                 </div>
               </ResourcePartRow>
+            </li>
+          ) : (
+            <></>
+          )}
+          {workersNotListed ? (
+            <li
+              className="bg-gray-50 px-5 py-2 text-xs text-gray-600 md:px-6"
+              data-testid="openstack-service-group-workers-not-listed"
+            >
+              {translator.translateText(workersNotListed)}
             </li>
           ) : (
             <></>
@@ -287,6 +336,23 @@ const OpenStackServiceGroupCard: FunctionComponent<ComponentProps> = (
               />
             );
           })}
+          {group.notListedCount > 0 ? (
+            <li
+              className="px-5 py-3 text-sm text-gray-500 md:px-6"
+              data-testid="openstack-service-group-not-listed"
+            >
+              {translator.translatePlural(
+                {
+                  one: "{{count}} more that needs nobody is not listed. A search finds it.",
+                  other:
+                    "{{count}} more that need nobody are not listed. A search finds any of them.",
+                },
+                group.notListedCount,
+              )}
+            </li>
+          ) : (
+            <></>
+          )}
           {group.workers.length > OPENSTACK_SERVICE_GROUP_WORKERS_SHOWN ? (
             <li className="px-5 py-3 md:px-6">
               <button

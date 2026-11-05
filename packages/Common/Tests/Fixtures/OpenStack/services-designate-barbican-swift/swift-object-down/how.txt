@@ -1,0 +1,2 @@
+Swift's object server stopped, with its proxy still answering.
+On its own: Swift's object server is stopped, with its proxy still answering, so its account and container lists still work.

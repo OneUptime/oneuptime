@@ -9,6 +9,7 @@ import {
 } from "../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import { OpenStackResourceKind } from "../../Types/OpenStack/OpenStackResourceKind";
+import { getRecordedScrapeFiles } from "./OpenStackRecordedRows";
 
 /*
  * What a real cloud's exporter said, as the rows the snapshot scan makes of it: what a
@@ -25,7 +26,7 @@ export const OPENSTACK_RECORDING_NOW: Date = new Date(
   OBSERVED_AT_MS + 60 * 1000,
 );
 
-interface Series {
+export interface OpenStackRecordedSeries {
   name: string;
   labels: Record<string, string>;
   value: number;
@@ -35,8 +36,10 @@ interface Series {
  * Prometheus' text format. A label value can hold anything a tenant typed, so this reads
  * escapes rather than splitting on commas.
  */
-function parsePrometheusText(text: string): Array<Series> {
-  const series: Array<Series> = [];
+export function parsePrometheusText(
+  text: string,
+): Array<OpenStackRecordedSeries> {
+  const series: Array<OpenStackRecordedSeries> = [];
   for (const line of text.split("\n")) {
     if (!line.trim() || line.startsWith("#")) {
       continue;
@@ -87,7 +90,7 @@ function parsePrometheusText(text: string): Array<Series> {
  * label with nothing in it, which the fold has to read correctly: a volume with no server
  * has no server_id at all (Fixtures/OpenStack/<release>/otlp.json).
  */
-function toDatapoint(series: Series): JSONObject {
+function toDatapoint(series: OpenStackRecordedSeries): JSONObject {
   const attributes: JSONArray = Object.keys(series.labels)
     .filter((key: string): boolean => {
       return series.labels[key] !== "";
@@ -135,13 +138,15 @@ function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
 export class OpenStackRecording {
   public readonly rows: Array<OpenStackResource>;
 
-  public constructor(release: string, scene: string) {
+  // asCloud reads a service as another credential did, where the scene holds that as well.
+  public constructor(
+    release: string,
+    scene: string,
+    asCloud?: string | undefined,
+  ) {
     const folder: string = path.join(FIXTURES, release, scene, "exporter");
     const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-    for (const file of fs.readdirSync(folder).sort()) {
-      if (!file.endsWith(".prom")) {
-        continue;
-      }
+    for (const file of getRecordedScrapeFiles(folder, asCloud)) {
       for (const series of parsePrometheusText(
         fs.readFileSync(path.join(folder, file), "utf8"),
       )) {
@@ -179,11 +184,44 @@ export class OpenStackRecording {
   }
 }
 
+// What the exporter said in one scene, service by service, parsed as it was written.
+export function readOpenStackScene(
+  release: string,
+  scene: string,
+  asCloud?: string | undefined,
+): Array<OpenStackRecordedSeries> {
+  const folder: string = path.join(FIXTURES, release, scene, "exporter");
+  return getRecordedScrapeFiles(folder, asCloud).flatMap(
+    (file: string): Array<OpenStackRecordedSeries> => {
+      return parsePrometheusText(
+        fs.readFileSync(path.join(folder, file), "utf8"),
+      ).map((series: OpenStackRecordedSeries): OpenStackRecordedSeries => {
+        return {
+          ...series,
+          // The job that asked, which the collector stamps: compute.prom is compute's.
+          labels: {
+            ...series.labels,
+            openstack_service: file.replace(/\.prom$/, ""),
+          },
+        };
+      });
+    },
+  );
+}
+
+/*
+ * The releases DevStack was recorded on. A deployment tool's recording ("kolla-aio") is not one:
+ * its catalog, its defaults and what it runs are its own, which is what recording it was for, and
+ * OpenStackKollaRecording.test.ts holds it to those.
+ */
 export function getOpenStackReleases(): Array<string> {
   return fs
     .readdirSync(FIXTURES)
     .filter((entry: string): boolean => {
-      return fs.existsSync(path.join(FIXTURES, entry, "healthy", "exporter"));
+      return (
+        !entry.endsWith("-aio") &&
+        fs.existsSync(path.join(FIXTURES, entry, "healthy", "exporter"))
+      );
     })
     .sort();
 }

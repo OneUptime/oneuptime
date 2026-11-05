@@ -361,6 +361,12 @@ class User extends UserModel {
   })
   public paymentProviderCustomerId?: string = undefined;
 
+  /*
+   * The latest password reset link emailed to this account: the hash of its
+   * token, never the token, which is only ever mailed. Cleared by the reset
+   * that uses it, by any other new password and by a new email address, and
+   * replaced by the next link asked for.
+   */
   @ColumnAccessControl({
     create: [],
     read: [],

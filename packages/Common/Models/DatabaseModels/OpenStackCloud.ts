@@ -37,6 +37,7 @@ import {
   OpenStackPresentedCertificate,
 } from "../../Types/OpenStack/OpenStackProbeCollection";
 import Permission from "../../Types/Permission";
+import { ResourceAiRemediationMode } from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import { DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES } from "../../Utils/OpenStack/OpenStackCollectionSettings";
 import {
@@ -197,7 +198,7 @@ export const OPENSTACK_CLOUD_BOOKKEEPING_COLUMNS: Array<string> = [
   pluralName: "OpenStack Clouds",
   icon: IconProp.Cloud,
   tableDescription:
-    "OpenStack clouds that are being monitored in this project. Each cloud is auto-discovered when the OneUptime OpenStack Agent sends metrics, or can be manually registered.",
+    "OpenStack clouds that are being monitored in this project. A cloud is discovered when the OneUptime OpenStack Agent sends its first metrics, or connected with a read-only credential that one of the project's probes collects it with.",
 })
 @Entity({
   name: "OpenStackCloud",
@@ -1927,6 +1928,96 @@ export default class OpenStackCloud extends BaseModel {
   })
   public instanceMetricsOptions?: JSONObject = undefined;
 
+  /*
+   * What the Capacity page, its CSV and the capacity alerts read, however large the cloud: a
+   * worker works it out from the inventory every couple of minutes. See OpenStackCapacitySnapshot.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Capacity Snapshot",
+    description:
+      "What this cloud's capacity added up to when a worker last read its inventory, as JSON: what is allocated and what can be, by zone, aggregate, region and cloud, how many more of each flavor fit, when each thing fills up, and what no instance explains. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public capacitySnapshot?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Spend Snapshot",
+    description:
+      "What this cloud's usage added up to when a worker last read its inventory, as JSON: this month against last, the largest domains and flavors, the top growers, and what could be reclaimed. Estimates, never an invoice. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public spendSnapshot?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Usage Read At",
+    description:
+      "The time this cloud's usage has been counted up to. Written by the server, and how a time is never counted twice.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public usageReadAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateOpenStackCloud,
+    ],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditOpenStackCloud,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Price List",
+    description:
+      "What this cloud's operator says things cost, per hour, in one currency, as JSON. Optional: usage works without it, and a price of zero means no price has been set.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public priceList?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: OPENSTACK_CLOUD_READERS,
@@ -2103,4 +2194,141 @@ export default class OpenStackCloud extends BaseModel {
     default: 0,
   })
   public collectionSettingsVersion?: number = undefined;
+
+  /*
+   * OneUptime AI access to this OpenStack cloud through its OpenStack AI agent (a
+   * resource AI agent, ResourceAiAgent). The settings are plain columns written through
+   * ordinary CRUD, so they exist before any agent registers. The columns keep the cloud's
+   * own update ACL: anyone who may edit the cloud may make AI do LESS; making it do MORE
+   * is refused by the service unless the caller may author a FullAuto auto-remediation
+   * rule. The aiAccess* columns are written only by the server.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: OPENSTACK_CLOUD_EDITORS,
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Investigate With Read-Only Commands",
+    description:
+      "When on, OneUptime AI runs read-only commands (openstack server, hypervisor, service and agent reads, each one call to the cloud's API) on this OpenStack cloud, through its OpenStack AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the OpenStack cloud can turn it on or off.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isAiInvestigationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: OPENSTACK_CLOUD_EDITORS,
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
+    title: "AI Remediation Mode",
+    /*
+     * The API and Terraform docs for the mode: the same semantics as the
+     * ResourceAiRemediationMode doc comment in
+     * Types/ResourceAiAgent/ResourceAiAccess.ts (the canonical text).
+     */
+    description:
+      "OneUptime AI only reads an OpenStack cloud today: it has no command that changes one, so this stays Disabled and any other mode is refused. Disabled: AI never proposes or runs a change on this OpenStack cloud. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the OpenStack cloud's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the OpenStack cloud can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
+    defaultValue: ResourceAiRemediationMode.Disabled,
+    example: ResourceAiRemediationMode.RequireApproval,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: ResourceAiRemediationMode.Disabled,
+  })
+  public aiRemediationMode?: ResourceAiRemediationMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: OPENSTACK_CLOUD_EDITORS,
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Command Allowlist",
+    description:
+      "OneUptime AI only reads an OpenStack cloud today, and a read needs no approval, so no pattern is valid here yet and this stays empty. Optional JSON array of command patterns that Automatic mode may run on this OpenStack cloud without approval even though they are riskier changes. Each pattern is one command line for this OpenStack cloud's agent (openstack) and is compared with the command word by word: * stands for exactly one word (a name, an id), never for extra words or flags, and every flag the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this OpenStack cloud is refused. Destructive commands (Denied tier) never run regardless, and a command that always needs a human still asks. Adding a pattern needs Project Owner, Project Admin or Edit AI Rule; anyone who may edit the OpenStack cloud can remove patterns or clear the list.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiCommandAllowlist?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Last Verified At",
+    description:
+      "When a command from OneUptime AI last succeeded on this OpenStack cloud through its OpenStack AI agent. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessLastVerifiedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "AI Access Last Error",
+    description:
+      "The most recent failure OneUptime AI hit while running a command on this OpenStack cloud, kept until the next successful command. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public aiAccessLastError?: string = undefined;
+
+  /*
+   * When this cloud's AI access was first configured, by anyone writing an AI access
+   * setting. Only the server writes it, and nothing ever clears it. A registering OpenStack
+   * AI agent reads it to tell "never configured" (it may apply its first-connection
+   * defaults) from "an operator chose settings, perhaps before installing the agent" (every
+   * setting stays as chosen).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: OPENSTACK_CLOUD_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Configured At",
+    description:
+      "When OneUptime AI access to this OpenStack cloud was first configured by anyone saving an AI access setting. Set by the server; never cleared, so an OpenStack AI agent that registers later never overwrites a setting an operator chose.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessConfiguredAt?: Date = undefined;
 }

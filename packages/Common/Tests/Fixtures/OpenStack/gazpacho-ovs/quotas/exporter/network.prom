@@ -1,0 +1,210 @@
+# HELP openstack_neutron_quota_floatingip quota_floatingip
+# TYPE openstack_neutron_quota_floatingip gauge
+openstack_neutron_quota_floatingip{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 50
+openstack_neutron_quota_floatingip{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_floatingip{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 0
+openstack_neutron_quota_floatingip{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 50
+openstack_neutron_quota_floatingip{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_floatingip{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_floatingip{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 50
+openstack_neutron_quota_floatingip{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_floatingip{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 0
+openstack_neutron_quota_floatingip{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 50
+openstack_neutron_quota_floatingip{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_floatingip{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_floatingip{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 50
+openstack_neutron_quota_floatingip{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_floatingip{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 2
+openstack_neutron_quota_floatingip{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 50
+openstack_neutron_quota_floatingip{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_floatingip{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 0
+openstack_neutron_quota_floatingip{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 50
+openstack_neutron_quota_floatingip{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_floatingip{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 0
+# HELP openstack_neutron_quota_network quota_network
+# TYPE openstack_neutron_quota_network gauge
+openstack_neutron_quota_network{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 100
+openstack_neutron_quota_network{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_network{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 1
+openstack_neutron_quota_network{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 100
+openstack_neutron_quota_network{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_network{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_network{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 100
+openstack_neutron_quota_network{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_network{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 1
+openstack_neutron_quota_network{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 100
+openstack_neutron_quota_network{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_network{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_network{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 100
+openstack_neutron_quota_network{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_network{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 1
+openstack_neutron_quota_network{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 100
+openstack_neutron_quota_network{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_network{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 1
+openstack_neutron_quota_network{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 100
+openstack_neutron_quota_network{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_network{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 0
+# HELP openstack_neutron_quota_port quota_port
+# TYPE openstack_neutron_quota_port gauge
+openstack_neutron_quota_port{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 500
+openstack_neutron_quota_port{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_port{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 0
+openstack_neutron_quota_port{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 500
+openstack_neutron_quota_port{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_port{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_port{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 500
+openstack_neutron_quota_port{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_port{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 3
+openstack_neutron_quota_port{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 500
+openstack_neutron_quota_port{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_port{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_port{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 500
+openstack_neutron_quota_port{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_port{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 4
+openstack_neutron_quota_port{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 500
+openstack_neutron_quota_port{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_port{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 2
+openstack_neutron_quota_port{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 500
+openstack_neutron_quota_port{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_port{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 0
+# HELP openstack_neutron_quota_rbac_policy quota_rbac_policy
+# TYPE openstack_neutron_quota_rbac_policy gauge
+openstack_neutron_quota_rbac_policy{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 10
+openstack_neutron_quota_rbac_policy{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_rbac_policy{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 3
+openstack_neutron_quota_rbac_policy{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 10
+openstack_neutron_quota_rbac_policy{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_rbac_policy{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_rbac_policy{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 10
+openstack_neutron_quota_rbac_policy{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_rbac_policy{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 0
+openstack_neutron_quota_rbac_policy{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 10
+openstack_neutron_quota_rbac_policy{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_rbac_policy{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_rbac_policy{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 10
+openstack_neutron_quota_rbac_policy{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_rbac_policy{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 0
+openstack_neutron_quota_rbac_policy{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 10
+openstack_neutron_quota_rbac_policy{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_rbac_policy{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 0
+openstack_neutron_quota_rbac_policy{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 10
+openstack_neutron_quota_rbac_policy{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_rbac_policy{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 0
+# HELP openstack_neutron_quota_router quota_router
+# TYPE openstack_neutron_quota_router gauge
+openstack_neutron_quota_router{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 10
+openstack_neutron_quota_router{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_router{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 0
+openstack_neutron_quota_router{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 10
+openstack_neutron_quota_router{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_router{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_router{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 10
+openstack_neutron_quota_router{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_router{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 1
+openstack_neutron_quota_router{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 10
+openstack_neutron_quota_router{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_router{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_router{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 10
+openstack_neutron_quota_router{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_router{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 1
+openstack_neutron_quota_router{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 10
+openstack_neutron_quota_router{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_router{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 0
+openstack_neutron_quota_router{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 10
+openstack_neutron_quota_router{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_router{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 0
+# HELP openstack_neutron_quota_security_group quota_security_group
+# TYPE openstack_neutron_quota_security_group gauge
+openstack_neutron_quota_security_group{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 10
+openstack_neutron_quota_security_group{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_security_group{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 1
+openstack_neutron_quota_security_group{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 10
+openstack_neutron_quota_security_group{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_security_group{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_security_group{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 10
+openstack_neutron_quota_security_group{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_security_group{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 1
+openstack_neutron_quota_security_group{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 10
+openstack_neutron_quota_security_group{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_security_group{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_security_group{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 10
+openstack_neutron_quota_security_group{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_security_group{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 2
+openstack_neutron_quota_security_group{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 10
+openstack_neutron_quota_security_group{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_security_group{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 1
+openstack_neutron_quota_security_group{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 10
+openstack_neutron_quota_security_group{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_security_group{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 1
+# HELP openstack_neutron_quota_security_group_rule quota_security_group_rule
+# TYPE openstack_neutron_quota_security_group_rule gauge
+openstack_neutron_quota_security_group_rule{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 100
+openstack_neutron_quota_security_group_rule{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_security_group_rule{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 4
+openstack_neutron_quota_security_group_rule{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 100
+openstack_neutron_quota_security_group_rule{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_security_group_rule{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_security_group_rule{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 100
+openstack_neutron_quota_security_group_rule{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_security_group_rule{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 4
+openstack_neutron_quota_security_group_rule{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 100
+openstack_neutron_quota_security_group_rule{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_security_group_rule{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_security_group_rule{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 100
+openstack_neutron_quota_security_group_rule{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_security_group_rule{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 7
+openstack_neutron_quota_security_group_rule{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 100
+openstack_neutron_quota_security_group_rule{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_security_group_rule{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 4
+openstack_neutron_quota_security_group_rule{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 100
+openstack_neutron_quota_security_group_rule{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_security_group_rule{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 4
+# HELP openstack_neutron_quota_subnet quota_subnet
+# TYPE openstack_neutron_quota_subnet gauge
+openstack_neutron_quota_subnet{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} 100
+openstack_neutron_quota_subnet{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_subnet{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 2
+openstack_neutron_quota_subnet{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} 100
+openstack_neutron_quota_subnet{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_subnet{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_subnet{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} 100
+openstack_neutron_quota_subnet{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_subnet{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 2
+openstack_neutron_quota_subnet{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} 100
+openstack_neutron_quota_subnet{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_subnet{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_subnet{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} 100
+openstack_neutron_quota_subnet{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_subnet{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 1
+openstack_neutron_quota_subnet{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} 100
+openstack_neutron_quota_subnet{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_subnet{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 1
+openstack_neutron_quota_subnet{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} 100
+openstack_neutron_quota_subnet{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_subnet{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 0
+# HELP openstack_neutron_quota_subnetpool quota_subnetpool
+# TYPE openstack_neutron_quota_subnetpool gauge
+openstack_neutron_quota_subnetpool{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="limit"} -1
+openstack_neutron_quota_subnetpool{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="reserved"} 0
+openstack_neutron_quota_subnetpool{tenant="admin",tenant_id="ec6b0fecde364e6e9e5e399eb3e7c01a",type="used"} 2
+openstack_neutron_quota_subnetpool{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="limit"} -1
+openstack_neutron_quota_subnetpool{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="reserved"} 0
+openstack_neutron_quota_subnetpool{tenant="alt_demo",tenant_id="663b381092504b7f9c91bb17ba2f0dbd",type="used"} 0
+openstack_neutron_quota_subnetpool{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="limit"} -1
+openstack_neutron_quota_subnetpool{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="reserved"} 0
+openstack_neutron_quota_subnetpool{tenant="demo",tenant_id="65c22f28763b425d98f187abad98a94c",type="used"} 0
+openstack_neutron_quota_subnetpool{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="limit"} -1
+openstack_neutron_quota_subnetpool{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="reserved"} 0
+openstack_neutron_quota_subnetpool{tenant="invisible_to_admin",tenant_id="0ac954ee8c7344c9a24027311673d05e",type="used"} 0
+openstack_neutron_quota_subnetpool{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="limit"} -1
+openstack_neutron_quota_subnetpool{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="reserved"} 0
+openstack_neutron_quota_subnetpool{tenant="ou-payments",tenant_id="83f3bd18d7ab44f6a0d49f3fec617067",type="used"} 0
+openstack_neutron_quota_subnetpool{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="limit"} -1
+openstack_neutron_quota_subnetpool{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="reserved"} 0
+openstack_neutron_quota_subnetpool{tenant="ou-research",tenant_id="c630786e2f3d41cd9a76e8e43ebfd32d",type="used"} 0
+openstack_neutron_quota_subnetpool{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="limit"} -1
+openstack_neutron_quota_subnetpool{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="reserved"} 0
+openstack_neutron_quota_subnetpool{tenant="service",tenant_id="c5786fadd52b49e0b37017d021f74ce1",type="used"} 0
+# HELP openstack_neutron_up up
+# TYPE openstack_neutron_up gauge
+openstack_neutron_up 1

@@ -21,6 +21,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -301,14 +302,26 @@ describe("Needs attention, from the server's own statuses", () => {
         agentRow(type),
       );
 
-      expect(ready.gaps).toEqual([]);
+      /*
+       * A resource AI only reads keeps one gap, however its row is set: no
+       * fixes. Nobody has to act on that, so it never needs attention.
+       */
+      expect(
+        ready.gaps.map((gap: ResourceAiAccessGap): string => {
+          return gap.code;
+        }),
+      ).toEqual(isReadOnlyAiResourceType(type) ? ["remediation_disabled"] : []);
       expect(getResourceAiAttention(ready, descriptor)).toBeNull();
       expect(fixesOff.isInvestigationReady).toBe(true);
       expect(getResourceAiAttention(fixesOff, descriptor)).toBeNull();
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "%s: every status is one item whose steps follow the server's gaps",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -378,7 +391,11 @@ describe("Needs attention, from the server's own statuses", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "%s: every gap the server sends has this page's own words",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =

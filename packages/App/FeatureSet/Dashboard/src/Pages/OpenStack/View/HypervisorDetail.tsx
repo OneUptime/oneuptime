@@ -7,6 +7,10 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  OPENSTACK_HYPERVISOR_ATTRIBUTE,
+  OpenStackHypervisorMetric,
+} from "Common/Types/OpenStack/OpenStackInstanceMetrics";
+import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OpenStackResourceKind,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -28,6 +32,8 @@ import {
   formatOpenStackCount,
 } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
+import OpenStackHostThroughput from "../../../Components/OpenStack/Part/OpenStackHostThroughput";
+import OpenStackHypervisorUsage from "../../../Components/OpenStack/Part/OpenStackHypervisorUsage";
 import {
   OpenStackPartAlerts,
   OpenStackPartOpenEvents,
@@ -68,6 +74,7 @@ import {
   isOpenStackHypervisorLost,
   parseOpenStackAggregates,
 } from "../Utils/OpenStackPartFacts";
+import { fetchOpenStackHypervisorReports } from "../Utils/OpenStackUsageReads";
 
 /*
  * A compute host: whether Nova can reach it, what is promised on it out of what Placement
@@ -84,6 +91,10 @@ const LOST_NOTICE: string = translationKey(
 );
 
 const NOT_REPORTED: string = translationKey("Not reported");
+
+function formatPercentage(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
 
 function formatLine(line: OpenStackAllocationLine, value: number): string {
   return line.key === "vcpu"
@@ -139,7 +150,10 @@ const HypervisorOverview: FunctionComponent<{
     host: Host;
     usage: OpenStackHostUsage;
   } | null> = useOpenStackRead(async () => {
-    const found: Host | null = await fetchOpenStackHostOf(hypervisorName);
+    const found: Host | null = await fetchOpenStackHostOf({
+      openStackCloudId: part.openStackCloudId,
+      machineName: hypervisorName,
+    });
     if (!found?.hostIdentifier) {
       return null;
     }
@@ -147,7 +161,7 @@ const HypervisorOverview: FunctionComponent<{
       host: found,
       usage: await fetchOpenStackHostUsage(found.hostIdentifier),
     };
-  }, [hypervisorName]);
+  }, [part.openStackCloudId.toString(), hypervisorName]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: [row, ...(around.data || [])],
@@ -417,6 +431,14 @@ const HypervisorOverview: FunctionComponent<{
         <></>
       )}
 
+      {host.data?.host.hostIdentifier ? (
+        <OpenStackHostThroughput
+          hostIdentifier={host.data.host.hostIdentifier}
+        />
+      ) : (
+        <></>
+      )}
+
       {host.data ? (
         <div className="mb-6">
           <Card
@@ -444,6 +466,14 @@ const HypervisorOverview: FunctionComponent<{
       ) : (
         <></>
       )}
+
+      <OpenStackHypervisorUsage
+        part={part}
+        row={row}
+        hasHostAgent={Boolean(host.data)}
+        hostCpuPercent={host.data?.usage.cpuPercent}
+        hostMemoryPercent={host.data?.usage.memoryPercent}
+      />
 
       <OpenStackPartOpenEvents
         testId="openstack-hypervisor-open"
@@ -477,6 +507,121 @@ const HypervisorOverview: FunctionComponent<{
         rows={detailRows}
       />
     </div>
+  );
+};
+
+/*
+ * What is promised on it, and what is really used of it where something says so. A chart of what
+ * nothing reports would only be an empty frame, so those wait until something does.
+ */
+const HypervisorMetrics: FunctionComponent<{
+  part: OpenStackPart;
+  hypervisorName: string;
+}> = (props: { part: OpenStackPart; hypervisorName: string }): ReactElement => {
+  const { part, hypervisorName } = props;
+  const reports: OpenStackRead<boolean> = useOpenStackRead<boolean>(() => {
+    return fetchOpenStackHypervisorReports({
+      cloudName: part.cloudName,
+      hypervisorName,
+    });
+  }, [part.cloudName, hypervisorName, part.refreshToken]);
+
+  if (reports.isLoading && reports.data === null) {
+    return <></>;
+  }
+
+  const hostnameOnly: Record<string, string> = {
+    [OPENSTACK_HYPERVISOR_ATTRIBUTE]: hypervisorName,
+  };
+
+  return (
+    <ResourceMetricsTab
+      queryConfigs={[
+        ...(reports.data
+          ? [
+              getOpenStackMetricQuery({
+                part,
+                variable: "hypervisor_cpu_used",
+                title: "CPU used by instances",
+                description:
+                  "What its instances really use, against the CPU threads it has before any allocation ratio. The host's own processes aren't in this.",
+                metricName: OpenStackHypervisorMetric.InstancesCpuUtilization,
+                legend: "CPU used",
+                attributes: hostnameOnly,
+                format: formatPercentage,
+              }),
+              getOpenStackMetricQuery({
+                part,
+                variable: "hypervisor_memory_held",
+                title: "Memory held by instances",
+                description:
+                  "What its instances really hold of its memory, whatever they have been promised, against what it has before any allocation ratio.",
+                metricName:
+                  OpenStackHypervisorMetric.InstancesMemoryUtilization,
+                legend: "Memory held",
+                attributes: hostnameOnly,
+                format: formatPercentage,
+              }),
+            ]
+          : []),
+        getOpenStackMetricQuery({
+          part,
+          variable: "hypervisor_vcpus_allocated",
+          title: "vCPUs allocated",
+          description:
+            "vCPUs Placement has promised on this hypervisor. This is what is promised, not how busy it is.",
+          metricName: "openstack_placement_resource_usage",
+          legend: "vCPUs allocated",
+          attributes: {
+            hostname: hypervisorName,
+            resourcetype: "VCPU",
+          },
+        }),
+        getOpenStackMetricQuery({
+          part,
+          variable: "hypervisor_memory_allocated",
+          title: "Memory allocated",
+          description:
+            "Memory Placement has promised on this hypervisor. This is what is promised, not what is in use.",
+          metricName: "openstack_placement_resource_usage",
+          legend: "Memory allocated",
+          attributes: {
+            hostname: hypervisorName,
+            resourcetype: "MEMORY_MB",
+          },
+          transformValue: (value: number): number => {
+            return value * 1024 * 1024;
+          },
+          format: formatOpenStackBytes,
+        }),
+        getOpenStackMetricQuery({
+          part,
+          variable: "hypervisor_disk_allocated",
+          title: "Local disk allocated",
+          description:
+            "Local disk Placement has promised on this hypervisor. This is what is promised, not what is in use.",
+          metricName: "openstack_placement_resource_usage",
+          legend: "Local disk allocated",
+          attributes: {
+            hostname: hypervisorName,
+            resourcetype: "DISK_GB",
+          },
+          transformValue: (value: number): number => {
+            return value * 1024 * 1024 * 1024;
+          },
+          format: formatOpenStackBytes,
+        }),
+        getOpenStackMetricQuery({
+          part,
+          variable: "hypervisor_running_instances",
+          title: "Running instances",
+          description: "How many instances Nova says this host runs.",
+          metricName: "openstack_nova_running_vms",
+          legend: "Instances",
+          attributes: { hostname: hypervisorName },
+        }),
+      ]}
+    />
   );
 };
 
@@ -553,7 +698,7 @@ const OpenStackCloudHypervisorDetail: FunctionComponent<
                 title="Instances on this hypervisor"
                 description="Every instance Nova has placed here, a page at a time."
                 emptyTitle="No instances on this hypervisor"
-                emptyDescription="Nova has placed nothing here, or this credential can't see what it placed. Only the Full view credential sees every project's."
+                emptyDescription="Nova has placed nothing here."
               />
             ),
           },
@@ -565,68 +710,11 @@ const OpenStackCloudHypervisorDetail: FunctionComponent<
                   "Hypervisor Metrics: {{hypervisor}}",
                   { hypervisor: hypervisorName },
                 )}
-                description="What Placement has promised on this hypervisor, and what Nova says it runs, over the selected time range."
+                description="What its instances really use, what Placement has promised on it, and what Nova says it runs, over the selected time range."
               >
-                <ResourceMetricsTab
-                  queryConfigs={[
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "hypervisor_vcpus_allocated",
-                      title: "vCPUs allocated",
-                      description:
-                        "vCPUs Placement has promised on this hypervisor. This is what is promised, not how busy it is.",
-                      metricName: "openstack_placement_resource_usage",
-                      legend: "vCPUs allocated",
-                      attributes: {
-                        hostname: hypervisorName,
-                        resourcetype: "VCPU",
-                      },
-                    }),
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "hypervisor_memory_allocated",
-                      title: "Memory allocated",
-                      description:
-                        "Memory Placement has promised on this hypervisor. This is what is promised, not what is in use.",
-                      metricName: "openstack_placement_resource_usage",
-                      legend: "Memory allocated",
-                      attributes: {
-                        hostname: hypervisorName,
-                        resourcetype: "MEMORY_MB",
-                      },
-                      transformValue: (value: number): number => {
-                        return value * 1024 * 1024;
-                      },
-                      format: formatOpenStackBytes,
-                    }),
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "hypervisor_disk_allocated",
-                      title: "Local disk allocated",
-                      description:
-                        "Local disk Placement has promised on this hypervisor. This is what is promised, not what is in use.",
-                      metricName: "openstack_placement_resource_usage",
-                      legend: "Local disk allocated",
-                      attributes: {
-                        hostname: hypervisorName,
-                        resourcetype: "DISK_GB",
-                      },
-                      transformValue: (value: number): number => {
-                        return value * 1024 * 1024 * 1024;
-                      },
-                      format: formatOpenStackBytes,
-                    }),
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "hypervisor_running_instances",
-                      title: "Running instances",
-                      description:
-                        "How many instances Nova says this host runs.",
-                      metricName: "openstack_nova_running_vms",
-                      legend: "Instances",
-                      attributes: { hostname: hypervisorName },
-                    }),
-                  ]}
+                <HypervisorMetrics
+                  part={part}
+                  hypervisorName={hypervisorName}
                 />
               </Card>
             ),

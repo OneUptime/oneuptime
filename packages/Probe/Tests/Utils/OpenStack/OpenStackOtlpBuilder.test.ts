@@ -66,18 +66,94 @@ const SERVER: NonNullable<OpenStackComputeInventory["servers"]>[number] = {
   status: "ACTIVE",
   tenantId: "project-1",
   userId: "user-1",
-  accessIpv4: "",
-  accessIpv6: null,
+  addressIpv4: "",
+  addressIpv6: null,
   hostId: "host-id",
   hypervisorHostname: "compute-01.example.internal",
   availabilityZone: "nova",
   flavorId: null,
   flavorName: "m1.tiny",
   instanceName: "instance-00000001",
+  imageId: null,
+  networkNames: [],
   taskState: null,
   updatedAt: "2026-11-04T11:00:00Z",
   faultMessage: null,
 };
+
+describe("a DHCP agent's networks", () => {
+  const AGENT: NonNullable<OpenStackNetworkInventory["agents"]>[number] = {
+    id: "agent-1",
+    binary: "neutron-dhcp-agent",
+    host: "net-01",
+    availabilityZone: "nova",
+    isAlive: true,
+    isAdminUp: true,
+  };
+
+  const NETWORK: NonNullable<OpenStackNetworkInventory["networks"]>[number] = {
+    id: "net-1",
+    name: "private",
+    tenantId: "project-1",
+    status: "ACTIVE",
+    isShared: false,
+    isExternal: false,
+    networkType: "vxlan",
+    physicalNetwork: null,
+    segmentationId: "1",
+    subnets: [],
+    tags: [],
+    mtu: 1450,
+  };
+
+  function pointsOf(inventory: OpenStackNetworkInventory): {
+    agent: ReportedDatapoint | undefined;
+    network: ReportedDatapoint | undefined;
+    count: number;
+  } {
+    const points: Array<ReportedDatapoint> = build(
+      reading(OpenStackServiceType.Network, inventory),
+    );
+
+    return {
+      agent: named(points, "openstack_neutron_agent_state")[0],
+      network: named(points, "openstack_neutron_network")[0],
+      count: points.length,
+    };
+  }
+
+  test("are said on the series already sent, sorted, so a large cloud pays no more datapoints", () => {
+    const without: ReturnType<typeof pointsOf> = pointsOf({
+      agents: [AGENT, { ...AGENT, id: "agent-2", host: "net-02" }],
+      networks: [NETWORK],
+    });
+    const withThem: ReturnType<typeof pointsOf> = pointsOf({
+      agents: [AGENT, { ...AGENT, id: "agent-2", host: "net-02" }],
+      networks: [NETWORK],
+      dhcpAgentNetworks: [
+        { agentId: "agent-2", networkIds: ["net-1", "net-2"] },
+        { agentId: "agent-1", networkIds: ["net-1"] },
+      ],
+    });
+
+    expect(withThem.count).toBe(without.count);
+    expect(withThem.network?.labels["dhcp_agent_ids"]).toBe("agent-1,agent-2");
+    expect(withThem.agent?.labels["dhcp_network_count"]).toBe("1");
+    expect(without.network?.labels["dhcp_agent_ids"]).toBeUndefined();
+    expect(without.agent?.labels["dhcp_network_count"]).toBeUndefined();
+  });
+
+  test("an agent that serves none says none, which isn't an agent nothing has asked", () => {
+    const { agent, network } = pointsOf({
+      agents: [AGENT],
+      networks: [NETWORK],
+      dhcpAgentNetworks: [{ agentId: "agent-1", networkIds: [] }],
+    });
+
+    expect(agent?.labels["dhcp_network_count"]).toBe("0");
+    expect(network?.labels["dhcp_agent_ids"]).toBeUndefined();
+  });
+});
 
 describe("every datapoint", () => {
   test("is a gauge, at its time, with its region and service, sorted, and no empty label", () => {
@@ -93,6 +169,7 @@ describe("every datapoint", () => {
               status: "enabled",
               state: "up",
               disabledReason: "",
+              forcedDown: null,
             },
           ],
         }),
@@ -118,6 +195,39 @@ describe("every datapoint", () => {
       timeUnixNano: `${OBSERVED_AT}000000`,
     });
   });
+
+  test.each<[boolean | null, string | undefined]>([
+    [true, "true"],
+    [false, "false"],
+    // A Nova before microversion 2.11 says nothing, and neither does this.
+    [null, undefined],
+  ])(
+    "a worker forced down is %s, as forced_down %s",
+    (forcedDown: boolean | null, label: string | undefined) => {
+      const point: ReportedDatapoint = named(
+        build(
+          reading(OpenStackServiceType.Compute, {
+            services: [
+              {
+                id: "s1",
+                binary: "nova-compute",
+                host: "compute-01",
+                zone: "nova",
+                status: "enabled",
+                state: forcedDown ? "down" : "up",
+                disabledReason: "",
+                forcedDown,
+              },
+            ],
+          }),
+        ),
+        "openstack_nova_agent_state",
+      )[0]!;
+
+      expect(point.labels["forced_down"]).toBe(label);
+      expect(point.value).toBe(forcedDown ? 0 : 1);
+    },
+  );
 
   test("names no cloud: only the server says which cloud a probe's data is", () => {
     const built: OpenStackOtlpBuildResult = OpenStackOtlpBuilder.build(
@@ -181,6 +291,8 @@ describe("every datapoint", () => {
               name: "p",
               backendName: "b",
               vendorName: "v",
+              storageProtocol: null,
+              locationInfo: null,
               freeCapacityGb: null,
               totalCapacityGb: 10,
             },
@@ -260,6 +372,7 @@ describe("the order of a series' lines", () => {
         status: "enabled",
         state: "up",
         disabledReason: null,
+        forcedDown: null,
       };
     };
 
@@ -384,6 +497,36 @@ describe("an instance", () => {
     expect(point.labels["status"]).toBe(status);
   });
 
+  test("its addresses are the labels the exporter leaves empty, and no empty label when it has none", () => {
+    const withAddresses: ReportedDatapoint = named(
+      build(
+        reading(OpenStackServiceType.Compute, {
+          servers: [
+            { ...SERVER, addressIpv4: "172.24.4.33", addressIpv6: "fd00::5" },
+          ],
+        }),
+      ),
+      "openstack_nova_server_status",
+    )[0]!;
+
+    expect(withAddresses.labels).toMatchObject({
+      address_ipv4: "172.24.4.33",
+      address_ipv6: "fd00::5",
+    });
+
+    const without: ReportedDatapoint = named(
+      build(
+        reading(OpenStackServiceType.Compute, {
+          servers: [{ ...SERVER, addressIpv4: null, addressIpv6: null }],
+        }),
+      ),
+      "openstack_nova_server_status",
+    )[0]!;
+
+    expect(Object.keys(without.labels)).not.toContain("address_ipv4");
+    expect(Object.keys(without.labels)).not.toContain("address_ipv6");
+  });
+
   test("a flavor named by the server finds its id from the flavors", () => {
     const point: ReportedDatapoint = named(
       build(
@@ -396,6 +539,12 @@ describe("an instance", () => {
               ram: 512,
               disk: 1,
               isPublic: true,
+              isDisabled: false,
+              request: {
+                resources: { VCPU: 1, MEMORY_MB: 512, DISK_GB: 1 },
+                requiredTraits: [],
+                forbiddenTraits: [],
+              },
             },
           ],
           servers: [SERVER],
@@ -442,6 +591,8 @@ describe("an instance", () => {
               status: "ERROR",
               taskState: "spawning",
               faultMessage: "No valid host was found.",
+              imageId: "image-1",
+              networkNames: ["private", "a, b"],
             },
           ],
         }),
@@ -450,6 +601,8 @@ describe("an instance", () => {
     )[0]!;
 
     expect(point.labels).toMatchObject({
+      image_id: "image-1",
+      network_names: '["private","a, b"]',
       task_state: "spawning",
       updated_at: "2026-11-04T11:00:00Z",
       fault_message: "No valid host was found.",
@@ -458,7 +611,13 @@ describe("an instance", () => {
     expect(
       getOpenStackMetricByMetricName("openstack_nova_server_status")
         ?.probeOnlyAttributes,
-    ).toEqual(["task_state", "updated_at", "fault_message"]);
+    ).toEqual([
+      "task_state",
+      "updated_at",
+      "fault_message",
+      "image_id",
+      "network_names",
+    ]);
   });
 
   test("a hypervisor has its capacity only while Nova says it", () => {
@@ -918,6 +1077,8 @@ describe("Cinder", () => {
     userId: "u1",
     volumeType: "lvm",
     serverId: "server-1",
+    poolName: null,
+    imageId: null,
     sizeGb: 5,
     updatedAt: "2026-11-04T10:00:00.000000",
   };
@@ -940,6 +1101,46 @@ describe("Cinder", () => {
       labels: { size: "5", status: "in-use" },
     });
     expect(named(points, "openstack_cinder_volumes")[0]?.value).toBe(1);
+  });
+
+  test("a volume says which image it was made from, so that image is known to be in use", () => {
+    const points: Array<ReportedDatapoint> = build(
+      reading(OpenStackServiceType.Volume, {
+        volumes: [{ ...VOLUME, imageId: "image-1" }],
+      }),
+    );
+
+    expect(named(points, "openstack_cinder_volume_gb")[0]?.labels["image_id"]).toBe(
+      "image-1",
+    );
+  });
+
+  test("a volume names the pool that holds it on the series the scan reads, and only there", () => {
+    const points: Array<ReportedDatapoint> = build(
+      reading(OpenStackServiceType.Volume, {
+        volumes: [{ ...VOLUME, poolName: "host@lvm#lvm" }],
+      }),
+    );
+
+    expect(named(points, "openstack_cinder_volume_gb")[0]?.labels["pool"]).toBe(
+      "host@lvm#lvm",
+    );
+    expect(
+      Object.keys(named(points, "openstack_cinder_volume_status")[0]!.labels),
+    ).not.toContain("pool");
+  });
+
+  test("a volume with no pool to name has no such label, as an empty one is none", () => {
+    const point: ReportedDatapoint = named(
+      build(
+        reading(OpenStackServiceType.Volume, {
+          volumes: [{ ...VOLUME, poolName: null }],
+        }),
+      ),
+      "openstack_cinder_volume_gb",
+    )[0]!;
+
+    expect(Object.keys(point.labels)).not.toContain("pool");
   });
 
   test("every known status reads 0 until a volume is in it, and a new one is counted too", () => {
@@ -999,6 +1200,7 @@ describe("Cinder", () => {
             tenantId: "p1",
             volumeId: "v1",
             sizeGb: 2,
+            createdAt: "2026-08-01T01:00:00.000000",
             updatedAt: "2026-11-04T01:00:00.000000",
           },
         ],
@@ -1065,6 +1267,8 @@ describe("Cinder", () => {
             name: "ceph#ceph",
             backendName: "ceph",
             vendorName: "Open Source",
+            storageProtocol: null,
+            locationInfo: null,
             freeCapacityGb: null,
             totalCapacityGb: null,
           },
@@ -1086,6 +1290,8 @@ describe("Cinder", () => {
             name: "p",
             backendName: "b",
             vendorName: "v",
+            storageProtocol: null,
+            locationInfo: null,
             freeCapacityGb: Number.POSITIVE_INFINITY,
             totalCapacityGb: Number.NaN,
           },
@@ -1317,6 +1523,7 @@ describe("the rest", () => {
           status: "active",
           visibility: "public",
           isHidden: false,
+          isProtected: true,
           imageType: "snapshot",
           createdAt: "2026-11-04T09:46:46Z",
           updatedAt: "2026-11-04T09:46:47Z",
@@ -1335,7 +1542,12 @@ describe("the rest", () => {
     expect(named(points, "openstack_glance_image_created_at")[0]).toMatchObject(
       {
         value: Date.parse("2026-11-04T09:46:46Z") / 1000,
-        labels: { hidden: "false", status: "active", visibility: "public" },
+        labels: {
+          hidden: "false",
+          protected: "true",
+          status: "active",
+          visibility: "public",
+        },
       },
     );
   });
@@ -1352,6 +1564,7 @@ describe("the rest", () => {
             status: "queued",
             visibility: "public",
             isHidden: false,
+            isProtected: false,
             imageType: null,
             createdAt: "not a date",
             updatedAt: null,

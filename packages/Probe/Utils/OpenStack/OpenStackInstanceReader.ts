@@ -127,34 +127,60 @@ export async function readOpenStackInstances(data: {
   const fullReadInterval: number =
     data.fullReadIntervalInMs ?? FULL_INSTANCE_READ_INTERVAL_IN_MS;
 
-  if (state && now - state.lastFullReadAt < fullReadInterval) {
+  const readWhatChanged: (
+    known: OpenStackInstanceState,
+  ) => Promise<OpenStackInstanceRead> = async (
+    known: OpenStackInstanceState,
+  ): Promise<OpenStackInstanceRead> => {
     const read: { answer: OpenStackListAnswer; isOwnProjectOnly: boolean } =
       await listServers({
         client: data.client,
-        query: { "changes-since": state.cursor },
-        isOwnProjectOnly: state.isOwnProjectOnly,
+        query: { "changes-since": known.cursor },
+        isOwnProjectOnly: known.isOwnProjectOnly,
       });
 
-    applyServers(state.servers, read.answer.items);
-    state.cursor = toChangesSince({ date: read.answer.date, now: now });
-    state.isOwnProjectOnly = read.isOwnProjectOnly;
-    state.lastUsedAt = now;
-    data.memory.setInstanceState(data.stateKey, state);
+    applyServers(known.servers, read.answer.items);
+    known.cursor = toChangesSince({ date: read.answer.date, now: now });
+    known.isOwnProjectOnly = read.isOwnProjectOnly;
+    known.lastUsedAt = now;
+    data.memory.setInstanceState(data.stateKey, known);
 
     return {
-      servers: Array.from(state.servers.values()),
+      servers: Array.from(known.servers.values()),
       mode: "Incremental",
       isOwnProjectOnly: read.isOwnProjectOnly,
     };
+  };
+
+  if (state && now - state.lastFullReadAt < fullReadInterval) {
+    return await readWhatChanged(state);
   }
 
-  const read: { answer: OpenStackListAnswer; isOwnProjectOnly: boolean } =
-    await listServers({
+  let read: { answer: OpenStackListAnswer; isOwnProjectOnly: boolean };
+
+  try {
+    read = await listServers({
       client: data.client,
       query: {},
       // Asked afresh at each full read, in case the credential was given more.
       isOwnProjectOnly: false,
     });
+  } catch (error) {
+    /*
+     * Nova asks Neutron about every instance it lists, so while Neutron's API is down a real
+     * Nova answers a full list with a 500. A list of what changed names no instance if none
+     * did, so it asks Neutron nothing, and a full read falling due costs nothing already known.
+     */
+    if (
+      state &&
+      error instanceof OpenStackApiError &&
+      error.kind === "failing"
+    ) {
+      return await readWhatChanged(state);
+    }
+
+    throw error;
+  }
 
   const servers: Map<string, NovaServerRecord> = new Map();
   applyServers(servers, read.answer.items);

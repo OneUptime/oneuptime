@@ -15,6 +15,9 @@ import { OpenStackCollectionReportOutcome } from "Common/Server/Utils/OpenStack/
 import OpenStackProbeMetrics, {
   OpenStackProbeMetricsPayload,
 } from "Common/Server/Utils/OpenStack/OpenStackProbeMetrics";
+import OpenStackProbeLogs, {
+  OpenStackProbeLogsPayload,
+} from "Common/Server/Utils/OpenStack/OpenStackProbeLogs";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -301,6 +304,24 @@ export function createOpenStackCollectionRouter(
             } as unknown as TelemetryRequest);
 
             queuedResourceCount = payload.resourceCount;
+          }
+
+          /*
+           * What Nova says instances went through, for a cloud whose own notifications are
+           * off: the log ingest reads these as it reads the notifications they stand in for.
+           */
+          const logs: OpenStackProbeLogsPayload = OpenStackProbeLogs.prepare({
+            resourceLogs: report.resourceLogs,
+            cloudName: outcome.cloudName || "",
+          });
+
+          if (logs.recordCount > 0) {
+            await TelemetryQueueService.addLogIngestJob({
+              projectId: outcome.projectId,
+              body: { resourceLogs: logs.resourceLogs },
+              headers: {},
+              productType: ProductType.Logs,
+            } as unknown as TelemetryRequest);
           }
         }
 

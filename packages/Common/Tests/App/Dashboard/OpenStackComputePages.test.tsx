@@ -12,6 +12,7 @@ import {
   configure,
   fireEvent,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
@@ -581,11 +582,13 @@ describe("a hypervisor's page", () => {
       "vCPU Allocation High",
       "Memory Allocation High",
       "Local Disk Allocation High",
+      "Hypervisor CPU Saturated",
+      "Hypervisor Memory Pressure",
     ]);
     const turnOn: HTMLElement = within(alerts).getByTestId(
       "openstack-hypervisor-alerts-turn-on",
     );
-    expect(turnOn).toHaveTextContent("Turn on 4 alerts");
+    expect(turnOn).toHaveTextContent("Turn on 6 alerts");
     expect(turnOn).toHaveAttribute(
       "href",
       expect.stringContaining(`${CLOUD_PATH}/recommendations?`),
@@ -904,6 +907,96 @@ describe("an instance's page", () => {
     ).toHaveTextContent("Not collected");
   });
 
+  describe("what it booted from", () => {
+    const IMAGE_ID: string = "dddddddd-2222-4222-8222-000000000001";
+
+    function imageRow(fields: Row = {}): Row {
+      return {
+        _id: "6c1b2a3d-4e5f-4a6b-8c7d-000000000031",
+        kind: OpenStackResourceKind.Image,
+        name: "cirros-0.6.3-x86_64-disk",
+        externalId: IMAGE_ID,
+        regionName: "RegionOne",
+        status: "active",
+        facts: {},
+        lastSeenAt: new Date(),
+        ...fields,
+      };
+    }
+
+    test("from a probe: the image, by its name, one step away", async () => {
+      server.rows = [
+        instanceRow({
+          facts: { imageId: IMAGE_ID, updatedAt: "2026-11-04T11:00:00Z" },
+        }),
+        imageRow(),
+      ];
+
+      await renderPage(OpenStackCloudInstanceDetail, PATH);
+
+      const link: HTMLElement = await screen.findByTestId(
+        "openstack-instance-image-link",
+      );
+      await waitFor(() => {
+        expect(link).toHaveTextContent("cirros-0.6.3-x86_64-disk");
+      });
+      expect(link).toHaveAttribute(
+        "href",
+        expect.stringContaining(`/images/${IMAGE_ID}`),
+      );
+    });
+
+    test("an image since deleted reads by its id, and isn't said to be nothing", async () => {
+      server.rows = [
+        instanceRow({
+          facts: { imageId: IMAGE_ID, updatedAt: "2026-11-04T11:00:00Z" },
+        }),
+      ];
+
+      await renderPage(OpenStackCloudInstanceDetail, PATH);
+
+      expect(
+        await screen.findByTestId("openstack-instance-image-link"),
+      ).toHaveTextContent(IMAGE_ID);
+    });
+
+    test("booted from a volume, a probe says it has none", async () => {
+      server.rows = [
+        instanceRow({
+          facts: { imageId: null, updatedAt: "2026-11-04T11:00:00Z" },
+        }),
+      ];
+
+      await renderPage(OpenStackCloudInstanceDetail, PATH);
+
+      expect(
+        await screen.findByTestId("openstack-instance-details-image"),
+      ).toHaveTextContent("None: it booted from a volume");
+      expect(screen.queryByTestId("openstack-instance-image-link")).toBeNull();
+    });
+
+    test("the list has a column for it only where a row has one, by its name", async () => {
+      server.rows = [instanceRow()];
+      await renderPage(OpenStackCloudInstances, "/instances");
+      await screen.findByText("web-01");
+      expect(screen.queryByText("Image")).not.toBeInTheDocument();
+      cleanup();
+
+      server.rows = [
+        instanceRow({
+          facts: { imageId: IMAGE_ID, updatedAt: "2026-11-04T11:00:00Z" },
+        }),
+        imageRow(),
+      ];
+      await renderPage(OpenStackCloudInstances, "/instances");
+      await screen.findByText("web-01");
+      expect(await screen.findByText("Image")).toBeInTheDocument();
+      expect(
+        await screen.findByText("cirros-0.6.3-x86_64-disk"),
+      ).toBeInTheDocument();
+    });
+  });
+
   test("an address a row holds is shown", async () => {
     server.rows = [
       instanceRow({
@@ -916,6 +1009,27 @@ describe("an instance's page", () => {
     expect(
       await screen.findByTestId("openstack-instance-details-addresses"),
     ).toHaveTextContent("10.0.0.5, fd00::5");
+  });
+
+  test("an address a probe found none of reads None, and not as something nobody collected", async () => {
+    server.rows = [
+      instanceRow({
+        facts: {
+          updatedAt: "2026-11-04T11:00:00Z",
+          addressIpv4: null,
+          addressIpv6: null,
+        },
+      }),
+    ];
+
+    await renderPage(OpenStackCloudInstanceDetail, PATH);
+
+    const addresses: HTMLElement = await screen.findByTestId(
+      "openstack-instance-details-addresses",
+    );
+
+    expect(addresses).toHaveTextContent("None");
+    expect(addresses).not.toHaveTextContent("Not collected");
   });
 
   test("one that failed before it was placed says that, and has no hypervisor to link to", async () => {
@@ -1034,6 +1148,8 @@ describe("an instance's page", () => {
         }),
     ).toEqual([
       "Instances in Error",
+      "Instance CPU Saturated",
+      "Instance Disk Latency High",
       "Instance Stuck Building",
       "Instance Stuck Transitioning",
       "Instance Stuck in Verify Resize",

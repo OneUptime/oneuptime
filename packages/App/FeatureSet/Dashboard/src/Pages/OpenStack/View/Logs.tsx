@@ -24,11 +24,22 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { keyForOpenStackCloud } from "Common/Utils/Telemetry/EntityKey";
+import { OPENSTACK_REGION_LOG_ATTRIBUTE } from "Common/Utils/OpenStack/OpenStackLogs";
+import {
+  OPENSTACK_REQUEST_QUERY_PARAM,
+  OPENSTACK_REQUEST_TIME_QUERY_PARAM,
+} from "Common/Utils/OpenStack/OpenStackRequestTrail";
+import OpenStackRequestTrail from "../../../Components/OpenStack/OpenStackRequestTrail";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
 
 const OpenStackCloudLogs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
 
   const [cloud, setCloud] = useState<OpenStackCloud | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -74,10 +85,11 @@ const OpenStackCloudLogs: FunctionComponent<
     const q: any = {
       attributes: {
         "resource.openstack.cloud.name": cloud?.name || "",
+        ...(region ? { [OPENSTACK_REGION_LOG_ATTRIBUTE]: region } : {}),
       },
     };
     return q as Query<Log>;
-  }, [cloud?.name]);
+  }, [cloud?.name, region]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -89,6 +101,28 @@ const OpenStackCloudLogs: FunctionComponent<
 
   if (!cloud?.name) {
     return <ErrorMessage message="Cloud not found." />;
+  }
+
+  // One request across every service, when a log line or an instance's page opened one.
+  const followedRequest: string | null = Navigation.getQueryStringByName(
+    OPENSTACK_REQUEST_QUERY_PARAM,
+  );
+
+  if (followedRequest) {
+    const at: string | null = Navigation.getQueryStringByName(
+      OPENSTACK_REQUEST_TIME_QUERY_PARAM,
+    );
+    const atDate: Date | null = at ? new Date(at) : null;
+
+    return (
+      <OpenStackRequestTrail
+        key={followedRequest}
+        openStackCloudId={modelId}
+        cloudName={cloud.name}
+        rootId={followedRequest}
+        at={atDate && !isNaN(atDate.getTime()) ? atDate : null}
+      />
+    );
   }
 
   return (
@@ -115,6 +149,7 @@ const OpenStackCloudLogs: FunctionComponent<
         logQuery={logQuery}
         attributeFilterDisplayKeys={{
           "resource.openstack.cloud.name": "Cloud",
+          [OPENSTACK_REGION_LOG_ATTRIBUTE]: "Region",
         }}
         entityScope={{
           entityKeys: [
@@ -128,7 +163,11 @@ const OpenStackCloudLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="The OpenStack agent sends metrics only for now. Logs appear here when you send OpenTelemetry logs with this cloud's openstack.cloud.name resource attribute."
+        noLogsMessage={
+          region
+            ? "No logs say they are from this region. A machine's logs name their region once its logs profile is told it: run install-logs.sh on that machine again with OPENSTACK_REGION_NAME set. All regions shows the rest."
+            : "No logs from this cloud yet. They appear once the agent's logs profile runs on its controllers and compute nodes: the OpenStack guide says how."
+        }
       />
     </Fragment>
   );

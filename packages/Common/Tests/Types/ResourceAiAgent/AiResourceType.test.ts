@@ -26,7 +26,7 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 describe("AiResourceType enum", () => {
-  test("has exactly the eleven resource types, each value equal to its name", () => {
+  test("has exactly the twelve resource types, each value equal to its name", () => {
     expect(Object.values(AiResourceType)).toEqual([
       "DockerHost",
       "PodmanHost",
@@ -39,6 +39,7 @@ describe("AiResourceType enum", () => {
       "AwsAccount",
       "AzureSubscription",
       "GoogleCloudProject",
+      "OpenStackCloud",
     ]);
 
     for (const [name, value] of Object.entries(AiResourceType)) {
@@ -59,6 +60,7 @@ describe("AiResourceType enum", () => {
       AiResourceType.AwsAccount,
       AiResourceType.AzureSubscription,
       AiResourceType.GoogleCloudProject,
+      AiResourceType.OpenStackCloud,
     ]);
     expect(new Set(ALL_AI_RESOURCE_TYPES).size).toBe(
       ALL_AI_RESOURCE_TYPES.length,
@@ -133,6 +135,7 @@ describe("parseAiResourceType", () => {
     ["aws", AiResourceType.AwsAccount],
     ["Azure", AiResourceType.AzureSubscription],
     ["gcp", AiResourceType.GoogleCloudProject],
+    ["openstack", AiResourceType.OpenStackCloud],
     ["google-cloud", AiResourceType.GoogleCloudProject],
     ["google_cloud", AiResourceType.GoogleCloudProject],
   ])(
@@ -207,6 +210,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       ["AWS account", "Cloud AI agent", "aws"],
       ["Azure subscription", "Cloud AI agent", "azure"],
       ["Google Cloud project", "Cloud AI agent", "gcp"],
+      ["OpenStack cloud", "OpenStack AI agent", "openstack"],
     ]);
   });
 
@@ -231,8 +235,13 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
     ).toEqual(["Cloud AI agent", "Cloud AI agent", "Cloud AI agent"]);
   });
 
-  test("the cloud accounts come last and are told apart from the rest", () => {
-    expect(CLOUD_AI_RESOURCE_TYPES).toEqual(ALL_AI_RESOURCE_TYPES.slice(-3));
+  test("the cloud accounts come after the others, an OpenStack cloud after them, and are told apart", () => {
+    expect(CLOUD_AI_RESOURCE_TYPES).toEqual(
+      ALL_AI_RESOURCE_TYPES.slice(-4, -1),
+    );
+    expect(ALL_AI_RESOURCE_TYPES[ALL_AI_RESOURCE_TYPES.length - 1]).toBe(
+      AiResourceType.OpenStackCloud,
+    );
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
       expect(isCloudAiResourceType(type)).toBe(
@@ -363,6 +372,10 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       AwsAccount: ["cloud whoami"],
       AzureSubscription: ["cloud whoami"],
       GoogleCloudProject: ["cloud whoami"],
+      OpenStackCloud: [
+        "openstack endpoint list",
+        "openstack compute service list",
+      ],
     });
   });
 
@@ -403,6 +416,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       AwsAccount: ["AWS_ACCOUNT_ID"],
       AzureSubscription: ["AZURE_SUBSCRIPTION_ID"],
       GoogleCloudProject: ["GOOGLE_CLOUD_PROJECT"],
+      OpenStackCloud: ["OPENSTACK_CLOUD_NAME"],
     });
   });
 
@@ -426,6 +440,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       AwsAccount: [],
       AzureSubscription: [],
       GoogleCloudProject: [],
+      OpenStackCloud: ["openstack"],
     });
   });
 });

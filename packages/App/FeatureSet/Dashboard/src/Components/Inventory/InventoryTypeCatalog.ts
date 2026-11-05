@@ -146,6 +146,18 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     description:
       "A queue, topic or subscription the Queues product scopes messaging traces and broker metrics by. Never an inventory item of its own.",
   },
+  /*
+   * Membership-only like the two above: it keys an OpenStack part's traces and
+   * never becomes an inventory row. The OpenStack product's own pages list these.
+   */
+  [EntityType.OpenStackResource]: {
+    label: "OpenStack Resource",
+    pluralLabel: "OpenStack Resources",
+    category: InventoryCategory.Cloud,
+    icon: IconProp.Cloud,
+    description:
+      "A part of an OpenStack cloud, such as an instance or a volume, that a trace says it touched. Never an inventory item of its own.",
+  },
   [EntityType.RemoteService]: {
     label: "Remote Service",
     pluralLabel: "Remote Services",

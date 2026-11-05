@@ -179,7 +179,19 @@ once the database exists, `config.env` is left alone. The Docker Compose
 guide's "Change the database password" block is run as written, pasted whole:
 while PostgreSQL is not running it changes nothing, and while it runs it
 changes the password in PostgreSQL and in `config.env`. Its
-`docker-compose.override.yml` example is applied.
+`docker-compose.override.yml` example is applied. PostgreSQL's health check
+passes and leaves no error in its log, with the names `config.example.env`
+ships and with a role and database of an operator's own.
+
+### `ComposePostgresHealthcheck.test.js`
+
+The command Docker runs as PostgreSQL's health check, through a real shell with
+a stand-in `pg_isready`, which needs no database: it names the role and database
+the container created, read from the container's environment when it runs, and
+connects over TCP, so it passes only once the server other containers connect
+to is up. A check that names neither leaves `FATAL: role "root" does not exist`
+in the log every ten seconds. Every other probe of a PostgreSQL this repository
+starts is held to naming its role too.
 
 ### `ComposeDatastorePasswordRuntime.test.js`
 
@@ -2010,6 +2022,10 @@ python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
 ```
 
 See [its README](agent-ebpf-e2e/README.md) for what it checks and how to run it.
+
+### `OpenStackServicesRig.test.js`
+
+The rig for the services a cloud may not run (`record-services` in `test.openstack-e2e.yaml`, and `openstack-e2e/services-*.sh`), checked without a DevStack, because one takes half an hour to deploy on shared runners. It pins that the job runs only when asked and that a filtered-out entry skips every step. It runs each group's script start to finish with every wait answered and every command line stubbed, which proves no state but finds what `set -u` or a typo would otherwise find an hour into a run, and that a scene going wrong costs only itself. It runs `record.sh` against a stub of each service, for the reads each one has and the names the importer keeps, and `import-services-recording.py` on a recording written in the test, for what it keeps, what it scrubs, and the fixtures it must never touch.
 
 ### `openstack-e2e/`
 

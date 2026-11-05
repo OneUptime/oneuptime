@@ -29,6 +29,44 @@ export enum OpenStackResourceKind {
   FloatingIp = "FloatingIp",
   Project = "Project",
   Domain = "Domain",
+  /*
+   * One machine of what the cloud stands on: a RabbitMQ node, a MariaDB one, a host's Open
+   * vSwitch. Its facts say which (OpenStackControlPlane). No OpenStack service reports these
+   * and none vouches for them, so they age out on their own: see deleteStaleForCloud.
+   */
+  ControlPlane = "ControlPlane",
+  // What a cloud that runs Heat has been asked to build: see OpenStackOptionalServices.
+  Stack = "Stack",
+  /*
+   * A Kubernetes cluster Magnum built. "Cluster" alone would read as OneUptime's own
+   * KubernetesCluster, which this can be linked to and is not.
+   */
+  ContainerCluster = "ContainerCluster",
+  /*
+   * One machine Ironic manages. Its status is its provision state, and its adminState says
+   * whether someone put it in maintenance, with their reason in disabledReason, as a disabled
+   * worker's does. Only Ironic's own series make one (OpenStackSnapshotScan), so a cloud without
+   * Ironic has none.
+   */
+  BareMetalNode = "BareMetalNode",
+  /*
+   * What Placement holds of a bare metal node: one of its own resource class, under the node's
+   * UUID. Nova's Ironic driver names a hypervisor the same way, and neither is a place to run a
+   * virtual machine, so neither is a Hypervisor row. No page lists these. They are what capacity
+   * by resource class adds up, and what says how many nodes there are whatever Ironic shows this
+   * credential: it answers a project with only what that project owns.
+   */
+  PlacementProvider = "PlacementProvider",
+  /*
+   * A shared file system Manila serves. Only Manila's own series make one (OpenStackSnapshotScan),
+   * so a cloud without Manila has none.
+   */
+  Share = "Share",
+  /*
+   * A database Trove runs for a project, on an instance Nova runs. "Instance" alone is Nova's. Only
+   * Trove's own series make one.
+   */
+  DatabaseInstance = "DatabaseInstance",
 }
 
 /*
@@ -42,7 +80,39 @@ export enum OpenStackServiceType {
   Network = "network",
   Volume = "volume",
   Image = "image",
+  /*
+   * Services a cloud may not run. Each has an entry in OPENSTACK_OPTIONAL_SERVICES, and
+   * nothing of one appears anywhere until the exporter says something about it.
+   */
+  Orchestration = "orchestration",
+  ContainerInfra = "container-infra",
+  // A service a cloud may not run: see OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.
+  BareMetal = "baremetal",
+  SharedFileSystems = "sharev2",
+  Database = "database",
 }
+
+/*
+ * The services a scrape's own series can speak for, because every cloud runs them. The agent also
+ * asks the exporter for services a cloud may not run, such as load-balancer and baremetal, and for
+ * one that is not in the catalog the exporter answers 200 with nothing. `up` reads 1 for that
+ * scrape, and 0 for all of them when the exporter is down, on a cloud that has never had the
+ * service. So these series never make a row for one of those: only what the exporter says about the
+ * service itself can, which it says only if the catalog has it. This is written out rather than read
+ * from OpenStackServiceType, so that adding a service there does not start giving every cloud a row
+ * for it. So are the agent's VM metric jobs left out, which read compute nodes rather than an API
+ * to list.
+ */
+export const OPENSTACK_SERVICES_EVERY_CLOUD_RUNS: ReadonlySet<string> = new Set(
+  [
+    OpenStackServiceType.Identity,
+    OpenStackServiceType.Compute,
+    OpenStackServiceType.Placement,
+    OpenStackServiceType.Network,
+    OpenStackServiceType.Volume,
+    OpenStackServiceType.Image,
+  ],
+);
 
 // The word people use for each service, in lists and alert text.
 export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
@@ -52,6 +122,11 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.Network]: "Networking (Neutron)",
   [OpenStackServiceType.Volume]: "Block Storage (Cinder)",
   [OpenStackServiceType.Image]: "Images (Glance)",
+  [OpenStackServiceType.Orchestration]: "Orchestration (Heat)",
+  [OpenStackServiceType.ContainerInfra]: "Kubernetes Clusters (Magnum)",
+  [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
+  [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
+  [OpenStackServiceType.Database]: "Databases (Trove)",
 };
 
 /*
@@ -75,7 +150,7 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
     OpenStackResourceKind.Instance,
     OpenStackResourceKind.Flavor,
   ],
-  [OpenStackServiceType.Placement]: [],
+  [OpenStackServiceType.Placement]: [OpenStackResourceKind.PlacementProvider],
   [OpenStackServiceType.Network]: [
     OpenStackResourceKind.Network,
     OpenStackResourceKind.Subnet,
@@ -89,6 +164,13 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
     OpenStackResourceKind.Backup,
   ],
   [OpenStackServiceType.Image]: [OpenStackResourceKind.Image],
+  [OpenStackServiceType.Orchestration]: [OpenStackResourceKind.Stack],
+  [OpenStackServiceType.ContainerInfra]: [
+    OpenStackResourceKind.ContainerCluster,
+  ],
+  [OpenStackServiceType.BareMetal]: [OpenStackResourceKind.BareMetalNode],
+  [OpenStackServiceType.SharedFileSystems]: [OpenStackResourceKind.Share],
+  [OpenStackServiceType.Database]: [OpenStackResourceKind.DatabaseInstance],
 };
 
 /*
@@ -100,7 +182,34 @@ export enum OpenStackServiceFamily {
   Compute = "compute",
   Network = "network",
   Volume = "volume",
+  /*
+   * Heat's engines and Magnum's conductors. Only a native read of their APIs lists these: the
+   * exporter has no series for them, so only a probe's cloud has these rows.
+   */
+  Orchestration = "orchestration",
+  ContainerInfra = "container-infra",
+  // Only a probe says these: the exporter has no series for Ironic's conductors.
+  BareMetal = "baremetal",
+  // Nor for Manila's services: its API lists them, and only for an admin.
+  SharedFileSystems = "sharev2",
 }
+
+/*
+ * Which family's workers each service's API answers for: the rows it vouches for beside its
+ * kinds, and what a page groups under it.
+ */
+export const OPENSTACK_WORKER_FAMILY_BY_SERVICE: Partial<
+  Record<OpenStackServiceType, OpenStackServiceFamily>
+> = {
+  [OpenStackServiceType.Compute]: OpenStackServiceFamily.Compute,
+  [OpenStackServiceType.Network]: OpenStackServiceFamily.Network,
+  [OpenStackServiceType.Volume]: OpenStackServiceFamily.Volume,
+  [OpenStackServiceType.BareMetal]: OpenStackServiceFamily.BareMetal,
+  [OpenStackServiceType.Orchestration]: OpenStackServiceFamily.Orchestration,
+  [OpenStackServiceType.ContainerInfra]: OpenStackServiceFamily.ContainerInfra,
+  [OpenStackServiceType.SharedFileSystems]:
+    OpenStackServiceFamily.SharedFileSystems,
+};
 
 /*
  * Words for a row's status. These are OpenStack's own, as `status` holds them;
@@ -110,6 +219,17 @@ export enum OpenStackServiceFamily {
 // A worker's status: `openstack compute service list` and friends.
 export const OPENSTACK_SERVICE_STATUS_UP: string = "up";
 export const OPENSTACK_SERVICE_STATUS_DOWN: string = "down";
+/*
+ * Manila's word for a service that was shut down cleanly, recorded: manila-share reads `stopped` at
+ * once, and `down` only when one died and its heartbeat has grown old (services-manila). Whatever
+ * stopped it meant to, so it reads apart from one that died.
+ */
+export const OPENSTACK_SERVICE_STATUS_STOPPED: string = "stopped";
+/*
+ * An API this credential can't read: a page's word, never stored or reported. Its own status
+ * says down, and getOpenStackRowsAsThisCredentialReadsThem says why that means nothing here.
+ */
+export const OPENSTACK_API_STATUS_CLOSED: string = "closed";
 
 // Instance statuses that are on the way to something else.
 export const OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
@@ -161,3 +281,162 @@ export const OPENSTACK_VOLUME_ERROR_STATUSES: ReadonlySet<string> = new Set([
  */
 export const OPENSTACK_IMAGE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
   new Set(["queued", "saving", "uploading", "importing"]);
+
+/*
+ * Heat and Magnum say what they are doing and how it went in one word, ACTION_STATE, and the
+ * exporter's status lists are where a word comes from. Heat's are knownStackStatuses, the
+ * same thirty openstack_heat_stack_status_counter reports on a real cloud. Magnum has fewer
+ * (knownClusterStatuses): nothing there fails or waits to resume, for one.
+ */
+const OPENSTACK_STACK_ACTIONS: ReadonlyArray<string> = [
+  "INIT",
+  "CREATE",
+  "DELETE",
+  "UPDATE",
+  "ROLLBACK",
+  "SUSPEND",
+  "RESUME",
+  "ADOPT",
+  "SNAPSHOT",
+  "CHECK",
+];
+
+export const OPENSTACK_STACK_FAILED_STATUSES: ReadonlySet<string> = new Set(
+  OPENSTACK_STACK_ACTIONS.map((action: string): string => {
+    return `${action}_FAILED`;
+  }),
+);
+
+export const OPENSTACK_STACK_IN_PROGRESS_STATUSES: ReadonlySet<string> =
+  new Set(
+    OPENSTACK_STACK_ACTIONS.map((action: string): string => {
+      return `${action}_IN_PROGRESS`;
+    }),
+  );
+
+export const OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES: ReadonlySet<string> =
+  new Set([
+    "CREATE_FAILED",
+    "UPDATE_FAILED",
+    "DELETE_FAILED",
+    "RESUME_FAILED",
+    "ROLLBACK_FAILED",
+  ]);
+
+export const OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES: ReadonlySet<string> =
+  new Set([
+    "CREATE_IN_PROGRESS",
+    "UPDATE_IN_PROGRESS",
+    "DELETE_IN_PROGRESS",
+    "ROLLBACK_IN_PROGRESS",
+  ]);
+
+// What Magnum says of a cluster it can reach. UNKNOWN is what it says of one it can't.
+export const OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY: string = "UNHEALTHY";
+
+/*
+ * Ironic's provision states, as openstack_ironic_node's provision_state holds them
+ * (ironic.common.states). A node in one of these failed at what it was doing, and stays there
+ * until someone acts: Ironic retries none of them by itself, and does not always put such a node
+ * in maintenance (recorded: services-ironic/clean-failed reads maintenance=false).
+ */
+export const OPENSTACK_BARE_METAL_ERROR_STATES: ReadonlySet<string> = new Set([
+  "deploy failed",
+  "clean failed",
+  "inspect failed",
+  "adopt failed",
+  "rescue failed",
+  "unrescue failed",
+  "service failed",
+  // What taking a deployed node back failed at. Ironic has no word with "failed" in it for this.
+  "error",
+]);
+
+/*
+ * On the way to something else. Left out on purpose: `deploy hold`, `clean hold` and `service
+ * hold`, where a step someone wrote asked Ironic to wait, for as long as they like.
+ */
+export const OPENSTACK_BARE_METAL_TRANSITIONAL_STATES: ReadonlySet<string> =
+  new Set([
+    "verifying",
+    "inspecting",
+    "inspect wait",
+    "cleaning",
+    "clean wait",
+    "deploying",
+    "wait call-back",
+    "deleting",
+    "adopting",
+    "rescuing",
+    "rescue wait",
+    "unrescuing",
+    "servicing",
+    "service wait",
+  ]);
+
+// What a node's adminState says: Ironic's `maintenance`, as this column holds such things.
+export const OPENSTACK_BARE_METAL_IN_MAINTENANCE: string = "maintenance";
+export const OPENSTACK_BARE_METAL_IN_SERVICE: string = "in service";
+
+/*
+ * Manila's share statuses (manila.common.constants). The exporter's status counter knows nineteen of
+ * these, recorded, and its series carry whatever word Manila says.
+ */
+export const OPENSTACK_SHARE_ERROR_STATUSES: ReadonlySet<string> = new Set([
+  "error",
+  "error_deleting",
+  "extending_error",
+  "shrinking_error",
+  "shrinking_possible_data_loss_error",
+  "manage_error",
+  "unmanage_error",
+  "migration_error",
+  "reverting_error",
+  "backup_restoring_error",
+]);
+
+/*
+ * On the way to something else. Left out on purpose: `migrating`, `migrating_to` and a backup's two
+ * words, which last as long as a share's data takes to copy, because someone asked for that.
+ */
+export const OPENSTACK_SHARE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set([
+    "creating",
+    "creating_from_snapshot",
+    "deleting",
+    "deferred_deleting",
+    "soft_deleting",
+    "extending",
+    "shrinking",
+    "managing",
+    "manage_starting",
+    "unmanaging",
+    "unmanage_starting",
+    "reverting",
+    "reverting_to_snapshot",
+    "restoring",
+    "updating",
+    "replication_change",
+    "ensuring",
+  ]);
+
+/*
+ * Trove's instance statuses, as openstack_trove_instance_status's label holds them. It has no worker
+ * list to say trove-taskmanager stopped, recorded, so an instance that stays on its way is all there
+ * is to say that with. BACKUP is left out, because it lasts as long as a database takes to copy, and
+ * RESTART_REQUIRED and BLOCKED wait for someone rather than for Trove.
+ */
+export const OPENSTACK_DATABASE_INSTANCE_ERROR_STATUSES: ReadonlySet<string> =
+  new Set(["ERROR", "FAILED"]);
+
+export const OPENSTACK_DATABASE_INSTANCE_TRANSITIONAL_STATUSES: ReadonlySet<string> =
+  new Set([
+    "BUILD",
+    "REBOOT",
+    "HARD_REBOOT",
+    "RESIZE",
+    "UPGRADE",
+    "PROMOTE",
+    "EJECT",
+    "DETACH",
+  ]);

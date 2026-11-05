@@ -1,5 +1,6 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { OpenStackRowsLeftOut } from "Common/Types/OpenStack/OpenStackOverview";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
@@ -9,11 +10,17 @@ import {
   percentOf,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_API_STATUS_CLOSED,
   OPENSTACK_SERVICE_TITLES,
   OpenStackResourceKind,
   OpenStackServiceFamily,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+  isOpenStackApiClosedToThisCredential,
+} from "Common/Types/OpenStack/OpenStackOptionalServices";
 import {
   OpenStackProjectQuota,
   getOpenStackProjectQuotas,
@@ -65,6 +72,11 @@ export const OPENSTACK_CATALOG_ORDER: ReadonlyArray<string> = [
   OpenStackServiceType.Network,
   OpenStackServiceType.Volume,
   OpenStackServiceType.Image,
+  ...OPENSTACK_OPTIONAL_SERVICES.map(
+    (entry: OpenStackOptionalService): OpenStackServiceType => {
+      return entry.service;
+    },
+  ),
 ];
 
 // Which API answers for each family of workers: the exporter reads them through it.
@@ -72,6 +84,11 @@ const SERVICE_OF_FAMILY: Record<string, OpenStackServiceType> = {
   [OpenStackServiceFamily.Compute]: OpenStackServiceType.Compute,
   [OpenStackServiceFamily.Network]: OpenStackServiceType.Network,
   [OpenStackServiceFamily.Volume]: OpenStackServiceType.Volume,
+  [OpenStackServiceFamily.Orchestration]: OpenStackServiceType.Orchestration,
+  [OpenStackServiceFamily.ContainerInfra]: OpenStackServiceType.ContainerInfra,
+  [OpenStackServiceFamily.BareMetal]: OpenStackServiceType.BareMetal,
+  [OpenStackServiceFamily.SharedFileSystems]:
+    OpenStackServiceType.SharedFileSystems,
 };
 
 function factsOf(row: OpenStackResource | null | undefined): JSONObject {
@@ -199,8 +216,28 @@ export interface OpenStackWorkerCounts {
   disabled: number;
 }
 
+/*
+ * What a read counted and did not bring: on a cloud of thousands of hosts, nearly all of its workers.
+ * Only for a page that says how many: none of these is anything to read.
+ */
+export function getOpenStackRowsLeftOut(data: {
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
+  kind: OpenStackResourceKind;
+  regionName?: string | null | undefined;
+}): Array<OpenStackRowsLeftOut> {
+  return (data.leftOut || []).filter((group: OpenStackRowsLeftOut): boolean => {
+    return (
+      group.kind === data.kind &&
+      (!data.regionName ||
+        !group.regionName ||
+        group.regionName === data.regionName)
+    );
+  });
+}
+
 export function getOpenStackWorkerCounts(
   workers: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
 ): OpenStackWorkerCounts {
   const counts: OpenStackWorkerCounts = {
     total: workers.length,
@@ -208,6 +245,15 @@ export function getOpenStackWorkerCounts(
     down: 0,
     disabled: 0,
   };
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    counts.total += group.count;
+    counts[group.state] += group.count;
+  }
+
   for (const worker of workers) {
     if (isOpenStackAdminDisabled(worker.adminState)) {
       counts.disabled += 1;
@@ -238,6 +284,8 @@ export interface OpenStackServiceGroup {
   // What needs someone first.
   workers: Array<OpenStackResource>;
   counts: OpenStackWorkerCounts;
+  // How many of them were not read, because nothing is wrong with them: a very large cloud's.
+  notListedCount: number;
   items: Array<ResourceAttentionItem>;
   health: ResourceHealth;
   // Its API isn't answering, so what its workers say is what they last said.
@@ -261,11 +309,13 @@ interface OpenStackServiceGroupRows {
   regionName: string | null;
   api: OpenStackResource | null;
   workers: Array<OpenStackResource>;
+  leftOut: Array<OpenStackRowsLeftOut>;
 }
 
 export function getOpenStackServiceGroups(data: {
   apis: Array<OpenStackResource>;
   workers: Array<OpenStackResource>;
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
   now: Date;
 }): Array<OpenStackServiceGroup> {
   const groups: Map<string, OpenStackServiceGroupRows> = new Map();
@@ -287,6 +337,7 @@ export function getOpenStackServiceGroups(data: {
       regionName,
       api: null,
       workers: [],
+      leftOut: [],
     };
     groups.set(key, group);
     return group;
@@ -306,6 +357,18 @@ export function getOpenStackServiceGroups(data: {
     }
   }
 
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: data.leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    const service: OpenStackServiceType | undefined =
+      SERVICE_OF_FAMILY[group.family || ""];
+
+    if (service) {
+      groupOf(service, group.regionName).leftOut.push(group);
+    }
+  }
+
   return Array.from(groups.entries())
     .map(
       ([key, group]: [
@@ -322,10 +385,18 @@ export function getOpenStackServiceGroups(data: {
           regionName: group.regionName,
           api: group.api,
           workers: sortOpenStackWorkers(group.workers, data.now),
-          counts: getOpenStackWorkerCounts(group.workers),
+          counts: getOpenStackWorkerCounts(group.workers, group.leftOut),
+          notListedCount: group.leftOut.reduce(
+            (sum: number, leftOut: OpenStackRowsLeftOut): number => {
+              return sum + leftOut.count;
+            },
+            0,
+          ),
           items,
           health: getOpenStackHealth(items),
-          isLastKnown: group.api?.status === "down" && group.workers.length > 0,
+          isLastKnown:
+            group.api?.status === "down" &&
+            (group.workers.length > 0 || group.leftOut.length > 0),
         };
       },
     )
@@ -338,6 +409,62 @@ export function getOpenStackServiceGroups(data: {
         (a.regionName || "").localeCompare(b.regionName || "")
       );
     });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The workers of a service a cloud may not run
+ * ---------------------------------------------------------------------------
+ *
+ * The exporter has no series for Heat's engines, Magnum's conductors or Ironic's, so on an agent's cloud a card
+ * for any of them has an API and no workers, which would read as though it had none. Only a native read of
+ * their APIs lists them, and only for an admin. Each behaves differently when one stops, recorded:
+ * with every engine stopped Heat's API can't answer at all, so this page does say so. Magnum's API
+ * carries on without its conductor, so nothing else here would.
+ */
+const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "The agent's exporter has no series for Ironic's conductors, so none is listed here. Only a probe reads them, where its credential may.",
+  ),
+  [OpenStackServiceType.Orchestration]: translationKey(
+    "The agent's exporter doesn't read Heat's engines, so they aren't listed here. With every engine stopped Heat's API stops answering, which this page does say. A probe reads them.",
+  ),
+  [OpenStackServiceType.SharedFileSystems]: translationKey(
+    "The agent's exporter doesn't read Manila's services, so a stopped one isn't shown anywhere here: Manila's API carries on answering without it, and its shares just stop changing. Run openstack share service list, or collect this cloud with a probe, which reads them.",
+  ),
+  [OpenStackServiceType.ContainerInfra]: translationKey(
+    "The agent's exporter doesn't read Magnum's conductors, so a stopped one isn't shown anywhere here: Magnum's API carries on answering without it, and its clusters just stop moving. Run openstack coe service list, or collect this cloud with a probe, which reads them.",
+  ),
+};
+
+const WORKERS_REFUSED_TO_THIS_CREDENTIAL: Partial<Record<string, string>> = {
+  // Recorded: 403 baremetal:conductor:get, to a project's admin.
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "Ironic answers, and doesn't list its conductors to this credential. It refuses a project the list unless its policy says otherwise (baremetal:conductor:get). Its nodes read without it.",
+  ),
+  [OpenStackServiceType.Orchestration]: translationKey(
+    "Heat refuses this credential its list of engines, so they aren't listed here. Only the Full view credential reads them.",
+  ),
+  [OpenStackServiceType.SharedFileSystems]: translationKey(
+    "Manila refuses this credential its list of services, so they aren't listed here, and a stopped one isn't shown anywhere: Manila's API carries on answering without it. Only the Full view credential reads them.",
+  ),
+  [OpenStackServiceType.ContainerInfra]: translationKey(
+    "Magnum refuses this credential its list of conductors, so they aren't listed here, and a stopped one isn't shown anywhere: Magnum's API carries on answering without it. Only the Full view credential reads them.",
+  ),
+};
+
+export function getOpenStackWorkersNotListedWords(data: {
+  group: Pick<OpenStackServiceGroup, "service" | "workers" | "api">;
+  isCollectedByProbe: boolean;
+}): string | null {
+  if (data.group.workers.length > 0 || data.group.api?.status !== "up") {
+    return null;
+  }
+  return (
+    (data.isCollectedByProbe
+      ? WORKERS_REFUSED_TO_THIS_CREDENTIAL
+      : WORKERS_NOT_READ_BY_THE_AGENT)[data.group.service] || null
+  );
 }
 
 /*
@@ -356,6 +483,7 @@ export const OPENSTACK_BACKEND_LINUX_BRIDGE: string = "ML2/Linux bridge";
 
 export function getOpenStackNetworkBackendName(
   workers: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
 ): string | null {
   const names: Array<string> = workers
     .filter((worker: OpenStackResource): boolean => {
@@ -366,6 +494,16 @@ export function getOpenStackNetworkBackendName(
     .map((worker: OpenStackResource): string => {
       return (worker.name || "").toLowerCase();
     });
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    if (group.family === OpenStackServiceFamily.Network && group.name) {
+      names.push(group.name.toLowerCase());
+    }
+  }
+
   const hasAgent: (word: string) => boolean = (word: string): boolean => {
     return names.some((name: string): boolean => {
       return name.includes(word);
@@ -403,12 +541,106 @@ const CANNOT_LIST_VOLUME_SERVICES: string = translationKey(
   "This credential can't list volume services",
 );
 
+const CANNOT_READ_PLACEMENT: string = translationKey(
+  "This credential can't read Placement",
+);
+
+/*
+ * What an API's page says while it has never let this credential in: what it could be, because a refusal
+ * and a stopped API read the same, and what opens it. By service, for what each really does.
+ */
+const CLOSED_TO_THIS_CREDENTIAL_WORDS: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Database]: translationKey(
+    "OneUptime has never had an answer from Trove with this credential. The exporter reads Trove's mgmt API, which only an admin may, and a refusal reads just as Trove being down does. So either Trove refuses this credential, or it has been down since OneUptime started reading it. Reading it takes the Full view credential.",
+  ),
+};
+
+export function getOpenStackClosedToThisCredentialWords(
+  service: string | null | undefined,
+): string | null {
+  return CLOSED_TO_THIS_CREDENTIAL_WORDS[service || ""] || null;
+}
+
+// Each is a service whose read asks for what only an admin may, so a refusal reads as a stopped API.
+const CANNOT_READ_OPTIONAL_SERVICE: Partial<Record<string, string>> = {
+  [OpenStackServiceType.Database]: translationKey(
+    "This credential has never read Trove",
+  ),
+};
+
 export interface OpenStackAccessGap {
   key: string;
   // English: "This credential can't list hypervisors".
   title: string;
   // The service whose API says up with nothing to show.
   service: string;
+  /*
+   * Cinder's services and pools answer anything but an admin with a 403, from Cinder's own
+   * code, so only the Full view credential reads them. Infrastructure only goes without them
+   * by design. Everything else closed here opens at that level too.
+   */
+  isFullViewOnly: boolean;
+}
+
+/*
+ * Placement closed to this credential reads the same as Placement stopped: the exporter says
+ * openstack_placement_up 0 when every call it made failed, and a 403 is a failed call. Recorded
+ * for a plain reader on all five releases. What tells them apart is Nova: where it answers and
+ * lists no compute services, this credential is closed to infrastructure, so Placement's word
+ * says nothing about Placement. Never a critical "API down", then, on a cloud nobody can
+ * see into, and an API this page can't judge is never called up either.
+ */
+function getRegionsClosedToInfrastructure(data: {
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+}): Set<string> {
+  const closed: Set<string> = new Set();
+  for (const api of data.apis) {
+    const regionName: string | null = api.regionName || null;
+    if (
+      api.name === OpenStackServiceType.Compute &&
+      api.status === "up" &&
+      !data.workers.some((worker: OpenStackResource): boolean => {
+        return (
+          getOpenStackWorkerFamily(worker) === OpenStackServiceFamily.Compute &&
+          (worker.regionName || null) === regionName
+        );
+      })
+    ) {
+      closed.add(regionName || "");
+    }
+  }
+  return closed;
+}
+
+/*
+ * Rows as this credential can honestly say them: the same rows, but for a Placement it can't
+ * read. Stateless and cheap, so a page calls it on whatever it read.
+ */
+export function getOpenStackRowsAsThisCredentialReadsThem(data: {
+  rows: Array<OpenStackResource>;
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+}): Array<OpenStackResource> {
+  const closed: Set<string> = getRegionsClosedToInfrastructure({
+    apis: data.apis,
+    workers: data.workers,
+  });
+  return data.rows.map((row: OpenStackResource): OpenStackResource => {
+    return row.kind === OpenStackResourceKind.Api &&
+      ((row.name === OpenStackServiceType.Placement &&
+        row.status === "down" &&
+        closed.has(row.regionName || "")) ||
+        isOpenStackApiClosedToThisCredential({
+          name: row.name,
+          status: row.status,
+          facts: row.facts as JSONObject | undefined,
+        }))
+      ? (Object.assign(new OpenStackResource(), row, {
+          status: OPENSTACK_API_STATUS_CLOSED,
+        }) as OpenStackResource)
+      : row;
+  });
 }
 
 function isApiUp(
@@ -430,6 +662,7 @@ export function getOpenStackAccessGaps(data: {
   workers: Array<OpenStackResource>;
   // Left out by a page that says nothing about them.
   hypervisors?: Array<OpenStackResource> | undefined;
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
   /*
    * Whether a region holds any pool. Only pools past the rules' line are among the rows
    * that may need someone, so a page says this from the summary's capacity.
@@ -442,12 +675,21 @@ export function getOpenStackAccessGaps(data: {
     family: OpenStackServiceFamily,
   ): ((regionName: string | null) => boolean) => {
     return (regionName: string | null): boolean => {
-      return data.workers.some((worker: OpenStackResource): boolean => {
-        return (
-          getOpenStackWorkerFamily(worker) === family &&
-          (worker.regionName || null) === regionName
-        );
-      });
+      return (
+        data.workers.some((worker: OpenStackResource): boolean => {
+          return (
+            getOpenStackWorkerFamily(worker) === family &&
+            (worker.regionName || null) === regionName
+          );
+        }) ||
+        (data.leftOut || []).some((group: OpenStackRowsLeftOut): boolean => {
+          return (
+            group.kind === OpenStackResourceKind.Service &&
+            group.family === family &&
+            (group.regionName || null) === regionName
+          );
+        })
+      );
     };
   };
 
@@ -466,9 +708,17 @@ export function getOpenStackAccessGaps(data: {
       data.apis,
       OpenStackServiceType.Compute,
       (regionName: string | null): boolean => {
-        return hypervisors.some((row: OpenStackResource): boolean => {
-          return (row.regionName || null) === regionName;
-        });
+        return (
+          hypervisors.some((row: OpenStackResource): boolean => {
+            return (row.regionName || null) === regionName;
+          }) ||
+          (data.leftOut || []).some((group: OpenStackRowsLeftOut): boolean => {
+            return (
+              group.kind === OpenStackResourceKind.Hypervisor &&
+              (group.regionName || null) === regionName
+            );
+          })
+        );
       },
     )
   ) {
@@ -476,6 +726,7 @@ export function getOpenStackAccessGaps(data: {
       key: "hypervisors",
       title: titleOf(OpenStackResourceKind.Hypervisor),
       service: OpenStackServiceType.Compute,
+      isFullViewOnly: false,
     });
   }
 
@@ -490,6 +741,7 @@ export function getOpenStackAccessGaps(data: {
       key: "compute-services",
       title: CANNOT_LIST_COMPUTE_SERVICES,
       service: OpenStackServiceType.Compute,
+      isFullViewOnly: false,
     });
   }
 
@@ -504,6 +756,7 @@ export function getOpenStackAccessGaps(data: {
       key: "network-agents",
       title: titleOf(OpenStackResourceKind.Service),
       service: OpenStackServiceType.Network,
+      isFullViewOnly: false,
     });
   }
 
@@ -518,6 +771,7 @@ export function getOpenStackAccessGaps(data: {
       key: "volume-services",
       title: CANNOT_LIST_VOLUME_SERVICES,
       service: OpenStackServiceType.Volume,
+      isFullViewOnly: true,
     });
   }
 
@@ -531,6 +785,52 @@ export function getOpenStackAccessGaps(data: {
       key: "storage-pools",
       title: titleOf(OpenStackResourceKind.StoragePool),
       service: OpenStackServiceType.Volume,
+      isFullViewOnly: true,
+    });
+  }
+
+  for (const api of data.apis) {
+    const title: string | undefined =
+      CANNOT_READ_OPTIONAL_SERVICE[api.name || ""];
+    if (
+      title &&
+      (api.status === OPENSTACK_API_STATUS_CLOSED ||
+        isOpenStackApiClosedToThisCredential({
+          name: api.name,
+          status: api.status,
+          facts: api.facts as JSONObject | undefined,
+        })) &&
+      !gaps.some((gap: OpenStackAccessGap): boolean => {
+        return gap.service === api.name;
+      })
+    ) {
+      gaps.push({
+        key: `closed-${api.name}`,
+        title,
+        service: api.name || "",
+        isFullViewOnly: true,
+      });
+    }
+  }
+
+  const closedRegions: Set<string> = getRegionsClosedToInfrastructure({
+    apis: data.apis,
+    workers: data.workers,
+  });
+  if (
+    data.apis.some((api: OpenStackResource): boolean => {
+      return (
+        api.name === OpenStackServiceType.Placement &&
+        (api.status === "down" || api.status === OPENSTACK_API_STATUS_CLOSED) &&
+        closedRegions.has(api.regionName || "")
+      );
+    })
+  ) {
+    gaps.push({
+      key: "placement",
+      title: CANNOT_READ_PLACEMENT,
+      service: OpenStackServiceType.Placement,
+      isFullViewOnly: false,
     });
   }
 
@@ -562,6 +862,12 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.Network]: "openstack-network-api-down",
   [OpenStackServiceType.Volume]: "openstack-block-storage-api-down",
   [OpenStackServiceType.Image]: "openstack-image-api-down",
+  [OpenStackServiceType.Orchestration]: "openstack-orchestration-api-down",
+  [OpenStackServiceType.ContainerInfra]: "openstack-container-infra-api-down",
+  [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
+  [OpenStackServiceType.SharedFileSystems]:
+    "openstack-shared-file-systems-api-down",
+  [OpenStackServiceType.Database]: "openstack-database-api-down",
 };
 
 const SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS: Array<string> = [
@@ -581,6 +887,12 @@ export function getOpenStackWorkerAlertTemplateIds(
       return ["openstack-network-agent-down"];
     case OpenStackServiceFamily.Volume:
       return ["openstack-block-storage-service-down"];
+    case OpenStackServiceFamily.Orchestration:
+      return ["openstack-orchestration-engine-down"];
+    case OpenStackServiceFamily.ContainerInfra:
+      return ["openstack-container-infra-conductor-down"];
+    case OpenStackServiceFamily.SharedFileSystems:
+      return ["openstack-share-service-down"];
     default:
       return [];
   }
@@ -603,6 +915,34 @@ export function getOpenStackServiceAlertTemplateIds(
       return [...own, "openstack-network-agent-down"];
     case OpenStackServiceType.Volume:
       return [...own, "openstack-block-storage-service-down"];
+    case OpenStackServiceType.Orchestration:
+      return [
+        ...own,
+        "openstack-orchestration-engine-down",
+        "openstack-stack-failed",
+        "openstack-stack-stuck",
+      ];
+    case OpenStackServiceType.ContainerInfra:
+      return [
+        ...own,
+        "openstack-container-infra-conductor-down",
+        "openstack-container-cluster-failed",
+        "openstack-container-cluster-stuck",
+      ];
+    case OpenStackServiceType.SharedFileSystems:
+      return [
+        ...own,
+        "openstack-share-service-down",
+        "openstack-share-in-error",
+        "openstack-share-stuck",
+      ];
+    case OpenStackServiceType.Database:
+      return [
+        ...own,
+        "openstack-database-instance-in-error",
+        "openstack-database-instance-stuck",
+        "openstack-database-volume-nearly-full",
+      ];
     default:
       return own;
   }
@@ -680,6 +1020,7 @@ export interface OpenStackHypervisorCounts {
 
 export function getOpenStackHypervisorCounts(
   rows: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
 ): OpenStackHypervisorCounts {
   const counts: OpenStackHypervisorCounts = {
     total: 0,
@@ -687,6 +1028,20 @@ export function getOpenStackHypervisorCounts(
     lost: 0,
     disabled: 0,
   };
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Hypervisor,
+  })) {
+    counts.total += group.count;
+
+    if (group.state === "down") {
+      counts.lost += group.count;
+    } else {
+      counts[group.state] += group.count;
+    }
+  }
+
   for (const row of rows) {
     if (row.kind !== OpenStackResourceKind.Hypervisor) {
       continue;

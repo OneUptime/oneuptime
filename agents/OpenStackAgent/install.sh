@@ -9,9 +9,32 @@ echo ""
 # Every variable docker-compose.yml reads, and what this script and
 # troubleshoot.sh read from .env. The .env holds all of them, so a value set by
 # hand survives a re-run. The credential is not here: clouds.yaml alone holds it.
+#
+# The lists of targets are never asked for: what a cloud stands on is named by whoever
+# knows where it runs, and README.md says how. Each is kept across a re-run.
+TARGET_LIST_NAMES="OPENSTACK_RABBITMQ_TARGETS OPENSTACK_MARIADB_TARGETS OPENSTACK_MEMCACHED_TARGETS \
+OPENSTACK_HAPROXY_TARGETS OPENSTACK_NETWORK_EXPORTER_TARGETS OPENSTACK_LIBVIRT_HEALTH_TARGETS \
+OPENSTACK_LIBVIRT_EXPORTER_TARGETS OPENSTACK_CEILOMETER_EXPORTER_TARGETS"
+# What only the largest clouds set, by hand: see "Very large clouds" in the docs. Never asked for,
+# and kept across a re-run when they are set. The database URLs hold a password, and .env is 0600.
+VERY_LARGE_CLOUD_NAMES="OPENSTACK_AGENT_SERVICES OPENSTACK_AGENT_MEMORY_LIMIT_MIB \
+OPENSTACK_DATABASE_EXPORTER_TARGETS OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX \
+OPENSTACK_WORKER_STATE_CLOUDS OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS \
+NOVA_DATABASE_URL NOVA_API_DATABASE_URL PLACEMENT_DATABASE_URL NEUTRON_DATABASE_URL \
+CINDER_DATABASE_URL GLANCE_DATABASE_URL KEYSTONE_DATABASE_URL"
+# The OneUptime AI agent's own settings, never asked for: its defaults read the cloud with the
+# credential in clouds.yaml. Kept across a re-run when they are set.
+AI_AGENT_NAMES="OPENSTACK_AI_CLOUDS_FILE ONEUPTIME_AI_OPENSTACK_CLOUD \
+ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET \
+ONEUPTIME_AI_OPENSTACK_REGION ONEUPTIME_AI_OPENSTACK_INTERFACE ONEUPTIME_AI_OPENSTACK_CA_FILE \
+ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES ONEUPTIME_AI_ALLOW_WRITES \
+ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS ONEUPTIME_AI_AGENT_RESOURCE_NAME LOG_LEVEL"
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY OPENSTACK_CLOUD_NAME \
 OPENSTACK_AUTH_URL OPENSTACK_EXPORTER_CLOUDS OPENSTACK_EXPORTER_ADDRESS \
-OPENSTACK_EXPORTER_USER OPENSTACK_CA_FILE COMPOSE_PROFILES"
+OPENSTACK_EXPORTER_USER OPENSTACK_CA_FILE COMPOSE_PROFILES OPENSTACK_COLLECT_QUOTAS \
+OPENSTACK_QUOTA_CLOUDS OPENSTACK_QUOTA_EXPORTER_ADDRESS \
+OPENSTACK_CONTROL_PLANE_REGION OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS $TARGET_LIST_NAMES \
+$VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES"
 
 # The answers that end up in clouds.yaml and nowhere else.
 CREDENTIAL_NAMES="OPENSTACK_APPLICATION_CREDENTIAL_ID OPENSTACK_APPLICATION_CREDENTIAL_SECRET \
@@ -289,9 +312,20 @@ download_agent_file() {
     fi
 }
 
-# Installation directory (decided first so an existing .env can be reused)
-INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-openstack-agent}"
+# Installation directory (decided first so an existing .env can be reused). Docker asks for
+# the docker group and nothing else, so a person with no rights on /opt gets a folder in their
+# home, and a re-run finds it there. A folder already in /opt stays the answer: if it is someone
+# else's, the check on .env below says so, rather than a second agent starting beside it.
 DEFAULT_INSTALL_DIR="/opt/oneuptime-openstack-agent"
+INSTALL_DIR_IS_IN_HOME=0
+if [ -z "${INSTALL_DIR:-}" ]; then
+    INSTALL_DIR="$DEFAULT_INSTALL_DIR"
+    if [ "$WITHOUT_DOCKER" != "true" ] && [ "$(id -u)" != "0" ] && [ -n "${HOME:-}" ] \
+        && [ ! -e "$DEFAULT_INSTALL_DIR" ] && [ ! -w "${DEFAULT_INSTALL_DIR%/*}" ]; then
+        INSTALL_DIR="$HOME/oneuptime-openstack-agent"
+        INSTALL_DIR_IS_IN_HOME=1
+    fi
+fi
 ENV_FILE="$INSTALL_DIR/.env"
 CLOUDS_FILE="$INSTALL_DIR/clouds.yaml"
 # What this script installed (see download_agent_file).
@@ -328,6 +362,7 @@ EXPORTER_SHA256_ARM64="d41800fc6170a5d44027f8fc6a0037e915b6ea3887076e6b96b78e06e
 UNIT_DIR="${SYSTEMD_UNIT_DIR:-/etc/systemd/system}"
 COLLECTOR_SERVICE="oneuptime-openstack-agent"
 EXPORTER_SERVICE="oneuptime-openstack-exporter"
+QUOTA_EXPORTER_SERVICE="oneuptime-openstack-quota-exporter"
 EXPORTER_SYSTEM_USER="oneuptime-openstack"
 
 # Check prerequisites
@@ -428,6 +463,68 @@ if [ -z "$OPENSTACK_CLOUD_NAME" ]; then
     OPENSTACK_CLOUD_NAME="${OPENSTACK_CLOUD_NAME:-openstack}"
 fi
 
+# A list of scrape targets as the collector reads it, in square brackets. It takes
+# one with or without them, and a target may say which region it is in:
+# [10.0.0.11:15692,RegionTwo@10.1.0.11:15692]. An IPv6 address goes in double quotes,
+# because a bare [ opens a list inside the list.
+normalized_target_list() {
+    local name="$1" left="${!1}" item="" written=""
+    left="${left#"${left%%[![:space:]]*}"}"
+    left="${left%"${left##*[![:space:]]}"}"
+    case "$left" in
+        \[*\]) left="${left#\[}"; left="${left%\]}" ;;
+    esac
+    left="$left,"
+    while [ -n "$left" ]; do
+        item="${left%%,*}"
+        left="${left#*,}"
+        item="${item#"${item%%[![:space:]]*}"}"
+        item="${item%"${item##*[![:space:]]}"}"
+        item="${item#\"}"
+        item="${item%\"}"
+        [ -n "$item" ] || continue
+        case "$item" in
+            *[!A-Za-z0-9._:@\[\]\ -]* | *:)
+                echo "Error: $name holds \"$item\", which is not a host:port to scrape." >&2
+                return 1
+                ;;
+            *:[0-9]*) ;;
+            *)
+                echo "Error: $name holds \"$item\", which has no port. Each target is a host:port." >&2
+                return 1
+                ;;
+        esac
+        case "$item" in
+            \[*) item="\"$item\"" ;;
+        esac
+        written="$written,$item"
+    done
+    printf '[%s]' "${written#,}"
+}
+
+for name in OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS $TARGET_LIST_NAMES; do
+    NORMALIZED_TARGETS="$(normalized_target_list "$name")" || exit 1
+    printf -v "$name" '%s' "$NORMALIZED_TARGETS"
+    if [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
+        case "$NORMALIZED_TARGETS" in
+            *localhost:* | *127.0.0.1:*)
+                # The agent runs as a container on the compose bridge network, so
+                # "localhost" inside it is the agent itself.
+                echo "Error: $name is $NORMALIZED_TARGETS, and the agent runs in a container, where that is the"
+                echo "container itself. Use an address containers can reach: this machine's LAN IP or DNS name."
+                exit 1
+                ;;
+        esac
+    fi
+done
+
+# An exporter already running in single-cloud mode, such as Kolla-Ansible's. It has no
+# /probe, so it is scraped on /metrics by a job of its own, and it reads one region.
+SINGLE_CLOUD_EXPORTER=0
+if [ "$OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS" != "[]" ]; then
+    SINGLE_CLOUD_EXPORTER=1
+fi
+
 # Bring your own exporter: an address other than the bundled exporter's. The
 # bundled one then never starts, and the exporter's own clouds.yaml holds the
 # credential, so nothing asks for one here.
@@ -441,16 +538,26 @@ OPENSTACK_EXPORTER_ADDRESS="${OPENSTACK_EXPORTER_ADDRESS%/}"
 case "$OPENSTACK_EXPORTER_ADDRESS" in
     "" | "openstack-exporter:9180") OPENSTACK_EXPORTER_ADDRESS="$BUNDLED_EXPORTER_ADDRESS" ;;
 esac
-if [ "$OPENSTACK_EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ]; then
+# Your own exporter leaves no clouds.yaml beside the AI agent, so it starts only when someone
+# gave it a credential of its own and asked for it: a re-run keeps that.
+OWN_EXPORTER_PROFILES=""
+case ",$COMPOSE_PROFILES," in
+    *,openstack-ai-agent,*) OWN_EXPORTER_PROFILES="openstack-ai-agent" ;;
+esac
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    BUNDLED_EXPORTER=0
+    COMPOSE_PROFILES="$OWN_EXPORTER_PROFILES"
+elif [ "$OPENSTACK_EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ]; then
     BUNDLED_EXPORTER=1
     if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
         COMPOSE_PROFILES=""
     else
-        COMPOSE_PROFILES="openstack-exporter"
+        # With a clouds.yaml to read, the AI agent runs beside the exporter.
+        COMPOSE_PROFILES="openstack-exporter,openstack-ai-agent"
     fi
 else
     BUNDLED_EXPORTER=0
-    COMPOSE_PROFILES=""
+    COMPOSE_PROFILES="$OWN_EXPORTER_PROFILES"
     if [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
         case "$OPENSTACK_EXPORTER_ADDRESS" in
             localhost:* | 127.0.0.1:*)
@@ -464,6 +571,29 @@ else
                 ;;
         esac
     fi
+fi
+
+# Each project's quotas: off until asked for, because of what they cost. They are read by an
+# exporter this agent starts, so an exporter of your own has to read them itself.
+case "$OPENSTACK_COLLECT_QUOTAS" in
+    true) ;;
+    "" | false) OPENSTACK_COLLECT_QUOTAS="false" ;;
+    *)
+        echo "Error: OPENSTACK_COLLECT_QUOTAS must be true or false, not: $OPENSTACK_COLLECT_QUOTAS"
+        exit 1
+        ;;
+esac
+READS_QUOTAS=0
+if [ "$OPENSTACK_COLLECT_QUOTAS" = "true" ] && [ "$BUNDLED_EXPORTER" = 1 ]; then
+    READS_QUOTAS=1
+fi
+if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
+    OPENSTACK_QUOTA_EXPORTER_ADDRESS="127.0.0.1:9182"
+else
+    OPENSTACK_QUOTA_EXPORTER_ADDRESS="openstack-quota-exporter:9180"
+fi
+if [ "$READS_QUOTAS" = 1 ] && [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
+    COMPOSE_PROFILES="$COMPOSE_PROFILES,openstack-quotas"
 fi
 
 # The identity endpoint as this script writes it: no trailing slash, ending in /v3.
@@ -502,7 +632,14 @@ fi
 # the collector needs, which are added here. Each is the name of a clouds.yaml
 # entry, and the collector stamps that name as the region on every series,
 # because the exporter's series do not say which region they are from.
-if [ -z "$OPENSTACK_EXPORTER_CLOUDS" ]; then
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    # It has no entry per region to name: the region is whatever its clouds.yaml says.
+    if [ -z "$OPENSTACK_CONTROL_PLANE_REGION" ]; then
+        read -rp "The region this exporter reads [RegionOne]: " OPENSTACK_CONTROL_PLANE_REGION
+        OPENSTACK_CONTROL_PLANE_REGION="${OPENSTACK_CONTROL_PLANE_REGION:-RegionOne}"
+    fi
+    OPENSTACK_EXPORTER_CLOUDS="$OPENSTACK_CONTROL_PLANE_REGION"
+elif [ -z "$OPENSTACK_EXPORTER_CLOUDS" ]; then
     read -rp "Region names, comma-separated [RegionOne]: " OPENSTACK_EXPORTER_CLOUDS
     OPENSTACK_EXPORTER_CLOUDS="${OPENSTACK_EXPORTER_CLOUDS:-RegionOne}"
 fi
@@ -534,6 +671,23 @@ if [ "${#REGIONS[@]}" = 0 ]; then
     exit 1
 fi
 OPENSTACK_EXPORTER_CLOUDS="$(IFS=,; printf '[%s]' "${REGIONS[*]}")"
+# Each project's quotas, for the regions the agent reads, once they have been asked for.
+if [ "$READS_QUOTAS" = 1 ]; then
+    OPENSTACK_QUOTA_CLOUDS="$OPENSTACK_EXPORTER_CLOUDS"
+else
+    OPENSTACK_QUOTA_CLOUDS="[]"
+fi
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    if [ "${#REGIONS[@]}" != 1 ]; then
+        echo "Error: an exporter in single-cloud mode reads one region, and OPENSTACK_CONTROL_PLANE_REGION names ${#REGIONS[@]}."
+        echo "Run one agent for each region, with the same cloud name."
+        exit 1
+    fi
+    # The per-service jobs read this list, and that exporter has no /probe to ask.
+    OPENSTACK_EXPORTER_CLOUDS="[]"
+fi
+# The region of a target that does not say its own.
+OPENSTACK_CONTROL_PLANE_REGION="${OPENSTACK_CONTROL_PLANE_REGION:-${REGIONS[0]}}"
 
 # ----------------------------------------------------------------------------
 # The credential, the bundled exporter's alone
@@ -770,6 +924,14 @@ check_keystone() {
             exit 1
             ;;
         404)
+            # What Keystone answers for an application credential it no longer has.
+            case "$answer" in
+                *[Aa]pplication\ [Cc]redential*)
+                    echo "Error: Keystone has no such application credential (HTTP 404): it was deleted, or the ID is wrong."
+                    echo "Make a new one (README.md, \"Access\"). Nothing was installed or changed."
+                    exit 1
+                    ;;
+            esac
             echo "Error: nothing answers as Keystone at $OPENSTACK_AUTH_URL (HTTP 404). Check the auth URL:"
             echo "it is the identity endpoint, ending in /v3. Nothing was installed or changed."
             exit 1
@@ -816,7 +978,18 @@ fi
 # Create installation directory
 echo ""
 echo "Installing to: $INSTALL_DIR"
-mkdir -p "$INSTALL_DIR"
+if [ "$INSTALL_DIR_IS_IN_HOME" = 1 ]; then
+    echo "This user has no rights on ${DEFAULT_INSTALL_DIR%/*}, so the agent goes in its home folder. It needs none:"
+    echo "Docker runs it. Run this with sudo instead to put it in $DEFAULT_INSTALL_DIR."
+fi
+if ! mkdir -p "$INSTALL_DIR"; then
+    echo "Error: could not create $INSTALL_DIR. Nothing was installed or changed."
+    echo "Run this with sudo, or name a folder this user can write to: INSTALL_DIR=\$HOME/oneuptime-openstack-agent bash install.sh"
+    exit 1
+fi
+# Root runs what this folder holds, so nobody else may change it, whatever this machine gives a
+# new folder: on a GitHub runner it came out 777, even under a umask of 077.
+chmod go-w "$INSTALL_DIR" 2>/dev/null || true
 
 # ----------------------------------------------------------------------------
 # Where the agent's files come from
@@ -898,6 +1071,28 @@ download_release() {
     fi
     tar --no-same-owner -xzf "$archive" -C "$RELEASE_WORK_DIR" "$binary"
     chmod 0755 "$RELEASE_WORK_DIR/$binary"
+    release_runs_here "$binary"
+}
+
+# A release that passes its digest can still not run here. The exporter's is linked against
+# a newer glibc than RHEL 8 has: on Rocky 8's 2.28 it asks for GLIBC_2.34 and exits, and systemd
+# restarts it for ever with nothing to scrape. So each is run once before anything is installed,
+# which on an upgrade leaves the running agent as it is.
+release_runs_here() {
+    local binary="$1" answer=""
+    if answer="$("$RELEASE_WORK_DIR/$binary" --version 2>&1)"; then
+        return 0
+    fi
+    echo "Error: the $binary release does not run on this machine, so nothing was installed or changed:"
+    printf '%s\n' "$answer" | head -3 | sed 's/^/  /'
+    case "$answer" in
+        *GLIBC_*)
+            echo "It needs glibc 2.34 or later, which RHEL 9, Ubuntu 22.04 and Debian 12 have. On this machine,"
+            echo "install with Docker instead (bash install.sh), or name an exporter you already run with"
+            echo "OPENSTACK_EXPORTER_ADDRESS: the collector's release runs here on its own."
+            ;;
+    esac
+    exit 1
 }
 
 # install_unit <file> <service>: one of the agent's units where systemd reads it,
@@ -938,6 +1133,9 @@ if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
     install_unit "systemd/oneuptime-openstack-agent-native.service" "$COLLECTOR_SERVICE"
     if [ "$BUNDLED_EXPORTER" = 1 ]; then
         install_unit "systemd/oneuptime-openstack-exporter-native.service" "$EXPORTER_SERVICE"
+    fi
+    if [ "$READS_QUOTAS" = 1 ]; then
+        install_unit "systemd/oneuptime-openstack-quota-exporter-native.service" "$QUOTA_EXPORTER_SERVICE"
     fi
 else
     download_agent_file "docker-compose.yml" "$INSTALL_DIR/docker-compose.yml"
@@ -1091,7 +1289,21 @@ OPENSTACK_EXPORTER_ADDRESS=$(env_value "$OPENSTACK_EXPORTER_ADDRESS")
 OPENSTACK_EXPORTER_USER=$OPENSTACK_EXPORTER_USER
 OPENSTACK_CA_FILE=$(env_value "$OPENSTACK_CA_FILE")
 COMPOSE_PROFILES=$(env_value "$COMPOSE_PROFILES")
+OPENSTACK_COLLECT_QUOTAS=$(env_value "$OPENSTACK_COLLECT_QUOTAS")
+OPENSTACK_QUOTA_CLOUDS=$(env_value "$OPENSTACK_QUOTA_CLOUDS")
+OPENSTACK_QUOTA_EXPORTER_ADDRESS=$(env_value "$OPENSTACK_QUOTA_EXPORTER_ADDRESS")
+OPENSTACK_CONTROL_PLANE_REGION=$(env_value "$OPENSTACK_CONTROL_PLANE_REGION")
+OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=$(env_value "$OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS")
 ENVEOF
+for name in $TARGET_LIST_NAMES; do
+    printf '%s=%s\n' "$name" "$(env_value "${!name}")" >> "$ENV_FILE"
+done
+# Only when set: an empty one would overrule the default each runs with.
+for name in $VERY_LARGE_CLOUD_NAMES $AI_AGENT_NAMES; do
+    if [ -n "${!name:-}" ]; then
+        printf '%s=%s\n' "$name" "$(env_value "${!name}")" >> "$ENV_FILE"
+    fi
+done
 chmod 600 "$ENV_FILE"
 
 # Start the agent
@@ -1104,6 +1316,12 @@ if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
         systemctl restart "$EXPORTER_SERVICE"
     else
         systemctl disable --now "$EXPORTER_SERVICE" >/dev/null 2>&1 || true
+    fi
+    if [ "$READS_QUOTAS" = 1 ]; then
+        systemctl enable "$QUOTA_EXPORTER_SERVICE"
+        systemctl restart "$QUOTA_EXPORTER_SERVICE"
+    else
+        systemctl disable --now "$QUOTA_EXPORTER_SERVICE" >/dev/null 2>&1 || true
     fi
     systemctl enable "$COLLECTOR_SERVICE"
     systemctl restart "$COLLECTOR_SERVICE"
@@ -1153,10 +1371,25 @@ echo "If nothing shows up: curl -fsSL $AGENT_FILES_URL/troubleshoot.sh | bash$DO
 echo "That script also says what this credential can read, what each gap costs, and whether"
 echo "its project holds anything it might be able to write to."
 
-if [ "$BUNDLED_EXPORTER" = 0 ]; then
+if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
+    echo ""
+    echo "NOTE: the agent reads your exporter at $OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS on /metrics, for region"
+    echo "$OPENSTACK_CONTROL_PLANE_REGION. Exporter 1.7.0 says less than the bundled one: README.md says what the pages go without."
+elif [ "$BUNDLED_EXPORTER" = 0 ]; then
     echo ""
     echo "NOTE: the agent reads your exporter at $OPENSTACK_EXPORTER_ADDRESS. It must run with --multi-cloud, and"
     echo "its clouds.yaml needs an entry named for each region: $OPENSTACK_EXPORTER_CLOUDS."
+    echo "Started without --multi-cloud, as Kolla-Ansible starts it? Set OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS instead."
+fi
+
+if [ "$READS_QUOTAS" = 1 ]; then
+    echo ""
+    echo "NOTE: each project's quotas are read once an hour, by an exporter of their own: four API"
+    echo "calls per project, per region, on each read. The first read is within the hour."
+elif [ "$OPENSTACK_COLLECT_QUOTAS" = "true" ]; then
+    echo ""
+    echo "NOTE: OPENSTACK_COLLECT_QUOTAS reads quotas with an exporter this agent starts, and this agent"
+    echo "reads yours, so it is left off. Yours reads them on every scrape unless its flags leave them out."
 fi
 
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then

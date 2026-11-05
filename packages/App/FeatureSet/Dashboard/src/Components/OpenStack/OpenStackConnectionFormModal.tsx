@@ -4,7 +4,10 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { BasicFormHandle, FormProps } from "Common/UI/Components/Forms/BasicForm";
+import {
+  BasicFormHandle,
+  FormProps,
+} from "Common/UI/Components/Forms/BasicForm";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";

@@ -73,6 +73,8 @@ Klappen Sie **Sicherheit** im Seitenmenü von **Benutzerprofil** auf. Der Abschn
 3. Klicken Sie auf **Passwort aktualisieren**.
 :::
 
+Ein neues Passwort meldet jedes Gerät von Ihrem Konto ab, und jeder bereits gesendete Link zum Zurücksetzen oder Anmeldelink funktioniert nicht mehr.
+
 ### Einen Passkey hinzufügen
 
 :::steps

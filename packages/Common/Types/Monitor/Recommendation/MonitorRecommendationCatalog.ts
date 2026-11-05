@@ -60,7 +60,12 @@ import {
 import {
   OpenStackAlertTemplate,
   getAllOpenStackAlertTemplates,
+  getOpenStackAlertTemplatesForCloud,
 } from "../OpenStackAlertTemplates";
+import {
+  OpenStackLogAlertTemplate,
+  getAllOpenStackLogAlertTemplates,
+} from "../OpenStackLogAlertTemplates";
 import {
   ProxmoxNotificationAlertTemplate,
   getAllProxmoxNotificationAlertTemplates,
@@ -441,9 +446,38 @@ function getProxmoxRecommendations(): Array<MonitorRecommendation> {
   return [...metricRecommendations, ...notificationRecommendations];
 }
 
-function getOpenStackRecommendations(): Array<MonitorRecommendation> {
-  return getAllOpenStackAlertTemplates().map(
-    (template: OpenStackAlertTemplate) => {
+/*
+ * What a cloud is offered: everything every cloud has, and what needs a service it may not run or a
+ * series only a probe sends only if it has them. Knowing nothing about a cloud offers what every
+ * cloud has.
+ */
+function getOpenStackRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  const isOffered: Set<string> = new Set(
+    getOpenStackAlertTemplatesForCloud({
+      services: context?.openStackServices,
+      isCollectedByProbe: context?.openStackIsCollectedByProbe,
+      isApiCheckOn: context?.openStackIsApiCheckOn,
+      isLifecycleCheckOn: context?.openStackIsLifecycleCheckOn,
+    }).map((template: OpenStackAlertTemplate): string => {
+      return template.id;
+    }),
+  );
+
+  return getAllPossibleOpenStackRecommendations().filter(
+    (recommendation: MonitorRecommendation): boolean => {
+      return (
+        recommendation.monitorType !== MonitorType.OpenStack ||
+        isOffered.has(recommendation.templateId)
+      );
+    },
+  );
+}
+
+function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> {
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllOpenStackAlertTemplates().map((template: OpenStackAlertTemplate) => {
       return normalize({
         resourceType: MonitorRecommendationResourceType.OpenStack,
         monitorType: MonitorType.OpenStack,
@@ -459,8 +493,36 @@ function getOpenStackRecommendations(): Array<MonitorRecommendation> {
           });
         },
       });
-    },
-  );
+    });
+
+  /*
+   * What only a cloud's services say - a request no host could take, a lost message bus -
+   * are logs of the cloud once the agent's logs profile runs on its machines
+   * (OpenStackLogAlertTemplates), so their alerts are Logs monitors scoped to the cloud:
+   * offered beside the metric templates, last, under their own headings.
+   */
+  const logRecommendations: Array<MonitorRecommendation> =
+    getAllOpenStackLogAlertTemplates().map(
+      (template: OpenStackLogAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.OpenStack,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              cloudIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
+        });
+      },
+    );
+
+  return [...metricRecommendations, ...logRecommendations];
 }
 
 function getVMwareRecommendations(): Array<MonitorRecommendation> {
@@ -845,11 +907,13 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.OpenStack,
-      monitorTypes: [MonitorType.OpenStack],
+      // Metric templates, and the Logs monitors over what its services say.
+      monitorTypes: [MonitorType.OpenStack, MonitorType.Logs],
       resourceLabel: "OpenStack Cloud",
       identifierFieldName: "cloudIdentifier",
       icon: IconProp.Cloud,
       getRecommendations: getOpenStackRecommendations,
+      getAllPossibleRecommendations: getAllPossibleOpenStackRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.VMware,

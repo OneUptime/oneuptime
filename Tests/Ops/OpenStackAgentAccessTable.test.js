@@ -479,6 +479,51 @@ function readOf(release, name, service, label) {
   }).results;
 }
 
+describe("what a probe's reads of a router's agents and a DHCP agent's networks take", () => {
+  function partRead(name, label) {
+    return matrix("gazpacho-ovs", name).partReads.find((row) => {
+      return row.service === "network" && row.read === label;
+    }).results;
+  }
+
+  const ROUTER_AGENTS = "a router's L3 agents";
+  const DHCP_NETWORKS = "a DHCP agent's networks";
+
+  test.each([ROUTER_AGENTS, DHCP_NETWORKS])(
+    "Neutron's default policy gives %s to an admin alone, and says so",
+    (label) => {
+      const results = partRead("matrix-default-policy", label);
+
+      expect(results.admin.status).toBe(200);
+      for (const credential of ["reader", "monitoring-role"]) {
+        expect(results[credential].status).toBe(403);
+        expect(results[credential].reason).toMatch(/disallowed by policy/);
+      }
+    },
+  );
+
+  test.each([ROUTER_AGENTS, DHCP_NETWORKS])(
+    "level 1's access rules give %s, as an admin sees them",
+    (label) => {
+      const results = partRead("matrix-access-rules", label);
+
+      expect(results["monitoring-admin-get"].status).toBe(200);
+      expect(results["monitoring-admin-get"].count).toBe(results.admin.count);
+    },
+  );
+
+  test("the policy file opens them to level 2, as far as its own project can see", () => {
+    const networks = partRead("matrix", DHCP_NETWORKS);
+
+    expect(networks["monitoring-role"].status).toBe(200);
+    expect(networks["monitoring-role"].count).toBeLessThan(networks.admin.count);
+    expect(networks.reader.status).toBe(403);
+
+    // It lists no router of another project, so it's never told to ask about one.
+    expect(partRead("matrix", ROUTER_AGENTS)["monitoring-role"].status).toBe(404);
+  });
+});
+
 describe("what the recordings show, as the pages say it", () => {
   test.each(RELEASES)(
     "%s: level 1 read everything with a 200, and every write answered 401",
@@ -613,10 +658,24 @@ describe("what the recordings show, as the pages say it", () => {
       "load-balancer: load balancers",
       "load-balancer: amphorae",
       "baremetal: nodes",
+      "orchestration: stacks",
+      "orchestration: services",
+      "container-infra: clusters",
+      "container-infra: services",
+      "baremetal: conductors",
+      "sharev2: shares, all projects",
+      "sharev2: services",
+      "sharev2: pools",
+      "dns: zones, all projects",
+      "key-manager: secrets",
+      "key-manager: orders",
+      "object-store: own account",
+      "database: instances, all projects",
+      "metric: status",
     ]);
     for (const file of [README, DOCS_PAGE]) {
       expect(read(file)).toContain(
-        "Octavia and Ironic are not here because those clouds do not run them.",
+        "Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove and Gnocchi are not here because those clouds do not run them.",
       );
     }
   });
@@ -651,6 +710,8 @@ describe("what the recordings show, as the pages say it", () => {
     };
     expect(paths("block-storage").length).toBeGreaterThan(0);
     expect(paths("volumev3")).toEqual(paths("block-storage"));
+    // What Kolla-Ansible 2026.1 has Cinder say, where its catalog says block-storage.
+    expect(paths("volume")).toEqual(paths("block-storage"));
     expect(paths("identity")).not.toContain("/v3/users");
     expect(paths("identity")).not.toContain("/v3/groups");
   });
@@ -855,8 +916,12 @@ describe("the docs page", () => {
 
   test("says the same as the README of what the agent turns off", () => {
     const readme = read(README);
+    // The exporter it runs by default: the others start with nearly every read turned off.
     const compose = read(path.join(AGENT_DIR, "docker-compose.yml"));
-    const flags = Array.from(compose.matchAll(/- (--disable-metric=\S+)/g)).map(
+    const exporter = compose.match(
+      /^ {2}openstack-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m,
+    )[1];
+    const flags = Array.from(exporter.matchAll(/- (--disable-metric=\S+)/g)).map(
       (match) => {
         return match[1];
       },

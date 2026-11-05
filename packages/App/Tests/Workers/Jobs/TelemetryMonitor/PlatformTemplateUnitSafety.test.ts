@@ -38,7 +38,10 @@ import {
   getAllProxmoxAlertTemplates,
   ProxmoxAlertTemplateArgs,
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
-import { getAllOpenStackAlertTemplates } from "Common/Types/Monitor/OpenStackAlertTemplates";
+import {
+  getAllOpenStackAlertTemplates,
+  OpenStackAlertTemplateArgs,
+} from "Common/Types/Monitor/OpenStackAlertTemplates";
 import {
   getAllVMwareAlertTemplates,
   VMwareAlertTemplateArgs,
@@ -169,6 +172,7 @@ type TemplateArgs = KubernetesAlertTemplateArgs &
   HostAlertTemplateArgs &
   PodmanAlertTemplateArgs &
   ProxmoxAlertTemplateArgs &
+  OpenStackAlertTemplateArgs &
   VMwareAlertTemplateArgs &
   DockerSwarmAlertTemplateArgs &
   CephAlertTemplateArgs &
@@ -194,6 +198,7 @@ interface PlatformCase {
 
 const templateArgs: TemplateArgs = {
   clusterIdentifier: "prod",
+  cloudIdentifier: "prod",
   hostIdentifier: "host-1",
   vcenterIdentifier: "vcsa-prod",
   fleetIdentifier: "fleet-1",

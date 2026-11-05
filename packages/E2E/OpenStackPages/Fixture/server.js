@@ -7,7 +7,8 @@
  * on what a real cloud says rather than on what someone remembers it saying:
  *
  *  - every exporter recording in Common/Tests/Fixtures/OpenStack goes in as the
- *    module "openstack-recordings", so a new recording needs no change here;
+ *    module "openstack-recordings", so a new recording needs no change here, and
+ *    every recording of a cloud's service logs as "openstack-service-logs";
  *  - the real snapshot scan runs in the page (Fixture/Recordings.js). It only
  *    logs on a bad timestamp, and the server's logger pulls in OpenTelemetry's
  *    server packages, so it gets a quiet stand-in (Fixture/ScanLogger.js).
@@ -31,7 +32,7 @@ const recordings = path.join(
 );
 const port = Number(process.env.OPENSTACK_PAGES_FIXTURE_PORT || 4662);
 
-// { "gazpacho-ovs/compute-down": { "compute.prom": "...", ... }, ... }
+// { "gazpacho-ovs/compute-down": { "compute.prom": "...", ... }, ... }, and "<...>@1.7.0".
 function readRecordings() {
   const read = {};
   for (const release of fs.readdirSync(recordings)) {
@@ -40,19 +41,138 @@ function readRecordings() {
       continue;
     }
     for (const scene of fs.readdirSync(releaseFolder)) {
-      const exporter = path.join(releaseFolder, scene, "exporter");
-      if (!fs.existsSync(exporter) || !fs.statSync(exporter).isDirectory()) {
-        continue;
-      }
-      const files = {};
-      for (const file of fs.readdirSync(exporter).sort()) {
-        if (file.endsWith(".prom")) {
-          files[file] = fs.readFileSync(path.join(exporter, file), "utf8");
+      /*
+       * What exporter 1.7.0 said of the same cloud goes in under a name of its own, for the
+       * pages a cloud that brings that exporter gets.
+       */
+      for (const [folder, suffix] of [
+        ["exporter", ""],
+        ["exporter-stable", "@1.7.0"],
+      ]) {
+        const exporter = path.join(releaseFolder, scene, folder);
+        if (!fs.existsSync(exporter) || !fs.statSync(exporter).isDirectory()) {
+          continue;
+        }
+        const files = {};
+        for (const file of fs.readdirSync(exporter).sort()) {
+          // <service>-as-<cloud>.prom is another credential's view: no part of what the agent sent.
+          if (file.endsWith(".prom") && !file.includes("-as-")) {
+            files[file] = fs.readFileSync(path.join(exporter, file), "utf8");
+          }
+        }
+        if (Object.keys(files).length > 0) {
+          read[`${release}/${scene}${suffix}`] = files;
         }
       }
-      if (Object.keys(files).length > 0) {
-        read[`${release}/${scene}`] = files;
+    }
+    /*
+     * What the exporter said with each credential: "hibiscus-ovn/access/reader". A group of
+     * services a cloud may not run keeps its own in a folder that doesn't read as a release's.
+     */
+    for (const access of ["access", "access-check"]) {
+      const levels = path.join(releaseFolder, access, "exporter");
+      if (!fs.existsSync(levels) || !fs.statSync(levels).isDirectory()) {
+        continue;
       }
+      for (const level of fs.readdirSync(levels).sort()) {
+        const folder = path.join(levels, level);
+        if (!fs.statSync(folder).isDirectory()) {
+          continue;
+        }
+        const files = {};
+        for (const file of fs.readdirSync(folder).sort()) {
+          if (file.endsWith(".prom")) {
+            files[file] = fs.readFileSync(path.join(folder, file), "utf8");
+          }
+        }
+        if (Object.keys(files).length > 0) {
+          read[`${release}/access/${level}`] = files;
+        }
+      }
+    }
+    // Three more hosts on a real Placement: "hibiscus-ovn/capacity/healthy".
+    const capacity = path.join(releaseFolder, "capacity");
+    if (fs.existsSync(capacity) && fs.statSync(capacity).isDirectory()) {
+      for (const scene of fs.readdirSync(capacity).sort()) {
+        const folder = path.join(capacity, scene, "exporter");
+        if (!fs.existsSync(folder) || !fs.statSync(folder).isDirectory()) {
+          continue;
+        }
+        const files = {};
+        for (const file of fs.readdirSync(folder).sort()) {
+          if (file.endsWith(".prom")) {
+            files[file] = fs.readFileSync(path.join(folder, file), "utf8");
+          }
+        }
+        if (Object.keys(files).length > 0) {
+          read[`${release}/capacity/${scene}`] = files;
+        }
+      }
+    }
+  }
+  return read;
+}
+
+function readJsonLines(file) {
+  return fs.existsSync(file)
+    ? fs
+        .readFileSync(file, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          return JSON.parse(line);
+        })
+    : [];
+}
+
+// { "epoxy-ovn": { ids: {...}, journal: [...], notifications: [...] }, ... }
+function readServiceLogs() {
+  const folder = path.join(recordings, "service-logs");
+  const read = {};
+
+  if (!fs.existsSync(folder)) {
+    return read;
+  }
+
+  for (const release of fs.readdirSync(folder)) {
+    const ids = path.join(folder, release, "ids.json");
+
+    if (fs.existsSync(ids)) {
+      read[release] = {
+        ids: JSON.parse(fs.readFileSync(ids, "utf8")),
+        journal: readJsonLines(
+          path.join(folder, release, "journal", "devstack.jsonl"),
+        ),
+        notifications: readJsonLines(
+          path.join(folder, release, "notifications", "devstack.jsonl"),
+        ),
+      };
+    }
+  }
+
+  return read;
+}
+
+// { "flamingo-ovn/signed-boot": { otlp: ..., instanceId: "..." }, ... }
+function readTraceRecordings() {
+  const read = {};
+  const traces = path.join(recordings, "traces");
+  if (!fs.existsSync(traces)) {
+    return read;
+  }
+  for (const release of fs.readdirSync(traces)) {
+    const boot = path.join(traces, release, "agent", "signed-boot.json");
+    const server = path.join(
+      traces,
+      release,
+      "context",
+      "instance_booted-server.json",
+    );
+    if (fs.existsSync(boot) && fs.existsSync(server)) {
+      read[`${release}/signed-boot`] = {
+        otlp: JSON.parse(fs.readFileSync(boot, "utf8")),
+        instanceId: JSON.parse(fs.readFileSync(server, "utf8")).id,
+      };
     }
   }
   return read;
@@ -70,6 +190,27 @@ const recordingsPlugin = {
         loader: "json",
       };
     });
+    build.onResolve({ filter: /^openstack-service-logs$/ }, (args) => {
+      return { path: args.path, namespace: "openstack-service-logs" };
+    });
+    build.onLoad({ filter: /.*/, namespace: "openstack-service-logs" }, () => {
+      return {
+        contents: JSON.stringify(readServiceLogs()),
+        loader: "json",
+      };
+    });
+    build.onResolve({ filter: /^openstack-trace-recordings$/ }, (args) => {
+      return { path: args.path, namespace: "openstack-trace-recordings" };
+    });
+    build.onLoad(
+      { filter: /.*/, namespace: "openstack-trace-recordings" },
+      () => {
+        return {
+          contents: JSON.stringify(readTraceRecordings()),
+          loader: "json",
+        };
+      },
+    );
     build.onResolve({ filter: /^\.\.\/Logger$/ }, (args) => {
       return args.importer.endsWith("OpenStackSnapshotScan.ts")
         ? { path: path.join(__dirname, "ScanLogger.js") }

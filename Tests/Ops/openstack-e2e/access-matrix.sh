@@ -51,8 +51,14 @@ token_for() {
 
 # Read from what ships, so this can never test another exporter or other flags.
 EXPORTER_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*ghcr.io/openstack-exporter/' "$AGENT_DIR/docker-compose.yml" | head -1 | sed -E 's/^[[:space:]]*image:[[:space:]]*//')"
-EXPORTER_FLAGS="$(grep -E '^[[:space:]]*- --disable-metric=' "$AGENT_DIR/docker-compose.yml" | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
-EXPORTER_SERVICES="identity compute placement network volume image"
+# Only its own service's: the compose file also starts an exporter with most reads turned off.
+EXPORTER_FLAGS="$(sed -n '/^  openstack-exporter:$/,/^  [a-z-]*:$/p' "$AGENT_DIR/docker-compose.yml" | grep -E '^[[:space:]]*- --disable-metric=' | sed -E 's/^[[:space:]]*- //' | tr '\n' ' ')"
+# Which of the exporter's services to ask for at each level. The services a cloud may not run
+# name their own, because a group's recording is about those.
+EXPORTER_SERVICES="${EXPORTER_SERVICES:-identity compute placement network volume image}"
+# name=role for each more credential to try, with that role on the project that holds nothing,
+# such as a role a service offers for reading every project's.
+EXTRA_CREDENTIALS="${EXTRA_CREDENTIALS:-}"
 
 scrape_into() {
   local base_url="$1" folder="$2" service code
@@ -141,17 +147,62 @@ openstack role show oneuptime_monitoring >/dev/null 2>&1 \
 openstack project show ou-monitoring >/dev/null 2>&1 \
   || openstack project create --domain default --description "OneUptime monitoring: holds nothing" ou-monitoring >/dev/null
 openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 ou-monitoring
+# A group that runs without Cinder has no volume quota to set, and only there may this fail.
+openstack volume service list >/dev/null 2>&1 || set +e
 openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 ou-monitoring
+set -e
+# A group that runs without Neutron's security groups has no quota for them, and only there may this fail.
+openstack security group list >/dev/null 2>&1 || set +e
 openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 ou-monitoring
+set -e
 openstack role add --project ou-monitoring --user ou-monitor oneuptime_monitoring
 openstack role add --project ou-monitoring --user ou-monitor reader
 openstack role add --project ou-payments --user ou-monitor-on-project oneuptime_monitoring
 openstack role add --project ou-payments --user ou-monitor-on-project reader
 
+EXTRA_NAMES=()
+for extra in $EXTRA_CREDENTIALS; do
+  name="${extra%%=*}"
+  role="${extra#*=}"
+  openstack user show "ou-$name" >/dev/null 2>&1 \
+    || openstack user create --domain default --password "$PASSWORD" "ou-$name" >/dev/null
+  openstack user set --password "$PASSWORD" "ou-$name"
+  openstack role show "$role" >/dev/null 2>&1 || openstack role create "$role" >/dev/null
+  openstack role add --project ou-monitoring --user "ou-$name" "$role"
+  EXTRA_NAMES+=("$name")
+done
+
+# Their tokens, as the lines the matrix reads. No name of these starts with "monitoring", so
+# what one of them can write is recorded and is not a failure of the run.
+extra_tokens() {
+  local name
+  for name in "${EXTRA_NAMES[@]:-}"; do
+    [ -z "$name" ] || echo "$name=$(token_for "ou-$name" ou-monitoring)"
+  done
+}
+
 # What the write checks try to make, if they are wrongly let.
 export OU_WRITE_FLAVOR_ID OU_WRITE_IMAGE_ID OU_WRITE_EXTERNAL_NETWORK_ID
 OU_WRITE_FLAVOR_ID="$(openstack flavor show ou.tiny -f value -c id)"
 OU_WRITE_IMAGE_ID="$(openstack image list --status active -f value -c ID | head -1)"
+# What the calls per thing ask about. OVN has no DHCP agents, and then that one isn't asked.
+OU_READ_ROUTER_ID="$( (openstack router list --name ou-router -f value -c ID || true) | head -1)"
+OU_READ_DHCP_AGENT_ID="$( (openstack network agent list --agent-type dhcp -f value -c ID || true) | head -1)"
+export OU_READ_ROUTER_ID OU_READ_DHCP_AGENT_ID
+# A stack of a project that isn't this one, as name/id. Nothing where the cloud runs no Heat.
+OU_READ_OTHER_PROJECTS_STACK="$( (openstack stack list -f json 2>/dev/null || true) | python3 -I -c '
+import json, sys
+try:
+    rows = json.load(sys.stdin)
+except ValueError:
+    rows = []
+own = sys.argv[1]
+for row in rows:
+    if row.get("Project") and row.get("Project") != own:
+        print(row.get("Stack Name") + "/" + row.get("ID"))
+        break
+' "$(openstack token issue -f value -c project_id)")"
+export OU_READ_OTHER_PROJECTS_STACK
 OU_WRITE_EXTERNAL_NETWORK_ID="$(openstack network show public -f value -c id)"
 
 # A credential that could write fails the job, but only at the end: the rest of what
@@ -192,6 +243,7 @@ echo "--- Before the policy overrides"
   echo "reader=$(token_for ou-reader ou-payments)"
   echo "monitoring-role=$(token_for ou-monitor ou-monitoring)"
   echo "role-on-a-project=$(token_for ou-monitor-on-project ou-payments)"
+  extra_tokens
 } | matrix "$OUTPUT_DIR/access/matrix-default-policy.json"
 
 echo "--- With the policy overrides"
@@ -256,11 +308,15 @@ sleep 5
   echo "reader=$(token_for ou-reader ou-payments)"
   echo "monitoring-role=$(token_for ou-monitor ou-monitoring)"
   echo "role-on-a-project=$(token_for ou-monitor-on-project ou-payments)"
+  extra_tokens
 } | matrix "$OUTPUT_DIR/access/matrix.json"
 
 exporter_sees monitoring-role "$(clouds_for_user ou-monitor ou-monitoring)"
 exporter_sees role-on-a-project "$(clouds_for_user ou-monitor-on-project ou-payments)"
 exporter_sees reader "$(clouds_for_user ou-reader ou-payments)"
+for name in "${EXTRA_NAMES[@]:-}"; do
+  [ -z "$name" ] || exporter_sees "$name" "$(clouds_for_user "ou-$name" ou-monitoring)"
+done
 
 restore_policy
 trap - EXIT
@@ -287,15 +343,36 @@ set_service_type /etc/neutron/neutron.conf network
 set_service_type /etc/cinder/cinder.conf block-storage
 set_service_type /etc/glance/glance-api.conf image
 set_service_type /etc/placement/placement.conf placement
+# The services a cloud may not run, each where this cloud has it. Each is its service's own type
+# in the catalog, which is what its access rules name.
+for pair in octavia/octavia.conf:load-balancer ironic/ironic.conf:baremetal heat/heat.conf:orchestration \
+  magnum/magnum.conf:container-infra manila/manila.conf:sharev2 designate/designate.conf:dns \
+  barbican/barbican.conf:key-manager trove/trove.conf:database gnocchi/gnocchi.conf:metric; do
+  set_service_type "/etc/${pair%%:*}" "${pair##*:}"
+done
+# Swift keeps its keystonemiddleware's settings in a section of another name.
+if sudo test -f /etc/swift/proxy-server.conf; then
+  sudo sed -i "/^\[filter:authtoken\]/a service_type = object-store" /etc/swift/proxy-server.conf
+  # Recorded with DevStack's False: keystonemiddleware checks an access rule against the token's
+  # catalog, finds none, and Swift answers 500 (KeyError: 'catalog').
+  sudo sed -i "s/^include_service_catalog *= *.*/include_service_catalog = True/" /etc/swift/proxy-server.conf
+fi
 
 restart_units() {
   local unit
   for unit in devstack@n-api.service devstack@q-svc.service devstack@neutron-api.service \
-    devstack@c-api.service devstack@g-api.service devstack@placement-api.service; do
+    devstack@c-api.service devstack@g-api.service devstack@placement-api.service \
+    devstack@o-api.service devstack@ir-api.service devstack@h-api.service devstack@magnum-api.service \
+    devstack@m-api.service devstack@designate-api.service devstack@barbican-svc.service \
+    devstack@tr-api.service devstack@gnocchi-api.service devstack@s-proxy.service; do
     if systemctl list-unit-files --no-legend "$unit" 2>/dev/null | grep -q .; then
       sudo systemctl restart "$unit"
     fi
   done
+  # Trove's API is a site of Apache's on this release, so that is what reads its config.
+  if [ -f /etc/apache2/sites-enabled/trove-api.conf ]; then
+    sudo systemctl reload apache2
+  fi
 }
 restart_units
 
@@ -314,6 +391,12 @@ done
   echo "admin=$(openstack token issue -f value -c id)"
   echo "monitoring-admin-get=$APPCRED_TOKEN"
 } | matrix "$OUTPUT_DIR/access/matrix-access-rules.json"
+
+# A service that answers 500 to this credential says why only in its own log.
+if unit_is_here=$(systemctl list-unit-files --no-legend devstack@s-proxy.service 2>/dev/null) && [ -n "$unit_is_here" ]; then
+  sudo journalctl -u devstack@s-proxy.service --no-pager -n 200 >"$OUTPUT_DIR/access/s-proxy.log" 2>&1 || true
+  grep -nE "Traceback|Error|error|Exception" "$OUTPUT_DIR/access/s-proxy.log" | tail -20 || true
+fi
 
 exporter_sees monitoring-admin-get "$(clouds_for_application_credential)"
 

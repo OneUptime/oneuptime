@@ -15,6 +15,7 @@ import tls, { PeerCertificate, TLSSocket } from "tls";
 import { JSONObject } from "Common/Types/JSON";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
 import {
+  OpenStackPresentedCertificate,
   OpenStackCollectionReport,
   OpenStackConnectionTestReport,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
@@ -368,6 +369,34 @@ describe("a socket to a real TLS server", () => {
       port: port,
     });
     expect(receivedBytes).toBe(before);
+  });
+
+  test("says what it was shown, whatever the verdict, which is how a check reads a certificate's end", async () => {
+    const shown: Array<OpenStackPresentedCertificate> = [];
+    const onCertificate: (certificate: OpenStackPresentedCertificate) => void =
+      (certificate: OpenStackPresentedCertificate): void => {
+        shown.push(certificate);
+      };
+
+    // Refused, as one no authority signed is, and still seen.
+    await failure({ onCertificate: onCertificate });
+
+    (
+      await open({
+        onCertificate: onCertificate,
+        trustedFingerprints: [keystoneCertificate.fingerprint256],
+      })
+    ).destroy();
+
+    expect(shown).toHaveLength(2);
+
+    for (const certificate of shown) {
+      expect(certificate).toMatchObject({
+        fingerprint256: keystoneCertificate.fingerprint256,
+        host: HOST,
+        port: port,
+      });
+    }
   });
 
   test("pinned: handed over, encrypted", async () => {
@@ -948,7 +977,7 @@ describe("every failure a connection test names", () => {
   }
 
   test("a name DNS has never heard of", async () => {
-    const lookup: jest.SpiedFunction<typeof dns.promises.lookup> = jest
+    const lookup: unknown = jest
       .spyOn(dns.promises, "lookup")
       .mockRejectedValue(
         Object.assign(new Error("getaddrinfo ENOTFOUND no-such-cloud.test"), {

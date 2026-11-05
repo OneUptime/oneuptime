@@ -68,6 +68,7 @@ import {
   getResourceSentenceName,
 } from "../../../Types/AI/ResourceAiAccessPermissions";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -81,6 +82,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   CLOUD_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -301,6 +303,7 @@ describe("the descriptors", () => {
     [AiResourceType.AwsAccount]: CloudAccount,
     [AiResourceType.AzureSubscription]: CloudAccount,
     [AiResourceType.GoogleCloudProject]: CloudAccount,
+    [AiResourceType.OpenStackCloud]: OpenStackCloud,
   };
 
   // A cloud account has no AI insights page of its own.
@@ -360,6 +363,11 @@ describe("the descriptors", () => {
       null,
       PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
     ],
+    [AiResourceType.OpenStackCloud]: [
+      PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT,
+      PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS,
+      PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS,
+    ],
   };
 
   test("there is exactly one per resource type, and nothing else", () => {
@@ -399,7 +407,12 @@ describe("the descriptors", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      // A resource AI only reads has no allowlist, so no example of one.
+      return !isReadOnlyAiResourceType(type);
+    }),
+  )(
     "%s: the allowlist example is an entry the type's policy accepts",
     (type: AiResourceType) => {
       expect(
@@ -410,6 +423,18 @@ describe("the descriptors", () => {
       ).toBeNull();
     },
   );
+
+  test("OpenStack: a cloud AI only reads says so, and offers no fixes", () => {
+    const descriptor: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+      AiResourceType.OpenStackCloud,
+    );
+
+    expect(descriptor.isReadOnly).toBe(true);
+    expect(descriptor.allowlistPlaceholder).toBe("");
+    expect(descriptor.riskierExamples).toBe(
+      "no changes: it only reads an OpenStack cloud",
+    );
+  });
 
   test("the commands tables keep apart: one preferences key per type", () => {
     const keys: Array<string> = ALL_AI_RESOURCE_TYPES.map(
@@ -440,6 +465,7 @@ describe("the descriptors", () => {
       [AiResourceType.AwsAccount, null],
       [AiResourceType.AzureSubscription, null],
       [AiResourceType.GoogleCloudProject, null],
+      [AiResourceType.OpenStackCloud, "name"],
     ]);
   });
 
@@ -461,7 +487,9 @@ describe("the descriptors", () => {
       ]) {
         expect(value.trim().length).toBeGreaterThan(0);
       }
-      expect(descriptor.riskierExamples).toMatch(/^riskier changes such as /);
+      if (!isReadOnlyAiResourceType(type)) {
+        expect(descriptor.riskierExamples).toMatch(/^riskier changes such as /);
+      }
     },
   );
 });

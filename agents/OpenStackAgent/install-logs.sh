@@ -18,7 +18,7 @@ echo ""
 # Running it again is the upgrade, and keeps every answer.
 
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY OPENSTACK_CLOUD_NAME \
-OPENSTACK_NODE_NAME OPENSTACK_LOGS_DIRECTORY OPENSTACK_LOGS_TIMEZONE OPENSTACK_LOGS_UNITS"
+OPENSTACK_REGION_NAME OPENSTACK_NODE_NAME OPENSTACK_LOGS_DIRECTORY OPENSTACK_LOGS_TIMEZONE OPENSTACK_LOGS_UNITS"
 
 # An answer given as an environment variable stays this script's, and is handed to no
 # program it runs. Compose gives variables in its environment precedence over .env, so
@@ -228,6 +228,13 @@ if [ -z "$OPENSTACK_CLOUD_NAME" ]; then
     OPENSTACK_CLOUD_NAME="${OPENSTACK_CLOUD_NAME:-openstack}"
 fi
 
+# A run across a fleet, or an upgrade of a machine set up before this was asked, may have
+# nobody to answer: most clouds have one region, and it takes the name DevStack gives it.
+if [ -z "$OPENSTACK_REGION_NAME" ]; then
+    read -rp "The region this machine serves [RegionOne]: " OPENSTACK_REGION_NAME || true
+    OPENSTACK_REGION_NAME="${OPENSTACK_REGION_NAME:-RegionOne}"
+fi
+
 # Asked of nobody: it is this machine, and what a hypervisor's page reads logs by.
 if [ -z "$OPENSTACK_NODE_NAME" ]; then
     OPENSTACK_NODE_NAME="$(hostname)"
@@ -308,6 +315,7 @@ if [ "$PROFILE" = "files" ]; then
 ONEUPTIME_URL=$(compose_env_quote "$ONEUPTIME_URL")
 ONEUPTIME_TELEMETRY_INGESTION_KEY=$(compose_env_quote "$ONEUPTIME_TELEMETRY_INGESTION_KEY")
 OPENSTACK_CLOUD_NAME=$(compose_env_quote "$OPENSTACK_CLOUD_NAME")
+OPENSTACK_REGION_NAME=$(compose_env_quote "$OPENSTACK_REGION_NAME")
 OPENSTACK_NODE_NAME=$(compose_env_quote "$OPENSTACK_NODE_NAME")
 OPENSTACK_LOGS_DIRECTORY=$(compose_env_quote "${OPENSTACK_LOGS_DIRECTORY:-$KOLLA_LOGS_DIRECTORY}")
 OPENSTACK_LOGS_TIMEZONE=$(compose_env_quote "${OPENSTACK_LOGS_TIMEZONE:-UTC}")
@@ -375,6 +383,7 @@ if [ "$PROFILE" = "journald" ]; then
         printf 'ONEUPTIME_URL=%s\n' "$(systemd_env_quote "$ONEUPTIME_URL")"
         printf 'ONEUPTIME_TELEMETRY_INGESTION_KEY=%s\n' "$(systemd_env_quote "$ONEUPTIME_TELEMETRY_INGESTION_KEY")"
         printf 'OPENSTACK_CLOUD_NAME=%s\n' "$(systemd_env_quote "$OPENSTACK_CLOUD_NAME")"
+        printf 'OPENSTACK_REGION_NAME=%s\n' "$(systemd_env_quote "$OPENSTACK_REGION_NAME")"
         printf 'OPENSTACK_NODE_NAME=%s\n' "$(systemd_env_quote "$OPENSTACK_NODE_NAME")"
         # Only when someone set it: the unit holds the default, which an upgrade can change.
         if [ -n "$OPENSTACK_LOGS_UNITS" ]; then

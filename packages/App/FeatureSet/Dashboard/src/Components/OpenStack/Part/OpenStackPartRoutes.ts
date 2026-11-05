@@ -1,6 +1,11 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  OpenStackDependency,
+  getOpenStackDependencyOfRow,
+} from "Common/Types/OpenStack/OpenStackControlPlane";
+import { isOpenStackBareMetalNodeId } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -36,6 +41,8 @@ export interface OpenStackPartRoutes {
   getNetworkAgentsRoute: () => Route;
   getNetworkAgentRoute: (externalId: string) => Route;
   getServicesRoute: () => Route;
+  getControlPlaneRoute: () => Route;
+  getDependencyRoute: (dependency: OpenStackDependency) => Route;
   // For Needs attention, whatever kind of row needs it.
   routeFor: (row: OpenStackResource) => Route | undefined;
   getIncidentRoute: (incidentId: ObjectID) => Route;
@@ -64,6 +71,14 @@ const PART_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Project]: PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL,
   [OpenStackResourceKind.Service]: PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL,
   [OpenStackResourceKind.Api]: PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL,
+  [OpenStackResourceKind.BareMetalNode]:
+    PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL,
+  [OpenStackResourceKind.Stack]: PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL,
+  [OpenStackResourceKind.ContainerCluster]:
+    PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
+  [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+  [OpenStackResourceKind.DatabaseInstance]:
+    PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL,
 };
 
 const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
@@ -81,6 +96,14 @@ const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Snapshot]: PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS,
   [OpenStackResourceKind.Backup]: PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS,
   [OpenStackResourceKind.Service]: PageMap.OPENSTACK_CLOUD_VIEW_SERVICES,
+  [OpenStackResourceKind.BareMetalNode]:
+    PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES,
+  [OpenStackResourceKind.Stack]: PageMap.OPENSTACK_CLOUD_VIEW_STACKS,
+  [OpenStackResourceKind.ContainerCluster]:
+    PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+  [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
+  [OpenStackResourceKind.DatabaseInstance]:
+    PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES,
 };
 
 export function routeParamFromOpenStackId(externalId: string): string {
@@ -141,6 +164,13 @@ export function getOpenStackPartRoutes(
       regionName: string | null | undefined,
       hypervisorName: string,
     ): Route | undefined => {
+      // Nova's hypervisor for a bare metal node is the node, by its UUID.
+      if (isOpenStackBareMetalNodeId(hypervisorName)) {
+        return getPartRoute(
+          OpenStackResourceKind.BareMetalNode,
+          hypervisorName,
+        );
+      }
       return getPartRoute(
         OpenStackResourceKind.Hypervisor,
         getOpenStackHypervisorExternalId(regionName, hypervisorName),
@@ -167,9 +197,29 @@ export function getOpenStackPartRoutes(
     getServicesRoute: (): Route => {
       return ofCloud(PageMap.OPENSTACK_CLOUD_VIEW_SERVICES);
     },
+    getControlPlaneRoute: (): Route => {
+      return ofCloud(PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE);
+    },
+    getDependencyRoute: (dependency: OpenStackDependency): Route => {
+      return ofPart(
+        PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+        dependency,
+      );
+    },
     routeFor: (row: OpenStackResource): Route | undefined => {
       if (!row.externalId) {
         return undefined;
+      }
+      // One machine of what the cloud stands on is read on the page of the whole of it.
+      if (row.kind === OpenStackResourceKind.ControlPlane) {
+        const dependency: OpenStackDependency | null =
+          getOpenStackDependencyOfRow(row);
+        return dependency
+          ? ofPart(
+              PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY,
+              dependency,
+            )
+          : ofCloud(PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE);
       }
       /*
        * A network agent has a page of its own, which says what it serves. Every other

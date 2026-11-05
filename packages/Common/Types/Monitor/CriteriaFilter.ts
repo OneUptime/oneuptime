@@ -424,6 +424,15 @@ export interface MetricMonitorOptions {
   metricAlias?: string | undefined;
   metricAggregationType?: EvaluateOverTimeType | undefined;
   /*
+   * A query of the monitor that reports as often as this one's source does, for a criteria whose
+   * own series come and go: one per status word exists only while something has that status. With
+   * nothing else to go by, one data point in the window is taken to mean the time range is no
+   * longer than the metric's reporting interval, and is judged on its value, so something seen
+   * once on its way to something else would fire. This says how often they report instead, so it
+   * waits for a full window like any new series (MetricWindowCoverage).
+   */
+  cadenceMetricAlias?: string | undefined;
+  /*
    * Governs how the evaluator handles the case where the metric query
    * returned zero samples in the evaluation window. Defaults to Ignore
    * when unset.
