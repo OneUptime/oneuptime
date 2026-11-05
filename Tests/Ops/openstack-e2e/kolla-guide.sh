@@ -229,6 +229,12 @@ full_view() {
   local phase="full-view" output="$GUIDE_DIR/credential.txt" id secret status=0
   log "The guide's first credential, and the agent's own exporter"
   remove_agent
+  log "What Cinder needs, for a credential limited by access rules"
+  sudo mkdir -p /etc/kolla/config
+  printf '[keystone_authtoken]\nservice_type = block-storage\n' | sudo tee /etc/kolla/config/cinder.conf >/dev/null
+  FOLLOW_AS="$AS_PERSON" follow <<'GUIDE' || status=$?
+kolla-ansible reconfigure -i <inventory> --tags cinder
+GUIDE
 
   FOLLOW_AS="$AS_PERSON" FOLLOW_LOGIN="$LOGGED_IN_AS_ADMIN" follow <<'GUIDE' || status=$?
 openstack project create --domain default oneuptime-monitoring
@@ -467,12 +473,15 @@ what_prometheus_says() {
 drill() {
   local status=0
   log "Stop Memcached and nova-compute, as they stop in production"
-  sudo docker stop memcached nova_compute
+  # Through systemd, which runs each container as kolla-<name>-container.service: a `docker stop`
+  # is a unit that exited, which it starts again within seconds, and this drill once fired nothing
+  # for that reason.
+  sudo systemctl stop kolla-memcached-container.service kolla-nova_compute-container.service
   wait_for_webhook firing 420 || status=$?
   # What Prometheus and Alertmanager say they did, whichever way that went.
   curl -sS --max-time 20 "http://$KOLLA_API_ADDRESS:9093/api/v2/alerts" >"$OUTPUT_DIR/alertmanager/alerts-while-firing.json" 2>&1 || true
   what_prometheus_says
-  sudo docker start memcached nova_compute
+  sudo systemctl start kolla-memcached-container.service kolla-nova_compute-container.service
   wait_for_webhook resolved 600 || status=$?
   sudo docker logs prometheus_alertmanager >"$OUTPUT_DIR/alertmanager/alertmanager.log" 2>&1 || true
   return "$status"

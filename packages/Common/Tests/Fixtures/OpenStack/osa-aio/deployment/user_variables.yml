@@ -100,7 +100,7 @@ openstack_apache_min_spare_threads: 5
 openstack_apache_start_servers: 3
 openstack_apache_thread_child: 30
 openstack_apache_thread_limit: 30
-openstack_host_specific_kernel_modules: '{{ query(''vars'', *query(''varnames'', ''^aio1_kernel_modules_'')) | flatten(levels=1) }}'
+openstack_host_specific_kernel_modules: '{{ query(''vars'', *query(''varnames'', ''^compute-01_kernel_modules_'')) | flatten(levels=1) }}'
 openstack_hosts_journald_config:
   RateLimitBurst: 600
   RateLimitIntervalSec: 60

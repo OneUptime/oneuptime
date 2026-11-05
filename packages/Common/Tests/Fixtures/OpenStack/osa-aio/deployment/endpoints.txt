@@ -1,1 +1,22 @@
-Cloud default was not found.
++----------------------------------+-----------+--------------+---------------+---------+-----------+---------------------------------+
+| ID                               | Region    | Service Name | Service Type  | Enabled | Interface | URL                             |
++----------------------------------+-----------+--------------+---------------+---------+-----------+---------------------------------+
+| 18dfe29efadb499a871ca38b6b20a138 | RegionOne | neutron      | network       | True    | admin     | http://172.29.236.101:9696      |
+| 198c90b82c204fe9b61a94f5e638ac7c | RegionOne | placement    | placement     | True    | internal  | http://172.29.236.101:8780      |
+| 2f0f349c5afc49f6a22722c89b1b4c96 | RegionOne | neutron      | network       | True    | internal  | http://172.29.236.101:9696      |
+| 3d35bb3b2e934869bc5465ff77c9c590 | RegionOne | nova         | compute       | True    | public    | https://10.1.0.227:8774/v2.1    |
+| 3e4adf1e37ab451897cc79fc67e04e93 | RegionOne | nova         | compute       | True    | admin     | http://172.29.236.101:8774/v2.1 |
+| 5af5e509510c40e0bec600e967f22c89 | RegionOne | glance       | image         | True    | admin     | http://172.29.236.101:9292      |
+| 5b3c2e0982bb4a22b2f8deaa0ffb5180 | RegionOne | placement    | placement     | True    | public    | https://10.1.0.227:8780         |
+| 67dd4bb253dd49d9be65e3f804649219 | RegionOne | keystone     | identity      | True    | admin     | http://172.29.236.101:5000      |
+| 829eeac7c28d4d8c8f0c202ce7c380a8 | RegionOne | keystone     | identity      | True    | public    | https://10.1.0.227:5000         |
+| 85a4536ff337473eb9225155cb81b784 | RegionOne | cinder       | block-storage | True    | admin     | http://172.29.236.101:8776/v3   |
+| 928d35b5bdce42bb98bbc9b0fbbe5d28 | RegionOne | cinder       | block-storage | True    | public    | https://10.1.0.227:8776/v3      |
+| a13f6ecbec014688a2360aa9de302055 | RegionOne | glance       | image         | True    | public    | https://10.1.0.227:9292         |
+| a3748d94135146fdaf6659f4f9c51a6a | RegionOne | cinder       | block-storage | True    | internal  | http://172.29.236.101:8776/v3   |
+| be08682763db41189c0a4d441fe30e4a | RegionOne | nova         | compute       | True    | internal  | http://172.29.236.101:8774/v2.1 |
+| cabb219502054243bff38cdf1f56333a | RegionOne | placement    | placement     | True    | admin     | http://172.29.236.101:8780      |
+| d6448ceeeeb24c2ab10219b32e564932 | RegionOne | glance       | image         | True    | internal  | http://172.29.236.101:9292      |
+| f02e76ed831a479891766b9068155bc1 | RegionOne | keystone     | identity      | True    | internal  | http://172.29.236.101:5000      |
+| f0b21931d7004f4288ab9745b6295b32 | RegionOne | neutron      | network       | True    | public    | https://10.1.0.227:9696         |
++----------------------------------+-----------+--------------+---------------+---------+-----------+---------------------------------+

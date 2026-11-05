@@ -1,5 +1,5 @@
-bootstrap-ansible took 55 seconds, and exited 0
-bootstrap-aio took 52 seconds, and exited 0
-setup-hosts took 638 seconds, and exited 0
-setup-infrastructure took 325 seconds, and exited 0
-setup-openstack took 1876 seconds, and exited 0
+bootstrap-ansible took 60 seconds, and exited 0
+bootstrap-aio took 65 seconds, and exited 0
+setup-hosts took 724 seconds, and exited 0
+setup-infrastructure took 414 seconds, and exited 0
+setup-openstack took 2286 seconds, and exited 0

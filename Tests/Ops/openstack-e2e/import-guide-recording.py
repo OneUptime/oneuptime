@@ -188,6 +188,9 @@ def import_deployment(folder, tool_folder, target, short, full):
     if os.path.isfile(path):
         with open(path, errors="replace") as handle:
             write_renamed(os.path.join(target, "deployment", "commands.log"), commands_alone(handle.read()), short, full)
+    path = os.path.join(folder, "guide", "utility-has.txt")
+    if os.path.isfile(path):
+        copy_text(path, os.path.join(target, "deployment", "utility-has.txt"), short, full)
     path = os.path.join(folder, "control-plane", "status.txt")
     if os.path.isfile(path):
         copy_text(path, os.path.join(target, "deployment", "control-plane-status.txt"), short, full)
