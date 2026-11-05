@@ -472,7 +472,7 @@ describe("rows imported by what they join", () => {
       ).filter((word: string) => {
         return (
           CAPITAL_INSIDE_A_WORD.test(word) &&
-          !["IoT", "vCenters"].includes(word)
+          !["IoT", "OpenStack", "vCenters"].includes(word)
         );
       });
       if (!tableDescription.endsWith(".") || codeNames.length > 0) {

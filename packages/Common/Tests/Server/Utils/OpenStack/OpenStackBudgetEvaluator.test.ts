@@ -67,7 +67,12 @@ function project(
   };
 }
 
-function budget(overrides: Partial<OpenStackBudget> = {}): OpenStackBudget {
+// Partial, but a field can be named as undefined: a budget over the whole cloud.
+type BudgetOverrides = {
+  [Key in keyof OpenStackBudget]?: OpenStackBudget[Key] | undefined;
+};
+
+function budget(overrides: BudgetOverrides = {}): OpenStackBudget {
   const model: OpenStackBudget = new OpenStackBudget();
   model.id = ObjectID.generate();
   model.projectId = PROJECT_ID;

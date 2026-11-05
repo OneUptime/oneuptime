@@ -142,9 +142,12 @@ describe("BasicForm burn-rate template defaults", () => {
       "aria-expanded",
       "true",
     );
-    expect(
-      screen.getByRole("textbox", { name: /^Alert Description/ }),
-    ).toHaveTextContent(DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE);
+    // The Markdown editor is a file of its own, which arrives a moment later.
+    await waitFor(() => {
+      expect(
+        screen.getByRole("textbox", { name: /^Alert Description/ }),
+      ).toHaveTextContent(DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE);
+    });
 
     await next(user);
 
@@ -216,7 +219,7 @@ describe("BasicForm burn-rate template defaults", () => {
       ).toHaveAttribute("aria-expanded", "false");
       await user.click(screen.getByRole("button", { name: "Description" }));
       expect(
-        screen.getByRole("textbox", { name: /^Alert Description/ }),
+        await screen.findByRole("textbox", { name: /^Alert Description/ }),
       ).toBeEmptyDOMElement();
       await next(user, "");
       expect(
@@ -251,9 +254,9 @@ describe("BasicForm burn-rate template defaults", () => {
     expect(source).not.toBeVisible();
     expect(source).toHaveValue("");
     await user.click(screen.getByRole("button", { name: "Description" }));
-    expect(screen.getByRole("textbox", { name: /^Alert Description/ })).toBe(
-      source,
-    );
+    expect(
+      await screen.findByRole("textbox", { name: /^Alert Description/ }),
+    ).toBe(source);
     expect(source).toHaveValue("");
     await next(user);
     expect(

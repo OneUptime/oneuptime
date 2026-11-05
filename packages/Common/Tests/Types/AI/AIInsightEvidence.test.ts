@@ -35,6 +35,7 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.ErrorLogSpike]: "logSpike",
   [AIInsightType.TraceLatencyRegression]: "latency",
   [AIInsightType.MetricDrift]: "metricDrift",
+  [AIInsightType.DataDrift]: "dataDrift",
   [AIInsightType.DeployRegression]: "deployRegression",
   [AIInsightType.ProfileHotspot]: "profile",
   [AIInsightType.TraceSlowOperation]: "trace",
@@ -51,6 +52,7 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
+  "dataDrift",
   "exception",
   "logSpike",
   "latency",

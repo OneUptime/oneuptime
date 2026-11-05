@@ -89,6 +89,14 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "One question, what this maintenance affects, asked per kind of resource: every field is an optional picker, and one of them only shows with a monitor picked.",
   },
+  ...["#1", "#2", "#3", "#4"].map((form: string): ListedForm => {
+    return {
+      file: `${DASHBOARD}/Components/OpenStack/Checks/OpenStackCheckFormModals.tsx`,
+      form: `ModelFormModal ${form}`,
+      reason:
+        "Switching an OpenStack check on asks one question, how often it runs. The address, probe and login it borrows from the cloud's connection are folded, for the rare cloud whose checks need their own.",
+    };
+  }),
   {
     file: "packages/App/FeatureSet/Accounts/src/Pages/Register.tsx",
     form: "ModelForm: Register",

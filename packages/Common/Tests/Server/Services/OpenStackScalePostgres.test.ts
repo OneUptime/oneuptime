@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 import { DataSource } from "typeorm";
@@ -50,7 +51,7 @@ import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
  * It works on a structure-only clone in a schema of its own, dropped afterwards. Set
  * OPENSTACK_SCALE_MEASURES to a path to have what it measured written there.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -790,8 +791,9 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
 
       await write(rows);
 
-      const query: jest.SpiedFunction<typeof database.manager.query> =
-        jest.spyOn(database.manager, "query");
+      const query: SpyInstance<
+        (...args: Parameters<typeof database.manager.query>) => Promise<unknown>
+      > = jest.spyOn(database.manager, "query");
 
       await write([computeApi(at(118))]);
       await write([computeApi(at(120))]);
@@ -810,8 +812,9 @@ describePostgres("the OpenStack inventory at scale, on Postgres", () => {
     }, 300000);
 
     test("a statement holds at most 500 rows, each a transaction of its own", async () => {
-      const query: jest.SpiedFunction<typeof database.manager.query> =
-        jest.spyOn(database.manager, "query");
+      const query: SpyInstance<
+        (...args: Parameters<typeof database.manager.query>) => Promise<unknown>
+      > = jest.spyOn(database.manager, "query");
       const rows: Array<ParsedOpenStackResource> = [];
 
       for (let index: number = 0; index < 1250; index++) {

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { FindOperator } from "typeorm";
 import Host from "../../../../Models/DatabaseModels/Host";
 import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
@@ -119,8 +120,8 @@ function mockClouds(): void {
 function mockQuery(
   service: { getRepository: () => unknown },
   answer: (sql: string, params: Array<unknown>) => unknown,
-): jest.Mock {
-  const query: jest.Mock = jest.fn(
+): Mock {
+  const query: Mock = jest.fn(
     async (sql: unknown, params: unknown): Promise<unknown> => {
       return answer(sql as string, params as Array<unknown>);
     },
@@ -528,7 +529,7 @@ describe("which cloud a host belongs to, for the link ingest makes", () => {
   });
 
   test("a host's own _ or % in its name is a character, not a wildcard", async () => {
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [];
     });
     await OpenStackAcrossProducts.findCloudOfHost({
@@ -541,7 +542,7 @@ describe("which cloud a host belongs to, for the link ingest makes", () => {
   });
 
   test("a full name is asked for as itself and its short form, and any domain is not", async () => {
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [];
     });
     await OpenStackAcrossProducts.findCloudOfHost({
@@ -556,7 +557,7 @@ describe("which cloud a host belongs to, for the link ingest makes", () => {
 
   test("a project with no clouds is asked nothing more", async () => {
     jest.spyOn(OpenStackCloudService, "findBy").mockResolvedValue([] as never);
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [];
     });
     await expect(
@@ -631,7 +632,7 @@ describe("where something in another product runs", () => {
 
   test("a Kubernetes node's provider ID names its instance", async () => {
     mockInstanceSurroundings();
-    const query: jest.Mock = mockQuery(KubernetesResourceService, () => {
+    const query: Mock = mockQuery(KubernetesResourceService, () => {
       return [{ providerId: `openstack:///${INSTANCE_ID}` }];
     });
     const placement: OpenStackPlacement | null =
@@ -951,7 +952,7 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
   });
 
   test("a region's name is part of which instances those are", async () => {
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [];
     });
     mockQuery(KubernetesResourceService, () => {
@@ -1016,16 +1017,16 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
         });
       }
       mockEstate();
-      const resources: jest.Mock = mockQuery(
+      const resources: Mock = mockQuery(
         OpenStackResourceService,
         (sql: string) => {
           return sql.includes('SELECT "_id"') ? [] : ids;
         },
       );
-      const nodes: jest.Mock = mockQuery(KubernetesResourceService, () => {
+      const nodes: Mock = mockQuery(KubernetesResourceService, () => {
         return [];
       });
-      const graph: jest.Mock = mockQuery(HostService, () => {
+      const graph: Mock = mockQuery(HostService, () => {
         return [];
       });
       await OpenStackAcrossProducts.getReachOfHypervisor({
@@ -1037,9 +1038,8 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
         resources.mock.calls.length +
         nodes.mock.calls.length +
         graph.mock.calls.length +
-        (HostService.findBy as unknown as jest.Mock).mock.calls.length +
-        (OpenStackCloudService.findBy as unknown as jest.Mock).mock.calls
-          .length;
+        (HostService.findBy as unknown as Mock).mock.calls.length +
+        (OpenStackCloudService.findBy as unknown as Mock).mock.calls.length;
       jest.restoreAllMocks();
       mockClouds();
       return total;
@@ -1053,14 +1053,11 @@ describe("what a failed hypervisor takes with it beyond the cloud", () => {
     jest
       .spyOn(OpenStackResourceService, "findBy")
       .mockResolvedValue([HYPERVISOR_ROW] as never);
-    const first: jest.Mock = mockQuery(
-      OpenStackResourceService,
-      (sql: string) => {
-        return sql.includes("LOWER")
-          ? [{ _id: "x" }]
-          : [{ externalId: INSTANCE_ID }];
-      },
-    );
+    const first: Mock = mockQuery(OpenStackResourceService, (sql: string) => {
+      return sql.includes("LOWER")
+        ? [{ _id: "x" }]
+        : [{ externalId: INSTANCE_ID }];
+    });
     const reach: OpenStackReachAcrossProducts | null =
       await OpenStackAcrossProducts.getReachOfPart({
         projectId: PROJECT_ID,
@@ -1235,7 +1232,7 @@ describe("a storage pool and Ceph", () => {
   });
 
   test("an answer can be taken back, which touches only the answer", async () => {
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [[{ _id: "x" }], 1];
     });
     await expect(
@@ -1274,7 +1271,7 @@ describe("a storage pool and Ceph", () => {
     jest
       .spyOn(CephClusterService, "findOneBy")
       .mockResolvedValue({ _id: CEPH_ID.toString() } as never);
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [[{ _id: "x" }], 1];
     });
     await expect(
@@ -1298,7 +1295,7 @@ describe("a storage pool and Ceph", () => {
     jest
       .spyOn(CephClusterService, "findOneBy")
       .mockResolvedValue(null as never);
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [[], 0];
     });
     await expect(
@@ -1314,7 +1311,7 @@ describe("a storage pool and Ceph", () => {
   });
 
   test("a pool that isn't there is said to be", async () => {
-    const query: jest.Mock = mockQuery(OpenStackResourceService, () => {
+    const query: Mock = mockQuery(OpenStackResourceService, () => {
       return [[], 0];
     });
     await expect(
@@ -1508,10 +1505,10 @@ describe("a person's choice of a host's cloud", () => {
 });
 
 describe("the host that is a machine", () => {
-  function hostsAre(rows: Array<Host>): jest.Mock {
+  function hostsAre(rows: Array<Host>): Mock {
     return jest
       .spyOn(HostService, "findBy")
-      .mockResolvedValue(rows as never) as unknown as jest.Mock;
+      .mockResolvedValue(rows as never) as unknown as Mock;
   }
 
   function hypervisorsAre(names: Array<string>): void {
@@ -1566,7 +1563,7 @@ describe("the host that is a machine", () => {
   });
 
   test("looks for a host with any domain, as well as the names it was given", async () => {
-    const findBy: jest.Mock = hostsAre([]);
+    const findBy: Mock = hostsAre([]);
     hypervisorsAre([]);
     await OpenStackAcrossProducts.getHostOfMachine({
       projectId: PROJECT_ID,
@@ -1577,7 +1574,7 @@ describe("the host that is a machine", () => {
   });
 
   test("a full name has no other domain to look in", async () => {
-    const findBy: jest.Mock = hostsAre([]);
+    const findBy: Mock = hostsAre([]);
     hypervisorsAre([]);
     await OpenStackAcrossProducts.getHostOfMachine({
       projectId: PROJECT_ID,

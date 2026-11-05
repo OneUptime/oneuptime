@@ -631,7 +631,7 @@ describe("each owner sees their own", () => {
     });
 
     expect(
-      match.ownersProjects.map(
+      match.ownersProjects!.map(
         (one: { project: { projectId: string } }): string => {
           return one.project.projectId;
         },

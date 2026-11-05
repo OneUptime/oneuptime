@@ -196,7 +196,7 @@ describe("the card", () => {
       screen.getByTestId(
         `openstack-cost-probe-requests-${OpenStackServiceType.Placement}`,
       ).textContent,
-    ).toBe("1,001");
+    ).toBe("1,003");
     expect(
       screen.getByTestId(
         `openstack-cost-agent-requests-${OpenStackServiceType.Placement}`,

@@ -14,21 +14,22 @@ import useCustomFields, {
 import "@testing-library/jest-dom";
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 const FIELD: WorkflowCustomField = { name: "Customer", options: [] };
 
-type LoadMock = jest.Mock<
-  (table: string) => Promise<Array<WorkflowCustomField>>
->;
+type LoadFunction = (table: string) => Promise<Array<WorkflowCustomField>>;
+
+type LoadMock = Mock<LoadFunction>;
 
 type LoadOfFunction = (result: Array<WorkflowCustomField>) => LoadMock;
 
 const loadOf: LoadOfFunction = (
   result: Array<WorkflowCustomField>,
 ): LoadMock => {
-  return jest.fn(async () => {
+  return jest.fn<LoadFunction>(async () => {
     return result;
-  }) as unknown as LoadMock;
+  });
 };
 
 describe("useCustomFields", () => {

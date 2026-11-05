@@ -2241,7 +2241,7 @@ describe("a scrape of a service this product knows and a cloud may not run", () 
 
   test.each([
     ["a core service, which has its own path", "compute"],
-    ["a service nothing here knows yet", "dns"],
+    ["a service nothing here knows yet", "workloadmanager"],
     ["no service at all", null],
   ])("%s is not kept", (_why: string, service: string | null) => {
     expect(

@@ -42,6 +42,7 @@ import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
 import ModelAPI from "../../../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../../../UI/Utils/Project";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "b0c3f6d2-5d2e-4c55-9a0e-6f1e2d3c4b5a",
@@ -266,8 +267,8 @@ describe("a table that does not exist", () => {
 
 describe("the project's people", () => {
   type PeopleDefinition = {
-    search: jest.Mock;
-    getByIds: jest.Mock;
+    search: Mock;
+    getByIds: Mock;
   };
 
   type MockPeopleFunction = (

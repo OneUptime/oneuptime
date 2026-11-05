@@ -4102,6 +4102,7 @@ describe("alert-only behaviour", () => {
         "dockerHosts",
         "podmanHosts",
         "proxmoxClusters",
+        "openStackClouds",
         "vmwareVCenters",
         "cephClusters",
         "storageArrays",

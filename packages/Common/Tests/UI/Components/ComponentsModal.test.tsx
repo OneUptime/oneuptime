@@ -146,6 +146,7 @@ describe("the start view leads with what people use", () => {
       "Incident From Another Tool",
       "Alert From Another Tool",
       "Generate Text with AI",
+      "Propose an OpenStack fix",
       "API Put (JSON)",
       "API Patch (JSON)",
       "API Delete (JSON)",
@@ -550,7 +551,7 @@ describe("search results", () => {
     search("incident");
 
     // Incident From Another Tool among them, after Incident's own steps.
-    const total: number = 73;
+    const total: number = 74;
     expect(screen.getAllByRole("option")).toHaveLength(
       SEARCH_RESULTS_PAGE_SIZE,
     );

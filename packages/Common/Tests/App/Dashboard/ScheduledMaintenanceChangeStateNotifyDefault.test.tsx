@@ -1494,8 +1494,8 @@ describe("ChangeScheduledMaintenanceState: what the real form sends", () => {
     fireEvent.click(fold);
     expect(fold).toHaveAttribute("aria-expanded", "true");
 
-    // The markdown source view is a plain textarea.
-    fireEvent.click(screen.getByTitle("Switch to markdown source"));
+    // The markdown source view is a plain textarea, once the editor has arrived.
+    fireEvent.click(await screen.findByTitle("Switch to markdown source"));
 
     fireEvent.change(
       await screen.findByPlaceholderText("Type your markdown here..."),

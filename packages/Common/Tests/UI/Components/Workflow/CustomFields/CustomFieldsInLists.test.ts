@@ -31,6 +31,7 @@ jest.mock("../../../../../UI/Utils/API/API", () => {
 
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import CustomFieldType from "../../../../../Types/CustomField/CustomFieldType";
+import { JSONArray } from "../../../../../Types/JSON";
 import TableColumnType from "../../../../../Types/Database/TableColumnType";
 import {
   ComponentInputType,
@@ -226,7 +227,11 @@ describe("loadRecordColumns", () => {
     getList.mockReset();
 
     (get as any).mockResolvedValue(
-      new HTTPResponse(200, { columns: SCHEMA }, {}),
+      new HTTPResponse(
+        200,
+        { columns: JSON.parse(JSON.stringify(SCHEMA)) as JSONArray },
+        {},
+      ),
     );
   });
 

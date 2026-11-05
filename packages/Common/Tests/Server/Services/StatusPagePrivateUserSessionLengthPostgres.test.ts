@@ -318,7 +318,7 @@ describePostgres("status page Sign Readers Out After against Postgres", () => {
 
     expect(session?.createdAt).toBeInstanceOf(Date);
 
-    const renewed: { refreshTokenExpiresAt: Date } =
+    const renewed: SessionMetadata | null =
       await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken(
         { session: session! },
       );
@@ -331,7 +331,7 @@ describePostgres("status page Sign Readers Out After against Postgres", () => {
     expect(new Date(rows[0]!.expiresAt).getTime()).toBe(
       new Date(rows[0]!.endsAt).getTime(),
     );
-    expect(renewed.refreshTokenExpiresAt.getTime()).toBe(
+    expect(renewed!.refreshTokenExpiresAt.getTime()).toBe(
       new Date(rows[0]!.endsAt).getTime(),
     );
 

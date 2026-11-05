@@ -94,9 +94,14 @@ const MINUTE_MS: number = 60 * 1000;
 const CRITICAL: ResourceAttentionSeverity = ResourceAttentionSeverity.Critical;
 const WARNING: ResourceAttentionSeverity = ResourceAttentionSeverity.Warning;
 
+// Partial, but a field can be named as undefined: a service nothing has ever said anything about.
+type ResourceFields = {
+  [Key in keyof OpenStackResource]?: OpenStackResource[Key] | undefined;
+};
+
 function row(
   kind: OpenStackResourceKind,
-  fields: Partial<OpenStackResource> & { facts?: JSONObject } = {},
+  fields: ResourceFields = {},
 ): OpenStackResource {
   const resource: OpenStackResource = new OpenStackResource();
   resource.kind = kind;
@@ -267,10 +272,8 @@ describe("an API", () => {
 });
 
 describe("a service", () => {
-  const service: (
-    fields: Partial<OpenStackResource> & { facts?: JSONObject },
-  ) => OpenStackResource = (
-    fields: Partial<OpenStackResource> & { facts?: JSONObject },
+  const service: (fields: ResourceFields) => OpenStackResource = (
+    fields: ResourceFields,
   ): OpenStackResource => {
     return row(OpenStackResourceKind.Service, {
       name: "nova-compute",
@@ -881,10 +884,8 @@ describe("a router", () => {
   ): JSONObject => {
     return { host: "network-01", isAlive, isAdminUp, haState };
   };
-  const assess: (
-    fields: Partial<OpenStackResource> & { facts?: JSONObject },
-  ) => OpenStackAssessment = (
-    fields: Partial<OpenStackResource> & { facts?: JSONObject },
+  const assess: (fields: ResourceFields) => OpenStackAssessment = (
+    fields: ResourceFields,
   ): OpenStackAssessment => {
     return assessOpenStackRouter(
       row(OpenStackResourceKind.Router, { adminState: "up", ...fields }),

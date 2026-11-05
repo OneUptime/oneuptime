@@ -186,14 +186,16 @@ describe("server-stamped workspace method columns survive the create column chec
   });
 
   it("update stays closed on the Mattermost identifier and username too", () => {
-    for (const data of [
+    const attempts: Array<Partial<UserMattermost>> = [
       { mattermostUserId: "someoneelsesaccountid00000" },
       { mattermostUserName: "not-alice" },
-    ] as Array<UserMattermost>) {
+    ];
+
+    for (const data of attempts) {
       expect(() => {
         ColumnPermissions.checkDataColumnPermissions(
           UserMattermost,
-          data,
+          data as UserMattermost,
           makeProps([Permission.CurrentUser]),
           DatabaseRequestType.Update,
         );
