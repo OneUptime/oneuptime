@@ -723,7 +723,28 @@ export class ResourceAiAccessServiceClass {
       gaps.push({
         code: "remediation_write_access_missing",
         title: `The ${info.agentDisplayName} is read-only`,
-        nextStep: `Set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the ${info.agentDisplayName} and restart it (${RESOURCE_AI_WRITE_TARGETS_ENV} limits what it may change).`,
+        nextStep: posture?.writesOffReason
+          ? `${posture.writesOffReason} Then restart the ${info.agentDisplayName}.`
+          : `Set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the ${info.agentDisplayName} and restart it (${RESOURCE_AI_WRITE_TARGETS_ENV} limits what it may change).`,
+        blocksInvestigation: false,
+        blocksRemediation: true,
+      });
+    } else if (
+      agent &&
+      type === AiResourceType.OpenStackCloud &&
+      posture?.details?.["writeCredentialWorks"] === false
+    ) {
+      /*
+       * Found while a person can still fix it, not on the night the fix is needed:
+       * the agent logs in with its credential for changes at every report.
+       */
+      gaps.push({
+        code: "remediation_write_access_missing",
+        title: `The ${info.agentDisplayName}'s credential for changes does not work`,
+        nextStep: String(
+          posture.details["writeCredentialProblem"] ||
+            "It did not log in. Make it again, as the OpenStack agent's README says.",
+        ),
         blocksInvestigation: false,
         blocksRemediation: true,
       });

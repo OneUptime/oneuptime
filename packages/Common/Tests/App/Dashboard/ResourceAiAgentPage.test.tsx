@@ -3910,26 +3910,6 @@ describe("every resource type", () => {
     },
   );
 
-  test("a resource OneUptime AI only reads says so where the fixes are, with nothing to choose", async () => {
-    const descriptor: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
-      AiResourceType.OpenStackCloud,
-    );
-    grant(ADMIN_PERMISSIONS);
-    serve(makeStatus({ resourceType: AiResourceType.OpenStackCloud }));
-    openAgentPage(descriptor);
-
-    expect(await findTestId("ai-access-fixes")).toHaveTextContent(
-      "OneUptime AI only reads this OpenStack cloud",
-    );
-    expect(screen.queryByTestId("ai-access-fixes-off-hint")).toBeNull();
-
-    const dialog: HTMLElement = await openChangeModal(descriptor);
-
-    expect(
-      within(dialog).queryByTestId("ai-remediation-mode-field"),
-    ).toBeNull();
-  });
-
   test.each(
     ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
       return !isReadOnlyAiResourceType(type);

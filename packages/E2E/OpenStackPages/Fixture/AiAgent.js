@@ -1,10 +1,11 @@
 /*
  * What the server answers about a cloud's OneUptime AI agent, for the Overview's card and the
- * AI pages. Made up, in the shape ResourceAiAccessService.buildStatus writes for a resource AI
- * only reads: whatever else is true, one gap says it has no fixes.
+ * AI pages. Made up, in the shape ResourceAiAccessService.buildStatus writes.
  *
  *   ?aiAgent=   none (default): no agent has connected, which is how every cloud starts
- *               connected: an agent is reporting, and can reach the cloud
+ *               connected: an agent is reporting, can reach the cloud, and may not write
+ *               writes: it may write too, and fixes wait for a person's approval
+ *               broken-credential: it may write, and its credential for changes will not log in
  *               unreachable: an agent is reporting, and Keystone will not let it in
  *
  * AI > Insights and AI > Logs read as nothing done yet: ResourceAiLogs and
@@ -23,10 +24,10 @@ function gap(code, title, nextStep, blocksInvestigation) {
   };
 }
 
-const ONLY_READS = gap(
+const FIXES_OFF = gap(
   "remediation_disabled",
-  "OneUptime AI only reads this OpenStack cloud",
-  "It has no command that changes this OpenStack cloud, so fixes stay off. An investigation's report says what a person should change.",
+  "AI fixes are turned off for this OpenStack cloud",
+  'Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on this page.',
   false,
 );
 
@@ -42,7 +43,7 @@ function agent(data) {
       resourceType: "OpenStackCloud",
       resourceIdentifier: data.cloudName,
       agentVersion: "14.1.0",
-      allowWrites: false,
+      allowWrites: data.allowWrites === true,
       writeTargets: [],
       protectedTargets: [],
       toolVersion: data.reachable ? "2.90" : null,
@@ -53,7 +54,7 @@ function agent(data) {
             reachError:
               "Keystone would not log in the credential in clouds.yaml, and would not give it a token.",
           }),
-      details: {},
+      details: data.details || {},
     },
   };
 }
@@ -73,7 +74,49 @@ export function getAiAccessStatus(data) {
     return {
       ...base,
       agent: agent({ ...data, reachable: true }),
-      gaps: [ONLY_READS],
+      gaps: [FIXES_OFF],
+      isInvestigationReady: true,
+    };
+  }
+
+  if (data.aiAgent === "writes") {
+    return {
+      ...base,
+      aiRemediationMode: "RequireApproval",
+      agent: agent({
+        ...data,
+        reachable: true,
+        allowWrites: true,
+        details: { writeCredentialWorks: true },
+      }),
+      gaps: [],
+      isInvestigationReady: true,
+      isRemediationReady: true,
+    };
+  }
+
+  if (data.aiAgent === "broken-credential") {
+    return {
+      ...base,
+      aiRemediationMode: "RequireApproval",
+      agent: agent({
+        ...data,
+        reachable: true,
+        allowWrites: true,
+        details: {
+          writeCredentialWorks: false,
+          writeCredentialProblem:
+            "Keystone would not log in the credential for changes: it answered 401.",
+        },
+      }),
+      gaps: [
+        gap(
+          "remediation_write_access_missing",
+          "The OpenStack AI agent's credential for changes does not work",
+          "Keystone would not log in the credential for changes: it answered 401.",
+          false,
+        ),
+      ],
       isInvestigationReady: true,
     };
   }
@@ -89,7 +132,7 @@ export function getAiAccessStatus(data) {
           "Check its credential in clouds.yaml.",
           true,
         ),
-        ONLY_READS,
+        FIXES_OFF,
       ],
       isInvestigationReady: false,
     };
@@ -105,7 +148,7 @@ export function getAiAccessStatus(data) {
         "Install the OpenStack AI agent.",
         true,
       ),
-      ONLY_READS,
+      FIXES_OFF,
     ],
     isInvestigationReady: false,
   };

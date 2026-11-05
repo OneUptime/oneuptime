@@ -55,6 +55,8 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { SETUP_GUIDE_URL_PLACEHOLDER } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
@@ -1021,8 +1023,14 @@ describe("the write switch", () => {
       const commands: ResourceAiAgentWriteAccessCommands =
         getResourceAiAgentWriteAccessCommands(type);
 
+      // An OpenStack agent makes changes with a credential of their own, so it gets asked for one.
+      const credentialLines: string =
+        type === AiResourceType.OpenStackCloud
+          ? `\n${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV}=<the credential's ID>\n${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}=<the credential's secret>`
+          : "";
+
       expect(commands.allTargetsEnv).toBe(
-        `${RESOURCE_AI_ALLOW_WRITES_ENV}=true`,
+        `${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}`,
       );
       expect(commands.restartCommand).toContain(
         `compose up -d ${getResourceAiAgentServiceName(type)}`,
@@ -1038,7 +1046,7 @@ describe("the write switch", () => {
       } else {
         expect(commands.scopedEnv).toMatch(
           new RegExp(
-            `^${RESOURCE_AI_ALLOW_WRITES_ENV}=true\\n${RESOURCE_AI_WRITE_TARGETS_ENV}=\\S+$`,
+            `^${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}\\n${RESOURCE_AI_WRITE_TARGETS_ENV}=\\S+$`,
           ),
         );
         expect(commands.scopedNote).toContain("refused by the agent itself");
@@ -1205,7 +1213,7 @@ describe("what AI may do, set where the agent runs", () => {
     },
   );
 
-  test("a resource AI only reads has the one setting, and says the others do nothing", () => {
+  test("an OpenStack agent's variables say what fixes need, and its credential for them", () => {
     const variables: Array<{ name: string; description: string }> =
       getResourceAiAgentInstall({
         resourceType: AiResourceType.OpenStackCloud,
@@ -1220,26 +1228,17 @@ describe("what AI may do, set where the agent runs", () => {
       })?.description;
     };
 
-    for (const name of [
-      "ONEUPTIME_AI_FIXES",
-      "ONEUPTIME_AI_ALLOW_WRITES",
-      "ONEUPTIME_AI_WRITE_TARGETS",
-    ]) {
-      expect(descriptionOf(name)).toBe(
-        "Has no effect yet: this agent only reads, whatever this says.",
-      );
-    }
-    expect(descriptionOf("ONEUPTIME_AI_INVESTIGATION")).toContain(
-      "whether AI may run read-only commands",
+    expect(
+      descriptionOf("ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID"),
+    ).toContain("stays read-only");
+    expect(
+      descriptionOf(
+        "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET",
+      ),
+    ).toContain("Set both or neither");
+    expect(descriptionOf("ONEUPTIME_AI_ALLOW_WRITES")).toContain(
+      "true lets the agent apply fixes",
     );
-
-    const code: string | undefined = getResourceAiAgentSettingsInstructions({
-      resourceType: AiResourceType.OpenStackCloud,
-      choice: { investigation: false, fixes: "Disabled" },
-      doesAgentReportSettings: true,
-    }).steps[0]?.ways[0]?.code;
-
-    expect(code).toBe("ONEUPTIME_AI_INVESTIGATION=false");
   });
 
   test("a Docker host: how to do it with install.sh first, then the .env and the restart", () => {
