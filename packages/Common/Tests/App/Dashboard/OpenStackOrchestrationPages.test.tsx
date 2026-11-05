@@ -253,7 +253,7 @@ describe("a stack's page", () => {
     ).toHaveTextContent(/openstack stack failures list/);
     expect(
       screen.getByTestId("openstack-stack-details-project"),
-    ).toHaveTextContent("daee9bf6f10a4331bfb8fde2838235f6");
+    ).toHaveTextContent("a01a07259d8441afa457d94ba7e4425f");
     expect(
       screen.getByTestId("openstack-stack-owns-not-known"),
     ).toHaveTextContent(/openstack stack resource list/);
@@ -327,7 +327,7 @@ describe("a stack's page", () => {
 
   test("a stack Magnum built names its cluster, on what a real cloud recorded", async () => {
     server.rows = recorded("access-check", "exporter/admin");
-    const stack: string = stackId(server.rows, "ou-cluster-real-6uc6ctkch4l4");
+    const stack: string = stackId(server.rows, "ou-cluster-real-b4a265chwfks");
 
     await renderPage(OpenStackCloudStackDetail, partPath("stacks", stack));
 
@@ -339,8 +339,8 @@ describe("a stack's page", () => {
   });
 
   describe("what it owns", () => {
-    const INSTANCE: string = "7b71684d-4ba3-43c7-b534-ddcdab38dc75";
-    const VOLUME: string = "c28f6b54-de05-45da-814a-acc7cc46be99";
+    const INSTANCE: string = "e399fef2-3750-4e72-a4fc-77fb490f552d";
+    const VOLUME: string = "1571c7fb-5c19-482e-8eaf-7cdb024af2ef";
 
     const stackOwning: (facts: Record<string, unknown>) => Row = (
       facts: Record<string, unknown>,
@@ -550,7 +550,7 @@ describe("a Kubernetes cluster's page", () => {
 
     expect(
       await screen.findByTestId("openstack-container-cluster-details-stack"),
-    ).toHaveTextContent("ou-cluster-real-6uc6ctkch4l4");
+    ).toHaveTextContent("ou-cluster-real-b4a265chwfks");
   });
 
   test("with its stack out of this credential's sight, it goes by the stack's ID", async () => {
@@ -564,7 +564,7 @@ describe("a Kubernetes cluster's page", () => {
 
     expect(
       await screen.findByTestId("openstack-container-cluster-details-stack"),
-    ).toHaveTextContent("e2fc0fa8-a09b-45c5-b917-68d79adb0ec4");
+    ).toHaveTextContent("417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5");
   });
 
   test("a probe's own read of it says the rest", async () => {
@@ -576,7 +576,7 @@ describe("a Kubernetes cluster's page", () => {
     server.rows = [
       {
         ...cluster,
-        openStackProjectId: "5d1838ef05294dd9a804e284b9f21617",
+        openStackProjectId: "ae798f87fdb743ddb30bc5a46ac15507",
         facts: {
           ...(cluster!["facts"] as Record<string, unknown>),
           statusReason: "default-master failed, default-worker failed",
@@ -606,7 +606,7 @@ describe("a Kubernetes cluster's page", () => {
     ).toHaveTextContent("UNKNOWN");
     expect(
       screen.getByTestId("openstack-container-cluster-details-project"),
-    ).toHaveTextContent("5d1838ef05294dd9a804e284b9f21617");
+    ).toHaveTextContent("ae798f87fdb743ddb30bc5a46ac15507");
     expect(
       screen.queryByTestId("openstack-container-cluster-why-not-known"),
     ).toBeNull();
@@ -716,7 +716,7 @@ describe("a Kubernetes cluster's page", () => {
 
       expect(
         await screen.findByTestId("openstack-container-cluster-details-stack"),
-      ).toHaveTextContent("ou-cluster-real-6uc6ctkch4l4");
+      ).toHaveTextContent("ou-cluster-real-b4a265chwfks");
       await settle();
       expect(
         screen.queryByTestId("openstack-container-cluster-links"),
