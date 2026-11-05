@@ -28,7 +28,9 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 import OpenStackTemplatePicker from "./OpenStackTemplatePicker";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import {
+  OpenStackChecksOn,
   OpenStackInventorySummary,
+  fetchOpenStackChecksOn,
   fetchOpenStackInventorySummary,
 } from "../../../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import OpenStackMetricPicker from "./OpenStackMetricPicker";
@@ -212,7 +214,13 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
    * fails goes without, and leaves the whole catalogue on offer: nothing here depends on it.
    */
   const [chosenCloudOffer, setChosenCloudOffer] = React.useState<
-    { services: ReadonlyArray<string>; isCollectedByProbe: boolean } | undefined
+    | {
+        services: ReadonlyArray<string>;
+        isCollectedByProbe: boolean;
+        isApiCheckOn: boolean;
+        isLifecycleCheckOn: boolean;
+      }
+    | undefined
   >(undefined);
 
   useEffect(() => {
@@ -221,16 +229,27 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
       return;
     }
     let ignore: boolean = false;
-    fetchOpenStackInventorySummary(chosenCloud.id)
-      .then((summary: OpenStackInventorySummary | null) => {
-        if (!ignore && summary) {
-          setChosenCloudOffer({
-            services: summary.optionalServices,
-            isCollectedByProbe:
-              chosenCloud.collectionMethod === OpenStackCollectionMethod.Probe,
-          });
-        }
-      })
+    Promise.all([
+      fetchOpenStackInventorySummary(chosenCloud.id),
+      fetchOpenStackChecksOn(chosenCloud.id),
+    ])
+      .then(
+        ([summary, checks]: [
+          OpenStackInventorySummary | null,
+          OpenStackChecksOn,
+        ]) => {
+          if (!ignore && summary) {
+            setChosenCloudOffer({
+              services: summary.optionalServices,
+              isCollectedByProbe:
+                chosenCloud.collectionMethod ===
+                OpenStackCollectionMethod.Probe,
+              isApiCheckOn: checks.isApiCheckOn,
+              isLifecycleCheckOn: checks.isLifecycleCheckOn,
+            });
+          }
+        },
+      )
       .catch(() => {});
     // eslint-disable-next-line consistent-return
     return () => {

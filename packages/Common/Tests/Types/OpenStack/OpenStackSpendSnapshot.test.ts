@@ -340,6 +340,7 @@ describe("who is growing", () => {
     const projects: Array<OpenStackSpendProject> = [
       project("shrinking", { growth: -5 }),
       project("flat", { growth: 0 }),
+      project("next-to-nothing", { growth: 0.004 }),
       project("unknown", { growth: null }),
       project("small", { growth: 1 }),
       project("big", { growth: 100 }),
@@ -358,7 +359,14 @@ describe("who is growing", () => {
       growers.map((entry: OpenStackSpendProject): string => {
         return entry.openStackProjectId;
       }),
-    ).not.toEqual(expect.arrayContaining(["shrinking", "flat", "unknown"]));
+    ).not.toEqual(
+      expect.arrayContaining([
+        "shrinking",
+        "flat",
+        "unknown",
+        "next-to-nothing",
+      ]),
+    );
   });
 });
 

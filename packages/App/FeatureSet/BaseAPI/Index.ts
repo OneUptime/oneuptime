@@ -5824,6 +5824,11 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<OpenStackBudget, OpenStackBudgetServiceType>(
         OpenStackBudget,
         OpenStackBudgetService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<OpenStackCloudCheck, OpenStackCloudCheckServiceType>(
         OpenStackCloudCheck,
         OpenStackCloudCheckService,

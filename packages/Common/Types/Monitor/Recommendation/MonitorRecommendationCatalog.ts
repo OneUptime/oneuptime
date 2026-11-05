@@ -458,6 +458,8 @@ function getOpenStackRecommendations(
     getOpenStackAlertTemplatesForCloud({
       services: context?.openStackServices,
       isCollectedByProbe: context?.openStackIsCollectedByProbe,
+      isApiCheckOn: context?.openStackIsApiCheckOn,
+      isLifecycleCheckOn: context?.openStackIsLifecycleCheckOn,
     }).map((template: OpenStackAlertTemplate): string => {
       return template.id;
     }),
@@ -491,8 +493,7 @@ function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> 
           });
         },
       });
-    },
-  );
+    });
 
   /*
    * What only a cloud's services say - a request no host could take, a lost message bus -

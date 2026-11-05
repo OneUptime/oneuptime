@@ -18,6 +18,10 @@ on:
         description: Only record what Placement says of an estate of several hosts, which skips everything else
         type: boolean
         default: false
+      usage_only:
+        description: Only record a test period across a resize and a deletion, and what's been left to waste, on one release, which skips everything else
+        type: boolean
+        default: false
       checks_only:
         description: Only run the lifecycle and API checks against real clouds, breaking them under it, which skips everything else
         type: boolean
@@ -616,7 +620,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
+    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -760,6 +764,90 @@ jobs:
           path: ${{ runner.temp }}/recording
           if-no-files-found: warn
           retention-days: 30
+
+  # What a real cloud's inventory says over a test period, across a resize and a deletion, and what's
+  # been left to waste, for the Spend page (#5748). One release, by hand: a reading is a reading on
+  # any of them, and nothing about usage differs by release that a test could tell.
+  record-usage:
+    name: usage hibiscus-ovn
+    if: ${{ inputs.usage_only }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker info --format 'Docker {{.ServerVersion}}'
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Start the agent's exporter and collector
+        run: bash Tests/Ops/openstack-e2e/start-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]"
+          OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]"
+          OPENSTACK_RABBITMQ_TARGETS: "[]"
+          OPENSTACK_MARIADB_TARGETS: "[]"
+          OPENSTACK_MEMCACHED_TARGETS: "[]"
+          OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]"
+          OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]"
+
+      - name: Add hosts, leave things to waste, resize, delete, and record each reading
+        run: bash Tests/Ops/openstack-e2e/usage-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Stop the agent and keep what it exported
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/stop-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-usage-recording-hibiscus-ovn
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo journalctl -u 'ou-usage-*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/usage-hosts.txt" || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-usage-devstack-logs-hibiscus-ovn
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
 
   # What Placement says of an estate of several hosts, which a DevStack's one host can't show:
   # an allocation ratio that differs by host, a reserved amount, and memory spread too thinly
@@ -1183,7 +1271,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only }}
+    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180

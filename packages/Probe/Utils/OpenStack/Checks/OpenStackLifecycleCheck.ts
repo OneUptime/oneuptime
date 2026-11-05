@@ -632,7 +632,7 @@ class OpenStackLifecycleRegionRun {
 
     if (found.otherServerCount > 0 || found.otherVolumeCount > 0) {
       this.warnings.push(
-        `Project ${this.projectName || this.projectId} also holds ${found.otherServerCount} servers and ${found.otherVolumeCount} volumes this check did not make, so it is not a project of its own. They are not touched, but they share its quota.`,
+        `Project ${this.projectName || this.projectId} also holds ${describeOthers(found.otherServerCount, "server")} and ${describeOthers(found.otherVolumeCount, "volume")} this check did not make, so it is not a project of its own. They are not touched, but they share its quota.`,
       );
     }
 
@@ -940,6 +940,7 @@ class OpenStackLifecycleRegionRun {
           });
           await this.cloud.allowPing(this.securityGroup);
         },
+        { isSigned: true },
       );
     }
 
@@ -1692,6 +1693,10 @@ function unstartedRun(data: {
     writeCount: 0,
     warnings: [],
   };
+}
+
+function describeOthers(count: number, what: string): string {
+  return `${count} ${count === 1 ? what : `${what}s`}`;
 }
 
 export default class OpenStackLifecycleCheck {

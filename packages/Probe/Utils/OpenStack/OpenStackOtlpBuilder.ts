@@ -1439,6 +1439,15 @@ function writeOrchestration(
           status: stack.status,
           status_reason: toBound(stack.statusReason || ""),
           parent_id: stack.parentId,
+          ...(stack.resources
+            ? {
+                resources_read: "true",
+                owned_instance_ids: stack.resources.instanceIds.join(","),
+                owned_instance_count: stack.resources.instanceIds.length,
+                owned_volume_ids: stack.resources.volumeIds.join(","),
+                owned_volume_count: stack.resources.volumeIds.length,
+              }
+            : {}),
         },
         STACK_STATUS_CODES[status] ?? -1,
       );

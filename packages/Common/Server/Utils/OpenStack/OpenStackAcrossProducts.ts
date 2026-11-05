@@ -1419,7 +1419,8 @@ export default class OpenStackAcrossProducts {
         stackName: row.stackName,
         name: row.name,
         status: row.status,
-        masterCount: typeof row.masterCount === "number" ? row.masterCount : null,
+        masterCount:
+          typeof row.masterCount === "number" ? row.masterCount : null,
         nodeCount: typeof row.nodeCount === "number" ? row.nodeCount : null,
       };
     });
@@ -1430,10 +1431,14 @@ export default class OpenStackAcrossProducts {
     projectId: ObjectID;
     nodes: Array<OpenStackKubernetesNodeRead>;
   }): Promise<MagnumClusterRead | null> {
+    // Most Kubernetes clusters are on no cloud, and this is on each of their pages.
+    if (data.nodes.length === 0) {
+      return null;
+    }
     const cloudIds: Array<ObjectID> = await this.readCloudIdsToSearch({
       projectId: data.projectId,
     });
-    if (data.nodes.length === 0 || cloudIds.length === 0) {
+    if (cloudIds.length === 0) {
       return null;
     }
     const servers: Array<OpenStackServerOfNode> =
@@ -1508,13 +1513,12 @@ export default class OpenStackAcrossProducts {
         return server.externalId;
       },
     );
-    const inAnotherCloud: Set<string> = await this.readInstanceIdsInAnotherCloud(
-      {
+    const inAnotherCloud: Set<string> =
+      await this.readInstanceIdsInAnotherCloud({
         projectId: data.projectId,
         openStackCloudId,
         instanceIds,
-      },
-    );
+      });
     const nodes: Array<OpenStackKubernetesNodeRead> = (
       await this.readOpenStackKubernetesNodes({
         projectId: data.projectId,

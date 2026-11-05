@@ -42,7 +42,9 @@ import {
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
 import {
+  OpenStackChecksOn,
   OpenStackInventorySummary,
+  fetchOpenStackChecksOn,
   fetchOpenStackInventorySummary,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
@@ -284,8 +286,13 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       model: BaseModel;
       context: MonitorRecommendationContext;
     }): Promise<MonitorRecommendationContext> => {
-      const summary: OpenStackInventorySummary | null =
-        await fetchOpenStackInventorySummary(data.model.id as ObjectID);
+      const [summary, checks]: [
+        OpenStackInventorySummary | null,
+        OpenStackChecksOn,
+      ] = await Promise.all([
+        fetchOpenStackInventorySummary(data.model.id as ObjectID),
+        fetchOpenStackChecksOn(data.model.id as ObjectID),
+      ]);
       return {
         ...data.context,
         /*
@@ -299,6 +306,8 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
               },
             )
           : null,
+        openStackIsApiCheckOn: checks.isApiCheckOn,
+        openStackIsLifecycleCheckOn: checks.isLifecycleCheckOn,
       };
     },
     /*

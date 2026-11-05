@@ -26,6 +26,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import OpenStackProjectUsageCard from "../../../Components/OpenStack/OpenStackProjectUsageCard";
 import OpenStackQuotaCard from "../../../Components/OpenStack/OpenStackQuotaCard";
 import OpenStackScopedRulesCard, {
   OpenStackRuleScope,
@@ -418,6 +419,11 @@ const OpenStackCloudProjectDetail: FunctionComponent<
       </Card>
 
       <OpenStackQuotaCard openStackCloudId={modelId} quotas={quotas} />
+
+      <OpenStackProjectUsageCard
+        openStackCloudId={modelId}
+        openStackProjectId={projectId}
+      />
 
       <ResourcePartOpenEventsCard
         testId="openstack-project-open"

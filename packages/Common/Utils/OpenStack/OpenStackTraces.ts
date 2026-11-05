@@ -1232,7 +1232,7 @@ export enum OpenStackTraceGap {
    * and send spans as they are, and a page then simply lists them as sent.
    */
   ForkedWorkers = "forked-workers",
-  // The same, with no setting for it: on 2025.2 cinder-volume forks a process per backend.
+  // The same, with no setting for it: cinder-volume forks a process per backend, on 2026.2 too.
   AlwaysForks = "always-forks",
 }
 

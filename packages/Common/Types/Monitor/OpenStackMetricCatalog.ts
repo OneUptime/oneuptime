@@ -2504,7 +2504,15 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Orchestration,
     identityAttributes: ["id", "name", "project_id", "status"],
-    probeOnlyAttributes: ["status_reason", "parent_id"],
+    probeOnlyAttributes: [
+      "status_reason",
+      "parent_id",
+      "resources_read",
+      "owned_instance_ids",
+      "owned_instance_count",
+      "owned_volume_ids",
+      "owned_volume_count",
+    ],
   }),
   metric({
     metricName: "openstack_heat_stack_status_counter",
