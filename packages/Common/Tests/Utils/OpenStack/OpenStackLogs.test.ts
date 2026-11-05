@@ -691,7 +691,7 @@ describe("the failures every operator knows by their words", () => {
     [
       "ERROR",
       "This is not a recognized Fernet token gAAAAA",
-      OpenStackLogSignal.TokenValidationFailing,
+      OpenStackLogSignal.FernetTokenNotRecognized,
     ],
   ])("%s %s", (level: string, text: string, signal: OpenStackLogSignal) => {
     expect(readOpenStackLogSignal({ level, text })).toBe(signal);
