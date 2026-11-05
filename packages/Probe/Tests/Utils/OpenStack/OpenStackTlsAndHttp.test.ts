@@ -15,6 +15,7 @@ import tls, { PeerCertificate, TLSSocket } from "tls";
 import { JSONObject } from "Common/Types/JSON";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
 import {
+  OpenStackPresentedCertificate,
   OpenStackCollectionReport,
   OpenStackConnectionTestReport,
 } from "Common/Types/OpenStack/OpenStackProbeCollection";
@@ -371,17 +372,11 @@ describe("a socket to a real TLS server", () => {
   });
 
   test("says what it was shown, whatever the verdict, which is how a check reads a certificate's end", async () => {
-    const shown: Array<{ fingerprint256: string; host: string; port: number }> =
-      [];
-    const onCertificate: Parameters<
-      typeof openVerifiedSocket
-    >[0]["onCertificate"] = (certificate: {
-      fingerprint256: string;
-      host: string;
-      port: number;
-    }): void => {
-      shown.push(certificate);
-    };
+    const shown: Array<OpenStackPresentedCertificate> = [];
+    const onCertificate: (certificate: OpenStackPresentedCertificate) => void =
+      (certificate: OpenStackPresentedCertificate): void => {
+        shown.push(certificate);
+      };
 
     // Refused, as one no authority signed is, and still seen.
     await failure({ onCertificate: onCertificate });

@@ -76,7 +76,7 @@ const CHECK_TIME_IN_MS: number = 50_000;
 /*
  * The small read to ask of each kind of service.
  *
- * What is under the six services OneUptime collects has been recorded: Tests/Ops/openstack-e2e. The
+ * What is under the services OneUptime collects has been recorded: Tests/Ops/openstack-e2e. The
  * rest are from each API's reference and have not met a real cloud here. A wrong one costs little,
  * because it is answered with a 404, which for these counts as the API having answered.
  */
@@ -99,6 +99,8 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
    * good. A project's member is refused by policy, which still shows the token was checked.
    */
   [OpenStackServiceType.Placement]: { path: "/resource_classes" },
+  // On a cloud that runs it. A project's member is refused by policy, which is an answer too.
+  [OpenStackServiceType.BareMetal]: { path: "/v1/nodes", query: "limit=1" },
 };
 
 const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
@@ -109,7 +111,6 @@ const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
   "object-store": { path: "", query: "limit=1&format=json" },
   "shared-file-system": { path: "/shares", query: "limit=1" },
   sharev2: { path: "/shares", query: "limit=1" },
-  baremetal: { path: "/v1/nodes", query: "limit=1" },
   "container-infra": { path: "/v1/clusters", query: "limit=1" },
   database: { path: "/instances", query: "limit=1" },
   metric: { path: "/v1/metric", query: "limit=1" },
