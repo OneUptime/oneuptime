@@ -702,6 +702,11 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8"),
     );
 
+    // A storage pool's page names the Ceph cluster behind it, which is no leak: it means to.
+    const mayNameCeph: boolean =
+      relative.endsWith("OpenStackStoragePoolCephCard.tsx") ||
+      relative.endsWith("OpenStackUsageReads.ts");
+
     for (const forbidden of [
       "ProxmoxCluster",
       "proxmoxCluster",
@@ -709,8 +714,7 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       "pve_",
       "pveVersion",
       "pve-",
-      "cephCluster",
-      "CephCluster",
+      ...(mayNameCeph ? [] : ["cephCluster", "CephCluster"]),
       "QEMU",
       "isBackedUp",
       "A OpenStack",
