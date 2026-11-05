@@ -35,7 +35,7 @@ Ve a **Mantenimiento programado → Todos los eventos** y haz clic en **Crear ev
 
 ### Decir qué ocurre y cuándo
 
-Escribe un **Título** y añade una **Descripción** si ayuda: está en Markdown y se muestra en tus páginas de estado. **Comienza en** ya está en la próxima hora en punto de tu reloj, y **Termina en** una hora después; cámbialos solo si no son correctos. Al mover **Comienza en**, **Termina en** se mueve con él, así la ventana conserva su duración. **Propietarios** y **Etiquetas** esperan plegados en **Más campos**.
+Escribe un **Título** y añade una **Descripción** si ayuda: está en Markdown y se muestra en tus páginas de estado. **Comienza en** ya está en la próxima hora en punto de tu reloj, y **Termina en** una hora después; cámbialos solo si no son correctos. Al mover **Comienza en**, **Termina en** se mueve con él, así la ventana conserva su duración. **Propietarios**, **Etiquetas** y **Data Observability Bases de datos** esperan plegados en **Más campos**.
 
 ### Elegir qué afecta
 

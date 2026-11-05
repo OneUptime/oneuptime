@@ -35,7 +35,7 @@ Gå til **Planlagt vedlikehold → Alle hendelser** og klikk på **Opprett planl
 
 ### Si hva som skjer og når
 
-Skriv inn en **Tittel**, og legg til en **Beskrivelse** hvis det hjelper: den er Markdown, og den vises på statussidene dine. **Begynner den** er allerede neste hele time på klokken din, og **Slutter den** en time senere; endre dem bare når de er feil. Flytter du **Begynner den**, flyttes **Slutter den** med, så vinduet beholder lengden sin. **Eiere** og **Etiketter** venter under **Flere felt**, sammenslått.
+Skriv inn en **Tittel**, og legg til en **Beskrivelse** hvis det hjelper: den er Markdown, og den vises på statussidene dine. **Begynner den** er allerede neste hele time på klokken din, og **Slutter den** en time senere; endre dem bare når de er feil. Flytter du **Begynner den**, flyttes **Slutter den** med, så vinduet beholder lengden sin. **Eiere**, **Etiketter** og **Data Observability Databaser** venter under **Flere felt**, sammenslått.
 
 ### Velg hva det berører
 

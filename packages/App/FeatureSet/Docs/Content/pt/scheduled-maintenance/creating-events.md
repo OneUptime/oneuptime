@@ -35,7 +35,7 @@ Vá em **Manutenção programada → Todos os eventos** e clique em **Criar Even
 
 ### Dizer o que acontece e quando
 
-Digite um **Título** e adicione uma **Descrição** se ajudar: ela é em Markdown e aparece nas suas páginas de status. **Começa em** já está na próxima hora cheia do seu relógio, e **Termina em** uma hora depois; mude-os só se estiverem errados. Mover **Começa em** move **Termina em** junto, para que a janela mantenha sua duração. **Proprietários** e **Rótulos** ficam recolhidos em **Mais campos**.
+Digite um **Título** e adicione uma **Descrição** se ajudar: ela é em Markdown e aparece nas suas páginas de status. **Começa em** já está na próxima hora cheia do seu relógio, e **Termina em** uma hora depois; mude-os só se estiverem errados. Mover **Começa em** move **Termina em** junto, para que a janela mantenha sua duração. **Proprietários**, **Rótulos** e **Data Observability Bancos de dados** ficam recolhidos em **Mais campos**.
 
 ### Escolher o que ele afeta
 

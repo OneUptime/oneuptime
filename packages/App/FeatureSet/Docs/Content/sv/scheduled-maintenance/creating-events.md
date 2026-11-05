@@ -35,7 +35,7 @@ Gå till **Schemalagt underhåll → Alla händelser** och klicka på **Skapa sc
 
 ### Säg vad som händer och när
 
-Skriv en **Titel**, och lägg till en **Beskrivning** om det hjälper: den är Markdown, och den visas på dina statussidor. **Börjar den** är redan nästa hela timme enligt din klocka, och **Slutar den** en timme senare; ändra dem bara när de är fel. Flyttar du **Börjar den** flyttas **Slutar den** med, så att fönstret behåller sin längd. **Ägare** och **Etiketter** väntar under **Fler fält**, hopfällda.
+Skriv en **Titel**, och lägg till en **Beskrivning** om det hjälper: den är Markdown, och den visas på dina statussidor. **Börjar den** är redan nästa hela timme enligt din klocka, och **Slutar den** en timme senare; ändra dem bara när de är fel. Flyttar du **Börjar den** flyttas **Slutar den** med, så att fönstret behåller sin längd. **Ägare**, **Etiketter** och **Dataobserverbarhet Databaser** väntar under **Fler fält**, hopfällda.
 
 ### Välj vad det påverkar
 
