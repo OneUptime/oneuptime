@@ -59,8 +59,9 @@ _spec.loader.exec_module(live)
 API_URL = os.environ.pop("ONEUPTIME_URL").rstrip("/")
 PORT = urllib.parse.urlsplit(API_URL).port or 80
 
-AGENT_CLOUD = "devstack-through-the-agent"
-PROBE_CLOUD = "devstack-through-a-probe"
+# The name the docs' examples give a cloud, because the screenshots of these pages go in the docs.
+AGENT_CLOUD = "prod-eu"
+PROBE_CLOUD = "prod-eu-probe"
 REGION = "RegionOne"
 ACCOUNT = "oneuptime-monitoring"
 DOCS_PAGE = os.path.join(REPOSITORY, "packages/App/FeatureSet/Docs/Content/en/telemetry/openstack.md")
@@ -68,6 +69,17 @@ CATALOG = os.path.join(REPOSITORY, "packages/Common/Types/InstallScripts/Install
 TEMPLATE_ID = "openstack-compute-service-down"
 COMPUTE_UNIT = "devstack@n-cpu.service"
 VENV = os.environ.get("DEVSTACK_VENV", "/opt/stack/data/venv")
+# The browser, in the image the browser jobs run in, at the Playwright packages/E2E locks.
+PLAYWRIGHT_IMAGE = os.environ.get("PLAYWRIGHT_IMAGE", "")
+SCREENSHOTS = os.path.join(OUTPUT_DIR, "screenshots")
+PROJECTS_ON_THE_HOST = ("ou-payments", "ou-research")
+# Every page of a cloud with no id of its own in its address, for what a browser says of each.
+CLOUD_PAGES = (
+    "networks routers floating-ips bare-metal volumes storage-pools images flavors availability-zones aggregates "
+    "subnets network-agents snapshots stacks kubernetes-clusters shares dns-zones databases projects domains "
+    "control-plane insights recommendations capacity spend ai/insights ai/logs ai/agent metrics logs traces checks "
+    "incidents alerts scheduled-maintenance owners feed audit-logs settings documentation"
+).split()
 
 # What estate.sh makes, by name. Service rows are held to what the cloud itself lists, as well.
 ESTATE = {
@@ -246,6 +258,74 @@ def part(name, about, body, needs=()):
     RESULTS.setdefault("seconds", {})[name] = round(time.time() - started)
     memory(f"after {name}")
     save()
+
+
+# ----------------------------------------------------------------------------------------------
+# What a person sees
+# ----------------------------------------------------------------------------------------------
+def cloud_path(cloud_id, page=""):
+    return f"/dashboard/{live.PROJECT_ID}/openstack/{cloud_id}" + (f"/{page}" if page else "")
+
+
+def named_page(name, file, path_of_page, **wanted):
+    """A page the docs show: it has to hold what the cloud holds, and draw no empty state."""
+    return {"name": name, "file": file, "path": path_of_page, "isNamed": True, **wanted}
+
+
+def sweep_of(cloud_id, label):
+    """Every other page of a cloud: one that throws or draws an error fails, and the rest is reported."""
+    return [
+        {
+            "name": f"{label}: {page}",
+            "file": f"sweep/{label}-{page.replace('/', '-')}.png",
+            "path": cloud_path(cloud_id, page),
+            "isGuide": page == "documentation",
+        }
+        for page in CLOUD_PAGES
+    ]
+
+
+def look_at(stage, pages):
+    """Real pages in a real browser, at the size the docs' screenshots are. Each fails by its own name."""
+    os.makedirs(SCREENSHOTS, exist_ok=True)
+    spec_file = f"spec-{stage}.json"
+    report_file = f"report-{stage}.json"
+    with open(os.path.join(SCREENSHOTS, spec_file), "w", encoding="utf-8") as handle:
+        json.dump({"baseUrl": API_URL, "email": live.EMAIL, "pages": pages}, handle)
+    ran = run(
+        f"pages-{stage}",
+        f"docker run --rm --network host --ipc=host -v {shlex.quote(REPOSITORY)}:/repo:ro "
+        f"-v {shlex.quote(SCREENSHOTS)}:/shots -w /repo -e WALK_PASSWORD -e NODE_PATH=/repo/packages/E2E/node_modules "
+        f"{shlex.quote(PLAYWRIGHT_IMAGE)} node Tests/Ops/openstack-e2e/whole-path-pages.cjs "
+        f"/shots/{spec_file} /shots/{report_file}",
+        env={"WALK_PASSWORD": live.PASSWORD},
+        timeout=1500,
+    )
+    check(f"a browser reads the pages, {stage}", ran.status == 0, f"exit {ran.status}: {ran.text[-600:] if ran.status else ''}")
+    try:
+        with open(os.path.join(SCREENSHOTS, report_file), encoding="utf-8") as handle:
+            reports = json.load(handle)
+    except (OSError, ValueError) as error:
+        check(f"it reports on them, {stage}", False, error)
+        return
+    all_console_errors = RESULTS.setdefault("console errors", {})
+    for report in reports:
+        told = report.get("consoleErrors") or []
+        if told:
+            all_console_errors[report["name"]] = told
+            say(f"  console, {report['name']}: {told[:4]}")
+        if report.get("failedRequests"):
+            RESULTS.setdefault("failed requests", {})[report["name"]] = report["failedRequests"]
+        if report.get("emptyStates"):
+            RESULTS.setdefault("empty states", {})[report["name"]] = report["emptyStates"]
+        problems = report.get("problems") or []
+        check(
+            f"{report['name']} shows what the cloud holds, and draws no error"
+            if report.get("isNamed")
+            else f"{report['name']} throws nothing and draws no error",
+            not problems,
+            "; ".join(problems)[:900] if problems else report.get("file"),
+        )
 
 
 # ----------------------------------------------------------------------------------------------
@@ -600,6 +680,23 @@ def part_agent():
         f"exit {told.status}: {told.text[-1200:] if told.status else ''}",
     )
 
+    cloud_id = STATE["agent cloud"]
+    look_at(
+        "healthy",
+        [
+            named_page("The cloud's Overview", "OpenStackCloudOverview.png", cloud_path(cloud_id), text=[AGENT_CLOUD]),
+            named_page("Hypervisors", "OpenStackHypervisors.png", cloud_path(cloud_id, "hypervisors"), text=[STATE["host"]]),
+            named_page("Instances", "OpenStackInstances.png", cloud_path(cloud_id, "instances"), text=["ou-running", "ou-research-1"]),
+            named_page(
+                "Topology",
+                "OpenStackTopology.png",
+                cloud_path(cloud_id, "topology"),
+                marks=[{"selector": '[data-testid="resource-topology-card-cloud"]'}],
+            ),
+            *sweep_of(cloud_id, "agent"),
+        ],
+    )
+
 
 # ----------------------------------------------------------------------------------------------
 # break
@@ -672,10 +769,34 @@ def compute_down_alerts():
     rows = live.rows(
         "/alert",
         {"projectId": live.PROJECT_ID},
-        {"_id": True, "title": True, "createdAt": True, "currentAlertState": {"name": True, "isResolvedState": True}},
+        {"_id": True, "title": True, "description": True, "createdAt": True, "currentAlertState": {"name": True, "isResolvedState": True}},
         limit=200,
     )
     return [row for row in rows if "Compute Service Down" in (row.get("title") or "")]
+
+
+def instances_on_the_host():
+    """What Nova itself has on the host, by project, which the incident is held to."""
+    return {
+        project: sorted(row["Name"] for row in cloud_json(f"server list --host {shlex.quote(STATE['host'])} --project {project}"))
+        for project in PROJECTS_ON_THE_HOST
+    }
+
+
+def blast_radius_read(text, on_host):
+    """What is wrong with what a notification says it affects, or nothing. #5730's "Done when"."""
+    wrong = []
+    holding = {project: names for project, names in on_host.items() if names}
+    total = sum(len(names) for names in holding.values())
+    match = re.search(r"What this affects:\**\s*(\d+) instances? in (\d+) projects?", text or "")
+    if not match:
+        return [f'no "What this affects" line in: {(text or "")[:300]}']
+    if (int(match.group(1)), int(match.group(2))) != (total, len(holding)):
+        wrong.append(f"it says {match.group(0)}, and Nova has {total} in {len(holding)}")
+    for project, names in holding.items():
+        if not re.search(rf"{re.escape(project)}: {len(names)} instances?\b", text):
+            wrong.append(f"it does not say {project}: {len(names)} instances")
+    return wrong
 
 
 def said(read):
@@ -750,6 +871,53 @@ def while_stopped(cloud_id, monitor_id, stopped_at):
     alerts, _ = wait_for(compute_down_alerts, 120, gap=10)
     found("the alert", alerts)
     check("its alert opened with it", bool(alerts) and len(alerts) == 1, [row.get("title") for row in alerts or []])
+
+    # #5730's "Done when": how many instances in which projects, held to what Nova itself has there.
+    on_host = instances_on_the_host()
+    found("what Nova has on the host", on_host)
+    wrong = blast_radius_read(incident.get("description"), on_host)
+    check("the incident says how many instances in which projects are affected", not wrong, wrong or on_host)
+    wrong = blast_radius_read((alerts or [{}])[0].get("description"), on_host)
+    check("the alert says how many instances in which projects are affected", not wrong, wrong or on_host)
+
+    states = {row["Name"]: row["Status"] for row in cloud_json("server list --all-projects")}
+    awake = [name for names in on_host.values() for name in names if states.get(name) != "SHUTOFF"]
+    host_card = f'[data-testid="resource-topology-card-hypervisor:{REGION}/{STATE["host"]}"]'
+    look_at(
+        "broken",
+        [
+            named_page(
+                "Services, with nova-compute down",
+                "OpenStackServicesComputeDown.png",
+                cloud_path(cloud_id, "services"),
+                marks=[
+                    {
+                        "selector": '[data-testid="openstack-service-worker"][data-name="nova-compute"]',
+                        "attribute": "data-status",
+                        "value": "down",
+                        "scrollTo": True,
+                    }
+                ],
+            ),
+            named_page(
+                "Topology, with that host red and its instances beneath it",
+                "OpenStackTopologyComputeDown.png",
+                cloud_path(cloud_id, "topology"),
+                clicks=["resource-topology-filter-attention"],
+                marks=[
+                    {"selector": host_card, "attribute": "data-health", "value": "critical"},
+                    {"selector": host_card, "hasText": "Down"},
+                    *[{"selector": '[data-testid^="resource-topology-chip-instance:"]', "hasText": name} for name in awake],
+                ],
+            ),
+            named_page(
+                "The incident",
+                "OpenStackIncidentComputeDown.png",
+                f"/dashboard/{live.PROJECT_ID}/incidents/{incident['_id']}",
+                text=["Compute Service Down", "What this affects"],
+            ),
+        ],
+    )
 
 
 def once_started(cloud_id, monitor_id, started_at):
@@ -981,6 +1149,21 @@ def part_probe():
     check("the cloud's own row counts what the probe found", bool(counted), counted or cloud_row(cloud_id))
     run("probe-logs", "docker logs --tail 400 oneuptime-probe")
 
+    look_at(
+        "probe",
+        [
+            named_page(
+                "The probe's Data Collection",
+                "OpenStackDataCollection.png",
+                cloud_path(cloud_id, "settings"),
+                marks=[{"selector": '[data-testid="openstack-data-collection"]', "hasText": "whole-path-probe", "scrollTo": True}],
+            ),
+            named_page("The probe's cloud's Overview", "sweep/probe-overview.png", cloud_path(cloud_id), text=[PROBE_CLOUD]),
+            named_page("The probe's cloud's Instances", "sweep/probe-instances.png", cloud_path(cloud_id, "instances"), text=["ou-running"]),
+            *sweep_of(cloud_id, "probe"),
+        ],
+    )
+
 
 # ----------------------------------------------------------------------------------------------
 # traces
@@ -1097,6 +1280,17 @@ def part_traces():
     found("the spans", {"count": len(rows), "services": services, "clouds": clouds, "names": sorted({str(row.get("name")) for row in rows})[:40]})
     check("they say which cloud they are from", clouds == [AGENT_CLOUD], clouds)
     check("and cross more than one service", len(services) > 1, services)
+    look_at(
+        "traces",
+        [
+            named_page(
+                "Traces",
+                "OpenStackTraces.png",
+                cloud_path(STATE["agent cloud"], "traces"),
+                marks=[{"selector": '[data-testid="openstack-traces-on"]'}],
+            )
+        ],
+    )
 
 
 def main():
