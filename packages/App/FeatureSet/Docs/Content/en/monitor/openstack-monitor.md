@@ -5,6 +5,7 @@ An OpenStack monitor watches one cloud - its APIs, the workers behind them, hype
 :::cards
 - [Create the monitor](#create-an-openstack-monitor): Six steps in the dashboard.
 - [Templates](#pre-built-alert-templates): Ready-made alerts, one incident per worker, instance, network or region.
+- [Checks from outside](#checks-from-outside): Whether anyone can actually boot an instance, from a probe outside the cloud.
 - [Identity attributes](#identity-attributes): How to target one region, host or project.
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
 :::
@@ -105,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 82 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum or Ironic to a cloud that runs it, and one over a series only a probe sends to a cloud a probe collects: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 90 templates for common OpenStack problems, and the **What to alert on** list offers them. A cloud's Recommendations page only offers a template for Heat, Magnum or Ironic to a cloud that runs it, and one over a series only a probe sends to a cloud a probe collects: on any other cloud its series do not exist, so it could never fire. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -159,6 +160,14 @@ Every template reads at least three collections of what it watches, and fires on
 | Bare Metal Node in Maintenance Too Long | Bare Metal | Warning | `openstack_ironic_node` with `maintenance = true`, Max per node, **past 7 days** | In maintenance at every collection for 7 days. Needs your metrics kept that long | Out of maintenance, or was deleted |
 | Bare Metal Power State Unexpected | Bare Metal | Warning | `openstack_ironic_node` with `provision_state = active`, `power_state = power off` and `maintenance = false`, Max per node, **past 15 minutes** | At every collection for 15 minutes. An instance its owner stopped reads the same, which a node's page can tell and this can't | Powered on, or no longer deployed |
 | Project Quota Nearly Reached | Projects | Warning | `openstack_nova_limits_*` and `openstack_cinder_limits_volume_*`, used / max per project, **past 3 hours** | Above 90% of its vCPU, memory, instance or volume quota. Needs the [limits series on](#turn-on-the-limits-series) | At or below 81% |
+| Token Issue Failing | Availability | Critical | `openstack_check_token_success`, Min per region, **past 5 minutes**. Needs API checks on | Below 1: Keystone issued the probe no token | A token is issued |
+| Service API Check Failing | Availability | Critical | `openstack_check_api_success`, Min per region and `service_type`, **past 5 minutes**. Needs API checks on | Below 1: that service did not answer, for any service in the catalog | It answers, or leaves the catalog |
+| Public Certificate Expiring in 30 Days | Availability | Warning | `openstack_check_certificate_expiry_days`, Min per region, host and port, **past 5 minutes**. Needs API checks on | Under 30 days left | 33 days or more left, or the endpoint leaves the catalog |
+| Public Certificate Expiring in 7 Days | Availability | Critical | The same | Under 7 days left | 7.7 days or more left, or the endpoint leaves the catalog |
+| Instance Boot Failing | Compute | Critical | `openstack_check_lifecycle_phase_success` filtered to `phase = boot`, Min per region, **past 5 minutes**. Needs the lifecycle check on | Below 1: the last run could not boot an instance | A run boots one |
+| Instance Boot Slow | Compute | Warning | `openstack_check_lifecycle_step_duration_seconds` filtered to `step = server_active`, Max per region, **past 5 minutes**. Needs the lifecycle check on | Above 300 seconds, Tempest's own `build_timeout` | At or below 270 seconds, or a run that did not boot, which Instance Boot Failing speaks for |
+| Volume Attach Failing | Storage | Critical | `openstack_check_lifecycle_phase_success` filtered to `phase = volume`, Min per region, **past 5 minutes**. Needs the check's volume part on | Below 1: the last run could not create or attach a volume | A run attaches one |
+| Floating IP Unreachable | Network | Critical | `openstack_check_lifecycle_phase_success` filtered to `phase = floating_ip`, Min per region, **past 5 minutes**. Needs the check's floating IP part on | Below 1: the last run could not reach its server through a floating IP | A run reaches one |
 | Flavor Can No Longer Be Placed | Capacity | Warning | `openstack_capacity_flavor_fits`, **per flavor per region** | No host has room for one more, for 10 minutes. Only flavors someone can ask for, and never one too large for every host, or whose only room is on a host someone disabled | A host has room, or the flavor is no longer watched |
 | Capacity Forecast Under 14 Days | Capacity | Warning | `openstack_capacity_days_until_full`, **per zone and resource class, external network or storage pool** | Under 14 days until full at its growth over the last week, for 10 minutes. Quiet with under a day of history, or when it isn't growing | Over 15.4 days, or no forecast any more |
 | Reserved Headroom Gone | Capacity | Warning | `openstack_capacity_can_lose_a_host`, **per zone** | It couldn't lose its largest host and still fit what runs on it, for 10 minutes. Quiet on a zone of one host, or with a host someone disabled | It could, or the zone is no longer judged |
@@ -546,6 +555,48 @@ Only a cloud that runs Ironic sends these, and a cloud without it shows no trace
 | `openstack_neutron_quota_security_group` | `count` | Max | A project's security group quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
 | `openstack_neutron_quota_security_group_rule` | `count` | Max | A project's security group rule quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
 | `openstack_neutron_quota_rbac_policy` | `count` | Max | A project's RBAC policy quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+
+### Checks
+
+What a probe finds from outside the cloud: see [Checks from outside](#checks-from-outside). Nothing collects these, so they are empty until someone turns the checks on. Every one carries `openstack.region.name`.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_check_token_success` | - | Min | Whether Keystone issued a token to the probe checking this cloud from outside: 1 when it did, 0 when it did not. |
+| `openstack_check_token_duration_seconds` | `s` | Max | How long Keystone took to issue that token. |
+| `openstack_check_api_success` | - | Min | Whether a service in the catalog answered a one-row read: 1 when it answered, or refused this credential, because then its API is working, and 0 when it failed, timed out or could not be reached. Labels `service_type`, `service_name`, `outcome`. |
+| `openstack_check_api_duration_seconds` | `s` | Max | How long that service took to answer. Labels `service_type`, `service_name`. |
+| `openstack_check_certificate_expiry_days` | `d` | Min | Days until the certificate on an endpoint the catalog names expires, negative once it has. Labels `host`, `port`. |
+| `openstack_check_lifecycle_success` | - | Min | Whether the last lifecycle run to finish in a region passed every step: 1 or 0. Said again each minute until the next run finishes, so its average over a month is how much of the month someone could have booted an instance. |
+| `openstack_check_lifecycle_phase_success` | - | Min | What each part of the lifecycle check last came to: label `phase`, one of `credential`, `boot`, `floating_ip`, `volume` and `cleanup`. A part a run did not reach keeps what it last came to. |
+| `openstack_check_lifecycle_step_success` | - | Min | Whether each step of the last run passed: label `step`. Steps it did not reach have no series. |
+| `openstack_check_lifecycle_step_duration_seconds` | `s` | Max | How long each step of the last run took, for the steps that passed: label `step`. `server_active` is the boot itself. |
+| `openstack_check_lifecycle_run_duration_seconds` | `s` | Max | How long the last run took, from its first request to its last. |
+| `openstack_check_lifecycle_run_age_seconds` | `s` | Max | How long ago the last run finished. |
+| `openstack_check_lifecycle_leftovers` | `count` | Max | How many things the last run could not delete. |
+| `openstack_check_lifecycle_janitor_removed` | `count` | Max | How many things the janitor removed at the start of the last run: what a run that died left behind. |
+| `openstack_check_lifecycle_refused` | - | Max | 1 while the check refuses to write with its credential, so no run has a verdict. |
+
+## Checks from outside
+
+Every service can report healthy while no one can boot an instance. `oslo.middleware`'s `/healthcheck` only shows that a service is reachable, so the truest test is doing what users do. A probe does it from outside the cloud, because a check inside a failed cloud says nothing. Turn them on from the cloud's **Checks** page. [The guide](/docs/telemetry/openstack#check-the-cloud-from-outside) says how, and exactly what the lifecycle check creates and may touch.
+
+- **API checks** run every minute by default and only read. Keystone issues a token, each service in the catalog answers an authenticated one-row read, and each endpoint's certificate is read for when it expires. There is no list to keep: a service someone adds to the catalog is checked from then on.
+- **The lifecycle check** runs every 30 minutes by default, and only if you opt in. In a project it has to itself: create a server, wait for `ACTIVE`, optionally attach a floating IP and ping it, optionally create and attach a volume, then delete everything. Each step's duration is a series.
+
+### One incident per region, from a failed run to a good one
+
+A lifecycle run reports once every 30 minutes, and a template reads several collections. So what the last run found is said again with each minute's API check, for as long as it is the last. An incident opens within minutes of a failed run, and closes within minutes of the next run that passes, whatever the interval is. A failed run's incident names the step and the fault Nova or Cinder gave, read from what the run reported. A fault is free text, so it is not a label: a boot that fails in a different way next time is still the same incident.
+
+Silence is not recovery. A verdict older than two and a half intervals is no longer said, and neither is anything once the probe stops, so an open incident stays open rather than reading as resolved.
+
+### Building on these series
+
+These names and labels are stable, and SLOs and status pages can stand on them.
+
+- `openstack_check_lifecycle_success` is the truest signal that a region is working. At any moment it reads whether the last run passed, so its average over a month is the share of the month someone could have booted an instance.
+- `openstack_check_api_success` and `openstack_check_token_success` answer the same for each API, once a minute.
+- A check that refuses its own credential, or was skipped because another run might be going, says nothing about the cloud, and leaves these series as they were.
 
 ## Monitoring criteria
 

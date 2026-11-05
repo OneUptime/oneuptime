@@ -214,6 +214,7 @@ describe("what a token says", () => {
       roleNames: ["reader", "admin"],
       hasAccessRules: true,
       isUnrestricted: false,
+      isAdminProject: false,
     });
   });
 
@@ -227,7 +228,22 @@ describe("what a token says", () => {
       roleNames: [],
       hasAccessRules: false,
       isUnrestricted: false,
+      isAdminProject: false,
     });
+  });
+
+  test("Keystone's admin project says so, and only where one is configured", () => {
+    const read: (token: JSONObject) => boolean = (
+      token: JSONObject,
+    ): boolean => {
+      return parseKeystoneToken({ tokenId: "t", body: { token: token } })
+        .isAdminProject;
+    };
+
+    expect(read({ is_admin_project: true })).toBe(true);
+    expect(read({ is_admin_project: false })).toBe(false);
+    expect(read({})).toBe(false);
+    expect(read({ is_admin_project: "true" })).toBe(false);
   });
 
   test("an application credential made --unrestricted says so", () => {

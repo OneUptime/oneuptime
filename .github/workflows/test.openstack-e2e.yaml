@@ -18,6 +18,10 @@ on:
         description: Only record what Placement says of an estate of several hosts, which skips everything else
         type: boolean
         default: false
+      checks_only:
+        description: Only run the lifecycle and API checks against real clouds, breaking them under it, which skips everything else
+        type: boolean
+        default: false
       logs_only:
         description: Only record service logs, notifications and audit events, which skips what takes the rest of the time
         type: boolean
@@ -612,7 +616,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
+    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -762,6 +766,106 @@ jobs:
   # for a large flavor. Every step is on its own: the newest release, the release ML2/OVS is
   # recorded on and the oldest one maintained, because Placement's answers are the same shape
   # over all of them or the product needs to know.
+  # The probe's own check code, run from Node against a real DevStack, with the cloud broken under it.
+  # One entry behind tls-proxy, so the real transport and its certificates are what is exercised, and
+  # one on plain HTTP with ML2/OVS, whose floating IPs and agents differ. See checks-record.sh.
+  record-checks:
+    name: checks ${{ matrix.name }}
+    if: ${{ inputs.checks_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: hibiscus-ovn-tls
+            branch: stable/2026.2
+            enabled_services: "tls-proxy"
+            plain_http: "0"
+            conf_overrides: ""
+          - name: gazpacho-ovs
+            branch: stable/2026.1
+            enabled_services: "-ovn-controller,-ovn-northd,-ovs-vswitchd,-ovsdb-server,-q-ovn-metadata-agent,-q-ovn-agent,q-agt,q-dhcp,q-l3,q-meta"
+            plain_http: "1"
+            conf_overrides: |
+              Q_AGENT=openvswitch
+              Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch
+              Q_ML2_TENANT_NETWORK_TYPE=vxlan
+              Q_ML2_PLUGIN_TYPE_DRIVERS=flat,vlan,vxlan
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Probe dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Probe
+
+      # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
+      # hosted runner's is longer.
+      - name: Give the runner a name a certificate can hold
+        if: ${{ matrix.enabled_services == 'tls-proxy' }}
+        run: |
+          sudo hostnamectl set-hostname devstack
+          echo "127.0.1.1 devstack" | sudo tee -a /etc/hosts
+          hostname -f
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: ${{ matrix.branch }}
+          enabled_services: ${{ matrix.enabled_services }}
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+            ${{ matrix.conf_overrides }}
+          enable_workaround_docker_io: "false"
+
+      - name: Run the checks, and break the cloud under them
+        run: bash Tests/Ops/openstack-e2e/checks-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          CHECKS_PLAIN_HTTP: ${{ matrix.plain_http }}
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-checks-recording-${{ matrix.name }}
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-checks-devstack-logs-${{ matrix.name }}
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
   record-capacity:
     name: capacity ${{ matrix.name }}
     if: ${{ inputs.capacity_only || github.event_name == 'schedule' }}
@@ -1079,7 +1183,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only }}
+    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180
@@ -1183,7 +1287,7 @@ jobs:
       # On its own, as the access matrix is: losing a source of VM metrics costs that
       # recording, not the drills.
       - name: Start what reports real VM metrics
-        if: ${{ !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && !inputs.scenes_only }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/start-instance-metrics.sh
         env:
@@ -1191,14 +1295,14 @@ jobs:
 
       # Before the agent starts, so its collector reads them from its first scrape.
       - name: Start the exporters of what the cloud stands on
-        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh start
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Start the agent's exporter and collector
-        if: ${{ !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/start-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -1214,14 +1318,14 @@ jobs:
       # its policy files back off when it ends, whichever way it ends. A run of scenes
       # still tries it where it has calls per thing to ask about: only ML2/OVS has those.
       - name: Least privilege, tested on the real policies
-        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || (matrix.deep && matrix.enabled_services)) }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || (matrix.deep && matrix.enabled_services)) }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/access-matrix.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Record the failure drills
-        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/drills.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -1229,7 +1333,7 @@ jobs:
 
       # After the drills, so the scenes they recorded hold the estate they always held.
       - name: Record real VM metrics from both sources
-        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/instance-metrics.sh
         env:
@@ -1249,7 +1353,7 @@ jobs:
       # takes the whole cloud down more than once, and on its own, so that a problem here
       # still leaves everything else recorded.
       - name: Stop what the cloud stands on, and record what falls
-        if: ${{ !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh drills
         env:
@@ -1280,7 +1384,7 @@ jobs:
       # With a limit of its own, as the traces have, so that a cloud it has broken costs this
       # recording and not the job's limit, which takes the upload with it.
       - name: Record service logs, notifications and audit events
-        if: ${{ !inputs.traces_only && !inputs.quotas_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
+        if: ${{ !inputs.checks_only && !inputs.traces_only && !inputs.quotas_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/logs-record.sh
