@@ -99,6 +99,7 @@ flowchart TB
 | اقلام موجودی | `Inventory Item` |
 | پیکربندی‌های کالکتور | `Collector Config` |
 | سرورهای vCenter | `vCenter` |
+| ابرهای OpenStack، و بررسی‌هایی که روی آن‌ها اجرا می‌شود | `OpenStack Cloud`، `OpenStack Cloud Check` |
 | ضبط‌های بسته و دانلودهایشان | `Packet Capture` |
 | پرونده‌های امنیتی و اولویت‌ها و وضعیت‌هایشان، پلی‌بوک‌ها و اجراهای آن‌ها، موجودیت‌های محافظت‌شده، اهمیت موجودیت، و ریسک موجودیتی که کسی بازنشانی کند | `Security Case`، `Security Case Priority`، `Security Case Status`، `Security Playbook`، `Security Playbook Run`، `Protected Entity`، `Entity Criticality`، `Entity Risk` |
 | استثناهای قاعده | `Rule Exception` |

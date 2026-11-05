@@ -35,6 +35,7 @@ Du behöver inte skicka något för de här. OneUptime registrerar dem utifrån 
 | Ett runbook | Ett runbook som OneUptime körde slutförs, misslyckas eller avbryts efter att det har startat | `runbook` |
 | En molnändring | Aktivitetsloggen för ett anslutet molnkonto registrerar en ändring: AWS CloudTrail, Azures aktivitetslogg eller Google Clouds granskningslogg Admin Activity | `cloud` |
 | En leverantörshändelse | Molnleverantören publicerar en hälsohändelse om kontot: AWS Health, Azure Service Health eller Resource Health, eller Google Cloud Service Health | `cloud-health` |
+| En OpenStack-ändring | Ett OpenStack-molns egna notifieringar säger vad som hände med en av dess delar, eller så gör en sonds läsning av Nova det: se [Livscykelhändelser](/docs/telemetry/openstack#livscykelhändelser) | `openstack` |
 
 - **Den första versionen som en tjänst rapporterar är dess utgångsläge, inte en driftsättning.** En tjänst som har körts i månader driftsätts inte i samma ögonblick som OneUptime börjar ta emot dess telemetri.
 - **En återgång till en version som har setts under de senaste 30 dagarna registreras inte,** eftersom den versionen inte är ny. En återgång som OneUptime AI kör registreras som en åtgärd.
@@ -50,7 +51,7 @@ En utrullning kräver [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), so
 
 En appdistribution kräver att appen körs på en [hanterad appplattform](/docs/telemetry/cloud-environments#appar-och-distributioner). Den registreras under appens miljö och ritas i miljöns diagram och i appens egna, och där registreras även en återgång till en revision som appen körde tidigare.
 
-En molnändring eller en leverantörshändelse kräver ett [anslutet molnkonto](/docs/telemetry/cloud-accounts). Var och en knyts till molnresursen den nämner, när OneUptime listar den resursen, och ritas i resursens diagram. Typen kommer från åtgärden: `deployment`, `scaling` eller `rollback` när åtgärdens namn säger det, annars `config-change`, och `provider-event` för en hälsohändelse. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
+En molnändring eller en leverantörshändelse kräver ett [anslutet molnkonto](/docs/telemetry/cloud-accounts). Var och en knyts till molnresursen den nämner, när OneUptime listar den resursen, och ritas i resursens diagram. Typen kommer från åtgärden: `deployment`, `scaling` eller `rollback` när åtgärdens namn säger det, annars `config-change`, och `provider-event` för en hälsohändelse. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg och ett OpenStack-molns ändringar, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
 
 ## Registrera en driftsättning från en pipeline
 

@@ -29,6 +29,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | Lire ou modifier des incidents, des moniteurs et d'autres enregistrements | [Composants de données OneUptime](#composants-de-données-oneuptime) |
 | Ouvrir, prendre en compte et résoudre des incidents ou des alertes pour les problèmes d'un autre outil | [Incidents et alertes d'autres outils](#incidents-et-alertes-dautres-outils) |
 | Prendre en compte ou fermer un problème Zabbix | [Zabbix](#zabbix) |
+| Demander à une personne d'approuver un correctif sur un cloud OpenStack | [Propose an OpenStack fix](#propose-an-openstack-fix) |
 
 Un bloc dédié vaut mieux qu'un bloc générique : le bloc Slack connaît les limites de Slack, et un bloc d'enregistrement connaît les champs de l'enregistrement, si bien que vous obtenez des erreurs et des journaux plus clairs qu'avec un bloc **API** qui ferait le même travail.
 
@@ -427,6 +428,28 @@ Prenez en compte ou fermez un problème dans Zabbix, ou ajoutez-lui un message, 
 Pour prendre en compte ou fermer, le bloc lit d'abord le problème. Un problème que Zabbix a déjà résolu, ou déjà pris en compte quand c'est tout ce que vous demandez, est laissé tel quel, et le bloc prend **Unchanged**, comme pour un problème que Zabbix n'a pas, ou que l'utilisateur du jeton ne peut pas voir. Un problème dont le déclencheur ne permet pas de fermer les problèmes à la main est pris en compte à la place, et son message dit qu'il reste ouvert jusqu'à ce que Zabbix le voie se rétablir.
 
 **Updated** se produit quand Zabbix a accepté la mise à jour, et **Error** quand Zabbix était injoignable ou l'a refusée, avec la raison donnée par Zabbix : Zabbix répond à une requête refusée par un statut de succès, si bien que le bloc lit ce que Zabbix a répondu plutôt que son statut. Il renvoie **Summary**, ce qu'il a fait en une phrase.
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+Demande à une personne d'approuver une modification du cloud OpenStack concerné par une alerte ou un incident. Il n'effectue jamais la modification. Le correctif attend sur l'alerte ou l'incident, et dans les canaux où il publie, comme celui que propose OneUptime AI, quel que soit le mode de correctif du cloud. Un workflow ne peut pas approuver ce qu'il propose.
+
+Il n'a besoin d'aucun modèle d'IA, et il passe par les mêmes règles qu'un correctif proposé par OneUptime AI : la politique de commandes, les cibles d'écriture et les cibles protégées de l'agent, et la lecture par l'agent de ce que la modification touche. L'évacuation d'un hôte encore actif, ou d'un hôte que l'agent ne peut pas lire en entier, n'est pas proposée.
+
+| Paramètre | Ce qu'il fait |
+| --------- | ------------- |
+| **ID d'alerte** | L'alerte concernée par le correctif, en général l'ID renvoyé par votre déclencheur. Renseignez celui-ci ou **ID d'incident** : le cloud est déduit de ce à quoi l'enregistrement est lié. |
+| **ID d'incident** | L'incident concerné par le correctif, en général l'ID renvoyé par votre déclencheur. Renseignez celui-ci ou **ID d'alerte**. |
+| **Commande** | La modification à proposer, dans l'unique écriture que OneUptime accepte. Voir [les modifications qu'un correctif peut effectuer](/docs/telemetry/openstack#correctifs). Elle peut utiliser des valeurs de blocs précédents, et elle est lue une fois ceux-ci renseignés. |
+| **Pourquoi** | Ce que lit en premier la personne qui l'approuve. Laissé vide, il indique quel workflow l'a demandé. |
+| **OpenStack Cloud ID** | Sous **Plus de champs**. Uniquement pour un enregistrement lié à plusieurs clouds, ou à aucun. |
+
+Il renvoie **Suggestion ID** (le correctif en attente d'approbation), **Tier** (Sûr ou Plus risqué, tel que OneUptime lit la commande) et **Already Waiting** (vrai quand la même modification sur ce cloud attendait déjà, si bien qu'aucune seconde n'a été ajoutée).
+
+**Succès** se produit dès qu'une personne a été sollicitée, sans attendre sa réponse. **Erreur** se produit quand rien n'a été proposé, avec la raison dans **Error** : la commande est refusée, les correctifs ne sont pas encore autorisés sur ce cloud, ou les workflows d'un projet ont proposé 20 correctifs au cours de la dernière heure.
+
+Le modèle [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) est un bon point de départ.
 
 ## Composants de données OneUptime
 

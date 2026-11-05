@@ -167,7 +167,7 @@ Vissa attributnamn tillhör OneUptime självt, och ett skript kan inte skriva de
 
 - Monitorns identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Allt i namnrymderna `oneuptime.` eller `resource.` — de bär de identifierare som OneUptime sätter vid inmatning.
-- Attribut för resursidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` och `docker.swarm.cluster.name`.
+- Attribut för resursidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` och `docker.swarm.cluster.name`.
 
 De här namnen är inte bara etiketter — OneUptime läser tillbaka dem som ett påstående om vilken resurs en datapunkt tillhör. Ett mätvärde märkt `service.name: payments-api` skulle dyka upp på den tjänstens flik Mätvärden, och om du senare byggde en mätvärdesmonitor grupperad på `service.name` skulle dess larm kopplas till den tjänsten, kalla in tjänstens ägare och tystna under ett underhållsfönster för den. Använd i stället monitorns egna etiketter för att koppla en monitor till en tjänst eller en värd.
 

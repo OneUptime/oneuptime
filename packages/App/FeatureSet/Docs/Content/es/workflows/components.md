@@ -29,6 +29,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | Leer o cambiar incidentes, monitores y otros registros        | [Componentes de datos de OneUptime](#componentes-de-datos-de-oneuptime)  |
 | Abrir, reconocer y resolver incidentes o alertas por los problemas de otra herramienta | [Incidentes y alertas de otras herramientas](#incidentes-y-alertas-de-otras-herramientas) |
 | Reconocer o cerrar un problema de Zabbix | [Zabbix](#zabbix) |
+| Pedir a una persona que apruebe una corrección en una nube OpenStack | [Propose an OpenStack fix](#propose-an-openstack-fix) |
 
 Un bloque dedicado es mejor que uno genérico: el bloque de Slack conoce los límites de Slack, y un bloque de registros conoce los campos del registro, así que obtienes errores y registros más claros que con un bloque **API** que haga el mismo trabajo.
 
@@ -427,6 +428,28 @@ Reconoce o cierra un problema en Zabbix, o añádele un mensaje, a través de la
 Para reconocer o cerrar, el bloque lee primero el problema. Un problema que Zabbix ya resolvió, o que ya reconoció cuando eso es todo lo que pides, se deja como está, y el bloque toma **Unchanged**, igual que con un problema que Zabbix no tiene o que el usuario del token no puede ver. Un problema cuyo disparador no permite cerrar problemas a mano se reconoce en su lugar, y su mensaje dice que sigue abierto hasta que Zabbix vea que se recupera.
 
 **Updated** salta cuando Zabbix aceptó la actualización, y **Error** cuando no se pudo llegar a Zabbix o la rechazó, con el motivo de Zabbix: Zabbix responde a una solicitud rechazada con un estado de éxito, así que el bloque lee lo que respondió Zabbix en lugar de su estado. Devuelve **Summary**, lo que hizo en una frase.
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+Pide a una persona que apruebe un cambio en la nube OpenStack de la que trata una alerta o un incidente. Nunca hace el cambio. La corrección espera en la alerta o el incidente, y en los canales en los que publica, igual que una que propone OneUptime AI, sea cual sea el modo de corrección de la nube. Un flujo de trabajo no puede aprobar lo que propone.
+
+No necesita ningún modelo de IA, y pasa por las mismas reglas que una corrección que propone OneUptime AI: la política de comandos, los destinos de escritura y los destinos protegidos del agente, y la lectura que hace el agente de lo que toca el cambio. No se propone la evacuación de un host que sigue activo, ni una que el agente no puede leer por completo.
+
+| Ajuste | Qué hace |
+| ------ | -------- |
+| **ID de la alerta** | La alerta para la que es la corrección, normalmente el ID que devolvió tu disparador. Rellena este o **ID del incidente**, y la nube sale de aquello a lo que está vinculado el registro. |
+| **ID del incidente** | El incidente para el que es la corrección, normalmente el ID que devolvió tu disparador. Rellena este o **ID de la alerta**. |
+| **Comando** | El cambio que se propone, con la única grafía que acepta OneUptime. Consulta [los cambios que puede hacer una corrección](/docs/telemetry/openstack#correcciones). Puede usar valores de bloques anteriores, y se lee después de rellenarlos. |
+| **Por qué** | Lo que lee primero la persona que lo aprueba. Si se deja vacío, indica qué flujo de trabajo lo pidió. |
+| **OpenStack Cloud ID** | En **Más campos**. Solo para un registro vinculado a más de una nube, o a ninguna. |
+
+Devuelve **Suggestion ID** (la corrección que espera aprobación), **Tier** (Safe o Riskier, según lee OneUptime el comando) y **Already Waiting** (verdadero cuando el mismo cambio en esa nube ya estaba esperando, así que no se añadió un segundo).
+
+**Éxito** salta cuando ya se ha preguntado a una persona, sin esperar su respuesta. **Error** salta cuando no se propuso nada, con el motivo en **Error**: el comando se rechaza, todavía no se permiten correcciones en esa nube, o los flujos de trabajo de un proyecto han propuesto 20 correcciones en la última hora.
+
+La plantilla [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) es un buen punto de partida.
 
 ## Componentes de datos de OneUptime
 

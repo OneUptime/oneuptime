@@ -86,6 +86,8 @@ En selvdriftet installasjon har sin egen vert i stedet for `oneuptime.com`.
 > [!WARNING]
 > Grupper etter en verdi som varierer fra varsel til varsel innenfor én varsling. Alertmanagers `fingerprint` er en hash av hele etikettsettet til et varsel, så den varierer alltid. En etikett i `group_by` for ruten din varierer aldri: det er nettopp den som samler varslene i én varsling. Gruppering etter `requestBody.alerts[*].labels.alertname` med ruten nedenfor slår sammen hvert varsel i en varsling til én hendelse, som får statusen til det første varselet.
 
+På en OpenStack-sky kobler du monitoren til skyen også. Innstillingene til en Incoming Request-monitor navngir ingen sky, så hendelsene dens ville havnet under **Hendelser** og ikke i skyen. Åpne monitorens **Oversikt → Linked Resources** og legg til OpenStack-skyen: hver hendelse er da også på skyens side **Hendelser**. [OpenStack etter distribusjonsverktøy](/docs/telemetry/openstack-deployment-tools) har mottakeren for hvert verktøy som kjører en Alertmanager, på stedet verktøyet leser den fra.
+
 ## Navngi hendelsene
 
 Tittelen ovenfor leser etiketter som alle varslene i varslingen deler: `commonLabels` inneholder de etikettene, og `commonAnnotations` annotasjonene de deler. Med ruten nedenfor, som grupperer etter `alertname` og `instance`, er begge der. Gi hendelsen en **Hendelsesbeskrivelse** under **Beskrivelse**, for eksempel:
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-To hendelser åpnes, én per `fingerprint`, hver med tittelen `DiskFull on web-1`. Send den samme forespørselen med hver `status` satt til `resolved`, og begge løses.
+To hendelser åpnes, én per `fingerprint`, hver med tittelen `DiskFull on web-1` og deretter det som skiller dem, som i `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Send den samme forespørselen med hver `status` satt til `resolved`, og begge løses.
 
 For å teste hele veien fra Alertmanager utløser du et varsel med `amtool`. Alertmanager sender det etter `group_wait` og sender deretter gjenopprettingen når varselet utløper noen minutter senere:
 

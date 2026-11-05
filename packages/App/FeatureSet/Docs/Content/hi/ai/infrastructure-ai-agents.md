@@ -64,6 +64,7 @@ Kubernetes AI एजेंट की तरह, संसाधन AI एजे�
 | AWS खाता | `aws` | क्लाउड AI एजेंट | `AWS_ACCOUNT_ID` (खाली: वह खाता जिसमें यह चलता है) | `cloud` — एक तय कैटलॉग का एक ऑपरेशन, कभी कोई `aws` कमांड नहीं | AWS API, अपनी खुद की IAM भूमिकाओं के साथ |
 | Azure सब्सक्रिप्शन | `azure` | क्लाउड AI एजेंट | `AZURE_SUBSCRIPTION_ID` (इसकी सेटअप कमांड इसे सेट करती है) | `cloud` — एक तय कैटलॉग का एक ऑपरेशन, कभी कोई `az` कमांड नहीं | Azure Resource Manager, अपने Container App की प्रबंधित पहचान के रूप में |
 | Google Cloud प्रोजेक्ट | `gcp` (या `google-cloud`) | क्लाउड AI एजेंट | `GOOGLE_CLOUD_PROJECT` (खाली: वह प्रोजेक्ट जिसमें यह चलता है) | `cloud` — एक तय कैटलॉग का एक ऑपरेशन, कभी कोई `gcloud` कमांड नहीं | Google Cloud API, अपने खुद के सेवा खाते के रूप में |
+| OpenStack क्लाउड | `openstack` | OpenStack AI एजेंट | `OPENSTACK_CLOUD_NAME` | `openstack` कमांड, जो क्लाउड के API को भेजी जाती हैं (एजेंट में कोई `openstack` बाइनरी नहीं है) — यह केवल पढ़ता है, और इसके पास क्लाउड को बदलने वाली कोई कमांड नहीं है |
 
 डेटाबेस सर्वर: डेटाबेस AI एजेंट के पास PostgreSQL, MySQL (और MariaDB व Percona Server), Redis (और Valkey, KeyDB व Dragonfly) और MongoDB के लिए डायग्नोस्टिक्स हैं। किसी भी दूसरे इंजन के लिए यह कुछ नहीं चलाता और डेटाबेस के AI एजेंट पेज पर यह बता देता है।
 
@@ -82,6 +83,7 @@ Kubernetes AI एजेंट की तरह, संसाधन AI एजे�
 | AWS खाता | `cloud whoami` |
 | Azure सब्सक्रिप्शन | `cloud whoami` |
 | Google Cloud प्रोजेक्ट | `cloud whoami` |
+| OpenStack क्लाउड | `openstack endpoint list`, `openstack compute service list` |
 
 Docker Swarm वर्कर पर `docker node ls` विफल होती है: Docker Swarm AI एजेंट को किसी मैनेजर नोड पर चलना चाहिए। वर्कर पर शुरू किया गया एजेंट क्लस्टर के लिए तब तक रजिस्टर नहीं होता जब तक उसका नोड मैनेजर न बन जाए, और Docker Swarm इंस्टॉलर उसे ऐसे नोड पर छोड़ देता है जो मैनेजर नहीं है।
 
@@ -93,7 +95,7 @@ Docker Swarm वर्कर पर `docker node ls` विफल होती �
 
 ### किसी कलेक्टर के बगल में
 
-Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph और डेटाबेस सर्वरों के लिए एजेंट उस कलेक्टर के बगल में चलता है जिसे आप उस संसाधन के लिए पहले से इस्तेमाल करते हैं, और उसकी `.env` साझा करता है: उसके पास पहले से `ONEUPTIME_URL`, इंजेशन कुंजी और संसाधन का नाम होता है। हर कलेक्टर की `docker-compose.yml` एजेंट को एक और सेवा के रूप में साथ लाती है, और उसकी `install.sh` उसे शुरू करती है।
+Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack और डेटाबेस सर्वरों के लिए एजेंट उस कलेक्टर के बगल में चलता है जिसे आप उस संसाधन के लिए पहले से इस्तेमाल करते हैं, और उसकी `.env` साझा करता है: उसके पास पहले से `ONEUPTIME_URL`, इंजेशन कुंजी और संसाधन का नाम होता है। हर कलेक्टर की `docker-compose.yml` एजेंट को एक और सेवा के रूप में साथ लाती है, और उसकी `install.sh` उसे शुरू करती है।
 
 | संसाधन | कलेक्टर | AI एजेंट सेवा (और कंटेनर) | इसे कहाँ सेट किया जाता है |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -104,8 +106,9 @@ Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph और डेटाबेस
 | VMware vCenter | [VMware एजेंट](/docs/telemetry/vmware#ai-एजेंट) | `oneuptime-vmware-ai-agent` | `agents/VMwareAgent/docker-compose.yml` |
 | Ceph क्लस्टर | [Ceph एजेंट](/docs/telemetry/ceph#ai-एजेंट) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`, `./ceph` में एजेंट के अपने Ceph क्लाइंट के साथ |
 | डेटाबेस सर्वर | [डेटाबेस एजेंट](/docs/telemetry/databases#ai-एजेंट) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
+| OpenStack क्लाउड | [OpenStack एजेंट](/docs/telemetry/openstack#ai-एजेंट) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`, क्रेडेंशियल `clouds.yaml` में |
 
-AI एजेंट के आने से पहले इंस्टॉल किया गया कलेक्टर उसे अभी नहीं चलाता। उसकी `install.sh` फिर से चलाएँ: अब वह AI एजेंट को भी शुरू करती है (Proxmox, VMware, Ceph, डेटाबेस और Docker Swarm के इंस्टॉलर मौजूदा `docker-compose.yml` डाउनलोड करते हैं, जिसमें AI एजेंट सेवा है)। अगर आप फ़ाइलें खुद संभालते हैं, तो कलेक्टर की `docker-compose.yml` से सेवा अपनी फ़ाइल में जोड़ें और `docker compose up -d` चलाएँ। संसाधन का AI एजेंट पेज उस संसाधन के लिए ठीक-ठीक सेवा दिखाता है, जिसमें उसका नाम पहले से भरा होता है।
+AI एजेंट के आने से पहले इंस्टॉल किया गया कलेक्टर उसे अभी नहीं चलाता। उसकी `install.sh` फिर से चलाएँ: अब वह AI एजेंट को भी शुरू करती है (Proxmox, VMware, Ceph, OpenStack, डेटाबेस और Docker Swarm के इंस्टॉलर मौजूदा `docker-compose.yml` डाउनलोड करते हैं, जिसमें AI एजेंट सेवा है)। अगर आप फ़ाइलें खुद संभालते हैं, तो कलेक्टर की `docker-compose.yml` से सेवा अपनी फ़ाइल में जोड़ें और `docker compose up -d` चलाएँ। संसाधन का AI एजेंट पेज उस संसाधन के लिए ठीक-ठीक सेवा दिखाता है, जिसमें उसका नाम पहले से भरा होता है।
 
 इंस्टॉलरों के बिना Docker AI एजेंट एक ही `docker run` है:
 
@@ -160,9 +163,9 @@ sudo bash install.sh
 
 ### OneUptime से कनेक्ट करना
 
-एजेंट **उसी पहचान के साथ रजिस्टर होता है जो कलेक्टर रिपोर्ट करता है** — `DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, … (`ONEUPTIME_AI_AGENT_RESOURCE_NAME` इसे ओवरराइड करता है) — इसलिए यह ठीक उसी संसाधन को सेवा देता है जिसे कलेक्टर की टेलीमेट्री ने बनाया। जब OneUptime में उस नाम का कोई संसाधन अभी नहीं होता, तो रजिस्ट्रेशन उसे बना देता है, इसलिए कलेक्टर से अलग नाम देने पर आपको त्रुटि के बजाय एक दूसरा, खाली संसाधन मिलता है। कोई डेटाबेस `DATABASE_SERVER_ID` सेट होने पर उससे रजिस्टर होता है, नहीं तो अपने इंजन, पते और पोर्ट से; ऐसा `DATABASE_SERVER_ID` जो इस प्रोजेक्ट का डेटाबेस न हो, अस्वीकार कर दिया जाता है।
+एजेंट **उसी पहचान के साथ रजिस्टर होता है जो कलेक्टर रिपोर्ट करता है** — `DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, `OPENSTACK_CLOUD_NAME`, … (`ONEUPTIME_AI_AGENT_RESOURCE_NAME` इसे ओवरराइड करता है) — इसलिए यह ठीक उसी संसाधन को सेवा देता है जिसे कलेक्टर की टेलीमेट्री ने बनाया। जब OneUptime में उस नाम का कोई संसाधन अभी नहीं होता, तो रजिस्ट्रेशन उसे बना देता है, इसलिए कलेक्टर से अलग नाम देने पर आपको त्रुटि के बजाय एक दूसरा, खाली संसाधन मिलता है। कोई डेटाबेस `DATABASE_SERVER_ID` सेट होने पर उससे रजिस्टर होता है, नहीं तो अपने इंजन, पते और पोर्ट से; ऐसा `DATABASE_SERVER_ID` जो इस प्रोजेक्ट का डेटाबेस न हो, अस्वीकार कर दिया जाता है।
 
-अगर कलेक्टर अब भी अपना डिफ़ॉल्ट नाम (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`) इस्तेमाल करता है, तो उस डिफ़ॉल्ट के साथ इंस्टॉल किया गया हर संसाधन OneUptime में एक ही संसाधन में रिपोर्ट करता है, और उसके लिए भेजी गई कमांड उनमें से किसी तक भी पहुँच सकती हैं। एजेंट अपने लॉग में इसकी चेतावनी देता है; हर संसाधन को कलेक्टर और एजेंट दोनों पर एक अनोखा नाम दें।
+अगर कलेक्टर अब भी अपना डिफ़ॉल्ट नाम (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`, `openstack`) इस्तेमाल करता है, तो उस डिफ़ॉल्ट के साथ इंस्टॉल किया गया हर संसाधन OneUptime में एक ही संसाधन में रिपोर्ट करता है, और उसके लिए भेजी गई कमांड उनमें से किसी तक भी पहुँच सकती हैं। एजेंट अपने लॉग में इसकी चेतावनी देता है; हर संसाधन को कलेक्टर और एजेंट दोनों पर एक अनोखा नाम दें।
 
 यह प्रोजेक्ट की टेलीमेट्री इंजेशन कुंजी से प्रमाणीकरण करता है — `ONEUPTIME_API_KEY`, `ONEUPTIME_TELEMETRY_INGESTION_KEY` और `ONEUPTIME_SERVICE_TOKEN` में से पहली सेट की हुई, जिन्हें कलेक्टर पहले से सेट करते हैं — और अपनी खुद की कुंजी पाता है। इसकी सभी कॉल `<ONEUPTIME_URL>/resource-ai-agent-ingest/…` को HTTPS `POST` होती हैं: यह शुरू होते समय एक बार रजिस्टर होता है, हर 30 सेकंड में हार्टबीट भेजता है (आखिरी हार्टबीट के बाद 5 मिनट तक इसे ऑनलाइन माना जाता है), हर 3 सेकंड में काम माँगता है, और रुकने पर साइन ऑफ़ करता है। उसी पहचान वाला दूसरा एजेंट तब तक अस्वीकार किया जाता है जब तक पहला ऑनलाइन है: साफ़ तरीके से रुकने वाला कंटेनर साइन ऑफ़ करता है, इसलिए उसका रिप्लेसमेंट तुरंत स्वीकार हो जाता है, और क्रैश या kill के बाद, पहली अस्वीकृति से पुराना 40 सेकंड तक कुछ न भेजे तो रिप्लेसमेंट उसकी जगह ले लेता है। अगर 10 मिनट बाद भी इसे अस्वीकार किया जाता है, तो कोई दूसरा सक्रिय एजेंट उसी पहचान का इस्तेमाल कर रहा है: एजेंट यह बताने वाली त्रुटि लॉग करता है और केवल हर 5 मिनट में पूछता है, जब तक आप हर संसाधन को उसका अपना नाम न दें या दूसरे एजेंट को न रोकें। किसी प्रोजेक्ट में अधिकतम 250 संसाधन AI एजेंट होते हैं, और हर घंटे अधिकतम 30 नए रजिस्टर होते हैं। 250 पूरे हो जाने पर, जिन एजेंटों से 7 दिनों में कोई खबर नहीं मिली, उन्हें नए एजेंट के लिए जगह बनाने के लिए हटा दिया जाता है (संसाधन अपनी AI सेटिंग्स रखता है, और ऐसा एजेंट लौटने पर बस फिर से रजिस्टर हो जाता है)।
 
@@ -231,6 +234,27 @@ Podman होस्ट Podman के Docker-संगत API के ज़रि
 - `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`, `govc metric.ls /DC/vm/web-01`, `govc object.collect -s /DC/vm/web-01 runtime.powerState` (केवल रनटाइम और स्वास्थ्य गुण), `govc host.service.ls -host esx-01`, `govc host.date.info -host esx-01`, `govc tags.ls`।
 - कभी नहीं: कनेक्शन, क्रेडेंशियल, TLS और डीबग फ़्लैग (`-u`, `-k`, `-cert`, `-debug`, `-dump`, …), गेस्ट ऑपरेशन (`guest.*`), डेटास्टोर फ़ाइल एक्सेस, `esxcli`, `env` और सूची में न दी गई हर कमांड।
 
+### OpenStack क्लाउड
+
+एजेंट में कोई `openstack` बाइनरी नहीं है, और कोई शेल नहीं। कमांड `openstack` के व्याकरण में लिखी जाती है — कमांड के शब्द, फिर ID, फिर `--name value` के रूप में विकल्प — और एजेंट उसे ठीक एक `GET` में बदलता है, उस सेवा (Nova, Neutron, Cinder, Glance, Placement या Keystone) को जो उसका जवाब देती है, अपने क्रेडेंशियल के साथ। `-f table|json` आउटपुट चुनता है और `--os-region-name REGION` कोई दूसरा रीजन। `--name=value` अस्वीकार किया जाता है, और `-c` भी। ID सचमुच ID होनी चाहिए: सूची उन्हें प्रिंट करती है, और नाम से कभी खोज नहीं की जाती।
+
+- इंस्टेंस: `openstack server list --all-projects --limit 50 --host compute-01`, जिसे छोटा करने के लिए `--status`, `--name`, `--project`, `--availability-zone` और `--changes-since` हैं; `openstack server show 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11`, और `openstack server event list 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11`, जो किसी इंस्टेंस के साथ हुई हर बात के पीछे का अनुरोध (`req-...`) बताती है, और उस अनुरोध की ID के साथ `server event show`।
+- कंप्यूट और क्षमता: `openstack compute service list`, `openstack hypervisor list`, `openstack aggregate list`, `openstack availability zone list`, `openstack flavor list`, `openstack resource provider list`, और ID के साथ `hypervisor show`, `resource provider show`, `resource provider usage show` और `resource provider inventory list`।
+- नेटवर्क: `openstack network agent list`, `openstack network list`, `openstack subnet list`, `openstack router list`, `openstack floating ip list`, `openstack ip availability list`, और आख़िरी को छोड़कर हर एक के लिए ID के साथ `show`; ID के साथ `port show`, और `openstack port list --limit 50 --host compute-01` जिसके साथ `--server`, `--network`, `--router`, `--device-id`, `--host` या `--project` में से एक हो।
+- स्टोरेज और इमेज: `openstack volume service list`, `openstack volume backend pool list`, `openstack volume list --all-projects --limit 50`, `openstack volume snapshot list --all-projects --limit 50`, `openstack volume backup list --all-projects --limit 50`, `openstack image list`, और ID के साथ `volume show` और `image show`।
+- जो कोई क्लाउड न चलाता हो, जहाँ उसका कैटलॉग उसका नाम लेता है: Manila के लिए `openstack share list --all-projects --limit 50`, `openstack share service list` और `openstack share pool list`; Designate में एक ज़ोन के रिकॉर्डसेट के लिए `openstack zone list --all-projects --limit 50` और `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`; Swift के लिए `openstack container list`, जो केवल इस क्रेडेंशियल के अपने प्रोजेक्ट का होता है; Trove के लिए `openstack database instance list`, हर प्रोजेक्ट का, जिसे केवल एडमिन देख सकता है; और Gnocchi के बैकलॉग और प्रोसेसर के लिए `openstack metric status`।
+- क्लाउड का स्वरूप: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list`, और ID के साथ `project show`।
+- टेनेंटों के पार किसी सूची में `--limit N` कहना ज़रूरी है, अधिकतम 200, और वह `--marker ID` से आगे बढ़ती है। हर दूसरी सूची 100 पंक्तियों पर रुक जाती है, जब तक वह कुछ और न कहे, और बताती है कि और भी हैं। एजेंट अपने आप कभी `next` लिंक का पीछा नहीं करता।
+- कभी नहीं: क्लाउड को बदलने वाली कोई भी चीज़ — ऐसी कोई कमांड चलाने को है ही नहीं — Keystone के उपयोगकर्ता, क्रेडेंशियल, रोल असाइनमेंट और टोकन, कंसोल और कंसोल लॉग, Barbican के सीक्रेट, `--os-cloud` और हर दूसरा लॉगिन या एंडपॉइंट विकल्प।
+
+किसी इंस्टेंस का `user_data`, उसका एडमिन पासवर्ड, किसी इमेज का `direct_url`, किसी वॉल्यूम का `provider_auth` और सीक्रेट के रूप में चिह्नित हर दूसरी चीज़ आउटपुट के मॉडल या किसी लॉग तक पहुँचने से पहले मास्क कर दी जाती है।
+
+रुका हुआ `nova-compute` अपने इंस्टेंस को `ACTIVE` पढ़ता छोड़ देता है, इसलिए जांच सेवा की `state` (`down`) और इंस्टेंस के `host_status` (`UNKNOWN`) से चलती है।
+
+जांच शून्य से शुरू नहीं होती। क्लाउड से जुड़ी किसी घटना या अलर्ट पर, OneUptime AI को बताया जाता है कि क्लाउड का पेज **ध्यान देने की ज़रूरत** में क्या कहता है: कौन-सी सेवाएँ बंद हैं, और कौन-से होस्ट, इंस्टेंस, वॉल्यूम और पूल परेशानी में हैं। जहाँ घटना की सीरीज़ किसी हिस्से का नाम लेती है, वहाँ वह यह भी सुनता है कि वह हिस्सा अपने साथ क्या ले जाता है (उसका ब्लास्ट रेडियस: इंस्टेंस, प्रोजेक्ट, Kubernetes नोड और होस्ट), कौन-से एट्रिब्यूट उस हिस्से के लॉग छाँटते हैं, और उस समय के आसपास क्लाउड पर क्या बदला।
+
+वहाँ से वह एक अनुरोध का पीछा करता है। `server event list` हर कार्रवाई की request ID प्रिंट करती है, और `search_logs` उस ID को एट्रिब्यूट (`openstack.request_root_id`) के रूप में लेता है, ताकि हर सेवा ने उसके बारे में जो लिखा वह पढ़ा जा सके। रिपोर्ट अपनी चलाई हर कमांड को उसके आउटपुट के साथ उद्धृत करती है, जैसा वह `kubectl` के लिए करती है। लॉग के लिए [सेवा लॉग](/docs/telemetry/openstack#सेवा-लॉग) प्रोफ़ाइल चाहिए और बदलावों के लिए [लाइफ़साइकिल इवेंट](/docs/telemetry/openstack#लाइफ़साइकल-इवेंट): इनके बिना वे रीड खाली लौटते हैं।
+
 ### Ceph क्लस्टर
 
 - क्लस्टर: `ceph status` (या `ceph -s`), `ceph health detail`, `ceph df detail`, `ceph versions`, `ceph progress`, `ceph quorum_status`, `ceph log last 100`।
@@ -291,7 +315,7 @@ OneUptime किसी AWS खाते, Azure सब्सक्रिप्श
 
 कोई सुधार चलने के बाद OneUptime घटना या अलर्ट के मॉनिटरों पर नज़र रखता है। अगर वे ठीक नहीं होते, तो योजना का रोलबैक चलता है और OneUptime AI विफल प्रयास को सामने रखकर एक और योजना बनाता है — प्रति घटना या अलर्ट अधिकतम दो दौर। **स्वचालित** मोड में वह दूसरा दौर अनुमोदन माँगता है; **अनुमोदन छोड़ें** में वह भी अपने आप चलता है। बिना निगरानी वाले सुधारों पर सर्किट ब्रेकर है, प्रति संसाधन प्रति घंटे तीन: इससे आगे, या जब तक OneUptime AI का कोई दूसरा बिना निगरानी वाला दौर उसी संसाधन को अब भी बदल या सत्यापित कर रहा हो, कोई दौर अपनी योजना को चलाने के बजाय अनुमोदन के लिए प्रस्तावित करता है।
 
-किसी घटना या अलर्ट को एक ही AI सुधार लेन मिलती है। जब वह ऐसे Kubernetes क्लस्टर से जुड़ा हो जिसके सुधार चालू हैं, तो क्लस्टर का दौर चलता है और कोई संसाधन दौर नहीं चलता। नहीं तो सुधार चालू और तैयार एजेंट वाला पहला जुड़ा संसाधन दौर पाता है, इस क्रम में: Docker होस्ट, Podman होस्ट, Docker Swarm क्लस्टर, Proxmox क्लस्टर, VMware vCenter, Ceph क्लस्टर, डेटाबेस सर्वर, होस्ट, AWS खाता, Azure सब्सक्रिप्शन, Google Cloud प्रोजेक्ट। दौर केवल उसी संसाधन को बदलता है।
+किसी घटना या अलर्ट को एक ही AI सुधार लेन मिलती है। जब वह ऐसे Kubernetes क्लस्टर से जुड़ा हो जिसके सुधार चालू हैं, तो क्लस्टर का दौर चलता है और कोई संसाधन दौर नहीं चलता। नहीं तो सुधार चालू और तैयार एजेंट वाला पहला जुड़ा संसाधन दौर पाता है, इस क्रम में: Docker होस्ट, Podman होस्ट, Docker Swarm क्लस्टर, Proxmox क्लस्टर, VMware vCenter, Ceph क्लस्टर, डेटाबेस सर्वर, होस्ट, AWS खाता, Azure सब्सक्रिप्शन, Google Cloud प्रोजेक्ट, OpenStack क्लाउड। दौर केवल उसी संसाधन को बदलता है।
 
 ### सुरक्षित, ज़्यादा जोखिम वाले और कभी नहीं
 
@@ -357,6 +381,21 @@ OneUptime किसी AWS खाते, Azure सब्सक्रिप्श
 | **हमेशा कोई व्यक्ति** | `ceph osd set pause` (यह सारा क्लाइंट I/O रोक देता है), `ceph osd pool set rbd size 3` (और `min_size`) |
 | **कभी नहीं** | `ceph osd purge 3` (और destroy, rm, lost, crush बदलाव), `ceph osd pool delete rbd` (और पूल बनाना, नाम बदलना या पूल की कोई दूसरी सेटिंग), `ceph auth ls`, `ceph config-key ls`, `ceph tell osd.3 injectargs --debug-osd 20`, `ceph --id admin status`, `config`, `daemon`, fs और mon बदलाव, `mgr module enable`, `orch apply`, `crash rm` |
 
+### OpenStack क्लाउड पर सुधार
+
+एजेंट में कोई `openstack` बाइनरी नहीं है। हर बदलाव क्लाउड के API की वही एक कॉल है जिसका वह नाम लेता है, और वह उस क्रेडेंशियल से की जाती है जिसे एजेंट केवल बदलावों के लिए रखता है, किसी और काम के लिए नहीं। हर बदलाव की एक ही वर्तनी होती है, नीचे दिए क्रम में: दूसरा फ़्लैग क्रम, संक्षिप्त रूप या ऐसा फ़्लैग जो असली क्लाइंट भी लेता है, अस्वीकार कर दिया जाता है, ताकि जिसे कोई व्यक्ति अनुमोदित करता है, जिसे अनुमति-सूची की प्रविष्टि नाम देती है और जो चलता है, वे एक ही शब्द हों। कोई बदलाव करने से पहले एजेंट वह पढ़ता है जिसे वह छूता है, और न पढ़ पाए तो उसे अस्वीकार कर देता है।
+
+| | कमांड |
+| ------------------- | -------- |
+| **सुरक्षित** | `openstack server start 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server reboot --soft 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --enable compute-01 nova-compute`, `openstack network agent set --enable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **अधिक जोखिम भरा** | `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate live 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --disable --disable-reason maintenance compute-01 nova-compute`, `openstack network agent set --disable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **हमेशा कोई व्यक्ति** | `openstack server evacuate 358ee736-ba74-40ba-a354-7ead413c5df6` — किसी भी संख्या के इंस्टेंस की निकासी, हर मोड में, अनुमति-सूची कुछ भी कहे, क्योंकि Nova निकासी तभी लेता है जब होस्ट बंद हो चुका हो |
+| **कभी नहीं** | `openstack server delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack project delete 9aee824cac87464292adffc328de1662`, `openstack user list`, `openstack role add --user a --project b c`, `openstack quota set --instances 100 abc`, `openstack security group delete abc`, `openstack server set --state active 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume set --state available 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --down compute-01 nova-compute`, `openstack server stop 358ee736-ba74-40ba-a354-7ead413c5df6` और यहाँ न दी गई हर कमांड |
+
+सुधार का कार्ड बताता है कि कोई बदलाव कितने इंस्टेंस और प्रोजेक्ट छूता है, और कौन-से, जैसा एजेंट ने उन्हें पढ़ा: `openstack dry-run <change>` वही रीड है, और कोई जांच उसे भी चला सकती है। जिस निकासी को एजेंट पूरा नहीं पढ़ पाता, उसे प्रस्तावित नहीं किया जाता। हर सुधार उस हर हिस्से की फ़ीड पर, जिसे उसने छुआ, और क्लाउड की फ़ीड पर एक बदलाव इवेंट है, जिसमें अनुमोदन करने वाला भी दर्ज होता है। कोल्ड `server migrate` इंस्टेंस को `VERIFY_RESIZE` में छोड़ देता है जब तक कोई व्यक्ति उसकी पुष्टि न करे, जो OneUptime AI कभी नहीं करता।
+
+यहाँ सुधार तब तक बंद रहते हैं जब तक आप दो बार चालू नहीं करते, दूसरे संसाधनों के उलट: अकेला `ONEUPTIME_AI_ALLOW_WRITES=true` **AI क्या कर सकता है** को बंद पर छोड़ देता है, और कुछ भी करने से पहले बदलावों के लिए क्रेडेंशियल चाहिए। [OpenStack एजेंट की गाइड](/docs/telemetry/openstack#बदलावों-के-लिए-क्रेडेंशियल) बताती है कि क्लाउड को डिप्लॉय करने के हर तरीके पर, कम से कम ज़रूरी अधिकारों वाला यह क्रेडेंशियल कैसे बनाएँ।
+
 ### डेटाबेस सर्वर पर सुधार
 
 नीचे दिया `12345` एक सेशन id है, जैसे `db sessions` उसे प्रिंट करता है: PostgreSQL pid, MySQL processlist id, Redis क्लाइंट id या MongoDB opid। एजेंट पहले सेशन को खोजता है, और कभी अपने खुद के कनेक्शन, किसी सर्वर या रेप्लिकेशन थ्रेड, या ऐसे सेशन को नहीं छूता जो मौजूद ही नहीं है।
@@ -413,9 +452,10 @@ OneUptime किसी AWS खाते, Azure सब्सक्रिप्श
 - जो प्रविष्टि कभी किसी बदलाव को पहले से अनुमोदित नहीं कर सकती, उसे अस्वीकार किया जाता है: कोई केवल-पढ़ने वाली कमांड (पढ़ने के लिए कभी अनुमोदन नहीं चाहिए), नीति द्वारा मना की गई कमांड, या किसी दूसरे तरह के संसाधन की कमांड। एक सूची में अधिकतम 500 अक्षरों की अधिकतम 50 प्रविष्टियाँ होती हैं।
 - लक्ष्य की जगह `*` वाली प्रविष्टि — `docker stop *` **हर** कंटेनर को रोकना पहले से अनुमोदित करती है — सेव होने से पहले आपसे पुष्टि माँगती है।
 - Proxmox पाथ एक शब्द होता है, इसलिए उसमें `*` नहीं हो सकता: हर गेस्ट के लिए एक प्रविष्टि लिखें, जैसे `pvesh create /nodes/pve1/qemu/100/status/shutdown`।
+- OpenStack क्लाउड पर, निकासी (evacuation) की प्रविष्टि सेव होते समय अस्वीकार कर दी जाती है: वह हमेशा किसी व्यक्ति से पूछती है, इसलिए वह कुछ भी पहले से अनुमोदित नहीं करती।
 - अनुमति-सूची की कोई भी चीज़ ऐसे बदलाव को ओवरराइड नहीं करती जिसके लिए हमेशा किसी व्यक्ति की ज़रूरत होती है, या ऐसी कमांड को जिसे नीति मना करती है।
 
-हर संसाधन के लिए एक मान्य प्रविष्टि: `docker stop web` (Docker और Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (डेटाबेस), `systemctl stop nginx` (होस्ट), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud)।
+हर संसाधन के लिए एक मान्य प्रविष्टि: `docker stop web` (Docker और Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (डेटाबेस), `systemctl stop nginx` (होस्ट), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud), `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6` (OpenStack क्लाउड)।
 
 ### इसे कौन बदल सकता है
 
@@ -449,6 +489,7 @@ AI एजेंट पेज कुछ भी कहे, एजेंट खु�
 | डेटाबेस सर्वर | `session:<id>` | `session:*` |
 | होस्ट | पूरे यूनिट नाम (`nginx.service`), किसी प्रोसेस के लिए `pid:<pid>`, जर्नल की सफ़ाई के लिए `journal` | `nginx.service,app-*` |
 | क्लाउड खाते | संसाधन की id: एक ARN, लोअरकेस में एक Azure रिसोर्स ID, या एक Google Cloud पूरा रिसोर्स नाम | `arn:aws:ecs:*:123456789012:service/prod/*` |
+| OpenStack क्लाउड | बदलाव जिसका नाम लेता है उसके लिए `instance:<id>`, `host:<name>` और `agent:<id>`, और जहाँ कोई मूव पहुँचता है उसके लिए `destination:<name>`। प्रविष्टि `project:<id>`, `host:<name>` या `instance:<id>` होती है, और केवल यही: इनके अलावा कुछ भी एजेंट को केवल-पढ़ने वाला रखता है। एजेंट किसी इंस्टेंस को बदलने से ठीक पहले पढ़ता है कि वह किस प्रोजेक्ट और होस्ट में है |
 
 ### एजेंट खुद क्या सुरक्षित रखता है
 
@@ -459,6 +500,7 @@ AI एजेंट पेज कुछ भी कहे, एजेंट खु�
 - **डेटाबेस सर्वर:** एजेंट का अपना सेशन।
 - **होस्ट:** हर OneUptime यूनिट (`oneuptime-*`, होस्ट AI एजेंट की अपनी यूनिट सहित), OpenTelemetry कलेक्टर (`otelcol-contrib.service`, `otelcol.service`), वह Docker इंजन जिसमें यह चलता है (`docker.service`, `docker.socket`, `containerd.service`), और एजेंट की अपनी प्रोसेस और उसके ऊपर की प्रोसेस।
 - **Proxmox:** एजेंट यह नहीं बता सकता कि वह किस गेस्ट में चलता है। अगर यह उसी क्लस्टर के किसी VM या कंटेनर में चलता है, तो उस VMID को `ONEUPTIME_AI_PROTECTED_TARGETS` में डालें; VMware पर एजेंट के VM के साथ भी यही करें।
+- **OpenStack क्लाउड:** एजेंट यह नहीं बता सकता कि वह किस इंस्टेंस में चलता है। अगर यह उसी क्लाउड पर चलता है, तो उस इंस्टेंस को `ONEUPTIME_AI_PROTECTED_TARGETS` में `instance:<id>` के रूप में डालें। क्लाउड पर यह सूची आपकी है, और यह हर दूसरी सेटिंग पर भारी पड़ती है, किसी व्यक्ति के अनुमोदन पर भी।
 - **क्लाउड खाते:** इसकी सेटअप कमांड ने जो कुछ भी बनाया: AWS पर `oneuptime-ai-agent` स्टैक, उसका ECS क्लस्टर और सेवा, और भूमिकाएँ `OneUptimeAiAgentTask` और `OneUptimeAiAgentWrite`; Azure पर `oneuptime-ai-agent` रिसोर्स ग्रुप; Google Cloud पर `oneuptime-ai-agent` VM या Cloud Run सेवा, और उसका सेवा खाता।
 
 ## क्रेडेंशियल और न्यूनतम विशेषाधिकार
@@ -474,6 +516,7 @@ AI एजेंट पेज कुछ भी कहे, एजेंट खु�
 | डेटाबेस सर्वर | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (कलेक्टर का लॉगिन), या सेट होने पर `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`; `DATABASE_ENDPOINT` और TLS सेटिंग्स | कलेक्टर का मॉनिटरिंग लॉगिन (PostgreSQL पर `pg_monitor`) | एजेंट का अपना लॉगिन जो दूसरे सेशनों को सिग्नल भेज सके: `pg_signal_backend` (PostgreSQL), `CONNECTION_ADMIN` (MySQL 8), `+client\|kill` (Redis ACL), `killop` कार्रवाई (MongoDB) |
 | होस्ट | कुछ नहीं: यह होस्ट के नेमस्पेस में root के रूप में विशेषाधिकार के साथ चलता है | `ONEUPTIME_AI_ALLOW_WRITES` सेट न करें | `ONEUPTIME_AI_WRITE_TARGETS` उन यूनिटों पर जिन्हें AI बदल सकता है |
 | क्लाउड खाते | जहाँ यह चलता है उसकी पहचान: AWS पर इसके ECS टास्क की भूमिका, जो केवल `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` में दी गई लिखने वाली भूमिका को assume कर सकती है; Azure पर इसके Container App की प्रबंधित पहचान; Google Cloud पर वह सेवा खाता जिसके रूप में इसकी VM या Cloud Run सेवा चलती है | कुछ नहीं: OneUptime खाते को उसके केवल पढ़ने वाले कनेक्शन से पढ़ता है | वह भूमिका जो इसकी सेटअप कमांड लिखती है: चालू किए गए बदलावों की अनुमतियाँ और उनके लिए ज़रूरी रीड, और कुछ नहीं। AWS पर हर बदलाव `OneUptimeAiAgentWrite` को उस एक संसाधन पर उस एक बदलाव की सेशन नीति के साथ assume करता है |
+| OpenStack क्लाउड | बदलावों के लिए `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` और `_SECRET`, जो उसका अपना एप्लिकेशन क्रेडेंशियल है: [गाइड](/docs/telemetry/openstack#बदलावों-के-लिए-क्रेडेंशियल) बताती है कि इसे कैसे बनाएँ। पढ़ने के लिए, `clouds.yaml` का वह एप्लिकेशन क्रेडेंशियल जिसे कलेक्टर का एक्सपोर्टर पढ़ता है (`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS`, या दूसरी प्रविष्टि के लिए `ONEUPTIME_AI_OPENSTACK_CLOUD`), या सेट होने पर `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, `OPENSTACK_AUTH_URL` के साथ; `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
 कलेक्टरों के README में सटीक कमांड हैं: Proxmox सुधार टोकन के लिए `pveum` कमांड ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), vSphere सुधार भूमिका ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), Ceph के पढ़ने और सुधार वाले caps ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) और हर इंजन के लिए डेटाबेस अनुमतियाँ ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent))। किसी क्लाउड AI एजेंट की भूमिका उसकी सेटअप कमांड लिखती है: कोई बदलाव बंद करें और कमांड फिर से चलाएँ, तो उसकी अनुमतियाँ भूमिका से हट जाती हैं।
 
@@ -492,8 +535,8 @@ AI एजेंट पेज कुछ भी कहे, एजेंट खु�
 - एक प्रोग्राम, आर्ग्युमेंट सूची के रूप में, कभी शेल के ज़रिए नहीं: पाइप, रीडायरेक्ट, `;`, `&&` और `$(…)` कुछ भी चलने से पहले अस्वीकार किए जाते हैं, और `sudo` भी।
 - उसी एक कमांड के लिए बनाया गया एनवायरनमेंट: एजेंट का अपना कुछ भी — न उसकी इंजेशन कुंजी, न उसकी प्रॉक्सी सेटिंग्स — प्रोग्राम तक नहीं पहुँचता, और `docker`, `govc` और `ceph` को उसी एक कमांड के लिए `/tmp` के तहत एक निजी, खाली होम डायरेक्टरी मिलती है। `docker` CLI को एक खाली निजी `DOCKER_CONFIG` मिलता है, ताकि कोई भी कॉन्टेक्स्ट या क्रेडेंशियल हेल्पर यह न बदल सके कि वह किस ओर इशारा करता है; `govc` को उसके क्रेडेंशियल उसके एनवायरनमेंट में मिलते हैं, कभी उसकी कमांड लाइन पर नहीं; `ceph` को एजेंट के अपने `--conf`, `--keyring` और `--id` मिलते हैं, और कोई कमांड दूसरे नहीं चुन सकती।
 - एक समय-सीमा (अधिकतम 2 मिनट), जिसके बाद प्रोग्राम को kill कर दिया जाता है; आउटपुट 50 KB तक सीमित।
-- आउटपुट में मौजूद सीक्रेट — `docker inspect` में एनवायरनमेंट मान, Proxmox cloud-init पासवर्ड, लॉग और कमांड लाइनों में कुंजियाँ, टोकन और पासवर्ड — आउटपुट के एजेंट से निकलने से पहले एजेंट पर मास्क किए जाते हैं, और फिर से OneUptime द्वारा, उसे स्टोर करने या मॉडल को दिखाने से पहले।
-- कंटेनर केवल-पढ़ने वाले रूट फ़ाइलसिस्टम के साथ चलते हैं। Proxmox, VMware, Ceph और डेटाबेस AI एजेंट बिना किसी capability के UID 1000 के रूप में चलते हैं।
+- आउटपुट में मौजूद सीक्रेट — `docker inspect` में एनवायरनमेंट मान, Proxmox cloud-init पासवर्ड, OpenStack `user_data`, लॉग और कमांड लाइनों में कुंजियाँ, टोकन और पासवर्ड — आउटपुट के एजेंट से निकलने से पहले एजेंट पर मास्क किए जाते हैं, और फिर से OneUptime द्वारा, उसे स्टोर करने या मॉडल को दिखाने से पहले।
+- कंटेनर केवल-पढ़ने वाले रूट फ़ाइलसिस्टम के साथ चलते हैं। Proxmox, VMware, Ceph और डेटाबेस AI एजेंट बिना किसी capability के UID 1000 के रूप में चलते हैं। OpenStack AI एजेंट `clouds.yaml` के मालिक (`OPENSTACK_EXPORTER_USER`) के रूप में चलता है, और उसके पास भी कोई capability नहीं होती।
 - क्लाउड AI एजेंट कोई प्रोग्राम शुरू ही नहीं करता: `cloud` उसके कैटलॉग के एक ऑपरेशन का नाम लेता है, जिसे एजेंट उस एक API कॉल के रूप में पूरा करता है जिससे वह जुड़ा है, उस जगह के क्रेडेंशियल के साथ जहाँ वह चलता है। रीड OneUptime पर, खाते के केवल पढ़ने वाले कनेक्शन के ज़रिए चलते हैं।
 
 ### Docker सॉकेट और होस्ट AI एजेंट होस्ट पर root हैं
@@ -520,7 +563,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-अपने संसाधन के कंटेनर नाम का इस्तेमाल करें: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (`docker` के बजाय `podman` के साथ), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`। डेटाबेस एजेंट की सेवा का कोई तय कंटेनर नाम नहीं है, इसलिए `/opt/oneuptime-database-agent` में `docker compose logs --tail=100 oneuptime-database-ai-agent` और `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` इस्तेमाल करें। होस्ट AI एजेंट होस्ट का नेटवर्क इस्तेमाल करता है, इसलिए `curl -s http://127.0.0.1:3877/status` खुद होस्ट पर काम करता है।
+अपने संसाधन के कंटेनर नाम का इस्तेमाल करें: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (`docker` के बजाय `podman` के साथ), `oneuptime-docker-swarm-ai-agent`, `oneuptime-openstack-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`। डेटाबेस एजेंट की सेवा का कोई तय कंटेनर नाम नहीं है, इसलिए `/opt/oneuptime-database-agent` में `docker compose logs --tail=100 oneuptime-database-ai-agent` और `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` इस्तेमाल करें। होस्ट AI एजेंट होस्ट का नेटवर्क इस्तेमाल करता है, इसलिए `curl -s http://127.0.0.1:3877/status` खुद होस्ट पर काम करता है।
 
 क्लाउड AI एजेंट अपने क्लाउड में चलता है, और उसमें `exec` करने के लिए कोई कंटेनर नहीं होता: इसका लॉग क्लाउड के शेल में `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` या `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (Cloud Run पर: `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`) से पढ़ें, और इसकी स्थिति खाते के **AI एजेंट** पेज पर देखें, जो वही कमांड दिखाता है।
 

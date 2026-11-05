@@ -167,7 +167,7 @@ Nogle attributnavne tilhører OneUptime selv, og et script kan ikke skrive dem. 
 
 - Monitorens identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Alt i navnerummene `oneuptime.` eller `resource.` — de bærer de identifikatorer, OneUptime påfører ved indtagelse.
-- Attributter for ressourceidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` og `docker.swarm.cluster.name`.
+- Attributter for ressourceidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` og `docker.swarm.cluster.name`.
 
 Disse navne er ikke bare etiketter — OneUptime læser dem tilbage som en påstand om, hvilken ressource et datapunkt tilhører. En metrik mærket `service.name: payments-api` ville dukke op på den tjenestes fane Metrikker, og hvis du senere byggede en metrikmonitor grupperet efter `service.name`, ville dens advarsler blive knyttet til den tjeneste, tilkalde tjenestens ejere og tie under et vedligeholdelsesvindue på den. Brug i stedet monitorens egne etiketter for at knytte en monitor til en tjeneste eller en vært.
 

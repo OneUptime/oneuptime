@@ -29,6 +29,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Leggere o modificare incidenti, monitor e altri record        | [Componenti dati di OneUptime](#componenti-dati-di-oneuptime)        |
 | Aprire, prendere in carico e risolvere incidenti o avvisi per i problemi di un altro strumento | [Incidenti e avvisi da altri strumenti](#incidenti-e-avvisi-da-altri-strumenti) |
 | Prendere in carico o chiudere un problema di Zabbix | [Zabbix](#zabbix) |
+| Chiedere a una persona di approvare una correzione a un cloud OpenStack   | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 Un blocco dedicato è meglio di uno generico: il blocco Slack conosce i limiti di Slack, e un blocco record conosce i campi del record, così ottieni errori e registri più chiari che con un blocco **API** che fa lo stesso lavoro.
 
@@ -427,6 +428,28 @@ Prendi in carico o chiudi un problema in Zabbix, o aggiungigli un messaggio, tra
 Per prendere in carico o chiudere, il blocco legge prima il problema. Un problema che Zabbix ha già risolto, o già preso in carico quando è tutto ciò che chiedi, resta com'è, e il blocco prende **Unchanged**, come per un problema che Zabbix non ha o che l'utente del token non può vedere. Un problema il cui trigger non consente di chiudere i problemi a mano viene invece preso in carico, e il suo messaggio dice che resta aperto finché Zabbix non lo vede rientrare.
 
 **Updated** scatta quando Zabbix ha accettato l'aggiornamento, ed **Error** quando Zabbix non era raggiungibile o l'ha rifiutato, con il motivo di Zabbix: Zabbix risponde a una richiesta rifiutata con uno stato di successo, quindi il blocco legge ciò che Zabbix ha risposto anziché il suo stato. Restituisce **Summary**, ciò che ha fatto in una frase.
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+Chiede a una persona di approvare una modifica al cloud OpenStack a cui si riferisce un avviso o un incidente. Non fa mai la modifica. La correzione attende sull'avviso o sull'incidente, e nei canali in cui pubblica, come una che propone OneUptime AI, qualunque sia la modalità di correzione del cloud. Un workflow non può approvare ciò che propone.
+
+Non richiede alcun modello IA e passa per le stesse regole di una correzione proposta da OneUptime AI: la policy dei comandi, gli obiettivi di scrittura e gli obiettivi protetti dell'agente, e la lettura che l'agente fa di ciò che la modifica tocca. Un'evacuazione di un host ancora attivo, o che l'agente non riesce a leggere per intero, non viene proposta.
+
+| Impostazione | Cosa fa |
+| ------------ | ------- |
+| **Alert ID** | L'avviso a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Incident ID**, e il cloud deriva da ciò a cui è collegato il record. |
+| **Incident ID** | L'incidente a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Alert ID**. |
+| **Command** | La modifica da proporre, nell'unica grafia che OneUptime accetta. Vedi [le modifiche che una correzione può fare](/docs/telemetry/openstack#correzioni). Può usare valori dei blocchi precedenti, e viene letto dopo che sono stati compilati. |
+| **Why** | Ciò che la persona che approva legge per primo. Se vuoto, indica quale workflow l'ha chiesto. |
+| **OpenStack Cloud ID** | In **Altri campi**. Solo per un record collegato a più di un cloud, o a nessuno. |
+
+Restituisce **Suggestion ID** (la correzione in attesa di approvazione), **Tier** (Safe o Riskier, come OneUptime legge il comando) e **Already Waiting** (true quando la stessa modifica su quel cloud era già in attesa, quindi non ne è stata aggiunta una seconda).
+
+**Success** scatta quando una persona è stata interpellata, senza attendere la sua risposta. **Error** scatta quando non è stato proposto nulla, con il motivo in **Error**: il comando è rifiutato, le correzioni non sono ancora consentite su quel cloud, oppure i workflow di un progetto hanno proposto 20 correzioni nell'ultima ora.
+
+Il modello [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) è un punto di partenza.
 
 ## Componenti dati di OneUptime
 

@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -378,6 +379,7 @@ docker compose up -d
 | `DATABASE_TLS_INSECURE` | خیر | `true` (پیش‌فرض) بدون TLS وصل می‌شود؛ `false` TLS را روشن می‌کند |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی‌ای را می‌پذیرد که ایمیج کالکتور به آن اعتماد ندارد (خودامضا، CA خصوصی). پیش‌فرض `false` است |
 | `DATABASE_TLS_SSLMODE` | خیر | PostgreSQL: دو تنظیم بالا به زبان `sslmode` در libpq، برای بررسی‌های SQL خود پیکربندی: تا وقتی `DATABASE_TLS_INSECURE` برابر `true` است `disable`، وقتی `DATABASE_TLS_INSECURE_SKIP_VERIFY` برابر `true` است `require`، و در غیر این صورت `verify-full`. `install.sh` آن را می‌نویسد. پیش‌فرض `disable` است |
+| `DATABASE_TLS_MYSQL` | خیر | MySQL و MariaDB: همان دو تنظیم به زبان `tls` در درایور، برای خواندن‌های پیکربندی از Galera: تا وقتی `DATABASE_TLS_INSECURE` برابر `true` است `false`، وقتی `DATABASE_TLS_INSECURE_SKIP_VERIFY` برابر `true` است `skip-verify`، و در غیر این صورت `true`. `install.sh` آن را محاسبه می‌کند؛ در یک manifest خودتان آن را تنظیم کنید. پیش‌فرض `false` است |
 | `DATABASE_COLLECTION_INTERVAL` | خیر | هر چند وقت یک بار آمار موتور خوانده شود. پیش‌فرض `30s` است |
 | `DATABASE_QUERY_EVENTS` | خیر | `true` نمونه‌های کوئری و کوئری‌های برتر را به‌صورت لاگ می‌فرستد (PostgreSQL، MySQL، MongoDB، SQL Server و Oracle). متن کوئری را در خود دارند. پیش‌فرض `false` است |
 | `DATABASE_SERVER_ID` | خیر | id پایگاه داده‌ای که OneUptime از پیش نشان می‌دهد (در زبانه **مستندات** آن، از پیش پرشده هست). آن‌وقت داده مستقیم به همان پایگاه داده می‌پیوندد و در صفحه‌هایش نشان داده می‌شود، هر نشانی‌ای که گزارش کند (یا هیچ)؛ این راهِ درست در Kubernetes و برای IPهای خصوصی است. باید پایگاه داده‌ای در پروژه‌ای باشد که کلید دریافت داده به آن تعلق دارد |
@@ -398,6 +400,8 @@ docker compose up -d
 دروازه قابلیت (feature gate) `postgresqlreceiver.preciselagmetrics` در گیرنده PostgreSQL، که به‌طور پیش‌فرض روشن است، تأخیر زمانی تکثیر را به جای `postgresql.wal.lag` به‌صورت `postgresql.wal.delay` ثبت می‌کند، و آن متریک در upstream خاموش است؛ برای همین عامل آن را روشن می‌کند. هر پیکربندی متریک‌های اختیاری بیشتری را در یک توضیح فهرست می‌کند؛ هر کدام را به همین شکل روشن کنید. بخش **Engine metrics** در نمای کلی یک پایگاه داده برای هر موتورِ این جدول مجموعه‌ای گزینش‌شده را نمودار می‌کند (برای Elasticsearch / OpenSearch سلامت خوشه، گره‌ها، shardهای تخصیص‌نیافته، کارهای در انتظار، heap در JVM، دیسک آزاد، جست‌وجوها و ایندکس‌کردن؛ برای Memcached اتصال‌ها، حافظه، آیتم‌ها، برخوردها و نبودهای get، فرمان‌ها و بیرون‌رانی‌ها)، و زبانه **متریک‌ها** همه چیز را دارد. آنجا متریکی که نمای کلی نمودارش را نشان می‌دهد، همان مقدار نمای کلی را نشان می‌دهد (سری‌هایش به همان شکل ترکیب می‌شوند، شمارنده به‌صورت نرخ در ثانیه) با زیرنویسی که می‌گوید چگونه (_مجموع سری‌ها_، _در ثانیه، همهٔ سری‌ها_)؛ هر ردیف دیگر میانگین سری‌هایش را نشان می‌دهد، و تا وقتی فهرست را بر پایه یک ویژگی پالایش می‌کنید همه ردیف‌ها همین کار را می‌کنند. MariaDB متریک `mysql.buffer_pool.limit` را به‌صورت تعداد صفحه‌های buffer pool گزارش می‌کند، نه بایت‌هایی که گیرنده اعلام می‌کند، پس در یک پایگاه داده MariaDB آن ردیف و نمودارش بر حسب صفحه خوانده می‌شوند. MariaDB شمارنده‌های وضعیت `Innodb_rows_*` را ندارد، پس گیرنده برای آن هیچ `mysql.row_operations`ی نمی‌فرستد و نمای کلی MariaDB نمودار **عملیات ردیف** ندارد؛ **عملیات handler** خواندن‌ها و نوشتن‌های ردیف آن را نشان می‌دهد.
 
 پیکربندی PostgreSQL همچنین با گیرنده `sqlquery` کالکتور و در همان بازه، چهار چیز را خودش از سرور می‌پرسد: چه مدت است روشن است (`postgresql.uptime`، از `pg_postmaster_start_time()`)، سن قدیمی‌ترین شناسه تراکنشش (`postgresql.xid.oldest_age`، بزرگ‌ترین `age(datfrozenxid)` در `pg_database`)، قدیمی‌ترین تراکنش بازش چه مدت است باز است (`postgresql.transaction.longest_duration`) و چند نشست منتظر یک قفل‌اند (`postgresql.sessions.waiting_on_lock`)، دو مورد آخر از `pg_stat_activity`. گیرنده `postgresql` هیچ‌کدام از این‌ها را گزارش نمی‌دهد، و همین‌ها هستند که یک راه‌اندازی دوباره، تراکنشی که باز رها شده، صفی از منتظران قفل و نزدیک شدن wraparound شناسه‌های تراکنش را نشان می‌دهند: PostgreSQL نزدیک سن ۲٫۱ میلیارد دیگر نوشتن را نمی‌پذیرد، پس سلامتش از ۱ میلیارد نیاز به بررسی دارد و از ۱٫۵ میلیارد بحرانی است. `pg_monitor` آن‌ها را پوشش می‌دهد. این کوئری با `DATABASE_TLS_SSLMODE` وصل می‌شود و با گذرواژه‌ای که فاصله دارد نمی‌تواند وارد شود (فاصله را به‌صورت `+` می‌فرستد)، که `install.sh` درباره‌اش هشدار می‌دهد. با کالکتور خودتان، گیرنده `sqlquery/oneuptime` را از `configs/postgresql.yaml` در پایپ‌لاین `metrics` آن کپی کنید.
+
+پیکربندی MySQL همچنین جایگاه یک سرور را در یک خوشهٔ Galera می‌خواند، با همان گیرندهٔ `sqlquery` در همان بازه، چون گیرندهٔ `mysql` هیچ‌کدام از آن را گزارش نمی‌دهد: خوشه چند node دارد (`mysql.wsrep.cluster_size`)، وضعیت این node (`mysql.wsrep.local_state`، که ۴ یعنی Synced)، چند بار از آن خواسته شده عمداً از همگامی بیرون بیفتد (`mysql.wsrep.desync_count`)، همانندسازی چقدر به‌خاطر آن متوقف شده است (`mysql.wsrep.flow_control_paused`) و چند writeset منتظر اعمال شدن‌اند (`mysql.wsrep.local_recv_queue`). به چیزی بیش از ورود بالا نیاز ندارد، چون `SHOW GLOBAL STATUS` را می‌خواند، و همان‌طور که `DATABASE_TLS_MYSQL` می‌گوید وصل می‌شود. سروری که در هیچ خوشه‌ای نیست هیچ‌کدام از این‌ها را نمی‌فرستد، و چیزی نمی‌گوید که ناسالم است. **Galera Node Out of Sync** این‌ها را می‌خواند، و nodeای که کسی برای یک پشتیبان‌گیری با `wsrep_desync` بیرون برده آن را فعال نمی‌کند.
 
 **نسخه** پایگاه داده از گیرنده می‌آید، هر جا که گیرنده آن را گزارش کند: `db.system.version` (MySQL / MariaDB، MongoDB)، `redis.version` (Redis، KeyDB)، `oracle.db.version` (Oracle) و `elasticsearch.node.version` (Elasticsearch / OpenSearch). گیرنده‌های PostgreSQL، SQL Server و Memcached هیچ نسخه‌ای گزارش نمی‌کنند، پس وقتی فقط عامل هست آن پایگاه‌های داده نسخه‌ای نشان نمی‌دهند؛ پایگاه داده‌ای که در Kubernetes، Docker یا Podman هم اجرا می‌شود نسخه ایمیج کانتینرش را نشان می‌دهد.
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ processors:
 | موتور | ناسالم | کاهش کارایی |
 | --- | --- | --- |
 | PostgreSQL | اتصال‌ها در ۹۵٪ از `max_connections`؛ شناسه‌های تراکنش نزدیک wraparound | اتصال‌ها در ۸۰٪ از `max_connections`؛ شناسه‌های تراکنشی که به سوی wraparound پیر می‌شوند؛ رپلیکایی که در بازپخش ۳۰ ثانیه عقب است؛ رپلیکایی که ۱ GB از WAL عقب است؛ یک راه‌اندازی دوباره؛ تراکنشی که یک ساعت است باز است؛ نشستی که منتظر قفل است؛ پایگاه داده‌ای با ۵۰۰ GB یا بیشتر |
-| MySQL / MariaDB | — | ۱۳۶ اتصال؛ ۵۰ رشته در حال اجرا؛ ۷۵٪ از buffer pool کثیف؛ رپلیکایی که ۳۰ ثانیه عقب است؛ یک راه‌اندازی دوباره |
+| MySQL / MariaDB | — | ۱۳۶ اتصال؛ ۵۰ رشته در حال اجرا؛ ۷۵٪ از buffer pool کثیف؛ رپلیکایی که ۳۰ ثانیه عقب است؛ یک راه‌اندازی دوباره؛ یک node در Galera که از همگامی بیرون افتاده بی‌آنکه کسی خواسته باشد |
 | SQL Server | — | نرخ اصابت حافظه نهان بافر زیر ۹۰٪؛ امید به عمر صفحه زیر ۳۰۰ ثانیه؛ یک نشست مسدودشده؛ کوئری‌ای که منتظر حافظه است |
 | Oracle | یک tablespace که ۹۰٪ پر است | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | حافظه در ۹۰٪ از `maxmemory`؛ نسبت تکه‌تکه‌شدگی ۱٫۵ با ۲۵۶ MB مصرف‌شده؛ ۹٬۰۰۰ کلاینت؛ یک راه‌اندازی دوباره |

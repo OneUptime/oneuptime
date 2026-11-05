@@ -39,7 +39,7 @@
 | --- | --- |
 | Мониторинг и APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | Реагирование на инциденты | Incident Dashboard, Alert Dashboard |
-| Инфраструктура | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Инфраструктура | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 В **Рекомендуемые** входят Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard и Metrics Dashboard. Шаблон — это отправная точка, а не связь: после создания дашборда меняйте его как угодно. Шаблон больше его не обновляет.
 

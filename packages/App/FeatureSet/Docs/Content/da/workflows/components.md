@@ -29,6 +29,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | Læse eller ændre hændelser, monitorer og andre poster         | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Åbne, kvittere for og løse hændelser eller advarsler for et andet værktøjs problemer | [Hændelser og advarsler fra andre værktøjer](#hændelser-og-advarsler-fra-andre-værktøjer) |
 | Kvittere for eller lukke et Zabbix-problem                    | [Zabbix](#zabbix)                                                 |
+| Bede en person om at godkende en rettelse til en OpenStack-cloud   | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 En dedikeret blok slår en generisk: Slack-blokken kender Slacks grænser, og en postblok kender postens felter, så du får tydeligere fejl og logs end fra en **API**-blok, der gør det samme arbejde.
 
@@ -427,6 +428,28 @@ Kvitter for eller luk et problem i Zabbix, eller tilføj en besked til det, genn
 For at kvittere eller lukke læser blokken først problemet. Et problem, som Zabbix allerede har løst, eller allerede har kvitteret for, når det er alt, du beder om, bliver ladt, som det er, og blokken tager **Unchanged**, ligesom for et problem, Zabbix ikke har, eller som tokenets bruger ikke kan se. Et problem, hvis trigger ikke tillader, at problemer lukkes manuelt, bliver kvitteret for i stedet, og dets besked siger, at det forbliver åbent, indtil Zabbix ser det komme sig.
 
 **Updated** udløses, når Zabbix tog imod opdateringen, og **Error**, når Zabbix ikke kunne nås eller afviste den, med Zabbix' begrundelse: Zabbix besvarer en afvist forespørgsel med en successtatus, så blokken læser, hvad Zabbix svarede, i stedet for statussen. Den returnerer **Summary**, det den gjorde, i én sætning.
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+Beder en person om at godkende én ændring af den OpenStack-cloud, en advarsel eller hændelse handler om. Den foretager aldrig ændringen. Rettelsen venter på advarslen eller hændelsen og i de kanaler, den skriver til, ligesom en, OneUptime AI foreslår, uanset cloudens rettelsestilstand. Et workflow kan ikke godkende det, det selv foreslår.
+
+Den kræver ingen AI-model og følger de samme regler som en rettelse, OneUptime AI foreslår: kommandopolitikken, agentens skrivemål og beskyttede mål samt agentens læsning af, hvad ændringen berører. En evakuering af en vært, der stadig er oppe, eller en, agenten ikke kan læse fuldt ud, foreslås ikke.
+
+| Indstilling | Hvad den gør |
+| ----------- | ------------ |
+| **Advarsels-ID** | Den advarsel, rettelsen er til, som regel det ID, din trigger returnerede. Udfyld enten denne eller **Hændelses-ID**, og cloudens kommer fra det, posten er knyttet til. |
+| **Hændelses-ID** | Den hændelse, rettelsen er til, som regel det ID, din trigger returnerede. Udfyld enten denne eller **Advarsels-ID**. |
+| **Kommando** | Den ændring, der skal foreslås, i den ene stavemåde, OneUptime tager imod. Se [de ændringer, en rettelse kan foretage](/docs/telemetry/openstack#rettelser). Den kan bruge værdier fra tidligere blokke og læses, når de er udfyldt. |
+| **Hvorfor** | Det, den person, der godkender, læser først. Står den tom, siger den, hvilket workflow der bad om det. |
+| **OpenStack-cloud-ID** | Under **Flere felter**. Kun for en post, der er knyttet til mere end én cloud eller til ingen. |
+
+Den returnerer **Forslags-ID** (rettelsen, der venter på godkendelse), **Niveau** (Sikker eller Mere risikabelt, som OneUptime læser kommandoen) og **Venter allerede** (sand, når den samme ændring på den cloud allerede ventede, så der ikke blev tilføjet en anden).
+
+**Succes** udløses, når en person er blevet spurgt, uden at vente på svaret. **Fejl** udløses, når intet blev foreslået, med årsagen i **Fejl**: kommandoen afvises, rettelser er ikke tilladt på den cloud endnu, eller et projekts workflows har foreslået 20 rettelser den seneste time.
+
+Skabelonen [Foreslå at tage en fejlende OpenStack compute-tjeneste ud af planlægningen](/docs/workflows/authoring) er et sted at starte.
 
 ## OneUptime-datakomponenter
 

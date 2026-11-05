@@ -29,6 +29,7 @@
 | 讀取或變更事件、監測器和其他記錄                              | [OneUptime 資料元件](#oneuptime-資料元件)                  |
 | 為其他工具的問題開啟、確認和解決事件或警示                     | [來自其他工具的事件和警示](#來自其他工具的事件和警示) |
 | 確認或關閉 Zabbix 問題                                         | [Zabbix](#zabbix)                                                 |
+| 請人核准對 OpenStack 雲端的修正                                 | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 專用區塊勝過通用區塊：Slack 區塊知道 Slack 的限制，記錄區塊知道記錄的欄位，因此你得到的錯誤和日誌，會比用一個 **API** 區塊做同樣的事更清楚。
 
@@ -427,6 +428,28 @@ return { proceed: true, title: args.title.toUpperCase() };
 要確認或關閉時，區塊會先讀取問題。Zabbix 已經解決的問題，或在你只要求確認時已經確認的問題，會保持原樣，區塊走 **Unchanged**；對於 Zabbix 中沒有的問題，或權杖的使用者看不到的問題，也是如此。觸發器不允許手動關閉問題的問題會改為被確認，其訊息會說明它將保持開啟，直到 Zabbix 發現它已恢復。
 
 Zabbix 接受了更新時觸發 **Updated**；無法連線到 Zabbix 或 Zabbix 拒絕了更新時，觸發 **Error**，並附上 Zabbix 給出的原因：Zabbix 對被拒絕的請求也會以成功狀態回應，所以區塊讀取的是 Zabbix 的回應內容，而不是狀態。區塊會傳回 **Summary**，也就是用一句話說明它做了什麼。
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+請人核准對警示或事件所涉及的 OpenStack 雲端做出的一項變更。它絕不會自己做出變更。修正會等在警示或事件上，也會等在它發布到的頻道中，就像 OneUptime AI 提議的修正一樣，無論該雲端的修正模式為何。工作流程無法核准它自己提議的內容。
+
+它不需要 AI 模型，並且遵循與 OneUptime AI 提議的修正相同的規則：指令原則、代理程式的寫入目標和受保護目標，以及代理程式對該變更所涉及內容的讀取。對仍在運作的主機做撤離，或代理程式無法完整讀取的撤離，都不會被提議。
+
+| 設定 | 作用 |
+| ---- | ---- |
+| **Alert ID** | 修正所屬的警示，通常是你的觸發器傳回的 ID。填寫它或 **Incident ID** 其中之一，雲端則取決於該記錄所連結的對象。 |
+| **Incident ID** | 修正所屬的事件，通常是你的觸發器傳回的 ID。填寫它或 **Alert ID** 其中之一。 |
+| **Command** | 要提議的變更，使用 OneUptime 接受的唯一寫法。請參閱 [修正可以做出的變更](/docs/telemetry/openstack#修正)。它可以使用前面區塊的值，並在這些值填入之後才讀取。 |
+| **Why** | 核准者最先讀到的內容。留空時，會說明是哪個工作流程提出的。 |
+| **OpenStack Cloud ID** | 位於 **更多欄位** 底下。僅適用於連結到多個雲端或沒有連結任何雲端的記錄。 |
+
+它會傳回 **Suggestion ID**（等待核准的修正）、**Tier**（安全或風險較高，依 OneUptime 對該指令的判讀）和 **Already Waiting**（當該雲端上相同的變更已在等待時為 true，因此不會再新增第二個）。
+
+**Success** 會在有人被詢問後立即觸發，不等待其回答。**Error** 會在沒有提議任何內容時觸發，原因寫在 **Error** 中：指令被拒絕、該雲端尚未允許修正，或某個專案的工作流程在過去一小時內已提議 20 項修正。
+
+[Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) 範本是個可以開始的地方。
 
 ## OneUptime 資料元件
 

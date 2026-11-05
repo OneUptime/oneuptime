@@ -86,6 +86,8 @@ Een zelf gehoste installatie heeft een eigen host in plaats van `oneuptime.com`.
 > [!WARNING]
 > Groepeer op een waarde die binnen één melding per waarschuwing verschilt. De `fingerprint` van Alertmanager is een hash van de hele labelset van een waarschuwing, dus die verschilt altijd. Een label in de `group_by` van je route verschilt nooit: dat is juist wat de waarschuwingen in één melding zet. Groeperen op `requestBody.alerts[*].labels.alertname` met de route hieronder vouwt elke waarschuwing van een melding samen tot één incident, dat de status van de eerste waarschuwing krijgt.
 
+Koppel de monitor op een OpenStack-cloud ook aan de cloud. De eigen instellingen van een Incoming Request-monitor noemen geen cloud, dus zijn incidenten komen onder **Incidenten** terecht en niet bij de cloud. Open **Overzicht → Gekoppelde resources** van de monitor en voeg de OpenStack-cloud toe: elk incident staat dan ook op de pagina **Incidenten** van die cloud. [OpenStack per deploymenttool](/docs/telemetry/openstack-deployment-tools) heeft de receiver voor elke tool die een Alertmanager draait, op de plek waar die tool hem leest.
+
 ## De incidenten een naam geven
 
 De titel hierboven leest labels die alle waarschuwingen van de melding delen: `commonLabels` bevat die labels, en `commonAnnotations` de annotaties die ze delen. Met de route hieronder, die groepeert op `alertname` en `instance`, zijn beide aanwezig. Geef het incident onder **Beschrijving** een **Incidentbeschrijving** zoals:
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-Er gaan twee incidenten open, één per `fingerprint`, elk met de titel `DiskFull on web-1`. Stuur hetzelfde verzoek met elke `status` op `resolved`, en beide worden opgelost.
+Er gaan twee incidenten open, één per `fingerprint`, elk met de titel `DiskFull on web-1` en dan wat ze onderscheidt, zoals in `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Stuur hetzelfde verzoek met elke `status` op `resolved`, en beide worden opgelost.
 
 Om het hele pad vanaf Alertmanager te testen, laat je een waarschuwing afgaan met `amtool`. Alertmanager stuurt haar na `group_wait` en stuurt daarna haar herstel wanneer de waarschuwing een paar minuten later verloopt:
 

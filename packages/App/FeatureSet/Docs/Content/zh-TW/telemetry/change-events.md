@@ -35,6 +35,7 @@ flowchart LR
 | 運行手冊 | OneUptime 執行的運行手冊在開始後完成、失敗或被取消 | `runbook` |
 | 雲端變更 | 已連線雲端帳戶的活動記錄記下了一項變更：AWS CloudTrail、Azure 活動記錄或 Google Cloud 的 Admin Activity 稽核記錄 | `cloud` |
 | 供應商事件 | 雲端供應商發布了關於該帳戶的健康事件：AWS Health、Azure Service Health 或 Resource Health，或 Google Cloud Service Health | `cloud-health` |
+| OpenStack 變更 | OpenStack 雲端自己的通知說明了它某個部分發生了什麼，或是探測器對 Nova 的讀取：請參閱 [生命週期事件](/docs/telemetry/openstack#生命週期事件) | `openstack` |
 
 - **服務回報的第一個版本是它的基準，而不是一次部署。** 一個已經執行了好幾個月的服務，並不是在 OneUptime 開始接收其遙測資料的那一刻才部署的。
 - **回復到過去 30 天內出現過的版本不會被記錄，** 因為那個版本並不新。OneUptime AI 執行的回復會作為修正被記錄。
@@ -50,7 +51,7 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 
 應用程式部署需要應用程式在 [受管理的應用程式平台](/docs/telemetry/cloud-environments#應用程式與部署) 上執行。它會記錄在應用程式所屬的環境下，並繪製在環境的圖表與應用程式自己的圖表上；在那裡，回復到應用程式先前執行過的修訂版本也會被記錄。
 
-雲端變更和供應商事件需要一個[已連線的雲端帳戶](/docs/telemetry/cloud-accounts)。當 OneUptime 列出了相應資源時，每一項都會連結到它所指的雲端資源，並繪製在該資源的圖表上。其類型取決於操作：操作名稱表明時為 `deployment`、`scaling` 或 `rollback`，否則為 `config-change`，健康事件則為 `provider-event`。未篩選到任何資源的圖表不會顯示雲端帳戶的活動記錄，這樣忙碌的帳戶就不會擠掉你的部署；供應商的健康事件仍會保留在這些圖表上。
+雲端變更和供應商事件需要一個[已連線的雲端帳戶](/docs/telemetry/cloud-accounts)。當 OneUptime 列出了相應資源時，每一項都會連結到它所指的雲端資源，並繪製在該資源的圖表上。其類型取決於操作：操作名稱表明時為 `deployment`、`scaling` 或 `rollback`，否則為 `config-change`，健康事件則為 `provider-event`。未篩選到任何資源的圖表不會顯示雲端帳戶的活動記錄和 OpenStack 雲端的變更，這樣忙碌的帳戶就不會擠掉你的部署；供應商的健康事件仍會保留在這些圖表上。
 
 ## 從管線記錄部署
 

@@ -86,6 +86,8 @@ Une installation auto-hébergée a son propre hôte à la place de `oneuptime.co
 > [!WARNING]
 > Regroupez selon une valeur qui change d'une alerte à l'autre au sein d'une notification. Le `fingerprint` d'Alertmanager est un hachage de l'ensemble des labels d'une alerte, il change donc toujours. Un label du `group_by` de votre route ne change jamais : c'est lui qui met les alertes dans une seule notification. Regrouper selon `requestBody.alerts[*].labels.alertname` avec la route ci-dessous réunit toutes les alertes d'une notification en un seul incident, qui prend le statut de la première alerte.
 
+Sur un cloud OpenStack, liez aussi le moniteur au cloud. Les paramètres propres d'un moniteur Incoming Request ne nomment aucun cloud : ses incidents atteindraient donc **Incidents** sans atteindre le cloud. Ouvrez **Vue d'ensemble → Linked Resources** du moniteur et ajoutez le cloud OpenStack : chaque incident figure alors aussi sur la page **Incidents** de ce cloud. [OpenStack par outil de déploiement](/docs/telemetry/openstack-deployment-tools) donne le récepteur de chaque outil qui exécute un Alertmanager, à l'endroit où cet outil le lit.
+
 ## Nommer les incidents
 
 Le titre ci-dessus lit des labels que toutes les alertes de la notification partagent : `commonLabels` contient ces labels, et `commonAnnotations` les annotations qu'elles partagent. Avec la route ci-dessous, qui regroupe par `alertname` et `instance`, les deux sont présents. Sous **Description**, donnez à l'incident une **Description de l'incident** comme celle-ci :
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-Deux incidents s'ouvrent, un par `fingerprint`, chacun intitulé `DiskFull on web-1`. Envoyez la même requête avec chaque `status` sur `resolved`, et les deux sont résolus.
+Deux incidents s'ouvrent, un par `fingerprint`, chacun intitulé `DiskFull on web-1` puis ce qui les distingue, comme dans `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Envoyez la même requête avec chaque `status` sur `resolved`, et les deux sont résolus.
 
 Pour tester tout le chemin depuis Alertmanager, déclenchez une alerte avec `amtool`. Alertmanager l'envoie après `group_wait`, puis envoie son rétablissement quand l'alerte expire quelques minutes plus tard :
 

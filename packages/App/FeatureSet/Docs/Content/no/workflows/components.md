@@ -29,6 +29,7 @@ Du trenger sjelden å ha den åpen mens du bygger. Innstillingene til hver blokk
 | Lese eller endre hendelser, monitorer og andre poster         | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Åpne, bekrefte og løse hendelser eller varsler for et annet verktøys problemer | [Hendelser og varsler fra andre verktøy](#hendelser-og-varsler-fra-andre-verktøy) |
 | Bekrefte eller lukke et Zabbix-problem                        | [Zabbix](#zabbix)                                                 |
+| Be et menneske godkjenne en rettelse i en OpenStack-sky       | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 En dedikert blokk slår en generell: Slack-blokken kjenner grensene til Slack, og en postblokk kjenner feltene til posten, så du får tydeligere feil og logger enn fra en **API**-blokk som gjør den samme jobben.
 
@@ -427,6 +428,28 @@ Bekreft eller lukk et problem i Zabbix, eller legg til en melding på det, gjenn
 For å bekrefte eller lukke leser blokken problemet først. Et problem Zabbix allerede har løst, eller allerede har bekreftet når det er alt du ber om, blir latt være som det er, og blokken tar **Unchanged**, som den gjør for et problem Zabbix ikke har, eller som tokenets bruker ikke kan se. Et problem der triggeren ikke tillater at problemer lukkes manuelt, blir bekreftet i stedet, og meldingen sier at det forblir åpent til Zabbix ser at det kommer seg.
 
 **Updated** utløses når Zabbix tok imot oppdateringen, og **Error** når Zabbix ikke kunne nås eller avviste den, med Zabbix' begrunnelse: Zabbix besvarer en avvist forespørsel med en suksessstatus, så blokken leser hva Zabbix svarte i stedet for statusen. Den returnerer **Summary**, det den gjorde, i én setning.
+
+## OpenStack
+
+### Propose an OpenStack fix
+
+Ber et menneske godkjenne én endring i OpenStack-skyen et varsel eller en hendelse gjelder. Blokken gjør aldri selve endringen. Rettelsen venter på varselet eller hendelsen, og i kanalene den poster til, som en OneUptime AI foreslår, uansett hvilken rettelsesmodus skyen har. En arbeidsflyt kan ikke godkjenne det den selv foreslår.
+
+Den trenger ingen AI-modell, og den følger de samme reglene som en rettelse OneUptime AI foreslår: kommandopolicyen, agentens skrivemål og beskyttede mål, og agentens lesing av hva endringen berører. En evakuering av en vert som fortsatt er oppe, eller en som agenten ikke kan lese i sin helhet, blir ikke foreslått.
+
+| Innstilling | Hva den gjør |
+| -------------------- | ---- |
+| **Varsel-ID** | Varselet rettelsen gjelder, som regel ID-en triggeren din returnerte. Fyll ut denne eller **Hendelse-ID**, så kommer skyen fra det posten er koblet til. |
+| **Hendelse-ID** | Hendelsen rettelsen gjelder, som regel ID-en triggeren din returnerte. Fyll ut denne eller **Varsel-ID**. |
+| **Kommando** | Endringen som skal foreslås, i den ene skrivemåten OneUptime tar imot. Se [endringene en rettelse kan gjøre](/docs/telemetry/openstack#rettelser). Den kan bruke verdier fra tidligere blokker, og leses etter at de er fylt ut. |
+| **Hvorfor** | Det personen som godkjenner den, leser først. Står den tom, sier den hvilken arbeidsflyt som ba om det. |
+| **ID for OpenStack-sky** | Under **Flere felt**. Bare for en post som er koblet til mer enn én sky, eller til ingen. |
+
+Den returnerer **Suggestion ID** (rettelsen som venter på godkjenning), **Tier** (Safe eller Riskier, slik OneUptime leser kommandoen) og **Already Waiting** (sann når den samme endringen i den skyen allerede ventet, så det ikke ble lagt til en til).
+
+**Suksess** utløses når et menneske er spurt, uten å vente på svaret. **Feil** utløses når ingenting ble foreslått, med årsaken i **Feil**: kommandoen avvises, rettelser er ikke tillatt i den skyen ennå, eller et prosjekts arbeidsflyter har foreslått 20 rettelser den siste timen.
+
+Malen [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) er et sted å begynne.
 
 ## OneUptime-datakomponenter
 

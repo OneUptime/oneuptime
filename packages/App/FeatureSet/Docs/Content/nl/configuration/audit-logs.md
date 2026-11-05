@@ -99,6 +99,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Inventarisitems | `Inventory Item` |
 | Collectorconfiguraties | `Collector Config` |
 | vCenters | `vCenter` |
+| OpenStack-clouds, en de controles die ertegen draaien | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Pakketopnames, en hun downloads | `Packet Capture` |
 | Beveiligingszaken en hun prioriteiten en statussen, playbooks en hun uitvoeringen, beschermde entiteiten, entiteitkritikaliteit, en het risico van een entiteit als iemand het reset | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Regeluitzonderingen | `Rule Exception` |

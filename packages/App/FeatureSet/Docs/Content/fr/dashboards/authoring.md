@@ -39,7 +39,7 @@ Les modèles, selon la catégorie sous laquelle le sélecteur les range :
 | --- | --- |
 | Surveillance et APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | Réponse aux incidents | Incident Dashboard, Alert Dashboard |
-| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **Recommandés** contient Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard et Metrics Dashboard. Un modèle est un point de départ, pas un lien : une fois le tableau de bord créé, modifiez-le comme vous voulez. Le modèle ne le met plus à jour ensuite.
 

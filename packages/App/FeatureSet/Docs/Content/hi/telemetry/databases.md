@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -378,6 +379,7 @@ docker compose up -d
 | `DATABASE_TLS_INSECURE` | नहीं | `true` (डिफ़ॉल्ट) बिना TLS के कनेक्ट करता है; `false` TLS चालू करता है |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | नहीं | `true` ऐसा सर्टिफ़िकेट स्वीकार करता है जिस पर कलेक्टर इमेज भरोसा नहीं करती (सेल्फ़-साइन्ड, निजी CA)। डिफ़ॉल्ट `false` है |
 | `DATABASE_TLS_SSLMODE` | नहीं | PostgreSQL: ऊपर की दोनों सेटिंग libpq के `sslmode` के रूप में, कॉन्फ़िग की अपनी SQL जाँचों के लिए: जब तक `DATABASE_TLS_INSECURE` `true` है तब तक `disable`, जब `DATABASE_TLS_INSECURE_SKIP_VERIFY` `true` हो तो `require`, वरना `verify-full`। इसे `install.sh` लिखता है। डिफ़ॉल्ट `disable` है |
+| `DATABASE_TLS_MYSQL` | नहीं | MySQL और MariaDB: Galera की कॉन्फ़िग की रीडिंग के लिए ड्राइवर के `tls` की वही दो सेटिंग: जब तक `DATABASE_TLS_INSECURE` `true` है तब तक `false`, जब `DATABASE_TLS_INSECURE_SKIP_VERIFY` `true` हो तो `skip-verify`, वरना `true`। इसे `install.sh` तय करता है; मैनिफ़ेस्ट में इसे खुद सेट करें। डिफ़ॉल्ट `false` है |
 | `DATABASE_COLLECTION_INTERVAL` | नहीं | इंजन की सांख्यिकी कितनी बार पढ़ी जाए। डिफ़ॉल्ट `30s` है |
 | `DATABASE_QUERY_EVENTS` | नहीं | `true` क्वेरी सैंपल और टॉप क्वेरी को लॉग के रूप में भेजता है (PostgreSQL, MySQL, MongoDB, SQL Server और Oracle)। इनमें क्वेरी टेक्स्ट होता है। डिफ़ॉल्ट `false` है |
 | `DATABASE_SERVER_ID` | नहीं | उस डेटाबेस की id जिसे OneUptime पहले से दिखाता है (उसके **दस्तावेज़ीकरण** टैब में यह पहले से भरी होती है)। तब डेटा सीधे उसी डेटाबेस में जुड़ता है और उसके पेजों पर दिखता है, चाहे वह कोई भी पता बताए (या कोई नहीं); Kubernetes में और निजी IP के लिए यही तरीका है। यह उसी प्रोजेक्ट का डेटाबेस होना चाहिए जिसकी इंजेशन कुंजी है |
@@ -398,6 +400,8 @@ docker compose up -d
 PostgreSQL रिसीवर का `postgresqlreceiver.preciselagmetrics` फ़ीचर गेट, जो डिफ़ॉल्ट रूप से चालू है, समय में रेप्लिकेशन लैग को `postgresql.wal.lag` की जगह `postgresql.wal.delay` के रूप में दर्ज करता है, और वह मेट्रिक अपस्ट्रीम में बंद है; इसीलिए एजेंट उसे चालू करता है। हर कॉन्फ़िग एक टिप्पणी में और वैकल्पिक मेट्रिक्स की सूची देती है; उनमें से किसी को भी इसी तरह चालू करें। डेटाबेस के अवलोकन का **Engine metrics** सेक्शन इस तालिका के हर इंजन के लिए चुनी हुई मेट्रिक्स का चार्ट दिखाता है (Elasticsearch / OpenSearch के लिए क्लस्टर स्वास्थ्य, नोड, बिना असाइन किए शार्ड, लंबित टास्क, JVM हीप, खाली डिस्क, सर्च और इंडेक्सिंग; Memcached के लिए कनेक्शन, मेमोरी, आइटम, get हिट और मिस, कमांड और एविक्शन), और **मेट्रिक्स** टैब में सब कुछ होता है। वहाँ, अवलोकन में चार्ट की गई मेट्रिक अवलोकन वाला मान दिखाती है (उसकी सीरीज़ उसी तरह जोड़ी जाती हैं, काउंटर प्रति-सेकंड दर के रूप में) और एक कैप्शन बताता है कि कैसे (_सीरीज़ का योग_, _प्रति सेकंड, सभी सीरीज़_); हर दूसरी पंक्ति अपनी सीरीज़ का औसत दिखाती है, और जब आप सूची को किसी एट्रिब्यूट से फ़िल्टर करते हैं तब हर पंक्ति यही करती है। MariaDB `mysql.buffer_pool.limit` को रिसीवर द्वारा घोषित बाइट के बजाय बफ़र पूल के पेजों की संख्या के रूप में बताता है, इसलिए MariaDB डेटाबेस पर वह पंक्ति और उसका चार्ट पेजों में पढ़े जाते हैं। MariaDB में `Innodb_rows_*` स्टेटस काउंटर नहीं होते, इसलिए रिसीवर उसके लिए कोई `mysql.row_operations` नहीं भेजता और MariaDB के अवलोकन में **पंक्ति ऑपरेशन** चार्ट नहीं होता; उसकी रो रीड और राइट **हैंडलर ऑपरेशन** दिखाता है।
 
 PostgreSQL कॉन्फ़िग कलेक्टर के `sqlquery` रिसीवर से, उसी अंतराल पर, सर्वर से अपनी ओर से चार बातें भी पूछता है: वह कितनी देर से चल रहा है (`postgresql.uptime`, `pg_postmaster_start_time()` से), उसकी सबसे पुरानी ट्रांज़ैक्शन ID की उम्र (`postgresql.xid.oldest_age`, `pg_database` में सबसे बड़ा `age(datfrozenxid)`), उसका सबसे पुराना खुला ट्रांज़ैक्शन कितनी देर से खुला है (`postgresql.transaction.longest_duration`), और कितने सेशन किसी लॉक की प्रतीक्षा कर रहे हैं (`postgresql.sessions.waiting_on_lock`), आख़िरी दोनों `pg_stat_activity` से। `postgresql` रिसीवर इनमें से कुछ भी रिपोर्ट नहीं करता, और यही बताते हैं कि सर्वर रीस्टार्ट हुआ, कोई ट्रांज़ैक्शन खुला छूट गया, लॉक की प्रतीक्षा करने वालों की कतार लगी है, या ट्रांज़ैक्शन ID रैपअराउंड पास आ रहा है: लगभग 2.1 अरब की उम्र पर PostgreSQL लिखना स्वीकार करना बंद कर देता है, इसलिए 1 अरब से उसकी स्थिति पर नज़र डालने की ज़रूरत है और 1.5 अरब से वह गंभीर है। `pg_monitor` इन्हें कवर करता है। क्वेरी `DATABASE_TLS_SSLMODE` से कनेक्ट होती है, और ऐसे पासवर्ड से लॉग इन नहीं कर सकती जिसमें स्पेस हो (वह उसे `+` के रूप में भेजती है), जिसके बारे में `install.sh` चेतावनी देता है। अपने कलेक्टर के साथ, `configs/postgresql.yaml` से `sqlquery/oneuptime` रिसीवर को उसकी `metrics` पाइपलाइन में कॉपी करें।
+
+MySQL कॉन्फ़िग यह भी पढ़ता है कि Galera क्लस्टर में कोई सर्वर कहाँ खड़ा है, उसी `sqlquery` रिसीवर से उसी अंतराल पर, क्योंकि `mysql` रिसीवर इनमें से कुछ भी रिपोर्ट नहीं करता: क्लस्टर में कितने नोड हैं (`mysql.wsrep.cluster_size`), इस नोड की स्थिति (`mysql.wsrep.local_state`, जहाँ 4 का मतलब Synced है), इसे जानबूझकर सिंक से बाहर होने के लिए कितनी बार कहा गया (`mysql.wsrep.desync_count`), इसके लिए रेप्लिकेशन कितना रुका (`mysql.wsrep.flow_control_paused`) और कितने writeset लागू होने की प्रतीक्षा में हैं (`mysql.wsrep.local_recv_queue`)। इसे ऊपर के लॉगिन के अलावा कुछ नहीं चाहिए, क्योंकि यह `SHOW GLOBAL STATUS` पढ़ता है, और यह उसी तरह कनेक्ट होता है जैसा `DATABASE_TLS_MYSQL` कहता है। जो सर्वर किसी क्लस्टर में नहीं है वह इनमें से कुछ नहीं भेजता, और कुछ भी यह नहीं कहता कि वह अस्वस्थ है। **Galera Node Out of Sync** इन्हें पढ़ता है, और जिस नोड को किसी ने बैकअप के लिए `wsrep_desync` से बाहर किया हो, उस पर यह नहीं चलता।
 
 डेटाबेस का **संस्करण** रिसीवर से आता है, जहाँ वह इसे बताता है: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) और `elasticsearch.node.version` (Elasticsearch / OpenSearch)। PostgreSQL, SQL Server और Memcached रिसीवर कोई वर्शन नहीं बताते, इसलिए सिर्फ़ एजेंट होने पर वे डेटाबेस कोई वर्शन नहीं दिखाते; जो डेटाबेस Kubernetes, Docker या Podman में भी चलता है, वह अपनी कंटेनर इमेज का वर्शन दिखाता है।
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ processors:
 | इंजन | अस्वस्थ | प्रदर्शन में गिरावट |
 | --- | --- | --- |
 | PostgreSQL | `max_connections` के 95% पर कनेक्शन; रैपअराउंड के क़रीब ट्रांज़ैक्शन ID | `max_connections` के 80% पर कनेक्शन; रैपअराउंड की ओर पुरानी होती ट्रांज़ैक्शन ID; रीप्ले में 30 सेकंड पीछे एक रेप्लिका; WAL में 1 GB पीछे एक रेप्लिका; एक रीस्टार्ट; एक घंटे से खुला ट्रांज़ैक्शन; लॉक की प्रतीक्षा करता सेशन; 500 GB या उससे बड़ा डेटाबेस |
-| MySQL / MariaDB | — | 136 कनेक्शन; 50 चल रहे थ्रेड; बफ़र पूल का 75% डर्टी; 30 सेकंड पीछे एक रेप्लिका; एक रीस्टार्ट |
+| MySQL / MariaDB | — | 136 कनेक्शन; 50 चल रहे थ्रेड; बफ़र पूल का 75% डर्टी; 30 सेकंड पीछे एक रेप्लिका; एक रीस्टार्ट; ऐसा Galera नोड जो सिंक से बाहर हो गया जबकि किसी ने ऐसा करने को कहा नहीं था |
 | SQL Server | — | 90% से कम बफ़र कैश हिट रेशियो; 300 सेकंड से कम पेज लाइफ़ एक्सपेक्टेंसी; एक ब्लॉक हुआ सेशन; मेमोरी की प्रतीक्षा करती क्वेरी |
 | Oracle | 90% भरा टेबलस्पेस | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | `maxmemory` के 90% पर मेमोरी; 256 MB इस्तेमाल पर 1.5 का फ़्रैगमेंटेशन रेशियो; 9,000 क्लाइंट; एक रीस्टार्ट |

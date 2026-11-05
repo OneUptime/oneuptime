@@ -452,7 +452,7 @@ Alerts for payments:
 
 ### 指標和基礎設施監測器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware、Ceph、Storage Array 和 IoT Device 監測器各有一個自己的變數：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、Storage Array 和 IoT Device 監測器各有一個自己的變數：
 
 | 變數 | 內容 | 類型 |
 | --- | --- | --- |

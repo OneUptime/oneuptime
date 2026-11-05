@@ -35,6 +35,7 @@ Disse kræver ikke, at du sender noget. OneUptime registrerer dem ud fra den tel
 | En runbook | En runbook, som OneUptime kørte, fuldføres, mislykkes eller annulleres, efter at den er startet | `runbook` |
 | En cloudændring | En forbundet cloudkontos aktivitetslog registrerer en ændring: AWS CloudTrail, Azures aktivitetslog eller Google Clouds auditlog Admin Activity | `cloud` |
 | En begivenhed fra udbyderen | Cloududbyderen offentliggør en sundhedshændelse om kontoen: AWS Health, Azure Service Health eller Resource Health eller Google Cloud Service Health | `cloud-health` |
+| En OpenStack-ændring | En OpenStack-clouds egne notifikationer siger, hvad der skete med en af dens dele, eller en probes læsning af Nova gør: se [Livscyklushændelser](/docs/telemetry/openstack#livscyklushændelser) | `openstack` |
 
 - **Den første version, en tjeneste rapporterer, er dens udgangspunkt, ikke en udrulning.** En tjeneste, der har kørt i måneder, bliver ikke udrullet i det øjeblik, OneUptime begynder at modtage dens telemetri.
 - **En rollback til en version, der er set inden for de seneste 30 dage, registreres ikke,** fordi den version ikke er ny. En rollback, som OneUptime AI kører, registreres som en rettelse.
@@ -50,7 +51,7 @@ En rollout kræver [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som s
 
 En app-udrulning kræver, at appen kører på en [administreret app-platform](/docs/telemetry/cloud-environments#apps-og-udrulninger). Den registreres under appens miljø og tegnes i miljøets grafer og i appens egne, og dér registreres også en rollback til en revision, appen kørte før.
 
-En cloudændring eller en begivenhed fra udbyderen kræver en [forbundet cloudkonto](/docs/telemetry/cloud-accounts). Hver af dem knyttes til den cloudressource, den nævner, når OneUptime viser den ressource, og tegnes på ressourcens grafer. Dens type kommer fra handlingen: `deployment`, `scaling` eller `rollback`, når handlingens navn siger det, ellers `config-change`, og `provider-event` for en sundhedshændelse. Grafer, der ikke er filtreret til nogen ressource, udelader en cloudkontos aktivitetslog, så en travl konto ikke fortrænger dine udrulninger; udbyderens sundhedshændelser bliver på dem.
+En cloudændring eller en begivenhed fra udbyderen kræver en [forbundet cloudkonto](/docs/telemetry/cloud-accounts). Hver af dem knyttes til den cloudressource, den nævner, når OneUptime viser den ressource, og tegnes på ressourcens grafer. Dens type kommer fra handlingen: `deployment`, `scaling` eller `rollback`, når handlingens navn siger det, ellers `config-change`, og `provider-event` for en sundhedshændelse. Grafer, der ikke er filtreret til nogen ressource, udelader en cloudkontos aktivitetslog og en OpenStack-clouds ændringer, så en travl konto ikke fortrænger dine udrulninger; udbyderens sundhedshændelser bliver på dem.
 
 ## Registrér en udrulning fra en pipeline
 
