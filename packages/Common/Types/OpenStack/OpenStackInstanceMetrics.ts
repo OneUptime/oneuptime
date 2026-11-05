@@ -249,27 +249,32 @@ export function isOpenStackInstanceMetricsKept(data: {
 
 /*
  * WHAT IT COSTS. The series one instance adds, kept and worked out. Each is a row per
- * collection, so the docs' volume calculator and the settings card multiply from here,
- * and the numbers can only move when these do.
+ * collection, so the calculator, the docs and the settings card multiply from here, and the
+ * numbers can only move when these do. Held to what the exporters really said:
+ * OpenStackInstanceMetricsRecordings.test.ts counts them.
  */
 export const OPENSTACK_LIBVIRT_ORIGINAL_SERIES_PER_INSTANCE: number = 7;
 export const OPENSTACK_LIBVIRT_ORIGINAL_SERIES_PER_VCPU: number = 1;
 export const OPENSTACK_LIBVIRT_ORIGINAL_SERIES_PER_DISK: number = 6;
 export const OPENSTACK_LIBVIRT_ORIGINAL_SERIES_PER_INTERFACE: number = 2;
 
-export const OPENSTACK_CEILOMETER_ORIGINAL_SERIES_PER_INSTANCE: number = 5;
+// CPU, vCPUs, memory in use and memory held. No released Ceilometer has cpu.delay.
+export const OPENSTACK_CEILOMETER_ORIGINAL_SERIES_PER_INSTANCE: number = 4;
 export const OPENSTACK_CEILOMETER_ORIGINAL_SERIES_PER_DISK: number = 6;
 export const OPENSTACK_CEILOMETER_ORIGINAL_SERIES_PER_INTERFACE: number = 2;
 
-export const OPENSTACK_NORMALIZED_SERIES_PER_INSTANCE: number = 5;
+// CPU in use, as a share, waiting, memory in use and memory held.
+export const OPENSTACK_LIBVIRT_NORMALIZED_SERIES_PER_INSTANCE: number = 5;
+// The same, but for waiting.
+export const OPENSTACK_CEILOMETER_NORMALIZED_SERIES_PER_INSTANCE: number = 4;
 export const OPENSTACK_NORMALIZED_SERIES_PER_DISK: number = 6;
 export const OPENSTACK_NORMALIZED_SERIES_PER_INTERFACE: number = 2;
 
 // What the agent's collector is set to: agents/OpenStackAgent/otel-collector-config.yaml.
 export const OPENSTACK_LIBVIRT_COLLECTIONS_PER_HOUR: number = 60;
-// A reading only changes once a polling cycle, and only then adds a row.
+export const OPENSTACK_CEILOMETER_COLLECTIONS_PER_HOUR: number = 60;
+// A reading only changes once a polling cycle, five minutes by default, and only then adds a row.
 export const OPENSTACK_CEILOMETER_POLLS_PER_HOUR: number = 12;
-export const OPENSTACK_CEILOMETER_COLLECTIONS_PER_HOUR: number = 30;
 
 export interface OpenStackInstanceMetricsVolume {
   seriesPerInstance: number;
@@ -291,13 +296,14 @@ export function estimateOpenStackInstanceMetricsVolume(data: {
   const vcpus: number = data.vcpusPerInstance ?? 2;
   const disks: number = data.disksPerInstance ?? 1;
   const interfaces: number = data.interfacesPerInstance ?? 1;
-  const normalized: number =
-    OPENSTACK_NORMALIZED_SERIES_PER_INSTANCE +
-    OPENSTACK_NORMALIZED_SERIES_PER_DISK * disks +
-    OPENSTACK_NORMALIZED_SERIES_PER_INTERFACE * interfaces;
-
   const isLibvirt: boolean =
     data.source === OpenStackInstanceMetricSource.Libvirt;
+  const normalized: number =
+    (isLibvirt
+      ? OPENSTACK_LIBVIRT_NORMALIZED_SERIES_PER_INSTANCE
+      : OPENSTACK_CEILOMETER_NORMALIZED_SERIES_PER_INSTANCE) +
+    OPENSTACK_NORMALIZED_SERIES_PER_DISK * disks +
+    OPENSTACK_NORMALIZED_SERIES_PER_INTERFACE * interfaces;
   const original: number = isLibvirt
     ? OPENSTACK_LIBVIRT_ORIGINAL_SERIES_PER_INSTANCE +
       OPENSTACK_LIBVIRT_ORIGINAL_SERIES_PER_VCPU * vcpus +
@@ -432,6 +438,8 @@ export function findOpenStackDeviceAfterInstanceId(
   return rest.startsWith("-") && rest.length > 1 ? rest.substring(1) : null;
 }
 
+const OPENSTACK_PROVIDER_ID_MAX_LENGTH: number = 512;
+
 /*
  * The instance behind a Kubernetes node's spec.providerID. openstack-cloud-controller-manager
  * writes `openstack:///<uuid>`, or `openstack://<region>/<uuid>` when it knows its region.
@@ -440,11 +448,14 @@ export function findOpenStackDeviceAfterInstanceId(
 export function getOpenStackInstanceIdOfProviderId(
   providerId: string | null | undefined,
 ): string | null {
+  const value: string = (providerId || "").trim();
+  // A region's name and a UUID are short. Longer is no provider ID, and no pattern reads it.
+  if (value.length > OPENSTACK_PROVIDER_ID_MAX_LENGTH) {
+    return null;
+  }
   const providerIdFormat: RegExp =
     /^openstack:\/\/[^/]*\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
-  const match: RegExpExecArray | null = providerIdFormat.exec(
-    (providerId || "").trim(),
-  );
+  const match: RegExpExecArray | null = providerIdFormat.exec(value);
   return match ? match[1]!.toLowerCase() : null;
 }
 

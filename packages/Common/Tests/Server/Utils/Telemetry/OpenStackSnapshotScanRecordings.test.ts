@@ -7,7 +7,12 @@ import {
   finishOpenStackBatch,
   isOpenStackSnapshotDatapoint,
 } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
-import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import { JSONObject } from "../../../../Types/JSON";
+import {
+  RecordedSeries,
+  readRecordedSeries,
+  scanRecordedSeries,
+} from "../../../Helpers/OpenStackRecordedRows";
 import {
   getOpenStackShortHostName,
   isOpenStackFloatingIpAssociated,
@@ -43,95 +48,7 @@ const NOW: Date = new Date(OBSERVED_AT_MS + 60 * 1000);
 const CRITICAL: ResourceAttentionSeverity = ResourceAttentionSeverity.Critical;
 const WARNING: ResourceAttentionSeverity = ResourceAttentionSeverity.Warning;
 
-interface Series {
-  name: string;
-  labels: Record<string, string>;
-  value: number;
-}
-
-/*
- * Prometheus' text format. A label value can hold anything a tenant typed, so this
- * reads escapes rather than splitting on commas.
- */
-function parsePrometheusText(text: string): Array<Series> {
-  const series: Array<Series> = [];
-  for (const line of text.split("\n")) {
-    if (!line.trim() || line.startsWith("#")) {
-      continue;
-    }
-    const labelsAt: number = line.indexOf("{");
-    const valueAt: number = line.lastIndexOf(" ");
-    if (labelsAt < 0) {
-      series.push({
-        name: line.substring(0, valueAt),
-        labels: {},
-        value: Number.parseFloat(line.substring(valueAt + 1)),
-      });
-      continue;
-    }
-
-    const labels: Record<string, string> = {};
-    let at: number = labelsAt + 1;
-    while (at < line.length && line[at] !== "}") {
-      const equals: number = line.indexOf("=", at);
-      const key: string = line.substring(at, equals);
-      at = equals + 2; // Past the = and the opening quote.
-      let value: string = "";
-      while (line[at] !== '"') {
-        if (line[at] === "\\") {
-          at += 1;
-          value += line[at] === "n" ? "\n" : line[at];
-        } else {
-          value += line[at];
-        }
-        at += 1;
-      }
-      labels[key] = value;
-      at += 1; // Past the closing quote.
-      if (line[at] === ",") {
-        at += 1;
-      }
-    }
-    series.push({
-      name: line.substring(0, labelsAt),
-      labels,
-      value: Number.parseFloat(line.substring(valueAt + 1)),
-    });
-  }
-  return series;
-}
-
-function readSeries(folder: string): Array<Series> {
-  const series: Array<Series> = [];
-  for (const file of fs.readdirSync(folder).sort()) {
-    if (file.endsWith(".prom")) {
-      series.push(
-        ...parsePrometheusText(
-          fs.readFileSync(path.join(folder, file), "utf8"),
-        ),
-      );
-    }
-  }
-  return series;
-}
-
-// What the agent's collector turns a series into before it reaches OneUptime.
-function toDatapoint(series: Series): JSONObject {
-  const attributes: JSONArray = Object.keys(series.labels).map(
-    (key: string): JSONObject => {
-      return { key, value: { stringValue: series.labels[key] as string } };
-    },
-  );
-  attributes.push({
-    key: "openstack.region.name",
-    value: { stringValue: "RegionOne" },
-  });
-  return {
-    attributes,
-    timeUnixNano: `${OBSERVED_AT_MS}000000`,
-    asDouble: series.value,
-  };
-}
+type Series = RecordedSeries;
 
 function toRow(entry: OpenStackResourceBufferEntry): OpenStackResource {
   return Object.assign(new OpenStackResource(), {
@@ -161,21 +78,8 @@ class Scene {
   public readonly rows: Array<OpenStackResource>;
 
   public constructor(folder: string) {
-    this.series = readSeries(folder);
-    const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
-    for (const series of this.series) {
-      const datapoint: JSONObject = toDatapoint(series);
-      if (
-        isOpenStackSnapshotDatapoint({ metricName: series.name, datapoint })
-      ) {
-        bufferOpenStackSnapshotMetric({
-          metricName: series.name,
-          datapoint,
-          buffer,
-        });
-      }
-    }
-    this.rows = finishOpenStackBatch(buffer.values()).map(toRow);
+    this.series = readRecordedSeries(folder);
+    this.rows = scanRecordedSeries(this.series, OBSERVED_AT_MS).map(toRow);
   }
 
   public ofKind(kind: OpenStackResourceKind): Array<OpenStackResource> {

@@ -96,6 +96,7 @@ import {
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
   getOpenStackHostsToReconcile,
+  getOpenStackRoutersWithoutAgents,
   isOpenStackDatapointKept,
   isOpenStackSnapshotDatapoint,
 } from "Common/Server/Utils/Telemetry/OpenStackSnapshotScan";
@@ -4074,6 +4075,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId: data.projectId,
               openStackCloudId,
               shortHostNames: getOpenStackHostsToReconcile(finishedEntries),
+            });
+
+            await OpenStackResourceService.forgetAgentsOfRouters({
+              projectId: data.projectId,
+              openStackCloudId,
+              routers: getOpenStackRoutersWithoutAgents(finishedEntries),
             });
 
             // A part this scrape just told the inventory about may have an event waiting.

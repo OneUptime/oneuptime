@@ -20,7 +20,7 @@ import {
   OpenStackStoragePoolCephRead,
   confirmOpenStackStoragePoolCeph,
   fetchOpenStackStoragePoolCeph,
-} from "../../../Pages/OpenStack/Utils/OpenStackUsageReads";
+} from "../../../Pages/OpenStack/Utils/OpenStackLinkReads";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
@@ -66,11 +66,15 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
 
   const link: OpenStackStoragePoolCephLink | undefined = read.data?.link;
 
+  /*
+   * A project with no Ceph clusters has nothing to link a pool to. Someone's "it isn't on
+   * Ceph" stays visible while there are clusters it could have been on, so it can be taken back.
+   */
   if (
     !read.data ||
     !link ||
     link.state === "no-clusters" ||
-    link.state === "not-ceph"
+    (link.state === "not-ceph" && read.data.clusters.length === 0)
   ) {
     return <></>;
   }
@@ -78,9 +82,11 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
   const answer: (body: {
     cephClusterId?: string | undefined;
     isNotCeph?: boolean | undefined;
+    forget?: boolean | undefined;
   }) => Promise<void> = async (body: {
     cephClusterId?: string | undefined;
     isNotCeph?: boolean | undefined;
+    forget?: boolean | undefined;
   }): Promise<void> => {
     setIsSaving(true);
     setSaveError("");
@@ -119,6 +125,18 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
     },
   );
 
+  const changeAnswer: ReactElement = (
+    <Button
+      title="Change"
+      buttonStyle={ButtonStyleType.NORMAL}
+      dataTestId="openstack-storage-pool-ceph-change"
+      isLoading={isSaving}
+      onClick={() => {
+        void answer({ forget: true });
+      }}
+    />
+  );
+
   return (
     <div
       className="mb-6"
@@ -151,6 +169,20 @@ const OpenStackStoragePoolCephCard: FunctionComponent<{
                     health: HEALTH_WORDS[read.data.health] || "",
                   })}
             </p>
+            {link.state === "confirmed" ? (
+              <div className="pt-2">{changeAnswer}</div>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : link.state === "not-ceph" ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <p data-testid="openstack-storage-pool-ceph-not-ceph">
+              {translator.translateText(
+                "Someone said this pool isn't on Ceph, so nothing here reads a cluster's health.",
+              )}
+            </p>
+            {changeAnswer}
           </div>
         ) : link.state === "suggested" ? (
           <div className="space-y-3 text-sm">

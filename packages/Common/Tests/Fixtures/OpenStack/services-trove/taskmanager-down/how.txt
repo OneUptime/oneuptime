@@ -1,0 +1,2 @@
+trove-taskmanager stopped.
+On its own: trove-taskmanager is stopped. Trove's lists do not ask it for anything, and it has no service list to say so.

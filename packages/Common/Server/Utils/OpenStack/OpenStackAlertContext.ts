@@ -29,6 +29,9 @@ import {
   rankOpenStackInstancesByCpu,
 } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import {
+  OpenStackLinkedHost,
+  OpenStackLinkedInstance,
+  OpenStackLinkedKubernetesNode,
   OpenStackLinkedService,
   OpenStackReachAcrossProducts,
   describeOpenStackReachAcrossProducts,
@@ -290,6 +293,9 @@ const HYPERVISOR_USAGE_METRICS: ReadonlyArray<string> = Object.values(
 );
 
 const BUSIEST_INSTANCES_IN_AN_ALERT: number = 5;
+// Enough to tell whose night this is. The hypervisor's page has the rest of them.
+const INSTANCES_NAMED_IN_AN_ALERT: number = 20;
+const KUBERNETES_NODES_NAMED_IN_AN_ALERT: number = 10;
 // As long as the templates' own window, so what is named is what fired it.
 const BUSIEST_INSTANCES_WINDOW_MINUTES: number = 15;
 
@@ -604,13 +610,38 @@ export default class OpenStackAlertContext {
 
     const reach: OpenStackReachAcrossProducts | null | undefined =
       radius?.acrossProducts;
+    if (reach?.instances && reach.instances.length > 0) {
+      const shown: Array<OpenStackLinkedInstance> = reach.instances.slice(
+        0,
+        INSTANCES_NAMED_IN_AN_ALERT,
+      );
+      const more: number = (reach.instanceCount || 0) - shown.length;
+      const names: MarkdownText = FeedMarkdown.join(
+        shown.map((instance: OpenStackLinkedInstance): string => {
+          return instance.name || instance.id;
+        }),
+      );
+      const andMore: MarkdownText =
+        more > 0 ? mdText`, and ${more} more` : FeedMarkdown.empty();
+      sections.push(mdText`**Instances:** ${names}${andMore}.`);
+    }
     if (reach && !isOpenStackReachEmpty(reach)) {
       const lines: Array<MarkdownText> = [
+        ...reach.hosts.map((host: OpenStackLinkedHost): MarkdownText => {
+          return host.isHypervisor
+            ? mdText`Host ${host.name}: this machine`
+            : mdText`Host ${host.name}`;
+        }),
         ...reach.kubernetesClusters.map(
           (cluster: { name: string; nodeCount: number }): MarkdownText => {
             return mdText`Kubernetes cluster ${cluster.name}: ${cluster.nodeCount} ${cluster.nodeCount === 1 ? "node" : "nodes"}`;
           },
         ),
+        ...reach.kubernetesNodes
+          .slice(0, KUBERNETES_NODES_NAMED_IN_AN_ALERT)
+          .map((node: OpenStackLinkedKubernetesNode): MarkdownText => {
+            return mdText`Kubernetes node ${node.nodeName} in ${node.clusterName}`;
+          }),
         ...reach.services.map(
           (service: OpenStackLinkedService): MarkdownText => {
             return mdText`Service ${service.name}`;

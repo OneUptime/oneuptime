@@ -818,7 +818,9 @@ export default class MockOpenStackCloud {
               binary: this.isOvs
                 ? isFirst
                   ? "neutron-openvswitch-agent"
-                  : "neutron-l3-agent"
+                  : host < this.counts.dhcpAgents
+                    ? "neutron-dhcp-agent"
+                    : "neutron-l3-agent"
                 : isFirst
                   ? "ovn-controller"
                   : "neutron-ovn-agent",
@@ -950,6 +952,27 @@ export default class MockOpenStackCloud {
     }
 
     const parts: Array<string> = rest.split("/");
+
+    // Each with every network in full, as Neutron answers this route whatever it is asked.
+    if (parts[0] === "agents" && parts[2] === "dhcp-networks") {
+      const agent: number = indexOf(parts[1] || "");
+
+      return json(
+        200,
+        {
+          networks: [
+            {
+              ...this.templates["network"],
+              id: uuidOf(
+                "41000000",
+                agent % Math.max(this.counts.networks, 1),
+              ),
+            },
+          ],
+        },
+        now,
+      );
+    }
 
     if (parts[0] === "routers" && parts[2] === "l3-agents") {
       const router: number = indexOf(parts[1] || "");

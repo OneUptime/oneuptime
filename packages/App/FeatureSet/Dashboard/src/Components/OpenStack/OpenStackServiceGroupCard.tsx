@@ -1,6 +1,8 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
+import { isOpenStackServiceForcedDown } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { OpenStackServiceFamily } from "Common/Types/OpenStack/OpenStackResourceKind";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
@@ -10,6 +12,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import ResourcePartRow from "../ResourcePart/ResourcePartRow";
+import { OPENSTACK_REASON_FORCED_DOWN } from "../../Pages/OpenStack/Utils/OpenStackHealth";
 import { getOpenStackTimeInState } from "../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import {
   OpenStackServiceGroup,
@@ -85,6 +88,10 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
   const zone: string = row.availabilityZone || "";
   // Planned work, until it has been so long that somebody probably forgot it.
   const isForgotten: boolean = getOpenStackWorkerRank(row, now) === 1;
+  const isForcedDown: boolean = isOpenStackServiceForcedDown({
+    status: row.status,
+    facts: row.facts as JSONObject | undefined,
+  });
 
   const facts: Array<string> = [
     getOpenStackAdminStateText(row, translator),
@@ -104,6 +111,7 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
       data-host={host}
       data-status={row.status}
       data-admin-state={row.adminState}
+      data-forced-down={isForcedDown ? "true" : undefined}
     >
       <ResourcePartRow
         to={props.to}
@@ -167,6 +175,9 @@ export const OpenStackWorkerRow: FunctionComponent<WorkerRowProps> = (
             status={row.status}
             adminState={row.adminState}
             disabledReason={row.disabledReason}
+            reasons={
+              isForcedDown ? [{ text: OPENSTACK_REASON_FORCED_DOWN }] : undefined
+            }
           />
         </div>
       </ResourcePartRow>

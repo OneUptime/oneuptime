@@ -1,0 +1,28 @@
+# What fake-oneuptime.py hands on: what a guide's agent really sent OneUptime, decoded from
+# the OTLP on the wire and kept as JSON. The agent's own config is untouched, unlike
+# collector-recording.yaml, so this also proves its exporter reaches a OneUptime.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 127.0.0.1:14318
+
+exporters:
+  file/metrics:
+    path: /recording/metrics.json
+    format: json
+  file/logs:
+    path: /recording/logs.json
+    format: json
+
+service:
+  telemetry:
+    metrics:
+      level: none
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [file/metrics]
+    logs:
+      receivers: [otlp]
+      exporters: [file/logs]

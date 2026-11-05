@@ -1,0 +1,2 @@
+The engine started again, and what it did with the stacks it left in progress.
+On its own: what the engine makes of the stacks it was working on when it stopped.

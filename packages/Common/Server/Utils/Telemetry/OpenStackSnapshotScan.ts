@@ -1,4 +1,3 @@
-import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
@@ -71,6 +70,28 @@ export const OPENSTACK_SCRAPE_UP_METRIC_NAME: string = "up";
 export const OPENSTACK_SCRAPE_DURATION_METRIC_NAME: string =
   "scrape_duration_seconds";
 export const OPENSTACK_SERVICE_LABEL: string = "openstack_service";
+
+/*
+ * The services a scrape's own series can speak for, because every cloud runs them. The
+ * agent also asks the exporter for services a cloud may not run, such as load-balancer and
+ * baremetal, and for one that is not in the catalog the exporter answers 200 with nothing.
+ * `up` reads 1 for that scrape, and 0 for all of them when the exporter is down, on a cloud
+ * that has never had the service. So these series never make a row for one of those: only
+ * what the exporter says about the service itself can, which it says only if the catalog
+ * has it. This is written out rather than read from OpenStackServiceType, so that adding a
+ * service there does not start giving every cloud a row for it. So are the agent's VM
+ * metric jobs left out, which read compute nodes rather than an API to list.
+ */
+export const OPENSTACK_SERVICES_EVERY_CLOUD_RUNS: ReadonlySet<string> = new Set(
+  [
+    OpenStackServiceType.Identity,
+    OpenStackServiceType.Compute,
+    OpenStackServiceType.Placement,
+    OpenStackServiceType.Network,
+    OpenStackServiceType.Volume,
+    OpenStackServiceType.Image,
+  ],
+);
 
 /*
  * The exporter's series do not say which region they are from. The agent reads
@@ -172,6 +193,7 @@ const INSTANCE_STATUS_LABELS: ReadonlySet<string> = new Set([
   "updated_at",
   "task_state",
   "fault_message",
+  "image_id",
   OPENSTACK_SERVICE_LABEL,
   OPENSTACK_REGION_ATTRIBUTE,
   "openstack_region",
@@ -237,8 +259,7 @@ export function isOpenStackSnapshotDatapoint(data: {
       attributes,
       OPENSTACK_SERVICE_LABEL,
     );
-    // The agent's VM metric jobs read compute nodes: they are no OpenStack API to list.
-    return service !== null && !OPENSTACK_INSTANCE_METRIC_JOBS.has(service);
+    return service !== null && OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(service);
   }
   return OPENSTACK_SNAPSHOT_METRIC_NAMES.has(data.metricName);
 }
@@ -272,6 +293,11 @@ export interface OpenStackResourceBufferEntry {
    * reason: its used and its limit are two series, and only the pair says anything.
    */
   quota?: Record<string, QuotaReading> | undefined;
+  /*
+   * When this batch heard a router's own series, which is what can say its agents have gone: a
+   * batch can hold a router's agents and not the router. See getOpenStackRoutersWithoutAgents.
+   */
+  routerSeenAt?: Date | undefined;
   facts: JSONObject;
   observedAt: Date;
 }
@@ -437,6 +463,14 @@ function regional(region: string | null, id: string): string {
   return `${region || "default"}/${id}`;
 }
 
+// How a flavor's row is keyed, for something holding only an instance's flavor ID.
+export function getOpenStackFlavorRowExternalId(
+  region: string | null,
+  flavorId: string,
+): string {
+  return regional(region, flavorId);
+}
+
 function serviceRowId(data: {
   region: string | null;
   family: OpenStackServiceFamily;
@@ -539,13 +573,23 @@ function foldServiceState(data: {
     hypervisorName:
       data.family === OpenStackServiceFamily.Compute ? host : null,
   });
+  // Nova's own say-so, which only a probe sends. An operator saying down is down.
+  const forcedDown: string | null = getLabel(data.attributes, "forced_down");
   setStatus(
     entry,
-    data.value > 0
+    data.value > 0 && forcedDown !== "true"
       ? OPENSTACK_SERVICE_STATUS_UP
       : OPENSTACK_SERVICE_STATUS_DOWN,
     data.observedAt,
   );
+  /*
+   * Facts merge key by key, so a Nova worker always writes this, and a collector that does not
+   * say cannot leave behind what the last one did: a cloud moved from a probe to the agent would
+   * otherwise read forced down for good. Null is what a page reads as not known.
+   */
+  if (data.family === OpenStackServiceFamily.Compute) {
+    entry.facts["forcedDown"] = forcedDown === null ? null : forcedDown === "true";
+  }
   entry.adminState =
     getLabel(data.attributes, "adminState") ?? entry.adminState;
   entry.disabledReason =
@@ -566,6 +610,15 @@ function foldServiceState(data: {
       (entry.facts[AGENT_RECORDS_FACT] as JSONObject) || {};
     records[agentId] = data.value > 0;
     entry.facts[AGENT_RECORDS_FACT] = records;
+  }
+  /*
+   * How many networks a DHCP agent serves, which only a probe reads. Null when nothing says, which
+   * is what a page reads as not known, and not as an agent that serves none.
+   */
+  if (binary === "neutron-dhcp-agent") {
+    entry.facts["dhcpNetworkCount"] = toNumberOrNull(
+      getLabel(data.attributes, "dhcp_network_count"),
+    );
   }
 }
 
@@ -750,6 +803,8 @@ function setNativeInstanceFacts(
   entry.facts["updatedAt"] = updatedAt;
   entry.facts["taskState"] = getLabel(attributes, "task_state");
   entry.facts["faultMessage"] = getLabel(attributes, "fault_message");
+  // None, from a probe, is an instance booted from a volume: see getOpenStackInstanceImage.
+  entry.facts["imageId"] = getLabel(attributes, "image_id");
   // An instance that lost its floating IP or its port has no label left to say so.
   entry.facts["addressIpv4"] = getLabel(attributes, "address_ipv4");
   entry.facts["addressIpv6"] = getLabel(attributes, "address_ipv6");
@@ -1034,6 +1089,20 @@ function foldNetwork(data: {
     getLabel(data.attributes, "provider_physical_network"),
   );
   setFact(entry, "mtu", toNumberOrNull(getLabel(data.attributes, "mtu")));
+  /*
+   * Which DHCP agents serve it, which only a probe reads. Written every time, because facts merge
+   * key by key and a network taken off its agents has no label left to say so. A label is cut at
+   * a length, far past what a network has, and then its last id is no id.
+   */
+  const dhcpAgentIds: string | null = getLabel(
+    data.attributes,
+    "dhcp_agent_ids",
+  );
+  entry.facts["dhcpAgentIds"] = dhcpAgentIds
+    ? dhcpAgentIds.split(",").filter((id: string): boolean => {
+        return Boolean(id) && !id.endsWith("…");
+      })
+    : null;
 }
 
 /*
@@ -1136,6 +1205,7 @@ function foldRouter(data: {
     openStackProjectId: getLabel(data.attributes, "project_id"),
   });
   setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  entry.routerSeenAt = data.observedAt;
   const adminUp: string | null = getLabel(data.attributes, "admin_state_up");
   if (adminUp !== null) {
     entry.adminState = adminUp === "true" ? "up" : "down";
@@ -1148,6 +1218,30 @@ function foldRouter(data: {
     data.attributes,
     "external_network_id",
   );
+}
+
+/*
+ * A router's agents are only said by a series per agent, so one that lost its last agent has no
+ * series left to say so, and facts merge key by key: it would name them for ever. So its agents
+ * say when they were last heard, and a router heard long after that has none
+ * (getOpenStackRoutersWithoutAgents, OpenStackResourceService.forgetAgentsOfRouters).
+ *
+ * Long after, and not in the same breath, because all of a scrape is not in one batch: past a
+ * request's size a collector cuts it anywhere, so a router can arrive first and its agents a moment
+ * later, and one read of one router's agents can fail while the rest answer. Neither is a router
+ * that lost them.
+ *
+ * To five minutes, which is as often as an unchanged row is rewritten anyway, so this rewrites
+ * nothing extra.
+ */
+const ROUTER_AGENTS_REPORTED_TO_MS: number = 5 * 60 * 1000;
+const ROUTER_AGENTS_GONE_AFTER_MS: number = 10 * 60 * 1000;
+
+function getRouterAgentsReportTime(observedAt: Date): string {
+  return new Date(
+    Math.floor(observedAt.getTime() / ROUTER_AGENTS_REPORTED_TO_MS) *
+      ROUTER_AGENTS_REPORTED_TO_MS,
+  ).toISOString();
 }
 
 /*
@@ -1180,6 +1274,9 @@ function foldL3AgentOfRouter(data: {
     haState: getLabel(data.attributes, "ha_state"),
   };
   entry.facts["l3Agents"] = agents;
+  entry.facts["l3AgentsReportedAt"] = getRouterAgentsReportTime(
+    data.observedAt,
+  );
 }
 
 function foldFloatingIp(data: {
@@ -1744,6 +1841,39 @@ export function getOpenStackHostsToReconcile(
   }
 
   return hosts;
+}
+
+export interface OpenStackRouterWithoutAgents {
+  externalId: string;
+  // Its agents are gone if they were last heard before this.
+  agentsReportedBefore: Date;
+}
+
+/*
+ * The routers a batch heard from with no agent beside them, on any cloud: most clouds' are all of
+ * them, because OVN has no L3 agents, and they have nothing to forget.
+ */
+export function getOpenStackRoutersWithoutAgents(
+  finished: ReadonlyArray<OpenStackResourceBufferEntry>,
+): Array<OpenStackRouterWithoutAgents> {
+  const routers: Array<OpenStackRouterWithoutAgents> = [];
+
+  for (const entry of finished) {
+    if (
+      entry.kind === OpenStackResourceKind.Router &&
+      entry.routerSeenAt &&
+      !entry.facts["l3Agents"]
+    ) {
+      routers.push({
+        externalId: entry.externalId,
+        agentsReportedBefore: new Date(
+          entry.routerSeenAt.getTime() - ROUTER_AGENTS_GONE_AFTER_MS,
+        ),
+      });
+    }
+  }
+
+  return routers;
 }
 
 /*

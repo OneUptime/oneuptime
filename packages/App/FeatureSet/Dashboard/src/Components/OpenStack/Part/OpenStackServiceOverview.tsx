@@ -5,9 +5,10 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { OPENSTACK_API_UP_METRIC_BY_SERVICE } from "Common/Types/Monitor/OpenStackAlertTemplates";
-import { JSONValue } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   isOpenStackServiceDown,
+  isOpenStackServiceForcedDown,
   isSameOpenStackHost,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
@@ -87,6 +88,16 @@ const COLLECTED_SERVICE_ATTRIBUTE: string = "openstack_service";
 
 const THIS_API: string = translationKey("This API");
 const THIS_SERVICE: string = translationKey("This service");
+
+const FORCED_DOWN_NOTICE: string = translationKey(
+  "An operator told Nova this service is down (forced_down), which is usually what comes before evacuating a host's instances. Nova reads it as down whatever the service itself is doing, until someone runs: openstack compute service set --up {{host}} {{binary}}",
+);
+const FORCED_DOWN_DESCRIPTION: string = translationKey(
+  "Whether an operator told Nova this service is down, as openstack compute service list --long shows it. Only a probe reads this.",
+);
+const FORCED_DOWN_NOT_COLLECTED: string = translationKey(
+  "Not collected: the agent's exporter only says this service is down, not whether an operator said so. openstack compute service list --long has it.",
+);
 
 const AGENT_STATE_METRICS: Record<string, string> = {
   [OpenStackServiceFamily.Compute]: "openstack_nova_agent_state",
@@ -280,8 +291,13 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
   // A host the Hosts product hears from under the same name.
   const machine: string = isApi ? "" : getOpenStackWorkerMachine(row);
   const host: OpenStackRead<Host | null> = useOpenStackRead<Host | null>(() => {
-    return machine ? fetchOpenStackHostOf(machine) : Promise.resolve(null);
-  }, [machine]);
+    return machine
+      ? fetchOpenStackHostOf({
+          openStackCloudId: part.openStackCloudId,
+          machineName: machine,
+        })
+      : Promise.resolve(null);
+  }, [part.openStackCloudId.toString(), machine]);
 
   const rows: Array<OpenStackResource> = attention.data?.rows || [];
   const workers: Array<OpenStackResource> = rows.filter(
@@ -334,6 +350,12 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
   const staleAgentIds: Array<string> = isApi
     ? []
     : getOpenStackStaleAgentIds(row);
+  const isForcedDown: boolean =
+    !isApi &&
+    isOpenStackServiceForcedDown({
+      status: row.status,
+      facts: row.facts as JSONObject | undefined,
+    });
 
   const details: Array<ResourcePartDetailRow> = [];
   if (isApi) {
@@ -403,6 +425,36 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
         value: row.disabledReason,
       });
     }
+    /*
+     * Only Nova has this, and only a probe reads it. A worker that reads up can't be forced down,
+     * so where it isn't known it only comes up when it is what someone is wondering.
+     */
+    if (family === OpenStackServiceFamily.Compute) {
+      const forcedDown: JSONValue | undefined = (
+        (row.facts as JSONObject | undefined) || {}
+      )["forcedDown"];
+      if (typeof forcedDown === "boolean") {
+        details.push({
+          key: "forced-down",
+          label: "Forced down",
+          value:
+            translator.translateText(forcedDown ? "Yes" : "No") ||
+            (forcedDown ? "Yes" : "No"),
+          description: FORCED_DOWN_DESCRIPTION,
+        });
+      } else if (row.status === "down") {
+        details.push({
+          key: "forced-down",
+          label: "Forced down",
+          value: (
+            <span className="text-gray-500">
+              {translator.translateText(FORCED_DOWN_NOT_COLLECTED) ||
+                FORCED_DOWN_NOT_COLLECTED}
+            </span>
+          ),
+        });
+      }
+    }
     if (row.availabilityZone) {
       details.push({
         key: "zone",
@@ -469,6 +521,19 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
           tone="warning"
           text="Its API isn't answering, so nothing has been able to read this worker since. It reads as it last did."
         />
+      ) : (
+        <></>
+      )}
+      {isForcedDown ? (
+        <OpenStackPartNotice
+          testId="openstack-service-forced-down"
+          tone="warning"
+        >
+          {translator.translateTemplate(FORCED_DOWN_NOTICE, {
+            host: getOpenStackWorkerHost(row),
+            binary: row.name || "",
+          })}
+        </OpenStackPartNotice>
       ) : (
         <></>
       )}

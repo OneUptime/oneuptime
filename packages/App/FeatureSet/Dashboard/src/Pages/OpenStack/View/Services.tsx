@@ -48,6 +48,7 @@ import {
   OpenStackAccessGap,
   OpenStackServiceGroup,
   getOpenStackAccessGaps,
+  getOpenStackRowsAsThisCredentialReadsThem,
   getOpenStackNetworkBackendName,
   getOpenStackServiceGroups,
   getOpenStackServiceTitle,
@@ -146,8 +147,13 @@ const OpenStackCloudServices: FunctionComponent<
   ): boolean => {
     return !region || row.regionName === region;
   };
-  const apis: Array<OpenStackResource> = data.rows.apis.filter(inRegion);
   const workers: Array<OpenStackResource> = data.rows.workers.filter(inRegion);
+  const apis: Array<OpenStackResource> =
+    getOpenStackRowsAsThisCredentialReadsThem({
+      rows: data.rows.apis,
+      apis: data.rows.apis,
+      workers: data.rows.workers,
+    }).filter(inRegion);
 
   const documentationRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION] as Route,

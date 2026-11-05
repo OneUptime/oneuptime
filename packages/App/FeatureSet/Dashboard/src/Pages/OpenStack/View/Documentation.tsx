@@ -64,8 +64,8 @@ const OpenStackCloudDocumentation: FunctionComponent<
     <Fragment>
       <OpenStackDocumentationCard
         cloudName={cloud.name || ""}
-        title="OpenStack Agent Installation Guide"
-        description="Install or reconfigure the OneUptime OpenStack agent for this cloud. Pick how to install it, then follow the steps."
+        title="Connect this cloud"
+        description="Say how you deploy OpenStack, then follow the steps for it."
       />
     </Fragment>
   );
