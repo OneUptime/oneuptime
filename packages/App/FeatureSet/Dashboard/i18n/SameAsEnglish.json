@@ -122,6 +122,7 @@
   "OpenID Connect (OIDC)",
   "OpenInference",
   "OpenLLMetry",
+  "OpenStack",
   "OpenTelemetry",
   "OpenTelemetry Collector",
   "P50",
@@ -199,6 +200,5 @@
   "whsec_…",
   "{ \"Authorization\": \"Bearer ...\" }",
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }",
-  "{ \"message\": \"...\" }",
-  "OpenStack"
+  "{ \"message\": \"...\" }"
 ]
