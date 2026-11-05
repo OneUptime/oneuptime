@@ -14,13 +14,21 @@ import {
   OpenStackCountBy,
   OpenStackCountRow,
 } from "../../../Types/OpenStack/OpenStackCounts";
-import { OPENSTACK_IMAGE_STUCK_MINUTES } from "../../../Types/OpenStack/OpenStackHealthRules";
+import {
+  OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
+  OPENSTACK_BARE_METAL_STUCK_MINUTES,
+  OPENSTACK_IMAGE_STUCK_MINUTES,
+  OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS,
+  OPENSTACK_QUIET_SERVICE_MINUTES,
+} from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackRegionSummary,
   OpenStackTopConsumer,
   OpenStackTopConsumers,
 } from "../../../Types/OpenStack/OpenStackOverview";
 import {
+  OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+  OPENSTACK_BARE_METAL_IN_SERVICE,
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
@@ -70,6 +78,8 @@ import { DataSource } from "typeorm";
  *     behind: a failing Nova keeps its instances, a good Nova removes what it no
  *     longer reports, each region answers for itself, and each family of workers
  *     answers to its own API;
+ *   - bare metal: what needs someone is what the rules say, a stopped instance's node is planned,
+ *     Ironic going quiet keeps its nodes, and one that has been quiet for weeks is forgotten;
  *   - the table holds 500,000 rows of one cloud, upserted and read within a stated
  *     budget, because that is a cloud OpenStack's largest operators really run.
  */
@@ -591,6 +601,9 @@ describePostgres("OpenStackResourceService on Postgres", () => {
       );
 
       expect(await summary()).toEqual({
+        bareMetalNodeCount: 0,
+        bareMetalProviderCount: 0,
+        services: [OpenStackServiceType.Compute],
         regionCount: 2,
         availabilityZoneCount: 2,
         hypervisorCount: 2,
@@ -2165,6 +2178,545 @@ describePostgres("OpenStackResourceService on Postgres", () => {
           new Date(NOW.getTime() + OPENSTACK_IMAGE_STUCK_MINUTES * MINUTE_MS),
         ),
       ).toEqual(["saving-1"]);
+    });
+  });
+
+  describe("bare metal", () => {
+    const LONG_AGO: Date = at(-60 * MINUTE_MS);
+
+    const node: (
+      externalId: string,
+      overrides?: Partial<ParsedOpenStackResource>,
+    ) => ParsedOpenStackResource = (
+      externalId: string,
+      overrides: Partial<ParsedOpenStackResource> = {},
+    ): ParsedOpenStackResource => {
+      return resource({
+        kind: OpenStackResourceKind.BareMetalNode,
+        externalId,
+        name: externalId,
+        status: "available",
+        adminState: OPENSTACK_BARE_METAL_IN_SERVICE,
+        ...overrides,
+      });
+    };
+
+    const attentionNodes: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      const answer: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          now: NOW,
+        });
+      return answer.rows
+        .filter((row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.BareMetalNode;
+        })
+        .map((row: JSONObject): string => {
+          return row["externalId"] as string;
+        });
+    };
+
+    test("a cloud without Ironic counts none, and names no such service", async () => {
+      await write([api(OpenStackServiceType.Compute)]);
+
+      const read: OpenStackInventorySummary = await summary();
+
+      expect(read.bareMetalNodeCount).toBe(0);
+      expect(read.bareMetalProviderCount).toBe(0);
+      expect(read.services).toEqual([OpenStackServiceType.Compute]);
+    });
+
+    test("the summary counts nodes and what Placement holds, and neither is capacity", async () => {
+      await write([
+        api(OpenStackServiceType.BareMetal),
+        api(OpenStackServiceType.Placement),
+        node("node-1"),
+        node("node-2", { status: "clean failed" }),
+        resource({
+          kind: OpenStackResourceKind.PlacementProvider,
+          externalId: "RegionOne/node-1",
+          name: "node-1",
+          facts: { "inventory:CUSTOM_GOLD:total": 1 },
+        }),
+      ]);
+
+      const read: OpenStackInventorySummary = await summary();
+
+      expect(read.bareMetalNodeCount).toBe(2);
+      expect(read.bareMetalProviderCount).toBe(1);
+      expect(read.services.sort()).toEqual(["baremetal", "placement"]);
+      expect(read.hypervisorCount).toBe(0);
+      expect(read.vcpuCapacity).toBe(0);
+    });
+
+    test("what needs someone: failed and stuck, and nothing that is only so", async () => {
+      await write([
+        node("fine"),
+        node("half-enrolled", { status: "enroll" }),
+        node("failed", { status: "clean failed" }),
+        node("failed-teardown", { status: "error" }),
+        node("deploying-a-minute", {
+          status: "deploying",
+          facts: { provisionUpdatedAt: at(-MINUTE_MS).toISOString() },
+        }),
+        node("stuck", {
+          status: "wait call-back",
+          facts: {
+            provisionUpdatedAt: at(
+              -OPENSTACK_BARE_METAL_STUCK_MINUTES * MINUTE_MS,
+            ).toISOString(),
+          },
+        }),
+        // A step someone wrote asked Ironic to wait.
+        node("held", {
+          status: "clean hold",
+          facts: { provisionUpdatedAt: LONG_AGO.toISOString() },
+        }),
+      ]);
+
+      expect(await attentionNodes()).toEqual(
+        expect.arrayContaining(["failed", "failed-teardown", "stuck"]),
+      );
+      expect(await attentionNodes()).toHaveLength(3);
+    });
+
+    test("with no time from Ironic, what stuck goes by is when its state last changed", async () => {
+      await write([
+        node("stuck", {
+          status: "deploying",
+          lastSeenAt: at(-OPENSTACK_BARE_METAL_STUCK_MINUTES * MINUTE_MS),
+        }),
+      ]);
+      await write([
+        node("stuck", { status: "deploying", lastSeenAt: NOW }),
+      ]);
+
+      expect(await attentionNodes()).toEqual(["stuck"]);
+    });
+
+    test("maintenance is planned until it has been a week, and a failed node in it is still failed", async () => {
+      const WEEK_MS: number =
+        OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS * 24 * 60 * MINUTE_MS;
+
+      await write([
+        node("swapping-a-disk", {
+          adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+          disabledReason: "a disk being swapped",
+        }),
+        node("forgotten", {
+          adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+          lastSeenAt: at(-WEEK_MS),
+        }),
+        node("failed-in-maintenance", {
+          status: "clean failed",
+          adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+        }),
+        // Stopped where it was by someone: not stuck, however long.
+        node("paused-on-its-way", {
+          status: "clean wait",
+          adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+          facts: { provisionUpdatedAt: LONG_AGO.toISOString() },
+        }),
+      ]);
+
+      expect((await attentionNodes()).sort()).toEqual([
+        "failed-in-maintenance",
+        "forgotten",
+      ]);
+    });
+
+    test("deployed with its power off, unless Nova says the instance on it was stopped", async () => {
+      const off: JSONObject = { powerState: "power off" };
+
+      await write([
+        node("off", { status: "active", facts: off }),
+        node("off-under-a-running-instance", { status: "active", facts: off }),
+        node("off-under-a-stopped-instance", { status: "active", facts: off }),
+        node("on", { status: "active", facts: { powerState: "power on" } }),
+        node("not-known", { status: "active", facts: { powerState: null } }),
+        node("off-in-maintenance", {
+          status: "active",
+          adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+          facts: off,
+        }),
+        node("available-and-off", { status: "available", facts: off }),
+        resource({
+          kind: OpenStackResourceKind.Instance,
+          externalId: "running",
+          hypervisorName: "off-under-a-running-instance",
+          status: "ACTIVE",
+        }),
+        resource({
+          kind: OpenStackResourceKind.Instance,
+          externalId: "stopped",
+          hypervisorName: "off-under-a-stopped-instance",
+          status: "SHUTOFF",
+        }),
+      ]);
+
+      expect((await attentionNodes()).sort()).toEqual([
+        "off",
+        "off-under-a-running-instance",
+      ]);
+    });
+
+    test("what failed comes first, however many can wait", async () => {
+      const many: Array<ParsedOpenStackResource> = [];
+      for (let index: number = 0; index < 120; index++) {
+        many.push(
+          node(`a-stuck-${index}`, {
+            status: "deploying",
+            facts: { provisionUpdatedAt: LONG_AGO.toISOString() },
+          }),
+        );
+      }
+      await write([
+        ...many,
+        node("z-failed", {
+          status: "deploy failed",
+        }),
+      ]);
+      await write(
+        many.map((one: ParsedOpenStackResource) => {
+          return {
+            ...one,
+            facts: {
+              provisionUpdatedAt: at(-600 * MINUTE_MS).toISOString(),
+            },
+          };
+        }),
+      );
+
+      const read: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          now: NOW,
+        });
+      const nodes: Array<JSONObject> = read.rows.filter(
+        (row: JSONObject): boolean => {
+          return row["kind"] === OpenStackResourceKind.BareMetalNode;
+        },
+      );
+
+      expect(nodes[0]?.["externalId"]).toBe("z-failed");
+      expect(read.totalsByKind[OpenStackResourceKind.BareMetalNode]).toBe(121);
+    });
+
+    test("a service gone quiet needs someone, and one that only says up does not", async () => {
+      const quietFor: number =
+        (OPENSTACK_QUIET_SERVICE_MINUTES + 1) * MINUTE_MS;
+
+      await write([
+        api(OpenStackServiceType.Compute, { lastSeenAt: at(-quietFor) }),
+        api(OpenStackServiceType.BareMetal, { lastSeenAt: at(-quietFor) }),
+      ]);
+
+      const read: OpenStackAttentionRows =
+        await OpenStackResourceService.getAttentionRows({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          now: NOW,
+        });
+
+      expect(
+        read.rows
+          .filter((row: JSONObject): boolean => {
+            return row["kind"] === OpenStackResourceKind.Api;
+          })
+          .map((row: JSONObject): unknown => {
+            return row["name"];
+          }),
+      ).toEqual([OpenStackServiceType.BareMetal]);
+    });
+
+    test("a node's maintenance moves when its state changed, and its reason goes with it", async () => {
+      await write([node("node-1", { lastSeenAt: at(-20 * MINUTE_MS) })]);
+      await write([
+        node("node-1", {
+          adminState: OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+          disabledReason: "a disk being swapped",
+          lastSeenAt: at(-10 * MINUTE_MS),
+        }),
+      ]);
+
+      const taken: Row = await rowOf(
+        OpenStackResourceKind.BareMetalNode,
+        "node-1",
+      );
+
+      expect(new Date(taken["stateChangedAt"] as Date)).toEqual(
+        at(-10 * MINUTE_MS),
+      );
+      expect(taken["disabledReason"]).toBe("a disk being swapped");
+
+      await write([node("node-1", { lastSeenAt: NOW })]);
+
+      const back: Row = await rowOf(
+        OpenStackResourceKind.BareMetalNode,
+        "node-1",
+      );
+
+      expect(back["adminState"]).toBe(OPENSTACK_BARE_METAL_IN_SERVICE);
+      expect(back["disabledReason"]).toBe(null);
+      expect(new Date(back["stateChangedAt"] as Date)).toEqual(NOW);
+    });
+
+    test("a reason Ironic has emptied stays on a failed node, because nothing writes over it", async () => {
+      await write([
+        node("node-1", {
+          status: "clean failed",
+          facts: { lastError: "the BMC would not answer", fault: "clean failure" },
+          lastSeenAt: at(-10 * MINUTE_MS),
+        }),
+      ]);
+      await write([
+        node("node-1", {
+          status: "clean failed",
+          facts: { fault: null },
+          lastSeenAt: NOW,
+        }),
+      ]);
+
+      const read: Row = await rowOf(
+        OpenStackResourceKind.BareMetalNode,
+        "node-1",
+      );
+
+      expect((read["facts"] as JSONObject)["lastError"]).toBe(
+        "the BMC would not answer",
+      );
+      expect((read["facts"] as JSONObject)["fault"]).toBe(null);
+    });
+
+    test("what a failed node takes with it is the instance Nova has on it", async () => {
+      await write([
+        node("node-1", { status: "clean failed" }),
+        resource({
+          kind: OpenStackResourceKind.Instance,
+          externalId: "on-the-node",
+          hypervisorName: "node-1",
+          openStackProjectId: "project-a",
+        }),
+        resource({
+          kind: OpenStackResourceKind.Instance,
+          externalId: "elsewhere",
+          hypervisorName: "compute-01",
+          openStackProjectId: "project-b",
+        }),
+      ]);
+
+      const radius: OpenStackBlastRadius =
+        await OpenStackResourceService.getBlastRadius({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          part: {
+            kind: OpenStackResourceKind.BareMetalNode,
+            externalId: "node-1",
+            regionName: "RegionOne",
+          },
+        });
+
+      expect(radius.instanceCount).toBe(1);
+      expect(radius.projectCount).toBe(1);
+    });
+
+    describe("when rows go", () => {
+      test("a good read of Ironic removes a node it no longer lists, and only that", async () => {
+        await write([
+          api(OpenStackServiceType.BareMetal),
+          node("gone", { lastSeenAt: LONG_AGO }),
+          node("here"),
+        ]);
+
+        expect(await sweep()).toBe(1);
+        expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual([
+          "here",
+        ]);
+      });
+
+      test("Ironic going quiet removes nothing: its nodes are not gone, it just cannot say", async () => {
+        await write([
+          // Still reporting, so what a cloud stands on is measured against this.
+          api(OpenStackServiceType.Compute),
+          api(OpenStackServiceType.BareMetal, {
+            vouchedAt: at(-3 * 60 * MINUTE_MS),
+            lastSeenAt: at(-3 * 60 * MINUTE_MS),
+          }),
+          node("last-known", { lastSeenAt: at(-3 * 60 * MINUTE_MS) }),
+        ]);
+
+        expect(await sweep()).toBe(0);
+        expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual([
+          "last-known",
+        ]);
+      });
+
+      test("Ironic reading down removes nothing either", async () => {
+        await write([
+          api(OpenStackServiceType.BareMetal, {
+            status: "down",
+            facts: {},
+          }),
+          node("last-known", { lastSeenAt: LONG_AGO }),
+        ]);
+
+        expect(await sweep()).toBe(0);
+        expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual([
+          "last-known",
+        ]);
+      });
+
+      test("Placement going on does not vouch for a node, nor Ironic for a provider", async () => {
+        await write([
+          api(OpenStackServiceType.Placement),
+          api(OpenStackServiceType.BareMetal, {
+            status: "down",
+            facts: {},
+          }),
+          node("a-node", { lastSeenAt: LONG_AGO }),
+          resource({
+            kind: OpenStackResourceKind.PlacementProvider,
+            externalId: "RegionOne/gone",
+            lastSeenAt: LONG_AGO,
+          }),
+        ]);
+
+        expect(await sweep()).toBe(1);
+        expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual([
+          "a-node",
+        ]);
+        expect(
+          await externalIds(OpenStackResourceKind.PlacementProvider),
+        ).toEqual([]);
+      });
+
+      test("a conductor a good read no longer lists goes, and Nova's workers do not answer to Ironic", async () => {
+        await write([
+          api(OpenStackServiceType.BareMetal),
+          resource({
+            kind: OpenStackResourceKind.Service,
+            externalId: "RegionOne/baremetal/conductor-1/ironic-conductor",
+            lastSeenAt: LONG_AGO,
+            facts: { family: "baremetal" },
+          }),
+          resource({
+            kind: OpenStackResourceKind.Service,
+            externalId: "RegionOne/compute/compute-01/nova-compute",
+            lastSeenAt: LONG_AGO,
+            facts: { family: "compute" },
+          }),
+        ]);
+
+        expect(await sweep()).toBe(1);
+        expect(await externalIds(OpenStackResourceKind.Service)).toEqual([
+          "RegionOne/compute/compute-01/nova-compute",
+        ]);
+      });
+
+      describe("a service taken out of a cloud, which has no way to say so", () => {
+        const DAY_MS: number = 24 * 60 * MINUTE_MS;
+        const QUIET_FOR: number =
+          OPENSTACK_QUIET_SERVICE_FORGOTTEN_DAYS * DAY_MS + MINUTE_MS;
+
+        test("is forgotten, API, nodes and conductors, once the rest of the cloud has gone on that long", async () => {
+          await write([
+            api(OpenStackServiceType.Compute),
+            api(OpenStackServiceType.BareMetal, {
+              vouchedAt: at(-QUIET_FOR),
+              lastSeenAt: at(-QUIET_FOR),
+            }),
+            node("a-node", { lastSeenAt: at(-QUIET_FOR) }),
+            resource({
+              kind: OpenStackResourceKind.Service,
+              externalId: "RegionOne/baremetal/conductor-1/ironic-conductor",
+              lastSeenAt: at(-QUIET_FOR),
+              facts: { family: "baremetal" },
+            }),
+            resource({
+              kind: OpenStackResourceKind.Service,
+              externalId: "RegionOne/compute/compute-01/nova-compute",
+              facts: { family: "compute" },
+            }),
+          ]);
+
+          await sweep();
+
+          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
+            [],
+          );
+          expect(await externalIds(OpenStackResourceKind.Service)).toEqual([
+            "RegionOne/compute/compute-01/nova-compute",
+          ]);
+          expect(await externalIds(OpenStackResourceKind.Api)).toEqual([
+            "RegionOne/compute",
+          ]);
+        });
+
+        test("is kept until then", async () => {
+          const NOT_YET: number = QUIET_FOR - 2 * MINUTE_MS;
+
+          await write([
+            api(OpenStackServiceType.Compute),
+            api(OpenStackServiceType.BareMetal, {
+              vouchedAt: at(-NOT_YET),
+              lastSeenAt: at(-NOT_YET),
+            }),
+            node("a-node", { lastSeenAt: at(-NOT_YET) }),
+          ]);
+
+          await sweep();
+
+          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
+            ["a-node"],
+          );
+        });
+
+        test("a whole cloud gone silent forgets nothing, however long", async () => {
+          await write([
+            api(OpenStackServiceType.Compute, {
+              vouchedAt: at(-QUIET_FOR),
+              lastSeenAt: at(-QUIET_FOR),
+            }),
+            api(OpenStackServiceType.BareMetal, {
+              vouchedAt: at(-QUIET_FOR),
+              lastSeenAt: at(-QUIET_FOR),
+            }),
+            node("a-node", { lastSeenAt: at(-QUIET_FOR) }),
+          ]);
+
+          await sweep();
+
+          expect(await externalIds(OpenStackResourceKind.BareMetalNode)).toEqual(
+            ["a-node"],
+          );
+        });
+
+        test("a service every cloud runs is never forgotten this way", async () => {
+          await write([
+            api(OpenStackServiceType.Identity),
+            api(OpenStackServiceType.Image, {
+              vouchedAt: at(-QUIET_FOR),
+              lastSeenAt: at(-QUIET_FOR),
+            }),
+            resource({
+              kind: OpenStackResourceKind.Image,
+              externalId: "an-image",
+              lastSeenAt: at(-QUIET_FOR),
+            }),
+          ]);
+
+          await sweep();
+
+          expect(await externalIds(OpenStackResourceKind.Api)).toEqual([
+            "RegionOne/identity",
+            "RegionOne/image",
+          ]);
+        });
+      });
     });
   });
 

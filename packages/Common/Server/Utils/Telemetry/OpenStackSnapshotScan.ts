@@ -1,6 +1,14 @@
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
-import { getOpenStackShortHostName } from "../../../Types/OpenStack/OpenStackHealthRules";
+import {
+  getOpenStackInventoryFactKey,
+  getOpenStackInventorySeenHour,
+} from "../../../Types/OpenStack/OpenStackCapacity";
+import {
+  getOpenStackShortHostName,
+  isOpenStackBareMetalNodeId,
+  isOpenStackBareMetalNodeInError,
+} from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackQuotaResource,
   getOpenStackQuotaFactKey,
@@ -9,6 +17,9 @@ import {
   OpenStackResourceKind,
   OpenStackServiceFamily,
   OpenStackServiceType,
+  OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+  OPENSTACK_BARE_METAL_IN_SERVICE,
+  OPENSTACK_SERVICES_EVERY_CLOUD_RUNS,
   OPENSTACK_SERVICE_STATUS_DOWN,
   OPENSTACK_SERVICE_STATUS_UP,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
@@ -57,6 +68,12 @@ export const OPENSTACK_API_UP_METRIC_NAMES: ReadonlyMap<
   ["openstack_neutron_up", OpenStackServiceType.Network],
   ["openstack_cinder_up", OpenStackServiceType.Volume],
   ["openstack_glance_up", OpenStackServiceType.Image],
+  /*
+   * Only a read of Ironic that got somewhere says this. Stopped, the exporter the agent runs answers
+   * an empty 200, as it does for a cloud without Ironic, so this series goes quiet rather than
+   * reading 0: an older exporter (1.7.0) and a probe, which reads the catalog first, can say 0.
+   */
+  ["openstack_ironic_up", OpenStackServiceType.BareMetal],
 ]);
 
 /*
@@ -71,27 +88,7 @@ export const OPENSTACK_SCRAPE_DURATION_METRIC_NAME: string =
   "scrape_duration_seconds";
 export const OPENSTACK_SERVICE_LABEL: string = "openstack_service";
 
-/*
- * The services a scrape's own series can speak for, because every cloud runs them. The
- * agent also asks the exporter for services a cloud may not run, such as load-balancer and
- * baremetal, and for one that is not in the catalog the exporter answers 200 with nothing.
- * `up` reads 1 for that scrape, and 0 for all of them when the exporter is down, on a cloud
- * that has never had the service. So these series never make a row for one of those: only
- * what the exporter says about the service itself can, which it says only if the catalog
- * has it. This is written out rather than read from OpenStackServiceType, so that adding a
- * service there does not start giving every cloud a row for it. So are the agent's VM
- * metric jobs left out, which read compute nodes rather than an API to list.
- */
-export const OPENSTACK_SERVICES_EVERY_CLOUD_RUNS: ReadonlySet<string> = new Set(
-  [
-    OpenStackServiceType.Identity,
-    OpenStackServiceType.Compute,
-    OpenStackServiceType.Placement,
-    OpenStackServiceType.Network,
-    OpenStackServiceType.Volume,
-    OpenStackServiceType.Image,
-  ],
-);
+export { OPENSTACK_SERVICES_EVERY_CLOUD_RUNS };
 
 /*
  * The exporter's series do not say which region they are from. The agent reads
@@ -232,6 +229,11 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_neutron_floating_ip",
   "openstack_identity_project_info",
   "openstack_identity_domain_info",
+  "openstack_ironic_node",
+  "openstack_ironic_node_provision_updated_at",
+  "openstack_ironic_node_updated_at",
+  // Only a probe says this one: the exporter has nothing on Ironic's conductors.
+  "openstack_ironic_conductor_state",
 ]);
 
 const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
@@ -552,6 +554,7 @@ const SERVICE_FAMILY_BY_METRIC: ReadonlyMap<string, OpenStackServiceFamily> =
     ["openstack_nova_agent_state", OpenStackServiceFamily.Compute],
     ["openstack_neutron_agent_state", OpenStackServiceFamily.Network],
     ["openstack_cinder_agent_state", OpenStackServiceFamily.Volume],
+    ["openstack_ironic_conductor_state", OpenStackServiceFamily.BareMetal],
   ]);
 
 function foldServiceState(data: {
@@ -669,6 +672,85 @@ function finishAgentRecords(entry: OpenStackResourceBufferEntry): void {
   entry.facts["staleAgentIds"] = null;
 }
 
+/*
+ * Whether a reading of a host is really about a bare metal node. A node is a provider in Placement
+ * and a hypervisor to Nova, both under its UUID, and it is neither a place to run a virtual machine
+ * nor capacity to count as one (#5742). Decided one series at a time, because a collector can cut a
+ * scrape anywhere, so a batch holding only some of a host's series says nothing about the rest.
+ *
+ *  - Placement: a UUID holding a class of its own. A host called by a UUID holds VCPU and MEMORY_MB
+ *    as well, and those stay its own.
+ *  - Nova: a UUID with nothing to say. Its Ironic driver reports every number as 0 and has done for
+ *    years, and a host really called by a UUID has more than that. Which a node's own running_vms
+ *    breaks, so that one never counts as saying anything: the instance's own row says where it runs.
+ *
+ * Nothing recorded holds Nova's list with a node in it yet: DevStack mapped its host before any
+ * node existed. So the Nova half is from its driver's source.
+ */
+function isBareMetalNodeReading(data: {
+  metricName: string;
+  host: string | null;
+  resource: string | null;
+  value: number;
+}): boolean {
+  if (!isOpenStackBareMetalNodeId(data.host)) {
+    return false;
+  }
+  if (PLACEMENT_RESOURCE_METRIC_NAMES.has(data.metricName)) {
+    return Boolean(data.resource?.startsWith("CUSTOM_"));
+  }
+  return data.metricName === "openstack_nova_running_vms" || data.value <= 0;
+}
+
+/*
+ * What Placement holds of a node. Keyed by region, as a hypervisor is, because a provider's name
+ * is only as unique as Placement says, and each region has its own.
+ */
+function foldPlacementProvider(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  metricName: string;
+  host: string;
+  resource: string;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.PlacementProvider,
+    externalId: regional(data.region, data.host),
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, { name: data.host, regionName: data.region });
+  setPlacementReading({
+    entry,
+    metricName: data.metricName,
+    resource: data.resource,
+    value: data.value,
+  });
+}
+
+function setPlacementReading(data: {
+  entry: OpenStackResourceBufferEntry;
+  metricName: string;
+  resource: string;
+  value: number;
+}): void {
+  const reading: PlacementReading = data.entry.placement[data.resource] || {};
+  if (data.metricName === "openstack_placement_resource_total") {
+    reading.total = data.value;
+  } else if (data.metricName === "openstack_placement_resource_reserved") {
+    reading.reserved = data.value;
+  } else if (
+    data.metricName === "openstack_placement_resource_allocation_ratio"
+  ) {
+    reading.ratio = data.value;
+  } else {
+    reading.usage = data.value;
+  }
+  data.entry.placement[data.resource] = reading;
+}
+
 function foldHypervisor(data: {
   buffer: Map<string, OpenStackResourceBufferEntry>;
   metricName: string;
@@ -699,19 +781,12 @@ function foldHypervisor(data: {
     if (!resource) {
       return;
     }
-    const reading: PlacementReading = entry.placement[resource] || {};
-    if (data.metricName === "openstack_placement_resource_total") {
-      reading.total = data.value;
-    } else if (data.metricName === "openstack_placement_resource_reserved") {
-      reading.reserved = data.value;
-    } else if (
-      data.metricName === "openstack_placement_resource_allocation_ratio"
-    ) {
-      reading.ratio = data.value;
-    } else {
-      reading.usage = data.value;
-    }
-    entry.placement[resource] = reading;
+    setPlacementReading({
+      entry,
+      metricName: data.metricName,
+      resource,
+      value: data.value,
+    });
     return;
   }
 
@@ -755,6 +830,124 @@ function foldHypervisor(data: {
       break;
     default:
       break;
+  }
+}
+
+/*
+ * One machine Ironic manages, from openstack_ironic_node. The collector drops a label with nothing
+ * in it, so a node with no power state or resource class has no such label, and one that lost its
+ * maintenance reason has no label left to say so: facts merge key by key, so these are written every
+ * time, and the row's reason goes with its adminState (bulkUpsert).
+ */
+function foldBareMetalNode(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const entry: OpenStackResourceBufferEntry | null = bareMetalNodeEntry(data);
+  if (!entry) {
+    return;
+  }
+  const { attributes } = data;
+  entry.adminState =
+    getLabel(attributes, "maintenance") === "true"
+      ? OPENSTACK_BARE_METAL_IN_MAINTENANCE
+      : OPENSTACK_BARE_METAL_IN_SERVICE;
+  entry.disabledReason = getLabel(attributes, "maintenance_reason");
+  entry.facts["powerState"] = getLabel(attributes, "power_state");
+  entry.facts["resourceClass"] = getLabel(attributes, "resource_class");
+  entry.facts["isRetired"] = getLabel(attributes, "retired") === "true";
+  entry.facts["retiredReason"] = getLabel(attributes, "retired_reason");
+  setNativeBareMetalNodeFacts(entry, attributes, data.observedAt);
+}
+
+// The same node's other two series, in case a collector cut a scrape between them.
+function bareMetalNodeEntry(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): OpenStackResourceBufferEntry | null {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return null;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.BareMetalNode,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    // Who owns it, which only a probe says. Ironic's owner is a project's ID.
+    openStackProjectId: getLabel(data.attributes, "owner"),
+  });
+  setStatus(
+    entry,
+    getLabel(data.attributes, "provision_state"),
+    data.observedAt,
+  );
+  return entry;
+}
+
+/*
+ * What only Ironic's API says, and so only a probe: the exporter has no driver, instance, fault or
+ * last_error. Every node has a driver, so that is what tells a probe's series from the exporter's,
+ * whose silence says nothing about any of these.
+ *
+ * Why a node failed does not last. Ironic empties last_error about a minute later, with the node
+ * still failed (recorded: services-ironic, clean-failed against deploy-failed). So a reason is kept
+ * until the node has left a failed state, with when it was read. An empty one never replaces it.
+ */
+function setNativeBareMetalNodeFacts(
+  entry: OpenStackResourceBufferEntry,
+  attributes: JSONArray,
+  observedAt: Date,
+): void {
+  const driver: string | null = getLabel(attributes, "driver");
+
+  if (!driver) {
+    return;
+  }
+
+  entry.facts["driver"] = driver;
+  entry.facts["instanceId"] = getLabel(attributes, "instance_uuid");
+  entry.facts["fault"] = getLabel(attributes, "fault");
+  entry.facts["targetProvisionState"] = getLabel(
+    attributes,
+    "target_provision_state",
+  );
+  entry.facts["targetPowerState"] = getLabel(attributes, "target_power_state");
+  entry.facts["lessee"] = getLabel(attributes, "lessee");
+  entry.facts["conductor"] = getLabel(attributes, "conductor");
+  entry.facts["conductorGroup"] = getLabel(attributes, "conductor_group");
+
+  const lastError: string | null = getLabel(attributes, "last_error");
+
+  if (lastError) {
+    entry.facts["lastError"] = lastError;
+    entry.facts["lastErrorReadAt"] = observedAt.toISOString();
+  } else if (!isOpenStackBareMetalNodeInError(entry.status)) {
+    entry.facts["lastError"] = null;
+    entry.facts["lastErrorReadAt"] = null;
+  }
+}
+
+// When Ironic says a node last changed, as a Unix time. A node that never has has no such series.
+function foldBareMetalNodeTime(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  fact: "provisionUpdatedAt" | "nodeUpdatedAt";
+  attributes: JSONArray;
+  region: string | null;
+  value: number;
+  observedAt: Date;
+}): void {
+  const entry: OpenStackResourceBufferEntry | null = bareMetalNodeEntry(data);
+  if (entry && data.value > 0) {
+    entry.facts[data.fact] = new Date(data.value * 1000).toISOString();
   }
 }
 
@@ -1535,6 +1728,22 @@ export function bufferOpenStackSnapshotMetric(data: {
     metricName.startsWith("openstack_nova_local_storage_") ||
     metricName === "openstack_nova_running_vms"
   ) {
+    const host: string | null = getLabel(attributes, "hostname");
+    const resource: string | null = getLabel(attributes, "resourcetype");
+    if (isBareMetalNodeReading({ metricName, host, resource, value })) {
+      if (host && resource) {
+        foldPlacementProvider({
+          buffer,
+          metricName,
+          host,
+          resource,
+          region,
+          value,
+          observedAt,
+        });
+      }
+      return;
+    }
     foldHypervisor({
       buffer,
       metricName,
@@ -1646,6 +1855,29 @@ export function bufferOpenStackSnapshotMetric(data: {
     case "openstack_identity_domain_info":
       foldDomain({ buffer, attributes, observedAt });
       return;
+    case "openstack_ironic_node":
+      foldBareMetalNode({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_ironic_node_provision_updated_at":
+      foldBareMetalNodeTime({
+        buffer,
+        fact: "provisionUpdatedAt",
+        attributes,
+        region,
+        value,
+        observedAt,
+      });
+      return;
+    case "openstack_ironic_node_updated_at":
+      foldBareMetalNodeTime({
+        buffer,
+        fact: "nodeUpdatedAt",
+        attributes,
+        region,
+        value,
+        observedAt,
+      });
+      return;
     default:
       return;
   }
@@ -1671,6 +1903,38 @@ function placementCapacity(reading: PlacementReading | undefined): {
 }
 
 /*
+ * One fact per number, in the shape OpenStackCapacity reads a provider's classes from, and each is
+ * written only when this batch said it: a batch can hold a reading's total without its ratio.
+ */
+function setPlacementProviderFacts(entry: OpenStackResourceBufferEntry): void {
+  const seen: number = getOpenStackInventorySeenHour(entry.observedAt);
+
+  for (const resourceClass of Object.keys(entry.placement)) {
+    const reading: PlacementReading = entry.placement[
+      resourceClass
+    ] as PlacementReading;
+
+    if (reading.total !== undefined) {
+      entry.facts[getOpenStackInventoryFactKey(resourceClass, "total")] =
+        reading.total;
+      entry.facts[getOpenStackInventoryFactKey(resourceClass, "seen")] = seen;
+    }
+    if (reading.reserved !== undefined) {
+      entry.facts[getOpenStackInventoryFactKey(resourceClass, "reserved")] =
+        reading.reserved;
+    }
+    if (reading.ratio !== undefined) {
+      entry.facts[getOpenStackInventoryFactKey(resourceClass, "ratio")] =
+        reading.ratio;
+    }
+    if (reading.usage !== undefined) {
+      entry.facts[getOpenStackInventoryFactKey(resourceClass, "used")] =
+        reading.usage;
+    }
+  }
+}
+
+/*
  * Turn a folded entry into the row to write: everything that needs several series
  * together is decided here, after the whole batch has been read.
  */
@@ -1679,6 +1943,10 @@ export function finishOpenStackResource(
 ): OpenStackResourceBufferEntry {
   if (entry.kind === OpenStackResourceKind.Service) {
     finishAgentRecords(entry);
+  }
+
+  if (entry.kind === OpenStackResourceKind.PlacementProvider) {
+    setPlacementProviderFacts(entry);
   }
 
   if (entry.kind === OpenStackResourceKind.Hypervisor) {

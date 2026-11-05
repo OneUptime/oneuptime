@@ -4,7 +4,7 @@ An OpenStack monitor watches one cloud - its APIs, the workers behind them, hype
 
 :::cards
 - [Create the monitor](#create-an-openstack-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Thirty-five ready-made alerts, one incident per worker, instance, network or region.
+- [Templates](#pre-built-alert-templates): Forty ready-made alerts, one incident per worker, instance, network or region.
 - [Identity attributes](#identity-attributes): How to target one region, host or project.
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
 :::
@@ -105,7 +105,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 35 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 40 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -145,6 +145,11 @@ Every template reads at least three collections of what it watches, and fires on
 | Volumes in Error | Storage | Warning | `openstack_cinder_volume_status_counter` for each error word, Max per region and word, **past 10 minutes** | Above 0 | At 0 |
 | Volume Stuck | Storage | Warning | `openstack_cinder_volume_gb` for each passing status word, Max per volume, **past 30 minutes** | In that status at every collection for 30 minutes | Left it |
 | Image Stuck | Storage | Warning | `openstack_glance_image_created_at` for each passing status word, Max per image, **past 1 hour** | In that status at every collection for an hour | Left it, or was deleted |
+| Bare Metal API Down | Bare Metal | Critical | `openstack_ironic_up`, Min per region, **past 15 minutes** | Below 1. Speaks only where a read of Ironic can say so: a probe, or exporter 1.7.0. A stopped Ironic gives the agent's exporter nothing to read, the same as a cloud without Ironic, so there it stays quiet and the cloud's pages say when Ironic was last heard from | Reads 1, or has gone |
+| Bare Metal Node in Error | Bare Metal | Warning | `openstack_ironic_node` for each failed `provision_state`, Max per node, **past 15 minutes** | In that state at every collection for 15 minutes, in maintenance or not | Left it, or was deleted |
+| Bare Metal Node Stuck Transitioning | Bare Metal | Warning | `openstack_ironic_node` for each passing `provision_state` with `maintenance = false`, Max per node, **past 2 hours** | In that state at every collection for 2 hours. A long disk erase can honestly take this long, which a node's page can tell and this can't | Left it, or was deleted |
+| Bare Metal Node in Maintenance Too Long | Bare Metal | Warning | `openstack_ironic_node` with `maintenance = true`, Max per node, **past 7 days** | In maintenance at every collection for 7 days. Needs your metrics kept that long | Out of maintenance, or was deleted |
+| Bare Metal Power State Unexpected | Bare Metal | Warning | `openstack_ironic_node` with `provision_state = active`, `power_state = power off` and `maintenance = false`, Max per node, **past 15 minutes** | At every collection for 15 minutes. An instance its owner stopped reads the same, which a node's page can tell and this can't | Powered on, or no longer deployed |
 | Project Quota Nearly Reached | Projects | Warning | `openstack_nova_limits_*` and `openstack_cinder_limits_volume_*`, used / max per project, **past 10 minutes** | Above 90% of its vCPU, memory, instance or volume quota. Needs the [limits series on](#turn-on-the-limits-series) | At or below 81% |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
@@ -188,6 +193,7 @@ An incident a template opens says what to run for the part it names, always read
 | A router | `openstack router show <router>`, `openstack network agent list --router <router> --long` |
 | A network | `openstack ip availability show <network>`, `openstack floating ip list --network <network> --long` |
 | A project | `openstack limits show --absolute --project <project>` |
+| A bare metal node | `openstack baremetal node show <node>`, `openstack baremetal node maintenance unset <node>` once it is done with |
 
 ## Collected Metrics
 
@@ -327,6 +333,18 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_identity_users` | `count` | Max | How many users the cloud has. |
 | `openstack_identity_groups` | `count` | Max | How many groups the cloud has. |
 | `openstack_identity_regions` | `count` | Max | How many regions Keystone knows. |
+
+### Bare Metal
+
+Only a cloud that runs Ironic sends these, and a cloud without it shows no trace of them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_ironic_up` | | Min | 1 when a read of Ironic got far enough to say. Stopped, the exporter the OpenStack Agent runs answers an empty 200, as for a cloud without Ironic, so this series goes quiet rather than reading 0: a probe and exporter 1.7.0 can say 0. |
+| `openstack_ironic_node` | | Max | One series per node Ironic shows this credential, always 1: what it says is in its labels, its provision state, power state and whether it is in maintenance. Ironic shows a project only the nodes it owns. |
+| `openstack_ironic_node_provision_updated_at` | `seconds` | Max | When Ironic last saw this node's provision state move, as a Unix time. A deploy agent's heartbeats move it too, so a long erase is not a node stuck. A node that has never moved has no such series. |
+| `openstack_ironic_node_updated_at` | `seconds` | Max | When this node's record last changed, as a Unix time. A node that has never changed has no such series. |
+| `openstack_ironic_conductor_state` | | Min | 1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list. |
 
 ### Projects
 
