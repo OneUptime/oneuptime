@@ -27,6 +27,7 @@ const DRAWN_KINDS: ReadonlyArray<[OpenStackResourceKind, string]> = [
   [OpenStackResourceKind.Instance, "openstack.instance"],
   [OpenStackResourceKind.Volume, "openstack.volume"],
   [OpenStackResourceKind.Share, "openstack.share"],
+  [OpenStackResourceKind.LoadBalancer, "openstack.loadbalancer"],
   [OpenStackResourceKind.DatabaseInstance, "openstack.database"],
   [OpenStackResourceKind.ObjectContainer, "openstack.object-container"],
   [OpenStackResourceKind.DnsZone, "openstack.dns-zone"],

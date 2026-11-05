@@ -1245,34 +1245,6 @@ export default class MonitorResourceUtil {
         const matchedCriteriaInstance: MonitorCriteriaInstance =
           criteriaInstanceMap[response.criteriaMetId!]!;
 
-        const monitorStatusTimelineChange: MonitorStatusTimeline | null =
-          await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
-            monitor: monitor,
-            rootCause: response.rootCause,
-            dataToProcess: dataToProcess,
-            criteriaInstance: matchedCriteriaInstance,
-            props: {
-              telemetryQuery: telemetryQuery,
-            },
-          });
-
-        if (monitorStatusTimelineChange) {
-          const changedStatusName: string | null = await getMonitorStatusName(
-            matchedCriteriaInstance.data?.monitorStatusId ||
-              monitorStatusTimelineChange.monitorStatusId,
-          );
-
-          evaluationSummary.events.push({
-            type: "monitor-status-changed",
-            title: "Monitor status updated",
-            message: changedStatusName
-              ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
-              : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
-            relatedCriteriaId: matchedCriteriaInstance.data?.id,
-            at: OneUptimeDate.getCurrentDate(),
-          });
-        }
-
         /*
          * The criteria this evaluation is going to act on.
          *
@@ -1364,6 +1336,60 @@ export default class MonitorResourceUtil {
 
         const suppressedSeriesFingerprints: Set<string> =
           maintenanceSuppression.suppressedSeriesFingerprints;
+
+        /*
+         * Planned work on one host of an OpenStack cloud keeps the monitor's status, so a status page
+         * stays as it is: see isEveryBreachUnderMaintenance.
+         */
+        const monitorStatusTimelineChange: MonitorStatusTimeline | null =
+          MonitorMaintenanceSuppression.isEveryBreachUnderMaintenance({
+            monitor: monitor,
+            isPerSeriesEvaluation: isPerSeriesEvaluation,
+            criteriaInstance: matchedCriteriaInstance,
+            breachingFingerprints: new Set<string>(
+              criteriaFanOut.flatMap((matched: MatchedCriteriaResult) => {
+                const criteria: MonitorCriteriaInstance | undefined =
+                  criteriaInstanceMap[matched.criteriaId];
+
+                return criteria?.data?.createIncidents ||
+                  criteria?.data?.createAlerts
+                  ? matched.perSeriesMatches.map(
+                      (series: PerSeriesCriteriaMatch): string => {
+                        return series.fingerprint;
+                      },
+                    )
+                  : [];
+              }),
+            ),
+            suppressedFingerprints: suppressedSeriesFingerprints,
+          })
+            ? null
+            : await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+                monitor: monitor,
+                rootCause: response.rootCause,
+                dataToProcess: dataToProcess,
+                criteriaInstance: matchedCriteriaInstance,
+                props: {
+                  telemetryQuery: telemetryQuery,
+                },
+              });
+
+        if (monitorStatusTimelineChange) {
+          const changedStatusName: string | null = await getMonitorStatusName(
+            matchedCriteriaInstance.data?.monitorStatusId ||
+              monitorStatusTimelineChange.monitorStatusId,
+          );
+
+          evaluationSummary.events.push({
+            type: "monitor-status-changed",
+            title: "Monitor status updated",
+            message: changedStatusName
+              ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
+              : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
+            relatedCriteriaId: matchedCriteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
 
         /*
          * Alert-dependency suppression: if any parent monitor this monitor

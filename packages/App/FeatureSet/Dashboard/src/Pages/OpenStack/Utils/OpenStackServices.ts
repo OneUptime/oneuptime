@@ -11,6 +11,9 @@ import {
   OPENSTACK_GNOCCHI_MEASURES_FACT,
   OPENSTACK_GNOCCHI_METRICS_FACT,
   OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+  OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+  OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+  OPENSTACK_SWIFT_RECON_SERVERS_FACT,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_API_STATUS_CLOSED,
@@ -438,6 +441,9 @@ const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
   ),
   [OpenStackServiceType.SharedFileSystems]: translationKey(
     "The agent's exporter doesn't read Manila's services, so a stopped one isn't shown anywhere here: Manila's API carries on answering without it, and its shares just stop changing. Run openstack share service list, or collect this cloud with a probe, which reads them.",
+  ),
+  [OpenStackServiceType.LoadBalancer]: translationKey(
+    "Nothing the agent reads lists Octavia's workers, so octavia-worker, octavia-health-manager and octavia-housekeeping aren't shown here, and a stopped one isn't shown anywhere: Octavia's API carries on answering without them. A load balancer left waiting on a stopped worker reads Stuck after an hour, and a failed amphora that the health manager did not replace reads in error.",
   ),
   [OpenStackServiceType.ContainerInfra]: translationKey(
     "The agent's exporter doesn't read Magnum's conductors, so a stopped one isn't shown anywhere here: Magnum's API carries on answering without it, and its clusters just stop moving. Run openstack coe service list, or collect this cloud with a probe, which reads them.",
@@ -890,11 +896,43 @@ export interface OpenStackApiTile {
   title: string;
   fact: string;
   description: string;
+  // Left out unless this has been read, rather than saying it hasn't.
+  isOnlyWhenRead?: boolean | undefined;
 }
 
 const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
   Record<string, ReadonlyArray<OpenStackApiTile>>
 > = {
+  // Only where someone named Swift's storage servers, and otherwise no trace of them.
+  [OpenStackServiceType.ObjectStore]: [
+    {
+      key: "recon-servers",
+      title: translationKey("Storage servers read"),
+      fact: OPENSTACK_SWIFT_RECON_SERVERS_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many of Swift's storage servers the cloud's settings name for /recon.",
+      ),
+    },
+    {
+      key: "recon-not-answering",
+      title: translationKey("Not answering"),
+      fact: OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many of those aren't answering. Swift's proxy goes on answering without them.",
+      ),
+    },
+    {
+      key: "recon-rings",
+      title: translationKey("Rings that differ"),
+      fact: OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many rings those servers report different checksums for. Servers on different rings put data in different places.",
+      ),
+    },
+  ],
   [OpenStackServiceType.KeyManager]: [
     {
       key: "secrets",
@@ -950,9 +988,14 @@ const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
 };
 
 export function getOpenStackApiTiles(
-  service: string | null | undefined,
+  row: OpenStackResource,
 ): ReadonlyArray<OpenStackApiTile> {
-  return OPENSTACK_API_TILES_OF_A_SERVICE[service || ""] || [];
+  const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
+  return (OPENSTACK_API_TILES_OF_A_SERVICE[row.name || ""] || []).filter(
+    (tile: OpenStackApiTile): boolean => {
+      return !tile.isOnlyWhenRead || (facts[tile.fact] as number) > 0;
+    },
+  );
 }
 
 // The alert templates that watch each kind of worker, as the Recommendations list has them.
@@ -969,6 +1012,7 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",
+  [OpenStackServiceType.LoadBalancer]: "openstack-load-balancer-api-down",
   [OpenStackServiceType.Database]: "openstack-database-api-down",
   [OpenStackServiceType.KeyManager]: "openstack-key-manager-api-down",
   [OpenStackServiceType.ObjectStore]: "openstack-object-store-api-down",
@@ -1035,6 +1079,15 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-container-cluster-failed",
         "openstack-container-cluster-stuck",
       ];
+    case OpenStackServiceType.LoadBalancer:
+      return [
+        ...own,
+        "openstack-load-balancer-in-error",
+        "openstack-load-balancer-stuck-pending",
+        "openstack-load-balancer-with-two-masters",
+        "openstack-pool-without-healthy-members",
+        "openstack-amphora-in-error",
+      ];
     case OpenStackServiceType.SharedFileSystems:
       return [
         ...own,
@@ -1056,7 +1109,13 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-metric-backlog-growing",
       ];
     case OpenStackServiceType.ObjectStore:
-      return [...own, "openstack-object-container-growth"];
+      return [
+        ...own,
+        "openstack-object-container-growth",
+        "openstack-swift-storage-server-down",
+        "openstack-swift-rings-differ",
+        "openstack-swift-replication-stale",
+      ];
     case OpenStackServiceType.Database:
       return [
         ...own,

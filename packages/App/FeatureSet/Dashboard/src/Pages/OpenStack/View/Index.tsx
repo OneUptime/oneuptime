@@ -366,6 +366,18 @@ function getCountChips(
       page: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
     },
     {
+      key: "load-balancers",
+      icon: IconProp.Globe,
+      label: translator.translatePlural(
+        {
+          one: "{{count}} load balancer",
+          other: "{{count}} load balancers",
+        },
+        summary.loadBalancerCount,
+      ),
+      page: PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+    },
+    {
       key: "databases",
       icon: IconProp.Database,
       label: translator.translatePlural(
@@ -409,6 +421,7 @@ function getCountChips(
     stacks: summary.stackCount,
     "container-clusters": summary.containerClusterCount,
     shares: summary.shareCount,
+    "load-balancers": summary.loadBalancerCount,
     databases: summary.databaseInstanceCount,
     "object-containers": summary.objectContainerCount,
     "dns-zones": summary.dnsZoneCount,

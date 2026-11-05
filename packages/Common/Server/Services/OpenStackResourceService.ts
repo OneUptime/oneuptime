@@ -25,6 +25,11 @@ import {
   OPENSTACK_BARE_METAL_ERROR_STATES,
   OPENSTACK_BARE_METAL_IN_MAINTENANCE,
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
+  OPENSTACK_AMPHORA_ERROR_STATUSES,
+  OPENSTACK_AMPHORA_ROLE_MASTER,
+  OPENSTACK_LOAD_BALANCER_ERROR_STATUSES,
+  OPENSTACK_LOAD_BALANCER_OPERATING_ERROR,
+  OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_KINDS_BY_SERVICE,
@@ -85,6 +90,8 @@ import {
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
+  OPENSTACK_AMPHORA_CERTIFICATE_WARNING_DAYS,
+  OPENSTACK_LOAD_BALANCER_STUCK_MINUTES,
   OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
@@ -101,6 +108,10 @@ import {
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_GNOCCHI_MEASURES_FACT,
   OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+  OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+  OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT,
+  OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+  OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
 } from "../../Types/OpenStack/OpenStackHealthRules";
 import {
   truncateLongText,
@@ -186,6 +197,7 @@ export interface OpenStackInventorySummary {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   databaseInstanceCount: number;
   objectContainerCount: number;
   dnsZoneCount: number;
@@ -228,6 +240,7 @@ export interface OpenStackProjectSummary {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   databaseInstanceCount: number;
   objectContainerCount: number;
   dnsZoneCount: number;
@@ -994,6 +1007,7 @@ export class Service extends DatabaseService<Model> {
       stackCount: countOf(OpenStackResourceKind.Stack),
       containerClusterCount: countOf(OpenStackResourceKind.ContainerCluster),
       shareCount: countOf(OpenStackResourceKind.Share),
+      loadBalancerCount: countOf(OpenStackResourceKind.LoadBalancer),
       databaseInstanceCount: countOf(OpenStackResourceKind.DatabaseInstance),
       objectContainerCount: countOf(OpenStackResourceKind.ObjectContainer),
       dnsZoneCount: countOf(OpenStackResourceKind.DnsZone),
@@ -1264,6 +1278,14 @@ export class Service extends DatabaseService<Model> {
       data.now,
       -OPENSTACK_SHARE_STUCK_MINUTES,
     );
+    const loadBalancerStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      -OPENSTACK_LOAD_BALANCER_STUCK_MINUTES,
+    );
+    const certificateLine: Date = OneUptimeDate.addRemoveMinutes(
+      data.now,
+      OPENSTACK_AMPHORA_CERTIFICATE_WARNING_DAYS * 24 * 60,
+    );
     const stackStuckBefore: Date = OneUptimeDate.addRemoveMinutes(
       data.now,
       -OPENSTACK_STACK_STUCK_MINUTES,
@@ -1300,7 +1322,10 @@ export class Service extends DatabaseService<Model> {
         where: `("status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'
           OR (NOT ("name" = ANY($3::text[])) AND "lastSeenAt" <= $4)
           OR ("name" = $5 AND ("facts"->>'${OPENSTACK_GNOCCHI_PROCESSORS_FACT}' = '0'
-            OR ("facts"->>'${OPENSTACK_GNOCCHI_MEASURES_FACT}')::double precision > $6)))`,
+            OR ("facts"->>'${OPENSTACK_GNOCCHI_MEASURES_FACT}')::double precision > $6))
+          OR ("name" = $7 AND (("facts"->>'${OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT}')::double precision > 0
+            OR ("facts"->>'${OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT}')::double precision > 0
+            OR ("facts"->>'${OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT}')::double precision > $8)))`,
         params: [
           Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS),
           OneUptimeDate.addRemoveMinutes(
@@ -1309,6 +1334,8 @@ export class Service extends DatabaseService<Model> {
           ),
           OpenStackServiceType.Metric,
           OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+          OpenStackServiceType.ObjectStore,
+          OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
         ],
       },
       {
@@ -1411,6 +1438,46 @@ export class Service extends DatabaseService<Model> {
           shareStuckBefore,
         ],
         orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        /*
+         * In error; waiting on Octavia's worker for an hour; or one of two amphorae both saying they
+         * are the MASTER. A pool with every member down is its own row, because the load balancer
+         * still provisions ACTIVE.
+         */
+        kind: OpenStackResourceKind.LoadBalancer,
+        where: `("status" = ANY($3::text[])
+          OR ("status" = ANY($4::text[]) AND "stateChangedAt" <= $5)
+          OR (
+            SELECT COUNT(*) FROM "OpenStackResource" AS amphora
+            WHERE amphora."projectId" = $1 AND amphora."openStackCloudId" = $2
+              AND amphora."kind" = '${OpenStackResourceKind.Amphora}'
+              AND amphora."deletedAt" IS NULL AND amphora."status" = 'ALLOCATED'
+              AND amphora."facts"->>'role' = '${OPENSTACK_AMPHORA_ROLE_MASTER}'
+              AND amphora."facts"->>'loadBalancerId' = "OpenStackResource"."externalId"
+          ) > 1)`,
+        params: [
+          statuses(OPENSTACK_LOAD_BALANCER_ERROR_STATUSES),
+          statuses(OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES),
+          loadBalancerStuckBefore,
+        ],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        kind: OpenStackResourceKind.LoadBalancerPool,
+        where: `("status" = ANY($3::text[]) OR "facts"->>'operatingStatus' = '${OPENSTACK_LOAD_BALANCER_OPERATING_ERROR}')`,
+        params: [statuses(OPENSTACK_LOAD_BALANCER_ERROR_STATUSES)],
+        orderBy: `"stateChangedAt" DESC NULLS LAST`,
+      },
+      {
+        // In error, or a certificate Octavia should already have renewed. CASE keeps a bad date from throwing.
+        kind: OpenStackResourceKind.Amphora,
+        where: `("status" = ANY($3::text[])
+          OR ("status" NOT IN ('DELETED', 'PENDING_DELETE')
+            AND CASE WHEN "facts"->>'certExpiresAt' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(Z|[+-][0-9:]+)$'
+              THEN ("facts"->>'certExpiresAt')::timestamptz < $4 END))`,
+        params: [statuses(OPENSTACK_AMPHORA_ERROR_STATUSES), certificateLine],
+        orderBy: `"facts"->>'certExpiresAt' ASC NULLS LAST`,
       },
       {
         kind: OpenStackResourceKind.Stack,
@@ -1562,6 +1629,13 @@ export class Service extends DatabaseService<Model> {
           params,
         )) as Array<JSONObject>
       ).map(toRowWithNumbers);
+      if (query.kind === OpenStackResourceKind.LoadBalancer) {
+        await this.stampMasterAmphoraCounts({
+          projectId: data.projectId,
+          openStackCloudId: data.openStackCloudId,
+          loadBalancers: found,
+        });
+      }
       rows.push(...found);
 
       if (found.length < rowsPerKind) {
@@ -1585,6 +1659,52 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { rows, totalsByKind, leftOut };
+  }
+
+  /*
+   * How many ALLOCATED amphorae say MASTER for each load balancer, written onto the rows of a page of
+   * them as `facts.masterAmphoraCount`. A row alone can't say whether its load balancer has two, and
+   * the page that judges it by the same line as the query above (OpenStackHealth) has only the row.
+   * Not stored: it is worked out for the rows being answered.
+   */
+  private async stampMasterAmphoraCounts(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    loadBalancers: Array<JSONObject>;
+  }): Promise<void> {
+    const ids: Array<string> = data.loadBalancers
+      .map((row: JSONObject): string => {
+        return (row["externalId"] as string) || "";
+      })
+      .filter((id: string): boolean => {
+        return Boolean(id);
+      });
+    if (ids.length === 0) {
+      return;
+    }
+    const counted: Array<{ loadBalancerId: string; count: string }> =
+      await this.getRepository().manager.query(
+        `SELECT "facts"->>'loadBalancerId' AS "loadBalancerId", COUNT(*)::text AS "count"
+         FROM "OpenStackResource"
+         WHERE "projectId" = $1 AND "openStackCloudId" = $2
+           AND "kind" = '${OpenStackResourceKind.Amphora}' AND "deletedAt" IS NULL
+           AND "status" = 'ALLOCATED'
+           AND "facts"->>'role' = '${OPENSTACK_AMPHORA_ROLE_MASTER}'
+           AND "facts"->>'loadBalancerId' = ANY($3::text[])
+         GROUP BY "facts"->>'loadBalancerId'`,
+        [data.projectId.toString(), data.openStackCloudId.toString(), ids],
+      );
+    const byId: Map<string, number> = new Map(
+      counted.map((row: { loadBalancerId: string; count: string }) => {
+        return [row.loadBalancerId, Number.parseInt(row.count, 10)];
+      }),
+    );
+    for (const row of data.loadBalancers) {
+      row["facts"] = {
+        ...((row["facts"] as JSONObject) || {}),
+        masterAmphoraCount: byId.get(row["externalId"] as string) || 0,
+      };
+    }
   }
 
   /**
@@ -1982,9 +2102,42 @@ export class Service extends DatabaseService<Model> {
       });
     };
 
+    /*
+     * An amphora is an instance, in Octavia's own project, so the instances a host holds hide the
+     * load balancers they carry. Joined through the instance an amphora names, which sits on the host.
+     */
+    const amphoraeOnHost: string = `FROM "OpenStackResource" AS amphora
+       JOIN "OpenStackResource" AS instance
+         ON instance."projectId" = amphora."projectId"
+        AND instance."openStackCloudId" = amphora."openStackCloudId"
+        AND instance."kind" = '${OpenStackResourceKind.Instance}'
+        AND instance."deletedAt" IS NULL
+        AND instance."externalId" = amphora."facts"->>'computeId'
+       WHERE amphora."projectId" = $1 AND amphora."openStackCloudId" = $2
+         AND amphora."kind" = '${OpenStackResourceKind.Amphora}'
+         AND amphora."deletedAt" IS NULL
+         AND instance."hypervisorName" = $3
+         AND instance."regionName" IS NOT DISTINCT FROM $4`;
+
+    const loadBalancersOn: (hypervisorName: string) => Promise<void> = async (
+      hypervisorName: string,
+    ): Promise<void> => {
+      counts.push({
+        count: "loadBalancerCount",
+        byProject: await countByProject({
+          kind: OpenStackResourceKind.LoadBalancer,
+          where: `"externalId" IN (
+            SELECT amphora."facts"->>'loadBalancerId' ${amphoraeOnHost}
+          ) AND "regionName" IS NOT DISTINCT FROM $4`,
+          params: [hypervisorName, part.regionName ?? null],
+        }),
+      });
+    };
+
     if (part.kind === OpenStackResourceKind.Hypervisor) {
       if (part.hypervisorName) {
         await instancesOn(part.hypervisorName);
+        await loadBalancersOn(part.hypervisorName);
       }
       const onIt: Array<{ name: string | null }> = part.hypervisorName
         ? await this.getRepository().manager.query(
@@ -2001,8 +2154,46 @@ export class Service extends DatabaseService<Model> {
             ],
           )
         : [];
+      const amphorae: Array<OpenStackBlastRadiusOwner> = part.hypervisorName
+        ? await this.getRepository().manager.query(
+            `SELECT amphora."kind", amphora."externalId", amphora."name", amphora."status"
+             ${amphoraeOnHost}
+             ORDER BY amphora."externalId"
+             LIMIT ${OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT}`,
+            [
+              data.projectId.toString(),
+              data.openStackCloudId.toString(),
+              part.hypervisorName,
+              part.regionName ?? null,
+            ],
+          )
+        : [];
+      const loadBalancers: Array<OpenStackBlastRadiusOwner> =
+        part.hypervisorName
+          ? await this.getRepository().manager.query(
+              `SELECT lb."kind", lb."externalId", lb."name", lb."status"
+               FROM "OpenStackResource" AS lb
+               WHERE lb."projectId" = $1 AND lb."openStackCloudId" = $2
+                 AND lb."kind" = '${OpenStackResourceKind.LoadBalancer}'
+                 AND lb."deletedAt" IS NULL
+                 AND lb."regionName" IS NOT DISTINCT FROM $4
+                 AND lb."externalId" IN (
+                   SELECT amphora."facts"->>'loadBalancerId' ${amphoraeOnHost}
+                 )
+               ORDER BY lb."name", lb."externalId"
+               LIMIT ${OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT}`,
+              [
+                data.projectId.toString(),
+                data.openStackCloudId.toString(),
+                part.hypervisorName,
+                part.regionName ?? null,
+              ],
+            )
+          : [];
       return {
         ...(await finish()),
+        amphorae,
+        loadBalancers,
         magnumClusters: await this.readMagnumClustersOfServers({
           projectId: data.projectId,
           openStackCloudId: data.openStackCloudId,
@@ -2073,6 +2264,7 @@ export class Service extends DatabaseService<Model> {
       for (const hypervisor of hypervisors) {
         if (hypervisor.hypervisorName) {
           await instancesOn(hypervisor.hypervisorName);
+          await loadBalancersOn(hypervisor.hypervisorName);
         }
       }
       return await finish();
@@ -2266,6 +2458,10 @@ export class Service extends DatabaseService<Model> {
         // Shares already mounted carry on: their data doesn't go through this API.
         [OpenStackServiceType.SharedFileSystems]: [
           [OpenStackResourceKind.Share, "shareCount"],
+        ],
+        // Load balancers already built carry on: their traffic doesn't go through this API.
+        [OpenStackServiceType.LoadBalancer]: [
+          [OpenStackResourceKind.LoadBalancer, "loadBalancerCount"],
         ],
         // Databases already running carry on: only creating, resizing and backing up stop.
         [OpenStackServiceType.Database]: [
@@ -2551,6 +2747,7 @@ export class Service extends DatabaseService<Model> {
           OpenStackResourceKind.Stack,
           OpenStackResourceKind.ContainerCluster,
           OpenStackResourceKind.Share,
+          OpenStackResourceKind.LoadBalancer,
           OpenStackResourceKind.DatabaseInstance,
           OpenStackResourceKind.ObjectContainer,
           OpenStackResourceKind.DnsZone,
@@ -2574,6 +2771,7 @@ export class Service extends DatabaseService<Model> {
             stackCount: 0,
             containerClusterCount: 0,
             shareCount: 0,
+            loadBalancerCount: 0,
             databaseInstanceCount: 0,
             objectContainerCount: 0,
             dnsZoneCount: 0,
@@ -2615,6 +2813,9 @@ export class Service extends DatabaseService<Model> {
           break;
         case OpenStackResourceKind.Share:
           summary.shareCount = count;
+          break;
+        case OpenStackResourceKind.LoadBalancer:
+          summary.loadBalancerCount = count;
           break;
         case OpenStackResourceKind.DatabaseInstance:
           summary.databaseInstanceCount = count;
@@ -2866,6 +3067,7 @@ export class Service extends DatabaseService<Model> {
       OpenStackResourceKind.Volume,
       OpenStackResourceKind.StoragePool,
       OpenStackResourceKind.Share,
+      OpenStackResourceKind.LoadBalancer,
       OpenStackResourceKind.DatabaseInstance,
       OpenStackResourceKind.ObjectContainer,
       OpenStackResourceKind.DnsZone,

@@ -36,8 +36,12 @@ import {
   getOpenStackFactText,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { ResourceColumnTone } from "../Infrastructure/ResourceTable";
+import { ResourceAttentionSeverity } from "../ResourcePart/ResourceAttention";
+import { assessOpenStackAmphora } from "../../Pages/OpenStack/Utils/OpenStackHealth";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import {
+  OPENSTACK_AMPHORA_STATE_PRESETS,
+  OPENSTACK_LOAD_BALANCER_STATE_PRESETS,
   OPENSTACK_BARE_METAL_STATE_PRESETS,
   OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS,
   OPENSTACK_IMAGE_STATE_PRESETS,
@@ -1698,6 +1702,296 @@ export const OpenStackShareList: FunctionComponent<OpenStackListProps> = (
       checkAccess={true}
       getViewRoute={routes.routeFor}
       searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Load balancers, their pools and their amphorae
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Octavia. A load balancer has two statuses that say different things:
+ * its provisioning status is Octavia's work on it and is the one in the list, and its operating
+ * status is what its health checks make of it. A pool whose members all fail reads ACTIVE in the
+ * first and ERROR in the second, recorded, so the second has a column of its own.
+ */
+const LOAD_BALANCER_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackFactColumn({
+    id: "operating-status",
+    title: "Operating",
+    description:
+      "What its health checks make of it, in Octavia's own word. A different question from the status beside it: a load balancer provisions ACTIVE while every member behind it is down.",
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "operatingStatus");
+    },
+    getTone: (row: OpenStackResource): ResourceColumnTone | undefined => {
+      const operating: string = getOpenStackFactText(row, "operatingStatus");
+      if (operating === "ERROR" || operating === "OFFLINE") {
+        return "danger";
+      }
+      return operating === "DEGRADED" ? "warning" : undefined;
+    },
+  }),
+  OpenStackColumn.TimeInState,
+  getOpenStackFactColumn({
+    id: "vip-address",
+    title: "VIP",
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "vipAddress");
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "provider",
+    title: "Provider",
+    hideOnMobile: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "provider");
+    },
+  }),
+  OpenStackColumn.Project,
+  OpenStackColumn.Region,
+];
+
+export const OpenStackLoadBalancerList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.LoadBalancer),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.LoadBalancer}
+      query={props.query}
+      tableId={props.tableId || "openstack-load-balancers-table"}
+      title={props.title || "Load Balancers"}
+      description={
+        props.description ||
+        "Every Octavia load balancer in this cloud, with its provisioning status and what its health checks make of it, in Octavia's own words, and whose it is."
+      }
+      singularName="load balancer"
+      pluralName="load balancers"
+      emptyTitle={props.emptyTitle || "No load balancers reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Octavia. Only the Full view credential sees every project's: Octavia shows anything less its own project's, and the monitoring role none, and no error says so."
+      }
+      columns={LOAD_BALANCER_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_LOAD_BALANCER_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name, ID or address"
+    />
+  );
+};
+
+const LOAD_BALANCER_POOL_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> =
+  [
+    OpenStackColumn.Status,
+    getOpenStackFactColumn({
+      id: "operating-status",
+      title: "Operating",
+      description:
+        "What its members' health checks make of it. ERROR means every member fails, DEGRADED that some do.",
+      getText: (row: OpenStackResource): string => {
+        return getOpenStackFactText(row, "operatingStatus");
+      },
+      getTone: (row: OpenStackResource): ResourceColumnTone | undefined => {
+        const operating: string = getOpenStackFactText(row, "operatingStatus");
+        if (operating === "ERROR") {
+          return "danger";
+        }
+        return operating === "DEGRADED" ? "warning" : undefined;
+      },
+    }),
+    getOpenStackLinkColumn({
+      id: "load-balancer",
+      title: "Load balancer",
+      getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+        const ids: unknown = (row.facts as JSONObject | undefined)?.[
+          "loadBalancerIds"
+        ];
+        const first: unknown = Array.isArray(ids) ? ids[0] : undefined;
+        return typeof first === "string" && first
+          ? {
+              kind: OpenStackResourceKind.LoadBalancer,
+              externalId: first,
+              fallbackText: first,
+            }
+          : null;
+      },
+    }),
+    getOpenStackFactColumn({
+      id: "protocol",
+      title: "Protocol",
+      hideOnMobile: true,
+      getText: (row: OpenStackResource): string => {
+        return getOpenStackFactText(row, "protocol");
+      },
+    }),
+    getOpenStackFactColumn({
+      id: "algorithm",
+      title: "Algorithm",
+      hideOnMobile: true,
+      isHiddenByDefault: true,
+      getText: (row: OpenStackResource): string => {
+        return getOpenStackFactText(row, "algorithm");
+      },
+    }),
+    OpenStackColumn.Project,
+    OpenStackColumn.Region,
+  ];
+
+export const OpenStackLoadBalancerPoolList: FunctionComponent<
+  OpenStackListProps
+> = (props: OpenStackListProps): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.LoadBalancerPool),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.LoadBalancerPool}
+      query={props.query}
+      tableId={props.tableId || "openstack-load-balancer-pools-table"}
+      title={props.title || "Pools"}
+      description={
+        props.description ||
+        "The pools behind Octavia's load balancers. A pool with every member failing its health check reads ERROR in its operating status, whatever its provisioning says."
+      }
+      singularName="pool"
+      pluralName="pools"
+      emptyTitle={props.emptyTitle || "No pools reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Octavia. Its members and listeners aren't collected: the exporter has no series for them."
+      }
+      columns={LOAD_BALANCER_POOL_COLUMNS}
+      filters={[]}
+      facets={facets}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+const AMPHORA_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackFactColumn({
+    id: "role",
+    title: "Role",
+    description:
+      "MASTER and BACKUP for an active-standby pair, STANDALONE for a load balancer on one amphora.",
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "role");
+    },
+  }),
+  getOpenStackLinkColumn({
+    id: "load-balancer",
+    title: "Load balancer",
+    getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+      const loadBalancerId: string = getOpenStackFactText(
+        row,
+        "loadBalancerId",
+      );
+      return loadBalancerId
+        ? {
+            kind: OpenStackResourceKind.LoadBalancer,
+            externalId: loadBalancerId,
+            fallbackText: loadBalancerId,
+          }
+        : null;
+    },
+  }),
+  getOpenStackLinkColumn({
+    id: "instance",
+    title: "Instance",
+    hideOnMobile: true,
+    getLink: (row: OpenStackResource): OpenStackPartLink | null => {
+      const computeId: string = getOpenStackFactText(row, "computeId");
+      return computeId
+        ? {
+            kind: OpenStackResourceKind.Instance,
+            externalId: computeId,
+            fallbackText: computeId,
+          }
+        : null;
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "certificate",
+    title: "Certificate ends",
+    description:
+      "When its certificate ends. One lasts 30 days from when the amphora is built, and Octavia's housekeeping renews it with 14 left by default.",
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "certExpiresAt");
+    },
+    getTone: (row: OpenStackResource): ResourceColumnTone | undefined => {
+      const severity: ResourceAttentionSeverity | null = assessOpenStackAmphora(
+        { row, now: new Date() },
+      ).severity;
+      if (severity === ResourceAttentionSeverity.Critical) {
+        return "danger";
+      }
+      return severity === ResourceAttentionSeverity.Warning
+        ? "warning"
+        : undefined;
+    },
+  }),
+  OpenStackColumn.Region,
+];
+
+export const OpenStackAmphoraList: FunctionComponent<OpenStackListProps> = (
+  props: OpenStackListProps,
+): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [getOpenStackStatusFacet(OpenStackResourceKind.Amphora)];
+  }, []);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.Amphora}
+      query={props.query}
+      tableId={props.tableId || "openstack-amphorae-table"}
+      title={props.title || "Amphorae"}
+      description={
+        props.description ||
+        "The virtual machines Octavia runs its load balancers in, each linked to its instance, with its role and when its certificate ends."
+      }
+      singularName="amphora"
+      pluralName="amphorae"
+      emptyTitle={props.emptyTitle || "No amphorae reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "Octavia lets only an admin list amphorae, so only the Full view credential sees these. A load balancer on the OVN provider has none."
+      }
+      columns={AMPHORA_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_AMPHORA_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by ID"
     />
   );
 };

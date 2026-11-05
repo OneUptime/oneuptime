@@ -11,6 +11,10 @@ import {
   OPENSTACK_GNOCCHI_MEASURES_FACT,
   OPENSTACK_GNOCCHI_METRICS_FACT,
   OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+  OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+  OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT,
+  OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+  OPENSTACK_SWIFT_RECON_SERVERS_FACT,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
 import {
   OPENSTACK_OPTIONAL_SERVICES,
@@ -237,6 +241,34 @@ const FACTS_ON_AN_API_ROW: ReadonlyMap<string, OpenStackApiRowFact> = new Map<
   OpenStackApiRowFact
 >([
   [
+    "openstack_object_store_recon_servers",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_SERVERS_FACT,
+    },
+  ],
+  [
+    "openstack_object_store_recon_servers_not_answering",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+    },
+  ],
+  [
+    "openstack_object_store_recon_rings_differing",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+    },
+  ],
+  [
+    "openstack_object_store_recon_oldest_replication_seconds",
+    {
+      service: OpenStackServiceType.ObjectStore,
+      fact: OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT,
+    },
+  ],
+  [
     "openstack_barbican_secrets",
     { service: OpenStackServiceType.KeyManager, fact: "secretCount" },
   ],
@@ -312,6 +344,9 @@ export const OPENSTACK_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "openstack_sharev2_share_gb",
   "openstack_sharev2_share_status",
   "openstack_sharev2_agent_state",
+  "openstack_loadbalancer_loadbalancer_status",
+  "openstack_loadbalancer_pool_status",
+  "openstack_loadbalancer_amphora_status",
   "openstack_object_store_bytes",
   "openstack_object_store_objects",
   "openstack_trove_instance_status",
@@ -1481,6 +1516,130 @@ function foldShare(data: {
 }
 
 /*
+ * A load balancer, a pool or an amphora, from Octavia's three status series. The value of each is a
+ * code, and not the same code: a load balancer's is its operating status and a pool's its provisioning
+ * status (recorded: a pool with every member down reads 0, and a load balancer that never got built
+ * reads 2), so the words in the labels are what is read and the value is not.
+ */
+function foldLoadBalancer(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.LoadBalancer,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(
+    entry,
+    getLabel(data.attributes, "provisioning_status"),
+    data.observedAt,
+  );
+  setFact(
+    entry,
+    "operatingStatus",
+    getLabel(data.attributes, "operating_status"),
+  );
+  setFact(entry, "provider", getLabel(data.attributes, "provider"));
+  setFact(entry, "vipAddress", getLabel(data.attributes, "vip_address"));
+}
+
+function foldLoadBalancerPool(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.LoadBalancerPool,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  setIdentity(entry, {
+    name: getLabel(data.attributes, "name"),
+    regionName: data.region,
+    openStackProjectId: getLabel(data.attributes, "project_id"),
+  });
+  setStatus(
+    entry,
+    getLabel(data.attributes, "provisioning_status"),
+    data.observedAt,
+  );
+  setFact(
+    entry,
+    "operatingStatus",
+    getLabel(data.attributes, "operating_status"),
+  );
+  setFact(entry, "protocol", getLabel(data.attributes, "protocol"));
+  setFact(entry, "algorithm", getLabel(data.attributes, "lb_algorithm"));
+  // The exporter joins a pool's load balancers into one label.
+  const loadBalancerIds: Array<string> = (
+    getLabel(data.attributes, "loadbalancers") || ""
+  )
+    .split(",")
+    .map((value: string): string => {
+      return value.trim();
+    })
+    .filter((value: string): boolean => {
+      return value.length > 0;
+    });
+  entry.facts["loadBalancerIds"] = loadBalancerIds;
+}
+
+function foldAmphora(data: {
+  buffer: Map<string, OpenStackResourceBufferEntry>;
+  attributes: JSONArray;
+  region: string | null;
+  observedAt: Date;
+}): void {
+  const id: string | null = getLabel(data.attributes, "id");
+  if (!id) {
+    return;
+  }
+  const entry: OpenStackResourceBufferEntry = getOrCreateEntry({
+    buffer: data.buffer,
+    kind: OpenStackResourceKind.Amphora,
+    externalId: id,
+    observedAt: data.observedAt,
+  });
+  // An amphora has no name of its own and no project: it runs in Octavia's, which the series do not say.
+  setIdentity(entry, { name: null, regionName: data.region });
+  setStatus(entry, getLabel(data.attributes, "status"), data.observedAt);
+  setFact(entry, "role", getLabel(data.attributes, "role"));
+  setFact(entry, "computeId", getLabel(data.attributes, "compute_id"));
+  /*
+   * A spare amphora in the pool has no load balancer, and the exporter sends the label empty.
+   * Facts merge key by key, so say it is empty rather than leave the last one in place.
+   */
+  entry.facts["loadBalancerId"] =
+    getLabel(data.attributes, "loadbalancer_id") || null;
+  setFact(
+    entry,
+    "certExpiresAt",
+    getLabel(data.attributes, "cert_expiration"),
+  );
+  setFact(entry, "haIp", getLabel(data.attributes, "ha_ip"));
+  setFact(entry, "managementIp", getLabel(data.attributes, "lb_network_ip"));
+}
+
+/*
  * A Swift container, from either of its two series. The exporter says only its name and no project: its
  * series are the credential's own project's, recorded. A name is unique only within an account and a region,
  * so both are in the row's id, as far as a collector says them. A probe says whose it is.
@@ -2419,6 +2578,12 @@ export function bufferOpenStackSnapshotMetric(data: {
     });
     setIdentity(entry, { name: apiRowFact.service, regionName: region });
     entry.facts[apiRowFact.fact] = value;
+    // Taken out of the settings, what the servers last said is no longer so.
+    if (apiRowFact.fact === OPENSTACK_SWIFT_RECON_SERVERS_FACT && value === 0) {
+      entry.facts[OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT] = null;
+      entry.facts[OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT] = null;
+      entry.facts[OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT] = null;
+    }
     return;
   }
 
@@ -2578,6 +2743,15 @@ export function bufferOpenStackSnapshotMetric(data: {
     case "openstack_sharev2_share_gb":
     case "openstack_sharev2_share_status":
       foldShare({ buffer, attributes, region, value, observedAt, metricName });
+      return;
+    case "openstack_loadbalancer_loadbalancer_status":
+      foldLoadBalancer({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_loadbalancer_pool_status":
+      foldLoadBalancerPool({ buffer, attributes, region, observedAt });
+      return;
+    case "openstack_loadbalancer_amphora_status":
+      foldAmphora({ buffer, attributes, region, observedAt });
       return;
     case "openstack_designate_zone_status":
       foldDnsZone({ buffer, attributes, region, observedAt });

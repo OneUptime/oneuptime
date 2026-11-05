@@ -18,7 +18,9 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+  OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
   OPENSTACK_DNS_ZONE_PENDING_STUCK_MINUTES,
+  OPENSTACK_LOAD_BALANCER_STUCK_MINUTES,
   OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
@@ -170,6 +172,42 @@ function share(
     externalId: id,
     name: id,
     status: "available",
+    ...overrides,
+  });
+}
+
+function loadBalancer(
+  id: string,
+  overrides: Partial<ParsedOpenStackResource> = {},
+): ParsedOpenStackResource {
+  return resource({
+    kind: OpenStackResourceKind.LoadBalancer,
+    externalId: id,
+    name: id,
+    status: "ACTIVE",
+    facts: { operatingStatus: "ONLINE", provider: "amphora" },
+    ...overrides,
+  });
+}
+
+function amphora(
+  id: string,
+  loadBalancerId: string | null,
+  role: string,
+  overrides: Partial<ParsedOpenStackResource> = {},
+): ParsedOpenStackResource {
+  return resource({
+    kind: OpenStackResourceKind.Amphora,
+    externalId: id,
+    status: "ALLOCATED",
+    facts: {
+      role,
+      loadBalancerId,
+      computeId: `server-${id}`,
+      certExpiresAt: new Date(
+        NOW.getTime() + 25 * 24 * 60 * MINUTE_MS,
+      ).toISOString(),
+    },
     ...overrides,
   });
 }
@@ -953,6 +991,96 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       ]);
     });
 
+    test("Octavia: a load balancer in error, one pending past the hour, a pair with two masters, a pool with no healthy member and an amphora in error or near its certificate's end", async () => {
+      const longAgo: Date = minutesAgo(OPENSTACK_LOAD_BALANCER_STUCK_MINUTES);
+      const soon: string = new Date(
+        NOW.getTime() + 5 * 24 * 60 * MINUTE_MS,
+      ).toISOString();
+      const gone: string = new Date(
+        NOW.getTime() - 24 * 60 * MINUTE_MS,
+      ).toISOString();
+      await write([
+        loadBalancer("ok"),
+        loadBalancer("in-error", { status: "ERROR" }),
+        loadBalancer("just-pending", { status: "PENDING_UPDATE" }),
+        loadBalancer("stuck", {
+          status: "PENDING_CREATE",
+          lastSeenAt: longAgo,
+        }),
+        loadBalancer("split"),
+        loadBalancer("pair"),
+        amphora("a1", "pair", "MASTER"),
+        amphora("a2", "pair", "BACKUP"),
+        amphora("a3", "split", "MASTER"),
+        amphora("a4", "split", "MASTER"),
+        amphora("a5", "split", "MASTER", { status: "ERROR" }),
+        amphora("spare", null, "", { status: "READY" }),
+        amphora("near", "ok", "STANDALONE", {
+          facts: {
+            role: "STANDALONE",
+            loadBalancerId: "ok",
+            certExpiresAt: soon,
+          },
+        }),
+        amphora("ended", "ok", "STANDALONE", {
+          facts: {
+            role: "STANDALONE",
+            loadBalancerId: "ok",
+            certExpiresAt: gone,
+          },
+        }),
+        amphora("deleted", null, "", {
+          status: "DELETED",
+          facts: { certExpiresAt: gone },
+        }),
+        amphora("garbled", "ok", "BACKUP", {
+          facts: {
+            role: "BACKUP",
+            loadBalancerId: "ok",
+            certExpiresAt: "soon",
+          },
+        }),
+        resource({
+          kind: OpenStackResourceKind.LoadBalancerPool,
+          externalId: "pool-down",
+          name: "pool-down",
+          status: "ACTIVE",
+          facts: { operatingStatus: "ERROR" },
+        }),
+        resource({
+          kind: OpenStackResourceKind.LoadBalancerPool,
+          externalId: "pool-degraded",
+          name: "pool-degraded",
+          status: "ACTIVE",
+          facts: { operatingStatus: "DEGRADED" },
+        }),
+      ]);
+      const read: OpenStackAttentionRows = await attention();
+      expect(namesOf(read, OpenStackResourceKind.LoadBalancer)).toEqual([
+        "in-error",
+        "split",
+        "stuck",
+      ]);
+      expect(
+        read.rows.find((row: JSONObject): boolean => {
+          return row["externalId"] === "split";
+        })?.["facts"],
+      ).toMatchObject({ masterAmphoraCount: 2 });
+      expect(namesOf(read, OpenStackResourceKind.LoadBalancerPool)).toEqual([
+        "pool-down",
+      ]);
+      expect(
+        read.rows
+          .filter((row: JSONObject): boolean => {
+            return row["kind"] === OpenStackResourceKind.Amphora;
+          })
+          .map((row: JSONObject): string => {
+            return row["externalId"] as string;
+          })
+          .sort(),
+      ).toEqual(["a5", "ended", "near"]);
+    });
+
     test("a database in error, one stuck past the line, one nearly full, and no other", async () => {
       const longAgo: Date = minutesAgo(
         OPENSTACK_DATABASE_INSTANCE_STUCK_MINUTES,
@@ -1045,6 +1173,55 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
           })
           .sort(),
       ).toEqual(["gnocchi RegionOne", "gnocchi RegionTwo"]);
+    });
+
+    test("what Swift's storage servers say, though its API reads up", async () => {
+      await write([
+        api(OpenStackServiceType.ObjectStore, {
+          facts: {
+            reconServers: 3,
+            reconServersNotAnswering: 1,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.ObjectStore, {
+          regionName: "RegionTwo",
+          facts: {
+            reconServers: 3,
+            reconRingsDiffering: 1,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.ObjectStore, {
+          regionName: "RegionThree",
+          facts: {
+            reconServers: 3,
+            reconOldestReplicationSeconds:
+              OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS + 1,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+        api(OpenStackServiceType.ObjectStore, {
+          regionName: "RegionFour",
+          facts: {
+            reconServers: 3,
+            reconServersNotAnswering: 0,
+            reconRingsDiffering: 0,
+            reconOldestReplicationSeconds: 60,
+            vouchedAt: minutesAgo(1),
+          },
+        }),
+      ]);
+      expect(
+        (await attention()).rows
+          .filter((row: JSONObject): boolean => {
+            return row["kind"] === OpenStackResourceKind.Api;
+          })
+          .map((row: JSONObject): unknown => {
+            return row["regionName"];
+          })
+          .sort(),
+      ).toEqual(["RegionOne", "RegionThree", "RegionTwo"]);
     });
 
     test("a project's own page reads its stacks and clusters too", async () => {
@@ -1204,6 +1381,32 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       expect(summary).toMatchObject({ databaseInstanceCount: 1 });
     });
 
+    test("the summary counts Octavia's load balancers, and a cloud without Octavia reads 0 and lists no such service", async () => {
+      await write([
+        api(OpenStackServiceType.LoadBalancer),
+        loadBalancer("one"),
+        loadBalancer("two", { regionName: "RegionTwo" }),
+      ]);
+      expect(
+        (
+          await OpenStackResourceService.getInventorySummary({
+            projectId: PROJECT_ID,
+            openStackCloudId: CLOUD_ID,
+          })
+        ).loadBalancerCount,
+      ).toBe(2);
+      expect(await optionalServicesOf(CLOUD_ID)).toEqual([
+        OpenStackServiceType.LoadBalancer,
+      ]);
+      const other: OpenStackInventorySummary =
+        await OpenStackResourceService.getInventorySummary({
+          projectId: PROJECT_ID,
+          openStackCloudId: OTHER_CLOUD_ID,
+        });
+      expect(other.loadBalancerCount).toBe(0);
+      expect(await optionalServicesOf(OTHER_CLOUD_ID)).toEqual([]);
+    });
+
     test("the summary counts Manila's shares, and a cloud without Manila reads 0", async () => {
       await write([
         api(OpenStackServiceType.SharedFileSystems),
@@ -1326,6 +1529,69 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
         projectId: "p1",
         shareCount: 2,
       });
+    });
+
+    test("Octavia's API reaches its load balancers, by project, in its own region", async () => {
+      await write([
+        loadBalancer("a", { openStackProjectId: "p1" }),
+        loadBalancer("b", { openStackProjectId: "p2" }),
+        loadBalancer("elsewhere", { regionName: "RegionTwo" }),
+      ]);
+      const radius: OpenStackBlastRadius = await radiusOf({
+        kind: OpenStackResourceKind.Api,
+        name: OpenStackServiceType.LoadBalancer,
+      });
+      expect(radius.loadBalancerCount).toBe(2);
+      expect(radius.projectCount).toBe(2);
+    });
+
+    test("a hypervisor reaches the load balancers whose amphorae run on it, and names them", async () => {
+      await write([
+        loadBalancer("on-host", { openStackProjectId: "p1" }),
+        loadBalancer("elsewhere", { openStackProjectId: "p2" }),
+        amphora("x1", "on-host", "MASTER"),
+        amphora("x2", "on-host", "BACKUP"),
+        amphora("y1", "elsewhere", "STANDALONE"),
+        resource({
+          kind: OpenStackResourceKind.Instance,
+          externalId: "server-x1",
+          name: "amphora-x1",
+          hypervisorName: "compute-1.example",
+          openStackProjectId: "service",
+        }),
+        resource({
+          kind: OpenStackResourceKind.Instance,
+          externalId: "server-x2",
+          name: "amphora-x2",
+          hypervisorName: "compute-1.example",
+          openStackProjectId: "service",
+        }),
+        resource({
+          kind: OpenStackResourceKind.Instance,
+          externalId: "server-y1",
+          name: "amphora-y1",
+          hypervisorName: "compute-2.example",
+          openStackProjectId: "service",
+        }),
+      ]);
+      const radius: OpenStackBlastRadius =
+        await OpenStackResourceService.getBlastRadius({
+          projectId: PROJECT_ID,
+          openStackCloudId: CLOUD_ID,
+          part: {
+            kind: OpenStackResourceKind.Hypervisor,
+            hypervisorName: "compute-1.example",
+            regionName: "RegionOne",
+          },
+        });
+      expect(radius.loadBalancerCount).toBe(1);
+      expect(
+        radius.loadBalancers?.map((owner) => {
+          return owner.name;
+        }),
+      ).toEqual(["on-host"]);
+      expect(radius.amphorae).toHaveLength(2);
+      expect(radius.instanceCount).toBe(2);
     });
 
     test("Designate's API reaches its zones, by project", async () => {

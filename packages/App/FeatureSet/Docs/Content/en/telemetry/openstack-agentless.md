@@ -27,6 +27,8 @@ Each service is read on its own and at the same time as the others. A Neutron th
 
 Heat, Magnum, Manila, Trove, Gnocchi, Designate, Swift and Barbican are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
 
+A probe does not read Octavia yet. A cloud that runs it and is collected by a probe shows no load balancers, pools or amphorae and no Octavia on **Services**, which is not the same as having none: the [agent](/docs/telemetry/openstack#octavia) reads them, and so does `openstack loadbalancer list`. Its alerts are not offered to such a cloud either, since nothing would send the series they read.
+
 ## Probe or agent?
 
 | | A probe (this page) | The OpenStack Agent |
@@ -133,12 +135,13 @@ On each collection, with the defaults, a region costs 7 calls to Nova, 7 to Neut
 
 A cloud that runs Manila pays, about every five minutes, 2 calls to it, one that runs Trove pays 1, Gnocchi 1 and Barbican 3. Designate takes 2, and one more for each zone that isn't `ACTIVE`, at most 50 a collection. Swift takes 1 for the credential's own project, and with `ResellerAdmin` one more for each other project, at most 200 a collection. A cloud that runs Heat or Magnum pays, about every five minutes, 2 calls to Heat and 3 to Magnum. Neither list says everything: Magnum's doesn't say whose a cluster is or why it failed, and Heat's doesn't say what a stack owns. So the probe also reads a cluster or a stack on its own when its status has moved, at most 25 of each a collection. A cloud with more goes on filling in over the next collections, and one that sits still is never read twice.
 
-Two things are off unless you turn them on, under **What it reads beyond the defaults** in the **Data Collection** card on the cloud's **Settings** page, or under **More fields** as you connect it, because each costs your cloud more:
+Three things are off unless you turn them on, under **What it reads beyond the defaults** in the **Data Collection** card on the cloud's **Settings** page, or under **More fields** as you connect it, because each costs your cloud more:
 
 | Option | What you get | What it costs |
 |---|---|---|
 | Ports | One series per port, and how many have no address or a load balancer that is down | One paged list per network or project you name, or of every port if you name none. An unscoped list of ports can saturate Neutron on a large cloud |
 | Project limits | Quotas and limits per project | Four calls per project, at most 250 projects a collection |
+| Swift's storage servers | Whether each answers, its replication and whether they all have the same rings, where you name each server's `/recon` port as `host:port`. Only a cloud that runs Swift offers this, on its **Settings** page once its first collection has read Swift | 5 calls per server on each collection. No credential goes to them |
 
 ## Certificates
 

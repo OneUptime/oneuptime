@@ -57,6 +57,10 @@ import OpenStackCloudDatabaseInstances from "../Pages/OpenStack/View/DatabaseIns
 import OpenStackCloudDatabaseInstanceDetail from "../Pages/OpenStack/View/DatabaseInstanceDetail";
 import OpenStackCloudShares from "../Pages/OpenStack/View/Shares";
 import OpenStackCloudShareDetail from "../Pages/OpenStack/View/ShareDetail";
+import OpenStackCloudLoadBalancers from "../Pages/OpenStack/View/LoadBalancers";
+import OpenStackCloudLoadBalancerDetail from "../Pages/OpenStack/View/LoadBalancerDetail";
+import OpenStackCloudLoadBalancerPoolDetail from "../Pages/OpenStack/View/LoadBalancerPoolDetail";
+import OpenStackCloudAmphoraDetail from "../Pages/OpenStack/View/AmphoraDetail";
 import OpenStackCloudProjects from "../Pages/OpenStack/View/Projects";
 import OpenStackCloudProjectDetail from "../Pages/OpenStack/View/ProjectDetail";
 import OpenStackCloudDomains from "../Pages/OpenStack/View/Domains";
@@ -67,6 +71,7 @@ import OpenStackCloudMetrics from "../Pages/OpenStack/View/Metrics";
 import OpenStackCloudRecommendations from "../Pages/OpenStack/View/Recommendations";
 import OpenStackCloudCapacity from "../Pages/OpenStack/View/Capacity";
 import OpenStackCloudSpend from "../Pages/OpenStack/View/Spend";
+import OpenStackCloudStatusPages from "../Pages/OpenStack/View/StatusPages";
 import OpenStackCloudLogs from "../Pages/OpenStack/View/Logs";
 import OpenStackCloudTraces from "../Pages/OpenStack/View/Traces";
 import OpenStackCloudChecks from "../Pages/OpenStack/View/Checks";
@@ -843,6 +848,67 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/* Load balancers: only a cloud that runs Octavia links here. */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+          )}
+          element={
+            <OpenStackCloudLoadBalancers
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL,
+          )}
+          element={
+            <OpenStackCloudLoadBalancerDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL,
+          )}
+          element={
+            <OpenStackCloudLoadBalancerPoolDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL,
+          )}
+          element={
+            <OpenStackCloudAmphoraDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL] as Route
+              }
+            />
+          }
+        />
+
         {/* Tenancy */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
@@ -1047,6 +1113,20 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
             <OpenStackCloudSpend
               {...props}
               pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SPEND] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES,
+          )}
+          element={
+            <OpenStackCloudStatusPages
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES] as Route
+              }
             />
           }
         />

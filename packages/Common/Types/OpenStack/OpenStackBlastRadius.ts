@@ -1,6 +1,5 @@
 import { OpenStackReachAcrossProducts } from "./OpenStackLinks";
 import { OpenStackResourceKind } from "./OpenStackResourceKind";
-import { OpenStackReachedProject } from "./OpenStackScopedRule";
 
 /*
  * WHAT A FAILED PART TAKES WITH IT, AND WHOSE IT IS.
@@ -28,6 +27,7 @@ export interface OpenStackBlastRadiusProject {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   databaseInstanceCount: number;
   dnsZoneCount: number;
   objectContainerCount: number;
@@ -42,6 +42,7 @@ export interface OpenStackBlastRadius {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   databaseInstanceCount: number;
   dnsZoneCount: number;
   objectContainerCount: number;
@@ -51,9 +52,10 @@ export interface OpenStackBlastRadius {
   projects: Array<OpenStackBlastRadiusProject>;
   /*
    * All of them, past the cap, when asked for: a rule on the sixtieth project has to reach
-   * it even though a description stops naming projects at the fiftieth.
+   * it even though a description stops naming projects at the fiftieth, and that project's
+   * notice has to say what it holds there.
    */
-  everyProject?: Array<OpenStackReachedProject> | undefined;
+  everyProject?: Array<OpenStackBlastRadiusProject> | undefined;
   /*
    * False when what was collected cannot say. The agent's exporter does not say which
    * pool a volume is on, so a pool's reach is only known from the probe's reads, and a
@@ -72,6 +74,12 @@ export interface OpenStackBlastRadius {
   belongsTo?: Array<OpenStackBlastRadiusOwner> | undefined;
   // The Magnum clusters with a server on this hypervisor, which its failure reaches.
   magnumClusters?: Array<OpenStackBlastRadiusOwner> | undefined;
+  /*
+   * The amphorae on this hypervisor and the load balancers they carry, which its failure reaches:
+   * an amphora is an instance in Octavia's own project, so the instances it counts hide them.
+   */
+  amphorae?: Array<OpenStackBlastRadiusOwner> | undefined;
+  loadBalancers?: Array<OpenStackBlastRadiusOwner> | undefined;
 }
 
 export interface OpenStackBlastRadiusOwner {
@@ -94,6 +102,7 @@ export function getEmptyOpenStackBlastRadius(
     stackCount: 0,
     containerClusterCount: 0,
     shareCount: 0,
+    loadBalancerCount: 0,
     databaseInstanceCount: 0,
     dnsZoneCount: 0,
     objectContainerCount: 0,
@@ -111,6 +120,7 @@ export type OpenStackBlastRadiusCount =
   | "stackCount"
   | "containerClusterCount"
   | "shareCount"
+  | "loadBalancerCount"
   | "databaseInstanceCount"
   | "dnsZoneCount"
   | "objectContainerCount";
@@ -136,6 +146,11 @@ export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
     other: "Kubernetes clusters",
   },
   { count: "shareCount", one: "share", other: "shares" },
+  {
+    count: "loadBalancerCount",
+    one: "load balancer",
+    other: "load balancers",
+  },
   { count: "databaseInstanceCount", one: "database", other: "databases" },
   {
     count: "objectContainerCount",
@@ -182,6 +197,7 @@ export function buildOpenStackBlastRadius(data: {
         stackCount: 0,
         containerClusterCount: 0,
         shareCount: 0,
+        loadBalancerCount: 0,
         databaseInstanceCount: 0,
         dnsZoneCount: 0,
         objectContainerCount: 0,
@@ -204,11 +220,7 @@ export function buildOpenStackBlastRadius(data: {
 
   radius.projectCount = projects.size;
   if (data.includeEveryProject) {
-    radius.everyProject = Array.from(projects.values()).map(
-      (project: OpenStackBlastRadiusProject): OpenStackReachedProject => {
-        return { projectId: project.projectId, domainId: project.domainId };
-      },
-    );
+    radius.everyProject = Array.from(projects.values());
   }
   radius.projects = Array.from(projects.values())
     .sort(
@@ -225,6 +237,71 @@ export function buildOpenStackBlastRadius(data: {
     .slice(0, OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT);
 
   return radius;
+}
+
+/*
+ * What several parts take with them, as one: a project on two hosts of a zone is one project, holding
+ * what it holds on both. Known only when every part's reach is: a radius a page cannot trust as a whole
+ * says so rather than reading low.
+ */
+export function mergeOpenStackBlastRadii(
+  radii: ReadonlyArray<OpenStackBlastRadius>,
+): OpenStackBlastRadius {
+  const counts: Array<{
+    count: OpenStackBlastRadiusCount;
+    byProject: Array<{ projectId: string | null; count: number }>;
+  }> = [];
+  const projectNames: Record<string, string> = {};
+  const projectDomains: Record<string, string> = {};
+
+  for (const radius of radii) {
+    for (const entry of OPENSTACK_BLAST_RADIUS_COUNTS) {
+      const byProject: Array<{ projectId: string | null; count: number }> = (
+        radius.everyProject || radius.projects
+      ).map(
+        (
+          project: OpenStackBlastRadiusProject,
+        ): { projectId: string | null; count: number } => {
+          return { projectId: project.projectId, count: project[entry.count] };
+        },
+      );
+
+      // What a radius counted of no project, or past what it names, stays in the total.
+      const named: number = byProject.reduce(
+        (total: number, one: { count: number }): number => {
+          return total + one.count;
+        },
+        0,
+      );
+      if (radius[entry.count] > named) {
+        byProject.push({
+          projectId: null,
+          count: radius[entry.count] - named,
+        });
+      }
+
+      counts.push({ count: entry.count, byProject });
+    }
+
+    for (const project of radius.everyProject || radius.projects) {
+      if (project.name) {
+        projectNames[project.projectId] = project.name;
+      }
+      if (project.domainId) {
+        projectDomains[project.projectId] = project.domainId;
+      }
+    }
+  }
+
+  return buildOpenStackBlastRadius({
+    counts,
+    projectNames,
+    projectDomains,
+    isKnown: radii.every((radius: OpenStackBlastRadius): boolean => {
+      return radius.isKnown;
+    }),
+    includeEveryProject: true,
+  });
 }
 
 export function isOpenStackBlastRadiusEmpty(
@@ -288,3 +365,27 @@ export function getOpenStackDomainMarker(domainId: string): string {
 
 export const OPENSTACK_PROJECT_MARKER_START: string = "OpenStack project `";
 export const OPENSTACK_DOMAIN_MARKER_START: string = "OpenStack domain `";
+
+/*
+ * WHERE WHAT A FAILURE REACHES STARTS IN A DESCRIPTION, AND WHY A STATUS PAGE STOPS THERE.
+ *
+ * An incident's description is for two audiences. Whoever is working on it needs every project on the
+ * host by name. A status page and its subscribers read the same column, and "ou-payments: 3 instances"
+ * on a public page tells one customer who another is. So everything this adds to a description comes
+ * after this line, whose words say so to whoever reads it, and everything that shows an incident
+ * outside the team cuts the description here: IncidentStatusPageScope for a page's reads, and the
+ * subscriber jobs for what they send. An operator's own edit above the line reaches a page as it always
+ * did, and what is under the line never does.
+ */
+export const OPENSTACK_REACH_HEADING: string =
+  "**In this cloud** (for your team, never shown on a status page):";
+
+// In one scan, because a description can hold anything a template placed.
+export function removeOpenStackReachFromDescription(
+  description: string | null | undefined,
+): string {
+  const text: string = description || "";
+  const start: number = text.indexOf(OPENSTACK_REACH_HEADING);
+
+  return start < 0 ? text : text.substring(0, start).trimEnd();
+}

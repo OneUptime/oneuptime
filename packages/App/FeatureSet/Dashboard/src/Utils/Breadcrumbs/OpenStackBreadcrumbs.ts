@@ -250,6 +250,34 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
         "Kubernetes Cluster Detail",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+      ["Project", "OpenStack", "View Cloud", "Load Balancers"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL,
+      [
+        "Project",
+        "OpenStack",
+        "View Cloud",
+        "Load Balancers",
+        "Load Balancer Detail",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL,
+      ["Project", "OpenStack", "View Cloud", "Load Balancers", "Pool Detail"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL,
+      [
+        "Project",
+        "OpenStack",
+        "View Cloud",
+        "Load Balancers",
+        "Amphora Detail",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES, [
       "Project",
       "OpenStack",
@@ -402,6 +430,12 @@ export function getOpenStackBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "OpenStack", "View Cloud", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES, [
+      "Project",
+      "OpenStack",
+      "View Cloud",
+      "Status Pages",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.OPENSTACK_CLOUD_VIEW_OWNERS, [
       "Project",
       "OpenStack",

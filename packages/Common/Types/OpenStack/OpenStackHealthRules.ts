@@ -1,5 +1,10 @@
 import { JSONObject, JSONValue } from "../JSON";
 import {
+  OPENSTACK_AMPHORA_ERROR_STATUSES,
+  OPENSTACK_AMPHORA_ROLE_MASTER,
+  OPENSTACK_LOAD_BALANCER_ERROR_STATUSES,
+  OPENSTACK_LOAD_BALANCER_OPERATING_ERROR,
+  OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES,
   OPENSTACK_CONTAINER_CLUSTER_FAILED_STATUSES,
   OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_BARE_METAL_ERROR_STATES,
@@ -71,6 +76,19 @@ export const OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES: number = 120;
  * backend that hung reads just the same. Longer than a volume's, because a share's backend does more.
  */
 export const OPENSTACK_SHARE_STUCK_MINUTES: number = 60;
+/*
+ * Octavia's worker takes a request off its queue and does it, and an hour is how long Canonical's
+ * rule waits too. Recorded on a worker that was stopped: a load balancer accepted a change and stayed
+ * PENDING_UPDATE, and one asked for stayed PENDING_CREATE, for as long as the worker was stopped.
+ */
+export const OPENSTACK_LOAD_BALANCER_STUCK_MINUTES: number = 60;
+/*
+ * An amphora's certificate lasts exactly 30 days from the day it is built (recorded: cert_expiration is
+ * created_at plus 30 days on Octavia's defaults), and Octavia's housekeeping renews one with 14 days
+ * left. So a line at 30 would fire on every amphora for its whole life. 14 is where housekeeping should
+ * already have acted, which makes a certificate under it one it did not renew.
+ */
+export const OPENSTACK_AMPHORA_CERTIFICATE_WARNING_DAYS: number = 14;
 /*
  * Trove gives up on a guest that does not report by itself (usage_timeout, a quarter of an hour by
  * default, and it reached ERROR in two minutes when Nova refused, recorded). So what stays on its way
@@ -526,6 +544,39 @@ export function isOpenStackGnocchiBacklogged(facts: {
 export const OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES: number =
   1024 * 1024 * 1024 * 1024;
 
+/*
+ * What Swift's storage servers say through /recon, where someone named them. A pass of replication can take a
+ * long time on a large cluster, so this line is for one that has stopped rather than one that's slow.
+ */
+export const OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS: number = 6 * 60 * 60;
+export const OPENSTACK_SWIFT_RECON_SERVERS_FACT: string = "reconServers";
+export const OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT: string =
+  "reconServersNotAnswering";
+export const OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT: string =
+  "reconRingsDiffering";
+export const OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT: string =
+  "reconOldestReplicationSeconds";
+
+export function getOpenStackSwiftReconTroubles(facts: {
+  [key: string]: unknown;
+}): {
+  serversNotAnswering: number;
+  ringsDiffering: number;
+  isReplicationStale: boolean;
+} {
+  const count: (name: string) => number = (name: string): number => {
+    const value: unknown = facts[name];
+    return typeof value === "number" ? value : 0;
+  };
+  return {
+    serversNotAnswering: count(OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT),
+    ringsDiffering: count(OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT),
+    isReplicationStale:
+      count(OPENSTACK_SWIFT_RECON_OLDEST_REPLICATION_FACT) >
+      OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
+  };
+}
+
 export function isOpenStackDatabaseInstanceInError(
   status: string | null | undefined,
 ): boolean {
@@ -724,4 +775,109 @@ export function getOpenStackRouterAgents(
       };
     },
   );
+}
+
+export function isOpenStackLoadBalancerInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_LOAD_BALANCER_ERROR_STATUSES.has(status));
+}
+
+export function isOpenStackLoadBalancerStuck(data: {
+  status?: string | null | undefined;
+  stateChangedAt?: Date | string | null | undefined;
+  now: Date;
+}): boolean {
+  if (
+    !data.status ||
+    !OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES.has(data.status)
+  ) {
+    return false;
+  }
+  const minutes: number | null = minutesInState(data);
+  return minutes !== null && minutes >= OPENSTACK_LOAD_BALANCER_STUCK_MINUTES;
+}
+
+/*
+ * A pool whose health checks say nothing behind it is healthy. Octavia's operating status, not its
+ * provisioning one: recorded, every member of a pool failing leaves the pool and its load balancer
+ * ACTIVE in provisioning, and ERROR here. DEGRADED is some members down, which the pool's page says
+ * and nothing pages for.
+ */
+export function isOpenStackPoolWithoutHealthyMembers(
+  operatingStatus: string | null | undefined,
+): boolean {
+  return operatingStatus === OPENSTACK_LOAD_BALANCER_OPERATING_ERROR;
+}
+
+export function isOpenStackAmphoraInError(
+  status: string | null | undefined,
+): boolean {
+  return Boolean(status && OPENSTACK_AMPHORA_ERROR_STATUSES.has(status));
+}
+
+// Days until an amphora's certificate ends, negative once it has. Null when the row does not say.
+export function getOpenStackAmphoraCertificateDaysLeft(data: {
+  certExpiresAt?: string | null | undefined;
+  now: Date;
+}): number | null {
+  if (!data.certExpiresAt) {
+    return null;
+  }
+  const expires: Date = new Date(data.certExpiresAt);
+  if (isNaN(expires.getTime())) {
+    return null;
+  }
+  return (expires.getTime() - data.now.getTime()) / (24 * 60 * 60 * 1000);
+}
+
+/*
+ * One that is gone is no concern, and an amphora in ERROR has its own rule. What is left, spare
+ * ones too: a READY amphora in the pool is used with its certificate as it is.
+ */
+export function isOpenStackAmphoraCertificateExpiring(data: {
+  status?: string | null | undefined;
+  certExpiresAt?: string | null | undefined;
+  now: Date;
+}): boolean {
+  if (data.status === "DELETED" || data.status === "PENDING_DELETE") {
+    return false;
+  }
+  const days: number | null = getOpenStackAmphoraCertificateDaysLeft(data);
+  return days !== null && days < OPENSTACK_AMPHORA_CERTIFICATE_WARNING_DAYS;
+}
+
+/*
+ * The load balancers with more than one MASTER among the amphorae that hold a load balancer now: a
+ * split pair, both answering for one address. A standalone amphora has no pair, a BACKUP is what the
+ * other should be, and one in ERROR is being replaced, so only ALLOCATED ones are counted.
+ */
+export function getOpenStackLoadBalancersWithTwoMasters(
+  amphorae: ReadonlyArray<{
+    status?: string | null | undefined;
+    loadBalancerId?: string | null | undefined;
+    role?: string | null | undefined;
+  }>,
+): Array<string> {
+  const masters: Map<string, number> = new Map();
+  for (const amphora of amphorae) {
+    if (
+      amphora.status !== "ALLOCATED" ||
+      amphora.role !== OPENSTACK_AMPHORA_ROLE_MASTER ||
+      !amphora.loadBalancerId
+    ) {
+      continue;
+    }
+    masters.set(
+      amphora.loadBalancerId,
+      (masters.get(amphora.loadBalancerId) || 0) + 1,
+    );
+  }
+  return Array.from(masters.entries())
+    .filter(([, count]: [string, number]): boolean => {
+      return count > 1;
+    })
+    .map(([loadBalancerId]: [string, number]): string => {
+      return loadBalancerId;
+    });
 }

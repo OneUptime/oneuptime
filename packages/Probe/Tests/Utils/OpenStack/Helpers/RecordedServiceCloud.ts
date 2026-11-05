@@ -1,3 +1,4 @@
+import { OpenStackCollectionOptions } from "Common/Types/OpenStack/OpenStackProbeCollection";
 import OpenStackProbeMetrics from "Common/Server/Utils/OpenStack/OpenStackProbeMetrics";
 import {
   OpenStackOptionalServiceScrape,
@@ -52,6 +53,8 @@ export interface RecordedAnswer {
 }
 
 export interface RecordedRequest {
+  // Which host and port it went to: what's in Keystone's catalog is all one, and /recon isn't.
+  host: string;
   path: string;
   query: string;
   headers: Record<string, string>;
@@ -141,6 +144,7 @@ export interface RecordedServiceAnswers {
   roles?: Array<string> | undefined;
   // What Keystone lists. Left out, it lists none, as for a cloud with few.
   projects?: Array<JSONObject> | undefined;
+  options?: OpenStackCollectionOptions | undefined;
 }
 
 function transportOf(
@@ -179,6 +183,7 @@ function transportOf(
     }
 
     const recorded: RecordedRequest = {
+      host: url.host,
       path,
       query: url.search,
       headers: (request.headers || {}) as Record<string, string>,
@@ -209,7 +214,7 @@ export async function collectFromRecordedService(
   }
 
   const report: OpenStackCollectionReport = await OpenStackCollector.collect(
-    collectionJob({ authUrl: RECORDED_AUTH_URL }),
+    collectionJob({ authUrl: RECORDED_AUTH_URL, options: data.options || {} }),
     harness.dependencies,
   );
 

@@ -38,6 +38,7 @@ export type OpenStackMetricCategory =
   | "Identity"
   | "Orchestration"
   | "Bare Metal"
+  | "Load Balancers"
   | "Databases"
   | "Metrics"
   | "Key Manager"
@@ -2730,6 +2731,105 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
     onlyFromProbe: true,
   }),
+  // Load balancers: Octavia, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_loadbalancer_up",
+    friendlyName: translationKey("Load Balancers API Up"),
+    description:
+      "1 when a read of Octavia got far enough to say. A stopped Octavia API reads no 0 here: the exporter reads Octavia's root before anything else and answers an empty 200, as for a cloud without Octavia (recorded), so this series goes quiet rather than reading 0.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_loadbalancer_loadbalancer_status",
+    friendlyName: translationKey("Load Balancer"),
+    description:
+      "One series per load balancer. Its value is a code for the operating status (ONLINE 0, DEGRADED -1, OFFLINE 2, ERROR 3), so it is 0 for a healthy one and for one that provisions ACTIVE with nothing wrong; read the words in provisioning_status and operating_status, never the value. A reader sees its own project's load balancers.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [
+      "id",
+      "name",
+      "operating_status",
+      "project_id",
+      "provider",
+      "provisioning_status",
+      "vip_address",
+    ],
+  }),
+  metric({
+    metricName: "openstack_loadbalancer_pool_status",
+    friendlyName: translationKey("Load Balancer Pool"),
+    description:
+      "One series per pool. Its value is a code for the provisioning status, so a pool whose members are all down still reads 0 (recorded): read operating_status for that, where ERROR means none of its members is healthy and DEGRADED that some are not.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [
+      "id",
+      "lb_algorithm",
+      "loadbalancers",
+      "name",
+      "operating_status",
+      "project_id",
+      "protocol",
+      "provisioning_status",
+    ],
+  }),
+  metric({
+    metricName: "openstack_loadbalancer_amphora_status",
+    friendlyName: translationKey("Load Balancer Amphora"),
+    description:
+      "One series per amphora, the virtual machine a load balancer runs in. The value is a code for its status, so read the status word. Its role says MASTER, BACKUP or STANDALONE, compute_id is its Nova instance, and cert_expiration is when its certificate ends, a text and not a number (an amphora's lasts 30 days from when it is built). Only an admin may list amphorae, so only a full-view credential sends these.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [
+      "cert_expiration",
+      "compute_id",
+      "ha_ip",
+      "id",
+      "lb_network_ip",
+      "loadbalancer_id",
+      "role",
+      "status",
+    ],
+  }),
+  metric({
+    metricName: "openstack_loadbalancer_total_loadbalancers",
+    friendlyName: translationKey("Load Balancers"),
+    description:
+      "How many load balancers Octavia listed for this credential, per region.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_loadbalancer_total_pools",
+    friendlyName: translationKey("Load Balancer Pools"),
+    description: "How many pools Octavia listed for this credential, per region.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_loadbalancer_total_amphorae",
+    friendlyName: translationKey("Amphorae"),
+    description:
+      "How many amphorae Octavia listed for this credential, per region. 0 for a credential that may not list them.",
+    category: "Load Balancers",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.LoadBalancer,
+    identityAttributes: [],
+  }),
   // Metrics: Gnocchi, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_gnocchi_up",
@@ -2854,6 +2954,112 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     unit: "count",
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.KeyManager,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_servers",
+    friendlyName: translationKey("Swift Storage Servers Read"),
+    description:
+      "How many of Swift's storage servers the cloud's settings name for /recon. Only a probe sends this.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_up",
+    friendlyName: translationKey("Swift Storage Server Answering"),
+    description:
+      "Whether a storage server answered /recon (1) or not (0). Only a probe sends this, and only for a server named in the cloud's settings.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["address"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_servers_not_answering",
+    friendlyName: translationKey("Swift Storage Servers Not Answering"),
+    description:
+      "How many of the storage servers named in the cloud's settings aren't answering /recon. Only a probe sends this.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_replication_age_seconds",
+    friendlyName: translationKey("Swift Replication Age"),
+    description:
+      "How long ago a storage server last finished a pass of replication for a ring. Only a probe sends this.",
+    category: "Storage",
+    unit: "s",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["address", "ring"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_replication_failures",
+    friendlyName: translationKey("Swift Replication Failures"),
+    description:
+      "How many of a pass of replication's attempts failed, as the storage server last said. Only a probe sends this.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["address", "ring"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_oldest_replication_seconds",
+    friendlyName: translationKey("Swift Oldest Replication"),
+    description:
+      "How long since the longest-waiting ring on any named storage server last finished a pass of replication. Only a probe sends this.",
+    category: "Storage",
+    unit: "s",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: [],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_unmounted_drives",
+    friendlyName: translationKey("Swift Unmounted Drives"),
+    description:
+      "How many drives a storage server says aren't mounted. Only a probe sends this.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["address"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_rings_differ",
+    friendlyName: translationKey("Swift Ring Differs"),
+    description:
+      "Whether the named storage servers report different checksums for a ring (1) or the same (0). Only a probe sends this.",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.ObjectStore,
+    identityAttributes: ["ring"],
+    onlyFromProbe: true,
+  }),
+  metric({
+    metricName: "openstack_object_store_recon_rings_differing",
+    friendlyName: translationKey("Swift Rings Differing"),
+    description:
+      "How many rings the named storage servers report different checksums for. Only a probe sends this.",
+    category: "Storage",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.ObjectStore,
     identityAttributes: [],
     onlyFromProbe: true,
   }),
@@ -3115,6 +3321,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Identity",
     "Orchestration",
     "Bare Metal",
+    "Load Balancers",
     "Databases",
     "Metrics",
     "Key Manager",

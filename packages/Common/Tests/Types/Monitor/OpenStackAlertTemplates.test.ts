@@ -47,6 +47,7 @@ import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
   OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
+  OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
   OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
@@ -347,6 +348,8 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
    * per collection, and these jobs collect no more than once a minute.
    */
   "openstack-instances-in-error|instances_in_error": "Count",
+  // Up or down, its rows say it is disabled, so they are the whole of the question.
+  "openstack-compute-service-disabled|compute_service_disabled": "Count",
   "openstack-dns-zone-in-error|in_error": "Count",
   "openstack-dns-zone-stuck-pending|in_pending": "Count",
   "openstack-dns-recordset-in-error|recordset_a": "Count",
@@ -372,6 +375,18 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
   "openstack-database-instance-stuck|in_eject": "Count",
   "openstack-database-instance-stuck|in_detach": "Count",
   "openstack-router-with-two-active-agents|active_agents": "Count",
+  /*
+   * Octavia's series carry their status in a label and a code in the value, and a healthy one's code
+   * is 0, so the rows are what is counted: one per thing per collection, and the job collects every
+   * five minutes.
+   */
+  "openstack-load-balancer-in-error|in_error": "Count",
+  "openstack-load-balancer-stuck-pending|in_pending_create": "Count",
+  "openstack-load-balancer-stuck-pending|in_pending_update": "Count",
+  "openstack-load-balancer-stuck-pending|in_pending_delete": "Count",
+  "openstack-amphora-in-error|in_error": "Count",
+  "openstack-pool-without-healthy-members|in_error": "Count",
+  "openstack-load-balancer-with-two-masters|master_amphorae": "Count",
   /*
    * The network's value is a code, 0 for ACTIVE: a Count says the row is there.
    */
@@ -440,6 +455,10 @@ const THRESHOLDS: Readonly<
   "openstack-compute-service-down": {
     filterType: FilterType.LessThan,
     value: 1,
+  },
+  "openstack-compute-service-disabled": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
   },
   "openstack-scheduler-or-conductor-down": {
     filterType: FilterType.LessThan,
@@ -636,6 +655,18 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-swift-storage-server-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-swift-rings-differ": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-swift-replication-stale": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS,
+  },
   "openstack-object-container-growth": {
     filterType: FilterType.ForecastAbove,
     value: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES,
@@ -662,6 +693,30 @@ const THRESHOLDS: Readonly<
   },
   "openstack-share-in-error": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-share-stuck": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-load-balancer-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-load-balancer-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-load-balancer-stuck-pending": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-amphora-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-pool-without-healthy-members": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-load-balancer-with-two-masters": {
+    filterType: FilterType.GreaterThan,
+    value: 1,
+  },
   "openstack-stack-failed": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-stack-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-container-cluster-failed": {
@@ -786,6 +841,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-compute-service-down": {
     breached: { compute_service_up: 0 },
     healthy: { compute_service_up: 1 },
+  },
+  "openstack-compute-service-disabled": {
+    breached: { compute_service_disabled: 1 },
+    healthy: { compute_service_disabled: 0 },
   },
   "openstack-scheduler-or-conductor-down": {
     breached: { scheduler_up: 0 },
@@ -991,6 +1050,23 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
   },
+  // Recorded: a stopped object server's port doesn't answer. What it reads is the probe's own word for that.
+  "openstack-swift-storage-server-down": {
+    breached: { recon_up: 0 },
+    healthy: { recon_up: 1 },
+  },
+  // Made up: a runner's one server can't disagree with itself.
+  "openstack-swift-rings-differ": {
+    breached: { rings_differ: 1 },
+    healthy: { rings_differ: 0 },
+  },
+  // Made up: a runner's replication finishes every few minutes.
+  "openstack-swift-replication-stale": {
+    breached: {
+      replication_age_seconds: OPENSTACK_SWIFT_REPLICATION_STALE_SECONDS * 2,
+    },
+    healthy: { replication_age_seconds: 60 },
+  },
   // Made up: no runner holds a week of growth.
   "openstack-object-container-growth": {
     breached: { bytes: OPENSTACK_OBJECT_CONTAINER_GROWTH_WARNING_BYTES * 2 },
@@ -1025,6 +1101,31 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-share-stuck": {
     breached: { in_creating: 1 },
     healthy: { in_creating: 0 },
+  },
+  "openstack-load-balancer-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  // Counts of the rows holding the word, since a healthy one's code is 0 too.
+  "openstack-load-balancer-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-load-balancer-stuck-pending": {
+    breached: { in_pending_update: 1 },
+    healthy: { in_pending_update: 0 },
+  },
+  "openstack-amphora-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-pool-without-healthy-members": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-load-balancer-with-two-masters": {
+    breached: { master_amphorae: 2 },
+    healthy: { master_amphorae: 1 },
   },
   // Each word's code as it was recorded, which only says the row is there.
   "openstack-stack-failed": {
@@ -1176,6 +1277,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Manila Service Down",
         "Share in Error",
         "Share Stuck",
+        "Load Balancers API Down",
+        "Load Balancer in Error",
+        "Load Balancer Stuck Pending",
+        "Load Balancer With Two Masters",
+        "Amphora in Error",
+        "Pool Has No Healthy Members",
         "DNS API Down",
         "DNS Zone in Error",
         "DNS Zone Stuck Pending",
@@ -1185,12 +1292,16 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Gnocchi Backlog Growing",
         "Object Storage API Down",
         "Object Container Growth Forecast",
+        "Swift Storage Server Not Answering",
+        "Swift Rings Differ",
+        "Swift Replication Stale",
         "Key Manager API Down",
         "Databases API Down",
         "Database Instance in Error",
         "Database Instance Stuck",
         "Database Volume Nearly Full",
         "Compute Service Down",
+        "Compute Service Disabled",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
         "Every Scheduler or Conductor Down",
@@ -1264,6 +1375,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Storage",
         "Orchestration",
         "Bare Metal",
+        "Load Balancers",
         "Databases",
         "Metrics",
         "Projects",
@@ -1835,7 +1947,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
 
     test.each(TEMPLATE_CASES)(
       "%s, if it reads a worker, reads only what an operator left on",
-      (_id: string, template: OpenStackAlertTemplate) => {
+      (id: string, template: OpenStackAlertTemplate) => {
+        // The one that asks whether someone meant to turn it off: see its own test below.
+        if (id === "openstack-compute-service-disabled") {
+          return;
+        }
+
         for (const query of queriesOf(stepOf(template))) {
           const adminState: string | undefined =
             ADMIN_STATE[metricNameOf(query)];
@@ -1850,6 +1967,11 @@ describe("OpenStack alert templates: the rules every template passes", () => {
     test("there are worker templates for that to hold on", () => {
       const workerTemplates: Array<OpenStackAlertTemplate> = TEMPLATES.filter(
         (template: OpenStackAlertTemplate): boolean => {
+          // It reads the other side on purpose: see the test of its own.
+          if (template.id === "openstack-compute-service-disabled") {
+            return false;
+          }
+
           return queriesOf(stepOf(template)).some(
             (query: MetricQueryConfigData): boolean => {
               return Boolean(ADMIN_STATE[metricNameOf(query)]);
@@ -1859,6 +1981,25 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       );
 
       expect(workerTemplates.length).toBe(6);
+    });
+
+    test("what reads a disabled nova-compute reads only that, and only when disabled", () => {
+      const template: OpenStackAlertTemplate = TEMPLATES.find(
+        (candidate: OpenStackAlertTemplate): boolean => {
+          return candidate.id === "openstack-compute-service-disabled";
+        },
+      )!;
+      const queries: Array<MetricQueryConfigData> = queriesOf(
+        stepOf(template),
+      ).filter((query: MetricQueryConfigData): boolean => {
+        return aliasOf(query) !== OPENSTACK_ANCHOR_METRIC_ALIAS;
+      });
+
+      expect(queries).toHaveLength(1);
+      expect(attributesOf(queries[0]!)).toEqual({
+        service: "nova-compute",
+        adminState: "disabled",
+      });
     });
 
     test("a worker is never grouped by an id, which Cinder makes up afresh every time", () => {
@@ -2147,6 +2288,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "openstack-orchestration-engine-down",
         "openstack-rating-api-down",
         "openstack-share-service-down",
+        "openstack-swift-replication-stale",
+        "openstack-swift-rings-differ",
+        "openstack-swift-storage-server-down",
       ]);
       for (const id of probeOnly) {
         const template: OpenStackAlertTemplate =
@@ -2206,10 +2350,18 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
       ["openstack-share-in-error", ["id", "name"]],
       ["openstack-share-stuck", ["id", "name"]],
+      ["openstack-load-balancer-in-error", ["id", "name"]],
+      ["openstack-load-balancer-stuck-pending", ["id", "name"]],
+      ["openstack-pool-without-healthy-members", ["id", "name"]],
+      ["openstack-amphora-in-error", ["id", "loadbalancer_id"]],
+      ["openstack-load-balancer-with-two-masters", ["loadbalancer_id"]],
       ["openstack-dns-zone-in-error", ["id", "name"]],
       ["openstack-dns-zone-stuck-pending", ["id", "name"]],
       ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],
       ["openstack-object-container-growth", ["container_name"]],
+      ["openstack-swift-storage-server-down", ["address"]],
+      ["openstack-swift-rings-differ", ["ring"]],
+      ["openstack-swift-replication-stale", ["address", "ring"]],
       ["openstack-database-instance-in-error", ["id", "name"]],
       ["openstack-database-instance-stuck", ["id", "name"]],
       ["openstack-database-volume-nearly-full", ["id", "name"]],

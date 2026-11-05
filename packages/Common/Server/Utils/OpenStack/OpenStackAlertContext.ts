@@ -9,6 +9,7 @@ import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusOwner,
   OpenStackBlastRadiusProject,
+  OPENSTACK_REACH_HEADING,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
   isOpenStackBlastRadiusEmpty,
@@ -197,13 +198,13 @@ export function getOpenStackPartOfSeries(
 }
 
 /*
- * The series an OpenStack monitor reads, from its steps. Step JSON is not schema-checked,
+ * What an OpenStack monitor's queries filter on, from its steps. Step JSON is not schema-checked,
  * so each step is read for what it holds rather than trusted to hold it.
  */
-export function getOpenStackMetricNamesOfMonitor(
+function getOpenStackQueryFiltersOfMonitor(
   monitorSteps: unknown,
-): Array<string> {
-  const names: Array<string> = [];
+): Array<JSONObject> {
+  const filters: Array<JSONObject> = [];
   const steps: unknown = (monitorSteps as JSONObject | undefined)?.["data"];
   const list: unknown = (steps as JSONObject | undefined)?.[
     "monitorStepsInstanceArray"
@@ -231,19 +232,55 @@ export function getOpenStackMetricNamesOfMonitor(
         continue;
       }
 
-      const name: unknown = (
+      const filterData: unknown = (
         (query as JSONObject)?.["metricQueryData"] as JSONObject | undefined
       )?.["filterData"];
-      const metricName: unknown = (name as JSONObject | undefined)?.[
-        "metricName"
-      ];
-      if (typeof metricName === "string") {
-        names.push(metricName);
+      if (filterData && typeof filterData === "object") {
+        filters.push(filterData as JSONObject);
       }
     }
   }
 
+  return filters;
+}
+
+// The series an OpenStack monitor reads, from its steps.
+export function getOpenStackMetricNamesOfMonitor(
+  monitorSteps: unknown,
+): Array<string> {
+  const names: Array<string> = [];
+
+  for (const filterData of getOpenStackQueryFiltersOfMonitor(monitorSteps)) {
+    const metricName: unknown = filterData["metricName"];
+    if (typeof metricName === "string") {
+      names.push(metricName);
+    }
+  }
+
   return names;
+}
+
+/*
+ * Whether all a monitor asks is which workers are disabled. Nothing a project already runs stops for
+ * that: only new work stops landing there, and whether it was meant is a question for whoever runs
+ * the cloud.
+ */
+export function isOpenStackMonitorOfDisabledWorkers(
+  monitorSteps: unknown,
+): boolean {
+  const filters: Array<JSONObject> =
+    getOpenStackQueryFiltersOfMonitor(monitorSteps);
+
+  return (
+    filters.length > 0 &&
+    filters.every((filterData: JSONObject): boolean => {
+      const attributes: unknown = filterData["attributes"];
+
+      return (
+        (attributes as JSONObject | undefined)?.["adminState"] === "disabled"
+      );
+    })
+  );
 }
 
 // The project a series names for itself, which needs no radius to find.
@@ -298,6 +335,9 @@ export interface OpenStackAlertContextResult {
   partKind: OpenStackResourceKind | null;
   // Its row's id, when the series names a part with a row.
   partExternalId?: string | undefined;
+  // What the row calls it and where, for what is said about it outside the team.
+  partName?: string | undefined;
+  partRegionName?: string | undefined;
   // Set when the part is a whole region's API, which is what the radius then reads.
   regionWide?: OpenStackRegionWide | undefined;
   /*
@@ -339,12 +379,14 @@ export function getOpenStackProjectsReached(
   for (const project of context.radius?.everyProject ||
     context.radius?.projects ||
     []) {
-    if (!reached.has(project.projectId)) {
-      reached.set(project.projectId, {
-        projectId: project.projectId,
-        domainId: project.domainId,
-      });
-    }
+    const holdings: string = describeOpenStackBlastRadiusCounts(project);
+
+    reached.set(project.projectId, {
+      projectId: project.projectId,
+      domainId: reached.get(project.projectId)?.domainId ?? project.domainId,
+      ...(project.name ? { name: project.name } : {}),
+      ...(holdings ? { holdings } : {}),
+    });
   }
 
   return Array.from(reached.values());
@@ -355,6 +397,8 @@ export interface OpenStackSeriesDescription {
   description: string | undefined;
   reached: Array<OpenStackReachedProject>;
   openStackCloudId: ObjectID | null;
+  // What was read, for whatever the opening goes on to do with it: the notices read it.
+  context?: OpenStackAlertContextResult | undefined;
 }
 
 // One of a hypervisor's instances, by the name people know it by.
@@ -442,6 +486,12 @@ export default class OpenStackAlertContext {
 
       result.partKind = candidate.kind;
       result.partExternalId = candidate.externalId;
+      if (part.name) {
+        result.partName = part.name;
+      }
+      if (part.regionName) {
+        result.partRegionName = part.regionName;
+      }
       result.projectId = result.projectId || part.openStackProjectId || null;
       const workerHost: unknown = (part.facts as JSONObject | undefined)?.[
         "host"
@@ -841,12 +891,14 @@ export default class OpenStackAlertContext {
     }
 
     if (radius?.magnumClusters && radius.magnumClusters.length > 0) {
+      const clusterNames: string = radius.magnumClusters
+        .map((owner: OpenStackBlastRadiusOwner): string => {
+          return owner.name || owner.externalId;
+        })
+        .join(", ");
+
       sections.push(
-        mdText`**Kubernetes clusters with a server on it:** ${radius.magnumClusters
-          .map((owner: OpenStackBlastRadiusOwner): string => {
-            return owner.name || owner.externalId;
-          })
-          .join(", ")}.`,
+        mdText`**Kubernetes clusters with a server on it:** ${clusterNames}.`,
       );
     }
 
@@ -961,10 +1013,11 @@ export default class OpenStackAlertContext {
         description: !lines
           ? data.description
           : data.description
-            ? `${data.description}\n\n${lines}`
-            : lines,
+            ? `${data.description}\n\n${OPENSTACK_REACH_HEADING}\n\n${lines}`
+            : `${OPENSTACK_REACH_HEADING}\n\n${lines}`,
         reached: getOpenStackProjectsReached(context),
         openStackCloudId: cloudId,
+        context,
       };
     } catch (error) {
       logger.error(

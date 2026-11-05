@@ -381,6 +381,10 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: `${RouteParams.ModelID}/kubernetes-clusters/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARES]: `${RouteParams.ModelID}/shares`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]: `${RouteParams.ModelID}/shares/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS]: `${RouteParams.ModelID}/load-balancers`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL]: `${RouteParams.ModelID}/load-balancers/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL]: `${RouteParams.ModelID}/load-balancer-pools/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL]: `${RouteParams.ModelID}/amphorae/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES]: `${RouteParams.ModelID}/dns-zones`,
   [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL]: `${RouteParams.ModelID}/dns-zones/${RouteParams.SubModelID}`,
   [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS]: `${RouteParams.ModelID}/object-containers`,
@@ -396,6 +400,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]: `${RouteParams.ModelID}/capacity`,
   [PageMap.OPENSTACK_CLOUD_VIEW_SPEND]: `${RouteParams.ModelID}/spend`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES]: `${RouteParams.ModelID}/status-pages`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
@@ -4877,6 +4882,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL]
+    }`,
+  ),
+
   [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]
@@ -4962,6 +4991,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_SPEND]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SPEND]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES]
     }`,
   ),
 

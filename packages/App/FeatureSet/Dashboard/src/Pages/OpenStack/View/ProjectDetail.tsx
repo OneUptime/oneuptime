@@ -28,6 +28,8 @@ import React, {
 } from "react";
 import OpenStackProjectUsageCard from "../../../Components/OpenStack/OpenStackProjectUsageCard";
 import OpenStackQuotaCard from "../../../Components/OpenStack/OpenStackQuotaCard";
+import OpenStackProjectNoticesCard from "../../../Components/OpenStack/OpenStackProjectNoticesCard";
+import OpenStackProjectPageButton from "../../../Components/OpenStack/OpenStackProjectPageButton";
 import OpenStackScopedRulesCard, {
   OpenStackRuleScope,
 } from "../../../Components/OpenStack/OpenStackScopedRulesCard";
@@ -90,6 +92,7 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     | "stackCount"
     | "containerClusterCount"
     | "shareCount"
+    | "loadBalancerCount"
     | "databaseInstanceCount"
     | "dnsZoneCount"
     | "objectContainerCount";
@@ -144,6 +147,12 @@ const WHAT_IT_RUNS: ReadonlyArray<{
     page: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
     one: "{{count}} share",
     other: "{{count}} shares",
+  },
+  {
+    key: "loadBalancerCount",
+    page: PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS,
+    one: "{{count}} load balancer",
+    other: "{{count}} load balancers",
   },
   {
     key: "databaseInstanceCount",
@@ -458,6 +467,18 @@ const OpenStackCloudProjectDetail: FunctionComponent<
         alertsRoute={routes.alertsRoute}
       />
 
+      <div className="mb-6">
+        <OpenStackProjectNoticesCard
+          openStackCloudId={modelId}
+          openStackProjectId={projectId}
+        />
+      </div>
+      <div className="mb-6">
+        <OpenStackProjectPageButton
+          openStackCloudId={modelId}
+          openStackProjectId={projectId}
+        />
+      </div>
       <OpenStackScopedRulesCard mode="owner" scope={scope} />
       <OpenStackScopedRulesCard mode="label" scope={scope} />
 

@@ -1,10 +1,16 @@
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   OpenStackObjectStoreInventory,
+  SwiftReconServerRecord,
   toSwiftContainer,
+  toSwiftReconReplication,
+  toSwiftRingName,
 } from "../OpenStackInventory";
 import { OpenStackToken } from "../OpenStackKeystone";
-import { OpenStackListAnswer } from "../OpenStackServiceClient";
+import {
+  OpenStackJsonAnswer,
+  OpenStackListAnswer,
+} from "../OpenStackServiceClient";
 import {
   OpenStackCollectorContext,
   OpenStackProjectRef,
@@ -25,6 +31,11 @@ import {
  *   Its answer is a bare list, not an object, and it pages by the last name it gave.
  */
 const RESELLER_ADMIN_ROLE: string = "reselleradmin";
+const RECON_REPLICATION_RINGS: ReadonlyArray<string> = [
+  "account",
+  "container",
+  "object",
+];
 const MOST_OTHER_ACCOUNTS_READ: number = 200;
 
 // Every project's account is its own under the same address: .../v1/AUTH_<project>.
@@ -38,10 +49,84 @@ export function toSwiftAccountUrl(data: {
     : null;
 }
 
+/*
+ * One storage server's /recon, recorded on the same DevStack: it answers on the server's own port, without a
+ * token, and a stopped server just doesn't. None of it goes through run.read, because it says nothing about
+ * Swift's API: a storage server that's down isn't a proxy that's down.
+ */
+async function readReconServer(
+  context: OpenStackCollectorContext<OpenStackObjectStoreInventory>,
+  address: string,
+): Promise<SwiftReconServerRecord> {
+  const { run } = context;
+  const record: SwiftReconServerRecord = {
+    address,
+    isAnswering: false,
+    replication: [],
+    ringChecksums: {},
+    unmountedDrives: null,
+  };
+  const ask: (
+    path: string,
+    bareListKey?: string,
+  ) => Promise<JSONObject | null> = async (
+    path: string,
+    bareListKey?: string,
+  ): Promise<JSONObject | null> => {
+    try {
+      const answer: OpenStackJsonAnswer = await run.client.get({
+        read: "recon",
+        url: `http://${address}/recon/${path}`,
+        withoutToken: true,
+        bareListKey,
+      });
+      record.isAnswering = true;
+      return answer.body;
+    } catch {
+      return null;
+    }
+  };
+
+  const rings: JSONObject | null = await ask("ringmd5");
+
+  if (!rings) {
+    return record;
+  }
+
+  for (const file of Object.keys(rings)) {
+    const checksum: JSONValue | undefined = rings[file];
+    if (typeof checksum === "string") {
+      record.ringChecksums[toSwiftRingName(file)] = checksum;
+    }
+  }
+
+  const nowInSeconds: number = run.client.now() / 1000;
+
+  for (const ring of RECON_REPLICATION_RINGS) {
+    const body: JSONObject | null = await ask(`replication/${ring}`);
+    if (body) {
+      record.replication.push(
+        toSwiftReconReplication({ ring, body, nowInSeconds }),
+      );
+    }
+  }
+
+  const unmounted: JSONObject | null = await ask("unmounted", "drives");
+  const drives: JSONValue | undefined = unmounted?.["drives"];
+  record.unmountedDrives = Array.isArray(drives) ? drives.length : null;
+
+  return record;
+}
+
 export default async function collectObjectStore(
   context: OpenStackCollectorContext<OpenStackObjectStoreInventory>,
 ): Promise<void> {
   const { run, inventory, session } = context;
+
+  inventory.reconServers = [];
+  for (const address of context.options.swiftReconAddresses || []) {
+    inventory.reconServers.push(await readReconServer(context, address));
+  }
   const token: OpenStackToken = session.getToken();
   const ownProjectId: string | null = token.projectId;
 

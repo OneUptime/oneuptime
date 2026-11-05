@@ -110,6 +110,8 @@ the pages while working on them.
 
 `OpenStackManila.spec.ts`: Manila, the same way: no trace on a cloud without it, its shares under Storage on one with it, a share in error from Needs attention to its own page, its API stopped, Topology, and every width.
 
+`OpenStackOctavia.spec.ts`: Octavia, the same way: no trace on a cloud without it, its load balancers under Network on one with it, a load balancer in ERROR, a pool with every member down, a pair with two masters and an amphora in ERROR from Needs attention to their own pages, Services, Topology, and every width.
+
 `OpenStackTrove.spec.ts`: Trove, the same way, and a credential it refuses, which reads just as its API stopped does: closed, with no alerts offered and no red anywhere.
 
 `OpenStackDesignate.spec.ts`: Designate, the same way, with what reads differently: a stopped API says nothing at all, so a cloud that had it goes quiet rather than down.
