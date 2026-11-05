@@ -125,7 +125,13 @@ export type OpenStackApiService =
   | "network"
   | "volume"
   | "image"
-  | "identity";
+  | "identity"
+  // A cloud may not run these: a command for one it doesn't is told so, by its catalog.
+  | "sharev2"
+  | "dns"
+  | "object-store"
+  | "database"
+  | "metric";
 
 export type OpenStackOutputFormat = "table" | "json";
 
@@ -183,6 +189,8 @@ export interface OpenStackApiRequest {
   listKey: string | null;
   // The limit this call carries, or null where the API has no paging.
   limit: number | null;
+  // Headers an option sends. Only ever one of the closed few a route's options name.
+  headers?: Record<string, string> | undefined;
   // A change's JSON body, built here from validated words. Absent on a read.
   body?: Readonly<Record<string, unknown>> | undefined;
   /*
@@ -392,6 +400,8 @@ export interface OpenStackOption {
   param?: string | undefined;
   // What the option sends besides, or what a flag sends.
   sends?: Readonly<Record<string, string>> | undefined;
+  // A header it sends instead, which is how Designate says every project's.
+  sendsHeaders?: Readonly<Record<string, string>> | undefined;
 }
 
 export interface OpenStackPositional {
@@ -462,6 +472,11 @@ const PROJECT_FILTER_OPTION: OpenStackOption = valueOption(
 
 const CROSS_TENANT_OPTIONS: ReadonlyArray<string> = ["all-projects", "project"];
 
+const DESIGNATE_ALL_PROJECTS_OPTION: OpenStackOption = {
+  kind: "flag",
+  sendsHeaders: { "X-Auth-All-Projects": "true" },
+};
+
 const NEUTRON_PROJECT_OPTION: OpenStackOption = valueOption(
   PROJECT_ID_RULE,
   "project_id",
@@ -485,6 +500,115 @@ const READ: ResourceCommandTier = ResourceCommandTier.Read;
  * cloud's own refusal agrees with this table.
  */
 export const OPENSTACK_COMMAND_ROUTES: ReadonlyArray<OpenStackRoute> = [
+  // Shared file systems (Manila), where a cloud's catalog names it.
+  {
+    command: "share list",
+    tier: READ,
+    service: "sharev2",
+    path: "/shares/detail",
+    positionals: [],
+    options: {
+      "all-projects": ALL_PROJECTS_OPTION,
+      project: PROJECT_FILTER_OPTION,
+      status: valueOption(NAME_RULE, "status"),
+      name: valueOption(NAME_RULE, "name"),
+      long: LONG_OPTION,
+    },
+    listKey: "shares",
+    paging: { limitRequiredWith: CROSS_TENANT_OPTIONS },
+    reads: "shares from Manila",
+  },
+  {
+    command: "share service list",
+    tier: READ,
+    service: "sharev2",
+    path: "/services",
+    positionals: [],
+    options: { long: LONG_OPTION },
+    listKey: "services",
+    reads: "Manila's services and whether each is up",
+  },
+  {
+    command: "share pool list",
+    tier: READ,
+    service: "sharev2",
+    path: "/scheduler-stats/pools/detail",
+    positionals: [],
+    options: { long: LONG_OPTION },
+    listKey: "pools",
+    reads: "Manila's storage pools",
+  },
+  // DNS (Designate), where a cloud's catalog names it.
+  {
+    command: "zone list",
+    tier: READ,
+    service: "dns",
+    path: "/v2/zones",
+    positionals: [],
+    options: {
+      "all-projects": DESIGNATE_ALL_PROJECTS_OPTION,
+      status: valueOption(NAME_RULE, "status"),
+      name: valueOption(NAME_RULE, "name"),
+      long: LONG_OPTION,
+    },
+    listKey: "zones",
+    paging: { limitRequiredWith: ["all-projects"], marker: UUID_RULE },
+    reads: "DNS zones from Designate",
+  },
+  {
+    command: "recordset list",
+    tier: READ,
+    service: "dns",
+    path: "/v2/zones/{zone}/recordsets",
+    positionals: [
+      { name: "zone", what: "the zone's ID", rule: UUID_RULE },
+    ],
+    options: {
+      "all-projects": DESIGNATE_ALL_PROJECTS_OPTION,
+      status: valueOption(NAME_RULE, "status"),
+      long: LONG_OPTION,
+    },
+    listKey: "recordsets",
+    paging: { marker: UUID_RULE },
+    reads: "one zone's recordsets from Designate",
+  },
+  // Object storage (Swift), where a cloud's catalog names it: its URL is one project's account.
+  {
+    command: "container list",
+    tier: READ,
+    service: "object-store",
+    path: "",
+    positionals: [],
+    options: { long: LONG_OPTION },
+    fixedQuery: { format: "json" },
+    listKey: "containers",
+    paging: { marker: NAME_RULE },
+    reads: "this credential's own project's containers from Swift",
+  },
+  // Databases (Trove), where a cloud's catalog names it. Every project's: only an admin may.
+  {
+    command: "database instance list",
+    tier: READ,
+    service: "database",
+    path: "/mgmt/instances",
+    positionals: [],
+    options: { long: LONG_OPTION },
+    fixedQuery: { include_clustered: "False", deleted: "False" },
+    listKey: "instances",
+    paging: { marker: UUID_RULE },
+    reads: "every project's databases from Trove",
+  },
+  // Metrics (Gnocchi), where a cloud's catalog names it.
+  {
+    command: "metric status",
+    tier: READ,
+    service: "metric",
+    path: "/v1/status",
+    positionals: [],
+    options: NO_OPTIONS,
+    fixedQuery: { details: "true" },
+    reads: "Gnocchi's backlog and processors",
+  },
   // Compute (Nova).
   {
     command: "server list",
@@ -2455,6 +2579,7 @@ function analyzeRoute(
   const positionals: Array<string> = [];
   const seen: Set<string> = new Set<string>();
   const query: Record<string, string> = { ...route.fixedQuery };
+  const headers: Record<string, string> = {};
   let outputFormat: OpenStackOutputFormat | null = null;
   let regionName: string | null = null;
 
@@ -2556,6 +2681,7 @@ function analyzeRoute(
 
       if (option.kind === "flag") {
         Object.assign(query, option.sends || {});
+        Object.assign(headers, option.sendsHeaders || {});
         continue;
       }
 
@@ -2717,6 +2843,7 @@ function analyzeRoute(
       route: route.command,
       listKey: route.listKey || null,
       limit,
+      ...(Object.keys(headers).length > 0 ? { headers } : {}),
     },
   };
 }
@@ -2760,6 +2887,7 @@ const READ_COMMAND_GUIDE: string = [
   "- Capacity: `resource provider list [--name HOST]`, `resource provider show ID`, `resource provider usage show ID`, `resource provider inventory list ID`.",
   "- Network: `network agent list [--host HOST]`, `network agent show ID`, `network list`, `network show ID`, `subnet list [--network ID]`, `subnet show ID`, `router list`, `router show ID`, `floating ip list [--router ID]`, `floating ip show ID`, `ip availability list`, `port show ID`, and `port list --limit N` with one of `--server ID`, `--network ID`, `--router ID`, `--device-id ID`, `--host HOST`, `--project ID`.",
   "- Storage: `volume service list [--host HOST] [--service cinder-volume]`, `volume backend pool list`, `volume list --all-projects --limit N [--status error]`, `volume show ID`, `volume snapshot list --all-projects --limit N`, `volume backup list --all-projects --limit N`, `image list [--status STATUS]`, `image show ID`.",
+  "- What a cloud may not run, where its catalog names it: `share list --all-projects --limit N [--status error]`, `share service list`, `share pool list` (Manila); `zone list --all-projects --limit N [--status ERROR]`, `recordset list ZONE-ID --all-projects` (Designate); `container list` (Swift, this credential's own project's alone); `database instance list` (Trove, every project's: only an admin may); `metric status` (Gnocchi's backlog and processors).",
   "- The cloud's shape: `endpoint list [--interface public] [--region REGION]`, `service list`, `region list`, `project list [--name NAME]`, `project show ID`, `domain list`.",
   "- Nova names a service by its short host (`compute-01`) and a hypervisor by its full one (`compute-01.example.internal`), and Placement agrees with the hypervisor. A stopped `nova-compute` leaves its instances reading ACTIVE: `host_status` UNKNOWN on them, and `state` down on the service, are what says so.",
   "- Before a change: `openstack dry-run <change>` reads which instances and projects it would touch, and changes nothing.",

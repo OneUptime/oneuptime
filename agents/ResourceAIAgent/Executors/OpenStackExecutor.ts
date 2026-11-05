@@ -175,6 +175,7 @@ export const POSTURE_REQUEST_TIMEOUT_MS: number = 5_000;
 export const WANTED_COMPUTE_MICROVERSION: string = "2.90";
 export const VOLUME_MICROVERSION: string = "3.50";
 export const PLACEMENT_MICROVERSION: string = "1.14";
+export const MANILA_MICROVERSION: string = "2.65";
 
 const MAX_API_MESSAGE_CHARS: number = 500;
 
@@ -193,6 +194,11 @@ export const OPENSTACK_CATALOG_TYPES: Readonly<
   volume: ["block-storage", "volumev3"],
   image: ["image"],
   identity: ["identity"],
+  sharev2: ["sharev2", "shared-file-system"],
+  dns: ["dns"],
+  "object-store": ["object-store"],
+  database: ["database"],
+  metric: ["metric"],
 };
 
 const SERVICE_NAMES: Readonly<Record<OpenStackApiService, string>> = {
@@ -202,6 +208,11 @@ const SERVICE_NAMES: Readonly<Record<OpenStackApiService, string>> = {
   volume: "Cinder",
   image: "Glance",
   identity: "Keystone",
+  sharev2: "Manila",
+  dns: "Designate",
+  "object-store": "Swift",
+  database: "Trove",
+  metric: "Gnocchi",
 };
 
 export type OpenStackCredential =
@@ -3477,7 +3488,13 @@ ${renderOpenStackChangeReach(reach)}`,
       headers["OpenStack-API-Version"] = `volume ${VOLUME_MICROVERSION}`;
     } else if (call.request.service === "placement") {
       headers["OpenStack-API-Version"] = `placement ${PLACEMENT_MICROVERSION}`;
+    } else if (call.request.service === "sharev2") {
+      // What the rig read it at: a list at none says neither a type's name nor its access rules.
+      headers["X-OpenStack-Manila-API-Version"] = MANILA_MICROVERSION;
     }
+
+    // Closed: only what a route's own options name, which the policy has already held it to.
+    Object.assign(headers, call.request.headers || {});
 
     const url: string = buildOpenStackUrl({
       baseUrl: data.baseUrl,
@@ -3660,9 +3677,12 @@ ${renderOpenStackChangeReach(reach)}`,
       ).text;
     }
 
-    const rows: unknown = isPlainObject(masked)
-      ? masked[request.listKey]
-      : undefined;
+    // Swift's lists are a list: there is no key to look under.
+    const rows: unknown = Array.isArray(masked)
+      ? masked
+      : isPlainObject(masked)
+        ? masked[request.listKey]
+        : undefined;
 
     if (!Array.isArray(rows)) {
       return `[The answer has no list of ${request.listKey}.]\n${

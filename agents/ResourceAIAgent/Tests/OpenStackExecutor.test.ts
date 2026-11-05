@@ -798,12 +798,222 @@ const MAPPED: ReadonlyArray<MappedCommand> = [
   },
 ];
 
+/*
+ * What a cloud may not run, each against the scene a real DevStack recorded it in. Neither of the releases the
+ * rest of this table reads runs these, so the catalog here is the one thing written by hand.
+ */
+interface MappedWhereACloudRunsIt {
+  route: string;
+  command: string;
+  catalogType: string;
+  catalogPath: string;
+  url: string;
+  group: string;
+  scene: string;
+  file: string;
+  headers?: Readonly<Record<string, string>> | undefined;
+  prints: Array<string>;
+}
+
+const MAPPED_WHERE_A_CLOUD_RUNS_IT: ReadonlyArray<MappedWhereACloudRunsIt> = [
+  {
+    route: "share list",
+    command: "openstack share list --all-projects --limit 50",
+    catalogType: "sharev2",
+    catalogPath: "/share/v2",
+    url: "/share/v2/shares/detail?all_tenants=1&limit=50",
+    group: "services-manila",
+    scene: "share-error",
+    file: "manila-shares",
+    headers: { "X-OpenStack-Manila-API-Version": "2.65" },
+    prints: ["ou-share-error", "error"],
+  },
+  {
+    route: "share service list",
+    command: "openstack share service list",
+    catalogType: "sharev2",
+    catalogPath: "/share/v2",
+    url: "/share/v2/services",
+    group: "services-manila",
+    scene: "share-service-stopped",
+    file: "manila-services",
+    prints: ["manila-share", "stopped"],
+  },
+  {
+    route: "share pool list",
+    command: "openstack share pool list",
+    catalogType: "sharev2",
+    catalogPath: "/share/v2",
+    url: "/share/v2/scheduler-stats/pools/detail",
+    group: "services-manila",
+    scene: "baseline",
+    file: "manila-pools",
+    prints: ["compute-01@alpha#fake_pool_for_ALPHA"],
+  },
+  {
+    route: "zone list",
+    command: "openstack zone list --all-projects --limit 50",
+    catalogType: "dns",
+    catalogPath: "/dns",
+    url: "/dns/v2/zones?limit=50",
+    group: "services-designate-barbican-swift",
+    scene: "designate-error",
+    file: "designate-zones",
+    headers: { "X-Auth-All-Projects": "true" },
+    prints: ["ou-error.example.org.", "ERROR"],
+  },
+  {
+    route: "recordset list",
+    command:
+      "openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects",
+    catalogType: "dns",
+    catalogPath: "/dns",
+    url: `/dns/v2/zones/f5201d9a-2f25-4b1c-a253-405f7f357742/recordsets?limit=${OPENSTACK_DEFAULT_LIST_LIMIT}`,
+    group: "services-designate-barbican-swift",
+    scene: "designate-error",
+    file: "designate-recordsets-ou-error.example.org.",
+    headers: { "X-Auth-All-Projects": "true" },
+    prints: ["SOA", "ERROR"],
+  },
+  {
+    route: "container list",
+    command: "openstack container list",
+    catalogType: "object-store",
+    catalogPath: "/swift/v1/AUTH_abc",
+    url: `/swift/v1/AUTH_abc/?format=json&limit=${OPENSTACK_DEFAULT_LIST_LIMIT}`,
+    group: "services-designate-barbican-swift",
+    scene: "swift-baseline",
+    file: "swift-account",
+    prints: ["ou-container-admin"],
+  },
+  {
+    route: "database instance list",
+    command: "openstack database instance list",
+    catalogType: "database",
+    catalogPath: "/database/v1.0/abc",
+    url: `/database/v1.0/abc/mgmt/instances?include_clustered=False&deleted=False&limit=${OPENSTACK_DEFAULT_LIST_LIMIT}`,
+    group: "services-trove",
+    scene: "instance-error",
+    file: "trove-mgmt-instances",
+    prints: ["ou-db-no-host", "ERROR"],
+  },
+  {
+    route: "metric status",
+    command: "openstack metric status",
+    catalogType: "metric",
+    catalogPath: "/metric",
+    url: "/metric/v1/status?details=true",
+    group: "services-gnocchi",
+    scene: "backlog-growing-more",
+    file: "gnocchi-status",
+    prints: ["measures", "10"],
+  },
+];
+
+function recordedAnswerOf(row: MappedWhereACloudRunsIt): string {
+  return fs.readFileSync(
+    path.join(
+      findOpenStackFixtures(),
+      row.group,
+      row.scene,
+      "api",
+      `${row.file}.json`,
+    ),
+    "utf8",
+  );
+}
+
+describe("the services a cloud may not run, against recorded answers", () => {
+  for (const row of MAPPED_WHERE_A_CLOUD_RUNS_IT) {
+    test(`${row.route} is one GET, and prints what the cloud said`, async () => {
+      const h: Harness = harness({
+        cloud: {
+          override: (
+            _request: OpenStackHttpRequest,
+            url: URL,
+          ): OpenStackHttpResponse | undefined => {
+            if (url.pathname.endsWith("/auth/tokens")) {
+              return fakeReply(
+                {
+                  token: {
+                    expires_at: "2099-01-01T00:00:00.000000Z",
+                    project: { id: "abc", name: "ou-monitoring" },
+                    roles: [{ id: "r", name: "admin" }],
+                    catalog: [
+                      {
+                        id: "s",
+                        name: row.catalogType,
+                        type: row.catalogType,
+                        endpoints: [
+                          {
+                            id: "e",
+                            interface: "public",
+                            region_id: "RegionOne",
+                            region: "RegionOne",
+                            url: `https://openstack.example${row.catalogPath}`,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+                201,
+                { "x-subject-token": FAKE_TOKEN },
+              );
+            }
+            return {
+              statusCode: 200,
+              statusMessage: "OK",
+              headers: { "content-type": "application/json" },
+              body: recordedAnswerOf(row),
+              truncated: false,
+            };
+          },
+        },
+      });
+      const result: ExecResult = await run(h, row.command);
+
+      assert.strictEqual(
+        result.success,
+        true,
+        `${row.route}: ${result.errorMessage}`,
+      );
+
+      const calls: Array<OpenStackHttpRequest> = h.cloud.commandCalls();
+
+      assert.strictEqual(calls.length, 1);
+
+      const call: OpenStackHttpRequest = calls[0] as OpenStackHttpRequest;
+
+      assert.strictEqual(call.method, "GET");
+      assert.strictEqual(call.url, `https://openstack.example${row.url}`);
+      for (const [name, value] of Object.entries(row.headers || {})) {
+        assert.strictEqual(call.headers[name], value);
+      }
+      for (const fact of row.prints) {
+        assert.ok(result.output.includes(fact), `${fact} in ${result.output}`);
+      }
+    });
+  }
+
+  test("a cloud that doesn't run one is told so, and nothing is asked", async () => {
+    const h: Harness = harness();
+    const result: ExecResult = await run(h, "openstack metric status");
+
+    assert.strictEqual(result.success, false);
+    assert.match(result.errorMessage || "", /Gnocchi/);
+    assert.strictEqual(h.cloud.commandCalls().length, 0);
+  });
+});
+
 describe("every command of the allowlist, against recorded answers", () => {
   test("each route has a row, and each row is a route", () => {
     assert.deepStrictEqual(
-      MAPPED.map((row: MappedCommand): string => {
-        return row.route;
-      }).sort(),
+      [...MAPPED, ...MAPPED_WHERE_A_CLOUD_RUNS_IT]
+        .map((row: { route: string }): string => {
+          return row.route;
+        })
+        .sort(),
       OPENSTACK_COMMAND_ROUTES.map((route: OpenStackRoute): string => {
         return route.command;
       }).sort(),
@@ -2960,7 +3170,15 @@ describe("what the agent's real code printed on a real cloud", () => {
       }
 
       for (const route of OPENSTACK_COMMAND_ROUTES) {
-        if (route.tier !== ResourceCommandTier.Read) {
+        // That cloud runs none of what a cloud may not: those have recordings of their own, above.
+        if (
+          route.tier !== ResourceCommandTier.Read ||
+          MAPPED_WHERE_A_CLOUD_RUNS_IT.some(
+            (row: MappedWhereACloudRunsIt): boolean => {
+              return row.route === route.command;
+            },
+          )
+        ) {
           continue;
         }
 
