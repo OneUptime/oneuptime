@@ -272,6 +272,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_container_infra_cluster_status",
         "openstack_container_infra_up",
         "openstack_glance_image_bytes",
+        "openstack_glance_image_created_at",
         "openstack_glance_up",
         "openstack_heat_stack_status",
         "openstack_heat_up",

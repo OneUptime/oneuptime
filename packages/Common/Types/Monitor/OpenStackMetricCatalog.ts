@@ -1216,7 +1216,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "volume_type",
       "server_id",
     ],
-    probeOnlyAttributes: ["updated_at", "pool"],
+    probeOnlyAttributes: ["updated_at", "pool", "image_id"],
     unit: "GiB",
   }),
   metric({
@@ -1233,6 +1233,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "status",
       "tenant_id",
       "volume_id",
+      "created_at",
       "updated_at",
     ],
     onlyFromProbe: true,
@@ -1337,6 +1338,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
       "hidden",
       "status",
     ],
+    probeOnlyAttributes: ["protected"],
     unit: "seconds",
   }),
 

@@ -348,6 +348,7 @@ import "./Jobs/Host/CleanupStaleHosts";
 import "./Jobs/Proxmox/CleanupStaleResources";
 import "./Jobs/OpenStack/CleanupStaleResources";
 import "./Jobs/OpenStack/RefreshCapacity";
+import "./Jobs/OpenStack/RefreshUsage";
 // Cloud connection tests no probe will answer: failed, secret wiped.
 import "./Jobs/OpenStack/ExpireConnectionTests";
 
