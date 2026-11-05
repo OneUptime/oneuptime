@@ -1597,6 +1597,182 @@ describe("bring your own exporter", () => {
     ).toBe("''");
   });
 
+  /*
+   * README.md, "Your own exporter": what it tells people to put in .env for an AI agent with a
+   * credential of its own. Read from there, so what it says to write is what a re-run keeps. The
+   * AI agent logs in at OPENSTACK_AUTH_URL, and without it says it "needs a Keystone to log in to".
+   */
+  describe("the AI agent's own credential, as the README sets it", () => {
+    function readmeSettings() {
+      const section = agentFile("README.md").split(
+        "- **Your own exporter.**",
+      )[1];
+      const settings = {};
+      for (const line of section.match(/```bash\n([\s\S]*?)```/)[1].split("\n")) {
+        if (line.trim()) {
+          const at = line.indexOf("=");
+          settings[line.slice(0, at).trim()] = line.slice(at + 1);
+        }
+      }
+      return settings;
+    }
+
+    function asTheReadmeSays(dir, env = {}) {
+      const first = ownExporter(dir, env);
+      expect(first.status).toBe(0);
+      fs.appendFileSync(
+        path.join(first.installDir, ".env"),
+        `${Object.entries(readmeSettings())
+          .map(([name, value]) => {
+            return `${name}=${value}`;
+          })
+          .join("\n")}\n`,
+      );
+      return first;
+    }
+
+    test("the README names the Keystone it logs in to", () => {
+      expect(readmeSettings()).toMatchObject({
+        COMPOSE_PROFILES: "openstack-ai-agent",
+        OPENSTACK_AI_CLOUDS_FILE: "/dev/null",
+        OPENSTACK_AUTH_URL: "https://keystone.example.com:5000",
+      });
+    });
+
+    test("a re-run keeps every setting it names, and asks nothing", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+
+      // No input at all: any prompt would read EOF and stop the script.
+      const run = install(dir);
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject(readmeSettings());
+    });
+
+    test("nothing logs in here for it, and no clouds.yaml appears", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+
+      const run = install(dir);
+
+      expect(run.curlLog).not.toContain("/auth/tokens");
+      expect(fs.existsSync(path.join(run.installDir, "clouds.yaml"))).toBe(
+        false,
+      );
+    });
+
+    test("a re-run of a re-run changes nothing", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+      const second = install(dir);
+      expect(second.status).toBe(0);
+
+      const third = install(dir);
+
+      expect(third.status).toBe(0);
+      expect(third.envFile).toBe(second.envFile);
+    });
+
+    test("the address is kept as written: the AI agent adds /v3 itself, and this script reads it for nothing", () => {
+      const dir = scratch();
+      asTheReadmeSays(dir);
+
+      const run = install(dir);
+
+      expect(composeReadAll(run.envFile).OPENSTACK_AUTH_URL).toBe(
+        "https://keystone.example.com:5000",
+      );
+    });
+
+    test("so is the CA it mounts, for a cloud with its own", () => {
+      const dir = scratch();
+      const first = asTheReadmeSays(dir);
+      fs.appendFileSync(
+        path.join(first.installDir, ".env"),
+        "OPENSTACK_CA_FILE=./ca.pem\nONEUPTIME_AI_OPENSTACK_CA_FILE=/etc/openstack/ca.pem\n",
+      );
+
+      const run = install(dir);
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject({
+        OPENSTACK_CA_FILE: "./ca.pem",
+        ONEUPTIME_AI_OPENSTACK_CA_FILE: "/etc/openstack/ca.pem",
+      });
+    });
+
+    test("an exporter without --multi-cloud has the same AI agent, and keeps the same settings", () => {
+      const dir = scratch();
+      const first = install(dir, {
+        input: answers(URL, KEY, "prod"),
+        env: {
+          OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS: "10.0.0.254:9198",
+          OPENSTACK_CONTROL_PLANE_REGION: "RegionOne",
+        },
+      });
+      expect(first.status).toBe(0);
+      fs.appendFileSync(
+        path.join(first.installDir, ".env"),
+        `${Object.entries(readmeSettings())
+          .map(([name, value]) => {
+            return `${name}=${value}`;
+          })
+          .join("\n")}\n`,
+      );
+
+      const run = install(dir);
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile)).toMatchObject(readmeSettings());
+    });
+
+    test("an agent that moved to its own exporter keeps the address it had, and asks Keystone nothing", () => {
+      const dir = scratch();
+      const first = install(dir, { input: FRESH });
+      expect(first.status).toBe(0);
+      const logins = keystoneRequests(dir).length;
+
+      const run = install(dir, { env: { OPENSTACK_EXPORTER_ADDRESS: OWN } });
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile).OPENSTACK_AUTH_URL).toBe(AUTH_URL);
+      expect(keystoneRequests(dir).length).toBe(logins);
+    });
+
+    test("and an agent nobody set one for still has none", () => {
+      const run = ownExporter(scratch());
+
+      expect(run.status).toBe(0);
+      expect(composeReadAll(run.envFile).OPENSTACK_AUTH_URL).toBe("");
+      expect(composeReadAll(run.envFile).OPENSTACK_CA_FILE).toBe("");
+    });
+
+    (HAS_COMPOSE || IN_CI ? test : test.skip)(
+      "as the real Docker Compose reads it: the AI agent gets the address, and no clouds.yaml (required in CI)",
+      () => {
+        const dir = scratch();
+        asTheReadmeSays(dir);
+        const run = install(dir);
+        expect(run.status).toBe(0);
+
+        const config = realComposeConfig(run.installDir);
+
+        expect(Object.keys(config.services).sort()).toEqual([
+          "oneuptime-openstack-agent",
+          "oneuptime-openstack-ai-agent",
+        ]);
+        expect(
+          serviceEnvironment(config, "oneuptime-openstack-ai-agent"),
+        ).toMatchObject({
+          OPENSTACK_AUTH_URL: "https://keystone.example.com:5000",
+          ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID: "...",
+          ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET: "...",
+        });
+      },
+    );
+  });
+
   test("asks for no credential, asks Keystone nothing, writes no clouds.yaml, and turns the profile off", () => {
     const dir = scratch();
     const run = ownExporter(dir);
