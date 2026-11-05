@@ -402,6 +402,122 @@ describe("How do you deploy OpenStack?", () => {
   });
 });
 
+/*
+ * What a guide says it was run on, held to what the rig recorded when it ran. A new recording that
+ * says more, or less, stops here until the guide says the same.
+ */
+describe("what the guides say ran is what the recordings say ran", () => {
+  const recorded: (tool: string, file: string) => string = (
+    tool: string,
+    file: string,
+  ): string => {
+    return fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../Common/Tests/Fixtures/OpenStack",
+        tool,
+        "deployment",
+        file,
+      ),
+      "utf8",
+    );
+  };
+
+  // A command with what it exited with, from what import-guide-recording.py keeps.
+  const commandsOf: (log: string) => Array<{ text: string; exit: number }> = (
+    log: string,
+  ): Array<{ text: string; exit: number }> => {
+    return [...log.matchAll(/^\$ ([\s\S]*?)\n\[exit (\d+)\]$/gm)].map(
+      (match: RegExpMatchArray): { text: string; exit: number } => {
+        return {
+          text: match[1] as string,
+          exit: Number.parseInt(match[2] as string, 10),
+        };
+      },
+    );
+  };
+
+  test.each(["kolla-aio", "osa-aio"])(
+    "%s really deployed: every step of it exited 0",
+    (tool: string) => {
+      const steps: Array<string> = recorded(tool, "timings.txt")
+        .trim()
+        .split("\n");
+
+      expect(steps.length).toBeGreaterThanOrEqual(5);
+
+      for (const step of steps) {
+        expect(step).toMatch(/ and exited 0$/);
+      }
+    },
+  );
+
+  test("Kolla-Ansible's guide's commands all worked, but for following a log until stopped", () => {
+    const commands: Array<{ text: string; exit: number }> = commandsOf(
+      recorded("kolla-aio", "commands.log"),
+    );
+
+    expect(commands.length).toBeGreaterThan(10);
+
+    for (const command of commands) {
+      // `docker compose logs -f` runs until someone stops it, and the rig stops it.
+      expect({
+        command: command.text,
+        exit: command.text.includes("logs -f") ? 0 : command.exit,
+      }).toEqual({ command: command.text, exit: 0 });
+    }
+
+    const everything: string = commands
+      .map((command: { text: string }): string => {
+        return command.text;
+      })
+      .join("\n");
+
+    for (const ran of [
+      "kolla-ansible reconfigure",
+      "control-plane-targets.py",
+      "--without-docker",
+      "install-logs.sh files",
+      "OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=",
+      "oneuptime_monitoring",
+    ]) {
+      expect(everything).toContain(ran);
+    }
+  });
+
+  test("Kolla-Ansible's says its alert did not reach OneUptime for as long as the recording says so", () => {
+    expect(recorded("kolla-aio", "problems.txt")).toContain(
+      "Alertmanager posted no firing webhook",
+    );
+    expect(setupGuideOf("kolla-ansible").intro).toContain(
+      "its Alertmanager posted nothing",
+    );
+    expect(DOCS_PAGE).toContain("its Alertmanager posted nothing");
+  });
+
+  test("OpenStack-Ansible's claims no more than its recording: the agent never ran there", () => {
+    expect(recorded("osa-aio", "problems.txt")).toContain(
+      "full-view: the credential's id and secret are not in what it printed",
+    );
+    expect(setupGuideOf("openstack-ansible").intro).toContain(
+      "not been followed end to end",
+    );
+    expect(DOCS_PAGE).toContain("Its agent steps have not run on it");
+
+    const answered: Array<string> = recorded(
+      "osa-aio",
+      "control-plane-status.txt",
+    )
+      .trim()
+      .split("\n");
+
+    expect(answered.length).toBe(2);
+    for (const line of answered) {
+      expect(line).toMatch(/^200 /);
+    }
+  });
+});
+
 describe("each guide says plainly how far it has been tested", () => {
   test.each(NAMED_TOOLS)(
     "%s, on screen, and never claims more",
@@ -409,7 +525,12 @@ describe("each guide says plainly how far it has been tested", () => {
       const intro: string = setupGuideOf(tool).intro as string;
 
       expect(intro).toContain("How far this guide has been tested:");
-      expect(intro).toContain("not been followed end to end");
+      // Kolla-Ansible's was run, and says what did not hold: see the recordings below.
+      expect(intro).toContain(
+        tool === "kolla-ansible"
+          ? "no alert has gone from a Kolla-Ansible stack to OneUptime"
+          : "not been followed end to end",
+      );
       expect(intro.toLowerCase()).not.toMatch(
         /\b(fully|thoroughly|completely) tested\b|\bverified on\b|\bproduction[- ]ready\b/,
       );
@@ -424,7 +545,7 @@ describe("each guide says plainly how far it has been tested", () => {
     expect(heading).toBeGreaterThan(-1);
     expect(DOCS_PAGE.indexOf("## Kolla-Ansible")).toBeGreaterThan(heading);
     expect(DOCS_PAGE).toContain(
-      "no guide here has been followed end to end on a real deployment of its tool",
+      "no guide here has reported to a running OneUptime from a real deployment of its tool",
     );
 
     for (const option of OPENSTACK_DEPLOYMENT_TOOLS) {
@@ -523,7 +644,9 @@ describe("what is already firing, with no agent", () => {
     );
 
     expect(page).toContain("https://oneuptime.com/heartbeat/<secret key>");
-    expect(page).toContain("On an OpenStack cloud, link the monitor to the cloud");
+    expect(page).toContain(
+      "On an OpenStack cloud, link the monitor to the cloud",
+    );
     expect(page).toContain("**Overview → Linked Resources**");
     expect(page).toContain("/docs/telemetry/openstack-deployment-tools");
   });

@@ -4,7 +4,6 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { OpenStackBlastRadiusOwner } from "Common/Types/OpenStack/OpenStackBlastRadius";
-import { getOpenStackStackNameOfServer } from "Common/Types/OpenStack/OpenStackLinks";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Link from "Common/UI/Components/Link/Link";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -136,12 +135,9 @@ const InstanceOverview: FunctionComponent<{
       return { flavor, computeService, image: imageRow };
     }, [part.externalId, part.refreshToken]);
 
-  // No read at all for a name Magnum's driver doesn't give, which is most instances.
-  const magnumClusters: OpenStackRead<Array<OpenStackBlastRadiusOwner>> =
+  // What it is part of: a Magnum cluster, from its name, and a stack, from that stack's own read.
+  const owners: OpenStackRead<Array<OpenStackBlastRadiusOwner>> =
     useOpenStackRead<Array<OpenStackBlastRadiusOwner>>(async () => {
-      if (!getOpenStackStackNameOfServer(row.name)) {
-        return [];
-      }
       return (
         (
           await fetchOpenStackBlastRadius({
@@ -321,23 +317,23 @@ const InstanceOverview: FunctionComponent<{
       copyText: facts["libvirtName"] as string,
     });
   }
-  for (const cluster of magnumClusters.data || []) {
+  for (const owner of owners.data || []) {
+    const isCluster: boolean =
+      owner.kind === OpenStackResourceKind.ContainerCluster;
     detailRows.push({
-      key: "magnum-cluster",
-      label: "Kubernetes Cluster",
+      key: `owner-${owner.externalId}`,
+      label: isCluster ? "Kubernetes Cluster" : "Heat Stack",
       value: (
         <Link
-          to={part.routes.getPartRoute(
-            OpenStackResourceKind.ContainerCluster,
-            cluster.externalId,
-          )}
+          to={part.routes.getPartRoute(owner.kind, owner.externalId)}
           className={LINK_CLASS_NAME}
         >
-          <bdi>{cluster.name || cluster.externalId}</bdi>
+          <bdi>{owner.name || owner.externalId}</bdi>
         </Link>
       ),
-      description:
-        "Magnum built this server for that cluster, which is what its name says.",
+      description: isCluster
+        ? "Magnum built this server for that cluster, which is what its name says."
+        : "That stack says it owns this instance. What happens to the stack happens to this.",
     });
   }
   if (typeof facts["userId"] === "string") {

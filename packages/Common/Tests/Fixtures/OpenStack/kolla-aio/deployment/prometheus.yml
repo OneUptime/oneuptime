@@ -1,0 +1,110 @@
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - 192.168.100.10:9093
+global:
+  evaluation_interval: 15s
+  scrape_interval: 60s
+  scrape_timeout: 10s
+scrape_configs:
+- basic_auth:
+    password: REDACTED
+    username: admin
+  job_name: prometheus
+  static_configs:
+  - targets:
+    - 192.168.100.10:9091
+- job_name: node
+  static_configs:
+  - targets:
+    - 192.168.100.10:9100
+- job_name: mysqld
+  static_configs:
+  - targets:
+    - 192.168.100.10:9104
+- job_name: haproxy
+  static_configs:
+  - targets:
+    - 192.168.100.10:9101
+- job_name: rabbitmq
+  static_configs:
+  - targets:
+    - 192.168.100.10:15692
+- job_name: memcached
+  static_configs:
+  - targets:
+    - 192.168.100.10:9150
+- job_name: cadvisor
+  static_configs:
+  - targets:
+    - 192.168.100.10:18080
+- job_name: fluentd
+  static_configs:
+  - targets:
+    - 192.168.100.10:24231
+- honor_labels: true
+  job_name: openstack_exporter
+  scrape_interval: 60s
+  scrape_timeout: 45s
+  static_configs:
+  - targets:
+    - 192.168.100.250:9198
+- honor_labels: true
+  job_name: blackbox_exporter
+  metrics_path: /probe
+  relabel_configs:
+  - regex: ([^:]+):([^:]+):(.+)
+    replacement: ${1}
+    source_labels:
+    - __address__
+    target_label: service
+  - regex: ([^:]+):([^:]+):(.+)
+    replacement: ${2}
+    source_labels:
+    - __address__
+    target_label: __param_module
+  - source_labels:
+    - __param_module
+    target_label: module
+  - regex: ([^:]+):([^:]+):(.+)
+    replacement: ${3}
+    source_labels:
+    - __address__
+    target_label: __param_target
+  - source_labels:
+    - __param_target
+    target_label: instance
+  - replacement: 192.168.100.10:9115
+    target_label: __address__
+  static_configs:
+  - targets:
+    - cinder:os_endpoint:http://192.168.100.250:8776
+    - glance:os_endpoint:http://192.168.100.250:9292
+    - keystone:os_endpoint:http://192.168.100.250:5000
+    - neutron:os_endpoint:http://192.168.100.250:9696
+    - nova:os_endpoint:http://192.168.100.250:8774
+    - placement:os_endpoint:http://192.168.100.250:8780
+    - prometheus:http_2xx_prometheus:http://192.168.100.250:9091/-/healthy
+    - prometheus_alertmanager:http_2xx_alertmanager:http://192.168.100.250:9093
+    - rabbitmq_localhost:tcp_connect:192.168.100.10:5672
+- honor_labels: true
+  job_name: libvirt_exporter
+  scrape_interval: 60s
+  static_configs:
+  - targets:
+    - 192.168.100.10:9177
+- honor_labels: true
+  job_name: network_exporter
+  scrape_interval: 60s
+  static_configs:
+  - targets:
+    - 192.168.100.10:1981
+- job_name: proxysql
+  static_configs:
+  - targets:
+    - 192.168.100.10:6070
+- job_name: alertmanager
+  static_configs:
+  - targets:
+    - 192.168.100.10:9093

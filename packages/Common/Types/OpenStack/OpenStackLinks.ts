@@ -168,7 +168,10 @@ export function getOpenStackStackNameOfServer(
 ): string | null {
   const name: string = serverName || "";
   const beforeNumber: number = name.lastIndexOf("-");
-  if (beforeNumber <= 0 || !isOpenStackDigits(name.substring(beforeNumber + 1))) {
+  if (
+    beforeNumber <= 0 ||
+    !isOpenStackDigits(name.substring(beforeNumber + 1))
+  ) {
     return null;
   }
   const beforeRole: number = name.lastIndexOf("-", beforeNumber - 1);
@@ -204,7 +207,9 @@ export function getOpenStackServerNamesOfStack(data: {
   const names: Array<string> = [];
   for (const role of OPENSTACK_MAGNUM_SERVER_ROLES) {
     const numbers: number =
-      role === "master" ? numbersOf(data.masterCount) : numbersOf(data.nodeCount);
+      role === "master"
+        ? numbersOf(data.masterCount)
+        : numbersOf(data.nodeCount);
     for (let number: number = 0; number < numbers; number++) {
       names.push(`${data.stackName}-${role}-${number}`);
     }

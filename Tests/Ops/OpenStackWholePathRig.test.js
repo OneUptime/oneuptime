@@ -171,6 +171,43 @@ describe("what the walk reads", () => {
     ]);
   });
 
+  test("signs in again when a session runs out, and asks the same again", () => {
+    const script = `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("live", sys.argv[1])
+live = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(live)
+calls = []
+def request(method, path, body=None, headers=None, raw=None):
+    calls.append(path)
+    if path == "/api/identity/login":
+        return 200, {}
+    return (401, {}) if calls.count(path) == 1 else (200, {"answered": True})
+live.request = request
+print(json.dumps({"answer": live.api("POST", "/monitor/get-list", {}), "calls": calls}))
+`;
+    const ran = spawnSync(
+      "python3",
+      ["-I", "-c", script, path.join(RIG, "live-oneuptime.py")],
+      { encoding: "utf8" },
+    );
+
+    expect(ran.stderr).toBe("");
+    expect(JSON.parse(ran.stdout)).toEqual({
+      answer: { answered: true },
+      calls: [
+        "/api/monitor/get-list",
+        "/api/identity/login",
+        "/api/monitor/get-list",
+      ],
+    });
+  });
+
+  test("reads the firing and the recovery apart, so one going wrong leaves the other read", () => {
+    expect(WALK).toContain('stage("the time it was stopped"');
+    expect(WALK).toContain('stage("the time after it started"');
+  });
+
   test("holds a cloud to names estate.sh really makes", () => {
     const estate = fs.readFileSync(path.join(RIG, "estate.sh"), "utf8");
     const estateBlock = WALK.slice(
@@ -195,7 +232,10 @@ describe("what the walk reads", () => {
 
   test("makes its monitor from a template that exists, and from nothing written out here", () => {
     const templates = fs.readFileSync(
-      path.join(ROOT, "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts"),
+      path.join(
+        ROOT,
+        "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts",
+      ),
       "utf8",
     );
 
@@ -242,6 +282,6 @@ describe("what the walk reads", () => {
     );
 
     expect(made).toContain("keep_output=False");
-    expect(made).toContain('secret(answer.get("secret")');
+    expect(made).toContain('secret(fields["secret"])');
   });
 });

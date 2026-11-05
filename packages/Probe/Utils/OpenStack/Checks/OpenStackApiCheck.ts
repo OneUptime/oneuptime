@@ -83,6 +83,8 @@ const CHECK_TIME_IN_MS: number = 50_000;
 export interface OpenStackCheckRead {
   path: string;
   query?: string | undefined;
+  // A service that only has this read from a microversion on answers 404 without it.
+  headers?: Record<string, string> | undefined;
 }
 
 const READS_OF_SERVICES_COLLECTED: Readonly<
@@ -98,7 +100,11 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
    * Placement pages nothing and refuses a parameter it does not know, and its short lists are as
    * good. A project's member is refused by policy, which still shows the token was checked.
    */
-  [OpenStackServiceType.Placement]: { path: "/resource_classes" },
+  [OpenStackServiceType.Placement]: {
+    path: "/resource_classes",
+    // Which came in at 1.2. Asked at the default, a healthy Placement answers 404, as the rig found.
+    headers: { "OpenStack-API-Version": "placement 1.2" },
+  },
   // On a cloud that runs them. A project's member refused by policy is an answer too.
   [OpenStackServiceType.Orchestration]: { path: "/stacks", query: "limit=1" },
   [OpenStackServiceType.ContainerInfra]: {
@@ -106,6 +112,10 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
     query: "limit=1",
   },
   [OpenStackServiceType.BareMetal]: { path: "/v1/nodes", query: "limit=1" },
+  [OpenStackServiceType.SharedFileSystems]: {
+    path: "/shares",
+    query: "limit=1",
+  },
 };
 
 const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
@@ -113,8 +123,6 @@ const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
   "key-manager": { path: "/v1/secrets", query: "limit=1" },
   dns: { path: "/v2/zones", query: "limit=1" },
   "object-store": { path: "", query: "limit=1&format=json" },
-  "shared-file-system": { path: "/shares", query: "limit=1" },
-  sharev2: { path: "/shares", query: "limit=1" },
   database: { path: "/instances", query: "limit=1" },
   metric: { path: "/v1/metric", query: "limit=1" },
   alarming: { path: "/v2/alarms", query: "limit=1" },
@@ -143,6 +151,7 @@ interface PlannedRead {
   // How a person would say it: GET /servers?limit=1.
   read: string;
   isKnownRead: boolean;
+  headers?: Record<string, string> | undefined;
 }
 
 function planRead(data: {
@@ -169,6 +178,7 @@ function planRead(data: {
     regionNames: [data.regionName],
     url: `${base}${path}${query}`,
     read: read ? `GET ${path || "/"}${query}` : "GET /",
+    headers: read?.headers,
     /*
      * For those recorded, a 404 means the catalog's URL is wrong, or a proxy has lost the service.
      * For the rest it can only mean a path here is out of date.
@@ -356,6 +366,7 @@ async function runRead(data: {
         Accept: "application/json",
         "User-Agent": deps.userAgent,
         "X-Auth-Token": data.token.id,
+        ...(planned.headers || {}),
       },
       timeoutInMs: Math.min(REQUEST_TIMEOUT_IN_MS, remaining),
     });

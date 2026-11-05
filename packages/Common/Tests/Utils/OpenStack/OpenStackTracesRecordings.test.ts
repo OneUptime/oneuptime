@@ -145,7 +145,7 @@ describe.each(getRecordedTraceReleases())(
           expect.arrayContaining([
             "glance-api",
             "keystone",
-            ...(recording.neutronWasLeftOut() ? [] : ["neutron-server"]),
+            "neutron-server",
             "nova-api",
             "nova-compute",
           ]),
@@ -199,9 +199,8 @@ describe.each(getRecordedTraceReleases())(
             OpenStackResourceKind.Instance,
             OpenStackResourceKind.Image,
             // What Nova asks Neutron is what names these.
-            ...(recording.neutronWasLeftOut()
-              ? []
-              : [OpenStackResourceKind.Network, OpenStackResourceKind.Project]),
+            OpenStackResourceKind.Network,
+            OpenStackResourceKind.Project,
           ]),
         );
       });
@@ -257,11 +256,6 @@ describe.each(getRecordedTraceReleases())(
       });
 
       test("a call from nova-api to nova-compute has both of its ends", () => {
-        // Neutron's event is what makes this call, and that is only traced with Neutron on.
-        if (recording.neutronWasLeftOut()) {
-          return;
-        }
-
         const spans: Array<ReadSpan> = readScene(recording, "signed-boot");
         const consumers: Array<ReadSpan> = spans.filter(
           (span: ReadSpan): boolean => {
@@ -294,7 +288,8 @@ describe.each(getRecordedTraceReleases())(
           },
         );
 
-        expect(dropped.length).toBeGreaterThan(spans.length / 6);
+        // A share of it, which is smaller on threads: there the trace holds later work too.
+        expect(dropped.length).toBeGreaterThan(spans.length / 10);
 
         for (const span of dropped) {
           expect(span.attributes["name"]).toBe(
@@ -371,12 +366,7 @@ describe.each(getRecordedTraceReleases())(
           under.map((span: ReadSpan): string => {
             return span.service.service;
           }),
-        ).toEqual(
-          expect.arrayContaining([
-            "keystone",
-            ...(recording.neutronWasLeftOut() ? [] : ["neutron-server"]),
-          ]),
-        );
+        ).toEqual(expect.arrayContaining(["keystone", "neutron-server"]));
       });
 
       test("no span holds a request ID, so the join to logs has to be the guess it is", () => {
@@ -566,10 +556,6 @@ describe.each(getRecordedTraceReleases())(
     describe("a request that lists things", () => {
       test("is about none of them", () => {
         // It is Nova asking Neutron for every instance's ports that shows this.
-        if (recording.neutronWasLeftOut()) {
-          return;
-        }
-
         const spans: Array<ReadSpan> = readScene(recording, "signed-list");
         const asked: Array<ReadSpan> = spans.filter(
           (span: ReadSpan): boolean => {
@@ -589,10 +575,7 @@ describe.each(getRecordedTraceReleases())(
 
     describe("other services, each on its own", () => {
       test("a volume's request names the volume, and crosses Cinder and Nova", () => {
-        // On 2026.2, with the SDK at 1.44, cinder-volume had stopped, and the volume failed.
-        if (recording.scene("signed-volume").exitCode !== 0) {
-          return;
-        }
+        expect(recording.scene("signed-volume").exitCode).toBe(0);
 
         const spans: Array<ReadSpan> = readScene(recording, "signed-volume");
         const volumes: Set<string> = new Set();
@@ -607,15 +590,35 @@ describe.each(getRecordedTraceReleases())(
 
         expect(volumes.size).toBe(1);
         expect(servicesOf(spans)).toEqual(
-          expect.arrayContaining(["cinder-api", "nova-api", "nova-compute"]),
+          expect.arrayContaining(["cinder-api", "nova-api"]),
         );
       });
 
-      test("Neutron's own requests name what they made", () => {
-        if (recording.neutronWasLeftOut()) {
-          return;
+      test("cinder-volume is in no trace, not even of the volume it made", () => {
+        expect(servicesOf(readScene(recording, "signed-volume"))).not.toContain(
+          "cinder-volume",
+        );
+      });
+
+      test("nova-compute's part of attaching it is under the attach, or on threads under the boot before", () => {
+        function attachedIn(scene: string): boolean {
+          return readScene(recording, scene).some((span: ReadSpan): boolean => {
+            return String(span.attributes["name"]).endsWith(
+              "ComputeManager.attach_volume",
+            );
+          });
         }
 
+        // The conductor only sends on threads, as the test of nova-compute's build says.
+        const onThreads: boolean = servicesOf(
+          readScene(recording, "signed-boot"),
+        ).includes("nova-conductor");
+
+        expect(attachedIn("signed-volume")).toBe(!onThreads);
+        expect(attachedIn("signed-boot")).toBe(onThreads);
+      });
+
+      test("Neutron's own requests name what they made", () => {
         const kinds: Array<OpenStackResourceKind> = readScene(
           recording,
           "signed-network",
@@ -866,18 +869,24 @@ describe("what hung Hibiscus", () => {
     );
   });
 
-  test("it is the driver and not the libraries, and Neutron alone would not come back", () => {
-    const said: string = recording.text("which-services-start.txt");
+  test("below it, as the guide installs, every service comes back with the driver on", () => {
+    const installed: string = recording
+      .text("versions.txt")
+      .split("What is installed in its place:")[1]!;
+    const answers: Array<string> = recording
+      .text("which-services-start.txt")
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("/etc/");
+      });
 
-    expect(said).toContain(
-      "With the libraries in and OSProfiler off, the cloud answers.",
-    );
-    expect(said).toContain("devstack@neutron-rpc-server): no");
-    expect(
-      said.split("\n").filter((line: string): boolean => {
-        return line.endsWith(": no");
-      }),
-    ).toHaveLength(1);
+    expect(installed).toMatch(/opentelemetry-sdk +1\.43\.0/);
+    expect(answers.join("\n")).toContain("devstack@neutron-rpc-server): yes");
+    expect(answers.length).toBeGreaterThan(5);
+
+    for (const answer of answers) {
+      expect(answer.endsWith(": yes")).toBe(true);
+    }
   });
 });
 

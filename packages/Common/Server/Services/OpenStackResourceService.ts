@@ -1752,9 +1752,10 @@ export class Service extends DatabaseService<Model> {
    *    nobody there can manage any of it.
    *  - A stack and the Magnum cluster built with it: each names the other, because a failure of
    *    one is the same failure. Only a cluster's stack_id says so, which is on every cluster's
-   *    series. What else a stack owns takes a read of its resources, which nothing makes yet.
+   *    series.
    *  - An instance that is a server of a Magnum cluster names that cluster, and a hypervisor names
    *    the clusters with a server on it, by what Magnum's driver names a server.
+   *  - An instance or a volume a stack's own read names, which only a probe makes, names that stack.
    */
   @CaptureSpan()
   public async getBlastRadius(data: {
@@ -1927,11 +1928,31 @@ export class Service extends DatabaseService<Model> {
     if (part.kind === OpenStackResourceKind.Instance) {
       return {
         ...getEmptyOpenStackBlastRadius(false),
-        belongsTo: await this.readMagnumClustersOfServers({
+        belongsTo: [
+          ...(await this.readMagnumClustersOfServers({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            regionName: part.regionName,
+            serverNames: [part.name],
+          })),
+          ...(await this.readStacksOwning({
+            projectId: data.projectId,
+            openStackCloudId: data.openStackCloudId,
+            fact: "ownedInstanceIds",
+            externalId: part.externalId,
+          })),
+        ],
+      };
+    }
+
+    if (part.kind === OpenStackResourceKind.Volume) {
+      return {
+        ...getEmptyOpenStackBlastRadius(false),
+        belongsTo: await this.readStacksOwning({
           projectId: data.projectId,
           openStackCloudId: data.openStackCloudId,
-          regionName: part.regionName,
-          serverNames: [part.name],
+          fact: "ownedVolumeIds",
+          externalId: part.externalId,
         }),
       };
     }
@@ -2252,6 +2273,34 @@ export class Service extends DatabaseService<Model> {
         data.openStackCloudId.toString(),
         data.regionName ?? null,
         stackNames,
+      ],
+    );
+  }
+
+  /*
+   * The stacks whose own read of their resources names this part, which only a probe makes. A stack is
+   * a few rows in any cloud, so this is no walk of anything however large the cloud.
+   */
+  private async readStacksOwning(data: {
+    projectId: ObjectID;
+    openStackCloudId: ObjectID;
+    fact: "ownedInstanceIds" | "ownedVolumeIds";
+    externalId?: string | null | undefined;
+  }): Promise<Array<OpenStackBlastRadiusOwner>> {
+    if (!data.externalId) {
+      return [];
+    }
+    return await this.getRepository().manager.query(
+      `SELECT "kind", "externalId", "name", "status" FROM "OpenStackResource"
+       WHERE "projectId" = $1 AND "openStackCloudId" = $2
+         AND "kind" = '${OpenStackResourceKind.Stack}' AND "deletedAt" IS NULL
+         AND "facts"->'${data.fact}' ? $3
+       ORDER BY "name", "externalId"
+       LIMIT ${OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT}`,
+      [
+        data.projectId.toString(),
+        data.openStackCloudId.toString(),
+        data.externalId,
       ],
     );
   }

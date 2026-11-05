@@ -1,0 +1,2217 @@
+{
+"resource": {
+"attributes": [
+{
+"key": "openstack.cloud.name",
+"value": {
+"stringValue": "osa-aio"
+}
+},
+{
+"key": "openstack.node.name",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "oneuptime.agent.version",
+"value": {
+"stringValue": "0.161.0"
+}
+}
+]
+},
+"logRecords": [
+{
+"timeUnixNano": "1793857865726840000",
+"observedTimeUnixNano": "1793857865957714046",
+"body": {
+"stringValue": "2026-11-05 05:51:05.726 3086 DEBUG nova.api.openstack.wsgi [None req-20d8ae67-71b0-45b4-b586-d03e614f6862 - - - - - -] Calling method '<bound method Versions.index of <nova.api.openstack.compute.versions.Versions object at 0x7f391d136990>>' _process_stack /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/api/openstack/wsgi.py:551"
+},
+"attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-20d8ae67-71b0-45b4-b586-d03e614f6862"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3086"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.wsgi"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857865074792000",
+"observedTimeUnixNano": "1793857865339733416",
+"body": {
+"stringValue": "2026-11-05 05:51:05.074 3696 DEBUG oslo.service.backend._threading.loopingcall [-] Fixed interval looping call 'nova.servicegroup.drivers.db.DbDriver._report_state' sleeping for 10.00 seconds _run_loop /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/backend/_threading/loopingcall.py:125"
+},
+"attributes": [
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-scheduler"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo.service.backend._threading.loopingcall"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-scheduler.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3696"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857865729214000",
+"observedTimeUnixNano": "1793857865957821674",
+"body": {
+"stringValue": "2026-11-05 05:51:05.728 3086 INFO nova.api.openstack.requestlog [None req-20d8ae67-71b0-45b4-b586-d03e614f6862 - - - - - -] 172.29.236.100 \"HEAD /\" status: 200 len: 415 microversion: - time: 0.002468"
+},
+"attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-20d8ae67-71b0-45b4-b586-d03e614f6862"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.requestlog"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3086"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857866765705000",
+"observedTimeUnixNano": "1793857866957614224",
+"body": {
+"stringValue": "2026-11-05 05:51:06.765 3687 DEBUG nova.console.websocketproxy [-] 172.29.236.100: new handler Process vmsg /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/websockify/websockifyserver.py:626"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3687"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-novncproxy"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.console.websocketproxy"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-novncproxy.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857869275163000",
+"observedTimeUnixNano": "1793857869336684159",
+"body": {
+"stringValue": "2026-11-05 05:51:09.274 3993 DEBUG futurist.periodics [-] Submitting periodic callback 'neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance.HashRingHealthCheckPeriodics.touch_hash_ring_node' _process_scheduled /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/futurist/periodics.py:638"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3993"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "futurist.periodics"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-server.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857867672948000",
+"observedTimeUnixNano": "1793857867957589322",
+"body": {
+"stringValue": "2026-11-05 05:51:07.672 1642 INFO placement.requestlog [None req-6b5b45cc-002a-4ed0-b961-f5f98dac0be8 - - - - - -] 172.29.236.100 \"GET /\" status: 200 len: 136 microversion: 1.0"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "placement-api.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "1642"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-placement-container-2bc1a96d"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "placement.requestlog"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-6b5b45cc-002a-4ed0-b961-f5f98dac0be8"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857869275642000",
+"observedTimeUnixNano": "1793857869336790425",
+"body": {
+"stringValue": "2026-11-05 05:51:09.275 3993 DEBUG neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance [-] Touching Hash Ring node \"09f3db7f72ad517eab0f75ca27c65ed8\" from periodic health check thread touch_hash_ring_node /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py:1386"
+},
+"attributes": [
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-server.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3993"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857870683569000",
+"observedTimeUnixNano": "1793857870957656585",
+"body": {
+"stringValue": "2026-11-05 05:51:10.683 2662 DEBUG cinder.api.middleware.request_id [None req-f3c8aa5f-f4a2-465b-9558-78b5fd8edc57 - - - - - -] RequestId filter calling following filter/app _context_setter /openstack/venvs/cinder-33.1.0/lib/python3.12/site-packages/cinder/api/middleware/request_id.py:62"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "cinder-api.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2662"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-cinder-api-container-acf96fe6"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "cinder.api.middleware.request_id"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-f3c8aa5f-f4a2-465b-9558-78b5fd8edc57"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857875078558000",
+"observedTimeUnixNano": "1793857875338983203",
+"body": {
+"stringValue": "2026-11-05 05:51:15.078 3696 DEBUG oslo.service.backend._threading.loopingcall [-] Fixed interval looping call 'nova.servicegroup.drivers.db.DbDriver._report_state' sleeping for 10.00 seconds _run_loop /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/backend/_threading/loopingcall.py:125"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-scheduler.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3696"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-scheduler"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo.service.backend._threading.loopingcall"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857877733681000",
+"observedTimeUnixNano": "1793857877957719635",
+"body": {
+"stringValue": "2026-11-05 05:51:17.733 3086 DEBUG nova.api.openstack.wsgi [None req-20d8ae67-71b0-45b4-b586-d03e614f6862 - - - - - -] Calling method '<bound method Versions.index of <nova.api.openstack.compute.versions.Versions object at 0x7f391d136990>>' _process_stack /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/api/openstack/wsgi.py:551"
+},
+"attributes": [
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.wsgi"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-20d8ae67-71b0-45b4-b586-d03e614f6862"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3086"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857877736367000",
+"observedTimeUnixNano": "1793857877957851074",
+"body": {
+"stringValue": "2026-11-05 05:51:17.736 3086 INFO nova.api.openstack.requestlog [None req-20d8ae67-71b0-45b4-b586-d03e614f6862 - - - - - -] 172.29.236.100 \"HEAD /\" status: 200 len: 415 microversion: - time: 0.002824"
+},
+"attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.requestlog"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-20d8ae67-71b0-45b4-b586-d03e614f6862"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3086"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857878776888000",
+"observedTimeUnixNano": "1793857878957626592",
+"body": {
+"stringValue": "2026-11-05 05:51:18.776 3687 DEBUG nova.console.websocketproxy [-] 172.29.236.100: new handler Process vmsg /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/websockify/websockifyserver.py:626"
+},
+"attributes": [
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.console.websocketproxy"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-novncproxy.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3687"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-novncproxy"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857879678945000",
+"observedTimeUnixNano": "1793857879957678767",
+"body": {
+"stringValue": "2026-11-05 05:51:19.678 1642 INFO placement.requestlog [None req-240bdb5e-57b6-4fd9-a658-521c4263a57f - - - - - -] 172.29.236.100 \"GET /\" status: 200 len: 136 microversion: 1.0"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "placement-api.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-placement-container-2bc1a96d"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "1642"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-240bdb5e-57b6-4fd9-a658-521c4263a57f"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "placement.requestlog"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857884275665000",
+"observedTimeUnixNano": "1793857884340250693",
+"body": {
+"stringValue": "2026-11-05 05:51:24.275 3993 DEBUG futurist.periodics [-] Submitting periodic callback 'neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance.HashRingHealthCheckPeriodics.touch_hash_ring_node' _process_scheduled /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/futurist/periodics.py:638"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3993"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "futurist.periodics"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-server.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857882688250000",
+"observedTimeUnixNano": "1793857882957627997",
+"body": {
+"stringValue": "2026-11-05 05:51:22.687 2662 DEBUG cinder.api.middleware.request_id [None req-95176531-3b18-4301-9d95-d7ad94d2a36f - - - - - -] RequestId filter calling following filter/app _context_setter /openstack/venvs/cinder-33.1.0/lib/python3.12/site-packages/cinder/api/middleware/request_id.py:62"
+},
+"attributes": [
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-95176531-3b18-4301-9d95-d7ad94d2a36f"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "cinder-api.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2662"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "cinder.api.middleware.request_id"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-cinder-api-container-acf96fe6"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857884276070000",
+"observedTimeUnixNano": "1793857884340373859",
+"body": {
+"stringValue": "2026-11-05 05:51:24.275 3993 DEBUG neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance [-] Touching Hash Ring node \"09f3db7f72ad517eab0f75ca27c65ed8\" from periodic health check thread touch_hash_ring_node /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py:1386"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-server.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3993"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857886547365000",
+"observedTimeUnixNano": "1793857886614147333",
+"body": {
+"stringValue": "2026-11-05 05:51:26.547 3827 DEBUG futurist.periodics [-] Submitting periodic callback 'neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance.DBInconsistenciesPeriodics.check_for_inconsistencies' _process_scheduled /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/futurist/periodics.py:638"
+},
+"attributes": [
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "futurist.periodics"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3827"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857886547817000",
+"observedTimeUnixNano": "1793857886614281371",
+"body": {
+"stringValue": "2026-11-05 05:51:26.547 3827 DEBUG neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance [None req-110a53eb-1678-4628-85c9-2b683c78dab3 - - - - - -] Starting OVN maintenance task: check_for_inconsistencies wrapper /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py:104"
+},
+"attributes": [
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-110a53eb-1678-4628-85c9-2b683c78dab3"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3827"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857886547890000",
+"observedTimeUnixNano": "1793857886614343825",
+"body": {
+"stringValue": "2026-11-05 05:51:26.547 3827 DEBUG neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance [None req-110a53eb-1678-4628-85c9-2b683c78dab3 - - - - - -] OVN maintenance task: Checking Neutron and OVN revision consistency. wrapper /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py:106"
+},
+"attributes": [
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3827"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-110a53eb-1678-4628-85c9-2b683c78dab3"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker.service"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857886552615000",
+"observedTimeUnixNano": "1793857886614385330",
+"body": {
+"stringValue": "2026-11-05 05:51:26.552 3827 DEBUG neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance [None req-110a53eb-1678-4628-85c9-2b683c78dab3 - - - - - -] Maintenance task: No inconsistencies found. Skipping check_for_inconsistencies /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/maintenance.py:442"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3827"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-110a53eb-1678-4628-85c9-2b683c78dab3"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857885082179000",
+"observedTimeUnixNano": "1793857885340641259",
+"body": {
+"stringValue": "2026-11-05 05:51:25.081 3696 DEBUG oslo.service.backend._threading.loopingcall [-] Fixed interval looping call 'nova.servicegroup.drivers.db.DbDriver._report_state' sleeping for 10.00 seconds _run_loop /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/backend/_threading/loopingcall.py:125"
+},
+"attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo.service.backend._threading.loopingcall"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-scheduler.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3696"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-scheduler"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857886552735000",
+"observedTimeUnixNano": "1793857886614435044",
+"body": {
+"stringValue": "2026-11-05 05:51:26.552 3827 INFO neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance [None req-110a53eb-1678-4628-85c9-2b683c78dab3 - - - - - -] OVN maintenance task check_for_inconsistencies finished in 0.005 seconds"
+},
+"attributes": [
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-110a53eb-1678-4628-85c9-2b683c78dab3"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3827"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-maintenance-worker"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "neutron.plugins.ml2.drivers.ovn.mech_driver.ovsdb.maintenance"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857889743247000",
+"observedTimeUnixNano": "1793857889957860633",
+"body": {
+"stringValue": "2026-11-05 05:51:29.742 3086 DEBUG nova.api.openstack.wsgi [None req-20d8ae67-71b0-45b4-b586-d03e614f6862 - - - - - -] Calling method '<bound method Versions.index of <nova.api.openstack.compute.versions.Versions object at 0x7f391d136990>>' _process_stack /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/api/openstack/wsgi.py:551"
+},
+"attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-20d8ae67-71b0-45b4-b586-d03e614f6862"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.wsgi"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3086"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857889745464000",
+"observedTimeUnixNano": "1793857889957966702",
+"body": {
+"stringValue": "2026-11-05 05:51:29.745 3086 INFO nova.api.openstack.requestlog [None req-20d8ae67-71b0-45b4-b586-d03e614f6862 - - - - - -] 172.29.236.100 \"HEAD /\" status: 200 len: 415 microversion: - time: 0.002421"
+},
+"attributes": [
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-20d8ae67-71b0-45b4-b586-d03e614f6862"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3086"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.requestlog"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857892328197000",
+"observedTimeUnixNano": "1793857892667106237",
+"body": {
+"stringValue": "2026-11-05 05:51:32.327 180183 DEBUG oslo_service.periodic_task [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] Running periodic task ComputeManager._poll_rebooting_instances run_periodic_tasks /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/periodic_task.py:210"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_service.periodic_task"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857892328524000",
+"observedTimeUnixNano": "1793857892667257846",
+"body": {
+"stringValue": "2026-11-05 05:51:32.328 180183 DEBUG oslo_service.periodic_task [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] Running periodic task ComputeManager._poll_rescued_instances run_periodic_tasks /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/periodic_task.py:210"
+},
+"attributes": [
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_service.periodic_task"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857892328564000",
+"observedTimeUnixNano": "1793857892667300742",
+"body": {
+"stringValue": "2026-11-05 05:51:32.328 180183 DEBUG oslo_service.periodic_task [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] Running periodic task ComputeManager._poll_unconfirmed_resizes run_periodic_tasks /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/periodic_task.py:210"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_service.periodic_task"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857890787892000",
+"observedTimeUnixNano": "1793857890957646138",
+"body": {
+"stringValue": "2026-11-05 05:51:30.787 3687 DEBUG nova.console.websocketproxy [-] 172.29.236.100: new handler Process vmsg /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/websockify/websockifyserver.py:626"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3687"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-novncproxy"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.console.websocketproxy"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-novncproxy.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857893170226000",
+"observedTimeUnixNano": "1793857893340784390",
+"body": {
+"stringValue": "2026-11-05 05:51:33.170 194329 DEBUG oslo_concurrency.lockutils [-] Acquiring lock \"_check_child_processes\" by \"neutron.agent.linux.external_process.ProcessMonitor._check_child_processes\" inner /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
+},
+"attributes": [
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-metadata-agent.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "194329"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-metadata-agent"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857893170537000",
+"observedTimeUnixNano": "1793857893340882054",
+"body": {
+"stringValue": "2026-11-05 05:51:33.170 194329 DEBUG oslo_concurrency.lockutils [-] Lock \"_check_child_processes\" acquired by \"neutron.agent.linux.external_process.ProcessMonitor._check_child_processes\" :: waited 0.000s inner /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "194329"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-metadata-agent"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-metadata-agent.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857892328618000",
+"observedTimeUnixNano": "1793857892667337852",
+"body": {
+"stringValue": "2026-11-05 05:51:32.328 180183 DEBUG oslo_service.periodic_task [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] Running periodic task ComputeManager._poll_volume_usage run_periodic_tasks /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/periodic_task.py:210"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_service.periodic_task"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857891686046000",
+"observedTimeUnixNano": "1793857891927347824",
+"body": {
+"stringValue": "2026-11-05 05:51:31.685 1642 INFO placement.requestlog [None req-f3af001c-1d8f-4b41-9bd8-117d717bb347 - - - - - -] 172.29.236.100 \"GET /\" status: 200 len: 136 microversion: 1.0"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "placement-api.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-placement-container-2bc1a96d"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "1642"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-f3af001c-1d8f-4b41-9bd8-117d717bb347"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "placement.requestlog"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857893550544000",
+"observedTimeUnixNano": "1793857893674136749",
+"body": {
+"stringValue": "2026-11-05 05:51:33.550 180183 DEBUG oslo_service.periodic_task [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] Running periodic task ComputeManager._instance_usage_audit run_periodic_tasks /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/periodic_task.py:210"
+},
+"attributes": [
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_service.periodic_task"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857894548938000",
+"observedTimeUnixNano": "1793857894673931849",
+"body": {
+"stringValue": "2026-11-05 05:51:34.548 180183 DEBUG oslo_service.periodic_task [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] Running periodic task ComputeManager._reclaim_queued_deletes run_periodic_tasks /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/periodic_task.py:210"
+},
+"attributes": [
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_service.periodic_task"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857893170582000",
+"observedTimeUnixNano": "1793857893340926075",
+"body": {
+"stringValue": "2026-11-05 05:51:33.170 194329 DEBUG oslo_concurrency.lockutils [-] Lock \"_check_child_processes\" \"released\" by \"neutron.agent.linux.external_process.ProcessMonitor._check_child_processes\" :: held 0.000s inner /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
+},
+"attributes": [
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-ovn-metadata-agent.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "194329"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-ovn-metadata-agent"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857894549124000",
+"observedTimeUnixNano": "1793857894674059364",
+"body": {
+"stringValue": "2026-11-05 05:51:34.548 180183 DEBUG nova.compute.manager [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] CONF.reclaim_instance_interval <= 0, skipping... _reclaim_queued_deletes /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/compute/manager.py:11409"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.compute.manager"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857896642589000",
+"observedTimeUnixNano": "1793857896674468990",
+"body": {
+"stringValue": "2026-11-05 05:51:36.642 3781 DEBUG neutron.db.agents_db [None req-3b778201-4b79-4a85-af4f-eaa9ff8d1104 - - - - - -] Agent healthcheck: found 0 active agents agent_health_check /openstack/venvs/neutron-33.1.0/lib/python3.12/site-packages/neutron/db/agents_db.py:317"
+},
+"attributes": [
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-neutron-server-container-83522289"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-3b778201-4b79-4a85-af4f-eaa9ff8d1104"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "neutron-periodic-workers.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3781"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "neutron-periodic-workers"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "neutron.db.agents_db"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857894695770000",
+"observedTimeUnixNano": "1793857894916838677",
+"body": {
+"stringValue": "2026-11-05 05:51:34.695 2662 DEBUG cinder.api.middleware.request_id [None req-37ef9f57-afdc-45a3-89ee-45efe4e9594b - - - - - -] RequestId filter calling following filter/app _context_setter /openstack/venvs/cinder-33.1.0/lib/python3.12/site-packages/cinder/api/middleware/request_id.py:62"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "cinder-api.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-cinder-api-container-acf96fe6"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "cinder.api.middleware.request_id"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2662"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-37ef9f57-afdc-45a3-89ee-45efe4e9594b"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857895086399000",
+"observedTimeUnixNano": "1793857895340877606",
+"body": {
+"stringValue": "2026-11-05 05:51:35.086 3696 DEBUG oslo.service.backend._threading.loopingcall [-] Fixed interval looping call 'nova.servicegroup.drivers.db.DbDriver._report_state' sleeping for 10.00 seconds _run_loop /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/backend/_threading/loopingcall.py:125"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-scheduler.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1-nova-api-container-39cd13fd"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3696"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-scheduler"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo.service.backend._threading.loopingcall"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793857896547096000",
+"observedTimeUnixNano": "1793857896674347137",
+"body": {
+"stringValue": "2026-11-05 05:51:36.546 180183 DEBUG oslo_service.periodic_task [None req-caae82e4-84a2-41af-91c4-bae29d7ffe55 - - - - - -] Running periodic task ComputeManager._check_instance_build_time run_periodic_tasks /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_service/periodic_task.py:210"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "180183"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "nova-compute"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_service.periodic_task"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-caae82e4-84a2-41af-91c4-bae29d7ffe55"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "aio1"
+}
+}
+]
+}
+],
+"total": 218
+}

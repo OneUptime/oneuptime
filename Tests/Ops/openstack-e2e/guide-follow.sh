@@ -56,13 +56,16 @@ follow() {
   text="${text//$GUIDE_EXPIRATION/$EXPIRATION}"
   output="${FOLLOW_OUTPUT:-$(mktemp)}"
   printf '\n$ %s\n' "${text//$MONITORING_PASSWORD/<password>}" | tee -a "$commands"
+  # Through a pipe, because lxc-attach gives whatever file its output goes to to root, mode 0700,
+  # which left OpenStack-Ansible's guide unable to read what its own commands printed.
   (
     cd "$GUIDE_DIR" || exit 1
     # shellcheck disable=SC2086 # Who runs it is one or more words.
     ${FOLLOW_LIMIT:+timeout "$FOLLOW_LIMIT"} ${FOLLOW_AS:-sudo -E env "PATH=$PATH"} \
       bash -uo pipefail -c "set -e; ${FOLLOW_LOGIN:-}
 $text" <<<"${FOLLOW_ANSWERS:-}"
-  ) >"$output" 2>&1 || status=$?
+  ) 2>&1 | cat >"$output"
+  status="${PIPESTATUS[0]}"
   sed -e "s/$MONITORING_PASSWORD/<password>/g" "$output" | tee -a "$commands"
   printf '[exit %s]\n' "$status" | tee -a "$commands"
   if [ -z "${FOLLOW_OUTPUT:-}" ]; then
@@ -191,6 +194,9 @@ record_where_the_logs_can_reach() {
     echo "network: $network"
     sudo cat /etc/docker/daemon.json 2>/dev/null
     echo
+    # What carries it out, when Docker was told to write no rules: one left from before can.
+    sudo docker network inspect "$network" --format '{{range .IPAM.Config}}subnet: {{.Subnet}}{{end}}' 2>&1
+    sudo iptables -t nat -S POSTROUTING 2>&1
     sudo docker run --rm --network "$network" "$CURL_IMAGE" -sS -o /dev/null -m 20 \
       -w 'oneuptime.com answers %{http_code}\n' https://oneuptime.com/ 2>&1
     sudo docker run --rm --network "$network" "$CURL_IMAGE" -sS -o /dev/null -m 20 \

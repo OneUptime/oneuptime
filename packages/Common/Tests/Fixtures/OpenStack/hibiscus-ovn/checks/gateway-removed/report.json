@@ -1,0 +1,112 @@
+[
+  {
+    "runId": "20261105064205-6325da",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:42:05.785Z",
+    "finishedAt": "2026-11-05T06:42:23.350Z",
+    "status": "Failed",
+    "failedStep": "floating_ip_create",
+    "fault": {
+      "source": "neutron",
+      "code": 404,
+      "message": "External network 45218231-aa99-4ef0-86d8-4cd3bd017d51 is not reachable from subnet 389d646e-1741-44be-bfce-ae41aae9f412.  Therefore, cannot associate Port ff9cf4ee-a7e4-4ad5-bf0f-33674702d26d with a Floating IP."
+    },
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 32
+      },
+      {
+        "step": "credential_check",
+        "status": "Passed",
+        "durationInMs": 62
+      },
+      {
+        "step": "prepare",
+        "status": "Passed",
+        "durationInMs": 321
+      },
+      {
+        "step": "janitor",
+        "status": "Passed",
+        "durationInMs": 0
+      },
+      {
+        "step": "security_group_create",
+        "status": "Passed",
+        "durationInMs": 219
+      },
+      {
+        "step": "server_create",
+        "status": "Passed",
+        "durationInMs": 459
+      },
+      {
+        "step": "server_active",
+        "status": "Passed",
+        "durationInMs": 3449
+      },
+      {
+        "step": "floating_ip_create",
+        "status": "Failed",
+        "durationInMs": 519,
+        "fault": {
+          "source": "neutron",
+          "code": 404,
+          "message": "External network 45218231-aa99-4ef0-86d8-4cd3bd017d51 is not reachable from subnet 389d646e-1741-44be-bfce-ae41aae9f412.  Therefore, cannot associate Port ff9cf4ee-a7e4-4ad5-bf0f-33674702d26d with a Floating IP."
+        }
+      },
+      {
+        "step": "volume_create",
+        "status": "Passed",
+        "durationInMs": 1198
+      },
+      {
+        "step": "volume_attach",
+        "status": "Passed",
+        "durationInMs": 5392
+      },
+      {
+        "step": "volume_detach",
+        "status": "Passed",
+        "durationInMs": 3186
+      },
+      {
+        "step": "volume_delete",
+        "status": "Passed",
+        "durationInMs": 1086
+      },
+      {
+        "step": "server_delete",
+        "status": "Passed",
+        "durationInMs": 1313
+      },
+      {
+        "step": "security_group_delete",
+        "status": "Passed",
+        "durationInMs": 96
+      }
+    ],
+    "phases": {
+      "credential": "Passed",
+      "boot": "Passed",
+      "floating_ip": "Failed",
+      "volume": "Passed",
+      "cleanup": "Passed"
+    },
+    "janitor": {
+      "removed": [],
+      "remainingCount": 0,
+      "errors": []
+    },
+    "leftoverCount": 0,
+    "verifiedProjectId": "ba76c30648ee40d7a77b23b13d577e80",
+    "verifiedProjectName": "oneuptime-checks",
+    "requestCount": 41,
+    "writeCount": 10,
+    "warnings": [
+      "Project oneuptime-checks also holds 1 server and 2 volumes this check did not make, so it is not a project of its own. They are not touched, but they share its quota."
+    ]
+  }
+]
