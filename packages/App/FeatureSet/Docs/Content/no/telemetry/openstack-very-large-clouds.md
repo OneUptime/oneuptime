@@ -46,9 +46,9 @@ Agentens eksportør logger inn og leser hver liste hel ved hver skraping, og den
 
 | Sky | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisorer, 100 instanser, 20 prosjekter | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hypervisorer, 20 000 instanser, 1 000 prosjekter | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5 000 hypervisorer, 200 000 instanser, 10 000 prosjekter | 3,4 | 106 | 7 501 | 43,5 | 57 | 0,4 |
+| 10 hypervisorer, 100 instanser, 20 prosjekter | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hypervisorer, 20 000 instanser, 1 000 prosjekter | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5 000 hypervisorer, 200 000 instanser, 10 000 prosjekter | 5,2 | 106 | 7 501 | 43,5 | 57 | 0,4 |
 
 Disse er telt fra eksportørens kildekode, og eksportøren er ikke kjørt ved disse størrelsene. En skraping har 110 sekunder, så en Placement som svarer på 20 ms går tom for tid ved omtrent 1 800 hypervisorer, og Nova med et sekund per side ved omtrent 110 000 instanser. Over det feiler en skraping av dem uansett hvor forsiktig den ble bedt. Over disse størrelsene bruker du [databaseveien](#databaseveien), eller en sonde.
 

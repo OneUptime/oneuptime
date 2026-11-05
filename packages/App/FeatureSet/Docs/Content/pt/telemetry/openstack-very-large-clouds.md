@@ -46,9 +46,9 @@ O exportador do agente faz login e lê toda lista por inteiro a cada coleta, e p
 
 | Nuvem | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hipervisores, 100 instâncias, 20 projetos | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hipervisores, 20.000 instâncias, 1.000 projetos | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5.000 hipervisores, 200.000 instâncias, 10.000 projetos | 3,4 | 106 | 7.501 | 43,5 | 57 | 0,4 |
+| 10 hipervisores, 100 instâncias, 20 projetos | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hipervisores, 20.000 instâncias, 1.000 projetos | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5.000 hipervisores, 200.000 instâncias, 10.000 projetos | 5,2 | 106 | 7.501 | 43,5 | 57 | 0,4 |
 
 Esses números são contados a partir do código-fonte do exportador, e o exportador não foi executado nesses tamanhos. Uma coleta tem 110 segundos, então um Placement que responde em 20 ms fica sem tempo com cerca de 1.800 hipervisores, e o Nova, a um segundo por página, com cerca de 110.000 instâncias. Acima disso, uma coleta deles falha por mais gentil que seja o pedido. Acima desses tamanhos, use o [caminho pelo banco de dados](#o-caminho-pelo-banco-de-dados) ou uma sonda.
 

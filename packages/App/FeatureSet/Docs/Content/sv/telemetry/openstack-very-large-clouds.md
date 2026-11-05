@@ -46,9 +46,9 @@ Agentens exporter loggar in och läser varje lista i sin helhet vid varje scrape
 
 | Moln | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisorer, 100 instanser, 20 projekt | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hypervisorer, 20 000 instanser, 1 000 projekt | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5 000 hypervisorer, 200 000 instanser, 10 000 projekt | 3,4 | 106 | 7 501 | 43,5 | 57 | 0,4 |
+| 10 hypervisorer, 100 instanser, 20 projekt | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hypervisorer, 20 000 instanser, 1 000 projekt | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5 000 hypervisorer, 200 000 instanser, 10 000 projekt | 5,2 | 106 | 7 501 | 43,5 | 57 | 0,4 |
 
 Dessa är räknade ur exporterns källkod, och exportern har inte körts vid dessa storlekar. En scrape har 110 sekunder, så en Placement som svarar på 20 ms får slut på tid vid ungefär 1 800 hypervisorer, och Nova vid en sekund per sida vid ungefär 110 000 instanser. Bortom det misslyckas en scrape av dem hur försiktigt den än görs. Över de storlekarna, använd [databasvägen](#databasvägen), eller en sond.
 

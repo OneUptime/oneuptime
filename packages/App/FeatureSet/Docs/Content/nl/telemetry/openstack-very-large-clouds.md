@@ -46,9 +46,9 @@ De exporter van de agent meldt zich aan en leest bij elke scrape elke lijst gehe
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instanties, 20 projecten | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hypervisors, 20.000 instanties, 1.000 projecten | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5.000 hypervisors, 200.000 instanties, 10.000 projecten | 3,4 | 106 | 7.501 | 43,5 | 57 | 0,4 |
+| 10 hypervisors, 100 instanties, 20 projecten | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hypervisors, 20.000 instanties, 1.000 projecten | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5.000 hypervisors, 200.000 instanties, 10.000 projecten | 5,2 | 106 | 7.501 | 43,5 | 57 | 0,4 |
 
 Deze zijn geteld uit de broncode van de exporter, en de exporter is niet op deze omvang uitgevoerd. Een scrape heeft 110 seconden, dus een Placement die in 20 ms antwoordt loopt bij ongeveer 1.800 hypervisors uit de tijd, en Nova bij een seconde per pagina bij ongeveer 110.000 instanties. Daarboven mislukt een scrape ervan hoe voorzichtig er ook om is gevraagd. Gebruik boven die omvang het [databasepad](#het-databasepad), of een sonde.
 

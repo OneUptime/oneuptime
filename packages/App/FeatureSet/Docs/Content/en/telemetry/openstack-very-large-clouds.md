@@ -46,9 +46,9 @@ The agent's exporter logs in and reads every list whole on every scrape, and it 
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisors, 100 instances, 20 projects | 3.4 | 3 | 15.5 | 3.5 | 2 | 0.2 |
-| 500 hypervisors, 20,000 instances, 1,000 projects | 3.4 | 13 | 751 | 7.5 | 7.5 | 0.2 |
-| 5,000 hypervisors, 200,000 instances, 10,000 projects | 3.4 | 106 | 7,501 | 43.5 | 57 | 0.4 |
+| 10 hypervisors, 100 instances, 20 projects | 5.2 | 3 | 15.5 | 3.5 | 2 | 0.2 |
+| 500 hypervisors, 20,000 instances, 1,000 projects | 5.2 | 13 | 751 | 7.5 | 7.5 | 0.2 |
+| 5,000 hypervisors, 200,000 instances, 10,000 projects | 5.2 | 106 | 7,501 | 43.5 | 57 | 0.4 |
 
 These are counted from the exporter's source, and the exporter has not been run at these sizes. A scrape has 110 seconds, so a Placement that answers in 20 ms runs out of time at about 1,800 hypervisors, and Nova at a second a page at about 110,000 instances. Past that, a scrape of them fails however gently it was asked. Past those sizes use the [database path](#the-database-path), or a probe.
 

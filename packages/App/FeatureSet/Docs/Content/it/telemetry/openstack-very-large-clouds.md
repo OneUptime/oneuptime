@@ -46,9 +46,9 @@ L'exporter dell'agente effettua il login e legge ogni elenco per intero a ogni s
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisor, 100 istanze, 20 progetti | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hypervisor, 20.000 istanze, 1.000 progetti | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5.000 hypervisor, 200.000 istanze, 10.000 progetti | 3,4 | 106 | 7.501 | 43,5 | 57 | 0,4 |
+| 10 hypervisor, 100 istanze, 20 progetti | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hypervisor, 20.000 istanze, 1.000 progetti | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5.000 hypervisor, 200.000 istanze, 10.000 progetti | 5,2 | 106 | 7.501 | 43,5 | 57 | 0,4 |
 
 Sono conteggiate dal sorgente dell'exporter, e l'exporter non è stato eseguito a queste dimensioni. Uno scrape dispone di 110 secondi, quindi un Placement che risponde in 20 ms esaurisce il tempo a circa 1.800 hypervisor, e Nova a un secondo a pagina a circa 110.000 istanze. Oltre, uno scrape di essi fallisce per quanto gentilmente sia stato richiesto. Oltre queste dimensioni usa il [percorso dei database](#il-percorso-dei-database), oppure una sonda.
 
