@@ -24,6 +24,7 @@
  *
  *   busy          (default) one region, ML2/OVS, something wrong of every kind.
  *   calm          the same cloud with nothing wrong, and a host disabled on purpose.
+ *   forced-down   calm, with a host an operator told Nova is down and one that just stopped.
  *   new           a cloud that exists and has reported nothing yet.
  *   multi-region  two regions: RegionOne is calm, RegionTwo has lost its compute API.
  *   overflow      more instances in ERROR than Needs attention reads.
@@ -978,6 +979,36 @@ function calmInventory(context) {
 }
 
 /*
+ * forced-down: a calm cloud where an operator told Nova compute-02 is down, as a probe reports
+ * it, which is the one collector that can say so. compute-01 is a plain stopped service with
+ * nothing saying which it is, as the agent's exporter leaves it. No recording is a probe's rows,
+ * so these are made up in the shape the scan writes.
+ */
+function forcedDownInventory(context) {
+  return calmInventory(context).map((row) => {
+    if (row.kind !== "Service" || row.name !== "nova-compute") {
+      return row;
+    }
+    if (row.externalId.includes("compute-02")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+        facts: { ...row.facts, forcedDown: true },
+      };
+    }
+    if (row.externalId.includes("compute-01")) {
+      return {
+        ...row,
+        status: "down",
+        stateChangedAt: new Date(context.loadedAt - 20 * MINUTE),
+      };
+    }
+    return { ...row, facts: { ...row.facts, forcedDown: false } };
+  });
+}
+
+/*
  * ---------------------------------------------------------------------------
  * multi-region: RegionOne is calm. RegionTwo has lost its compute API, and a
  * nova-compute with instances on it. The same host name in both regions is two hosts.
@@ -1168,6 +1199,12 @@ const PARTS_HOSTS = {
   "compute-05.acme.example": { zone: "az-b", aggregates: null },
 };
 
+const PARTS_VOLUME_POOLS = {
+  "payments-db-data": "ctl-02@ceph#rbd-fast",
+  "research-archive": "ctl-02@ceph#rbd-fast",
+  "web-assets": "ctl-01@lvmdriver-1#lvmdriver-1",
+};
+
 function partsRow(row) {
   if (row.kind === "Hypervisor") {
     const place = PARTS_HOSTS[row.name];
@@ -1183,6 +1220,7 @@ function partsRow(row) {
   if (row.kind === "StoragePool" && row.name === "ctl-02@ceph#rbd-fast") {
     return { ...row, growsPerDay: 512 };
   }
+  // A probe read Nova's addresses too, and this one never got one.
   if (row.kind === "Instance" && row.name === "ou-failed") {
     return {
       ...row,
@@ -1190,6 +1228,9 @@ function partsRow(row) {
         ...row.facts,
         faultMessage:
           "No valid host was found. There are not enough hosts available.",
+        updatedAt: "2026-11-04T11:00:00Z",
+        addressIpv4: null,
+        addressIpv6: null,
       },
     };
   }
@@ -1197,6 +1238,13 @@ function partsRow(row) {
     return {
       ...row,
       facts: { ...row.facts, addressIpv4: "10.77.0.12" },
+    };
+  }
+  // A probe was told which pool holds each of these. The third pool holds none of them.
+  if (row.kind === "Volume" && PARTS_VOLUME_POOLS[row.name]) {
+    return {
+      ...row,
+      facts: { ...row.facts, pool: PARTS_VOLUME_POOLS[row.name] },
     };
   }
   return row;
@@ -1301,6 +1349,7 @@ const ESTATES = {
   parts: partsInventory,
   usage: usageInventory,
   calm: calmInventory,
+  "forced-down": forcedDownInventory,
   "ovn-stale": ovnStaleInventory,
   new: () => {
     return [];

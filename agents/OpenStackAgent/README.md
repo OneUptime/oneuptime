@@ -132,7 +132,7 @@ Access rules need `service_type` set for keystonemiddleware on each service, and
 service_type = compute
 ```
 
-The rules also carry `volumev3`, for a Cinder configured that way. Keystone needs nothing.
+The rules also carry `volume` and `volumev3`, for a Cinder configured that way. Keystone needs nothing.
 
 Without `service_type`, the service refuses the credential with a `401`. With the rules fitted, `service_type` set and the APIs restarted, every read answered `200` and every write `401`, on every release we record. The exporter gets what an admin gets, except Keystone's users and groups, on purpose.
 
@@ -201,7 +201,7 @@ The script asks one question at a time: your OneUptime URL, telemetry ingestion 
 It then:
 
 1. **Checks the credential with Keystone** (`POST /v3/auth/tokens`) and that each region is in the catalog, before it writes or starts anything. A refusal stops it, with what to fix.
-2. Installs to `/opt/oneuptime-openstack-agent` and writes `.env` and `clouds.yaml`, both mode `0600`. Nothing secret goes on a command line.
+2. Installs to `/opt/oneuptime-openstack-agent`, or to `oneuptime-openstack-agent` in your home folder if you have no rights on `/opt` (it needs only the `docker` group), and writes `.env` and `clouds.yaml`, both mode `0600`. Nothing secret goes on a command line.
 3. Starts the agent with Docker Compose.
 
 `clouds.yaml` has one entry per region, **named for the region**, because the exporter's series do not say which region they are from and the collector stamps the entry's name on them as `openstack.region.name`:
@@ -473,6 +473,14 @@ cd /opt/oneuptime-openstack-agent
 docker compose down
 cd /
 sudo rm -r /opt/oneuptime-openstack-agent
+```
+
+If it installed in your home folder, use `~/oneuptime-openstack-agent` in those commands, with no `sudo`. If you run it as a systemd service, take the unit away first:
+
+```bash
+sudo systemctl disable --now oneuptime-openstack-agent
+sudo rm -f /etc/systemd/system/oneuptime-openstack-agent.service
+sudo systemctl daemon-reload
 ```
 
 Without Docker:

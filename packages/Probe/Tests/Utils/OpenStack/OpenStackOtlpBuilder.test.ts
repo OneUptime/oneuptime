@@ -66,8 +66,8 @@ const SERVER: NonNullable<OpenStackComputeInventory["servers"]>[number] = {
   status: "ACTIVE",
   tenantId: "project-1",
   userId: "user-1",
-  accessIpv4: "",
-  accessIpv6: null,
+  addressIpv4: "",
+  addressIpv6: null,
   hostId: "host-id",
   hypervisorHostname: "compute-01.example.internal",
   availabilityZone: "nova",
@@ -93,6 +93,7 @@ describe("every datapoint", () => {
               status: "enabled",
               state: "up",
               disabledReason: "",
+              forcedDown: null,
             },
           ],
         }),
@@ -118,6 +119,39 @@ describe("every datapoint", () => {
       timeUnixNano: `${OBSERVED_AT}000000`,
     });
   });
+
+  test.each<[boolean | null, string | undefined]>([
+    [true, "true"],
+    [false, "false"],
+    // A Nova before microversion 2.11 says nothing, and neither does this.
+    [null, undefined],
+  ])(
+    "a worker forced down is %s, as forced_down %s",
+    (forcedDown: boolean | null, label: string | undefined) => {
+      const point: ReportedDatapoint = named(
+        build(
+          reading(OpenStackServiceType.Compute, {
+            services: [
+              {
+                id: "s1",
+                binary: "nova-compute",
+                host: "compute-01",
+                zone: "nova",
+                status: "enabled",
+                state: forcedDown ? "down" : "up",
+                disabledReason: "",
+                forcedDown,
+              },
+            ],
+          }),
+        ),
+        "openstack_nova_agent_state",
+      )[0]!;
+
+      expect(point.labels["forced_down"]).toBe(label);
+      expect(point.value).toBe(forcedDown ? 0 : 1);
+    },
+  );
 
   test("names no cloud: only the server says which cloud a probe's data is", () => {
     const built: OpenStackOtlpBuildResult = OpenStackOtlpBuilder.build(
@@ -262,6 +296,7 @@ describe("the order of a series' lines", () => {
         status: "enabled",
         state: "up",
         disabledReason: null,
+        forcedDown: null,
       };
     };
 
@@ -384,6 +419,36 @@ describe("an instance", () => {
 
     expect(point.value).toBe(code);
     expect(point.labels["status"]).toBe(status);
+  });
+
+  test("its addresses are the labels the exporter leaves empty, and no empty label when it has none", () => {
+    const withAddresses: ReportedDatapoint = named(
+      build(
+        reading(OpenStackServiceType.Compute, {
+          servers: [
+            { ...SERVER, addressIpv4: "172.24.4.33", addressIpv6: "fd00::5" },
+          ],
+        }),
+      ),
+      "openstack_nova_server_status",
+    )[0]!;
+
+    expect(withAddresses.labels).toMatchObject({
+      address_ipv4: "172.24.4.33",
+      address_ipv6: "fd00::5",
+    });
+
+    const without: ReportedDatapoint = named(
+      build(
+        reading(OpenStackServiceType.Compute, {
+          servers: [{ ...SERVER, addressIpv4: null, addressIpv6: null }],
+        }),
+      ),
+      "openstack_nova_server_status",
+    )[0]!;
+
+    expect(Object.keys(without.labels)).not.toContain("address_ipv4");
+    expect(Object.keys(without.labels)).not.toContain("address_ipv6");
   });
 
   test("a flavor named by the server finds its id from the flavors", () => {
@@ -920,6 +985,7 @@ describe("Cinder", () => {
     userId: "u1",
     volumeType: "lvm",
     serverId: "server-1",
+    poolName: null,
     sizeGb: 5,
     updatedAt: "2026-11-04T10:00:00.000000",
   };
@@ -942,6 +1008,34 @@ describe("Cinder", () => {
       labels: { size: "5", status: "in-use" },
     });
     expect(named(points, "openstack_cinder_volumes")[0]?.value).toBe(1);
+  });
+
+  test("a volume names the pool that holds it on the series the scan reads, and only there", () => {
+    const points: Array<ReportedDatapoint> = build(
+      reading(OpenStackServiceType.Volume, {
+        volumes: [{ ...VOLUME, poolName: "host@lvm#lvm" }],
+      }),
+    );
+
+    expect(named(points, "openstack_cinder_volume_gb")[0]?.labels["pool"]).toBe(
+      "host@lvm#lvm",
+    );
+    expect(
+      Object.keys(named(points, "openstack_cinder_volume_status")[0]!.labels),
+    ).not.toContain("pool");
+  });
+
+  test("a volume with no pool to name has no such label, as an empty one is none", () => {
+    const point: ReportedDatapoint = named(
+      build(
+        reading(OpenStackServiceType.Volume, {
+          volumes: [{ ...VOLUME, poolName: null }],
+        }),
+      ),
+      "openstack_cinder_volume_gb",
+    )[0]!;
+
+    expect(Object.keys(point.labels)).not.toContain("pool");
   });
 
   test("every known status reads 0 until a volume is in it, and a new one is counted too", () => {

@@ -7,7 +7,7 @@
  *
  * Scenarios are picked with query parameters, parsed once at load, and kept for a reload:
  *
- *   ?estate=    busy (default) | calm | new | multi-region | overflow | ovn-stale | tenants
+ *   ?estate=    busy (default) | calm | forced-down | new | multi-region | overflow | ovn-stale | tenants
  *               | parts | usage (Data.js)
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
@@ -1390,8 +1390,19 @@ function seriesOf(metricName, attributes) {
       ];
     case "system.memory.utilization":
       return [seriesFromRow({ state: attributes["state"] }, 0.62)];
+    // What its disks and network move: no walk reads a number from these.
+    case "system.disk.io":
+    case "system.network.io":
+      return [];
     default:
-      return null;
+      /*
+       * What libvirt's or Ceilometer's exporter says about an instance. These estates name
+       * neither, as most clouds don't, so a page asks and hears there are none.
+       */
+      return metricName?.startsWith("openstack.instance.") ||
+        metricName?.startsWith("openstack.hypervisor.instances.")
+        ? []
+        : null;
   }
 }
 
@@ -1471,8 +1482,8 @@ AnalyticsModelAPI.getList = async (options) => {
     modelName.startsWith("Log") ||
     modelName.startsWith("ChangeEvent") ||
     modelName.startsWith("Metric") ||
-    modelName.startsWith("SecurityEvent") ||
-    modelName.startsWith("Span")
+    modelName.startsWith("Span") ||
+    modelName.startsWith("SecurityEvent")
   ) {
     return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
   }
@@ -1598,6 +1609,34 @@ async function handleApi(method, options) {
             {},
           );
     }
+    // The Hosts product's row for a machine, under its short name as the agent reports it.
+    if (parsed.pathname.includes("/openstack-resource/host-of-machine/")) {
+      const shortName = String(body.machineName || "").split(".")[0];
+      return ok({
+        host:
+          store.Host.find((host) => {
+            return host.hostIdentifier === shortName;
+          }) || null,
+      });
+    }
+    // Nothing of another product's is on these estates' instances.
+    if (parsed.pathname.includes("/openstack-resource/reach-of-instance/")) {
+      return ok({});
+    }
+    // A project with no Ceph cluster, so there is nothing to link a pool to.
+    if (parsed.pathname.includes("/openstack-resource/storage-pool-ceph/")) {
+      return ok({
+        link: {
+          state: "no-clusters",
+          clusterId: null,
+          clusterName: null,
+          cephPoolName: null,
+        },
+        clusters: [],
+        health: null,
+        capacityUsedPercent: null,
+      });
+    }
     // A project that does not use Security Events: the card draws nothing.
     if (parsed.pathname.endsWith("/security-case/resource-security")) {
       return ok({
@@ -1607,29 +1646,6 @@ async function handleApi(method, options) {
         isInUse: false,
         windowDays: 7,
         values: [],
-      });
-    }
-    /*
-     * The Host product's row for a machine: the server's rule (OpenStackAcrossProducts.test.ts) is
-     * one host or none, and a hypervisor's full name is its host's short one with a domain.
-     */
-    if (parsed.pathname.includes("/openstack-resource/host-of-machine/")) {
-      const short = String(body.machineName || "").split(".")[0];
-      const hosts = store.Host.filter((host) => {
-        return host.hostIdentifier.split(".")[0] === short;
-      });
-      return ok({ host: hosts.length === 1 ? hosts[0] : null });
-    }
-    // Which of OneUptime's hosts, Kubernetes nodes and services an instance is: nothing, here.
-    if (parsed.pathname.includes("/openstack-resource/reach-of-instance/")) {
-      return ok({
-        hostCount: 0,
-        hosts: [],
-        kubernetesNodeCount: 0,
-        kubernetesNodes: [],
-        kubernetesClusters: [],
-        serviceCount: 0,
-        services: [],
       });
     }
     // A part's Metrics: the metric catalog it reads.
