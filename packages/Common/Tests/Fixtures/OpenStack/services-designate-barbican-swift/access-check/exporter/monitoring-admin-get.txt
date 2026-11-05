@@ -1,2 +1,2 @@
 dns 200 21 series
-object-store 200 1 series
+object-store 200 3 series
