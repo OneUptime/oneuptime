@@ -805,6 +805,15 @@ export default class OpenStackProbeCollectionStore {
     if (raw["isSummaryMode"] === true) {
       summary.isSummaryMode = true;
       summary.refreshCycleInMinutes = count("refreshCycleInMinutes");
+
+      const firstCycleEndsAt: number =
+        typeof raw["firstCycleEndsAt"] === "string"
+          ? Date.parse(raw["firstCycleEndsAt"])
+          : NaN;
+
+      if (Number.isFinite(firstCycleEndsAt)) {
+        summary.firstCycleEndsAt = new Date(firstCycleEndsAt).toISOString();
+      }
     }
 
     for (const key of ["computeMicroversions", "instanceReadModes"] as const) {

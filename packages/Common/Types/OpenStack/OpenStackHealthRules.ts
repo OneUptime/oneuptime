@@ -86,6 +86,15 @@ export const OPENSTACK_ALLOCATION_MISMATCH_MINUTES: number = 30;
  * What an operator set: Nova and Cinder say enabled or disabled, Neutron says up or
  * down. Nothing here is a failure, whichever word it is in.
  */
+/*
+ * Workers where one down of several is a warning, because the others carry on. All of them down is a
+ * control-plane outage. There are a few of these in a region however large it is.
+ */
+export const OPENSTACK_REDUNDANT_WORKERS: ReadonlySet<string> = new Set([
+  "nova-scheduler",
+  "nova-conductor",
+]);
+
 export function isOpenStackAdminDisabled(
   adminState: string | null | undefined,
 ): boolean {

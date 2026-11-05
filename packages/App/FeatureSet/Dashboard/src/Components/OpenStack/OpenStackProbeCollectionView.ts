@@ -1,6 +1,7 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionErrorCode, {
   OpenStackCollectionErrorAdvice,
@@ -587,7 +588,7 @@ export function getOpenStackSummaryModeLine(
     return null;
   }
 
-  return translator.translatePlural(
+  const line: string = translator.translatePlural(
     {
       one: "This cloud is large enough to keep counts rather than a series per instance. A part that has not changed is sent again every {{count}} minute.",
       other:
@@ -595,6 +596,18 @@ export function getOpenStackSummaryModeLine(
     },
     summary.refreshCycleInMinutes || 0,
   );
+
+  if (!summary.firstCycleEndsAt) {
+    return line;
+  }
+
+  // A new cloud, or a probe that has just restarted: what the rows say is arriving a share at a time.
+  return `${line} ${translator.translateTemplate(
+    "Its lists are still filling: every part will have arrived {{time}}.",
+    {
+      time: OneUptimeDate.fromNow(new Date(summary.firstCycleEndsAt)),
+    },
+  )}`;
 }
 
 // What a collection read, as short phrases a person scans: "48 hypervisors".
