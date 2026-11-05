@@ -39,6 +39,8 @@ export interface ComponentProps {
   forecast: OpenStackForecast | null;
   // What it says of its own value, in the (i).
   description: string;
+  // What the number is read from, as an English literal. A part's page reads a day, and says so.
+  windowWords?: string | undefined;
 }
 
 const OpenStackForecastTile: FunctionComponent<ComponentProps> = (
@@ -58,7 +60,8 @@ const OpenStackForecastTile: FunctionComponent<ComponentProps> = (
       value={getOpenStackForecastText(props.forecast, translator)}
       sublabel={
         props.forecast.state === "days"
-          ? translator.translatePlural(
+          ? props.windowWords ||
+            translator.translatePlural(
               {
                 one: "until full, at the last {{count}} hour's growth",
                 other: "until full, at the last {{count}} hours' growth",

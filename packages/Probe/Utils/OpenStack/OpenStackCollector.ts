@@ -73,6 +73,7 @@ import OpenStackRollingSend, {
 } from "./OpenStackRollingSend";
 import { getOpenStackMetricsSizeInBytes } from "./OpenStackReportParts";
 import OpenStackServiceRun from "./OpenStackServiceRun";
+import { rememberOpenStackCapacityFacts } from "./Collectors/AllocationCandidatesCollector";
 import collectCompute, {
   chooseComputeMicroversion,
   computeMicroversionHeaders,
@@ -682,6 +683,17 @@ export default class OpenStackCollector {
       if (session.getRenewalFailure()) {
         throw session.getRenewalFailure();
       }
+
+      // What the next collection asks Placement about: see AllocationCandidatesCollector.
+      regions.forEach((regionName: string, index: number): void => {
+        rememberOpenStackCapacityFacts({
+          memory,
+          memoryKey: credentialKey,
+          regionName,
+          compute: result.inventories[index]?.compute,
+          now: clock.now(),
+        });
+      });
 
       const warnings: Array<string> = [...result.warnings];
 
