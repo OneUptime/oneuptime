@@ -29,91 +29,16 @@
 },
 "logRecords": [
 {
-"timeUnixNano": "1793881328529898000",
-"observedTimeUnixNano": "1793881328595902503",
+"timeUnixNano": "1793886192414429000",
+"observedTimeUnixNano": "1793886192422029084",
 "body": {
-"stringValue": "2026-11-05 12:22:08.529 2992 DEBUG keystone.server.flask.request_processing.req_logging [None req-d6ed9dac-1cbf-46b3-9f02-dc8de0b2bfe5 - - - - - -] REQUEST_METHOD: `GET` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:26"
-},
-"attributes": [
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "keystone.server.flask.request_processing.req_logging"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d6ed9dac-1cbf-46b3-9f02-dc8de0b2bfe5"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2992"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328530485000",
-"observedTimeUnixNano": "1793881328596209888",
-"body": {
-"stringValue": "2026-11-05 12:22:08.529 2992 DEBUG keystone.server.flask.request_processing.req_logging [None req-d6ed9dac-1cbf-46b3-9f02-dc8de0b2bfe5 - - - - - -] SCRIPT_NAME: `` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:27"
+"stringValue": "2026-11-05 13:43:12.414 2800 DEBUG keystone.server.flask.request_processing.req_logging [None req-fadc1c43-aec3-4a53-9b70-120e3425bbb2 - - - - - -] REQUEST_METHOD: `GET` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:26"
 },
 "attributes": [
 {
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-d6ed9dac-1cbf-46b3-9f02-dc8de0b2bfe5"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2992"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
+"stringValue": "req-fadc1c43-aec3-4a53-9b70-120e3425bbb2"
 }
 },
 {
@@ -139,16 +64,40 @@
 "value": {
 "stringValue": "DEBUG"
 }
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2800"
+}
 }
 ]
 },
 {
-"timeUnixNano": "1793881328530610000",
-"observedTimeUnixNano": "1793881328596325774",
+"timeUnixNano": "1793886192415016000",
+"observedTimeUnixNano": "1793886192422804887",
 "body": {
-"stringValue": "2026-11-05 12:22:08.530 2992 DEBUG keystone.server.flask.request_processing.req_logging [None req-d6ed9dac-1cbf-46b3-9f02-dc8de0b2bfe5 - - - - - -] PATH_INFO: `/v3` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:28"
+"stringValue": "2026-11-05 13:43:12.414 2800 DEBUG keystone.server.flask.request_processing.req_logging [None req-fadc1c43-aec3-4a53-9b70-120e3425bbb2 - - - - - -] SCRIPT_NAME: `` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:27"
 },
 "attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
 {
 "key": "journald.logger_level",
 "value": {
@@ -156,9 +105,27 @@
 }
 },
 {
+"key": "process.pid",
+"value": {
+"stringValue": "2800"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "keystone.server.flask.request_processing.req_logging"
+}
+},
+{
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-d6ed9dac-1cbf-46b3-9f02-dc8de0b2bfe5"
+"stringValue": "req-fadc1c43-aec3-4a53-9b70-120e3425bbb2"
 }
 },
 {
@@ -168,9 +135,24 @@
 }
 },
 {
-"key": "process.pid",
+"key": "journald.hostname",
 "value": {
-"stringValue": "2992"
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192417772000",
+"observedTimeUnixNano": "1793886192622475489",
+"body": {
+"stringValue": "2026-11-05 13:43:12.417 2801 DEBUG keystone.server.flask.request_processing.req_logging [None req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374 - - - - - -] REQUEST_METHOD: `POST` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:26"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
 }
 },
 {
@@ -192,134 +174,56 @@
 }
 },
 {
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328533603000",
-"observedTimeUnixNano": "1793881328596430881",
-"body": {
-"stringValue": "2026-11-05 12:22:08.533 2992 DEBUG keystone.server.flask.request_processing.req_logging [None req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2 - - - - - -] REQUEST_METHOD: `POST` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:26"
-},
-"attributes": [
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "keystone.server.flask.request_processing.req_logging"
-}
-},
-{
 "key": "journald.logger_level",
 "value": {
 "stringValue": "DEBUG"
 }
 },
 {
-"key": "journald.unit",
+"key": "journald.hostname",
 "value": {
-"stringValue": "keystone-wsgi-public.service"
+"stringValue": "compute-01-keystone-container-2e7b6a81"
 }
 },
 {
 "key": "process.pid",
 "value": {
-"stringValue": "2992"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
+"stringValue": "2801"
 }
 },
 {
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2"
+"stringValue": "req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374"
 }
 }
 ]
 },
 {
-"timeUnixNano": "1793881328533773000",
-"observedTimeUnixNano": "1793881328596531820",
+"timeUnixNano": "1793886192418065000",
+"observedTimeUnixNano": "1793886192622612694",
 "body": {
-"stringValue": "2026-11-05 12:22:08.533 2992 DEBUG keystone.server.flask.request_processing.req_logging [None req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2 - - - - - -] SCRIPT_NAME: `` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:27"
+"stringValue": "2026-11-05 13:43:12.417 2801 DEBUG keystone.server.flask.request_processing.req_logging [None req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374 - - - - - -] SCRIPT_NAME: `` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:27"
 },
 "attributes": [
 {
-"key": "journald.unit",
-"value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
-{
 "key": "process.pid",
 "value": {
-"stringValue": "2992"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
+"stringValue": "2801"
 }
 },
 {
 "key": "journald.logger_level",
 "value": {
 "stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "keystone.server.flask.request_processing.req_logging"
 }
 },
 {
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2"
+"stringValue": "req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374"
 }
-}
-]
 },
-{
-"timeUnixNano": "1793881328533916000",
-"observedTimeUnixNano": "1793881328596626086",
-"body": {
-"stringValue": "2026-11-05 12:22:08.533 2992 DEBUG keystone.server.flask.request_processing.req_logging [None req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2 - - - - - -] PATH_INFO: `/v3/auth/tokens` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:28"
-},
-"attributes": [
 {
 "key": "journald.unit",
 "value": {
@@ -329,19 +233,7 @@
 {
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2992"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
+"stringValue": "compute-01-keystone-container-2e7b6a81"
 }
 },
 {
@@ -361,34 +253,16 @@
 "value": {
 "stringValue": "keystone.server.flask.request_processing.req_logging"
 }
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2"
-}
 }
 ]
 },
 {
-"timeUnixNano": "1793881328558464000",
-"observedTimeUnixNano": "1793881328596722266",
+"timeUnixNano": "1793886192418113000",
+"observedTimeUnixNano": "1793886192622644242",
 "body": {
-"stringValue": "2026-11-05 12:22:08.558 2992 WARNING keystone.common.password_hashing [None req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2 - - - - - -] Truncating password to algorithm specific maximum length 72 characters."
+"stringValue": "2026-11-05 13:43:12.417 2801 DEBUG keystone.server.flask.request_processing.req_logging [None req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374 - - - - - -] PATH_INFO: `/v3/auth/tokens` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:28"
 },
 "attributes": [
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2992"
-}
-},
 {
 "key": "journald.unit",
 "value": {
@@ -396,9 +270,84 @@
 }
 },
 {
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "keystone.server.flask.request_processing.req_logging"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192441320000",
+"observedTimeUnixNano": "1793886192622671453",
+"body": {
+"stringValue": "2026-11-05 13:43:12.441 2801 WARNING keystone.common.password_hashing [None req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374 - - - - - -] Truncating password to algorithm specific maximum length 72 characters."
+},
+"attributes": [
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "keystone.common.password_hashing"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
 }
 },
 {
@@ -414,12 +363,6 @@
 }
 },
 {
-"key": "journald.logger_name",
-"value": {
-"stringValue": "keystone.common.password_hashing"
-}
-},
-{
 "key": "journald.logger_level",
 "value": {
 "stringValue": "WARNING"
@@ -428,16 +371,40 @@
 ]
 },
 {
-"timeUnixNano": "1793881328846354000",
-"observedTimeUnixNano": "1793881328851808627",
+"timeUnixNano": "1793886192656238000",
+"observedTimeUnixNano": "1793886192675258532",
 "body": {
-"stringValue": "2026-11-05 12:22:08.846 2992 DEBUG keystone.auth.core [None req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2 - - - - - -] MFA Rules not processed for user `d1a30613215e400091729e4b8d1ab65f`. Rule list: `[]` (Enabled: `True`). check_auth_methods_against_rules /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/auth/core.py:476"
+"stringValue": "2026-11-05 13:43:12.656 2801 DEBUG keystone.auth.core [None req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374 - - - - - -] MFA Rules not processed for user `3ed9df4e05de42058bde257b5291a51d`. Rule list: `[]` (Enabled: `True`). check_auth_methods_against_rules /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/auth/core.py:476"
 },
 "attributes": [
 {
-"key": "journald.hostname",
+"key": "process.pid",
 "value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
 }
 },
 {
@@ -453,42 +420,18 @@
 }
 },
 {
-"key": "journald.logger_level",
+"key": "journald.hostname",
 "value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2992"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-0ec26c02-f0f7-420b-b5d9-c3df7aa7bbf2"
+"stringValue": "compute-01-keystone-container-2e7b6a81"
 }
 }
 ]
 },
 {
-"timeUnixNano": "1793881328941108000",
-"observedTimeUnixNano": "1793881329098865141",
+"timeUnixNano": "1793886192741858000",
+"observedTimeUnixNano": "1793886192933779980",
 "body": {
-"stringValue": "2026-11-05 12:22:08.940 2632 DEBUG glance.api.middleware.version_negotiation [None req-583cd2c8-7529-48f5-935f-c09d5d58bd65 59f6f2957e084ee7b07a1fa4c7af500e 531a43ecd3fc471e9f2cd196ff15709f - - default default] Determining version of request: GET / Accept: application/json process_request /openstack/venvs/glance-33.1.0/lib/python3.12/site-packages/glance/api/middleware/version_negotiation.py:44"
+"stringValue": "2026-11-05 13:43:12.741 2632 DEBUG glance.api.middleware.version_negotiation [None req-7058abd2-b53d-4c56-af4b-c2d72bea8e1b 3c23e386b23443728a31635eda53f79a b4611e4ad059478ab8bb13e434ca35f7 - - default default] Determining version of request: GET / Accept: application/json process_request /openstack/venvs/glance-33.1.0/lib/python3.12/site-packages/glance/api/middleware/version_negotiation.py:44"
 },
 "attributes": [
 {
@@ -498,39 +441,9 @@
 }
 },
 {
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-glance-container-bb5b37dd"
-}
-},
-{
 "key": "process.pid",
 "value": {
 "stringValue": "2632"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-583cd2c8-7529-48f5-935f-c09d5d58bd65"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "oneuptime-monitoring"
 }
 },
 {
@@ -546,9 +459,21 @@
 }
 },
 {
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-7058abd2-b53d-4c56-af4b-c2d72bea8e1b"
+}
+},
+{
 "key": "journald.project_id",
 "value": {
-"stringValue": "531a43ecd3fc471e9f2cd196ff15709f"
+"stringValue": "b4611e4ad059478ab8bb13e434ca35f7"
 }
 },
 {
@@ -556,32 +481,11 @@
 "value": {
 "stringValue": "oneuptime-monitoring"
 }
-}
-]
-},
-{
-"timeUnixNano": "1793881328941831000",
-"observedTimeUnixNano": "1793881329099050778",
-"body": {
-"stringValue": "2026-11-05 12:22:08.941 2632 DEBUG glance.api.middleware.version_negotiation [None req-583cd2c8-7529-48f5-935f-c09d5d58bd65 59f6f2957e084ee7b07a1fa4c7af500e 531a43ecd3fc471e9f2cd196ff15709f - - default default] Using url versioning process_request /openstack/venvs/glance-33.1.0/lib/python3.12/site-packages/glance/api/middleware/version_negotiation.py:57"
-},
-"attributes": [
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "glance-api.service"
-}
 },
 {
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-glance-container-bb5b37dd"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2632"
+"stringValue": "compute-01-glance-container-481d2095"
 }
 },
 {
@@ -591,29 +495,20 @@
 }
 },
 {
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-583cd2c8-7529-48f5-935f-c09d5d58bd65"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "531a43ecd3fc471e9f2cd196ff15709f"
-}
-},
-{
 "key": "journald.project_name",
 "value": {
 "stringValue": "oneuptime-monitoring"
 }
+}
+]
 },
+{
+"timeUnixNano": "1793886192742396000",
+"observedTimeUnixNano": "1793886192933915544",
+"body": {
+"stringValue": "2026-11-05 13:43:12.741 2632 DEBUG glance.api.middleware.version_negotiation [None req-7058abd2-b53d-4c56-af4b-c2d72bea8e1b 3c23e386b23443728a31635eda53f79a b4611e4ad059478ab8bb13e434ca35f7 - - default default] Using url versioning process_request /openstack/venvs/glance-33.1.0/lib/python3.12/site-packages/glance/api/middleware/version_negotiation.py:57"
+},
+"attributes": [
 {
 "key": "journald.identifier",
 "value": {
@@ -627,20 +522,11 @@
 }
 },
 {
-"key": "journald.user_name",
+"key": "journald.request_id",
 "value": {
-"stringValue": "oneuptime-monitoring"
+"stringValue": "req-7058abd2-b53d-4c56-af4b-c2d72bea8e1b"
 }
-}
-]
 },
-{
-"timeUnixNano": "1793881328947392000",
-"observedTimeUnixNano": "1793881329099293192",
-"body": {
-"stringValue": "2026-11-05 12:22:08.947 3100 DEBUG nova.api.openstack.wsgi [None req-64c1a42e-f645-4c8c-8472-247e252b3f1e 59f6f2957e084ee7b07a1fa4c7af500e 531a43ecd3fc471e9f2cd196ff15709f - - default default] Calling method '<bound method VersionsV2.index of <nova.api.openstack.compute.versions.VersionsV2 object at 0x7fbbbbb2c590>>' _process_stack /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/api/openstack/wsgi.py:551"
-},
-"attributes": [
 {
 "key": "journald.project_name",
 "value": {
@@ -648,21 +534,21 @@
 }
 },
 {
+"key": "journald.user_name",
+"value": {
+"stringValue": "oneuptime-monitoring"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "glance-api.service"
+}
+},
+{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
+"stringValue": "compute-01-glance-container-481d2095"
 }
 },
 {
@@ -678,11 +564,26 @@
 }
 },
 {
-"key": "journald.user_id",
+"key": "journald.project_id",
 "value": {
-"stringValue": "59f6f2957e084ee7b07a1fa4c7af500e"
+"stringValue": "b4611e4ad059478ab8bb13e434ca35f7"
 }
 },
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2632"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192746206000",
+"observedTimeUnixNano": "1793886192934030847",
+"body": {
+"stringValue": "2026-11-05 13:43:12.745 3068 DEBUG nova.api.openstack.wsgi [None req-7b82b4d3-34fb-43e3-97ee-9b3456624ee5 3c23e386b23443728a31635eda53f79a b4611e4ad059478ab8bb13e434ca35f7 - - default default] Calling method '<bound method VersionsV2.index of <nova.api.openstack.compute.versions.VersionsV2 object at 0x7f3c51c500b0>>' _process_stack /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/api/openstack/wsgi.py:551"
+},
+"attributes": [
 {
 "key": "journald.user_name",
 "value": {
@@ -690,9 +591,15 @@
 }
 },
 {
-"key": "journald.unit",
+"key": "process.pid",
 "value": {
-"stringValue": "nova-api-os-compute.service"
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
 }
 },
 {
@@ -702,48 +609,66 @@
 }
 },
 {
-"key": "journald.request_id",
+"key": "journald.logger_level",
 "value": {
-"stringValue": "req-64c1a42e-f645-4c8c-8472-247e252b3f1e"
+"stringValue": "DEBUG"
 }
 },
 {
-"key": "journald.project_id",
+"key": "journald.project_name",
 "value": {
-"stringValue": "531a43ecd3fc471e9f2cd196ff15709f"
+"stringValue": "oneuptime-monitoring"
 }
-}
-]
 },
 {
-"timeUnixNano": "1793881328957753000",
-"observedTimeUnixNano": "1793881329099598633",
-"body": {
-"stringValue": "2026-11-05 12:22:08.957 2993 DEBUG keystone.server.flask.request_processing.middleware.auth_context [None req-4fdf9813-5c23-4a07-b897-dc3811637bc6 - - - - - -] Authenticating user token process_request /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystonemiddleware/auth_token/__init__.py:407"
+"key": "journald.user_id",
+"value": {
+"stringValue": "3c23e386b23443728a31635eda53f79a"
+}
 },
-"attributes": [
 {
 "key": "journald.unit",
 "value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2993"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "keystone.server.flask.request_processing.middleware.auth_context"
+"stringValue": "nova-api-os-compute.service"
 }
 },
 {
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-7b82b4d3-34fb-43e3-97ee-9b3456624ee5"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "b4611e4ad059478ab8bb13e434ca35f7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192656758000",
+"observedTimeUnixNano": "1793886192675385102",
+"body": {
+"stringValue": "2026-11-05 13:43:12.656 2801 DEBUG keystone.common.fernet_utils [None req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374 - - - - - -] Loaded 2 Fernet keys from /etc/keystone/fernet-keys, but `[fernet_tokens] max_active_keys = 7`; perhaps there have not been enough key rotations to reach `max_active_keys` yet? load_keys /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/common/fernet_utils.py:297"
+},
+"attributes": [
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
 }
 },
 {
@@ -759,54 +684,15 @@
 }
 },
 {
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-4fdf9813-5c23-4a07-b897-dc3811637bc6"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328962999000",
-"observedTimeUnixNano": "1793881329099894401",
-"body": {
-"stringValue": "2026-11-05 12:22:08.962 2993 DEBUG keystone.server.flask.request_processing.middleware.auth_context [None req-4fdf9813-5c23-4a07-b897-dc3811637bc6 - - - - - -] Validating token access rules against request validate_allowed_request /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystonemiddleware/auth_token/__init__.py:545"
-},
-"attributes": [
-{
 "key": "journald.logger_name",
 "value": {
-"stringValue": "keystone.server.flask.request_processing.middleware.auth_context"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2993"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
+"stringValue": "keystone.common.fernet_utils"
 }
 },
 {
 "key": "journald.logger_level",
 "value": {
 "stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-4fdf9813-5c23-4a07-b897-dc3811637bc6"
 }
 },
 {
@@ -816,9 +702,66 @@
 }
 },
 {
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-76dc89fe-1ea9-41df-b6d5-f297e1bdc374"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192753286000",
+"observedTimeUnixNano": "1793886192934171838",
+"body": {
+"stringValue": "2026-11-05 13:43:12.753 2801 DEBUG keystone.server.flask.request_processing.middleware.auth_context [None req-2b15014f-56de-4ea0-af54-d2d922cfc4bb - - - - - -] Authenticating user token process_request /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystonemiddleware/auth_token/__init__.py:407"
+},
+"attributes": [
+{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "keystone.server.flask.request_processing.middleware.auth_context"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-2b15014f-56de-4ea0-af54-d2d922cfc4bb"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
 }
 },
 {
@@ -830,12 +773,93 @@
 ]
 },
 {
-"timeUnixNano": "1793881328967384000",
-"observedTimeUnixNano": "1793881329100000429",
+"timeUnixNano": "1793886192761180000",
+"observedTimeUnixNano": "1793886192934396705",
 "body": {
-"stringValue": "2026-11-05 12:22:08.967 2993 DEBUG keystone.server.flask.request_processing.middleware.auth_context [None req-2249e384-850c-46c2-aec0-bcd81848e680 3a81b2cf46dc415093a1bd814666f659 9411beadceae433c8185e8c2a4062181 - - default default] RBAC: auth_context: {'token': <TokenModel (audit_id=dEHn7B1rQb2a6fDPHyr_ag, audit_chain_id=['dEHn7B1rQb2a6fDPHyr_ag']) at 0x7f996188ff50>, 'domain_id': None, 'trust_id': None, 'trustor_id': None, 'trustee_id': None, 'domain_name': None, 'group_ids': [], 'user_id': '3a81b2cf46dc415093a1bd814666f659', 'user_domain_id': 'default', 'system_scope': None, 'project_id': '9411beadceae433c8185e8c2a4062181', 'project_domain_id': 'default', 'roles': ['member', 'service', 'manager', 'reader', 'admin'], 'is_admin_project': True, 'service_user_id': None, 'service_user_domain_id': None, 'service_project_id': None, 'service_project_domain_id': None, 'service_roles': []} fill_context /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/middleware/auth_context.py:519"
+"stringValue": "2026-11-05 13:43:12.761 2801 DEBUG keystone.server.flask.request_processing.middleware.auth_context [None req-2b15014f-56de-4ea0-af54-d2d922cfc4bb - - - - - -] Validating token access rules against request validate_allowed_request /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystonemiddleware/auth_token/__init__.py:545"
 },
 "attributes": [
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-2b15014f-56de-4ea0-af54-d2d922cfc4bb"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "keystone.server.flask.request_processing.middleware.auth_context"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192764019000",
+"observedTimeUnixNano": "1793886192934458398",
+"body": {
+"stringValue": "2026-11-05 13:43:12.763 2801 DEBUG keystone.server.flask.request_processing.middleware.auth_context [None req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90 1b8ca30e06ad45f582783519b4b7b655 961e79af18a14cc89b29f79e8fc12d32 - - default default] RBAC: auth_context: {'token': <TokenModel (audit_id=nU2kRE-rSXWc_dQz1jRZZg, audit_chain_id=['nU2kRE-rSXWc_dQz1jRZZg']) at 0x7fb7cfc9dc70>, 'domain_id': None, 'trust_id': None, 'trustor_id': None, 'trustee_id': None, 'domain_name': None, 'group_ids': [], 'user_id': '1b8ca30e06ad45f582783519b4b7b655', 'user_domain_id': 'default', 'system_scope': None, 'project_id': '961e79af18a14cc89b29f79e8fc12d32', 'project_domain_id': 'default', 'roles': ['admin', 'member', 'manager', 'reader', 'service'], 'is_admin_project': True, 'service_user_id': None, 'service_user_domain_id': None, 'service_project_id': None, 'service_project_domain_id': None, 'service_roles': []} fill_context /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/middleware/auth_context.py:519"
+},
+"attributes": [
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
 {
 "key": "journald.logger_name",
 "value": {
@@ -843,15 +867,9 @@
 }
 },
 {
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-2249e384-850c-46c2-aec0-bcd81848e680"
-}
-},
-{
 "key": "journald.project_id",
 "value": {
-"stringValue": "9411beadceae433c8185e8c2a4062181"
+"stringValue": "961e79af18a14cc89b29f79e8fc12d32"
 }
 },
 {
@@ -867,12 +885,6 @@
 }
 },
 {
-"key": "process.pid",
-"value": {
-"stringValue": "2993"
-}
-},
-{
 "key": "journald.identifier",
 "value": {
 "stringValue": "<frozen importlib._bootstrap>"
@@ -882,189 +894,33 @@
 "key": "journald.logger_level",
 "value": {
 "stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328967718000",
-"observedTimeUnixNano": "1793881329100337359",
-"body": {
-"stringValue": "2026-11-05 12:22:08.967 2993 DEBUG keystone.server.flask.request_processing.req_logging [None req-2249e384-850c-46c2-aec0-bcd81848e680 3a81b2cf46dc415093a1bd814666f659 9411beadceae433c8185e8c2a4062181 - - default default] REQUEST_METHOD: `GET` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:26"
-},
-"attributes": [
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "keystone.server.flask.request_processing.req_logging"
 }
 },
 {
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-2249e384-850c-46c2-aec0-bcd81848e680"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "service"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "nova"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2993"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "9411beadceae433c8185e8c2a4062181"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
+"stringValue": "req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90"
 }
 }
 ]
 },
 {
-"timeUnixNano": "1793881328967894000",
-"observedTimeUnixNano": "1793881329100422158",
+"timeUnixNano": "1793886192764253000",
+"observedTimeUnixNano": "1793886192934589234",
 "body": {
-"stringValue": "2026-11-05 12:22:08.967 2993 DEBUG keystone.server.flask.request_processing.req_logging [None req-2249e384-850c-46c2-aec0-bcd81848e680 3a81b2cf46dc415093a1bd814666f659 9411beadceae433c8185e8c2a4062181 - - default default] SCRIPT_NAME: `` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:27"
+"stringValue": "2026-11-05 13:43:12.764 2801 DEBUG keystone.server.flask.request_processing.req_logging [None req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90 1b8ca30e06ad45f582783519b4b7b655 961e79af18a14cc89b29f79e8fc12d32 - - default default] REQUEST_METHOD: `GET` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:26"
 },
 "attributes": [
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-2249e384-850c-46c2-aec0-bcd81848e680"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "nova"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "keystone.server.flask.request_processing.req_logging"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "9411beadceae433c8185e8c2a4062181"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "service"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
 {
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
+"stringValue": "compute-01-keystone-container-2e7b6a81"
 }
 },
 {
 "key": "process.pid",
 "value": {
-"stringValue": "2993"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328968064000",
-"observedTimeUnixNano": "1793881329100741064",
-"body": {
-"stringValue": "2026-11-05 12:22:08.967 2993 DEBUG keystone.server.flask.request_processing.req_logging [None req-2249e384-850c-46c2-aec0-bcd81848e680 3a81b2cf46dc415093a1bd814666f659 9411beadceae433c8185e8c2a4062181 - - default default] PATH_INFO: `/v3/auth/tokens` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:28"
-},
-"attributes": [
-{
-"key": "process.pid",
-"value": {
-"stringValue": "2993"
+"stringValue": "2801"
 }
 },
 {
@@ -1080,15 +936,21 @@
 }
 },
 {
-"key": "journald.logger_level",
+"key": "journald.request_id",
 "value": {
-"stringValue": "DEBUG"
+"stringValue": "req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90"
 }
 },
 {
-"key": "journald.request_id",
+"key": "journald.project_id",
 "value": {
-"stringValue": "req-2249e384-850c-46c2-aec0-bcd81848e680"
+"stringValue": "961e79af18a14cc89b29f79e8fc12d32"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "service"
 }
 },
 {
@@ -1098,27 +960,15 @@
 }
 },
 {
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
 "key": "journald.priority",
 "value": {
 "stringValue": "7"
 }
 },
 {
-"key": "journald.project_id",
+"key": "journald.logger_level",
 "value": {
-"stringValue": "9411beadceae433c8185e8c2a4062181"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "service"
+"stringValue": "DEBUG"
 }
 },
 {
@@ -1130,16 +980,178 @@
 ]
 },
 {
-"timeUnixNano": "1793881328974125000",
-"observedTimeUnixNano": "1793881329100855689",
+"timeUnixNano": "1793886192764311000",
+"observedTimeUnixNano": "1793886192934629735",
 "body": {
-"stringValue": "2026-11-05 12:22:08.973 2993 DEBUG keystone.common.rbac_enforcer.enforcer [None req-2249e384-850c-46c2-aec0-bcd81848e680 3a81b2cf46dc415093a1bd814666f659 9411beadceae433c8185e8c2a4062181 - - default default] RBAC: Authorizing `identity:validate_token()` enforce_call /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/common/rbac_enforcer/enforcer.py:501"
+"stringValue": "2026-11-05 13:43:12.764 2801 DEBUG keystone.server.flask.request_processing.req_logging [None req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90 1b8ca30e06ad45f582783519b4b7b655 961e79af18a14cc89b29f79e8fc12d32 - - default default] SCRIPT_NAME: `` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:27"
 },
 "attributes": [
 {
+"key": "journald.user_name",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "keystone.server.flask.request_processing.req_logging"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
+}
+},
+{
 "key": "process.pid",
 "value": {
-"stringValue": "2993"
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "961e79af18a14cc89b29f79e8fc12d32"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "service"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192764358000",
+"observedTimeUnixNano": "1793886192934787311",
+"body": {
+"stringValue": "2026-11-05 13:43:12.764 2801 DEBUG keystone.server.flask.request_processing.req_logging [None req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90 1b8ca30e06ad45f582783519b4b7b655 961e79af18a14cc89b29f79e8fc12d32 - - default default] PATH_INFO: `/v3/auth/tokens` log_request_info /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/server/flask/request_processing/req_logging.py:28"
+},
+"attributes": [
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "keystone.server.flask.request_processing.req_logging"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "service"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "961e79af18a14cc89b29f79e8fc12d32"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "nova"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192769487000",
+"observedTimeUnixNano": "1793886192934823766",
+"body": {
+"stringValue": "2026-11-05 13:43:12.769 2801 DEBUG keystone.common.rbac_enforcer.enforcer [None req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90 1b8ca30e06ad45f582783519b4b7b655 961e79af18a14cc89b29f79e8fc12d32 - - default default] RBAC: Authorizing `identity:validate_token()` enforce_call /openstack/venvs/keystone-33.1.0/lib/python3.12/site-packages/keystone/common/rbac_enforcer/enforcer.py:501"
+},
+"attributes": [
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "keystone-wsgi-public.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-keystone-container-2e7b6a81"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "2801"
 }
 },
 {
@@ -1155,21 +1167,9 @@
 }
 },
 {
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
 "key": "journald.project_id",
 "value": {
-"stringValue": "9411beadceae433c8185e8c2a4062181"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "service"
+"stringValue": "961e79af18a14cc89b29f79e8fc12d32"
 }
 },
 {
@@ -1179,150 +1179,6 @@
 }
 },
 {
-"key": "journald.unit",
-"value": {
-"stringValue": "keystone-wsgi-public.service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-keystone-container-736c8fff"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-2249e384-850c-46c2-aec0-bcd81848e680"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328950046000",
-"observedTimeUnixNano": "1793881329099483477",
-"body": {
-"stringValue": "2026-11-05 12:22:08.949 3100 INFO nova.api.openstack.requestlog [None req-64c1a42e-f645-4c8c-8472-247e252b3f1e 59f6f2957e084ee7b07a1fa4c7af500e 531a43ecd3fc471e9f2cd196ff15709f - - default default] 172.29.236.100 \"GET /v2.1\" status: 200 len: 389 microversion: 2.1 time: 0.002902"
-},
-"attributes": [
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "6"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-64c1a42e-f645-4c8c-8472-247e252b3f1e"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "531a43ecd3fc471e9f2cd196ff15709f"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "59f6f2957e084ee7b07a1fa4c7af500e"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "oneuptime-monitoring"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "nova.api.openstack.requestlog"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "INFO"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "oneuptime-monitoring"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328979702000",
-"observedTimeUnixNano": "1793881329101249150",
-"body": {
-"stringValue": "2026-11-05 12:22:08.979 3100 DEBUG nova.api.openstack.wsgi [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Calling method '<bound method ServersController.detail of <nova.api.openstack.compute.servers.ServersController object at 0x7fbbbb24e540>>' _process_stack /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/api/openstack/wsgi.py:551"
-},
-"attributes": [
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "nova.api.openstack.wsgi"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
 "key": "journald.identifier",
 "value": {
 "stringValue": "<frozen importlib._bootstrap>"
@@ -1335,21 +1191,111 @@
 }
 },
 {
-"key": "journald.project_id",
+"key": "journald.request_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+"stringValue": "req-b7d6307f-f8d6-4a35-bd81-948a34fe5a90"
 }
 },
 {
 "key": "journald.project_name",
 "value": {
-"stringValue": "admin"
+"stringValue": "service"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192748616000",
+"observedTimeUnixNano": "1793886192934123996",
+"body": {
+"stringValue": "2026-11-05 13:43:12.748 3068 INFO nova.api.openstack.requestlog [None req-7b82b4d3-34fb-43e3-97ee-9b3456624ee5 3c23e386b23443728a31635eda53f79a b4611e4ad059478ab8bb13e434ca35f7 - - default default] 172.29.236.100 \"GET /v2.1\" status: 200 len: 389 microversion: 2.1 time: 0.002610"
+},
+"attributes": [
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "b4611e4ad059478ab8bb13e434ca35f7"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "oneuptime-monitoring"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "6"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.requestlog"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "oneuptime-monitoring"
 }
 },
 {
 "key": "journald.user_id",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3c23e386b23443728a31635eda53f79a"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "INFO"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-7b82b4d3-34fb-43e3-97ee-9b3456624ee5"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192773826000",
+"observedTimeUnixNano": "1793886192935018678",
+"body": {
+"stringValue": "2026-11-05 13:43:12.773 3068 DEBUG nova.api.openstack.wsgi [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Calling method '<bound method ServersController.detail of <nova.api.openstack.compute.servers.ServersController object at 0x7f3c50a8e2a0>>' _process_stack /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/api/openstack/wsgi.py:551"
+},
+"attributes": [
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
 }
 },
 {
@@ -1359,20 +1305,35 @@
 }
 },
 {
-"key": "journald.unit",
+"key": "journald.hostname",
 "value": {
-"stringValue": "nova-api-os-compute.service"
+"stringValue": "compute-01-nova-api-container-7628248a"
 }
-}
-]
 },
 {
-"timeUnixNano": "1793881328982944000",
-"observedTimeUnixNano": "1793881329101442031",
-"body": {
-"stringValue": "2026-11-05 12:22:08.982 3100 DEBUG nova.compute.api [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Searching by: {'deleted': False} get_all /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/compute/api.py:3093"
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
 },
-"attributes": [
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.api.openstack.wsgi"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
 {
 "key": "journald.project_name",
 "value": {
@@ -1382,13 +1343,46 @@
 {
 "key": "journald.user_id",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
 }
 },
 {
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192776320000",
+"observedTimeUnixNano": "1793886192935159389",
+"body": {
+"stringValue": "2026-11-05 13:43:12.776 3068 DEBUG nova.compute.api [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Searching by: {'deleted': False} get_all /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/compute/api.py:3093"
+},
+"attributes": [
+{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
 }
 },
 {
@@ -1410,90 +1404,15 @@
 }
 },
 {
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
 }
 },
 {
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328986619000",
-"observedTimeUnixNano": "1793881329101530226",
-"body": {
-"stringValue": "2026-11-05 12:22:08.986 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Acquiring lock \"00000000-0000-0000-0000-000000000000\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
-},
-"attributes": [
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
 }
 },
 {
@@ -1506,324 +1425,6 @@
 "key": "journald.unit",
 "value": {
 "stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328986888000",
-"observedTimeUnixNano": "1793881329101758222",
-"body": {
-"stringValue": "2026-11-05 12:22:08.986 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"00000000-0000-0000-0000-000000000000\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
-},
-"attributes": [
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328987185000",
-"observedTimeUnixNano": "1793881329101857538",
-"body": {
-"stringValue": "2026-11-05 12:22:08.986 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"00000000-0000-0000-0000-000000000000\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
-},
-"attributes": [
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328987655000",
-"observedTimeUnixNano": "1793881329102044542",
-"body": {
-"stringValue": "2026-11-05 12:22:08.987 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Acquiring lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
-},
-"attributes": [
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881328987902000",
-"observedTimeUnixNano": "1793881329102135933",
-"body": {
-"stringValue": "2026-11-05 12:22:08.987 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
-},
-"attributes": [
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
 }
 },
 {
@@ -1841,7 +1442,157 @@
 {
 "key": "journald.user_id",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192779080000",
+"observedTimeUnixNano": "1793886192935196965",
+"body": {
+"stringValue": "2026-11-05 13:43:12.778 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Acquiring lock \"00000000-0000-0000-0000-000000000000\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
+},
+"attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192779288000",
+"observedTimeUnixNano": "1793886192935332589",
+"body": {
+"stringValue": "2026-11-05 13:43:12.779 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"00000000-0000-0000-0000-000000000000\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
+},
+"attributes": [
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
 }
 },
 {
@@ -1849,20 +1600,113 @@
 "value": {
 "stringValue": "7"
 }
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
 }
 ]
 },
 {
-"timeUnixNano": "1793881328988164000",
-"observedTimeUnixNano": "1793881329102452120",
+"timeUnixNano": "1793886192779446000",
+"observedTimeUnixNano": "1793886192935367501",
 "body": {
-"stringValue": "2026-11-05 12:22:08.987 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
+"stringValue": "2026-11-05 13:43:12.779 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"00000000-0000-0000-0000-000000000000\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
 },
 "attributes": [
 {
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192779766000",
+"observedTimeUnixNano": "1793886192935527641",
+"body": {
+"stringValue": "2026-11-05 13:43:12.779 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Acquiring lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
 }
 },
 {
@@ -1884,6 +1728,12 @@
 }
 },
 {
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
 "key": "journald.project_name",
 "value": {
 "stringValue": "admin"
@@ -1892,13 +1742,46 @@
 {
 "key": "journald.user_id",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
 }
 },
 {
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192779933000",
+"observedTimeUnixNano": "1793886192935581561",
+"body": {
+"stringValue": "2026-11-05 13:43:12.779 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
+},
+"attributes": [
+{
 "key": "process.pid",
 "value": {
-"stringValue": "3100"
+"stringValue": "3068"
 }
 },
 {
@@ -1908,15 +1791,126 @@
 }
 },
 {
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
 }
 },
 {
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192780071000",
+"observedTimeUnixNano": "1793886192935718370",
+"body": {
+"stringValue": "2026-11-05 13:43:12.779 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
 }
 },
 {
@@ -1930,26 +1924,119 @@
 "value": {
 "stringValue": "nova-api-os-compute.service"
 }
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
 }
 ]
 },
 {
-"timeUnixNano": "1793881329028751000",
-"observedTimeUnixNano": "1793881329102544273",
+"timeUnixNano": "1793886192808133000",
+"observedTimeUnixNano": "1793886192935750188",
 "body": {
-"stringValue": "2026-11-05 12:22:09.028 3100 DEBUG nova.compute.multi_cell_list [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Listed batch of 1 results from cell out of 1000 limit. Returned 1 total so far. do_query /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/compute/multi_cell_list.py:378"
+"stringValue": "2026-11-05 13:43:12.807 3068 DEBUG nova.compute.multi_cell_list [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Listed batch of 1 results from cell out of 1000 limit. Returned 1 total so far. do_query /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/compute/multi_cell_list.py:378"
 },
 "attributes": [
 {
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "nova.compute.multi_cell_list"
+}
+},
+{
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
 }
 },
 {
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192821544000",
+"observedTimeUnixNano": "1793886192935900924",
+"body": {
+"stringValue": "2026-11-05 13:43:12.821 3068 DEBUG nova.compute.multi_cell_list [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Listed batch of 4 results from cell out of 1000 limit. Returned 4 total so far. do_query /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/compute/multi_cell_list.py:378"
+},
+"attributes": [
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
 }
 },
 {
@@ -1959,9 +2046,39 @@
 }
 },
 {
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
 }
 },
 {
@@ -1975,155 +2092,26 @@
 "value": {
 "stringValue": "nova.compute.multi_cell_list"
 }
+}
+]
 },
 {
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
+"timeUnixNano": "1793886192833476000",
+"observedTimeUnixNano": "1793886192935930068",
+"body": {
+"stringValue": "2026-11-05 13:43:12.833 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Acquiring lock \"00000000-0000-0000-0000-000000000000\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
 },
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
+"attributes": [
 {
 "key": "journald.user_id",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
 }
 },
 {
 "key": "journald.identifier",
 "value": {
 "stringValue": "<frozen importlib._bootstrap>"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329047605000",
-"observedTimeUnixNano": "1793881329102778170",
-"body": {
-"stringValue": "2026-11-05 12:22:09.047 3100 DEBUG nova.compute.multi_cell_list [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Listed batch of 4 results from cell out of 1000 limit. Returned 4 total so far. do_query /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/nova/compute/multi_cell_list.py:378"
-},
-"attributes": [
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "nova.compute.multi_cell_list"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329064380000",
-"observedTimeUnixNano": "1793881329102856927",
-"body": {
-"stringValue": "2026-11-05 12:22:09.063 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Acquiring lock \"00000000-0000-0000-0000-000000000000\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
-},
-"attributes": [
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
 }
 },
 {
@@ -2133,15 +2121,9 @@
 }
 },
 {
-"key": "journald.logger_level",
+"key": "journald.project_id",
 "value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
 }
 },
 {
@@ -2151,39 +2133,6 @@
 }
 },
 {
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329064748000",
-"observedTimeUnixNano": "1793881329103129920",
-"body": {
-"stringValue": "2026-11-05 12:22:09.064 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"00000000-0000-0000-0000-000000000000\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
-},
-"attributes": [
-{
 "key": "journald.unit",
 "value": {
 "stringValue": "nova-api-os-compute.service"
@@ -2192,13 +2141,64 @@
 {
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "compute-01-nova-api-container-7628248a"
 }
 },
 {
 "key": "process.pid",
 "value": {
-"stringValue": "3100"
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192834643000",
+"observedTimeUnixNano": "1793886192936102656",
+"body": {
+"stringValue": "2026-11-05 13:43:12.833 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"00000000-0000-0000-0000-000000000000\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
+},
+"attributes": [
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
 }
 },
 {
@@ -2211,6 +2211,18 @@
 "key": "journald.priority",
 "value": {
 "stringValue": "7"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
 }
 },
 {
@@ -2228,13 +2240,13 @@
 {
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
 }
 },
 {
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
 }
 },
 {
@@ -2242,38 +2254,38 @@
 "value": {
 "stringValue": "admin"
 }
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
 }
 ]
 },
 {
-"timeUnixNano": "1793881329065078000",
-"observedTimeUnixNano": "1793881329103228294",
+"timeUnixNano": "1793886192834725000",
+"observedTimeUnixNano": "1793886192936132601",
 "body": {
-"stringValue": "2026-11-05 12:22:09.064 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"00000000-0000-0000-0000-000000000000\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
+"stringValue": "2026-11-05 13:43:12.833 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"00000000-0000-0000-0000-000000000000\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
 },
 "attributes": [
 {
-"key": "journald.user_id",
+"key": "process.pid",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3068"
 }
 },
 {
-"key": "journald.hostname",
+"key": "journald.priority",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "7"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
 }
 },
 {
@@ -2289,87 +2301,6 @@
 }
 },
 {
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329065598000",
-"observedTimeUnixNano": "1793881329103593808",
-"body": {
-"stringValue": "2026-11-05 12:22:09.065 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Acquiring lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
-},
-"attributes": [
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
 "key": "journald.logger_level",
 "value": {
 "stringValue": "DEBUG"
@@ -2378,64 +2309,7 @@
 {
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329065933000",
-"observedTimeUnixNano": "1793881329103669559",
-"body": {
-"stringValue": "2026-11-05 12:22:09.065 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
-},
-"attributes": [
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
 }
 },
 {
@@ -2457,216 +2331,18 @@
 }
 },
 {
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
+"stringValue": "compute-01-nova-api-container-7628248a"
 }
 }
 ]
 },
 {
-"timeUnixNano": "1793881329066284000",
-"observedTimeUnixNano": "1793881329104104683",
+"timeUnixNano": "1793886192834771000",
+"observedTimeUnixNano": "1793886192936308772",
 "body": {
-"stringValue": "2026-11-05 12:22:09.065 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
-},
-"attributes": [
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329078039000",
-"observedTimeUnixNano": "1793881329104169715",
-"body": {
-"stringValue": "2026-11-05 12:22:09.077 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Acquiring lock \"00000000-0000-0000-0000-000000000000\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
-},
-"attributes": [
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329078338000",
-"observedTimeUnixNano": "1793881329104553220",
-"body": {
-"stringValue": "2026-11-05 12:22:09.078 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"00000000-0000-0000-0000-000000000000\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
+"stringValue": "2026-11-05 13:43:12.834 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Acquiring lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
 },
 "attributes": [
 {
@@ -2676,126 +2352,15 @@
 }
 },
 {
-"key": "process.pid",
-"value": {
-"stringValue": "3100"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.logger_name",
-"value": {
-"stringValue": "oslo_concurrency.lockutils"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_id",
-"value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
 "key": "journald.hostname",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.logger_level",
-"value": {
-"stringValue": "DEBUG"
-}
-},
-{
-"key": "journald.project_id",
-"value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
-}
-}
-]
-},
-{
-"timeUnixNano": "1793881329078525000",
-"observedTimeUnixNano": "1793881329104649831",
-"body": {
-"stringValue": "2026-11-05 12:22:09.078 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"00000000-0000-0000-0000-000000000000\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
-},
-"attributes": [
-{
-"key": "journald.unit",
-"value": {
-"stringValue": "nova-api-os-compute.service"
-}
-},
-{
-"key": "journald.identifier",
-"value": {
-"stringValue": "<frozen importlib._bootstrap>"
-}
-},
-{
-"key": "journald.priority",
-"value": {
-"stringValue": "7"
-}
-},
-{
-"key": "journald.request_id",
-"value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
-}
-},
-{
-"key": "journald.project_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.user_name",
-"value": {
-"stringValue": "admin"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "compute-01-nova-api-container-7628248a"
 }
 },
 {
 "key": "process.pid",
 "value": {
-"stringValue": "3100"
+"stringValue": "3068"
 }
 },
 {
@@ -2811,24 +2376,54 @@
 }
 },
 {
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
 }
 },
 {
 "key": "journald.user_id",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
 }
 }
 ]
 },
 {
-"timeUnixNano": "1793881329078942000",
-"observedTimeUnixNano": "1793881329104940477",
+"timeUnixNano": "1793886192834808000",
+"observedTimeUnixNano": "1793886192936341050",
 "body": {
-"stringValue": "2026-11-05 12:22:09.078 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Acquiring lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
+"stringValue": "2026-11-05 13:43:12.834 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
 },
 "attributes": [
 {
@@ -2840,7 +2435,7 @@
 {
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
 }
 },
 {
@@ -2850,21 +2445,153 @@
 }
 },
 {
-"key": "journald.user_id",
+"key": "journald.user_name",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
-}
-},
-{
-"key": "journald.hostname",
-"value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "admin"
 }
 },
 {
 "key": "process.pid",
 "value": {
-"stringValue": "3100"
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192834836000",
+"observedTimeUnixNano": "1793886192936519788",
+"body": {
+"stringValue": "2026-11-05 13:43:12.834 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
+},
+"attributes": [
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192842485000",
+"observedTimeUnixNano": "1793886192936549833",
+"body": {
+"stringValue": "2026-11-05 13:43:12.842 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Acquiring lock \"00000000-0000-0000-0000-000000000000\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
 }
 },
 {
@@ -2886,9 +2613,39 @@
 }
 },
 {
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
 "key": "journald.request_id",
 "value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
 }
 },
 {
@@ -2898,24 +2655,24 @@
 }
 },
 {
-"key": "journald.unit",
+"key": "journald.hostname",
 "value": {
-"stringValue": "nova-api-os-compute.service"
+"stringValue": "compute-01-nova-api-container-7628248a"
 }
 }
 ]
 },
 {
-"timeUnixNano": "1793881329079172000",
-"observedTimeUnixNano": "1793881329105016970",
+"timeUnixNano": "1793886192842637000",
+"observedTimeUnixNano": "1793886192936743643",
 "body": {
-"stringValue": "2026-11-05 12:22:09.078 3100 DEBUG oslo_concurrency.lockutils [None req-d1e3708a-3557-4923-acbd-ca585d65bbd2 d1a30613215e400091729e4b8d1ab65f fb8cb6f8f58f4bf797e637768e47c312 - - default default] Lock \"bf957542-00ec-4aca-a595-f130c9f4941a\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
+"stringValue": "2026-11-05 13:43:12.842 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"00000000-0000-0000-0000-000000000000\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
 },
 "attributes": [
 {
-"key": "journald.identifier",
+"key": "journald.hostname",
 "value": {
-"stringValue": "<frozen importlib._bootstrap>"
+"stringValue": "compute-01-nova-api-container-7628248a"
 }
 },
 {
@@ -2925,19 +2682,19 @@
 }
 },
 {
-"key": "journald.request_id",
+"key": "journald.logger_level",
 "value": {
-"stringValue": "req-d1e3708a-3557-4923-acbd-ca585d65bbd2"
+"stringValue": "DEBUG"
 }
 },
 {
 "key": "journald.project_id",
 "value": {
-"stringValue": "fb8cb6f8f58f4bf797e637768e47c312"
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
 }
 },
 {
-"key": "journald.user_name",
+"key": "journald.project_name",
 "value": {
 "stringValue": "admin"
 }
@@ -2949,15 +2706,96 @@
 }
 },
 {
-"key": "journald.hostname",
+"key": "process.pid",
 "value": {
-"stringValue": "compute-01-nova-api-container-269baa4e"
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192842773000",
+"observedTimeUnixNano": "1793886192936767950",
+"body": {
+"stringValue": "2026-11-05 13:43:12.842 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"00000000-0000-0000-0000-000000000000\" \"released\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: held 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:538"
+},
+"attributes": [
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
 }
 },
 {
 "key": "process.pid",
 "value": {
-"stringValue": "3100"
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
 }
 },
 {
@@ -2973,6 +2811,114 @@
 }
 },
 {
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192842999000",
+"observedTimeUnixNano": "1793886192936954750",
+"body": {
+"stringValue": "2026-11-05 13:43:12.842 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Acquiring lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:506"
+},
+"attributes": [
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.project_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.user_id",
+"value": {
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+}
+]
+},
+{
+"timeUnixNano": "1793886192843135000",
+"observedTimeUnixNano": "1793886192936977124",
+"body": {
+"stringValue": "2026-11-05 13:43:12.843 3068 DEBUG oslo_concurrency.lockutils [None req-ca33c1b7-c389-4971-8cd5-8082595134bd 3ed9df4e05de42058bde257b5291a51d 3ef9c5bef1b74b14a5bedfd56a79eafb - - default default] Lock \"ec50f46c-9a59-4cf5-8e8d-23ee1eb54720\" acquired by \"nova.context.set_target_cell.<locals>.get_or_set_cached_cell_and_set_connections\" :: waited 0.000s inner /openstack/venvs/nova-33.1.0/lib/python3.12/site-packages/oslo_concurrency/lockutils.py:519"
+},
+"attributes": [
+{
+"key": "journald.priority",
+"value": {
+"stringValue": "7"
+}
+},
+{
 "key": "journald.project_name",
 "value": {
 "stringValue": "admin"
@@ -2981,11 +2927,65 @@
 {
 "key": "journald.user_id",
 "value": {
-"stringValue": "d1a30613215e400091729e4b8d1ab65f"
+"stringValue": "3ed9df4e05de42058bde257b5291a51d"
+}
+},
+{
+"key": "journald.unit",
+"value": {
+"stringValue": "nova-api-os-compute.service"
+}
+},
+{
+"key": "journald.hostname",
+"value": {
+"stringValue": "compute-01-nova-api-container-7628248a"
+}
+},
+{
+"key": "journald.logger_name",
+"value": {
+"stringValue": "oslo_concurrency.lockutils"
+}
+},
+{
+"key": "journald.logger_level",
+"value": {
+"stringValue": "DEBUG"
+}
+},
+{
+"key": "journald.request_id",
+"value": {
+"stringValue": "req-ca33c1b7-c389-4971-8cd5-8082595134bd"
+}
+},
+{
+"key": "journald.project_id",
+"value": {
+"stringValue": "3ef9c5bef1b74b14a5bedfd56a79eafb"
+}
+},
+{
+"key": "journald.user_name",
+"value": {
+"stringValue": "admin"
+}
+},
+{
+"key": "process.pid",
+"value": {
+"stringValue": "3068"
+}
+},
+{
+"key": "journald.identifier",
+"value": {
+"stringValue": "<frozen importlib._bootstrap>"
 }
 }
 ]
 }
 ],
-"total": 2172
+"total": 1989
 }

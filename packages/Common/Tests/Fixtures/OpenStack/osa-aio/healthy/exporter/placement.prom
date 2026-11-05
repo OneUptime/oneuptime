@@ -10,17 +10,17 @@ openstack_placement_resource_generation{hostname="compute-01.example.internal",r
 openstack_placement_resource_generation{hostname="compute-01.example.internal",resourcetype="VCPU"} 8
 # HELP openstack_placement_resource_provider_allocations resource_provider_allocations
 # TYPE openstack_placement_resource_provider_allocations gauge
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="21d14b91-9f7b-456b-94d1-20d9e9ee9853"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="3d3a2e7d-957d-4594-855b-ed107e066f8e"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="980aef78-683d-41f4-acb2-1ecf843a1d17"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="207e88d5-dfec-41c5-963a-5c6bc61e695a"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="21d14b91-9f7b-456b-94d1-20d9e9ee9853"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="3d3a2e7d-957d-4594-855b-ed107e066f8e"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="980aef78-683d-41f4-acb2-1ecf843a1d17"} 128
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="207e88d5-dfec-41c5-963a-5c6bc61e695a"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="21d14b91-9f7b-456b-94d1-20d9e9ee9853"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="3d3a2e7d-957d-4594-855b-ed107e066f8e"} 1
-openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="980aef78-683d-41f4-acb2-1ecf843a1d17"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="df0bc1a4-d586-4a11-942e-1cf9f7539a97"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="e7d3ca34-ea36-4b69-ae24-8c9d8d096c82"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="DISK_GB",uuid="eacbac41-7025-4d5d-8007-2b5db0e61717"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="d3b686d1-a6cf-488e-9289-836bfaaa1ab0"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="df0bc1a4-d586-4a11-942e-1cf9f7539a97"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="e7d3ca34-ea36-4b69-ae24-8c9d8d096c82"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="MEMORY_MB",uuid="eacbac41-7025-4d5d-8007-2b5db0e61717"} 128
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="d3b686d1-a6cf-488e-9289-836bfaaa1ab0"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="df0bc1a4-d586-4a11-942e-1cf9f7539a97"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="e7d3ca34-ea36-4b69-ae24-8c9d8d096c82"} 1
+openstack_placement_resource_provider_allocations{hostname="compute-01.example.internal",resourcetype="VCPU",uuid="eacbac41-7025-4d5d-8007-2b5db0e61717"} 1
 # HELP openstack_placement_resource_reserved resource_reserved
 # TYPE openstack_placement_resource_reserved gauge
 openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 2

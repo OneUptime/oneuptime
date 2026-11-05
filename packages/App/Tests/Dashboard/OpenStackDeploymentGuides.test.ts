@@ -485,15 +485,47 @@ describe("what the guides say ran is what the recordings say ran", () => {
     }
   });
 
-  test("Kolla-Ansible's says its alert did not reach OneUptime for as long as the recording says so", () => {
-    expect(recorded("kolla-aio", "problems.txt")).toContain(
-      "Alertmanager posted no firing webhook",
-    );
+  test("Kolla-Ansible's says its Alertmanager posted, and the recording holds what it posted", () => {
     expect(setupGuideOf("kolla-ansible").intro).toContain(
-      "its Alertmanager had nothing to post",
+      "its Alertmanager posted a firing webhook and then a resolved one",
     );
-    expect(DOCS_PAGE).toContain("its Alertmanager had nothing to post");
+    expect(DOCS_PAGE).toContain(
+      "its Alertmanager posted a firing webhook and then a resolved one",
+    );
+
+    for (const status of ["firing", "resolved"]) {
+      const posted: { status: string; commonLabels: { alertname: string } } =
+        JSON.parse(
+          fs.readFileSync(
+            path.join(
+              __dirname,
+              "../../../Common/Tests/Fixtures/OpenStack/alertmanager/kolla-aio-memcacheddown",
+              `${status}.json`,
+            ),
+            "utf8",
+          ),
+        );
+
+      expect(posted.status).toBe(status);
+      expect(posted.commonLabels.alertname).toBe("MemcachedDown");
+    }
   });
+
+  test.each(["kolla-aio", "osa-aio"])(
+    "%s wrote down no problem",
+    (tool: string) => {
+      expect(
+        fs.existsSync(
+          path.join(
+            __dirname,
+            "../../../Common/Tests/Fixtures/OpenStack",
+            tool,
+            "deployment/problems.txt",
+          ),
+        ),
+      ).toBe(false);
+    },
+  );
 
   test("OpenStack-Ansible's guide's commands all worked, but for following a log until stopped", () => {
     const commands: Array<{ text: string; exit: number }> = commandsOf(
@@ -554,10 +586,19 @@ describe("what the guides say ran is what the recordings say ran", () => {
     expect(guideOf("openstack-ansible").credentialNotes.join("\n")).toContain(
       "openstack-ansible openstack.osa.cinder --tags cinder-config",
     );
-    for (const tool of ["kolla-ansible", "openstack-ansible"] as const) {
-      expect(setupGuideOf(tool).intro).toContain("Cinder refused every read");
-    }
-    expect(DOCS_PAGE).toContain("Cinder refused every read");
+    // And each was run, which is what proved it.
+    expect(recorded("kolla-aio", "commands.log")).toContain(
+      "kolla-ansible reconfigure -i /opt/ou-kolla/all-in-one --tags cinder",
+    );
+    expect(recorded("osa-aio", "commands.log")).toContain(
+      "openstack-ansible openstack.osa.cinder --tags cinder-config",
+    );
+    expect(DOCS_PAGE).toContain(
+      "kolla-ansible reconfigure -i <inventory> --tags cinder",
+    );
+    expect(DOCS_PAGE).toContain(
+      "openstack-ansible openstack.osa.cinder --tags cinder-config",
+    );
   });
 });
 
@@ -570,11 +611,9 @@ describe("each guide says plainly how far it has been tested", () => {
       expect(intro).toContain("How far this guide has been tested:");
       // Kolla-Ansible's was run, and says what did not hold: see the recordings below.
       expect(intro).toContain(
-        tool === "kolla-ansible"
-          ? "no alert has gone from a Kolla-Ansible stack to OneUptime"
-          : tool === "openstack-ansible"
-            ? "Its commands were then run on a real all-in-one"
-            : "not been followed end to end",
+        tool === "kolla-ansible" || tool === "openstack-ansible"
+          ? "Its commands were then run on a real all-in-one"
+          : "not been followed end to end",
       );
       expect(intro.toLowerCase()).not.toMatch(
         /\b(fully|thoroughly|completely) tested\b|\bverified on\b|\bproduction[- ]ready\b/,
