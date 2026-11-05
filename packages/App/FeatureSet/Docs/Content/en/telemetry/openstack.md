@@ -731,7 +731,7 @@ Many clouds are run for other people. When a host fails, they want to tell exact
 
 ### A status page in one step
 
-**Create Status Page** first shows what it will create, monitor by monitor, and creates nothing until you say so. Each region is a group, and each service the region runs is a row: Compute, Networking, Block Storage, Images and Identity, each backed by the monitors that say whether it works. A service your cloud doesn't run has no row, and Load Balancing appears once it has monitors to back it.
+**Create Status Page** first shows what it will create, monitor by monitor, and creates nothing until you say so. Each region is a group, and each service the region runs is a row: Compute, Networking, Block Storage, Images, Identity and Load Balancing, each backed by the monitors that say whether it works. A service your cloud doesn't run has no row.
 
 A monitor that already watches a row is used as it is, so one failure still opens one incident. On a cloud with several regions, a monitor you made for the whole cloud can't be one region's row, because a failure elsewhere would turn it red. That row gets a monitor of its own, which only says how the row reads, and yours goes on opening the incident.
 

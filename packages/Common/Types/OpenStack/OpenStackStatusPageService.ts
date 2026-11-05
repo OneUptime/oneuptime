@@ -72,14 +72,11 @@ export const OPENSTACK_STATUS_PAGE_SERVICES: ReadonlyArray<OpenStackStatusPageSe
       templateIds: ["openstack-identity-api-down"],
       checkTemplateIds: ["openstack-token-issue-failing"],
     },
-    /*
-     * Octavia has no monitor to back a row with until #5741 adds its templates, so nothing shows this
-     * yet, on any cloud. Naming them here is all that row needs.
-     */
     {
       service: OpenStackStatusPageService.LoadBalancing,
       apiName: "load-balancer",
-      templateIds: [],
+      // One load balancer in error is its owner's, and says nothing of how a region's Octavia is doing.
+      templateIds: ["openstack-load-balancer-api-down"],
       checkTemplateIds: [],
     },
   ];
@@ -117,6 +114,10 @@ export function getOpenStackStatusPageServiceOfPart(part: {
       return OpenStackStatusPageService.BlockStorage;
     case OpenStackResourceKind.Image:
       return OpenStackStatusPageService.Images;
+    case OpenStackResourceKind.LoadBalancer:
+    case OpenStackResourceKind.LoadBalancerPool:
+    case OpenStackResourceKind.Amphora:
+      return OpenStackStatusPageService.LoadBalancing;
     case OpenStackResourceKind.Service: {
       const family: string = getFamilyOfServiceRow(part.externalId);
       if (family === "compute") {
@@ -172,6 +173,10 @@ const KIND_WORDS: Readonly<Record<string, string>> = {
   [OpenStackResourceKind.Stack]: "A stack",
   [OpenStackResourceKind.ContainerCluster]: "A Kubernetes cluster",
   [OpenStackResourceKind.Share]: "A share",
+  [OpenStackResourceKind.LoadBalancer]: "A load balancer",
+  [OpenStackResourceKind.LoadBalancerPool]: "A load balancer's pool",
+  // The machine one runs in is Octavia's own business: what a project has is the load balancer.
+  [OpenStackResourceKind.Amphora]: "A load balancer",
 };
 
 /*

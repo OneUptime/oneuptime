@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   OpenStackProjectPagePlan,
+  OpenStackProjectPagePlanRow,
   OpenStackStatusPageExistingMonitor,
   OpenStackStatusPagePlan,
   OpenStackStatusPagePlanGroup,
@@ -113,14 +114,51 @@ describe("what a cloud's page holds", () => {
     expect(JSON.stringify(plan)).not.toContain("Block Storage");
   });
 
-  test("load balancing has no row until something can say whether it works", () => {
+  test("load balancing is a row where a region runs Octavia, read by whether its API answers", () => {
     const plan: OpenStackStatusPagePlan = planOf({
       regions: [
         { regionName: "RegionOne", apiNames: ["compute", "load-balancer"] },
+        { regionName: "RegionTwo", apiNames: ["compute"] },
       ],
     });
 
-    expect(servicesOf(plan.groups[0]!)).toEqual(["Compute"]);
+    expect(servicesOf(plan.groups[0]!)).toEqual(["Compute", "Load Balancing"]);
+    expect(servicesOf(plan.groups[1]!)).toEqual(["Compute"]);
+    expect(
+      rowOf(plan, "RegionOne", OpenStackStatusPageService.LoadBalancing)!
+        .monitors[0]!.templateId,
+    ).toBe("openstack-load-balancer-api-down");
+  });
+
+  test("every service the issue asks for has a row, and something to back it", () => {
+    const plan: OpenStackStatusPagePlan = planOf({
+      regions: [
+        {
+          regionName: "RegionOne",
+          apiNames: [
+            "compute",
+            "network",
+            "volume",
+            "image",
+            "identity",
+            "load-balancer",
+          ],
+        },
+      ],
+    });
+
+    expect(servicesOf(plan.groups[0]!)).toEqual([
+      "Compute",
+      "Networking",
+      "Block Storage",
+      "Images",
+      "Identity",
+      "Load Balancing",
+    ]);
+
+    for (const row of plan.groups[0]!.rows) {
+      expect(row.monitors.length).toBeGreaterThan(0);
+    }
   });
 
   test("two regions are two groups, each with what it runs", () => {
@@ -442,6 +480,26 @@ describe("a project's own page", () => {
     expect(plan.name).toBe("aaaa status");
   });
 
+  test("a project that holds a load balancer has a row for that", () => {
+    const plan: OpenStackProjectPagePlan = buildOpenStackProjectPagePlan({
+      projectName: "ou-payments",
+      projectId: "aaaa",
+      holdings: [
+        {
+          kind: OpenStackResourceKind.LoadBalancer,
+          regionName: "RegionOne",
+          count: 2,
+        },
+      ],
+    });
+
+    expect(
+      plan.rows.map((row: OpenStackProjectPagePlanRow) => {
+        return row.service;
+      }),
+    ).toEqual([OpenStackStatusPageService.LoadBalancing]);
+  });
+
   test("what isn't a row is not one", () => {
     expect(
       buildOpenStackProjectPagePlan({
@@ -597,6 +655,30 @@ describe("which row a part belongs to, and what it is called to a tenant", () =>
       { kind: OpenStackMaintenancePartKind.AvailabilityZone },
       OpenStackStatusPageService.Compute,
       "An availability zone",
+    ],
+    [
+      "a load balancer",
+      { kind: OpenStackResourceKind.LoadBalancer, name: "web-lb" },
+      OpenStackStatusPageService.LoadBalancing,
+      "A load balancer",
+    ],
+    [
+      "a load balancer's pool",
+      { kind: OpenStackResourceKind.LoadBalancerPool, name: "web-pool" },
+      OpenStackStatusPageService.LoadBalancing,
+      "A load balancer's pool",
+    ],
+    [
+      "the machine a load balancer runs in, which no project has heard of",
+      { kind: OpenStackResourceKind.Amphora, name: "amphora-1" },
+      OpenStackStatusPageService.LoadBalancing,
+      "A load balancer",
+    ],
+    [
+      "Octavia's API",
+      { kind: OpenStackResourceKind.Api, name: "load-balancer" },
+      OpenStackStatusPageService.LoadBalancing,
+      "The Load Balancing API",
     ],
     [
       "what we can't place",
