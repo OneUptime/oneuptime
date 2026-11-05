@@ -889,18 +889,35 @@ export default class VMUtil {
       return null;
     }
 
-    let key: string = paths[start] as string;
+    /*
+     * From the keys there are, not from the path: joining the path's segments one more at a time
+     * and looking each up reads the whole joined text every time, which is the square of the
+     * path's length on a long one (GroupingPathBracketsLinearTime). The first segments that make
+     * a key win, so the key taking the fewest segments does.
+     */
+    let found: { value: JSONValue; lastIndex: number } | null = null;
 
-    for (let index: number = start + 1; index < paths.length; index++) {
-      key = `${key}.${paths[index]}`;
-
+    for (const key of Object.keys(current as JSONObject)) {
       const value: JSONValue | undefined = (current as JSONObject)[key];
 
-      if (value !== undefined) {
-        return { value: value, lastIndex: index };
+      if (value === undefined || !key.includes(".")) {
+        continue;
+      }
+
+      const segments: Array<string> = key.split(".");
+      const lastIndex: number = start + segments.length - 1;
+
+      if (
+        lastIndex < paths.length &&
+        (!found || lastIndex < found.lastIndex) &&
+        segments.every((segment: string, offset: number): boolean => {
+          return paths[start + offset] === segment;
+        })
+      ) {
+        found = { value: value, lastIndex: lastIndex };
       }
     }
 
-    return null;
+    return found;
   }
 }
