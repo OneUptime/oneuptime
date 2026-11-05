@@ -48,6 +48,7 @@ export interface ResourceCounts {
   stacks?: number | undefined;
   containerClusters?: number | undefined;
   shares?: number | undefined;
+  loadBalancers?: number | undefined;
   databases?: number | undefined;
   objectContainers?: number | undefined;
   dnsZones?: number | undefined;
@@ -400,6 +401,21 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Activity}
         />
+        {runs(OpenStackServiceType.LoadBalancer) ? (
+          <SideMenuItem
+            link={{
+              title: "Load Balancers",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Globe}
+            badge={counts.loadBalancers}
+          />
+        ) : (
+          <></>
+        )}
         {runsDesignate ? (
           <SideMenuItem
             link={{

@@ -17,6 +17,9 @@ import {
   isOpenStackContainerClusterFailed,
   isOpenStackFloatingIpAssociated,
   isOpenStackServiceDown,
+  isOpenStackAmphoraInError,
+  isOpenStackLoadBalancerInError,
+  isOpenStackLoadBalancerStuck,
   isOpenStackDnsInError,
   isOpenStackDatabaseInstanceInError,
   isOpenStackDatabaseInstanceStuck,
@@ -159,6 +162,20 @@ export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
 export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
   "openstack-storage-pool-warning",
   "openstack-storage-pool-critical",
+];
+
+export const OPENSTACK_LOAD_BALANCER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-load-balancer-in-error",
+  "openstack-load-balancer-stuck-pending",
+  "openstack-load-balancer-with-two-masters",
+];
+
+export const OPENSTACK_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-pool-without-healthy-members",
+];
+
+export const OPENSTACK_AMPHORA_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-amphora-in-error",
 ];
 
 export const OPENSTACK_DNS_ZONE_ALERT_TEMPLATE_IDS: Array<string> = [
@@ -1128,6 +1145,24 @@ const EXPLAIN_SHARE_ERROR: string = translationKey(
 const EXPLAIN_SHARE_STUCK: string = translationKey(
   "This share has been on its way to something else for longer than it should take. Manila has no timeout of its own for this, so either its backend is very slow or nothing is working on it any more. Check openstack share service list, then manila-share's log on the backend that holds it.",
 );
+const EXPLAIN_LOAD_BALANCER_ERROR: string = translationKey(
+  "Octavia couldn't do what this load balancer was asked for, and retries none of these by itself. It serves nothing, or the change asked of it was not made. openstack loadbalancer show says its statuses; octavia-worker's log says why, and Nova refusing the amphora (quota, no valid host) is the usual cause. openstack loadbalancer failover rebuilds it once that is fixed.",
+);
+const EXPLAIN_LOAD_BALANCER_STUCK: string = translationKey(
+  "This load balancer has been waiting on Octavia's worker for longer than it should take. Octavia's API accepts a request and its worker does it, so the worker is stopped or can't reach RabbitMQ, and no further change is accepted until this one moves. Check that octavia-worker is running and its log.",
+);
+const EXPLAIN_LOAD_BALANCER_TWO_MASTERS: string = translationKey(
+  "Two of this load balancer's amphorae both say they are the MASTER. That is a split pair: both answer for its address, so its connections reset and drop. Check the VRRP traffic between the two on the load balancer's network, then openstack loadbalancer failover.",
+);
+const EXPLAIN_POOL_NO_HEALTHY_MEMBERS: string = translationKey(
+  "Every member of this pool fails its health check, so the load balancer has nowhere to send what it gets. The pool and its load balancer still read ACTIVE, because that is a different thing from health. Check that the members run and listen on their port, that they answer the health monitor's path, and that their security group lets the amphora's checks in.",
+);
+const EXPLAIN_AMPHORA_ERROR: string = translationKey(
+  "The health manager could not replace this amphora. Its load balancer runs on its other amphora, if it has one, and serves nothing if it has none. Check octavia-health-manager's log; openstack loadbalancer failover rebuilds it.",
+);
+const EXPLAIN_AMPHORA_CERTIFICATE: string = translationKey(
+  "This amphora's certificate is nearly at its end, or past it. Octavia gives one 30 days and its housekeeping renews it with 14 left by default, so one under that was not renewed. Once it ends, Octavia's controller can no longer reach the amphora. Check octavia-housekeeping's log.",
+);
 const EXPLAIN_STACK_FAILED: string = translationKey(
   "Heat could not finish what this stack was asked to do, and it stays like this until someone updates or deletes it. What it built so far may be partly there, and is still using its project's quota. Run openstack stack failures list to see which resource failed.",
 );
@@ -1208,6 +1243,25 @@ export function getOpenStackPartExplanation(
         : EXPLAIN_DATABASE_FULL;
     case OpenStackResourceKind.BareMetalNode:
       return getOpenStackBareMetalExplanation(row, now);
+    case OpenStackResourceKind.LoadBalancer:
+      if (isOpenStackLoadBalancerInError(row.status)) {
+        return EXPLAIN_LOAD_BALANCER_ERROR;
+      }
+      return isOpenStackLoadBalancerStuck({
+        status: row.status,
+        stateChangedAt: row.stateChangedAt,
+        now,
+      })
+        ? EXPLAIN_LOAD_BALANCER_STUCK
+        : EXPLAIN_LOAD_BALANCER_TWO_MASTERS;
+    case OpenStackResourceKind.LoadBalancerPool:
+      return isOpenStackLoadBalancerInError(row.status)
+        ? EXPLAIN_LOAD_BALANCER_ERROR
+        : EXPLAIN_POOL_NO_HEALTHY_MEMBERS;
+    case OpenStackResourceKind.Amphora:
+      return isOpenStackAmphoraInError(row.status)
+        ? EXPLAIN_AMPHORA_ERROR
+        : EXPLAIN_AMPHORA_CERTIFICATE;
     case OpenStackResourceKind.Share:
       return isOpenStackShareInError(row.status)
         ? EXPLAIN_SHARE_ERROR
@@ -1354,10 +1408,19 @@ export function isOpenStackIssueAbout(
       );
     case OpenStackResourceKind.Stack:
     case OpenStackResourceKind.Share:
+    case OpenStackResourceKind.LoadBalancerPool:
+    case OpenStackResourceKind.Amphora:
     case OpenStackResourceKind.DatabaseInstance:
       return (
         Boolean(row.externalId) &&
         readSeriesLabel(labels, "id") === row.externalId
+      );
+    // A pair with two masters is said by the amphorae's label, not by a series of its own.
+    case OpenStackResourceKind.LoadBalancer:
+      return (
+        Boolean(row.externalId) &&
+        (readSeriesLabel(labels, "id") === row.externalId ||
+          readSeriesLabel(labels, "loadbalancer_id") === row.externalId)
       );
     // A recordset's incident is its zone's: one failure of a zone's writes is one incident.
     case OpenStackResourceKind.DnsZone:
@@ -1466,6 +1529,9 @@ export const OPENSTACK_SERVICE_OF_KIND: Partial<
   [OpenStackResourceKind.Stack]: OpenStackServiceType.Orchestration,
   [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
   [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,
+  [OpenStackResourceKind.LoadBalancer]: OpenStackServiceType.LoadBalancer,
+  [OpenStackResourceKind.LoadBalancerPool]: OpenStackServiceType.LoadBalancer,
+  [OpenStackResourceKind.Amphora]: OpenStackServiceType.LoadBalancer,
   [OpenStackResourceKind.DatabaseInstance]: OpenStackServiceType.Database,
   [OpenStackResourceKind.ObjectContainer]: OpenStackServiceType.ObjectStore,
   [OpenStackResourceKind.DnsZone]: OpenStackServiceType.Dns,

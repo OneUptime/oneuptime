@@ -42,6 +42,7 @@ import {
   OPENSTACK_IP_POOL_WARNING_PERCENT,
   OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT,
   OPENSTACK_ROUTER_MAX_ACTIVE_AGENTS,
+  OPENSTACK_LOAD_BALANCER_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
@@ -91,6 +92,10 @@ import {
   OPENSTACK_DNS_STATUS_PENDING,
   OPENSTACK_SHARE_ERROR_STATUSES,
   OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+  OPENSTACK_LOAD_BALANCER_ERROR_STATUSES,
+  OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES,
+  OPENSTACK_AMPHORA_ERROR_STATUSES,
+  OPENSTACK_AMPHORA_ROLE_MASTER,
   OPENSTACK_VOLUME_ERROR_STATUSES,
   OPENSTACK_VOLUME_TRANSITIONAL_STATUSES,
   OpenStackServiceType,
@@ -111,6 +116,7 @@ export type OpenStackAlertTemplateCategory =
   | "Storage"
   | "Orchestration"
   | "Bare Metal"
+  | "Load Balancers"
   | "Databases"
   | "Metrics"
   | "Projects"
@@ -255,6 +261,8 @@ const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
 // A node's id is what it is, and its name what a person calls it, which Ironic does not require.
 const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
 const SHARE_GROUP: Array<string> = [REGION, "id", "name"];
+const LOAD_BALANCER_GROUP: Array<string> = [REGION, "id", "name"];
+const AMPHORA_GROUP: Array<string> = [REGION, "id", "loadbalancer_id"];
 const DATABASE_INSTANCE_GROUP: Array<string> = [REGION, "id", "name"];
 const OBJECT_CONTAINER_GROUP: Array<string> = [
   REGION,
@@ -286,6 +294,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.Rating]: RollingTime.Past15Minutes,
   [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
   [OpenStackServiceType.SharedFileSystems]: RollingTime.Past15Minutes,
+  [OpenStackServiceType.LoadBalancer]: RollingTime.Past15Minutes,
   [OpenStackServiceType.Database]: RollingTime.Past15Minutes,
   [OpenStackServiceType.KeyManager]: RollingTime.Past15Minutes,
   [OpenStackServiceType.ObjectStore]: RollingTime.Past15Minutes,
@@ -308,6 +317,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.Rating]: "openstack_cloudkitty_up",
   [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2_up",
+  [OpenStackServiceType.LoadBalancer]: "openstack_loadbalancer_up",
   [OpenStackServiceType.Database]: "openstack_trove_up",
   [OpenStackServiceType.KeyManager]: "openstack_barbican_up",
   [OpenStackServiceType.ObjectStore]: "openstack_object_store_up",
@@ -2727,6 +2737,248 @@ const shareServiceDownTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Load balancers ---
+
+const OCTAVIA_LOAD_BALANCER: string = "openstack_loadbalancer_loadbalancer_status";
+const OCTAVIA_POOL: string = "openstack_loadbalancer_pool_status";
+const OCTAVIA_AMPHORA: string = "openstack_loadbalancer_amphora_status";
+
+/*
+ * Octavia's series carry a status in their labels and a code in their value, and the code of a healthy
+ * one is 0 (recorded: a load balancer in ERROR in provisioning, with nothing wrong in operating, reads
+ * 0 too). So a template reads which series are there, as a Count of the ones with the status label,
+ * and never the value. One row per thing per collection, and the job takes at least 2 minutes, so a
+ * bucket's Count is how many things hold the word.
+ */
+function octaviaStateQueries(data: {
+  metricName: string;
+  label: string;
+  statuses: ReadonlySet<string>;
+  extraAttributes?: Record<string, string> | undefined;
+}): Array<OpenStackQuery> {
+  return Array.from(data.statuses).map((status: string): OpenStackQuery => {
+    return {
+      alias: statusAlias(status),
+      metricName: data.metricName,
+      aggregationType: MetricsAggregationType.Count,
+      attributes: { ...(data.extraAttributes || {}), [data.label]: status },
+    };
+  });
+}
+
+function buildOctaviaStateTemplate(data: {
+  id: string;
+  name: string;
+  summary: string;
+  description: string;
+  severity: OpenStackAlertTemplateSeverity;
+  metricName: string;
+  label: string;
+  statuses: ReadonlySet<string>;
+  extraAttributes?: Record<string, string> | undefined;
+  groupByAttributeKeys: Array<string>;
+  rollingTime?: RollingTime | undefined;
+  incidentDescription: string;
+  criteriaName: string;
+  criteriaDescription: string;
+}): OpenStackAlertTemplate {
+  return {
+    id: data.id,
+    name: data.name,
+    summary: data.summary,
+    description: data.description,
+    category: "Load Balancers",
+    severity: data.severity,
+    forService: OpenStackServiceType.LoadBalancer,
+    getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+      const queries: Array<OpenStackQuery> = octaviaStateQueries({
+        metricName: data.metricName,
+        label: data.label,
+        statuses: data.statuses,
+        extraAttributes: data.extraAttributes,
+      });
+
+      return buildCeilingStep({
+        args,
+        service: OpenStackServiceType.LoadBalancer,
+        rollingTime: data.rollingTime,
+        groupByAttributeKeys: data.groupByAttributeKeys,
+        queries,
+        aliases: queries.map((query: OpenStackQuery): string => {
+          return query.alias;
+        }),
+        value: 0,
+        words: {
+          incidentTitle: `[OpenStack] ${data.name}`,
+          incidentDescription: data.incidentDescription,
+          criteriaName: data.criteriaName,
+          criteriaDescription: data.criteriaDescription,
+        },
+      });
+    },
+  };
+}
+
+/*
+ * Said by a cloud's exporter only while Octavia answers. A stopped API reads nothing, not 0
+ * (services-octavia/api-down), as for a cloud without Octavia, so on an agent's cloud this stays quiet
+ * and the cloud's Load Balancers page says when it last heard from Octavia.
+ */
+const loadBalancerApiDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-load-balancer-api-down",
+  name: "Load Balancers API Down",
+  forService: OpenStackServiceType.LoadBalancer,
+  summary: "Octavia's API says it is not answering.",
+  description:
+    "Alert when Octavia's API reads as not answering for 15 minutes (openstack_loadbalancer_up). One incident per region. This speaks only where something can say 0: a stopped Octavia API gives the exporter the OpenStack Agent runs an empty answer, which is what a cloud without Octavia looks like (recorded), so on an agent's cloud this stays quiet and the cloud's Load Balancers page says when it last heard from Octavia. Traffic through load balancers already built carries on either way. Check `openstack loadbalancer list` with a credential that may, then the octavia-api service and its log.",
+  category: "Load Balancers",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.LoadBalancer,
+      hasOwnAnchor: true,
+      groupByAttributeKeys: API_GROUP,
+      queries: [
+        {
+          alias: "api_up",
+          metricName:
+            OPENSTACK_API_UP_METRIC_BY_SERVICE[
+              OpenStackServiceType.LoadBalancer
+            ],
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Load Balancers API Down",
+        incidentDescription:
+          "Octavia's API is not answering in this region, so nobody can create, change or delete a load balancer there. Load balancers already built carry on, because their traffic doesn't go through this API. Check the octavia-api service and its log, then openstack loadbalancer list with a credential that may. The incident resolves on its own once it answers again.",
+        criteriaName: "Load Balancers API Down - not answering",
+        criteriaDescription:
+          "Triggers when Octavia's API does not answer for the whole window.",
+      },
+    });
+  },
+};
+
+const loadBalancerInErrorTemplate: OpenStackAlertTemplate =
+  buildOctaviaStateTemplate({
+    id: "openstack-load-balancer-in-error",
+    name: "Load Balancer in Error",
+    summary: "An Octavia load balancer is in ERROR.",
+    description: `Alert when a load balancer stays in provisioning status ERROR for 15 minutes (openstack_loadbalancer_loadbalancer_status filtered to that provisioning_status label, in every collection of the window). One incident per load balancer, in a region. Octavia retries none of these by itself, so one stays until someone fails it over or deletes it. Recorded: with the project amphorae boot in out of instance quota, Nova refused the amphora and the load balancer went to ERROR on its own, reading operating status OFFLINE. Check \`openstack loadbalancer show <load balancer>\`, then octavia-worker's log for the request.`,
+    severity: "Critical",
+    metricName: OCTAVIA_LOAD_BALANCER,
+    label: "provisioning_status",
+    statuses: OPENSTACK_LOAD_BALANCER_ERROR_STATUSES,
+    groupByAttributeKeys: LOAD_BALANCER_GROUP,
+    incidentDescription: `This load balancer is in provisioning status ERROR, so whoever asked for it does not have one that works: it serves nothing, or whatever change was asked of it was not made. Octavia retries none of these by itself. Check openstack loadbalancer show for the load balancer named above, then octavia-worker's log; the usual causes are Nova refusing the amphora (quota, no valid host) and the management network. openstack loadbalancer failover can rebuild its amphora once that is fixed. The incident resolves on its own once it is back to ACTIVE or deleted.`,
+    criteriaName:
+      "Load Balancer in Error - provisioning ERROR for the whole window",
+    criteriaDescription:
+      "Triggers when a load balancer holds provisioning status ERROR for the whole window.",
+  });
+
+const loadBalancerStuckTemplate: OpenStackAlertTemplate =
+  buildOctaviaStateTemplate({
+    id: "openstack-load-balancer-stuck-pending",
+    name: "Load Balancer Stuck Pending",
+    summary: `An Octavia load balancer stays in a PENDING state for ${OPENSTACK_LOAD_BALANCER_STUCK_MINUTES} minutes.`,
+    description: `Alert when a load balancer stays in one of ${Array.from(OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES).join(", ")} for ${OPENSTACK_LOAD_BALANCER_STUCK_MINUTES} minutes (openstack_loadbalancer_loadbalancer_status filtered to that provisioning_status label, in every collection of the window), which is Canonical's own rule. One incident per load balancer. Octavia's API accepts a request and its worker does it, so with the worker stopped a change stays PENDING_UPDATE and a new load balancer PENDING_CREATE for as long as it is stopped (recorded), and the API still answers. Check \`openstack loadbalancer show <load balancer>\`, that octavia-worker is running and its route to RabbitMQ, then its log.`,
+    severity: "Warning",
+    metricName: OCTAVIA_LOAD_BALANCER,
+    label: "provisioning_status",
+    statuses: OPENSTACK_LOAD_BALANCER_TRANSITIONAL_STATUSES,
+    groupByAttributeKeys: LOAD_BALANCER_GROUP,
+    rollingTime: windowHolding(OPENSTACK_LOAD_BALANCER_STUCK_MINUTES),
+    incidentDescription: `This load balancer has held the PENDING status named above for ${OPENSTACK_LOAD_BALANCER_STUCK_MINUTES} minutes. Octavia's API accepts a request and its worker does it, so the worker is stopped or cannot reach RabbitMQ, or it died partway: the load balancer stays locked, and no further change is accepted until it moves. Check openstack loadbalancer show for the load balancer named above, that octavia-worker is running on its hosts and its log. The incident resolves on its own once it reaches ACTIVE or ERROR, or is deleted.`,
+    criteriaName: `Load Balancer Stuck Pending - same status for ${OPENSTACK_LOAD_BALANCER_STUCK_MINUTES} minutes`,
+    criteriaDescription: `Triggers when a load balancer holds a PENDING status for the whole ${OPENSTACK_LOAD_BALANCER_STUCK_MINUTES}-minute window.`,
+  });
+
+const amphoraInErrorTemplate: OpenStackAlertTemplate =
+  buildOctaviaStateTemplate({
+    id: "openstack-amphora-in-error",
+    name: "Amphora in Error",
+    summary: "An Octavia amphora is in ERROR.",
+    description: `Alert when an amphora stays in status ERROR for 15 minutes (openstack_loadbalancer_amphora_status filtered to that status label, in every collection of the window). One incident per amphora. Octavia's health manager replaces a failed amphora of an active-standby pair by itself, so one that stays in ERROR is one it could not replace, and the load balancer is running on one amphora or none. Only an admin may list amphorae, so a cloud read with a lower credential never sees this. Check \`openstack loadbalancer amphora list --loadbalancer <id>\`, then octavia-health-manager's log.`,
+    severity: "Critical",
+    metricName: OCTAVIA_AMPHORA,
+    label: "status",
+    statuses: OPENSTACK_AMPHORA_ERROR_STATUSES,
+    groupByAttributeKeys: AMPHORA_GROUP,
+    incidentDescription: `This amphora is in status ERROR, which Octavia's health manager did not repair. Its load balancer runs on its other amphora, if it has one, and serves nothing if it has none. Check openstack loadbalancer amphora list for the load balancer named above and octavia-health-manager's log; the amphora's instance is the compute_id on its row. openstack loadbalancer failover rebuilds it. The incident resolves on its own once it is replaced.`,
+    criteriaName: "Amphora in Error - status ERROR for the whole window",
+    criteriaDescription:
+      "Triggers when an amphora holds status ERROR for the whole window.",
+  });
+
+const poolWithoutHealthyMembersTemplate: OpenStackAlertTemplate =
+  buildOctaviaStateTemplate({
+    id: "openstack-pool-without-healthy-members",
+    name: "Pool Has No Healthy Members",
+    summary: "Every member of an Octavia pool is failing its health check.",
+    description:
+      "Alert when a pool's operating status is ERROR for 15 minutes (openstack_loadbalancer_pool_status filtered to that operating_status label, in every collection of the window). One incident per pool. Octavia's operating status is what the health monitors say, and it is a different question from provisioning: recorded, with a security group that stopped the checks, every member went ERROR while the pool and its load balancer stayed ACTIVE in provisioning, so nothing else shows it. A pool with only some members down reads DEGRADED, and nothing pages for that. Check `openstack loadbalancer member list <pool>`, then the members' security group and the health monitor's path.",
+    severity: "Critical",
+    metricName: OCTAVIA_POOL,
+    label: "operating_status",
+    statuses: new Set(["ERROR"]),
+    groupByAttributeKeys: LOAD_BALANCER_GROUP,
+    incidentDescription: `Every member of this pool fails its health check, so the load balancer has nowhere to send what it gets. The pool and the load balancer still read ACTIVE, because provisioning is a different thing from health. Check openstack loadbalancer member list for the pool named above, then whether the members are running, listen on their port and answer the health monitor's path, and whether their security group lets the amphora's checks in. The incident resolves on its own once a member is healthy again.`,
+    criteriaName: "Pool Has No Healthy Members - operating ERROR for the whole window",
+    criteriaDescription:
+      "Triggers when a pool's operating status is ERROR for the whole window.",
+  });
+
+/*
+ * An active-standby pair has one MASTER. A Count of the ALLOCATED amphorae saying MASTER for one load
+ * balancer, above 1, as the router rule counts its active agents. An amphora being replaced is in ERROR
+ * or BOOTING and so is left out.
+ */
+const loadBalancerWithTwoMastersTemplate: OpenStackAlertTemplate = {
+  id: "openstack-load-balancer-with-two-masters",
+  name: "Load Balancer With Two Masters",
+  summary: "Two amphorae are both MASTER for one load balancer.",
+  description:
+    "Alert when two allocated amphorae both say MASTER for one load balancer, for 15 minutes (a Count of openstack_loadbalancer_amphora_status filtered to role MASTER and status ALLOCATED, above 1). One incident per load balancer. A split pair: both answer for its address. The pair's keepalived settles which is active over their VRRP, so this is the VRRP traffic between them being cut, or one amphora's record being stale. Only an admin may list amphorae. Check `openstack loadbalancer amphora list --loadbalancer <id>`, then the VRRP traffic on the load balancer's network between the two.",
+  category: "Load Balancers",
+  severity: "Critical",
+  forService: OpenStackServiceType.LoadBalancer,
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "master_amphorae";
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.LoadBalancer,
+      groupByAttributeKeys: [REGION, "loadbalancer_id"],
+      queries: [
+        {
+          alias: metricAlias,
+          metricName: OCTAVIA_AMPHORA,
+          // One row per amphora per collection: a bucket's Count is how many.
+          aggregationType: MetricsAggregationType.Count,
+          attributes: {
+            role: OPENSTACK_AMPHORA_ROLE_MASTER,
+            status: "ALLOCATED",
+          },
+        },
+      ],
+      aliases: [metricAlias],
+      value: 1,
+      // A count recovers at the line: a dead band below 1 would never be reached.
+      recoveryValue: 1,
+      words: {
+        incidentTitle: "[OpenStack] Load Balancer With Two Masters",
+        incidentDescription: `Two amphorae both say they are the MASTER for this load balancer. That is a split pair: both answer for its address, so its connections reset and drop. Check openstack loadbalancer amphora list for the load balancer named above, then the VRRP traffic between the two amphorae on its network. openstack loadbalancer failover rebuilds one. The incident resolves on its own once only one is MASTER.`,
+        criteriaName: "Load Balancer With Two Masters - MASTER amphorae > 1",
+        criteriaDescription:
+          "Triggers when more than one allocated amphora says MASTER for a load balancer for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Databases ---
 
 /*
@@ -3937,6 +4189,12 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     shareServiceDownTemplate,
     shareInErrorTemplate,
     shareStuckTemplate,
+    loadBalancerApiDownTemplate,
+    loadBalancerInErrorTemplate,
+    loadBalancerStuckTemplate,
+    loadBalancerWithTwoMastersTemplate,
+    amphoraInErrorTemplate,
+    poolWithoutHealthyMembersTemplate,
     databaseApiDownTemplate,
     keyManagerApiDownTemplate,
     objectStoreApiDownTemplate,

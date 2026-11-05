@@ -442,6 +442,9 @@ const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
   [OpenStackServiceType.SharedFileSystems]: translationKey(
     "The agent's exporter doesn't read Manila's services, so a stopped one isn't shown anywhere here: Manila's API carries on answering without it, and its shares just stop changing. Run openstack share service list, or collect this cloud with a probe, which reads them.",
   ),
+  [OpenStackServiceType.LoadBalancer]: translationKey(
+    "Nothing the agent reads lists Octavia's workers, so octavia-worker, octavia-health-manager and octavia-housekeeping aren't shown here, and a stopped one isn't shown anywhere: Octavia's API carries on answering without them. A load balancer left waiting on a stopped worker reads Stuck after an hour, and a failed amphora that the health manager did not replace reads in error.",
+  ),
   [OpenStackServiceType.ContainerInfra]: translationKey(
     "The agent's exporter doesn't read Magnum's conductors, so a stopped one isn't shown anywhere here: Magnum's API carries on answering without it, and its clusters just stop moving. Run openstack coe service list, or collect this cloud with a probe, which reads them.",
   ),
@@ -1009,6 +1012,7 @@ const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
   [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
   [OpenStackServiceType.SharedFileSystems]:
     "openstack-shared-file-systems-api-down",
+  [OpenStackServiceType.LoadBalancer]: "openstack-load-balancer-api-down",
   [OpenStackServiceType.Database]: "openstack-database-api-down",
   [OpenStackServiceType.KeyManager]: "openstack-key-manager-api-down",
   [OpenStackServiceType.ObjectStore]: "openstack-object-store-api-down",
@@ -1074,6 +1078,15 @@ export function getOpenStackServiceAlertTemplateIds(
         "openstack-container-infra-conductor-down",
         "openstack-container-cluster-failed",
         "openstack-container-cluster-stuck",
+      ];
+    case OpenStackServiceType.LoadBalancer:
+      return [
+        ...own,
+        "openstack-load-balancer-in-error",
+        "openstack-load-balancer-stuck-pending",
+        "openstack-load-balancer-with-two-masters",
+        "openstack-pool-without-healthy-members",
+        "openstack-amphora-in-error",
       ];
     case OpenStackServiceType.SharedFileSystems:
       return [

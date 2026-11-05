@@ -374,6 +374,18 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
   "openstack-database-instance-stuck|in_detach": "Count",
   "openstack-router-with-two-active-agents|active_agents": "Count",
   /*
+   * Octavia's series carry their status in a label and a code in the value, and a healthy one's code
+   * is 0, so the rows are what is counted: one per thing per collection, and the job collects every
+   * five minutes.
+   */
+  "openstack-load-balancer-in-error|in_error": "Count",
+  "openstack-load-balancer-stuck-pending|in_pending_create": "Count",
+  "openstack-load-balancer-stuck-pending|in_pending_update": "Count",
+  "openstack-load-balancer-stuck-pending|in_pending_delete": "Count",
+  "openstack-amphora-in-error|in_error": "Count",
+  "openstack-pool-without-healthy-members|in_error": "Count",
+  "openstack-load-balancer-with-two-masters|master_amphorae": "Count",
+  /*
    * The network's value is a code, 0 for ACTIVE: a Count says the row is there.
    */
   "openstack-external-ip-pool-nearly-full|is_external_network": "Count",
@@ -675,6 +687,30 @@ const THRESHOLDS: Readonly<
   },
   "openstack-share-in-error": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-share-stuck": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-load-balancer-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-load-balancer-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-load-balancer-stuck-pending": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-amphora-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-pool-without-healthy-members": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-load-balancer-with-two-masters": {
+    filterType: FilterType.GreaterThan,
+    value: 1,
+  },
   "openstack-stack-failed": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-stack-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-container-cluster-failed": {
@@ -1056,6 +1092,31 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { in_creating: 1 },
     healthy: { in_creating: 0 },
   },
+  "openstack-load-balancer-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  // Counts of the rows holding the word, since a healthy one's code is 0 too.
+  "openstack-load-balancer-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-load-balancer-stuck-pending": {
+    breached: { in_pending_update: 1 },
+    healthy: { in_pending_update: 0 },
+  },
+  "openstack-amphora-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-pool-without-healthy-members": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-load-balancer-with-two-masters": {
+    breached: { master_amphorae: 2 },
+    healthy: { master_amphorae: 1 },
+  },
   // Each word's code as it was recorded, which only says the row is there.
   "openstack-stack-failed": {
     breached: { in_create_failed: 4, in_update_failed: 10 },
@@ -1206,6 +1267,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Manila Service Down",
         "Share in Error",
         "Share Stuck",
+        "Load Balancers API Down",
+        "Load Balancer in Error",
+        "Load Balancer Stuck Pending",
+        "Load Balancer With Two Masters",
+        "Amphora in Error",
+        "Pool Has No Healthy Members",
         "DNS API Down",
         "DNS Zone in Error",
         "DNS Zone Stuck Pending",
@@ -1297,6 +1364,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Storage",
         "Orchestration",
         "Bare Metal",
+        "Load Balancers",
         "Databases",
         "Metrics",
         "Projects",
@@ -2242,6 +2310,11 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
       ["openstack-share-in-error", ["id", "name"]],
       ["openstack-share-stuck", ["id", "name"]],
+      ["openstack-load-balancer-in-error", ["id", "name"]],
+      ["openstack-load-balancer-stuck-pending", ["id", "name"]],
+      ["openstack-pool-without-healthy-members", ["id", "name"]],
+      ["openstack-amphora-in-error", ["id", "loadbalancer_id"]],
+      ["openstack-load-balancer-with-two-masters", ["loadbalancer_id"]],
       ["openstack-dns-zone-in-error", ["id", "name"]],
       ["openstack-dns-zone-stuck-pending", ["id", "name"]],
       ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],

@@ -65,8 +65,7 @@ const OpenStackServicesCard: FunctionComponent<ComponentProps> = (
             className={VIEW_ALL_CLASS_NAME}
             dataTestId="openstack-services-card-all"
           >
-            {translator.translateText("View all services") ||
-              "View all services"}
+            {translator.translateText("View all services")}
           </Link>,
         ]}
       >
@@ -169,7 +168,7 @@ const OpenStackServicesCard: FunctionComponent<ComponentProps> = (
                         className="inline-flex items-center gap-1.5 text-xs text-gray-500"
                         data-testid="openstack-services-card-api"
                       >
-                        {translator.translateText("API") || "API"}
+                        {translator.translateText("API")}
                         <OpenStackStatusCell
                           kind={group.api.kind}
                           status={group.api.status}

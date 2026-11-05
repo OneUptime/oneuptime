@@ -96,6 +96,15 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       isReadByProbe: true,
     },
     {
+      service: OpenStackServiceType.LoadBalancer,
+      /*
+       * A stopped Octavia API gives no `_up 0`, only an empty 200, recorded (services-octavia/api-down):
+       * the exporter reads the root before anything else, as it does for Ironic.
+       */
+      upMetricName: "openstack_loadbalancer_up",
+      isEmptyWhenStopped: true,
+    },
+    {
       service: OpenStackServiceType.Dns,
       upMetricName: "openstack_designate_up",
       isEmptyWhenStopped: true,
