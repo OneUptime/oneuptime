@@ -900,6 +900,7 @@ import { AddOpenStackHostLinkAndInstanceMetrics1808992930000 } from "./180899293
 import { AddOpenStackHostLinkIndexAndKey1808992940000 } from "./1808992940000-AddOpenStackHostLinkIndexAndKey";
 import { AddOpenStackResourceNameIndex1808992960000 } from "./1808992960000-AddOpenStackResourceNameIndex";
 import { AddOpenStackCloudCapacitySnapshot1808993745000 } from "./1808993745000-AddOpenStackCloudCapacitySnapshot";
+import { AddOpenStackUsageAndBudgets1808993750000 } from "./1808993750000-AddOpenStackUsageAndBudgets";
 
 export default [
   InitialMigration,
@@ -1804,4 +1805,5 @@ export default [
   AddUserNotificationSettingAlertByMattermost1808992950000,
   AddOpenStackResourceNameIndex1808992960000,
   AddOpenStackCloudCapacitySnapshot1808993745000,
+  AddOpenStackUsageAndBudgets1808993750000,
 ];

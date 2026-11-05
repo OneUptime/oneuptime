@@ -53,6 +53,8 @@ import OpenStackCloudOwnerUser from "./OpenStackCloudOwnerUser";
 import DockerSwarmClusterOwnerUser from "./DockerSwarmClusterOwnerUser";
 import ProxmoxResource from "./ProxmoxResource";
 import OpenStackResource from "./OpenStackResource";
+import OpenStackProjectUsage from "./OpenStackProjectUsage";
+import OpenStackBudget from "./OpenStackBudget";
 import DockerSwarmResource from "./DockerSwarmResource";
 import IoTFleet from "./IoTFleet";
 import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
@@ -1207,6 +1209,8 @@ const AllModelTypes: Array<{
   DockerSwarmClusterOwnerUser,
   ProxmoxResource,
   OpenStackResource,
+  OpenStackProjectUsage,
+  OpenStackBudget,
   DockerSwarmResource,
   IoTFleet,
   IoTFleetOwnerTeam,

@@ -977,6 +977,12 @@ import OpenStackCloudService, {
 import OpenStackCloudConnectionTestService, {
   Service as OpenStackCloudConnectionTestServiceType,
 } from "Common/Server/Services/OpenStackCloudConnectionTestService";
+import OpenStackProjectUsageService, {
+  Service as OpenStackProjectUsageServiceType,
+} from "Common/Server/Services/OpenStackProjectUsageService";
+import OpenStackBudgetService, {
+  Service as OpenStackBudgetServiceType,
+} from "Common/Server/Services/OpenStackBudgetService";
 import VMwareVCenterService, {
   Service as VMwareVCenterServiceType,
 } from "Common/Server/Services/VMwareVCenterService";
@@ -1660,6 +1666,8 @@ import PodmanResource from "Common/Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
+import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
+import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -5796,6 +5804,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         OpenStackCloudConnectionTest,
         OpenStackCloudConnectionTestService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackProjectUsage, OpenStackProjectUsageServiceType>(
+        OpenStackProjectUsage,
+        OpenStackProjectUsageService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OpenStackBudget, OpenStackBudgetServiceType>(
+        OpenStackBudget,
+        OpenStackBudgetService,
       ).getRouter(),
     );
 
