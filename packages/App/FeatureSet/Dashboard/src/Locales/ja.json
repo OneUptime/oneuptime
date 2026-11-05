@@ -45228,5 +45228,9 @@
   "Traffic comes from Octavia's own API, which only a probe reads: the exporter the agent runs has no series for it. Collect this cloud with a probe to chart connections, bytes and request errors here.": "トラフィックは Octavia 自身の API から取得され、これを読めるのはプローブだけです。エージェントが実行するエクスポーターにはその系列がありません。接続数、バイト数、リクエストエラーをここにグラフ表示するには、このクラウドをプローブで収集してください。",
   "What listens in front of it. Only a probe reads listeners: the exporter has no series for them, so on a cloud the agent collects this stays empty.": "その手前で待ち受けているもの。リスナーを読めるのはプローブだけです。エクスポーターにはその系列がないため、エージェントが収集するクラウドではここは空のままになります。",
   "AI Fix": "AI修正",
-  "Lifecycle Event": "ライフサイクルイベント"
+  "Lifecycle Event": "ライフサイクルイベント",
+  "Pick from the list": "リストから選択",
+  "Pick from the list instead": "代わりにリストから選択",
+  "There is nothing to pick from yet.": "選択できるものはまだありません。",
+  "Use “{{value}}”": "「{{value}}」を使用"
 }

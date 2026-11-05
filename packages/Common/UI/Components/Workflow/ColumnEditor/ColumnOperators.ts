@@ -135,6 +135,7 @@ export const operatorsForControl: OperatorsForControlFunction = (
       operators = DATE_OPERATORS;
       break;
     case ModelColumnControl.ObjectId:
+    case ModelColumnControl.Record:
     case ModelColumnControl.Color:
       operators = IDENTIFIER_OPERATORS;
       break;

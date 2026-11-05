@@ -30,6 +30,7 @@ const components: Array<ComponentMetadata> = [
         id: "alert-id",
         placeholder:
           "{{local.components.alert-on-create-1.returnValues.model._id}}",
+        linkedTable: "Alert",
       },
       {
         type: ComponentInputType.Text,
@@ -40,6 +41,7 @@ const components: Array<ComponentMetadata> = [
         id: "incident-id",
         placeholder:
           "{{local.components.incident-on-create-1.returnValues.model._id}}",
+        linkedTable: "Incident",
       },
       {
         type: ComponentInputType.Text,
@@ -69,6 +71,7 @@ const components: Array<ComponentMetadata> = [
         id: "cloud-id",
         placeholder: "The ID in the address of the cloud's page",
         isAdvanced: true,
+        linkedTable: "OpenStackCloud",
       },
     ],
     returnValues: [

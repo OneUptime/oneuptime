@@ -36,6 +36,15 @@ export interface ModelSchemaColumn {
    */
   relationIdColumn?: string | undefined;
   /*
+   * For a column that names another record of the project (the ID of a related
+   * one, a list of them, a record's own ID), the table those records are in:
+   * they are offered by name, and what is written is still the ID
+   * (Types/Workflow/LinkedRecord). Absent means a plain box, as it always was.
+   */
+  linkedTableName?: string | undefined;
+  // What such a setting is called: Incident Severity, not Incident Severity ID.
+  linkedTitle?: string | undefined;
+  /*
    * Present from the endpoint, absent on anything cached or hand-built before
    * they existed, so every reader must treat them as optional.
    */
