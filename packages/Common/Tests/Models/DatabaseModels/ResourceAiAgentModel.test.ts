@@ -3,6 +3,7 @@ import AllModelTypes, {
 } from "../../../Models/DatabaseModels/Index";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
@@ -81,6 +82,7 @@ const RESOURCE_MODELS: Record<AiResourceType, ModelType> = {
   [AiResourceType.AwsAccount]: CloudAccount,
   [AiResourceType.AzureSubscription]: CloudAccount,
   [AiResourceType.GoogleCloudProject]: CloudAccount,
+  [AiResourceType.OpenStackCloud]: OpenStackCloud,
 };
 
 // The distinct models, each once.

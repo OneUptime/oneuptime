@@ -34,6 +34,14 @@ on:
         description: With logs_only too, only record what OSProfiler's driver sends, on the entries that do
         type: boolean
         default: false
+      scenes_only:
+        description: Only build the estate and run the drills, on the two entries read at depth, which is what a new scene needs and about a third of the time
+        type: boolean
+        default: false
+      quotas_only:
+        description: With logs_only too, only record what each project's quotas say, on the entries that do
+        type: boolean
+        default: false
       instance_metrics_only:
         description: Only run the long real VM metrics drill, on the entries that do, which takes over an hour of recording and nothing else
         type: boolean
@@ -54,11 +62,19 @@ on:
         type: boolean
         default: false
       live_oneuptime:
-        description: Only start a live OneUptime from its test images, and send it what real deployments sent
+        description: Only start a live OneUptime, its app built from this branch, and send it what real deployments sent
         type: boolean
         default: false
       agent_install_only:
         description: Only install the agent the way its docs say, with and without Docker, on one DevStack
+        type: boolean
+        default: false
+      ai_agent_only:
+        description: Only run the OpenStack AI agent's real code against one DevStack, healthy and with nova-compute stopped, and keep what each command printed
+        type: boolean
+        default: false
+      probe_tls_only:
+        description: Only run the probe's real collector against one DevStack behind tls-proxy, and break it
         type: boolean
         default: false
       services_only:
@@ -90,13 +106,86 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # A live OneUptime, started from its test images as the E2E jobs start it, sent what real
-  # deployments sent: the replay tests hold the same things over a database in memory.
+  # The probe's real collector against a real cloud. A probe only speaks HTTPS and DevStack serves
+  # plain HTTP by default, so this one turns tls-proxy on. Every other test of the probe replays
+  # recordings a curl made: only this shows a real cloud takes the requests the probe makes.
+  probe-tls:
+    name: a probe against a cloud behind TLS
+    if: ${{ inputs.probe_tls_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack with every API behind TLS
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          enabled_services: tls-proxy
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Probe dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Probe
+
+      - name: Run the probe against it, and break it
+        run: bash Tests/Ops/openstack-e2e/probe-live.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Upload what it found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-probe-tls
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-probe-tls
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # A live OneUptime, started as the E2E jobs start it with its app built from this branch, sent
+  # what real deployments sent: the replay tests hold the same things over a database in memory.
   live-oneuptime:
     name: a live OneUptime, sent what real deployments sent
     if: ${{ inputs.live_oneuptime }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90
+    # Tells prerun's configure.sh it is in CI, where it must not `git pull`, which fetches every
+    # branch and tag and can move this checkout past the commit being tested.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/free-disk-space
@@ -113,6 +202,14 @@ jobs:
           export APP_TAG=test
           source ./Scripts/GHA/retry.sh
           retry_registry_read "Pulling the stack's images" docker compose -f docker-compose.yml pull
+          # The test images are as new as the last test-release run to finish, and master moving
+          # cancels those, so the app's can be a day older than what this is here to test. The app
+          # is what answers everything this reads, so it comes from this checkout: about 12 minutes.
+          docker build --file ./packages/App/Dockerfile --target community \
+            --build-arg "GIT_SHA=$GITHUB_SHA" \
+            --build-arg "APP_VERSION=$(tr -d ' \n' <VERSION)-test" \
+            --label com.oneuptime.edition=community \
+            --tag oneuptime/app:test .
           docker compose -f docker-compose.yml up --remove-orphans -d
           npm run status-check
           docker image inspect "oneuptime/app:test" --format 'Built {{.Created}}, {{json .Config.Labels}}' || true
@@ -342,7 +439,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.services_only }}
+    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -437,6 +534,55 @@ jobs:
           path: ${{ runner.temp }}/devstack-logs
           if-no-files-found: ignore
           retention-days: 7
+
+  # The OpenStack AI agent's real policy and executor against a real cloud, healthy and with
+  # nova-compute stopped: every command it may run, and what each printed, which is what an
+  # investigation reads. The model is not called: see ai-agent-record.sh. A job of its own on one
+  # DevStack, by hand when asked for by name and on the weekly run.
+  ai-agent:
+    name: the AI agent, reading a real cloud
+    if: ${{ inputs.ai_agent_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Run the agent's real code against it, healthy and with nova-compute stopped
+        run: bash Tests/Ops/openstack-e2e/ai-agent-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what it read
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-ai-agent
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
 
   # What Placement says of an estate of several hosts, which a DevStack's one host can't show:
   # an allocation ratio that differs by host, a reserved amount, and memory spread too thinly
@@ -860,7 +1006,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.capacity_only && !inputs.services_only }}
+    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.capacity_only && !inputs.services_only && !inputs.probe_tls_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180
@@ -874,10 +1020,15 @@ jobs:
           # traces: the two sides of OSProfiler's root span fix. 4.4.0 here sends a request's
           # first span with no parent, and 4.3.0 on Flamingo sends it a parent that is never
           # sent. What it records is on its own step, so losing it costs nothing else.
+          # deep: every scene is kept from these two (import-recording.py), one per backend.
+          # quotas: the newest release, and the other network backend's, whose Neutron answers
+          # for a project's quotas with the same plugin but other agents behind it.
           - name: hibiscus-ovn
             branch: stable/2026.2
             conf_overrides: ""
             traces: true
+            deep: true
+            quotas: true
             instance_metrics_drill: true
           - name: gazpacho-ovn
             branch: stable/2026.1
@@ -899,6 +1050,8 @@ jobs:
           - name: gazpacho-ovs
             branch: stable/2026.1
             control_plane: true
+            deep: true
+            quotas: true
             enabled_services: "-ovn-controller,-ovn-northd,-ovs-vswitchd,-ovsdb-server,-q-ovn-metadata-agent,-q-ovn-agent,q-agt,q-dhcp,q-l3,q-meta"
             conf_overrides: |
               Q_AGENT=openvswitch
@@ -909,7 +1062,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy DevStack
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
         with:
           branch: ${{ matrix.branch }}
@@ -932,7 +1085,7 @@ jobs:
           enable_workaround_docker_io: "false"
 
       - name: Docker still answers
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: |
           if ! docker info >/dev/null 2>&1; then
             # DevStack can leave the runner's Docker stopped or removed.
@@ -942,13 +1095,22 @@ jobs:
           docker info --format 'Docker {{.ServerVersion}}'
 
       - name: Build the estate
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
+        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      # On its own, with an exporter of its own, so that a problem here costs nothing else.
+      - name: Record what each project's quotas say
+        if: ${{ matrix.quotas && (!inputs.logs_only || inputs.quotas_only) }}
+        continue-on-error: true
+        timeout-minutes: 20
+        run: bash Tests/Ops/openstack-e2e/quota-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
 
       # On its own, as the access matrix is: losing a source of VM metrics costs that
       # recording, not the drills.
       - name: Start what reports real VM metrics
-        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/start-instance-metrics.sh
         env:
@@ -956,36 +1118,37 @@ jobs:
 
       # Before the agent starts, so its collector reads them from its first scrape.
       - name: Start the exporters of what the cloud stands on
-        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh start
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Start the agent's exporter and collector
-        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/start-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
-          OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[127.0.0.1:9177]"
-          OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[127.0.0.1:9101]"
-          OPENSTACK_RABBITMQ_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:15692]' || '[]' }}
-          OPENSTACK_MARIADB_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:9104]' || '[]' }}
-          OPENSTACK_MEMCACHED_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:9150]' || '[]' }}
-          OPENSTACK_NETWORK_EXPORTER_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:1981]' || '[]' }}
-          OPENSTACK_LIBVIRT_HEALTH_TARGETS: ${{ matrix.control_plane && '[127.0.0.1:9177]' || '[]' }}
+          OPENSTACK_LIBVIRT_EXPORTER_TARGETS: ${{ inputs.scenes_only && '[]' || '[127.0.0.1:9177]' }}
+          OPENSTACK_CEILOMETER_EXPORTER_TARGETS: ${{ inputs.scenes_only && '[]' || '[127.0.0.1:9101]' }}
+          OPENSTACK_RABBITMQ_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:15692]' || '[]' }}
+          OPENSTACK_MARIADB_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:9104]' || '[]' }}
+          OPENSTACK_MEMCACHED_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:9150]' || '[]' }}
+          OPENSTACK_NETWORK_EXPORTER_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:1981]' || '[]' }}
+          OPENSTACK_LIBVIRT_HEALTH_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:9177]' || '[]' }}
 
       # On its own, so that a problem here still leaves the drills recorded. It takes
-      # its policy files back off when it ends, whichever way it ends.
+      # its policy files back off when it ends, whichever way it ends. A run of scenes
+      # still tries it where it has calls per thing to ask about: only ML2/OVS has those.
       - name: Least privilege, tested on the real policies
-        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || (matrix.deep && matrix.enabled_services)) }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/access-matrix.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Record the failure drills
-        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/drills.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
@@ -993,7 +1156,7 @@ jobs:
 
       # After the drills, so the scenes they recorded hold the estate they always held.
       - name: Record real VM metrics from both sources
-        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/instance-metrics.sh
         env:
@@ -1013,7 +1176,7 @@ jobs:
       # takes the whole cloud down more than once, and on its own, so that a problem here
       # still leaves everything else recorded.
       - name: Stop what the cloud stands on, and record what falls
-        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane }}
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
         continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh drills
         env:
@@ -1024,19 +1187,27 @@ jobs:
       # everything it changes, and they leave a cloud configured their own way.
       # Not for a run that only wants the logs, which would wait for it on the entries that do.
       - name: Record what OSProfiler's driver sends for a signed request
-        if: ${{ matrix.traces && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) }}
+        if: ${{ matrix.traces && !inputs.quotas_only && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) && !inputs.scenes_only }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
+      # Whatever became of the step above, including its limit killing it: a hang there must not
+      # leave OSProfiler on for the steps after it.
+      - name: Put back whatever the traces step left
+        if: ${{ always() && matrix.traces }}
+        continue-on-error: true
+        timeout-minutes: 10
+        run: bash Tests/Ops/openstack-e2e/traces-put-back.sh
+
       # Last, because it changes every service's config and breaks things of its own, and
       # on its own, so that a problem here still leaves the drills recorded.
       # With a limit of its own, as the traces have, so that a cloud it has broken costs this
       # recording and not the job's limit, which takes the upload with it.
       - name: Record service logs, notifications and audit events
-        if: ${{ !inputs.checks_only && !inputs.traces_only && !inputs.instance_metrics_only }}
+        if: ${{ !inputs.checks_only && !inputs.traces_only && !inputs.quotas_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/logs-record.sh
@@ -1044,7 +1215,7 @@ jobs:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Stop the agent and keep what it exported
-        if: ${{ always() && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) }}
+        if: ${{ always() && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/stop-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording

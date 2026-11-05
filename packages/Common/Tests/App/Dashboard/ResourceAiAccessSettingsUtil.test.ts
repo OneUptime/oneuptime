@@ -49,6 +49,7 @@ import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernete
 import Permission from "../../../Types/Permission";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -79,8 +80,14 @@ const DOCKER: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
  * a * for the object it touches (broad; none exists for Proxmox, whose
  * paths are written out per guest), and one that is only a read.
  */
+// An OpenStack cloud is only ever read: it has no fixes or allowlist to set.
+const TYPES_WITH_FIXES: ReadonlyArray<AiResourceType> =
+  ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+    return !isReadOnlyAiResourceType(type);
+  });
+
 const ENTRIES: Record<
-  AiResourceType,
+  Exclude<AiResourceType, AiResourceType.OpenStackCloud>,
   { valid: string; broad: string | null; read: string }
 > = {
   [AiResourceType.DockerHost]: {
@@ -172,7 +179,7 @@ const ALL_OFFERED: ResourceAiAccessOfferedFields = {
 
 describe("the words for each mode", () => {
   test("every mode has its own short name, summary and card description", () => {
-    for (const type of ALL_AI_RESOURCE_TYPES) {
+    for (const type of TYPES_WITH_FIXES) {
       const descriptions: Record<ResourceAiRemediationMode, string> =
         getResourceRemediationModeOptionDescriptions(
           getResourceAiAgentDescriptor(type),
@@ -231,7 +238,7 @@ describe("the words for each mode", () => {
     ).toContain("Changes that always need a person still ask.");
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: each mode card says what the mode does, with this type's own examples",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -275,7 +282,7 @@ describe("the words for each mode", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: investigation on says what AI may run, and that it changes nothing",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -319,7 +326,7 @@ describe("the words for each mode", () => {
   test("never speak of Kubernetes or kubectl", () => {
     const words: string = JSON.stringify([
       RESOURCE_REMEDIATION_MODE_SUMMARIES,
-      ...ALL_AI_RESOURCE_TYPES.map((type: AiResourceType): unknown => {
+      ...TYPES_WITH_FIXES.map((type: AiResourceType): unknown => {
         const descriptor: ResourceAiAgentDescriptor =
           getResourceAiAgentDescriptor(type);
         return [
@@ -346,7 +353,7 @@ describe("the words for each mode", () => {
 });
 
 describe("what holds in every mode", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: the protections name the agent, the write switch and the targets",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -368,7 +375,7 @@ describe("what holds in every mode", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: the list the modal shows is the sentence the confirmations say, clause for clause",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -490,7 +497,7 @@ describe("the allowlist text", () => {
     expect(parseResourceAllowlistText(["docker stop web"])).toEqual([]);
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: accepts its own kind of entry, empty text too",
     (type: AiResourceType) => {
       expect(
@@ -507,7 +514,7 @@ describe("the allowlist text", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: refuses a read with the policy's own words, naming the line",
     (type: AiResourceType) => {
       expect(
@@ -957,7 +964,7 @@ describe("the confirmation before a save", () => {
   });
 
   test.each(
-    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+    TYPES_WITH_FIXES.filter((type: AiResourceType): boolean => {
       return ENTRIES[type].broad !== null;
     }),
   )("%s: adding a broad entry is confirmed", (type: AiResourceType) => {
@@ -983,7 +990,7 @@ describe("the confirmation before a save", () => {
     expect(confirmation?.description).toContain("In Automatic mode");
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: an entry that names its object needs no confirmation",
     (type: AiResourceType) => {
       expect(
@@ -1085,7 +1092,7 @@ describe("small words", () => {
     expect(capitalizeFirst("")).toBe("");
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: the allowlist field's help gives its own example and the matcher's rules",
     (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -1106,7 +1113,7 @@ describe("small words", () => {
    * rules, the broad-entry confirmation and the every-mode protections —
    * each of which the modal says where it applies. It stays short.
    */
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: the allowlist field's help stays short and leaves permissions to the admin note",
     (type: AiResourceType) => {
       const help: string = getResourceAllowlistFieldDescription(
@@ -1200,7 +1207,7 @@ describe("in the reader's language", () => {
   });
 
   test("every type's riskier changes are keys in en.json, with and without the prefix", () => {
-    for (const type of ALL_AI_RESOURCE_TYPES) {
+    for (const type of TYPES_WITH_FIXES) {
       const descriptor: ResourceAiAgentDescriptor =
         getResourceAiAgentDescriptor(type);
 
@@ -1219,7 +1226,7 @@ describe("in the reader's language", () => {
    * changes such as " cut off: words no locale had a key for, so they
    * stayed English inside a translated sentence.
    */
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(TYPES_WITH_FIXES)(
     "%s: every mode card is looked up whole, the changes it names with it",
     async (type: AiResourceType) => {
       await i18next.changeLanguage("xx");
@@ -1260,7 +1267,7 @@ describe("in the reader's language", () => {
   test("every resource's protections, one by one and as one sentence", async () => {
     await i18next.changeLanguage("xx");
 
-    for (const type of ALL_AI_RESOURCE_TYPES) {
+    for (const type of TYPES_WITH_FIXES) {
       const descriptor: ResourceAiAgentDescriptor =
         getResourceAiAgentDescriptor(type);
       const clauses: Array<string> = getEveryModeProtections(descriptor);

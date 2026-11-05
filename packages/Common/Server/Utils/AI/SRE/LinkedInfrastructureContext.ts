@@ -6,6 +6,7 @@ import {
 } from "../../../../Types/AI/AIChatTypes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
+import logger from "../../Logger";
 import ObjectID from "../../../../Types/ObjectID";
 import PromptText from "../../../../Utils/AI/PromptText";
 import AlertService from "../../../Services/AlertService";
@@ -29,6 +30,18 @@ import {
   isOpenStackBlastRadiusEmpty,
 } from "../../../../Types/OpenStack/OpenStackBlastRadius";
 import { OPENSTACK_SERVICE_TITLES } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  OpenStackAttentionRow,
+  OpenStackAttentionSummary,
+  summarizeOpenStackAttention,
+} from "../../../../Types/OpenStack/OpenStackAttentionSummary";
+import {
+  OPENSTACK_CLOUD_LOG_ATTRIBUTE,
+  OpenStackLogAttribute,
+} from "../../../../Utils/OpenStack/OpenStackLogs";
+import OpenStackResourceService, {
+  OpenStackAttentionRows,
+} from "../../../Services/OpenStackResourceService";
 import OpenStackAcrossProducts, {
   OpenStackKubernetesNodeRead,
 } from "../../OpenStack/OpenStackAcrossProducts";
@@ -235,6 +248,13 @@ export interface LinkedInfrastructure {
    * investigation that starts at a slow service can walk down to its hypervisor.
    */
   openStackPlacements?: Array<OpenStackPlacementOfResource> | undefined;
+  // What the page of each linked cloud says needs attention right now.
+  openStackAttention?: Array<OpenStackCloudAttention> | undefined;
+}
+
+export interface OpenStackCloudAttention {
+  cloud: LinkedInfrastructureResource;
+  summary: OpenStackAttentionSummary;
 }
 
 export interface OpenStackPlacementOfResource {
@@ -246,6 +266,10 @@ export interface OpenStackPlacementOfResource {
 
 // Enough to say where a thing runs, without crowding out everything else the context says.
 const MAX_OPENSTACK_PLACEMENTS: number = 10;
+
+// Enough to see the shape of what is wrong: the agent's commands and the page have the rest.
+const MAX_OPENSTACK_ATTENTION_ROWS_PER_KIND: number = 8;
+const MAX_OPENSTACK_CLOUDS_READ_FOR_ATTENTION: number = 3;
 
 // The noun a kind of linked resource is called by.
 export function describeLinkedResourceKind(
@@ -465,6 +489,11 @@ export default class LinkedInfrastructureContext {
           projectId: data.projectId,
           resources,
         }),
+      openStackAttention:
+        await LinkedInfrastructureContext.readOpenStackAttention({
+          projectId: data.projectId,
+          resources,
+        }),
     };
   }
 
@@ -514,6 +543,11 @@ export default class LinkedInfrastructureContext {
       }),
       openStackPlacements:
         await LinkedInfrastructureContext.readOpenStackPlacements({
+          projectId: data.projectId,
+          resources,
+        }),
+      openStackAttention:
+        await LinkedInfrastructureContext.readOpenStackAttention({
           projectId: data.projectId,
           resources,
         }),
@@ -607,6 +641,52 @@ export default class LinkedInfrastructureContext {
       }
     }
     return placements;
+  }
+
+  /*
+   * What the page of each linked cloud says needs attention, whatever series the subject is
+   * about: an investigation's first question is what else is wrong there. One more thing to
+   * know, so a read that fails leaves the rest of the context as it is.
+   */
+  private static async readOpenStackAttention(data: {
+    projectId: ObjectID;
+    resources: Array<LinkedInfrastructureResource>;
+  }): Promise<Array<OpenStackCloudAttention> | undefined> {
+    const clouds: Array<LinkedInfrastructureResource> = data.resources
+      .filter((resource: LinkedInfrastructureResource): boolean => {
+        return resource.type === LinkedAffectedResourceType.OpenStackCloud;
+      })
+      .slice(0, MAX_OPENSTACK_CLOUDS_READ_FOR_ATTENTION);
+    const attention: Array<OpenStackCloudAttention> = [];
+
+    for (const cloud of clouds) {
+      try {
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const read: OpenStackAttentionRows =
+          await OpenStackResourceService.getAttentionRows({
+            projectId: data.projectId,
+            openStackCloudId: new ObjectID(cloud.id),
+            now,
+            rowsPerKind: MAX_OPENSTACK_ATTENTION_ROWS_PER_KIND,
+          });
+
+        attention.push({
+          cloud,
+          summary: summarizeOpenStackAttention({
+            rows: read.rows,
+            totalsByKind: read.totalsByKind,
+            now,
+            rowsPerKind: MAX_OPENSTACK_ATTENTION_ROWS_PER_KIND,
+          }),
+        });
+      } catch (err) {
+        logger.warn(
+          `Could not read what needs attention on an OpenStack cloud for an investigation: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    return attention.length > 0 ? attention : undefined;
   }
 
   /*
@@ -785,6 +865,8 @@ export default class LinkedInfrastructureContext {
     }
 
     lines.push(...LinkedInfrastructureContext.describeOpenStack(data));
+    lines.push(...LinkedInfrastructureContext.describeOpenStackAttention(data));
+    lines.push(...LinkedInfrastructureContext.describeOpenStackLogs(data));
     lines.push(
       ...LinkedInfrastructureContext.describeOpenStackPlacements(data),
     );
@@ -821,6 +903,118 @@ export default class LinkedInfrastructureContext {
     );
 
     return lines.join("\n");
+  }
+
+  /*
+   * What is in trouble on each linked cloud, by the same lines as its page. Names are whoever
+   * wrote them, so each goes in as a field.
+   */
+  private static describeOpenStackAttention(
+    data: LinkedInfrastructure,
+  ): Array<string> {
+    const lines: Array<string> = [];
+
+    for (const { cloud, summary } of data.openStackAttention || []) {
+      const name: string = describeLinkedResource(cloud);
+
+      if (summary.rows.length === 0) {
+        if (summary.hasServiceRows) {
+          lines.push(
+            "",
+            `Nothing reads as down, failed or full on ${name} right now, from what its Needs attention list reads.`,
+          );
+        }
+        continue;
+      }
+
+      lines.push(
+        "",
+        `What reads as down, failed or full on ${name} right now, from what its Needs attention list reads, what everything stands on first. This is what was last collected, so check each with a command before you rely on it:`,
+      );
+
+      for (const row of summary.rows) {
+        lines.push(
+          `- ${LinkedInfrastructureContext.describeOpenStackAttentionRow(row)}`,
+        );
+      }
+
+      for (const [kind, count] of Object.entries(summary.moreByKind)) {
+        lines.push(`- and ${count} more of kind ${kind}`);
+      }
+    }
+
+    return lines;
+  }
+
+  private static describeOpenStackAttentionRow(
+    row: OpenStackAttentionRow,
+  ): string {
+    const name: string = JSON.stringify(
+      PromptText.field(row.name, { maxLength: 200 }),
+    );
+    const where: string = row.where
+      ? ` on ${JSON.stringify(PromptText.field(row.where, { maxLength: 200 }))}`
+      : "";
+    const id: string = row.id
+      ? ` (id: ${JSON.stringify(PromptText.field(row.id, { maxLength: 200 }))})`
+      : "";
+    const message: string = row.message
+      ? ` It failed with: ${JSON.stringify(PromptText.field(row.message, { maxLength: 300 }))}`
+      : "";
+
+    return `${row.kind} ${name}${where}${id}: ${row.why}.${message}`;
+  }
+
+  /*
+   * How to read the logs of a cloud: this part's lines, when the subject names one, and one
+   * request's across every service, which is how a failure is followed through a cloud.
+   */
+  private static describeOpenStackLogs(
+    data: LinkedInfrastructure,
+  ): Array<string> {
+    const cloud: LinkedInfrastructureResource | undefined = data.resources.find(
+      (resource: LinkedInfrastructureResource): boolean => {
+        return resource.type === LinkedAffectedResourceType.OpenStackCloud;
+      },
+    );
+
+    if (!cloud) {
+      return [];
+    }
+
+    const cloudFilter: Record<string, string> = cloud.name
+      ? {
+          [OPENSTACK_CLOUD_LOG_ATTRIBUTE]: PromptText.field(cloud.name, {
+            maxLength: 200,
+          }),
+        }
+      : {};
+    const lines: Array<string> = [""];
+    const part: Record<string, string> | undefined =
+      data.openStack?.partLogAttributes;
+
+    if (part) {
+      const filter: Record<string, string> = { ...cloudFilter };
+
+      for (const [key, value] of Object.entries(part)) {
+        filter[key] = PromptText.field(value, { maxLength: 200 });
+      }
+
+      lines.push(
+        `This part's logs, where the cloud sends them: search_logs with attributes ${JSON.stringify(filter)}.`,
+      );
+    }
+
+    lines.push(
+      `To follow a request through the cloud: \`openstack server event list <instance id>\`, run through the agent, names the request behind each thing that happened to an instance (req-...), and search_logs with attributes ${JSON.stringify(
+        {
+          ...cloudFilter,
+          [OpenStackLogAttribute.RequestRootId]: "req-...",
+        },
+      )} reads what every service wrote about it. No lines means this cloud does not send its logs, not that nothing happened.`,
+    );
+
+    return lines;
   }
 
   /*

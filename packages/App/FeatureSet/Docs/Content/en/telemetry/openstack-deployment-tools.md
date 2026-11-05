@@ -50,7 +50,7 @@ Alertmanager is recorded posting to this exact shape in `Tests/Ops/openstack-e2e
 
 With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.
 
-### Forward what is already firing
+### Forward what is firing on Kolla-Ansible
 
 Only if you wrote your own rules: Kolla-Ansible ships none, so nothing fires until `/etc/kolla/config/prometheus/*.rules` holds some. On the host you deploy from, write `/etc/kolla/config/prometheus/prometheus-alertmanager.yml`, which Kolla-Ansible reads in place of its own, and apply it:
 
@@ -76,14 +76,14 @@ templates:
 kolla-ansible reconfigure -i <inventory> --tags prometheus
 ```
 
-### The credential
+### The credential on Kolla-Ansible
 
 Log in as an admin with `source /etc/kolla/admin-openrc.sh`, which `kolla-ansible post-deploy` writes.
 
 - **Full view** needs no change to any service: Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Cinder, Glance and Placement. Its Cinder says `volume`, which the access rules also carry.
 - **Infrastructure only** takes its overrides at `/etc/kolla/config/nova/policy.yaml`, and the same for `neutron`, `keystone` and `placement`, merged with anything already there. Apply them with `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.
 
-### Watch what the cloud stands on
+### Watch what Kolla-Ansible's cloud stands on
 
 On the host that runs Kolla-Ansible's Prometheus, this reads its targets from the file Kolla-Ansible rendered, and prints them as settings for the agent:
 
@@ -106,7 +106,7 @@ Add what it prints to the agent's `.env`, then run `docker compose up -d` in the
 - **OVN's databases:** Kolla-Ansible runs openstack-network-exporter from 2026.1, on compute and network nodes only, and an OVN database is read from the host it runs on. If your control nodes are neither, add them under `[prometheus-openstack-network-exporter:children]` in your inventory and reconfigure, or the Northbound and Southbound databases read as not watched.
 - **Before 2026.1** there is no network exporter, so OVN and Open vSwitch read as not watched.
 
-### Service logs
+### Service logs on Kolla-Ansible
 
 The agent's logs profile runs on each node, and reads Kolla-Ansible's files. It is what joins a line to the cloud's pages:
 
@@ -153,14 +153,14 @@ It also needs a paste file, and Kolla-Ansible's config tasks copy no paste file 
 
 OpenStack-Ansible keeps its services' logs in journald and runs no Prometheus of its own, so the agent is the way in, and the logs have a path of their own.
 
-### The credential
+### The credential on OpenStack-Ansible
 
 Log in as an admin from the utility container: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, then `. ~/openrc`.
 
 - **Full view** needs no change to any service: OpenStack-Ansible's roles already set `service_type` under `[keystone_authtoken]`. Its Cinder says `volumev3`, which the access rules also carry.
 - **Infrastructure only** takes its overrides as `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` and `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml`. Apply each with its own playbook and tag, such as `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Taking one out later leaves an empty file behind rather than none, so nothing fails.
 
-### Watch what the cloud stands on
+### Watch what OpenStack-Ansible's cloud stands on
 
 OpenStack-Ansible runs no exporters for these, so only what you turn on is watched.
 
@@ -191,7 +191,7 @@ openstack-ansible openstack.osa.haproxy
 
 **MariaDB and Memcached:** OpenStack-Ansible ships no exporter for either. Run [mysqld_exporter](https://github.com/prometheus/mysqld_exporter) and [memcached_exporter](https://github.com/prometheus/memcached_exporter) yourself and name them as `OPENSTACK_MARIADB_TARGETS` and `OPENSTACK_MEMCACHED_TARGETS`, or leave them out: the cloud's **Control Plane** card then says they are not watched, rather than that they are fine.
 
-### Service logs
+### Service logs on OpenStack-Ansible
 
 From journald, on each host that runs a service: containers pass their journals through to the host.
 
@@ -241,7 +241,7 @@ openstack-ansible openstack.osa.nova
 
 OpenStack-Helm offers charts for Prometheus, Alertmanager and exporters, and whether they are running is up to you. Its control plane runs in Kubernetes, so a probe reads the APIs and the Kubernetes agent sees the pods.
 
-### Forward what is already firing
+### Forward what is firing on OpenStack-Helm
 
 If you run its prometheus-alertmanager chart, add the receiver under `conf.alertmanager` in the chart's values, and send your route to it:
 
@@ -260,7 +260,7 @@ conf:
             send_resolved: true
 ```
 
-### Read the APIs, and see the pods
+### Read the APIs and see the pods on OpenStack-Helm
 
 Open **OpenStack → All Clouds**, click **Connect Cloud**, and give it Keystone's address, an application credential and the probe to use. A probe only speaks HTTPS to a cloud. Then follow **Kubernetes → Documentation** for the cluster the charts run on: its pods, their logs and their nodes reach the Kubernetes pages.
 
@@ -321,7 +321,7 @@ conf:
 
 Atmosphere runs kube-prometheus-stack with its own alert rules, and Loki with Vector for logs. Forward its alerts first, then a probe reads the APIs and the Kubernetes agent sees the pods.
 
-### Forward what is already firing
+### Forward what is firing on Atmosphere
 
 Atmosphere ships alert rules that have paged real people, so this works from the first hour. Add the receiver to your Atmosphere configuration, beside whichever receivers you already have, and deploy it:
 
@@ -338,7 +338,7 @@ kube_prometheus_stack_helm_values:
               send_resolved: true
 ```
 
-### Read the APIs, and see the pods
+### Read the APIs and see the pods on Atmosphere
 
 Open **OpenStack → All Clouds**, click **Connect Cloud**, and give it Keystone's address, an application credential and the probe to use. A probe only speaks HTTPS to a cloud. Then follow **Kubernetes → Documentation** for the cluster Atmosphere runs on.
 
@@ -383,7 +383,7 @@ nova_helm_values:
 
 Sunbeam can deploy the Canonical Observability Stack, with `sunbeam enable observability embedded`. Canonical also has an `openstack-exporter` charm, which the agent can read if you run it. Sunbeam's own docs do not mention that charm, and nothing here has been run on Sunbeam.
 
-### Forward what is already firing
+### Forward what is firing on Sunbeam
 
 If you run the Canonical Observability Stack, give its Alertmanager a configuration with the receiver in it:
 
@@ -414,7 +414,7 @@ bash install.sh
 
 Which series it says depends on the exporter release in its snap, which was not recorded here: `bash troubleshoot.sh` says whether it reads the cloud.
 
-### Service logs
+### Service logs on Sunbeam
 
 With observability on, the stack's Loki holds the services' logs. OneUptime has no way to read Loki, and the agent's logs profile has not been tried on Sunbeam's charms, so nothing here collects them yet.
 
@@ -426,7 +426,7 @@ Not yet. Sunbeam's charms write each service's configuration from their own temp
 
 Its Telemetry Operator runs Ceilometer's Prometheus exporter and a monitoring stack with Alertmanager on OpenShift. The Kubernetes agent's OpenShift preset watches the control plane, and Ceilometer's exporter says what the compute nodes are doing.
 
-### Forward what is already firing
+### Forward what is firing on Red Hat OpenStack on OpenShift
 
 If `MetricStorage` has `alertingEnabled` and you wrote or applied rules, apply a receiver the monitoring stack picks up:
 
@@ -501,7 +501,7 @@ spec:
 
 StackLight already watches OpenStack's services, MariaDB, Memcached, RabbitMQ and libvirt, with its own alert rules. Forward its alerts first, then a probe reads the APIs.
 
-### Forward what is already firing
+### Forward what is firing on Mirantis MOSK
 
 StackLight ships alert rules, so this works from the first hour. Add the receiver and its route to your StackLight values. Mirantis's docs show other receivers rather than a webhook, and this has not been run on MOSK:
 
@@ -579,7 +579,7 @@ That walk is on top of Kolla-Ansible's own Prometheus asking every minute. Kolla
 | Everything of Cinder's | It asks the catalog for `volumev3`, and finds no such thing where Cinder registers as `block-storage` | **Volumes** and **Storage pools** stay empty, and **Services** has no Block Storage API, `cinder-volume` or `cinder-scheduler`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** and **Volume Stuck** stay quiet |
 | How many instances a hypervisor holds, and its aggregates | Nova's list of hypervisors fails at the newest microversion, which Kolla-Ansible asks for | Those two on **Hypervisors**, and what a lost host says it takes with it. Its vCPUs, memory and disk are still there: they come from Placement |
 | Domains | It has no such series | **Domains** stays empty |
-| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**, and an image stuck on its way to `active` goes unnoticed |
+| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**. **Image Stuck** stays quiet, so an image stuck on its way to `active` goes unnoticed |
 | A network's MTU | It has no such label | That line on a network's page |
 
 If you need those, use the agent's own exporter instead. You can change your mind later: a cloud keeps its name whichever reads it.

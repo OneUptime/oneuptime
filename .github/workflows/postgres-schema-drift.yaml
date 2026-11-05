@@ -1103,6 +1103,7 @@ jobs:
       # how long a part has been in its state, the rule that a failing service never
       # empties its parts, and 500,000 rows of one cloud.
       - name: Test the OpenStack inventory SQL on migrated Postgres
+        if: matrix.shard == 2
         working-directory: packages/Common
         env:
           RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
@@ -1118,6 +1119,7 @@ jobs:
       # the entity graph, and a pool's Ceph cluster. Every estate that must link to neither runs
       # through real SQL here, so a LIMIT or a LIKE can't quietly make two into one.
       - name: Test the joins between an OpenStack cloud and other products on migrated Postgres
+        if: matrix.shard == 2
         working-directory: packages/Common
         env:
           RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
@@ -1127,6 +1129,22 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OpenStackAcrossProductsPostgres.test.ts --forceExit
+
+      # Clones the migrated OpenStackResource table into an isolated schema and runs the worker's
+      # capacity reads against it: only this cloud's rows of the four kinds a sum needs, instances
+      # counted per host and flavor, a host's capacity worked out once a split scrape's numbers
+      # are all on its row, and all of it within budget at 5,000 hosts and 200,000 instances.
+      - name: Test what the OpenStack capacity refresh reads on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackCapacityPostgres.test.ts --forceExit
 
       # Clones the migrated KubernetesResource table (with its unique identity
       # index and the partial index of what needs attention) into an isolated

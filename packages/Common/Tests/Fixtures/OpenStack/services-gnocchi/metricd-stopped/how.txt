@@ -1,0 +1,2 @@
+gnocchi-metricd stopped.
+On its own: gnocchi-metricd is stopped, and Gnocchi's status stopped naming it.

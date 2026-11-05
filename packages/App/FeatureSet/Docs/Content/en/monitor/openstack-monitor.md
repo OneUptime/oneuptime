@@ -4,7 +4,7 @@ An OpenStack monitor watches one cloud - its APIs, the workers behind them, hype
 
 :::cards
 - [Create the monitor](#create-an-openstack-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Forty-three ready-made alerts, one incident per worker, instance, network or region.
+- [Templates](#pre-built-alert-templates): Fifty-one ready-made alerts, one incident per worker, instance, network or region.
 - [Checks from outside](#checks-from-outside): Whether anyone can actually boot an instance, from a probe outside the cloud.
 - [Identity attributes](#identity-attributes): How to target one region, host or project.
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
@@ -106,7 +106,7 @@ In monitor filters and group-by keys, a resource attribute starts with `resource
 
 ## Pre-built Alert Templates
 
-OneUptime ships 43 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
+OneUptime ships 51 templates for common OpenStack problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on what one incident is about, a criteria that fires and one that recovers. Thresholds are the same lines the cloud's own pages draw, and are starting points you can edit.
 
 Every template reads at least three collections of what it watches, and fires only when the condition holds for its whole window. A threshold on a share recovers 10% past its line, so a value hovering there does not flap.
 
@@ -146,7 +146,12 @@ Every template reads at least three collections of what it watches, and fires on
 | Volumes in Error | Storage | Warning | `openstack_cinder_volume_status_counter` for each error word, Max per region and word, **past 10 minutes** | Above 0 | At 0 |
 | Volume Stuck | Storage | Warning | `openstack_cinder_volume_gb` for each passing status word, Max per volume, **past 30 minutes** | In that status at every collection for 30 minutes | Left it |
 | Image Stuck | Storage | Warning | `openstack_glance_image_created_at` for each passing status word, Max per image, **past 1 hour** | In that status at every collection for an hour | Left it, or was deleted |
-| Project Quota Nearly Reached | Projects | Warning | `openstack_nova_limits_*` and `openstack_cinder_limits_volume_*`, used / max per project, **past 10 minutes** | Above 90% of its vCPU, memory, instance or volume quota. Needs the [limits series on](#turn-on-the-limits-series) | At or below 81% |
+| Bare Metal API Down | Bare Metal | Critical | `openstack_ironic_up`, Min per region, **past 15 minutes** | Below 1. Speaks only where a read of Ironic can say so: a probe, or exporter 1.7.0. A stopped Ironic gives the agent's exporter nothing to read, the same as a cloud without Ironic, so there it stays quiet and the cloud's pages say when Ironic was last heard from | Reads 1, or has gone |
+| Bare Metal Node in Error | Bare Metal | Warning | `openstack_ironic_node` for each failed `provision_state`, Max per node, **past 15 minutes** | In that state at every collection for 15 minutes, in maintenance or not | Left it, or was deleted |
+| Bare Metal Node Stuck Transitioning | Bare Metal | Warning | `openstack_ironic_node` for each passing `provision_state` with `maintenance = false`, Max per node, **past 2 hours** | In that state at every collection for 2 hours. A long disk erase can honestly take this long, which a node's page can tell and this can't | Left it, or was deleted |
+| Bare Metal Node in Maintenance Too Long | Bare Metal | Warning | `openstack_ironic_node` with `maintenance = true`, Max per node, **past 7 days** | In maintenance at every collection for 7 days. Needs your metrics kept that long | Out of maintenance, or was deleted |
+| Bare Metal Power State Unexpected | Bare Metal | Warning | `openstack_ironic_node` with `provision_state = active`, `power_state = power off` and `maintenance = false`, Max per node, **past 15 minutes** | At every collection for 15 minutes. An instance its owner stopped reads the same, which a node's page can tell and this can't | Powered on, or no longer deployed |
+| Project Quota Nearly Reached | Projects | Warning | `openstack_nova_limits_*` and `openstack_cinder_limits_volume_*`, used / max per project, **past 3 hours** | Above 90% of its vCPU, memory, instance or volume quota. Needs the [limits series on](#turn-on-the-limits-series) | At or below 81% |
 | Token Issue Failing | Availability | Critical | `openstack_check_token_success`, Min per region, **past 5 minutes**. Needs API checks on | Below 1: Keystone issued the probe no token | A token is issued |
 | Service API Check Failing | Availability | Critical | `openstack_check_api_success`, Min per region and `service_type`, **past 5 minutes**. Needs API checks on | Below 1: that service did not answer, for any service in the catalog | It answers, or leaves the catalog |
 | Public Certificate Expiring in 30 Days | Availability | Warning | `openstack_check_certificate_expiry_days`, Min per region, host and port, **past 5 minutes**. Needs API checks on | Under 30 days left | 33 days or more left, or the endpoint leaves the catalog |
@@ -155,12 +160,16 @@ Every template reads at least three collections of what it watches, and fires on
 | Instance Boot Slow | Compute | Warning | `openstack_check_lifecycle_step_duration_seconds` filtered to `step = server_active`, Max per region, **past 5 minutes**. Needs the lifecycle check on | Above 300 seconds, Tempest's own `build_timeout` | At or below 270 seconds, or a run that did not boot, which Instance Boot Failing speaks for |
 | Volume Attach Failing | Storage | Critical | `openstack_check_lifecycle_phase_success` filtered to `phase = volume`, Min per region, **past 5 minutes**. Needs the check's volume part on | Below 1: the last run could not create or attach a volume | A run attaches one |
 | Floating IP Unreachable | Network | Critical | `openstack_check_lifecycle_phase_success` filtered to `phase = floating_ip`, Min per region, **past 5 minutes**. Needs the check's floating IP part on | Below 1: the last run could not reach its server through a floating IP | A run reaches one |
+| Flavor Can No Longer Be Placed | Capacity | Warning | `openstack_capacity_flavor_fits`, **per flavor per region** | No host has room for one more, for 10 minutes. Only flavors someone can ask for, and never one too large for every host, or whose only room is on a host someone disabled | A host has room, or the flavor is no longer watched |
+| Capacity Forecast Under 14 Days | Capacity | Warning | `openstack_capacity_days_until_full`, **per zone and resource class, external network or storage pool** | Under 14 days until full at its growth over the last week, for 10 minutes. Quiet with under a day of history, or when it isn't growing | Over 15.4 days, or no forecast any more |
+| Reserved Headroom Gone | Capacity | Warning | `openstack_capacity_can_lose_a_host`, **per zone** | It couldn't lose its largest host and still fit what runs on it, for 10 minutes. Quiet on a zone of one host, or with a host someone disabled | It could, or the zone is no longer judged |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
 - **Up, alive and state series use Min**, so any one down reads 0. **Counts and info series use Max.** Nothing uses Sum, because a monitor reads one-minute buckets across series and scrapes, and a Sum adds them together.
 - **Every template but Cloud Stopped Reporting groups by what one incident is about:** a worker's host and binary, an API's region, an instance, a router, a network, a pool, a project. The incident names it, with the [commands to run next](#commands-to-run-next).
 - **A status series' value is a code**, not a count: `openstack_nova_server_status` reads 4 for an instance in ERROR. Templates filter on the `status` word.
+- **A series that only just appeared waits for a full window,** so an instance, volume or image seen once on its way to something else raises nothing. Each template knows how often its service is collected from that service's own `_up` series.
 - **A series that goes away counts as recovered:** a worker someone disabled, the last instance in ERROR deleted, a pool removed. Each template reads its service's own `_up` series beside its own, so it can tell a part that went away from a cloud that went quiet. When nothing arrives at all, its incidents stay open and **Cloud Stopped Reporting** speaks instead.
 - **When an API is down, its own series go too**, so that service's other templates resolve, and fire again a window after it is back if the fault is still there. If every API reads down at once, look at the exporter first.
 - **A cloud that has no such service stays quiet.** The exporter answers with nothing for a service that is not in the cloud's catalog, and **Network**, **Block Storage**, **Image** and **Placement API Down** do not read that as an outage. **Identity** and **Compute API Down** do, because that is also how the exporter reports Keystone or Nova's API stopped outright, and every cloud has them.
@@ -177,11 +186,13 @@ Seven more templates read a cloud's logs rather than its metrics, so they are Lo
 | Too Many Errors from a Service | Service Logs | Warning | `ERROR` and `CRITICAL` lines, per service and machine, **past 5 minutes** | 50 or more | Fewer than 50 |
 | Token Validation Failing | Service Logs | Critical | A service's `Authorization failed for token` and Keystone's `not a recognized Fernet token`, **past 5 minutes** | 10 or more. One is someone's stale session | Fewer than 10 |
 | Instance Action Failed | Events | Warning | `compute.exception` and any `instance.*.error`, per instance, event and reason, **past 15 minutes**. Needs [notifications](/docs/telemetry/openstack#turn-on-notifications) or a probe | One or more | None left in the window |
-| Scheduling Failed | Events | Warning | `scheduler.select_destinations.error`, or a compute task's error naming `NoValidHost`, per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
+| Scheduling Failed | Events | Warning | A compute task's error naming `NoValidHost`, such as `compute_task.build_instances.error`, which is what Nova sends. Cinder's `scheduler.create_volume` too, and `scheduler.select_destinations.error`, which Nova's documentation names and our test clouds never sent. Per instance, event and reason, **past 15 minutes**. Needs the same | One or more | None left in the window |
 
 ### Turn on the limits series
 
-**Project Quota Nearly Reached** reads `openstack_nova_limits_*` and `openstack_cinder_limits_*`, which are off by default, because they read the API once per project on every collection. The template stays quiet until you turn them on: delete the `--disable-metric=nova-limits_vcpus_max` and `--disable-metric=cinder-limits_volume_max_gb` lines from the exporter's `command` in `docker-compose.yml`, or from `ExecStart` in `oneuptime-openstack-exporter.service` without Docker, then run `docker compose up -d --force-recreate`, or `sudo systemctl daemon-reload` and restart the exporter.
+The three **Capacity** templates read series OneUptime writes itself from the cloud's inventory, every two minutes while the cloud reports. No exporter series has a zone or a flavor's count in it. See [Capacity](/docs/telemetry/openstack#capacity) for what they mean. All three are about allocation, what has been promised, and none is about load.
+
+**Project Quota Nearly Reached** reads `openstack_nova_limits_*` and `openstack_cinder_limits_*`, which are off by default, because they cost API calls per project. The template stays quiet until you turn them on: run the agent's `install.sh` again with `OPENSTACK_COLLECT_QUOTAS=true`. A second exporter then reads them once an hour, and the template waits for three of those readings. On a cloud a probe reads, turn on **Project limits** under **Data Collection** on its **Settings** page.
 
 ### Commands to run next
 
@@ -197,6 +208,7 @@ An incident a template opens says what to run for the part it names, always read
 | A router | `openstack router show <router>`, `openstack network agent list --router <router> --long` |
 | A network | `openstack ip availability show <network>`, `openstack floating ip list --network <network> --long` |
 | A project | `openstack limits show --absolute --project <project>` |
+| A bare metal node | `openstack baremetal node show <node>`, `openstack baremetal node maintenance unset <node>` once it is done with |
 
 ## Collected Metrics
 
@@ -233,6 +245,7 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_placement_resource_usage` | - | Max | How much of a resource Placement has promised to instances on a hypervisor. This is allocation, not load: an idle instance holds all of it. |
 | `openstack_placement_resource_generation` | `count` | Max | How many times a hypervisor's inventory has changed, as Placement counts it. It climbs on every change, so it says something changed, not what. |
 | `openstack_placement_resource_provider_allocations` | - | Max | How much of a resource one consumer, its uuid, holds on a hypervisor. |
+| `openstack_placement_flavor_fits` | `count` | Max | How many more of a flavor Placement says would fit, counted host by host, from `GET /allocation_candidates`: one series for the region and one for each zone and aggregate. Read in turns, a few flavors a collection, and sent as last read in between. Only a probe asks this. |
 | `openstack_nova_vcpus_available` | `count` | Max | The vCPUs a hypervisor has, whatever the name says, before any allocation ratio. Nova stopped reporting this at microversion 2.88, so Placement's series are the ones to trust. |
 | `openstack_nova_vcpus_used` | `count` | Max | The vCPUs Nova has promised to instances on a hypervisor. Allocation, not load. |
 | `openstack_nova_memory_available_bytes` | `bytes` | Max | The memory a hypervisor has, whatever the name says, before any allocation ratio. |
@@ -317,6 +330,18 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_cinder_snapshot_gb` | `GiB` | Max | One series per volume snapshot, whose value is its size, with its status word in the status label. Only a probe sends this: the agent's exporter only counts snapshots. |
 | `openstack_cinder_backup_gb` | `GiB` | Max | One series per volume backup, whose value is its size, with its status word in the status label, so a backup that keeps failing can be seen. Only a probe sends this: the agent's exporter has no backups. |
 
+### Capacity
+
+OneUptime writes these itself, from the cloud's inventory, every two minutes while the cloud reports. Nothing collects them. Each is allocation, what has been promised, and none of it is load.
+
+| Metric | Unit | Reads | What it holds |
+| --- | --- | --- | --- |
+| `openstack_capacity_allocated` | - | Max | What is allocated of something that fills up: a zone's resource class, an external network's IPv4 addresses or a storage pool's bytes. `capacity_scope`, `capacity_name` and `resourcetype` say which. Counts what lost and disabled hosts hold, because those instances exist. |
+| `openstack_capacity_total` | - | Max | What can be allocated of it, from the hosts that can give: (total - reserved) x allocation ratio, for a zone. |
+| `openstack_capacity_days_until_full` | `d` | Max | How many days until it is full, at its growth over the last week, and 0 when it is. No series with under a day of history, or when it isn't growing. |
+| `openstack_capacity_flavor_fits` | `count` | Max | How many more of a flavor fit, counted host by host, in each region. `source` says whether Placement answered or inventories were added up. Only flavors someone can ask for, and none too large for every host. |
+| `openstack_capacity_can_lose_a_host` | - | Min | 1 when a zone could lose its largest host and still fit what runs on it, and 0 when it couldn't, per resource class. No series for a zone of one host, or with a host someone disabled. |
+
 ### Images
 
 | Metric | Unit | Reads | Description |
@@ -337,21 +362,33 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_identity_groups` | `count` | Max | How many groups the cloud has. |
 | `openstack_identity_regions` | `count` | Max | How many regions Keystone knows. |
 
+### Bare Metal
+
+Only a cloud that runs Ironic sends these, and a cloud without it shows no trace of them.
+
+| Metric | Unit | Reads | Description |
+| --- | --- | --- | --- |
+| `openstack_ironic_up` | | Min | 1 when a read of Ironic got far enough to say. Stopped, the exporter the OpenStack Agent runs answers an empty 200, as for a cloud without Ironic, so this series goes quiet rather than reading 0: a probe and exporter 1.7.0 can say 0. |
+| `openstack_ironic_node` | | Max | One series per node Ironic shows this credential, always 1: what it says is in its labels, its provision state, power state and whether it is in maintenance. Ironic shows a project only the nodes it owns. |
+| `openstack_ironic_node_provision_updated_at` | `seconds` | Max | When Ironic last saw this node's provision state move, as a Unix time. A deploy agent's heartbeats move it too, so a long erase is not a node stuck. A node that has never moved has no such series. |
+| `openstack_ironic_node_updated_at` | `seconds` | Max | When this node's record last changed, as a Unix time. A node that has never changed has no such series. |
+| `openstack_ironic_conductor_state` | | Min | 1 while Ironic calls a conductor alive, 0 once its heartbeat has aged out. Only a probe sends this: the exporter has no such series, and a credential scoped to a project is refused the list. |
+
 ### Projects
 
 | Metric | Unit | Reads | Description |
 | --- | --- | --- | --- |
-| `openstack_nova_limits_vcpus_max` | `count` | Max | How many vCPUs a project may use, and -1 for no limit. _Off by default:_ delete `--disable-metric=nova-limits_vcpus_max` from the exporter. |
-| `openstack_nova_limits_vcpus_used` | `count` | Max | How many vCPUs a project's instances hold. _Off by default:_ delete `--disable-metric=nova-limits_vcpus_max` from the exporter. |
-| `openstack_nova_limits_memory_max` | `MiB` | Max | How much memory, in MiB, a project may use, and -1 for no limit. _Off by default:_ delete `--disable-metric=nova-limits_vcpus_max` from the exporter. |
-| `openstack_nova_limits_memory_used` | `MiB` | Max | How much memory, in MiB, a project's instances hold. _Off by default:_ delete `--disable-metric=nova-limits_vcpus_max` from the exporter. |
-| `openstack_nova_limits_instances_max` | `count` | Max | How many instances a project may have, and -1 for no limit. _Off by default:_ delete `--disable-metric=nova-limits_vcpus_max` from the exporter. |
-| `openstack_nova_limits_instances_used` | `count` | Max | How many instances a project has. _Off by default:_ delete `--disable-metric=nova-limits_vcpus_max` from the exporter. |
-| `openstack_cinder_limits_volume_max_gb` | `GiB` | Max | How much volume space a project may use, and -1 for no limit. _Off by default:_ delete `--disable-metric=cinder-limits_volume_max_gb` from the exporter. |
-| `openstack_cinder_limits_volume_used_gb` | `GiB` | Max | How much volume space a project holds. _Off by default:_ delete `--disable-metric=cinder-limits_volume_max_gb` from the exporter. |
-| `openstack_cinder_limits_backup_max_gb` | `GiB` | Max | How much backup space a project may use, and -1 for no limit. _Off by default:_ delete `--disable-metric=cinder-limits_volume_max_gb` from the exporter. |
-| `openstack_cinder_limits_backup_used_gb` | `GiB` | Max | How much backup space a project holds. _Off by default:_ delete `--disable-metric=cinder-limits_volume_max_gb` from the exporter. |
-| `openstack_cinder_volume_type_quota_gigabytes` | `GiB` | Max | How much of one volume type a project may use. _Off by default:_ delete `--disable-metric=cinder-limits_volume_max_gb` from the exporter. |
+| `openstack_nova_limits_vcpus_max` | `count` | Max | How many vCPUs a project may use, and -1 for no limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_nova_limits_vcpus_used` | `count` | Max | How many vCPUs a project's instances hold. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_nova_limits_memory_max` | `MiB` | Max | How much memory, in MiB, a project may use, and -1 for no limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_nova_limits_memory_used` | `MiB` | Max | How much memory, in MiB, a project's instances hold. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_nova_limits_instances_max` | `count` | Max | How many instances a project may have, and -1 for no limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_nova_limits_instances_used` | `count` | Max | How many instances a project has. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_cinder_limits_volume_max_gb` | `GiB` | Max | How much volume space a project may use, and -1 for no limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_cinder_limits_volume_used_gb` | `GiB` | Max | How much volume space a project holds. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_cinder_limits_backup_max_gb` | `GiB` | Max | How much backup space a project may use, and -1 for no limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_cinder_limits_backup_used_gb` | `GiB` | Max | How much backup space a project holds. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_cinder_volume_type_quota_gigabytes` | `GiB` | Max | How much of one volume type a project may use. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
 | `openstack_nova_quota_cores` | `count` | Max | A project's vCPU quota. Its type label says which number this is: in_use, reserved or limit. _Off by default:_ delete `--disable-metric=nova-quota_cores` from the exporter. |
 | `openstack_nova_quota_instances` | `count` | Max | A project's instance quota. Its type label says which number this is: in_use, reserved or limit. _Off by default:_ delete `--disable-metric=nova-quota_cores` from the exporter. |
 | `openstack_nova_quota_ram` | `MiB` | Max | A project's memory quota in MiB. Its type label says which number this is: in_use, reserved or limit. _Off by default:_ delete `--disable-metric=nova-quota_cores` from the exporter. |
@@ -366,15 +403,15 @@ The metrics below are the catalog the monitor form offers. **Reads** is its usua
 | `openstack_nova_quota_injected_files` | `count` | Max | A project's quota of files injected per instance. Its type label says which number this is: in_use, reserved or limit. _Off by default:_ delete `--disable-metric=nova-quota_cores` from the exporter. |
 | `openstack_nova_quota_injected_file_content_bytes` | `bytes` | Max | A project's quota on the size of an injected file. Its type label says which number this is: in_use, reserved or limit. _Off by default:_ delete `--disable-metric=nova-quota_cores` from the exporter. |
 | `openstack_nova_quota_injected_file_path_bytes` | `bytes` | Max | A project's quota on the length of an injected file's path. Its type label says which number this is: in_use, reserved or limit. _Off by default:_ delete `--disable-metric=nova-quota_cores` from the exporter. |
-| `openstack_neutron_quota_network` | `count` | Max | A project's network quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_subnet` | `count` | Max | A project's subnet quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_subnetpool` | `count` | Max | A project's subnet pool quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_port` | `count` | Max | A project's port quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_router` | `count` | Max | A project's router quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_floatingip` | `count` | Max | A project's floating IP quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_security_group` | `count` | Max | A project's security group quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_security_group_rule` | `count` | Max | A project's security group rule quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
-| `openstack_neutron_quota_rbac_policy` | `count` | Max | A project's RBAC policy quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ delete `--disable-metric=neutron-quota_network` from the exporter. |
+| `openstack_neutron_quota_network` | `count` | Max | A project's network quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_subnet` | `count` | Max | A project's subnet quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_subnetpool` | `count` | Max | A project's subnet pool quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_port` | `count` | Max | A project's port quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_router` | `count` | Max | A project's router quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_floatingip` | `count` | Max | A project's floating IP quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_security_group` | `count` | Max | A project's security group quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_security_group_rule` | `count` | Max | A project's security group rule quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
+| `openstack_neutron_quota_rbac_policy` | `count` | Max | A project's RBAC policy quota. Its type label says which number this is: used, reserved or limit. _Off by default:_ run the agent's `install.sh` with `OPENSTACK_COLLECT_QUOTAS=true` to read it once an hour. |
 
 ### Checks
 

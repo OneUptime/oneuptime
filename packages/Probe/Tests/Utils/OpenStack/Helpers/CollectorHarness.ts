@@ -48,6 +48,67 @@ export function createFakeClock(startAt: number = COLLECTED_AT_MS): FakeClock {
   };
 }
 
+/*
+ * A clock for what happens at the same time: each wait ends in order of when it was due, and the
+ * clock moves only once everything else has run as far as it can. So one service answering slowly
+ * takes time only from whatever is waiting on it, as it does in life. On the clock above, a wait
+ * moves everyone's time at once, and a service beside a slow one reads as slow itself.
+ */
+export function createEventClock(startAt: number = COLLECTED_AT_MS): FakeClock {
+  let now: number = startAt;
+  let isScheduled: boolean = false;
+  const sleeps: Array<number> = [];
+  const waiting: Array<{ at: number; wake: () => void }> = [];
+
+  const wakeNext: () => void = (): void => {
+    isScheduled = false;
+
+    let next: number = -1;
+
+    for (let index: number = 0; index < waiting.length; index++) {
+      if (next < 0 || waiting[index]!.at < waiting[next]!.at) {
+        next = index;
+      }
+    }
+
+    if (next >= 0) {
+      const [wait] = waiting.splice(next, 1);
+
+      now = Math.max(now, wait!.at);
+      wait!.wake();
+      schedule();
+    }
+  };
+
+  const schedule: () => void = (): void => {
+    if (!isScheduled && waiting.length > 0) {
+      isScheduled = true;
+      setImmediate(wakeNext);
+    }
+  };
+
+  return {
+    now: (): number => {
+      return now;
+    },
+    sleep: (milliseconds: number): Promise<void> => {
+      sleeps.push(milliseconds);
+
+      return new Promise<void>((resolve: () => void) => {
+        waiting.push({ at: now + milliseconds, wake: resolve });
+        schedule();
+      });
+    },
+    random: (): number => {
+      return 0.5;
+    },
+    advance: (milliseconds: number): void => {
+      now += milliseconds;
+    },
+    sleeps: sleeps,
+  };
+}
+
 export interface CollectorHarness {
   dependencies: OpenStackCollectorDependencies;
   clock: FakeClock;

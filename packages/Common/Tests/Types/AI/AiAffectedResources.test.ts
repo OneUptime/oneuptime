@@ -42,6 +42,7 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { describe, expect, test } from "@jest/globals";
 
@@ -172,7 +173,9 @@ describe("the kinds OneUptime AI links", () => {
         AiAffectedResourceKind.KubernetesCluster as string,
         AiAffectedResourceKind.CloudResource as string,
         ...ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-          return !isCloudAiResourceType(type);
+          return (
+            !isCloudAiResourceType(type) && !isReadOnlyAiResourceType(type)
+          );
         }).map((type: string): string => {
           return type;
         }),

@@ -63,6 +63,8 @@ const PLAIN_HTTP_MESSAGE =
 // How a collection went, as the server keeps it on the cloud's row.
 export function collectionOf(name, at) {
   const collected = {
+    // A probe that claimed it a minute ago moved this on, an interval from then.
+    nextCollectionAt: new Date(at + MINUTE),
     lastCollectionAt: new Date(at - MINUTE),
     lastSuccessfulCollectionAt: new Date(at - MINUTE),
     collectionError: undefined,
@@ -75,6 +77,8 @@ export function collectionOf(name, at) {
       return {
         ...collected,
         collectionStatus: "Pending",
+        // Saving new settings makes it due now.
+        nextCollectionAt: new Date(at),
         lastCollectionAt: undefined,
         lastSuccessfulCollectionAt: undefined,
         collectionSummary: undefined,
@@ -133,6 +137,16 @@ export function collectionOf(name, at) {
         collectionErrorCode: "InsecureEndpoint",
         collectionError: PLAIN_HTTP_MESSAGE,
         collectionSummary: undefined,
+      };
+    // Its last collection went fine, and no probe has come for it since.
+    case "gone":
+      return {
+        ...collected,
+        collectionStatus: "Succeeded",
+        lastCollectionAt: new Date(at - 3 * 60 * MINUTE),
+        lastSuccessfulCollectionAt: new Date(at - 3 * 60 * MINUTE),
+        nextCollectionAt: new Date(at - 3 * 60 * MINUTE + 2 * MINUTE),
+        collectionSummary: SUMMARY,
       };
     default:
       return {
@@ -268,13 +282,80 @@ export function connectionTestOutcome(name) {
       return {
         status: "Failed",
         errorCode: "InvalidCredential",
-        errorMessage: "Keystone answered HTTP 401 to the application credential.",
+        errorMessage:
+          "Keystone answered HTTP 401 to the application credential.",
       };
     case "not-found":
       return {
         status: "Failed",
         errorCode: "AddressNotFound",
-        errorMessage: "The probe's DNS has no address for keystone.acme.invalid.",
+        errorMessage:
+          "The probe cannot find keystone.acme.invalid in DNS (ENOTFOUND). Check the spelling, or use an IP address.",
+      };
+    case "nothing-listening":
+      return {
+        status: "Failed",
+        errorCode: "ConnectionRefused",
+        errorMessage:
+          "keystone.acme-cloud.example:5000 refused the connection: nothing listens on port 5000 there.",
+      };
+    case "no-answer":
+      return {
+        status: "Failed",
+        errorCode: "ConnectionTimedOut",
+        errorMessage:
+          "The probe got no answer from keystone.acme-cloud.example:5000 (ETIMEDOUT). Allow the probe's machine to reach it on TCP 5000, or pick a probe in the cloud's network.",
+      };
+    case "tls":
+      return {
+        status: "Failed",
+        errorCode: "TlsFailed",
+        errorMessage:
+          "The secure connection to keystone.acme-cloud.example:5000 failed (EPROTO): wrong version number Check that the address points at an HTTPS port.",
+      };
+    case "changed":
+      return {
+        status: "Failed",
+        errorCode: "CertificateChanged",
+        errorMessage:
+          "nova.acme-cloud.example's certificate is not one trusted for this cloud, so nothing was sent to it.",
+        presentedCertificate: UNTRUSTED_CERTIFICATE,
+      };
+    case "wrong-project":
+      return {
+        status: "Failed",
+        errorCode: "WrongProjectScope",
+        errorMessage:
+          "Keystone accepted user monitor, but not on project monitoring in domain Default: the project does not exist there, or the user has no role on it.",
+      };
+    case "no-permission":
+      return {
+        status: "Failed",
+        errorCode: "NoPermission",
+        errorMessage: "The credential may not read what monitoring needs.",
+        summary: {
+          ...CATALOG,
+          accessLevel: "Other",
+          reads: [
+            {
+              regionName: "RegionOne",
+              service: "compute",
+              read: "hypervisors",
+              access: "Refused",
+              reason: "HTTP 403",
+              goesWithout: "The Hypervisors page and its alerts",
+              fix: "openstack role add --user oneuptime --project oneuptime-monitoring oneuptime_monitoring",
+            },
+            {
+              regionName: "RegionOne",
+              service: "volume",
+              read: "storage pools",
+              access: "Refused",
+              reason: "HTTP 403",
+              goesWithout: "The Storage Pools page and its alerts",
+            },
+          ],
+        },
       };
     case "no-probe":
       return {

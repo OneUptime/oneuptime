@@ -58,7 +58,8 @@ describe("the collector's config", () => {
   });
 
   test("what a traced call was handed is deleted, and these are what OneUptime deletes too", () => {
-    const actions = CONFIG.processors["attributes/what-a-call-was-handed"].actions;
+    const actions =
+      CONFIG.processors["attributes/what-a-call-was-handed"].actions;
 
     for (const action of actions) {
       expect(action.action).toBe("delete");
@@ -73,7 +74,10 @@ describe("the collector's config", () => {
     expect(deleted).toEqual(["args", "db.params", "kwargs", "result"]);
 
     const source = fs.readFileSync(
-      path.join(REPO_ROOT, "packages/Common/Utils/OpenStack/OpenStackTraces.ts"),
+      path.join(
+        REPO_ROOT,
+        "packages/Common/Utils/OpenStack/OpenStackTraces.ts",
+      ),
       "utf8",
     );
     const list = source.match(
@@ -96,9 +100,9 @@ describe("the collector's config", () => {
     const processors = PIPELINE.processors;
 
     expect(processors[0]).toBe("memory_limiter");
-    expect(processors.indexOf("attributes/what-a-call-was-handed")).toBeLessThan(
-      processors.indexOf("batch"),
-    );
+    expect(
+      processors.indexOf("attributes/what-a-call-was-handed"),
+    ).toBeLessThan(processors.indexOf("batch"));
     expect(processors[processors.length - 1]).toBe("batch");
   });
 
@@ -130,7 +134,9 @@ describe("the collector's config", () => {
 
   test("it sends to the OneUptime it was given, with the key in a header", () => {
     expect(PIPELINE.exporters).toEqual(["otlphttp"]);
-    expect(CONFIG.exporters.otlphttp.endpoint).toBe("${env:ONEUPTIME_URL}/otlp");
+    expect(CONFIG.exporters.otlphttp.endpoint).toBe(
+      "${env:ONEUPTIME_URL}/otlp",
+    );
     expect(CONFIG.exporters.otlphttp.headers["x-oneuptime-token"]).toBe(
       "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}",
     );
@@ -279,7 +285,9 @@ describe("the script's pins", () => {
   });
 
   test("it never edits OpenStack's config, and only says what to set", () => {
-    expect(script).not.toMatch(/\/etc\/(nova|neutron|cinder|glance|keystone|placement)/);
+    expect(script).not.toMatch(
+      /\/etc\/(nova|neutron|cinder|glance|keystone|placement)/,
+    );
     expect(script).not.toMatch(/crudini|iniset|sed -i/);
     expect(script).toContain("hmac_keys = <your key>");
   });
@@ -352,10 +360,7 @@ function setup({
     ]).status,
   ).toBe(0);
 
-  writeExecutable(
-    path.join(bin, "id"),
-    `#!/usr/bin/env bash\necho "${uid}"\n`,
-  );
+  writeExecutable(path.join(bin, "id"), `#!/usr/bin/env bash\necho "${uid}"\n`);
   writeExecutable(
     path.join(bin, "uname"),
     `#!/usr/bin/env bash
@@ -573,7 +578,9 @@ describe("install-traces.sh with Docker", () => {
     const run = machine.run({ env: ANSWERED });
 
     expect(run.output).toContain("connection_string = otlp://127.0.0.1:4318");
-    expect(run.output).toContain("opentelemetry-sdk opentelemetry-exporter-otlp");
+    expect(run.output).toContain(
+      "'opentelemetry-sdk<1.44' 'opentelemetry-exporter-otlp<1.44'",
+    );
     expect(run.output).toContain("trace_sqlalchemy = False");
     expect(run.output).not.toContain(KEY);
   });
@@ -689,9 +696,9 @@ describe("install-traces.sh without Docker", () => {
     });
 
     expect(run.status).toBe(0);
-    expect(fs.existsSync(path.join(machine.installDir, "otelcol-contrib"))).toBe(
-      true,
-    );
+    expect(
+      fs.existsSync(path.join(machine.installDir, "otelcol-contrib")),
+    ).toBe(true);
     expect(machine.file("otel-collector-traces.yaml")).toBe(
       agentFile("otel-collector-traces.yaml"),
     );
@@ -738,9 +745,9 @@ describe("install-traces.sh without Docker", () => {
 
     expect(run.status).toBe(1);
     expect(run.output).toContain("does not match the sha256");
-    expect(fs.existsSync(path.join(machine.installDir, "otelcol-contrib"))).toBe(
-      false,
-    );
+    expect(
+      fs.existsSync(path.join(machine.installDir, "otelcol-contrib")),
+    ).toBe(false);
     expect(machine.log("systemctl")).toEqual([]);
   });
 

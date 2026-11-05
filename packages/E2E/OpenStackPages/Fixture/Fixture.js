@@ -12,6 +12,9 @@
  *   ?recording= <release>/<scene>: what that real cloud's exporter answered, through
  *               the real snapshot scan (Recordings.js), e.g. gazpacho-ovs/compute-down.
  *               Wins over ?estate=.
+ *   ?logs=      <release>: what that real cloud's services wrote, as the cloud's logs and
+ *               change events, through the ingest's own stamp (ServiceLogs.js), and the
+ *               instance, volume and service it wrote about, on any estate.
  *               "<release>/access/<level>" is what its exporter answered each credential:
  *               reader, monitoring-role or monitoring-admin-get.
  *   ?without=   compute, network, volume...: with a recording, a service this cloud doesn't run
@@ -23,7 +26,7 @@
  *   ?access=    project: the credential is Project view, so it can list no services,
  *               hypervisors or pools, and the APIs still answer up
  *   ?alerts=    none (default) | some | all | denied (the role may not read monitors)
- *   ?open=      0 | 1 (default) | many: unresolved incidents and alerts on the cloud
+ *   ?open=      0 | 1 (default) | many | regions: unresolved incidents and alerts on the cloud
  *   ?fail=      a comma list of reads that fail, as a server that answers 500 does:
  *               inventory (the summaries and the rows), attention, regions, consumers,
  *               blast, counts, metrics, events
@@ -35,6 +38,8 @@
  *               untrusted | plain-http | refused | not-found | no-probe
  *   ?checks=    on | failed | refused | sweeping | waiting: what a cloud's check has come to,
  *               with none until someone turns one on (Checks.js)
+ *   ?aiAgent=   connected | unreachable: the OneUptime AI agent's state (AiAgent.js); none
+ *               has connected by default
  *   ?clouds=    none: the project has no cloud yet, for the clouds list's first run
  *   ?archived=  1: the project also has an archived cloud
  *   ?linked=    1: an incident, an alert and a maintenance event linked to this cloud, and one of
@@ -70,6 +75,16 @@ import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
+import CloudAiInsights from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Insights";
+import CloudAiLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Logs";
+import CloudAiAgent from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Agent";
+import {
+  getAiAccessStatus,
+  getAiInsights,
+  getAiLogs,
+  withAiAccessColumns,
+} from "./AiAgent";
+import CloudCapacity from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity";
 import CloudServices from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import CloudServiceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ServiceDetail";
 import CloudHypervisors from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Hypervisors";
@@ -105,17 +120,19 @@ import CloudDomains from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/
 import CloudControlPlane from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlane";
 import CloudControlPlaneDependency from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ControlPlaneDependency";
 import CloudTopology from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Topology";
+import CloudMetrics from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Metrics";
+import CloudLogs from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Logs";
 import CloudTraces from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Traces";
 import CloudChecks from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Checks";
+import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
+import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
+import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
 import CloudRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import CloudDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Documentation";
 import CloudSettings from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Settings";
 import CloudOwners from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Owners";
 import CloudDelete from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Delete";
 import CloudFeed from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Feed";
-import CloudIncidents from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Incidents";
-import CloudAlerts from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Alerts";
-import CloudScheduledMaintenance from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ScheduledMaintenance";
 import CloudsList from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Clouds";
 import {
   OpenStackPlacementOfHost,
@@ -133,6 +150,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
@@ -179,7 +197,10 @@ import {
   PROJECT_ID,
   REGION_ONE,
   buildEstate,
+  instance,
+  novaCompute,
   uuid,
+  volume,
 } from "./Data";
 import {
   addCephStatusToPools,
@@ -208,6 +229,8 @@ import {
   rowsFromRecording,
   seriesFromRecording,
 } from "./Recordings";
+import { answerRows, hasServiceLogs, readServiceLogs } from "./ServiceLogs";
+import { buildCapacitySnapshotOf } from "./Capacity";
 import { hasTraceRecording, spanRowsFromRecording } from "./TraceRecordings";
 
 /*
@@ -252,7 +275,7 @@ const ACCESS = params.get("access") === "project" ? "project" : "";
 const ALERTS = ["some", "all", "denied"].includes(params.get("alerts"))
   ? params.get("alerts")
   : "none";
-const OPEN = ["0", "many"].includes(params.get("open"))
+const OPEN = ["0", "many", "regions"].includes(params.get("open"))
   ? params.get("open")
   : "1";
 const FAILS = new Set((params.get("fail") || "").split(",").filter(Boolean));
@@ -349,6 +372,56 @@ const estate = buildEstate(
   },
   LOADED_AT,
 );
+
+/*
+ * What a real cloud's services wrote, and the parts they wrote it about, with the IDs they
+ * really had, beside whatever the estate holds.
+ */
+const serviceLogRows = hasServiceLogs(params.get("logs"))
+  ? readServiceLogs(params.get("logs"), {
+      cloudId: new ObjectID(CLOUD_ID),
+      cloudName: estate.cloud.name,
+      loadedAt: LOADED_AT,
+    })
+  : null;
+
+if (serviceLogRows) {
+  const context = {
+    loadedAt: LOADED_AT,
+    lastSeenAt: LOADED_AT - MINUTE,
+    isConnected: true,
+  };
+  const parts = [
+    instance(context, 9001, "ou-log-novalid", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_no_valid_host,
+      status: "ERROR",
+    }),
+    instance(context, 9002, "ou-log-vm", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_ok,
+    }),
+    instance(context, 9004, "ou-log-broken", REGION_ONE, {
+      externalId: serviceLogRows.ids.instance_spawn_failed,
+      status: "ERROR",
+    }),
+    volume(context, 9003, "ou-log-vol", REGION_ONE, {
+      externalId: serviceLogRows.ids.volume_attached,
+    }),
+    novaCompute(context, "devstack-host", REGION_ONE, {
+      adminState: "disabled",
+    }),
+  ];
+
+  parts.forEach((part, index) => {
+    if (part.externalId) {
+      estate.inventory.push({
+        ...part,
+        _id: uuid("74000000", index + 1),
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+      });
+    }
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -496,6 +569,43 @@ if (OPEN !== "0" && ESTATE === "busy" && !RECORDING) {
       ),
     );
   }
+}
+
+// What is open on a cloud of several regions: one in each, and one that names none.
+if (OPEN === "regions") {
+  incidents.push(
+    openIncident(
+      1,
+      "[OpenStack] Compute API Down in RegionTwo",
+      { "openstack.region.name": "RegionTwo" },
+      33,
+    ),
+    openIncident(
+      2,
+      "[OpenStack] Network Agent Down in RegionOne",
+      {
+        hostname: "ctl-01",
+        service: "neutron-l3-agent",
+        "openstack.region.name": "RegionOne",
+      },
+      30,
+    ),
+    openIncident(3, "Declared by hand about the whole cloud", null, 20),
+  );
+  alerts.push(
+    openAlert(
+      1,
+      "[OpenStack] Instances in Error in RegionTwo",
+      { "openstack.region.name": "RegionTwo" },
+      24,
+    ),
+    openAlert(
+      2,
+      "[OpenStack] Volumes in Error in RegionOne",
+      { "openstack.region.name": "RegionOne" },
+      14,
+    ),
+  );
 }
 
 /*
@@ -650,6 +760,20 @@ function matches(modelName, record, query) {
     if (field === "projectId") {
       continue;
     }
+    // A JSON column is asked key by key, as JSONColumnQuery asks it.
+    if (field === "seriesLabels") {
+      for (const [key, value] of Object.entries(wanted)) {
+        const held = record.seriesLabels?.[key];
+        if (
+          value instanceof EqualToOrNull
+            ? held !== undefined && held !== null && held !== value.value
+            : held !== value
+        ) {
+          return false;
+        }
+      }
+      continue;
+    }
     if (wanted instanceof MultiSearch) {
       const value = wanted.value.toLowerCase();
       if (
@@ -772,17 +896,36 @@ const checkRow = checkRowOf(
   LOADED_AT,
 );
 
+/*
+ * What the worker would keep on the cloud, worked out from this estate's rows by the same code
+ * (OpenStackCapacitySnapshot). ?capacity=none is a cloud no worker has been through yet.
+ */
+function withCapacity(cloud) {
+  return params.get("capacity") === "none"
+    ? cloud
+    : {
+        ...cloud,
+        capacitySnapshot: buildCapacitySnapshotOf(estate.inventory, {
+          scenario: params.get("capacity"),
+          loadedAt: LOADED_AT,
+        }),
+      };
+}
+
 const store = {
   OpenStackCloudCheck: checkRow ? [checkRow] : [],
-  OpenStackCloud:
+  // Every cloud's row has these, with these defaults, since its migration.
+  OpenStackCloud: withAiAccessColumns(
     params.get("clouds") === "none"
       ? []
       : [
-          params.get("collection") === "Probe"
-            ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
-            : params.get("collection")
-              ? { ...estate.cloud, collectionMethod: params.get("collection") }
-              : estate.cloud,
+          withCapacity(
+            params.get("collection") === "Probe"
+              ? probeCollectedCloud(estate.cloud, params.get("probe"), LOADED_AT)
+              : params.get("collection")
+                ? { ...estate.cloud, collectionMethod: params.get("collection") }
+                : estate.cloud,
+          ),
           ...(params.get("archived") === "1"
             ? [
                 {
@@ -794,7 +937,9 @@ const store = {
               ]
             : []),
         ],
+  ),
   OpenStackCloudConnectionTest: [],
+  RunnerJob: [],
   OpenStackCloudOwnerUser: [],
   OpenStackCloudOwnerTeam: [],
   OpenStackCloudOwnerRule: [],
@@ -1805,6 +1950,13 @@ AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.listRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options);
+  }
+  if (serviceLogRows && modelName.startsWith("ChangeEvent")) {
+    return answerRows(serviceLogRows.changes, options);
+  }
+
   if (modelName.startsWith("Span")) {
     const data = spansFor(options.query).map((record) => {
       return Object.assign(new options.modelType(), record);
@@ -1834,6 +1986,9 @@ AnalyticsModelAPI.count = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
 
+  if (serviceLogRows && modelName.startsWith("Log")) {
+    return answerRows(serviceLogRows.logs, options).count;
+  }
   if (modelName.startsWith("Log")) {
     return 0;
   }
@@ -1867,6 +2022,22 @@ async function handleApi(method, options) {
   });
 
   if (method === "POST") {
+    if (parsed.pathname.endsWith("/resource-ai-access/status")) {
+      return ok(
+        getAiAccessStatus({
+          aiAgent: params.get("aiAgent"),
+          cloudId: body.resourceId,
+          cloudName: store.OpenStackCloud[0]?.name || "",
+          now: new Date(LOADED_AT).toISOString(),
+        }),
+      );
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/logs")) {
+      return ok(getAiLogs());
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/insights")) {
+      return ok(getAiInsights());
+    }
     if (parsed.pathname.includes("/openstack-resource/inventory-summary/")) {
       return FAILS.has("inventory")
         ? failed()
@@ -1926,7 +2097,7 @@ async function handleApi(method, options) {
     if (parsed.pathname.includes("/openstack-resource/topology/")) {
       return FAILS.has("inventory") || FAILS.has("topology")
         ? failed()
-        : ok(getTopologyRead(estate.inventory));
+        : ok(getTopologyRead(estate.inventory, body.regionName));
     }
     if (parsed.pathname.includes("/openstack-resource/counts/")) {
       return FAILS.has("inventory") || FAILS.has("counts")
@@ -2091,6 +2262,16 @@ async function handleApi(method, options) {
       return ok({ facets: {} });
     }
     // A part's Metrics: the metric catalog it reads.
+    // The fixture holds no logs, and what it is asked for is what a walk reads.
+    if (parsed.pathname.endsWith("/telemetry/logs/histogram")) {
+      return ok({ buckets: [] });
+    }
+    if (parsed.pathname.endsWith("/telemetry/logs/facets")) {
+      return ok({ facets: {} });
+    }
+    if (parsed.pathname.endsWith("/telemetry/logs/get-attributes")) {
+      return ok({ attributes: [] });
+    }
     if (parsed.pathname.endsWith("/telemetry/metrics/get-attributes")) {
       return ok({
         attributes: [
@@ -2171,6 +2352,10 @@ function withNavigation(Component, pageKey) {
 
 const PAGES = [
   [PageMap.OPENSTACK_CLOUD_VIEW, CloudOverview],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS, CloudAiInsights],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS, CloudAiLogs],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT, CloudAiAgent],
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY, CloudCapacity],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES, CloudServices],
   [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL, CloudServiceDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS, CloudHypervisors],
@@ -2212,17 +2397,22 @@ const PAGES = [
     CloudControlPlaneDependency,
   ],
   [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY, CloudTopology],
+  [PageMap.OPENSTACK_CLOUD_VIEW_METRICS, CloudMetrics],
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOGS, CloudLogs],
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES, CloudTraces],
   [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS, CloudChecks],
+  [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, CloudIncidents],
+  [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS, CloudAlerts],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE,
+    CloudScheduledMaintenance,
+  ],
   [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS, CloudRecommendations],
   [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION, CloudDocumentation],
   [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS, CloudSettings],
   [PageMap.OPENSTACK_CLOUD_VIEW_OWNERS, CloudOwners],
   [PageMap.OPENSTACK_CLOUD_VIEW_DELETE, CloudDelete],
   [PageMap.OPENSTACK_CLOUD_VIEW_FEED, CloudFeed],
-  [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS, CloudIncidents],
-  [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS, CloudAlerts],
-  [PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE, CloudScheduledMaintenance],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),

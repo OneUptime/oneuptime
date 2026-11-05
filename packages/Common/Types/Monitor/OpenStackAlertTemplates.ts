@@ -22,6 +22,9 @@ import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
+  OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
+  OPENSTACK_BARE_METAL_STUCK_MINUTES,
+  OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
@@ -38,6 +41,14 @@ import {
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
 import {
+  OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+  OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+  OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+  OPENSTACK_CAPACITY_NAME_LABEL,
+  OPENSTACK_CAPACITY_RESOURCE_LABEL,
+  OPENSTACK_CAPACITY_SCOPE_LABEL,
+} from "../OpenStack/OpenStackCapacitySeries";
+import {
   OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE,
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
   OpenStackHypervisorMetric,
@@ -49,6 +60,8 @@ import {
 } from "../OpenStack/OpenStackCheck";
 import { OpenStackCheckMetric } from "../../Utils/OpenStack/OpenStackCheckMetrics";
 import {
+  OPENSTACK_BARE_METAL_ERROR_STATES,
+  OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -62,7 +75,9 @@ export type OpenStackAlertTemplateCategory =
   | "Compute"
   | "Network"
   | "Storage"
-  | "Projects";
+  | "Bare Metal"
+  | "Projects"
+  | "Capacity";
 
 export type OpenStackAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -88,6 +103,12 @@ export interface OpenStackAlertTemplate {
   description: string;
   category: OpenStackAlertTemplateCategory;
   severity: OpenStackAlertTemplateSeverity;
+  /*
+   * The service a cloud may not run that this is about. Only a cloud reporting that service is
+   * offered it, so a cloud without Ironic has no bare metal alert to dismiss: see
+   * getOpenStackRecommendations. Left out of what every cloud runs.
+   */
+  forService?: OpenStackServiceType | undefined;
   getMonitorStep: (args: OpenStackAlertTemplateArgs) => MonitorStep;
 }
 
@@ -118,7 +139,8 @@ export interface OpenStackAlertTemplate {
  *     Here the pages' own 90% and 100%, on external networks.
  *   - Metrics missing: Canonical has an absent() rule per service, which on a cloud
  *     without that service never clears. Here only Keystone and Nova's API read an
- *     empty collection as down; a silent cloud is Cloud Stopped Reporting.
+ *     empty collection as down; a silent cloud is Cloud Stopped Reporting. A service a
+ *     cloud may not run has no such read at all: Bare Metal API Down has what it says.
  *
  * WHAT THESE TEMPLATES HOLD THEMSELVES TO, each with a test over every template
  * (Tests/Types/Monitor/OpenStackAlertTemplates.test.ts). They are the findings of
@@ -181,6 +203,8 @@ const STORAGE_POOL_GROUP: Array<string> = [
 const ROUTER_GROUP: Array<string> = [REGION, "router_id"];
 const NETWORK_GROUP: Array<string> = [REGION, "network_id", "network_name"];
 const PROJECT_GROUP: Array<string> = [REGION, "tenant_id", "tenant"];
+// A node's id is what it is, and its name what a person calls it, which Ironic does not require.
+const BARE_METAL_NODE_GROUP: Array<string> = [REGION, "id", "name"];
 
 // The smallest window holding three collections of what a service's job collects.
 export const OPENSTACK_WINDOW_BY_SERVICE: Record<
@@ -193,6 +217,7 @@ export const OPENSTACK_WINDOW_BY_SERVICE: Record<
   [OpenStackServiceType.Network]: RollingTime.Past10Minutes,
   [OpenStackServiceType.Volume]: RollingTime.Past10Minutes,
   [OpenStackServiceType.Placement]: RollingTime.Past10Minutes,
+  [OpenStackServiceType.BareMetal]: RollingTime.Past15Minutes,
 };
 
 export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
@@ -205,6 +230,7 @@ export const OPENSTACK_API_UP_METRIC_BY_SERVICE: Record<
   [OpenStackServiceType.Network]: "openstack_neutron_up",
   [OpenStackServiceType.Volume]: "openstack_cinder_up",
   [OpenStackServiceType.Image]: "openstack_glance_up",
+  [OpenStackServiceType.BareMetal]: "openstack_ironic_up",
 };
 
 /*
@@ -230,6 +256,7 @@ const WINDOWS_IN_MINUTES: ReadonlyArray<{
   { minutes: 180, rollingTime: RollingTime.Past3Hours },
   { minutes: 360, rollingTime: RollingTime.Past6Hours },
   { minutes: 720, rollingTime: RollingTime.Past12Hours },
+  { minutes: 7 * 24 * 60, rollingTime: RollingTime.Past7Days },
 ];
 
 function windowHolding(minutes: number): RollingTime {
@@ -239,7 +266,41 @@ function windowHolding(minutes: number): RollingTime {
     }
   }
 
-  return RollingTime.Past12Hours;
+  return RollingTime.Past7Days;
+}
+
+/*
+ * A grouped step's anchor says how often its service is collected, which its own series can't when
+ * they come and go. One per status word exists only while something has that status, so the first
+ * thing seen in that status, or the only thing, has one data point and nothing beside it to say
+ * that it isn't all a window ever holds. Anything on its way to something else is seen that way.
+ */
+function readCadenceFromAnchor(args: {
+  openstackMonitor: MonitorStepOpenStackMonitor;
+  instances: Array<MonitorCriteriaInstance>;
+}): void {
+  const hasAnchor: boolean =
+    args.openstackMonitor.metricViewConfig.queryConfigs.some(
+      (query: MetricQueryConfigData): boolean => {
+        return (
+          query.metricAliasData?.metricVariable ===
+          OPENSTACK_ANCHOR_METRIC_ALIAS
+        );
+      },
+    );
+
+  if (!hasAnchor) {
+    return;
+  }
+
+  for (const instance of args.instances) {
+    for (const filter of instance.data?.filters || []) {
+      filter.metricMonitorOptions = {
+        ...filter.metricMonitorOptions,
+        cadenceMetricAlias: OPENSTACK_ANCHOR_METRIC_ALIAS,
+      };
+    }
+  }
 }
 
 export function buildOpenStackMonitorStep(args: {
@@ -247,6 +308,11 @@ export function buildOpenStackMonitorStep(args: {
   offlineCriteriaInstance: MonitorCriteriaInstance;
   onlineCriteriaInstance: MonitorCriteriaInstance;
 }): MonitorStep {
+  readCadenceFromAnchor({
+    openstackMonitor: args.openstackMonitor,
+    instances: [args.offlineCriteriaInstance, args.onlineCriteriaInstance],
+  });
+
   const monitorStep: MonitorStep = new MonitorStep();
 
   const monitorCriteria: MonitorCriteria = new MonitorCriteria();
@@ -482,9 +548,15 @@ function buildFloorStep(data: {
   hasOwnAnchor?: boolean | undefined;
   rollingTime?: RollingTime | undefined;
   anchorMetricName?: string | undefined;
+  /*
+   * The floor, where it isn't whether something reads 1. A number with room in it gets a dead band
+   * to recover past, so it doesn't flap on its line. Whole series of 0 or 1 have nowhere to put one.
+   */
+  value?: number | undefined;
   words: IncidentWords;
 }): MonitorStep {
   const [firstQuery, ...otherQueries] = data.queries;
+  const value: number = data.value ?? 1;
 
   return buildOpenStackMonitorStep({
     openstackMonitor: buildOpenStackSeriesConfig({
@@ -500,7 +572,7 @@ function buildFloorStep(data: {
       notification: { args: data.args, ...data.words },
       metricAlias: firstQuery!.alias,
       filterType: FilterType.LessThan,
-      value: 1,
+      value: value,
       additionalFilters: otherQueries.map(
         (query: OpenStackQuery): AdditionalCriteriaFilterSpec => {
           return {
@@ -516,9 +588,9 @@ function buildFloorStep(data: {
         onlineMonitorStatusId: data.args.onlineMonitorStatusId,
         metricAlias: firstQuery!.alias,
         filterType: FilterType.GreaterThanOrEqualTo,
-        value: 1,
+        value: value,
         // These series are 0 or 1: a dead band above 1 could never be crossed.
-        isBinaryMetric: true,
+        isBinaryMetric: data.value === undefined,
         filterCondition: FilterCondition.All,
         additionalFilters: otherQueries.map(
           (query: OpenStackQuery): AdditionalCriteriaFilterSpec => {
@@ -1910,13 +1982,226 @@ const imageStuckTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Bare Metal ---
+
+const IRONIC_NODE: string = "openstack_ironic_node";
+
+/*
+ * A node in one of a set of provision states, on Ironic's own word: each is its own query, because
+ * a monitor's attribute filter is equality. Per node, because it is a machine that is lost, and
+ * grouped no finer, so a node that goes on to the next word or has its reason changed is the same
+ * incident. The series only says a node is there, so its value is 1 and this reads whether it has
+ * one at all. A node that moves on leaves the query and recovers by going away.
+ */
+function bareMetalStateQueries(data: {
+  states: ReadonlySet<string>;
+  attributes?: Record<string, string> | undefined;
+}): Array<OpenStackQuery> {
+  return Array.from(data.states).map((state: string): OpenStackQuery => {
+    return {
+      alias: statusAlias(state),
+      metricName: IRONIC_NODE,
+      aggregationType: MetricsAggregationType.Max,
+      attributes: { provision_state: state, ...data.attributes },
+    };
+  });
+}
+
+const bareMetalNodeInErrorTemplate: OpenStackAlertTemplate = {
+  id: "openstack-bare-metal-node-in-error",
+  name: "Bare Metal Node in Error",
+  forService: OpenStackServiceType.BareMetal,
+  summary: "A bare metal node stays in a failed provision state.",
+  description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_ERROR_STATES).join(", ")} for 15 minutes (openstack_ironic_node filtered to that provision_state label, in every collection of the window). One incident per node, in maintenance or not, because Ironic does not always put a failed node in maintenance, and it stays failed until someone acts. Check the conductor's log as well as \`openstack baremetal node show <node> -c last_error\`: the exporter does not carry why, and Ironic empties last_error within about a minute of a failure. A probe reads last_error, and keeps the last one it saw.`,
+  category: "Bare Metal",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = bareMetalStateQueries({
+      states: OPENSTACK_BARE_METAL_ERROR_STATES,
+    });
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.BareMetal,
+      groupByAttributeKeys: BARE_METAL_NODE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Bare Metal Node in Error",
+        incidentDescription: `This node is in a failed provision state, so the machine is out of what the cloud can give until someone acts: Ironic retries none of these by itself. Check openstack baremetal node show for the node named above, and the conductor's log: Ironic empties last_error within about a minute of a failure. Once it is fixed, move the node on with openstack baremetal node manage or provide. The incident resolves on its own once it has left the failed state.`,
+        criteriaName: "Bare Metal Node in Error - failed provision state",
+        criteriaDescription:
+          "Triggers when a node holds a failed provision state for the whole window.",
+      },
+    });
+  },
+};
+
+const bareMetalNodeStuckTemplate: OpenStackAlertTemplate = {
+  id: "openstack-bare-metal-node-stuck",
+  name: "Bare Metal Node Stuck Transitioning",
+  forService: OpenStackServiceType.BareMetal,
+  summary: `A bare metal node stays in a passing state for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours.`,
+  description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES).join(", ")} for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours (openstack_ironic_node filtered to that provision_state label and maintenance false, in every collection of the window). One incident per node. Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node then says it failed, so past this something else is holding it. A long disk erase can honestly take this long: the node's page reads Ironic's own time, which an erase's heartbeats keep moving, and an alert only reads the word. A node someone put in maintenance is left out. Check \`openstack baremetal node show <node>\` and the conductor's log.`,
+  category: "Bare Metal",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const queries: Array<OpenStackQuery> = bareMetalStateQueries({
+      states: OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
+      attributes: { maintenance: "false" },
+    });
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.BareMetal,
+      rollingTime: windowHolding(OPENSTACK_BARE_METAL_STUCK_MINUTES),
+      groupByAttributeKeys: BARE_METAL_NODE_GROUP,
+      queries,
+      aliases: queries.map((query: OpenStackQuery): string => {
+        return query.alias;
+      }),
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Bare Metal Node Stuck Transitioning",
+        incidentDescription: `This node has held one state on the way to another for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours, far past when Ironic gives up on waiting by default. Check openstack baremetal node show for the node named above and the conductor's log. A long disk erase can honestly take this long, and a node's page can tell, because an erase's heartbeats move Ironic's own time. The incident resolves on its own once it reaches its next state.`,
+        criteriaName: `Bare Metal Node Stuck - same state for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours`,
+        criteriaDescription: `Triggers when a node holds the state for the whole ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60}-hour window.`,
+      },
+    });
+  },
+};
+
+const bareMetalNodeMaintenanceTooLongTemplate: OpenStackAlertTemplate = {
+  id: "openstack-bare-metal-node-maintenance-too-long",
+  name: "Bare Metal Node in Maintenance Too Long",
+  forService: OpenStackServiceType.BareMetal,
+  summary: `A bare metal node stays in maintenance for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days.`,
+  description: `Alert when a bare metal node stays in maintenance for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days (openstack_ironic_node filtered to maintenance true, in every collection of the window). A node someone put in maintenance is planned, like a service someone disabled, so nothing fires before that; past it, somebody has probably forgotten a machine the cloud has gone without all this time. One incident per node. This needs your metrics kept for at least that long. Check \`openstack baremetal node show <node> -c maintenance_reason\`, then \`openstack baremetal node maintenance unset <node>\`, or retire it.`,
+  category: "Bare Metal",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "in_maintenance";
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.BareMetal,
+      rollingTime: windowHolding(
+        OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS * 24 * 60,
+      ),
+      groupByAttributeKeys: BARE_METAL_NODE_GROUP,
+      queries: [
+        {
+          alias: metricAlias,
+          metricName: IRONIC_NODE,
+          aggregationType: MetricsAggregationType.Max,
+          attributes: { maintenance: "true" },
+        },
+      ],
+      aliases: [metricAlias],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Bare Metal Node in Maintenance Too Long",
+        incidentDescription: `This node has been in maintenance for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days, and has been out of what the cloud can give all that time. Check openstack baremetal node show for the node named above and its maintenance reason, then finish the work and run openstack baremetal node maintenance unset, or retire it. The incident resolves on its own once it is out of maintenance.`,
+        criteriaName: `Bare Metal Node in Maintenance - for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days`,
+        criteriaDescription: `Triggers when a node reads in maintenance for the whole ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS}-day window.`,
+      },
+    });
+  },
+};
+
+const bareMetalPowerStateUnexpectedTemplate: OpenStackAlertTemplate = {
+  id: "openstack-bare-metal-power-state-unexpected",
+  name: "Bare Metal Power State Unexpected",
+  forService: OpenStackServiceType.BareMetal,
+  summary: "A deployed bare metal node has its power off.",
+  description: `Alert when a deployed bare metal node reads power off for 15 minutes (openstack_ironic_node filtered to provision_state active, power_state power off and maintenance false). One incident per node. Nothing else counts as unexpected: a failed deploy leaves a node on, a node between deploys may be on or off, and an empty power state is not known rather than wrong. An instance its owner stopped does this too, and this alert cannot tell, because it reads one series: the node's page can, and says so. Check \`openstack baremetal node show <node>\`, then \`openstack server show\` for the instance on it, and whether anyone meant it.`,
+  category: "Bare Metal",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "deployed_with_power_off";
+
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.BareMetal,
+      groupByAttributeKeys: BARE_METAL_NODE_GROUP,
+      queries: [
+        {
+          alias: metricAlias,
+          metricName: IRONIC_NODE,
+          aggregationType: MetricsAggregationType.Max,
+          attributes: {
+            provision_state: "active",
+            power_state: "power off",
+            maintenance: "false",
+          },
+        },
+      ],
+      aliases: [metricAlias],
+      value: 0,
+      words: {
+        incidentTitle: "[OpenStack] Bare Metal Power State Unexpected",
+        incidentDescription: `This node is deployed and has its power off, so whatever runs on it has stopped. If its owner stopped the instance on it, that is planned, and this alert cannot tell: the node's page in OneUptime can. Check openstack server show for the instance on the node named above, then openstack baremetal node power on if nobody meant it. The incident resolves on its own once it is powered on, or no longer deployed.`,
+        criteriaName: "Bare Metal Power State - deployed with its power off",
+        criteriaDescription:
+          "Triggers when a deployed node reads power off for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * Only what Ironic says of itself, and never `up`, which reads 0 for this job on every cloud whenever
+ * the exporter is down, with Ironic or without. So this speaks only where a read of Ironic gets far
+ * enough to say 0: a probe, which reads the catalog first, and exporter 1.7.0. Stopped, the exporter
+ * the agent runs answers an empty 200, the same as a cloud without Ironic (recorded:
+ * services-ironic/api-down), so no alert can tell those apart from what it sends, and the pages say
+ * only that it has gone quiet.
+ */
+const bareMetalApiDownTemplate: OpenStackAlertTemplate = {
+  id: "openstack-bare-metal-api-down",
+  name: "Bare Metal API Down",
+  forService: OpenStackServiceType.BareMetal,
+  summary: "Ironic's API says it is not answering.",
+  description:
+    "Alert when Ironic's API reads as not answering for 15 minutes (openstack_ironic_up). One incident per region. This speaks where something can say so: a cloud a probe collects, or exporter 1.7.0. A stopped Ironic gives the exporter the OpenStack Agent runs nothing at all to read, which is what a cloud without Ironic looks like, so on an agent's cloud this stays quiet and the cloud's Bare Metal page says when it last heard from Ironic. Check `openstack baremetal node list` with a credential that may, then the ironic-api service's log.",
+  category: "Bare Metal",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.BareMetal,
+      hasOwnAnchor: true,
+      groupByAttributeKeys: API_GROUP,
+      queries: [
+        {
+          alias: "api_up",
+          metricName:
+            OPENSTACK_API_UP_METRIC_BY_SERVICE[OpenStackServiceType.BareMetal],
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Bare Metal API Down",
+        incidentDescription:
+          "Ironic's API is not answering in this region, so nobody can deploy, clean or manage a bare metal node there. What is already deployed keeps running. Check the ironic-api service and its log, then openstack baremetal node list with a credential that may. The incident resolves on its own once it answers again.",
+        criteriaName: "Bare Metal API Down - not answering",
+        criteriaDescription:
+          "Triggers when Ironic's API does not answer for the whole window.",
+      },
+    });
+  },
+};
+
 // --- Projects ---
 
 const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
   id: "openstack-project-quota-nearly-reached",
   name: "Project Quota Nearly Reached",
   summary: `A project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of a quota.`,
-  description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 10 minutes (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they read the API once per project on every collection, so this template stays quiet until you turn them on: delete the --disable-metric=nova-limits_vcpus_max and --disable-metric=cinder-limits_volume_max_gb lines from the exporter's command in docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, and restart the exporter. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
+  description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 3 hours, which is three of the hourly readings these series have (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they cost API calls per project, so this template stays quiet until you turn them on: run the agent's install.sh again with OPENSTACK_COLLECT_QUOTAS=true, or on a cloud a probe reads, turn on Project limits. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
   category: "Projects",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -1953,6 +2238,8 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
     return buildCeilingStep({
       args,
       service: OpenStackServiceType.Compute,
+      // Three of the agent's hourly readings, as every template reads three of its series'.
+      rollingTime: RollingTime.Past3Hours,
       groupByAttributeKeys: PROJECT_GROUP,
       queries: [
         limit("vcpus_used", "openstack_nova_limits_vcpus_used"),
@@ -2304,6 +2591,127 @@ const floatingIpUnreachableTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Capacity ---
+
+/*
+ * Whether a flavor fits, whether a zone can lose a host and when something fills up take every host
+ * and flavor to work out, so OneUptime writes these series itself from each cloud's rows
+ * (OpenStackCapacitySeries), every two minutes while it reports. Each is written only when it can
+ * say something: a flavor no host could ever hold, one whose only room is on a host someone
+ * disabled, a zone with a host someone disabled, and anything too new to forecast all have no
+ * series, and so nothing to fire on. Allocation, not load: an idle instance holds all of it.
+ */
+const FLAVOR_GROUP: Array<string> = [REGION, "flavor_id", "flavor"];
+const ZONE_GROUP: Array<string> = [REGION, "availability_zone"];
+const CAPACITY_GROUP: Array<string> = [
+  REGION,
+  OPENSTACK_CAPACITY_SCOPE_LABEL,
+  OPENSTACK_CAPACITY_NAME_LABEL,
+  OPENSTACK_CAPACITY_RESOURCE_LABEL,
+];
+
+const flavorCannotBePlacedTemplate: OpenStackAlertTemplate = {
+  id: "openstack-flavor-cannot-be-placed",
+  name: "Flavor Can No Longer Be Placed",
+  summary: "No host has room for one more of a flavor people can ask for.",
+  description: `Alert when no host can take one more of a flavor for 10 minutes: booting one now fails with No valid host. Counted host by host, from openstack_capacity_flavor_fits, which a probe reads from Placement's own allocation candidates, so it respects traits, and which a cloud on the agent works out from inventories. One incident per flavor per region. Only flavors someone can ask for (public ones and private ones in use), and never one too large for every host, which was never going to fit, or one whose only room is on a host someone disabled, which is planned work. This is allocation, not load. On the cloud's Capacity page, the flavor's row says how many would fit if what is free were on one host, which tells a full cloud from a fragmented one. Check \`openstack allocation candidate list --resource VCPU=<vcpus> --resource MEMORY_MB=<ram> --resource DISK_GB=<disk>\`, then move instances to make a whole host's room, or add capacity.`,
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Placement,
+      groupByAttributeKeys: FLAVOR_GROUP,
+      queries: [
+        {
+          alias: "room_for",
+          metricName: OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Flavor Can No Longer Be Placed",
+        incidentDescription: `No host has room for one more of the flavor named above, so anyone booting one now is told No valid host. This is what has been promised, not what is busy. The cloud's Capacity page says whether the cloud is full or only fragmented: free capacity spread too thinly for one instance of this size. Check openstack allocation candidate list for the flavor's size, then live-migrate instances to make a whole host's room, or add capacity. The incident resolves on its own once a host has room.`,
+        criteriaName: "Flavor Can No Longer Be Placed - room for < 1",
+        criteriaDescription:
+          "Triggers when no host has room for one more of a flavor for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * How long until something is full, at its growth over the last week. Each thing that fills up is
+ * one series, so this is one template: a zone's vCPUs, memory or disk, an external network's IPv4
+ * addresses and a storage pool's bytes alike. It reads a number the worker worked out rather than
+ * a forecast criteria's own fit, because a page and an alert that disagree about when something
+ * fills up are how people stop trusting both: this number is what the Capacity page says.
+ */
+const capacityForecastUnderDaysTemplate: OpenStackAlertTemplate = {
+  id: "openstack-capacity-forecast-under-days",
+  name: `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
+  summary: `Something fills up in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth this week.`,
+  description: `Alert when a zone's vCPUs, memory or disk, an external network's IPv4 addresses or a storage pool will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days, for 10 minutes, at its growth over the last week. Reads openstack_capacity_days_until_full: a straight line through what was allocated, against what there is today. One incident per zone and resource class, network or pool. A new cloud stays quiet until it has a day of history, and something not growing has nothing to project. This is allocation, not load: it is how soon Placement runs out of things to promise. Check the cloud's Capacity page, which lists what fills up soonest first, and \`openstack server list --all-projects --long\` for what is growing, then add capacity or ask its owner.`,
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Placement,
+      groupByAttributeKeys: CAPACITY_GROUP,
+      queries: [
+        {
+          alias: "days_until_full",
+          metricName: OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      value: OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+      words: {
+        incidentTitle: `[OpenStack] Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
+        incidentDescription: `What is named above will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth over the last week. The cloud's Capacity page lists what fills up soonest first. Check openstack server list --all-projects for a zone, openstack floating ip list --network for an external network and openstack volume list --all-projects for a pool to find what is growing, then add capacity before it fills, or ask its owner. The incident resolves on its own once it has longer than that.`,
+        criteriaName: `Capacity Forecast - days until full < ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS}`,
+        criteriaDescription: `Triggers when something will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its recent growth, for the whole window.`,
+      },
+    });
+  },
+};
+
+/*
+ * Whether a zone could lose its largest host and still fit what runs on it, as VMware's Host failure
+ * asks of a cluster. Min across the classes, so any one of them short reads 0, and it is one
+ * incident for the zone however many are.
+ */
+const reservedHeadroomGoneTemplate: OpenStackAlertTemplate = {
+  id: "openstack-reserved-headroom-gone",
+  name: "Reserved Headroom Gone",
+  summary: "A zone can't lose its largest host and still fit what runs on it.",
+  description: `Alert when a zone could not lose its largest host and still fit what runs on it, for 10 minutes: what is allocated, on any host in the zone, against what its other hosts could promise. Reads openstack_capacity_can_lose_a_host, one series per zone and resource class. One incident per zone. A zone with fewer than two hosts has nothing to say, and neither does one with a host someone disabled, because that is planned work and it says so on the Capacity page. It compares amounts rather than where each instance would land, so passing means an evacuation has room, not that every instance finds a host: the Capacity page's flavor table shows what is fragmented. This is allocation, not load. Check \`openstack hypervisor list --long\` for what each host holds, then add capacity, or move instances out of the zone.`,
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Placement,
+      groupByAttributeKeys: ZONE_GROUP,
+      queries: [
+        {
+          alias: "can_lose_a_host",
+          metricName: OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Reserved Headroom Gone",
+        incidentDescription: `If this zone lost its largest host now, its other hosts could not fit what runs on it, so some instances would have nowhere to be evacuated to. Check openstack hypervisor list --long and the cloud's Capacity page, which says which resource is short and by how much, then add capacity, or move instances out of the zone. The incident resolves on its own once it could lose a host again.`,
+        criteriaName: "Reserved Headroom Gone - can lose a host < 1",
+        criteriaDescription:
+          "Triggers when a zone could not lose its largest host and still fit what runs on it for the whole window.",
+      },
+    });
+  },
+};
+
 export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
   return [
     cloudStoppedReportingTemplate,
@@ -2348,7 +2756,15 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     volumesInErrorTemplate,
     volumeStuckTemplate,
     imageStuckTemplate,
+    bareMetalApiDownTemplate,
+    bareMetalNodeInErrorTemplate,
+    bareMetalNodeStuckTemplate,
+    bareMetalNodeMaintenanceTooLongTemplate,
+    bareMetalPowerStateUnexpectedTemplate,
     projectQuotaNearlyReachedTemplate,
+    flavorCannotBePlacedTemplate,
+    capacityForecastUnderDaysTemplate,
+    reservedHeadroomGoneTemplate,
   ];
 }
 

@@ -40,6 +40,7 @@ const COMPONENT_OF_API: Readonly<Record<string, string>> = {
   [OpenStackServiceType.Image]: "glance",
   [OpenStackServiceType.Identity]: "keystone",
   [OpenStackServiceType.Placement]: "placement",
+  [OpenStackServiceType.BareMetal]: "ironic",
 };
 
 /*

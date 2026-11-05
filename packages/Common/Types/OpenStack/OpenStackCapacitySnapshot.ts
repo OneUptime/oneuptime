@@ -186,7 +186,7 @@ function textFact(facts: JSONObject, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
-export function readOpenStackCapacityHost(row: {
+export interface OpenStackCapacityHostSourceRow {
   hypervisorName?: string | null | undefined;
   name?: string | null | undefined;
   regionName?: string | null | undefined;
@@ -195,7 +195,11 @@ export function readOpenStackCapacityHost(row: {
   adminState?: string | null | undefined;
   instanceCount?: number | null | undefined;
   facts?: JSONObject | null | undefined;
-}): OpenStackCapacityHost {
+}
+
+export function readOpenStackCapacityHost(
+  row: OpenStackCapacityHostSourceRow,
+): OpenStackCapacityHost {
   const facts: JSONObject = factsOf(row);
 
   return {
@@ -258,16 +262,18 @@ export function readOpenStackPlacementAnswer(
  * and all, and says so in its row. The agent's exporter only says vCPUs, RAM and disk, so that is
  * all it can ask for, and a page says the agent's count can't see traits.
  */
+export interface OpenStackCapacityFlavorSourceRow {
+  externalId?: string | null | undefined;
+  name?: string | null | undefined;
+  regionName?: string | null | undefined;
+  vcpuCapacity?: number | string | null | undefined;
+  memoryCapacityBytes?: number | string | null | undefined;
+  diskCapacityBytes?: number | string | null | undefined;
+  facts?: JSONObject | null | undefined;
+}
+
 export function readOpenStackCapacityFlavor(data: {
-  row: {
-    externalId?: string | null | undefined;
-    name?: string | null | undefined;
-    regionName?: string | null | undefined;
-    vcpuCapacity?: number | string | null | undefined;
-    memoryCapacityBytes?: number | string | null | undefined;
-    diskCapacityBytes?: number | string | null | undefined;
-    facts?: JSONObject | null | undefined;
-  };
+  row: OpenStackCapacityFlavorSourceRow;
   instanceCount: number;
 }): OpenStackCapacityFlavor {
   const { row } = data;
@@ -622,12 +628,16 @@ export function buildOpenStackCapacitySnapshot(data: {
  * A storage pool, from its row, and an external network's IPv4 addresses, from its. Only an
  * external one: a tenant's network filling up is theirs to see, as on every other page.
  */
-export function readOpenStackCapacityStoragePool(row: {
+export interface OpenStackCapacityPoolSourceRow {
   name?: string | null | undefined;
   regionName?: string | null | undefined;
   diskCapacityBytes?: number | string | null | undefined;
   diskAllocatedBytes?: number | string | null | undefined;
-}): OpenStackCapacityPool | null {
+}
+
+export function readOpenStackCapacityStoragePool(
+  row: OpenStackCapacityPoolSourceRow,
+): OpenStackCapacityPool | null {
   const capacity: number | null = toNumberOrNull(row.diskCapacityBytes);
   const used: number | null = toNumberOrNull(row.diskAllocatedBytes);
 
@@ -646,12 +656,16 @@ export function readOpenStackCapacityStoragePool(row: {
   };
 }
 
-export function readOpenStackCapacityExternalNetwork(row: {
+export interface OpenStackCapacityNetworkSourceRow {
   externalId?: string | null | undefined;
   name?: string | null | undefined;
   regionName?: string | null | undefined;
   facts?: JSONObject | null | undefined;
-}): OpenStackCapacityPool | null {
+}
+
+export function readOpenStackCapacityExternalNetwork(
+  row: OpenStackCapacityNetworkSourceRow,
+): OpenStackCapacityPool | null {
   const facts: JSONObject = factsOf(row);
   const used: number | null = toNumberOrNull(facts["ipsUsed"]);
   const capacity: number | null = toNumberOrNull(facts["ipsTotal"]);

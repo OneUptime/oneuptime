@@ -10,6 +10,7 @@ How many times the HMAC key was found in each recorded file, before it was remov
 0 context/instance_failed-server.json
 0 ids.env
 0 journal.jsonl.gz
+0 native-summary.json
 0 otlp-agent.json.gz
 0 otlp-driver.json.gz
 0 pip-install.txt
@@ -19,10 +20,15 @@ How many times the HMAC key was found in each recorded file, before it was remov
 0 scene-output/no-libraries-signed-list.txt
 0 scene-output/off-again-signed-boot.txt
 0 scene-output/off-signed-list.txt
+0 scene-output/signed-boot-failed-whole.txt
 0 scene-output/signed-boot-failed.txt
+0 scene-output/signed-boot-osprofiler-fix.txt
+0 scene-output/signed-boot-placement.txt
 0 scene-output/signed-boot-requests.txt
 0 scene-output/signed-boot-sql.txt
+0 scene-output/signed-boot-whole.txt
 0 scene-output/signed-boot.txt
+0 scene-output/signed-by-header.txt
 0 scene-output/signed-delete.txt
 0 scene-output/signed-image.txt
 0 scene-output/signed-list.txt

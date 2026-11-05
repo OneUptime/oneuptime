@@ -4,6 +4,7 @@ import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourc
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
 import {
+  findJsonObjectEnd,
   isOpenStackKeystoneId,
   isOpenStackUuid,
 } from "../../OpenStack/OpenStackLogs";
@@ -48,6 +49,9 @@ import {
  *     what this calls its target.
  *   - Neither kind of application credential says which it is: restricted and unrestricted
  *     read the same, down to the last field.
+ *   - A login for a user who does not exist is sent too, with what was typed as its user_name.
+ *   - Keystone sends nothing for a role given on the system, and for a user added to a group
+ *     says only that the group changed.
  *
  * CREDENTIALS. A CADF event can hold what should never be stored: its initiator's
  * credential holds a part of the token, an invalid password's attachment holds part of its
@@ -265,9 +269,19 @@ export function readOpenStackAuditNotification(
   }
 
   const start: number = body.indexOf("{");
-  const end: number = body.lastIndexOf("}");
 
-  if (start === -1 || end <= start) {
+  if (start === -1) {
+    return null;
+  }
+
+  /*
+   * By its braces, and not to the last one on the line: what the agent sends can have more after
+   * the JSON. A real collector joined uWSGI's next line to 363 of 1557 notifications, and that
+   * line says {58 vars in 1480 bytes}.
+   */
+  const end: number = findJsonObjectEnd(body, start);
+
+  if (end === -1) {
     return null;
   }
 
@@ -368,17 +382,29 @@ interface Initiator {
   address: string;
 }
 
-function readInitiator(payload: JSONObject): Initiator {
+function readInitiator(line: SecurityLogLine, payload: JSONObject): Initiator {
   const initiator: JSONObject | null = asObject(payload["initiator"]);
   const host: JSONObject | null = asObject(initiator?.["host"]);
+  /*
+   * A login for a user who does not exist has what was typed as its user_name, and an ID
+   * made up from that, which is nobody's.
+   */
+  const typed: string = readKnown(initiator, "user_name");
 
   return {
+    id:
+      (typed
+        ? readKnown(initiator, "user_id")
+        : readKnown(initiator, "user_id", "id")) ||
+      readAttribute(line.attributes, ["openstack.user_id"]),
     /*
-     * identity.authenticate's `id` is a hash of the user, and its user_id the user. Any
-     * other event's `id` is the user's own.
+     * A few of Keystone's events have no initiator at all, as a grant handed down to a
+     * domain's projects and an EC2 credential recorded. Their line says who it was for.
      */
-    id: readKnown(initiator, "user_id", "id"),
-    name: readKnown(initiator, "username", "name"),
+    name:
+      readKnown(initiator, "username", "name") ||
+      typed ||
+      readAttribute(line.attributes, ["openstack.user_name"]),
     projectId: readKnown(initiator, "project_id"),
     address: readIpAddress(readText(host, "address")),
   };
@@ -476,7 +502,7 @@ function parseAuthentication(data: {
     return null;
   }
 
-  const initiator: Initiator = readInitiator(data.payload);
+  const initiator: Initiator = readInitiator(data.line, data.payload);
   const who: string = initiator.name || initiator.id || "Someone";
   const isSuccess: boolean = outcome === "success";
   const attributes: JSONObject = baseAttributes({
@@ -518,7 +544,7 @@ function parseRoleAssignment(data: {
   uid: string;
   time: Date | undefined;
 }): NormalizedSecurityEvent | null {
-  const initiator: Initiator = readInitiator(data.payload);
+  const initiator: Initiator = readInitiator(data.line, data.payload);
   const who: string = initiator.name || initiator.id || "Someone";
   const outcome: string = readText(data.payload, "outcome").toLowerCase();
   const action: string = readText(data.payload, "action");
@@ -611,7 +637,7 @@ function parseIdentityChange(data: {
     return null;
   }
 
-  const initiator: Initiator = readInitiator(data.payload);
+  const initiator: Initiator = readInitiator(data.line, data.payload);
   const who: string = initiator.name || initiator.id || "Someone";
   const outcome: string = readText(data.payload, "outcome").toLowerCase();
   const id: string =
@@ -702,7 +728,7 @@ function parseApiCall(data: {
     return null;
   }
 
-  const initiator: Initiator = readInitiator(data.payload);
+  const initiator: Initiator = readInitiator(data.line, data.payload);
   const who: string = initiator.name || initiator.id || "Someone";
   const part: (OpenStackPathPart & { id: string }) | null =
     readOpenStackPartOfPath(path);

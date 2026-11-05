@@ -14,6 +14,7 @@ import MonitorStepOpenStackMonitor, {
 } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
+  OPENSTACK_QUOTA_EXPORTER_READS,
   OpenStackMetricDefinition,
   getAllOpenStackMetricCategories,
   getAllOpenStackMetrics,
@@ -76,12 +77,13 @@ const DOCS: string = readRepoFile(
   "openstack-monitor.md",
 );
 
-// The exporter it runs by default: the database path's other one turns off almost everything.
+// The exporter it runs by default: the others start with nearly every read turned off.
+const MAIN_EXPORTER: string = COMPOSE.match(
+  /^ {2}openstack-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m,
+)![1]!;
+
 const DISABLED_METRICS: Array<string> = Array.from(
-  COMPOSE.slice(
-    COMPOSE.indexOf("\n  openstack-exporter:"),
-    COMPOSE.indexOf("\n  openstack-worker-state-exporter:"),
-  ).matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
+  MAIN_EXPORTER.matchAll(/^\s*- --disable-metric=(\S+)\s*$/gm),
 ).map((match: RegExpMatchArray): string => {
   return match[1]!;
 });
@@ -107,6 +109,10 @@ function metricNames(): Array<string> {
  * is 0 or 1, and Placement's resource series change unit with their resourcetype.
  */
 const NO_UNIT_SERIES: ReadonlyArray<string> = [
+  "openstack_ironic_up",
+  // Always 1: what it says is in its labels, as a status series' word is.
+  "openstack_ironic_node",
+  "openstack_ironic_conductor_state",
   "up",
   "openstack_check_token_success",
   "openstack_check_api_success",
@@ -133,6 +139,11 @@ const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "openstack_placement_resource_reserved",
   "openstack_placement_resource_usage",
   "openstack_placement_resource_provider_allocations",
+  // Amounts of whatever each Placement class counts, which each row's resourcetype says.
+  "openstack_capacity_allocated",
+  "openstack_capacity_total",
+  // 1 or 0, and a count of flavors is its own unit.
+  "openstack_capacity_can_lose_a_host",
 ];
 
 describe("OpenStackMetricCatalog", () => {
@@ -162,7 +173,8 @@ describe("OpenStackMetricCatalog", () => {
             metric.onlyFromProbe !== true &&
             metric.fromInstanceSource !== true &&
             metric.fromSummaryMode !== true &&
-            metric.fromCheck !== true
+            metric.fromCheck !== true &&
+            metric.fromCapacity !== true
           );
         })
         .map((metric: OpenStackMetricDefinition): string => {
@@ -185,7 +197,12 @@ describe("OpenStackMetricCatalog", () => {
             return metric.metricName;
           })
           .sort(),
-      ).toEqual(["openstack_cinder_backup_gb", "openstack_cinder_snapshot_gb"]);
+      ).toEqual([
+        "openstack_cinder_backup_gb",
+        "openstack_cinder_snapshot_gb",
+        "openstack_ironic_conductor_state",
+        "openstack_placement_flavor_fits",
+      ]);
 
       for (const metric of onlyFromProbe) {
         expect(OPENSTACK_EXPORTER_SERIES[metric.metricName]).toBeUndefined();
@@ -214,11 +231,13 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_glance_image_bytes",
         "openstack_glance_up",
         "openstack_identity_up",
+        "openstack_ironic_node",
         "openstack_neutron_agent_state",
         "openstack_neutron_floating_ip",
         "openstack_neutron_network",
         "openstack_neutron_up",
         "openstack_nova_agent_state",
+        "openstack_nova_flavor",
         "openstack_nova_server_status",
         "openstack_nova_up",
         "openstack_placement_up",
@@ -241,7 +260,8 @@ describe("OpenStackMetricCatalog", () => {
           metricCase[1].onlyFromProbe !== true &&
           metricCase[1].fromInstanceSource !== true &&
           metricCase[1].fromSummaryMode !== true &&
-          metricCase[1].fromCheck !== true
+          metricCase[1].fromCheck !== true &&
+          metricCase[1].fromCapacity !== true
         );
       }),
     )(
@@ -522,13 +542,33 @@ describe("OpenStackMetricCatalog", () => {
         return Boolean(metricCase[1].offByDefault);
       }),
     )(
-      "%s, off by default, names the line the agent has and says to delete it",
+      "%s, off by default, says how to turn it on",
       (_name: string, metric: OpenStackMetricDefinition) => {
         expect(DISABLED_METRICS).toContain(metric.offByDefault);
-        expect(metric.description).toContain(
-          `--disable-metric=${metric.offByDefault}`,
-        );
         expect(metric.description).not.toContain("--disable-slow-metrics");
+
+        if (metric.fromQuotaExporter) {
+          // Not by deleting the line, which would read it every two minutes as well.
+          expect(metric.description).toContain("OPENSTACK_COLLECT_QUOTAS=true");
+          expect(metric.description).not.toContain("--disable-metric");
+        } else {
+          expect(metric.description).toContain(
+            `--disable-metric=${metric.offByDefault}`,
+          );
+        }
+      },
+    );
+
+    test.each(OPENSTACK_QUOTA_EXPORTER_READS)(
+      "the quota exporter reads what --disable-metric=%s leaves out of the main one, and turns off the rest",
+      (disabled: string) => {
+        const quotaExporter: string = COMPOSE.match(
+          /^ {2}openstack-quota-exporter:\n([\s\S]*?)^ {2}[a-z-]+:\n/m,
+        )![1]!;
+
+        expect(quotaExporter).toContain("--disable-metric=nova-flavors");
+        expect(DISABLED_METRICS).toContain(disabled);
+        expect(quotaExporter).not.toContain(`- --disable-metric=${disabled}\n`);
       },
     );
 

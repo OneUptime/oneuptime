@@ -268,7 +268,13 @@ describe.each([
     "2026-10-30 10:00:00.123 1234 WARNING oslo.messaging._drivers.impl_rabbit [-] Connection lost",
     "2026-10-30 10:00:00.123 1234 DEBUG nova.virt.libvirt.driver Written with no request by a format of someone's own",
     "INFO nova.compute.manager Written with no request by a format of someone's own",
+    // Read off a recording: a logger named after what it notifies of.
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [\u001b[01;36mNone req-r \u001b[00;36madmin admin] {}",
+    "2026-10-30 10:00:00.123 1234 INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [req-g req-r - - - - - -] {}",
     '{"message": "Started", "levelname": "INFO", "name": "nova.compute.manager"}',
+    // Keystone's extensions name their notifications with a colon.
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [None req-r admin admin] {}",
+    "INFO oslo.messaging.notification.identity.OS-TRUST:trust.created [\u001b[01;36mNone req-r \u001b[00;36madmin admin] \u001b[01;35m{}",
   ])("starts a record: %s", (line) => {
     expect(isFirstEntry(line)).toBe(true);
   });
@@ -589,12 +595,41 @@ describe("both profiles send the same record", () => {
     expect(keys).toEqual(
       expect.arrayContaining([
         "openstack.cloud.name",
+        "openstack.region.name",
         "openstack.node.name",
         "oneuptime.agent.version",
       ]),
     );
     expect(config.service.pipelines.logs.processors[0]).toBe("memory_limiter");
     expect(config.service.pipelines.logs.exporters).toEqual(["otlphttp"]);
+  });
+
+  /*
+   * A log line says nothing of its region, and a cloud's Logs page narrows by it, on the
+   * resource: what a probe's instance actions already say, and what the traces profile sends.
+   */
+  test.each(Object.entries({ files: filesConfig, journald: journalConfig }))(
+    "the %s profile says which region the machine serves",
+    (_name, config) => {
+      expect(
+        config.processors.resource.attributes.find((attribute) => {
+          return attribute.key === "openstack.region.name";
+        }),
+      ).toEqual({
+        key: "openstack.region.name",
+        value: "${env:OPENSTACK_REGION_NAME}",
+        action: "upsert",
+      });
+    },
+  );
+
+  test("the compose file and the journal's service both default it", () => {
+    expect(
+      compose.services["oneuptime-openstack-logs"].environment,
+    ).toContain("OPENSTACK_REGION_NAME=${OPENSTACK_REGION_NAME:-RegionOne}");
+    expect(read("systemd/oneuptime-openstack-logs-native.service")).toContain(
+      "Environment=OPENSTACK_REGION_NAME=RegionOne",
+    );
   });
 });
 
@@ -660,6 +695,57 @@ describe("the installer is served with the agent's other files", () => {
   });
 });
 
+describe("the region a machine says it serves", () => {
+  test("is asked, and takes the answer", () => {
+    const dir = scratch();
+    const result = install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "" },
+      input: "RegionTwo\n",
+      args: ["files"],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.envFile).toContain("OPENSTACK_REGION_NAME='RegionTwo'");
+  });
+
+  test("is asked of nobody when it is set, as across a fleet", () => {
+    const dir = scratch();
+    const result = install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "eu-west" },
+      args: ["files"],
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.output).not.toContain("The region this machine serves");
+    expect(result.envFile).toContain("OPENSTACK_REGION_NAME='eu-west'");
+  });
+
+  test("is kept by the upgrade, which is running it again", () => {
+    const dir = scratch();
+    install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "eu-west" },
+      args: ["files"],
+    });
+    const again = install(dir, { env: {}, args: ["files"] });
+
+    expect(again.status).toBe(0);
+    expect(again.envFile).toContain("OPENSTACK_REGION_NAME='eu-west'");
+  });
+
+  test("reaches the journal's service too", () => {
+    const dir = scratch();
+    const script = withRelease(dir);
+    const result = install(dir, {
+      env: { ...ANSWERS, OPENSTACK_REGION_NAME: "eu-west" },
+      args: ["journald"],
+      script,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.envFile).toContain('OPENSTACK_REGION_NAME="eu-west"');
+  });
+});
+
 describe("installing the files profile", () => {
   test("writes every answer, starts it, and shows the key to nobody", () => {
     const dir = scratch();
@@ -672,6 +758,7 @@ describe("installing the files profile", () => {
       `ONEUPTIME_TELEMETRY_INGESTION_KEY='${KEY}'`,
     );
     expect(result.envFile).toContain("OPENSTACK_CLOUD_NAME='production'");
+    expect(result.envFile).toContain("OPENSTACK_REGION_NAME='RegionOne'");
     expect(result.envFile).toContain("OPENSTACK_NODE_NAME='compute-01'");
     expect(result.envFile).toContain("OPENSTACK_LOGS_TIMEZONE='UTC'");
     expect(

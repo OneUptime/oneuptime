@@ -137,6 +137,12 @@ const FriendlyLabelNames: Record<string, string> = {
   service_type: "Service Type",
   // What a check of an endpoint's certificate is about, beside its host.
   port: "Port",
+  capacity_scope: "What Fills Up",
+  resourcetype: "Resource",
+  capacity_name: "Name",
+  availability_zone: "Zone",
+  flavor: "Flavor",
+  flavor_id: "Flavor ID",
   hostname: "Host",
   service: "Service",
   uuid: "UUID",
@@ -354,6 +360,9 @@ const LabelPriority: Record<string, number> = {
    */
   hostname: 25,
   service: 26,
+  flavor: 25,
+  capacity_name: 25,
+  capacity_scope: 26,
   "openstack.instance.id": 25,
   network_name: 25,
   tenant: 25,
