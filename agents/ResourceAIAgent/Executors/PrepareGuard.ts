@@ -202,6 +202,10 @@ export default class PrepareGuard {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[resourceType];
 
     if (!config.allowWrites) {
+      if (config.writesOffReason) {
+        return `"${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only until this is fixed: ${config.writesOffReason}`;
+      }
+
       return config.writesOffByFixes
         ? `"${result.displayCommand}" changes the ${info.displayName}, and AI fixes are off in this agent's configuration (${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.Disabled}). To let OneUptime AI apply fixes, set ${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval} (or ${AGENT_AI_FIXES_SETTING_VALUES.Automatic}, or ${AGENT_AI_FIXES_SETTING_VALUES.BypassApproval}) on the agent and restart it.`
         : `"${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only (${describeWriteSwitch(

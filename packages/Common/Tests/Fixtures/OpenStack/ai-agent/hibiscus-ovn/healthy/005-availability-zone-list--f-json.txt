@@ -1,0 +1,34 @@
+$ openstack availability zone list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "zone": "internal",
+    "zone_available": true,
+    "host": "compute-01",
+    "service": "nova-scheduler",
+    "available": true,
+    "active": true,
+    "updated_at": "2026-11-05T05:29:30.000000"
+  },
+  {
+    "zone": "internal",
+    "zone_available": true,
+    "host": "compute-01",
+    "service": "nova-conductor",
+    "available": true,
+    "active": true,
+    "updated_at": "2026-11-05T05:29:35.000000"
+  },
+  {
+    "zone": "nova",
+    "zone_available": true,
+    "host": "compute-01",
+    "service": "nova-compute",
+    "available": true,
+    "active": true,
+    "updated_at": "2026-11-05T05:29:40.000000"
+  }
+]

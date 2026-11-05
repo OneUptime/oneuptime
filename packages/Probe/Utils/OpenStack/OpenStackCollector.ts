@@ -42,6 +42,7 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackPlacementInventory,
+  OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
 } from "./OpenStackInventory";
 import { buildOpenStackInstanceActionLogs } from "./OpenStackInstanceActions";
@@ -88,6 +89,9 @@ import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
 import collectOrchestration from "./Collectors/OrchestrationCollector";
 import collectPlacement from "./Collectors/PlacementCollector";
+import collectSharedFileSystems, {
+  SHARED_FILE_SYSTEMS_MICROVERSION_HEADERS,
+} from "./Collectors/SharedFileSystemsCollector";
 import collectVolume, {
   CINDER_MICROVERSION,
 } from "./Collectors/VolumeCollector";
@@ -193,6 +197,7 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   // As the agent's jobs read every service a cloud may not run.
   OpenStackServiceType.Orchestration,
   OpenStackServiceType.ContainerInfra,
+  OpenStackServiceType.SharedFileSystems,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -442,7 +447,8 @@ function countRollingDatapoints(
       (inventory.image?.images?.length || 0) * 2 +
       (inventory.identity?.projects?.length || 0) +
       (inventory.orchestration?.stacks?.length || 0) +
-      (inventory["container-infra"]?.clusters?.length || 0) * 3;
+      (inventory["container-infra"]?.clusters?.length || 0) * 3 +
+      (inventory.sharev2?.shares?.length || 0) * 2;
   }
 
   return count;
@@ -1350,6 +1356,12 @@ export default class OpenStackCollector {
             work = collectContainerInfra(context(inventory));
             break;
           }
+          case OpenStackServiceType.SharedFileSystems: {
+            const inventory: OpenStackSharedFileSystemsInventory = {};
+            byService.sharev2 = inventory;
+            work = collectSharedFileSystems(context(inventory));
+            break;
+          }
           default: {
             const inventory: OpenStackImageInventory = {};
             byService.image = inventory;
@@ -1849,6 +1861,10 @@ export default class OpenStackCollector {
 
           if (client.service === OpenStackServiceType.ContainerInfra) {
             return CONTAINER_INFRA_MICROVERSION_HEADERS;
+          }
+
+          if (client.service === OpenStackServiceType.SharedFileSystems) {
+            return SHARED_FILE_SYSTEMS_MICROVERSION_HEADERS;
           }
 
           if (client.service !== OpenStackServiceType.Compute) {
