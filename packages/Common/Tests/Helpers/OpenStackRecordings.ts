@@ -25,7 +25,7 @@ export const OPENSTACK_RECORDING_NOW: Date = new Date(
   OBSERVED_AT_MS + 60 * 1000,
 );
 
-interface Series {
+export interface OpenStackRecordedSeries {
   name: string;
   labels: Record<string, string>;
   value: number;
@@ -35,8 +35,10 @@ interface Series {
  * Prometheus' text format. A label value can hold anything a tenant typed, so this reads
  * escapes rather than splitting on commas.
  */
-function parsePrometheusText(text: string): Array<Series> {
-  const series: Array<Series> = [];
+export function parsePrometheusText(
+  text: string,
+): Array<OpenStackRecordedSeries> {
+  const series: Array<OpenStackRecordedSeries> = [];
   for (const line of text.split("\n")) {
     if (!line.trim() || line.startsWith("#")) {
       continue;
@@ -87,7 +89,7 @@ function parsePrometheusText(text: string): Array<Series> {
  * label with nothing in it, which the fold has to read correctly: a volume with no server
  * has no server_id at all (Fixtures/OpenStack/<release>/otlp.json).
  */
-function toDatapoint(series: Series): JSONObject {
+function toDatapoint(series: OpenStackRecordedSeries): JSONObject {
   const attributes: JSONArray = Object.keys(series.labels)
     .filter((key: string): boolean => {
       return series.labels[key] !== "";
@@ -177,6 +179,34 @@ export class OpenStackRecording {
     }
     return found;
   }
+}
+
+// What the exporter said in one scene, service by service, parsed as it was written.
+export function readOpenStackScene(
+  release: string,
+  scene: string,
+): Array<OpenStackRecordedSeries> {
+  const folder: string = path.join(FIXTURES, release, scene, "exporter");
+  return fs
+    .readdirSync(folder)
+    .sort()
+    .filter((file: string): boolean => {
+      return file.endsWith(".prom");
+    })
+    .flatMap((file: string): Array<OpenStackRecordedSeries> => {
+      return parsePrometheusText(
+        fs.readFileSync(path.join(folder, file), "utf8"),
+      ).map((series: OpenStackRecordedSeries): OpenStackRecordedSeries => {
+        return {
+          ...series,
+          // The job that asked, which the collector stamps: compute.prom is compute's.
+          labels: {
+            ...series.labels,
+            openstack_service: file.replace(/\.prom$/, ""),
+          },
+        };
+      });
+    });
 }
 
 export function getOpenStackReleases(): Array<string> {
