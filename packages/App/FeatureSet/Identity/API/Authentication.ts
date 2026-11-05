@@ -2126,6 +2126,35 @@ router.post(
   },
 );
 
+/*
+ * A refresh of a session that is no longer live. A session the server's session
+ * lengths ended already - a master admin shortened them, and every session past
+ * them was ended at once (UserSessionService.endSessionsPastLengths) - says why,
+ * as it would have had this refresh been the one to end it.
+ */
+const refuseEndedSession: (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  refreshToken: string;
+}) => Promise<void> = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  refreshToken: string;
+}): Promise<void> => {
+  const endReason: SessionEndReason | null =
+    await UserSessionService.getSessionLengthEndReason(data.refreshToken);
+
+  CookieUtil.removeAllCookies(data.req, data.res);
+
+  return Response.sendErrorResponse(
+    data.req,
+    data.res,
+    endReason
+      ? new SessionEndedException(endReason)
+      : new NotAuthenticatedException("Session expired. Please login again."),
+  );
+};
+
 router.post(
   "/refresh-token",
   async (
@@ -2154,25 +2183,7 @@ router.post(
         await UserSessionService.findActiveSessionByRefreshToken(refreshToken);
 
       if (!session || !session.id) {
-        /*
-         * A session the server's session lengths ended already - a master
-         * admin shortened them, and every session past them was ended at
-         * once (UserSessionService.endSessionsPastLengths) - says why, as
-         * it would have had this refresh been the one to end it.
-         */
-        const endReason: SessionEndReason | null =
-          await UserSessionService.getSessionLengthEndReason(refreshToken);
-
-        CookieUtil.removeAllCookies(req, res);
-        return Response.sendErrorResponse(
-          req,
-          res,
-          endReason
-            ? new SessionEndedException(endReason)
-            : new NotAuthenticatedException(
-                "Session expired. Please login again.",
-              ),
-        );
+        return await refuseEndedSession({ req, res, refreshToken });
       }
 
       if (
@@ -2288,7 +2299,7 @@ router.post(
         );
       }
 
-      const renewedSession: SessionMetadata =
+      const renewedSession: SessionMetadata | null =
         await UserSessionService.renewSessionWithNewRefreshToken({
           session,
           lastActiveAt: decision.lastActiveAt,
@@ -2297,6 +2308,11 @@ router.post(
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
         });
+
+      // Ended while this request was on its way: it stays ended.
+      if (!renewedSession) {
+        return await refuseEndedSession({ req, res, refreshToken });
+      }
 
       CookieUtil.setUserCookie({
         expressResponse: res,

@@ -509,7 +509,7 @@ router.post(
         });
       }
 
-      const renewedSession: StatusPageSessionMetadata =
+      const renewedSession: StatusPageSessionMetadata | null =
         await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken(
           {
             session,
@@ -518,6 +518,16 @@ router.post(
             ...extractDeviceInfo(req),
           },
         );
+
+      // Ended while this request was on its way: it stays ended.
+      if (!renewedSession) {
+        return await endRefresh({
+          req,
+          res,
+          statusPageId,
+          message: "Session expired. Please login again.",
+        });
+      }
 
       const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
         expressResponse: res,
