@@ -553,6 +553,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                 }),
                 /*
+                 * Whose data alerts stay quiet: few events name one, so it folds with what else
+                 * most people leave alone, and the resources step stays at what they do set.
+                 */
+                {
+                  ...getDataStoresMaintenanceField(),
+                  field: { dataStoreIds: true },
+                  stepId: "event",
+                  collapsibleSection: advancedSection,
+                },
+                /*
                  * The event's monitors, on their own: Change Monitor Status
                  * to right below acts on them, and the status pages that show
                  * them are suggested under the status page picker.
@@ -690,10 +700,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       />
                     );
                   },
-                },
-                {
-                  ...getDataStoresMaintenanceField(),
-                  stepId: "resources-affected",
                 },
                 /*
                  * Everything else the event affects. Anchored on `hosts`; its

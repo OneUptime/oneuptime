@@ -616,7 +616,11 @@ describe("Create Scheduled Maintenance Event", () => {
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
     expect(setChips()).toEqual([]);
-    expect(fieldLabelsIn(sectionBody(advanced))).toEqual(["Owners", "Labels"]);
+    expect(fieldLabelsIn(sectionBody(advanced))).toEqual([
+      "Owners",
+      "Labels",
+      "Data Observability Databases",
+    ]);
 
     const labelsLabel: HTMLElement = within(sectionBody(advanced)).getByText(
       "Labels",
@@ -674,7 +678,6 @@ describe("Create Scheduled Maintenance Event", () => {
      */
     expect(fieldLabelsIn(form())).toEqual([
       "Monitors",
-      "Data Observability Databases",
       "Other Affected Resources",
       "Show event on these status pages",
       "Publish on Status Pages",
