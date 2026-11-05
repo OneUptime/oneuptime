@@ -179,10 +179,7 @@ describe.each(OPENSTACK_LOG_RELEASES)("%s", (release: string) => {
         (entry: RecordedJournalEntry): OpenStackLogStamp => {
           const row: StoredLogRow = storedRowOf(entry);
 
-          expectItsOwnWords(
-            entry.MESSAGE.replace(COLOUR, ""),
-            row.stamp,
-          );
+          expectItsOwnWords(entry.MESSAGE.replace(COLOUR, ""), row.stamp);
 
           return row.stamp;
         },
