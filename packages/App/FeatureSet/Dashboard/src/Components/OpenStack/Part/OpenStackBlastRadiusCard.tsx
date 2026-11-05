@@ -268,7 +268,14 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
         )}
         {data.acrossProducts && !isOpenStackReachEmpty(data.acrossProducts) ? (
           <div data-testid={`${props.testId}-across-products`}>
-            <p className="pt-4 pb-2 text-xs font-medium text-gray-500">
+            {/* A ruled list runs to the card's edge, so what follows one starts past that. */}
+            <p
+              className={`${
+                !isOpenStackBlastRadiusEmpty(data) && shown.length > 0
+                  ? "pt-10"
+                  : "pt-4"
+              } pb-2 text-xs font-medium text-gray-500`}
+            >
               {translator.translateText("Beyond this cloud")}
             </p>
             <OpenStackReachList

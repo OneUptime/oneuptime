@@ -51,7 +51,20 @@ export interface OpenStackLinkedService {
   name: string;
 }
 
+// An instance a hypervisor's failure takes with it, by the name people know it by.
+export interface OpenStackLinkedInstance {
+  id: string;
+  name: string | null;
+}
+
 export interface OpenStackReachAcrossProducts {
+  /*
+   * The instances themselves: part of the cloud rather than beyond it, so they say nothing of
+   * whether the reach is empty, but an alert has to be able to name them. Only a hypervisor
+   * has a list of them, since an instance's reach is its own.
+   */
+  instanceCount?: number | undefined;
+  instances?: Array<OpenStackLinkedInstance> | undefined;
   hostCount: number;
   // Each of these lists holds at most OPENSTACK_REACH_LIST_LIMIT of its kind.
   hosts: Array<OpenStackLinkedHost>;
@@ -64,6 +77,17 @@ export interface OpenStackReachAcrossProducts {
 }
 
 export const OPENSTACK_REACH_LIST_LIMIT: number = 50;
+
+// How many places a service's page names before it stops. Its Topology has the rest.
+export const OPENSTACK_SERVICE_PLACEMENT_LIMIT: number = 10;
+
+// Which machine a service's placement was reached through: a host, or a Kubernetes node.
+export interface OpenStackServicePlacement {
+  hostName: string;
+  hostId: string | null;
+  kubernetesClusterId: string | null;
+  placement: OpenStackPlacement;
+}
 
 export function getEmptyOpenStackReachAcrossProducts(): OpenStackReachAcrossProducts {
   return {
@@ -96,29 +120,64 @@ export function getOnlyOpenStackMatch<T>(matches: ReadonlyArray<T>): T | null {
   return matches.length === 1 ? (matches[0] as T) : null;
 }
 
+// With a loop rather than a pattern: a name comes from whatever an agent chose to report.
+function isOpenStackAddress(name: string): boolean {
+  if (name.includes(":")) {
+    return true;
+  }
+  for (let index: number = 0; index < name.length; index++) {
+    const character: string = name.charAt(index);
+    if (character !== "." && (character < "0" || character > "9")) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// What DNS allows, so that anything longer is not the name of a machine at all.
+const OPENSTACK_HOST_NAME_MAX_LENGTH: number = 255;
+
+/*
+ * Names every machine can answer to, whatever it is. An agent that reports one of these has
+ * not said which machine it is on, and neither has a hypervisor.
+ */
+const NAMES_OF_NO_MACHINE_IN_PARTICULAR: ReadonlySet<string> = new Set<string>([
+  "localhost",
+  "localhost.localdomain",
+  "localhost6",
+  "localhost6.localdomain6",
+  "ip6-localhost",
+  "ip6-loopback",
+]);
+
+function toOpenStackHostName(name: string | null | undefined): string {
+  const lower: string = (name || "").trim().toLowerCase();
+  return lower.length > OPENSTACK_HOST_NAME_MAX_LENGTH ||
+    NAMES_OF_NO_MACHINE_IN_PARTICULAR.has(lower)
+    ? ""
+    : lower;
+}
+
 /*
  * Whether a host's name and a hypervisor's name are one machine. Nova keeps a host's full
  * name or its short one, and so does a machine's agent, so a short name matches a long one
  * whose first part it is. Two full names in different domains are two machines, however
- * alike they start, and an address is only ever itself.
+ * alike they start, and an address is only ever itself. Whether that one machine is the only
+ * thing either name could be is a separate question: see getOnlyOpenStackMatch.
  */
 export function isOpenStackHostNameMatch(
   hostName: string | null | undefined,
   hypervisorName: string | null | undefined,
 ): boolean {
-  const first: string = (hostName || "").trim().toLowerCase();
-  const second: string = (hypervisorName || "").trim().toLowerCase();
+  const first: string = toOpenStackHostName(hostName);
+  const second: string = toOpenStackHostName(hypervisorName);
   if (!first || !second) {
     return false;
   }
   if (first === second) {
     return true;
   }
-  const addressFormat: RegExp = /^[0-9.]+$/;
-  const isAddress: (name: string) => boolean = (name: string): boolean => {
-    return addressFormat.test(name) || name.includes(":");
-  };
-  if (isAddress(first) || isAddress(second)) {
+  if (isOpenStackAddress(first) || isOpenStackAddress(second)) {
     return false;
   }
   if (first.includes(".") === second.includes(".")) {
@@ -127,6 +186,37 @@ export function isOpenStackHostNameMatch(
   return first.includes(".")
     ? first.startsWith(`${second}.`)
     : second.startsWith(`${first}.`);
+}
+
+/*
+ * What isOpenStackHostNameMatch accepts for a name, as something a database can be asked: the
+ * names it can equal, and the short name any of whose domains it can have. A read has to ask
+ * exactly this. Asking for more and filtering after a LIMIT could cut one of two real
+ * matches, and what is left would look like the only one.
+ */
+export interface OpenStackHostNameForms {
+  // Lowercase, and each one a name in its own right.
+  names: Array<string>;
+  // Lowercase, when any `<this>.<domain>` matches too.
+  anyDomainOf: string | null;
+}
+
+export function getOpenStackHostNameForms(
+  name: string | null | undefined,
+): OpenStackHostNameForms {
+  const lower: string = toOpenStackHostName(name);
+  if (!lower) {
+    return { names: [], anyDomainOf: null };
+  }
+  if (isOpenStackAddress(lower)) {
+    return { names: [lower], anyDomainOf: null };
+  }
+  const dot: number = lower.indexOf(".");
+  if (dot < 0) {
+    return { names: [lower], anyDomainOf: lower };
+  }
+  const short: string = lower.substring(0, dot);
+  return { names: short ? [lower, short] : [lower], anyDomainOf: null };
 }
 
 /*
@@ -268,15 +358,23 @@ export function getOpenStackPoolNameCandidates(data: {
   return names;
 }
 
+// Another Cinder pool in the project, which could answer to the same Ceph pool's name.
+export interface OpenStackStoragePoolOfProject {
+  poolName: string | null | undefined;
+  facts: JSONObject | null | undefined;
+}
+
 /*
  * What can be said about a pool and Ceph. The operator's answer wins, then what the driver
- * says, and a name is only ever a suggestion, and only when it points at one cluster: most
- * clusters have a pool called `volumes`, so two of them is no answer at all.
+ * says, and a name is only ever a suggestion, and only when it points one way from both ends:
+ * most clusters have a pool called `volumes`, so a name two clusters hold is no answer, and
+ * most clouds have a Cinder pool called `volumes`, so neither is a name two Cinder pools hold.
  */
 export function getOpenStackStoragePoolCephLink(data: {
   poolName: string | null | undefined;
   facts: JSONObject | null | undefined;
   clusters: ReadonlyArray<OpenStackCephClusterCandidate>;
+  otherPools?: ReadonlyArray<OpenStackStoragePoolOfProject> | undefined;
 }): OpenStackStoragePoolCephLink {
   const clusterById: (
     id: string | null,
@@ -369,7 +467,15 @@ export function getOpenStackStoragePoolCephLink(data: {
   }
   const only: { cluster: OpenStackCephClusterCandidate; pool: string } | null =
     getOnlyOpenStackMatch(byName);
-  if (only) {
+  const isClaimedByAnotherPool: boolean = Boolean(
+    only &&
+      (data.otherPools || []).some(
+        (other: OpenStackStoragePoolOfProject): boolean => {
+          return getOpenStackPoolNameCandidates(other).includes(only.pool);
+        },
+      ),
+  );
+  if (only && !isClaimedByAnotherPool) {
     return {
       state: "suggested",
       clusterId: only.cluster.id,
@@ -405,6 +511,33 @@ export interface OpenStackCephStatusFact {
 }
 
 export const OPENSTACK_CEPH_STATUS_FACT: string = "cephStatus";
+
+/*
+ * How long a Ceph cluster's own word counts for: the Ceph product's own line for a reading that
+ * is no reading (CEPH_READINGS_STALE_MS). Its agent reports every 30 seconds, so a cluster whose
+ * agent stopped says nothing about now, and its last HEALTH_ERR must not page anyone for good.
+ */
+export const OPENSTACK_CEPH_HEALTH_FRESH_MINUTES: number = 15;
+
+export function getOpenStackCephHealthNow(data: {
+  healthStatus: number | null | undefined;
+  lastSeenAt: Date | string | null | undefined;
+  now: Date;
+}): number | null {
+  if (
+    data.healthStatus === null ||
+    data.healthStatus === undefined ||
+    !data.lastSeenAt
+  ) {
+    return null;
+  }
+  const seenAt: number = new Date(data.lastSeenAt).getTime();
+  return !isNaN(seenAt) &&
+    data.now.getTime() - seenAt <=
+      OPENSTACK_CEPH_HEALTH_FRESH_MINUTES * 60 * 1000
+    ? data.healthStatus
+    : null;
+}
 
 export function getOpenStackCephStatusFact(
   facts: JSONObject | null | undefined,

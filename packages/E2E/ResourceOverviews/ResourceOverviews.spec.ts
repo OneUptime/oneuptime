@@ -332,6 +332,78 @@ function headerLabels(page: Page): Locator {
  * The Details card
  * ---------------------------------------------------------------------------
  */
+test.describe("a service on OpenStack", () => {
+  const CLOUD: string = "71000000-0000-4000-8000-000000000009";
+  const INSTANCE: string = "2e1cfc3e-0001-4c2e-a4fc-c5cf0f2db585";
+
+  test("says where it runs, down to the hypervisor, from the machine its telemetry names", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, SERVICE_PAGE, "openstack=instance");
+
+    const card: Locator = page.getByTestId("service-openstack-placement");
+    await expect(card).toContainText("Where this service runs");
+    const instance: Locator = card.getByTestId("openstack-placement-instance");
+    await expect(instance).toContainText("web-1");
+    await expect(instance.getByRole("link")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/openstack/${CLOUD}/instances/${INSTANCE}`,
+    );
+    await expect(
+      card.getByTestId("openstack-placement-hypervisor"),
+    ).toContainText("compute-01.acme.example");
+  });
+
+  test("on several machines it is one card, with each on a line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, SERVICE_PAGE, "openstack=several");
+
+    await expect(page.getByTestId("service-openstack-placement")).toHaveCount(
+      1,
+    );
+    const rows: Locator = page.getByTestId("openstack-placement-row");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText("web-1");
+    await expect(rows.nth(1)).toContainText("k8s-worker-1");
+    await expect(rows.nth(1)).toContainText("compute-02.acme.example");
+  });
+
+  test("a service on no cloud says nothing of it at all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, SERVICE_PAGE);
+
+    await expect
+      .poll(async (): Promise<boolean> => {
+        const requests: Array<{ url: string }> = await page.evaluate(
+          (): Array<{ url: string }> => {
+            return (
+              window as unknown as {
+                __resourceOverviewsFixture: {
+                  apiRequests: Array<{ url: string }>;
+                };
+              }
+            ).__resourceOverviewsFixture.apiRequests;
+          },
+        );
+        return requests.some((request: { url: string }): boolean => {
+          return request.url.includes("/placement-of-service/");
+        });
+      })
+      .toBe(true);
+    await expect(page.getByTestId("service-openstack-placement")).toHaveCount(
+      0,
+    );
+  });
+});
+
 test.describe("the Details card ends with the record's ID line", () => {
   test("a service: its reported facts, in order, no ID row, the ID line last and Edit in Settings", async ({
     page,
