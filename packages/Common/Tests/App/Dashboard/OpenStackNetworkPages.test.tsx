@@ -19,6 +19,7 @@ import OpenStackResource from "../../../Models/DatabaseModels/OpenStackResource"
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
 import { JSONObject } from "../../../Types/JSON";
+import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OpenStackCloudFloatingIpDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIpDetail";
 import OpenStackCloudFloatingIps from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/FloatingIps";
@@ -473,6 +474,53 @@ describe("the Networks page", () => {
     await renderPage(OpenStackCloudNetworks, "/networks");
     await screen.findByText("private");
     expect(screen.queryByTestId("openstack-limited-view-notice")).toBeNull();
+  });
+
+  describe("on a cloud a probe collects", () => {
+    beforeEach(() => {
+      Object.assign(server.cloud as Record<string, unknown>, {
+        collectionMethod: OpenStackCollectionMethod.Probe,
+      });
+    });
+
+    test("what is off is turned on under Data Collection: there is no exporter to change a flag on", async () => {
+      server.rows = [privateNetwork()];
+
+      await renderPage(OpenStackCloudNetworks, "/networks");
+      await screen.findByTestId("openstack-network-counts");
+
+      const ports: HTMLElement = await screen.findByText(
+        /turn on Ports under Data Collection/i,
+      );
+      expect(ports).toBeInTheDocument();
+      expect(screen.getByTestId("openstack-ports-off")).not.toHaveTextContent(
+        /--disable-metric/,
+      );
+      expect(
+        screen.getByTestId("openstack-security-groups-by-project-off"),
+      ).toHaveTextContent(/turn on Project limits under Data Collection/i);
+      expect(
+        screen.getByTestId("openstack-security-groups-by-project-off"),
+      ).not.toHaveTextContent(/--disable-metric/);
+    });
+
+    test("a list that may be one project's says to test the connection, not to run a script on an agent", async () => {
+      server.rows = [
+        privateNetwork(),
+        projectRow(PROJECT_A, "payments"),
+        projectRow(PROJECT_B, "research"),
+      ];
+
+      await renderPage(OpenStackCloudNetworks, "/networks");
+
+      const notice: HTMLElement = await screen.findByText(
+        /Test Connection, under Data Collection/,
+      );
+      expect(notice).toBeInTheDocument();
+      expect(
+        screen.getByTestId("openstack-limited-view-notice"),
+      ).not.toHaveTextContent(/troubleshoot\.sh/);
+    });
   });
 });
 
@@ -1096,6 +1144,29 @@ describe("network agents", () => {
     ).toBeInTheDocument();
   });
 
+  test("on a cloud a probe collects, that says to give the probe a credential, with no agent to run a script on", async () => {
+    Object.assign(server.cloud as Record<string, unknown>, {
+      collectionMethod: OpenStackCollectionMethod.Probe,
+    });
+    server.rows = [
+      {
+        kind: OpenStackResourceKind.Api,
+        name: "network",
+        externalId: "RegionOne/network",
+        status: "up",
+      },
+    ];
+
+    await renderPage(OpenStackCloudNetworkAgents, "/network-agents");
+
+    expect(
+      await screen.findByText(
+        /Give the probe one of those with Edit Connection/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/troubleshoot\.sh/)).toBeNull();
+  });
+
   test("an L3 agent's page lists the routers it holds, by its own id", async () => {
     server.rows = [
       agentRow(),
@@ -1170,7 +1241,9 @@ describe("network agents", () => {
       "openstack-network-agent-serves-unknown",
     );
     expect(notice).toHaveTextContent(/isn't in what's collected/);
-    expect(notice).toHaveTextContent(`openstack network list --agent ${AGENT_ID}`);
+    expect(notice).toHaveTextContent(
+      `openstack network list --agent ${AGENT_ID}`,
+    );
     expect(screen.queryByRole("tab", { name: "Routers" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "Networks" })).toBeNull();
   });
@@ -1181,7 +1254,12 @@ describe("network agents", () => {
       agentRow({
         name: "neutron-dhcp-agent",
         externalId: dhcp,
-        facts: { family: "network", host: "net-01", agentId: AGENT_ID, dhcpNetworkCount: 1 },
+        facts: {
+          family: "network",
+          host: "net-01",
+          agentId: AGENT_ID,
+          dhcpNetworkCount: 1,
+        },
       }),
       privateNetwork({
         name: "served-here",
@@ -1220,7 +1298,12 @@ describe("network agents", () => {
       agentRow({
         name: "neutron-dhcp-agent",
         externalId: dhcp,
-        facts: { family: "network", host: "net-01", agentId: AGENT_ID, dhcpNetworkCount: 0 },
+        facts: {
+          family: "network",
+          host: "net-01",
+          agentId: AGENT_ID,
+          dhcpNetworkCount: 0,
+        },
       }),
     ];
 
@@ -1230,7 +1313,9 @@ describe("network agents", () => {
     );
 
     expect(
-      await screen.findByTestId("openstack-network-agent-details-dhcp-networks"),
+      await screen.findByTestId(
+        "openstack-network-agent-details-dhcp-networks",
+      ),
     ).toHaveTextContent("0");
     expect(
       screen.queryByTestId("openstack-network-agent-serves-unknown"),
@@ -1242,12 +1327,20 @@ describe("network agents", () => {
       agentRow({
         name: "neutron-dhcp-agent",
         externalId: "RegionOne/network/net-01/neutron-dhcp-agent",
-        facts: { family: "network", host: "net-01", agentId: AGENT_ID, dhcpNetworkCount: 1 },
+        facts: {
+          family: "network",
+          host: "net-01",
+          agentId: AGENT_ID,
+          dhcpNetworkCount: 1,
+        },
       }),
       privateNetwork({ facts: { dhcpAgentIds: [AGENT_ID, "gone-since"] } }),
     ];
 
-    await renderPage(OpenStackCloudNetworkDetail, partPath("networks", PRIVATE_NETWORK_ID));
+    await renderPage(
+      OpenStackCloudNetworkDetail,
+      partPath("networks", PRIVATE_NETWORK_ID),
+    );
 
     const row: HTMLElement = await screen.findByTestId(
       "openstack-network-details-dhcp-agents",
@@ -1258,7 +1351,10 @@ describe("network agents", () => {
     cleanup();
 
     server.rows = [privateNetwork()];
-    await renderPage(OpenStackCloudNetworkDetail, partPath("networks", PRIVATE_NETWORK_ID));
+    await renderPage(
+      OpenStackCloudNetworkDetail,
+      partPath("networks", PRIVATE_NETWORK_ID),
+    );
     await screen.findByTestId("openstack-network-details");
     expect(
       screen.queryByTestId("openstack-network-details-dhcp-agents"),

@@ -74,7 +74,7 @@ test.describe("Projects without quota data", () => {
     await expect(probe).toContainText("Project limits");
     await expect(probe.getByRole("link", { name: "Settings" })).toHaveAttribute(
       "href",
-      new RegExp(`${CLOUD_PATH}/settings$`),
+      new RegExp(`${CLOUD_PATH}/settings#collection-options$`),
     );
     await expect(page.getByTestId("openstack-quota-setup-agent")).toHaveCount(
       0,

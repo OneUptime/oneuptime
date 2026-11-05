@@ -240,7 +240,8 @@ jobs:
   # the laptop's projects in one half and the phone's in the other. Model
   # Tables and Monitor Overview are split since 2026-11-01 by
   # MODEL_TABLES_SHARD and MONITOR_OVERVIEW_SHARD, by test as Event Overview
-  # is (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
+  # is, and the OpenStack pages since 2026-11-05 by OPENSTACK_PAGES_SHARD
+  # (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, its
   # minutes in Tests/Ops/DashboardOfflineUiMinutes.json, and its output
@@ -275,6 +276,8 @@ jobs:
       MODEL_TABLES_SHARD: ${{ matrix.model_tables_shard || '' }}
       # And of Monitor Overview (playwright.monitor-overview-ui.config.ts).
       MONITOR_OVERVIEW_SHARD: ${{ matrix.monitor_overview_shard || '' }}
+      # And of the OpenStack pages (playwright.openstack-pages-ui.config.ts).
+      OPENSTACK_PAGES_SHARD: ${{ matrix.openstack_pages_shard || '' }}
     strategy:
       # Every group reports its own suites, whatever happens to the others.
       fail-fast: false
@@ -1458,9 +1461,15 @@ jobs:
           # Added on 2026-11-04 for an OpenStack cloud's pages: its Overview, its
           # lists and the pages of its parts, on what real clouds' exporters
           # answered, read through the real snapshot scan, at 1280, 1024, 768 and
-          # 390 pixels, dark, German and Persian. A group of its own, because the
-          # product's pages are still joining it: no group had the room for it.
+          # 390 pixels, dark, German and Persian. Two groups of their own, because
+          # the product's pages are still joining it and it outgrew one on
+          # 2026-11-05: no group had the room for it.
           - group: 19
+            openstack_pages_shard: 1/2
+            suites: >-
+              test-openstack-pages-ui
+          - group: 20
+            openstack_pages_shard: 2/2
             suites: >-
               test-openstack-pages-ui
     steps:

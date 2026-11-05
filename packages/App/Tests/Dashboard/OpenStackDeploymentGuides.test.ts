@@ -523,7 +523,7 @@ describe("what is already firing, with no agent", () => {
     );
 
     expect(page).toContain("https://oneuptime.com/heartbeat/<secret key>");
-    expect(page).toContain("## On an OpenStack cloud");
+    expect(page).toContain("On an OpenStack cloud, link the monitor to the cloud");
     expect(page).toContain("**Overview → Linked Resources**");
     expect(page).toContain("/docs/telemetry/openstack-deployment-tools");
   });
