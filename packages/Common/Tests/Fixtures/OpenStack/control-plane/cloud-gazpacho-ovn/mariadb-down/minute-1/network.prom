@@ -1,0 +1,7 @@
+ovn_northd_status 1
+ovnc_encap_ip{encap_ip="10.0.129.153"} 1
+ovnc_rconn_queued 1969
+ovs_bridge_port_count{bridge="br-ex",datapath_type=""} 2
+ovs_bridge_port_count{bridge="br-int",datapath_type="system"} 8
+ovs_build_info{db_version="8.5.1",dpdk_version="none",ovs_version="3.3.9"} 1
+ovs_memory_rules_total 1435

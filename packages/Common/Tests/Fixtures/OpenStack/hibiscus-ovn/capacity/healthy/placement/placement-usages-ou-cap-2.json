@@ -1,0 +1,8 @@
+{
+"resource_provider_generation": 6,
+"usages": {
+"DISK_GB": 40,
+"MEMORY_MB": 4096,
+"VCPU": 2
+}
+}

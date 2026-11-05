@@ -31,7 +31,11 @@ tell them apart:
   said of that same cloud at the same moment, on its own.
   `?recording=hibiscus-ovn/access/reader` is what the exporter answered one credential on a healthy
   cloud, for each level of access the docs describe: `reader`, `monitoring-role` and
-  `monitoring-admin-get`. `&without=volume` makes a recording's cloud one with no such service.
+  `monitoring-admin-get`. `?recording=hibiscus-ovn/capacity/healthy` is three more hosts, set up
+  differently on a real Placement, and `capacity/host-lost` is one of them gone. `&without=volume`
+  makes a recording's cloud one with no such service. A service a cloud may not run has a group of
+  its own: `?recording=services-heat-magnum/magnum-failed` on its own, or
+  `?recording=gazpacho-ovs/healthy&also=services-heat-magnum/access/admin` beside a whole cloud.
 - **Made up:** `?estate=busy|calm|forced-down|new|multi-region|overflow|ovn-stale|tenants|parts|links|usage`
   (`Fixture/Data.js`), built with one builder per kind, each writing what a recording of that kind has. Use one when
   a walk needs what no recording holds: a full pool, a second region, a lost host with 42
@@ -97,6 +101,8 @@ Screenshots are written to `output/playwright/openstack-pages-ui/`.
 the pages while working on them.
 
 ## What the walks hold
+
+`OpenStackOptionalServices.spec.ts`: a service a cloud may not run. A cloud without it shows no trace of it in the menu, on Services, on the Overview or in Recommendations, and an old link says so rather than breaking. A cloud with it gets its menu entries, its lists and its part's pages, a failed stack and a failed cluster reach Needs attention by name and land on their own pages, and each page says what the agent can't see, at every width.
 
 `DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
 

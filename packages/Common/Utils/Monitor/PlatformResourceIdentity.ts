@@ -297,14 +297,22 @@ export default class PlatformResourceIdentity {
       resourceName:
         PlatformResourceIdentity.readAttribute(attributes, "name") ||
         PlatformResourceIdentity.readAttribute(attributes, "network_name") ||
-        PlatformResourceIdentity.readAttribute(attributes, "tenant"),
+        PlatformResourceIdentity.readAttribute(attributes, "tenant") ||
+        // What the cloud stands on: its queue, its backend, its database.
+        PlatformResourceIdentity.readAttribute(attributes, "queue") ||
+        PlatformResourceIdentity.readAttribute(attributes, "proxy") ||
+        PlatformResourceIdentity.readAttribute(attributes, "database"),
       hostName:
         PlatformResourceIdentity.readAttribute(attributes, "hostname") ||
         PlatformResourceIdentity.readAttribute(
           attributes,
           "hypervisor_hostname",
         ) ||
-        PlatformResourceIdentity.readAttribute(attributes, "agent_host"),
+        PlatformResourceIdentity.readAttribute(attributes, "agent_host") ||
+        PlatformResourceIdentity.readAttribute(
+          attributes,
+          "openstack_exporter_host",
+        ),
       serviceName: serviceName,
       regionName: PlatformResourceIdentity.readAttribute(
         attributes,

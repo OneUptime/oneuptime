@@ -6,5 +6,7 @@
 403 ironic-conductors
 200 ironic-versions
 500 ironic-drivers
+200 ironic-nodes-as-system
+200 ironic-conductors-as-system
 200 ironic-node-validate-ou-node-available
 200 ironic-node-validate-ou-node-half

@@ -1,0 +1,28 @@
+# HELP openstack_ironic_node node
+# TYPE openstack_ironic_node gauge
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d",maintenance="false",maintenance_reason="",name="ou-node-active",power_state="",provision_state="active",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",maintenance="false",maintenance_reason="",name="ou-node-available",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="3cca2e8c-fd41-4eea-a4db-43aa5e780090",maintenance="true",maintenance_reason="OneUptime drill: a disk being swapped",name="ou-node-maintenance",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="59d335d5-0fe7-452d-9f67-34e82ee6706a",maintenance="false",maintenance_reason="",name="ou-node-half",power_state="",provision_state="enroll",resource_class="",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="73a89c31-be10-40db-9f7f-c08fad8e6112",maintenance="false",maintenance_reason="",name="ou-node-clean-failed",power_state="",provision_state="clean failed",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="8ae7c63a-814e-4429-8ee4-8912fd1eeee1",maintenance="false",maintenance_reason="",name="ou-node-unowned",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="c86fce69-edca-492e-b2a5-07d4bec1e18f",maintenance="false",maintenance_reason="",name="ou-node-deploy-failed",power_state="power on",provision_state="wait call-back",resource_class="baremetal",retired="false",retired_reason=""} 1
+# HELP openstack_ironic_node_provision_updated_at node_provision_updated_at
+# TYPE openstack_ironic_node_provision_updated_at gauge
+openstack_ironic_node_provision_updated_at{id="0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d",name="ou-node-active",provision_state="active"} 1.793853395e+09
+openstack_ironic_node_provision_updated_at{id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",name="ou-node-available",provision_state="available"} 1.793853384e+09
+openstack_ironic_node_provision_updated_at{id="3cca2e8c-fd41-4eea-a4db-43aa5e780090",name="ou-node-maintenance",provision_state="available"} 1.793853692e+09
+openstack_ironic_node_provision_updated_at{id="73a89c31-be10-40db-9f7f-c08fad8e6112",name="ou-node-clean-failed",provision_state="clean failed"} 1.793853724e+09
+openstack_ironic_node_provision_updated_at{id="8ae7c63a-814e-4429-8ee4-8912fd1eeee1",name="ou-node-unowned",provision_state="available"} 1.793853404e+09
+openstack_ironic_node_provision_updated_at{id="c86fce69-edca-492e-b2a5-07d4bec1e18f",name="ou-node-deploy-failed",provision_state="wait call-back"} 1.793853764e+09
+# HELP openstack_ironic_node_updated_at node_updated_at
+# TYPE openstack_ironic_node_updated_at gauge
+openstack_ironic_node_updated_at{id="0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d",name="ou-node-active",provision_state="active"} 1.793853395e+09
+openstack_ironic_node_updated_at{id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",name="ou-node-available",provision_state="available"} 1.793853384e+09
+openstack_ironic_node_updated_at{id="3cca2e8c-fd41-4eea-a4db-43aa5e780090",name="ou-node-maintenance",provision_state="available"} 1.793853694e+09
+openstack_ironic_node_updated_at{id="73a89c31-be10-40db-9f7f-c08fad8e6112",name="ou-node-clean-failed",provision_state="clean failed"} 1.793853724e+09
+openstack_ironic_node_updated_at{id="8ae7c63a-814e-4429-8ee4-8912fd1eeee1",name="ou-node-unowned",provision_state="available"} 1.793853404e+09
+openstack_ironic_node_updated_at{id="c86fce69-edca-492e-b2a5-07d4bec1e18f",name="ou-node-deploy-failed",provision_state="wait call-back"} 1.793853764e+09
+# HELP openstack_ironic_up up
+# TYPE openstack_ironic_up gauge
+openstack_ironic_up 1

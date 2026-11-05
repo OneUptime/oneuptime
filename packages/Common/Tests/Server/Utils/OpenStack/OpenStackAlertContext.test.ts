@@ -30,6 +30,15 @@ import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "../../../../Types/OpenStack/OpenStackResourceKind";
+import {
+  RecordedReading,
+  RecordedScene,
+  SCENE_REGION,
+  StoredMetricRow,
+  foldIntoInventory,
+  readClusterScene,
+  rowsOfReading,
+} from "../../../Types/Monitor/Utils/OpenStackControlPlaneScenes";
 import { getOpenStackScopePattern } from "../../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackScopedRulesCard";
 
 /*
@@ -108,6 +117,8 @@ describe("which part a series is about", () => {
       "Service:RegionOne/compute/compute-1/nova-compute",
       "Service:RegionOne/network/compute-1/nova-compute",
       "Service:RegionOne/volume/compute-1/nova-compute",
+      "Service:RegionOne/orchestration/compute-1/nova-compute",
+      "Service:RegionOne/container-infra/compute-1/nova-compute",
       "Hypervisor:RegionOne/compute-1",
     ]);
   });
@@ -123,11 +134,13 @@ describe("which part a series is about", () => {
     ).toEqual(["Hypervisor:RegionTwo/compute-1.example.internal"]);
   });
 
-  test("an ID could be a router, an instance or a volume, and the rows decide", () => {
+  test("an ID could be a router, an instance, a volume, a stack or a cluster, and the rows decide", () => {
     expect(kinds(getOpenStackPartOfSeries({ id: "x" }))).toEqual([
       "Router:x",
       "Instance:x",
       "Volume:x",
+      "Stack:x",
+      "ContainerCluster:x",
     ]);
   });
 
@@ -406,6 +419,108 @@ describe("adding it to a description", () => {
     expect(getBlastRadius).toHaveBeenCalledTimes(1);
     findOneBy.mockRestore();
     getBlastRadius.mockRestore();
+  });
+
+  /*
+   * A worker's own alert, read while what it stands on is down, as a real RabbitMQ with every
+   * node stopped left the rows: an incident that opens anyway (a monitor with no dependency, or
+   * one someone made by hand) says what it is probably caused by.
+   */
+  describe("what it is probably caused by", () => {
+    function rowsAfter(sceneName: string): Array<OpenStackResource> {
+      const scene: RecordedScene = readClusterScene(sceneName);
+      const now: number = Date.now();
+
+      return foldIntoInventory(
+        scene.readings.flatMap(
+          (reading: RecordedReading, index: number): Array<StoredMetricRow> => {
+            return rowsOfReading({
+              scene,
+              reading,
+              time: new Date(now - (scene.readings.length - index) * 60000),
+            });
+          },
+        ),
+      );
+    }
+
+    async function describeWorkerWith(
+      rows: Array<OpenStackResource>,
+    ): Promise<string | undefined> {
+      jest
+        .spyOn(OpenStackResourceService, "findOneBy")
+        .mockImplementation((async (data: {
+          query: { kind: OpenStackResourceKind; externalId: string };
+        }): Promise<OpenStackResource | null> => {
+          return data.query.kind === OpenStackResourceKind.Service
+            ? Object.assign(new OpenStackResource(), {
+                kind: OpenStackResourceKind.Service,
+                name: "nova-compute",
+                regionName: SCENE_REGION,
+                externalId: data.query.externalId,
+                facts: { host: "compute-1" },
+              })
+            : null;
+        }) as never);
+      jest
+        .spyOn(OpenStackResourceService, "getBlastRadius")
+        .mockResolvedValue(radius());
+      jest
+        .spyOn(OpenStackResourceService, "findBy")
+        .mockResolvedValue(rows as never);
+
+      const description: string | undefined =
+        await OpenStackAlertContext.addToDescription({
+          description: "nova-compute is down on compute-1.",
+          projectId: PROJECT_ID,
+          clouds: [cloud],
+          seriesLabels: {
+            hostname: "compute-1",
+            service: "nova-compute",
+            "openstack.region.name": SCENE_REGION,
+          },
+        });
+
+      jest.restoreAllMocks();
+
+      return description;
+    }
+
+    test("a worker's alert with RabbitMQ gone says so, and what that takes down", async () => {
+      const description: string | undefined = await describeWorkerWith(
+        rowsAfter("rabbitmq-cluster-down"),
+      );
+
+      expect(description).toContain("nova-compute is down on compute-1.");
+      expect(description).toContain("**Probably caused by:**");
+      expect(description).toContain(`RabbitMQ is down in ${SCENE_REGION}.`);
+      expect(description).toContain("Every OpenStack service talks through");
+    });
+
+    test("with RabbitMQ answering it says nothing of it", async () => {
+      expect(
+        await describeWorkerWith(rowsAfter("rabbitmq-healthy")),
+      ).not.toContain("Probably caused by");
+    });
+
+    test("a failed read leaves the alert as it was", async () => {
+      jest
+        .spyOn(OpenStackResourceService, "findBy")
+        .mockRejectedValue(new Error("Postgres went away") as never);
+
+      expect(
+        await OpenStackAlertContext.readProbableCauses({
+          projectId: PROJECT_ID,
+          openStackCloudId: PROJECT_ID,
+          partKind: OpenStackResourceKind.Service,
+          partName: "nova-compute",
+          partHost: "compute-1",
+          regionName: SCENE_REGION,
+        }),
+      ).toEqual([]);
+
+      jest.restoreAllMocks();
+    });
   });
 });
 
@@ -693,9 +808,16 @@ describe("which rows count as a whole region's API", () => {
     ],
     ["a hypervisor", { kind: OpenStackResourceKind.Hypervisor }, null],
     ["nothing", {}, null],
-  ])("%s", (_name, part, expected) => {
-    expect(getOpenStackRegionWide(part)).toEqual(expected);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      part: Parameters<typeof getOpenStackRegionWide>[0],
+      expected: ReturnType<typeof getOpenStackRegionWide>,
+    ) => {
+      expect(getOpenStackRegionWide(part)).toEqual(expected);
+    },
+  );
 });
 
 describe("an owner rule on a project assigns its team", () => {

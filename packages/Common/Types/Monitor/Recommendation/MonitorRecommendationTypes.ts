@@ -170,6 +170,11 @@ export interface MonitorRecommendationContext {
    * monitor over logs nobody sends.
    */
   kubernetesProvider?: string | null | undefined;
+  /*
+   * Whether a probe collects this cloud. Some series only a native read of an API sends, and on an
+   * agent's cloud a template over one would never fire. Anything but true withholds them.
+   */
+  openStackIsCollectedByProbe?: boolean | null | undefined;
 }
 
 /*
