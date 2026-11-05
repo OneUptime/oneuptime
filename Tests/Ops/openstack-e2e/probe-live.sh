@@ -17,8 +17,9 @@ mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 export OS_CLOUD="${OS_CLOUD:-devstack-admin}"
 
+# The CLI's JSON has said "ID" and "id" in different releases.
 field() {
-  python3 -I -c 'import json, sys; print(json.load(sys.stdin)[sys.argv[1]])' "$1"
+  python3 -I -c 'import json, sys; print({key.lower(): value for key, value in json.load(sys.stdin).items()}[sys.argv[1]])' "$1"
 }
 
 unit_named() {
@@ -44,6 +45,9 @@ if grep -E ' http://' "$OUTPUT_DIR/public-endpoints.txt"; then
 fi
 
 ADMIN_CREDENTIAL="$(openstack application credential create ou-probe-admin -f json)"
+# Each on a line of its own: set -e doesn't stop for a failure inside a command's own environment.
+ADMIN_CREDENTIAL_ID="$(printf '%s' "$ADMIN_CREDENTIAL" | field id)"
+ADMIN_CREDENTIAL_SECRET="$(printf '%s' "$ADMIN_CREDENTIAL" | field secret)"
 
 # A user of its own, whose password is known, with a role on ou-research and none on ou-payments.
 USER_NAME=ou-probe-reader
@@ -52,6 +56,10 @@ openstack user create --domain default --password "$USER_PASSWORD" "$USER_NAME" 
 openstack role add --user "$USER_NAME" --project ou-research reader
 READER_CREDENTIAL="$(openstack --os-username "$USER_NAME" --os-password "$USER_PASSWORD" --os-project-name ou-research \
   application credential create ou-probe-reader -f json)"
+READER_CREDENTIAL_ID="$(printf '%s' "$READER_CREDENTIAL" | field id)"
+READER_CREDENTIAL_SECRET="$(printf '%s' "$READER_CREDENTIAL" | field secret)"
+NEUTRON_UNIT="$(unit_named devstack@neutron-api.service devstack@q-svc.service)"
+KEYSTONE_UNIT="$(unit_named devstack@keystone.service)"
 
 cd "$REPOSITORY/packages/Probe"
 
@@ -59,12 +67,12 @@ RUN_OPENSTACK_LIVE_CLOUD_TESTS=true \
   OPENSTACK_LIVE_AUTH_URL="$AUTH_URL" \
   OPENSTACK_LIVE_HOST="$AUTH_HOST" \
   OPENSTACK_LIVE_OUTPUT_DIR="$OUTPUT_DIR" \
-  OPENSTACK_LIVE_ADMIN_CREDENTIAL_ID="$(printf '%s' "$ADMIN_CREDENTIAL" | field id)" \
-  OPENSTACK_LIVE_ADMIN_CREDENTIAL_SECRET="$(printf '%s' "$ADMIN_CREDENTIAL" | field secret)" \
-  OPENSTACK_LIVE_READER_CREDENTIAL_ID="$(printf '%s' "$READER_CREDENTIAL" | field id)" \
-  OPENSTACK_LIVE_READER_CREDENTIAL_SECRET="$(printf '%s' "$READER_CREDENTIAL" | field secret)" \
+  OPENSTACK_LIVE_ADMIN_CREDENTIAL_ID="$ADMIN_CREDENTIAL_ID" \
+  OPENSTACK_LIVE_ADMIN_CREDENTIAL_SECRET="$ADMIN_CREDENTIAL_SECRET" \
+  OPENSTACK_LIVE_READER_CREDENTIAL_ID="$READER_CREDENTIAL_ID" \
+  OPENSTACK_LIVE_READER_CREDENTIAL_SECRET="$READER_CREDENTIAL_SECRET" \
   OPENSTACK_LIVE_USER="$USER_NAME" \
   OPENSTACK_LIVE_PASSWORD="$USER_PASSWORD" \
-  OPENSTACK_LIVE_NEUTRON_UNIT="$(unit_named devstack@neutron-api.service devstack@q-svc.service)" \
-  OPENSTACK_LIVE_KEYSTONE_UNIT="$(unit_named devstack@keystone.service)" \
+  OPENSTACK_LIVE_NEUTRON_UNIT="$NEUTRON_UNIT" \
+  OPENSTACK_LIVE_KEYSTONE_UNIT="$KEYSTONE_UNIT" \
   npx jest --no-watchman --runInBand Tests/Utils/OpenStack/OpenStackLiveCloud.test.ts

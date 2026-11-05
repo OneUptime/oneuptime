@@ -56,10 +56,11 @@ const isLive: boolean =
   process.env["RUN_OPENSTACK_LIVE_CLOUD_TESTS"] === "true";
 const describeLive: typeof describe.skip = isLive ? describe : describe.skip;
 
+// Only a live run asks for these: an empty secret would pass for one that went unsent.
 function required(name: string): string {
-  const value: string | undefined = process.env[name];
+  const value: string = process.env[name] || "";
 
-  if (!value) {
+  if (isLive && !value) {
     throw new Error(
       `${name} is not set: see Tests/Ops/openstack-e2e/probe-live.sh`,
     );
@@ -173,28 +174,28 @@ function scanAsIngest(
 }
 
 describeLive("the probe against a real cloud, over real TLS", () => {
-  const authUrl: string = isLive ? required("OPENSTACK_LIVE_AUTH_URL") : "";
-  const host: string = isLive ? required("OPENSTACK_LIVE_HOST") : "";
-  const outputDir: string = isLive ? required("OPENSTACK_LIVE_OUTPUT_DIR") : "";
+  const authUrl: string = required("OPENSTACK_LIVE_AUTH_URL");
+  const host: string = required("OPENSTACK_LIVE_HOST");
+  const outputDir: string = required("OPENSTACK_LIVE_OUTPUT_DIR");
   const region: string = process.env["OPENSTACK_LIVE_REGION"] || "RegionOne";
 
   const admin: OpenStackCredential = {
     kind: "applicationCredential",
-    id: process.env["OPENSTACK_LIVE_ADMIN_CREDENTIAL_ID"] || "",
-    secret: process.env["OPENSTACK_LIVE_ADMIN_CREDENTIAL_SECRET"] || "",
+    id: required("OPENSTACK_LIVE_ADMIN_CREDENTIAL_ID"),
+    secret: required("OPENSTACK_LIVE_ADMIN_CREDENTIAL_SECRET"),
   };
   const reader: OpenStackCredential = {
     kind: "applicationCredential",
-    id: process.env["OPENSTACK_LIVE_READER_CREDENTIAL_ID"] || "",
-    secret: process.env["OPENSTACK_LIVE_READER_CREDENTIAL_SECRET"] || "",
+    id: required("OPENSTACK_LIVE_READER_CREDENTIAL_ID"),
+    secret: required("OPENSTACK_LIVE_READER_CREDENTIAL_SECRET"),
   };
   const password: (projectName: string) => OpenStackCredential = (
     projectName: string,
   ): OpenStackCredential => {
     return {
       kind: "password",
-      username: process.env["OPENSTACK_LIVE_USER"] || "",
-      password: process.env["OPENSTACK_LIVE_PASSWORD"] || "",
+      username: required("OPENSTACK_LIVE_USER"),
+      password: required("OPENSTACK_LIVE_PASSWORD"),
       userDomainName: "Default",
       projectName: projectName,
       projectDomainName: "Default",
@@ -240,7 +241,8 @@ describeLive("the probe against a real cloud, over real TLS", () => {
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(
       path.join(outputDir, `${name}.json`),
-      JSON.stringify(value, null, 2),
+      // A collection that failed has no summary, and that is worth keeping too.
+      JSON.stringify(value ?? null, null, 2),
     );
   }
 
@@ -607,10 +609,8 @@ describeLive("the probe against a real cloud, over real TLS", () => {
   });
 
   describe("what the issue promises when a service goes", () => {
-    const NEUTRON_UNIT: string =
-      process.env["OPENSTACK_LIVE_NEUTRON_UNIT"] || "";
-    const KEYSTONE_UNIT: string =
-      process.env["OPENSTACK_LIVE_KEYSTONE_UNIT"] || "";
+    const NEUTRON_UNIT: string = required("OPENSTACK_LIVE_NEUTRON_UNIT");
+    const KEYSTONE_UNIT: string = required("OPENSTACK_LIVE_KEYSTONE_UNIT");
 
     afterAll(() => {
       run(`sudo systemctl start ${NEUTRON_UNIT} ${KEYSTONE_UNIT}`);
