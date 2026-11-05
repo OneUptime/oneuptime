@@ -690,7 +690,6 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_CONTROL_PLANE_REGION\` | No | The region of a target above that does not say its own. A target can: \`RegionTwo@10.1.0.11:15692\` |
 | \`OPENSTACK_LIBVIRT_EXPORTER_TARGETS\` | No | The same exporter, for what each instance is really doing. Per-instance series multiply fast |
 | \`OPENSTACK_CEILOMETER_EXPORTER_TARGETS\` | No | Ceilometer's exporter on each compute node, usually on \`9101\`, for the same |
-| \`OPENSTACK_QUOTA_CLOUDS\`, \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | No | What the installer sets for \`OPENSTACK_COLLECT_QUOTAS=true\`: the \`clouds.yaml\` entries the second exporter reads each project's quotas from, and where it answers |
 
 \`clouds.yaml\` alone holds the credential.
 
@@ -705,6 +704,8 @@ Only the largest clouds need these, and none is asked for:
 | \`OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX\` | What Nova adds to a host's name to make a hypervisor's, such as \`.example.org\`, so an instance finds the hypervisor it runs on |
 | \`OPENSTACK_WORKER_STATE_CLOUDS\` | The \`clouds.yaml\` entries to read from Nova's and Cinder's APIs what their databases cannot say: whether each worker is alive, and how full each pool is |
 | \`OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
+| \`OPENSTACK_QUOTA_CLOUDS\` | The \`clouds.yaml\` entries to read each project's quotas from, once an hour. Empty reads none, and \`OPENSTACK_COLLECT_QUOTAS=true\` in the install script fills it in |
+| \`OPENSTACK_QUOTA_EXPORTER_ADDRESS\` | \`host:port\` of the exporter that reads those. Leave it out for the bundled one |
 
 The OneUptime AI agent reads the credential in \`clouds.yaml\` unless these say otherwise, and none is asked for:
 

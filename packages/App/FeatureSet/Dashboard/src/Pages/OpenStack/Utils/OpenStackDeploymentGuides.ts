@@ -190,7 +190,7 @@ export const OPENSTACK_EXPORTER_170_LOSSES: string = `| Goes without | Because |
 | Everything of Cinder's | It asks the catalog for \`volumev3\`, and finds no such thing where Cinder registers as \`block-storage\` | **Volumes** and **Storage pools** stay empty, and **Services** has no Block Storage API, \`cinder-volume\` or \`cinder-scheduler\`. **Block Storage API Down**, **Block Storage Service Down**, **Storage Pool Warning**, **Storage Pool Critical**, **Volumes in Error** and **Volume Stuck** stay quiet |
 | How many instances a hypervisor holds, and its aggregates | Nova's list of hypervisors fails at the newest microversion, which Kolla-Ansible asks for | Those two on **Hypervisors**, and what a lost host says it takes with it. Its vCPUs, memory and disk are still there: they come from Placement |
 | Domains | It has no such series | **Domains** stays empty |
-| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**, and an image stuck on its way to \`active\` goes unnoticed |
+| An image's status, visibility and creation date | It has no such labels | Those columns on **Images**. **Image Stuck** stays quiet, so an image stuck on its way to \`active\` goes unnoticed |
 | A network's MTU | It has no such label | That line on a network's page |`;
 
 function downloadTargetsScript(oneuptimeUrl: string): string {
