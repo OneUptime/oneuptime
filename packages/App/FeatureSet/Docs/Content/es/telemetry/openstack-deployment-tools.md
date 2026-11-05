@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 Inicia sesión como administrador con `source /etc/kolla/admin-openrc.sh`, que escribe `kolla-ansible post-deploy`.
 
-- **Vista completa** no necesita ningún cambio en ningún servicio: las plantillas de Kolla-Ansible ya definen `service_type` bajo `[keystone_authtoken]` en Nova, Neutron, Cinder, Glance y Placement. Su Cinder dice `volume`, que las reglas de acceso también incluyen.
+- **Vista completa** necesita un cambio, en Cinder. Las plantillas de Kolla-Ansible ya definen `service_type` bajo `[keystone_authtoken]` en Nova, Neutron, Glance y Placement, pero su Cinder dice `volume` y su catálogo dice `block-storage`, y keystonemiddleware rechaza con un `401` una credencial limitada por reglas de acceso si ambos no coinciden. Añada `service_type = block-storage` bajo `[keystone_authtoken]` en `/etc/kolla/config/cinder.conf` y ejecute `kolla-ansible reconfigure -i <inventory> --tags cinder`.
 - **Solo infraestructura** toma sus anulaciones en `/etc/kolla/config/nova/policy.yaml`, y lo mismo para `neutron`, `keystone` y `placement`, combinadas con lo que ya haya allí. Aplícalas con `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.
 
 ### Vigilar sobre qué se sostiene la nube de Kolla-Ansible
@@ -161,7 +161,7 @@ OpenStack-Ansible guarda los registros de sus servicios en journald y no ejecuta
 
 Inicia sesión como administrador desde el contenedor de utilidades: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)` y luego `. ~/openrc`. No tiene `curl`, que usan los comandos de abajo, así que ejecuta antes `apt-get install -y curl` allí.
 
-- **Vista completa** no necesita ningún cambio en ningún servicio: los roles de OpenStack-Ansible ya definen `service_type` bajo `[keystone_authtoken]`. Su Cinder dice `volumev3`, que las reglas de acceso también incluyen.
+- **Vista completa** necesita un cambio, en Cinder. Los roles de OpenStack-Ansible ya definen `service_type` bajo `[keystone_authtoken]`, pero su Cinder dice `volumev3` y su catálogo dice `block-storage`, y keystonemiddleware rechaza con un `401` una credencial limitada por reglas de acceso si ambos no coinciden. Defina `service_type: block-storage` bajo `keystone_authtoken` en `cinder_cinder_conf_overrides`, dentro de `/etc/openstack_deploy/user_variables.yml`, y ejecute `openstack-ansible openstack.osa.cinder --tags cinder-config`.
 - **Solo infraestructura** toma sus anulaciones como `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` y `placement_policy_overrides` en `/etc/openstack_deploy/user_variables.yml`. Aplica cada una con su propio playbook y etiqueta, como `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Quitar una más tarde deja un archivo vacío en lugar de ninguno, así que nada falla.
 
 ### Vigilar sobre qué se sostiene la nube de OpenStack-Ansible

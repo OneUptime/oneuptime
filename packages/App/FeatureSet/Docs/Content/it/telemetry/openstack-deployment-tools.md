@@ -3,7 +3,7 @@
 Nessuno esegue "OpenStack". Si esegue uno strumento che lo distribuisce, e ogni strumento ha i propri percorsi, i propri log e la propria idea di cosa sia già in esecuzione. Questa pagina riporta ciò che la guida di configurazione in OneUptime dice per ciascuno: apri **OpenStack → All Clouds**, connetti un cloud e rispondi a **Come distribuisci OpenStack?**
 
 :::cards
-- [Fino a che punto è stata testata ogni guida](#fino-a-che-punto-è-stata-testata-ogni-guida): leggi prima questa. Quella di Kolla-Ansible è stata eseguita su una distribuzione reale, tranne l'avviso. Quella di OpenStack-Ansible è stata eseguita in parte. Le altre no.
+- [Fino a che punto è stata testata ogni guida](#fino-a-che-punto-è-stata-testata-ogni-guida): leggi prima questa. Quelle di Kolla-Ansible e di OpenStack-Ansible sono state eseguite su distribuzioni reali. Le altre no.
 - [Inoltra ciò che sta già scattando](#inoltra-ciò-che-sta-già-scattando): incidenti fin dalla prima ora, senza agente.
 - [Kolla-Ansible](#kolla-ansible): leggi gli exporter che già esegue.
 - [OpenStack-Ansible](#openstack-ansible): log di journald e override in `user_variables.yml`.
@@ -20,8 +20,8 @@ Ogni percorso, porta e variabile qui sotto è stato letto dal sorgente o dalla d
 
 | Strumento | Letto da | Eseguito davvero |
 | --- | --- | --- |
-| Kolla-Ansible | Il suo sorgente, a master e `stable/2026.1` | I comandi di questa guida, su un all-in-one reale a `stable/2026.1` con Open vSwitch: l'agente su ogni credenziale, senza Docker, sull'exporter di Kolla-Ansible e sul tuo alla versione fissata e alla 1.7.0, i target letti dal suo vero `prometheus.yml`, e il profilo dei log. Una parte non ha retto: con Memcached e nova-compute fermati lì, il suo Alertmanager non ha inviato nulla, quindi nessun avviso è mai arrivato da uno stack Kolla-Ansible a OneUptime. Ciò che Alertmanager invia alla versione che fissa, registrato in un cluster di test, ha aperto e risolto un incidente sul cloud giusto su un OneUptime in esecuzione |
-| OpenStack-Ansible | Il suo sorgente e la documentazione | Un vero all-in-one a `stable/2026.1`, in container LXC, dove le impostazioni di RabbitMQ e HAProxy di questa guida sono state applicate con i suoi comandi e ogni exporter ha risposto, e il suo profilo dei log ha letto il journal. I suoi passaggi dell'agente non sono stati eseguiti su di esso: l'agente e il suo profilo dei log sono stati eseguiti su un cloud che questo strumento non aveva distribuito |
+| Kolla-Ansible | Il suo sorgente, a master e `stable/2026.1` | I comandi di questa guida, su un all-in-one reale a `stable/2026.1` con Open vSwitch: l'agente sulla prima credenziale, senza Docker, sull'exporter di Kolla-Ansible e sul tuo alla versione fissata e alla 1.7.0, l'exporter sulla seconda credenziale, i target letti dal suo vero `prometheus.yml`, e il profilo dei log. Con Memcached realmente fermato lì, il suo Alertmanager ha inviato un webhook in stato firing e poi uno resolved, e ciò che ha inviato apre e risolve un incidente sul cloud giusto nel vero evaluator |
+| OpenStack-Ansible | Il suo sorgente e la documentazione | I comandi di questa guida, su un vero all-in-one a `stable/2026.1`, in container LXC: l'agente sulla prima credenziale, l'exporter sulla seconda con i suoi override delle policy, le impostazioni di RabbitMQ e HAProxy con l'agente che legge ciascuna, e il profilo dei log sul journal |
 | OpenStack-Helm | I valori dei suoi chart | La sonda e l'agente Kubernetes, ciascuno per conto suo |
 | Atmosphere | La sua documentazione e il sorgente | La sonda e l'agente Kubernetes, ciascuno per conto suo |
 | Canonical Sunbeam | La documentazione di Canonical e il sorgente dei suoi charm | Nulla su Sunbeam. La documentazione di Sunbeam non menziona il charm dell'exporter |
@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 Accedi come admin con `source /etc/kolla/admin-openrc.sh`, che `kolla-ansible post-deploy` scrive.
 
-- **Vista completa** non richiede modifiche a nessun servizio: i template di Kolla-Ansible impostano già `service_type` sotto `[keystone_authtoken]` su Nova, Neutron, Cinder, Glance e Placement. Il suo Cinder dice `volume`, che le regole di accesso includono anch'esse.
+- **Vista completa** richiede una modifica, a Cinder. I template di Kolla-Ansible impostano già `service_type` sotto `[keystone_authtoken]` su Nova, Neutron, Glance e Placement, ma il suo Cinder dice `volume` e il suo catalogo dice `block-storage`, e keystonemiddleware rifiuta con un `401` una credenziale limitata da regole di accesso se i due valori non coincidono. Aggiungi `service_type = block-storage` sotto `[keystone_authtoken]` in `/etc/kolla/config/cinder.conf`, poi esegui `kolla-ansible reconfigure -i <inventory> --tags cinder`.
 - **Solo infrastruttura** prende i suoi override in `/etc/kolla/config/nova/policy.yaml`, e lo stesso per `neutron`, `keystone` e `placement`, uniti a ciò che c'è già. Applicali con `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.
 
 ### Osserva ciò su cui poggia il cloud di Kolla-Ansible
@@ -161,7 +161,7 @@ OpenStack-Ansible conserva i log dei suoi servizi in journald e non esegue un Pr
 
 Accedi come admin dal container utility: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, poi `. ~/openrc`. Non ha `curl`, che i comandi qui sotto usano, quindi esegui prima lì `apt-get install -y curl`.
 
-- **Vista completa** non richiede modifiche a nessun servizio: i ruoli di OpenStack-Ansible impostano già `service_type` sotto `[keystone_authtoken]`. Il suo Cinder dice `volumev3`, che le regole di accesso includono anch'esse.
+- **Vista completa** richiede una modifica, a Cinder. I ruoli di OpenStack-Ansible impostano già `service_type` sotto `[keystone_authtoken]`, ma il suo Cinder dice `volumev3` e il suo catalogo dice `block-storage`, e keystonemiddleware rifiuta con un `401` una credenziale limitata da regole di accesso se i due valori non coincidono. Imposta `service_type: block-storage` sotto `keystone_authtoken` in `cinder_cinder_conf_overrides` in `/etc/openstack_deploy/user_variables.yml`, poi esegui `openstack-ansible openstack.osa.cinder --tags cinder-config`.
 - **Solo infrastruttura** prende i suoi override come `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` e `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml`. Applica ciascuno con il proprio playbook e tag, come `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Rimuoverne uno in seguito lascia un file vuoto anziché nessuno, quindi nulla fallisce.
 
 ### Osserva ciò su cui poggia il cloud di OpenStack-Ansible

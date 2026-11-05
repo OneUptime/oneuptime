@@ -62,6 +62,7 @@ flowchart LR
 | AWS CloudTrail | 控制台登录、在您的 AWS 账户中所做的更改，以及被 AWS 拒绝的调用 |
 | Google Cloud 审计日志 | 在您的 Google Cloud 项目中所做的更改、被 Google 拒绝的调用，以及与 Google Cloud 共享的 Google Workspace 登录 |
 | Azure 活动和 Entra ID 日志 | 在您的 Azure 订阅中所做的更改、Defender for Cloud 警报，以及 Microsoft Entra ID 的登录和目录更改 |
+| OpenStack 审计轨迹 | Keystone 中失败的登录、角色授予和更改，审计过滤器对每个 API 的所见，向全世界开放的安全组，以及被设为公开的镜像 |
 | CEF | 发送 Common Event Format 的防火墙、IDS、WAF 和其他安全产品产生的威胁、被阻止的连接和登录 |
 | LEEF | 来自发送 Log Event Extended Format 的产品的同类内容，许多产品为 IBM QRadar 发送这种格式 |
 | Palo Alto Networks | 来自 PAN-OS 自身 syslog 的威胁、被阻止的连接、GlobalProtect 和管理员登录以及配置更改 |

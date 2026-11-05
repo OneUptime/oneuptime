@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 Melden Sie sich mit `source /etc/kolla/admin-openrc.sh` als Admin an, was `kolla-ansible post-deploy` schreibt.
 
-- **Vollansicht** braucht keine Änderung an einem Dienst: Die Templates von Kolla-Ansible setzen `service_type` unter `[keystone_authtoken]` bei Nova, Neutron, Cinder, Glance und Placement bereits. Sein Cinder sagt `volume`, was die Zugriffsregeln ebenfalls enthalten.
+- **Vollansicht** braucht eine Änderung, an Cinder. Die Templates von Kolla-Ansible setzen `service_type` unter `[keystone_authtoken]` bei Nova, Neutron, Glance und Placement bereits, aber sein Cinder sagt `volume`, und sein Katalog sagt `block-storage`, und keystonemiddleware weist eine durch Zugriffsregeln eingeschränkte Zugangsdaten-Kennung mit einem `401` ab, wenn beide nicht übereinstimmen. Fügen Sie `service_type = block-storage` unter `[keystone_authtoken]` in `/etc/kolla/config/cinder.conf` hinzu und führen Sie dann `kolla-ansible reconfigure -i <inventory> --tags cinder` aus.
 - **Nur Infrastruktur** nimmt seine Overrides unter `/etc/kolla/config/nova/policy.yaml` auf, und ebenso für `neutron`, `keystone` und `placement`, zusammengeführt mit allem, was dort schon steht. Wenden Sie sie mit `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` an.
 
 ### Beobachten, worauf die Cloud von Kolla-Ansible aufbaut
@@ -161,7 +161,7 @@ OpenStack-Ansible hält die Protokolle seiner Dienste in journald und betreibt k
 
 Melden Sie sich im Utility-Container als Admin an: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, dann `. ~/openrc`. Er hat kein `curl`, das die Befehle unten verwenden, führen Sie dort daher zuerst `apt-get install -y curl` aus.
 
-- **Vollansicht** braucht keine Änderung an einem Dienst: Die Rollen von OpenStack-Ansible setzen `service_type` unter `[keystone_authtoken]` bereits. Sein Cinder sagt `volumev3`, was die Zugriffsregeln ebenfalls enthalten.
+- **Vollansicht** braucht eine Änderung, an Cinder. Die Rollen von OpenStack-Ansible setzen `service_type` unter `[keystone_authtoken]` bereits, aber sein Cinder sagt `volumev3`, und sein Katalog sagt `block-storage`, und keystonemiddleware weist eine durch Zugriffsregeln eingeschränkte Zugangsdaten-Kennung mit einem `401` ab, wenn beide nicht übereinstimmen. Setzen Sie `service_type: block-storage` unter `keystone_authtoken` in `cinder_cinder_conf_overrides` in `/etc/openstack_deploy/user_variables.yml` und führen Sie dann `openstack-ansible openstack.osa.cinder --tags cinder-config` aus.
 - **Nur Infrastruktur** nimmt seine Overrides als `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` und `placement_policy_overrides` in `/etc/openstack_deploy/user_variables.yml` auf. Wenden Sie jeden mit seinem eigenen Playbook und Tag an, etwa `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Das spätere Entfernen eines Overrides hinterlässt eine leere Datei statt keiner, sodass nichts fehlschlägt.
 
 ### Beobachten, worauf die Cloud von OpenStack-Ansible aufbaut

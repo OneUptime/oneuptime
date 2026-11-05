@@ -3,7 +3,7 @@
 「OpenStack」そのものを運用している人はいません。実際に運用しているのは OpenStack をデプロイするツールであり、ツールごとにパス、ログ、すでに動いているものの捉え方が異なります。このページは、OneUptime のセットアップガイドが各ツールについて案内する内容です。**OpenStack → All Clouds** を開き、クラウドを接続して、**OpenStack をどのようにデプロイしていますか？** に答えてください。
 
 :::cards
-- [各ガイドの検証範囲](#各ガイドの検証範囲): 最初にお読みください。Kolla-Ansible のガイドは、アラートの送信を除き実環境で実行済みです。OpenStack-Ansible のガイドは一部を実行済みです。その他は未実行です。
+- [各ガイドの検証範囲](#各ガイドの検証範囲): 最初にお読みください。Kolla-Ansible と OpenStack-Ansible のガイドは、実環境で実行済みです。その他は未実行です。
 - [すでに発火しているアラートを転送する](#すでに発火しているアラートを転送する): エージェントなしで、最初の 1 時間からインシデントを作成します。
 - [Kolla-Ansible](#kolla-ansible): すでに動いているエクスポーターを読み取ります。
 - [OpenStack-Ansible](#openstack-ansible): Journald のログと、`user_variables.yml` の上書き設定。
@@ -21,7 +21,7 @@
 | ツール | 読み取り元 | 実際に実行したもの |
 | --- | --- | --- |
 | Kolla-Ansible | master と `stable/2026.1` のソース | `stable/2026.1` の Open vSwitch 構成の実際の all-in-one で、このガイドのコマンドを実行: 各クレデンシャルでのエージェント(Docker なし)、Kolla-Ansible 自身のエクスポーターと、固定バージョンおよび 1.7.0 での自前のエクスポーター、実際の `prometheus.yml` から読み取ったターゲット、ログプロファイル。1 つだけうまくいかなかった点がある: Memcached と nova-compute を停止しても Alertmanager は何も送信しなかったため、Kolla-Ansible のスタックから OneUptime へアラートが届いたことはない。固定されているバージョンの Alertmanager が送信する内容をテストクラスターで記録したものは、稼働中の OneUptime で正しいクラウドのインシデントを作成し、解決した |
-| OpenStack-Ansible | ソースとドキュメント | `stable/2026.1` の実際の all-in-one(LXC コンテナ)で、このガイドの RabbitMQ と HAProxy の設定をコマンドで適用し、各エクスポーターが応答することを確認。ログプロファイルはジャーナルを読み取った。エージェントの手順は実行していない: エージェントとそのログプロファイルは、このツールがデプロイしていないクラウドで実行した |
+| OpenStack-Ansible | ソースとドキュメント | `stable/2026.1` の実際の all-in-one(LXC コンテナ)で、このガイドのコマンドを実行: 最初のクレデンシャルでのエージェント、2 つ目のクレデンシャルでのエクスポーター(ポリシーのオーバーライド付き)、RabbitMQ と HAProxy の設定(エージェントがそれぞれを読み取る)、ジャーナルに対するログプロファイル |
 | OpenStack-Helm | チャートの values | プローブと Kubernetes エージェントを、それぞれ単独で |
 | Atmosphere | ドキュメントとソース | プローブと Kubernetes エージェントを、それぞれ単独で |
 | Canonical Sunbeam | Canonical のドキュメントと、チャームのソース | Sunbeam 上では何も実行していない。Sunbeam 自身のドキュメントには、エクスポーターのチャームについての記載がない |
@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 `kolla-ansible post-deploy` が書き出す `source /etc/kolla/admin-openrc.sh` で、admin としてログインします。
 
-- **フルビュー**では、どのサービスも変更する必要はありません。Kolla-Ansible のテンプレートは、Nova、Neutron、Cinder、Glance、Placement の `[keystone_authtoken]` に `service_type` をすでに設定しています。Cinder は `volume` としており、アクセスルールにもこれが含まれています。
+- **フルビュー**では、Cinder に 1 つ変更が必要です。Kolla-Ansible のテンプレートは、Nova、Neutron、Glance、Placement の `[keystone_authtoken]` に `service_type` をすでに設定していますが、Cinder は `volume` としており、カタログでは `block-storage` です。keystonemiddleware は、アクセスルールで制限されたクレデンシャルを、この 2 つが一致しない限り `401` で拒否します。`/etc/kolla/config/cinder.conf` の `[keystone_authtoken]` に `service_type = block-storage` を追加し、`kolla-ansible reconfigure -i <inventory> --tags cinder` を実行してください。
 - **インフラのみ**では、上書き設定を `/etc/kolla/config/nova/policy.yaml` に置きます。`neutron`、`keystone`、`placement` も同様で、すでにあるものとマージされます。`kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` で適用します。
 
 ### Kolla-Ansible のクラウドの土台を監視する
@@ -161,7 +161,7 @@ OpenStack-Ansible は各サービスのログを journald に保持し、独自�
 
 ユーティリティコンテナから admin としてログインします。`lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)` を実行し、続けて `. ~/openrc` を実行します。ここには以下のコマンドが使う `curl` がないため、先に `apt-get install -y curl` を実行してください。
 
-- **フルビュー**では、どのサービスも変更する必要はありません。OpenStack-Ansible のロールは、`[keystone_authtoken]` の `service_type` をすでに設定しています。Cinder は `volumev3` としており、アクセスルールにもこれが含まれています。
+- **フルビュー**では、Cinder に 1 つ変更が必要です。OpenStack-Ansible のロールは、`[keystone_authtoken]` の `service_type` をすでに設定していますが、Cinder は `volumev3` としており、カタログでは `block-storage` です。keystonemiddleware は、アクセスルールで制限されたクレデンシャルを、この 2 つが一致しない限り `401` で拒否します。`/etc/openstack_deploy/user_variables.yml` の `cinder_cinder_conf_overrides` 内にある `keystone_authtoken` に `service_type: block-storage` を設定し、`openstack-ansible openstack.osa.cinder --tags cinder-config` を実行してください。
 - **インフラのみ**では、上書き設定を `/etc/openstack_deploy/user_variables.yml` の `nova_policy_overrides`、`neutron_policy_overrides`、`keystone_policy_overrides`、`placement_policy_overrides` に置きます。`openstack-ansible openstack.osa.nova --tags nova-policy-override` のように、それぞれ専用のプレイブックとタグで適用します。後で 1 つを削除すると、ファイルがなくなるのではなく空のファイルが残るので、何も失敗しません。
 
 ### OpenStack-Ansible のクラウドの土台を監視する

@@ -3,7 +3,7 @@
 कोई भी "OpenStack" नहीं चलाता। लोग वह टूल चलाते हैं जो उसे डिप्लॉय करता है, और हर टूल के अपने पाथ, अपने लॉग और इस बारे में अपनी समझ होती है कि क्या पहले से चल रहा है। यह पेज वही है जो OneUptime की सेटअप गाइड हर टूल के लिए कहती है: **OpenStack → सभी क्लाउड** खोलें, क्लाउड कनेक्ट करें, और **आप OpenStack कैसे डिप्लॉय करते हैं?** का जवाब दें।
 
 :::cards
-- [हर गाइड को कितना परखा गया है](#हर-गाइड-को-कितना-परखा-गया-है): इसे पहले पढ़ें। Kolla-Ansible की गाइड असली डिप्लॉयमेंट पर चलाई गई है, अलर्ट को छोड़कर। OpenStack-Ansible की गाइड आंशिक रूप से चली है। बाकी की नहीं।
+- [हर गाइड को कितना परखा गया है](#हर-गाइड-को-कितना-परखा-गया-है): इसे पहले पढ़ें। Kolla-Ansible और OpenStack-Ansible की गाइड असली डिप्लॉयमेंट पर चलाई गई हैं। बाकी की नहीं।
 - [जो पहले से फ़ायर हो रहा है उसे फ़ॉरवर्ड करें](#जो-पहले-से-फ़ायर-हो-रहा-है-उसे-फ़ॉरवर्ड-करें): पहले घंटे से घटनाएं, बिना किसी एजेंट के।
 - [Kolla-Ansible](#kolla-ansible): जो एक्सपोर्टर वह पहले से चलाता है उन्हें पढ़ें।
 - [OpenStack-Ansible](#openstack-ansible): Journald लॉग, और `user_variables.yml` में ओवरराइड।
@@ -21,7 +21,7 @@
 | टूल | कहाँ से पढ़ा गया | असल में चलाया गया |
 | --- | --- | --- |
 | Kolla-Ansible | उसका सोर्स, master और `stable/2026.1` पर | इस गाइड के कमांड, `stable/2026.1` पर Open vSwitch वाले असली ऑल-इन-वन पर: हर क्रेडेंशियल पर एजेंट, Docker के बिना, Kolla-Ansible के अपने एक्सपोर्टर पर और आपके अपने पर पिन किए गए संस्करण और 1.7.0 दोनों पर, उसकी असली `prometheus.yml` से पढ़े गए टारगेट, और लॉग प्रोफ़ाइल। एक हिस्सा नहीं टिका: वहाँ Memcached और nova-compute रोकने पर उसके Alertmanager ने कुछ पोस्ट नहीं किया, इसलिए Kolla-Ansible स्टैक से OneUptime तक कोई अलर्ट नहीं गया है। जो Alertmanager अपने पिन किए संस्करण पर पोस्ट करता है, जो टेस्ट क्लस्टर में रिकॉर्ड किया गया, उसने चलते हुए OneUptime पर सही क्लाउड पर एक घटना खोली और हल की |
-| OpenStack-Ansible | उसका सोर्स और डॉक्स | `stable/2026.1` पर LXC कंटेनरों में असली ऑल-इन-वन, जहाँ इस गाइड की RabbitMQ और HAProxy सेटिंग उसके कमांड से लागू की गईं और हर एक्सपोर्टर ने जवाब दिया, और उसकी लॉग प्रोफ़ाइल ने जर्नल पढ़ा। उसके एजेंट चरण उस पर नहीं चले हैं: एजेंट और उसकी लॉग प्रोफ़ाइल ऐसे क्लाउड पर चलाए गए जिसे इस टूल ने डिप्लॉय नहीं किया था |
+| OpenStack-Ansible | उसका सोर्स और डॉक्स | इस गाइड के कमांड, `stable/2026.1` पर LXC कंटेनरों में असली ऑल-इन-वन पर: पहली क्रेडेंशियल पर एजेंट, दूसरी पर एक्सपोर्टर अपने पॉलिसी ओवरराइड के साथ, RabbitMQ और HAProxy की सेटिंग जिनमें से हर एक को एजेंट ने पढ़ा, और जर्नल पर लॉग प्रोफ़ाइल |
 | OpenStack-Helm | उसकी चार्ट वैल्यू | प्रोब और Kubernetes एजेंट, हर एक अलग से |
 | Atmosphere | उसके डॉक्स और सोर्स | प्रोब और Kubernetes एजेंट, हर एक अलग से |
 | Canonical Sunbeam | Canonical के डॉक्स, और उसके चार्म का सोर्स | Sunbeam पर कुछ नहीं। Sunbeam के अपने डॉक्स एक्सपोर्टर चार्म का ज़िक्र नहीं करते |
@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 `source /etc/kolla/admin-openrc.sh` से admin के रूप में लॉगिन करें, जिसे `kolla-ansible post-deploy` लिखता है।
 
-- **पूरा दृश्य** को किसी सेवा में बदलाव नहीं चाहिए: Kolla-Ansible के टेम्पलेट Nova, Neutron, Cinder, Glance और Placement पर `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करते हैं। उसका Cinder `volume` कहता है, जो एक्सेस नियमों में भी है।
+- **पूरा दृश्य** को एक बदलाव चाहिए, Cinder में। Kolla-Ansible के टेम्पलेट Nova, Neutron, Glance और Placement पर `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करते हैं, लेकिन उसका Cinder `volume` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/kolla/config/cinder.conf` में `[keystone_authtoken]` के नीचे `service_type = block-storage` जोड़ें, फिर `kolla-ansible reconfigure -i <inventory> --tags cinder` चलाएं।
 - **केवल इंफ्रास्ट्रक्चर** अपने ओवरराइड `/etc/kolla/config/nova/policy.yaml` पर लेता है, और `neutron`, `keystone` और `placement` के लिए भी वैसे ही, वहाँ पहले से जो है उसके साथ मर्ज करके। उन्हें `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` से लागू करें।
 
 ### Kolla-Ansible का क्लाउड जिन पर टिका है उन पर नज़र रखें
@@ -161,7 +161,7 @@ OpenStack-Ansible अपनी सेवाओं के लॉग journald म�
 
 यूटिलिटी कंटेनर से admin के रूप में लॉगिन करें: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, फिर `. ~/openrc`। उसमें `curl` नहीं है, जिसे नीचे के कमांड इस्तेमाल करते हैं, इसलिए पहले वहाँ `apt-get install -y curl` चलाएँ।
 
-- **पूरा दृश्य** को किसी सेवा में बदलाव नहीं चाहिए: OpenStack-Ansible की भूमिकाएँ `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करती हैं। उसका Cinder `volumev3` कहता है, जो एक्सेस नियमों में भी है।
+- **पूरा दृश्य** को एक बदलाव चाहिए, Cinder में। OpenStack-Ansible की भूमिकाएँ `[keystone_authtoken]` के नीचे पहले से `service_type` सेट करती हैं, लेकिन उसका Cinder `volumev3` कहता है और उसका कैटलॉग `block-storage`, और जब दोनों मेल न खाएं तो keystonemiddleware एक्सेस नियमों से सीमित क्रेडेंशियल को `401` से अस्वीकार कर देता है। `/etc/openstack_deploy/user_variables.yml` में `cinder_cinder_conf_overrides` के अंदर `keystone_authtoken` के नीचे `service_type: block-storage` सेट करें, फिर `openstack-ansible openstack.osa.cinder --tags cinder-config` चलाएं।
 - **केवल इंफ्रास्ट्रक्चर** अपने ओवरराइड `/etc/openstack_deploy/user_variables.yml` में `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` और `placement_policy_overrides` के रूप में लेता है। हर एक को उसके अपने प्लेबुक और टैग से लागू करें, जैसे `openstack-ansible openstack.osa.nova --tags nova-policy-override`। बाद में किसी को हटाने पर फ़ाइल हट जाने के बजाय खाली रह जाती है, इसलिए कुछ विफल नहीं होता।
 
 ### OpenStack-Ansible का क्लाउड जिन पर टिका है उन पर नज़र रखें

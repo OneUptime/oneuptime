@@ -3,7 +3,7 @@
 هیچ‌کس «OpenStack» را اجرا نمی‌کند. آن‌ها ابزاری را اجرا می‌کنند که OpenStack را مستقر می‌کند، و هر ابزار مسیرها، لاگ‌ها و تصور خودش از آنچه از قبل در حال اجراست را دارد. این صفحه همان چیزی است که راهنمای راه‌اندازی در OneUptime برای هر کدام می‌گوید: **OpenStack → All Clouds** را باز کنید، یک ابر را متصل کنید، و به **OpenStack را چگونه مستقر می‌کنید؟** پاسخ دهید.
 
 :::cards
-- [هر راهنما تا کجا آزمایش شده](#هر-راهنما-تا-کجا-آزمایش-شده): اول این را بخوانید. راهنمای Kolla-Ansible روی یک استقرار واقعی اجرا شده، تا پیش از یک هشدار. راهنمای OpenStack-Ansible تا حدی اجرا شده. بقیه اجرا نشده‌اند.
+- [هر راهنما تا کجا آزمایش شده](#هر-راهنما-تا-کجا-آزمایش-شده): اول این را بخوانید. راهنمای Kolla-Ansible و راهنمای OpenStack-Ansible روی استقرارهای واقعی اجرا شده‌اند. بقیه اجرا نشده‌اند.
 - [آنچه از قبل فعال است را ارسال کنید](#آنچه-از-قبل-فعال-است-را-ارسال-کنید): حوادث از همان ساعت اول، بدون عامل.
 - [Kolla-Ansible](#kolla-ansible): exporterهایی را که از قبل اجرا می‌کند بخوانید.
 - [OpenStack-Ansible](#openstack-ansible): لاگ‌های Journald، و overrideها در `user_variables.yml`.
@@ -21,7 +21,7 @@
 | ابزار | خوانده شده از | واقعاً اجرا شده |
 | --- | --- | --- |
 | Kolla-Ansible | سورس آن، در master و `stable/2026.1` | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1` با Open vSwitch: عامل روی هر اعتبارنامه، بدون Docker، روی exporter خود Kolla-Ansible و روی exporter خودتان در نسخه پین‌شده و در 1.7.0، هدف‌های خوانده‌شده از `prometheus.yml` واقعی آن، و پروفایل لاگ‌ها. یک بخش برقرار نماند: با توقف Memcached و nova-compute در آنجا، Alertmanager آن چیزی ارسال نکرد، پس هیچ هشداری از یک stack مربوط به Kolla-Ansible به OneUptime نرفته است. آنچه Alertmanager در نسخه‌ای که پین می‌کند ارسال می‌کند، ضبط‌شده در یک کلاستر آزمایشی، روی یک OneUptime در حال اجرا یک حادثه را روی ابر درست باز و حل کرد |
-| OpenStack-Ansible | سورس و مستندات آن | یک all-in-one واقعی در `stable/2026.1`، در کانتینرهای LXC، که تنظیمات RabbitMQ و HAProxy این راهنما با دستورهای آن اعمال شد و هر exporter پاسخ داد، و پروفایل لاگ‌هایش journal را خواند. گام‌های عامل آن روی آن اجرا نشده‌اند: عامل و پروفایل لاگ‌هایش روی ابری اجرا شدند که این ابزار مستقرش نکرده بود |
+| OpenStack-Ansible | سورس و مستندات آن | دستورهای این راهنما، روی یک all-in-one واقعی در `stable/2026.1`، در کانتینرهای LXC: عامل روی اعتبارنامهٔ اول، exporter روی اعتبارنامهٔ دوم با policy overrideهایش، تنظیمات RabbitMQ و HAProxy همراه با خواندن هر کدام توسط عامل، و پروفایل لاگ‌ها روی journal |
 | OpenStack-Helm | مقادیر chart آن | پراب و عامل Kubernetes، هر کدام به‌تنهایی |
 | Atmosphere | مستندات و سورس آن | پراب و عامل Kubernetes، هر کدام به‌تنهایی |
 | Canonical Sunbeam | مستندات Canonical، و سورس charmهای آن | هیچ چیز روی Sunbeam. مستندات خود Sunbeam charm مربوط به exporter را ذکر نمی‌کنند |
@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 با `source /etc/kolla/admin-openrc.sh`، که `kolla-ansible post-deploy` آن را می‌نویسد، به‌عنوان admin وارد شوید.
 
-- **دید کامل** نیازی به تغییر در هیچ سرویسی ندارد: templateهای Kolla-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` در Nova، Neutron، Cinder، Glance و Placement تنظیم می‌کنند. Cinder آن `volume` می‌گوید، که قواعد دسترسی هم آن را دارند.
+- **دید کامل** به یک تغییر نیاز دارد، در Cinder. templateهای Kolla-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` در Nova، Neutron، Glance و Placement تنظیم می‌کنند، اما Cinder آن `volume` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type = block-storage` را زیر `[keystone_authtoken]` در `/etc/kolla/config/cinder.conf` اضافه کنید، سپس `kolla-ansible reconfigure -i <inventory> --tags cinder` را اجرا کنید.
 - **فقط زیرساخت** overrideهایش را در `/etc/kolla/config/nova/policy.yaml` می‌گیرد، و همین برای `neutron`، `keystone` و `placement`، ادغام‌شده با هر چیزی که از قبل آنجا هست. آن‌ها را با `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` اعمال کنید.
 
 ### آنچه ابر Kolla-Ansible بر آن بنا شده را پایش کنید
@@ -161,7 +161,7 @@ OpenStack-Ansible لاگ‌های سرویس‌هایش را در journald نگ�
 
 از کانتینر utility به‌عنوان admin وارد شوید: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`، سپس `. ~/openrc`. `curl` ندارد، که دستورهای زیر از آن استفاده می‌کنند، پس ابتدا `apt-get install -y curl` را آنجا اجرا کنید.
 
-- **دید کامل** نیازی به تغییر در هیچ سرویسی ندارد: roleهای OpenStack-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` تنظیم می‌کنند. Cinder آن `volumev3` می‌گوید، که قواعد دسترسی هم آن را دارند.
+- **دید کامل** به یک تغییر نیاز دارد، در Cinder. roleهای OpenStack-Ansible از قبل `service_type` را زیر `[keystone_authtoken]` تنظیم می‌کنند، اما Cinder آن `volumev3` می‌گوید و کاتالوگش `block-storage`، و keystonemiddleware اعتبارنامه‌ای را که با قواعد دسترسی محدود شده با `401` رد می‌کند مگر اینکه این دو یکی باشند. `service_type: block-storage` را زیر `keystone_authtoken` در `cinder_cinder_conf_overrides` در `/etc/openstack_deploy/user_variables.yml` تنظیم کنید، سپس `openstack-ansible openstack.osa.cinder --tags cinder-config` را اجرا کنید.
 - **فقط زیرساخت** overrideهایش را به‌صورت `nova_policy_overrides`، `neutron_policy_overrides`، `keystone_policy_overrides` و `placement_policy_overrides` در `/etc/openstack_deploy/user_variables.yml` می‌گیرد. هر کدام را با playbook و tag مخصوص خودش اعمال کنید، مانند `openstack-ansible openstack.osa.nova --tags nova-policy-override`. برداشتن بعدی یکی از آن‌ها به‌جای هیچ، یک فایل خالی به جا می‌گذارد، پس چیزی شکست نمی‌خورد.
 
 ### آنچه ابر OpenStack-Ansible بر آن بنا شده را پایش کنید

@@ -3,7 +3,7 @@
 沒有人是在執行「OpenStack」本身。大家執行的是部署它的工具，而每個工具都有自己的路徑、自己的日誌，以及對已在執行內容的自己的一套認定。本頁就是 OneUptime 的設定指南針對各個工具所說的內容：開啟 **OpenStack → All Clouds**，連接雲端，然後回答 **您如何部署 OpenStack？**
 
 :::cards
-- [各指南測試到什麼程度](#各指南測試到什麼程度)：請先閱讀這一節。Kolla-Ansible 的指南已在真實部署上執行過，只差警示。OpenStack-Ansible 的指南已部分執行過。其他的則尚未。
+- [各指南測試到什麼程度](#各指南測試到什麼程度)：請先閱讀這一節。Kolla-Ansible 與 OpenStack-Ansible 的指南都已在真實部署上執行過。其他的則尚未。
 - [轉發已在觸發的警示](#轉發已在觸發的警示)：從第一個小時起就有事件，無需代理程式。
 - [Kolla-Ansible](#kolla-ansible)：讀取它已在執行的匯出器。
 - [OpenStack-Ansible](#openstack-ansible)：Journald 日誌，以及 `user_variables.yml` 中的覆寫。
@@ -21,7 +21,7 @@
 | 工具 | 讀取來源 | 實際執行 |
 | --- | --- | --- |
 | Kolla-Ansible | 其原始碼，位於 master 與 `stable/2026.1` | 本指南的指令，在 `stable/2026.1` 且使用 Open vSwitch 的真實 all-in-one 上執行：每種憑證的代理程式（不使用 Docker）、位於 Kolla-Ansible 自己的匯出器上以及您自己的匯出器上（固定版本與 1.7.0），從其真實 `prometheus.yml` 讀取的目標，以及日誌設定檔。有一部分沒有成功：在那裡停止 Memcached 與 nova-compute 後，它的 Alertmanager 什麼都沒有送出，因此還沒有任何警示從 Kolla-Ansible 堆疊送到 OneUptime。不過，在測試叢集中錄製的、其固定版本 Alertmanager 所送出的內容，確實在運行中的 OneUptime 上對正確的雲端開啟並解決了事件 |
-| OpenStack-Ansible | 其原始碼與文件 | 在 `stable/2026.1` 的真實 all-in-one 上，於 LXC 容器中，本指南的 RabbitMQ 與 HAProxy 設定已用它的指令套用，且每個匯出器都有回應，其日誌設定檔也讀取了 journal。代理程式的步驟尚未在其上執行：代理程式及其日誌設定檔是在不是以此工具部署的雲端上執行的 |
+| OpenStack-Ansible | 其原始碼與文件 | 本指南的指令，在 `stable/2026.1` 的真實 all-in-one 上，於 LXC 容器中執行：第一個憑證的代理程式、套用其政策覆寫的第二個憑證的匯出器、由代理程式讀取各項的 RabbitMQ 與 HAProxy 設定，以及讀取 journal 的日誌設定檔 |
 | OpenStack-Helm | 其 chart 的值 | 探測器與 Kubernetes 代理程式，各自單獨執行 |
 | Atmosphere | 其文件與原始碼 | 探測器與 Kubernetes 代理程式，各自單獨執行 |
 | Canonical Sunbeam | Canonical 的文件，以及其 charm 的原始碼 | Sunbeam 上沒有任何執行。Sunbeam 自己的文件沒有提到匯出器 charm |
@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 以管理員身分登入，執行 `source /etc/kolla/admin-openrc.sh`，這個檔案由 `kolla-ansible post-deploy` 寫入。
 
-- **完整檢視** 不需要變更任何服務：Kolla-Ansible 的範本已在 Nova、Neutron、Cinder、Glance 與 Placement 的 `[keystone_authtoken]` 下設定了 `service_type`。它的 Cinder 設為 `volume`，存取規則也包含這個值。
+- **完整檢視** 需要變更一處，在 Cinder。Kolla-Ansible 的範本已在 Nova、Neutron、Glance 與 Placement 的 `[keystone_authtoken]` 下設定了 `service_type`，但它的 Cinder 設為 `volume`，而其目錄寫的是 `block-storage`，除非兩者一致，否則 keystonemiddleware 會以 `401` 拒絕受存取規則限制的憑證。請在 `/etc/kolla/config/cinder.conf` 的 `[keystone_authtoken]` 下加入 `service_type = block-storage`，然後執行 `kolla-ansible reconfigure -i <inventory> --tags cinder`。
 - **僅基礎架構** 的覆寫放在 `/etc/kolla/config/nova/policy.yaml`，`neutron`、`keystone` 與 `placement` 同理，並與已存在的內容合併。以 `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement` 套用。
 
 ### 監控 Kolla-Ansible 的雲端所依賴的元件
@@ -161,7 +161,7 @@ OpenStack-Ansible 將其服務的日誌保存在 journald，自己不執行任�
 
 從 utility 容器以管理員身分登入：`lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`，然後執行 `. ~/openrc`。它沒有下面指令會用到的 `curl`，所以請先在那裡執行 `apt-get install -y curl`。
 
-- **完整檢視** 不需要變更任何服務：OpenStack-Ansible 的角色已在 `[keystone_authtoken]` 下設定了 `service_type`。它的 Cinder 設為 `volumev3`，存取規則也包含這個值。
+- **完整檢視** 需要變更一處，在 Cinder。OpenStack-Ansible 的角色已在 `[keystone_authtoken]` 下設定了 `service_type`，但它的 Cinder 設為 `volumev3`，而其目錄寫的是 `block-storage`，除非兩者一致，否則 keystonemiddleware 會以 `401` 拒絕受存取規則限制的憑證。請在 `/etc/openstack_deploy/user_variables.yml` 的 `cinder_cinder_conf_overrides` 中，於 `keystone_authtoken` 下設定 `service_type: block-storage`，然後執行 `openstack-ansible openstack.osa.cinder --tags cinder-config`。
 - **僅基礎架構** 的覆寫寫成 `/etc/openstack_deploy/user_variables.yml` 中的 `nova_policy_overrides`、`neutron_policy_overrides`、`keystone_policy_overrides` 與 `placement_policy_overrides`。以各自的 playbook 與標籤套用，例如 `openstack-ansible openstack.osa.nova --tags nova-policy-override`。之後移除其中一項時，會留下一個空檔案而不是沒有檔案，所以不會有任何失敗。
 
 ### 監控 OpenStack-Ansible 的雲端所依賴的元件

@@ -3,7 +3,7 @@
 Ingen kjører «OpenStack». De kjører et verktøy som distribuerer det, og hvert verktøy har sine egne stier, sine egne logger og sin egen oppfatning av hva som allerede kjører. Denne siden er det oppsettsguiden i OneUptime sier for hvert av dem: åpne **OpenStack → Alle skyer**, koble til en sky og svar på **Hvordan distribuerer du OpenStack?**
 
 :::cards
-- [Hvor langt hver guide er testet](#hvor-langt-hver-guide-er-testet): Les dette først. Kolla-Ansibles er kjørt på en ekte distribusjon, bortsett fra et varsel. OpenStack-Ansibles er kjørt delvis. De andre er ikke kjørt.
+- [Hvor langt hver guide er testet](#hvor-langt-hver-guide-er-testet): Les dette først. Kolla-Ansibles og OpenStack-Ansibles er kjørt på ekte distribusjoner. De andre er ikke kjørt.
 - [Videresend det som allerede utløses](#videresend-det-som-allerede-utløses): Hendelser fra første time, uten agent.
 - [Kolla-Ansible](#kolla-ansible): Les eksportørene den allerede kjører.
 - [OpenStack-Ansible](#openstack-ansible): Journald-logger og overstyringer i `user_variables.yml`.
@@ -21,7 +21,7 @@ Hver sti, port og variabel nedenfor er lest fra verktøyets egen kildekode eller
 | Verktøy | Lest fra | Kjørt for ekte |
 | --- | --- | --- |
 | Kolla-Ansible | Kildekoden, på master og `stable/2026.1` | Denne guidens kommandoer, på en ekte all-in-one på `stable/2026.1` med Open vSwitch: agenten på hver legitimasjon, uten Docker, på Kolla-Ansibles egen eksportør og på din egen i den festede versjonen og i 1.7.0, målene lest fra dens ekte `prometheus.yml`, og loggprofilen. Én del holdt ikke: med Memcached og nova-compute stoppet der postet Alertmanager ingenting, så ingen varsel har gått fra en Kolla-Ansible-stack til OneUptime. Det Alertmanager poster i versjonen den fester, tatt opp i en testklynge, åpnet og løste en hendelse på riktig sky i en kjørende OneUptime |
-| OpenStack-Ansible | Kildekoden og dokumentasjonen | En ekte all-in-one på `stable/2026.1`, i LXC-containere, der denne guidens RabbitMQ- og HAProxy-innstillinger ble tatt i bruk med dens kommandoer og hver eksportør svarte, og loggprofilen leste journalen. Agentstegene er ikke kjørt på den: agenten og loggprofilen ble kjørt på en sky dette verktøyet ikke distribuerte |
+| OpenStack-Ansible | Kildekoden og dokumentasjonen | Denne guidens kommandoer, på en ekte all-in-one på `stable/2026.1`, i LXC-containere: agenten på den første legitimasjonen, eksportøren på den andre med policy-overstyringene sine, RabbitMQ- og HAProxy-innstillingene med agenten som leste hver av dem, og loggprofilen på journalen |
 | OpenStack-Helm | Chartenes verdier | Sonden og Kubernetes-agenten, hver for seg |
 | Atmosphere | Dokumentasjonen og kildekoden | Sonden og Kubernetes-agenten, hver for seg |
 | Canonical Sunbeam | Canonicals dokumentasjon og kildekoden til charmene | Ingenting på Sunbeam. Sunbeams egen dokumentasjon nevner ikke eksportør-charmen |
@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 Logg inn som admin med `source /etc/kolla/admin-openrc.sh`, som `kolla-ansible post-deploy` skriver.
 
-- **Full visning** trenger ingen endring i noen tjeneste: Kolla-Ansibles maler setter allerede `service_type` under `[keystone_authtoken]` på Nova, Neutron, Cinder, Glance og Placement. Dens Cinder sier `volume`, som tilgangsreglene også har med.
+- **Full visning** trenger én endring, i Cinder. Kolla-Ansibles maler setter allerede `service_type` under `[keystone_authtoken]` på Nova, Neutron, Glance og Placement, men Cinder sier `volume` mens katalogen sier `block-storage`, og keystonemiddleware avviser en legitimasjon begrenset av tilgangsregler med en `401` med mindre de to stemmer overens. Legg til `service_type = block-storage` under `[keystone_authtoken]` i `/etc/kolla/config/cinder.conf`, og kjør deretter `kolla-ansible reconfigure -i <inventory> --tags cinder`.
 - **Kun infrastruktur** tar overstyringene sine i `/etc/kolla/config/nova/policy.yaml`, og det samme for `neutron`, `keystone` og `placement`, slått sammen med det som allerede er der. Ta dem i bruk med `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.
 
 ### Overvåk det Kolla-Ansibles sky hviler på
@@ -161,7 +161,7 @@ OpenStack-Ansible holder tjenestenes logger i journald og kjører ingen egen Pro
 
 Logg inn som admin fra utility-containeren: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, deretter `. ~/openrc`. Den har ingen `curl`, som kommandoene nedenfor bruker, så kjør `apt-get install -y curl` der først.
 
-- **Full visning** trenger ingen endring i noen tjeneste: OpenStack-Ansibles roller setter allerede `service_type` under `[keystone_authtoken]`. Dens Cinder sier `volumev3`, som tilgangsreglene også har med.
+- **Full visning** trenger én endring, i Cinder. OpenStack-Ansibles roller setter allerede `service_type` under `[keystone_authtoken]`, men Cinder sier `volumev3` mens katalogen sier `block-storage`, og keystonemiddleware avviser en legitimasjon begrenset av tilgangsregler med en `401` med mindre de to stemmer overens. Sett `service_type: block-storage` under `keystone_authtoken` i `cinder_cinder_conf_overrides` i `/etc/openstack_deploy/user_variables.yml`, og kjør deretter `openstack-ansible openstack.osa.cinder --tags cinder-config`.
 - **Kun infrastruktur** tar overstyringene sine som `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` og `placement_policy_overrides` i `/etc/openstack_deploy/user_variables.yml`. Ta hver i bruk med sin egen playbook og tagg, for eksempel `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Å fjerne en senere etterlater en tom fil i stedet for ingen, så ingenting feiler.
 
 ### Overvåk det OpenStack-Ansibles sky hviler på

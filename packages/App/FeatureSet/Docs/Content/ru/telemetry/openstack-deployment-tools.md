@@ -3,7 +3,7 @@
 Никто не запускает «OpenStack» как таковой. Запускают инструмент, который его разворачивает, и у каждого инструмента свои пути, свои журналы и своё представление о том, что уже работает. На этой странице собрано то, что мастер настройки в OneUptime говорит про каждый из них: откройте **OpenStack → Все облака**, подключите облако и ответьте на вопрос **Как вы развёртываете OpenStack?**
 
 :::cards
-- [Насколько проверен каждый гайд](#насколько-проверен-каждый-гайд): Прочитайте это первым. Гайд для Kolla-Ansible запускался на реальном развёртывании, не дойдя до оповещения. Гайд для OpenStack-Ansible запускался частично. Остальные не запускались.
+- [Насколько проверен каждый гайд](#насколько-проверен-каждый-гайд): Прочитайте это первым. Гайды для Kolla-Ansible и OpenStack-Ansible запускались на реальных развёртываниях. Остальные не запускались.
 - [Пересылка того, что уже сработало](#пересылка-того-что-уже-сработало): Инциденты с первого часа, без агента.
 - [Kolla-Ansible](#kolla-ansible): Чтение экспортёров, которые он уже запускает.
 - [OpenStack-Ansible](#openstack-ansible): Журналы journald и переопределения в `user_variables.yml`.
@@ -21,7 +21,7 @@
 | Инструмент | Откуда прочитано | Запускалось по-настоящему |
 | --- | --- | --- |
 | Kolla-Ansible | Его исходный код, в master и `stable/2026.1` | Команды этого гайда, на реальном all-in-one в `stable/2026.1` с Open vSwitch: агент на каждых учётных данных, без Docker, на собственном экспортёре Kolla-Ansible и на вашем собственном в закреплённой версии и в 1.7.0, цели, прочитанные из его настоящего `prometheus.yml`, и профиль журналов. Одно не сработало: при остановленных там Memcached и nova-compute его Alertmanager ничего не отправил, поэтому ни одно оповещение со стека Kolla-Ansible в OneUptime пока не ушло. То, что Alertmanager отправляет в закреплённой им версии, записанное в тестовом кластере, открыло и закрыло инцидент на нужном облаке в работающем OneUptime |
-| OpenStack-Ansible | Его исходный код и документация | Реальный all-in-one в `stable/2026.1`, в контейнерах LXC, где настройки RabbitMQ и HAProxy из этого гайда были применены его командами и каждый экспортёр ответил, а его профиль журналов прочитал журнал. Шаги с агентом на нём не запускались: агент и его профиль журналов запускались на облаке, которое этот инструмент не развёртывал |
+| OpenStack-Ansible | Его исходный код и документация | Команды этого гайда, на реальном all-in-one в `stable/2026.1`, в контейнерах LXC: агент на первых учётных данных, экспортёр на вторых с его переопределениями политик, настройки RabbitMQ и HAProxy с агентом, читающим каждую, и профиль журналов на журнале |
 | OpenStack-Helm | Значения его чартов | Зонд и агент для Kubernetes, каждый отдельно |
 | Atmosphere | Его документация и исходный код | Зонд и агент для Kubernetes, каждый отдельно |
 | Canonical Sunbeam | Документация Canonical и исходный код его charms | Ничего на Sunbeam. Собственная документация Sunbeam не упоминает charm экспортёра |
@@ -84,7 +84,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 Войдите как администратор командой `source /etc/kolla/admin-openrc.sh`, который пишет `kolla-ansible post-deploy`.
 
-- **Полный обзор** не требует изменений ни в одной службе: шаблоны Kolla-Ansible уже задают `service_type` в `[keystone_authtoken]` у Nova, Neutron, Cinder, Glance и Placement. Его Cinder называется `volume`, что правила доступа тоже содержат.
+- **Полный обзор** требует одного изменения, в Cinder. Шаблоны Kolla-Ansible уже задают `service_type` в `[keystone_authtoken]` у Nova, Neutron, Glance и Placement, но его Cinder называется `volume`, а каталог называет его `block-storage`, и keystonemiddleware отклоняет учётные данные, ограниченные правилами доступа, с ошибкой `401`, если эти два значения не совпадают. Добавьте `service_type = block-storage` в `[keystone_authtoken]` в `/etc/kolla/config/cinder.conf`, затем выполните `kolla-ansible reconfigure -i <inventory> --tags cinder`.
 - **Только инфраструктура** берёт свои переопределения из `/etc/kolla/config/nova/policy.yaml`, а также для `neutron`, `keystone` и `placement`, объединяя их с тем, что там уже есть. Примените их командой `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.
 
 ### Наблюдение за тем, на чём стоит облако Kolla-Ansible
@@ -161,7 +161,7 @@ OpenStack-Ansible хранит журналы своих служб в journald 
 
 Войдите как администратор из контейнера utility: `lxc-attach -n $(lxc-ls -1 | grep utility | head -n 1)`, затем `. ~/openrc`. В нём нет `curl`, который используют команды ниже, поэтому сначала выполните там `apt-get install -y curl`.
 
-- **Полный обзор** не требует изменений ни в одной службе: роли OpenStack-Ansible уже задают `service_type` в `[keystone_authtoken]`. Его Cinder называется `volumev3`, что правила доступа тоже содержат.
+- **Полный обзор** требует одного изменения, в Cinder. Роли OpenStack-Ansible уже задают `service_type` в `[keystone_authtoken]`, но его Cinder называется `volumev3`, а каталог называет его `block-storage`, и keystonemiddleware отклоняет учётные данные, ограниченные правилами доступа, с ошибкой `401`, если эти два значения не совпадают. Задайте `service_type: block-storage` в `keystone_authtoken` внутри `cinder_cinder_conf_overrides` в `/etc/openstack_deploy/user_variables.yml`, затем выполните `openstack-ansible openstack.osa.cinder --tags cinder-config`.
 - **Только инфраструктура** берёт свои переопределения как `nova_policy_overrides`, `neutron_policy_overrides`, `keystone_policy_overrides` и `placement_policy_overrides` в `/etc/openstack_deploy/user_variables.yml`. Применяйте каждое своим playbook и тегом, например `openstack-ansible openstack.osa.nova --tags nova-policy-override`. Если позже убрать одно из них, остаётся пустой файл, а не его отсутствие, поэтому ничего не ломается.
 
 ### Наблюдение за тем, на чём стоит облако OpenStack-Ansible
