@@ -41,14 +41,14 @@ Make an Incoming Request monitor as [Prometheus Alertmanager](/docs/integrations
 
 ### Put it on the cloud
 
-Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud. Each incident is then on that cloud's **Incidents** page: an Incoming Request monitor's own settings name no cloud. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.
+Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud. Each incident is then on that cloud's **Incidents** page: an Incoming Request monitor's own settings name no cloud, so each cloud's Alertmanager needs a monitor of its own. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.
 :::
 
 Alertmanager is recorded posting to this exact shape in `Tests/Ops/openstack-e2e`, at the version Kolla-Ansible pins, and the recording replays through the real evaluator: one incident per alert, resolved by its own `resolved` status.
 
 ## Kolla-Ansible
 
-Kolla-Ansible already runs Prometheus, Alertmanager, Grafana and an exporter for each thing under the cloud, and ships no alert rules. So the guide reads what it runs rather than starting a second copy.
+With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.
 
 ### Forward what is already firing
 
@@ -80,7 +80,7 @@ kolla-ansible reconfigure -i <inventory> --tags prometheus
 
 Log in as an admin with `source /etc/kolla/admin-openrc.sh`, which `kolla-ansible post-deploy` writes.
 
-- **Full view** needs no change to any service: Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Cinder, Glance and Placement.
+- **Full view** needs no change to any service: Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Cinder, Glance and Placement. Its Cinder says `volume`, which the access rules also carry.
 - **Infrastructure only** takes its overrides at `/etc/kolla/config/nova/policy.yaml`, and the same for `neutron`, `keystone` and `placement`, merged with anything already there. Apply them with `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.
 
 ### Watch what the cloud stands on
@@ -264,6 +264,16 @@ conf:
 
 Open **OpenStack → All Clouds**, click **Connect Cloud**, and give it Keystone's address, an application credential and the probe to use. A probe only speaks HTTPS to a cloud. Then follow **Kubernetes → Documentation** for the cluster the charts run on: its pods, their logs and their nodes reach the Kubernetes pages.
 
+To have those services' logs on this cloud's **Logs** page as well, each stack trace one record, name the cloud in the agent's values, with the namespaces its services run in:
+
+```yaml title="Kubernetes agent values"
+logs:
+  openStack:
+    cloudName: prod-eu
+    namespaces:
+      - openstack
+```
+
 ### Who did what on OpenStack-Helm
 
 Keystone's audit trail and the audit filter on each API, into [Security Events](/docs/telemetry/openstack#who-did-what). Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**. The Kubernetes agent reads both from the pods' logs, with the cloud named in its values.
@@ -331,6 +341,16 @@ kube_prometheus_stack_helm_values:
 ### Read the APIs, and see the pods
 
 Open **OpenStack → All Clouds**, click **Connect Cloud**, and give it Keystone's address, an application credential and the probe to use. A probe only speaks HTTPS to a cloud. Then follow **Kubernetes → Documentation** for the cluster Atmosphere runs on.
+
+To have those services' logs on this cloud's **Logs** page as well, each stack trace one record, name the cloud in the agent's values, with the namespaces its services run in:
+
+```yaml title="Kubernetes agent values"
+logs:
+  openStack:
+    cloudName: prod-eu
+    namespaces:
+      - openstack
+```
 
 ### Who did what on Atmosphere
 
@@ -431,6 +451,16 @@ spec:
 ### Read the APIs, and the control plane
 
 Open **OpenStack → All Clouds**, click **Connect Cloud**, and give it Keystone's address, an application credential and the probe to use. A probe only speaks HTTPS to a cloud. Then follow **Kubernetes → Documentation** on the cluster that runs the control plane, with **Red Hat OpenShift** picked, which sets `preset=openshift`.
+
+To have those services' logs on this cloud's **Logs** page as well, each stack trace one record, name the cloud in the agent's values, with the namespaces its services run in:
+
+```yaml title="Kubernetes agent values"
+logs:
+  openStack:
+    cloudName: prod-eu
+    namespaces:
+      - openstack
+```
 
 ### Read the compute nodes through Ceilometer
 

@@ -219,7 +219,7 @@ function alertmanagerMonitorSteps(cloudName: string): string {
   return `An alert that fires becomes an incident, with on-call and status pages from the first hour, and it resolves when the alert does. There is nothing to install.
 
 1. In OneUptime, make an Incoming Request monitor as [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#receive-alerts-with-a-monitor) says, and copy its **Heartbeat URL**. That is the \`<secret key>\` address below.
-2. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud \`${cloudName}\`. Each incident is then on that cloud's **Incidents** page. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.`;
+2. Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud \`${cloudName}\`. Each incident is then on that cloud's **Incidents** page, so each cloud's Alertmanager needs a monitor of its own. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.`;
 }
 
 export interface OpenStackDeploymentGuide {
@@ -364,7 +364,7 @@ function kollaAnsible(
 ): OpenStackDeploymentGuide {
   return {
     alreadyRuns:
-      "Kolla-Ansible already runs Prometheus, Alertmanager, Grafana and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what it runs rather than starting a second copy.",
+      "With `enable_prometheus` on in `/etc/kolla/globals.yml`, which Kolla-Ansible leaves off until you set it, it runs Prometheus, Alertmanager and an exporter for each thing under the cloud, and ships no alert rules. This guide reads what those run rather than starting a second copy.",
     howFarTested: `Its paths and ports were read from Kolla-Ansible's own source. Its exporters, at the versions Kolla-Ansible pins, were recorded on a test cloud, failing and recovering, with Alertmanager posting to OneUptime. ${TESTED_BY_RIG}`,
     firstSteps: [
       {
@@ -396,7 +396,7 @@ ${codeBlock("bash", "kolla-ansible reconfigure -i <inventory> --tags prometheus"
     ],
     credentialNotes: [
       "Log in as an admin with `source /etc/kolla/admin-openrc.sh`, which `kolla-ansible post-deploy` writes.",
-      "**Full view** needs no change to any service: Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Cinder, Glance and Placement.",
+      "**Full view** needs no change to any service: Kolla-Ansible's templates already set `service_type` under `[keystone_authtoken]` on Nova, Neutron, Cinder, Glance and Placement. Its Cinder says `volume`, which the access rules also carry.",
       "**Infrastructure only** takes its overrides at `/etc/kolla/config/nova/policy.yaml`, and the same for `neutron`, `keystone` and `placement`, merged with anything already there. Apply them with `kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement`.",
     ],
     credentialVariants: [
@@ -607,12 +607,24 @@ ${codeBlock("bash", "openstack-ansible openstack.osa.nova")}`,
 function kubernetesAgentStep(data: {
   title: string;
   description: string;
+  cloudName: string;
   extraFlags?: string | undefined;
 }): SetupGuideStep {
   return {
     title: data.title,
     description: data.description,
-    markdown: `Follow **Kubernetes → Documentation** for this cluster${data.extraFlags ? `, with ${data.extraFlags}` : ""}. Its pods, their logs and their nodes then reach the Kubernetes pages, and the OpenStack services among them are watched there.`,
+    markdown: `Follow **Kubernetes → Documentation** for this cluster${data.extraFlags ? `, with ${data.extraFlags}` : ""}. Its pods, their logs and their nodes then reach the Kubernetes pages, and the OpenStack services among them are watched there.
+
+To have those services' logs on this cloud's **Logs** page as well, each stack trace one record, name the cloud in the agent's values, with the namespaces its services run in:
+
+${codeBlock(
+  "yaml",
+  `logs:
+  openStack:
+    cloudName: ${data.cloudName}
+    namespaces:
+      - openstack`,
+)}`,
   };
 }
 
@@ -670,6 +682,7 @@ ${alertmanagerReceiver(context.oneuptimeUrl, "      ")}`,
         title: "See the pods and their logs",
         description:
           "The Kubernetes agent, on the cluster the charts run on, for what a probe cannot see.",
+        cloudName: context.cloudName,
       }),
     ],
     topics: [
@@ -744,6 +757,7 @@ ${alertmanagerReceiver(context.oneuptimeUrl, "        ")}`,
         title: "See the pods and their logs",
         description:
           "The Kubernetes agent, on the cluster Atmosphere runs on, for what a probe cannot see.",
+        cloudName: context.cloudName,
       }),
     ],
     topics: [
@@ -903,6 +917,7 @@ spec:
         title: "Watch the control plane on OpenShift",
         description:
           "The Kubernetes agent, with its OpenShift preset, on the cluster that runs the control plane.",
+        cloudName: context.cloudName,
         extraFlags:
           "**Red Hat OpenShift** picked, which sets `preset=openshift`",
       }),

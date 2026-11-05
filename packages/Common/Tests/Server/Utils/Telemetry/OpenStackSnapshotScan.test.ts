@@ -5,6 +5,7 @@ import {
   bufferOpenStackSnapshotMetric,
   finishOpenStackBatch,
   finishOpenStackResource,
+  getOpenStackRoutersWithoutAgents,
   isOpenStackSnapshotDatapoint,
 } from "../../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { JSONObject } from "../../../../Types/JSON";
@@ -1068,6 +1069,234 @@ describe("networks", () => {
         haState: "active",
       },
     });
+  });
+
+  describe("what an instance booted from", () => {
+    function instanceWith(labels: LabelMap): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_nova_server_status", {
+        value: 0,
+        labels: { id: "server-1", uuid: "server-1", status: "ACTIVE", ...labels },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Instance, "server-1");
+    }
+
+    test("a probe names its image, and that is no metadata an operator chose", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+        image_id: "image-1",
+      });
+      expect(row.facts["imageId"]).toBe("image-1");
+      expect(row.facts["labels"]).toEqual({});
+    });
+
+    test("a probe naming none says so, which is how one that was rebuilt onto a volume clears", () => {
+      const row: OpenStackResourceBufferEntry = instanceWith({
+        updated_at: "2026-11-04T11:00:00Z",
+      });
+      expect(Object.keys(row.facts)).toContain("imageId");
+      expect(row.facts["imageId"]).toBeNull();
+    });
+
+    test("the exporter saying nothing isn't the same as there being none", () => {
+      expect(Object.keys(instanceWith({}).facts)).not.toContain("imageId");
+    });
+  });
+
+  describe("a Nova worker an operator forced down", () => {
+    const COMPUTE: string = "RegionOne/compute/compute-01/nova-compute";
+
+    function foldWorker(data: {
+      value: number;
+      forcedDown?: string | undefined;
+    }): OpenStackResourceBufferEntry {
+      const buffer: Buffer = new Map();
+      fold(buffer, "openstack_nova_agent_state", {
+        value: data.value,
+        labels: {
+          hostname: "compute-01",
+          service: "nova-compute",
+          adminState: "enabled",
+          ...(data.forcedDown === undefined
+            ? {}
+            : { forced_down: data.forcedDown }),
+        },
+      });
+      return rowOf(buffer, OpenStackResourceKind.Service, COMPUTE);
+    }
+
+    test.each<[string, number, string | undefined, string, boolean | null]>([
+      // What Nova really sends: forced down is down.
+      ["forced down, and Nova says down", 0, "true", "down", true],
+      // Nova's service_is_up can't say this. If anything ever does, the operator wins.
+      ["forced down, and the series says up", 1, "true", "down", true],
+      ["not forced, and up", 1, "false", "up", false],
+      ["not forced, and stopped", 0, "false", "down", false],
+      // The exporter's series, which has no such label, and a Nova before 2.11.
+      ["not said, and up", 1, undefined, "up", null],
+      ["not said, and down", 0, undefined, "down", null],
+    ])(
+      "%s",
+      (
+        _name: string,
+        value: number,
+        forcedDown: string | undefined,
+        status: string,
+        fact: boolean | null,
+      ) => {
+        const row: OpenStackResourceBufferEntry = foldWorker({
+          value,
+          forcedDown,
+        });
+        expect(row.status).toBe(status);
+        expect(row.facts["forcedDown"]).toBe(fact);
+      },
+    );
+
+    test("a collector that doesn't say leaves nothing of what the last one said", () => {
+      // Facts merge key by key on the way in, so this has to be there to overwrite the old one.
+      expect(Object.keys(foldWorker({ value: 1 }).facts)).toContain(
+        "forcedDown",
+      );
+    });
+
+    test("only Nova has this: a Neutron agent's and a Cinder service's rows never say it", () => {
+      for (const metric of [
+        "openstack_neutron_agent_state",
+        "openstack_cinder_agent_state",
+      ]) {
+        const buffer: Buffer = new Map();
+        fold(buffer, metric, {
+          value: 1,
+          labels: {
+            hostname: "compute-01",
+            service: "some-agent",
+            adminState: "up",
+          },
+        });
+        const [row] = Array.from(buffer.values());
+        expect(Object.keys(row!.facts)).not.toContain("forcedDown");
+      }
+    });
+  });
+
+  describe("a router that lost its agents", () => {
+    const ROUTER_LABELS: LabelMap = {
+      id: "router-1",
+      name: "edge",
+      project_id: "payments",
+      admin_state_up: "true",
+      status: "ACTIVE",
+    };
+    const AGENT_LABELS: LabelMap = {
+      router_id: "router-1",
+      l3_agent_id: "agent-1",
+      ha_state: "",
+      agent_alive: "true",
+      agent_admin_up: "true",
+      agent_host: "network-01",
+    };
+
+    function batch(
+      series: Array<[string, LabelMap]>,
+      atMs: number = BASE_MS,
+    ): Array<OpenStackResourceBufferEntry> {
+      const buffer: Buffer = new Map();
+      for (const [metric, labels] of series) {
+        fold(buffer, metric, { value: 1, atMs, labels });
+      }
+      return finishOpenStackBatch(buffer.values());
+    }
+
+    test("a router heard with its agents has nothing to forget", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([
+            ["openstack_neutron_router", ROUTER_LABELS],
+            ["openstack_neutron_l3_agent_of_router", AGENT_LABELS],
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("a router heard with none is one that might have, ten minutes on", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_router", ROUTER_LABELS]]),
+        ),
+      ).toEqual([
+        {
+          externalId: "router-1",
+          agentsReportedBefore: new Date(BASE_MS - 10 * 60 * 1000),
+        },
+      ]);
+    });
+
+    test("agents heard with no router say nothing about the router: it may be in the next batch", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_l3_agent_of_router", AGENT_LABELS]]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("nothing else a batch holds is a router", () => {
+      expect(
+        getOpenStackRoutersWithoutAgents(
+          batch([
+            [
+              "openstack_neutron_network",
+              { id: "net-1", name: "public", status: "ACTIVE" },
+            ],
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    test("agents say when they were heard, to five minutes, so an unchanged row isn't rewritten for it", () => {
+      const reportedAt: (atMs: number) => unknown = (atMs: number): unknown => {
+        return batch(
+          [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
+          atMs,
+        )[0]!.facts["l3AgentsReportedAt"];
+      };
+      const start: number = Date.UTC(2026, 10, 4, 12, 0, 0);
+
+      expect(reportedAt(start)).toBe("2026-11-04T12:00:00.000Z");
+      // Two scrapes, at the agent's two minutes, say the same.
+      expect(reportedAt(start + 2 * 60 * 1000)).toBe(reportedAt(start));
+      expect(reportedAt(start + 299 * 1000)).toBe(reportedAt(start));
+      expect(reportedAt(start + 300 * 1000)).toBe("2026-11-04T12:05:00.000Z");
+    });
+
+    /*
+     * The line this draws. What a batch says at any moment against the last time its agents were
+     * heard: nothing here can read as gone inside what one scrape's batches can take to arrive.
+     */
+    test.each<[string, number, boolean]>([
+      ["heard in the same scrape", 0, false],
+      ["heard one scrape ago, as a router arriving before its agents reads", 2, false],
+      ["heard two scrapes ago, with one read of its agents failing", 4, false],
+      ["heard five minutes ago", 5, false],
+      ["heard well past the window", 16, true],
+    ])(
+      "%s",
+      (_name: string, minutesAgo: number, isGone: boolean) => {
+        const now: number = Date.UTC(2026, 10, 4, 12, 3, 0);
+        const [heard] = batch(
+          [["openstack_neutron_l3_agent_of_router", AGENT_LABELS]],
+          now - minutesAgo * 60 * 1000,
+        );
+        const [router] = getOpenStackRoutersWithoutAgents(
+          batch([["openstack_neutron_router", ROUTER_LABELS]], now),
+        );
+
+        expect(
+          new Date(heard!.facts["l3AgentsReportedAt"] as string).getTime() <
+            router!.agentsReportedBefore.getTime(),
+        ).toBe(isGone);
+      },
+    );
   });
 
   test("a floating IP is named by its address, and a spare one has no router", () => {

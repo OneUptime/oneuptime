@@ -19,6 +19,7 @@ import {
   OpenStackRegionState,
   useOpenStackRegion,
 } from "../../../Components/OpenStack/OpenStackRegionContext";
+import OpenStackLimitedViewNotice from "../../../Components/OpenStack/Part/OpenStackLimitedViewNotice";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackProjectTotalsCard from "../../../Components/OpenStack/Part/OpenStackProjectTotalsCard";
 import useOpenStackCloudName from "../../../Components/OpenStack/Part/UseOpenStackCloudName";
@@ -132,6 +133,10 @@ const OpenStackCloudSnapshots: FunctionComponent<
 
   return (
     <Fragment>
+      <OpenStackLimitedViewNotice
+        openStackCloudId={modelId}
+        kind={OpenStackResourceKind.Snapshot}
+      />
       <OpenStackPartNotice
         testId="openstack-snapshots-source"
         tone="neutral"

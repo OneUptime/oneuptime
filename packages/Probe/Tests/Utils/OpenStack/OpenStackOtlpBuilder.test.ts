@@ -74,6 +74,7 @@ const SERVER: NonNullable<OpenStackComputeInventory["servers"]>[number] = {
   flavorId: null,
   flavorName: "m1.tiny",
   instanceName: "instance-00000001",
+  imageId: null,
   taskState: null,
   updatedAt: "2026-11-04T11:00:00Z",
   faultMessage: null,
@@ -93,6 +94,7 @@ describe("every datapoint", () => {
               status: "enabled",
               state: "up",
               disabledReason: "",
+              forcedDown: null,
             },
           ],
         }),
@@ -118,6 +120,39 @@ describe("every datapoint", () => {
       timeUnixNano: `${OBSERVED_AT}000000`,
     });
   });
+
+  test.each<[boolean | null, string | undefined]>([
+    [true, "true"],
+    [false, "false"],
+    // A Nova before microversion 2.11 says nothing, and neither does this.
+    [null, undefined],
+  ])(
+    "a worker forced down is %s, as forced_down %s",
+    (forcedDown: boolean | null, label: string | undefined) => {
+      const point: ReportedDatapoint = named(
+        build(
+          reading(OpenStackServiceType.Compute, {
+            services: [
+              {
+                id: "s1",
+                binary: "nova-compute",
+                host: "compute-01",
+                zone: "nova",
+                status: "enabled",
+                state: forcedDown ? "down" : "up",
+                disabledReason: "",
+                forcedDown,
+              },
+            ],
+          }),
+        ),
+        "openstack_nova_agent_state",
+      )[0]!;
+
+      expect(point.labels["forced_down"]).toBe(label);
+      expect(point.value).toBe(forcedDown ? 0 : 1);
+    },
+  );
 
   test("names no cloud: only the server says which cloud a probe's data is", () => {
     const built: OpenStackOtlpBuildResult = OpenStackOtlpBuilder.build(
@@ -262,6 +297,7 @@ describe("the order of a series' lines", () => {
         status: "enabled",
         state: "up",
         disabledReason: null,
+        forcedDown: null,
       };
     };
 
@@ -474,6 +510,7 @@ describe("an instance", () => {
               status: "ERROR",
               taskState: "spawning",
               faultMessage: "No valid host was found.",
+              imageId: "image-1",
             },
           ],
         }),
@@ -482,6 +519,7 @@ describe("an instance", () => {
     )[0]!;
 
     expect(point.labels).toMatchObject({
+      image_id: "image-1",
       task_state: "spawning",
       updated_at: "2026-11-04T11:00:00Z",
       fault_message: "No valid host was found.",
@@ -490,7 +528,7 @@ describe("an instance", () => {
     expect(
       getOpenStackMetricByMetricName("openstack_nova_server_status")
         ?.probeOnlyAttributes,
-    ).toEqual(["task_state", "updated_at", "fault_message"]);
+    ).toEqual(["task_state", "updated_at", "fault_message", "image_id"]);
   });
 
   test("a hypervisor has its capacity only while Nova says it", () => {

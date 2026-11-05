@@ -23,6 +23,7 @@ import {
   resolveOpenStackDeploymentTool,
 } from "../../FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
 import {
+  SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SetupGuideContent,
   SetupGuideOption,
   SetupGuideStep,
@@ -166,6 +167,130 @@ function ownMarkdownOf(tool: OpenStackDeploymentTool): string {
 function squash(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
+
+/*
+ * The rig follows a guide by running the guide's own text, placeholders and all, and fills
+ * them in at the last moment: so what was run on a real deployment is what a person reads.
+ */
+describe("what the rig ran on a real deployment is what the guide says", () => {
+  const RIG_DIR: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "Tests",
+    "Ops",
+    "openstack-e2e",
+  );
+
+  function rigFile(file: string): string {
+    return fs.readFileSync(path.join(RIG_DIR, file), "utf8");
+  }
+
+  // A person with no key picked yet, on the OneUptime the rig's blocks name.
+  function guideAsTheRigReadsIt(
+    tool: OpenStackDeploymentTool,
+  ): SetupGuideContent {
+    return getOpenStackSetupGuide({
+      oneuptimeUrl: "https://oneuptime.example",
+      apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+      hasApiKey: false,
+      method: "install-script",
+      now: NOW,
+      tool,
+    });
+  }
+
+  // Each command block of a step: its own, and each of its tabs but those left out.
+  function blocksOfStep(
+    step: SetupGuideStep,
+    tabsNotRun: ReadonlyArray<string>,
+  ): Array<string> {
+    return [
+      ...blocksIn(step.markdown),
+      ...(step.variants || [])
+        .filter((variant: { label: string; markdown: string }): boolean => {
+          return !tabsNotRun.includes(variant.label);
+        })
+        .flatMap((variant: { label: string; markdown: string }) => {
+          return blocksIn(variant.markdown);
+        }),
+    ];
+  }
+
+  // Only the plain reader's level, which a deployment tool does not change.
+  const TABS_NOT_RUN: ReadonlyArray<string> = ["Project view"];
+
+  test.each([
+    ["kolla-ansible", "kolla-guide.sh"],
+    ["openstack-ansible", "osa-guide.sh"],
+  ] as Array<[OpenStackDeploymentTool, string]>)(
+    "every command of %s's guide is in %s, word for word",
+    (tool: OpenStackDeploymentTool, script: string) => {
+      const guide: SetupGuideContent = guideAsTheRigReadsIt(tool);
+      const followed: string = `${rigFile(script)}\n${rigFile("guide-follow.sh")}`;
+
+      const blocks: Array<string> = [
+        ...guide.steps.flatMap((step: SetupGuideStep): Array<string> => {
+          return blocksOfStep(step, TABS_NOT_RUN);
+        }),
+        ...(guide.advanced || [])
+          .filter((topic: SetupGuideTopic): boolean => {
+            return topic.title.startsWith("Service logs");
+          })
+          .flatMap((topic: SetupGuideTopic): Array<string> => {
+            return blocksIn(topic.markdown);
+          }),
+      ];
+
+      expect(blocks.length).toBeGreaterThan(5);
+
+      for (const block of blocks) {
+        expect(followed).toContain(block.trimEnd());
+      }
+    },
+  );
+
+  test("what Kolla-Ansible's credential notes name is what it runs", () => {
+    const script: string = rigFile("kolla-guide.sh");
+
+    expect(script).toContain("source /etc/kolla/admin-openrc.sh");
+    expect(script).toContain(
+      "kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement",
+    );
+    expect(guideOf("kolla-ansible").credentialNotes.join("\n")).toContain(
+      "kolla-ansible reconfigure -i <inventory> --tags nova,neutron,keystone,placement",
+    );
+  });
+
+  test("what OpenStack-Ansible's credential notes name is what it runs", () => {
+    const script: string = rigFile("osa-guide.sh");
+
+    expect(script).toContain(". ~/openrc");
+    expect(script).toContain(
+      "openstack-ansible openstack.osa.nova --tags nova-policy-override",
+    );
+    expect(guideOf("openstack-ansible").credentialNotes.join("\n")).toContain(
+      "openstack-ansible openstack.osa.nova --tags nova-policy-override",
+    );
+  });
+
+  test("the rig reads the expiry the guide prints on the day this test reads it", () => {
+    expect(rigFile("guide-follow.sh")).toContain(
+      'GUIDE_EXPIRATION="2027-11-04T00:00:00"',
+    );
+    expect(
+      blocksIn(
+        guideAsTheRigReadsIt("kolla-ansible").steps.find(
+          (step: SetupGuideStep): boolean => {
+            return step.title === "Create the agent's credential";
+          },
+        )!.variants![0]!.markdown,
+      ).join("\n"),
+    ).toContain("--expiration 2027-11-04T00:00:00");
+  });
+});
 
 describe("How do you deploy OpenStack?", () => {
   test("asks about each tool, and opens on the general steps", () => {

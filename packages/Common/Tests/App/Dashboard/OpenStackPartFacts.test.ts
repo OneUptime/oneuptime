@@ -46,6 +46,7 @@ import {
   OpenStackForecast,
   OpenStackGrowthSample,
   OpenStackHostGroup,
+  OpenStackInstanceImage,
   OpenStackRowState,
   OpenStackSubnetAddresses,
   canOpenStackHypervisorGive,
@@ -59,6 +60,7 @@ import {
   getOpenStackFloatingIpAssociation,
   getOpenStackForecast,
   getOpenStackHostGroupId,
+  getOpenStackInstanceImage,
   getOpenStackCountTotals,
   getOpenStackHostGroups,
   getOpenStackHypervisorExternalId,
@@ -130,6 +132,40 @@ function reasonsOf(state: OpenStackRowState): Array<string> {
     return reason.text;
   });
 }
+
+describe("what an instance booted from", () => {
+  function rowWith(facts: JSONObject): OpenStackResource {
+    return Object.assign(new OpenStackResource(), {
+      kind: OpenStackResourceKind.Instance,
+      facts,
+    });
+  }
+
+  test.each<[string, JSONObject, OpenStackInstanceImage]>([
+    [
+      "a probe names one",
+      { imageId: "image-1", updatedAt: "2026-11-04T11:00:00Z" },
+      { state: "image", imageId: "image-1" },
+    ],
+    [
+      "a probe says none: Nova's answer for one booted from a volume",
+      { imageId: null, updatedAt: "2026-11-04T11:00:00Z" },
+      { state: "booted-from-volume" },
+    ],
+    ["the exporter says nothing of it", {}, { state: "not-collected" }],
+    [
+      "a row from before anyone asked",
+      { updatedAt: "2026-11-04T11:00:00Z" },
+      { state: "booted-from-volume" },
+    ],
+  ])("%s", (_name: string, facts: JSONObject, wanted: OpenStackInstanceImage) => {
+    expect(getOpenStackInstanceImage(rowWith(facts))).toEqual(wanted);
+  });
+
+  test("no row at all is not known either", () => {
+    expect(getOpenStackInstanceImage(null)).toEqual({ state: "not-collected" });
+  });
+});
 
 describe("a hypervisor's state", () => {
   test("up reads Nova's word, in green", () => {
