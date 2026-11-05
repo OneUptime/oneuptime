@@ -632,7 +632,9 @@ keystone_v3_url() {
     esac
 }
 
-# The Keystone to log in to. clouds.yaml also says, for an .env that does not.
+# The Keystone to log in to. clouds.yaml also says, for an .env that does not. With your own
+# exporter nothing here logs in, and what .env says stays: the AI agent's own credential logs
+# in there, as README.md tells people to set it.
 if [ "$BUNDLED_EXPORTER" = 1 ]; then
     if [ -z "$OPENSTACK_AUTH_URL" ]; then
         OPENSTACK_AUTH_URL="$(clouds_yaml_get auth_url)"
@@ -648,8 +650,6 @@ if [ "$BUNDLED_EXPORTER" = 1 ]; then
             ;;
     esac
     OPENSTACK_AUTH_URL="$(keystone_v3_url "$OPENSTACK_AUTH_URL")"
-else
-    OPENSTACK_AUTH_URL=""
 fi
 
 # One or several regions, comma-separated, with or without the square brackets
@@ -846,10 +846,10 @@ read_ca_file() {
     fi
 }
 
+# Only the bundled exporter's is installed here. With your own, what .env says stays, for the
+# AI agent to mount: the same goes for the Keystone above.
 if [ "$BUNDLED_EXPORTER" = 1 ]; then
     read_ca_file
-else
-    OPENSTACK_CA_FILE=""
 fi
 
 WRITE_CLOUDS_FILE=0

@@ -1026,6 +1026,27 @@ describe("each project's quotas, without Docker", () => {
 describe("your own exporter, without Docker", () => {
   const OWN = "10.0.0.5:9180";
 
+  test("a re-run keeps what .env says of Keystone, and asks it nothing", () => {
+    const env = setup();
+    const first = env.run({
+      input: answers(URL, KEY, "prod", "RegionOne"),
+      env: { OPENSTACK_EXPORTER_ADDRESS: OWN },
+    });
+    expect(first.status).toBe(0);
+    fs.appendFileSync(
+      env.installed(".env"),
+      "OPENSTACK_AUTH_URL=https://keystone.example.com:5000\n",
+    );
+
+    const second = env.run({ args: [] });
+
+    expect(second.status).toBe(0);
+    expect(systemdRead(second.envFile).OPENSTACK_AUTH_URL).toBe(
+      "https://keystone.example.com:5000",
+    );
+    expect(fs.existsSync(env.installed("clouds.yaml"))).toBe(false);
+  });
+
   test("installs the collector alone, and localhost is allowed, since nothing is in a container", () => {
     for (const address of [OWN, "127.0.0.1:9198"]) {
       const env = setup();
