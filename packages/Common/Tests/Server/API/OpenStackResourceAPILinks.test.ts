@@ -268,7 +268,7 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
     openStackCloudId: CLOUD_ID.toString(),
     cloudName: "prod",
     regionName: "RegionOne",
-    externalId: "3b143fea-d790-4490-995b-033a2263c60c",
+    externalId: "ece79e88-fe71-4268-8080-ed81e6887df4",
     name: "ou-cluster",
     status: "CREATE_COMPLETE",
     kubernetesClusterId: KUBERNETES_CLUSTER_ID.toString(),
@@ -338,10 +338,7 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
 
     test("no cluster named is refused before anything is read", async () => {
       await expect(
-        api().getKubernetesClusterOfMagnumCluster(
-          { params: {}, body: {} },
-          {},
-        ),
+        api().getKubernetesClusterOfMagnumCluster({ params: {}, body: {} }, {}),
       ).rejects.toThrow(BadDataException);
       expect(
         OpenStackAcrossProducts.getKubernetesClusterOfMagnumCluster,
@@ -355,12 +352,10 @@ describe("a Magnum cluster and the Kubernetes cluster it is", () => {
     };
 
     beforeEach(() => {
-      jest
-        .spyOn(KubernetesClusterService, "findOneById")
-        .mockResolvedValue({
-          _id: KUBERNETES_CLUSTER_ID.toString(),
-          projectId: PROJECT_ID,
-        } as never);
+      jest.spyOn(KubernetesClusterService, "findOneById").mockResolvedValue({
+        _id: KUBERNETES_CLUSTER_ID.toString(),
+        projectId: PROJECT_ID,
+      } as never);
       jest
         .spyOn(OpenStackAcrossProducts, "getMagnumClusterOfKubernetesCluster")
         .mockResolvedValue(LINK as never);

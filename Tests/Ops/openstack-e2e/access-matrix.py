@@ -87,6 +87,11 @@ def part_reads():
         reads.append(("network", "a router's L3 agents", f"/v2.0/routers/{router}/l3-agents", "agents", {}))
     if dhcp_agent:
         reads.append(("network", "a DHCP agent's networks", f"/v2.0/agents/{dhcp_agent}/dhcp-networks", "networks", {}))
+    # What a stack's page lists on a probe's cloud. A credential's own project is in Heat's address, and
+    # the stack is another project's, so this says what an admin of a project of its own is told.
+    stack = os.environ.get("OU_READ_OTHER_PROJECTS_STACK", "")
+    if stack:
+        reads.append(("orchestration", "another project's stack's resources", f"/stacks/{stack}/resources?nested_depth=2", "resources", {}))
     return reads
 
 

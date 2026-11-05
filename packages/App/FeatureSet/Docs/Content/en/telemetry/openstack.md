@@ -698,13 +698,14 @@ The exporter says less about these services than a read of their APIs does, and 
 | Whose a cluster is | From its Heat stack | From Magnum | No |
 | Why a cluster failed, its template and its Kubernetes version | No. Run `openstack coe cluster show` | Yes | No |
 | Heat's engines and Magnum's conductors on **Services** | No | Yes | No |
+| Which instances and volumes a stack owns | No | Where Heat answers it | Its own project's at most |
 
 Two failures read differently, and both are what a real cloud does:
 
 - **A stopped `heat-engine`** reads as **Orchestration API Down**, on either collector. Heat's API asks an engine for its lists, so with none left it can't answer them, after a minute's wait for an RPC timeout. A stack an engine left in progress can stay in progress after the engine comes back, and reads **Stack Stuck In Progress** once two hours have passed.
 - **A stopped `magnum-conductor`** isn't shown anywhere on a cloud the agent collects, because Magnum's API carries on answering without one and the exporter doesn't read conductors. Its clusters just stop moving. A probe with a Full view credential reads them, which is the only way to see this, or run `openstack coe service list`.
 
-Which instances and volumes a stack owns isn't collected yet, so a stack's page doesn't list them, and a failed instance doesn't name a stack you made yourself. Run `openstack stack resource list`.
+Which instances and volumes a stack owns is on one more read of that stack, which the agent's exporter doesn't make. On a cloud a probe collects, a stack's page lists them, and an instance's or a volume's page and alerts name the stack. It reads what its credential may, and a stack's page says when nothing has. On a cloud the agent collects, run `openstack stack resource list`.
 
 ### A cluster with the Kubernetes agent on it
 
