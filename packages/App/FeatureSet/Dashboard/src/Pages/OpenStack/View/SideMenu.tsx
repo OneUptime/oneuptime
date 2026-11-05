@@ -700,6 +700,16 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
         />
+        <SideMenuItem
+          link={{
+            title: "Status Pages",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.CheckCircle}
+        />
       </SideMenuSection>
 
       {getDeveloperSideMenuSection({

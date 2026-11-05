@@ -149,6 +149,8 @@ def writes():
         ("database", "create an instance", "POST", "/instances",
          {"instance": {"name": "ou-write-check", "flavorRef": "ou-no-such-flavor", "volume": {"size": 1}}}, {}),
         ("metric", "create a metric", "POST", "/v1/metric", {"name": "ou-write-check"}, {}),
+        ("rating", "create a rating service", "POST", "/v1/rating/module_config/hashmap/services",
+         {"name": "ou-write-check"}, {}),
     ]
 
 # More of what the services-<group> recordings compare, in the exporter's words where it has them,
@@ -161,6 +163,11 @@ OTHER_SERVICES_READS = [
     ("orchestration", "stacks, all projects", "/stacks?global_tenant=true", "stacks", {}),
     ("dns", "zones, own project", "/v2/zones", "zones", {}),
     ("database", "instances, own project", "/instances", "instances", {}),
+    # What a probe reads of CloudKitty, for its version, its API check, and what it rated.
+    ("rating", "versions", "/", "versions", {}),
+    ("rating", "what it can rate", "/v1/info/metrics", "metrics", {}),
+    ("rating", "summary by project", "/v2/summary?groupby=project_id&limit=1000&offset=0", "results", {}),
+    ("rating", "report summary, all projects", "/v1/report/summary?groupby=tenant_id&all_tenants=true", "summary", {}),
 ]
 
 

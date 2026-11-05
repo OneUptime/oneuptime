@@ -1,0 +1,8 @@
+{
+  "command": "openstack compute service set --enable compute-01 nova-compute",
+  "result": {
+    "success": true,
+    "exitCode": 0,
+    "output": "[stdout]\nThis changes no instance.\n/os-services/enable: Nova accepted it (HTTP 200).\nThe API took it, which is not the same as done: read it again to see it took effect.\noneuptime-openstack-reach route compute service set --enable\noneuptime-openstack-reach kind on-host\noneuptime-openstack-reach complete yes\noneuptime-openstack-reach instances 0\noneuptime-openstack-reach projects 0\noneuptime-openstack-reach left-behind 0"
+  }
+}

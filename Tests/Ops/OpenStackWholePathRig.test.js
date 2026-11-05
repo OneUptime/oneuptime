@@ -213,6 +213,19 @@ describe("what the walk reads", () => {
     expect(WALK).toContain("resource-topology-chip-instance:");
   });
 
+  test("allows an empty state only by name, on the page that has it", () => {
+    const allowed = [...WALK.matchAll(/allowEmpty=\[([^\]]*)\]/g)].map(
+      (match) => {
+        return match[1];
+      },
+    );
+
+    expect(allowed).toEqual([
+      '"investigation-conversation-empty", "event-video-calls-empty"',
+      '"openstack-scoped-rules-empty"',
+    ]);
+  });
+
   test("gives the browser its API's address, with the port OneUptime moved to", () => {
     expect(stepNamed("Start OneUptime").run).toContain("HOST=localhost:8880");
     expect(stepNamed("Walk the whole path").env.PLAYWRIGHT_IMAGE).toMatch(
