@@ -20,6 +20,7 @@ import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
@@ -34,6 +35,14 @@ import {
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../OpenStack/OpenStackHealthRules";
+import {
+  OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+  OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+  OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+  OPENSTACK_CAPACITY_NAME_LABEL,
+  OPENSTACK_CAPACITY_RESOURCE_LABEL,
+  OPENSTACK_CAPACITY_SCOPE_LABEL,
+} from "../OpenStack/OpenStackCapacitySeries";
 import {
   OPENSTACK_INSTANCE_DEVICE_ATTRIBUTE,
   OPENSTACK_INSTANCE_ID_ATTRIBUTE,
@@ -54,7 +63,8 @@ export type OpenStackAlertTemplateCategory =
   | "Compute"
   | "Network"
   | "Storage"
-  | "Projects";
+  | "Projects"
+  | "Capacity";
 
 export type OpenStackAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -234,11 +244,50 @@ function windowHolding(minutes: number): RollingTime {
   return RollingTime.Past12Hours;
 }
 
+/*
+ * A grouped step's anchor says how often its service is collected, which its own series can't when
+ * they come and go. One per status word exists only while something has that status, so the first
+ * thing seen in that status, or the only thing, has one data point and nothing beside it to say
+ * that it isn't all a window ever holds. Anything on its way to something else is seen that way.
+ */
+function readCadenceFromAnchor(args: {
+  openstackMonitor: MonitorStepOpenStackMonitor;
+  instances: Array<MonitorCriteriaInstance>;
+}): void {
+  const hasAnchor: boolean =
+    args.openstackMonitor.metricViewConfig.queryConfigs.some(
+      (query: MetricQueryConfigData): boolean => {
+        return (
+          query.metricAliasData?.metricVariable ===
+          OPENSTACK_ANCHOR_METRIC_ALIAS
+        );
+      },
+    );
+
+  if (!hasAnchor) {
+    return;
+  }
+
+  for (const instance of args.instances) {
+    for (const filter of instance.data?.filters || []) {
+      filter.metricMonitorOptions = {
+        ...filter.metricMonitorOptions,
+        cadenceMetricAlias: OPENSTACK_ANCHOR_METRIC_ALIAS,
+      };
+    }
+  }
+}
+
 export function buildOpenStackMonitorStep(args: {
   openstackMonitor: MonitorStepOpenStackMonitor;
   offlineCriteriaInstance: MonitorCriteriaInstance;
   onlineCriteriaInstance: MonitorCriteriaInstance;
 }): MonitorStep {
+  readCadenceFromAnchor({
+    openstackMonitor: args.openstackMonitor,
+    instances: [args.offlineCriteriaInstance, args.onlineCriteriaInstance],
+  });
+
   const monitorStep: MonitorStep = new MonitorStep();
 
   const monitorCriteria: MonitorCriteria = new MonitorCriteria();
@@ -464,9 +513,15 @@ function buildFloorStep(data: {
   groupByAttributeKeys: Array<string>;
   // An API's own queries keep its window from being silent: it needs no anchor.
   hasOwnAnchor?: boolean | undefined;
+  /*
+   * The floor, where it isn't whether something reads 1. A number with room in it gets a dead band
+   * to recover past, so it doesn't flap on its line. Whole series of 0 or 1 have nowhere to put one.
+   */
+  value?: number | undefined;
   words: IncidentWords;
 }): MonitorStep {
   const [firstQuery, ...otherQueries] = data.queries;
+  const value: number = data.value ?? 1;
 
   return buildOpenStackMonitorStep({
     openstackMonitor: buildOpenStackSeriesConfig({
@@ -480,7 +535,7 @@ function buildFloorStep(data: {
       notification: { args: data.args, ...data.words },
       metricAlias: firstQuery!.alias,
       filterType: FilterType.LessThan,
-      value: 1,
+      value: value,
       additionalFilters: otherQueries.map(
         (query: OpenStackQuery): AdditionalCriteriaFilterSpec => {
           return {
@@ -496,9 +551,9 @@ function buildFloorStep(data: {
         onlineMonitorStatusId: data.args.onlineMonitorStatusId,
         metricAlias: firstQuery!.alias,
         filterType: FilterType.GreaterThanOrEqualTo,
-        value: 1,
+        value: value,
         // These series are 0 or 1: a dead band above 1 could never be crossed.
-        isBinaryMetric: true,
+        isBinaryMetric: data.value === undefined,
         filterCondition: FilterCondition.All,
         additionalFilters: otherQueries.map(
           (query: OpenStackQuery): AdditionalCriteriaFilterSpec => {
@@ -1894,7 +1949,7 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
   id: "openstack-project-quota-nearly-reached",
   name: "Project Quota Nearly Reached",
   summary: `A project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of a quota.`,
-  description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 10 minutes (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they read the API once per project on every collection, so this template stays quiet until you turn them on: delete the --disable-metric=nova-limits_vcpus_max and --disable-metric=cinder-limits_volume_max_gb lines from the exporter's command in docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, and restart the exporter. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
+  description: `Alert when a project has used ${OPENSTACK_PROJECT_QUOTA_WARNING_PERCENT}% or more of its vCPU, memory, instance or volume quota for 3 hours, which is three of the hourly readings these series have (openstack_nova_limits_* and openstack_cinder_limits_volume_*, used / max per project). One incident per project, and a project with no limit never fires. These series are off by default, because they cost API calls per project, so this template stays quiet until you turn them on: run the agent's install.sh again with OPENSTACK_COLLECT_QUOTAS=true, or on a cloud a probe reads, turn on Project limits. Check \`openstack limits show --absolute --project <project>\`, then raise the quota or ask its owner to free some.`,
   category: "Projects",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -1931,6 +1986,8 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
     return buildCeilingStep({
       args,
       service: OpenStackServiceType.Compute,
+      // Three of the agent's hourly readings, as every template reads three of its series'.
+      rollingTime: RollingTime.Past3Hours,
       groupByAttributeKeys: PROJECT_GROUP,
       queries: [
         limit("vcpus_used", "openstack_nova_limits_vcpus_used"),
@@ -1987,6 +2044,127 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Capacity ---
+
+/*
+ * Whether a flavor fits, whether a zone can lose a host and when something fills up take every host
+ * and flavor to work out, so OneUptime writes these series itself from each cloud's rows
+ * (OpenStackCapacitySeries), every two minutes while it reports. Each is written only when it can
+ * say something: a flavor no host could ever hold, one whose only room is on a host someone
+ * disabled, a zone with a host someone disabled, and anything too new to forecast all have no
+ * series, and so nothing to fire on. Allocation, not load: an idle instance holds all of it.
+ */
+const FLAVOR_GROUP: Array<string> = [REGION, "flavor_id", "flavor"];
+const ZONE_GROUP: Array<string> = [REGION, "availability_zone"];
+const CAPACITY_GROUP: Array<string> = [
+  REGION,
+  OPENSTACK_CAPACITY_SCOPE_LABEL,
+  OPENSTACK_CAPACITY_NAME_LABEL,
+  OPENSTACK_CAPACITY_RESOURCE_LABEL,
+];
+
+const flavorCannotBePlacedTemplate: OpenStackAlertTemplate = {
+  id: "openstack-flavor-cannot-be-placed",
+  name: "Flavor Can No Longer Be Placed",
+  summary: "No host has room for one more of a flavor people can ask for.",
+  description: `Alert when no host can take one more of a flavor for 10 minutes: booting one now fails with No valid host. Counted host by host, from openstack_capacity_flavor_fits, which a probe reads from Placement's own allocation candidates, so it respects traits, and which a cloud on the agent works out from inventories. One incident per flavor per region. Only flavors someone can ask for (public ones and private ones in use), and never one too large for every host, which was never going to fit, or one whose only room is on a host someone disabled, which is planned work. This is allocation, not load. On the cloud's Capacity page, the flavor's row says how many would fit if what is free were on one host, which tells a full cloud from a fragmented one. Check \`openstack allocation candidate list --resource VCPU=<vcpus> --resource MEMORY_MB=<ram> --resource DISK_GB=<disk>\`, then move instances to make a whole host's room, or add capacity.`,
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Placement,
+      groupByAttributeKeys: FLAVOR_GROUP,
+      queries: [
+        {
+          alias: "room_for",
+          metricName: OPENSTACK_CAPACITY_FLAVOR_FITS_SERIES,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Flavor Can No Longer Be Placed",
+        incidentDescription: `No host has room for one more of the flavor named above, so anyone booting one now is told No valid host. This is what has been promised, not what is busy. The cloud's Capacity page says whether the cloud is full or only fragmented: free capacity spread too thinly for one instance of this size. Check openstack allocation candidate list for the flavor's size, then live-migrate instances to make a whole host's room, or add capacity. The incident resolves on its own once a host has room.`,
+        criteriaName: "Flavor Can No Longer Be Placed - room for < 1",
+        criteriaDescription:
+          "Triggers when no host has room for one more of a flavor for the whole window.",
+      },
+    });
+  },
+};
+
+/*
+ * How long until something is full, at its growth over the last week. Each thing that fills up is
+ * one series, so this is one template: a zone's vCPUs, memory or disk, an external network's IPv4
+ * addresses and a storage pool's bytes alike. It reads a number the worker worked out rather than
+ * a forecast criteria's own fit, because a page and an alert that disagree about when something
+ * fills up are how people stop trusting both: this number is what the Capacity page says.
+ */
+const capacityForecastUnderDaysTemplate: OpenStackAlertTemplate = {
+  id: "openstack-capacity-forecast-under-days",
+  name: `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
+  summary: `Something fills up in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth this week.`,
+  description: `Alert when a zone's vCPUs, memory or disk, an external network's IPv4 addresses or a storage pool will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days, for 10 minutes, at its growth over the last week. Reads openstack_capacity_days_until_full: a straight line through what was allocated, against what there is today. One incident per zone and resource class, network or pool. A new cloud stays quiet until it has a day of history, and something not growing has nothing to project. This is allocation, not load: it is how soon Placement runs out of things to promise. Check the cloud's Capacity page, which lists what fills up soonest first, and \`openstack server list --all-projects --long\` for what is growing, then add capacity or ask its owner.`,
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Placement,
+      groupByAttributeKeys: CAPACITY_GROUP,
+      queries: [
+        {
+          alias: "days_until_full",
+          metricName: OPENSTACK_CAPACITY_DAYS_UNTIL_FULL_SERIES,
+          aggregationType: MetricsAggregationType.Max,
+        },
+      ],
+      value: OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
+      words: {
+        incidentTitle: `[OpenStack] Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
+        incidentDescription: `What is named above will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its growth over the last week. The cloud's Capacity page lists what fills up soonest first. Check openstack server list --all-projects for a zone, openstack floating ip list --network for an external network and openstack volume list --all-projects for a pool to find what is growing, then add capacity before it fills, or ask its owner. The incident resolves on its own once it has longer than that.`,
+        criteriaName: `Capacity Forecast - days until full < ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS}`,
+        criteriaDescription: `Triggers when something will be full in under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} days at its recent growth, for the whole window.`,
+      },
+    });
+  },
+};
+
+/*
+ * Whether a zone could lose its largest host and still fit what runs on it, as VMware's Host failure
+ * asks of a cluster. Min across the classes, so any one of them short reads 0, and it is one
+ * incident for the zone however many are.
+ */
+const reservedHeadroomGoneTemplate: OpenStackAlertTemplate = {
+  id: "openstack-reserved-headroom-gone",
+  name: "Reserved Headroom Gone",
+  summary: "A zone can't lose its largest host and still fit what runs on it.",
+  description: `Alert when a zone could not lose its largest host and still fit what runs on it, for 10 minutes: what is allocated, on any host in the zone, against what its other hosts could promise. Reads openstack_capacity_can_lose_a_host, one series per zone and resource class. One incident per zone. A zone with fewer than two hosts has nothing to say, and neither does one with a host someone disabled, because that is planned work and it says so on the Capacity page. It compares amounts rather than where each instance would land, so passing means an evacuation has room, not that every instance finds a host: the Capacity page's flavor table shows what is fragmented. This is allocation, not load. Check \`openstack hypervisor list --long\` for what each host holds, then add capacity, or move instances out of the zone.`,
+  category: "Capacity",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Placement,
+      groupByAttributeKeys: ZONE_GROUP,
+      queries: [
+        {
+          alias: "can_lose_a_host",
+          metricName: OPENSTACK_CAPACITY_CAN_LOSE_A_HOST_SERIES,
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Reserved Headroom Gone",
+        incidentDescription: `If this zone lost its largest host now, its other hosts could not fit what runs on it, so some instances would have nowhere to be evacuated to. Check openstack hypervisor list --long and the cloud's Capacity page, which says which resource is short and by how much, then add capacity, or move instances out of the zone. The incident resolves on its own once it could lose a host again.`,
+        criteriaName: "Reserved Headroom Gone - can lose a host < 1",
+        criteriaDescription:
+          "Triggers when a zone could not lose its largest host and still fit what runs on it for the whole window.",
+      },
+    });
+  },
+};
+
 export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
   return [
     cloudStoppedReportingTemplate,
@@ -2024,6 +2202,9 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     volumeStuckTemplate,
     imageStuckTemplate,
     projectQuotaNearlyReachedTemplate,
+    flavorCannotBePlacedTemplate,
+    capacityForecastUnderDaysTemplate,
+    reservedHeadroomGoneTemplate,
   ];
 }
 

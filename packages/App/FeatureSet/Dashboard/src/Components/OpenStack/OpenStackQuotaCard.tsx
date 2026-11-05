@@ -7,6 +7,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
@@ -18,20 +19,19 @@ import React, {
 import { OPENSTACK_QUOTA_TITLES } from "../../Pages/OpenStack/Utils/OpenStackHealth";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { OPENSTACK_COLLECTION_OPTIONS_ANCHOR } from "./OpenStackProbeCollectionView";
 
 /*
  * What a project may use and has used, or how to start reading that. Most clouds do not
- * read it, since it costs a call per project on every scrape, so a page with no quota
- * data says what turning it on gives and costs rather than looking empty.
+ * read it, since it costs calls per project, so a page with no quota data says what turning
+ * it on gives and costs rather than looking empty.
  */
 
-export const OPENSTACK_QUOTA_DISABLE_FLAGS: ReadonlyArray<string> = [
-  "--disable-metric=nova-limits_vcpus_max",
-  "--disable-metric=cinder-limits_volume_max_gb",
-  "--disable-metric=neutron-quota_network",
-];
+// What turns them on for a cloud the agent reads: an exporter of their own, read once an hour.
+export const OPENSTACK_QUOTA_INSTALL_SETTING: string =
+  "OPENSTACK_COLLECT_QUOTAS=true";
 
-// Nova one, Cinder two and Neutron one, for each project, on each scrape.
+// Nova one, Cinder two and Neutron one, for each project, on each read.
 export const OPENSTACK_QUOTA_CALLS_PER_PROJECT: number = 4;
 
 export interface SetupProps {
@@ -102,7 +102,7 @@ export const OpenStackQuotaSetup: FunctionComponent<SetupProps> = (
       <p data-testid="openstack-quota-cost">
         {props.projectCount
           ? translator.translateTemplate(
-              "They are off by default because of what they cost: four API calls per project on every read (Nova one, Cinder two, Neutron one), which is {{calls}} calls on this cloud.",
+              "They are off by default because of what they cost: four API calls per project and region on every read (Nova one, Cinder two, Neutron one), which is {{calls}} calls in each region of this cloud.",
               {
                 calls: translator.formatNumber(
                   props.projectCount * OPENSTACK_QUOTA_CALLS_PER_PROJECT,
@@ -110,7 +110,7 @@ export const OpenStackQuotaSetup: FunctionComponent<SetupProps> = (
               },
             )
           : translator.translateText(
-              "They are off by default because of what they cost: four API calls per project on every read (Nova one, Cinder two, Neutron one).",
+              "They are off by default because of what they cost: four API calls per project and region on every read (Nova one, Cinder two, Neutron one).",
             )}
       </p>
       {showsProbe ? (
@@ -120,9 +120,12 @@ export const OpenStackQuotaSetup: FunctionComponent<SetupProps> = (
             slots={{
               settings: (
                 <Link
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
-                    { modelId: props.openStackCloudId },
+                  to={getRouteToPageAnchor(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS] as Route,
+                      { modelId: props.openStackCloudId },
+                    ),
+                    OPENSTACK_COLLECTION_OPTIONS_ANCHOR,
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
@@ -137,11 +140,11 @@ export const OpenStackQuotaSetup: FunctionComponent<SetupProps> = (
         <div data-testid="openstack-quota-setup-agent">
           <p>
             {translator.translateText(
-              "On a cloud the agent reads, delete these lines from the exporter's command in the agent's docker-compose.yml, or from ExecStart in oneuptime-openstack-exporter.service without Docker, then restart the exporter:",
+              "On a cloud the agent reads, run its install.sh again with this set. That starts a second exporter, which reads them once an hour:",
             )}
           </p>
           <pre className="mt-2 overflow-x-auto rounded-md bg-gray-50 p-3 font-mono text-xs text-gray-800">
-            <bdi>{OPENSTACK_QUOTA_DISABLE_FLAGS.join("\n")}</bdi>
+            <bdi>{OPENSTACK_QUOTA_INSTALL_SETTING}</bdi>
           </pre>
           <p className="mt-2">
             {translator.translateText(

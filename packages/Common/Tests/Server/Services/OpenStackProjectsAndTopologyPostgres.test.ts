@@ -807,6 +807,135 @@ describePostgres(
         expect(read.totalsByKind["Flavor"]).toBe(1);
       });
 
+      /*
+       * The Topology page reading one region of a cloud: every read of the map narrows, so a
+       * region is drawn on its own numbers, and what another region holds costs it nothing.
+       */
+      test("reads one region's parts, and counts only what is in it", async () => {
+        await write([
+          project("p-regions"),
+          hypervisor("one-1"),
+          hypervisor("two-1", {
+            externalId: "RegionTwo/two-1",
+            regionName: "RegionTwo",
+          }),
+          instance("i-one", "p-regions", "one-1"),
+          instance("i-two-a", "p-regions", "two-1", {
+            regionName: "RegionTwo",
+          }),
+          instance("i-two-b", "p-regions", "two-1", {
+            regionName: "RegionTwo",
+          }),
+        ]);
+
+        const whole: OpenStackTopologyRead =
+          await OpenStackResourceService.getTopologyRead({
+            ...scope,
+            now: NOW,
+          });
+        const two: OpenStackTopologyRead =
+          await OpenStackResourceService.getTopologyRead({
+            ...scope,
+            now: NOW,
+            regionName: "RegionTwo",
+          });
+        const nowhere: OpenStackTopologyRead =
+          await OpenStackResourceService.getTopologyRead({
+            ...scope,
+            now: NOW,
+            regionName: "RegionNobodyHas",
+          });
+
+        expect(whole.totalsByKind["Instance"]).toBe(3);
+        expect(whole.instancesByHost).toHaveLength(2);
+
+        expect(two.totalsByKind["Instance"]).toBe(2);
+        expect(two.totalsByKind["Hypervisor"]).toBe(1);
+        expect(two.instancesByHost).toEqual([
+          {
+            regionName: "RegionTwo",
+            hypervisorName: "two-1",
+            instanceCount: 2,
+          },
+        ]);
+        expect(
+          two.rows
+            .map((row: JSONObject): string => {
+              return String(row["externalId"]);
+            })
+            .sort(),
+        ).toEqual(["RegionTwo/two-1", "i-two-a", "i-two-b"]);
+        // Whose each thing is comes with it, though a project belongs to no region.
+        expect(two.projectNames).toEqual({ "p-regions": "p-regions" });
+
+        expect(nowhere.rows).toEqual([]);
+        expect(nowhere.instancesByHost).toEqual([]);
+      });
+
+      test("past the stated size, what failed in another region is not read", async () => {
+        const hosts: Array<ParsedOpenStackResource> = [];
+        for (
+          let index: number = 0;
+          index <= OPENSTACK_TOPOLOGY_FULL_PART_LIMIT;
+          index++
+        ) {
+          hosts.push(
+            hypervisor(`one-${index}`, {
+              // The first of each region is down, with an instance beneath it.
+              status: index === 0 ? "down" : "up",
+            }),
+          );
+        }
+        await write([
+          ...hosts,
+          instance("i-one", "p-a", "one-0"),
+          hypervisor("two-0", {
+            externalId: "RegionTwo/two-0",
+            regionName: "RegionTwo",
+            status: "down",
+          }),
+          instance("i-two", "p-a", "two-0", { regionName: "RegionTwo" }),
+        ]);
+
+        const whole: OpenStackTopologyRead =
+          await OpenStackResourceService.getTopologyRead({
+            ...scope,
+            now: NOW,
+          });
+        const one: OpenStackTopologyRead =
+          await OpenStackResourceService.getTopologyRead({
+            ...scope,
+            now: NOW,
+            regionName: "RegionOne",
+          });
+        // A region this small is drawn whole, however large the cloud it is in.
+        const two: OpenStackTopologyRead =
+          await OpenStackResourceService.getTopologyRead({
+            ...scope,
+            now: NOW,
+            regionName: "RegionTwo",
+          });
+
+        const ids: (read: OpenStackTopologyRead) => Array<string> = (
+          read: OpenStackTopologyRead,
+        ): Array<string> => {
+          return read.rows.map((row: JSONObject): string => {
+            return String(row["externalId"]);
+          });
+        };
+
+        expect(whole.isSummarized).toBe(true);
+        expect(ids(whole)).toEqual(expect.arrayContaining(["i-one", "i-two"]));
+
+        expect(one.isSummarized).toBe(true);
+        expect(ids(one)).toContain("i-one");
+        expect(ids(one)).not.toContain("i-two");
+        expect(ids(one)).not.toContain("RegionTwo/two-0");
+
+        expect(two.isSummarized).toBe(false);
+        expect(ids(two).sort()).toEqual(["RegionTwo/two-0", "i-two"]);
+      }, 300000);
+
       test("a cloud of 5,000 hypervisors and 100,000 instances reads what failed, within its budget", async () => {
         const hypervisors: Array<ParsedOpenStackResource> = [];
         for (let index: number = 0; index < 5000; index++) {

@@ -113,6 +113,7 @@ const stripComments: SquashFunction = (source: string): string => {
 const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Index.tsx", "OPENSTACK_CLOUD_VIEW"],
   ["Recommendations.tsx", "OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS"],
+  ["Capacity.tsx", "OPENSTACK_CLOUD_VIEW_CAPACITY"],
   ["Services.tsx", "OPENSTACK_CLOUD_VIEW_SERVICES"],
   ["ServiceDetail.tsx", "OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL"],
   ["Hypervisors.tsx", "OPENSTACK_CLOUD_VIEW_HYPERVISORS"],
@@ -754,6 +755,11 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       ),
     );
 
+    // A storage pool's page names the Ceph cluster behind it, which is no leak: it means to.
+    const mayNameCeph: boolean =
+      relative.endsWith("OpenStackStoragePoolCephCard.tsx") ||
+      relative.endsWith("OpenStackUsageReads.ts");
+
     for (const forbidden of [
       "ProxmoxCluster",
       "proxmoxCluster",
@@ -761,8 +767,7 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
       "pve_",
       "pveVersion",
       "pve-",
-      "cephCluster",
-      "CephCluster",
+      ...(mayNameCeph ? [] : ["cephCluster", "CephCluster"]),
       "QEMU",
       "isBackedUp",
       "A OpenStack",

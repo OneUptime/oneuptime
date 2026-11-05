@@ -8,11 +8,17 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  OpenStackRegionState,
+  useOpenStackRegion,
+} from "../../../Components/OpenStack/OpenStackRegionContext";
+import { getOpenStackRegionIssueQuery } from "../Utils/OpenStackRegion";
 
 const OpenStackCloudAlerts: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { region }: OpenStackRegionState = useOpenStackRegion();
 
   const query: Query<Alert> = {
     projectId: ProjectUtil.getCurrentProjectId()!,
@@ -20,6 +26,10 @@ const OpenStackCloudAlerts: FunctionComponent<
 
   if (modelId) {
     query.openStackClouds = new Includes([modelId]);
+  }
+
+  if (region) {
+    query.seriesLabels = getOpenStackRegionIssueQuery(region);
   }
 
   return (

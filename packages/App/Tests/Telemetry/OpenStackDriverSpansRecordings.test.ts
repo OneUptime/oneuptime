@@ -249,7 +249,7 @@ describe.each(getRecordedTraceReleases())(
         expect.arrayContaining([
           `${CLOUD}/nova-api`,
           `${CLOUD}/nova-compute`,
-          `${CLOUD}/neutron-server`,
+          ...(recording.neutronWasLeftOut() ? [] : [`${CLOUD}/neutron-server`]),
           `${CLOUD}/keystone`,
           `${CLOUD}/glance-api`,
         ]),
@@ -347,7 +347,7 @@ describe.each(getRecordedTraceReleases())(
         expect(root["parentSpanId"]).toBe("");
       }
 
-      // Spans under the conductor keep the parent they named, which the waterfall reports.
+      // Spans under what sent nothing keep the parent they named, which the waterfall reports.
       const ids: Set<unknown> = new Set(
         rows.map((row: JSONObject): unknown => {
           return row["spanId"];
@@ -360,6 +360,10 @@ describe.each(getRecordedTraceReleases())(
       );
 
       expect(orphans.length).toBeGreaterThan(0);
+
+      for (const orphan of orphans) {
+        expect(orphan["parentSpanId"]).toBeTruthy();
+      }
     });
 
     test("the control plane can be drawn: spans whose parent is another service's", async () => {
@@ -385,13 +389,21 @@ describe.each(getRecordedTraceReleases())(
       }
 
       expect(Array.from(calls)).toEqual(
-        expect.arrayContaining([
-          `${CLOUD}/nova-api -> ${CLOUD}/neutron-server`,
-          `${CLOUD}/nova-api -> ${CLOUD}/glance-api`,
-          `${CLOUD}/nova-compute -> ${CLOUD}/neutron-server`,
-          `${CLOUD}/neutron-server -> ${CLOUD}/nova-api`,
-          `${CLOUD}/nova-api -> ${CLOUD}/nova-compute`,
-        ]),
+        expect.arrayContaining(
+          recording.neutronWasLeftOut()
+            ? [
+                `${CLOUD}/nova-api -> ${CLOUD}/glance-api`,
+                `${CLOUD}/nova-conductor -> ${CLOUD}/nova-compute`,
+                `${CLOUD}/nova-conductor -> ${CLOUD}/nova-scheduler`,
+              ]
+            : [
+                `${CLOUD}/nova-api -> ${CLOUD}/neutron-server`,
+                `${CLOUD}/nova-api -> ${CLOUD}/glance-api`,
+                `${CLOUD}/nova-compute -> ${CLOUD}/neutron-server`,
+                `${CLOUD}/neutron-server -> ${CLOUD}/nova-api`,
+                `${CLOUD}/nova-api -> ${CLOUD}/nova-compute`,
+              ],
+        ),
       );
     });
   },

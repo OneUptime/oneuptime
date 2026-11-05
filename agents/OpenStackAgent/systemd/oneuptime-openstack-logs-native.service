@@ -15,6 +15,7 @@ Wants=network-online.target
 Type=simple
 # The units a journal's OpenStack services run under. .env overrides this.
 Environment=OPENSTACK_CLOUD_NAME=openstack
+Environment=OPENSTACK_REGION_NAME=RegionOne
 Environment=OPENSTACK_LOGS_UNITS=[devstack@*,aodh-*,barbican-*,ceilometer-*,cinder-*,cloudkitty-*,designate-*,glance-*,gnocchi-*,heat-*,ironic-*,keystone*,magnum-*,manila-*,masakari-*,neutron-*,nova-*,octavia-*,placement-*,trove-*]
 # Where the journal's cursor is kept (StateDirectory below).
 Environment=OPENSTACK_LOGS_STATE_DIRECTORY=/var/lib/oneuptime-openstack-logs

@@ -620,6 +620,7 @@ start_journald_profile() {
     ONEUPTIME_URL=http://127.0.0.1:9 \
     ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
     OPENSTACK_CLOUD_NAME=devstack \
+    OPENSTACK_REGION_NAME=RegionOne \
     OPENSTACK_NODE_NAME="$HOST" \
     "OPENSTACK_LOGS_UNITS=[devstack@*]" \
     OPENSTACK_LOGS_STATE_DIRECTORY="$state" \
@@ -657,6 +658,7 @@ start_files_profile() {
     -e ONEUPTIME_URL=http://127.0.0.1:9 \
     -e ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
     -e OPENSTACK_CLOUD_NAME=devstack \
+    -e OPENSTACK_REGION_NAME=RegionOne \
     -e OPENSTACK_NODE_NAME="$HOST" \
     -e OPENSTACK_LOGS_TIMEZONE=UTC \
     -e OPENSTACK_LOGS_RECORDING_FILE=/recording/otlp-logs.json \

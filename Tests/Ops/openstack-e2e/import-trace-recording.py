@@ -230,6 +230,22 @@ def epoch(iso_time):
     ).timestamp()
 
 
+def write_fork_hang(folder, out):
+    """Where the first process stuck in OpenTelemetry's fork handler was, if one was."""
+    stuck = os.path.join(folder, "stuck")
+    if not os.path.isdir(stuck):
+        return
+    for name in sorted(os.listdir(stuck)):
+        for unit in sorted(os.listdir(os.path.join(stuck, name))):
+            with open(os.path.join(stuck, name, unit), encoding="utf-8", errors="replace") as handle:
+                blocks = handle.read().split("--- where ")
+            for block in blocks[1:]:
+                if "_handle_fork" in block:
+                    with open(os.path.join(out, "fork-hang.txt"), "w", encoding="utf-8") as handle:
+                        handle.write(f"{name}/{unit}\n{REPLACE_SECRETS(block)}")
+                    return
+
+
 def same_each_time(text):
     """A line about the driver, without the process and request that make every one its own."""
     words = []
@@ -342,6 +358,8 @@ def main():
                 text = REPLACE_SECRETS(handle.read())
             with open(os.path.join(out, name), "w", encoding="utf-8") as handle:
                 handle.write(text)
+
+    write_fork_hang(folder, out)
 
     context = os.path.join(folder, "context")
     if os.path.isdir(context):

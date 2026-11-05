@@ -468,14 +468,19 @@ describe("the name a span is stored under", () => {
     ["volume_api", "volume_api"],
     ["nova_image", "nova_image"],
     ["rpc", "rpc"],
-  ])("what the driver's rstrip ate is put back: %s", (name: string, word: string) => {
-    expect(
-      readOpenStackDriverSpanName({
-        name: name,
-        attributes: { name: "nova.scheduler.manager.SchedulerManager.select" },
-      }),
-    ).toBe(`${word} SchedulerManager.select`);
-  });
+  ])(
+    "what the driver's rstrip ate is put back: %s",
+    (name: string, word: string) => {
+      expect(
+        readOpenStackDriverSpanName({
+          name: name,
+          attributes: {
+            name: "nova.scheduler.manager.SchedulerManager.select",
+          },
+        }),
+      ).toBe(`${word} SchedulerManager.select`);
+    },
+  );
 
   test("a word with nothing to go with it stays", () => {
     expect(
@@ -519,7 +524,10 @@ describe("the kind a span is stored with", () => {
   test.each([
     ["neutron_api", "nova.network.neutron.ClientWrapper.proxy"],
     ["compute_api", "nova.compute.api.API.create"],
-    ["volume_api", "nova.virt.libvirt.volume.volume.LibvirtBaseVolumeDriver.get_config"],
+    [
+      "volume_api",
+      "nova.virt.libvirt.volume.volume.LibvirtBaseVolumeDriver.get_config",
+    ],
   ])(
     "a function the driver called a client for its name, %s, stays inside its service",
     (name: string, functionName: string) => {
@@ -548,6 +556,26 @@ describe("the kind a span is stored with", () => {
         attributes: { "http.path": "/placement/allocations" },
       }),
     ).toBe("SPAN_KIND_CLIENT");
+  });
+
+  test("the wrapper oslo.messaging puts around a method is where the work enters", () => {
+    expect(
+      readOpenStackDriverSpanKind({
+        kind: "SPAN_KIND_INTERNAL",
+        name: "rpc",
+        attributes: {
+          name: "oslo_messaging.rpc.server.expected_exceptions.<locals>.outer.<locals>.inner",
+        },
+      }),
+    ).toBe("SPAN_KIND_CONSUMER");
+    expect(
+      readOpenStackDriverSpanName({
+        name: "rpc",
+        attributes: {
+          name: "oslo_messaging.rpc.server.expected_exceptions.<locals>.outer.<locals>.inner",
+        },
+      }),
+    ).toBe("rpc server.expected_exceptions");
   });
 
   test("with nothing to go on, what the driver said stands", () => {
@@ -789,26 +817,23 @@ describe("one span, read as it arrives", () => {
     ["nova.exception.NoValidHost", true],
     ["nova.exception.TooManyInstances", true],
     ["nova.exception.NotFoundOrWorse", true],
-  ])(
-    "%s failed: %s",
-    (kind: string, isFailed: boolean) => {
-      const { span } = read({
-        attributes: { error: true },
-        events: [
-          {
-            name: "log",
-            attributes: [
-              { key: "error.kind", value: { stringValue: kind } },
-              { key: "message", value: { stringValue: "It says so." } },
-            ],
-          },
-        ],
-      });
+  ])("%s failed: %s", (kind: string, isFailed: boolean) => {
+    const { span } = read({
+      attributes: { error: true },
+      events: [
+        {
+          name: "log",
+          attributes: [
+            { key: "error.kind", value: { stringValue: kind } },
+            { key: "message", value: { stringValue: "It says so." } },
+          ],
+        },
+      ],
+    });
 
-      expect(span.isFailed).toBe(isFailed);
-      expect(span.statusMessage).toBe(isFailed ? `${kind}: It says so.` : "");
-    },
-  );
+    expect(span.isFailed).toBe(isFailed);
+    expect(span.statusMessage).toBe(isFailed ? `${kind}: It says so.` : "");
+  });
 
   test("a call that only finds a method says nothing, unless it failed", () => {
     expect(
@@ -848,9 +873,12 @@ describe("what a trace cannot show", () => {
     ["nova-conductor", OpenStackTraceGap.ForkedWorkers],
     ["nova-scheduler", OpenStackTraceGap.ForkedWorkers],
     ["cinder-volume", OpenStackTraceGap.AlwaysForks],
-  ])("%s sends nothing as shipped", (service: string, gap: OpenStackTraceGap) => {
-    expect(getOpenStackTraceGap(service)).toBe(gap);
-  });
+  ])(
+    "%s sends nothing as shipped",
+    (service: string, gap: OpenStackTraceGap) => {
+      expect(getOpenStackTraceGap(service)).toBe(gap);
+    },
+  );
 
   test.each([
     ["nova-api"],

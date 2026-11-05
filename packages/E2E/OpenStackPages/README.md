@@ -56,9 +56,10 @@ under the IDs they really had. Only the clock moves.
 
 The other scenarios are query parameters (see the top of `Fixture/Fixture.js`):
 `?collector=disconnected`, `?quiet=<minutes>`, `?access=project`, `?collection=Probe`,
-`?probe=checking|collecting|partial|untrusted|plain-http`, `?probes=many`,
-`?tests=ok,untrusted,...`, `?clouds=none`, `?archived=1`, `?linked=1`, `?role=read|none`,
-`?alerts=none|some|all|denied`, `?open=0|1|many`,
+`?probe=checking|collecting|partial|untrusted|plain-http|gone`, `?probes=many`,
+`?tests=ok,untrusted,...` (`connectionTestOutcome` in `Fixture/ProbeCollection.js` has every failure
+a test names), `?clouds=none`, `?archived=1`, `?linked=1`, `?role=read|none`,
+`?alerts=none|some|all|denied`, `?open=0|1|many|regions`,
 `?fail=inventory,attention,regions,consumers,blast,metrics,events`, `?lang=de|fa` and
 `?theme=dark`. `?region=` is the product's own. They are read when a page loads, and a
 reload reads what the tab was first given: a link inside the product knows nothing of them.
@@ -124,6 +125,8 @@ charts beside its flavor's size, a phone and the dark theme. `?estate=usage` is 
 a line: what real clouds really said goes through the same pages in
 `Common/Tests/App/Dashboard/OpenStackUsagePagesRecordings.test.tsx`. `?estate=calm` has no source, so
 each page says what is missing and how to add it. And what it costs on a cloud's Settings.
+
+`OpenStackCapacity.spec.ts`: the Capacity page on what real clouds' exporters answered (a host's real ratio and reservation, a stopped nova-compute, a disabled one) and on `?capacity=short`, made up in the snapshot's own shape: a fragmented estate, a zone that can't lose a host, a forecast, an orphaned allocation and a probe's answer. It reads one row whatever the estate, and fits a phone.
 
 `Services.spec.ts`: the Services list and a service's page on ML2/OVS and OVN, on what real
 clouds' exporters answered, each failure drill by name and in its own words, and a service

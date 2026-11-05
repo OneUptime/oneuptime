@@ -58,7 +58,11 @@ export interface FixtureRecord {
     modelName: string;
     query: Record<string, unknown> | null;
   }>;
-  itemRequests: Array<{ modelName: string; id: string }>;
+  itemRequests: Array<{
+    modelName: string;
+    id: string;
+    select?: Record<string, unknown> | null;
+  }>;
   aggregateRequests: Array<{
     modelName: string;
     name: string;
