@@ -1,0 +1,55 @@
+$ openstack router show 1b93de0a-f162-472e-a6f4-6148f8381b5f -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "id": "1b93de0a-f162-472e-a6f4-6148f8381b5f",
+  "name": "ou-router",
+  "project_id": "adbada83aeeb41cebd344c2f7cf44372",
+  "admin_state_up": true,
+  "status": "ACTIVE",
+  "enable_snat": true,
+  "external_gateway_info": {
+    "network_id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "external_fixed_ips": [
+      {
+        "subnet_id": "8e84684c-2f1b-494a-b8f3-ed1e71c692e2",
+        "ip_address": "172.24.4.104"
+      },
+      {
+        "subnet_id": "a4a43c4c-e6a0-4212-8ccc-b686ea01c332",
+        "ip_address": "2001:db8::5a"
+      }
+    ],
+    "enable_snat": true
+  },
+  "description": "",
+  "availability_zones": [],
+  "ha": true,
+  "availability_zone_hints": [],
+  "enable_default_route_ecmp": false,
+  "enable_default_route_bfd": false,
+  "external_gateways": [
+    {
+      "network_id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+      "external_fixed_ips": [
+        {
+          "ip_address": "172.24.4.104",
+          "subnet_id": "8e84684c-2f1b-494a-b8f3-ed1e71c692e2"
+        },
+        {
+          "ip_address": "2001:db8::5a",
+          "subnet_id": "a4a43c4c-e6a0-4212-8ccc-b686ea01c332"
+        }
+      ]
+    }
+  ],
+  "routes": [],
+  "flavor_id": null,
+  "tags": [],
+  "created_at": "2026-11-05T05:27:36Z",
+  "updated_at": "2026-11-05T05:27:40Z",
+  "revision_number": 3,
+  "tenant_id": "adbada83aeeb41cebd344c2f7cf44372"
+}

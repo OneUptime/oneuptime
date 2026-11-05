@@ -1,0 +1,49 @@
+$ openstack port list --network 1875f08e-6c0d-4041-a9a6-c6c784c65836 --limit 50 -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "ee0403a5-492d-4c7f-abcb-fe08cac4700f",
+    "name": "",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "mac_address": "fa:16:3e:ea:6d:ae",
+    "network_id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "device_id": "c171783b-0239-488e-82e2-3edacfbfab67",
+    "device_owner": "network:router_interface",
+    "host": "",
+    "vif_type": "unbound",
+    "fixed_ips": "fde1:27f8:565f::1",
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451"
+  },
+  {
+    "id": "f7258067-3319-454b-979e-8271ef0f0301",
+    "name": "",
+    "status": "ACTIVE",
+    "admin_state_up": true,
+    "mac_address": "fa:16:3e:04:60:24",
+    "network_id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "device_id": "c171783b-0239-488e-82e2-3edacfbfab67",
+    "device_owner": "network:router_interface",
+    "host": "",
+    "vif_type": "unbound",
+    "fixed_ips": "10.0.0.1",
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451"
+  },
+  {
+    "id": "f97e86d1-c5f9-4ba1-a651-81f25ac47c9a",
+    "name": "",
+    "status": "DOWN",
+    "admin_state_up": true,
+    "mac_address": "fa:16:3e:00:08:d9",
+    "network_id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "device_id": "ovnmeta-1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "device_owner": "network:distributed",
+    "host": "",
+    "vif_type": "unbound",
+    "fixed_ips": "10.0.0.2,fde1:27f8:565f:0:f816:3eff:fe00:8d9",
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451"
+  }
+]

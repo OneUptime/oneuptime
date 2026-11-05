@@ -1,0 +1,34 @@
+$ openstack resource provider inventory list 758c3bf7-7336-465f-a997-618968d14595 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "resource_provider_generation": 9,
+  "inventories": {
+    "VCPU": {
+      "total": 4,
+      "reserved": 0,
+      "min_unit": 1,
+      "max_unit": 4,
+      "step_size": 1,
+      "allocation_ratio": 4
+    },
+    "MEMORY_MB": {
+      "total": 15983,
+      "reserved": 512,
+      "min_unit": 1,
+      "max_unit": 15983,
+      "step_size": 1,
+      "allocation_ratio": 1
+    },
+    "DISK_GB": {
+      "total": 144,
+      "reserved": 0,
+      "min_unit": 1,
+      "max_unit": 144,
+      "step_size": 1,
+      "allocation_ratio": 1
+    }
+  }
+}

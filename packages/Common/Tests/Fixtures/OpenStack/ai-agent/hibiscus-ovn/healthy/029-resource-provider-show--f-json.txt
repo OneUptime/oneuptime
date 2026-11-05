@@ -1,0 +1,38 @@
+$ openstack resource provider show 758c3bf7-7336-465f-a997-618968d14595 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "uuid": "758c3bf7-7336-465f-a997-618968d14595",
+  "name": "compute-01.example.internal",
+  "generation": 9,
+  "links": [
+    {
+      "rel": "self",
+      "href": "/placement/resource_providers/758c3bf7-7336-465f-a997-618968d14595"
+    },
+    {
+      "rel": "inventories",
+      "href": "/placement/resource_providers/758c3bf7-7336-465f-a997-618968d14595/inventories"
+    },
+    {
+      "rel": "usages",
+      "href": "/placement/resource_providers/758c3bf7-7336-465f-a997-618968d14595/usages"
+    },
+    {
+      "rel": "aggregates",
+      "href": "/placement/resource_providers/758c3bf7-7336-465f-a997-618968d14595/aggregates"
+    },
+    {
+      "rel": "traits",
+      "href": "/placement/resource_providers/758c3bf7-7336-465f-a997-618968d14595/traits"
+    },
+    {
+      "rel": "allocations",
+      "href": "/placement/resource_providers/758c3bf7-7336-465f-a997-618968d14595/allocations"
+    }
+  ],
+  "parent_provider_uuid": null,
+  "root_provider_uuid": "758c3bf7-7336-465f-a997-618968d14595"
+}
