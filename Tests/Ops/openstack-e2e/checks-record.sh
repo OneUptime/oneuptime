@@ -85,7 +85,11 @@ if [ "${CHECKS_PLAIN_HTTP:-0}" = "1" ]; then
   JOB_AUTH_URL="${AUTH_URL/http:/https:}"
 else
   # What a person's "Trust this certificate" saves.
-  FINGERPRINT="$(openssl s_client -connect "$AUTH_HOST" -servername "${AUTH_HOST%%:*}" </dev/null 2>/dev/null \
+  case "$AUTH_HOST" in
+    *:*) AUTH_HOST_AND_PORT="$AUTH_HOST" ;;
+    *) AUTH_HOST_AND_PORT="$AUTH_HOST:443" ;;
+  esac
+  FINGERPRINT="$(openssl s_client -connect "$AUTH_HOST_AND_PORT" -servername "${AUTH_HOST%%:*}" </dev/null 2>/dev/null \
     | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2)"
   echo "Keystone's certificate: $FINGERPRINT"
 fi
@@ -158,18 +162,20 @@ victims_are_all_there() {
 log "What merely looks like the check's, in its own project"
 OLD_STAMP=20200101000000
 LOOKALIKE_SERVER="oneuptime-check-$KEY-$OLD_STAMP-abcdef-server-old"
-LOOKALIKE_OTHER_KEY="oneuptime-check-ffffffffffff-$OLD_STAMP-abcdef-server"
+LOOKALIKE_OTHER_KEY="oneuptime-check-ffffffffffff-$OLD_STAMP-abcdef-volume"
 LOOKALIKE_VOLUME="oneuptime-check-$KEY-$OLD_STAMP-abcdef-server"
 LOOKALIKE_SG="oneuptime-check-web"
 as_check_user openstack server create --flavor m1.nano --image "$IMAGE" --network oneuptime-check-net --wait "$LOOKALIKE_SERVER" >/dev/null
 as_check_user openstack volume create --size 1 "$LOOKALIKE_VOLUME" >/dev/null
+as_check_user openstack volume create --size 1 "$LOOKALIKE_OTHER_KEY" >/dev/null
 as_check_user openstack security group create "$LOOKALIKE_SG" >/dev/null
 # Room for these, and for what the scenes make.
-openstack quota set --instances 6 --cores 6 --volumes 6 --gigabytes 6 "$PROJECT"
+openstack quota set --instances 6 --cores 6 --volumes 8 --gigabytes 8 "$PROJECT"
 
 lookalikes_are_all_there() {
   as_check_user openstack server show "$LOOKALIKE_SERVER" -f value -c id >/dev/null \
     && as_check_user openstack volume show "$LOOKALIKE_VOLUME" -f value -c id >/dev/null \
+    && as_check_user openstack volume show "$LOOKALIKE_OTHER_KEY" -f value -c id >/dev/null \
     && as_check_user openstack security group show "$LOOKALIKE_SG" -f value -c id >/dev/null
 }
 
@@ -287,7 +293,7 @@ holds "and leaves what the dead run made" diff "$KILLED_DIR/left.txt" "$CHECKS_D
 # Past two intervals, by the check's clock. The deletes are real.
 run_check killed-two-intervals-on lifecycle "$JOB" 62
 holds "a run past two intervals goes ahead" "${READ[@]}" expect "$CHECKS_DIR/killed-two-intervals-on" Succeeded
-holds "and says what the janitor removed" "${READ[@]}" says "$CHECKS_DIR/killed-two-intervals-on" '"removed": ['
+holds "and says what the janitor removed" "${READ[@]}" says "$CHECKS_DIR/killed-two-intervals-on" '"kind": "server"'
 left_by_check >"$CHECKS_DIR/killed-two-intervals-on/left.txt"
 holds "and nothing of the dead run's is left" test ! -s "$CHECKS_DIR/killed-two-intervals-on/left.txt"
 
