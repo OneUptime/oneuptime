@@ -10,6 +10,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import {
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -45,6 +46,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
@@ -336,6 +338,20 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
   "openstack-instances-in-error|instances_in_error": "Count",
   // Up or down, its rows say it is disabled, so they are the whole of the question.
   "openstack-compute-service-disabled|compute_service_disabled": "Count",
+  "openstack-dns-zone-in-error|in_error": "Count",
+  "openstack-dns-zone-stuck-pending|in_pending": "Count",
+  "openstack-dns-recordset-in-error|recordset_a": "Count",
+  "openstack-dns-recordset-in-error|recordset_aaaa": "Count",
+  "openstack-dns-recordset-in-error|recordset_cname": "Count",
+  "openstack-dns-recordset-in-error|recordset_mx": "Count",
+  "openstack-dns-recordset-in-error|recordset_txt": "Count",
+  "openstack-dns-recordset-in-error|recordset_srv": "Count",
+  "openstack-dns-recordset-in-error|recordset_ptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_spf": "Count",
+  "openstack-dns-recordset-in-error|recordset_sshfp": "Count",
+  "openstack-dns-recordset-in-error|recordset_caa": "Count",
+  "openstack-dns-recordset-in-error|recordset_naptr": "Count",
+  "openstack-dns-recordset-in-error|recordset_cert": "Count",
   "openstack-database-instance-in-error|in_error": "Count",
   "openstack-database-instance-in-error|in_failed": "Count",
   "openstack-database-instance-stuck|in_build": "Count",
@@ -578,6 +594,34 @@ const THRESHOLDS: Readonly<
   "openstack-share-service-down": {
     filterType: FilterType.LessThan,
     value: 1,
+  },
+  "openstack-dns-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-dns-zone-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-zone-stuck-pending": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-dns-recordset-in-error": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
+  },
+  "openstack-metric-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-no-processors": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-backlog-growing": {
+    filterType: FilterType.ForecastAbove,
+    value: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   },
   "openstack-database-api-down": {
     filterType: FilterType.LessThan,
@@ -890,6 +934,38 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { manila_service_up: 0 },
     healthy: { manila_service_up: 1 },
   },
+  "openstack-dns-api-down": {
+    breached: { api_up: 0 },
+    healthy: { api_up: 1 },
+  },
+  // How many datapoints a window holds of that word, because PENDING's code is 0.
+  "openstack-dns-zone-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-dns-zone-stuck-pending": {
+    breached: { in_pending: 1 },
+    healthy: { in_pending: 0 },
+  },
+  "openstack-dns-recordset-in-error": {
+    breached: { recordset_a: 1 },
+    healthy: { recordset_a: 0 },
+  },
+  "openstack-metric-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-metric-no-processors": {
+    breached: { processors: 0 },
+    healthy: { processors: 4 },
+  },
+  // Made up: a real runner's backlog read 5 and then 10, far under this.
+  "openstack-metric-backlog-growing": {
+    breached: {
+      measures_to_process: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES * 2,
+    },
+    healthy: { measures_to_process: 0 },
+  },
   "openstack-database-api-down": {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
@@ -1065,6 +1141,13 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Manila Service Down",
         "Share in Error",
         "Share Stuck",
+        "DNS API Down",
+        "DNS Zone in Error",
+        "DNS Zone Stuck Pending",
+        "DNS Recordset in Error",
+        "Metrics API Down",
+        "Gnocchi No Processors",
+        "Gnocchi Backlog Growing",
         "Databases API Down",
         "Database Instance in Error",
         "Database Instance Stuck",
@@ -1145,6 +1228,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Orchestration",
         "Bare Metal",
         "Databases",
+        "Metrics",
         "Projects",
         "Capacity",
       ] as const
@@ -1463,7 +1547,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
               windowMinutes: windowMinutesOf(step),
             })
           ).breached,
-        ).toBe(false);
+          // A line through the window is what a forecast reads, so one reading doesn't turn it.
+        ).toBe(
+          CriteriaFilterUtil.isForecastFilterType(
+            firingOf(step).data!.filters[0]!.filterType,
+          ),
+        );
       },
     );
 
@@ -1498,7 +1587,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
             filter.metricMonitorOptions?.onNoDataPolicy;
 
           expect(
-            filter.filterType === FilterType.GreaterThanOrEqualTo
+            filter.filterType === FilterType.GreaterThanOrEqualTo ||
+              // An empty window has no trend, so it can't read as zero.
+              CriteriaFilterUtil.isForecastFilterType(filter.filterType)
               ? policy === NoDataPolicy.Trigger
               : policy === NoDataPolicy.TreatAsZero,
           ).toBe(true);
@@ -2102,6 +2193,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
       ["openstack-share-in-error", ["id", "name"]],
       ["openstack-share-stuck", ["id", "name"]],
+      ["openstack-dns-zone-in-error", ["id", "name"]],
+      ["openstack-dns-zone-stuck-pending", ["id", "name"]],
+      ["openstack-dns-recordset-in-error", ["zone_id", "zone_name"]],
       ["openstack-database-instance-in-error", ["id", "name"]],
       ["openstack-database-instance-stuck", ["id", "name"]],
       ["openstack-database-volume-nearly-full", ["id", "name"]],

@@ -203,6 +203,51 @@ export const OPENSTACK_EXPORTER_SERIES: Readonly<
     service: OpenStackServiceType.Orchestration,
     recorded: true,
   },
+  openstack_designate_up: {
+    labels: [],
+    service: OpenStackServiceType.Dns,
+    recorded: true,
+  },
+  openstack_designate_zones: {
+    labels: [],
+    service: OpenStackServiceType.Dns,
+    recorded: true,
+  },
+  openstack_designate_zone_status: {
+    labels: ["id", "name", "status", "tenant_id", "type"],
+    service: OpenStackServiceType.Dns,
+    recorded: true,
+  },
+  openstack_designate_recordsets: {
+    labels: ["tenant_id", "zone_id", "zone_name"],
+    service: OpenStackServiceType.Dns,
+    recorded: true,
+  },
+  openstack_designate_recordsets_status: {
+    labels: ["id", "name", "status", "type", "zone_id", "zone_name"],
+    service: OpenStackServiceType.Dns,
+    recorded: true,
+  },
+  openstack_gnocchi_up: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
+  openstack_gnocchi_status_measures_to_process: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
+  openstack_gnocchi_status_metric_having_measures_to_process: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
+  openstack_gnocchi_status_metricd_processors: {
+    labels: [],
+    service: OpenStackServiceType.Metric,
+    recorded: true,
+  },
   openstack_trove_up: {
     labels: [],
     service: OpenStackServiceType.Database,

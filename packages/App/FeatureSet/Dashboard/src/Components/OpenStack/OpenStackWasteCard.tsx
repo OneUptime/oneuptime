@@ -59,20 +59,18 @@ export function getOpenStackWasteFreesText(data: {
 
   if (frees.hosts > 0) {
     parts.push(
-      frees.hosts === 1
-        ? translator.translateText(translationKey("1 host"))
-        : translator.translateTemplate(translationKey("{{count}} hosts"), {
-            count: number(frees.hosts),
-          }),
+      translator.translatePlural(
+        { one: "{{count}} host", other: "{{count}} hosts" },
+        frees.hosts,
+      ),
     );
   }
   if (frees.vcpus > 0) {
     parts.push(
-      frees.vcpus === 1
-        ? translator.translateText(translationKey("1 vCPU"))
-        : translator.translateTemplate(translationKey("{{count}} vCPUs"), {
-            count: number(frees.vcpus),
-          }),
+      translator.translatePlural(
+        { one: "{{count}} vCPU", other: "{{count}} vCPUs" },
+        frees.vcpus,
+      ),
     );
   }
   if (frees.memoryGb > 0) {
@@ -99,12 +97,10 @@ export function getOpenStackWasteFreesText(data: {
   }
   if (frees.floatingIps > 0) {
     parts.push(
-      frees.floatingIps === 1
-        ? translator.translateText(translationKey("1 floating IP"))
-        : translator.translateTemplate(
-            translationKey("{{count}} floating IPs"),
-            { count: number(frees.floatingIps) },
-          ),
+      translator.translatePlural(
+        { one: "{{count}} floating IP", other: "{{count}} floating IPs" },
+        frees.floatingIps,
+      ),
     );
   }
 

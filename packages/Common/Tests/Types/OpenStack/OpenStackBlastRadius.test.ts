@@ -51,6 +51,7 @@ describe("buildOpenStackBlastRadius", () => {
         stackCount: 0,
         shareCount: 0,
         databaseInstanceCount: 0,
+        dnsZoneCount: 0,
         containerClusterCount: 0,
       },
       {
@@ -63,6 +64,7 @@ describe("buildOpenStackBlastRadius", () => {
         stackCount: 0,
         shareCount: 0,
         databaseInstanceCount: 0,
+        dnsZoneCount: 0,
         containerClusterCount: 0,
       },
     ]);

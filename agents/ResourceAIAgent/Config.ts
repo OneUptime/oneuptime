@@ -4,6 +4,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
   isCloudAiResourceType,
+  doFixesNeedASecondOptIn,
   isReadOnlyAiResourceType,
   isDefaultIdentityPlaceholder,
   isIdentityResolvedByAgent,
@@ -917,6 +918,25 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
     allowWrites = false;
   }
 
+  /*
+   * Where fixes need a second opt-in, the write switch is not a choice of how they run.
+   * With this agent's AI settings in its .env the page follows the agent and has no say, so
+   * only naming a mode here can be that choice.
+   */
+  const isFixModeChosen: boolean = Boolean((env[AI_FIXES_ENV] ?? "").trim());
+  const fixesWaitForAChoice: boolean =
+    doFixesNeedASecondOptIn(resourceType) && !isFixModeChosen;
+
+  if (fixesWaitForAChoice && ai.settings.isConfigured) {
+    if (writeSwitch) {
+      warnings.push(
+        `${RESOURCE_AI_ALLOW_WRITES_ENV}=true, but ${AI_FIXES_ENV} names no mode and this agent's AI settings are in its .env, so the agent stays read-only until it names one.`,
+      );
+    }
+
+    allowWrites = false;
+  }
+
   const writeTargets: ParsedTargetList = parseTargetList(
     env[RESOURCE_AI_WRITE_TARGETS_ENV],
     RESOURCE_AI_WRITE_TARGETS_ENV,
@@ -995,10 +1015,17 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
       identityDetails: identity ? identity.details : {},
       allowWrites,
       allowWritesSetting,
-      aiSettings: isReadOnly
-        ? { ...ai.settings, fixes: "Disabled" }
-        : ai.settings,
-      writesOffByFixes: writeSwitch && !ai.allowWrites,
+      /*
+       * The write switch alone does not turn fixes on where they need a second
+       * opt-in: only a choice does, here or on the resource's AI agent page.
+       */
+      aiSettings:
+        isReadOnly || fixesWaitForAChoice
+          ? { ...ai.settings, fixes: "Disabled" }
+          : ai.settings,
+      writesOffByFixes:
+        writeSwitch &&
+        (!ai.allowWrites || (fixesWaitForAChoice && ai.settings.isConfigured)),
       writesOffReason:
         writeSwitch && ai.allowWrites && !isReadOnly ? writesOffReason : null,
       writeTargets: writeTargets.targets,

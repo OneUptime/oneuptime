@@ -1,8 +1,9 @@
 import PageComponentProps from "../../../PageComponentProps";
+import OpenStackRunbookTemplatesCard from "../../../../Components/OpenStack/OpenStackRunbookTemplatesCard";
 import ResourceAiAgentPage from "../../../../Components/ResourceAiAgent/ResourceAiAgentPage";
 import { getResourceAiAgentDescriptor } from "../../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * The OpenStack cloud's AI agent page (AI → AI agent): whether OneUptime AI can
@@ -13,10 +14,13 @@ const OpenStackCloudAiAgent: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   return (
-    <ResourceAiAgentPage
-      {...props}
-      descriptor={getResourceAiAgentDescriptor(AiResourceType.OpenStackCloud)}
-    />
+    <Fragment>
+      <ResourceAiAgentPage
+        {...props}
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.OpenStackCloud)}
+      />
+      <OpenStackRunbookTemplatesCard />
+    </Fragment>
   );
 };
 

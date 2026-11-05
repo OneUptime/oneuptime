@@ -485,7 +485,7 @@ Create One 上的 **JSON Object**、Create Many 上的 **JSON Array** 以及 Upd
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-不是列的键会被忽略而不是被拒绝——运行的日志会列出被丢弃的键，所以当某个字段没有写进去时，去那里看看。Find 组件和触发器上的 **Fields to pass on** 从列表中选择；它的 **以 JSON 编辑** 显示同样的列键，值为 `true`：`{"_id": true, "name": true}`。
+不是列的键会被忽略而不是被拒绝——运行的日志会列出被丢弃的键，所以当某个字段没有写进去时，去那里看看。Find 组件和触发器上的 **Fields to pass on** 从列表中选择；它的 **以 JSON 编辑** 显示同样的列键，值为 `true`：`{"_id": true, "name": true}`。相关记录的字段放在它的键下面，例如 `{"monitor": {"name": true}}`：`{"monitor": true}` 只传递它的 ID。
 
 **自定义字段** 是一列 `customFields`，在每个自定义字段的名称下保存它的值。Update 组件只更改你提到的自定义字段，其他字段保持原值：
 

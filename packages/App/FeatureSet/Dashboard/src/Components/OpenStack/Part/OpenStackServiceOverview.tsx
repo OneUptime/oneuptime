@@ -3,6 +3,7 @@ import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { OPENSTACK_API_UP_METRIC_BY_SERVICE } from "Common/Types/Monitor/OpenStackAlertTemplates";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
@@ -23,6 +24,7 @@ import Link from "Common/UI/Components/Link/Link";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import ResourceMetricsTab from "../../Infrastructure/ResourceMetricsTab";
 import { OPENSTACK_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/OpenStackMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -48,6 +50,8 @@ import {
   getOpenStackTimeInState,
 } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
 import {
+  OpenStackApiTile,
+  getOpenStackApiTiles,
   getOpenStackAttentionName,
   getOpenStackClosedToThisCredentialWords,
   getOpenStackCollectionSeconds,
@@ -109,6 +113,7 @@ const AGENT_STATE_METRICS: Record<string, string> = {
   [OpenStackServiceFamily.ContainerInfra]:
     "openstack_container_infra_agent_state",
   [OpenStackServiceFamily.SharedFileSystems]: "openstack_sharev2_agent_state",
+  [OpenStackServiceFamily.Dns]: "openstack_designate_agent_state",
 };
 
 const SERVICE_OF_FAMILY: Record<string, string> = {
@@ -119,6 +124,7 @@ const SERVICE_OF_FAMILY: Record<string, string> = {
   [OpenStackServiceFamily.ContainerInfra]: OpenStackServiceType.ContainerInfra,
   [OpenStackServiceFamily.SharedFileSystems]:
     OpenStackServiceType.SharedFileSystems,
+  [OpenStackServiceFamily.Dns]: OpenStackServiceType.Dns,
 };
 
 export interface ComponentProps {
@@ -361,6 +367,9 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
       ? getOpenStackClosedToThisCredentialWords(service)
       : null;
   const isLastKnown: boolean = !isApi && api.data?.status === "down";
+  const apiTiles: ReadonlyArray<OpenStackApiTile> = isApi
+    ? getOpenStackApiTiles(row.name)
+    : [];
   const staleAgentIds: Array<string> = isApi
     ? []
     : getOpenStackStaleAgentIds(row);
@@ -535,6 +544,31 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
           tone="warning"
           text={closedWords}
         />
+      ) : (
+        <></>
+      )}
+
+      {apiTiles.length > 0 ? (
+        <div
+          data-testid="openstack-service-tiles"
+          className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {apiTiles.map((tile: OpenStackApiTile): ReactElement => {
+            const value: JSONValue | undefined = ((row.facts as
+              | JSONObject
+              | undefined) || {})[tile.fact];
+            return (
+              <GoldenMetricTile
+                key={tile.key}
+                title={tile.title}
+                icon={IconProp.List}
+                iconColor="sky"
+                value={typeof value === "number" ? `${value}` : "—"}
+                description={tile.description}
+              />
+            );
+          })}
+        </div>
       ) : (
         <></>
       )}

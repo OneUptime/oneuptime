@@ -186,6 +186,93 @@ describe("the importer", () => {
   });
 });
 
+describe("real changes", () => {
+  const FIX = path.join(RIG, "ai-agent-fix.js");
+  const script = read(RECORD);
+  const scene = (start, end) => {
+    return script.slice(script.indexOf(start), script.indexOf(end));
+  };
+
+  test("the driver parses, and goes through the agent's own factory and policy", () => {
+    childProcess.execFileSync(process.execPath, ["--check", FIX]);
+
+    const driver = read(FIX);
+
+    expect(driver).toContain('path.join(dist, "Executors", "ExecutorFactory.js")');
+    expect(driver).toContain("ResourceCommandPolicy.evaluateArgv");
+    expect(driver).toContain("executor.prepare(");
+    expect(driver).toContain("getOpenStackDryRunCommand");
+    expect(driver).toContain("readOpenStackChangeReach");
+  });
+
+  test("a change is made with the credential the guide says to make, and the files it ships", () => {
+    expect(script).toContain(
+      "openstack role add --project oneuptime-remediation --user oneuptime-remediation oneuptime_remediation",
+    );
+    expect(script).toContain(
+      '"$ACCESS_DIR/write-application-credential-access-rules.json"',
+    );
+    expect(script).toContain('"$ACCESS_DIR/policy/write-nova.yaml"');
+    expect(script).toContain("--role admin --role oneuptime_remediation");
+    expect(script).toContain("--access-rules");
+    expect(script).not.toContain("--unrestricted");
+  });
+
+  test("writes off comes first, and the agent's word for a change is checked by the admin's client", () => {
+    expect(script.indexOf("fix writes-off")).toBeLessThan(
+      script.indexOf("fix approve-enable"),
+    );
+    expect(script.indexOf("fix propose-enable")).toBeLessThan(
+      script.indexOf("fix approve-enable"),
+    );
+
+    const enable = scene("A real disabled nova-compute", "A real instance");
+
+    expect(enable).toContain('--disable --disable-reason "ou rig: planned"');
+    expect(enable).toContain('service_status "$HOST"');
+    expect(enable.match(/service_status "\$HOST"/g).length).toBeGreaterThanOrEqual(
+      3,
+    );
+  });
+
+  test("the fake-driver hypervisor is real, dead, and holds instances of two projects", () => {
+    const evacuate = scene("A real fake-driver hypervisor", 'exit "$STATUS"');
+
+    expect(evacuate).toContain("compute_driver = fake.MediumFakeDriver");
+    expect(evacuate).toContain("OS_PROJECT_NAME=ou-research");
+    expect(evacuate).toContain("OS_PROJECT_NAME=ou-payments");
+    expect(evacuate).toContain("--nic none");
+    expect(evacuate.indexOf("sudo systemctl stop ou-fake-compute")).toBeLessThan(
+      evacuate.indexOf("fix propose-evacuate"),
+    );
+    expect(evacuate).toContain(
+      '"ou-evacuate-research,ou-evacuate-payments" "ou-research,ou-payments"',
+    );
+  });
+
+  test("what the credential itself cannot do is asked of the cloud", () => {
+    const driver = read(FIX);
+
+    for (const needle of [
+      "DELETE /servers/{id}",
+      "PUT /os-services/force-down",
+      "GET Keystone users",
+      'action("forceDelete", null)',
+      'action("os-resetState"',
+      'action("createImage"',
+    ]) {
+      expect(driver).toContain(needle);
+    }
+
+    expect(script).toContain("fix least-privilege");
+  });
+
+  test("no secret goes in a file or on a command line of its own", () => {
+    expect(read(FIX)).not.toMatch(/note\([^)]*SECRET/);
+    expect(script).not.toMatch(/echo .*SECRET/);
+  });
+});
+
 describe("the workflow", () => {
   const workflow = yaml.load(read(WORKFLOW));
   const job = workflow.jobs["ai-agent"];
@@ -224,6 +311,13 @@ describe("the workflow", () => {
 
     expect(upload.if).toBe("always()");
     expect(upload.with.name).toBe("openstack-ai-agent");
+  });
+
+  test("the README says what the fixes prove, and what they do not", () => {
+    const readme = read(path.join(RIG, "README.md"));
+
+    expect(readme).toContain("`ai-agent-fix.js`");
+    expect(readme).toContain("There is no OneUptime in it");
   });
 
   test("the README says what it does and what it does not prove", () => {

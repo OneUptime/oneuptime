@@ -413,6 +413,43 @@ export const globalVariableReference: VariableReferenceFunction = (
   return `{{global.variables.${variableName}}}`;
 };
 
+export type PathAfterFunction = (inner: string, nameSegment: number) => string;
+
+/**
+ * What a path reads past the name it starts with. For
+ * local.components.x.returnValues.body.title, past segment 4 ("body"), that is
+ * "title"; for ...returnValues.body[0].title it is "[0].title", since an index
+ * written on the name is part of the way in too.
+ */
+export const pathAfter: PathAfterFunction = (
+  inner: string,
+  nameSegment: number,
+): string => {
+  const segments: Array<string> = inner.split(".");
+  const name: string = segments[nameSegment] || "";
+  const bracket: number = name.indexOf("[");
+  const index: string = bracket === -1 ? "" : name.slice(bracket);
+  const rest: string = segments.slice(nameSegment + 1).join(".");
+
+  if (!index) {
+    return rest;
+  }
+
+  return rest ? `${index}.${rest}` : index;
+};
+
+export type PathPastReturnValueFunction = (inner: string) => string;
+
+// The segment of a reference that names a step's return value.
+const RETURN_VALUE_SEGMENT: number = 4;
+
+/** What a reference to a step's return value reads inside that value. */
+export const pathPastReturnValue: PathPastReturnValueFunction = (
+  inner: string,
+): string => {
+  return pathAfter(inner, RETURN_VALUE_SEGMENT);
+};
+
 export type ParseReferencePathFunction = (path: string) => ParsedReferencePath;
 
 /**

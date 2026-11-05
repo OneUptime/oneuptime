@@ -112,6 +112,10 @@ the pages while working on them.
 
 `OpenStackTrove.spec.ts`: Trove, the same way, and a credential it refuses, which reads just as its API stopped does: closed, with no alerts offered and no red anywhere.
 
+`OpenStackDesignate.spec.ts`: Designate, the same way, with what reads differently: a stopped API says nothing at all, so a cloud that had it goes quiet rather than down.
+
+`OpenStackGnocchi.spec.ts`: Gnocchi, the same way: it has no parts of its own, so what it says is on its API's page.
+
 `DeploymentGuides.spec.ts`: the setup guide's one question, how do you deploy OpenStack, each answer's steps and how far it says it has been tested, what a tool a probe reads leaves out, and every width.
 
 `ExporterVersions.spec.ts`: the Overview and each list on what the agent's own exporter and exporter 1.7.0 said of one cloud: less to say on 1.7.0, and nothing false.

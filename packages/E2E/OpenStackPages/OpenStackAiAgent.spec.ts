@@ -23,11 +23,9 @@ const CONNECTED: string = "aiAgent=connected";
 async function statusRequests(page: Page): Promise<number> {
   const record: FixtureRecord = await fixtureRecord(page);
 
-  return record.apiRequests.filter(
-    (request: { url: string }): boolean => {
-      return request.url.endsWith("/resource-ai-access/status");
-    },
-  ).length;
+  return record.apiRequests.filter((request: { url: string }): boolean => {
+    return request.url.endsWith("/resource-ai-access/status");
+  }).length;
 }
 
 test.describe("the Overview", () => {
@@ -54,9 +52,9 @@ test.describe("the Overview", () => {
   }) => {
     await page.goto(`${CLOUD_PATH}?${CONNECTED}`);
 
-    await expect(
-      page.getByTestId("ai-agent-status-summary"),
-    ).toContainText("14.1.0");
+    await expect(page.getByTestId("ai-agent-status-summary")).toContainText(
+      "14.1.0",
+    );
   });
 });
 
@@ -79,7 +77,7 @@ test.describe("the side menu", () => {
 });
 
 test.describe("AI > Agent", () => {
-  test("not installed: the service to start, under the cloud's name, and no fixes to choose", async ({
+  test("not installed: the service to start, under the cloud's name, and fixes off until someone allows them", async ({
     page,
   }: {
     page: Page;
@@ -91,26 +89,28 @@ test.describe("AI > Agent", () => {
     );
     await expect(page.locator("body")).toContainText("openstack-ai-agent");
     await expect(page.getByTestId("ai-access-fixes")).toContainText(
-      "OneUptime AI only reads this OpenStack cloud",
+      "AI never proposes or runs a fix.",
     );
-    await expect(page.getByTestId("ai-access-fixes-off-hint")).toHaveCount(0);
-    // It offers nothing it can't do: not on the way in, and not on the settings it lists.
+    await expect(page.getByTestId("ai-access-fixes-off-hint")).toBeVisible();
     await expect(page.locator("body")).toContainText(
-      "It has no command that changes one.",
-    );
-    await expect(page.locator("body")).not.toContainText(
-      "Fixes stay off until you allow them",
-    );
-    await expect(page.locator("body")).not.toContainText(
       "true lets the agent apply fixes",
     );
+    await expect(page.locator("body")).toContainText("How AI may apply a fix");
+    // It says what the setting does here, which isn't what it does on a host.
+    await expect(page.locator("body")).toContainText(
+      "Empty: off until a person picks a mode on this page",
+    );
+    // A credential for changes of its own, by name.
+    await expect(page.locator("body")).toContainText(
+      "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID",
+    );
     await expect(page.locator("body")).not.toContainText(
-      "How AI may apply a fix",
+      "It has no command that changes one.",
     );
     await screenshot(page, "ai-agent-not-installed");
   });
 
-  test("connected: the Nova API it reads, and the change form has no fix mode", async ({
+  test("connected: the Nova API it reads, and the change form offers each fix mode", async ({
     page,
   }: {
     page: Page;
@@ -125,15 +125,91 @@ test.describe("AI > Agent", () => {
     const dialog: ReturnType<Page["getByRole"]> = page.getByRole("dialog");
 
     await expect(dialog).toBeVisible();
-    await expect(page.getByTestId("ai-remediation-mode-field")).toHaveCount(0);
-    await expect(page.getByTestId("ai-access-protections")).toHaveCount(0);
+
+    const modes: ReturnType<Page["getByTestId"]> = page.getByTestId(
+      "ai-remediation-mode-field",
+    );
+
+    await expect(modes).toBeVisible();
+
+    for (const words of [
+      "Off",
+      "Ask for approval",
+      "Automatic",
+      "Bypass approval",
+    ]) {
+      await expect(modes).toContainText(words);
+    }
+
+    // What always asks, in the words of what a cloud can do.
+    await expect(modes).toContainText(
+      "evacuating the instances of a dead hypervisor",
+    );
     // Investigations are on, as a cloud's row says.
     await expect(dialog.getByRole("switch")).toBeChecked();
-    await expect(page.locator("body")).toContainText(
-      "(ONEUPTIME_AI_INVESTIGATION), so it follows the agent",
-    );
-    await expect(page.locator("body")).not.toContainText("ONEUPTIME_AI_FIXES");
     await screenshot(page, "ai-agent-connected");
+  });
+
+  test("with writes allowed and a credential that works, nothing stands in a fix's way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${AGENT_PAGE}?aiAgent=writes`);
+
+    await expect(page.getByTestId("ai-access-fixes")).toContainText(
+      "A person approves each one before it runs.",
+    );
+    await expect(page.getByTestId("ai-access-fixes-off-hint")).toHaveCount(0);
+    await expect(page.locator("body")).not.toContainText(
+      "credential for changes does not work",
+    );
+    await screenshot(page, "ai-agent-writes");
+  });
+
+  test("a credential for changes that does not log in is said now, not on the night of the fix", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${AGENT_PAGE}?aiAgent=broken-credential`);
+
+    await expect(page.locator("body")).toContainText(
+      "credential for changes does not work",
+    );
+    await expect(page.locator("body")).toContainText("it answered 401");
+  });
+
+  test("the runbooks for the common failures: all six, one line each until one is opened", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(AGENT_PAGE);
+
+    const card: ReturnType<Page["getByTestId"]> = page.getByTestId(
+      "openstack-runbook-templates",
+    );
+
+    await card.scrollIntoViewIfNeeded();
+    await expect(card.locator("details")).toHaveCount(6);
+    await expect(card.locator("details[open]")).toHaveCount(0);
+
+    const computeDown: ReturnType<Page["getByTestId"]> = page.getByTestId(
+      "openstack-runbook-openstack-compute-service-down",
+    );
+
+    await expect(computeDown.getByText("What to check")).toBeHidden();
+    await computeDown.locator("summary").click();
+    await expect(computeDown.getByText("What to check")).toBeVisible();
+    await expect(computeDown).toContainText(
+      "openstack compute service set --enable HOST nova-compute",
+    );
+    await expect(computeDown).toContainText("Always asks a person");
+    await expect(
+      page.getByTestId("openstack-runbook-add-openstack-compute-service-down"),
+    ).toBeVisible();
+    await screenshot(page, "ai-agent-runbooks");
   });
 
   test("an agent that cannot reach the cloud says why", async ({
@@ -151,7 +227,13 @@ test.describe("AI > Agent", () => {
   test("fits a phone, on every state", async ({ page }: { page: Page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
 
-    for (const state of ["none", "connected", "unreachable"]) {
+    for (const state of [
+      "none",
+      "connected",
+      "writes",
+      "broken-credential",
+      "unreachable",
+    ]) {
       await page.goto(`${AGENT_PAGE}?aiAgent=${state}`);
       await expect(page.getByTestId("ai-access-fixes")).toBeVisible();
       await expectNoSidewaysScroll(page);

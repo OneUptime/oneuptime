@@ -139,10 +139,7 @@ describe("what it counts", () => {
 
 describe("the sentence", () => {
   test.each([
-    [
-      evacuation(),
-      "This changes 3 instances in 2 projects.",
-    ],
+    [evacuation(), "This changes 3 instances in 2 projects."],
     [
       evacuation({ instances: [instance(ids(1)[0] as string)] }),
       "This changes 1 instance in 1 project.",
@@ -174,6 +171,37 @@ describe("the round trip", () => {
     expect(readOpenStackChangeReach(renderOpenStackChangeReach(reach))).toEqual(
       reach,
     );
+  });
+
+  test("the network agent a change is about, so its fix lands on that agent's feed", () => {
+    const agent: { id: string; binary: string; host: string } = {
+      id: "f1fe06bd-337d-4ee0-b1df-3284823c1490",
+      binary: "neutron-l3-agent",
+      host: "network-01",
+    };
+    const reach: OpenStackChangeReach = evacuation({ agent });
+    const read: OpenStackChangeReach | null = readOpenStackChangeReach(
+      renderOpenStackChangeReach(reach),
+    );
+
+    expect(read?.agent).toEqual(agent);
+    // What a plan keeps survives being stored and read back.
+    expect(
+      parseStoredOpenStackChangeReach(
+        JSON.parse(JSON.stringify(reach)) as Parameters<
+          typeof parseStoredOpenStackChangeReach
+        >[0],
+      )?.agent,
+    ).toEqual(agent);
+  });
+
+  test("a change no network agent is in the middle of has none, however it is read", () => {
+    const reach: OpenStackChangeReach = evacuation();
+
+    expect(reach.agent).toBeNull();
+    expect(
+      readOpenStackChangeReach(renderOpenStackChangeReach(reach))?.agent,
+    ).toBeNull();
   });
 
   test("it is found in a command's whole output", () => {
@@ -322,7 +350,9 @@ describe("what it refuses to read", () => {
     [`${OPENSTACK_REACH_LINE_PREFIX}instances 3`],
     [`${OPENSTACK_REACH_LINE_PREFIX}route server start`],
     [`${OPENSTACK_REACH_LINE_PREFIX}kind changes`],
-    [`${OPENSTACK_REACH_LINE_PREFIX}route server start\n${OPENSTACK_REACH_LINE_PREFIX}kind neither`],
+    [
+      `${OPENSTACK_REACH_LINE_PREFIX}route server start\n${OPENSTACK_REACH_LINE_PREFIX}kind neither`,
+    ],
   ])("%j says no change", (output: unknown) => {
     expect(readOpenStackChangeReach(output)).toBeNull();
   });
@@ -380,11 +410,9 @@ describe("what it refuses to read", () => {
       JSON.stringify({
         ...evacuation(),
         instances: [
-          ...ids(OPENSTACK_REACH_MAX_LISTED_INSTANCES + 5).map(
-            (id: string) => {
-              return { id, name: "x".repeat(10000) };
-            },
-          ),
+          ...ids(OPENSTACK_REACH_MAX_LISTED_INSTANCES + 5).map((id: string) => {
+            return { id, name: "x".repeat(10000) };
+          }),
           { name: "no id" },
           7,
           null,

@@ -485,7 +485,7 @@ En fråga är alltid begränsad till projektet som arbetsflödet körs i. Du kan
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nyckel som inte är en kolumn ignoreras i stället för att avvisas — körningens logg nämner de som släpptes, så titta där när ett fält inte landar. **Fields to pass on**, på Find-komponenterna och utlösarna, väljs från en lista; dess **Redigera som JSON** visar samma kolumnnycklar med värdet `true`: `{"_id": true, "name": true}`.
+En nyckel som inte är en kolumn ignoreras i stället för att avvisas — körningens logg nämner de som släpptes, så titta där när ett fält inte landar. **Fields to pass on**, på Find-komponenterna och utlösarna, väljs från en lista; dess **Redigera som JSON** visar samma kolumnnycklar med värdet `true`: `{"_id": true, "name": true}`. Fälten i en relaterad post står under dess nyckel, som i `{"monitor": {"name": true}}`: `{"monitor": true}` skickar bara vidare dess id.
 
 **Anpassade fält** är en kolumn, `customFields`, som rymmer varje anpassat fälts värde under fältets namn. Update-komponenterna ändrar bara de anpassade fält du nämner, och alla andra behåller sitt värde:
 

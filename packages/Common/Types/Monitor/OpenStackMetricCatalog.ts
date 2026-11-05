@@ -39,6 +39,7 @@ export type OpenStackMetricCategory =
   | "Orchestration"
   | "Bare Metal"
   | "Databases"
+  | "Metrics"
   | "Projects"
   | "Checks"
   | "Capacity";
@@ -2705,6 +2706,50 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
     onlyFromProbe: true,
   }),
+  // Metrics: Gnocchi, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_gnocchi_up",
+    friendlyName: translationKey("Metrics API Up"),
+    description:
+      "Whether the exporter's read of Gnocchi answered (1) or failed (0). It reads Gnocchi's status, which only an admin may, so any credential short of that reads 0 just as a stopped API does, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_measures_to_process",
+    friendlyName: translationKey("Gnocchi Measures Waiting"),
+    description:
+      "How many measures gnocchi-metricd has yet to process, per region. A busy cloud's never reads 0. One that keeps rising means it isn't keeping up.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_metric_having_measures_to_process",
+    friendlyName: translationKey("Gnocchi Metrics Waiting"),
+    description:
+      "How many metrics have measures waiting for gnocchi-metricd, per region.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_metricd_processors",
+    friendlyName: translationKey("Gnocchi Processors"),
+    description:
+      "How many metricd processors Gnocchi's status names, per region. 0 means nothing is processing what comes in, and Gnocchi's API goes on answering.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
   // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_trove_up",
@@ -2758,6 +2803,77 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     unit: "GiB",
     service: OpenStackServiceType.Database,
     identityAttributes: DATABASE_INSTANCE_LABELS,
+  }),
+  // DNS: Designate, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_designate_up",
+    friendlyName: translationKey("DNS API Up"),
+    description:
+      "1 when the exporter read Designate's zones. A stopped API says nothing at all: the exporter reads its versions first and answers an empty 200, as for a cloud without Designate, recorded, so this goes quiet rather than reading 0. So 0 means Designate answered and refused the zones, which is what any credential short of an admin's gets, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_designate_zones",
+    friendlyName: translationKey("DNS Zones"),
+    description: "How many zones Designate listed, per region.",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.Dns,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_designate_zone_status",
+    friendlyName: translationKey("DNS Zone Status"),
+    description:
+      "One series per zone. The value is a code for its status, and PENDING's code is 0, recorded, so read the `status` label for the word (ACTIVE, PENDING, ERROR).",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: ["id", "name", "status", "tenant_id", "type"],
+    probeOnlyAttributes: ["action"],
+  }),
+  metric({
+    metricName: "openstack_designate_recordsets",
+    friendlyName: translationKey("DNS Recordsets per Zone"),
+    description:
+      "How many recordsets each zone holds, one series per zone. The exporter makes one call per zone to say this, on every scrape.",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    unit: "count",
+    service: OpenStackServiceType.Dns,
+    identityAttributes: ["tenant_id", "zone_id", "zone_name"],
+  }),
+  metric({
+    metricName: "openstack_designate_recordsets_status",
+    friendlyName: translationKey("DNS Recordset Status"),
+    description:
+      "One series per recordset. The value is a code for its status, and PENDING's code is 0, recorded, so read the `status` label for the word (ACTIVE, PENDING, ERROR). A zone's own SOA and NS read ERROR with the zone.",
+    category: "Network",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: [
+      "id",
+      "name",
+      "status",
+      "type",
+      "zone_id",
+      "zone_name",
+    ],
+  }),
+  metric({
+    metricName: "openstack_designate_agent_state",
+    friendlyName: translationKey("Designate Service Up"),
+    description:
+      "Whether Designate lists each of its services as UP (1) or not (0). Only a probe sends this, because the exporter never reads Designate's service statuses. A stopped worker leaves this at 1 for a while, recorded, because Designate only notices when its heartbeat grows old.",
+    category: "Control Plane",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Dns,
+    identityAttributes: ["hostname", "service"],
+    onlyFromProbe: true,
   }),
   // Bare Metal: Ironic, on a cloud that runs it. A cloud without it sends none of these.
   metric({
@@ -2893,6 +3009,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Orchestration",
     "Bare Metal",
     "Databases",
+    "Metrics",
     "Projects",
     "Checks",
     "Capacity",

@@ -721,7 +721,10 @@ The OneUptime AI agent reads the credential in \`clouds.yaml\` unless these say 
 | \`ONEUPTIME_AI_OPENSTACK_REGION\`, \`ONEUPTIME_AI_OPENSTACK_INTERFACE\`, \`ONEUPTIME_AI_OPENSTACK_CA_FILE\` | The region a command reads when it names none, which endpoints it uses (\`public\`, \`internal\` or \`admin\`), and a certificate authority. \`clouds.yaml\` says these unless they do |
 | \`ONEUPTIME_AI_AGENT_RESOURCE_NAME\` | The name it registers under, when it is not \`OPENSTACK_CLOUD_NAME\` |
 | \`LOG_LEVEL\` | How much it logs |
-| \`ONEUPTIME_AI_FIXES\`, \`ONEUPTIME_AI_ALLOW_WRITES\`, \`ONEUPTIME_AI_WRITE_TARGETS\`, \`ONEUPTIME_AI_PROTECTED_TARGETS\` | Change nothing here: OneUptime AI only reads an OpenStack cloud, and the agent says so when it starts |`,
+| \`ONEUPTIME_AI_ALLOW_WRITES\`, \`ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID\`, \`ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET\` | Off until set: let it make changes, through a credential of their own. The OpenStack guide says how to make it with the least it needs |
+| \`ONEUPTIME_AI_FIXES\` | How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Empty: fixes stay off until someone chooses on this page |
+| \`ONEUPTIME_AI_PROTECTED_TARGETS\` | What is never touched, whatever else is set and whoever approves it: \`project:ID\`, \`host:NAME\` or \`instance:ID\`, separated by commas |
+| \`ONEUPTIME_AI_WRITE_TARGETS\` | Where changes may land, written the same way. Empty: anywhere that is not protected |`,
   };
 }
 
@@ -1002,7 +1005,7 @@ It needs \`sudo\` to read \`clouds.yaml\`, or it skips the credential checks. It
     },
     {
       title: "One service's pages are empty and the rest are fine",
-      markdown: `The agent reads each service on its own, so a failing service costs only its own numbers. Look at why the exporter can't read it${inFolder}: \`docker compose logs ${OPENSTACK_EXPORTER_CONTAINER}\`. The **Services** page shows that API as \`down\`.`,
+      markdown: `The agent reads each service on its own, so a failing service costs only its own numbers. Look at why the exporter can't read it${inFolder}: \`docker compose logs ${OPENSTACK_EXPORTER_CONTAINER}\`. The **Services** page shows that API as \`down\`. An access-rule credential made from an older copy of the rules also does this on Swift, and on Octavia behind a path: make a new one, as **Full view** does.`,
     },
     {
       title: "Every read answers 401 with an access-rule credential",
