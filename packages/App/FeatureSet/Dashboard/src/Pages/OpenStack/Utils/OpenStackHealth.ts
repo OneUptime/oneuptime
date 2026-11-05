@@ -110,8 +110,9 @@ const REASON_SCRAPE_FAILED: string = translationKey(
   "Not answering: the last read of it failed",
 );
 const REASON_SERVICE_DOWN: string = translationKey("Down");
-export const OPENSTACK_REASON_FORCED_DOWN: string =
-  translationKey("Forced down by an operator");
+export const OPENSTACK_REASON_FORCED_DOWN: string = translationKey(
+  "Forced down by an operator",
+);
 const REASON_SERVICE_DOWN_WITH_INSTANCES: { one: string; other: string } = {
   one: "Down, with {{count}} instance on it",
   other: "Down, with {{count}} instances on it",

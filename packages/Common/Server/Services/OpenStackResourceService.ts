@@ -2515,7 +2515,11 @@ export class Service extends DatabaseService<Model> {
            WHERE "projectId" = $1 AND "openStackCloudId" = $2
              AND "kind" = '${OpenStackResourceKind.Project}'
              AND "externalId" = ANY($3::text[]) AND "deletedAt" IS NULL`,
-          [data.projectId.toString(), data.openStackCloudId.toString(), projectIds],
+          [
+            data.projectId.toString(),
+            data.openStackCloudId.toString(),
+            projectIds,
+          ],
         );
       for (const row of named) {
         if (row.name) {

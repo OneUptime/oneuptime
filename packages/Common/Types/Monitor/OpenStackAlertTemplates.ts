@@ -85,6 +85,12 @@ export interface OpenStackAlertTemplate {
   description: string;
   category: OpenStackAlertTemplateCategory;
   severity: OpenStackAlertTemplateSeverity;
+  /*
+   * The service a cloud may not run that this is about. Only a cloud reporting that service is
+   * offered it, so a cloud without Ironic has no bare metal alert to dismiss: see
+   * getOpenStackRecommendations. Left out of what every cloud runs.
+   */
+  forService?: OpenStackServiceType | undefined;
   getMonitorStep: (args: OpenStackAlertTemplateArgs) => MonitorStep;
 }
 
@@ -1927,6 +1933,7 @@ function bareMetalStateQueries(data: {
 const bareMetalNodeInErrorTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-node-in-error",
   name: "Bare Metal Node in Error",
+  forService: OpenStackServiceType.BareMetal,
   summary: "A bare metal node stays in a failed provision state.",
   description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_ERROR_STATES).join(", ")} for 15 minutes (openstack_ironic_node filtered to that provision_state label, in every collection of the window). One incident per node, in maintenance or not, because Ironic does not always put a failed node in maintenance, and it stays failed until someone acts. Check the conductor's log as well as \`openstack baremetal node show <node> -c last_error\`: the exporter does not carry why, and Ironic empties last_error within about a minute of a failure. A probe reads last_error, and keeps the last one it saw.`,
   category: "Bare Metal",
@@ -1959,6 +1966,7 @@ const bareMetalNodeInErrorTemplate: OpenStackAlertTemplate = {
 const bareMetalNodeStuckTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-node-stuck",
   name: "Bare Metal Node Stuck Transitioning",
+  forService: OpenStackServiceType.BareMetal,
   summary: `A bare metal node stays in a passing state for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours.`,
   description: `Alert when a bare metal node stays in one of ${Array.from(OPENSTACK_BARE_METAL_TRANSITIONAL_STATES).join(", ")} for ${OPENSTACK_BARE_METAL_STUCK_MINUTES / 60} hours (openstack_ironic_node filtered to that provision_state label and maintenance false, in every collection of the window). One incident per node. Ironic gives up on a node waiting for its agent after 30 minutes by default, and the node then says it failed, so past this something else is holding it. A long disk erase can honestly take this long: the node's page reads Ironic's own time, which an erase's heartbeats keep moving, and an alert only reads the word. A node someone put in maintenance is left out. Check \`openstack baremetal node show <node>\` and the conductor's log.`,
   category: "Bare Metal",
@@ -1992,6 +2000,7 @@ const bareMetalNodeStuckTemplate: OpenStackAlertTemplate = {
 const bareMetalNodeMaintenanceTooLongTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-node-maintenance-too-long",
   name: "Bare Metal Node in Maintenance Too Long",
+  forService: OpenStackServiceType.BareMetal,
   summary: `A bare metal node stays in maintenance for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days.`,
   description: `Alert when a bare metal node stays in maintenance for ${OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS} days (openstack_ironic_node filtered to maintenance true, in every collection of the window). A node someone put in maintenance is planned, like a service someone disabled, so nothing fires before that; past it, somebody has probably forgotten a machine the cloud has gone without all this time. One incident per node. This needs your metrics kept for at least that long. Check \`openstack baremetal node show <node> -c maintenance_reason\`, then \`openstack baremetal node maintenance unset <node>\`, or retire it.`,
   category: "Bare Metal",
@@ -2029,6 +2038,7 @@ const bareMetalNodeMaintenanceTooLongTemplate: OpenStackAlertTemplate = {
 const bareMetalPowerStateUnexpectedTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-power-state-unexpected",
   name: "Bare Metal Power State Unexpected",
+  forService: OpenStackServiceType.BareMetal,
   summary: "A deployed bare metal node has its power off.",
   description: `Alert when a deployed bare metal node reads power off for 15 minutes (openstack_ironic_node filtered to provision_state active, power_state power off and maintenance false). One incident per node. Nothing else counts as unexpected: a failed deploy leaves a node on, a node between deploys may be on or off, and an empty power state is not known rather than wrong. An instance its owner stopped does this too, and this alert cannot tell, because it reads one series: the node's page can, and says so. Check \`openstack baremetal node show <node>\`, then \`openstack server show\` for the instance on it, and whether anyone meant it.`,
   category: "Bare Metal",
@@ -2076,6 +2086,7 @@ const bareMetalPowerStateUnexpectedTemplate: OpenStackAlertTemplate = {
 const bareMetalApiDownTemplate: OpenStackAlertTemplate = {
   id: "openstack-bare-metal-api-down",
   name: "Bare Metal API Down",
+  forService: OpenStackServiceType.BareMetal,
   summary: "Ironic's API says it is not answering.",
   description:
     "Alert when Ironic's API reads as not answering for 15 minutes (openstack_ironic_up). One incident per region. This speaks where something can say so: a cloud a probe collects, or exporter 1.7.0. A stopped Ironic gives the exporter the OpenStack Agent runs nothing at all to read, which is what a cloud without Ironic looks like, so on an agent's cloud this stays quiet and the cloud's Bare Metal page says when it last heard from Ironic. Check `openstack baremetal node list` with a credential that may, then the ironic-api service's log.",

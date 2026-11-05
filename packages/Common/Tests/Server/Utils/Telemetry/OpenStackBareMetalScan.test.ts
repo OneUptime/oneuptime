@@ -463,7 +463,11 @@ describe("a node is no hypervisor", () => {
 
   test("a custom class on a host called anything else stays that host's", () => {
     const entries: Array<OpenStackResourceBufferEntry> = scan([
-      [PLACEMENT[0]!, 2, { hostname: "compute-01", resourcetype: "CUSTOM_GPU" }],
+      [
+        PLACEMENT[0]!,
+        2,
+        { hostname: "compute-01", resourcetype: "CUSTOM_GPU" },
+      ],
     ]);
 
     expect(ofKind(entries, OpenStackResourceKind.PlacementProvider)).toEqual(

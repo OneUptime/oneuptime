@@ -264,9 +264,9 @@ describe("every scene with Ironic answering", () => {
           canOpenStackBareMetalNodeTakeAnInstance({
             status: node?.status,
             adminState: node?.adminState,
-            powerState: factsOf(node as OpenStackResource)[
-              "powerState"
-            ] as string | null,
+            powerState: factsOf(node as OpenStackResource)["powerState"] as
+              | string
+              | null,
           }),
         ).toBe(false);
       }
@@ -499,12 +499,15 @@ describe("api-down: Ironic's API stopped", () => {
   const recorded: Scene = new Scene("api-down");
 
   test("the exporter says nothing at all of Ironic, as it does for a cloud without it", () => {
-    expect(fs.existsSync(path.join(IRONIC, "api-down/exporter/baremetal.prom"))).toBe(
-      false,
-    );
-    expect(fs.readFileSync(path.join(IRONIC, "api-down/exporter/status.txt"), "utf8")).toContain(
-      "baremetal 200",
-    );
+    expect(
+      fs.existsSync(path.join(IRONIC, "api-down/exporter/baremetal.prom")),
+    ).toBe(false);
+    expect(
+      fs.readFileSync(
+        path.join(IRONIC, "api-down/exporter/status.txt"),
+        "utf8",
+      ),
+    ).toContain("baremetal 200");
     expect(recorded.api(OpenStackServiceType.BareMetal)).toBeUndefined();
     expect(recorded.ofKind(OpenStackResourceKind.BareMetalNode)).toEqual([]);
   });
@@ -590,7 +593,9 @@ describe("the recording's OTLP, as ingest reads it", () => {
     const buffer: Map<string, OpenStackResourceBufferEntry> = new Map();
 
     for (const resource of otlp["resourceMetrics"] as JSONArray) {
-      for (const scope of (resource as JSONObject)["scopeMetrics"] as JSONArray) {
+      for (const scope of (resource as JSONObject)[
+        "scopeMetrics"
+      ] as JSONArray) {
         for (const metric of (scope as JSONObject)["metrics"] as JSONArray) {
           const name: string = (metric as JSONObject)["name"] as string;
           const data: JSONObject = ((metric as JSONObject)["gauge"] ||

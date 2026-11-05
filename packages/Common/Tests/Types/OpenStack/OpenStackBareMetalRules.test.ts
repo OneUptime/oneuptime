@@ -191,7 +191,13 @@ describe("power state unexpected", () => {
     // Unless someone stopped the instance on it, which powers it off through Nova.
     ["active", "power off", undefined, "SHUTOFF", false],
     // Or put it in maintenance.
-    ["active", "power off", OPENSTACK_BARE_METAL_IN_MAINTENANCE, undefined, false],
+    [
+      "active",
+      "power off",
+      OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+      undefined,
+      false,
+    ],
     ["active", "power on", undefined, undefined, false],
     // Going to be one or the other: nothing to say yet.
     ["active", "rebooting", undefined, undefined, false],
@@ -205,7 +211,13 @@ describe("power state unexpected", () => {
     ["available", "power off", undefined, undefined, false],
     ["manageable", "power off", undefined, undefined, false],
   ] as Array<
-    [string, string | null, string | undefined, string | null | undefined, boolean]
+    [
+      string,
+      string | null,
+      string | undefined,
+      string | null | undefined,
+      boolean,
+    ]
   >)(
     "%s, %s, %s, instance %s: %s",
     (
@@ -232,7 +244,13 @@ describe("whether Nova could put an instance on a node", () => {
     ["available", undefined, "power off", false, true],
     ["available", undefined, "power on", false, true],
     // What Nova's Ironic driver reports reserved for (_node_resources_unavailable).
-    ["available", OPENSTACK_BARE_METAL_IN_MAINTENANCE, "power off", false, false],
+    [
+      "available",
+      OPENSTACK_BARE_METAL_IN_MAINTENANCE,
+      "power off",
+      false,
+      false,
+    ],
     ["available", undefined, null, false, false],
     ["available", undefined, "error", false, false],
     ["active", undefined, "power on", false, false],
@@ -312,10 +330,13 @@ describe("a node's UUID, which is what Nova and Placement call it", () => {
       const isUuidShaped: boolean =
         text.length === 36 &&
         text.split("-").length === 5 &&
-        text.split("-").map((group: string): number => {
-          return group.length;
-        }).join() === "8,4,4,4,12" &&
-        !/[^a-fA-F0-9-]/.test(text);
+        text
+          .split("-")
+          .map((group: string): number => {
+            return group.length;
+          })
+          .join() === "8,4,4,4,12" &&
+        !(/[^a-fA-F0-9-]/).test(text);
 
       expect(isOpenStackBareMetalNodeId(text)).toBe(isUuidShaped);
     }

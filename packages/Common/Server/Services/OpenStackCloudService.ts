@@ -72,7 +72,10 @@ const OPENSTACK_CLOUD_MATCH_COLUMN: MatchColumn = matchedOnName({
  * (OpenStackResourceService.getInventorySummary).
  */
 const OPENSTACK_CLOUD_SNAPSHOT_COLUMNS: ReadonlyArray<
-  keyof OpenStackInventorySummary
+  Exclude<
+    keyof OpenStackInventorySummary,
+    "services"
+  >
 > = [
   "regionCount",
   "availabilityZoneCount",
