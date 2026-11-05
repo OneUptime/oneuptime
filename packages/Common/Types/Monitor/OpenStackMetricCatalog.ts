@@ -39,6 +39,7 @@ export type OpenStackMetricCategory =
   | "Orchestration"
   | "Bare Metal"
   | "Databases"
+  | "Metrics"
   | "Projects"
   | "Checks"
   | "Capacity";
@@ -2705,6 +2706,50 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     identityAttributes: ["hostname", "service", "state", "zone", "adminState"],
     onlyFromProbe: true,
   }),
+  // Metrics: Gnocchi, on a cloud that runs it. A cloud without it sends none of these.
+  metric({
+    metricName: "openstack_gnocchi_up",
+    friendlyName: translationKey("Metrics API Up"),
+    description:
+      "Whether the exporter's read of Gnocchi answered (1) or failed (0). It reads Gnocchi's status, which only an admin may, so any credential short of that reads 0 just as a stopped API does, recorded.",
+    category: "Availability",
+    defaultAggregation: MetricsAggregationType.Min,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_measures_to_process",
+    friendlyName: translationKey("Gnocchi Measures Waiting"),
+    description:
+      "How many measures gnocchi-metricd has yet to process, per region. A busy cloud's never reads 0. One that keeps rising means it isn't keeping up.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_metric_having_measures_to_process",
+    friendlyName: translationKey("Gnocchi Metrics Waiting"),
+    description:
+      "How many metrics have measures waiting for gnocchi-metricd, per region.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
+  metric({
+    metricName: "openstack_gnocchi_status_metricd_processors",
+    friendlyName: translationKey("Gnocchi Processors"),
+    description:
+      "How many metricd processors Gnocchi's status names, per region. 0 means nothing is processing what comes in, and Gnocchi's API goes on answering.",
+    category: "Metrics",
+    unit: "count",
+    defaultAggregation: MetricsAggregationType.Max,
+    service: OpenStackServiceType.Metric,
+    identityAttributes: [],
+  }),
   // Databases: Trove, on a cloud that runs it. A cloud without it sends none of these.
   metric({
     metricName: "openstack_trove_up",
@@ -2810,7 +2855,14 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     category: "Network",
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Dns,
-    identityAttributes: ["id", "name", "status", "type", "zone_id", "zone_name"],
+    identityAttributes: [
+      "id",
+      "name",
+      "status",
+      "type",
+      "zone_id",
+      "zone_name",
+    ],
   }),
   metric({
     metricName: "openstack_designate_agent_state",
@@ -2957,6 +3009,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Orchestration",
     "Bare Metal",
     "Databases",
+    "Metrics",
     "Projects",
     "Checks",
     "Capacity",

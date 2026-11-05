@@ -309,6 +309,14 @@ describe("the undo every persona recommends is a safe change the policy accepts"
       AiResourceType.GoogleCloudProject,
       "cloud start-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1",
     ],
+    [
+      AiResourceType.OpenStackCloud,
+      "openstack compute service set --enable compute-01 nova-compute",
+    ],
+    [
+      AiResourceType.OpenStackCloud,
+      "openstack network agent set --enable f1fe06bd-337d-4ee0-b1df-3284823c1490",
+    ],
   ];
 
   it.each(SAMPLE_UNDOS)(
@@ -327,10 +335,7 @@ describe("the undo every persona recommends is a safe change the policy accepts"
       const programs: ReadonlyArray<string> =
         AI_RESOURCE_TYPE_INFO[resourceType].programs;
 
-      if (
-        resourceType === AiResourceType.DatabaseServer ||
-        resourceType === AiResourceType.OpenStackCloud
-      ) {
+      if (resourceType === AiResourceType.DatabaseServer) {
         expect(examples).toContain("omit it");
         return;
       }

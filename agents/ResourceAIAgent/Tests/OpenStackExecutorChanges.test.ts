@@ -1,4 +1,8 @@
-import { recordingLogger, RecordingLogger, testConfig } from "./Helpers/TestSupport";
+import {
+  recordingLogger,
+  RecordingLogger,
+  testConfig,
+} from "./Helpers/TestSupport";
 import assert from "assert";
 import fs from "fs";
 import path from "path";
@@ -111,9 +115,7 @@ function writableConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
   };
 }
 
-function writeEnv(
-  overrides: Record<string, string> = {},
-): NodeJS.ProcessEnv {
+function writeEnv(overrides: Record<string, string> = {}): NodeJS.ProcessEnv {
   return {
     [OPENSTACK_CLOUDS_FILE_ENV]: cloudsFile,
     [AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV]: WRITE_ID,
@@ -427,7 +429,8 @@ describe("two credentials", () => {
 
     assert.deepStrictEqual(loginIds(h), [READ_ID, WRITE_ID]);
 
-    const change: OpenStackHttpRequest = h.cloud.changes()[0] as OpenStackHttpRequest;
+    const change: OpenStackHttpRequest =
+      h.cloud.changes()[0] as OpenStackHttpRequest;
 
     assert.strictEqual(change.headers["X-Auth-Token"], WRITE_TOKEN);
 
@@ -533,7 +536,12 @@ describe("two credentials", () => {
     for (const harnessUsed of [h, failing]) {
       const said: string = allThatWasSaid(harnessUsed, results);
 
-      for (const secret of [READ_SECRET, WRITE_SECRET, WRITE_TOKEN, FAKE_TOKEN]) {
+      for (const secret of [
+        READ_SECRET,
+        WRITE_SECRET,
+        WRITE_TOKEN,
+        FAKE_TOKEN,
+      ]) {
         assert.ok(!said.includes(secret), `${secret} was printed`);
       }
     }
@@ -716,6 +724,65 @@ describe("it reads before it changes", () => {
     assert.strictEqual(last.method, "POST");
   });
 
+  test("a read credential Nova answers only for its own project: the all-projects list says", async () => {
+    const h: Harness = harness({
+      override: (request: OpenStackHttpRequest, url: URL) => {
+        return request.method === "GET" &&
+          url.pathname === `/compute/v2.1/servers/${STOPPED}`
+          ? fakeReply(
+              { itemNotFound: { code: 404, message: "Not found" } },
+              404,
+            )
+          : undefined;
+      },
+    });
+    const result: ExecResult = await run(
+      h,
+      `openstack server start ${STOPPED}`,
+    );
+
+    assert.strictEqual(result.success, true, result.errorMessage || "");
+    assert.strictEqual(h.cloud.changes().length, 1);
+    assert.match(result.output, /ou-stopped/);
+  });
+
+  test("a list that ignores --host is not taken as what the host holds", async () => {
+    const h: Harness = harness({
+      override: (request: OpenStackHttpRequest, url: URL) => {
+        return request.method === "GET" &&
+          url.pathname === "/compute/v2.1/servers/detail"
+          ? fakeReply({
+              servers: [
+                {
+                  id: RUNNING,
+                  name: "here",
+                  tenant_id: "aaaa",
+                  "OS-EXT-SRV-ATTR:host": HOST,
+                },
+                {
+                  id: STOPPED,
+                  name: "elsewhere",
+                  tenant_id: "bbbb",
+                  "OS-EXT-SRV-ATTR:host": "compute-02",
+                },
+              ],
+            })
+          : undefined;
+      },
+    });
+    const reach: OpenStackChangeReach = readOpenStackChangeReach(
+      (
+        await run(
+          h,
+          `openstack dry-run compute service set --enable ${HOST} nova-compute`,
+        )
+      ).output,
+    ) as OpenStackChangeReach;
+
+    assert.strictEqual(reach.instanceCount, 1);
+    assert.strictEqual(reach.instances[0]?.name, "here");
+  });
+
   test("an instance that is gone: nothing is sent", async () => {
     const h: Harness = harness();
     const gone: string = "00000000-0000-4000-8000-000000000000";
@@ -734,8 +801,7 @@ describe("it reads before it changes", () => {
   test("a read the cloud refuses: nothing is sent", async () => {
     const h: Harness = harness({
       override: (request: OpenStackHttpRequest, url: URL) => {
-        return request.method === "GET" &&
-          url.pathname.includes("/servers/")
+        return request.method === "GET" && url.pathname.includes("/servers/")
           ? fakeReply({ forbidden: { message: "no", code: 403 } }, 403)
           : undefined;
       },
@@ -753,8 +819,7 @@ describe("it reads before it changes", () => {
   test("a read that gets no answer: nothing is sent", async () => {
     const h: Harness = harness({
       override: (request: OpenStackHttpRequest, url: URL) => {
-        return request.method === "GET" &&
-          url.pathname.includes("/servers/")
+        return request.method === "GET" && url.pathname.includes("/servers/")
           ? new OpenStackTransportError({
               kind: "connect",
               message: "refused",
@@ -834,7 +899,10 @@ describe("protected targets win over every other setting", () => {
 
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.output, "");
-    assert.match(result.errorMessage as string, /wins over every other setting/);
+    assert.match(
+      result.errorMessage as string,
+      /wins over every other setting/,
+    );
     assert.strictEqual(h.cloud.changes().length, 0);
     assert.deepStrictEqual(loginIds(h), [READ_ID]);
   });
@@ -1053,13 +1121,10 @@ describe("an evacuation", () => {
     );
 
     assert.strictEqual(result.success, true);
-    assert.deepStrictEqual(
-      h.cloud.changes().map(pathOf),
-      [
-        `/compute/v2.1/servers/${RUNNING}/action`,
-        `/compute/v2.1/servers/${STOPPED}/action`,
-      ],
-    );
+    assert.deepStrictEqual(h.cloud.changes().map(pathOf), [
+      `/compute/v2.1/servers/${RUNNING}/action`,
+      `/compute/v2.1/servers/${STOPPED}/action`,
+    ]);
 
     for (const sent of h.cloud.changes()) {
       assert.deepStrictEqual(bodyOf(sent), {
@@ -1136,6 +1201,26 @@ describe("an evacuation", () => {
     assert.strictEqual(result.success, false);
     assert.ok(result.output.length > 0, "an empty output reads as never ran");
     assert.match(result.output, /no answer/);
+  });
+});
+
+describe("what a change says it touched", () => {
+  test("a service's change names no count of what its host holds, because it did not read that", async () => {
+    const h: Harness = harness({ scene: "compute-disabled" });
+    const result: ExecResult = await run(
+      h,
+      `openstack compute service set --enable ${HOST} nova-compute`,
+    );
+
+    assert.strictEqual(result.success, true, result.errorMessage || "");
+    assert.match(result.output, /This changes no instance\./);
+    assert.doesNotMatch(result.output, /holds/);
+    assert.deepStrictEqual(
+      h.cloud.commandCalls().map((request: OpenStackHttpRequest): string => {
+        return request.method;
+      }),
+      ["PUT"],
+    );
   });
 });
 
@@ -1359,9 +1444,11 @@ describe("a dry run", () => {
       ["ou-running", "ou-stopped", "ou-research-1"],
     );
     assert.deepStrictEqual(
-      reach.projects.map((row: { name: string | null; instanceCount: number }) => {
-        return [row.name, row.instanceCount];
-      }),
+      reach.projects.map(
+        (row: { name: string | null; instanceCount: number }) => {
+          return [row.name, row.instanceCount];
+        },
+      ),
       [
         ["ou-payments", 2],
         ["ou-research", 1],
@@ -1472,7 +1559,8 @@ describe("a dry run", () => {
 
     assert.match(
       readOpenStackChangeReach(
-        (await run(outside, `openstack dry-run server start ${STOPPED}`)).output,
+        (await run(outside, `openstack dry-run server start ${STOPPED}`))
+          .output,
       )?.wouldBeRefused as string,
       /outside the targets/,
     );
@@ -1483,12 +1571,8 @@ describe("a dry run", () => {
 
     assert.match(
       readOpenStackChangeReach(
-        (
-          await run(
-            noCredential,
-            `openstack dry-run server start ${STOPPED}`,
-          )
-        ).output,
+        (await run(noCredential, `openstack dry-run server start ${STOPPED}`))
+          .output,
       )?.wouldBeRefused as string,
       /credential of its own/,
     );

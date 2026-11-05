@@ -806,44 +806,13 @@
     },
     {
       "service": "orchestration",
-      "read": "stacks, as the exporter asks",
+      "read": "stacks",
       "path": "/stacks",
       "results": {
         "admin": {
           "status": 200,
           "count": 8,
           "seesAll": true
-        },
-        "reader": {
-          "status": 403,
-          "count": null,
-          "seesAll": false,
-          "reason": "Access was denied to this resource."
-        },
-        "monitoring-role": {
-          "status": 403,
-          "count": null,
-          "seesAll": false,
-          "reason": "Access was denied to this resource."
-        },
-        "role-on-a-project": {
-          "status": 403,
-          "count": null,
-          "seesAll": false,
-          "reason": "Access was denied to this resource."
-        }
-      }
-    },
-    {
-      "service": "orchestration",
-      "read": "stacks, all projects",
-      "path": "/stacks?global_tenant=true",
-      "results": {
-        "admin": {
-          "status": 403,
-          "count": null,
-          "seesAll": false,
-          "reason": "You are not authorized to use stacks:global_index."
         },
         "reader": {
           "status": 403,
@@ -949,6 +918,64 @@
           "count": null,
           "seesAll": false,
           "reason": ""
+        }
+      }
+    },
+    {
+      "service": "orchestration",
+      "read": "stacks, all projects",
+      "path": "/stacks?global_tenant=true",
+      "results": {
+        "admin": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "You are not authorized to use stacks:global_index."
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Access was denied to this resource."
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Access was denied to this resource."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "seesAll": false,
+          "reason": "Access was denied to this resource."
+        }
+      }
+    }
+  ],
+  "partReads": [
+    {
+      "service": "orchestration",
+      "read": "another project's stack's resources",
+      "results": {
+        "admin": {
+          "status": 200,
+          "count": 1
+        },
+        "reader": {
+          "status": 403,
+          "count": null,
+          "reason": "Access was denied to this resource."
+        },
+        "monitoring-role": {
+          "status": 403,
+          "count": null,
+          "reason": "Access was denied to this resource."
+        },
+        "role-on-a-project": {
+          "status": 403,
+          "count": null,
+          "reason": "Access was denied to this resource."
         }
       }
     }

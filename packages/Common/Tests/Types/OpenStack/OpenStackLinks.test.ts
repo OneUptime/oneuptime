@@ -601,7 +601,7 @@ describe("in words", () => {
 });
 
 describe("a Magnum cluster and the Kubernetes cluster it is", () => {
-  const STACK: string = "ou-cluster-real-6uc6ctkch4l4";
+  const STACK: string = "ou-cluster-real-b4a265chwfks";
 
   describe("the stack a server's name says built it", () => {
     test.each<[string, string]>([

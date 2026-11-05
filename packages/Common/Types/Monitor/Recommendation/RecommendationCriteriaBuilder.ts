@@ -386,6 +386,8 @@ export interface HealthyCriteriaArgs {
    * recovery comparison would otherwise see no data and never match.
    */
   treatNoDataAsZero?: boolean | undefined;
+  // How far ahead a forecast recovery looks, as far as its firing side does.
+  forecast?: MetricForecastOptions | undefined;
 }
 
 /*
@@ -492,6 +494,7 @@ export function buildHealthyCriteriaInstance(
       onNoDataPolicy: getNoDataPolicy({
         treatNoDataAsZero: args.treatNoDataAsZero,
       }),
+      forecast: args.forecast,
       /*
        * Give every additional recovery comparison its own dead band too,
        * derived the same way as the primary one.

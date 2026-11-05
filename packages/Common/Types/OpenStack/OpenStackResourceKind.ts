@@ -98,6 +98,8 @@ export enum OpenStackServiceType {
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
   Database = "database",
+  // What the agent's job calls it, and the exporter: Keystone's catalog says `metric`.
+  Metric = "gnocchi",
   Dns = "dns",
 }
 
@@ -136,6 +138,7 @@ export const OPENSTACK_SERVICE_TITLES: Record<OpenStackServiceType, string> = {
   [OpenStackServiceType.BareMetal]: "Bare Metal (Ironic)",
   [OpenStackServiceType.SharedFileSystems]: "Shared File Systems (Manila)",
   [OpenStackServiceType.Database]: "Databases (Trove)",
+  [OpenStackServiceType.Metric]: "Metrics (Gnocchi)",
   [OpenStackServiceType.Dns]: "DNS (Designate)",
 };
 
@@ -181,6 +184,8 @@ export const OPENSTACK_KINDS_BY_SERVICE: Record<
   [OpenStackServiceType.BareMetal]: [OpenStackResourceKind.BareMetalNode],
   [OpenStackServiceType.SharedFileSystems]: [OpenStackResourceKind.Share],
   [OpenStackServiceType.Database]: [OpenStackResourceKind.DatabaseInstance],
+  // What it says goes on its API's row: it has no parts a person would open one by one.
+  [OpenStackServiceType.Metric]: [],
   [OpenStackServiceType.Dns]: [
     OpenStackResourceKind.DnsZone,
     OpenStackResourceKind.DnsRecordset,

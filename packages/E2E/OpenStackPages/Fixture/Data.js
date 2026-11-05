@@ -1523,11 +1523,11 @@ const BUSY_OTHER_PRODUCTS = {
  * what a real cloud recorded (services-heat-magnum/access-check), and the links are the real rule.
  * ---------------------------------------------------------------------------
  */
-export const MAGNUM_CLUSTER = "ece79e88-fe71-4268-8080-ed81e6887df4";
-export const MAGNUM_CLUSTER_WITHOUT_AGENT = "ba479656-39aa-4ab4-825f-e2b179837022";
+export const MAGNUM_CLUSTER = "a574ec05-efe3-45ca-a348-6b00a967b446";
+export const MAGNUM_CLUSTER_WITHOUT_AGENT = "df9f1548-93b9-444f-9001-605d49feda4e";
 export const MAGNUM_KUBERNETES_CLUSTER = uuid("76000000", 2);
 export const MAGNUM_MACHINE = "compute-01.acme.example";
-const MAGNUM_STACK = "ou-cluster-real-6uc6ctkch4l4";
+const MAGNUM_STACK = "ou-cluster-real-b4a265chwfks";
 
 export function magnumServerIdOf(number) {
   return instanceIdOf(number);
@@ -1558,7 +1558,7 @@ function magnumInventory(context) {
     instance(context, 3, "web-1", region, onMachine),
     part({
       kind: "Stack",
-      externalId: "483a2b85-e4e7-4cbc-9aec-2addd10fec70",
+      externalId: "733396c7-a790-4b41-9bfe-59a3342a517d",
       name: MAGNUM_STACK,
       status: "CREATE_COMPLETE",
       facts: {
@@ -1574,14 +1574,14 @@ function magnumInventory(context) {
       name: "ou-cluster-real",
       status: "CREATE_COMPLETE",
       facts: {
-        stackId: "483a2b85-e4e7-4cbc-9aec-2addd10fec70",
+        stackId: "733396c7-a790-4b41-9bfe-59a3342a517d",
         masterCount: 1,
         nodeCount: 1,
       },
     }),
     part({
       kind: "Stack",
-      externalId: "e2fc0fa8-a09b-45c5-b917-68d79adb0ec4",
+      externalId: "417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",
       name: "ou-cluster-times-out-abc123",
       status: "CREATE_COMPLETE",
     }),
@@ -1591,7 +1591,7 @@ function magnumInventory(context) {
       name: "ou-cluster-times-out",
       status: "CREATE_COMPLETE",
       facts: {
-        stackId: "e2fc0fa8-a09b-45c5-b917-68d79adb0ec4",
+        stackId: "417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",
         masterCount: 1,
         nodeCount: 1,
       },

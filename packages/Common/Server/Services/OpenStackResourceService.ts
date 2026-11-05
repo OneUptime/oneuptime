@@ -98,6 +98,9 @@ import {
   OpenStackL3AgentFact,
   getOpenStackRouterAgents,
   getOpenStackShortHostName,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
 } from "../../Types/OpenStack/OpenStackHealthRules";
 import {
   truncateLongText,
@@ -1292,13 +1295,17 @@ export class Service extends DatabaseService<Model> {
       {
         kind: OpenStackResourceKind.Api,
         where: `("status" = '${OPENSTACK_SERVICE_STATUS_DOWN}'
-          OR (NOT ("name" = ANY($3::text[])) AND "lastSeenAt" <= $4))`,
+          OR (NOT ("name" = ANY($3::text[])) AND "lastSeenAt" <= $4)
+          OR ("name" = $5 AND ("facts"->>'${OPENSTACK_GNOCCHI_PROCESSORS_FACT}' = '0'
+            OR ("facts"->>'${OPENSTACK_GNOCCHI_MEASURES_FACT}')::double precision > $6)))`,
         params: [
           Array.from(OPENSTACK_SERVICES_EVERY_CLOUD_RUNS),
           OneUptimeDate.addRemoveMinutes(
             data.now,
             -OPENSTACK_QUIET_SERVICE_MINUTES,
           ),
+          OpenStackServiceType.Metric,
+          OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
         ],
       },
       {

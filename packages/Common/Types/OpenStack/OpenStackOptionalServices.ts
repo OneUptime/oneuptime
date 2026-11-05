@@ -93,6 +93,13 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       service: OpenStackServiceType.Dns,
       upMetricName: "openstack_designate_up",
       isEmptyWhenStopped: true,
+      isReadByProbe: true,
+      readsDownWhenRefused: true,
+    },
+    {
+      service: OpenStackServiceType.Metric,
+      upMetricName: "openstack_gnocchi_up",
+      isReadByProbe: true,
       readsDownWhenRefused: true,
     },
     {

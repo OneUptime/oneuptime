@@ -180,7 +180,7 @@ export const OpenStackPartFeed: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Feed"
-      description="What this part's cloud said happened to it, newest first. It needs notifications sent to the logs, or a probe, which reads an instance's actions from Nova: the OpenStack guide says how."
+      description="What this part's cloud said happened to it, and what OneUptime AI changed on it and who approved that, newest first. What the cloud says needs notifications sent to the logs, or a probe, which reads an instance's actions from Nova: the OpenStack guide says how."
     >
       <div className="p-4 text-sm" data-testid="openstack-part-feed">
         {error ? (

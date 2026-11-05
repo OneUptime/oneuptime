@@ -64,6 +64,7 @@ import AiResourceType, {
   AiResourceTypeInfo,
   isAiResourceType,
   isCloudAiResourceType,
+  doFixesNeedASecondOptIn,
   isReadOnlyAiResourceType,
   parseAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
@@ -1414,10 +1415,14 @@ export class Service extends DatabaseService<Model> {
     const defaults: ResourceAiAgentDefaultsApplied =
       this.getFirstConnectionDefaults({
         resource: data.resource,
-        // Fixes never come on by themselves on a resource AI only reads.
+        /*
+         * Fixes never come on by themselves on a resource AI only reads, or one
+         * whose fixes need a second opt-in.
+         */
         allowWrites:
           data.allowWrites &&
-          !isReadOnlyAiResourceType(data.resource.resourceType),
+          !isReadOnlyAiResourceType(data.resource.resourceType) &&
+          !doFixesNeedASecondOptIn(data.resource.resourceType),
       });
 
     if (!Service.didApplyDefaults(defaults) || !data.resource.id) {
@@ -1609,14 +1614,17 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * On a resource AI only reads, an agent's report can never turn fixes on:
-     * its own Config says Off, and this holds for one that says otherwise.
+     * On a resource AI only reads, an agent's report can never turn fixes on: its
+     * own Config says Off, and this holds for one that says otherwise. Where fixes
+     * need a second opt-in, an agent's defaults cannot either: only a configuration
+     * that names them can.
      */
-    const reported: AgentAiSettings = isReadOnlyAiResourceType(
-      resource.resourceType,
-    )
-      ? { ...data.reported, fixes: "Disabled" }
-      : data.reported;
+    const reported: AgentAiSettings =
+      isReadOnlyAiResourceType(resource.resourceType) ||
+      (doFixesNeedASecondOptIn(resource.resourceType) &&
+        data.reported.isConfigured !== true)
+        ? { ...data.reported, fixes: "Disabled" }
+        : data.reported;
 
     const source: AgentAiSettingsSource = this.getAiSettingsSource({
       reported,

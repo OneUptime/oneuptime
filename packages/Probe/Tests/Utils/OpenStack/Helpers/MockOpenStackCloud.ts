@@ -110,6 +110,7 @@ export default class MockOpenStackCloud {
     [OpenStackServiceType.BareMetal]: 0,
     [OpenStackServiceType.SharedFileSystems]: 0,
     [OpenStackServiceType.Database]: 0,
+    [OpenStackServiceType.Metric]: 0,
     [OpenStackServiceType.Dns]: 0,
   };
   // How many times each kind of read was made, to say which one a budget went on.

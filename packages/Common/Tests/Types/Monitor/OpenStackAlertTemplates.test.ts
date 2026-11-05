@@ -10,6 +10,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import {
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -45,6 +46,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
   OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
+  OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
   OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
@@ -603,6 +605,18 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.GreaterThan,
     value: 0,
   },
+  "openstack-metric-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-no-processors": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-metric-backlog-growing": {
+    filterType: FilterType.ForecastAbove,
+    value: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES,
+  },
   "openstack-database-api-down": {
     filterType: FilterType.LessThan,
     value: 1,
@@ -927,6 +941,21 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { recordset_a: 1 },
     healthy: { recordset_a: 0 },
   },
+  "openstack-metric-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-metric-no-processors": {
+    breached: { processors: 0 },
+    healthy: { processors: 4 },
+  },
+  // Made up: a real runner's backlog read 5 and then 10, far under this.
+  "openstack-metric-backlog-growing": {
+    breached: {
+      measures_to_process: OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES * 2,
+    },
+    healthy: { measures_to_process: 0 },
+  },
   "openstack-database-api-down": {
     breached: { api_up: 0, collection_answered: 1 },
     healthy: { api_up: 1, collection_answered: 1 },
@@ -1106,6 +1135,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "DNS Zone in Error",
         "DNS Zone Stuck Pending",
         "DNS Recordset in Error",
+        "Metrics API Down",
+        "Gnocchi No Processors",
+        "Gnocchi Backlog Growing",
         "Databases API Down",
         "Database Instance in Error",
         "Database Instance Stuck",
@@ -1185,6 +1217,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Orchestration",
         "Bare Metal",
         "Databases",
+        "Metrics",
         "Projects",
         "Capacity",
       ] as const
@@ -1503,7 +1536,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
               windowMinutes: windowMinutesOf(step),
             })
           ).breached,
-        ).toBe(false);
+          // A line through the window is what a forecast reads, so one reading doesn't turn it.
+        ).toBe(
+          CriteriaFilterUtil.isForecastFilterType(
+            firingOf(step).data!.filters[0]!.filterType,
+          ),
+        );
       },
     );
 
@@ -1538,7 +1576,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
             filter.metricMonitorOptions?.onNoDataPolicy;
 
           expect(
-            filter.filterType === FilterType.GreaterThanOrEqualTo
+            filter.filterType === FilterType.GreaterThanOrEqualTo ||
+              // An empty window has no trend, so it can't read as zero.
+              CriteriaFilterUtil.isForecastFilterType(filter.filterType)
               ? policy === NoDataPolicy.Trigger
               : policy === NoDataPolicy.TreatAsZero,
           ).toBe(true);

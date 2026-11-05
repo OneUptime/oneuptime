@@ -1881,6 +1881,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.ContainerInfra]: "container-infra",
     [OpenStackServiceType.SharedFileSystems]: "sharev2",
     [OpenStackServiceType.Database]: "database",
+    [OpenStackServiceType.Metric]: "metric",
     [OpenStackServiceType.Dns]: "dns",
   };
 
@@ -1964,6 +1965,12 @@ describe("the reads themselves", () => {
       ...loadAccessMatrix("services-ironic", "matrix", "access-check"),
       ...loadAccessMatrix("services-manila", "matrix", "access-check"),
       ...loadAccessMatrix("services-trove", "matrix", "access-check"),
+      ...loadAccessMatrix(
+        "services-designate-barbican-swift",
+        "matrix",
+        "access-check",
+      ),
+      ...loadAccessMatrix("services-gnocchi", "matrix", "access-check"),
     ];
 
     for (const definition of OPENSTACK_ACCESS_READS) {
