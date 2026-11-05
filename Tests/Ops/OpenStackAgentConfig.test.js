@@ -610,6 +610,9 @@ describe("the access the agent asks for", () => {
       ["load-balancer", "/v2.0/lbaas/loadbalancers"],
       ["load-balancer", "/v2.0/lbaas/pools"],
       ["load-balancer", "/v2.0/octavia/amphorae"],
+      // The exporter reads Octavia's versions before anything else, and with this refused it
+      // answers nothing at all: recorded, 0 series on an access-rule credential.
+      ["load-balancer", "/"],
       ["baremetal", "/v1/nodes/detail"],
       ["orchestration", "/v1/*/stacks"],
       ["container-infra", "/v1/clusters"],

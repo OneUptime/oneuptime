@@ -339,6 +339,9 @@ done
 # Swift keeps its keystonemiddleware's settings in a section of another name.
 if sudo test -f /etc/swift/proxy-server.conf; then
   sudo sed -i "/^\[filter:authtoken\]/a service_type = object-store" /etc/swift/proxy-server.conf
+  # Recorded with DevStack's False: keystonemiddleware checks an access rule against the token's
+  # catalog, finds none, and Swift answers 500 (KeyError: 'catalog').
+  sudo sed -i "s/^include_service_catalog *= *.*/include_service_catalog = True/" /etc/swift/proxy-server.conf
 fi
 
 restart_units() {
