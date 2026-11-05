@@ -33,6 +33,7 @@ The rest of this page is about DevStack. These deploy what customers run, and fo
 | `guide-follow.sh` | What following any guide takes: running a block with its placeholders filled in and a person's answers on its standard input. |
 | `fake-oneuptime.py`, `collector-sink.yaml` | The OneUptime those commands name: it serves the install scripts from this checkout, hands OTLP to a real collector that decodes and keeps it, and keeps each webhook. It proves what reaches OneUptime, not what OneUptime does with it. |
 | `live-oneuptime.py` | That part, with `-f live_oneuptime=true`: a real OneUptime, its app built from the branch and the rest from its test images, sent what a real agent and a real Alertmanager sent, and read back through its API. |
+| `whole-path.py`, `whole-path-template.ts` | With `-f whole_path=true`, in about three hours on one runner: nothing recorded and nothing stood in for. A real DevStack, with the agent installed as its docs say and a project's own probe connected as the dashboard connects one, into a OneUptime built from the branch. nova-compute really stops, and a monitor from the real Compute Service Down template waits out its whole window, fires and recovers. Then a signed boot, as far as its spans read back. The artifact `openstack-whole-path` holds what each check found, in `whole-path.json`, by part. |
 
 The artifact is `openstack-recording-kolla-aio` or `openstack-recording-osa-aio`:
 
