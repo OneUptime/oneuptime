@@ -1,0 +1,2 @@
+A load balancer with a pair of amphorae, MASTER and BACKUP.
+On its own: two amphorae on one load balancer, one MASTER and one BACKUP.
