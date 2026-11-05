@@ -590,6 +590,50 @@ describe("the recording rig", () => {
     expect(readFlags.trim().split(" ")).toEqual(flags);
   });
 
+  test.each(["start-agent.sh", "control-plane-clusters.sh"])(
+    "%s starts the collector with every variable its config reads",
+    (name) => {
+      // A collector missing one refuses its config and exits as it starts, and a run
+      // only learns that at its end, from a recording with no OTLP in it.
+      const config = read(path.join(AGENT, "otel-collector-config.yaml"));
+      const readByConfig = [
+        ...new Set(
+          [...config.matchAll(/\$\{env:([A-Z0-9_]+)\}/g)].map((match) => {
+            return match[1];
+          }),
+        ),
+      ];
+      expect(readByConfig.length).toBeGreaterThan(10);
+      const script = read(path.join(RIG, name));
+      const missing = readByConfig.filter((variable) => {
+        return !new RegExp(`-e '?"?${variable}\\b`).test(script);
+      });
+      expect(missing).toEqual([]);
+    },
+  );
+
+  test("a recording survives a step that ran out of time", () => {
+    const workflow = yaml.load(read(WORKFLOW));
+    const steps = workflow.jobs.record.steps;
+    const logs = steps.find((step) => {
+      return step.run === "bash Tests/Ops/openstack-e2e/logs-record.sh";
+    });
+    expect(logs["continue-on-error"]).toBe(true);
+    expect(logs["timeout-minutes"]).toBeLessThan(
+      workflow.jobs.record["timeout-minutes"] / 2,
+    );
+    const names = steps.findIndex((step) => {
+      return String(step.run).includes("safe-artifact-names.sh");
+    });
+    const upload = steps.findIndex((step) => {
+      return step.name === "Upload the recordings";
+    });
+    expect(names).toBeGreaterThan(-1);
+    expect(names).toBeLessThan(upload);
+    expect(steps[names].if).toBe("always()");
+    expect(steps[names].run).toContain("chown -R");
+  });
+
   test("the recording only replaces where the data goes", () => {
     const recording = yaml.load(
       read(path.join(RIG, "collector-recording.yaml")),

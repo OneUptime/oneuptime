@@ -48,6 +48,7 @@ MEMCACHED_IMAGE="memcached:1.6@sha256:aea0d81d101a9b64fe30cf2cf2f96144e284f8e955
 HAPROXY_IMAGE="haproxy:2.8@sha256:1ede2210e3256ce9331d06e100603acca8ff23bf0b9ca265d8598399b17f40e7"
 UBUNTU_IMAGE="ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852"
 COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-collector-contrib' "$AGENT_DIR/docker-compose.yml" | head -1 | awk '{print $2}')"
+DATABASE_AGENT_COLLECTOR_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*otel/opentelemetry-collector-contrib' "$AGENT_DIR/../DatabaseAgent/docker-compose.yml" | head -1 | awk '{print $2}')"
 
 # Kolla-Ansible's pins, with its own sha256 of each amd64 archive.
 MYSQLD_EXPORTER_URL="https://github.com/prometheus/mysqld_exporter/releases/download/v0.20.0/mysqld_exporter-0.20.0.linux-amd64.tar.gz"
@@ -199,6 +200,25 @@ python_amqp() {
   "$WORK/venv/bin/python" -I "$HERE/control-plane-amqp.py" "$@"
 }
 
+# A client left running. The process itself, not a subshell around it: killing a subshell
+# leaves its client holding every connection, and the next scenes record that as theirs.
+AMQP_CLIENT=""
+
+start_amqp_client() {
+  "$WORK/venv/bin/python" -I "$HERE/control-plane-amqp.py" "$@" &
+  AMQP_CLIENT=$!
+}
+
+stop_amqp_client() {
+  kill "$AMQP_CLIENT" 2>/dev/null
+  wait "$AMQP_CLIENT" 2>/dev/null
+}
+
+rabbit_descriptors_under() {
+  [ "$(curl -fsS --max-time 5 "http://$(node_address "$1"):15692/metrics" \
+    | awk '$1 == "rabbitmq_process_open_fds" {print int($2)}')" -lt "$2" ]
+}
+
 drill_rabbitmq() {
   log "RabbitMQ"
   cat >"$WORK/rabbitmq.conf" <<'EOF'
@@ -230,31 +250,34 @@ EOF
   RECORD_GAP=10 record rabbitmq-empty
 
   if python3 -m venv "$WORK/venv" && "$WORK/venv/bin/pip" -q install pika==1.3.2; then
-    local client
-    python_amqp healthy "$(node_address 1)" &
-    client=$!
+    # One consumer keeping up, through every scene of messages, as a real cloud has.
+    start_amqp_client healthy "$(node_address 1)"
     sleep 10
     record rabbitmq-healthy
 
     python_amqp no-consumers "$(node_address 1)"
-    kill "$client" 2>/dev/null
     sleep 10
     record rabbitmq-queue-without-consumers
+    python_amqp drain-unconsumed "$(node_address 1)"
+    sleep 5
+    RECORD_GAP=10 record rabbitmq-recovered-from-queue-without-consumers
+    local consumer="$AMQP_CLIENT"
 
-    python_amqp unacked "$(node_address 1)" &
-    client=$!
+    start_amqp_client unacked "$(node_address 1)"
     sleep 15
     record rabbitmq-messages-unacknowledged
-    kill "$client" 2>/dev/null
+    stop_amqp_client
     sleep 5
+    AMQP_CLIENT="$consumer"
+    stop_amqp_client
     python_amqp drain "$(node_address 1)"
 
-    python_amqp hold-connections "$(node_address 1)" 950 &
-    client=$!
+    start_amqp_client hold-connections "$(node_address 1)" 950
     sleep 30
     record rabbitmq-file-descriptors-high
-    kill "$client" 2>/dev/null
-    sleep 10
+    stop_amqp_client
+    wait_for "rabbit1 letting go of its connections" 40 rabbit_descriptors_under 1 100
+    RECORD_GAP=10 record rabbitmq-recovered-from-file-descriptors
   else
     problem "No AMQP client: no drills of messages or file descriptors"
   fi
@@ -301,11 +324,18 @@ EOF
   wait_for "the partition healed" 60 rabbit_cluster_of_three
   RECORD_GAP=10 record rabbitmq-recovered
 
-  docker stop ou-rabbit1 ou-rabbit2 ou-rabbit3 >/dev/null
+  # One at a time, and back in the opposite order: nodes stopped together cannot agree
+  # which of them stopped last, and one that started early crashed on merging its schema.
+  docker stop ou-rabbit3 >/dev/null
+  docker stop ou-rabbit2 >/dev/null
+  docker stop ou-rabbit1 >/dev/null
   sleep 15
   record rabbitmq-cluster-down
-  docker start ou-rabbit1 ou-rabbit2 ou-rabbit3 >/dev/null
+  docker start ou-rabbit1 >/dev/null
+  docker start ou-rabbit2 >/dev/null
+  docker start ou-rabbit3 >/dev/null
   wait_for "RabbitMQ's three nodes back" 80 rabbit_cluster_of_three
+  RECORD_GAP=10 record rabbitmq-recovered-from-cluster-down
 }
 
 # ----------------------------------------------------------------------------
@@ -412,6 +442,7 @@ EOF
     start_mysqld_exporter "$node"
     add_endpoint "mysqld-$node" "http://$(node_address "$node"):9104/metrics"
   done
+  start_database_agent galera2 2
   sleep 5
   record mariadb-healthy
 
@@ -421,6 +452,14 @@ EOF
   record mariadb-node-desynced
   galera_sql 2 "SET GLOBAL wsrep_desync=OFF"
   wait_for "galera2 back in sync" 40 galera_synced 2
+
+  # Out of step with nobody having asked: a read lock held on a node pauses it in Galera,
+  # which is what a stuck dump or a forgotten session does. wsrep_desync stays off.
+  docker exec -d -e MYSQL_PWD="$DB_PASSWORD" ou-galera1 mariadb -uroot \
+    -e 'FLUSH TABLES WITH READ LOCK; SELECT SLEEP(75)' >/dev/null
+  sleep 5
+  record mariadb-node-out-of-sync
+  wait_for "galera1 back in sync after its read lock" 40 galera_synced 1
 
   cut_off ou-galera3 ou-galera1
   cut_off ou-galera3 ou-galera2
@@ -485,6 +524,63 @@ EOF
   docker start ou-galera2 ou-galera3 >/dev/null
   wait_for "three Galera nodes after the whole cluster stopped" 80 galera_size_is 1 3
   RECORD_GAP=10 record mariadb-recovered-from-cluster-down
+}
+
+# A MariaDB nobody clustered, beside the rest. MariaDB's own packages build Galera in, so it
+# reports wsrep_* with no cluster anywhere: none of that may read as a cluster that is down.
+drill_mariadb_without_galera() {
+  log "MariaDB without Galera"
+  local address
+  address="$(node_address 4)"
+  docker run -d --name ou-mariadb-plain \
+    -e MARIADB_ROOT_PASSWORD="$DB_PASSWORD" -e MARIADB_ROOT_HOST=% \
+    -p "$address:3306:3306" "$MARIADB_IMAGE" >/dev/null
+  wait_for "the MariaDB without Galera" 80 docker exec -e MYSQL_PWD="$DB_PASSWORD" \
+    ou-mariadb-plain mariadb -uroot -e 'SELECT 1' || return 1
+  start_mysqld_exporter 4
+  add_endpoint mysqld-plain "http://$address:9104/metrics"
+  start_database_agent plain 4
+  sleep 5
+  RECORD_GAP=10 record mariadb-without-galera-healthy
+  docker stop ou-mariadb-plain >/dev/null
+  sleep 5
+  RECORD_GAP=10 record mariadb-without-galera-down
+  docker start ou-mariadb-plain >/dev/null
+  wait_for "the MariaDB without Galera, again" 80 docker exec -e MYSQL_PWD="$DB_PASSWORD" \
+    ou-mariadb-plain mariadb -uroot -e 'SELECT 1'
+  RECORD_GAP=10 record mariadb-without-galera-recovered
+}
+
+# The Database Agent's own MySQL config, as shipped but for its exporter, on one of these, so
+# what it sends beside mysqld_exporter is a recording too. $1 names it, $2 is the node.
+start_database_agent() {
+  local name="$1" node="$2" address folder
+  address="$(node_address "$node")"
+  folder="$RECORDING/database-agent-$name"
+  mkdir -p "$folder"
+  chmod 0777 "$folder"
+  docker run -d --name "ou-database-agent-$name" --network host \
+    -v "$(cd "$AGENT_DIR/../DatabaseAgent" && pwd)/configs/mysql.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+    -v "$HERE/collector-recording.yaml:/etc/otelcol-contrib/recording.yaml:ro" \
+    -v "$folder:/recording" \
+    -e ONEUPTIME_URL=http://127.0.0.1:9 \
+    -e ONEUPTIME_TELEMETRY_INGESTION_KEY=recording \
+    -e DATABASE_SYSTEM=mariadb \
+    -e "DATABASE_ENDPOINT=$address:3306" \
+    -e "DATABASE_ENDPOINT_HOST=$address" \
+    -e DATABASE_ENDPOINT_PORT=3306 \
+    -e "DATABASE_SERVER_ADDRESS=$name.example.com" \
+    -e DATABASE_SERVER_PORT=3306 \
+    -e DATABASE_USERNAME=root \
+    -e "DATABASE_PASSWORD=$DB_PASSWORD" \
+    -e DATABASE_TLS_INSECURE=true \
+    -e DATABASE_TLS_INSECURE_SKIP_VERIFY=false \
+    -e DATABASE_TLS_MYSQL=false \
+    -e DATABASE_COLLECTION_INTERVAL=15s \
+    -e DATABASE_QUERY_EVENTS=false \
+    -e DATABASE_SERVER_ID= \
+    "$DATABASE_AGENT_COLLECTOR_IMAGE" \
+    --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml >/dev/null
 }
 
 # ----------------------------------------------------------------------------
@@ -700,6 +796,19 @@ drill_ovn() {
   sleep 20
   RECORD_GAP=10 record ovn-recovered
 
+  # All three members gone at once. Nothing is left to say there is no leader, so what
+  # ovn-northd says of itself is what an alert has left to read.
+  for node in 1 2 3; do
+    docker exec "ou-ovn$node" bash /usr/local/bin/ovn-member.sh stop
+  done
+  sleep 30
+  record ovn-every-member-down
+  for node in 1 2 3; do
+    docker exec "ou-ovn$node" bash /usr/local/bin/ovn-member.sh start
+  done
+  sleep 20
+  RECORD_GAP=10 record ovn-recovered-from-every-member-down
+
   for node in 1 2 3; do
     docker exec "ou-ovn$node" pkill ovn-northd || true
   done
@@ -787,16 +896,10 @@ EOF
 # The collector, with the agent's real config, reading all of it
 # ----------------------------------------------------------------------------
 targets_of() {
-  local dependency="$1" entry url list=""
-  for entry in "${ENDPOINTS[@]}"; do
-    case "${entry%%=*}" in
-      *-detailed) ;;
-      "$dependency"-[0-9]*)
-        url="${entry#*=}"
-        url="${url#http://}"
-        list="$list,${url%%/*}"
-        ;;
-    esac
+  local port="$1" node list=""
+  shift
+  for node in "$@"; do
+    list="$list,$(node_address "$node"):$port"
   done
   printf '[%s]' "${list#,}"
 }
@@ -815,16 +918,22 @@ start_collector() {
     -e OPENSTACK_EXPORTER_ADDRESS=127.0.0.1:1 \
     -e 'OPENSTACK_QUOTA_CLOUDS=[]' \
     -e OPENSTACK_QUOTA_EXPORTER_ADDRESS=127.0.0.1:1 \
+    -e 'OPENSTACK_WORKER_STATE_CLOUDS=[]' \
+    -e OPENSTACK_WORKER_STATE_EXPORTER_ADDRESS=127.0.0.1:1 \
     -e 'OPENSTACK_LIBVIRT_EXPORTER_TARGETS=[]' \
     -e 'OPENSTACK_CEILOMETER_EXPORTER_TARGETS=[]' \
-    -e "OPENSTACK_RABBITMQ_TARGETS=$(targets_of rabbitmq)" \
-    -e "OPENSTACK_MARIADB_TARGETS=$(targets_of mysqld)" \
-    -e "OPENSTACK_MEMCACHED_TARGETS=$(targets_of memcached)" \
-    -e "OPENSTACK_HAPROXY_TARGETS=[$(node_address 1):9101]" \
-    -e "OPENSTACK_NETWORK_EXPORTER_TARGETS=$(targets_of ovn)" \
+    -e OPENSTACK_AGENT_SERVICES='.*' \
+    -e OPENSTACK_AGENT_MEMORY_LIMIT_MIB=512 \
+    -e "OPENSTACK_RABBITMQ_TARGETS=$(targets_of 15692 1 2 3)" \
+    -e "OPENSTACK_MARIADB_TARGETS=$(targets_of 9104 1 2 3)" \
+    -e "OPENSTACK_MEMCACHED_TARGETS=$(targets_of 9150 1 2)" \
+    -e "OPENSTACK_HAPROXY_TARGETS=$(targets_of 9101 1)" \
+    -e "OPENSTACK_NETWORK_EXPORTER_TARGETS=$(targets_of 1981 1 2 3)" \
     -e 'OPENSTACK_LIBVIRT_HEALTH_TARGETS=[]' \
     -e OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
     -e 'OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS=[]' \
+    -e 'OPENSTACK_DATABASE_EXPORTER_TARGETS=[]' \
+    -e OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX= \
     "$COLLECTOR_IMAGE" --config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/recording.yaml >/dev/null
 }
 
@@ -832,20 +941,27 @@ sudo modprobe br_netfilter || true
 sudo sysctl -q -w net.bridge.bridge-nf-call-iptables=1 || true
 docker network create "$NETWORK" >/dev/null
 
+# From the first drill to the last, with the shipped config's keep lists and increases, so the
+# recording holds what a real collector really sent while each of these broke: its series
+# going away, its staleness markers, an `up` of 0. What has not started yet reads as down.
+log "The agent's collector, on all of it"
+start_collector
+
 # Each on its own: a cluster that will not form costs its own recording, not the others'.
 drill_rabbitmq || problem "RabbitMQ's drills stopped early"
 drill_memcached || problem "Memcached's drills stopped early"
 drill_haproxy || problem "HAProxy's drills stopped early"
 drill_ovn || problem "OVN's drills stopped early"
 drill_mariadb || problem "MariaDB's drills stopped early"
+drill_mariadb_without_galera || problem "The MariaDB without Galera's drills stopped early"
 drill_alerting || problem "The alerting drill stopped early"
 
-# Last, once everything is back: it reads what a real scrape of all of this sends, with
-# the keep lists and the increases the shipped config applies.
-log "The agent's collector, on all of it"
-start_collector
+# Once everything is back, so it ends on what healthy looks like.
 sleep 200
 docker logs ou-control-plane-collector >"$RECORDING/collector.log" 2>&1
+if ! [ -s "$RECORDING/otlp/metrics.json" ]; then
+  problem "The collector wrote nothing: read collector.log"
+fi
 
 for name in $(docker ps -a --format '{{.Names}}' | grep '^ou-'); do
   docker logs "$name" 2>&1 | tail -200 >"$RECORDING/$name.log"

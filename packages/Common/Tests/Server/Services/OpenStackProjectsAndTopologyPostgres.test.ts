@@ -600,6 +600,7 @@ describePostgres(
             part: {
               kind: OpenStackResourceKind.StoragePool,
               name: "host@lvm#lvm",
+              regionName: "RegionOne",
             },
           });
 
@@ -625,6 +626,7 @@ describePostgres(
             part: {
               kind: OpenStackResourceKind.StoragePool,
               name: "host@lvm#lvm",
+              regionName: "RegionOne",
             },
           });
 

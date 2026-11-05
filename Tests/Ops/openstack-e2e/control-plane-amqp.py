@@ -4,6 +4,7 @@
   healthy <host>                 a queue, and a consumer that keeps up with it
   no-consumers <host>            messages in a queue nothing reads
   unacked <host>                 a consumer that takes messages and acknowledges none
+  drain-unconsumed <host>        deletes the queue no-consumers filled
   drain <host>                   deletes every queue this script made
   hold-connections <host> <n>    n connections open, each a file descriptor on the node
 """
@@ -57,6 +58,8 @@ def main():
             channel.basic_publish("", "ou-unacked", b"ou")
         channel.basic_consume("ou-unacked", ignore, auto_ack=False)
         channel.start_consuming()
+    elif action == "drain-unconsumed":
+        channel.queue_delete("ou-unconsumed")
     elif action == "drain":
         for name in QUEUES:
             channel.queue_delete(name)

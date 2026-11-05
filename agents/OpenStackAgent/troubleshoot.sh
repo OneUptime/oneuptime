@@ -411,6 +411,13 @@ explain_curl_exit() {
 printf "%s%sOneUptime OpenStack Agent — Diagnostic%s\n" "$C_BOLD" "$C_BLU" "$C_OFF"
 printf "%sInstall dir:%s %s\n" "$C_DIM" "$C_OFF" "$DIR"
 
+# A folder this user cannot look inside reads as one with nothing in it: no agent, no
+# clouds.yaml. Installed under a strict umask, it is root's alone.
+if [ -d "$DIR" ] && [ ! -x "$DIR" ]; then
+  fail "This user cannot look inside $DIR, so nothing below could be read. Run this with sudo."
+  exit 1
+fi
+
 # ----------------------------------------------------------------------------
 section "1. Runtime"
 # ----------------------------------------------------------------------------
