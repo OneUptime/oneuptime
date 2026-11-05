@@ -22,6 +22,7 @@ import OpenStackResourceService from "../../../../../Server/Services/OpenStackRe
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import CommonAPI from "../../../../../Server/API/CommonAPI";
 import Response from "../../../../../Server/Utils/Response";
+import Query from "../../../../../Types/BaseDatabase/Query";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -40,6 +41,10 @@ import Permission, {
  * through the pages.
  */
 const PROJECT_ID: ObjectID = ObjectID.generate();
+// The project filter every read carries, for a table the test only knows as a model type.
+const PROJECT_QUERY: Query<BaseModel> = {
+  projectId: PROJECT_ID,
+} as Query<BaseModel>;
 const USER_ID: ObjectID = ObjectID.generate();
 const CLOUD_ID: ObjectID = ObjectID.generate();
 
@@ -170,7 +175,7 @@ describe("what a custom role can be granted", () => {
     }),
   )(
     "%s is offered, with a title and a line that say what it is",
-    (permission) => {
+    (permission: Permission) => {
       const props: PermissionProps | undefined = grantable.get(permission);
       expect(props).toBeDefined();
       expect(props?.isAssignableToTenant).toBe(true);
@@ -215,7 +220,7 @@ describe.each(TABLES)("$name", (table: Table) => {
     await expect(
       ModelPermission.checkReadQueryPermission(
         table.modelType,
-        { projectId: PROJECT_ID },
+        PROJECT_QUERY,
         { _id: true },
         READ_ROLE,
       ),
@@ -229,7 +234,7 @@ describe.each(TABLES)("$name", (table: Table) => {
     await expect(
       ModelPermission.checkReadQueryPermission(
         table.modelType,
-        { projectId: PROJECT_ID },
+        PROJECT_QUERY,
         { _id: true },
         propsHolding([table.read]),
       ),
@@ -237,7 +242,7 @@ describe.each(TABLES)("$name", (table: Table) => {
     await expect(
       ModelPermission.checkReadQueryPermission(
         table.modelType,
-        { projectId: PROJECT_ID },
+        PROJECT_QUERY,
         { _id: true },
         propsHolding([table.read, Permission.ReadOpenStackCloud]),
       ),
@@ -249,7 +254,7 @@ describe.each(TABLES)("$name", (table: Table) => {
       await expect(
         ModelPermission.checkReadQueryPermission(
           table.modelType,
-          { projectId: PROJECT_ID },
+          PROJECT_QUERY,
           { _id: true },
           props,
         ),
@@ -370,6 +375,10 @@ describe("the API's own routes", () => {
           projectId: PROJECT_ID,
         }) as never;
       });
+    const reachesInventory: () => Promise<never> = async (): Promise<never> => {
+      reachedInventory = true;
+      return {} as never;
+    };
     for (const name of [
       "getInventorySummary",
       "getRows",
@@ -394,10 +403,7 @@ describe("the API's own routes", () => {
             >,
             name,
           )
-          .mockImplementation(async () => {
-            reachedInventory = true;
-            return {} as never;
-          });
+          .mockImplementation(reachesInventory);
       }
     }
   });

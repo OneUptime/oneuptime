@@ -128,6 +128,10 @@ function findViewerUses(): Array<ViewerUse> {
  * about. Each says why.
  */
 const MOMENT_PANELS: Record<string, string> = {
+  [path.join("Components", "OpenStack", "OpenStackRequestTrail.tsx")]:
+    "The lines of one request across a cloud's services: one moment, which no saved view would find again.",
+  [path.join("Components", "OpenStack", "Part", "OpenStackPartLogs.tsx")]:
+    "One part's own lines on that part's page, around what happened to it. The views people keep are of the cloud, on its Logs page.",
   [path.join("Pages", "Incidents", "View", "Index.tsx")]:
     "an incident's logs, pinned to the window the monitor evaluated",
   [path.join("Pages", "Alerts", "View", "Index.tsx")]:

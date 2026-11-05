@@ -823,6 +823,8 @@ type BuildInsightInvestigationLinkFunction = (
 export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunction =
   (input: AIInsightExplorerLinkInput): AIInsightExplorerLink | null => {
     switch (input.insightType) {
+      // A table's rows or a data check's value are series too, and it names which.
+      case AIInsightType.DataDrift:
       case AIInsightType.MetricDrift: {
         const route: Route | null = buildMetricExplorerRoute({
           metricName: input.metricName,

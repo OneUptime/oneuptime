@@ -1,6 +1,6 @@
 # OpenStack-övervakning
 
-En OpenStack-monitor bevakar ett moln - dess API:er, arbetarprocesserna bakom dem, hypervisorer, instanser, nätverk, lagringspooler och projektkvoter - och talar om när ett API slutar svara, en arbetarprocess går ner, en hypervisor inte har något utrymme kvar eller en pool blir full. Den läser `openstack_*`-serierna som OneUptimes OpenStack-agent samlar in från openstack-exporter.
+En OpenStack-monitor bevakar ett moln - dess API:er, arbetarprocesserna bakom dem, hypervisorer, instanser, nätverk, lagringspooler och projektkvoter - och talar om när ett API slutar svara, en arbetarprocess går ner, en hypervisor inte har något utrymme kvar eller en pool blir full. Den läser `openstack_*`-serierna som OneUptimes OpenStack-agent samlar in från openstack-exporter, eller som en sond samlar in från molnets API:er.
 
 :::cards
 - [Skapa monitorn](#skapa-en-openstack-monitor): Sex steg i instrumentpanelen.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **Samla in molnets mätvärden** med OpenStack-agenten. Molnets **Dokumentation**-sida, under **Produkter → Infrastruktur → OpenStack**, guidar dig genom installationen.
+- **Samla in molnets mätvärden** med OpenStack-agenten eller [en sond](/docs/telemetry/openstack-agentless). **Dokumentation**, under **Produkter → Infrastruktur → OpenStack**, guidar dig genom installationen av agenten.
 - **Kontrollera att molnet är registrerat.** Det visas under **Produkter → Infrastruktur → OpenStack**, med namnet från agentens `OPENSTACK_CLOUD_NAME`, efter sin första insamling.
 
 ## Skapa en OpenStack-monitor

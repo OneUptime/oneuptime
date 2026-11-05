@@ -56,8 +56,7 @@ function step(metadataId: string): Node {
 
 describe("Propose taking a failing OpenStack compute service out of scheduling", () => {
   test("is offered among the alert templates", () => {
-    const template: WorkflowTemplate | undefined =
-      getWorkflowTemplate(TEMPLATE_ID);
+    const template: WorkflowTemplate | null = getWorkflowTemplate(TEMPLATE_ID);
 
     expect(template?.category).toBe(WorkflowTemplateCategory.Alerts);
     expect(template?.workflowDescription).toContain(

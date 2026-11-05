@@ -223,7 +223,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/keystone
 curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/placement.yaml
 ```
 
-Cinder 沒有對應的檔案。它的 `os-services` 與 `scheduler-stats/get_pools` 對這個角色回應 `403 User does not have admin privileges`，在我們記錄的全部五個版本上都是如此。這是因為 Cinder 自己的程式碼要求 admin 情境，且發生在政策已通過之後，所以任何覆寫都無法開放它們。
+Cinder 沒有對應的檔案。它的 `os-services` 與 `scheduler-stats/get_pools` 對這個角色回應 `403 User does not have admin privileges`，在我們記錄的全部五個雲端上都是如此。這是因為 Cinder 自己的程式碼要求 admin 情境，且發生在政策已通過之後，所以任何覆寫都無法開放它們。
 
 **若要再次移除覆寫，請清空檔案（`{}`），絕不要刪除它。** 在 Flamingo（2025.2）與 Epoxy（2025.1）上，一旦 oslo.policy 已讀過的政策檔案消失，它在每次檢查時都會引發錯誤，導致該服務的每個請求都失敗。如果該服務是 Keystone，它就會停止驗證權杖，整個雲端都會回應 `503`。如果已經發生，請重新啟動該服務。
 
@@ -246,7 +246,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 - **透過代理程式完全看不到執行個體。** 匯出器向 Nova 要求所有專案的伺服器，Nova 拒絕一般 reader，那次讀取就整個失敗。只有不經過這個代理程式收集的 OneUptime 探測器，才能列出單一專案的執行個體。
 - **它可能可以寫入。** 在 Cinder 的 `enforce_new_defaults` 關閉的雲端上，一般 `reader` 也能在它的專案中建立磁碟區。在 Epoxy、Flamingo 與 Gazpacho 上確實可以（`202`），而在 Hibiscus 上被拒絕（`403`），因為 DevStack 只在那裡開啟 `enforce_new_defaults`。Cinder 自己的預設值是關閉。
-- **Placement 會被讀成沒有回應。** 它發出的每個呼叫都被拒絕，而匯出器回報的方式與回報 Placement 已停止時相同：`openstack_placement_up 0`，在我們記錄的全部五個版本上都是如此。這些頁面可以從此憑證還有哪些其他項目被關閉來判斷，並且會這樣說明。[Placement API Down](/docs/monitor/openstack-monitor#預先建立的警示範本) 範本無法判斷，所以在這個層級請不要使用那一個。
+- **Placement 會被讀成沒有回應。** 它發出的每個呼叫都被拒絕，而匯出器回報的方式與回報 Placement 已停止時相同：`openstack_placement_up 0`，在我們記錄的全部五個雲端上都是如此。這些頁面可以從此憑證還有哪些其他項目被關閉來判斷，並且會這樣說明。[Placement API Down](/docs/monitor/openstack-monitor#預先建立的警示範本) 範本無法判斷，所以在這個層級請不要使用那一個。
 :::
 
 ### 安裝並啟動代理程式
@@ -354,7 +354,7 @@ Everything is ready. Begin running and processing data.
 
 ## 環境變數
 
-安裝指令碼會把這些寫入 `/opt/oneuptime-openstack-agent/.env`；Docker Compose 安裝則從 `docker-compose.yml` 旁邊的 `.env` 讀取。變更其中一個之後，請在該資料夾中執行 `docker compose up -d`。只有 `clouds.yaml` 存放憑證。
+安裝指令碼會把這些寫入 `/opt/oneuptime-openstack-agent/.env`；Docker Compose 安裝則從 `docker-compose.yml` 旁邊的 `.env` 讀取。變更其中一個之後，請在該資料夾中執行 `docker compose up -d`；未使用 Docker 時則執行 `sudo systemctl restart oneuptime-openstack-agent`。只有 `clouds.yaml` 存放憑證。
 
 | 變數 | 必填 | 說明 |
 | --- | --- | --- |
@@ -450,7 +450,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne
 | 屬性 | 說明 |
 | --- | --- |
 | `openstack.cloud.name` | 雲端的名稱，一個資源屬性 |
-| `oneuptime.agent.version` | 代理程式檔案所固定的收集器版本，一個資源屬性 |
+| `oneuptime.agent.version` | 代理程式檔案的版本，一個資源屬性：即它們所固定的收集器版本，並在檔案於該收集器上每次變更時，將最後一個數字加一 |
 | `openstack.region.name` | 區域，來自 `clouds.yaml` 項目的名稱，位於每個資料點上 |
 | `openstack_service` | 該工作的 OpenStack 服務（`compute`、`network`、...），位於每個資料點上 |
 
@@ -468,7 +468,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne
 | 雲端可能不會執行的服務 | 開啟 | 負載平衡器、裸機、堆疊、叢集、共享、DNS、物件儲存、資料庫與 Gnocchi，只要雲端有這些服務 | 沒有其中某項的雲端，每 5 分鐘付出一次登入的代價。Designate 每次擷取每個區域花費一次呼叫，所以會隨區域數量增長 |
 | 擷取間隔 | 2 與 5 分鐘 | 更新鮮的資料，或較小的負載 | 頻率加倍，API 呼叫也加倍。請讓每個 `scrape_timeout` 小於其 `scrape_interval`，使緩慢的擷取不會堆疊在前一次之上 |
 
-**專案配額：** 以 `OPENSTACK_COLLECT_QUOTAS=true` 再次執行 `install.sh`。它會啟動第二個匯出器 `openstack-quota-exporter`，除此之外什麼都不讀取，而收集器每小時向它索取一次 `openstack_nova_limits_*`、`openstack_neutron_quota_*`、`openstack_cinder_limits_*` 與 `openstack_cinder_volume_type_quota_gigabytes`。它們變化緩慢，而且無論由哪個工作詢問，匯出器讀取的內容都相同，所以要減少讀取頻率就需要它們專屬的匯出器。你自己的匯出器沒有這種機制：代理程式會在每次擷取時讀取它所提供的內容。
+**專案配額：** 以 `OPENSTACK_COLLECT_QUOTAS=true` 再次執行 `install.sh`。在 Docker Compose 安裝上，請把 `openstack-quotas` 加到 `.env` 的 `COMPOSE_PROFILES`，並把 `OPENSTACK_QUOTA_CLOUDS` 設為 `OPENSTACK_EXPORTER_CLOUDS` 所寫的值。兩種做法都會啟動第二個匯出器 `openstack-quota-exporter`，除此之外什麼都不讀取，而收集器每小時向它索取一次 `openstack_nova_limits_*`、`openstack_neutron_quota_*`、`openstack_cinder_limits_*` 與 `openstack_cinder_volume_type_quota_gigabytes`。它們變化緩慢，而且無論由哪個工作詢問，匯出器讀取的內容都相同，所以要減少讀取頻率就需要它們專屬的匯出器。你自己的匯出器沒有這種機制：代理程式會在每次擷取時讀取它所提供的內容。
 
 **慢速指標：** 從匯出器在 `docker-compose.yml` 中的 `command`，或不使用 Docker 時 `oneuptime-openstack-exporter.service` 的 `ExecStart` 中，刪除你想要的那一行 `--disable-metric`。代價是每次擷取每個專案一次呼叫。
 
@@ -523,7 +523,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne
 
 ## 容量
 
-「放得下這個嗎？」是 OpenStack 營運人員最常被問到的問題，而 Nova 的可用數量無法回答它：配置比率、保留量與碎片化都有影響，所以一個雲端可以有數千個空閒 vCPU，卻容不下一個大型執行個體。雲端的**容量**頁面會說明每種規格還能再放進多少個，以及什麼東西不足，由最快用完的開始。它讀取的是每兩分鐘計算一次的單一摘要，所以有 5,000 個主機的雲端載入速度和只有一個主機的雲端一樣快。其規格表上的**匯出 CSV**會下載頁面上的所有內容。
+「放得下這個嗎？」是 OpenStack 營運人員最常被問到的問題，而 Nova 的可用數量無法回答它：配置比率、保留量與碎片化都有影響，所以一個雲端可以有數千個空閒 vCPU，卻容不下一個大型執行個體。雲端的**容量**頁面會說明每種規格還能再放進多少個，以及什麼東西不足，由最快用完的開始。它讀取的是每兩分鐘計算一次的單一摘要，所以它載入的量不會隨主機數量增加。其規格表上的**匯出 CSV**會下載頁面上的所有內容。
 
 頁面上的一切都是配置：已承諾的量，而不是忙碌的量。閒置的執行個體也佔用全部。
 
@@ -562,7 +562,7 @@ nova-manage placement audit --verbose --delete
 
 ## 支出
 
-私有雲仍然要花錢，而營運的人會被問到誰在使用什麼，以及哪些可以回收。雲端的**支出**頁面兩者都能回答，適用於任何規模的任何雲端，完全不需要任何設定。它顯示的是用量和供規劃用的估算。OneUptime 不會向任何人開立發票，這裡也沒有任何金額是租戶應付的。
+私有雲仍然要花錢，而營運的人會被問到誰在使用什麼，以及哪些可以回收。雲端的**支出**頁面兩者都能回答，完全不需要任何設定。它顯示的是用量和供規劃用的估算。OneUptime 不會向任何人開立發票，這裡也沒有任何金額是租戶應付的。
 
 最上方是**本月與上月的比較**，然後是誰在成長，接著是每個專案（最大的在前），並附有**匯出 CSV**。網域，以及在哪個規格和磁碟區類型上使用了什麼，放在下方。專案自己的頁面則逐行列出它的當月，以及之前的月份。
 
@@ -573,7 +573,7 @@ nova-manage placement audit --verbose --delete
 這對數字的意義是：
 
 - **調整大小會把時數從一個規格移到另一個**，而刪除會使時數停止。變更是從第一次顯示它的讀取開始計算，所以每次變更最多可能有 15 分鐘的誤差。存活時間比這更短的執行個體可能永遠不會被看到。
-- **一個部分會一直被計算，直到清單放開它為止**，也就是它消失之後最多[過期視窗](#環境變數)的時間。在輪流讀取的大型雲端上，變更要等到輪到它才會出現。
+- **一個部分會一直被計算，直到清單放開它為止**，也就是它消失之後最多 15 分鐘的時間。在輪流讀取的大型雲端上，變更要等到輪到它才會出現。
 - **執行個體從被放置到被刪除期間一直持有它的規格。** 已關機的仍會計算，並列在自己的一行，因為 Nova 在它的主機上保留了它的 vCPU 與記憶體。從未抵達主機的不計算，從主機上擱置下架的也不計算。
 - **處於錯誤狀態或仍在建立中的磁碟區或快照不計算**，因為它整體而言沒有空間在背後支撐。
 - **OneUptime 沒有讀取的時數不會被猜測。** 超過一小時的空檔只會計入它最後一個小時，頁面會說明有多少小時沒有被計算。
@@ -689,7 +689,7 @@ Ceilometer 的讀數只會在每個輪詢週期（預設為五分鐘）變動一
 | `prometheus-libvirt-exporter`，每分鐘讀取 | 30 | 1,800 | 131,400,000 | 1,314,000,000 |
 | Ceilometer 的匯出器，每分鐘讀取、每 5 分鐘輪詢 | 24 | 864 | 63,072,000 | 630,720,000 |
 
-兩者每多一個磁碟會增加 12 個序列，每多一個介面增加 4 個。libvirt 每多一個 vCPU 增加 1 個。代理程式的收集器在這些資料送出的過程中會把它們保存在記憶體中，所以大型雲端可能需要比預設 512 MiB 更多。指南的計算器位於雲端上的**文件**之下，可以為像你這樣規模的雲端估算這些的價格。
+兩者每多一個磁碟會增加 12 個序列，每多一個介面增加 4 個。libvirt 每多一個 vCPU 增加 1 個。代理程式的收集器在這些資料送出的過程中會把它們保存在記憶體中，所以大型雲端可能需要比預設 512 MiB 更多。指南的計算器位於 **OpenStack → 文件** 之下，可以為像你這樣規模的雲端估算這些的價格。
 
 ## 專案與網域
 
@@ -957,7 +957,7 @@ Manila 的 API 在沒有它其他服務時仍會繼續回應，所以在代理�
 
 匯出器讀取 Gnocchi 的狀態，只有 admin 可以。Gnocchi 拒絕任何較低的權限，而匯出器把拒絕當成 Gnocchi 已停止來讀取：`openstack_gnocchi_up` 讀為 0。所以從未成功讀過 Gnocchi 的憑證會被告知這點，而不是被告知 Gnocchi 已停機，也不會被提供它的警示。探測器能分辨兩者：Gnocchi 有回應，所以它的 API 讀為正常，而連線測試會說明它被拒絕。
 
-**Gnocchi Backlog Growing** 讀取通過最近兩小時的一條線。忙碌雲端的積壓永遠不會讀為 0，所以正在下降的大量積壓沒有問題，而沒有在下降的就是它要說明的。執行環境最多只達到 10 筆測量值的積壓，所以它的那條線只用虛構的數字驗證過。
+**Gnocchi Backlog Growing** 讀取通過最近兩小時的一條線。忙碌雲端的積壓永遠不會讀為 0，所以正在下降的大量積壓沒有問題，而沒有在下降的就是它要說明的。我們的測試雲端最多只達到 10 筆測量值的積壓，所以它的那條線只用虛構的數字驗證過。
 
 ## Swift
 
@@ -976,9 +976,9 @@ Swift 不讓每個專案的帳號被其他專案的憑證存取（已記錄）�
 
 已停止的物件伺服器不會改變匯出器所說的任何內容（已記錄）：Swift 的清單來自它的帳號與容器伺服器，而它的代理伺服器繼續回應。只有每個儲存伺服器透過自己的 `/recon` 所說的內容才能說明，而那不在 Keystone 的目錄中。
 
-所以探測器會在你指名它們的地方讀取：在**資料收集**卡片的**預設之外還讀取什麼**之下，以 `host:port` 列出每個儲存伺服器的 `/recon` 連接埠。每次收集時，每個伺服器需要 5 次呼叫，而且不會把任何憑證送給它們。這樣你就會得到 **Swift Storage Server Not Answering**、**Swift Rings Differ** 和 **Swift Replication Stale**，以及它們在 Swift 自己的頁面上加總的結果。一次錄製只有一個伺服器可讀，所以不一致的環只用虛構的數字驗證過。複寫過期也是如此，而在執行環境上複寫每幾分鐘就會完成。
+所以探測器會在你指名它們的地方讀取：在**資料收集**卡片的**預設之外還讀取什麼**之下，以 `host:port` 列出每個儲存伺服器的 `/recon` 連接埠。每次收集時，每個伺服器需要 5 次呼叫，而且不會把任何憑證送給它們。這樣你就會得到 **Swift Storage Server Not Answering**、**Swift Rings Differ** 和 **Swift Replication Stale**，以及它們在 Swift 自己的頁面上加總的結果。一次錄製只有一個伺服器可讀，所以不一致的環只用虛構的數字驗證過。複寫過期也是如此，而在測試雲端上複寫每幾分鐘就會完成。
 
-**Object Container Growth Forecast** 讀取通過每個容器最近一週的一條線，並向前看一週。Swift 在這裡沒有說明雲端有多少空間，所以它 1 TiB 的線是用來提醒你的，而不是任何東西會壞掉的臨界點。請依你的雲端調整它。沒有執行環境持有一週的成長量，所以它只用虛構的數字驗證過。
+**Object Container Growth Forecast** 讀取通過每個容器最近一週的一條線，並向前看一週。Swift 在這裡沒有說明雲端有多少空間，所以它 1 TiB 的線是用來提醒你的，而不是任何東西會壞掉的臨界點。請依你的雲端調整它。沒有測試雲端持有一週的成長量，所以它只用虛構的數字驗證過。
 
 ## Barbican
 
@@ -1491,7 +1491,7 @@ openstack volume list --name 'oneuptime-check-'
 
 代理程式的 `docker-compose.yml` 也會執行 **OpenStack AI 代理程式**，`oneuptime-openstack-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`）。當 OneUptime AI 調查這個雲端上的事件或警示時，它會透過它執行唯讀的 `openstack` 命令 —— `openstack compute service list --host compute-01`、`openstack server list --all-projects --limit 50 --host compute-01`、`openstack server event list ID`、`openstack network agent list`、`openstack volume service list` —— 並引用它執行過的內容。代理程式中沒有 `openstack` 執行檔，也沒有 shell：每個命令都會變成對能回答它的服務的一次 `GET`，使用代理程式自己的憑證。代理程式會以收集器所回報的同一個 `OPENSTACK_CLOUD_NAME` 註冊，所以它服務的就是這個雲端。
 
-- **AI 調查預設為開啟。** 代理程式一連線，OneUptime AI 就會用它調查這個雲端上的事件和警示，而雲端的**概覽**會顯示代理程式的狀態。若要停止，請在代理程式執行的地方設定 `ONEUPTIME_AI_INVESTIGATION=false`。**AI > 代理程式**有代理程式的狀態、**測試連線**、**重設代理程式**和安裝說明，**AI > 洞察**有它做過的事，而 **AI > 日誌**有它執行過的命令。
+- **AI 調查預設為開啟。** 代理程式一連線，OneUptime AI 就會用它調查這個雲端上的事件和警示，而雲端的**概覽**會顯示代理程式的狀態。若要停止，請在代理程式執行的地方設定 `ONEUPTIME_AI_INVESTIGATION=false`。**人工智慧 → AI 代理程式**有代理程式的狀態、**測試連線**、**重設代理程式**和安裝說明，**人工智慧 → 洞察**有它做過的事，而 **人工智慧 → 日誌**有它執行過的命令。
 - **在你另行指示之前，它只讀取。** 修正在你選擇加入兩次之前是關閉的，並使用它專屬的憑證：請見[修正](#修正)。Keystone 的使用者、憑證和角色指派、主控台、客體印出的內容以及 Barbican 的機密，都禁止它存取，無論是讀取或變更。
 - **憑證就是硬性限制。** 它使用 `clouds.yaml` 中匯出器所讀取的憑證，所以它能看到的，就是你在[選擇代理程式能看到多少](#選擇代理程式能看到多少)中選擇的層級允許它看到的。如果你是用存取規則建立該憑證，請根據目前的[規則](https://oneuptime.com/install/openstack-agent/access/application-credential-access-rules.json)建立新的：它們為代理程式新增了幾個 `GET` 路徑（執行個體的操作、單一網路、子網路、路由器、浮動 IP、連接埠或映像檔），而舊的規則對其他所有內容仍然有效。若要使用它專屬的憑證，請設定 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID`、`ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` 與 `OPENSTACK_AUTH_URL`，並且如果代理程式旁邊沒有 `clouds.yaml`（例如使用你自己的匯出器時），再設定 `OPENSTACK_AI_CLOUDS_FILE=/dev/null`。
 - **機密不會外流。** 執行個體的 `user_data`、其 admin 密碼、映像檔的 `direct_url` 和磁碟區的 `provider_auth`，以及每個 AI 代理程式都會遮蔽的通用機密，都會在輸出抵達模型或日誌之前被移除。
@@ -1558,9 +1558,9 @@ Nova 只會把其他專案的執行個體交給 admin 情境，這是在政策�
 
    存取規則需要在 Nova（`compute`）和 Neutron（`network`）上為 keystonemiddleware 設定 `service_type`，並重新啟動各自的服務。
 
-3. **一個政策檔案，用於存取規則看不到的部分。** `POST /servers/{id}/action` 是同一個路徑，同時用於啟動和強制刪除。`access/policy/write-nova.yaml` 會從 `oneuptime_remediation` 角色中，移除代理程式從不執行的該路徑上的每個動作，並讓其他人的預設值保持原樣。這樣被竊取的憑證只能啟動、重新開機、搬移和疏散，不能做其他任何事。
+3. **一個政策檔案，用於存取規則看不到的部分。** `POST /servers/{id}/action` 是同一個路徑，同時用於啟動和強制刪除。`https://oneuptime.com/install/openstack-agent/access/policy/write-nova.yaml` 會從 `oneuptime_remediation` 角色中，移除代理程式從不執行的該路徑上的每個動作，並讓其他人的預設值保持原樣。這樣被竊取的憑證只能啟動、重新開機、搬移和疏散，不能做其他任何事。
 
-然後把它的 ID 和 secret 給代理程式，並重新啟動它：
+然後把它的 ID 和 secret 放進代理程式的 `.env`，並執行 `docker compose up -d`：
 
 ```bash
 ONEUPTIME_AI_ALLOW_WRITES=true
@@ -1612,7 +1612,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 ## 升級代理程式
 
-代理程式會回報它的檔案所固定的收集器版本，作為它的**代理程式版本**。當這個 OneUptime 固定了更新的版本時，它旁邊會出現警告符號。選取它即可看到這些命令。
+代理程式會回報它的檔案版本，作為它的**代理程式版本**：即它們所固定的收集器版本，並在檔案於該收集器上每次變更時，將最後一個數字加一。當它比這個 OneUptime 版本所固定的版本更舊時，它旁邊會出現警告符號。選取它即可看到這些命令。
 
 收集器映像檔固定在 `docker-compose.yml` 中，而它的設定是旁邊的檔案，所以只拉取映像檔並不會讓代理程式前進。請再次執行 `install.sh`，如果你是不使用 Docker 安裝的，則加上 `sudo`：它會重用你現有 `.env` 中的每個值和 `clouds.yaml` 中的憑證（不會再問任何事），向 Keystone 檢查憑證，更新代理程式的檔案（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），拉取映像檔，並重新建立代理程式，讓收集器讀取它的新設定。
 
@@ -1663,7 +1663,7 @@ sudo userdel oneuptime-openstack
 
 ## 沒有網際網路時
 
-位於實體隔離（air gap）之後的代理程式需要從外部取得三樣東西：安裝指令碼及其檔案，由你自己的 OneUptime 提供；它的 `docker-compose.yml` 所執行的映像檔，由你複製到你這一側的登錄庫；除此之外沒有其他。代理程式只會傳送到你的 OneUptime URL，並讀取你的雲端。
+位於實體隔離（air gap）之後的代理程式需要從外部取得兩樣東西：安裝指令碼及其檔案，由你自己的 OneUptime 提供，以及它的 `docker-compose.yml` 所執行的映像檔，由你複製到你這一側的登錄庫。代理程式只會傳送到你的 OneUptime URL，並讀取你的雲端。
 
 映像檔固定在 `docker-compose.yml` 中，所以你鏡像的，就是代理程式實際執行的：
 

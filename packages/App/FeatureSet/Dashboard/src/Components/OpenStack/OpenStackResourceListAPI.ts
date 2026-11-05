@@ -15,6 +15,7 @@ import ModelAPI, {
   ListResult,
   RequestOptions,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * An OpenStack list, a page at a time, from where the last page ended (OpenStackListSeek). Each list
@@ -32,7 +33,7 @@ interface ListMemory {
 const LISTS_REMEMBERED: number = 16;
 
 export class OpenStackListPages {
-  private readonly lists: Map<string, ListMemory> = new Map();
+  private readonly lists: OldestKeyMap<string, ListMemory> = new OldestKeyMap();
 
   private keyOf(data: {
     query: unknown;
@@ -126,7 +127,7 @@ export class OpenStackListPages {
     this.lists.set(key, memory);
 
     if (this.lists.size > LISTS_REMEMBERED) {
-      this.lists.delete(this.lists.keys().next().value as string);
+      this.lists.delete(this.lists.oldestKey() as string);
     }
   }
 }

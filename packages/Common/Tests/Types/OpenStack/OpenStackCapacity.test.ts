@@ -36,6 +36,7 @@ import {
   toOpenStackResourcesQuery,
 } from "../../../Types/OpenStack/OpenStackCapacity";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * THE ARITHMETIC, BY HAND.
@@ -596,7 +597,7 @@ describe("how many fit across hosts", () => {
               zone: `zone-${random(3)}`,
               state: (["up", "up", "up", "lost", "disabled"] as const)[
                 random(5)
-              ],
+              ]!,
             },
           ),
         );
@@ -769,24 +770,38 @@ describe("what a flavor asks Placement for", () => {
       { vcpus: null, ramMib: undefined, diskGib: null },
       { resources: {}, requiredTraits: [], forbiddenTraits: [] },
     ],
-  ])("%s", (_name: string, flavor, expected: OpenStackFlavorRequest) => {
-    expect(getOpenStackFlavorRequest(flavor)).toEqual(expected);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      flavor: Parameters<typeof getOpenStackFlavorRequest>[0],
+      expected: OpenStackFlavorRequest,
+    ) => {
+      expect(getOpenStackFlavorRequest(flavor)).toEqual(expected);
+    },
+  );
 
   test("a long hostile extra spec key takes no longer than its length", () => {
     const key: string = `resources${"1".repeat(2000000)}!:VCPU`;
-    const startedAt: number = Date.now();
+    const read: FastestRun<OpenStackFlavorRequest> = fastestRun({
+      run: (): OpenStackFlavorRequest => {
+        return getOpenStackFlavorRequest({
+          vcpus: 1,
+          ramMib: 1,
+          diskGib: 1,
+          extraSpecs: { [key]: "1" },
+        });
+      },
+      limitInMs: 5000,
+    });
 
-    expect(
-      getOpenStackFlavorRequest({
-        vcpus: 1,
-        ramMib: 1,
-        diskGib: 1,
-        extraSpecs: { [key]: "1" },
-      }).resources,
-    ).toEqual({ VCPU: 1, MEMORY_MB: 1, DISK_GB: 1 });
+    expect(read.result.resources).toEqual({
+      VCPU: 1,
+      MEMORY_MB: 1,
+      DISK_GB: 1,
+    });
     // Far above what it takes: only something quadratic comes near this.
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(read.inMs).toBeLessThan(5000);
   });
 
   test("a query names its classes in order, and reads back", () => {

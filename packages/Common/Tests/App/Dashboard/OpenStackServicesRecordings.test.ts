@@ -42,7 +42,6 @@ const CATALOG_ORDER_OF_EVERY_CLOUD: Array<string> =
     return OPENSTACK_SERVICES_EVERY_CLOUD_RUNS.has(service);
   });
 
-
 /*
  * What the Services page and the Overview's cards make of what real clouds' exporters
  * said (Tests/Fixtures/OpenStack), through the scan ingest runs. A page written against

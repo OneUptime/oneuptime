@@ -289,14 +289,16 @@ export default async function collectLoadBalancer(
         }),
     );
 
-    const targets: Array<{
+    interface StatsTarget {
       memoryId: string;
       scope: OctaviaRates["scope"];
       id: string;
       name: string | null;
       loadBalancerId: string | null;
       path: string;
-    }> = [
+    }
+
+    const targets: Array<StatsTarget> = [
       ...balancers
         .filter((balancer: OctaviaLoadBalancerRecord): boolean => {
           return active.has(balancer.id as string);
@@ -327,7 +329,7 @@ export default async function collectLoadBalancer(
             path: `/v2/lbaas/listeners/${encodeURIComponent(listener.id as string)}/stats`,
           };
         }),
-    ].sort((first, second): number => {
+    ].sort((first: StatsTarget, second: StatsTarget): number => {
       return (
         (known[first.memoryId]?.readAt ?? -1) -
         (known[second.memoryId]?.readAt ?? -1)

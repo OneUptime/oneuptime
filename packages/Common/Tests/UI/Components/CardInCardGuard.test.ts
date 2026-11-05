@@ -15,6 +15,9 @@ import {
   scanCardSectionsChildren,
 } from "../../Helpers/CardNestingScan";
 
+const BORDER_CLASS: RegExp = /\bborder\b/;
+const WHITE_CLASS: RegExp = /\bbg-white\b/;
+
 /*
  * No card inside a card, anywhere in the product.
  *
@@ -247,7 +250,7 @@ describe("no card inside a card, anywhere in the product", () => {
 
               if (
                 tag === "Card" ||
-                (/\bborder\b/.test(className) && /\bbg-white\b/.test(className))
+                (BORDER_CLASS.test(className) && WHITE_CLASS.test(className))
               ) {
                 inside.push(tag);
               }

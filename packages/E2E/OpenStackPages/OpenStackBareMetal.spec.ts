@@ -6,6 +6,7 @@ import {
   partPath,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Bare metal, in a browser, on what a real cloud's exporter answered: Ironic on a DevStack with fake
@@ -199,14 +200,7 @@ test.describe("bare metal", () => {
         page.getByText("ou-node-clean-failed").first(),
       ).toBeVisible();
 
-      const overflow: number = await page.evaluate(() => {
-        return (
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth
-        );
-      });
-
-      expect(overflow).toBeLessThanOrEqual(1);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     }
   });
 

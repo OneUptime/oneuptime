@@ -373,6 +373,7 @@ export default class OpenStackProjectNoticeDelivery extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Status",
     description: "Whether it was sent, and if not, why not.",
+    allowedValues: Object.values(OpenStackProjectNoticeDeliveryStatus),
     defaultValue: OpenStackProjectNoticeDeliveryStatus.Pending,
     isDefaultValueColumn: true,
   })

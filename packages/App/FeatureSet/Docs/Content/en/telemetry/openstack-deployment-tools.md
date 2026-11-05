@@ -1,6 +1,6 @@
 # OpenStack by Deployment Tool
 
-Nobody runs "OpenStack". They run a tool that deploys it, and each tool has its own paths, its own logs and its own idea of what is already running. This page is what the setup guide in OneUptime says for each one: open **OpenStack → All Clouds**, connect a cloud, and answer **How do you deploy OpenStack?**
+Nobody runs "OpenStack". They run a tool that deploys it, and each tool has its own paths, its own logs and its own idea of what is already running. This page is what the setup guide in OneUptime says for each one: open **OpenStack → Documentation** and answer **How do you deploy OpenStack?**
 
 :::cards
 - [How far each guide has been tested](#how-far-each-guide-has-been-tested): Read this first. Kolla-Ansible's and OpenStack-Ansible's have been run on real deployments. The others have not.
@@ -16,23 +16,23 @@ Nobody runs "OpenStack". They run a tool that deploys it, and each tool has its 
 
 ## How far each guide has been tested
 
-Every path, port and variable below was read from the tool's own source or docs. The rig that records OneUptime's fixtures also deploys Kolla-Ansible and OpenStack-Ansible on a CI runner, and runs their guides' own commands there, with a stand-in for OneUptime that keeps what the agent sends. So no guide here has reported to a running OneUptime from a real deployment of its tool. What each has been checked against:
+Every path, port and variable below was read from the tool's own source or docs. Kolla-Ansible's and OpenStack-Ansible's guides have also been followed on real deployments, with their own commands and a stand-in for OneUptime that keeps what the agent sends. So no guide here has reported to a running OneUptime from a real deployment of its tool. What each has been checked against:
 
 | Tool | Read from | Run for real |
 | --- | --- | --- |
-| Kolla-Ansible | Its source, at master and `stable/2026.1` | This guide's commands, on a real all-in-one at `stable/2026.1` with Open vSwitch: the agent on the first credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the exporter on the second credential, the targets read from its real `prometheus.yml`, and the logs profile. With Memcached really stopped there, its Alertmanager posted a firing webhook and then a resolved one, and what it posted, sent to a running OneUptime, opened one incident on the right cloud and on no other, and resolved it |
-| OpenStack-Ansible | Its source and docs | This guide's commands, on a real all-in-one at `stable/2026.1`, in LXC containers: the agent on the first credential, the exporter on the second with its policy overrides, the RabbitMQ and HAProxy settings with the agent reading each, and the logs profile on the journal |
-| OpenStack-Helm | Its chart values | The probe and the Kubernetes agent, each on its own |
-| Atmosphere | Its docs and source | The probe and the Kubernetes agent, each on its own |
+| Kolla-Ansible | Its source, at master and `stable/2026.1` | This guide's commands, on a real all-in-one at `stable/2026.1` with Open vSwitch: the agent on the Full view credential, without Docker, on Kolla-Ansible's own exporter and on your own at the pinned version and at 1.7.0, the agent's exporter on the Infrastructure only credential, the targets read from its real `prometheus.yml`, and the logs profile. With Memcached really stopped there, its Alertmanager posted a firing webhook and then a resolved one, and what it posted, sent to a running OneUptime, opened one incident on the right cloud and on no other, and resolved it |
+| OpenStack-Ansible | Its source and docs | This guide's commands, on a real all-in-one at `stable/2026.1`, in LXC containers: the agent on the Full view credential, the agent's exporter on the Infrastructure only credential with its policy overrides, the RabbitMQ and HAProxy settings with the agent reading each, and the logs profile on the journal |
+| OpenStack-Helm | Its chart values | Nothing on OpenStack-Helm. The probe and the Kubernetes agent were each tested on their own |
+| Atmosphere | Its docs and source | Nothing on Atmosphere. The probe and the Kubernetes agent were each tested on their own |
 | Canonical Sunbeam | Canonical's docs, and its charms' source | Nothing on Sunbeam. Sunbeam's own docs do not mention the exporter charm |
-| Red Hat OpenStack on OpenShift | The Telemetry Operator's source | The OpenShift preset and Ceilometer's exporter, each on its own |
+| Red Hat OpenStack on OpenShift | The Telemetry Operator's source | Nothing on Red Hat's distribution. The OpenShift preset and Ceilometer's exporter were each tested on their own |
 | Mirantis MOSK | Mirantis's docs, whose examples show other receivers rather than a webhook | Nothing on MOSK |
 
-What each guide's **Who did what** turns on was recorded on DevStack, on every release the rig runs, and on none of these tools. Where each tool takes it was read from that tool's source or docs.
+What each guide's **Who did what** turns on was recorded on DevStack, and on none of these tools. Where each tool takes it was read from that tool's source or docs.
 
-Beside those, the whole path has run on a live OneUptime, started as Docker Compose starts it, with its app and probe built from this code, and on a real DevStack rather than any of these tools. The agent, installed with its docs' commands, registered the cloud from its first data, and every instance, volume and hypervisor had a row with the status the cloud itself gave it. With `nova-compute` really stopped, its row went down, a monitor from the Compute Service Down template opened one incident naming the host 746 seconds later, and it resolved 48 seconds after the service started again. A project's probe connected the same cloud through the dashboard's own routes and read back its rows, and a signed boot's 114 spans arrived across its services, from the traces profile.
+Beside those, the whole path has run on a live OneUptime, started as Docker Compose starts it, on a real DevStack rather than any of these tools. The agent, installed with its docs' commands, registered the cloud from its first data, and every instance, volume and hypervisor had a row with the status the cloud itself gave it. With `nova-compute` really stopped, its row went down, a monitor from the Compute Service Down template opened one incident naming the host about 12 minutes later, and it resolved within a minute of the service starting again. A project's probe connected the same cloud through the dashboard's own routes and read back its rows, and a signed boot's 114 spans arrived across its services, from the traces profile.
 
-Separately, what a real agent and a real Alertmanager had sent were recorded on DevStack and in a test cluster, not on a cloud any of these tools deployed. Sent to a live OneUptime, the firing webhook opened one incident on the right cloud and on no other, the same webhook again opened nothing, and the resolved webhook resolved it.
+Separately, what a real agent sent on DevStack and what Kolla-Ansible's Alertmanager posted were recorded, then sent to a live OneUptime: the firing webhook opened one incident on the right cloud and on no other, the same webhook again opened nothing, and the resolved webhook resolved it.
 
 ## Forward what is already firing
 
@@ -48,7 +48,7 @@ Make an Incoming Request monitor as [Prometheus Alertmanager](/docs/integrations
 Open the monitor's **Overview → Linked Resources** and add the OpenStack cloud. Each incident is then on that cloud's **Incidents** page: an Incoming Request monitor's own settings name no cloud, so each cloud's Alertmanager needs a monitor of its own. The cloud shows up in that list once its first data arrives, so do this after the steps below, or add the cloud under **OpenStack → All Clouds** first.
 :::
 
-Alertmanager is recorded posting to this exact shape in `Tests/Ops/openstack-e2e`, at the version Kolla-Ansible pins, and the recording replays through the real evaluator: one incident per alert, resolved by its own `resolved` status.
+Alertmanager, at the version Kolla-Ansible pins, was recorded posting to this exact shape, and what it posted opened one incident on a running OneUptime, which its own `resolved` status resolved.
 
 ## Kolla-Ansible
 
@@ -576,7 +576,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
 bash install.sh
 ```
 
-That walk is on top of Kolla-Ansible's own Prometheus asking every minute. Kolla-Ansible pins exporter 1.7.0, and its answer also says less than the exporter the agent pins. This is what the pages went without on five real clouds, and a test holds it to those recordings:
+That read is on top of Kolla-Ansible's own Prometheus asking every minute. Kolla-Ansible pins exporter 1.7.0, and its answer also says less than the exporter the agent pins. This is what the pages went without on five real clouds, and a test holds it to those recordings:
 
 | Goes without | Because | What it costs |
 | --- | --- | --- |

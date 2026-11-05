@@ -20,6 +20,7 @@ import {
   OpenStackServiceType,
 } from "../../../Types/OpenStack/OpenStackResourceKind";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 const NOW: Date = new Date("2026-11-05T12:00:00.000Z");
 
@@ -69,20 +70,23 @@ describe("stuck", () => {
     OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
   );
 
-  test.each(onItsWay)("%s: stuck at the line and not before it", (status) => {
-    const under: boolean = isOpenStackBareMetalNodeStuck({
-      status,
-      stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES - 1),
-      now: NOW,
-    });
-    const at: boolean = isOpenStackBareMetalNodeStuck({
-      status,
-      stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES),
-      now: NOW,
-    });
+  test.each(onItsWay)(
+    "%s: stuck at the line and not before it",
+    (status: string) => {
+      const under: boolean = isOpenStackBareMetalNodeStuck({
+        status,
+        stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES - 1),
+        now: NOW,
+      });
+      const at: boolean = isOpenStackBareMetalNodeStuck({
+        status,
+        stateChangedAt: minutesAgo(OPENSTACK_BARE_METAL_STUCK_MINUTES),
+        now: NOW,
+      });
 
-    expect([under, at]).toEqual([false, true]);
-  });
+      expect([under, at]).toEqual([false, true]);
+    },
+  );
 
   test.each([
     "available",
@@ -304,10 +308,15 @@ describe("a node's UUID, which is what Nova and Placement call it", () => {
 
   test("reads nothing past 36 characters, whatever it is handed", () => {
     const long: string = "a".repeat(16 * 1024 * 1024);
-    const started: number = Date.now();
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return isOpenStackBareMetalNodeId(long);
+      },
+      limitInMs: 50,
+    });
 
-    expect(isOpenStackBareMetalNodeId(long)).toBe(false);
-    expect(Date.now() - started).toBeLessThan(50);
+    expect(read.result).toBe(false);
+    expect(read.inMs).toBeLessThan(50);
   });
 
   test("anything else of its length is refused, on any bytes", () => {
@@ -326,6 +335,8 @@ describe("a node's UUID, which is what Nova and Placement call it", () => {
       "212d8778807c",
     ]);
 
+    const notAHexDigitOrHyphen: RegExp = /[^a-fA-F0-9-]/;
+
     for (const text of texts) {
       const isUuidShaped: boolean =
         text.length === 36 &&
@@ -336,7 +347,7 @@ describe("a node's UUID, which is what Nova and Placement call it", () => {
             return group.length;
           })
           .join() === "8,4,4,4,12" &&
-        !(/[^a-fA-F0-9-]/).test(text);
+        !notAHexDigitOrHyphen.test(text);
 
       expect(isOpenStackBareMetalNodeId(text)).toBe(isUuidShaped);
     }

@@ -662,9 +662,9 @@ function aRealOne(
   data: { withoutV2?: boolean; asOuPayments?: boolean } = {},
 ): (url: URL) => Answer | undefined {
   return (url: URL): Answer | undefined => {
-    const isThisMonth: boolean = (url.searchParams.get("begin") || "").startsWith(
-      THIS_MONTH,
-    );
+    const isThisMonth: boolean = (
+      url.searchParams.get("begin") || ""
+    ).startsWith(THIS_MONTH);
     const month: string = isThisMonth ? "this-month" : "last-month";
     const asked: string = `${month}${data.asOuPayments && isThisMonth ? "-ou-payments" : ""}`;
 

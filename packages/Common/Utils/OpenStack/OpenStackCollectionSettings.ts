@@ -41,13 +41,11 @@ export const MAX_OPENSTACK_PORT_SCOPES: number = 64;
 export const MAX_OPENSTACK_RECON_ADDRESSES: number = 64;
 
 // host:port, where the host is a name or an address, in brackets when it's IPv6.
+const RECON_ADDRESS: RegExp =
+  /^(?:[A-Za-z0-9][A-Za-z0-9.-]*|\[[0-9A-Fa-f:.]+\]):[0-9]{1,5}$/;
+
 export function isOpenStackReconAddress(address: string): boolean {
-  return (
-    address.length <= 300 &&
-    /^(?:[A-Za-z0-9][A-Za-z0-9.-]*|\[[0-9A-Fa-f:.]+\]):[0-9]{1,5}$/.test(
-      address,
-    )
-  );
+  return address.length <= 300 && RECON_ADDRESS.test(address);
 }
 
 // What the rules need to know about a probe.

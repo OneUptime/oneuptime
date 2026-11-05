@@ -412,12 +412,27 @@ test(
       .replace(
         "include /etc/nginx/conf.d/default.conf;",
         `include ${prefix}/conf.d/default.conf;`,
-      );
+      )
+      // A distribution's nginx makes its temp folders where only root may.
+      .replace(/^http\s*\{/m, (match) => {
+        return [
+          match,
+          `    client_body_temp_path ${prefix}/client_temp;`,
+          `    proxy_temp_path ${prefix}/proxy_temp;`,
+          `    fastcgi_temp_path ${prefix}/fastcgi_temp;`,
+          `    uwsgi_temp_path ${prefix}/uwsgi_temp;`,
+          `    scgi_temp_path ${prefix}/scgi_temp;`,
+        ].join("\n");
+      });
 
     fs.writeFileSync(path.join(prefix, "nginx.conf"), mainConf);
     fs.writeFileSync(
       path.join(prefix, "conf.d", "default.conf"),
-      render(baseEnvironment()),
+      // The template's own access_log lines name the image's log folder too.
+      render(baseEnvironment()).replace(
+        /\/var\/log\/nginx\//g,
+        `${prefix}/logs/`,
+      ),
     );
 
     const result = spawnSync(
@@ -664,7 +679,9 @@ test(
  * reasoning about nginx's rules from the source.
  *
  * It needs the same nginx `nginx -t` above needs, so it is skipped wherever
- * that is (CI's runners carry an older nginx). To run it:
+ * that is (a runner on Ubuntu 24.04 carries an older nginx; 26.04's is new
+ * enough, and runs it as an unprivileged user, which is why the config's log
+ * paths are moved into its own folder). To run it:
  *
  *   docker run --rm -v <repo>:/repo -w /repo/packages/Nginx \
  *     nginx:1.30.5-alpine3.24 sh -c \
@@ -856,7 +873,9 @@ async function withRunningIngress(billingEnabled, callback) {
       .split("127.0.0.1:7849")
       .join(`127.0.0.1:${httpPort}`)
       .split("127.0.0.1:7850")
-      .join(`127.0.0.1:${tlsPort}`);
+      .join(`127.0.0.1:${tlsPort}`)
+      // The template's own access_log lines name the image's log folder too.
+      .replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`);
 
     assert.ok(
       serverConf.includes(`listen 127.0.0.1:${httpPort}`),

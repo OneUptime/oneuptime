@@ -951,9 +951,9 @@ describe("what a later run of the rig said of routers, on ML2/OVS", () => {
 
         // Neutron still calls the router ACTIVE. Only its agent says otherwise.
         expect(row.status).toBe("ACTIVE");
-        expect(getOpenStackRouterAgentReading({ row, backend: "ovs" }).state).toBe(
-          "none-alive",
-        );
+        expect(
+          getOpenStackRouterAgentReading({ row, backend: "ml2-ovs" }).state,
+        ).toBe("none-alive");
         expect(itemNamed(scene, name)?.severity).toBe(CRITICAL);
         expect(getOpenStackPartExplanation(row, NOW)).toMatch(/L3 agent/);
       },
@@ -1026,7 +1026,8 @@ describe("what a later run of the rig said of routers, on ML2/OVS", () => {
 
     test("its page reads none reported, and the floating IP it carried goes down by name", () => {
       expect(
-        getOpenStackRouterAgentReading({ row: router, backend: "ovs" }).state,
+        getOpenStackRouterAgentReading({ row: router, backend: "ml2-ovs" })
+          .state,
       ).toBe("not-reported");
 
       const carried: OpenStackResource = scene
@@ -1069,9 +1070,9 @@ describe("what a later run of the rig said of routers and addresses, on OVN", ()
       );
 
       expect(row.facts?.["l3Agents"]).toBeUndefined();
-      expect(getOpenStackRouterAgentReading({ row, backend: "ovn" }).state).toBe(
-        "not-applicable",
-      );
+      expect(
+        getOpenStackRouterAgentReading({ row, backend: "ovn" }).state,
+      ).toBe("not-applicable");
       expect(namesIn(scene.attention())).not.toContain(name);
     },
   );

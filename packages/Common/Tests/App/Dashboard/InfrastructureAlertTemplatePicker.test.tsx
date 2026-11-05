@@ -195,8 +195,10 @@ const PICKER_CASES: Array<PickerCase> = [
       "Orchestration",
       "Bare Metal",
       "Load Balancers",
+      "Databases",
       "Projects",
       "Capacity",
+      "Metrics",
     ],
   },
   {

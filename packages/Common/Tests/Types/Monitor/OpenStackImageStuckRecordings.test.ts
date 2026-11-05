@@ -104,11 +104,7 @@ describe.each(["hibiscus-ovn", "gazpacho-ovs"])(
               return series.name === filter.metricName;
             },
           )!;
-          samplesByAlias[alias] = collectedBetween(
-            up.value,
-            0,
-            data.endMinute,
-          );
+          samplesByAlias[alias] = collectedBetween(up.value, 0, data.endMinute);
           continue;
         }
 

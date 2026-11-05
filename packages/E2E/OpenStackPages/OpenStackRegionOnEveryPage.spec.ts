@@ -8,6 +8,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A multi-region cloud reads one region, or all of them, on every page, and the choice is
@@ -223,7 +224,7 @@ test.describe("the signals", () => {
   }) => {
     await openCloudPage(page, "logs", "estate=multi-region");
 
-    await expect(page.getByText(/No logs from this cloud yet/)).toBeVisible();
+    await expect(page.getByText(/A cloud's logs appear once/)).toBeVisible();
 
     const record: FixtureRecord = await fixtureRecord(page);
     const asked: Array<Record<string, unknown>> = attributesAskedOf(
@@ -273,13 +274,7 @@ test.describe("on a phone", () => {
 
     await expect(page.getByTestId("openstack-region-bar")).toBeVisible();
 
-    const overflow: boolean = await page.evaluate((): boolean => {
-      return (
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth
-      );
-    });
-    expect(overflow).toBe(false);
+    await expectNoSidewaysScroll(page);
     await screenshot(page, "topology-one-region-390");
   });
 });

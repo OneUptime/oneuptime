@@ -1175,7 +1175,7 @@ describe("what a batch from Ceilometer's exporter becomes", () => {
       const states: Map<string, OpenStackInstanceMetricsHostState> =
         newStates();
       const lines: (minute: number, cpuSeconds: number) => Array<string> = (
-        minute: number,
+        _minute: number,
         cpuSeconds: number,
       ): Array<string> => {
         return ceilometerText([truthOf({ cpuSeconds })]).split("\n");

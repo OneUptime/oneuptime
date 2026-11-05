@@ -1,5 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { CLOUD_PATH, VIEWPORTS, expect, screenshot, test } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * THE SETUP GUIDE ASKS ONE QUESTION.
@@ -178,14 +179,7 @@ test.describe("How do you deploy OpenStack?", () => {
       ]) {
         await pick(page, label);
 
-        const overflow: number = await page.evaluate((): number => {
-          return (
-            document.documentElement.scrollWidth -
-            document.documentElement.clientWidth
-          );
-        });
-
-        expect(overflow).toBeLessThanOrEqual(0);
+        await expectNoSidewaysScroll(page);
       }
 
       if (viewport.width === 390) {

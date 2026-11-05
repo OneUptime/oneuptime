@@ -54,6 +54,7 @@ import VMUtil, { EmptyValueOptions } from "../../../../Server/Utils/VM/VMAPI";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 const WITH_EMPTY_VALUES: EmptyValueOptions = {};
 
@@ -484,7 +485,7 @@ describe("what the caller is asked and told", () => {
   });
 
   test("isEmptyPath is not asked about a value that is there", () => {
-    const isEmptyPath: jest.Mock = jest.fn();
+    const isEmptyPath: Mock = jest.fn();
 
     render({ a: 1, b: null, c: null }, "{{a}} {{b}} {{c.d}}", false, {
       isEmptyPath: isEmptyPath as never,

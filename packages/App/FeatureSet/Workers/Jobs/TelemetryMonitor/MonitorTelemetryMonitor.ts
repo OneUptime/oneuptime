@@ -3155,6 +3155,10 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
+
   // What each query was read with, for what it is judged against.
   const readAttributes: Array<Dictionary<unknown> | undefined> = [];
 
@@ -3234,6 +3238,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
       }),
       groupBy: queryConfig.metricQueryData.groupBy,
       startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
     });
 
     const aggregatedResults: AggregatedResult = alignOpenStackSeriesLabels({
@@ -3249,6 +3254,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
     });
 
     finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
     readAttributes.push(getReadAttributes(query));
 
     // The anchor names no part of the cloud, so there is nothing of it to list.
@@ -3317,6 +3323,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
           formulaConfigs:
             openstackMonitorConfig.metricViewConfig.formulaConfigs || [],
           perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
           attributeKeys: groupByAttributeKeys,
           projectId: data.projectId,
         })
@@ -3337,6 +3344,11 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
     metricViewConfig: openstackMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: openstackMonitorConfig.metricViewConfig.formulaConfigs,
+    }),
     metricResult: resultsWithFormulas,
     queryAttributes: readAttributes,
     openStackResourceBreakdowns:

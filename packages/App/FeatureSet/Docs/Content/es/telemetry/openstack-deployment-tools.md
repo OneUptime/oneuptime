@@ -1,6 +1,6 @@
 # OpenStack por herramienta de despliegue
 
-Nadie ejecuta «OpenStack». Ejecutan una herramienta que lo despliega, y cada herramienta tiene sus propias rutas, sus propios registros y su propia idea de lo que ya está en ejecución. Esta página es lo que dice la guía de configuración de OneUptime para cada una: abre **OpenStack → Todas las nubes**, conecta una nube y responde a **¿Cómo despliegas OpenStack?**
+Nadie ejecuta «OpenStack». Ejecutan una herramienta que lo despliega, y cada herramienta tiene sus propias rutas, sus propios registros y su propia idea de lo que ya está en ejecución. Esta página es lo que dice la guía de configuración de OneUptime para cada una: abre **OpenStack → Documentación** y responde a **¿Cómo despliegas OpenStack?**
 
 :::cards
 - [Hasta dónde se ha probado cada guía](#hasta-dónde-se-ha-probado-cada-guía): Léelo primero. La de Kolla-Ansible se ha ejecutado en un despliegue real, salvo una alerta. La de OpenStack-Ansible se ha ejecutado en parte. Las demás no.
@@ -16,23 +16,23 @@ Nadie ejecuta «OpenStack». Ejecutan una herramienta que lo despliega, y cada h
 
 ## Hasta dónde se ha probado cada guía
 
-Cada ruta, puerto y variable de abajo se leyó del código fuente o la documentación de la propia herramienta. El banco de pruebas que registra los fixtures de OneUptime también despliega Kolla-Ansible y OpenStack-Ansible en un ejecutor de CI, y ejecuta allí los propios comandos de sus guías, con un sustituto de OneUptime que conserva lo que envía el agente. Así que ninguna guía de aquí ha informado a un OneUptime en ejecución desde un despliegue real de su herramienta. Contra qué se ha comprobado cada una:
+Cada ruta, puerto y variable de abajo se leyó del código fuente o la documentación de la propia herramienta. Las guías de Kolla-Ansible y OpenStack-Ansible también se han seguido en despliegues reales, con sus propios comandos y un sustituto de OneUptime que conserva lo que envía el agente. Así que ninguna guía de aquí ha informado a un OneUptime en ejecución desde un despliegue real de su herramienta. Contra qué se ha comprobado cada una:
 
 | Herramienta | Leído de | Ejecutado de verdad |
 | --- | --- | --- |
-| Kolla-Ansible | Su código fuente, en master y en `stable/2026.1` | Los comandos de esta guía, en un all-in-one real en `stable/2026.1` con Open vSwitch: el agente con cada credencial, sin Docker, sobre el propio exportador de Kolla-Ansible y sobre el tuyo en la versión fijada y en la 1.7.0, los destinos leídos de su `prometheus.yml` real, y el perfil de registros. Con Memcached realmente detenido allí, su Alertmanager publicó un webhook de disparo y luego uno de resolución, y lo que publicó, enviado a un OneUptime en ejecución, abrió un incidente en la nube correcta y en ninguna otra, y lo resolvió |
-| OpenStack-Ansible | Su código fuente y su documentación | Un all-in-one real en `stable/2026.1`, en contenedores LXC, donde se aplicaron con sus comandos los ajustes de RabbitMQ y HAProxy de esta guía y cada exportador respondió, y su perfil de registros leyó el journal. Sus pasos del agente no se han ejecutado en él: el agente y su perfil de registros se ejecutaron en una nube que esta herramienta no desplegó |
-| OpenStack-Helm | Los valores de sus charts | La sonda y el agente de Kubernetes, cada uno por separado |
-| Atmosphere | Su documentación y código fuente | La sonda y el agente de Kubernetes, cada uno por separado |
+| Kolla-Ansible | Su código fuente, en master y en `stable/2026.1` | Los comandos de esta guía, en un all-in-one real en `stable/2026.1` con Open vSwitch: el agente con la credencial de Vista completa, sin Docker, sobre el propio exportador de Kolla-Ansible y sobre el tuyo en la versión fijada y en la 1.7.0, el exportador del agente con la credencial de Solo infraestructura, los destinos leídos de su `prometheus.yml` real, y el perfil de registros. Con Memcached realmente detenido allí, su Alertmanager publicó un webhook de disparo y luego uno de resolución, y lo que publicó, enviado a un OneUptime en ejecución, abrió un incidente en la nube correcta y en ninguna otra, y lo resolvió |
+| OpenStack-Ansible | Su código fuente y su documentación | Los comandos de esta guía, en un all-in-one real en `stable/2026.1`, en contenedores LXC: el agente con la credencial de Vista completa, el exportador del agente con la credencial de Solo infraestructura y sus anulaciones de política, los ajustes de RabbitMQ y HAProxy con el agente leyendo cada uno, y el perfil de registros sobre el journal |
+| OpenStack-Helm | Los valores de sus charts | Nada sobre OpenStack-Helm. La sonda y el agente de Kubernetes se probaron cada uno por separado |
+| Atmosphere | Su documentación y código fuente | Nada sobre Atmosphere. La sonda y el agente de Kubernetes se probaron cada uno por separado |
 | Canonical Sunbeam | La documentación de Canonical y el código fuente de sus charms | Nada en Sunbeam. La documentación de Sunbeam no menciona el charm del exportador |
-| Red Hat OpenStack on OpenShift | El código fuente del Telemetry Operator | El preajuste de OpenShift y el exportador de Ceilometer, cada uno por separado |
+| Red Hat OpenStack on OpenShift | El código fuente del Telemetry Operator | Nada sobre la distribución de Red Hat. El preajuste de OpenShift y el exportador de Ceilometer se probaron cada uno por separado |
 | Mirantis MOSK | La documentación de Mirantis, cuyos ejemplos muestran otros receptores en lugar de un webhook | Nada en MOSK |
 
-Lo que activa **Quién hizo qué** en cada guía se registró en DevStack, en cada versión que ejecuta el banco de pruebas, y en ninguna de estas herramientas. Dónde lo activa cada herramienta se leyó del código fuente o la documentación de esa herramienta.
+Lo que activa **Quién hizo qué** en cada guía se registró en DevStack, y en ninguna de estas herramientas. Dónde lo activa cada herramienta se leyó del código fuente o la documentación de esa herramienta.
 
-Además de eso, todo el recorrido se ha ejecutado en un OneUptime en vivo, iniciado como lo inicia Docker Compose, con su app y su sonda compilados a partir de este código, y en un DevStack real en lugar de en cualquiera de estas herramientas. El agente, instalado con los comandos de su documentación, registró la nube desde sus primeros datos, y cada instancia, volumen e hipervisor tuvo una fila con el estado que le dio la propia nube. Con `nova-compute` realmente detenido, su fila pasó a caída, un monitor de la plantilla Compute Service Down abrió un incidente que nombraba al host 746 segundos después, y se resolvió 48 segundos después de que el servicio arrancara de nuevo. La sonda de un proyecto conectó la misma nube a través de las propias rutas del panel y leyó sus filas, y los 114 spans de un arranque firmado llegaron a través de sus servicios, desde el perfil de trazas.
+Además de eso, todo el recorrido se ha ejecutado en un OneUptime en vivo, iniciado como lo inicia Docker Compose, en un DevStack real en lugar de en cualquiera de estas herramientas. El agente, instalado con los comandos de su documentación, registró la nube desde sus primeros datos, y cada instancia, volumen e hipervisor tuvo una fila con el estado que le dio la propia nube. Con `nova-compute` realmente detenido, su fila pasó a caída, un monitor de la plantilla Compute Service Down abrió un incidente que nombraba al host unos 12 minutos después, y se resolvió en el minuto siguiente a que el servicio arrancara de nuevo. La sonda de un proyecto conectó la misma nube a través de las propias rutas del panel y leyó sus filas, y los 114 spans de un arranque firmado llegaron a través de sus servicios, desde el perfil de trazas.
 
-Por separado, lo que enviaron un agente real y un Alertmanager real se registró en DevStack y en un clúster de pruebas, no en una nube desplegada por ninguna de estas herramientas. Enviado a un OneUptime en vivo, el webhook de disparo abrió un incidente en la nube correcta y en ninguna otra, el mismo webhook de nuevo no abrió nada, y el webhook de resolución lo resolvió.
+Por separado, lo que envió un agente real en DevStack y lo que publicó el Alertmanager de Kolla-Ansible se registró y luego se envió a un OneUptime en vivo: el webhook de disparo abrió un incidente en la nube correcta y en ninguna otra, el mismo webhook de nuevo no abrió nada, y el webhook de resolución lo resolvió.
 
 ## Reenviar lo que ya está disparado
 
@@ -48,7 +48,7 @@ Crea un monitor de Incoming Request como indica [Prometheus Alertmanager](/docs/
 Abre **Vista general → Recursos vinculados** del monitor y añade la nube de OpenStack. Cada incidente aparece entonces en la página de **Incidentes** de esa nube: los propios ajustes de un monitor de Incoming Request no nombran ninguna nube, así que el Alertmanager de cada nube necesita un monitor propio. La nube aparece en esa lista cuando llegan sus primeros datos, así que haz esto después de los pasos de abajo, o añade antes la nube en **OpenStack → Todas las nubes**.
 :::
 
-Se ha registrado a Alertmanager publicando exactamente con esta forma en `Tests/Ops/openstack-e2e`, en la versión que fija Kolla-Ansible, y el registro se reproduce a través del evaluador real: un incidente por alerta, resuelto por su propio estado `resolved`.
+Se registró a Alertmanager, en la versión que fija Kolla-Ansible, publicando exactamente con esta forma, y lo que publicó abrió un incidente en un OneUptime en ejecución, que su propio estado `resolved` resolvió.
 
 ## Kolla-Ansible
 
@@ -576,7 +576,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
 bash install.sh
 ```
 
-Ese recorrido se suma al propio Prometheus de Kolla-Ansible, que pregunta cada minuto. Kolla-Ansible fija el exportador 1.7.0, y su respuesta también dice menos que el exportador que fija el agente. Esto es de lo que las páginas carecían en cinco nubes reales, y una prueba las ajusta a esos registros:
+Esa lectura se suma al propio Prometheus de Kolla-Ansible, que pregunta cada minuto. Kolla-Ansible fija el exportador 1.7.0, y su respuesta también dice menos que el exportador que fija el agente. Esto es de lo que las páginas carecían en cinco nubes reales, y una prueba las ajusta a esos registros:
 
 | Se queda sin | Porque | Qué cuesta |
 | --- | --- | --- |

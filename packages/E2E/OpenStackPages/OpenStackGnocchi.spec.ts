@@ -1,5 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { VIEWPORTS, expect, openCloudPage, partPath, test } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * Gnocchi in a real browser through the real router, on what a real stable/2026.1 DevStack recorded
@@ -13,16 +14,6 @@ const REFUSED: string = "recording=services-gnocchi/access/reader";
 
 const API: string = "RegionOne/gnocchi";
 
-async function expectNoSidewaysScroll(page: Page): Promise<void> {
-  const overflow: number = await page.evaluate((): number => {
-    return (
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-    );
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
 function needsAttention(page: Page): Locator {
   return page.getByTestId("openstack-needs-attention");
 }
@@ -30,6 +21,8 @@ function needsAttention(page: Page): Locator {
 test.describe("a cloud that doesn't run Gnocchi", () => {
   test("its Services page and what it can alert on say nothing of it", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "services", WITHOUT_GNOCCHI);
     await expect(page.getByText("Compute (Nova)").first()).toBeVisible();
@@ -44,6 +37,8 @@ test.describe("a cloud that doesn't run Gnocchi", () => {
 test.describe("a cloud whose gnocchi-metricd stopped", () => {
   test("reaches Needs attention, and lands on its API's page, which says why", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", STOPPED);
 
@@ -59,6 +54,8 @@ test.describe("a cloud whose gnocchi-metricd stopped", () => {
   for (const viewport of VIEWPORTS) {
     test(`its API's page fits at ${viewport.width} pixels`, async ({
       page,
+    }: {
+      page: Page;
     }) => {
       await page.setViewportSize({
         width: viewport.width,
@@ -66,7 +63,7 @@ test.describe("a cloud whose gnocchi-metricd stopped", () => {
       });
       await page.goto(`${partPath("services", API)}?${STOPPED}`);
       await expect(page.getByTestId("openstack-service-tiles")).toBeVisible();
-      await expectNoSidewaysScroll(page);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
   }
 });
@@ -74,6 +71,8 @@ test.describe("a cloud whose gnocchi-metricd stopped", () => {
 test.describe("a credential Gnocchi refuses", () => {
   test("isn't read as down, nor offered alerts that could only say so", async ({
     page,
+  }: {
+    page: Page;
   }) => {
     await openCloudPage(page, "", REFUSED);
     await expect(

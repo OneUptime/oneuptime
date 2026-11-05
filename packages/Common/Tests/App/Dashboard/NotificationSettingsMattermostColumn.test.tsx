@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -53,6 +54,14 @@ import { stubDashboardCustomNotificationChannels } from "./CustomNotificationCha
  * The real page, in each of the Dashboard's languages, read from its own
  * locale files.
  */
+
+/*
+ * What a spy on a generic method sees: its signature with the type parameters
+ * at their constraints, which is what jest.spyOn gives.
+ */
+type MethodOf<Method extends (...args: Array<never>) => unknown> = (
+  ...args: Parameters<Method>
+) => ReturnType<Method>;
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -352,7 +361,7 @@ describe("a switch in the column", () => {
   });
 
   test("on an event with a setting, writes the Mattermost setting and no other", async () => {
-    const updateById: jest.SpiedFunction<typeof ModelAPI.updateById> = jest
+    const updateById: SpyInstance<MethodOf<typeof ModelAPI.updateById>> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue({} as never);
 
@@ -371,7 +380,7 @@ describe("a switch in the column", () => {
     settingFor(
       NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
     ).alertByMattermost = true;
-    const updateById: jest.SpiedFunction<typeof ModelAPI.updateById> = jest
+    const updateById: SpyInstance<MethodOf<typeof ModelAPI.updateById>> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue({} as never);
 
@@ -397,7 +406,7 @@ describe("a switch in the column", () => {
         NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION
       );
     });
-    const create: jest.SpiedFunction<typeof ModelAPI.create> = jest
+    const create: SpyInstance<MethodOf<typeof ModelAPI.create>> = jest
       .spyOn(ModelAPI, "create")
       .mockResolvedValue({} as never);
 
@@ -427,7 +436,7 @@ describe("a switch in the column", () => {
     settingFor(
       NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
     ).alertByMattermost = true;
-    const updateById: jest.SpiedFunction<typeof ModelAPI.updateById> = jest
+    const updateById: SpyInstance<MethodOf<typeof ModelAPI.updateById>> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue({} as never);
 

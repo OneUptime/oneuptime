@@ -530,7 +530,7 @@ const OpenStackCloudInstanceDetail: FunctionComponent<
                 title="Attached volumes"
                 description="The Cinder volumes attached to this instance."
                 emptyTitle="No volumes attached"
-                emptyDescription="Cinder says no volume is attached to this instance, or this credential can't see the ones that are. Only the Full view credential sees every project's."
+                emptyDescription="Cinder says no volume is attached to this instance, or this credential can't see them. Only the Full view credential sees every project's."
               />
             ),
           },

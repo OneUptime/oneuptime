@@ -9,6 +9,7 @@ import {
   test,
   VIEWPORTS,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * A cloud's Traces page, in a real browser, over what OSProfiler's driver really sent for a
@@ -67,14 +68,7 @@ test.describe("with OSProfiler off, which is how every cloud starts", () => {
           page.getByTestId("openstack-traces-off-notice"),
         ).toBeVisible();
 
-        const overflow: number = await page.evaluate(() => {
-          return (
-            document.documentElement.scrollWidth -
-            document.documentElement.clientWidth
-          );
-        });
-
-        expect(overflow).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
       });
     }
   });
@@ -182,14 +176,7 @@ test.describe("with a real signed boot", () => {
 
     await expect(page.getByTestId("openstack-traces-status")).toBeVisible();
 
-    const overflow: number = await page.evaluate(() => {
-      return (
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth
-      );
-    });
-
-    expect(overflow).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "traces-phone");
     expect(CLOUD_PATH).toContain("openstack");
   });

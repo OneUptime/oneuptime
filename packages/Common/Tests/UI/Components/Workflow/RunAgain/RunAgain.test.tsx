@@ -31,7 +31,7 @@ jest.mock("../../../../../UI/Utils/API/API", () => {
 jest.mock("../../../../../UI/Components/Workflow/WorkflowRunGate", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../../UI/Components/Workflow/WorkflowRunGate",
-  );
+  ) as Record<string, unknown>;
 
   return { ...actual, getWorkflowRunGate: jest.fn() };
 });
@@ -103,6 +103,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 const WORKFLOW_ID: string = "d8000000-0000-4000-8000-0000000000a1";
 const RUN_ID: string = "d8000000-0000-4000-8000-0000000000b1";
@@ -361,7 +362,9 @@ describe("RunAgainButton", () => {
   });
 
   test("the dialog's button starts it, and closes once it has", async () => {
-    const send: jest.Mock<() => Promise<void>> = jest.fn(async () => {});
+    const send: Mock<() => Promise<void>> = jest.fn<() => Promise<void>>(
+      async () => {},
+    );
 
     render(<RunAgainButton send={send} />);
     pressRunAgain();
@@ -372,9 +375,11 @@ describe("RunAgainButton", () => {
   });
 
   test("a refusal is said in the dialog, which stays open to try again", async () => {
-    const send: jest.Mock<() => Promise<void>> = jest.fn(async () => {
-      throw new Error("You do not have permission to run this workflow.");
-    });
+    const send: Mock<() => Promise<void>> = jest.fn<() => Promise<void>>(
+      async () => {
+        throw new Error("You do not have permission to run this workflow.");
+      },
+    );
 
     render(<RunAgainButton send={send} />);
     pressRunAgain();
@@ -391,9 +396,11 @@ describe("RunAgainButton", () => {
   });
 
   test("the refusal is gone when the dialog is opened again", async () => {
-    const send: jest.Mock<() => Promise<void>> = jest.fn(async () => {
-      throw new Error("Refused");
-    });
+    const send: Mock<() => Promise<void>> = jest.fn<() => Promise<void>>(
+      async () => {
+        throw new Error("Refused");
+      },
+    );
 
     render(<RunAgainButton send={send} />);
     pressRunAgain();
@@ -406,7 +413,7 @@ describe("RunAgainButton", () => {
 
   test("while it is on its way the dialog's button cannot be pressed again", async () => {
     let finish: () => void = () => {};
-    const send: jest.Mock<() => Promise<void>> = jest.fn(() => {
+    const send: Mock<() => Promise<void>> = jest.fn<() => Promise<void>>(() => {
       return new Promise<void>((resolve: () => void) => {
         finish = resolve;
       });
@@ -984,9 +991,9 @@ describe("the last run's values, in the Run Workflow panel", () => {
     });
 
     test("asks first, starts that run again and closes the panel", async () => {
-      const onRunAgain: jest.Mock<(runId: string) => Promise<void>> = jest.fn(
-        async () => {},
-      );
+      const onRunAgain: Mock<(runId: string) => Promise<void>> = jest.fn<
+        (runId: string) => Promise<void>
+      >(async () => {});
       const onClose: MockFunction = getJestMockFunction();
 
       openPanel({ onRunAgain: onRunAgain, onClose: onClose });
@@ -1004,7 +1011,9 @@ describe("the last run's values, in the Run Workflow panel", () => {
     });
 
     test("a refusal is said where it was asked, and the panel stays", async () => {
-      const onRunAgain: jest.Mock<() => Promise<void>> = jest.fn(async () => {
+      const onRunAgain: Mock<() => Promise<void>> = jest.fn<
+        () => Promise<void>
+      >(async () => {
         throw new Error("This workflow is archived.");
       });
       const onClose: MockFunction = getJestMockFunction();

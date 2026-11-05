@@ -236,30 +236,68 @@ describe("the database exporter's series, name by name", () => {
       })
       .sort();
 
-    expect(missing).toEqual([
-      // Probe only, on the API path too.
-      "openstack_cinder_backup_gb",
-      "openstack_cinder_pool_capacity_free_gb",
-      "openstack_cinder_pool_capacity_total_gb",
-      "openstack_cinder_snapshot_gb",
-      // None of what a cloud may not run is in that exporter: the agent reads each through its API.
-      "openstack_container_infra_agent_state",
-      "openstack_container_infra_cluster_status",
-      "openstack_container_infra_up",
-      "openstack_heat_agent_state",
-      "openstack_heat_stack_status",
-      "openstack_heat_up",
-      "openstack_ironic_agent_state",
-      "openstack_ironic_node",
-      "openstack_ironic_node_provision_updated_at",
-      "openstack_ironic_node_updated_at",
-      "openstack_ironic_up",
-      "openstack_neutron_quota_floatingip",
-      "openstack_neutron_quota_network",
-      "openstack_neutron_quota_port",
-      // Only a probe asks Placement about a flavor.
-      "openstack_placement_flavor_fits",
-    ]);
+    expect(missing).toEqual(
+      [
+        // Probe only, on the API path too.
+        "openstack_cinder_backup_gb",
+        "openstack_cinder_pool_capacity_free_gb",
+        "openstack_cinder_pool_capacity_total_gb",
+        "openstack_cinder_snapshot_gb",
+        // None of what a cloud may not run is in that exporter: the agent reads each through its API.
+        "openstack_barbican_containers",
+        "openstack_barbican_orders",
+        "openstack_barbican_secrets",
+        "openstack_barbican_up",
+        "openstack_cloudkitty_rated",
+        "openstack_cloudkitty_up",
+        "openstack_designate_agent_state",
+        "openstack_designate_recordsets",
+        "openstack_designate_recordsets_status",
+        "openstack_designate_up",
+        "openstack_designate_zone_status",
+        "openstack_gnocchi_status_measures_to_process",
+        "openstack_gnocchi_status_metric_having_measures_to_process",
+        "openstack_gnocchi_status_metricd_processors",
+        "openstack_gnocchi_up",
+        "openstack_loadbalancer_amphora_status",
+        "openstack_loadbalancer_listener_status",
+        "openstack_loadbalancer_loadbalancer_status",
+        "openstack_loadbalancer_member_status",
+        "openstack_loadbalancer_pool_status",
+        "openstack_loadbalancer_up",
+        "openstack_object_store_bytes",
+        "openstack_object_store_objects",
+        "openstack_object_store_recon_oldest_replication_seconds",
+        "openstack_object_store_recon_rings_differing",
+        "openstack_object_store_recon_servers",
+        "openstack_object_store_recon_servers_not_answering",
+        "openstack_object_store_up",
+        "openstack_sharev2_agent_state",
+        "openstack_sharev2_share_gb",
+        "openstack_sharev2_share_status",
+        "openstack_sharev2_up",
+        "openstack_trove_instance_status",
+        "openstack_trove_instance_volume_size_gb",
+        "openstack_trove_instance_volume_used_gb",
+        "openstack_trove_up",
+        "openstack_container_infra_agent_state",
+        "openstack_container_infra_cluster_status",
+        "openstack_container_infra_up",
+        "openstack_heat_agent_state",
+        "openstack_heat_stack_status",
+        "openstack_heat_up",
+        "openstack_ironic_agent_state",
+        "openstack_ironic_node",
+        "openstack_ironic_node_provision_updated_at",
+        "openstack_ironic_node_updated_at",
+        "openstack_ironic_up",
+        "openstack_neutron_quota_floatingip",
+        "openstack_neutron_quota_network",
+        "openstack_neutron_quota_port",
+        // Only a probe asks Placement about a flavor.
+        "openstack_placement_flavor_fits",
+      ].sort(),
+    );
   });
 });
 

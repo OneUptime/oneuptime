@@ -4,7 +4,7 @@ Monitor an OpenStack cloud with OneUptime: its services and agents, hypervisors,
 
 The agent is two pinned upstream programs and their configuration. [openstack-exporter](https://github.com/openstack-exporter/openstack-exporter) reads the cloud's APIs and turns them into `openstack_*` series. A stock OpenTelemetry Collector asks it for one OpenStack service at a time, stamps every series with the cloud and region it came from, and ships them to OneUptime over OTLP. The OpenTelemetry Collector has no OpenStack receiver of its own, and the exporter is what operators already know: Kolla-Ansible ships it.
 
-One agent watches one cloud: one Keystone, with one region or several. It only ever reads, and nothing in it runs on your controllers or compute nodes.
+One agent watches one cloud: one Keystone, with one region or several. It only reads, unless you opt in to the [AI agent's fixes](#fixes), and nothing in it runs on your controllers or compute nodes.
 
 ## Prerequisites
 
@@ -189,7 +189,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/keystone
 curl -fsSLO https://oneuptime.com/install/openstack-agent/access/policy/placement.yaml
 ```
 
-There is no file for Cinder. Its `os-services` and `scheduler-stats/get_pools` answer the role with `403 User does not have admin privileges`, on all five releases we record. That comes from Cinder's own code requiring an admin context, after policy has already passed, so no override can open them. So this level does not see `cinder-volume` or `cinder-scheduler` state or storage pools. Only level 1 does, and the **Block Storage Service Down**, **Storage Pool Warning** and **Storage Pool Critical** alerts need it.
+There is no file for Cinder. Its `os-services` and `scheduler-stats/get_pools` answer the role with `403 User does not have admin privileges`, on all five clouds we record. That comes from Cinder's own code requiring an admin context, after policy has already passed, so no override can open them. So this level does not see `cinder-volume` or `cinder-scheduler` state or storage pools. Only level 1 does, and the **Block Storage Service Down**, **Storage Pool Warning** and **Storage Pool Critical** alerts need it.
 
 **To take the overrides off again, empty the file (`{}`) and never delete it.** On Flamingo (2025.2) and Epoxy (2025.1), oslo.policy raises on every check once a policy file it has read is gone, so that service fails every request. When the service is Keystone, it stops validating tokens and the whole cloud answers `503`. If it has already happened, restart the service.
 
@@ -207,7 +207,7 @@ Then, logged in as that account on that project: `openstack application credenti
 
 - **Through the agent it shows no instances at all.** The exporter asks Nova for all projects' servers, Nova refuses a plain reader, and that read fails whole. Only a OneUptime probe, collecting without this agent, can list one project's instances.
 - **It may be able to write.** On a cloud where Cinder has `enforce_new_defaults` off, plain `reader` can create volumes in its project too. On Epoxy, Flamingo and Gazpacho it did (`202`), and on Hibiscus it was refused (`403`), because DevStack only turns `enforce_new_defaults` on there. Cinder's own default is off.
-- **Placement reads as not answering.** Every call it makes is refused, and the exporter reports that the way it reports a stopped Placement: `openstack_placement_up 0`, on all five releases we record. The pages can tell, from what else is closed to this credential, and say so. The Placement API Down template can't, so leave that one out at this level.
+- **Placement reads as not answering.** Every call it makes is refused, and the exporter reports that the way it reports a stopped Placement: `openstack_placement_up 0`, on all five clouds we record. The pages can tell, from what else is closed to this credential, and say so. The Placement API Down template can't, so leave that one out at this level.
 
 ### Replacing a credential
 
@@ -392,7 +392,7 @@ Nothing arrives until a request is signed with that key: only a signed request i
 
 `docker-compose.yml` also has `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`, profile `openstack-ai-agent`). With it, OneUptime AI reads the cloud while it investigates an incident or alert, and cites what it ran. It shares this folder's `.env`, and registers under the same `OPENSTACK_CLOUD_NAME` the collector reports.
 
-It reads, unless you give it what it needs to change something ([Fixes](#fixes)). It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each read becomes one `GET` to the service that answers it. Its policy has no command that changes a cloud, so `ONEUPTIME_AI_FIXES` and `ONEUPTIME_AI_ALLOW_WRITES` change nothing here. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
+It reads, unless you give it what it needs to change something ([Fixes](#fixes)). It runs `openstack` commands written in the CLI's grammar, and there is no `openstack` binary in it and no shell: each read becomes one `GET` to the service that answers it. Keystone's users, credentials and role assignments, consoles and Barbican's secrets are refused. `user_data`, admin passwords, an image's `direct_url` and a volume's `provider_auth` are masked before the output leaves the agent.
 
 `install.sh` starts it beside the exporter it bundles (`COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent`). To start it yourself:
 
@@ -616,16 +616,19 @@ openstack-exporter is the collector operators know, and three of its open issues
 
 **To share a cloud between agents**, give each the same `OPENSTACK_CLOUD_NAME` and its own share. `OPENSTACK_EXPORTER_CLOUDS` names its regions, and `OPENSTACK_AGENT_SERVICES` its services, such as `compute|placement`. A region and a service belong to one agent, and Keystone to one agent for the whole cloud, or their series arrive twice. Set `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` on an agent with a large share: it holds a scrape in memory on its way out, and the default is `512`.
 
-**Past 1,500 hypervisors or 100,000 instances** a scrape of the APIs runs out of time, because the exporter asks Placement three things per hypervisor one call at a time, and reads every instance on every scrape. Those clouds can be read from their databases with [`openstack_database_exporter`](https://github.com/vexxhost/openstack_database_exporter), which `COMPOSE_PROFILES=openstack-database-exporter` starts:
+**Past 1,500 hypervisors or 100,000 instances** a scrape of the APIs runs out of time, because the exporter asks Placement three things per hypervisor one call at a time, and reads every instance on every scrape. Those clouds can be read from their databases with [`openstack_database_exporter`](https://github.com/vexxhost/openstack_database_exporter), which the `openstack-database-exporter` profile starts:
 
 | Setting | What it is |
 | --- | --- |
+| `COMPOSE_PROFILES` | `openstack-database-exporter,openstack-ai-agent`, for that exporter and the [AI agent](#oneuptime-ai-agent), which reads the first entry of `clouds.yaml` here |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | `[openstack-database-exporter:9180]`, with `OPENSTACK_EXPORTER_CLOUDS=[]`, or every series arrives twice |
 | `NOVA_DATABASE_URL`, `NOVA_API_DATABASE_URL`, `PLACEMENT_DATABASE_URL`, `NEUTRON_DATABASE_URL`, `CINDER_DATABASE_URL`, `GLANCE_DATABASE_URL`, `KEYSTONE_DATABASE_URL` | oslo.db's form, with a read-only account: `mysql+pymysql://oneuptime:secret@db.example:3306/nova`. A database left out is a service it leaves alone |
 | `OPENSTACK_DATABASE_EXPORTER_HOST_SUFFIX` | What a hypervisor's full name adds to Nova's host name, such as `.example.org`, so an instance finds the hypervisor it runs on |
 | `OPENSTACK_WORKER_STATE_CLOUDS` | The `clouds.yaml` entries to read two small lists from, such as `[RegionOne]`: whether each Nova worker is alive, and how full each storage pool is. A database says neither |
 
 It needs a route from this machine to those databases, and one exporter per region and Nova cell. It cannot say whether an API answers, only whether its database does, so watch the APIs themselves. It has been read from its source and its own tests, and has not been run here against a real database.
+
+To upgrade, run `install.sh` again, as on any agent: it keeps all of this, and checks the credential with Keystone for the entries `OPENSTACK_WORKER_STATE_CLOUDS` names. While the targets are set, it refuses a region in `OPENSTACK_EXPORTER_CLOUDS`, because every series would arrive twice.
 
 ## Upgrading
 

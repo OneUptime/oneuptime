@@ -5,7 +5,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * A list's default sort, on a table every scrape writes to, so it is built online.
  * Safe to run again after a stop part way.
  */
-export class AddOpenStackResourceNameIndex1808992960000 implements MigrationInterface {
+export class AddOpenStackResourceNameIndex1808992960000
+  implements MigrationInterface
+{
   public name: string = "AddOpenStackResourceNameIndex1808992960000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.

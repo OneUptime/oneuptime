@@ -503,7 +503,7 @@ normalized_target_list() {
     printf '[%s]' "${written#,}"
 }
 
-for name in OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS $TARGET_LIST_NAMES; do
+for name in OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS OPENSTACK_DATABASE_EXPORTER_TARGETS $TARGET_LIST_NAMES; do
     NORMALIZED_TARGETS="$(normalized_target_list "$name")" || exit 1
     printf -v "$name" '%s' "$NORMALIZED_TARGETS"
     if [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
@@ -526,6 +526,16 @@ if [ "$OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS" != "[]" ]; then
     SINGLE_CLOUD_EXPORTER=1
 fi
 
+# The largest clouds' path: an exporter that reads each service's database, in place of
+# OPENSTACK_EXPORTER_CLOUDS. The bundled exporter's image still reads what a database cannot
+# say, for the entries of clouds.yaml in OPENSTACK_WORKER_STATE_CLOUDS. "The database path" in
+# the docs turns it on in .env by hand. Written only when set, like the rest of those settings.
+READS_DATABASES=1
+if [ "$OPENSTACK_DATABASE_EXPORTER_TARGETS" = "[]" ]; then
+    READS_DATABASES=0
+    OPENSTACK_DATABASE_EXPORTER_TARGETS=""
+fi
+
 # Bring your own exporter: an address other than the bundled exporter's. The
 # bundled one then never starts, and the exporter's own clouds.yaml holds the
 # credential, so nothing asks for one here.
@@ -545,6 +555,12 @@ OWN_EXPORTER_PROFILES=""
 case ",$COMPOSE_PROFILES," in
     *,openstack-ai-agent,*) OWN_EXPORTER_PROFILES="openstack-ai-agent" ;;
 esac
+# The database exporter's profile, when it is the one the agent reads, or someone started it
+# ahead of reading it. A target anywhere else is an exporter this file does not start.
+STARTS_DATABASE_EXPORTER=0
+case ",$COMPOSE_PROFILES,$OPENSTACK_DATABASE_EXPORTER_TARGETS" in
+    *,openstack-database-exporter,* | *openstack-database-exporter:*) STARTS_DATABASE_EXPORTER=1 ;;
+esac
 if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
     BUNDLED_EXPORTER=0
     COMPOSE_PROFILES="$OWN_EXPORTER_PROFILES"
@@ -552,6 +568,10 @@ elif [ "$OPENSTACK_EXPORTER_ADDRESS" = "$BUNDLED_EXPORTER_ADDRESS" ]; then
     BUNDLED_EXPORTER=1
     if [ "$RUNS_WITHOUT_DOCKER" = 1 ]; then
         COMPOSE_PROFILES=""
+    elif [ "$READS_DATABASES" = 1 ]; then
+        # Nothing asks the exporter of the APIs anything here, and clouds.yaml is still here
+        # for what a database cannot say, so the AI agent reads it as it does anywhere.
+        COMPOSE_PROFILES="openstack-ai-agent"
     else
         # With a clouds.yaml to read, the AI agent runs beside the exporter.
         COMPOSE_PROFILES="openstack-exporter,openstack-ai-agent"
@@ -572,6 +592,9 @@ else
                 ;;
         esac
     fi
+fi
+if [ "$STARTS_DATABASE_EXPORTER" = 1 ] && [ "$RUNS_WITHOUT_DOCKER" = 0 ]; then
+    COMPOSE_PROFILES="openstack-database-exporter${COMPOSE_PROFILES:+,$COMPOSE_PROFILES}"
 fi
 
 # Each project's quotas: off until asked for, because of what they cost. They are read by an
@@ -633,6 +656,32 @@ fi
 # the collector needs, which are added here. Each is the name of a clouds.yaml
 # entry, and the collector stamps that name as the region on every series,
 # because the exporter's series do not say which region they are from.
+read_regions() {
+    local left="${1#\[}" region=""
+    REGIONS=()
+    left="${left%\]},"
+    while [ -n "$left" ]; do
+        region="${left%%,*}"
+        left="${left#*,}"
+        region="${region#"${region%%[![:space:]]*}"}"
+        region="${region%"${region##*[![:space:]]}"}"
+        region="${region#[\"\']}"
+        region="${region%[\"\']}"
+        [ -n "$region" ] || continue
+        case "$region" in
+            *[!A-Za-z0-9._\ -]*)
+                echo "Error: \"$region\" cannot be a region name here. A name can hold letters, digits, dots,"
+                echo "dashes, underscores and spaces, and names are separated by commas."
+                exit 1
+                ;;
+        esac
+        case ",${REGIONS[*]+$(IFS=,; printf '%s' "${REGIONS[*]}")}," in
+            *",$region,"*) ;;
+            *) REGIONS+=("$region") ;;
+        esac
+    done
+}
+
 if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
     # It has no entry per region to name: the region is whatever its clouds.yaml says.
     if [ -z "$OPENSTACK_CONTROL_PLANE_REGION" ]; then
@@ -640,35 +689,35 @@ if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
         OPENSTACK_CONTROL_PLANE_REGION="${OPENSTACK_CONTROL_PLANE_REGION:-RegionOne}"
     fi
     OPENSTACK_EXPORTER_CLOUDS="$OPENSTACK_CONTROL_PLANE_REGION"
+elif [ "$READS_DATABASES" = 1 ]; then
+    read_regions "$OPENSTACK_EXPORTER_CLOUDS"
+    if [ "${#REGIONS[@]}" != 0 ]; then
+        echo "Error: OPENSTACK_DATABASE_EXPORTER_TARGETS reads this cloud from its databases, and OPENSTACK_EXPORTER_CLOUDS"
+        echo "reads it from its APIs, so every series would arrive twice. Set OPENSTACK_EXPORTER_CLOUDS=[] to read the"
+        echo "databases alone, or take the targets out to read the APIs. Nothing was installed or changed."
+        exit 1
+    fi
+    # What clouds.yaml has to hold: the entries read for what a database cannot say. With
+    # none named, the region the databases are in, for the AI agent and whoever names them later.
+    read_regions "$OPENSTACK_WORKER_STATE_CLOUDS"
+    if [ "${#REGIONS[@]}" != 0 ]; then
+        OPENSTACK_EXPORTER_CLOUDS="$OPENSTACK_WORKER_STATE_CLOUDS"
+    else
+        OPENSTACK_WORKER_STATE_CLOUDS=""
+        if [ -z "$OPENSTACK_CONTROL_PLANE_REGION" ]; then
+            read -rp "The region these databases are in [RegionOne]: " OPENSTACK_CONTROL_PLANE_REGION
+            OPENSTACK_CONTROL_PLANE_REGION="${OPENSTACK_CONTROL_PLANE_REGION:-RegionOne}"
+        fi
+        OPENSTACK_EXPORTER_CLOUDS="$OPENSTACK_CONTROL_PLANE_REGION"
+    fi
 elif [ -z "$OPENSTACK_EXPORTER_CLOUDS" ]; then
     read -rp "Region names, comma-separated [RegionOne]: " OPENSTACK_EXPORTER_CLOUDS
     OPENSTACK_EXPORTER_CLOUDS="${OPENSTACK_EXPORTER_CLOUDS:-RegionOne}"
 fi
-REGIONS=()
-REGIONS_LEFT="${OPENSTACK_EXPORTER_CLOUDS#\[}"
-REGIONS_LEFT="${REGIONS_LEFT%\]},"
-while [ -n "$REGIONS_LEFT" ]; do
-    REGION="${REGIONS_LEFT%%,*}"
-    REGIONS_LEFT="${REGIONS_LEFT#*,}"
-    REGION="${REGION#"${REGION%%[![:space:]]*}"}"
-    REGION="${REGION%"${REGION##*[![:space:]]}"}"
-    REGION="${REGION#[\"\']}"
-    REGION="${REGION%[\"\']}"
-    [ -n "$REGION" ] || continue
-    case "$REGION" in
-        *[!A-Za-z0-9._\ -]*)
-            echo "Error: \"$REGION\" cannot be a region name here. A name can hold letters, digits, dots,"
-            echo "dashes, underscores and spaces, and names are separated by commas."
-            exit 1
-            ;;
-    esac
-    case ",${REGIONS[*]+$(IFS=,; printf '%s' "${REGIONS[*]}")}," in
-        *",$REGION,"*) ;;
-        *) REGIONS+=("$REGION") ;;
-    esac
-done
+read_regions "$OPENSTACK_EXPORTER_CLOUDS"
 if [ "${#REGIONS[@]}" = 0 ]; then
     echo "Error: OPENSTACK_EXPORTER_CLOUDS names no region."
+    echo "Reading this cloud from its databases instead? Name that exporter in OPENSTACK_DATABASE_EXPORTER_TARGETS too."
     exit 1
 fi
 OPENSTACK_EXPORTER_CLOUDS="$(IFS=,; printf '[%s]' "${REGIONS[*]}")"
@@ -685,6 +734,12 @@ if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
         exit 1
     fi
     # The per-service jobs read this list, and that exporter has no /probe to ask.
+    OPENSTACK_EXPORTER_CLOUDS="[]"
+elif [ "$READS_DATABASES" = 1 ]; then
+    if [ -n "$OPENSTACK_WORKER_STATE_CLOUDS" ]; then
+        OPENSTACK_WORKER_STATE_CLOUDS="$OPENSTACK_EXPORTER_CLOUDS"
+    fi
+    # The per-service jobs read this list: with both, every series arrives twice.
     OPENSTACK_EXPORTER_CLOUDS="[]"
 fi
 # The region of a target that does not say its own.
@@ -1376,6 +1431,17 @@ if [ "$SINGLE_CLOUD_EXPORTER" = 1 ]; then
     echo ""
     echo "NOTE: the agent reads your exporter at $OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS on /metrics, for region"
     echo "$OPENSTACK_CONTROL_PLANE_REGION. Exporter 1.7.0 says less than the bundled one: README.md says what the pages go without."
+elif [ "$READS_DATABASES" = 1 ]; then
+    echo ""
+    echo "NOTE: the agent reads this cloud from its databases, at $OPENSTACK_DATABASE_EXPORTER_TARGETS, for region $OPENSTACK_CONTROL_PLANE_REGION."
+    if [ -n "$OPENSTACK_WORKER_STATE_CLOUDS" ]; then
+        echo "From the APIs it reads only what a database cannot say, in $OPENSTACK_WORKER_STATE_CLOUDS: whether each Nova"
+        echo "worker is alive, and how full each storage pool is."
+    else
+        echo "Nothing says whether each Nova worker is alive, or how full each storage pool is: a database says neither."
+        echo "Set OPENSTACK_WORKER_STATE_CLOUDS in $ENV_FILE to the entries of clouds.yaml to read them from,"
+        echo "such as [${REGIONS[0]}], and run this again."
+    fi
 elif [ "$BUNDLED_EXPORTER" = 0 ]; then
     echo ""
     echo "NOTE: the agent reads your exporter at $OPENSTACK_EXPORTER_ADDRESS. It must run with --multi-cloud, and"

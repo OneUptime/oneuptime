@@ -8,6 +8,7 @@ import {
   screenshot,
   test,
 } from "./Helpers";
+import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
  * The OpenStack product area, as a person uses it: the clouds list and Archived, a cloud's
@@ -29,6 +30,12 @@ async function writes(page: Page): Promise<Array<Record<string, unknown>>> {
       writeRequests?: Array<Record<string, unknown>>;
     };
   return record.writeRequests || [];
+}
+
+function lastOf(
+  written: Array<Record<string, unknown>>,
+): Record<string, unknown> | undefined {
+  return written[written.length - 1];
 }
 
 function row(page: Page, name: string): Locator {
@@ -90,7 +97,7 @@ test.describe("archive", () => {
     await expect(
       page.getByRole("row").filter({ hasText: "acme-prod" }),
     ).toHaveCount(0);
-    expect((await writes(page)).at(-1)).toMatchObject({
+    expect(lastOf(await writes(page))).toMatchObject({
       kind: "updateById",
       modelName: "OpenStackCloud",
       id: CLOUD_ID,
@@ -123,7 +130,7 @@ test.describe("archive", () => {
 
     await expect(page).toHaveURL(new RegExp(`/openstack/?(\\?.*)?$`));
     const written: Array<Record<string, unknown>> = await writes(page);
-    expect(written.at(-1)).toMatchObject({
+    expect(lastOf(written)).toMatchObject({
       kind: "updateById",
       modelName: "OpenStackCloud",
       id: CLOUD_ID,
@@ -152,7 +159,7 @@ test.describe("archive", () => {
       page.getByRole("row").filter({ hasText: "old-lab-cloud" }),
     ).toHaveCount(0);
     const written: Array<Record<string, unknown>> = await writes(page);
-    expect(written.at(-1)).toMatchObject({
+    expect(lastOf(written)).toMatchObject({
       kind: "updateById",
       modelName: "OpenStackCloud",
       data: { isArchived: false },
@@ -182,7 +189,7 @@ test.describe("delete", () => {
       .first()
       .click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(await writes(page)).toEqual([]);
+    expect(await writes(page)).toEqual([]);
     await screenshot(page, "openstack-cloud-delete-confirm");
 
     await page
@@ -191,7 +198,7 @@ test.describe("delete", () => {
       .click();
 
     await expect(page).toHaveURL(new RegExp(`${PRODUCT_PATH}/?(\\?.*)?$`));
-    expect((await writes(page)).at(-1)).toMatchObject({
+    expect(lastOf(await writes(page))).toMatchObject({
       kind: "delete",
       modelName: "OpenStackCloud",
       id: CLOUD_ID,
@@ -216,7 +223,7 @@ test.describe("owners and labels", () => {
         return (await writes(page)).length;
       })
       .toBeGreaterThan(0);
-    expect((await writes(page)).at(-1)).toMatchObject({
+    expect(lastOf(await writes(page))).toMatchObject({
       kind: "create",
       modelName: "OpenStackCloudOwnerUser",
       data: { openStackCloudId: CLOUD_ID },
@@ -239,14 +246,16 @@ test.describe("owners and labels", () => {
     await expect(dialog).toContainText("Select Labels");
     await dialog.getByRole("combobox").first().click();
     await page.getByRole("option", { name: /production/ }).click();
-    await dialog.getByRole("button", { name: /^Add Labels|^Save|^Apply/ }).click();
+    await dialog
+      .getByRole("button", { name: /^Add Labels|^Save|^Apply/ })
+      .click();
 
     await expect
       .poll(async () => {
         return (await writes(page)).length;
       })
       .toBeGreaterThan(0);
-    expect((await writes(page)).at(-1)).toMatchObject({
+    expect(lastOf(await writes(page))).toMatchObject({
       kind: "updateById",
       modelName: "OpenStackCloud",
       id: CLOUD_ID,
@@ -273,7 +282,10 @@ test.describe("the rule pages", () => {
       await screenshot(page, `openstack-${name}-rules`);
 
       // The form opens on what a rule needs first, with the rest a step away.
-      await page.getByRole("button", { name: /^Create/ }).first().click();
+      await page
+        .getByRole("button", { name: /^Create/ })
+        .first()
+        .click();
       const dialog: Locator = page.getByRole("dialog");
       await expect(dialog).toContainText("All OpenStack clouds");
       await expect(dialog).toContainText(
@@ -367,13 +379,15 @@ test.describe("a custom role", () => {
   }) => {
     await page.goto(`${CLOUDS}?role=read`);
     await expect(row(page, "acme-prod")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Connect Cloud" })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByRole("button", { name: "Connect Cloud" }),
+    ).toHaveCount(0);
 
     await page.goto(`${OWNER_RULES}?role=read`);
     await expect(
-      page.getByRole("button", { name: /^Create OpenStack Cloud Owner Rule/ }).first(),
+      page
+        .getByRole("button", { name: /^Create OpenStack Cloud Owner Rule/ })
+        .first(),
     ).toBeDisabled();
     await expect(page.locator("body")).toContainText(
       "You don't have permission to create these.",
@@ -381,7 +395,9 @@ test.describe("a custom role", () => {
     await screenshot(page, "openstack-owner-rules-read-role");
 
     await page.goto(`${CLOUD_PATH}/delete?role=read`);
-    await expect(page.getByRole("button", { name: /^Delete/ }).first()).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: /^Delete/ }).first(),
+    ).toBeDisabled();
     expect(await writes(page)).toEqual([]);
   });
 
@@ -393,12 +409,16 @@ test.describe("a custom role", () => {
     await page.goto(`${CLOUDS}?role=none`);
     await page.waitForLoadState("networkidle");
     await screenshot(page, "openstack-clouds-no-role");
-    await expect(page.getByRole("row").filter({ hasText: "acme-prod" })).toHaveCount(0);
+    await expect(
+      page.getByRole("row").filter({ hasText: "acme-prod" }),
+    ).toHaveCount(0);
 
     await page.goto(`${CLOUD_PATH}?role=none`);
     await page.waitForLoadState("networkidle");
     await screenshot(page, "openstack-cloud-no-role");
-    await expect(page.locator("body")).toContainText("You do not have permissions");
+    await expect(page.locator("body")).toContainText(
+      "You do not have permissions",
+    );
   });
 });
 
@@ -428,13 +448,7 @@ test.describe("wherever they are read", () => {
       ]) {
         await page.goto(`${path}?${scenario}`);
         await page.waitForLoadState("networkidle");
-        const overflow: number = await page.evaluate((): number => {
-          return (
-            document.documentElement.scrollWidth -
-            document.documentElement.clientWidth
-          );
-        });
-        expect(overflow).toBeLessThanOrEqual(0);
+        await expectNoSidewaysScroll(page);
       }
       await screenshot(page, `openstack-${name}-390-fa`);
     });

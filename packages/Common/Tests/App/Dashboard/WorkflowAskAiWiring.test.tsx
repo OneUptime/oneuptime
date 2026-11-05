@@ -4,8 +4,8 @@
  * describe one to Ask AI.
  */
 
-const mockOpenAskAi: jest.Mock = jest.fn();
-const mockUseAiOffered: jest.Mock = jest.fn();
+const mockOpenAskAi: Mock = jest.fn();
+const mockUseAiOffered: Mock = jest.fn();
 
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/UseAiOffered", () => {
   return {
@@ -40,6 +40,7 @@ import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -124,7 +125,7 @@ describe("the Create a workflow dialog", () => {
   test("offers to describe it to Ask AI, which opens with the sentence begun", () => {
     mockUseAiOffered.mockReturnValue(true);
 
-    const onClose: jest.Mock = jest.fn();
+    const onClose: Mock = jest.fn();
 
     render(
       <MemoryRouter>

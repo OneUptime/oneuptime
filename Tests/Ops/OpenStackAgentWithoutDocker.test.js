@@ -827,6 +827,33 @@ describe("what it downloads is held to a pinned sha256", () => {
 });
 
 describe("a re-run, the upgrade", () => {
+  test("an agent reading a cloud's databases stays on them, and there is no Compose profile to keep", () => {
+    const env = setup();
+    const first = env.run({ input: FRESH });
+    expect(first.status).toBe(0);
+    fs.appendFileSync(
+      env.installed(".env"),
+      [
+        "OPENSTACK_EXPORTER_CLOUDS=[]",
+        "OPENSTACK_DATABASE_EXPORTER_TARGETS=[10.0.0.9:9180]",
+        "OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]",
+        "",
+      ].join("\n"),
+    );
+
+    const second = env.run({ args: [] });
+
+    expect(second.status).toBe(0);
+    expect(systemdRead(second.envFile)).toMatchObject({
+      OPENSTACK_EXPORTER_CLOUDS: "[]",
+      OPENSTACK_DATABASE_EXPORTER_TARGETS: "[10.0.0.9:9180]",
+      OPENSTACK_WORKER_STATE_CLOUDS: "[RegionOne]",
+      COMPOSE_PROFILES: "",
+    });
+    expect(second.cloudsText).toBe(first.cloudsText);
+    expect(backupsIn(env.installDir)).toEqual([]);
+  });
+
   test("needs no flag, asks nothing, keeps .env and clouds.yaml, and restarts on new binaries", () => {
     const env = setup();
     const first = env.run({ input: FRESH });
@@ -1180,10 +1207,22 @@ describe(`agents/OpenStackAgent/${COLLECTOR_UNIT}`, () => {
     const verify = spawnSync("systemd-analyze", ["verify", ...files], {
       encoding: "utf8",
     });
-    expect({
-      status: verify.status,
-      output: `${verify.stdout}${verify.stderr}`.trim(),
-    }).toEqual({ status: 0, output: "" });
+    /*
+     * It loads what the unit pulls in as well, and says what it thinks of those: a
+     * distribution's own units are not ours to change (Ubuntu 26.04's use a directive its
+     * systemd removed). A line about anything else is about this unit, and still fails.
+     */
+    const aboutThisUnit = `${verify.stdout}${verify.stderr}`
+      .split("\n")
+      .filter((line) => {
+        return !/^\/(usr\/)?lib\/systemd\/system\//.test(line);
+      })
+      .join("\n")
+      .trim();
+    expect({ status: verify.status, output: aboutThisUnit }).toEqual({
+      status: 0,
+      output: "",
+    });
   });
 });
 

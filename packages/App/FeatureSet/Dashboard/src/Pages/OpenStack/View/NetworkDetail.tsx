@@ -144,7 +144,8 @@ const NetworkOverview: FunctionComponent<{
     detailRows.push({
       key: "dhcp-agents",
       label: "DHCP agents",
-      description: "The agents Neutron has serving this network, as it last said.",
+      description:
+        "The agents Neutron has serving this network, as it last said.",
       value: (
         <span className="flex flex-col gap-1">
           {dhcpAgentIds.map((agentId: string): ReactElement => {

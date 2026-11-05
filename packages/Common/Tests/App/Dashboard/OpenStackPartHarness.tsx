@@ -629,6 +629,18 @@ export function resetServer(): void {
     if (server.failPosts.has(endpoint)) {
       return new HTTPErrorResponse(500, { message: READ_FAILED }, {});
     }
+    // Who a part's planned work reaches: this route is not the resource API's.
+    if (url.includes("/who-would-be-told/")) {
+      return {
+        data: {
+          summary: "",
+          isReachKnown: false,
+          told: [],
+          notTold: [],
+          ofNoProject: {},
+        },
+      };
+    }
     switch (endpoint) {
       case "needs-attention":
         return {

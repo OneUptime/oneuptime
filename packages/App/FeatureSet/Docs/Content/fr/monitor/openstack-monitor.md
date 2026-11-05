@@ -1,6 +1,6 @@
 # Surveillance OpenStack
 
-Un moniteur OpenStack surveille un cloud - ses API, les workers qui les soutiennent, les hyperviseurs, les instances, les réseaux, les pools de stockage et les quotas des projets - et vous prévient quand une API cesse de répondre, qu'un worker tombe, qu'un hyperviseur n'a plus de place à offrir ou qu'un pool se remplit. Il lit les séries `openstack_*` que l'agent OpenStack de OneUptime collecte depuis openstack-exporter.
+Un moniteur OpenStack surveille un cloud - ses API, les workers qui les soutiennent, les hyperviseurs, les instances, les réseaux, les pools de stockage et les quotas des projets - et vous prévient quand une API cesse de répondre, qu'un worker tombe, qu'un hyperviseur n'a plus de place à offrir ou qu'un pool se remplit. Il lit les séries `openstack_*` que l'agent OpenStack de OneUptime collecte depuis openstack-exporter, ou qu'une sonde collecte depuis les API du cloud.
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-openstack): six étapes dans le tableau de bord.
@@ -29,7 +29,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Collectez les métriques du cloud** avec l'agent OpenStack. La page **Documentation** du cloud, sous **Produits → Infrastructure → OpenStack**, vous guide dans son installation.
+- **Collectez les métriques du cloud** avec l'agent OpenStack, ou [une sonde](/docs/telemetry/openstack-agentless). **Documentation**, sous **Produits → Infrastructure → OpenStack**, vous guide dans l'installation de l'agent.
 - **Vérifiez que le cloud est enregistré.** Après sa première collecte, il apparaît sous **Produits → Infrastructure → OpenStack**, avec le nom donné par `OPENSTACK_CLOUD_NAME` dans l'agent.
 
 ## Créer un moniteur OpenStack

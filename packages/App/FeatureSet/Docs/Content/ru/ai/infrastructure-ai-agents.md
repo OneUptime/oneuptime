@@ -64,7 +64,7 @@ flowchart TB
 | Аккаунт AWS | `aws` | ИИ-агент облака | `AWS_ACCOUNT_ID` (пусто: аккаунт, в котором он работает) | `cloud` — одна операция из фиксированного каталога, никогда не команда `aws` | API AWS с собственными ролями IAM |
 | Подписка Azure | `azure` | ИИ-агент облака | `AZURE_SUBSCRIPTION_ID` (её задаёт команда настройки агента) | `cloud` — одна операция из фиксированного каталога, никогда не команда `az` | Azure Resource Manager от имени управляемого удостоверения его Container App |
 | Проект Google Cloud | `gcp` (или `google-cloud`) | ИИ-агент облака | `GOOGLE_CLOUD_PROJECT` (пусто: проект, в котором он работает) | `cloud` — одна операция из фиксированного каталога, никогда не команда `gcloud` | API Google Cloud от имени собственного сервисного аккаунта |
-| Облако OpenStack | `openstack` | ИИ-агент OpenStack | `OPENSTACK_CLOUD_NAME` | команды `openstack`, отправляемые в API облака (в агенте нет бинарного файла `openstack`) — он только читает, и у него нет команды, которая меняет облако |
+| Облако OpenStack | `openstack` | ИИ-агент OpenStack | `OPENSTACK_CLOUD_NAME` | команды `openstack` (в агенте нет бинарного файла `openstack`). Он только читает, пока вы не включите [исправления](#исправления-в-облаках-openstack) | API облака, с учётными данными приложения из `clouds.yaml` |
 
 Серверы баз данных: у ИИ-агента баз данных есть диагностика для PostgreSQL, MySQL (а также MariaDB и Percona Server), Redis (а также Valkey, KeyDB и Dragonfly) и MongoDB. Для любой другой СУБД он ничего не выполняет и сообщает об этом на странице ИИ-агента базы данных.
 
@@ -245,7 +245,7 @@ ONEUPTIME_AI_ALLOW_WRITES=true
 - То, что облако может и не запускать, если его каталог называет это: `openstack share list --all-projects --limit 50`, `openstack share service list` и `openstack share pool list` для Manila; `openstack zone list --all-projects --limit 50` и `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` для записей одной зоны в Designate; `openstack container list` для Swift, который показывает только проект самих учётных данных; `openstack database instance list` для Trove, во всех проектах, что разрешено только администратору; и `openstack metric status` для очереди и обработчиков Gnocchi.
 - Устройство облака: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list` и `project show` с ID.
 - Список по всем арендаторам должен содержать `--limit N` (до 200) и продолжается с `--marker ID`. Любой другой список останавливается на 100 строках, если не указано иное, и сообщает, что есть ещё. Агент никогда сам не переходит по ссылке `next`.
-- Никогда: всё, что меняет облако — такой команды для запуска нет, — а также пользователи, учётные данные, назначения ролей и токены Keystone, консоли и журналы консолей, секреты Barbican, `--os-cloud` и любые другие параметры входа или конечной точки.
+- Никогда: всё, что меняет облако — это делает только [исправление](#исправления-в-облаках-openstack), — а также пользователи, учётные данные, назначения ролей и токены Keystone, консоли и журналы консолей, секреты Barbican, `--os-cloud` и любые другие параметры входа или конечной точки.
 
 `user_data` инстанса, его пароль администратора, `direct_url` образа, `provider_auth` тома и всё остальное, помеченное как секрет, маскируются до того, как вывод попадёт к модели или в журнал.
 

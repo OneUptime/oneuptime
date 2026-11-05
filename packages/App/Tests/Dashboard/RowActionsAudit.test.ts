@@ -80,6 +80,8 @@ const OWN_TURN_OFF: RegExp = /title: (?:"Turn off"|\w+\.turnOffAction),/;
  * all, and why.
  */
 const ROW_SWITCH_NOT_OFFERED: Record<string, string> = {
+  "Dashboard/src/Components/OpenStack/OpenStackProjectNoticesCard.tsx":
+    "An OpenStack project's notice goes to people outside the project's team, so turning one on first shows who it would reach, and takes that preview's token: its rows offer Turn On, which opens the preview, and Turn Off.",
   "Dashboard/src/Pages/Workflow/Archived.tsx":
     "An archived workflow is out of service whatever its switch says: its rows offer Unarchive, and a workflow is turned on again on the live list.",
   "Dashboard/src/Pages/Slo/Archived.tsx":

@@ -43,6 +43,7 @@ export const DATA_STORE_COLUMNS_ON_THE_TIMELINE: ReadonlyArray<TimelineColumn> =
     // A secret: that it changed, never what to.
     { column: "connectionString", shown: "named" },
     { column: "scanExclusions", shown: "named" },
+    { column: "watchedPaths", shown: "named" },
     { column: "purpose", shown: "named" },
     { column: "retention", shown: "named" },
     { column: "labels", shown: "named" },

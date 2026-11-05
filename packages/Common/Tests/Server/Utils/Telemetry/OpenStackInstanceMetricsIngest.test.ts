@@ -167,9 +167,7 @@ describe("a batch through ingest", () => {
     function ceilometerAt(minute: number): JSONObject {
       return prometheusToEnvelope({
         series: parsePrometheusExposition(
-          ceilometerText([
-            { ...TRUTH, cpuSeconds: 1000 + (minute / 5) * 300 },
-          ])
+          ceilometerText([{ ...TRUTH, cpuSeconds: 1000 + (minute / 5) * 300 }])
             .split("\n")
             .filter((line: string): boolean => {
               return !line.startsWith("ceilometer_vcpus");
@@ -228,9 +226,9 @@ describe("a batch through ingest", () => {
           return one["name"] === OpenStackInstanceMetric.CpuUtilization;
         });
       return metric
-        ? (
+        ? ((
             (metric["gauge"] as JSONObject)["dataPoints"] as Array<JSONObject>
-          )[0]!["asDouble"] as number
+          )[0]!["asDouble"] as number)
         : undefined;
     }
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
+import yaml from "js-yaml";
 import path from "path";
 import { AverageMetricRowSizeInBytes } from "../../../Server/EnvironmentConfig";
 import {
@@ -432,6 +433,168 @@ describe("the load on the control plane", () => {
   });
 });
 
+/*
+ * What the agent's exporter asks follows from the jobs the agent runs, so this reads the agent's
+ * own config rather than a count written down here: a job added there and left out of the function
+ * fails. What it does on each scrape is what getOpenStackExporterRequestsPerScrape says it does.
+ */
+describe("what the agent's exporter asks, from the jobs it runs", () => {
+  interface ScrapeJob {
+    job_name: string;
+    scrape_interval: string;
+    params: { include_services: Array<string> };
+  }
+
+  interface CollectorConfig {
+    receivers: {
+      prometheus: { config: { scrape_configs: Array<ScrapeJob> } };
+    };
+  }
+
+  const JOBS: Array<ScrapeJob> = (
+    yaml.load(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../agents/OpenStackAgent/otel-collector-config.yaml",
+        ),
+        "utf8",
+      ),
+    ) as CollectorConfig
+  ).receivers.prometheus.config.scrape_configs;
+
+  // Domains, projects, regions, users and groups.
+  const KEYSTONE_LISTS_PER_SCRAPE: number = 5;
+
+  const SERVICES_IN_THE_TABLE: Array<OpenStackServiceType> = [
+    OpenStackServiceType.Compute,
+    OpenStackServiceType.Placement,
+    OpenStackServiceType.Network,
+    OpenStackServiceType.Volume,
+    OpenStackServiceType.Image,
+  ];
+
+  function scrapesPerMinute(job: ScrapeJob): number {
+    return 60 / parseInt(job.scrape_interval, 10);
+  }
+
+  function jobOf(service: string): ScrapeJob {
+    const job: ScrapeJob | undefined = JOBS.find(
+      (candidate: ScrapeJob): boolean => {
+        return candidate.params.include_services.includes(service);
+      },
+    );
+
+    if (!job) {
+      throw new Error(`The agent has no job for ${service}.`);
+    }
+
+    return job;
+  }
+
+  test.each([
+    ["small", OPENSTACK_SMALL_CLOUD],
+    ["medium", OPENSTACK_MEDIUM_CLOUD],
+    ["large", OPENSTACK_LARGE_CLOUD],
+  ])(
+    "on a %s cloud Keystone gets a login for each scrape of each job, and its own lists",
+    (_size: string, counts: OpenStackCloudCounts) => {
+      const logins: number = JOBS.reduce((sum: number, job: ScrapeJob) => {
+        return sum + scrapesPerMinute(job);
+      }, 0);
+      const lists: number =
+        KEYSTONE_LISTS_PER_SCRAPE *
+        scrapesPerMinute(jobOf(OpenStackServiceType.Identity));
+
+      expect(
+        getOpenStackExporterRequestsPerMinute(counts)[
+          OpenStackServiceType.Identity
+        ],
+      ).toBeCloseTo(logins + lists, 10);
+    },
+  );
+
+  test("which comes to 5.2 a minute with the jobs the agent runs today", () => {
+    // Fifteen jobs: four every two minutes, and eleven every five.
+    expect(JOBS.length).toBe(15);
+    expect(
+      getOpenStackExporterRequestsPerMinute(OPENSTACK_SMALL_CLOUD)[
+        OpenStackServiceType.Identity
+      ],
+    ).toBeCloseTo(4 * 0.5 + 11 * 0.2 + 5 * 0.2, 10);
+    expect(
+      getOpenStackExporterRequestsPerMinute(OPENSTACK_SMALL_CLOUD)[
+        OpenStackServiceType.Identity
+      ],
+    ).toBeCloseTo(5.2, 10);
+  });
+
+  test("the nine services a cloud may not run each log in, every five minutes, whether or not it runs them", () => {
+    const others: Array<ScrapeJob> = JOBS.filter((job: ScrapeJob): boolean => {
+      return ![
+        OpenStackServiceType.Identity as string,
+        ...SERVICES_IN_THE_TABLE.map((service: OpenStackServiceType) => {
+          return service as string;
+        }),
+      ].includes(job.params.include_services[0] as string);
+    });
+
+    expect(
+      others
+        .map((job: ScrapeJob): string => {
+          return job.params.include_services[0] as string;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        "baremetal",
+        "container-infra",
+        "database",
+        "dns",
+        "gnocchi",
+        "load-balancer",
+        "object-store",
+        "orchestration",
+        "sharev2",
+      ].sort(),
+    );
+
+    for (const job of others) {
+      expect(job.scrape_interval).toBe("300s");
+    }
+  });
+
+  test("each service the table has a column for is read at its own job's interval, less the login Keystone answers", () => {
+    const scrape: Record<OpenStackServiceType, number> =
+      getOpenStackExporterRequestsPerScrape(OPENSTACK_MEDIUM_CLOUD);
+    const perMinute: Record<OpenStackServiceType, number> =
+      getOpenStackExporterRequestsPerMinute(OPENSTACK_MEDIUM_CLOUD);
+
+    for (const service of SERVICES_IN_THE_TABLE) {
+      expect(perMinute[service]).toBeCloseTo(
+        (scrape[service] - 1) * scrapesPerMinute(jobOf(service)),
+        10,
+      );
+    }
+  });
+
+  test("every region asks all of it again, Keystone included: each target of each job logs in", () => {
+    const one: Record<OpenStackServiceType, number> =
+      getOpenStackExporterRequestsPerMinute(OPENSTACK_MEDIUM_CLOUD);
+    const two: Record<OpenStackServiceType, number> =
+      getOpenStackExporterRequestsPerMinute({
+        ...OPENSTACK_MEDIUM_CLOUD,
+        regions: 2,
+      });
+
+    expect(two[OpenStackServiceType.Identity]).toBeCloseTo(10.4, 10);
+
+    for (const service of Object.keys(one) as Array<OpenStackServiceType>) {
+      expect(two[service]).toBeCloseTo(one[service] * 2, 10);
+    }
+  });
+});
+
 describe("what the docs publish", () => {
   const PAGE: string = fs.readFileSync(
     path.resolve(
@@ -577,10 +740,7 @@ describe("what the soak measured, as the docs publish it", () => {
   // What OpenStackSoak.test.ts wrote at the end of the hour the docs publish. Nothing else writes it.
   const MEASURED: Record<string, never> = JSON.parse(
     fs.readFileSync(
-      path.resolve(
-        __dirname,
-        "../../Fixtures/OpenStackSoak/measured.json",
-      ),
+      path.resolve(__dirname, "../../Fixtures/OpenStackSoak/measured.json"),
       "utf8",
     ),
   );

@@ -82,7 +82,7 @@ const outsideRequests: WeakMap<Page, Array<string>> = new WeakMap();
 export const test: TestType<
   PlaywrightTestArgs & PlaywrightTestOptions,
   PlaywrightWorkerArgs & PlaywrightWorkerOptions
-> = base.extend<Record<string, never>>({
+> = base.extend({
   page: async (
     { page }: { page: Page },
     use: (page: Page) => Promise<void>,

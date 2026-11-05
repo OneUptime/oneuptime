@@ -277,6 +277,7 @@ describe("which columns record a person doing something", () => {
       "merged",
       "overrided",
       "pinned",
+      "previewSeen",
       "projectCreated",
       "projectDeleted",
       "requested",

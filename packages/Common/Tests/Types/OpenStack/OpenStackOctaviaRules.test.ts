@@ -35,9 +35,12 @@ describe("Octavia's rules", () => {
     ["", false],
     [null, false],
     [undefined, false],
-  ])("a load balancer reading %p is in error: %p", (status, expected) => {
-    expect(isOpenStackLoadBalancerInError(status)).toBe(expected);
-  });
+  ])(
+    "a load balancer reading %p is in error: %p",
+    (status: string | null | undefined, expected: boolean) => {
+      expect(isOpenStackLoadBalancerInError(status)).toBe(expected);
+    },
+  );
 
   test.each([
     ["PENDING_CREATE", 59, false],
@@ -51,7 +54,7 @@ describe("Octavia's rules", () => {
     [undefined, 6000, false],
   ])(
     "a load balancer reading %p for %p minutes is stuck: %p",
-    (status, minutes, expected) => {
+    (status: string | undefined, minutes: number, expected: boolean) => {
       expect(
         isOpenStackLoadBalancerStuck({
           status,
@@ -88,7 +91,7 @@ describe("Octavia's rules", () => {
     [null, false],
   ])(
     "a pool whose operating status is %p has no healthy member: %p",
-    (status, expected) => {
+    (status: string | null, expected: boolean) => {
       expect(isOpenStackPoolWithoutHealthyMembers(status)).toBe(expected);
     },
   );
@@ -100,9 +103,12 @@ describe("Octavia's rules", () => {
     ["BOOTING", false],
     ["PENDING_DELETE", false],
     [undefined, false],
-  ])("an amphora reading %p is in error: %p", (status, expected) => {
-    expect(isOpenStackAmphoraInError(status)).toBe(expected);
-  });
+  ])(
+    "an amphora reading %p is in error: %p",
+    (status: string | undefined, expected: boolean) => {
+      expect(isOpenStackAmphoraInError(status)).toBe(expected);
+    },
+  );
 });
 
 describe("Octavia is a service a cloud may not run", () => {
@@ -121,13 +127,15 @@ describe("Octavia is a service a cloud may not run", () => {
     ).toEqual([OpenStackServiceType.LoadBalancer]);
   });
 
-  test("names three kinds and a title", () => {
+  test("names five kinds and a title", () => {
     expect(
       OPENSTACK_KINDS_BY_SERVICE[OpenStackServiceType.LoadBalancer],
     ).toEqual([
       OpenStackResourceKind.LoadBalancer,
       OpenStackResourceKind.LoadBalancerPool,
       OpenStackResourceKind.Amphora,
+      OpenStackResourceKind.Listener,
+      OpenStackResourceKind.LoadBalancerMember,
     ]);
     expect(OPENSTACK_SERVICE_TITLES[OpenStackServiceType.LoadBalancer]).toBe(
       "Load Balancers (Octavia)",

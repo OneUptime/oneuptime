@@ -64,7 +64,7 @@ Kubernetes 叢集有自己的代理程式，也就是 Kubernetes AI 代理程式
 | AWS 帳戶 | `aws` | 雲端 AI 代理程式 | `AWS_ACCOUNT_ID`（空白時使用它所執行的帳戶） | `cloud`——固定目錄中的一項操作，從不執行 `aws` 指令 | AWS API，使用它自己的 IAM 角色 |
 | Azure 訂用帳戶 | `azure` | 雲端 AI 代理程式 | `AZURE_SUBSCRIPTION_ID`（由其設定指令設定） | `cloud`——固定目錄中的一項操作，從不執行 `az` 指令 | Azure Resource Manager，以其 Container App 的受控識別存取 |
 | Google Cloud 專案 | `gcp`（或 `google-cloud`） | 雲端 AI 代理程式 | `GOOGLE_CLOUD_PROJECT`（空白時使用它所執行的專案） | `cloud`——固定目錄中的一項操作，從不執行 `gcloud` 指令 | Google Cloud API，以它自己的服務帳戶存取 |
-| OpenStack 雲端 | `openstack` | OpenStack AI 代理程式 | `OPENSTACK_CLOUD_NAME` | `openstack` 指令，傳送到雲端的 API（代理程式中沒有 `openstack` 執行檔）——它只讀取，沒有任何會變更雲端的指令 |
+| OpenStack 雲端 | `openstack` | OpenStack AI 代理程式 | `OPENSTACK_CLOUD_NAME` | `openstack` 指令，傳送到雲端的 API（代理程式中沒有 `openstack` 執行檔）。在你選擇啟用[修復](#openstack-雲端上的修正)之前，它只讀取 | 雲端的 API，使用 `clouds.yaml` 中的應用程式憑證 |
 
 資料庫伺服器：資料庫 AI 代理程式提供 PostgreSQL、MySQL（以及 MariaDB 和 Percona Server）、Redis（以及 Valkey、KeyDB 和 Dragonfly）和 MongoDB 的診斷。對於任何其他引擎，它不會執行任何內容，並在資料庫的 AI 代理程式頁面上說明這一點。
 
@@ -245,7 +245,7 @@ Podman 主機透過 Podman 的 Docker 相容 API 執行相同的 `docker` CLI �
 - 雲端不一定會執行、但目錄中有列出時才可用的服務：Manila 的 `openstack share list --all-projects --limit 50`、`openstack share service list` 和 `openstack share pool list`；Designate 的 `openstack zone list --all-projects --limit 50`，以及某個區域的記錄集 `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects`；Swift 的 `openstack container list`，它只會列出此憑證自己專案的內容；Trove 的 `openstack database instance list`，列出每個專案的執行個體，只有管理員才可以；以及 Gnocchi 的待處理量與處理程序的 `openstack metric status`。
 - 雲端的整體樣貌：`openstack endpoint list`、`openstack service list`、`openstack region list`、`openstack project list`、`openstack domain list`，以及帶 ID 的 `project show`。
 - 跨租戶的列表必須寫 `--limit N`，最多 200，並以 `--marker ID` 繼續。其他每個列表除非另有說明，否則在 100 列時停止，並會告知還有更多。代理程式絕不會自行追蹤 `next` 連結。
-- 從不允許：任何會變更雲端的內容——根本沒有這樣的指令可執行——Keystone 的使用者、憑證、角色指派和權杖、主控台與主控台日誌、Barbican 的機密，以及 `--os-cloud` 和其他所有登入或端點選項。
+- 從不允許：任何會變更雲端的內容——只有[修復](#openstack-雲端上的修正)才會這樣做——Keystone 的使用者、憑證、角色指派和權杖、主控台與主控台日誌、Barbican 的機密，以及 `--os-cloud` 和其他所有登入或端點選項。
 
 執行個體的 `user_data`、其管理員密碼、映像檔的 `direct_url`、磁碟區的 `provider_auth`，以及其他任何標為機密的內容，在輸出抵達模型或日誌之前都會被遮蔽。
 

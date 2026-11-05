@@ -1,6 +1,6 @@
 # OpenStack 监控
 
-OpenStack 监视器负责监视一套云：它的 API、API 背后的工作进程、虚拟机监控程序（hypervisor）、实例、网络、存储池和项目配额，并在 API 不再响应、某个工作进程宕机、某台 hypervisor 没有余量可分配或某个存储池被占满时通知你。它读取 OneUptime OpenStack Agent 从 openstack-exporter 收集的 `openstack_*` 系列指标。
+OpenStack 监视器负责监视一套云：它的 API、API 背后的工作进程、虚拟机监控程序（hypervisor）、实例、网络、存储池和项目配额，并在 API 不再响应、某个工作进程宕机、某台 hypervisor 没有余量可分配或某个存储池被占满时通知你。它读取 OneUptime OpenStack Agent 从 openstack-exporter 收集、或由探测器从云的 API 收集的 `openstack_*` 系列指标。
 
 :::cards
 - [创建监视器](#创建-openstack-监视器): 在 Dashboard 中分六步完成。
@@ -29,7 +29,7 @@ flowchart TB
 
 ## 开始之前
 
-- **用 OpenStack Agent 收集云的指标。** 云的**文档**页面位于 **产品 → 基础设施 → OpenStack** 下，其中有安装它的完整步骤。
+- **用 OpenStack Agent 收集云的指标。** 或[探测器](/docs/telemetry/openstack-agentless)。**文档**位于 **产品 → 基础设施 → OpenStack** 下，其中有安装代理的完整步骤。
 - **确认云已注册。** 首次收集之后，它会出现在 **产品 → 基础设施 → OpenStack** 下，名称取自 Agent 的 `OPENSTACK_CLOUD_NAME`。
 
 ## 创建 OpenStack 监视器

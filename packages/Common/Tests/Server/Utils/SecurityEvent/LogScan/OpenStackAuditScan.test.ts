@@ -18,9 +18,10 @@ import OpenStackResourceService from "../../../../../Server/Services/OpenStackRe
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../../../../Server/Services/OpenTelemetryIngestService";
-import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import SecurityEventService, {
+  DetectionMatchGroup,
+} from "../../../../../Server/Services/SecurityEventService";
 import SecurityLogSourceService from "../../../../../Server/Services/SecurityLogSourceService";
-import { DetectionMatchGroup } from "../../../../../Server/Services/SecurityEventService";
 import DetectionRule from "../../../../../Models/DatabaseModels/DetectionRule";
 import DetectionRuleEvaluator from "../../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
 import RealTimeDetections from "../../../../../Server/Utils/SecurityEvent/RealTime/RealTimeDetections";

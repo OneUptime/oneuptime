@@ -282,7 +282,7 @@ const OpenStackPriceListModal: FunctionComponent<ComponentProps> = (
       title={translationKey("Prices")}
       description={translator.translateTemplate(
         translationKey(
-          "Your own numbers per hour, optional, for an estimate of what usage comes to. A month is about {{hours}} hours. Leave a price empty for no price, which isn't the same as free.",
+          "Your own numbers per hour, for an estimate of what usage comes to. A month is about {{hours}} hours. A price left empty means no price, not free.",
         ),
         { hours: OPENSTACK_HOURS_IN_A_MONTH.toString() },
       )}

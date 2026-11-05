@@ -64,7 +64,7 @@ Ligesom Kubernetes-AI-agenten er en ressource-AI-agent ikke en Runner. Den vises
 | AWS-konto | `aws` | Cloud-AI-agent | `AWS_ACCOUNT_ID` (tom: den konto, den kører i) | `cloud`: én operation fra et fast katalog, aldrig en `aws`-kommando | AWS' API'er med sine egne IAM-roller |
 | Azure-abonnement | `azure` | Cloud-AI-agent | `AZURE_SUBSCRIPTION_ID` (dens opsætningskommando sætter den) | `cloud`: én operation fra et fast katalog, aldrig en `az`-kommando | Azure Resource Manager som dens Container Apps administrerede identitet |
 | Google Cloud-projekt | `gcp` (eller `google-cloud`) | Cloud-AI-agent | `GOOGLE_CLOUD_PROJECT` (tom: det projekt, den kører i) | `cloud`: én operation fra et fast katalog, aldrig en `gcloud`-kommando | Google Clouds API'er som en tjenestekonto, den selv har |
-| OpenStack-cloud | `openstack` | OpenStack-AI-agent | `OPENSTACK_CLOUD_NAME` | `openstack`-kommandoer, sendt til cloudens API'er (der er ingen `openstack`-binær i agenten) — den læser kun og har ingen kommando, der ændrer en cloud |
+| OpenStack-cloud | `openstack` | OpenStack-AI-agent | `OPENSTACK_CLOUD_NAME` | `openstack`-kommandoer (der er ingen `openstack`-binær i agenten). Den læser kun, indtil du vælger [rettelser](#rettelser-på-openstack-clouds) | cloudens API'er, med applikationslegitimationen i `clouds.yaml` |
 
 Databaseservere: Database-AI-agenten har diagnostik til PostgreSQL, MySQL (og MariaDB og Percona Server), Redis (og Valkey, KeyDB og Dragonfly) og MongoDB. For enhver anden motor kører den intet og siger det på databasens AI-agent-side.
 
@@ -245,7 +245,7 @@ Der er ingen `openstack`-binær i agenten og ingen shell. En kommando skrives i 
 - Det, en cloud måske ikke kører, hvor dens katalog navngiver det: `openstack share list --all-projects --limit 50`, `openstack share service list` og `openstack share pool list` til Manila; `openstack zone list --all-projects --limit 50` og `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` til én zones recordsets i Designate; `openstack container list` til Swift, som kun er dette logins eget projekts; `openstack database instance list` til Trove, alle projekters, hvilket kun en administrator må; og `openstack metric status` til Gnocchis efterslæb og processorer.
 - Cloudens form: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list` og `project show` med et id.
 - En liste på tværs af tenants skal angive `--limit N`, op til 200, og fortsætter med `--marker ID`. Hver anden liste stopper ved 100 rækker, medmindre andet er angivet, og siger til, når der er flere. Agenten følger aldrig et `next`-link af sig selv.
-- Aldrig: noget, der ændrer cloudens tilstand — der er ingen sådan kommando at køre — Keystones brugere, loginoplysninger, rolletildelinger og tokens, konsoller og konsollogs, Barbicans hemmeligheder, `--os-cloud` og alle andre login- eller endpoint-valgmuligheder.
+- Aldrig: noget, der ændrer cloudens tilstand — kun [en rettelse](#rettelser-på-openstack-clouds) gør det — Keystones brugere, loginoplysninger, rolletildelinger og tokens, konsoller og konsollogs, Barbicans hemmeligheder, `--os-cloud` og alle andre login- eller endpoint-valgmuligheder.
 
 En instans' `user_data`, dens administratoradgangskode, et images `direct_url`, et volumens `provider_auth` og alt andet, der er markeret som hemmeligt, maskeres, før outputtet når modellen eller en log.
 

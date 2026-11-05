@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -304,7 +305,7 @@ async function askFor(
   const refusedBy: Array<Point> = [];
 
   // ---- The tool.
-  const tool: jest.SpiedFunction<
+  const tool: SpyInstance<
     typeof RemediationCommandToolkit.getResourceWriteScopeRefusal
   > | null = broken.includes("tool")
     ? jest
@@ -347,7 +348,7 @@ async function askFor(
   tool?.mockRestore();
 
   // ---- The chokepoint.
-  const chokepoint: jest.SpiedFunction<
+  const chokepoint: SpyInstance<
     typeof ResourceCommandPolicy.getWriteScopeRefusal
   > | null = broken.includes("chokepoint")
     ? jest

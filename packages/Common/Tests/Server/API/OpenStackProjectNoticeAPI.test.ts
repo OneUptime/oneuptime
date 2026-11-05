@@ -109,9 +109,14 @@ async function call(data: {
   };
 }
 
-function noticeOf(
-  overrides: Partial<OpenStackProjectNotice> = {},
-): OpenStackProjectNotice {
+// Partial, but a field can be named as undefined: a notice with no preview asked for.
+type NoticeOverrides = {
+  [Key in keyof OpenStackProjectNotice]?:
+    | OpenStackProjectNotice[Key]
+    | undefined;
+};
+
+function noticeOf(overrides: NoticeOverrides = {}): OpenStackProjectNotice {
   const notice: OpenStackProjectNotice = new OpenStackProjectNotice();
   notice._id = NOTICE_ID.toString();
   notice.id = NOTICE_ID;
@@ -295,7 +300,7 @@ describe("OpenStackProjectNoticeAPI", () => {
       const notice: OpenStackProjectNotice = noticeOf({
         webhookUrl: URL.fromString("https://example.com/hook"),
       });
-      notice.email = undefined;
+      delete notice.email;
       jest
         .spyOn(OpenStackProjectNoticeService, "findOneById")
         .mockResolvedValue(notice);

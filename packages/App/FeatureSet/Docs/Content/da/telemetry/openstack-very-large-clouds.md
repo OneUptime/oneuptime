@@ -1,6 +1,6 @@
 # Meget store OpenStack-skyer
 
-Hvad en cloud af enhver størrelse koster, før du installerer noget: hvor hårdt monitorering belaster dens kontrolplan, hvor meget data den sender, og hvad OneUptime gør anderledes, når en cloud vokser. Næsten alle clouds har brug for intet af dette: standardindstillingerne for [OpenStack-agenten](/docs/telemetry/openstack) og en [sonde](/docs/telemetry/openstack-agentless) holder op til tusindvis af instanser, uden at noget skal sættes.
+Hvad en cloud af enhver størrelse koster, før du installerer noget: hvor hårdt monitorering belaster dens kontrolplan, hvor meget data den sender, og hvad OneUptime gør anderledes, når en cloud vokser. Næsten alle clouds bør ikke have brug for noget af dette: efter tallene nedenfor holder standardindstillingerne for [OpenStack-agenten](/docs/telemetry/openstack) og en [sonde](/docs/telemetry/openstack-agentless) op til tusindvis af instanser, uden at noget skal sættes.
 
 :::cards
 - [Belastningen på dit kontrolplan](#belastningen-på-dit-kontrolplan): Forespørgsler i minuttet pr. tjeneste, ved hver størrelse.
@@ -46,21 +46,21 @@ Agentens eksportør logger ind og læser hver liste hel ved hver scrape, og den 
 
 | Cloud | Keystone | Nova | Placement | Neutron | Cinder | Glance |
 | --- | --- | --- | --- | --- | --- | --- |
-| 10 hypervisorer, 100 instanser, 20 projekter | 3,4 | 3 | 15,5 | 3,5 | 2 | 0,2 |
-| 500 hypervisorer, 20.000 instanser, 1.000 projekter | 3,4 | 13 | 751 | 7,5 | 7,5 | 0,2 |
-| 5.000 hypervisorer, 200.000 instanser, 10.000 projekter | 3,4 | 106 | 7.501 | 43,5 | 57 | 0,4 |
+| 10 hypervisorer, 100 instanser, 20 projekter | 5,2 | 3 | 15,5 | 3,5 | 2 | 0,2 |
+| 500 hypervisorer, 20.000 instanser, 1.000 projekter | 5,2 | 13 | 751 | 7,5 | 7,5 | 0,2 |
+| 5.000 hypervisorer, 200.000 instanser, 10.000 projekter | 5,2 | 106 | 7.501 | 43,5 | 57 | 0,4 |
 
 Disse er talt ud fra eksportørens kildekode, og eksportøren er ikke kørt i disse størrelser. En scrape har 110 sekunder, så en Placement, der svarer på 20 ms, løber tør for tid ved cirka 1.800 hypervisorer og Nova ved et sekund pr. side ved cirka 110.000 instanser. Ud over det fejler en scrape af dem, uanset hvor skånsomt der blev spurgt. Ud over de størrelser skal du bruge [databasestien](#databasestien) eller en sonde.
 
 ### Når et API bliver langsomt
 
-En sonde holder øje med, hvad hver tjeneste plejer at svare på, og når et svar tager tre gange så lang tid og mindst et sekund, eller fem sekunder uanset hvad der er normalt, venter den lige så længe, som svaret tog, før den spørger den tjeneste igen. Flere aflæsninger, der venter på én gang, tager tur, så en pause ikke ender i en byge. En tjeneste, der bliver ved med at svare `429` eller `503`, lades i fred i et minut, så to, så fire, op til en halv time. Intet andet holdes op: hver tjeneste spørges for sig.
+En sonde holder øje med, hvad hver tjeneste plejer at svare på, og holder igen, når et svar er langsomt eller afvist: [Hvad det koster din cloud](/docs/telemetry/openstack-agentless#hvad-det-koster-din-cloud) siger med hvor meget. Flere aflæsninger, der venter på én gang, tager tur, så en pause ikke ender i en byge. Intet andet holdes op: hver tjeneste spørges for sig.
 
 Cloudens kort **Dataindsamling** siger det, mens det varer, tjeneste for tjeneste: hvor langsomt dens langsomste svar var, og hvor længe sonden holdt sig tilbage. Agentens eksportør kan ikke gøre dette. En scrape kører hel, med sit interval: hæv `scrape_interval` og `scrape_timeout` for det job for at skåne en tjeneste.
 
 ## De data, den sender
 
-En clouds serier følger af dens tal. Beregneren på en clouds side **Dokumentation** i OneUptime regner dette ud ud fra tre tal. For selv at regne det ud, for én region:
+En clouds serier følger af dens tal. Beregneren under **OpenStack → Dokumentation** i OneUptime regner dette ud ud fra tre tal. For selv at regne det ud, for én region:
 
 | Serier | Hvor mange |
 | --- | --- |
@@ -72,7 +72,7 @@ En clouds serier følger af dens tal. Beregneren på en clouds side **Dokumentat
 | Oversigtstilstandens tal, når den er slået til | Ét pr. status og ét pr. projekt: cirka 6 plus projekter |
 | Keystone, Glance | Projekter, domæner og 9, og 2 pr. image plus 5. En sonde tilføjer 3 for hver af Heat og Magnum, uanset om en cloud kører dem |
 
-Hver scrapes rækker er det, du faktureres for: de første fem linjer ankommer hvert 2. minut, 720 gange om dagen, og den sidste hvert 5. minut, 288 gange. Prisen er den på din regning, [pr. GB for hvor længe det opbevares](/docs/telemetry/openstack#hvad-det-koster). Regningen læser hver rækkes reelle størrelse, og dette regner det ud ved 1.024 byte pr. række, hvad OneUptimes fakturering falder tilbage på, når den ikke har en størrelse for en række. En række med mange labels, som en instans', koster mere end det, og en uden nogen koster mindre.
+Hver scrapes rækker er det, du faktureres for: de første fem linjer ankommer hvert 2. minut, 720 gange om dagen, og den sidste hvert 5. minut, 288 gange. Prisen er den på din regning, [pr. GB for hvor længe det opbevares](/docs/telemetry/data-retention#hvad-opbevaring-koster). Regningen læser hver rækkes reelle størrelse, og dette regner det ud ved 1.024 byte pr. række, hvad OneUptimes fakturering falder tilbage på, når den ikke har en størrelse for en række. En række med mange labels, som en instans', koster mere end det, og en uden nogen koster mindre.
 
 | Cloud | Serier | GB om dagen, hver serie | GB om dagen, i oversigtstilstand | En måned opbevaret 15 dage, i oversigtstilstand |
 | --- | --- | --- | --- | --- |
@@ -114,7 +114,7 @@ Ud over 5.000 instanser beholder en cloud tal og rækker frem for en serie pr. i
 - **Hvert par af en region og en tjeneste tilhører én agent.** En række er den samme række, uanset hvor mange agenter der rapporterer den, men hver agents serier gemmes og faktureres.
 - **Keystone tilhører én agent.** Den er én for hele clouden, uanset hvilken region der spørger.
 
-**Én agent pr. region** er det, de fleste clouds vil have. Angiv kun den regions poster i `clouds.yaml` og `OPENSTACK_EXPORTER_CLOUDS`. Kun den første agent beholder Keystone:
+**Én agent pr. region** er det, de fleste clouds vil have. Angiv kun den regions poster i `clouds.yaml` og `OPENSTACK_EXPORTER_CLOUDS`. Kun den første agent beholder Keystone. En agent, der sætter `OPENSTACK_AGENT_SERVICES`, læser kun det, den nævner, så tilføj enhver anden tjeneste, din cloud kører, såsom `load-balancer`:
 
 ```bash
 # On the agent for RegionOne, in .env
@@ -133,7 +133,7 @@ OPENSTACK_AGENT_SERVICES=compute|placement|network|volume|image
 # Nova and Placement, which take the most
 OPENSTACK_AGENT_SERVICES=compute|placement
 
-# And everything else
+# And the rest: add any other service you run, such as load-balancer
 OPENSTACK_AGENT_SERVICES=identity|network|volume|image
 ```
 
@@ -155,7 +155,7 @@ Ud over **1.500 hypervisorer eller 100.000 instanser** kan agenten læse en clou
 **For at slå den til**, i `.env`:
 
 ```bash
-COMPOSE_PROFILES=openstack-database-exporter
+COMPOSE_PROFILES=openstack-database-exporter,openstack-ai-agent
 # Read from the databases, and from nowhere else: with the two together every series arrives twice.
 OPENSTACK_EXPORTER_CLOUDS=[]
 OPENSTACK_DATABASE_EXPORTER_TARGETS=[openstack-database-exporter:9180]
@@ -190,7 +190,7 @@ OPENSTACK_WORKER_STATE_CLOUDS=[RegionOne]
 
 ## Hvad den største størrelse blev holdt op imod
 
-Den rigtige indsamler læste et mock-API med 5.000 hypervisorer, 200.000 instanser og 10.000 projekter hvert andet minut i 60 minutter, på et rigtigt ur. Det, den sendte, gik gennem den rigtige fold og de rigtige skrivninger ind i en rigtig Postgres, mens Oversigtens aflæsninger og oprydningen af forældede rækker kørte ved siden af hvert 30. sekund, og 200 instanser ændrede sig ved hver indsamling. Hvert budget nedenfor er hævdet, og en kørsel, der overskrider ét, fejler.
+Den rigtige indsamler læste et mock-API med 5.000 hypervisorer, 200.000 instanser og 10.000 projekter hvert andet minut i 60 minutter, på et rigtigt ur. Det, den sendte, gik gennem den rigtige indtagelse og de rigtige skrivninger ind i en rigtig Postgres, mens Oversigtens aflæsninger og oprydningen af forældede rækker kørte ved siden af hvert 30. sekund, og 200 instanser ændrede sig ved hver indsamling. Hvert budget nedenfor er hævdet, og en kørsel, der overskrider ét, fejler.
 
 | Hvad | Budget | Målt |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ Marginen er ikke bred på en så optaget maskine. En tidligere time, ved et bela
 
 ## Hvad siderne læser
 
-En stor clouds sider læses lige så hurtigt som en lille, fordi ingen af dem læser hele clouden.
+En stor clouds sider læser kun lidt mere end en lilles, fordi ingen af dem læser hele clouden.
 
 | Side | Hvad den læser |
 | --- | --- |

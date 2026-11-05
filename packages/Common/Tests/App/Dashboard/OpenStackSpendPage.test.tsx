@@ -12,8 +12,10 @@ import * as React from "react";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { getOpenStackUsageTotals } from "../../../Types/OpenStack/OpenStackProjectUsage";
-import { getEmptyOpenStackUsageQuantities } from "../../../Types/OpenStack/OpenStackProjectUsage";
+import {
+  getEmptyOpenStackUsageQuantities,
+  getOpenStackUsageTotals,
+} from "../../../Types/OpenStack/OpenStackProjectUsage";
 import { OpenStackSpendSnapshot } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
 import {
   OPENSTACK_WASTE_RULES,

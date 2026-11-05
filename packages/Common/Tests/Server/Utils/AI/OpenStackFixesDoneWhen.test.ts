@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -566,7 +567,7 @@ describe("a dead hypervisor's evacuation proposal lists what it touches, and ask
       useCloud("compute-down");
 
       const toolkit: RemediationCommandToolkit = toolkitFor("FullAuto", mode);
-      const enqueue: jest.SpiedFunction<
+      const enqueue: SpyInstance<
         typeof RunnerJobService.enqueueAiResourceCommand
       > = jest.spyOn(RunnerJobService, "enqueueAiResourceCommand");
       const outcome: ToolCallOutcome = await callTool(

@@ -34,7 +34,10 @@ import {
   DataAssetReadTracking,
   trackDataAssetReads,
 } from "../../../Types/DataObservability/DataAssetReads";
-import { doesDataAssetKindHoldRows } from "../../../Types/DataObservability/DataAssetKind";
+import {
+  doesDataAssetKindHoldRows,
+  isBilledAsWatchedTable,
+} from "../../../Types/DataObservability/DataAssetKind";
 import {
   DATA_OBSERVABILITY_METRICS,
   DataObservabilityAttribute,
@@ -57,7 +60,6 @@ import DataAssetService from "../../Services/DataAssetService";
 import DataStoreService from "../../Services/DataStoreService";
 import MetricService from "../../Services/MetricService";
 import logger from "../Logger";
-import { isBilledAsWatchedTable } from "../../../Types/DataObservability/DataAssetKind";
 import CollectedLineage from "./CollectedLineage";
 import WatchedTableLimit from "./WatchedTableLimit";
 import DataWarehouseSpendIngest from "./DataWarehouseSpendIngest";
@@ -799,7 +801,7 @@ export default class TableHealthIngest {
 
     if (tablesLeftOut > 0) {
       snapshot.warnings.push(
-        `${tablesLeftOut} more tables were left out: this project has used its free tables. Add a payment method under Project Settings > Billing to watch them.`,
+        `${tablesLeftOut} more tables were left out: this project has used its free tables. Add a payment method under Project Settings > Billing and Invoices > Billing to watch them.`,
       );
     }
 

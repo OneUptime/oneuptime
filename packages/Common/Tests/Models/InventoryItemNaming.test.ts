@@ -148,6 +148,8 @@ describe("the old name is gone from the source tree", () => {
 
   const ALLOWED_REFERENCES: ReadonlyArray<AllowedReference> = [
     { substring: "Utils/Telemetry/TelemetryEntity" },
+    // The same layer, from a folder beside it under Utils.
+    { substring: '"../Telemetry/TelemetryEntity"' },
     // Its neighbours import it relatively.
     {
       substring: './TelemetryEntity"',

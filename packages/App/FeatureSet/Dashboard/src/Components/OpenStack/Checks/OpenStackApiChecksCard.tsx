@@ -403,7 +403,7 @@ const OpenStackApiChecksCard: FunctionComponent<ComponentProps> = (
           title="Turn Off API Checks"
           description={
             isLifecycleOn
-              ? "The lifecycle check goes off with them, because its results travel with these checks. A probe clears up anything a run left, then the credential saved for these checks is deleted."
+              ? "The lifecycle check goes off with them, as its results travel with these. A probe clears up anything a run left, then their credential is deleted."
               : "A probe stops checking this cloud, and any credential saved for these checks is deleted."
           }
           submitButtonText="Turn Off API Checks"

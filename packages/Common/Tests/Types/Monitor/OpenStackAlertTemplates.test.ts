@@ -292,7 +292,7 @@ function serviceOf(query: MetricQueryConfigData): OpenStackServiceType {
     return job as OpenStackServiceType;
   }
 
-  return getOpenStackMetricByMetricName(metricNameOf(query))!.service;
+  return getOpenStackMetricByMetricName(metricNameOf(query))!.service!;
 }
 
 /*

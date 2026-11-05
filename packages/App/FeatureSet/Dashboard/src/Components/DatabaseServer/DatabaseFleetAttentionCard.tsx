@@ -65,9 +65,7 @@ export async function fetchDatabaseFleetAttention(
 ): Promise<FleetRead> {
   const results: Array<ListResult<DatabaseServer>> = await Promise.all(
     getDatabaseFleetAttentionQueries(now).map(
-      (
-        query: Query<DatabaseServer>,
-      ): Promise<ListResult<DatabaseServer>> => {
+      (query: Query<DatabaseServer>): Promise<ListResult<DatabaseServer>> => {
         return ModelAPI.getList<DatabaseServer>({
           modelType: DatabaseServer,
           query: query,
@@ -170,7 +168,9 @@ const DatabaseFleetAttentionCard: FunctionComponent<ComponentProps> = (
         read.isTruncated
           ? translator.translateTemplate(
               DATABASE_FLEET_ATTENTION_TRUNCATED_DESCRIPTION,
-              { count: translator.formatNumber(DATABASE_FLEET_ATTENTION_LIMIT) },
+              {
+                count: translator.formatNumber(DATABASE_FLEET_ATTENTION_LIMIT),
+              },
             )
           : undefined
       }

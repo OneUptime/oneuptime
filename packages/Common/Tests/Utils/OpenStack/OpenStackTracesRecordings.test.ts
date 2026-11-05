@@ -296,7 +296,10 @@ describe.each(getRecordedTraceReleases())(
             "nova.network.neutron.ClientWrapper.proxy",
           );
           expect(
-            Number((span.recorded.endNano - span.recorded.startNano) / 1000n),
+            Number(
+              (span.recorded.endNano - span.recorded.startNano) /
+                BigInt("1000"),
+            ),
           ).toBeLessThan(5000);
           expect(
             spans.some((candidate: ReadSpan): boolean => {
@@ -377,21 +380,25 @@ describe.each(getRecordedTraceReleases())(
     });
 
     describe("from a trace to the logs of its requests", () => {
-      function logRows(scene: string): Array<OpenStackTraceLogRow> {
-        return recording.journal(scene).map((line): OpenStackTraceLogRow => {
-          const stamp: { attributes: Record<string, string>; body: string } =
-            stampOpenStackLogRecord({
-              attributes: { "journald.unit": line.unit },
-              body: line.message,
-              severityNumber: 9,
-            });
+      type JournalLine = ReturnType<OpenStackTraceRecording["journal"]>[number];
 
-          return {
-            time: new Date(line.time * 1000),
-            body: stamp.body,
-            attributes: stamp.attributes,
-          };
-        });
+      function logRows(scene: string): Array<OpenStackTraceLogRow> {
+        return recording
+          .journal(scene)
+          .map((line: JournalLine): OpenStackTraceLogRow => {
+            const stamp: { attributes: Record<string, string>; body: string } =
+              stampOpenStackLogRecord({
+                attributes: { "journald.unit": line.unit },
+                body: line.message,
+                severityNumber: 9,
+              });
+
+            return {
+              time: new Date(line.time * 1000),
+              body: stamp.body,
+              attributes: stamp.attributes,
+            };
+          });
       }
 
       function spansForLogs(scene: string): Array<OpenStackTraceSpanForLogs> {
@@ -401,8 +408,12 @@ describe.each(getRecordedTraceReleases())(
               service: span.service.service,
               method: String(span.attributes["http.method"] || ""),
               path: String(span.attributes["http.path"] || ""),
-              startAt: new Date(Number(span.recorded.startNano / 1000000n)),
-              endAt: new Date(Number(span.recorded.endNano / 1000000n)),
+              startAt: new Date(
+                Number(span.recorded.startNano / BigInt("1000000")),
+              ),
+              endAt: new Date(
+                Number(span.recorded.endNano / BigInt("1000000")),
+              ),
               attributes: span.attributes,
             };
           },
@@ -514,11 +525,12 @@ describe.each(getRecordedTraceReleases())(
       });
 
       test("the HMAC key turned up nowhere it was recorded", () => {
+        const row: RegExp = /^\d+ /;
         const lines: Array<string> = recording
           .text("key-check.txt")
           .split("\n")
           .filter((line: string): boolean => {
-            return /^\d+ /.test(line);
+            return row.test(line);
           });
 
         expect(lines.length).toBeGreaterThan(10);

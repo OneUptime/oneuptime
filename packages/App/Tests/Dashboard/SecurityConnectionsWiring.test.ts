@@ -59,6 +59,11 @@ const RECORD_PAGES: ReadonlyArray<{
     modelId: "modelId",
   },
   {
+    kind: SecurityConnectionKind.OpenStackCloud,
+    page: ["Pages", "OpenStack", "View", "Index.tsx"],
+    modelId: "modelId",
+  },
+  {
     kind: SecurityConnectionKind.NetworkDevice,
     page: ["Pages", "NetworkDevice", "View", "Index.tsx"],
     modelId: "modelId",

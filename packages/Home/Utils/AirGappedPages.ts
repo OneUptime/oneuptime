@@ -2515,14 +2515,6 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           link: { label: "Proxmox agent", href: "/docs/telemetry/proxmox" },
         },
         {
-          key: "ceph",
-          title: "Ceph",
-          description:
-            "An agent on a machine that can reach your mgr daemons on port 9283 reads cluster health, OSDs, pools and placement groups.",
-          icon: "database",
-          link: { label: "Ceph agent", href: "/docs/telemetry/ceph" },
-        },
-        {
           key: "openstack",
           title: "OpenStack",
           description:
@@ -2532,9 +2524,9 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
         },
         {
           key: "storage",
-          title: "Storage arrays",
+          title: "Ceph and storage arrays",
           description:
-            "An agent on a machine that can reach the array's management interface over HTTPS reads capacity, latency, volumes and hardware health.",
+            "An agent on a machine that can reach your mgr daemons on port 9283, or the array's management interface over HTTPS, reads cluster health, capacity, latency and hardware health.",
           icon: "database",
           link: {
             label: "Storage array agent",

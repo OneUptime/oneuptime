@@ -187,6 +187,7 @@ const OpenStackClouds: FunctionComponent<
               ? [
                   {
                     title: "Connect Cloud",
+                    phoneTitle: "Connect",
                     icon: IconProp.Add,
                     buttonStyle: ButtonStyleType.NORMAL,
                     onClick: () => {

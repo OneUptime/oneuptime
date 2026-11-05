@@ -14,6 +14,7 @@ import path from "path";
 import { OpenStackResourceBufferEntry } from "../../../Server/Utils/Telemetry/OpenStackSnapshotScan";
 import { OPENSTACK_LOAD_BALANCER_STUCK_MINUTES } from "../../../Types/OpenStack/OpenStackHealthRules";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import { JSONValue } from "../../../Types/JSON";
 import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import { OpenStackResourceKind } from "../../../Types/OpenStack/OpenStackResourceKind";
 import OpenStackCloudAmphoraDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AmphoraDetail";
@@ -162,12 +163,12 @@ function recorded(
     return {
       _id: id(),
       kind: entry.kind,
-      name: entry.name,
+      name: entry.name ?? undefined,
       externalId: entry.externalId,
-      regionName: entry.regionName,
-      availabilityZone: entry.availabilityZone,
-      openStackProjectId: entry.openStackProjectId,
-      status: entry.status,
+      regionName: entry.regionName ?? undefined,
+      availabilityZone: entry.availabilityZone ?? undefined,
+      openStackProjectId: entry.openStackProjectId ?? undefined,
+      status: entry.status ?? undefined,
       stateChangedAt,
       facts: entry.facts,
       lastSeenAt: new Date(),
@@ -658,15 +659,15 @@ function probeRows(scene: string, poolCall: string): Array<Row> {
         return {
           _id: id(),
           kind: OpenStackResourceKind.Listener,
-          name: item["name"],
-          externalId: item["id"],
+          name: item["name"] as string,
+          externalId: item["id"] as string,
           regionName: "RegionOne",
-          status: item["provisioning_status"],
+          status: item["provisioning_status"] as string,
           stateChangedAt: minutesAgo(5),
           facts: {
-            operatingStatus: item["operating_status"],
-            protocol: item["protocol"],
-            protocolPort: item["protocol_port"],
+            operatingStatus: item["operating_status"] as JSONValue,
+            protocol: item["protocol"] as JSONValue,
+            protocolPort: item["protocol_port"] as JSONValue,
             loadBalancerId: (item["loadbalancers"] as Array<{ id: string }>)[0]
               ?.id,
           },
@@ -682,16 +683,16 @@ function probeRows(scene: string, poolCall: string): Array<Row> {
         return {
           _id: id(),
           kind: OpenStackResourceKind.LoadBalancerMember,
-          name: item["name"],
-          externalId: item["id"],
+          name: item["name"] as string,
+          externalId: item["id"] as string,
           regionName: "RegionOne",
-          status: item["provisioning_status"],
+          status: item["provisioning_status"] as string,
           stateChangedAt: minutesAgo(5),
           facts: {
-            operatingStatus: item["operating_status"],
+            operatingStatus: item["operating_status"] as JSONValue,
             poolId: "191471d8-1ec1-4158-a922-b009bfdaac33",
-            address: item["address"],
-            protocolPort: item["protocol_port"],
+            address: item["address"] as JSONValue,
+            protocolPort: item["protocol_port"] as JSONValue,
           },
           lastSeenAt: new Date(),
         };

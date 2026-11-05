@@ -1,6 +1,6 @@
 # 按部署工具划分的 OpenStack
 
-没有人是直接运行“OpenStack”的。他们运行的是部署它的工具，而每种工具都有自己的路径、自己的日志，以及对“已经在运行什么”的自己的理解。本页就是 OneUptime 的设置指南对每种工具所说的内容：打开 **OpenStack → 所有云**，连接云，然后回答 **您如何部署 OpenStack？**
+没有人是直接运行“OpenStack”的。他们运行的是部署它的工具，而每种工具都有自己的路径、自己的日志，以及对“已经在运行什么”的自己的理解。本页就是 OneUptime 的设置指南对每种工具所说的内容：打开 **OpenStack → 文档**，然后回答 **您如何部署 OpenStack？**
 
 :::cards
 - [各指南的测试程度](#各指南的测试程度): 请先阅读此节。Kolla-Ansible 和 OpenStack-Ansible 的指南都已在真实部署上运行过。其他的尚未运行。
@@ -16,23 +16,23 @@
 
 ## 各指南的测试程度
 
-下面的每个路径、端口和变量都读自该工具自己的源码或文档。记录 OneUptime 测试夹具的测试台还会在 CI 运行器上部署 Kolla-Ansible 和 OpenStack-Ansible，并在其上运行它们指南中的命令，用一个替代 OneUptime 的桩来保存代理发送的内容。因此，这里没有任何一份指南曾从其工具的真实部署向运行中的 OneUptime 上报过数据。各自的验证情况如下：
+下面的每个路径、端口和变量都读自该工具自己的源码或文档。Kolla-Ansible 和 OpenStack-Ansible 的指南也已在真实部署上按步骤执行过，使用它们自己的命令，并用一个替代 OneUptime 的桩来保存代理发送的内容。因此，这里没有任何一份指南曾从其工具的真实部署向运行中的 OneUptime 上报过数据。各自的验证情况如下：
 
 | 工具 | 读自 | 实际运行 |
 | --- | --- | --- |
-| Kolla-Ansible | 其源码，位于 master 和 `stable/2026.1` | 本指南的命令，在使用 Open vSwitch 的 `stable/2026.1` 真实 all-in-one 上运行：每种凭据下的代理、不使用 Docker、使用 Kolla-Ansible 自己的导出器以及在固定版本和 1.7.0 上使用您自己的导出器、从其真实 `prometheus.yml` 读取的目标，以及日志配置。在那里真正停掉 Memcached 后，其 Alertmanager 先发出了一个 firing webhook，随后又发出了一个 resolved webhook，而它发出的内容被发送到运行中的 OneUptime 后，在正确的云上打开了一个事件，且没有在其他任何云上打开，并将其解决 |
-| OpenStack-Ansible | 其源码和文档 | 本指南的命令，在 LXC 容器中运行的 `stable/2026.1` 真实 all-in-one 上：第一个凭据上的代理、第二个凭据上带其策略覆盖的导出器、代理读取各项的 RabbitMQ 和 HAProxy 设置，以及读取 journal 的日志配置 |
-| OpenStack-Helm | 其 chart 的 values | 探测器和 Kubernetes 代理，各自独立运行 |
-| Atmosphere | 其文档和源码 | 探测器和 Kubernetes 代理，各自独立运行 |
+| Kolla-Ansible | 其源码，位于 master 和 `stable/2026.1` | 本指南的命令，在使用 Open vSwitch 的 `stable/2026.1` 真实 all-in-one 上运行：完整视图凭据下的代理、不使用 Docker、使用 Kolla-Ansible 自己的导出器以及在固定版本和 1.7.0 上使用您自己的导出器、仅基础设施凭据下的代理导出器、从其真实 `prometheus.yml` 读取的目标，以及日志配置。在那里真正停掉 Memcached 后，其 Alertmanager 先发出了一个 firing webhook，随后又发出了一个 resolved webhook，而它发出的内容被发送到运行中的 OneUptime 后，在正确的云上打开了一个事件，且没有在其他任何云上打开，并将其解决 |
+| OpenStack-Ansible | 其源码和文档 | 本指南的命令，在 LXC 容器中运行的 `stable/2026.1` 真实 all-in-one 上：完整视图凭据上的代理、仅基础设施凭据上带其策略覆盖的代理导出器、代理读取各项的 RabbitMQ 和 HAProxy 设置，以及读取 journal 的日志配置 |
+| OpenStack-Helm | 其 chart 的 values | 没有在 OpenStack-Helm 上测试过。探测器和 Kubernetes 代理各自独立测试过 |
+| Atmosphere | 其文档和源码 | 没有在 Atmosphere 上测试过。探测器和 Kubernetes 代理各自独立测试过 |
 | Canonical Sunbeam | Canonical 的文档，以及其 charm 的源码 | 在 Sunbeam 上没有运行过任何内容。Sunbeam 自己的文档没有提到导出器 charm |
-| Red Hat OpenStack on OpenShift | Telemetry Operator 的源码 | OpenShift 预设和 Ceilometer 的导出器，各自独立运行 |
+| Red Hat OpenStack on OpenShift | Telemetry Operator 的源码 | 没有在 Red Hat 的发行版上测试过。OpenShift 预设和 Ceilometer 的导出器各自独立测试过 |
 | Mirantis MOSK | Mirantis 的文档，其示例展示的是其他接收器而不是 webhook | 在 MOSK 上没有运行过任何内容 |
 
-每份指南中 **谁做了什么** 所启用的内容，是在 DevStack 上、测试台运行的每个版本上记录的，而不是在这些工具中的任何一个上。每种工具在哪里启用它，则读自该工具的源码或文档。
+每份指南中 **谁做了什么** 所启用的内容，是在 DevStack 上记录的，而不是在这些工具中的任何一个上。每种工具在哪里启用它，则读自该工具的源码或文档。
 
-除此之外，整条路径还在一个运行中的 OneUptime 上运行过，它以 Docker Compose 的方式启动，其应用和探测器由这份代码构建，而且是在真实的 DevStack 上而非这些工具中的任何一个上。按其文档中的命令安装的代理，从第一批数据起就注册了这个云，每个实例、卷和 Hypervisor 都有一行，状态就是云本身给出的状态。在真正停止 `nova-compute` 后，它的那一行变为宕机，来自 Compute Service Down 模板的监控器在 746 秒后打开了一个指明该主机的事件，并在服务重新启动 48 秒后将其解决。某个项目的探测器通过仪表板自己的路由连接了同一个云并读回了它的各行，一次带签名的启动在各服务间产生的 114 个 span 也通过追踪配置到达了。
+除此之外，整条路径还在一个运行中的 OneUptime 上运行过，它以 Docker Compose 的方式启动，而且是在真实的 DevStack 上而非这些工具中的任何一个上。按其文档中的命令安装的代理，从第一批数据起就注册了这个云，每个实例、卷和 Hypervisor 都有一行，状态就是云本身给出的状态。在真正停止 `nova-compute` 后，它的那一行变为宕机，来自 Compute Service Down 模板的监控器在约 12 分钟后打开了一个指明该主机的事件，并在服务重新启动后一分钟内将其解决。某个项目的探测器通过仪表板自己的路由连接了同一个云并读回了它的各行，一次带签名的启动在各服务间产生的 114 个 span 也通过追踪配置到达了。
 
-另外，真实代理和真实 Alertmanager 发送过的内容，是在 DevStack 和测试集群中记录的，而不是在这些工具中任何一个部署的云上。发送到运行中的 OneUptime 后，触发的 webhook 在正确的云上、且只在该云上打开了一个事件，再次发送同一个 webhook 没有打开任何新事件，而已解决的 webhook 则解决了该事件。
+另外，真实代理在 DevStack 上发送的内容，以及 Kolla-Ansible 的 Alertmanager 发出的内容都被记录下来，然后发送到运行中的 OneUptime：触发的 webhook 在正确的云上、且只在该云上打开了一个事件，再次发送同一个 webhook 没有打开任何新事件，而已解决的 webhook 则解决了该事件。
 
 ## 转发已经触发的告警
 
@@ -48,7 +48,7 @@
 打开监控器的 **概览 → 已关联资源**，添加该 OpenStack 云。之后每个事件都出现在该云的 **事件** 页面上：Incoming Request 监控器自身的设置不指明任何云，因此每个云的 Alertmanager 都需要一个专属的监控器。该云在其首批数据到达后才会出现在列表中，所以请在完成下面的步骤之后再做这一步，或先在 **OpenStack → 所有云** 下添加该云。
 :::
 
-Alertmanager 已按这个确切的格式发送请求，记录于 `Tests/Ops/openstack-e2e` 中，使用的是 Kolla-Ansible 所固定的版本，且该记录通过真实的评估器回放：每个告警一个事件，由它自己的 `resolved` 状态解决。
+Alertmanager（Kolla-Ansible 所固定的版本）已被记录下按这个确切的格式发送请求，它发出的内容在运行中的 OneUptime 上打开了一个事件，并由它自己的 `resolved` 状态解决。
 
 ## Kolla-Ansible
 
@@ -576,7 +576,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne \
 bash install.sh
 ```
 
-这一遍遍历是在 Kolla-Ansible 自己的 Prometheus 每分钟查询的基础上额外进行的。Kolla-Ansible 固定使用导出器 1.7.0，其应答包含的内容也少于代理所固定的导出器。下面是页面在五个真实云上缺少的内容，并且有测试将其与那些记录对照：
+这一次读取是在 Kolla-Ansible 自己的 Prometheus 每分钟查询的基础上额外进行的。Kolla-Ansible 固定使用导出器 1.7.0，其应答包含的内容也少于代理所固定的导出器。下面是页面在五个真实云上缺少的内容，并且有测试将其与那些记录对照：
 
 | 缺少 | 原因 | 影响 |
 | --- | --- | --- |

@@ -132,13 +132,13 @@ function recorded(
     return {
       _id: id(),
       kind: entry.kind,
-      name: entry.name,
+      name: entry.name ?? undefined,
       externalId: entry.externalId,
-      regionName: entry.regionName,
-      availabilityZone: entry.availabilityZone,
-      openStackProjectId: entry.openStackProjectId,
-      status: entry.status,
-      diskCapacityBytes: entry.diskCapacityBytes,
+      regionName: entry.regionName ?? undefined,
+      availabilityZone: entry.availabilityZone ?? undefined,
+      openStackProjectId: entry.openStackProjectId ?? undefined,
+      status: entry.status ?? undefined,
+      diskCapacityBytes: entry.diskCapacityBytes ?? undefined,
       stateChangedAt,
       facts: entry.facts,
       lastSeenAt: new Date(),
@@ -198,10 +198,7 @@ describe("Shares", () => {
   });
 
   test("an empty list with Manila up is what the monitoring role gets, so it says that", async () => {
-    server.rows = recorded(
-      "access-check",
-      "exporter/monitoring-role",
-    );
+    server.rows = recorded("access-check", "exporter/monitoring-role");
 
     await renderPage(OpenStackCloudShares, "/shares");
 
@@ -300,7 +297,7 @@ describe("a share's page", () => {
         ? {
             ...row,
             facts: {
-              ...(row["facts"] as object),
+              ...(row["facts"] as Record<string, unknown>),
               backendHost: "compute-01@alpha#fake_pool_for_ALPHA",
               accessRulesStatus: "active",
             },

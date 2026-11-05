@@ -74,11 +74,12 @@ describe.each(
     expect(OPENSTACK_SERVICE_TITLES[entry.service]).toBeTruthy();
     /*
      * What CloudKitty rated goes on each project's own row, which Keystone answers for, and what
-     * Gnocchi says goes on its API's row.
+     * Gnocchi and Barbican say goes on their API's row: how many secrets there are, and none of them.
      */
     if (
       entry.service === OpenStackServiceType.Rating ||
-      entry.service === OpenStackServiceType.Metric
+      entry.service === OpenStackServiceType.Metric ||
+      entry.service === OpenStackServiceType.KeyManager
     ) {
       expect(OPENSTACK_KINDS_BY_SERVICE[entry.service]).toEqual([]);
       return;
