@@ -348,6 +348,8 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
    * per collection, and these jobs collect no more than once a minute.
    */
   "openstack-instances-in-error|instances_in_error": "Count",
+  // Up or down, its rows say it is disabled, so they are the whole of the question.
+  "openstack-compute-service-disabled|compute_service_disabled": "Count",
   "openstack-dns-zone-in-error|in_error": "Count",
   "openstack-dns-zone-stuck-pending|in_pending": "Count",
   "openstack-dns-recordset-in-error|recordset_a": "Count",
@@ -453,6 +455,10 @@ const THRESHOLDS: Readonly<
   "openstack-compute-service-down": {
     filterType: FilterType.LessThan,
     value: 1,
+  },
+  "openstack-compute-service-disabled": {
+    filterType: FilterType.GreaterThan,
+    value: 0,
   },
   "openstack-scheduler-or-conductor-down": {
     filterType: FilterType.LessThan,
@@ -835,6 +841,10 @@ const SCENES: Readonly<Record<string, Scene>> = {
   "openstack-compute-service-down": {
     breached: { compute_service_up: 0 },
     healthy: { compute_service_up: 1 },
+  },
+  "openstack-compute-service-disabled": {
+    breached: { compute_service_disabled: 1 },
+    healthy: { compute_service_disabled: 0 },
   },
   "openstack-scheduler-or-conductor-down": {
     breached: { scheduler_up: 0 },
@@ -1291,6 +1301,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Database Instance Stuck",
         "Database Volume Nearly Full",
         "Compute Service Down",
+        "Compute Service Disabled",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
         "Every Scheduler or Conductor Down",
@@ -1936,7 +1947,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
 
     test.each(TEMPLATE_CASES)(
       "%s, if it reads a worker, reads only what an operator left on",
-      (_id: string, template: OpenStackAlertTemplate) => {
+      (id: string, template: OpenStackAlertTemplate) => {
+        // The one that asks whether someone meant to turn it off: see its own test below.
+        if (id === "openstack-compute-service-disabled") {
+          return;
+        }
+
         for (const query of queriesOf(stepOf(template))) {
           const adminState: string | undefined =
             ADMIN_STATE[metricNameOf(query)];
@@ -1951,6 +1967,11 @@ describe("OpenStack alert templates: the rules every template passes", () => {
     test("there are worker templates for that to hold on", () => {
       const workerTemplates: Array<OpenStackAlertTemplate> = TEMPLATES.filter(
         (template: OpenStackAlertTemplate): boolean => {
+          // It reads the other side on purpose: see the test of its own.
+          if (template.id === "openstack-compute-service-disabled") {
+            return false;
+          }
+
           return queriesOf(stepOf(template)).some(
             (query: MetricQueryConfigData): boolean => {
               return Boolean(ADMIN_STATE[metricNameOf(query)]);
@@ -1960,6 +1981,25 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       );
 
       expect(workerTemplates.length).toBe(6);
+    });
+
+    test("what reads a disabled nova-compute reads only that, and only when disabled", () => {
+      const template: OpenStackAlertTemplate = TEMPLATES.find(
+        (candidate: OpenStackAlertTemplate): boolean => {
+          return candidate.id === "openstack-compute-service-disabled";
+        },
+      )!;
+      const queries: Array<MetricQueryConfigData> = queriesOf(
+        stepOf(template),
+      ).filter((query: MetricQueryConfigData): boolean => {
+        return aliasOf(query) !== OPENSTACK_ANCHOR_METRIC_ALIAS;
+      });
+
+      expect(queries).toHaveLength(1);
+      expect(attributesOf(queries[0]!)).toEqual({
+        service: "nova-compute",
+        adminState: "disabled",
+      });
     });
 
     test("a worker is never grouped by an id, which Cinder makes up afresh every time", () => {

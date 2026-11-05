@@ -1618,7 +1618,7 @@ const libvirtServiceDownTemplate: OpenStackAlertTemplate = {
   name: "libvirt Service Down",
   summary: "libvirt does not answer on a machine for 5 minutes.",
   description:
-    "Alert when libvirt does not answer on a machine for 5 minutes (libvirt_up reads 0, with the exporter still answering). One incident per machine. Its instances carry on, but none can be started, stopped or moved there. nova-compute disables itself on that machine, so Compute Service Down stays quiet and this is the one that speaks. It can stay disabled for a while after libvirt is back, which `openstack compute service list` shows. Check `systemctl status libvirtd` on it, or `docker ps` for nova_libvirt on Kolla-Ansible.",
+    "Alert when libvirt does not answer on a machine for 5 minutes (libvirt_up reads 0, with the exporter still answering). One incident per machine. Its instances carry on, but none can be started, stopped or moved there. nova-compute disables itself on that machine, so Compute Service Down and Compute Service Disabled stay quiet and this is the one that speaks. It can stay disabled for a while after libvirt is back, which `openstack compute service list` shows. Check `systemctl status libvirtd` on it, or `docker ps` for nova_libvirt on Kolla-Ansible.",
   category: "libvirt",
   severity: "Critical",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
@@ -1798,6 +1798,12 @@ const CHILDREN_OF_PARENT_TEMPLATE: Readonly<
   [ovnControllerNotRunningTemplate.id]: ["openstack-network-agent-down"],
   [ovsServiceDownTemplate.id]: ["openstack-network-agent-down"],
   [ovnDatabaseWithoutLeaderTemplate.id]: [ovnNorthdNotActiveTemplate.id],
+  /*
+   * When libvirt goes, nova-compute disables itself and says so. One machine's libvirt speaks only
+   * for a service that said that (OpenStackDependencySuppression), so a host someone disabled by
+   * hand still pages, and with no libvirt monitor to say why, one that disabled itself does too.
+   */
+  [libvirtServiceDownTemplate.id]: ["openstack-compute-service-disabled"],
 };
 
 // The templates whose monitors a monitor made from this one waits for.

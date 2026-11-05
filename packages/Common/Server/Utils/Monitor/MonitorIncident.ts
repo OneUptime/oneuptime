@@ -52,6 +52,7 @@ import PerSeriesResolutionRootCause from "./PerSeriesResolutionRootCause";
 import OpenStackAlertContext, {
   OpenStackSeriesDescription,
 } from "../OpenStack/OpenStackAlertContext";
+import OpenStackProjectNotices from "../OpenStack/OpenStackProjectNotices";
 import OpenStackScopedRules, {
   OpenStackScopedRulesMatch,
 } from "../OpenStack/OpenStackScopedRules";
@@ -1039,6 +1040,15 @@ export default class MonitorIncident {
             projectId: input.monitor.projectId!,
             incidentId: createdIncident.id!,
             match: openStackRules,
+          });
+
+          // Whoever asked to hear about a project this reaches, once they have seen who that tells.
+          await OpenStackProjectNotices.recordForIncident({
+            projectId: input.monitor.projectId!,
+            incidentId: createdIncident.id!,
+            isPrivate: incident.isPrivate,
+            series: openStackSeries,
+            monitorSteps: input.monitor.monitorSteps,
           });
 
           /*

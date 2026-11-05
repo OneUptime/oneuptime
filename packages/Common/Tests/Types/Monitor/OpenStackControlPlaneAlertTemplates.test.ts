@@ -335,6 +335,7 @@ describe("one failure, one incident: who waits for whom", () => {
   test("the parents are what a whole failure reads as", () => {
     expect(PARENTS.sort()).toEqual([
       "openstack-haproxy-down",
+      "openstack-libvirt-service-down",
       "openstack-mariadb-cluster-down",
       "openstack-ovn-controller-not-running",
       "openstack-ovn-database-without-leader",
@@ -355,11 +356,18 @@ describe("one failure, one incident: who waits for whom", () => {
     }
   });
 
-  test("libvirt going has nothing wait for it: nova-compute disables itself, so nothing else fires", () => {
-    for (const id of getOpenStackControlPlaneTemplateIds(
-      OpenStackDependency.Libvirt,
-    )) {
-      expect(getOpenStackTemplateChildren(id)).toEqual([]);
-    }
+  test("libvirt going speaks for what nova-compute says of itself, and nothing else waits for it", () => {
+    expect(
+      getOpenStackTemplateChildren("openstack-libvirt-service-down"),
+    ).toEqual(["openstack-compute-service-disabled"]);
+    expect(
+      getOpenStackTemplateChildren("openstack-libvirt-exporter-target-down"),
+    ).toEqual([]);
+    expect(
+      getOpenStackControlPlaneTemplateIds(OpenStackDependency.Libvirt),
+    ).toEqual([
+      "openstack-libvirt-service-down",
+      "openstack-libvirt-exporter-target-down",
+    ]);
   });
 });

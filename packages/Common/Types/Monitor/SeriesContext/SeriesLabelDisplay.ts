@@ -139,6 +139,7 @@ const FriendlyLabelNames: Record<string, string> = {
   port: "Port",
   // What the agent's control plane jobs stamp, and what those exporters say.
   openstack_exporter_host: "Machine",
+  disabledReason: "Disabled Reason",
   proxy: "Backend",
   queue: "Queue",
   vhost: "Virtual Host",

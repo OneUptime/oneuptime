@@ -1,5 +1,6 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
+import OpenStackProjectNoticeDelivery from "Common/Models/DatabaseModels/OpenStackProjectNoticeDelivery";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import BaseModel, {
@@ -51,6 +52,12 @@ const REGISTRATIONS: Array<Registration> = [
     modelName: "OpenStackBudget",
     serviceName: "OpenStackBudgetService",
     route: "/openstack-budget",
+  },
+  {
+    model: OpenStackProjectNoticeDelivery,
+    modelName: "OpenStackProjectNoticeDelivery",
+    serviceName: "OpenStackProjectNoticeDeliveryService",
+    route: "/openstack-project-notice-delivery",
   },
 ];
 
