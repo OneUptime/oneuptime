@@ -17367,7 +17367,7 @@
   "This is the Community Edition image": "This is the Community Edition image",
   "This is the newest session in the window": "This is the newest session in the window",
   "This is the oldest session in the window": "This is the oldest session in the window",
-  "This is the run you just started.": "This is the run you just started.",
+  "This is the run you just started.": "این اجرایی است که همین حالا شروع کردید.",
   "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.": "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
   "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.": "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
   "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.": "This item does not report a heartbeat, so how long ago it was last seen says nothing about whether it is healthy.",
@@ -45240,5 +45240,9 @@
   "Passes on every custom field: {{fields}}": "همهٔ فیلدهای سفارشی را منتقل می‌کند: {{fields}}",
   "Choice": "گزینه",
   "Choices": "چند گزینه",
-  "This project has no custom fields for these records yet.": "این پروژه هنوز برای این رکوردها فیلد سفارشی ندارد."
+  "This project has no custom fields for these records yet.": "این پروژه هنوز برای این رکوردها فیلد سفارشی ندارد.",
+  "Run this workflow again?": "این گردش کار دوباره اجرا شود؟",
+  "A new run starts from the trigger, with the same values and the workflow as it is now. Every step runs for real: anything it sends, writes or deletes actually happens.": "یک اجرای جدید از راه‌انداز شروع می‌شود، با همان مقادیر و گردش کار به شکل فعلی آن. هر مرحله واقعاً اجرا می‌شود: هر چیزی که بفرستد، بنویسد یا حذف کند واقعاً انجام می‌شود.",
+  "Run with the last run's values": "اجرا با مقادیر آخرین اجرا",
+  "Starts a new run with what the run of {{date}} started with.": "یک اجرای جدید را با همان چیزی شروع می‌کند که اجرای {{date}} با آن شروع شد."
 }

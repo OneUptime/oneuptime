@@ -18,6 +18,8 @@ Ogni volta che un workflow viene eseguito, OneUptime salva un resoconto di ciò 
 
 Avviare un'esecuzione dal **Costruttore** apre la stessa vista **Esecuzione del flusso di lavoro**, che già segue l'esecuzione, così la vedi accadere invece di doverla cercare dopo.
 
+Per riprovare un'esecuzione con gli stessi valori, premi Esegui di nuovo nella sua vista o nel menu ⋯ della sua riga. Una nuova esecuzione parte dal trigger con ciò con cui è partita quell'esecuzione, quindi il payload di un webhook non deve essere inviato di nuovo, ed esegue il workflow così com'è ora, quindi puoi modificare un passaggio e riprovare subito. I suoi passaggi vengono eseguiti davvero e, finché il workflow è disattivato, è un'esecuzione di prova. Il pannello di esecuzione del workflow nel Builder offre i valori dell'ultima esecuzione allo stesso modo. Il test di un singolo passaggio si riesegue dal passaggio. Un'esecuzione partita con più di 1 MB di valori non può essere rieseguita, e nemmeno un'esecuzione precedente al momento in cui OneUptime ha iniziato a conservare questi valori. Sono cifrati e nessuno può leggerli tramite l'API.
+
 ## Stati di un'esecuzione
 
 ```mermaid title="Gli stati che attraversa un'esecuzione"

@@ -18,6 +18,8 @@ Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som
 
 Startar du en körning från **Byggare** öppnas samma vy **Arbetsflödeskörning**, som redan följer körningen, så att du kan se den hända i stället för att leta efter den efteråt.
 
+För att prova en körning igen med samma värden trycker du på Kör igen i dess vy, eller i ⋯-menyn på dess rad. En ny körning startar från utlösaren med det som den körningen startade med, så en webhooks nyttolast behöver inte skickas igen, och den kör arbetsflödet som det är nu, så du kan ändra ett steg och prova direkt. Dess steg körs på riktigt, och medan arbetsflödet är avstängt är det en testkörning. Panelen för att köra arbetsflödet i Builder erbjuder värdena från den senaste körningen på samma sätt. Ett test av ett enda steg körs igen från steget. En körning som startade med mer än 1 MB värden kan inte köras igen, och inte heller en körning från innan OneUptime sparade dessa värden. De är krypterade och ingen kan läsa dem via API:et.
+
 ## Status för en körning
 
 ```mermaid title="Statusarna en körning går igenom"

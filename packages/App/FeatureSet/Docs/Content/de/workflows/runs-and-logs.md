@@ -18,6 +18,8 @@ Jedes Mal, wenn ein Workflow läuft, speichert OneUptime, was passiert ist – w
 
 Eine Ausführung, die Sie aus dem **Editor** starten, öffnet dieselbe Ansicht **Arbeitsablauf-Ausführung**, die der Ausführung bereits folgt, sodass Sie ihr zusehen können, statt sie hinterher zu suchen.
 
+Um einen Lauf mit denselben Werten erneut zu versuchen, drücken Sie in seiner Ansicht oder im ⋯-Menü seiner Zeile auf Erneut ausführen. Ein neuer Lauf beginnt beim Auslöser mit dem, womit dieser Lauf begonnen hat, sodass die Nutzlast eines Webhooks nicht erneut gesendet werden muss, und er führt den Workflow in seinem aktuellen Zustand aus, sodass Sie einen Schritt ändern und es sofort ausprobieren können. Seine Schritte werden wirklich ausgeführt, und solange der Workflow ausgeschaltet ist, ist es ein Testlauf. Das Bedienfeld zum Ausführen des Workflows im Builder bietet die Werte des letzten Laufs auf dieselbe Weise an. Der Test eines einzelnen Schritts wird vom Schritt aus erneut ausgeführt. Ein Lauf, der mit mehr als 1 MB an Werten begonnen hat, kann nicht erneut ausgeführt werden, ebenso wenig ein Lauf aus der Zeit, bevor OneUptime diese Werte aufbewahrt hat. Sie sind verschlüsselt und niemand kann sie über die API lesen.
+
 ## Status einer Ausführung
 
 ```mermaid title="Die Status, die eine Ausführung durchläuft"
