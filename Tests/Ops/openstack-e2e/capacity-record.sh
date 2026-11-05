@@ -53,20 +53,25 @@ for service in json.load(sys.stdin):
 ' "$1"
 }
 
-export OS_TOKEN
-OS_TOKEN="$(openstack token issue -f value -c id)"
-export OS_PLACEMENT_URL
-OS_PLACEMENT_URL="$(endpoint_of placement)"
-export OS_COMPUTE_URL
-OS_COMPUTE_URL="$(endpoint_of compute)"
+# Not OS_TOKEN: the openstack CLI reads that one itself, and refuses it beside a password.
+export OU_CAPACITY_TOKEN
+OU_CAPACITY_TOKEN="$(openstack token issue -f value -c id)"
+export OU_CAPACITY_PLACEMENT_URL
+OU_CAPACITY_PLACEMENT_URL="$(endpoint_of placement)"
+export OU_CAPACITY_COMPUTE_URL
+OU_CAPACITY_COMPUTE_URL="$(endpoint_of compute)"
 
 placement_call() {
   python3 -I "$HERE/capacity-placement.py" "$@"
 }
 
+# As whoever runs the real nova-compute, so nothing it leaves in Nova's own folders is root's.
+STACK_USER="$(systemctl show devstack@n-cpu.service -p User --value 2>/dev/null || true)"
+STACK_USER="${STACK_USER:-root}"
+
 start_host() {
   local name="$1"
-  sudo systemd-run --unit="ou-capacity-$name" --collect \
+  sudo systemd-run --unit="ou-capacity-$name" --collect --uid="$STACK_USER" \
     "$VENV/bin/nova-compute" \
     --config-file /etc/nova/nova-cpu.conf \
     --config-file "$STATE/$name.conf" >/dev/null
@@ -78,7 +83,7 @@ stop_host() {
 
 add_host() {
   local name="$1" cpu_ratio="$2" ram_ratio="$3" reserved_mb="$4"
-  sudo mkdir -p "$STATE/$name/instances"
+  sudo install -d -o "$STACK_USER" "$STATE" "$STATE/$name" "$STATE/$name/instances"
   sudo tee "$STATE/$name.conf" >/dev/null <<CONF
 [DEFAULT]
 host = $name
@@ -91,6 +96,7 @@ disk_allocation_ratio = 1.0
 reserved_host_memory_mb = $reserved_mb
 reserved_host_disk_mb = 0
 CONF
+  sudo chmod a+r "$STATE/$name.conf"
   start_host "$name"
 }
 
@@ -126,7 +132,7 @@ is_discovered() {
 record() {
   local scene="$1"
   bash "$HERE/record.sh" "$scene"
-  OS_TOKEN="$(openstack token issue -f value -c id)"
+  OU_CAPACITY_TOKEN="$(openstack token issue -f value -c id)"
   placement_call providers "$OUTPUT_DIR/$scene/placement"
   placement_call candidates "$OUTPUT_DIR/$scene/candidates"
   {
@@ -222,9 +228,9 @@ wait_until "ou-cap-3 no longer holds COMPUTE_STATUS_DISABLED" 60 \
 
 log "An allocation no instance owns"
 ORPHAN="$(python3 -I -c 'import uuid; print(uuid.uuid4())')"
-OS_ORPHAN_PROJECT="$(openstack project show admin -f value -c id)"
-OS_ORPHAN_USER="$(openstack user show admin -f value -c id)"
-export OS_ORPHAN_PROJECT OS_ORPHAN_USER
+OU_CAPACITY_ORPHAN_PROJECT="$(openstack project show admin -f value -c id)"
+OU_CAPACITY_ORPHAN_USER="$(openstack user show admin -f value -c id)"
+export OU_CAPACITY_ORPHAN_PROJECT OU_CAPACITY_ORPHAN_USER
 placement_call orphan "$(provider_of ou-cap-1)" "$ORPHAN"
 record capacity-orphan
 echo "$ORPHAN" >"$OUTPUT_DIR/capacity-orphan/orphan-consumer.txt"

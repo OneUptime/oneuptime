@@ -416,12 +416,18 @@ export function getBlastRadius(allRows, part) {
   }
 
   if (part.kind === "StoragePool") {
-    const volumes = ofKind(allRows, "Volume").filter((row) => {
+    const inRegion = ofKind(allRows, "Volume").filter((row) => {
+      return row.regionName === part.regionName;
+    });
+    const volumes = inRegion.filter((row) => {
       return row.facts?.pool === part.name;
     });
     return finish(
       [{ count: "volumeCount", byProject: countsByProject(volumes) }],
-      volumes.length > 0,
+      // A volume naming any pool says this one holds nothing, rather than that nobody knows.
+      inRegion.some((row) => {
+        return Boolean(row.facts?.pool);
+      }),
     );
   }
 

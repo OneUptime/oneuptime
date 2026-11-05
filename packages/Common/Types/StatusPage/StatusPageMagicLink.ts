@@ -22,7 +22,9 @@ import {
  *   - it works for STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES, and each new link
  *     replaces the last, so only the latest email's link works;
  *   - a new email address for the user, set by the page's team or by SCIM,
- *     ends it (StatusPagePrivateUserService.onBeforeUpdate);
+ *     ends it (StatusPagePrivateUserService.onBeforeUpdate), and so does a new
+ *     password, however it is set: their reset link's page or a teammate through
+ *     the API (StatusPagePrivateUserService.onUpdatePermitted);
  *   - the page that opens it is a token route (Common/UI/Utils/
  *     SensitiveUrlToken): the token leaves the address bar before anything
  *     else on the page can read it, and none of the page's custom code runs

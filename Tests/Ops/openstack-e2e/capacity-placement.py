@@ -11,7 +11,7 @@ is not on every DevStack, so these calls are made as the product's probe makes t
     capacity-placement.py orphan <provider> <consumer>     an allocation no instance owns
     capacity-placement.py forget <consumer>
 
-Reads OS_TOKEN, OS_PLACEMENT_URL and OS_COMPUTE_URL from the environment.
+Reads OU_CAPACITY_TOKEN, OU_CAPACITY_PLACEMENT_URL and OU_CAPACITY_COMPUTE_URL from the environment.
 """
 import json
 import os
@@ -29,7 +29,7 @@ CANDIDATE_LIMIT = 1000
 
 def request(url, method="GET", body=None, version=MICROVERSION):
     headers = {
-        "X-Auth-Token": os.environ["OS_TOKEN"],
+        "X-Auth-Token": os.environ["OU_CAPACITY_TOKEN"],
         "Accept": "application/json",
         "OpenStack-API-Version": version,
     }
@@ -51,12 +51,12 @@ def request(url, method="GET", body=None, version=MICROVERSION):
 
 
 def placement(path, **kwargs):
-    return request(os.environ["OS_PLACEMENT_URL"].rstrip("/") + path, **kwargs)
+    return request(os.environ["OU_CAPACITY_PLACEMENT_URL"].rstrip("/") + path, **kwargs)
 
 
 def compute(path):
     return request(
-        os.environ["OS_COMPUTE_URL"].rstrip("/") + path, version=COMPUTE_MICROVERSION
+        os.environ["OU_CAPACITY_COMPUTE_URL"].rstrip("/") + path, version=COMPUTE_MICROVERSION
     )
 
 
@@ -175,8 +175,8 @@ def orphan(name, consumer):
                 uuid: {"resources": {"VCPU": 2, "MEMORY_MB": 1024, "DISK_GB": 10}}
             },
             "consumer_generation": None,
-            "project_id": os.environ.get("OS_ORPHAN_PROJECT", "0" * 32),
-            "user_id": os.environ.get("OS_ORPHAN_USER", "0" * 32),
+            "project_id": os.environ.get("OU_CAPACITY_ORPHAN_PROJECT", "0" * 32),
+            "user_id": os.environ.get("OU_CAPACITY_ORPHAN_USER", "0" * 32),
         },
     )
     print(f"orphaned allocation {consumer} on {name}: {status} {answer}")

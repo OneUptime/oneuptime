@@ -30,6 +30,10 @@ on:
         description: Only record what Placement says of an estate of several hosts, which skips everything else
         type: boolean
         default: false
+      agent_install_only:
+        description: Only install the agent the way its docs say, with and without Docker, on one DevStack
+        type: boolean
+        default: false
   schedule:
     - cron: "23 3 * * 1"
   pull_request:
@@ -42,9 +46,10 @@ permissions:
   contents: read
 
 # The control plane's own run takes no DevStack and has nothing to do with a full one,
-# so neither cancels the other. Nor does a run that only records traces, or capacity.
+# so neither cancels the other. Nor does a run that only records traces, that only installs the
+# agent, or that only records capacity.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.capacity_only && 'capacity' || 'all' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.control_plane_only && 'control-plane' || inputs.traces_only && 'traces' || inputs.capacity_only && 'capacity' || inputs.agent_install_only && 'agent-install' || 'all' }}
   cancel-in-progress: true
 
 jobs:
@@ -52,7 +57,7 @@ jobs:
   # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
   record-control-plane:
     name: control plane clusters
-    if: ${{ !inputs.logs_only && !inputs.capacity_only }}
+    if: ${{ !inputs.logs_only && !inputs.agent_install_only && !inputs.capacity_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -71,6 +76,77 @@ jobs:
           path: ${{ runner.temp }}/recording
           if-no-files-found: warn
           retention-days: 30
+
+  # The agent the way its docs say, on the newest release. A job of its own, so that it holds no
+  # recording up and costs only this one DevStack: nothing here needs Ceilometer. By hand when asked
+  # for by name, because a run dispatched for its recordings has no use for it, and otherwise on
+  # the weekly run and on a pull request that changes the agent. See agent-install.sh for what it
+  # proves that the installers' tests, on stubs, cannot.
+  agent-install:
+    name: agent install
+    if: ${{ inputs.agent_install_only || github.event_name != 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker compose version >/dev/null 2>&1 || sudo apt-get install -y docker-compose-v2
+          docker info --format 'Docker {{.ServerVersion}}'
+          docker compose version
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Install the agent the way its docs say, and break it
+        run: bash Tests/Ops/openstack-e2e/agent-install.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what it did
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-agent-install
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-agent-install
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
 
   # What Placement says of an estate of several hosts, which a DevStack's one host can't show:
   # an allocation ratio that differs by host, a reserved amount, and memory spread too thinly
@@ -175,7 +251,7 @@ jobs:
 
   record:
     name: ${{ matrix.name }}
-    if: ${{ !inputs.control_plane_only && !inputs.capacity_only }}
+    if: ${{ !inputs.control_plane_only && !inputs.agent_install_only && !inputs.capacity_only }}
     runs-on: ubuntu-24.04
     # Half an hour more on the two entries that drill what a cloud stands on.
     timeout-minutes: 180

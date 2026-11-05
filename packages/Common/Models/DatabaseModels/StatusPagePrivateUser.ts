@@ -358,6 +358,12 @@ export default class StatusPagePrivateUser extends BaseModel {
   })
   public passwordSalt?: string = undefined;
 
+  /*
+   * The latest password reset link emailed to this user: the hash of its token,
+   * never the token, which is only ever mailed. Cleared by the reset that uses
+   * it, by any other new password and by a new email address, and replaced by
+   * the next link asked for.
+   */
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -393,7 +399,8 @@ export default class StatusPagePrivateUser extends BaseModel {
    * The latest sign-in link emailed to this user (Types/StatusPage/
    * StatusPageMagicLink): the hash of its token, never the token, which is
    * only ever mailed - like resetPasswordToken. Cleared by the sign-in that
-   * uses it, and replaced by the next link asked for.
+   * uses it, by a new password and by a new email address, and replaced by the
+   * next link asked for.
    */
   @ColumnAccessControl({
     create: [],
