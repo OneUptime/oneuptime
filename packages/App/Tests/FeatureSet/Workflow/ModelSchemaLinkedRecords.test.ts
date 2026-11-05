@@ -87,19 +87,18 @@ const getColumnsFor: GetColumnsForFunction = async (
     query: { access: access },
   } as unknown as ExpressRequest;
 
-  const next: jest.Mock = jest.fn();
+  const next: NextFunction = jest.fn() as unknown as NextFunction;
 
-  (Response.sendJsonObjectResponse as jest.Mock).mockClear();
+  const sendJsonObjectResponse: jest.Mock =
+    Response.sendJsonObjectResponse as unknown as jest.Mock;
 
-  await api.getModelSchema(
-    req,
-    {} as ExpressResponse,
-    next as unknown as NextFunction,
-  );
+  sendJsonObjectResponse.mockClear();
+
+  await api.getModelSchema(req, {} as ExpressResponse, next);
 
   expect(next).not.toHaveBeenCalled();
 
-  const body: JSONObject = (Response.sendJsonObjectResponse as jest.Mock).mock
+  const body: JSONObject = sendJsonObjectResponse.mock
     .calls[0]?.[2] as JSONObject;
 
   return body["columns"] as JSONArray as unknown as Array<ModelSchemaColumn>;
