@@ -55,6 +55,7 @@ const TEMPLATES: Array<{ type: string; name: string }> = [
   { type: "Host", name: "Hosts Dashboard" },
   { type: "Proxmox", name: "Proxmox Dashboard" },
   { type: "VMware", name: "VMware Dashboard" },
+  { type: "OpenStack", name: "OpenStack Dashboard" },
   { type: "Ceph", name: "Ceph Dashboard" },
   { type: "StorageArray", name: "Storage Array Dashboard" },
   { type: "DockerSwarm", name: "Docker Swarm Dashboard" },
@@ -622,7 +623,7 @@ test.describe("Create a dashboard", () => {
     await expect(page.getByRole("dialog")).toHaveCount(1);
   });
 
-  test("the category select: each category its own templates, All templates all fifteen under three headings", async ({
+  test("the category select: each category its own templates, All templates all sixteen under three headings", async ({
     page,
   }: {
     page: Page;
@@ -641,7 +642,7 @@ test.describe("Create a dashboard", () => {
     ]);
 
     await select.selectOption("Infrastructure");
-    await expect(templateRows(dialog)).toHaveCount(9);
+    await expect(templateRows(dialog)).toHaveCount(10);
 
     await select.selectOption("all");
     await expect(templateRows(dialog)).toHaveCount(TEMPLATES.length);
