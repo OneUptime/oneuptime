@@ -2114,9 +2114,10 @@ describe("the database path, as the docs turn it on", () => {
     );
     fs.appendFileSync(
       path.join(dir, "agent", ".env"),
-      `NOVA_DATABASE_URL="${url
-        .replace(/\$/g, "$$$$")
-        .replace(/"/g, '\\"')}"\n`,
+      // As Compose reads a double-quoted value: $$ for a $, and a backslash before the other two.
+      `NOVA_DATABASE_URL="${url.replace(/[\\"$]/g, (character) => {
+        return character === "$" ? "$$" : `\\${character}`;
+      })}"\n`,
     );
 
     const run = install(dir);
