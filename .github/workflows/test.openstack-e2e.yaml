@@ -296,6 +296,8 @@ jobs:
             --label com.oneuptime.edition=community --tag oneuptime/probe:test .
           services="$(docker compose -f docker-compose.yml config --services | grep -vxE 'app|probe-1' | tr '\n' ' ')"
           retry_registry_read "Pulling the rest of the stack's images" docker compose -f docker-compose.yml pull $services
+          # The browser that looks at the real pages, at the Playwright packages/E2E locks.
+          retry_registry_read "Pulling the browser's image" docker pull mcr.microsoft.com/playwright:v1.63.0-noble
           df -h /
 
       # esbuild, for what prints a real alert template's monitor steps.
@@ -303,6 +305,14 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/Common
+
+      # @playwright/test, for what looks at the real pages. --ignore-scripts because its preinstall
+      # downloads browsers, and they are in the image.
+      - name: Install E2E dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          args: --ignore-scripts
 
       # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
       # hosted runner's can be 65, which stops stack.sh with "string too long". Before the action,
@@ -348,8 +358,10 @@ jobs:
           set -euo pipefail
           # The first echo because the merge that writes config.env leaves no newline at its end,
           # which would put the first of these on the end of its last setting.
+          # HOST with its port, because the dashboard in a browser builds its API's address from it.
           {
             echo
+            echo "HOST=localhost:8880"
             echo "ONEUPTIME_HTTP_PORT=8880"
             echo "STATUS_PAGE_HTTPS_PORT=8843"
           } >>config.env
@@ -372,6 +384,7 @@ jobs:
           OUTPUT_DIR: ${{ runner.temp }}/recording
           ONEUPTIME_URL: http://localhost:8880
           OS_CLOUD: devstack-admin
+          PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.63.0-noble
         run: python3 -I Tests/Ops/openstack-e2e/whole-path.py
 
       - name: Keep what the containers said

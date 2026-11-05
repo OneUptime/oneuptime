@@ -1,7 +1,7 @@
 # HELP openstack_heat_stack_status stack_status
 # TYPE openstack_heat_stack_status gauge
-openstack_heat_stack_status{id="82026a89-730e-4af3-ac3b-b9f8fda8ae0c",name="ou-stack-ok",project_id="",status="CREATE_COMPLETE"} 5
-openstack_heat_stack_status{id="b02c0588-9d8f-4ff3-b1a4-0bafc2274602",name="ou-stack-failed",project_id="",status="CREATE_FAILED"} 4
+openstack_heat_stack_status{id="8fb1dcc5-0685-434b-8e1a-bf0618776952",name="ou-stack-failed",project_id="",status="CREATE_FAILED"} 4
+openstack_heat_stack_status{id="abee8b5f-0082-402b-ad87-e47e73da53d0",name="ou-stack-ok",project_id="",status="CREATE_COMPLETE"} 5
 # HELP openstack_heat_stack_status_counter stack_status_counter
 # TYPE openstack_heat_stack_status_counter gauge
 openstack_heat_stack_status_counter{status="ADOPT_COMPLETE"} 0

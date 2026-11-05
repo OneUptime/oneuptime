@@ -31,9 +31,10 @@ import { OpenStackCollectorContext } from "./OpenStackCollectorContext";
  *   What a stack owns is on one stack's own read of its resources, one more request per stack, which
  *   the exporter never makes. Its resources hardly change while its status doesn't, so a stack is read
  *   once and again only when that has moved, and however many have moved a collection reads this many.
- *   Nested, because a Magnum cluster's servers sit two levels down. What another project's stack
- *   answers an admin of a project of its own isn't recorded yet, so a refusal says nothing, and a stack
- *   this never read says what it can't see.
+ *   Nested, because a Magnum cluster's servers sit two levels down. Heat answers an admin of a project
+ *   of its own about another project's stack, under its own project's address and through the access
+ *   rules, and refuses anything less with a 403. So a refusal says nothing, and a stack this never read
+ *   says what it can't see.
  */
 export const HEAT_STACK_READS_PER_COLLECTION: number = 25;
 

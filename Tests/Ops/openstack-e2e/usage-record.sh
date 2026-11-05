@@ -28,9 +28,11 @@
 # And four hosts on Nova's fake driver in a zone of their own, because a DevStack's one real host
 # can't show a host that could be emptied: three holding two m1.small each (over half their memory)
 # and ou-use-quiet holding one ou.tiny. Each is MediumFakeDriver, 10 vCPUs at 4:1 and 8192 MB less
-# 512 reserved, so by hand: three busy hosts are 53% allocated, and ou-use-quiet 2%. Its one instance
-# fits on any of them, and with ou-use-quiet gone the other three can still lose a host:
-# 3 x 7680 MB is 23,040, of which 12,416 would be in use, and 15,360 are left after losing one.
+# 512 reserved. The resize has come to land on ou-use-quiet, the emptiest, so as it ended, by hand:
+# ou-use-1 holds 4,224 MB (55%) with ou-usage-on-image, the other two busy hosts 4,096 MB (53%), and
+# ou-use-quiet an ou.tiny and an ou.small, 384 MB (5%) and 3 of 40 vCPUs (8%). What it holds fits on
+# any of them, and with ou-use-quiet gone the other three can still lose a host: 3 x 7,680 MB is
+# 23,040, of which 12,800 would be in use, and 15,360 are left after losing one.
 #
 # Then it runs each rule's command, so a test can hold them to what they say they list.
 #

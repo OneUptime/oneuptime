@@ -1883,6 +1883,7 @@ describe("the reads themselves", () => {
     [OpenStackServiceType.Database]: "database",
     [OpenStackServiceType.Metric]: "metric",
     [OpenStackServiceType.Dns]: "dns",
+    [OpenStackServiceType.Rating]: "rating",
   };
 
   test.each(
@@ -1965,6 +1966,11 @@ describe("the reads themselves", () => {
       ...loadAccessMatrix("services-ironic", "matrix", "access-check"),
       ...loadAccessMatrix("services-manila", "matrix", "access-check"),
       ...loadAccessMatrix("services-trove", "matrix", "access-check"),
+      ...loadAccessMatrix(
+        "services-designate-barbican-swift",
+        "matrix",
+        "access-check",
+      ),
       ...loadAccessMatrix("services-gnocchi", "matrix", "access-check"),
     ];
 

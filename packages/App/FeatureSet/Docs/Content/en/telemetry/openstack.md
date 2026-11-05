@@ -578,7 +578,10 @@ If the cloud runs [CloudKitty](https://github.com/openstack/cloudkitty), what it
 
 - **Only a [probe](/docs/telemetry/openstack-agentless) can read it.** The agent's exporter has no series for CloudKitty, so a cloud connected through an agent calculates, and says so.
 - **What it sees is what the credential may see.** CloudKitty's own policy shows most credentials only their own project. The projects it doesn't rate go on being worked out from your prices.
+- **A CloudKitty per region adds up.** Each one is read in its own time, and a project's figure is what they rated between them. One CloudKitty the catalog lists for several regions is asked once.
+- **Its figures are the one part of this that's telemetry.** They reach OneUptime as `openstack_cloudkitty_rated`, one datapoint per project and month, once an hour: 20,000 an hour at 10,000 projects, which is next to nothing beside the rest of a cloud that size.
 - **It doesn't say a currency.** A rate is shown in your price list's currency if you've set one, and as a number alone if not.
+- **If it stops answering,** what each project was rated stays where it was, and the page says when it was last read. **Rating API Down** alerts on that.
 - **This was written to CloudKitty's API reference,** and no real CloudKitty has answered it yet.
 
 ### Budgets
@@ -593,7 +596,7 @@ The cloud's **Recommendations** page lists what's been left unused, what each wo
 |---|---|---|---|
 | Hypervisors that could be emptied | 20% or less of its vCPUs and memory are allocated, everything on it fits on the other hosts in its zone and aggregates, and the zone could still lose a host afterwards | The whole host | `openstack hypervisor list --long` |
 | Instances shut off for a long time | Shut off for 30 days | Their vCPUs, memory and local disk | `openstack server list --all-projects --status SHUTOFF --long` |
-| Volumes attached to nothing | Available for 30 days, attached to nothing | Their storage | `openstack volume list --all-projects --status available --long` |
+| Volumes attached to nothing | Available for 30 days, attached to nothing, and not one of Cinder's own `image-<id>` volumes, which the command also lists | Their storage | `openstack volume list --all-projects --status available --long` |
 | Old volume snapshots | Made 90 days ago. Probe only | Their storage | `openstack volume snapshot list --all-projects --long` |
 | Images nothing was booted from | Private or shared, 30 days old, not protected, and no instance or volume came from it. Probe only | Their storage | `openstack image list --long` |
 | Floating IPs nothing is using | Unassociated for 7 days | An address | `openstack floating ip list --status DOWN --long` |
@@ -826,14 +829,14 @@ The exporter says less about these services than a read of their APIs does, and 
 | Whose a cluster is | From its Heat stack | From Magnum | No |
 | Why a cluster failed, its template and its Kubernetes version | No. Run `openstack coe cluster show` | Yes | No |
 | Heat's engines and Magnum's conductors on **Services** | No | Yes | No |
-| Which instances and volumes a stack owns | No | Where Heat answers it | Its own project's at most |
+| Which instances and volumes a stack owns | No | Yes | Its own project's at most |
 
 Two failures read differently, and both are what a real cloud does:
 
 - **A stopped `heat-engine`** reads as **Orchestration API Down**, on either collector. Heat's API asks an engine for its lists, so with none left it can't answer them, after a minute's wait for an RPC timeout. A stack an engine left in progress can stay in progress after the engine comes back, and reads **Stack Stuck In Progress** once two hours have passed.
 - **A stopped `magnum-conductor`** isn't shown anywhere on a cloud the agent collects, because Magnum's API carries on answering without one and the exporter doesn't read conductors. Its clusters just stop moving. A probe with a Full view credential reads them, which is the only way to see this, or run `openstack coe service list`.
 
-Which instances and volumes a stack owns is on one more read of that stack, which the agent's exporter doesn't make. On a cloud a probe collects, a stack's page lists them, and an instance's or a volume's page and alerts name the stack. It reads what its credential may, and a stack's page says when nothing has. On a cloud the agent collects, run `openstack stack resource list`.
+Which instances and volumes a stack owns is on one more read of that stack, which the agent's exporter doesn't make. On a cloud a probe collects, a stack's page lists them, and an instance's or a volume's page and alerts name the stack. A Full view credential is answered about every project's stacks. Anything less is refused another project's, and a stack's page says when nothing has read it. On a cloud the agent collects, run `openstack stack resource list`.
 
 ### A cluster with the Kubernetes agent on it
 
@@ -873,12 +876,13 @@ A cloud that runs Designate gets **DNS Zones** under **Network** on its own, and
 
 A zone in `ERROR` reaches **Needs attention** by name, and so does one `PENDING` after half an hour. Designate's worker gives up by itself well before that, so what stays `PENDING` has nothing working on it. A zone's own `SOA` and `NS` read `ERROR` with it, so that is said once, by the zone.
 
-| What | Agent, Full view | Anything less |
-| --- | --- | --- |
-| Every project's zones and their status | Yes | Nothing: see below |
-| Recordsets that aren't `ACTIVE`, and how many each zone holds | Yes | No |
-| Why a zone failed | No: check `designate-worker`'s log | No |
-| Designate's services | No. Run `openstack dns service list` | No |
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's zones and their status | Yes | Yes | Nothing: see below |
+| Recordsets that aren't `ACTIVE` | Yes | Yes, of up to 50 zones a collection | No |
+| How many recordsets each zone holds | Yes | Only of a zone that isn't `ACTIVE` | No |
+| Why a zone failed | No: check `designate-worker`'s log | No | No |
+| Designate's services | No. Run `openstack dns service list` | Yes | No |
 
 Two things read differently from every other service here, both recorded:
 

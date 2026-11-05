@@ -1,0 +1,22 @@
+# HELP openstack_glance_image_bytes image_bytes
+# TYPE openstack_glance_image_bytes gauge
+openstack_glance_image_bytes{id="2473b5a7-2e91-4205-840a-1edba3953fb9",name="cirros-0.6.3-x86_64-disk",tenant_id="0f24f068726042ca9741fd8eace76586"} 2.1692416e+07
+openstack_glance_image_bytes{id="2cba0450-e4e3-4766-aad2-f7c6638e2607",name="ou-image-stuck",tenant_id="0f24f068726042ca9741fd8eace76586"} 0
+openstack_glance_image_bytes{id="5ed29e90-32f1-498b-a583-35e81ccc70e5",name="ou-image-protected",tenant_id="0f24f068726042ca9741fd8eace76586"} 1.048576e+06
+openstack_glance_image_bytes{id="7ce7dc04-0b1b-4b5e-bac4-bff351a0e0b9",name="ou-image-used",tenant_id="0f24f068726042ca9741fd8eace76586"} 2.1692416e+07
+openstack_glance_image_bytes{id="de21946b-c479-4d90-8a58-ab3236cfc135",name="ou-image-behind-volume",tenant_id="0f24f068726042ca9741fd8eace76586"} 2.1692416e+07
+openstack_glance_image_bytes{id="eeead7f2-4438-4b77-a7f9-394bc8659ae2",name="ou-image-unused",tenant_id="0f24f068726042ca9741fd8eace76586"} 1.048576e+06
+# HELP openstack_glance_image_created_at image_created_at
+# TYPE openstack_glance_image_created_at gauge
+openstack_glance_image_created_at{hidden="false",id="2473b5a7-2e91-4205-840a-1edba3953fb9",name="cirros-0.6.3-x86_64-disk",status="active",tenant_id="0f24f068726042ca9741fd8eace76586",visibility="public"} 1.793864511e+09
+openstack_glance_image_created_at{hidden="false",id="2cba0450-e4e3-4766-aad2-f7c6638e2607",name="ou-image-stuck",status="queued",tenant_id="0f24f068726042ca9741fd8eace76586",visibility="public"} 1.793864539e+09
+openstack_glance_image_created_at{hidden="false",id="5ed29e90-32f1-498b-a583-35e81ccc70e5",name="ou-image-protected",status="active",tenant_id="0f24f068726042ca9741fd8eace76586",visibility="private"} 1.793864707e+09
+openstack_glance_image_created_at{hidden="false",id="7ce7dc04-0b1b-4b5e-bac4-bff351a0e0b9",name="ou-image-used",status="active",tenant_id="0f24f068726042ca9741fd8eace76586",visibility="private"} 1.79386471e+09
+openstack_glance_image_created_at{hidden="false",id="de21946b-c479-4d90-8a58-ab3236cfc135",name="ou-image-behind-volume",status="active",tenant_id="0f24f068726042ca9741fd8eace76586",visibility="private"} 1.793864712e+09
+openstack_glance_image_created_at{hidden="false",id="eeead7f2-4438-4b77-a7f9-394bc8659ae2",name="ou-image-unused",status="active",tenant_id="0f24f068726042ca9741fd8eace76586",visibility="private"} 1.793864704e+09
+# HELP openstack_glance_images images
+# TYPE openstack_glance_images gauge
+openstack_glance_images 6
+# HELP openstack_glance_up up
+# TYPE openstack_glance_up gauge
+openstack_glance_up 1

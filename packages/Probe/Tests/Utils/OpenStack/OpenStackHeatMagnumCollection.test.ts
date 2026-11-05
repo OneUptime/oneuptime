@@ -55,8 +55,10 @@ import {
 const GROUP: string = "services-heat-magnum";
 const STACK_RESOURCES: RegExp = /\/stacks\/([^/]+)\/[^/]+\/resources$/;
 const ONE_CLUSTER: RegExp = /\/clusters\/(cluster-\d+)$/;
+const OTLP_SERVICE: RegExp =
+  /"key":"openstack_service","value":\{"stringValue":"([^"]+)"\}/g;
 const EITHER_SERVICE: RegExp = /stacks|clusters|services/;
-const PROJECT: string = "5d1838ef05294dd9a804e284b9f21617";
+const PROJECT: string = "ae798f87fdb743ddb30bc5a46ac15507";
 const HEAT_URL: string = `${RECORDED_HOST}/heat-api/v1/${PROJECT}`;
 const MAGNUM_URL: string = `${RECORDED_HOST}/container-infra/v1`;
 
@@ -552,11 +554,11 @@ describe("Magnum, on what a real cloud said", () => {
     expect(failed?.facts).toMatchObject({
       statusReason: "default-master failed, default-worker failed",
       healthStatus: "UNKNOWN",
-      clusterTemplateId: "4f50d046-1ba6-418e-baa2-151d82926537",
+      clusterTemplateId: "c49e5883-e83c-4bbd-bd83-435de7f19b22",
       clusterTemplateName: "ou-template",
       coeVersion: "v1.18.16",
       apiAddress: "https://:6443",
-      stackId: "e2fc0fa8-a09b-45c5-b917-68d79adb0ec4",
+      stackId: "417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",
       nodeCount: 1,
       masterCount: 1,
     });
@@ -1177,7 +1179,18 @@ describe("a cloud that doesn't run either", () => {
 
   test("the same two series a real agent sent for a service its cloud didn't run", () => {
     const real: string = JSON.stringify(loadCollectorExport(GROUP));
-    expect(real).toContain('"sharev2"');
+    // Which one a run's one export caught differs by run.
+    const services: Array<string> = Array.from(
+      real.matchAll(OTLP_SERVICE),
+      (match: RegExpMatchArray): string => {
+        return match[1] as string;
+      },
+    );
+    expect(
+      services.some((service: string): boolean => {
+        return service !== "orchestration" && service !== "container-infra";
+      }),
+    ).toBe(true);
   });
 });
 

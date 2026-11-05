@@ -1,12 +1,12 @@
 # HELP openstack_container_infra_cluster_masters cluster_masters
 # TYPE openstack_container_infra_cluster_masters gauge
-openstack_container_infra_cluster_masters{name="ou-cluster-real",node_count="1",project_id="",stack_id="483a2b85-e4e7-4cbc-9aec-2addd10fec70",status="CREATE_FAILED",uuid="ece79e88-fe71-4268-8080-ed81e6887df4"} 1
+openstack_container_infra_cluster_masters{name="ou-cluster-real",node_count="1",project_id="",stack_id="733396c7-a790-4b41-9bfe-59a3342a517d",status="CREATE_FAILED",uuid="a574ec05-efe3-45ca-a348-6b00a967b446"} 1
 # HELP openstack_container_infra_cluster_nodes cluster_nodes
 # TYPE openstack_container_infra_cluster_nodes gauge
-openstack_container_infra_cluster_nodes{master_count="1",name="ou-cluster-real",project_id="",stack_id="483a2b85-e4e7-4cbc-9aec-2addd10fec70",status="CREATE_FAILED",uuid="ece79e88-fe71-4268-8080-ed81e6887df4"} 1
+openstack_container_infra_cluster_nodes{master_count="1",name="ou-cluster-real",project_id="",stack_id="733396c7-a790-4b41-9bfe-59a3342a517d",status="CREATE_FAILED",uuid="a574ec05-efe3-45ca-a348-6b00a967b446"} 1
 # HELP openstack_container_infra_cluster_status cluster_status
 # TYPE openstack_container_infra_cluster_status gauge
-openstack_container_infra_cluster_status{master_count="1",name="ou-cluster-real",node_count="1",project_id="",stack_id="483a2b85-e4e7-4cbc-9aec-2addd10fec70",status="CREATE_FAILED",uuid="ece79e88-fe71-4268-8080-ed81e6887df4"} 1
+openstack_container_infra_cluster_status{master_count="1",name="ou-cluster-real",node_count="1",project_id="",stack_id="733396c7-a790-4b41-9bfe-59a3342a517d",status="CREATE_FAILED",uuid="a574ec05-efe3-45ca-a348-6b00a967b446"} 1
 # HELP openstack_container_infra_total_clusters total_clusters
 # TYPE openstack_container_infra_total_clusters gauge
 openstack_container_infra_total_clusters 1

@@ -1757,6 +1757,7 @@ const API_TEMPLATE_IDS: ReadonlyArray<string> = [
   "openstack-placement-api-down",
   "openstack-orchestration-api-down",
   "openstack-container-infra-api-down",
+  "openstack-rating-api-down",
   "openstack-bare-metal-api-down",
 ];
 

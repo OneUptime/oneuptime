@@ -146,6 +146,7 @@ const EXPORTER_SERVICES: ReadonlyArray<string> = [
   "container-infra",
   "sharev2",
   "database",
+  "dns",
   "gnocchi",
 ];
 

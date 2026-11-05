@@ -46,12 +46,12 @@ import {
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 
 /*
- * Heat and Magnum, on what a real stable/2026.1 DevStack said (run 41957903492), through the real
+ * Heat and Magnum, on what a real stable/2026.1 DevStack said (run 41988907585), through the real
  * scan and the real health rules. Tests/Ops/openstack-e2e/services-heat-magnum.sh drives each scene,
  * and its how.txt says how the state was reached: every scene here was reached on its own.
  *
  * What these can't say, because it was never recorded: a cluster that reached CREATE_COMPLETE, on any
- * runner, and what an admin of another project is told a stack owns.
+ * runner.
  */
 
 const FOLDER: string = path.join(
@@ -141,8 +141,10 @@ function readJson(...segments: Array<string>): JSONObject {
   ) as JSONObject;
 }
 
-const PROJECT_ADMIN: string = "5d1838ef05294dd9a804e284b9f21617";
-const PROJECT_PAYMENTS: string = "daee9bf6f10a4331bfb8fde2838235f6";
+const OTLP_SERVICE: RegExp =
+  /"key":"openstack_service","value":\{"stringValue":"([^"]+)"\}/g;
+const PROJECT_ADMIN: string = "ae798f87fdb743ddb30bc5a46ac15507";
+const PROJECT_PAYMENTS: string = "a01a07259d8441afa457d94ba7e4425f";
 
 describe("Heat", () => {
   describe("heat-baseline: stacks that finished and stacks that failed, in two projects", () => {
@@ -171,7 +173,7 @@ describe("Heat", () => {
         OpenStackResourceKind.Stack,
         "ou-stack-failed",
       );
-      expect(row.externalId).toBe("b02c0588-9d8f-4ff3-b1a4-0bafc2274602");
+      expect(row.externalId).toBe("8fb1dcc5-0685-434b-8e1a-bf0618776952");
       expect(row.regionName).toBe("RegionOne");
     });
 
@@ -180,7 +182,7 @@ describe("Heat", () => {
       expect(namesNeedingAttention(rows)).toEqual([
         "ou-stack-admin-failed",
         "ou-stack-failed",
-        "ou-stack-failed-server-avtiunql57mh",
+        "ou-stack-failed-server-b2chjl4j7q3r",
       ]);
       const item: ResourceAttentionItem = attentionOf(rows).find(
         (candidate: ResourceAttentionItem): boolean => {
@@ -366,10 +368,10 @@ describe("Magnum", () => {
     );
 
     test("its row is keyed by Magnum's own ID, and holds what its series say", () => {
-      expect(cluster.externalId).toBe("a4cbb859-5da5-49ba-8a1f-ac5f387a8de6");
+      expect(cluster.externalId).toBe("1836d7d8-990a-42aa-a318-4de151184de9");
       expect(cluster.status).toBe("CREATE_IN_PROGRESS");
       expect(cluster.facts).toMatchObject({
-        stackId: "ff2622ca-9e74-41c1-bcbe-412bca9ffad5",
+        stackId: "8ff88764-ef47-484e-8804-2b4c3d22d558",
         nodeCount: 1,
         masterCount: 1,
       });
@@ -444,7 +446,7 @@ describe("Magnum", () => {
     );
     expect(names).toContain("ou-cluster-real");
     // Its stack failed with it, and that is one line, by the cluster's name.
-    expect(names).not.toContain("ou-cluster-real-6uc6ctkch4l4");
+    expect(names).not.toContain("ou-cluster-real-b4a265chwfks");
   });
 
   test("magnum-conductor-down: the exporter's series say nothing of it, which a page has to say", () => {
@@ -511,7 +513,7 @@ describe("Heat and Magnum together: a credential that reads both", () => {
     ).find((row: OpenStackResource): boolean => {
       return row.externalId === cluster.facts?.["stackId"];
     });
-    expect(stack?.name).toBe("ou-cluster-real-6uc6ctkch4l4");
+    expect(stack?.name).toBe("ou-cluster-real-b4a265chwfks");
     expect(stack?.openStackProjectId).toBe(
       readJson(
         "magnum-real-image",
@@ -524,7 +526,7 @@ describe("Heat and Magnum together: a credential that reads both", () => {
   test("a failed cluster and its failed stack are one line, by the cluster's name", () => {
     const names: Array<string> = namesNeedingAttention(rows);
     expect(names).toContain("ou-cluster-real");
-    expect(names).not.toContain("ou-cluster-real-6uc6ctkch4l4");
+    expect(names).not.toContain("ou-cluster-real-b4a265chwfks");
     // Stacks that are nobody's cluster still read on their own.
     expect(names).toContain("ou-stack-failed");
   });
@@ -533,10 +535,10 @@ describe("Heat and Magnum together: a credential that reads both", () => {
     const stack: OpenStackResource = named(
       rows,
       OpenStackResourceKind.Stack,
-      "ou-cluster-real-6uc6ctkch4l4",
+      "ou-cluster-real-b4a265chwfks",
     );
     expect(namesNeedingAttention([stack])).toEqual([
-      "ou-cluster-real-6uc6ctkch4l4",
+      "ou-cluster-real-b4a265chwfks",
     ]);
   });
 });
@@ -598,6 +600,40 @@ describe("what a stack owns, as its own project was told", () => {
     expect(owned("ou-stack-admin-failed", "OS::Heat::TestResource")).toEqual([
       "",
     ]);
+  });
+});
+
+describe("what a stack owns, as a credential of another project was told", () => {
+  const read: (matrix: string) => Record<string, JSONObject> = (
+    matrix: string,
+  ): Record<string, JSONObject> => {
+    const row: JSONObject | undefined = (
+      readJson("access-check", `${matrix}.json`)[
+        "partReads"
+      ] as Array<JSONObject>
+    ).find((candidate: JSONObject): boolean => {
+      return candidate["read"] === "another project's stack's resources";
+    });
+    return row?.["results"] as unknown as Record<string, JSONObject>;
+  };
+
+  test("the Full view credential is told, through the access rules a customer fits", () => {
+    expect(read("matrix-access-rules")["monitoring-admin-get"]).toMatchObject({
+      status: 200,
+      count: 1,
+    });
+  });
+
+  test("anything less is refused, which is why a stack's page can say nothing has read it", () => {
+    const results: Record<string, JSONObject> = read("matrix");
+    expect(results["admin"]?.["status"]).toBe(200);
+    for (const credential of [
+      "reader",
+      "monitoring-role",
+      "role-on-a-project",
+    ]) {
+      expect(results[credential]?.["status"]).toBe(403);
+    }
   });
 });
 
@@ -795,29 +831,42 @@ describe("the agent's real collector, on a cloud with some of these and not othe
     ).toHaveLength(2);
   });
 
+  // Which service a run's one export caught differs by run, so this asks rather than names it.
+  const notHere: (name: string) => boolean = (name: string): boolean => {
+    return name !== "container-infra" && name !== "orchestration";
+  };
+
   test("the one it said nothing about, which the cloud does not run, has none", () => {
-    expect(
-      points.some((point: Point): boolean => {
-        return (
-          point.name === "up" &&
-          JSON.stringify(point.datapoint).includes('"sharev2"')
+    const other: Array<string> = points
+      .filter((point: Point): boolean => {
+        return point.name === "up";
+      })
+      .flatMap((point: Point): Array<string> => {
+        return Array.from(
+          JSON.stringify(point.datapoint).matchAll(OTLP_SERVICE),
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
         );
-      }),
-    ).toBe(true);
-    expect(apis).not.toContain("sharev2");
+      })
+      .filter(notHere);
+    expect(other.length).toBeGreaterThan(0);
+    expect(apis.filter(notHere)).toEqual([]);
   });
 
-  test("the empty scrape of a service this cloud doesn't run is only something to update a row with, and it has none", () => {
-    expect(Array.from(scrapes.keys()).sort()).toEqual([
-      "RegionOne/container-infra",
-      "RegionOne/orchestration",
-      "RegionOne/sharev2",
-    ]);
-    expect(scrapes.get("RegionOne/sharev2")).toMatchObject({
-      answered: true,
-      samples: 0,
-    });
-    expect(apis).not.toContain("sharev2");
+  test("an empty scrape of one this cloud doesn't run is at most something to update a row with, and it has none", () => {
+    expect(Array.from(scrapes.keys())).toEqual(
+      expect.arrayContaining([
+        "RegionOne/container-infra",
+        "RegionOne/orchestration",
+      ]),
+    );
+    for (const [key, scrape] of scrapes) {
+      if (notHere(key.substring(key.indexOf("/") + 1))) {
+        expect(scrape).toMatchObject({ answered: true, samples: 0 });
+      }
+    }
+    expect(apis.filter(notHere)).toEqual([]);
   });
 
   test("what each scrape said, to go on a row that is already there", () => {

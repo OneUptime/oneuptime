@@ -43,8 +43,10 @@ import {
   OpenStackNetworkInventory,
   OpenStackOrchestrationInventory,
   OpenStackDatabaseInventory,
+  OpenStackDnsInventory,
   OpenStackMetricInventory,
   OpenStackPlacementInventory,
+  OpenStackRatingInventory,
   OpenStackSharedFileSystemsInventory,
   OpenStackVolumeInventory,
 } from "./OpenStackInventory";
@@ -88,12 +90,16 @@ import collectContainerInfra, {
   CONTAINER_INFRA_MICROVERSION_HEADERS,
 } from "./Collectors/ContainerInfraCollector";
 import collectDatabase from "./Collectors/DatabaseCollector";
+import collectDns, {
+  DNS_ALL_PROJECTS_HEADERS,
+} from "./Collectors/DnsCollector";
 import collectIdentity from "./Collectors/IdentityCollector";
 import collectMetric from "./Collectors/MetricCollector";
 import collectImage from "./Collectors/ImageCollector";
 import collectNetwork from "./Collectors/NetworkCollector";
 import collectOrchestration from "./Collectors/OrchestrationCollector";
 import collectPlacement from "./Collectors/PlacementCollector";
+import collectRating from "./Collectors/RatingCollector";
 import collectBareMetal, {
   IRONIC_MICROVERSION,
 } from "./Collectors/BareMetalCollector";
@@ -210,6 +216,8 @@ const SLOW_SERVICES: ReadonlySet<OpenStackServiceType> = new Set([
   OpenStackServiceType.SharedFileSystems,
   OpenStackServiceType.Database,
   OpenStackServiceType.Metric,
+  OpenStackServiceType.Dns,
+  OpenStackServiceType.Rating,
 ]);
 
 const SERVICES_IN_ORDER: ReadonlyArray<OpenStackServiceType> = [
@@ -461,7 +469,9 @@ function countRollingDatapoints(
       (inventory.orchestration?.stacks?.length || 0) +
       (inventory["container-infra"]?.clusters?.length || 0) * 3 +
       (inventory.sharev2?.shares?.length || 0) * 2 +
-      (inventory.database?.instances?.length || 0) * 3;
+      (inventory.database?.instances?.length || 0) * 3 +
+      (inventory.dns?.zones?.length || 0) +
+      (inventory.dns?.recordsets?.length || 0);
   }
 
   return count;
@@ -1381,10 +1391,22 @@ export default class OpenStackCollector {
             work = collectMetric(context(inventory));
             break;
           }
+          case OpenStackServiceType.Dns: {
+            const inventory: OpenStackDnsInventory = {};
+            byService.dns = inventory;
+            work = collectDns(context(inventory));
+            break;
+          }
           case OpenStackServiceType.Database: {
             const inventory: OpenStackDatabaseInventory = {};
             byService.database = inventory;
             work = collectDatabase(context(inventory));
+            break;
+          }
+          case OpenStackServiceType.Rating: {
+            const inventory: OpenStackRatingInventory = {};
+            byService.rating = inventory;
+            work = collectRating(context(inventory));
             break;
           }
           case OpenStackServiceType.SharedFileSystems: {
@@ -1900,6 +1922,10 @@ export default class OpenStackCollector {
 
           if (client.service === OpenStackServiceType.SharedFileSystems) {
             return SHARED_FILE_SYSTEMS_MICROVERSION_HEADERS;
+          }
+
+          if (client.service === OpenStackServiceType.Dns) {
+            return DNS_ALL_PROJECTS_HEADERS;
           }
 
           if (client.service !== OpenStackServiceType.Compute) {
