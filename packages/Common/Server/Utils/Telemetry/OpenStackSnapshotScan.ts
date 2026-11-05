@@ -1527,10 +1527,17 @@ function foldNetwork(data: {
     "dhcp_agent_ids",
   );
   entry.facts["dhcpAgentIds"] = dhcpAgentIds
-    ? dhcpAgentIds.split(",").filter((id: string): boolean => {
-        return Boolean(id) && !id.endsWith("…");
-      })
+    ? getIdListLabel(data.attributes, "dhcp_agent_ids")
     : null;
+}
+
+// A label holding IDs, which is cut at a length and then its last one is no ID.
+function getIdListLabel(attributes: JSONArray, name: string): Array<string> {
+  return (getLabel(attributes, name) || "")
+    .split(",")
+    .filter((id: string): boolean => {
+      return Boolean(id) && !id.endsWith("…");
+    });
 }
 
 /*
@@ -1777,6 +1784,24 @@ function foldStack(data: {
    */
   entry.facts["statusReason"] = getLabel(data.attributes, "status_reason");
   entry.facts["parentStackId"] = getLabel(data.attributes, "parent_id");
+  /*
+   * What it owns, which only a probe reads, and only once it has read this stack. An empty list here
+   * says it owns none, and null says nothing has read it. The IDs a label has room for, and how many
+   * there are, because a stack can own more than that.
+   */
+  const wasRead: boolean = getLabel(data.attributes, "resources_read") === "true";
+  entry.facts["ownedInstanceIds"] = wasRead
+    ? getIdListLabel(data.attributes, "owned_instance_ids")
+    : null;
+  entry.facts["ownedInstanceCount"] = wasRead
+    ? toNumberOrNull(getLabel(data.attributes, "owned_instance_count"))
+    : null;
+  entry.facts["ownedVolumeIds"] = wasRead
+    ? getIdListLabel(data.attributes, "owned_volume_ids")
+    : null;
+  entry.facts["ownedVolumeCount"] = wasRead
+    ? toNumberOrNull(getLabel(data.attributes, "owned_volume_count"))
+    : null;
 }
 
 /*

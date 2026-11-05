@@ -1419,7 +1419,8 @@ export default class OpenStackAcrossProducts {
         stackName: row.stackName,
         name: row.name,
         status: row.status,
-        masterCount: typeof row.masterCount === "number" ? row.masterCount : null,
+        masterCount:
+          typeof row.masterCount === "number" ? row.masterCount : null,
         nodeCount: typeof row.nodeCount === "number" ? row.nodeCount : null,
       };
     });
@@ -1508,13 +1509,12 @@ export default class OpenStackAcrossProducts {
         return server.externalId;
       },
     );
-    const inAnotherCloud: Set<string> = await this.readInstanceIdsInAnotherCloud(
-      {
+    const inAnotherCloud: Set<string> =
+      await this.readInstanceIdsInAnotherCloud({
         projectId: data.projectId,
         openStackCloudId,
         instanceIds,
-      },
-    );
+      });
     const nodes: Array<OpenStackKubernetesNodeRead> = (
       await this.readOpenStackKubernetesNodes({
         projectId: data.projectId,

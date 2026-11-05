@@ -898,6 +898,44 @@ export interface HeatStackRecord {
   status: string | null;
   statusReason: string | null;
   parentId: string | null;
+  // What it owns, from its own read of its resources. Left out until that read is made.
+  resources?: HeatStackResources | undefined;
+}
+
+// What a stack's resources say it owns, by what Nova and Cinder know each by.
+export interface HeatStackResources {
+  // The status it was read at: it is read again when that moves.
+  status: string | null;
+  instanceIds: Array<string>;
+  volumeIds: Array<string>;
+}
+
+/*
+ * Only a resource that exists says anything: one that failed before Nova made it has an empty
+ * physical_resource_id (recorded). A volume attachment's physical id is its volume's, so it isn't one
+ * of its own.
+ */
+export function toHeatStackResources(data: {
+  status: string | null;
+  resources: JSONArray;
+}): HeatStackResources {
+  const idsOf: (resourceType: string) => Array<string> = (
+    resourceType: string,
+  ): Array<string> => {
+    const ids: Set<string> = new Set();
+    for (const resource of data.resources as Array<JSONObject>) {
+      const id: string | null = text(resource["physical_resource_id"]);
+      if (resource["resource_type"] === resourceType && id) {
+        ids.add(id);
+      }
+    }
+    return Array.from(ids).sort();
+  };
+  return {
+    status: data.status,
+    instanceIds: idsOf("OS::Nova::Server"),
+    volumeIds: idsOf("OS::Cinder::Volume"),
+  };
 }
 
 export function toHeatStack(item: JSONObject): HeatStackRecord {

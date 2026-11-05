@@ -1,3 +1,4 @@
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
@@ -7,8 +8,11 @@ import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
+import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import Link from "Common/UI/Components/Link/Link";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import {
@@ -29,7 +33,10 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../../Components/ResourcePart/ResourcePartDetailsCard";
 import { getOpenStackAttentionItems } from "../Utils/OpenStackHealth";
-import { fetchOpenStackBlastRadius } from "../Utils/OpenStackPartData";
+import {
+  fetchOpenStackBlastRadius,
+  fetchOpenStackNames,
+} from "../Utils/OpenStackPartData";
 import {
   OPENSTACK_STACK_ALERT_TEMPLATE_IDS,
   getOpenStackPartExplanation,
@@ -40,8 +47,9 @@ import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
 /*
  * One Heat stack: its status in Heat's word, whose it is, and the Kubernetes cluster it was built
  * for when Magnum built it. Why it failed is only known to a probe, which reads it from Heat; the
- * agent's exporter never asks, so the page says what to run instead. Which instances and volumes it
- * owns takes a read of its resources, which nothing makes yet, and the page says so.
+ * agent's exporter never asks, so the page says what to run instead. So is which instances and
+ * volumes it owns, which is one more read of each stack, and where nothing has read it the page says
+ * what to run for that too.
  */
 
 const WHY_NOT_KNOWN: string = translationKey(
@@ -49,7 +57,7 @@ const WHY_NOT_KNOWN: string = translationKey(
 );
 
 const WHAT_IT_OWNS_NOT_KNOWN: string = translationKey(
-  "Which instances and volumes this stack owns isn't collected yet. Run openstack stack resource list to see them.",
+  "Nothing has read which instances and volumes this stack owns. Run openstack stack resource list for this stack. A probe reads it from Heat where its credential may, and the agent's exporter doesn't.",
 );
 
 const NO_PROJECT_DESCRIPTION: string = translationKey(
@@ -60,6 +68,8 @@ const StackOverview: FunctionComponent<{
   part: OpenStackPart;
   row: OpenStackResource;
 }> = (props: { part: OpenStackPart; row: OpenStackResource }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const listClassName: string = useCardRuledListClassName();
   const { part, row } = props;
   const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -71,6 +81,52 @@ const StackOverview: FunctionComponent<{
         externalId: part.externalId,
       });
     }, [part.externalId, part.refreshToken]);
+
+  const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
+  const ownedInstanceIds: JSONValue | undefined = facts["ownedInstanceIds"];
+  const ownedVolumeIds: JSONValue | undefined = facts["ownedVolumeIds"];
+  const listedInstances: Array<string> = Array.isArray(ownedInstanceIds)
+    ? (ownedInstanceIds as Array<string>)
+    : [];
+  const listedVolumes: Array<string> = Array.isArray(ownedVolumeIds)
+    ? (ownedVolumeIds as Array<string>)
+    : [];
+  // More than a label has room for: see the scan.
+  const ownedInstanceCount: number = Math.max(
+    Number(facts["ownedInstanceCount"]) || 0,
+    listedInstances.length,
+  );
+  const ownedVolumeCount: number = Math.max(
+    Number(facts["ownedVolumeCount"]) || 0,
+    listedVolumes.length,
+  );
+  const notListed: number =
+    ownedInstanceCount +
+    ownedVolumeCount -
+    listedInstances.length -
+    listedVolumes.length;
+
+  const owned: OpenStackRead<{
+    instances: Record<string, string>;
+    volumes: Record<string, string>;
+  }> = useOpenStackRead(async () => {
+    const [instances, volumes]: [
+      Record<string, string>,
+      Record<string, string>,
+    ] = await Promise.all([
+      fetchOpenStackNames({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.Instance,
+        externalIds: listedInstances,
+      }),
+      fetchOpenStackNames({
+        openStackCloudId: part.openStackCloudId,
+        kind: OpenStackResourceKind.Volume,
+        externalIds: listedVolumes,
+      }),
+    ]);
+    return { instances, volumes };
+  }, [listedInstances.join(","), listedVolumes.join(","), part.refreshToken]);
 
   const attention: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
     rows: [row],
@@ -153,6 +209,36 @@ const StackOverview: FunctionComponent<{
     detailRows.push({ key: "region", label: "Region", value: row.regionName });
   }
 
+  const ownedRow: (data: {
+    id: string;
+    kind: OpenStackResourceKind;
+    label: string;
+    name: string | undefined;
+  }) => ReactElement = (data: {
+    id: string;
+    kind: OpenStackResourceKind;
+    label: string;
+    name: string | undefined;
+  }): ReactElement => {
+    return (
+      <li
+        key={`${data.kind}-${data.id}`}
+        data-testid="openstack-stack-owns-item"
+        className="flex flex-wrap items-center gap-2 px-5 py-3 text-sm md:px-6"
+      >
+        <span className="text-xs text-gray-500">
+          {translator.translateText(data.label)}
+        </span>
+        <Link
+          to={part.routes.getPartRoute(data.kind, data.id)}
+          className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+        >
+          <bdi>{data.name || data.id}</bdi>
+        </Link>
+      </li>
+    );
+  };
+
   return (
     <div data-testid="openstack-stack-overview">
       {explanation ? (
@@ -220,10 +306,62 @@ const StackOverview: FunctionComponent<{
         rows={detailRows}
       />
 
-      <OpenStackPartNotice
-        testId="openstack-stack-owns-not-known"
-        text={WHAT_IT_OWNS_NOT_KNOWN}
-      />
+      {Array.isArray(ownedInstanceIds) && Array.isArray(ownedVolumeIds) ? (
+        <div className="mb-6" data-testid="openstack-stack-owns">
+          <Card
+            title="What this stack owns"
+            description="The instances and volumes Heat says this stack made. What happens to the stack happens to these."
+          >
+            {ownedInstanceCount + ownedVolumeCount === 0 ? (
+              <p
+                className="text-sm text-gray-600"
+                data-testid="openstack-stack-owns-nothing"
+              >
+                {translator.translateText(
+                  "Heat says this stack owns no instances or volumes.",
+                )}
+              </p>
+            ) : (
+              <ul className={listClassName}>
+                {ownedInstanceIds.map((id: string): ReactElement => {
+                  return ownedRow({
+                    id,
+                    kind: OpenStackResourceKind.Instance,
+                    label: translationKey("Instance"),
+                    name: owned.data?.instances[id],
+                  });
+                })}
+                {ownedVolumeIds.map((id: string): ReactElement => {
+                  return ownedRow({
+                    id,
+                    kind: OpenStackResourceKind.Volume,
+                    label: translationKey("Volume"),
+                    name: owned.data?.volumes[id],
+                  });
+                })}
+              </ul>
+            )}
+            {notListed > 0 ? (
+              <p
+                className="px-5 py-3 text-xs text-gray-500 md:px-6"
+                data-testid="openstack-stack-owns-more"
+              >
+                {translator.translatePlural(
+                  { one: "and {{count}} more", other: "and {{count}} more" },
+                  notListed,
+                )}
+              </p>
+            ) : (
+              <></>
+            )}
+          </Card>
+        </div>
+      ) : (
+        <OpenStackPartNotice
+          testId="openstack-stack-owns-not-known"
+          text={WHAT_IT_OWNS_NOT_KNOWN}
+        />
+      )}
     </div>
   );
 };

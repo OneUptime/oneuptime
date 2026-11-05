@@ -29,7 +29,11 @@ function usePlacementRow(): (
   testId: string,
 ) => ReactElement {
   const translator: Translator = useTranslator();
-  return (
+  const row: (
+    label: string,
+    value: ReactElement,
+    testId: string,
+  ) => ReactElement = (
     label: string,
     value: ReactElement,
     testId: string,
@@ -45,6 +49,7 @@ function usePlacementRow(): (
       </div>
     );
   };
+  return row;
 }
 
 // The Magnum cluster a Kubernetes cluster is, for that cluster's own page.

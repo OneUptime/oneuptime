@@ -667,7 +667,7 @@ describePostgres("a service a cloud may not run, on Postgres", () => {
       );
       expect(row!["name"]).toBe("ou-cluster-real");
       expect(row!["openStackProjectId"]).toBe(
-        "4d0acfc18c9d4a0b994a7fe34516bf65",
+        "5d1838ef05294dd9a804e284b9f21617",
       );
     });
 

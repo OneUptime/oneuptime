@@ -1,3 +1,5 @@
+200 nova-servers
+200 nova-servers-changes-since
 200 magnum-clusters
 200 magnum-clustertemplates
 200 magnum-services
