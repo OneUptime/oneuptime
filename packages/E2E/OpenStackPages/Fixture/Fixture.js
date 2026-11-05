@@ -129,6 +129,10 @@ import CloudDatabaseInstances from "../../../App/FeatureSet/Dashboard/src/Pages/
 import CloudDatabaseInstanceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/DatabaseInstanceDetail";
 import CloudShares from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Shares";
 import CloudShareDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ShareDetail";
+import CloudLoadBalancers from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/LoadBalancers";
+import CloudLoadBalancerDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/LoadBalancerDetail";
+import CloudLoadBalancerPoolDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/LoadBalancerPoolDetail";
+import CloudAmphoraDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AmphoraDetail";
 import CloudContainerClusters from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusters";
 import CloudContainerClusterDetail from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/ContainerClusterDetail";
 import CloudProjects from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Projects";
@@ -2671,6 +2675,13 @@ const PAGES = [
   ],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARES, CloudShares],
   [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL, CloudShareDetail],
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS, CloudLoadBalancers],
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL, CloudLoadBalancerDetail],
+  [
+    PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL,
+    CloudLoadBalancerPoolDetail,
+  ],
+  [PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL, CloudAmphoraDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACKS, CloudStacks],
   [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL, CloudStackDetail],
   [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS, CloudContainerClusters],

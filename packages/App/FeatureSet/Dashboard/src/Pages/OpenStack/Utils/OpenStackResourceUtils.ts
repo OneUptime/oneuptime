@@ -58,6 +58,7 @@ export interface OpenStackInventorySummary {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   databaseInstanceCount: number;
   objectContainerCount: number;
   dnsZoneCount: number;
@@ -115,6 +116,7 @@ export function toOpenStackInventorySummary(
     stackCount: readNumber("stackCount"),
     containerClusterCount: readNumber("containerClusterCount"),
     shareCount: readNumber("shareCount"),
+    loadBalancerCount: readNumber("loadBalancerCount"),
     databaseInstanceCount: readNumber("databaseInstanceCount"),
     objectContainerCount: readNumber("objectContainerCount"),
     dnsZoneCount: readNumber("dnsZoneCount"),

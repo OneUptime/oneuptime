@@ -27,6 +27,7 @@ export interface OpenStackBlastRadiusProject {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   databaseInstanceCount: number;
   dnsZoneCount: number;
   objectContainerCount: number;
@@ -41,6 +42,7 @@ export interface OpenStackBlastRadius {
   stackCount: number;
   containerClusterCount: number;
   shareCount: number;
+  loadBalancerCount: number;
   databaseInstanceCount: number;
   dnsZoneCount: number;
   objectContainerCount: number;
@@ -72,6 +74,12 @@ export interface OpenStackBlastRadius {
   belongsTo?: Array<OpenStackBlastRadiusOwner> | undefined;
   // The Magnum clusters with a server on this hypervisor, which its failure reaches.
   magnumClusters?: Array<OpenStackBlastRadiusOwner> | undefined;
+  /*
+   * The amphorae on this hypervisor and the load balancers they carry, which its failure reaches:
+   * an amphora is an instance in Octavia's own project, so the instances it counts hide them.
+   */
+  amphorae?: Array<OpenStackBlastRadiusOwner> | undefined;
+  loadBalancers?: Array<OpenStackBlastRadiusOwner> | undefined;
 }
 
 export interface OpenStackBlastRadiusOwner {
@@ -94,6 +102,7 @@ export function getEmptyOpenStackBlastRadius(
     stackCount: 0,
     containerClusterCount: 0,
     shareCount: 0,
+    loadBalancerCount: 0,
     databaseInstanceCount: 0,
     dnsZoneCount: 0,
     objectContainerCount: 0,
@@ -111,6 +120,7 @@ export type OpenStackBlastRadiusCount =
   | "stackCount"
   | "containerClusterCount"
   | "shareCount"
+  | "loadBalancerCount"
   | "databaseInstanceCount"
   | "dnsZoneCount"
   | "objectContainerCount";
@@ -136,6 +146,11 @@ export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
     other: "Kubernetes clusters",
   },
   { count: "shareCount", one: "share", other: "shares" },
+  {
+    count: "loadBalancerCount",
+    one: "load balancer",
+    other: "load balancers",
+  },
   { count: "databaseInstanceCount", one: "database", other: "databases" },
   {
     count: "objectContainerCount",
@@ -182,6 +197,7 @@ export function buildOpenStackBlastRadius(data: {
         stackCount: 0,
         containerClusterCount: 0,
         shareCount: 0,
+        loadBalancerCount: 0,
         databaseInstanceCount: 0,
         dnsZoneCount: 0,
         objectContainerCount: 0,

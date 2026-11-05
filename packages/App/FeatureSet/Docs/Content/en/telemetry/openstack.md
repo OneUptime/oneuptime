@@ -871,6 +871,24 @@ Manila's API carries on answering without its other services, so on a cloud the 
 
 A cloud without Manila costs nothing for it: the exporter answers with nothing, and that makes no row. If Manila leaves Keystone's catalog, its rows go about 15 minutes after that starts, as [Heat's and Magnum's do](#heat-and-magnum).
 
+## Octavia
+
+If your cloud runs Octavia, a cloud gets **Load Balancers** under **Network** on its own, and one that doesn't shows no trace of it. Each load balancer has its provisioning status and its operating status in Octavia's own words, its provider (`amphora` or `ovn`), its virtual IP and whose it is. Pools and amphorae have pages of their own, and an amphora links to the instance it runs in.
+
+A load balancer in `ERROR`, one stuck `PENDING_UPDATE` or `PENDING_CREATE` for an hour, a pool with every member failing its health check, an amphora in `ERROR`, an active-standby pair with two masters, and an amphora whose certificate has under 14 days left all reach **Needs attention** by name. An amphora's certificate lasts exactly 30 days from the day it is built (recorded), and Octavia's housekeeping renews one with 14 days left by default, so a line at 30 days would fire on every amphora for its whole life.
+
+| What | Agent, Full view | Anything less |
+| --- | --- | --- |
+| Every project's load balancers and pools, with both statuses | Yes | Its own project's at most, and the monitoring role none |
+| Amphorae, their role, their instance and their certificate | Yes | No: Octavia lets only an admin list them |
+| Listeners and members | No: the exporter has no series for them | No |
+| Traffic: connections, bytes, request errors | No: the exporter has no `stats_*` series, and Octavia's API is the only place that says | No |
+| Octavia's own workers on **Services** | No: nothing the agent reads lists them | No |
+
+A pool whose members all fail their health check is `ERROR` in operating status while it and its load balancer stay `ACTIVE` in provisioning, recorded, so a page that read provisioning alone would show nothing wrong. A load balancer in provisioning `ERROR` reads operating `OFFLINE`. The OVN provider reports 0 for every traffic counter, which is not a fault.
+
+A stopped Octavia API gives the exporter an empty answer rather than `openstack_loadbalancer_up 0`, the same as a cloud without Octavia. So on a cloud the agent collects, the Load Balancers API Down template stays quiet and the pages say when Octavia was last heard from. If Octavia leaves Keystone's catalog, its rows go after much longer than Heat's, because an empty answer can't tell a service that left from one that stopped.
+
 ## Designate
 
 A cloud that runs Designate gets **DNS Zones** under **Network** on its own, and one that doesn't shows no trace of it. Each zone has its status in Designate's own word, how many recordsets it holds and whose it is, and a page of its own, which lists any of its recordsets that aren't `ACTIVE`. Only those have rows: a zone can hold any number of recordsets, and the question is which of them went wrong. One goes from the list once it reads `ACTIVE` again, at the inventory's next sweep.

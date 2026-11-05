@@ -383,6 +383,13 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     color: "#f43f5e",
     order: 44,
   },
+  "openstack.loadbalancer": {
+    label: translationKey("Load Balancer"),
+    plural: translationKey("Load Balancers"),
+    icon: IconProp.Globe,
+    color: "#6366f1",
+    order: 58,
+  },
   "openstack.pool": {
     label: translationKey("Storage Pool"),
     plural: translationKey("Storage Pools"),
