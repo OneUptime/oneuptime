@@ -177,12 +177,15 @@ const ROW_OF = {
   "load-balancer:load balancers": (project) => {
     return { id: `lb-${project}`, project_id: project };
   },
+  "sharev2:shares, all projects": (project) => {
+    return { id: `share-${project}`, project_id: project };
+  },
+  "dns:zones, all projects": (project) => {
+    return { id: `zone-${project}`, project_id: project };
+  },
   // Heat's own list says "project", and only to someone who may read every project's.
   "orchestration:stacks": (project) => {
     return { id: `stack-${project}`, project };
-  },
-  "sharev2:shares, all projects": (project) => {
-    return { id: `share-${project}`, project_id: project };
   },
 };
 
@@ -239,8 +242,15 @@ function projectView(read) {
     case "load-balancer:amphorae":
     case "orchestration:services":
     case "container-infra:services":
+    case "baremetal:conductors":
     case "sharev2:services":
     case "sharev2:pools":
+    case "dns:zones, all projects":
+    case "key-manager:secrets":
+    case "key-manager:orders":
+    case "object-store:own account":
+    case "database:instances, all projects":
+    case "metric:status":
       return { status: 403 };
     case "network:networks":
       return {
@@ -338,6 +348,11 @@ const SERVICE_PATH = {
   orchestration: "heat-api/v1/own-project",
   "container-infra": "container-infra/v1",
   sharev2: "share/v2",
+  dns: "dns",
+  "key-manager": "key-manager",
+  "object-store": "swift/v1/AUTH_own-project",
+  database: "database/v1.0/own-project",
+  metric: "metric",
 };
 
 /*
@@ -893,6 +908,8 @@ describe("the reads it makes", () => {
       orchestration: "/v1/own-project",
       "container-infra": "/v1",
       sharev2: "/v2",
+      "object-store": "/v1/AUTH_own-project",
+      database: "/v1.0/own-project",
     };
     const allows = (service, wanted) => {
       return rules.some((rule) => {
@@ -1028,7 +1045,9 @@ describe("a full-view credential", () => {
     const lines = accessLines(run);
     for (const read of matrixReads()) {
       expect(lineAbout(lines, `${read.service}: ${read.label}`)).toMatch(
-        /^✔ .* — reads everything/,
+        read.service === "key-manager"
+          ? /^✔ .* — reads its own project's/
+          : /^✔ .* — reads everything/,
       );
     }
     expect(run.output).toContain(
@@ -1267,6 +1286,13 @@ describe("a plain reader, and the trap", () => {
     ["sharev2: services"],
     ["sharev2: pools"],
     ["container-infra: services"],
+    ["baremetal: conductors"],
+    ["dns: zones, all projects"],
+    ["key-manager: secrets"],
+    ["key-manager: orders"],
+    ["object-store: own account"],
+    ["database: instances, all projects"],
+    ["metric: status"],
   ])("%s is not deployed", (read) => {
     expect(lineAbout(accessLines(run), read)).toBe(
       `• ${read} — not deployed (not in this region's catalog)`,
@@ -1655,11 +1681,39 @@ describe("what a 200 proves", () => {
       "▲ baremetal: nodes — may be own project only (a 200 with nothing here to tell by)",
     );
   });
-});
 
-/* ----------------------------------------------------- what else can come back */
+  test("Barbican never reads as everything, and it is nothing to fix: it answers any credential about its own project alone", async () => {
+    const cloud = await startCloud({ scenario: fullView, roles: ["admin"] });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(lineAbout(accessLines(run), "key-manager: secrets")).toBe(
+      "✔ key-manager: secrets — reads its own project's (Barbican answers any credential about its own project alone)",
+    );
+  });
 
-describe("the other answers", () => {
+  test("Swift's 500 to a credential with access rules says the setting that causes it", async () => {
+    const cloud = await startCloud({
+      scenario: (read) => {
+        return read.service === "object-store"
+          ? { status: 500 }
+          : fullView(read);
+      },
+      roles: ["admin"],
+      tokenExtra: {
+        application_credential: {
+          id: APP_ID,
+          restricted: true,
+          access_rules: [{ path: "/v2.1/servers" }],
+        },
+      },
+    });
+    const run = await runDoctor(cloud);
+    await cloud.close();
+    expect(run.output).toContain(
+      "Swift answers a credential with access rules 500 while [filter:authtoken] in proxy-server.conf has include_service_catalog = False.",
+    );
+  });
+
   test("404: the API is not deployed. 503: that says nothing about the credential, and the service is named", async () => {
     const cloud = await startCloud({
       serviceStatus: { "load-balancer": 503 },
