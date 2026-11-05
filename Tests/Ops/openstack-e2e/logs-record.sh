@@ -264,6 +264,9 @@ scene_failed_logins() {
     done
     : "$attempt"
   done
+  # DevStack turns Keystone's lockout on: two wrong passwords shut admin out for ten seconds, and
+  # the good login below and every scene after it would be refused with them.
+  sleep 15
   openstack token issue -f value -c expires
   # Anything but a refusal is no failed login, and this scene says nothing about them.
   [ "$refused" = 24 ]
