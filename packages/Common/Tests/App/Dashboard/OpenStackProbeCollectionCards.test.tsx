@@ -916,7 +916,7 @@ describe("the Settings page's Data Collection card", () => {
       ).toBeInTheDocument();
       expect(
         within(options).getByText(
-          "One series per port, and how many have no address or a load balancer that is down. Costs one paged list per network or project you name, or of every port if you name none. An unscoped list of ports can saturate Neutron on a large cloud.",
+          "One series per port, and how many have no address or a load balancer that is down. Name networks or projects: listing every port can saturate Neutron.",
         ),
       ).toBeInTheDocument();
 
@@ -1199,7 +1199,7 @@ describe("the Settings page's Data Collection card", () => {
 
     expect(
       screen.getByText(
-        "Enter Keystone's address, a read-only credential and a probe that reaches the cloud. Stop the OpenStack agent after the first collection, or every metric arrives twice.",
+        "Enter Keystone's address, a read-only credential and a probe that reaches it. Stop the OpenStack agent after its first collection, or metrics double.",
       ),
     ).toBeInTheDocument();
   });
