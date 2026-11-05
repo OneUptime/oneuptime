@@ -813,14 +813,14 @@ A cloud without Manila costs nothing for it: the exporter answers with nothing, 
 
 A cloud that runs Trove gets **Databases** on its own, and one that doesn't shows no trace of it. Each database has its status in Trove's own word, what it runs, its volume and whose it is, and a page of its own. One in an error state reaches **Needs attention** by name, and so does one still on its way after an hour, or one past 85% of its volume.
 
-| What | Agent, Full view | Anything less |
-| --- | --- | --- |
-| Every project's databases and their status | Yes | Nothing at all: see below |
-| How full a running database's volume is | Yes | No |
-| Why a database failed | No. Run `openstack database instance show` | No |
-| `trove-taskmanager` and `trove-conductor` | No: Trove has no list of them | No |
+| What | Agent, Full view | Probe, Full view | Anything less |
+| --- | --- | --- | --- |
+| Every project's databases and their status | Yes | Yes | Nothing at all: see below |
+| How full a running database's volume is | Yes | Yes | No |
+| Why a database failed, and what it was doing | No. Run `openstack database instance show` | Yes | No |
+| `trove-taskmanager` and `trove-conductor` | No: Trove has no list of them | No | No |
 
-The exporter reads Trove's mgmt API, which only an admin may. Trove refuses anything less, and the exporter reads a refusal just as it reads Trove stopped: `openstack_trove_up` reads 0 and nothing else is said. So a credential that has never once read Trove is told that, rather than that Trove is down, and isn't offered Trove's alerts. Once it has read Trove, a 0 reads as down, which is also what a credential that has since lost its access reads as.
+The exporter reads Trove's mgmt API, which only an admin may. Trove refuses anything less, and the exporter reads a refusal just as it reads Trove stopped: `openstack_trove_up` reads 0 and nothing else is said. So a credential that has never once read Trove is told that, rather than that Trove is down, and isn't offered Trove's alerts. A probe reads the same list and tells the two apart: Trove answered, so its API reads as up, and the connection test says it was refused. Once it has read Trove, a 0 reads as down, which is also what a credential that has since lost its access reads as.
 
 A stopped `trove-taskmanager` isn't shown anywhere, because Trove's lists answer without it and it has no list of workers: what it was working on just stops moving, and **Database Instance Stuck** is what says so. Trove gives up on a guest by itself well before that hour.
 
