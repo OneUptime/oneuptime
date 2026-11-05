@@ -171,13 +171,23 @@ describe("for a parent that is down now", () => {
       });
 
     for (const [service, region, disabledReason, waits] of [
-      ["nova-compute", "RegionOne", "AUTO: Connection to libvirt lost: 1", true],
+      [
+        "nova-compute",
+        "RegionOne",
+        "AUTO: Connection to libvirt lost: 1",
+        true,
+      ],
       // Someone took a host out by hand: nothing libvirt says speaks for that.
       ["nova-compute", "RegionOne", "", false],
       ["nova-compute", "RegionOne", "swapping a disk", false],
       ["nova-compute", "RegionOne", "see AUTO: above", false],
       // Another region has its own libvirt to say so.
-      ["nova-compute", "RegionTwo", "AUTO: Connection to libvirt lost: 1", false],
+      [
+        "nova-compute",
+        "RegionTwo",
+        "AUTO: Connection to libvirt lost: 1",
+        false,
+      ],
       // Only nova-compute writes this about itself.
       ["cinder-volume", "RegionOne", "AUTO: anything", false],
     ] as Array<[string, string, string, boolean]>) {

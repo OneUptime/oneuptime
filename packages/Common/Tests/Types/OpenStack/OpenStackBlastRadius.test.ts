@@ -4,6 +4,7 @@ import {
   OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT,
   OPENSTACK_REACH_HEADING,
   OpenStackBlastRadius,
+  OpenStackBlastRadiusProject,
   buildOpenStackBlastRadius,
   describeOpenStackBlastRadius,
   describeOpenStackBlastRadiusCounts,
@@ -106,7 +107,7 @@ describe("buildOpenStackBlastRadius", () => {
   });
 
   test("projects hit equally stay in a stable order", () => {
-    const build = (): Array<string> => {
+    const build: () => Array<string> = (): Array<string> => {
       return buildOpenStackBlastRadius({
         counts: [
           {
@@ -305,9 +306,11 @@ describe("what several parts take with them", () => {
 
     expect(merged.instanceCount).toBe(7);
     expect(merged.projectCount).toBe(2);
-    expect(merged.everyProject?.map((project) => {
-      return [project.projectId, project.name, project.instanceCount];
-    })).toEqual([
+    expect(
+      merged.everyProject?.map((project: OpenStackBlastRadiusProject) => {
+        return [project.projectId, project.name, project.instanceCount];
+      }),
+    ).toEqual([
       ["payments", "ou-payments", 5],
       ["research", "ou-research", 1],
     ]);
@@ -354,10 +357,26 @@ describe("what an incident's description keeps from a status page", () => {
     ["nothing to cut", "A compute host stopped.", "A compute host stopped."],
     ["no description", undefined, ""],
     ["a null description", null, ""],
-    ["only what the heading holds", `${OPENSTACK_REACH_HEADING}\n\n- ou-payments`, ""],
-    ["an edit above the heading stays", `Edited by a person.\n\n${OPENSTACK_REACH_HEADING}\n\nx`, "Edited by a person."],
-    ["an edit below the heading does not", `Above.\n\n${OPENSTACK_REACH_HEADING}\n\nx\n\nBelow, by a person.`, "Above."],
-  ])("%s", (_name, description, expected) => {
+    [
+      "only what the heading holds",
+      `${OPENSTACK_REACH_HEADING}\n\n- ou-payments`,
+      "",
+    ],
+    [
+      "an edit above the heading stays",
+      `Edited by a person.\n\n${OPENSTACK_REACH_HEADING}\n\nx`,
+      "Edited by a person.",
+    ],
+    [
+      "an edit below the heading does not",
+      `Above.\n\n${OPENSTACK_REACH_HEADING}\n\nx\n\nBelow, by a person.`,
+      "Above.",
+    ],
+  ])("%s", (
+    _name: string,
+    description: string | null | undefined,
+    expected: string,
+  ) => {
     expect(removeOpenStackReachFromDescription(description)).toBe(expected);
   });
 

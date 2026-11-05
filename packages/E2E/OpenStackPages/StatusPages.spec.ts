@@ -1,11 +1,5 @@
-import { Page } from "@playwright/test";
-import {
-  VIEWPORTS,
-  expect,
-  openCloudPage,
-  screenshot,
-  test,
-} from "./Helpers";
+import { Locator, Page } from "@playwright/test";
+import { VIEWPORTS, expect, openCloudPage, screenshot, test } from "./Helpers";
 
 /*
  * Telling people about a cloud, in a real browser: what a status page would make is read before anything
@@ -47,11 +41,11 @@ test.describe("a status page for this cloud, in one step", () => {
   }) => {
     await openCloudPage(page, "status-pages", RECORDING);
 
-    const card = page.getByTestId("openstack-status-page-card");
+    const card: Locator = page.getByTestId("openstack-status-page-card");
     await expect(card).toBeAttached();
     await page.getByRole("button", { name: "Create Status Page" }).click();
 
-    const plan = page.getByTestId("openstack-status-page-plan");
+    const plan: Locator = page.getByTestId("openstack-status-page-plan");
     await expect(plan).toBeVisible();
     await expect(plan).toContainText("RegionOne");
 
@@ -97,7 +91,7 @@ test.describe("a status page for this cloud, in one step", () => {
 
     await page.getByRole("button", { name: "Create Status Page" }).click();
 
-    const plan = page.getByTestId("openstack-status-page-plan");
+    const plan: Locator = page.getByTestId("openstack-status-page-plan");
     await expect(plan).toContainText("Compute");
     await expect(plan).not.toContainText("Block Storage");
   });
@@ -128,11 +122,14 @@ test.describe("a project notice", () => {
       .first()
       .click();
 
-    const form = page.getByRole("dialog");
+    const form: Locator = page.getByRole("dialog");
     await form.getByRole("combobox").first().click();
     await page.getByRole("option", { name: "ou-payments" }).first().click();
     await form.getByPlaceholder("ops@example.com").fill("ops@example.com");
-    await form.getByRole("button", { name: /Create|Save/ }).last().click();
+    await form
+      .getByRole("button", { name: /Create|Save/ })
+      .last()
+      .click();
   }
 
   test("starts off, and turning it on goes through who it tells", async ({
@@ -142,7 +139,7 @@ test.describe("a project notice", () => {
   }) => {
     await openCloudPage(page, "status-pages", RECORDING);
 
-    const notices = page.getByTestId("openstack-project-notices");
+    const notices: Locator = page.getByTestId("openstack-project-notices");
     await expect(notices).toContainText("Nobody is told anything yet");
 
     await addNotice(page);
@@ -156,7 +153,7 @@ test.describe("a project notice", () => {
 
     await notices.getByRole("button", { name: /Turn On/ }).click();
 
-    const preview = page.getByTestId("openstack-notice-preview");
+    const preview: Locator = page.getByTestId("openstack-notice-preview");
     await expect(preview).toContainText("ops@example.com");
     await expect(preview).toContainText("ou-payments");
     await expect(page.getByRole("dialog")).toContainText(
@@ -213,7 +210,7 @@ test.describe("a hypervisor's page", () => {
     await page.locator("tbody tr").first().click();
     await expect(page).toHaveURL(/\/hypervisors\/[^/]+/);
 
-    const card = page.getByTestId("openstack-hypervisor-planned-work");
+    const card: Locator = page.getByTestId("openstack-hypervisor-planned-work");
     await expect(card).toContainText("Planned Work");
     await expect(card).toContainText("It reaches 3 instances in 2 projects");
     await expect(card).toContainText("Nobody would be told");

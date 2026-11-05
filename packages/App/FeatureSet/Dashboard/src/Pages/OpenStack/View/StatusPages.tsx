@@ -5,11 +5,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OpenStackProjectNoticesCard from "../../../Components/OpenStack/OpenStackProjectNoticesCard";
 import OpenStackStatusPagePlanCard from "../../../Components/OpenStack/OpenStackStatusPagePlanCard";
 import PageComponentProps from "../../PageComponentProps";

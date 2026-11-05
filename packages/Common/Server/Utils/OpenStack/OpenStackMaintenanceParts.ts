@@ -42,7 +42,9 @@ export default class OpenStackMaintenanceParts {
     events: ReadonlyArray<{ openStackParts?: unknown }>;
   }): Promise<Array<OpenStackMaintainedCloud> | undefined> {
     const parts: Array<OpenStackMaintenancePart> = data.events.flatMap(
-      (event: { openStackParts?: unknown }): Array<OpenStackMaintenancePart> => {
+      (event: {
+        openStackParts?: unknown;
+      }): Array<OpenStackMaintenancePart> => {
         return readOpenStackMaintenanceParts(event.openStackParts);
       },
     );

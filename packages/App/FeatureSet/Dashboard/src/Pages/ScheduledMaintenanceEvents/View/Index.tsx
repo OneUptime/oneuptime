@@ -1313,7 +1313,9 @@ const ScheduledMaintenanceView: FunctionComponent<
                         {(item.openStackParts || []).map(
                           (part: OpenStackMaintenancePart) => {
                             return (
-                              <li key={`${part.kind}-${part.regionName}-${part.name}`}>
+                              <li
+                                key={`${part.kind}-${part.regionName}-${part.name}`}
+                              >
                                 <bdi>
                                   {part.regionName
                                     ? `${part.name} (${part.regionName})`

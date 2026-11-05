@@ -363,11 +363,11 @@ describe("one failure, one incident: who waits for whom", () => {
     expect(
       getOpenStackTemplateChildren("openstack-libvirt-exporter-target-down"),
     ).toEqual([]);
-    expect(getOpenStackControlPlaneTemplateIds(OpenStackDependency.Libvirt)).toEqual(
-      [
-        "openstack-libvirt-service-down",
-        "openstack-libvirt-exporter-target-down",
-      ],
-    );
+    expect(
+      getOpenStackControlPlaneTemplateIds(OpenStackDependency.Libvirt),
+    ).toEqual([
+      "openstack-libvirt-service-down",
+      "openstack-libvirt-exporter-target-down",
+    ]);
   });
 });

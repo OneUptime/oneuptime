@@ -283,7 +283,10 @@ describePostgres(
       return { pageId, monitorId, userId, sessionId, notice: created };
     }
 
-    function cookieOf(page: ProjectPage, forPage: ObjectID): Dictionary<string> {
+    function cookieOf(
+      page: ProjectPage,
+      forPage: ObjectID,
+    ): Dictionary<string> {
       return {
         [`user-token-${forPage.toString()}`]: JSONWebToken.sign({
           data: {
@@ -595,7 +598,9 @@ describePostgres(
           `SELECT "currentMonitorStatusId" FROM "${schema}"."Monitor" WHERE "_id" = $1`,
           [pageA.monitorId.toString()],
         );
-      expect(monitors[0]!.currentMonitorStatusId).toBe(offlineStatus.toString());
+      expect(monitors[0]!.currentMonitorStatusId).toBe(
+        offlineStatus.toString(),
+      );
 
       // And nothing of the other project, or of the incident that names both, or of the host.
       for (const word of [
@@ -643,12 +648,20 @@ describePostgres(
      * incident's. A page answers about its own rows, however a thing is asked for by its ID.
      */
     test.each<[string, string, () => Dictionary<string>]>([
-      ["the page in brief", "/status-page/summary/:statusPageIdOrDomain", () => {
-        return {};
-      }],
-      ["its incidents", "/status-page/incidents/:statusPageIdOrDomain", () => {
-        return {};
-      }],
+      [
+        "the page in brief",
+        "/status-page/summary/:statusPageIdOrDomain",
+        () => {
+          return {};
+        },
+      ],
+      [
+        "its incidents",
+        "/status-page/incidents/:statusPageIdOrDomain",
+        () => {
+          return {};
+        },
+      ],
       [
         "the incident that names everyone, by its ID",
         "/status-page/incidents/:statusPageIdOrDomain/:incidentId",
@@ -679,7 +692,11 @@ describePostgres(
       ],
     ])(
       "through %s, B reads nothing of A's",
-      async (_name: string, route: string, params: () => Dictionary<string>) => {
+      async (
+        _name: string,
+        route: string,
+        params: () => Dictionary<string>,
+      ) => {
         const read: { payload: JSONObject | null; error: unknown } =
           await overview({
             pageId: pageB.pageId,

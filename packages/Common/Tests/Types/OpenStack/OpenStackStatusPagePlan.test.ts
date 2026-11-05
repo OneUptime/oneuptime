@@ -105,9 +105,7 @@ describe("what a cloud's page holds", () => {
 
   test("a cloud without a service shows no trace of it", () => {
     const plan: OpenStackStatusPagePlan = planOf({
-      regions: [
-        { regionName: "RegionOne", apiNames: ["compute", "identity"] },
-      ],
+      regions: [{ regionName: "RegionOne", apiNames: ["compute", "identity"] }],
     });
 
     expect(servicesOf(plan.groups[0]!)).toEqual(["Compute", "Identity"]);
@@ -158,9 +156,9 @@ describe("what a cloud's page holds", () => {
     });
 
     expect(plan.groups[0]!.name).toBe("devstack");
-    expect(
-      plan.groups[0]!.rows[0]!.monitors[0]!.name,
-    ).toBe("devstack - Identity API Down");
+    expect(plan.groups[0]!.rows[0]!.monitors[0]!.name).toBe(
+      "devstack - Identity API Down",
+    );
   });
 
   test("every template a row reads is one that exists, and none trips on planned work", () => {
@@ -190,9 +188,15 @@ describe("what it makes and what it reuses", () => {
 
     expect(plan.monitorsToMake).toBe(8);
     expect(plan.monitorsReused).toBe(0);
-    expect(compute.monitors.map((monitor: OpenStackStatusPagePlanMonitor) => {
-      return [monitor.templateId, monitor.existingMonitorId, monitor.regionName];
-    })).toEqual([
+    expect(
+      compute.monitors.map((monitor: OpenStackStatusPagePlanMonitor) => {
+        return [
+          monitor.templateId,
+          monitor.existingMonitorId,
+          monitor.regionName,
+        ];
+      }),
+    ).toEqual([
       ["openstack-compute-api-down", null, "RegionOne"],
       [COMPUTE_DOWN, null, "RegionOne"],
     ]);
@@ -307,10 +311,7 @@ describe("what it makes and what it reuses", () => {
 
   test("a check's monitor is for its objective, and only once that check is on", () => {
     const off: OpenStackStatusPagePlan = planOf({
-      offered: [
-        "openstack-compute-api-down",
-        COMPUTE_DOWN,
-      ],
+      offered: ["openstack-compute-api-down", COMPUTE_DOWN],
     });
     const on: OpenStackStatusPagePlan = planOf({
       offered: [
@@ -321,14 +322,17 @@ describe("what it makes and what it reuses", () => {
     });
 
     expect(
-      rowOf(off, "RegionOne", OpenStackStatusPageService.Compute)!.checkMonitors,
+      rowOf(off, "RegionOne", OpenStackStatusPageService.Compute)!
+        .checkMonitors,
     ).toEqual([]);
     expect(
-      rowOf(on, "RegionOne", OpenStackStatusPageService.Compute)!.checkMonitors.map(
-        (monitor: OpenStackStatusPagePlanMonitor) => {
-          return monitor.templateId;
-        },
-      ),
+      rowOf(
+        on,
+        "RegionOne",
+        OpenStackStatusPageService.Compute,
+      )!.checkMonitors.map((monitor: OpenStackStatusPagePlanMonitor) => {
+        return monitor.templateId;
+      }),
     ).toEqual(["openstack-instance-boot-failing"]);
     // Never counted in what the page itself will make.
     expect(on.monitorsToMake).toBe(off.monitorsToMake);
@@ -380,19 +384,45 @@ describe("a project's own page", () => {
       projectName: "ou-payments",
       projectId: "aaaa",
       holdings: [
-        { kind: OpenStackResourceKind.Volume, regionName: "RegionOne", count: 1 },
-        { kind: OpenStackResourceKind.Instance, regionName: "RegionOne", count: 3 },
-        { kind: OpenStackResourceKind.Router, regionName: "RegionOne", count: 1 },
-        { kind: OpenStackResourceKind.FloatingIp, regionName: "RegionOne", count: 2 },
-        { kind: OpenStackResourceKind.Instance, regionName: "RegionTwo", count: 1 },
+        {
+          kind: OpenStackResourceKind.Volume,
+          regionName: "RegionOne",
+          count: 1,
+        },
+        {
+          kind: OpenStackResourceKind.Instance,
+          regionName: "RegionOne",
+          count: 3,
+        },
+        {
+          kind: OpenStackResourceKind.Router,
+          regionName: "RegionOne",
+          count: 1,
+        },
+        {
+          kind: OpenStackResourceKind.FloatingIp,
+          regionName: "RegionOne",
+          count: 2,
+        },
+        {
+          kind: OpenStackResourceKind.Instance,
+          regionName: "RegionTwo",
+          count: 1,
+        },
       ],
     });
 
     expect(plan.name).toBe("ou-payments status");
     expect(
-      plan.rows.map((row: { regionName: string | null; service: string; holdingCount: number }) => {
-        return [row.regionName, row.service, row.holdingCount];
-      }),
+      plan.rows.map(
+        (row: {
+          regionName: string | null;
+          service: string;
+          holdingCount: number;
+        }) => {
+          return [row.regionName, row.service, row.holdingCount];
+        },
+      ),
     ).toEqual([
       ["RegionOne", "Compute", 3],
       ["RegionOne", "Networking", 3],
@@ -444,25 +474,142 @@ describe("a project's own page", () => {
 });
 
 describe("which row a part belongs to, and what it is called to a tenant", () => {
-  test.each<[string, { kind: string; name?: string; externalId?: string }, OpenStackStatusPageService | null, string]>([
-    ["a hypervisor", { kind: OpenStackResourceKind.Hypervisor, name: "compute-01.internal" }, OpenStackStatusPageService.Compute, "A compute host"],
-    ["its nova-compute", { kind: OpenStackResourceKind.Service, name: "nova-compute", externalId: "R/compute/compute-01/nova-compute" }, OpenStackStatusPageService.Compute, "A compute host"],
-    ["a scheduler", { kind: OpenStackResourceKind.Service, name: "nova-scheduler", externalId: "R/compute/c/nova-scheduler" }, OpenStackStatusPageService.Compute, "A compute service"],
-    ["a Neutron agent", { kind: OpenStackResourceKind.Service, name: "neutron-l3-agent", externalId: "R/network/n/neutron-l3-agent" }, OpenStackStatusPageService.Networking, "A networking service"],
-    ["a cinder-volume", { kind: OpenStackResourceKind.Service, name: "cinder-volume", externalId: "R/volume/s@lvm/cinder-volume" }, OpenStackStatusPageService.BlockStorage, "A block storage service"],
-    ["a Heat engine", { kind: OpenStackResourceKind.Service, name: "heat-engine", externalId: "R/orchestration/h/heat-engine" }, null, "A service"],
-    ["a router", { kind: OpenStackResourceKind.Router, name: "r1", externalId: "x" }, OpenStackStatusPageService.Networking, "A router"],
-    ["a volume", { kind: OpenStackResourceKind.Volume, externalId: "x" }, OpenStackStatusPageService.BlockStorage, "A volume"],
-    ["a storage pool", { kind: OpenStackResourceKind.StoragePool, name: "h@b#p" }, OpenStackStatusPageService.BlockStorage, "A storage pool"],
-    ["an instance", { kind: OpenStackResourceKind.Instance, externalId: "x" }, OpenStackStatusPageService.Compute, "An instance"],
-    ["Nova's API", { kind: OpenStackResourceKind.Api, name: "compute" }, OpenStackStatusPageService.Compute, "The Compute API"],
-    ["Placement's API, which is how Compute schedules", { kind: OpenStackResourceKind.Api, name: "placement" }, OpenStackStatusPageService.Compute, "The Placement API"],
-    ["Keystone's API", { kind: OpenStackResourceKind.Api, name: "identity" }, OpenStackStatusPageService.Identity, "The Identity API"],
-    ["Glance's API", { kind: OpenStackResourceKind.Api, name: "image" }, OpenStackStatusPageService.Images, "The Image API"],
-    ["an API there is no row for", { kind: OpenStackResourceKind.Api, name: "orchestration" }, null, "The Orchestration API"],
-    ["a zone under maintenance", { kind: OpenStackMaintenancePartKind.AvailabilityZone }, OpenStackStatusPageService.Compute, "An availability zone"],
-    ["what we can't place", { kind: "Something New" }, null, "A part of the cloud"],
-  ])("%s", (_name, part, service, words) => {
+  test.each<
+    [
+      string,
+      { kind: string; name?: string; externalId?: string },
+      OpenStackStatusPageService | null,
+      string,
+    ]
+  >([
+    [
+      "a hypervisor",
+      { kind: OpenStackResourceKind.Hypervisor, name: "compute-01.internal" },
+      OpenStackStatusPageService.Compute,
+      "A compute host",
+    ],
+    [
+      "its nova-compute",
+      {
+        kind: OpenStackResourceKind.Service,
+        name: "nova-compute",
+        externalId: "R/compute/compute-01/nova-compute",
+      },
+      OpenStackStatusPageService.Compute,
+      "A compute host",
+    ],
+    [
+      "a scheduler",
+      {
+        kind: OpenStackResourceKind.Service,
+        name: "nova-scheduler",
+        externalId: "R/compute/c/nova-scheduler",
+      },
+      OpenStackStatusPageService.Compute,
+      "A compute service",
+    ],
+    [
+      "a Neutron agent",
+      {
+        kind: OpenStackResourceKind.Service,
+        name: "neutron-l3-agent",
+        externalId: "R/network/n/neutron-l3-agent",
+      },
+      OpenStackStatusPageService.Networking,
+      "A networking service",
+    ],
+    [
+      "a cinder-volume",
+      {
+        kind: OpenStackResourceKind.Service,
+        name: "cinder-volume",
+        externalId: "R/volume/s@lvm/cinder-volume",
+      },
+      OpenStackStatusPageService.BlockStorage,
+      "A block storage service",
+    ],
+    [
+      "a Heat engine",
+      {
+        kind: OpenStackResourceKind.Service,
+        name: "heat-engine",
+        externalId: "R/orchestration/h/heat-engine",
+      },
+      null,
+      "A service",
+    ],
+    [
+      "a router",
+      { kind: OpenStackResourceKind.Router, name: "r1", externalId: "x" },
+      OpenStackStatusPageService.Networking,
+      "A router",
+    ],
+    [
+      "a volume",
+      { kind: OpenStackResourceKind.Volume, externalId: "x" },
+      OpenStackStatusPageService.BlockStorage,
+      "A volume",
+    ],
+    [
+      "a storage pool",
+      { kind: OpenStackResourceKind.StoragePool, name: "h@b#p" },
+      OpenStackStatusPageService.BlockStorage,
+      "A storage pool",
+    ],
+    [
+      "an instance",
+      { kind: OpenStackResourceKind.Instance, externalId: "x" },
+      OpenStackStatusPageService.Compute,
+      "An instance",
+    ],
+    [
+      "Nova's API",
+      { kind: OpenStackResourceKind.Api, name: "compute" },
+      OpenStackStatusPageService.Compute,
+      "The Compute API",
+    ],
+    [
+      "Placement's API, which is how Compute schedules",
+      { kind: OpenStackResourceKind.Api, name: "placement" },
+      OpenStackStatusPageService.Compute,
+      "The Placement API",
+    ],
+    [
+      "Keystone's API",
+      { kind: OpenStackResourceKind.Api, name: "identity" },
+      OpenStackStatusPageService.Identity,
+      "The Identity API",
+    ],
+    [
+      "Glance's API",
+      { kind: OpenStackResourceKind.Api, name: "image" },
+      OpenStackStatusPageService.Images,
+      "The Image API",
+    ],
+    [
+      "an API there is no row for",
+      { kind: OpenStackResourceKind.Api, name: "orchestration" },
+      null,
+      "The Orchestration API",
+    ],
+    [
+      "a zone under maintenance",
+      { kind: OpenStackMaintenancePartKind.AvailabilityZone },
+      OpenStackStatusPageService.Compute,
+      "An availability zone",
+    ],
+    [
+      "what we can't place",
+      { kind: "Something New" },
+      null,
+      "A part of the cloud",
+    ],
+  ])("%s", (
+    _name: string,
+    part: { kind: string; name?: string; externalId?: string },
+    service: OpenStackStatusPageService | null,
+    words: string,
+  ) => {
     expect(getOpenStackStatusPageServiceOfPart(part)).toBe(service);
     expect(describeOpenStackPartToAProject(part)).toBe(words);
   });

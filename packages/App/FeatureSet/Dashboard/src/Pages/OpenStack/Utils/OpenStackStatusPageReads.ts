@@ -202,8 +202,10 @@ export async function fetchOpenStackMaintenanceCovering(data: {
     body: { hostName: data.hostName, regionName: data.regionName },
   });
 
-  return (answer["events"] as unknown as Array<{
-    id: string;
-    title: string;
-  }>) || [];
+  return (
+    (answer["events"] as unknown as Array<{
+      id: string;
+      title: string;
+    }>) || []
+  );
 }

@@ -57,7 +57,10 @@ function monitorOf(cloudName: string = CLOUD_NAME): Monitor {
   return monitor;
 }
 
-function seriesOn(host: string, region: string = "RegionOne"): PerSeriesCriteriaMatch {
+function seriesOn(
+  host: string,
+  region: string = "RegionOne",
+): PerSeriesCriteriaMatch {
   return {
     fingerprint: `${region}/${host}`,
     labels: { [REGION]: region, hostname: host, service: "nova-compute" },
@@ -196,9 +199,9 @@ describe("an event on a host of an OpenStack cloud", () => {
     // The read is by this project, and that cloud isn't in it.
     jest.spyOn(OpenStackCloudService, "findBy").mockResolvedValue([]);
 
-    expect(await suppressedAmong(monitorOf(), [seriesOn("compute-01")])).toEqual(
-      [],
-    );
+    expect(
+      await suppressedAmong(monitorOf(), [seriesOn("compute-01")]),
+    ).toEqual([]);
   });
 
   test("a read that fails quiets nothing, and pages", async () => {
@@ -207,9 +210,9 @@ describe("an event on a host of an OpenStack cloud", () => {
       .spyOn(OpenStackCloudService, "findBy")
       .mockRejectedValue(new Error("the database went away"));
 
-    expect(await suppressedAmong(monitorOf(), [seriesOn("compute-01")])).toEqual(
-      [],
-    );
+    expect(
+      await suppressedAmong(monitorOf(), [seriesOn("compute-01")]),
+    ).toEqual([]);
   });
 });
 
@@ -265,9 +268,9 @@ describe("an event on an availability zone", () => {
     });
     jest.spyOn(OpenStackResourceService, "findBy").mockResolvedValue([]);
 
-    expect(await suppressedAmong(monitorOf(), [seriesOn("compute-01")])).toEqual(
-      [],
-    );
+    expect(
+      await suppressedAmong(monitorOf(), [seriesOn("compute-01")]),
+    ).toEqual([]);
   });
 });
 
@@ -294,9 +297,9 @@ describe("an event on a whole cloud", () => {
     cloudOn(event, OTHER_CLOUD_ID, "another-cloud");
     eventInProgress(event);
 
-    expect(await suppressedAmong(monitorOf(), [seriesOn("compute-01")])).toEqual(
-      [],
-    );
+    expect(
+      await suppressedAmong(monitorOf(), [seriesOn("compute-01")]),
+    ).toEqual([]);
   });
 });
 
@@ -308,14 +311,30 @@ describe("whether planned work on a host moves a monitor's status", () => {
     data: { createIncidents: false, createAlerts: false },
   } as unknown as MonitorCriteriaInstance;
 
-  test.each<[string, Partial<{ type: MonitorType; perSeries: boolean; criteria: MonitorCriteriaInstance; breaching: Array<string>; suppressed: Array<string> }>, boolean]>([
+  interface BreachCase {
+    type?: MonitorType;
+    perSeries?: boolean;
+    criteria?: MonitorCriteriaInstance;
+    breaching?: Array<string>;
+    suppressed?: Array<string>;
+  }
+
+  test.each<[string, BreachCase, boolean]>([
     ["everything breaching is on the host", {}, true],
-    ["another host is breaching too", { breaching: ["a", "b"], suppressed: ["a"] }, false],
+    [
+      "another host is breaching too",
+      { breaching: ["a", "b"], suppressed: ["a"] },
+      false,
+    ],
     ["nothing is breaching", { breaching: [], suppressed: [] }, false],
     ["a criteria that says all is well", { criteria: HEALTHY }, false],
     ["a monitor that isn't per series", { perSeries: false }, false],
-    ["a monitor of anything but OpenStack", { type: MonitorType.Metrics }, false],
-  ])("%s", (_name, overrides, expected) => {
+    [
+      "a monitor of anything but OpenStack",
+      { type: MonitorType.Metrics },
+      false,
+    ],
+  ])("%s", (_name: string, overrides: BreachCase, expected: boolean) => {
     const monitor: Monitor = new Monitor();
     monitor.monitorType = overrides.type || MonitorType.OpenStack;
 

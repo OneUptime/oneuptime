@@ -258,7 +258,8 @@ export default class OpenStackProjectNotice extends BaseModel {
     type: TableColumnType.Entity,
     modelType: StatusPage,
     title: "Status Page",
-    description: "The private status page this project reads, when that is who this tells.",
+    description:
+      "The private status page this project reads, when that is who this tells.",
   })
   @ManyToOne(
     () => {
@@ -284,7 +285,8 @@ export default class OpenStackProjectNotice extends BaseModel {
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
     title: "Status Page ID",
-    description: "ID of the private status page this project reads, when that is who this tells.",
+    description:
+      "ID of the private status page this project reads, when that is who this tells.",
   })
   @Column({
     type: ColumnType.ObjectID,

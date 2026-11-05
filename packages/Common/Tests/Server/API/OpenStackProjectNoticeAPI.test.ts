@@ -109,7 +109,9 @@ async function call(data: {
   };
 }
 
-function noticeOf(overrides: Partial<OpenStackProjectNotice> = {}): OpenStackProjectNotice {
+function noticeOf(
+  overrides: Partial<OpenStackProjectNotice> = {},
+): OpenStackProjectNotice {
   const notice: OpenStackProjectNotice = new OpenStackProjectNotice();
   notice._id = NOTICE_ID.toString();
   notice.id = NOTICE_ID;
@@ -156,11 +158,11 @@ describe("OpenStackProjectNoticeAPI", () => {
     jest
       .spyOn(OpenStackResourceService, "findBy")
       .mockResolvedValue([projectRow()]);
-    jest
-      .spyOn(OpenStackResourceService, "countBy")
-      .mockResolvedValue({ toNumber: () => {
+    jest.spyOn(OpenStackResourceService, "countBy").mockResolvedValue({
+      toNumber: () => {
         return 3;
-      } } as never);
+      },
+    } as never);
     jest
       .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
       .mockResolvedValue(undefined);
@@ -247,7 +249,7 @@ describe("OpenStackProjectNoticeAPI", () => {
       ["an empty token", { previewToken: "" }],
       ["a token someone made up", { previewToken: "made-up" }],
       ["a token that isn't text", { previewToken: { value: TOKEN } as never }],
-    ])("with %s, it is refused and stays off", async (_name, body) => {
+    ])("with %s, it is refused and stays off", async (_name: string, body: JSONObject) => {
       const answer: Answer = await call({
         route: "turn-on/:noticeId",
         params: { noticeId: NOTICE_ID.toString() },

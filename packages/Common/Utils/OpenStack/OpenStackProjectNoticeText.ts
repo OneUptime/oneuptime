@@ -5,10 +5,7 @@ import {
   describeOpenStackBlastRadiusCounts,
 } from "../../Types/OpenStack/OpenStackBlastRadius";
 import { OpenStackProjectNoticeEvent } from "../../Types/OpenStack/OpenStackProjectNotice";
-import FeedMarkdown, {
-  MarkdownText,
-  mdText,
-} from "../Markdown/FeedMarkdown";
+import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 
 /*
  * WHAT A PROJECT'S NOTICE SAYS.

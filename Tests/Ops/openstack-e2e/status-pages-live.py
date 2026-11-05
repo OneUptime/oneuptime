@@ -14,7 +14,7 @@ server here that keeps what it is sent:
              in it. Started again: it is told once that it is over, and the other project never hears.
   planned    A maintenance event on that host names who it reaches and tells the project once. While it
              is on, nova-compute stopped opens nothing and moves no status, and a disable reads as
-             expected. Ended, the same disable pages.
+             expected. Ended, the same disable pages, and tells no project.
 
 Every check says what it found, in $OUTPUT_DIR/whole-path.json, beside what whole-path.py would write.
 Exits 1 when a check failed, having named each one last.
@@ -456,6 +456,10 @@ def part_planned():
         if opened:
             check("once", len(opened) == 1, [row.get("title") for row in opened])
             found("the incident", opened[0])
+            # What a project runs there carries on, so saying it is affected would be untrue.
+            time.sleep(120)
+            last = bodies("/paid")[-1].get("event")
+            check("and it tells no project", last == "Maintenance Ended", last)
     finally:
         whole.must("break", f"openstack compute service set --enable {host} nova-compute")
 

@@ -105,6 +105,20 @@ jest.mock("Common/Server/Utils/VM/VMRunner", () => {
   return { __esModule: true, default: {} };
 });
 
+// A step that reads only the machines something was seen on asks the inventory which.
+jest.mock("Common/Server/Utils/OpenStack/OpenStackMachinesSeen", () => {
+  return {
+    __esModule: true,
+    default: {
+      keepMachinesSeenWith: async (data: {
+        series: Array<unknown>;
+      }): Promise<Array<unknown>> => {
+        return data.series;
+      },
+    },
+  };
+});
+
 jest.mock("Common/Server/Services/MetricService", () => {
   return {
     __esModule: true,

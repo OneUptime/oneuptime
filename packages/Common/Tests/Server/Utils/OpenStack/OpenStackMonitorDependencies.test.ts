@@ -170,7 +170,7 @@ describe("who waits for whom", () => {
      * A parent about one machine would quiet its child's alerts about every other machine
      * for as long as that one machine stayed down. Each of these reads a whole region, but for
      * the two on one machine's switch, which OpenStackDependencySuppression holds to the agents
-     * that live on it.
+     * that live on it, and libvirt, which it holds to a nova-compute that says it disabled itself.
      */
     for (const parent of parents) {
       if (
@@ -179,6 +179,13 @@ describe("who waits for whom", () => {
       ) {
         expect(getOpenStackTemplateChildren(parent)).toEqual([
           "openstack-network-agent-down",
+        ]);
+        continue;
+      }
+
+      if (parent === "openstack-libvirt-service-down") {
+        expect(getOpenStackTemplateChildren(parent)).toEqual([
+          "openstack-compute-service-disabled",
         ]);
         continue;
       }

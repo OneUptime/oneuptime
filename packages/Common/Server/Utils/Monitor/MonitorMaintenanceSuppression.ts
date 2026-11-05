@@ -561,7 +561,9 @@ export default class MonitorMaintenanceSuppression {
       (cloud: { name: string; id: string | undefined }): boolean => {
         return (
           input.maintained.openStackClouds.names.has(cloud.name) ||
-          Boolean(cloud.id && input.maintained.openStackClouds.ids.has(cloud.id))
+          Boolean(
+            cloud.id && input.maintained.openStackClouds.ids.has(cloud.id),
+          )
         );
       },
     );

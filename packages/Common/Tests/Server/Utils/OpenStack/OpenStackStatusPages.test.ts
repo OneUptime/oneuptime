@@ -118,22 +118,22 @@ function arrange(data: {
     .spyOn(OpenStackCloudCheckService, "findOneBy")
     .mockResolvedValue((data.check || null) as never);
 
-  jest.spyOn(OpenStackResourceService, "findBy").mockImplementation((async (read: {
-    query: { kind: string };
-  }) => {
-    if (read.query.kind === OpenStackResourceKind.Api) {
-      return (
-        data.apis || [
-          apiRow("compute", "RegionOne"),
-          apiRow("identity", "RegionOne"),
-          apiRow("image", "RegionOne"),
-        ]
-      );
-    }
-    return (data.holdings || []).filter((row: OpenStackResource) => {
-      return row.kind === read.query.kind;
-    });
-  }) as never);
+  jest
+    .spyOn(OpenStackResourceService, "findBy")
+    .mockImplementation((async (read: { query: { kind: string } }) => {
+      if (read.query.kind === OpenStackResourceKind.Api) {
+        return (
+          data.apis || [
+            apiRow("compute", "RegionOne"),
+            apiRow("identity", "RegionOne"),
+            apiRow("image", "RegionOne"),
+          ]
+        );
+      }
+      return (data.holdings || []).filter((row: OpenStackResource) => {
+        return row.kind === read.query.kind;
+      });
+    }) as never);
   jest
     .spyOn(OpenStackResourceService, "findOneBy")
     .mockImplementation((async () => {
@@ -164,7 +164,9 @@ function arrange(data: {
   online.isOperationalState = true;
   const offline: MonitorStatus = withId(new MonitorStatus());
   offline.isOfflineState = true;
-  jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([online, offline]);
+  jest
+    .spyOn(MonitorStatusService, "findBy")
+    .mockResolvedValue([online, offline]);
   jest
     .spyOn(IncidentSeverityService, "findOneBy")
     .mockResolvedValue(withId(new IncidentSeverity()));
@@ -209,13 +211,13 @@ function arrange(data: {
         }) || null
       );
     }) as never);
-  jest
-    .spyOn(MonitorGroupService, "create")
-    .mockImplementation((async (args: { data: MonitorGroup }) => {
-      const group: MonitorGroup = withId(args.data);
-      made.monitorGroups.push(group);
-      return group;
-    }) as never);
+  jest.spyOn(MonitorGroupService, "create").mockImplementation((async (args: {
+    data: MonitorGroup;
+  }) => {
+    const group: MonitorGroup = withId(args.data);
+    made.monitorGroups.push(group);
+    return group;
+  }) as never);
   jest
     .spyOn(MonitorGroupResourceService, "create")
     .mockImplementation((async (args: { data: MonitorGroupResource }) => {
@@ -269,7 +271,9 @@ async function planKey(): Promise<string> {
   );
 }
 
-async function make(key?: string): Promise<{ statusPageId: string; monitorsMade: number }> {
+async function make(
+  key?: string,
+): Promise<{ statusPageId: string; monitorsMade: number }> {
   return await OpenStackStatusPages.makeStatusPage({
     projectId: PROJECT_ID,
     openStackCloudId: CLOUD_ID,
@@ -300,12 +304,16 @@ describe("making a cloud's status page", () => {
     expect(made.pages).toHaveLength(1);
     expect(made.pages[0]!.name).toBe("devstack status");
     expect(made.pages[0]!.isPublicStatusPage).toBe(false);
-    expect(made.groups.map((group: StatusPageGroup) => {
-      return group.name;
-    })).toEqual(["RegionOne"]);
-    expect(made.resources.map((resource: StatusPageResource) => {
-      return resource.displayName;
-    })).toEqual(["Compute", "Images", "Identity"]);
+    expect(
+      made.groups.map((group: StatusPageGroup) => {
+        return group.name;
+      }),
+    ).toEqual(["RegionOne"]);
+    expect(
+      made.resources.map((resource: StatusPageResource) => {
+        return resource.displayName;
+      }),
+    ).toEqual(["Compute", "Images", "Identity"]);
     expect(result.statusPageId).toBe(made.pages[0]!.id!.toString());
   });
 
@@ -615,18 +623,24 @@ describe("making a project's own page", () => {
 
     await makePage();
 
-    expect(made.monitors.map((monitor: Monitor) => {
-      return [monitor.name, monitor.monitorType];
-    })).toEqual([
+    expect(
+      made.monitors.map((monitor: Monitor) => {
+        return [monitor.name, monitor.monitorType];
+      }),
+    ).toEqual([
       ["ou-payments - Compute (RegionOne)", MonitorType.Manual],
       ["ou-payments - Block Storage (RegionTwo)", MonitorType.Manual],
     ]);
-    expect(made.groups.map((group: StatusPageGroup) => {
-      return group.name;
-    })).toEqual(["RegionOne", "RegionTwo"]);
-    expect(made.resources.map((resource: StatusPageResource) => {
-      return resource.displayName;
-    })).toEqual(["Compute", "Block Storage"]);
+    expect(
+      made.groups.map((group: StatusPageGroup) => {
+        return group.name;
+      }),
+    ).toEqual(["RegionOne", "RegionTwo"]);
+    expect(
+      made.resources.map((resource: StatusPageResource) => {
+        return resource.displayName;
+      }),
+    ).toEqual(["Compute", "Block Storage"]);
     // A status page row with no monitor group: nobody else's monitors come along.
     expect(made.monitorGroups).toEqual([]);
   });

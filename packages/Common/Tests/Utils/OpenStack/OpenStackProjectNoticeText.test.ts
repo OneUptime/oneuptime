@@ -35,9 +35,8 @@ function facts(
 
 describe("what each event says", () => {
   test("an incident opening says the part, the region and what this project holds", () => {
-    const message: OpenStackProjectNoticeMessage = writeOpenStackProjectNotice(
-      facts(),
-    );
+    const message: OpenStackProjectNoticeMessage =
+      writeOpenStackProjectNotice(facts());
 
     expect(message.markdown).toContain("A compute host in region `RegionOne`");
     expect(message.markdown).toContain("has an incident");
@@ -111,9 +110,8 @@ describe("what each event says", () => {
   });
 
   test("the webhook says the same, as data", () => {
-    const message: OpenStackProjectNoticeMessage = writeOpenStackProjectNotice(
-      facts(),
-    );
+    const message: OpenStackProjectNoticeMessage =
+      writeOpenStackProjectNotice(facts());
 
     expect(message.webhook).toMatchObject({
       kind: "openstack.project.notice",
@@ -220,9 +218,8 @@ describe("nothing a name holds acts", () => {
 
 describe("what it never holds", () => {
   test("nothing about any other project can be in it, because nothing else is in its facts", () => {
-    const message: OpenStackProjectNoticeMessage = writeOpenStackProjectNotice(
-      facts(),
-    );
+    const message: OpenStackProjectNoticeMessage =
+      writeOpenStackProjectNotice(facts());
 
     // The whole shape, so a field added to what it sends has to be looked at here.
     expect(Object.keys(message.webhook).sort()).toEqual([

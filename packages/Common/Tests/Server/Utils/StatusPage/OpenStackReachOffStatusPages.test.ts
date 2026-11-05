@@ -74,9 +74,9 @@ describe("what a status page reads of an incident", () => {
   });
 
   test("what isn't OpenStack's reads exactly as it was written", () => {
-    expect(removeOpenStackReachFromDescription("**Bold** and\n\n- a list")).toBe(
-      "**Bold** and\n\n- a list",
-    );
+    expect(
+      removeOpenStackReachFromDescription("**Bold** and\n\n- a list"),
+    ).toBe("**Bold** and\n\n- a list");
   });
 });
 

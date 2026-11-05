@@ -81,7 +81,9 @@ function rowOf(overrides: Partial<Row> = {}): Row {
   return row;
 }
 
-function noticeOf(overrides: Partial<OpenStackProjectNotice> = {}): OpenStackProjectNotice {
+function noticeOf(
+  overrides: Partial<OpenStackProjectNotice> = {},
+): OpenStackProjectNotice {
   const notice: OpenStackProjectNotice = new OpenStackProjectNotice();
   notice._id = NOTICE_ID.toString();
   notice.id = NOTICE_ID;
@@ -94,7 +96,9 @@ function noticeOf(overrides: Partial<OpenStackProjectNotice> = {}): OpenStackPro
   return notice;
 }
 
-function webhookNotice(url: string = "https://example.com/hook"): OpenStackProjectNotice {
+function webhookNotice(
+  url: string = "https://example.com/hook",
+): OpenStackProjectNotice {
   const notice: OpenStackProjectNotice = noticeOf();
   notice.email = undefined;
   notice.webhookUrl = URL.fromString(url);
@@ -123,7 +127,8 @@ function arrange(data: {
   jest
     .spyOn(OpenStackProjectNoticeDeliveryService, "findBy")
     .mockImplementation((async (args: { query: Record<string, unknown> }) => {
-      return args.query["status"] === OpenStackProjectNoticeDeliveryStatus.Pending
+      return args.query["status"] ===
+        OpenStackProjectNoticeDeliveryStatus.Pending
         ? deliveries
         : [];
     }) as never);
@@ -151,19 +156,19 @@ function arrange(data: {
   jest
     .spyOn(OpenStackProjectNoticeService, "findOneById")
     .mockResolvedValue(data.notice === undefined ? noticeOf() : data.notice);
-  jest.spyOn(OpenStackResourceService, "findBy").mockImplementation((async (args: {
-    query: { kind: string };
-  }) => {
-    if (
-      args.query.kind === OpenStackResourceKind.Project &&
-      data.projectExists !== false
-    ) {
-      const project: OpenStackResource = new OpenStackResource();
-      project.externalId = KEYSTONE_ID;
-      return [project];
-    }
-    return [];
-  }) as never);
+  jest
+    .spyOn(OpenStackResourceService, "findBy")
+    .mockImplementation((async (args: { query: { kind: string } }) => {
+      if (
+        args.query.kind === OpenStackResourceKind.Project &&
+        data.projectExists !== false
+      ) {
+        const project: OpenStackResource = new OpenStackResource();
+        project.externalId = KEYSTONE_ID;
+        return [project];
+      }
+      return [];
+    }) as never);
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest
     .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
@@ -182,7 +187,9 @@ function arrange(data: {
   };
 }
 
-function lastStatus(sent: Sent): OpenStackProjectNoticeDeliveryStatus | undefined {
+function lastStatus(
+  sent: Sent,
+): OpenStackProjectNoticeDeliveryStatus | undefined {
   return sent.updates[sent.updates.length - 1]?.data.status;
 }
 
@@ -250,10 +257,16 @@ describe("sending what is waiting", () => {
     ["its project went", { projectExists: false }, "no longer in this cloud"],
     [
       "already told about this part, and that is not over",
-      { repeatOf: rowOf({ status: OpenStackProjectNoticeDeliveryStatus.Sent }) },
+      {
+        repeatOf: rowOf({ status: OpenStackProjectNoticeDeliveryStatus.Sent }),
+      },
       "already been told",
     ],
-  ])("%s: nothing goes out", async (_name, data, why) => {
+  ])("%s: nothing goes out", async (
+    _name: string,
+    data: Parameters<typeof arrange>[0],
+    why: string,
+  ) => {
     const sent: Sent = arrange({ pending: [rowOf()], ...data });
 
     await OpenStackProjectNoticeSender.sendWhatIsDue();
@@ -304,9 +317,7 @@ describe("sending what is waiting", () => {
 
   test("the mail service refusing is tried again, then given up on", async () => {
     const sent: Sent = arrange({ pending: [rowOf()] });
-    sent.emails.mockResolvedValue(
-      new HTTPErrorResponse(500, {}, {}) as never,
-    );
+    sent.emails.mockResolvedValue(new HTTPErrorResponse(500, {}, {}) as never);
 
     await OpenStackProjectNoticeSender.sendWhatIsDue();
     expect(lastStatus(sent)).toBe(OpenStackProjectNoticeDeliveryStatus.Pending);
@@ -335,7 +346,10 @@ describe("sending what is waiting", () => {
     [400, OpenStackProjectNoticeDeliveryStatus.Failed],
     [404, OpenStackProjectNoticeDeliveryStatus.Failed],
     [301, OpenStackProjectNoticeDeliveryStatus.Failed],
-  ])("a webhook answering %d", async (status, expected) => {
+  ])("a webhook answering %d", async (
+    status: number,
+    expected: OpenStackProjectNoticeDeliveryStatus,
+  ) => {
     const sent: Sent = arrange({ pending: [rowOf()], notice: webhookNotice() });
     sent.webhooks.mockResolvedValue(
       new HTTPErrorResponse(status, {}, {}) as never,
@@ -457,7 +471,9 @@ describe("what is over", () => {
   });
 
   test("resolved: whoever was told it opened is told it is over, once", async () => {
-    const row: Row = rowOf({ status: OpenStackProjectNoticeDeliveryStatus.Sent });
+    const row: Row = rowOf({
+      status: OpenStackProjectNoticeDeliveryStatus.Sent,
+    });
     open = [row];
     lastTold = rowOf({
       status: OpenStackProjectNoticeDeliveryStatus.Sent,

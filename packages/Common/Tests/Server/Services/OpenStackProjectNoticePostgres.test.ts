@@ -123,7 +123,10 @@ function resource(
 
 const HOST: string = "compute-01.example.internal";
 
-function instance(id: string, projectId: string | null): ParsedOpenStackResource {
+function instance(
+  id: string,
+  projectId: string | null,
+): ParsedOpenStackResource {
   return resource({
     kind: OpenStackResourceKind.Instance,
     externalId: id,
@@ -270,7 +273,10 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);
     jest
-      .spyOn(ScheduledMaintenanceFeedService, "createScheduledMaintenanceFeedItem")
+      .spyOn(
+        ScheduledMaintenanceFeedService,
+        "createScheduledMaintenanceFeedItem",
+      )
       .mockResolvedValue(undefined as never);
   });
 
@@ -413,13 +419,19 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
   });
 
   test("with several projects on and off, only those turned on are told, each its own", async () => {
-    await noticeFor({ openStackProjectId: PAYMENTS, email: "payments@example.com" });
+    await noticeFor({
+      openStackProjectId: PAYMENTS,
+      email: "payments@example.com",
+    });
     await noticeFor({
       openStackProjectId: RESEARCH,
       email: "research@example.com",
       isOn: false,
     });
-    await noticeFor({ openStackProjectId: WEB, webhook: "https://web.example.com/hook" });
+    await noticeFor({
+      openStackProjectId: WEB,
+      webhook: "https://web.example.com/hook",
+    });
 
     await failureOfTheHost(await incident());
     await OpenStackProjectNoticeSender.run();
@@ -438,14 +450,19 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
       expect(email.subject).not.toContain(word);
     }
 
-    const hook: { data: JSONObject } = (webhooks.mock.calls[0] as Array<never>)[0]!;
+    const hook: { data: JSONObject } = (
+      webhooks.mock.calls[0] as Array<never>
+    )[0]!;
     expect(hook.data["holdings"]).toEqual({ instanceCount: 2 });
     expect(JSON.stringify(hook.data)).not.toContain("ou-payments");
     expect(JSON.stringify(hook.data)).not.toContain("compute-01");
   });
 
   test("the feed says who was and wasn't told, by the same answer", async () => {
-    await noticeFor({ openStackProjectId: PAYMENTS, email: "payments@example.com" });
+    await noticeFor({
+      openStackProjectId: PAYMENTS,
+      email: "payments@example.com",
+    });
     await noticeFor({
       openStackProjectId: RESEARCH,
       email: "research@example.com",
@@ -514,7 +531,10 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
   });
 
   test("the same failure written down twice goes out once, and a second run sends nothing", async () => {
-    await noticeFor({ openStackProjectId: PAYMENTS, email: "payments@example.com" });
+    await noticeFor({
+      openStackProjectId: PAYMENTS,
+      email: "payments@example.com",
+    });
     const incidentId: ObjectID = await incident();
 
     await failureOfTheHost(incidentId);
@@ -528,7 +548,10 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
   });
 
   test("a second incident on a part already told about tells nobody until it is all over", async () => {
-    await noticeFor({ openStackProjectId: PAYMENTS, email: "payments@example.com" });
+    await noticeFor({
+      openStackProjectId: PAYMENTS,
+      email: "payments@example.com",
+    });
     const first: ObjectID = await incident();
     const second: ObjectID = await incident();
 
@@ -629,7 +652,11 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
     const read: OpenStackProjectNotice | null =
       await OpenStackProjectNoticeService.findOneById({
         id: notice.id!,
-        select: { isEnabled: true, previewSeenAt: true, previewedRecipient: true },
+        select: {
+          isEnabled: true,
+          previewSeenAt: true,
+          previewedRecipient: true,
+        },
         props: { isRoot: true },
       });
 
@@ -644,7 +671,10 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
   });
 
   test("only one worker takes a row, however many ask at once", async () => {
-    await noticeFor({ openStackProjectId: PAYMENTS, email: "payments@example.com" });
+    await noticeFor({
+      openStackProjectId: PAYMENTS,
+      email: "payments@example.com",
+    });
     await failureOfTheHost(await incident());
 
     const row: OpenStackProjectNoticeDelivery = (await deliveries())[0]!;
@@ -681,7 +711,10 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
     } as never);
 
     const tellThisOne: string = `bbbb${String(450).padStart(28, "0")}`;
-    await noticeFor({ openStackProjectId: tellThisOne, email: "tenant@example.com" });
+    await noticeFor({
+      openStackProjectId: tellThisOne,
+      email: "tenant@example.com",
+    });
 
     const cloud: OpenStackCloud = new OpenStackCloud();
     cloud._id = CLOUD_ID.toString();
@@ -715,7 +748,10 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
   }, 300000);
 
   test("maintenance on a host names who it reaches, tells who asked once, and says when it ends", async () => {
-    await noticeFor({ openStackProjectId: PAYMENTS, email: "payments@example.com" });
+    await noticeFor({
+      openStackProjectId: PAYMENTS,
+      email: "payments@example.com",
+    });
     await noticeFor({
       openStackProjectId: RESEARCH,
       email: "research@example.com",
@@ -746,7 +782,10 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
       },
     ];
     const feed: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(ScheduledMaintenanceFeedService, "createScheduledMaintenanceFeedItem")
+      .spyOn(
+        ScheduledMaintenanceFeedService,
+        "createScheduledMaintenanceFeedItem",
+      )
       .mockResolvedValue(undefined as never);
     feed.mockClear();
 
@@ -883,9 +922,11 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
     const made: {
       data: StatusPageAnnouncement;
     } = (announced.mock.calls[0] as Array<never>)[0]!;
-    expect(made.data.statusPages?.map((page: { _id?: string }) => {
-      return page._id;
-    })).toEqual([pageId.toString()]);
+    expect(
+      made.data.statusPages?.map((page: { _id?: string }) => {
+        return page._id;
+      }),
+    ).toEqual([pageId.toString()]);
     expect(made.data.description).toContain("3 instances");
     for (const word of ["ou-research", "ou-web", "compute-01", RESEARCH, WEB]) {
       expect(made.data.description).not.toContain(word);
@@ -907,9 +948,9 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
     await OpenStackProjectNoticeSender.run();
 
     expect(ended).toHaveBeenCalledTimes(1);
-    expect((ended.mock.calls[0] as Array<{ id: ObjectID }>)[0]!.id.toString()).toBe(
-      announcementId.toString(),
-    );
+    expect(
+      (ended.mock.calls[0] as Array<{ id: ObjectID }>)[0]!.id.toString(),
+    ).toBe(announcementId.toString());
     expect(statusOf[monitorId.toString()]).toBe(online.id!.toString());
     expect(turned).toHaveBeenCalledTimes(2);
     // No email or webhook was anywhere near this.
@@ -918,12 +959,13 @@ describePostgres("who an OpenStack failure tells, on Postgres", () => {
   });
 
   test("a zone comes to the hosts in it, for what it reaches and what it quiets", async () => {
-    const hosts: Array<string> = await OpenStackMaintenanceParts.readHostsOfZone({
-      projectId: PROJECT_ID,
-      openStackCloudId: CLOUD_ID,
-      zoneName: "az-east",
-      regionName: "RegionOne",
-    });
+    const hosts: Array<string> =
+      await OpenStackMaintenanceParts.readHostsOfZone({
+        projectId: PROJECT_ID,
+        openStackCloudId: CLOUD_ID,
+        zoneName: "az-east",
+        regionName: "RegionOne",
+      });
     expect(hosts).toEqual([HOST]);
 
     expect(

@@ -101,36 +101,66 @@ export default class OpenStackProjectNoticeAPI extends BaseAPI<
     const path: string =
       new this.entityType().getCrudApiPath()?.toString() || "";
 
-    this.register(`${path}/preview/:noticeId`, (req, res) => {
-      return this.preview(req, res);
-    });
-    this.register(`${path}/turn-on/:noticeId`, (req, res) => {
-      return this.turnOn(req, res);
-    });
-    this.register(`${path}/turn-off/:noticeId`, (req, res) => {
-      return this.turnOff(req, res);
-    });
-    this.register(`${path}/who-would-be-told/:cloudId`, (req, res) => {
-      return this.whoWouldBeTold(req, res);
-    });
-    this.register(`${path}/status-page-plan/:cloudId`, (req, res) => {
-      return this.statusPagePlan(req, res);
-    });
-    this.register(`${path}/make-status-page/:cloudId`, (req, res) => {
-      return this.makeStatusPage(req, res);
-    });
-    this.register(`${path}/make-objectives/:cloudId`, (req, res) => {
-      return this.makeObjectives(req, res);
-    });
-    this.register(`${path}/project-page-plan/:cloudId`, (req, res) => {
-      return this.projectPagePlan(req, res);
-    });
-    this.register(`${path}/make-project-page/:cloudId`, (req, res) => {
-      return this.makeProjectPage(req, res);
-    });
-    this.register(`${path}/maintenance-covering/:cloudId`, (req, res) => {
-      return this.maintenanceCovering(req, res);
-    });
+    this.register(
+      `${path}/preview/:noticeId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.preview(req, res);
+      },
+    );
+    this.register(
+      `${path}/turn-on/:noticeId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.turnOn(req, res);
+      },
+    );
+    this.register(
+      `${path}/turn-off/:noticeId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.turnOff(req, res);
+      },
+    );
+    this.register(
+      `${path}/who-would-be-told/:cloudId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.whoWouldBeTold(req, res);
+      },
+    );
+    this.register(
+      `${path}/status-page-plan/:cloudId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.statusPagePlan(req, res);
+      },
+    );
+    this.register(
+      `${path}/make-status-page/:cloudId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.makeStatusPage(req, res);
+      },
+    );
+    this.register(
+      `${path}/make-objectives/:cloudId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.makeObjectives(req, res);
+      },
+    );
+    this.register(
+      `${path}/project-page-plan/:cloudId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.projectPagePlan(req, res);
+      },
+    );
+    this.register(
+      `${path}/make-project-page/:cloudId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.makeProjectPage(req, res);
+      },
+    );
+    this.register(
+      `${path}/maintenance-covering/:cloudId`,
+      (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+        return this.maintenanceCovering(req, res);
+      },
+    );
   }
 
   private register(

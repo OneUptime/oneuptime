@@ -45,10 +45,7 @@ function armed(
   };
 }
 
-function off(
-  id: string,
-  projectId: string,
-): OpenStackProjectNoticeRecipient {
+function off(id: string, projectId: string): OpenStackProjectNoticeRecipient {
   return { id, openStackProjectId: projectId, email: `${id}@example.com` };
 }
 
@@ -115,7 +112,12 @@ describe("a notice is armed only once an operator has seen who it tells", () => 
     ],
     [
       "neither is no recipient",
-      { id: "a", openStackProjectId: "p", isEnabled: true, previewSeenAt: SEEN },
+      {
+        id: "a",
+        openStackProjectId: "p",
+        isEnabled: true,
+        previewSeenAt: SEEN,
+      },
       false,
     ],
     [
@@ -142,7 +144,11 @@ describe("a notice is armed only once an operator has seen who it tells", () => 
       },
       false,
     ],
-  ])("%s", (_name, notice, expected) => {
+  ])("%s", (
+    _name: string,
+    notice: OpenStackProjectNoticeRecipient,
+    expected: boolean,
+  ) => {
     expect(isOpenStackProjectNoticeArmed(notice)).toBe(expected);
   });
 
@@ -187,9 +193,11 @@ describe("who a failure tells", () => {
       });
 
     expect(decision.told).toEqual([]);
-    expect(decision.notTold.map((project: OpenStackProjectNotTold) => {
-      return project.reason;
-    })).toEqual([
+    expect(
+      decision.notTold.map((project: OpenStackProjectNotTold) => {
+        return project.reason;
+      }),
+    ).toEqual([
       OpenStackProjectNotToldReason.NoRecipient,
       OpenStackProjectNotToldReason.NoRecipient,
       OpenStackProjectNotToldReason.NoRecipient,
@@ -362,14 +370,15 @@ describe("who a failure tells", () => {
     const decision: OpenStackProjectNoticeDecision =
       decideOpenStackProjectNotices({
         radius,
-        notices: [armed("n60", sixtieth), armed("n499", last), off("off", "project-010")],
+        notices: [
+          armed("n60", sixtieth),
+          armed("n499", last),
+          off("off", "project-010"),
+        ],
         existingProjectIds: new Set(Object.keys(names)),
       });
 
-    expect(toldTo(decision)).toEqual([
-      `${sixtieth}:n60`,
-      `${last}:n499`,
-    ]);
+    expect(toldTo(decision)).toEqual([`${sixtieth}:n60`, `${last}:n499`]);
     // Each with what it holds itself, past the cap too.
     expect(
       decision.told.find((told: OpenStackProjectTold): boolean => {

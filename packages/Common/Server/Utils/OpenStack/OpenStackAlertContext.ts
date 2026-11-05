@@ -276,7 +276,9 @@ export function isOpenStackMonitorOfDisabledWorkers(
     filters.every((filterData: JSONObject): boolean => {
       const attributes: unknown = filterData["attributes"];
 
-      return (attributes as JSONObject | undefined)?.["adminState"] === "disabled";
+      return (
+        (attributes as JSONObject | undefined)?.["adminState"] === "disabled"
+      );
     })
   );
 }

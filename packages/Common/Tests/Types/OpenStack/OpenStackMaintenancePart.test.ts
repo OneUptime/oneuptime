@@ -27,7 +27,11 @@ describe("which series are on a part under maintenance", () => {
   test.each<[string, Record<string, string>, boolean]>([
     [
       "a nova-compute on it, by its short name",
-      { hostname: "compute-01", service: "nova-compute", [REGION]: "RegionOne" },
+      {
+        hostname: "compute-01",
+        service: "nova-compute",
+        [REGION]: "RegionOne",
+      },
       true,
     ],
     [
@@ -37,12 +41,19 @@ describe("which series are on a part under maintenance", () => {
     ],
     [
       "an instance series naming it",
-      { hypervisor_hostname: "compute-01.example.internal", [REGION]: "RegionOne" },
+      {
+        hypervisor_hostname: "compute-01.example.internal",
+        [REGION]: "RegionOne",
+      },
       true,
     ],
     [
       "a cinder-volume on it, as host@backend",
-      { hostname: "compute-01@lvmdriver-1", service: "cinder-volume", [REGION]: "RegionOne" },
+      {
+        hostname: "compute-01@lvmdriver-1",
+        service: "cinder-volume",
+        [REGION]: "RegionOne",
+      },
       true,
     ],
     [
@@ -52,12 +63,19 @@ describe("which series are on a part under maintenance", () => {
     ],
     [
       "as ingest spells a resource attribute",
-      { "resource.hostname": "compute-01", "resource.openstack.region.name": "RegionOne" },
+      {
+        "resource.hostname": "compute-01",
+        "resource.openstack.region.name": "RegionOne",
+      },
       true,
     ],
     [
       "another host",
-      { hostname: "compute-02", service: "nova-compute", [REGION]: "RegionOne" },
+      {
+        hostname: "compute-02",
+        service: "nova-compute",
+        [REGION]: "RegionOne",
+      },
       false,
     ],
     [
@@ -70,22 +88,18 @@ describe("which series are on a part under maintenance", () => {
       { hostname: "compute-01", [REGION]: "RegionTwo" },
       false,
     ],
-    [
-      "a series that says no region",
-      { hostname: "compute-01" },
-      false,
-    ],
+    ["a series that says no region", { hostname: "compute-01" }, false],
     [
       "a series about a whole region, naming no machine",
       { [REGION]: "RegionOne", openstack_service: "compute" },
       false,
     ],
-    [
-      "a series with no labels at all",
-      {},
-      false,
-    ],
-  ])("%s", (_name, labels, expected) => {
+    ["a series with no labels at all", {}, false],
+  ])("%s", (
+    _name: string,
+    labels: Record<string, string>,
+    expected: boolean,
+  ) => {
     expect(
       isOpenStackSeriesOnMaintainedPart({
         labels,
@@ -180,9 +194,15 @@ describe("reading what an event says it is on", () => {
     ["an array of nothing", [null, 1, "x", []]],
     ["no cloud", [{ kind: "Hypervisor", name: "compute-01" }]],
     ["no name", [{ openStackCloudId: CLOUD, kind: "Hypervisor" }]],
-    ["an empty name", [{ openStackCloudId: CLOUD, kind: "Hypervisor", name: "  " }]],
-    ["a kind nothing reads", [{ openStackCloudId: CLOUD, kind: "Router", name: "r1" }]],
-  ])("%s is no part", (_name, value) => {
+    [
+      "an empty name",
+      [{ openStackCloudId: CLOUD, kind: "Hypervisor", name: "  " }],
+    ],
+    [
+      "a kind nothing reads",
+      [{ openStackCloudId: CLOUD, kind: "Router", name: "r1" }],
+    ],
+  ])("%s is no part", (_name: string, value: unknown) => {
     expect(readOpenStackMaintenanceParts(value)).toEqual([]);
   });
 });

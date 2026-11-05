@@ -83,8 +83,9 @@ export function toOpenStackNoticeRecipient(
 function holdingsOf(
   project: OpenStackBlastRadiusProject,
 ): Partial<Pick<OpenStackBlastRadius, OpenStackBlastRadiusCount>> {
-  const holdings: Partial<Pick<OpenStackBlastRadius, OpenStackBlastRadiusCount>> =
-    {};
+  const holdings: Partial<
+    Pick<OpenStackBlastRadius, OpenStackBlastRadiusCount>
+  > = {};
   for (const entry of OPENSTACK_BLAST_RADIUS_COUNTS) {
     if (project[entry.count] > 0) {
       holdings[entry.count] = project[entry.count];
@@ -341,7 +342,8 @@ export default class OpenStackProjectNotices {
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: data.incidentId,
           projectId: data.projectId,
-          incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
+          incidentFeedEventType:
+            IncidentFeedEventType.SubscriberNotificationSent,
           displayColor: Indigo500,
           feedInfoInMarkdown: line.toString(),
         });

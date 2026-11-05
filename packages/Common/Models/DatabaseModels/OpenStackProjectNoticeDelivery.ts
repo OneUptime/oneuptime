@@ -39,7 +39,6 @@ const readPermissions: Array<Permission> = [
   Permission.ReadOpenStackCloud,
 ];
 
-
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
@@ -217,8 +216,7 @@ export default class OpenStackProjectNoticeDelivery extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "OpenStack Project",
-    description:
-      "The Keystone ID of the project this tells about.",
+    description: "The Keystone ID of the project this tells about.",
   })
   @Column({
     nullable: false,
@@ -317,7 +315,8 @@ export default class OpenStackProjectNoticeDelivery extends BaseModel {
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
     title: "Scheduled Maintenance ID",
-    description: "The maintenance event this delivery is about, if it is about one.",
+    description:
+      "The maintenance event this delivery is about, if it is about one.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -335,7 +334,8 @@ export default class OpenStackProjectNoticeDelivery extends BaseModel {
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
     title: "Status Page Announcement ID",
-    description: "What this posted on a project's private status page, to end when it is over.",
+    description:
+      "What this posted on a project's private status page, to end when it is over.",
   })
   @Column({
     type: ColumnType.ObjectID,

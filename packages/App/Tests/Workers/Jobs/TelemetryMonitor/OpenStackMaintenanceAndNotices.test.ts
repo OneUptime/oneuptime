@@ -418,7 +418,11 @@ describe("maintenance and project notices, replayed from what real clouds' expor
   let recorded: Array<OpenStackProjectNoticeDeliveryToRecord>;
   let eventsInProgress: Array<ScheduledMaintenance>;
 
-  function noticeOn(projectId: string, email: string, isOn: boolean): OpenStackProjectNotice {
+  function noticeOn(
+    projectId: string,
+    email: string,
+    isOn: boolean,
+  ): OpenStackProjectNotice {
     const notice: OpenStackProjectNotice = new OpenStackProjectNotice();
     notice._id = ObjectID.generate().toString();
     notice.openStackProjectId = projectId;

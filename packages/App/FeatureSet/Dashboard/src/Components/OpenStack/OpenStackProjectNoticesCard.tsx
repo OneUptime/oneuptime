@@ -276,7 +276,8 @@ const OpenStackProjectNoticesCard: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.URL,
             required: false,
             placeholder: "https://example.com/openstack-notices",
-            description: "A POST of JSON, with an id that doesn't change on a retry.",
+            description:
+              "A POST of JSON, with an id that doesn't change on a retry.",
           },
         ]}
       />

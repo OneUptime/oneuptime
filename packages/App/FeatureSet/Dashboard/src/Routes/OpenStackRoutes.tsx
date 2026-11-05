@@ -1018,11 +1018,15 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES,
+          )}
           element={
             <OpenStackCloudStatusPages
               {...props}
-              pageRoute={RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES] as Route}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES] as Route
+              }
             />
           }
         />

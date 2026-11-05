@@ -354,7 +354,12 @@ export default class OpenStackStatusPages {
       },
     );
 
-    if (!online?.id || !offline?.id || !incidentSeverity?.id || !alertSeverity?.id) {
+    if (
+      !online?.id ||
+      !offline?.id ||
+      !incidentSeverity?.id ||
+      !alertSeverity?.id
+    ) {
       throw new BadDataException(
         "This project is missing a monitor status or a severity to make monitors with.",
       );
@@ -447,7 +452,10 @@ export default class OpenStackStatusPages {
     plan: OpenStackStatusPagePlan;
     includeChecks: boolean;
     props: DatabaseCommonInteractionProps;
-  }): Promise<{ ids: Map<OpenStackStatusPagePlanMonitor, string>; made: number }> {
+  }): Promise<{
+    ids: Map<OpenStackStatusPagePlanMonitor, string>;
+    made: number;
+  }> {
     const ids: Map<OpenStackStatusPagePlanMonitor, string> = new Map();
     const madeByName: Map<string, string> = new Map();
     const missing: Array<OpenStackStatusPagePlanMonitor> = monitorsOfPlan(
@@ -954,7 +962,10 @@ export default class OpenStackStatusPages {
       throw error;
     }
 
-    return { statusPageId: created.id!.toString(), monitorsMade: plan.rows.length };
+    return {
+      statusPageId: created.id!.toString(),
+      monitorsMade: plan.rows.length,
+    };
   }
 
   private static async makeRowMonitor(data: {
