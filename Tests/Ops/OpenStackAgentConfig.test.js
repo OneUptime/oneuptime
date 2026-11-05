@@ -359,7 +359,7 @@ describe("the access the agent asks for", () => {
             return rule.service;
           })
           .sort(),
-      ).toEqual(["block-storage", "volumev3"]);
+      ).toEqual(["block-storage", "volume", "volumev3"]);
     });
   });
 });
