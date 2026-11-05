@@ -3,7 +3,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Query from "Common/Types/BaseDatabase/Query";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
 import { isOpenStackBareMetalNodeInMaintenance } from "Common/Types/OpenStack/OpenStackHealthRules";
