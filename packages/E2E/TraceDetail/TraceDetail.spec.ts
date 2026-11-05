@@ -831,7 +831,8 @@ test.describe("large and unusual traces", () => {
         return (
           request.modelName === SPAN_TABLE &&
           request.query["traceId"] === TRACES["worker"] &&
-          !request.query["spanId"]
+          !request.query["spanId"] &&
+          !request.query["attributes"]
         );
       });
     expect(
@@ -842,6 +843,18 @@ test.describe("large and unusual traces", () => {
       [0, 500],
       [500, 1],
     ]);
+
+    // Whether it is a trace from an OpenStack cloud takes one look, and this one is not.
+    expect(
+      state.analyticsListRequests.filter((request: RecordedListRequest) => {
+        return (
+          request.modelName === SPAN_TABLE &&
+          request.query["traceId"] === TRACES["worker"] &&
+          Boolean(request.query["attributes"])
+        );
+      }),
+    ).toHaveLength(1);
+    await expect(page.getByTestId("openstack-trace-context")).toHaveCount(0);
   });
 
   test("a 1,250-span trace stays virtualised and loads the rest in one go", async ({
@@ -875,7 +888,8 @@ test.describe("large and unusual traces", () => {
         return (
           request.modelName === SPAN_TABLE &&
           request.query["traceId"] === TRACES["large"] &&
-          !request.query["spanId"]
+          !request.query["spanId"] &&
+          !request.query["attributes"]
         );
       });
     expect(
@@ -940,7 +954,8 @@ test.describe("large and unusual traces", () => {
       state.analyticsListRequests.filter((request: RecordedListRequest) => {
         return (
           request.modelName === SPAN_TABLE &&
-          request.query["traceId"] === TRACES["checkout"]
+          request.query["traceId"] === TRACES["checkout"] &&
+          !request.query["attributes"]
         );
       }).length,
     ).toBeGreaterThanOrEqual(2);
