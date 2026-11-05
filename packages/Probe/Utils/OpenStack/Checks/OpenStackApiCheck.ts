@@ -99,19 +99,22 @@ const READS_OF_SERVICES_COLLECTED: Readonly<
    * good. A project's member is refused by policy, which still shows the token was checked.
    */
   [OpenStackServiceType.Placement]: { path: "/resource_classes" },
-  // On a cloud that runs it. A project's member is refused by policy, which is an answer too.
+  // On a cloud that runs them. A project's member refused by policy is an answer too.
+  [OpenStackServiceType.Orchestration]: { path: "/stacks", query: "limit=1" },
+  [OpenStackServiceType.ContainerInfra]: {
+    path: "/clusters",
+    query: "limit=1",
+  },
   [OpenStackServiceType.BareMetal]: { path: "/v1/nodes", query: "limit=1" },
 };
 
 const READS_OF_OTHER_SERVICES: Readonly<Record<string, OpenStackCheckRead>> = {
-  orchestration: { path: "/stacks", query: "limit=1" },
   "load-balancer": { path: "/v2/lbaas/loadbalancers", query: "limit=1" },
   "key-manager": { path: "/v1/secrets", query: "limit=1" },
   dns: { path: "/v2/zones", query: "limit=1" },
   "object-store": { path: "", query: "limit=1&format=json" },
   "shared-file-system": { path: "/shares", query: "limit=1" },
   sharev2: { path: "/shares", query: "limit=1" },
-  "container-infra": { path: "/v1/clusters", query: "limit=1" },
   database: { path: "/instances", query: "limit=1" },
   metric: { path: "/v1/metric", query: "limit=1" },
   alarming: { path: "/v2/alarms", query: "limit=1" },
@@ -167,7 +170,7 @@ function planRead(data: {
     url: `${base}${path}${query}`,
     read: read ? `GET ${path || "/"}${query}` : "GET /",
     /*
-     * For the six recorded, a 404 means the catalog's URL is wrong, or a proxy has lost the service.
+     * For those recorded, a 404 means the catalog's URL is wrong, or a proxy has lost the service.
      * For the rest it can only mean a path here is out of date.
      */
     isKnownRead: collected !== null,
