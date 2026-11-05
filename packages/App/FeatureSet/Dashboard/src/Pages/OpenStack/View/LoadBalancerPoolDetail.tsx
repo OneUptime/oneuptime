@@ -11,6 +11,10 @@ import Link from "Common/UI/Components/Link/Link";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
+import useOpenStackRead, {
+  OpenStackRead,
+} from "../../../Components/OpenStack/Part/UseOpenStackRead";
+import { fetchOpenStackRows } from "../Utils/OpenStackPartData";
 import OpenStackPartNotice from "../../../Components/OpenStack/Part/OpenStackPartNotice";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
@@ -34,6 +38,76 @@ import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
 const MEMBERS_NOT_KNOWN: string = translationKey(
   "Which members this pool has, and which of them fail their health check, isn't collected: the exporter has no series for members. Run openstack loadbalancer member list for this pool.",
 );
+
+/*
+ * A pool's members, from the rows a probe sends. The exporter has no series for members, so on a cloud
+ * the agent collects there are none, and the page says what to run instead.
+ */
+const PoolMembers: FunctionComponent<{ part: OpenStackPart }> = (props: {
+  part: OpenStackPart;
+}): ReactElement => {
+  const members: OpenStackRead<Array<OpenStackResource>> = useOpenStackRead<
+    Array<OpenStackResource>
+  >(async (): Promise<Array<OpenStackResource>> => {
+    const rows: Array<OpenStackResource> = await fetchOpenStackRows({
+      openStackCloudId: props.part.openStackCloudId,
+      kind: OpenStackResourceKind.LoadBalancerMember,
+      limit: 500,
+    });
+    return rows.filter((row: OpenStackResource): boolean => {
+      return getOpenStackFactText(row, "poolId") === props.part.externalId;
+    });
+  }, [props.part.externalId, props.part.refreshToken]);
+
+  if (!members.data || members.data.length === 0) {
+    return (
+      <OpenStackPartNotice
+        testId="openstack-load-balancer-pool-members-note"
+        text={MEMBERS_NOT_KNOWN}
+      />
+    );
+  }
+
+  return (
+    <ul
+      className="mb-6 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white"
+      data-testid="openstack-load-balancer-pool-members"
+    >
+      {members.data.map((member: OpenStackResource): ReactElement => {
+        const operating: string = getOpenStackFactText(
+          member,
+          "operatingStatus",
+        );
+        return (
+          <li
+            key={member.externalId}
+            className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
+            data-testid="openstack-load-balancer-pool-member"
+          >
+            <bdi className="font-medium text-gray-900">
+              {member.name || member.externalId}
+            </bdi>
+            <bdi className="text-xs text-gray-500">
+              {getOpenStackFactText(member, "address")}:
+              {getOpenStackFactText(member, "protocolPort")}
+            </bdi>
+            <bdi
+              className={
+                operating === "ERROR" || operating === "OFFLINE"
+                  ? "text-xs font-medium text-red-700"
+                  : operating === "ONLINE"
+                    ? "text-xs text-emerald-700"
+                    : "text-xs text-amber-700"
+              }
+            >
+              {operating}
+            </bdi>
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
 
 const OpenStackCloudLoadBalancerPoolDetail: FunctionComponent<
   PageComponentProps
@@ -202,10 +276,7 @@ const OpenStackCloudLoadBalancerPoolDetail: FunctionComponent<
               </>
             }
           >
-            <OpenStackPartNotice
-              testId="openstack-load-balancer-pool-members-note"
-              text={MEMBERS_NOT_KNOWN}
-            />
+            <PoolMembers part={part} />
           </OpenStackServicePartOverview>
         );
       }}

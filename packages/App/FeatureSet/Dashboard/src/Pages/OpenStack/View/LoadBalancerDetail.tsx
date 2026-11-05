@@ -12,6 +12,7 @@ import Link from "Common/UI/Components/Link/Link";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
+import OpenStackLoadBalancerTraffic from "../../../Components/OpenStack/Part/OpenStackLoadBalancerTraffic";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
 import useOpenStackPart, {
@@ -45,6 +46,8 @@ const RELATED_ROWS_READ: number = 200;
 interface Related {
   pools: Array<OpenStackResource>;
   amphorae: Array<OpenStackResource>;
+  // Only a probe reads them.
+  listeners: Array<OpenStackResource>;
 }
 
 function idsOfPool(pool: OpenStackResource): Array<string> {
@@ -62,7 +65,7 @@ const LoadBalancerOverview: FunctionComponent<{
 
   const related: OpenStackRead<Related> =
     useOpenStackRead<Related>(async (): Promise<Related> => {
-      const [pools, amphorae] = await Promise.all([
+      const [pools, amphorae, listeners] = await Promise.all([
         fetchOpenStackRows({
           openStackCloudId: part.openStackCloudId,
           kind: OpenStackResourceKind.LoadBalancerPool,
@@ -73,10 +76,20 @@ const LoadBalancerOverview: FunctionComponent<{
           kind: OpenStackResourceKind.Amphora,
           limit: RELATED_ROWS_READ,
         }),
+        fetchOpenStackRows({
+          openStackCloudId: part.openStackCloudId,
+          kind: OpenStackResourceKind.Listener,
+          limit: RELATED_ROWS_READ,
+        }),
       ]);
       return {
         pools: pools.filter((pool: OpenStackResource): boolean => {
           return idsOfPool(pool).includes(part.externalId);
+        }),
+        listeners: listeners.filter((listener: OpenStackResource): boolean => {
+          return (
+            getOpenStackFactText(listener, "loadBalancerId") === part.externalId
+          );
         }),
         amphorae: amphorae.filter((amphora: OpenStackResource): boolean => {
           return (
@@ -88,6 +101,7 @@ const LoadBalancerOverview: FunctionComponent<{
 
   const pools: Array<OpenStackResource> = related.data?.pools || [];
   const amphorae: Array<OpenStackResource> = related.data?.amphorae || [];
+  const listeners: Array<OpenStackResource> = related.data?.listeners || [];
 
   /*
    * A row alone can't say its load balancer has two masters, and its amphorae are here, so this page
@@ -224,6 +238,29 @@ const LoadBalancerOverview: FunctionComponent<{
       description:
         "The pools behind it. Their members and the listeners in front aren't collected: the exporter has no series for them.",
     });
+    detailRows.push({
+      key: "listeners",
+      label: "Listeners",
+      value:
+        listeners.length === 0 ? (
+          "—"
+        ) : (
+          <span className="flex flex-col gap-1">
+            {listeners.map((listener: OpenStackResource): ReactElement => {
+              return (
+                <bdi key={listener.externalId}>
+                  {listener.name || listener.externalId}{" "}
+                  {getOpenStackFactText(listener, "protocol")}:
+                  {getOpenStackFactText(listener, "protocolPort")} (
+                  {getOpenStackFactText(listener, "operatingStatus")})
+                </bdi>
+              );
+            })}
+          </span>
+        ),
+      description:
+        "What listens in front of it. Only a probe reads listeners: the exporter has no series for them, so on a cloud the agent collects this stays empty.",
+    });
     if (provider !== "ovn") {
       detailRows.push({
         key: "amphorae",
@@ -311,7 +348,9 @@ const LoadBalancerOverview: FunctionComponent<{
           />
         </>
       }
-    />
+    >
+      <OpenStackLoadBalancerTraffic part={part} provider={provider} />
+    </OpenStackServicePartOverview>
   );
 };
 

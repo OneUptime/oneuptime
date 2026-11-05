@@ -27,7 +27,11 @@ Each service is read on its own and at the same time as the others. A Neutron th
 
 Heat, Magnum, Manila, Trove, Gnocchi, Designate, Swift and Barbican are read where Keystone's catalog names them. A cloud that runs neither costs nothing for them, hears nothing about them from the connection test, and [shows no trace of them](/docs/telemetry/openstack#heat-and-magnum).
 
-A probe does not read Octavia yet. A cloud that runs it and is collected by a probe shows no load balancers, pools or amphorae and no Octavia on **Services**, which is not the same as having none: the [agent](/docs/telemetry/openstack#octavia) reads them, and so does `openstack loadbalancer list`. Its alerts are not offered to such a cloud either, since nothing would send the series they read.
+On a cloud whose catalog has Octavia, a probe reads its load balancers, pools, listeners and amphorae with one list each, then every pool's members and the traffic counters of every load balancer and listener that is `ACTIVE`, one request each. A cloud with 3 load balancers, 1 pool and 1 listener costs 9 requests a collection; the real DevStack the rig recorded cost exactly that. At most 25 pools' members and 50 counters are read in one collection, the longest unread first, and the others say what they said when last read. Octavia's counters are cumulative, so a probe keeps the last reading of each and charts the difference per second between two of them: a chart starts at the second collection, and a counter that goes down (a listener rebuilt) draws nothing for that interval. The OVN provider reports 0 for every counter, which is a flat line and no fault.
+
+Amphorae need Octavia's admin rule for every read. A credential below an admin sees its own project's load balancers, pools, listeners and members, and its own counters, and no amphorae: the Load Balancers page says so, and nothing warns. The monitoring role, on a project with no load balancers, sees none. `load-balancer_global_observer` is refused everything at this release.
+
+A stopped Octavia API is `up 0` to a probe, which the agent's exporter cannot say.
 
 ## Probe or agent?
 

@@ -145,6 +145,7 @@ const EXPORTER_SERVICES: ReadonlyArray<string> = [
   "orchestration",
   "container-infra",
   "sharev2",
+  "load-balancer",
   "database",
   "dns",
   "gnocchi",

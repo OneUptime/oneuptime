@@ -59,6 +59,7 @@ READS = [
     ("image", "images", "/v2/images?limit=1000", "images", {}),
     ("load-balancer", "load balancers", "/v2/lbaas/loadbalancers", "loadbalancers", {}),
     ("load-balancer", "amphorae", "/v2/octavia/amphorae", "amphorae", {}),
+    ("load-balancer", "listeners", "/v2/lbaas/listeners", "listeners", {}),
     ("baremetal", "nodes", "/v1/nodes/detail", "nodes", {"X-OpenStack-Ironic-API-Version": "1.82"}),
     ("orchestration", "stacks", "/stacks", "stacks", {}),
     ("orchestration", "services", "/services", "services", {}),
