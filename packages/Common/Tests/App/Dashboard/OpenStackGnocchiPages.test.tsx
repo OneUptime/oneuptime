@@ -206,7 +206,7 @@ describe("Gnocchi's API page", () => {
     await screen.findByTestId("openstack-service-tiles");
     await settle();
     expect(attentionRowsOf("openstack-service-attention")).toEqual([
-      "This API: 10001 measures are waiting on gnocchi-metricd",
+      "This API: 10,001 measures are waiting on gnocchi-metricd",
     ]);
   });
 

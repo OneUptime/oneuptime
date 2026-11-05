@@ -39,6 +39,7 @@ export type OpenStackMetricCategory =
   | "Orchestration"
   | "Bare Metal"
   | "Databases"
+  | "Metrics"
   | "Projects"
   | "Checks"
   | "Capacity";
@@ -3008,6 +3009,7 @@ export function getAllOpenStackMetricCategories(): Array<OpenStackMetricCategory
     "Orchestration",
     "Bare Metal",
     "Databases",
+    "Metrics",
     "Projects",
     "Checks",
     "Capacity",

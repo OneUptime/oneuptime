@@ -1577,7 +1577,7 @@ describe("an OpenStack cloud's recommendations", () => {
   test("Gnocchi's go only to a cloud that runs it", () => {
     expect(idsOf()).not.toContain("openstack-metric-no-processors");
 
-    const ids: Array<string> = idsOf({ openStackServices: ["metric"] });
+    const ids: Array<string> = idsOf({ openStackServices: ["gnocchi"] });
     expect(ids).toContain("openstack-metric-no-processors");
     expect(ids).toContain("openstack-metric-backlog-growing");
     expect(ids).toContain("openstack-metric-api-down");

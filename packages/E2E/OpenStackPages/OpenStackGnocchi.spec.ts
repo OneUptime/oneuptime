@@ -11,7 +11,7 @@ const WITHOUT_GNOCCHI: string = "recording=gazpacho-ovs/healthy";
 const STOPPED: string = "recording=services-gnocchi/metricd-stopped";
 const REFUSED: string = "recording=services-gnocchi/access/reader";
 
-const API: string = "RegionOne/metric";
+const API: string = "RegionOne/gnocchi";
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
   const overflow: number = await page.evaluate((): number => {
@@ -64,9 +64,7 @@ test.describe("a cloud whose gnocchi-metricd stopped", () => {
         width: viewport.width,
         height: viewport.height,
       });
-      await page.goto(
-        `${partPath("services", encodeURIComponent(API))}?${STOPPED}`,
-      );
+      await page.goto(`${partPath("services", API)}?${STOPPED}`);
       await expect(page.getByTestId("openstack-service-tiles")).toBeVisible();
       await expectNoSidewaysScroll(page);
     });

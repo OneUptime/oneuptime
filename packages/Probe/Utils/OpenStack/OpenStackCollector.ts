@@ -1377,7 +1377,7 @@ export default class OpenStackCollector {
           }
           case OpenStackServiceType.Metric: {
             const inventory: OpenStackMetricInventory = {};
-            byService.metric = inventory;
+            byService.gnocchi = inventory;
             work = collectMetric(context(inventory));
             break;
           }

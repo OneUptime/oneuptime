@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorCriteriaEvaluator from "Common/Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import CriteriaInEffect from "Common/Server/Utils/Monitor/CriteriaInEffect";
@@ -120,7 +118,7 @@ const REPLAYS: ReadonlyArray<OpenStackServiceReplay> = [
   {
     group: "services-gnocchi",
     service: OpenStackServiceType.Metric,
-    job: "metric",
+    job: "gnocchi",
     metricPrefix: "openstack_gnocchi_",
     scenes: [
       "baseline",
@@ -132,7 +130,7 @@ const REPLAYS: ReadonlyArray<OpenStackServiceReplay> = [
     ],
     heldMinutes: {
       "openstack-metric-no-processors": 30,
-      "openstack-metric-backlog-growing": 90,
+      "openstack-metric-backlog-growing": 150,
       "openstack-metric-api-down": 30,
     },
     firesOn: {
@@ -368,19 +366,29 @@ async function evaluate(data: {
   templateId: string;
   series: Array<OpenStackRecordedSeries>;
 }): Promise<Verdict> {
-  const rows: Array<StoredRow> = holdScene({
-    series: [
-      ...data.series.filter((one: OpenStackRecordedSeries): boolean => {
-        return one.name.startsWith(data.replay.metricPrefix);
-      }),
-      {
-        name: "up",
-        labels: { openstack_service: data.replay.job },
-        value: 1,
-      },
-    ],
-    minutes: data.replay.heldMinutes[data.templateId] as number,
+  return await evaluateRows({
+    templateId: data.templateId,
+    rows: holdScene({
+      series: [
+        ...data.series.filter((one: OpenStackRecordedSeries): boolean => {
+          return one.name.startsWith(data.replay.metricPrefix);
+        }),
+        {
+          name: "up",
+          labels: { openstack_service: data.replay.job },
+          value: 1,
+        },
+      ],
+      minutes: data.replay.heldMinutes[data.templateId] as number,
+    }),
   });
+}
+
+async function evaluateRows(data: {
+  templateId: string;
+  rows: Array<StoredRow>;
+}): Promise<Verdict> {
+  const rows: Array<StoredRow> = data.rows;
 
   metricAggregateBy.mockImplementation(async (args: unknown) => {
     return foldRowsAsSqlRead(
@@ -543,3 +551,68 @@ describe.each(
     }, 600000);
   },
 );
+
+/*
+ * What a recording can't hold: a backlog near the line. Made up, because a runner's only ever read 5 and then 10,
+ * and at the agent's own five-minute scrape, through the worker's own read, because that's where a forecast could
+ * read as stale or as learning and never fire.
+ */
+describe("Gnocchi Backlog Growing, on made-up readings at the agent's own cadence", () => {
+  const replay: OpenStackServiceReplay = REPLAYS.find(
+    (one: OpenStackServiceReplay): boolean => {
+      return one.service === OpenStackServiceType.Metric;
+    },
+  ) as OpenStackServiceReplay;
+
+  async function verdictOf(
+    valueAt: (minutesAgo: number) => number,
+  ): Promise<Verdict> {
+    const rows: Array<StoredRow> = [];
+    for (let before: number = 120; before > 0; before -= SCRAPE_EVERY_MINUTES) {
+      rows.push({
+        name: "openstack_gnocchi_status_measures_to_process",
+        time: new Date(END_MS - before * 60000 + 30000),
+        value: valueAt(before),
+        attributes: storedAttributes({
+          name: "openstack_gnocchi_status_measures_to_process",
+          labels: { openstack_service: replay.job },
+          value: 0,
+        }),
+      });
+    }
+    return await evaluateRows({
+      templateId: "openstack-metric-backlog-growing",
+      rows,
+    });
+  }
+
+  test("one rising towards the line fires before it gets there", async () => {
+    const verdict: Verdict = await verdictOf((minutesAgo: number): number => {
+      return 8000 - minutesAgo * 40;
+    });
+    expect(verdict.firing).toEqual([REGION]);
+  }, 600000);
+
+  test("one far past the line and falling has recovered, because that's what catching up is", async () => {
+    const verdict: Verdict = await verdictOf((minutesAgo: number): number => {
+      return 20000 + minutesAgo * 200;
+    });
+    expect(verdict.firing).toEqual([]);
+    expect(verdict.recovered).toBe(true);
+  }, 600000);
+
+  test("one flat past the line isn't catching up, and fires", async () => {
+    const verdict: Verdict = await verdictOf((): number => {
+      return 15000;
+    });
+    expect(verdict.firing).toEqual([REGION]);
+  }, 600000);
+
+  test("one flat and under the line says nothing, however busy", async () => {
+    const verdict: Verdict = await verdictOf((): number => {
+      return 3000;
+    });
+    expect(verdict.firing).toEqual([]);
+    expect(verdict.recovered).toBe(true);
+  }, 600000);
+});

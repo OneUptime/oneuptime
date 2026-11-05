@@ -265,7 +265,7 @@ const ATTENTION_QUERIES = [
     where: (row, now) => {
       return (
         row.status === "down" ||
-        (row.name === "metric" &&
+        (row.name === "gnocchi" &&
           (isOpenStackGnocchiWithoutProcessors(row.facts || {}) ||
             isOpenStackGnocchiBacklogged(row.facts || {}))) ||
         isOpenStackServiceQuiet({

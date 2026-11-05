@@ -273,7 +273,8 @@ describe("what the agent's real collector sent", () => {
     scrapes: Array<{ service: string; up: number; samples: number }>;
   } = scanRecordedOtlp(GROUP);
 
-  test("its API's row carries its numbers, as it does from the exporter's text", () => {
+  // It was sent with Gnocchi's API stopped, so its status series aren't in it.
+  test("its API's row reads down, as it does from the exporter's text", () => {
     const row: OpenStackResourceBufferEntry | undefined = scanned.entries.find(
       (entry: OpenStackResourceBufferEntry): boolean => {
         return (
@@ -284,7 +285,7 @@ describe("what the agent's real collector sent", () => {
     );
 
     expect(row?.regionName).toBe("RegionOne");
-    expect(typeof row?.facts[OPENSTACK_GNOCCHI_PROCESSORS_FACT]).toBe("number");
+    expect(row?.status).toBe("down");
   });
 
   test("a service this cloud doesn't run reads up 1 with nothing, and makes no row", () => {

@@ -862,6 +862,7 @@ function buildForecastStep(data: {
       value: data.value,
       forecast,
     }),
+    // An empty window has no trend, so a gone series can't read as zero: it has to count as recovered.
     onlineCriteriaInstance: countGoneSeriesAsRecovered(
       buildHealthyCriteriaInstance({
         onlineMonitorStatusId: data.args.onlineMonitorStatusId,
@@ -3069,7 +3070,6 @@ const metricNoProcessorsTemplate: OpenStackAlertTemplate = {
     return buildFloorStep({
       args,
       service: OpenStackServiceType.Metric,
-      hasOwnAnchor: true,
       groupByAttributeKeys: REGION_GROUP,
       queries: [
         {
@@ -3090,7 +3090,7 @@ const metricNoProcessorsTemplate: OpenStackAlertTemplate = {
 };
 
 /*
- * Where the backlog is heading, read as a line through the last hour. A busy cloud's backlog is never 0 and
+ * Where the backlog is heading, read as a line through the last two hours. A busy cloud's backlog is never 0 and
  * may be large, so one that is falling is fine however large it is, and a flat reading under the line is too.
  * What this says is that nothing has been catching up. Recorded only at 5 and then 10 measures, a minute apart,
  * so the line itself is proven on what a monitor would read of those, and the size on made-up readings.
@@ -3100,14 +3100,15 @@ const metricBacklogGrowingTemplate: OpenStackAlertTemplate = {
   name: "Gnocchi Backlog Growing",
   forService: OpenStackServiceType.Metric,
   summary: `Gnocchi's backlog is heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the hour.`,
-  description: `Alert when a line through the last hour of Gnocchi's backlog (openstack_gnocchi_status_measures_to_process) passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour. One incident per region. One already past that and falling doesn't fire, and that's what recovering looks like. Check how much gnocchi-metricd has been given to do, then \`openstack metric status\` for how many processors it has.`,
+  description: `Alert when a line through the last two hours of Gnocchi's backlog (openstack_gnocchi_status_measures_to_process) passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour. One incident per region. One already past that and falling doesn't fire, and that's what recovering looks like. Check how much gnocchi-metricd has been given to do, then \`openstack metric status\` for how many processors it has.`,
   category: "Metrics",
   severity: "Warning",
   getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
     return buildForecastStep({
       args,
       service: OpenStackServiceType.Metric,
-      rollingTime: RollingTime.Past1Hour,
+      // Two hours, so a five-minute scrape's newest reading is never stale when it's checked.
+      rollingTime: RollingTime.Past2Hours,
       horizonInHours: 1,
       groupByAttributeKeys: REGION_GROUP,
       query: {
@@ -3120,7 +3121,7 @@ const metricBacklogGrowingTemplate: OpenStackAlertTemplate = {
         incidentTitle: "[OpenStack] Gnocchi Backlog Growing",
         incidentDescription: `Gnocchi's backlog is heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the hour, so metricd isn't keeping up and what can be read is falling behind. Check how much gnocchi-metricd has been given to do, then openstack metric status for how many processors it has. The incident resolves on its own once the backlog is falling or under the line.`,
         criteriaName: `Gnocchi Backlog Growing - heading past ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures`,
-        criteriaDescription: `Triggers when a line through the last hour of Gnocchi's backlog passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour.`,
+        criteriaDescription: `Triggers when a line through the last two hours of Gnocchi's backlog passes ${OPENSTACK_GNOCCHI_BACKLOG_WARNING_MEASURES} measures within the next hour.`,
       },
     });
   },

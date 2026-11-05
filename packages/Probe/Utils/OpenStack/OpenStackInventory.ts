@@ -1346,5 +1346,5 @@ export interface OpenStackInventoryByService {
   "container-infra"?: OpenStackContainerInfraInventory | undefined;
   sharev2?: OpenStackSharedFileSystemsInventory | undefined;
   database?: OpenStackDatabaseInventory | undefined;
-  metric?: OpenStackMetricInventory | undefined;
+  gnocchi?: OpenStackMetricInventory | undefined;
 }

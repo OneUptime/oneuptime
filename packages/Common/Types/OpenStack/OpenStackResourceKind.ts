@@ -98,7 +98,8 @@ export enum OpenStackServiceType {
   BareMetal = "baremetal",
   SharedFileSystems = "sharev2",
   Database = "database",
-  Metric = "metric",
+  // What the agent's job calls it, and the exporter: Keystone's catalog says `metric`.
+  Metric = "gnocchi",
   Dns = "dns",
 }
 

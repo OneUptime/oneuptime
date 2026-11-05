@@ -10,6 +10,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import {
   CriteriaFilter,
+  CriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -1535,7 +1536,12 @@ describe("OpenStack alert templates: the rules every template passes", () => {
               windowMinutes: windowMinutesOf(step),
             })
           ).breached,
-        ).toBe(false);
+          // A line through the window is what a forecast reads, so one reading doesn't turn it.
+        ).toBe(
+          CriteriaFilterUtil.isForecastFilterType(
+            firingOf(step).data!.filters[0]!.filterType,
+          ),
+        );
       },
     );
 
@@ -1570,7 +1576,9 @@ describe("OpenStack alert templates: the rules every template passes", () => {
             filter.metricMonitorOptions?.onNoDataPolicy;
 
           expect(
-            filter.filterType === FilterType.GreaterThanOrEqualTo
+            filter.filterType === FilterType.GreaterThanOrEqualTo ||
+              // An empty window has no trend, so it can't read as zero.
+              CriteriaFilterUtil.isForecastFilterType(filter.filterType)
               ? policy === NoDataPolicy.Trigger
               : policy === NoDataPolicy.TreatAsZero,
           ).toBe(true);
