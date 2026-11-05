@@ -134,6 +134,7 @@ const FriendlyLabelNames: Record<string, string> = {
   "openstack.instance.source": "Source",
   "openstack.project.id": "Project",
   openstack_service: "Service Type",
+  service_type: "Service Type",
   hostname: "Host",
   service: "Service",
   uuid: "UUID",

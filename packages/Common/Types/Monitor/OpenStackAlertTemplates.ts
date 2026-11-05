@@ -20,9 +20,12 @@ import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+  OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_HYPERVISOR_CPU_SATURATED_PERCENT,
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
   OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
@@ -39,6 +42,11 @@ import {
   OpenStackHypervisorMetric,
   OpenStackInstanceMetric,
 } from "../OpenStack/OpenStackInstanceMetrics";
+import {
+  OpenStackLifecyclePhase,
+  OpenStackLifecycleStep,
+} from "../OpenStack/OpenStackCheck";
+import { OpenStackCheckMetric } from "../../Utils/OpenStack/OpenStackCheckMetrics";
 import {
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -327,13 +335,21 @@ function buildOpenStackSeriesConfig(args: {
    * the top of this file.
    */
   anchorService?: OpenStackServiceType | undefined;
+  // Or the series that does, for what is not collected from a service: see the checks below.
+  anchorMetricName?: string | undefined;
 }): MonitorStepOpenStackMonitor {
-  const queries: Array<OpenStackQuery> = args.anchorService
+  const anchorMetricName: string | undefined =
+    args.anchorMetricName ||
+    (args.anchorService
+      ? OPENSTACK_API_UP_METRIC_BY_SERVICE[args.anchorService]
+      : undefined);
+
+  const queries: Array<OpenStackQuery> = anchorMetricName
     ? [
         ...args.queries,
         {
           alias: OPENSTACK_ANCHOR_METRIC_ALIAS,
-          metricName: OPENSTACK_API_UP_METRIC_BY_SERVICE[args.anchorService],
+          metricName: anchorMetricName,
           aggregationType: MetricsAggregationType.Min,
         },
       ]
@@ -461,6 +477,8 @@ function buildFloorStep(data: {
   groupByAttributeKeys: Array<string>;
   // An API's own queries keep its window from being silent: it needs no anchor.
   hasOwnAnchor?: boolean | undefined;
+  rollingTime?: RollingTime | undefined;
+  anchorMetricName?: string | undefined;
   words: IncidentWords;
 }): MonitorStep {
   const [firstQuery, ...otherQueries] = data.queries;
@@ -469,9 +487,11 @@ function buildFloorStep(data: {
     openstackMonitor: buildOpenStackSeriesConfig({
       cloudIdentifier: data.args.cloudIdentifier,
       queries: data.queries,
-      rollingTime: OPENSTACK_WINDOW_BY_SERVICE[data.service],
+      rollingTime:
+        data.rollingTime || OPENSTACK_WINDOW_BY_SERVICE[data.service],
       groupByAttributeKeys: data.groupByAttributeKeys,
       anchorService: data.hasOwnAnchor ? undefined : data.service,
+      anchorMetricName: data.hasOwnAnchor ? undefined : data.anchorMetricName,
     }),
     offlineCriteriaInstance: buildOfflineCriteria({
       notification: { args: data.args, ...data.words },
@@ -529,6 +549,7 @@ function buildCeilingStep(data: {
   value: number;
   // Where a whole-number count recovers, when a dead band would never be reached.
   recoveryValue?: number | undefined;
+  anchorMetricName?: string | undefined;
   words: IncidentWords;
 }): MonitorStep {
   const firingFilterType: FilterType =
@@ -550,6 +571,7 @@ function buildCeilingStep(data: {
         data.rollingTime || OPENSTACK_WINDOW_BY_SERVICE[data.service],
       groupByAttributeKeys: data.groupByAttributeKeys,
       anchorService: data.service,
+      anchorMetricName: data.anchorMetricName,
     }),
     offlineCriteriaInstance: buildOfflineCriteria({
       notification: { args: data.args, ...data.words },
@@ -1939,6 +1961,301 @@ const projectQuotaNearlyReachedTemplate: OpenStackAlertTemplate = {
   },
 };
 
+// --- Checks from outside ---
+
+/*
+ * WHAT A PROBE FOUND FROM OUTSIDE THE CLOUD (Types/OpenStack/OpenStackCheck), BY THE SAME RULES.
+ *
+ * Each minute's API check says what it found and what the last lifecycle run found (see
+ * OpenStackCheckMetrics for why), so all of these read series that arrive once a minute and hold
+ * five collections in five minutes, as every other template holds at least three. A failed lifecycle
+ * run opens its incident within minutes of failing and closes it within minutes of the next run that
+ * passes, whatever the check's interval is, because what the alert reads is the last verdict.
+ *
+ * Their anchor is the check's own series, not a service's `_up`: these go on whichever way the cloud
+ * is collected, and stop when the probe does. Silence still is not recovery, so a dead probe leaves
+ * an open incident open.
+ *
+ * One incident per region: what a run met goes in the description, from what the run reported
+ * (OpenStackAlertContext), so a boot that fails in a different way next time does not open another.
+ */
+const CHECK_WINDOW: RollingTime = RollingTime.Past5Minutes;
+const REGION_GROUP: Array<string> = [REGION];
+
+const TURN_ON_API_CHECKS: string =
+  "Reads nothing until API checks are on, on the cloud's Checks page.";
+const TURN_ON_LIFECYCLE: string =
+  "Reads nothing until the lifecycle check is on, on the cloud's Checks page.";
+
+const tokenIssueFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-token-issue-failing",
+  name: "Token Issue Failing",
+  summary: "Keystone issues a probe outside the cloud no token for 5 minutes.",
+  description: `Alert when Keystone issues no token to the probe checking this cloud from outside, for 5 minutes: it answered with an error, refused the credential, or could not be reached. One incident per region. Nobody can start anything without a token, whatever the services themselves report. ${TURN_ON_API_CHECKS} Check keystone's service and logs, the load balancer in front of it and the database behind it, then run \`openstack token issue\`.`,
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Identity,
+      hasOwnAnchor: true,
+      rollingTime: CHECK_WINDOW,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "token_issued",
+          metricName: OpenStackCheckMetric.TokenSuccess,
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Token Issue Failing",
+        incidentDescription: `A probe outside this cloud cannot get a token from Keystone, so nobody can start anything new here, whatever the services themselves report. Check keystone's service and logs on the controllers, the load balancer in front of it and the database behind it, then run openstack token issue. The incident resolves on its own once a token is issued again.`,
+        criteriaName: "Token Issue Failing - no token issued",
+        criteriaDescription:
+          "Triggers when Keystone issues the check no token for the whole window.",
+      },
+    });
+  },
+};
+
+const serviceApiCheckFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-service-api-check-failing",
+  name: "Service API Check Failing",
+  summary: "A service in the catalog does not answer a probe for 5 minutes.",
+  description: `Alert when a service the catalog names does not answer a one-row read from a probe outside the cloud, for 5 minutes: it failed, timed out, could not be reached, or refused a token Keystone just issued. One incident per region and service, for every service in the catalog, with no list to keep. One that refuses this credential is answering, so it does not fire. ${TURN_ON_API_CHECKS} Check that service's API and the load balancer in front of it, then run \`openstack endpoint list --interface public\`.`,
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildFloorStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      anchorMetricName: OpenStackCheckMetric.TokenSuccess,
+      rollingTime: CHECK_WINDOW,
+      groupByAttributeKeys: [REGION, "service_type"],
+      queries: [
+        {
+          alias: "api_answered",
+          metricName: OpenStackCheckMetric.ApiSuccess,
+          aggregationType: MetricsAggregationType.Min,
+        },
+      ],
+      words: {
+        incidentTitle: "[OpenStack] Service API Check Failing",
+        incidentDescription: `A service in this cloud's catalog is not answering a probe outside the cloud, as it would not answer anyone else. Check that service's API and logs, and the load balancer in front of it, then run openstack endpoint list --interface public to see where it should answer. The incident resolves on its own once it answers again.`,
+        criteriaName: "Service API Check Failing - not answering",
+        criteriaDescription:
+          "Triggers when a service in the catalog does not answer the check for the whole window.",
+      },
+    });
+  },
+};
+
+// Days left only go down, until someone renews it.
+function buildCertificateExpiringTemplate(data: {
+  id: string;
+  days: number;
+  severity: OpenStackAlertTemplateSeverity;
+  checkNext: string;
+}): OpenStackAlertTemplate {
+  const name: string = `Public Certificate Expiring in ${data.days} Days`;
+
+  return {
+    id: data.id,
+    name: name,
+    summary: `A public endpoint's certificate expires in under ${data.days} days.`,
+    description: `Alert when the certificate on an endpoint the catalog names expires in under ${data.days} days, as read by a probe outside the cloud off the connection it made. One incident per host and port, and it stays open past the expiry, when every user's connection starts failing. ${TURN_ON_API_CHECKS} Check \`openstack endpoint list --interface public\` for what is on that host, and ${data.checkNext}`,
+    category: "Availability",
+    severity: data.severity,
+    getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+      return buildOpenStackMonitorStep({
+        openstackMonitor: buildOpenStackSeriesConfig({
+          cloudIdentifier: args.cloudIdentifier,
+          queries: [
+            {
+              alias: "days_left",
+              metricName: OpenStackCheckMetric.CertificateExpiry,
+              aggregationType: MetricsAggregationType.Min,
+            },
+          ],
+          rollingTime: CHECK_WINDOW,
+          groupByAttributeKeys: [REGION, "host", "port"],
+          anchorMetricName: OpenStackCheckMetric.TokenSuccess,
+        }),
+        offlineCriteriaInstance: buildOfflineCriteria({
+          notification: {
+            args,
+            incidentTitle: `[OpenStack] ${name}`,
+            incidentDescription: `The certificate on an endpoint this cloud's catalog names expires in under ${data.days} days. When it does, every connection to that API fails. Run openstack endpoint list --interface public to check what is on the host named above, and ${data.checkNext} The incident resolves on its own once the check sees a renewed one.`,
+            criteriaName: `${name} - under ${data.days} days left`,
+            criteriaDescription: `Triggers when the certificate on a public endpoint has under ${data.days} days left for the whole window.`,
+          },
+          metricAlias: "days_left",
+          filterType: FilterType.LessThan,
+          value: data.days,
+        }),
+        onlineCriteriaInstance: countGoneSeriesAsRecovered(
+          buildHealthyCriteriaInstance({
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            metricAlias: "days_left",
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: data.days,
+            filterCondition: FilterCondition.All,
+          }),
+        ),
+      });
+    },
+  };
+}
+
+const certificateExpiringIn30DaysTemplate: OpenStackAlertTemplate =
+  buildCertificateExpiringTemplate({
+    id: "openstack-public-certificate-expiring-30-days",
+    days: OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
+    severity: "Warning",
+    checkNext: "renew it while there is time to.",
+  });
+
+const certificateExpiringIn7DaysTemplate: OpenStackAlertTemplate =
+  buildCertificateExpiringTemplate({
+    id: "openstack-public-certificate-expiring-7-days",
+    days: OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+    severity: "Critical",
+    checkNext: "renew it now.",
+  });
+
+// One part of the lifecycle check, in one region, as its last run left it.
+function buildLifecyclePhaseFloorStep(data: {
+  args: OpenStackAlertTemplateArgs;
+  service: OpenStackServiceType;
+  alias: string;
+  phase: OpenStackLifecyclePhase;
+  words: IncidentWords;
+}): MonitorStep {
+  return buildFloorStep({
+    args: data.args,
+    service: data.service,
+    anchorMetricName: OpenStackCheckMetric.LifecycleSuccess,
+    rollingTime: CHECK_WINDOW,
+    groupByAttributeKeys: REGION_GROUP,
+    queries: [
+      {
+        alias: data.alias,
+        metricName: OpenStackCheckMetric.LifecyclePhaseSuccess,
+        aggregationType: MetricsAggregationType.Min,
+        attributes: { phase: data.phase },
+      },
+    ],
+    words: data.words,
+  });
+}
+
+const instanceBootFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-instance-boot-failing",
+  name: "Instance Boot Failing",
+  summary: "The last lifecycle run could not boot an instance in this region.",
+  description: `Alert when the last lifecycle run in a region could not boot an instance: Nova refused it, its server went to ERROR, or it never reached ACTIVE. Opens within minutes of the run and closes within minutes of the next run that boots. One incident per region, and it says the step and the fault Nova gave. Every service can read healthy while this fires, which is what this is for. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then the scheduler's and conductor's logs, and Placement.`,
+  category: "Compute",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildLifecyclePhaseFloorStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      alias: "boot_passed",
+      phase: OpenStackLifecyclePhase.Boot,
+      words: {
+        incidentTitle: "[OpenStack] Instance Boot Failing",
+        incidentDescription: `A probe outside this cloud tried to do what a user does, and could not boot an instance. New instances are probably failing for your users too, whatever each service reports. Check openstack compute service list, then the logs of nova-scheduler and nova-conductor, and Placement. The step that failed and the fault Nova gave are below. The incident resolves on its own once a run boots an instance again.`,
+        criteriaName: "Instance Boot Failing - the last run could not boot",
+        criteriaDescription:
+          "Triggers when the last lifecycle run in a region could not boot an instance.",
+      },
+    });
+  },
+};
+
+const instanceBootSlowTemplate: OpenStackAlertTemplate = {
+  id: "openstack-instance-boot-slow",
+  name: "Instance Boot Slow",
+  summary: `The last lifecycle run took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS / 60} minutes to reach ACTIVE.`,
+  description: `Alert when the last lifecycle run in a region took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to take a server from Nova accepting it to ACTIVE, which is how long OpenStack's own tests allow (Tempest's build_timeout). It boots the small flavor and image the check was given, so your own will take longer. One incident per region. With an OSProfiler key saved on the Checks page, the run has a trace. ${TURN_ON_LIFECYCLE} Check \`openstack compute service list\`, then what the image and the network are doing on the compute hosts.`,
+  category: "Compute",
+  severity: "Warning",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildCeilingStep({
+      args,
+      service: OpenStackServiceType.Compute,
+      rollingTime: CHECK_WINDOW,
+      anchorMetricName: OpenStackCheckMetric.LifecycleSuccess,
+      groupByAttributeKeys: REGION_GROUP,
+      queries: [
+        {
+          alias: "boot_seconds",
+          metricName: OpenStackCheckMetric.LifecycleStepDuration,
+          aggregationType: MetricsAggregationType.Max,
+          attributes: { step: OpenStackLifecycleStep.ServerActive },
+        },
+      ],
+      aliases: ["boot_seconds"],
+      value: OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
+      words: {
+        incidentTitle: "[OpenStack] Instance Boot Slow",
+        incidentDescription: `The last lifecycle run took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to reach ACTIVE, with a small flavor and image, so your users' instances are probably slower still. Check openstack compute service list, then whether the compute hosts are copying images and how quickly ports are being wired. If an OSProfiler key is saved on the Checks page, the run below has a trace. The incident resolves on its own once a run boots faster.`,
+        criteriaName: `Instance Boot Slow - over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds`,
+        criteriaDescription: `Triggers when the last lifecycle run took over ${OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS} seconds to reach ACTIVE.`,
+      },
+    });
+  },
+};
+
+const volumeAttachFailingTemplate: OpenStackAlertTemplate = {
+  id: "openstack-volume-attach-failing",
+  name: "Volume Attach Failing",
+  summary: "The last lifecycle run could not create or attach a volume.",
+  description: `Alert when the last lifecycle run in a region could not create a volume or attach it to its server. One incident per region, and it says the step and what Cinder or Nova gave as the reason. ${TURN_ON_LIFECYCLE} It also needs the volume part of the check on. Check \`openstack volume service list\`, then cinder-volume's logs and the storage backend behind it.`,
+  category: "Storage",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildLifecyclePhaseFloorStep({
+      args,
+      service: OpenStackServiceType.Volume,
+      alias: "volume_passed",
+      phase: OpenStackLifecyclePhase.Volume,
+      words: {
+        incidentTitle: "[OpenStack] Volume Attach Failing",
+        incidentDescription: `A probe outside this cloud could not create a volume or attach it to a server it had just booted, so your users probably cannot either. Volumes already attached usually carry on. Check openstack volume service list, then cinder-volume's logs and the storage backend behind it. The step that failed and what the service gave as the reason are below. The incident resolves on its own once a run attaches a volume again.`,
+        criteriaName: "Volume Attach Failing - the last run could not attach",
+        criteriaDescription:
+          "Triggers when the last lifecycle run in a region could not create or attach a volume.",
+      },
+    });
+  },
+};
+
+const floatingIpUnreachableTemplate: OpenStackAlertTemplate = {
+  id: "openstack-floating-ip-unreachable",
+  name: "Floating IP Unreachable",
+  summary: "The last lifecycle run could not reach its server's floating IP.",
+  description: `Alert when the last lifecycle run in a region could not give its server a floating IP, or got no ping back from one. One incident per region, and it says the step and what Neutron gave as the reason. A probe with no route to the floating range reads the same, so run it from where your users are. ${TURN_ON_LIFECYCLE} It also needs the floating IP part of the check on. Check \`openstack network agent list\`, then the router and whatever carries the external network.`,
+  category: "Network",
+  severity: "Critical",
+  getMonitorStep: (args: OpenStackAlertTemplateArgs): MonitorStep => {
+    return buildLifecyclePhaseFloorStep({
+      args,
+      service: OpenStackServiceType.Network,
+      alias: "floating_ip_passed",
+      phase: OpenStackLifecyclePhase.FloatingIp,
+      words: {
+        incidentTitle: "[OpenStack] Floating IP Unreachable",
+        incidentDescription: `A probe outside this cloud booted a server and could not reach it through a floating IP, so your users' new instances may be unreachable too. Addresses already in use may carry on. Check openstack network agent list, then the router and whatever carries the external network, and that the probe has a route to the floating range. The step that failed and what it met are below. The incident resolves on its own once a run reaches its server again.`,
+        criteriaName: "Floating IP Unreachable - the last run got no reply",
+        criteriaDescription:
+          "Triggers when the last lifecycle run in a region could not reach its server through a floating IP.",
+      },
+    });
+  },
+};
+
 export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
   return [
     cloudStoppedReportingTemplate,
@@ -1948,6 +2265,14 @@ export function getAllOpenStackAlertTemplates(): Array<OpenStackAlertTemplate> {
     blockStorageApiDownTemplate,
     imageApiDownTemplate,
     placementApiDownTemplate,
+    tokenIssueFailingTemplate,
+    serviceApiCheckFailingTemplate,
+    certificateExpiringIn30DaysTemplate,
+    certificateExpiringIn7DaysTemplate,
+    instanceBootFailingTemplate,
+    instanceBootSlowTemplate,
+    volumeAttachFailingTemplate,
+    floatingIpUnreachableTemplate,
     computeServiceDownTemplate,
     schedulerOrConductorDownTemplate,
     everySchedulerOrConductorDownTemplate,
