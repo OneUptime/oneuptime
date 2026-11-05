@@ -234,11 +234,50 @@ function windowHolding(minutes: number): RollingTime {
   return RollingTime.Past12Hours;
 }
 
+/*
+ * A grouped step's anchor says how often its service is collected, which its own series can't when
+ * they come and go. One per status word exists only while something has that status, so the first
+ * thing seen in that status, or the only thing, has one data point and nothing beside it to say
+ * that it isn't all a window ever holds. Anything on its way to something else is seen that way.
+ */
+function readCadenceFromAnchor(args: {
+  openstackMonitor: MonitorStepOpenStackMonitor;
+  instances: Array<MonitorCriteriaInstance>;
+}): void {
+  const hasAnchor: boolean =
+    args.openstackMonitor.metricViewConfig.queryConfigs.some(
+      (query: MetricQueryConfigData): boolean => {
+        return (
+          query.metricAliasData?.metricVariable ===
+          OPENSTACK_ANCHOR_METRIC_ALIAS
+        );
+      },
+    );
+
+  if (!hasAnchor) {
+    return;
+  }
+
+  for (const instance of args.instances) {
+    for (const filter of instance.data?.filters || []) {
+      filter.metricMonitorOptions = {
+        ...filter.metricMonitorOptions,
+        cadenceMetricAlias: OPENSTACK_ANCHOR_METRIC_ALIAS,
+      };
+    }
+  }
+}
+
 export function buildOpenStackMonitorStep(args: {
   openstackMonitor: MonitorStepOpenStackMonitor;
   offlineCriteriaInstance: MonitorCriteriaInstance;
   onlineCriteriaInstance: MonitorCriteriaInstance;
 }): MonitorStep {
+  readCadenceFromAnchor({
+    openstackMonitor: args.openstackMonitor,
+    instances: [args.offlineCriteriaInstance, args.onlineCriteriaInstance],
+  });
+
   const monitorStep: MonitorStep = new MonitorStep();
 
   const monitorCriteria: MonitorCriteria = new MonitorCriteria();
