@@ -202,6 +202,8 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "OpenStackCloudConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
   "OpenStackCloudConnectionTestService.ts":
     "OpenStackCloudConnectionTestService.test.ts (the probe as a cloud's collection probe; the cloud read within the test's project, a foreign and a missing one answered alike)",
+  "OpenStackCloudCheckService.ts":
+    "OpenStackCloudCheckService.test.ts (the probe as a cloud's collection probe; the cloud read within the check's project, a foreign and a missing one answered alike)",
   "VMwareVCenterService.ts":
     "VMwareVCenterConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
   "VMwareVCenterConnectionTestService.ts":

@@ -135,6 +135,8 @@ const FriendlyLabelNames: Record<string, string> = {
   "openstack.project.id": "Project",
   openstack_service: "Service Type",
   service_type: "Service Type",
+  // What a check of an endpoint's certificate is about, beside its host.
+  port: "Port",
   hostname: "Host",
   service: "Service",
   uuid: "UUID",

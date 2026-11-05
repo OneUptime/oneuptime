@@ -108,6 +108,12 @@ function metricNames(): Array<string> {
  */
 const NO_UNIT_SERIES: ReadonlyArray<string> = [
   "up",
+  "openstack_check_token_success",
+  "openstack_check_api_success",
+  "openstack_check_lifecycle_success",
+  "openstack_check_lifecycle_phase_success",
+  "openstack_check_lifecycle_step_success",
+  "openstack_check_lifecycle_refused",
   "openstack_identity_up",
   "openstack_nova_up",
   "openstack_neutron_up",

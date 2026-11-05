@@ -1907,6 +1907,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
     identityAttributes: [],
+    unit: "count",
   }),
   check({
     metricName: OpenStackCheckMetric.LifecycleJanitorRemoved,
@@ -1916,6 +1917,7 @@ const openStackMetricCatalog: Array<OpenStackMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     service: OpenStackServiceType.Compute,
     identityAttributes: [],
+    unit: "count",
   }),
   check({
     metricName: OpenStackCheckMetric.LifecycleRefused,

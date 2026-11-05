@@ -382,20 +382,20 @@ What a probe finds from outside the cloud: see [Checks from outside](#checks-fro
 
 | Metric | Unit | Reads | Description |
 | --- | --- | --- | --- |
-| `openstack_check_token_success` | `count` | Min | Whether Keystone issued a token to the probe checking this cloud from outside: 1 when it did, 0 when it did not. |
+| `openstack_check_token_success` | - | Min | Whether Keystone issued a token to the probe checking this cloud from outside: 1 when it did, 0 when it did not. |
 | `openstack_check_token_duration_seconds` | `s` | Max | How long Keystone took to issue that token. |
-| `openstack_check_api_success` | `count` | Min | Whether a service in the catalog answered a one-row read: 1 when it answered, or refused this credential, because then its API is working, and 0 when it failed, timed out or could not be reached. Labels `service_type`, `service_name`, `outcome`. |
+| `openstack_check_api_success` | - | Min | Whether a service in the catalog answered a one-row read: 1 when it answered, or refused this credential, because then its API is working, and 0 when it failed, timed out or could not be reached. Labels `service_type`, `service_name`, `outcome`. |
 | `openstack_check_api_duration_seconds` | `s` | Max | How long that service took to answer. Labels `service_type`, `service_name`. |
 | `openstack_check_certificate_expiry_days` | `d` | Min | Days until the certificate on an endpoint the catalog names expires, negative once it has. Labels `host`, `port`. |
-| `openstack_check_lifecycle_success` | `count` | Min | Whether the last lifecycle run to finish in a region passed every step: 1 or 0. Said again each minute until the next run finishes, so its average over a month is how much of the month someone could have booted an instance. |
-| `openstack_check_lifecycle_phase_success` | `count` | Min | What each part of the lifecycle check last came to: label `phase`, one of `credential`, `boot`, `floating_ip`, `volume` and `cleanup`. A part a run did not reach keeps what it last came to. |
-| `openstack_check_lifecycle_step_success` | `count` | Min | Whether each step of the last run passed: label `step`. Steps it did not reach have no series. |
+| `openstack_check_lifecycle_success` | - | Min | Whether the last lifecycle run to finish in a region passed every step: 1 or 0. Said again each minute until the next run finishes, so its average over a month is how much of the month someone could have booted an instance. |
+| `openstack_check_lifecycle_phase_success` | - | Min | What each part of the lifecycle check last came to: label `phase`, one of `credential`, `boot`, `floating_ip`, `volume` and `cleanup`. A part a run did not reach keeps what it last came to. |
+| `openstack_check_lifecycle_step_success` | - | Min | Whether each step of the last run passed: label `step`. Steps it did not reach have no series. |
 | `openstack_check_lifecycle_step_duration_seconds` | `s` | Max | How long each step of the last run took, for the steps that passed: label `step`. `server_active` is the boot itself. |
 | `openstack_check_lifecycle_run_duration_seconds` | `s` | Max | How long the last run took, from its first request to its last. |
 | `openstack_check_lifecycle_run_age_seconds` | `s` | Max | How long ago the last run finished. |
 | `openstack_check_lifecycle_leftovers` | `count` | Max | How many things the last run could not delete. |
 | `openstack_check_lifecycle_janitor_removed` | `count` | Max | How many things the janitor removed at the start of the last run: what a run that died left behind. |
-| `openstack_check_lifecycle_refused` | `count` | Max | 1 while the check refuses to write with its credential, so no run has a verdict. |
+| `openstack_check_lifecycle_refused` | - | Max | 1 while the check refuses to write with its credential, so no run has a verdict. |
 
 ## Checks from outside
 
