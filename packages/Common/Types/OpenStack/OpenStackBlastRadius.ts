@@ -27,6 +27,7 @@ export interface OpenStackBlastRadiusProject {
   floatingIpCount: number;
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
 }
 
 export interface OpenStackBlastRadius {
@@ -37,6 +38,7 @@ export interface OpenStackBlastRadius {
   // Only a cloud running Heat or Magnum has these, so only there do they read anything but 0.
   stackCount: number;
   containerClusterCount: number;
+  shareCount: number;
   // The real number, which `projects` can be shorter than: see the cap.
   projectCount: number;
   // Most affected first, at most OPENSTACK_BLAST_RADIUS_PROJECT_LIMIT of them.
@@ -62,6 +64,8 @@ export interface OpenStackBlastRadius {
    * the stack a cluster is built with. A failure there is the same failure, seen from the other end.
    */
   belongsTo?: Array<OpenStackBlastRadiusOwner> | undefined;
+  // The Magnum clusters with a server on this hypervisor, which its failure reaches.
+  magnumClusters?: Array<OpenStackBlastRadiusOwner> | undefined;
 }
 
 export interface OpenStackBlastRadiusOwner {
@@ -83,6 +87,7 @@ export function getEmptyOpenStackBlastRadius(
     floatingIpCount: 0,
     stackCount: 0,
     containerClusterCount: 0,
+    shareCount: 0,
     projectCount: 0,
     projects: [],
     isKnown,
@@ -95,7 +100,8 @@ export type OpenStackBlastRadiusCount =
   | "routerCount"
   | "floatingIpCount"
   | "stackCount"
-  | "containerClusterCount";
+  | "containerClusterCount"
+  | "shareCount";
 
 /*
  * Every count a radius holds and what it is called, which is all there is to adding one. What a page
@@ -117,6 +123,7 @@ export const OPENSTACK_BLAST_RADIUS_COUNTS: ReadonlyArray<{
     one: "Kubernetes cluster",
     other: "Kubernetes clusters",
   },
+  { count: "shareCount", one: "share", other: "shares" },
 ];
 
 /*
@@ -155,6 +162,7 @@ export function buildOpenStackBlastRadius(data: {
         floatingIpCount: 0,
         stackCount: 0,
         containerClusterCount: 0,
+        shareCount: 0,
       };
       project[count] += amount;
       projects.set(projectId, project);

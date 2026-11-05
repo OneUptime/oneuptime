@@ -1,1 +1,1 @@
-{"statuses": {"loadbalancer": {"id": "0797b03d-ee76-4b5a-a8c3-2e7a697edec8", "name": "ou-lb-pending", "operating_status": "OFFLINE", "provisioning_status": "PENDING_CREATE", "listeners": []}}}
+{"statuses": {"loadbalancer": {"id": "5398256a-4f6b-4a6d-8b72-ca585866db19", "name": "ou-lb-pending", "operating_status": "OFFLINE", "provisioning_status": "PENDING_CREATE", "listeners": []}}}

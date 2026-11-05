@@ -44,6 +44,8 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import ObjectID from "../../../Types/ObjectID";
 import {
   OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+  OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_BARE_METAL_MAINTENANCE_WARNING_DAYS,
   OPENSTACK_BARE_METAL_STUCK_MINUTES,
   OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS,
@@ -51,6 +53,7 @@ import {
   OPENSTACK_HYPERVISOR_MEMORY_PRESSURE_PERCENT,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_CPU_SATURATED_PERCENT,
+  OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
   OPENSTACK_INSTANCE_DISK_LATENCY_HIGH_MS,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
   OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
@@ -61,7 +64,12 @@ import {
   OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "../../../Types/OpenStack/OpenStackHealthRules";
+import { DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES } from "../../../Types/OpenStack/OpenStackCheck";
 import { OPENSTACK_INSTANCE_METRIC_JOBS } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
+import {
+  OPENSTACK_CHECK_API_METRICS,
+  OpenStackCheckMetric,
+} from "../../../Utils/OpenStack/OpenStackCheckMetrics";
 import {
   OPENSTACK_BARE_METAL_ERROR_STATES,
   OPENSTACK_BARE_METAL_TRANSITIONAL_STATES,
@@ -301,6 +309,11 @@ function intervalSecondsOf(query: MetricQueryConfigData): number {
   const metric: OpenStackMetricDefinition | undefined =
     getOpenStackMetricByMetricName(metricNameOf(query));
 
+  // What a check found goes out with each API check, whichever check found it.
+  if (metric?.fromCheck) {
+    return DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES * 60;
+  }
+
   if (metric?.fromQuotaExporter) {
     return quotaIntervalSeconds();
   }
@@ -345,6 +358,38 @@ const AGGREGATION_EXCEPTIONS: Readonly<Record<string, string>> = {
 const THRESHOLDS: Readonly<
   Record<string, { filterType: FilterType; value: number }>
 > = {
+  "openstack-token-issue-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-service-api-check-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-public-certificate-expiring-30-days": {
+    filterType: FilterType.LessThan,
+    value: OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
+  },
+  "openstack-public-certificate-expiring-7-days": {
+    filterType: FilterType.LessThan,
+    value: OPENSTACK_CERTIFICATE_EXPIRY_CRITICAL_DAYS,
+  },
+  "openstack-instance-boot-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-instance-boot-slow": {
+    filterType: FilterType.GreaterThan,
+    value: OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
+  },
+  "openstack-volume-attach-failing": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-floating-ip-unreachable": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
   "openstack-identity-api-down": { filterType: FilterType.LessThan, value: 1 },
   "openstack-compute-api-down": { filterType: FilterType.LessThan, value: 1 },
   "openstack-network-api-down": { filterType: FilterType.LessThan, value: 1 },
@@ -505,6 +550,16 @@ const THRESHOLDS: Readonly<
     filterType: FilterType.LessThan,
     value: 1,
   },
+  "openstack-shared-file-systems-api-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-share-service-down": {
+    filterType: FilterType.LessThan,
+    value: 1,
+  },
+  "openstack-share-in-error": { filterType: FilterType.GreaterThan, value: 0 },
+  "openstack-share-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-stack-failed": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-stack-stuck": { filterType: FilterType.GreaterThan, value: 0 },
   "openstack-container-cluster-failed": {
@@ -570,6 +625,38 @@ function poolScene(usedPercent: number): Scene {
 }
 
 const SCENES: Readonly<Record<string, Scene>> = {
+  "openstack-token-issue-failing": {
+    breached: { token_issued: 0 },
+    healthy: { token_issued: 1 },
+  },
+  "openstack-service-api-check-failing": {
+    breached: { api_answered: 0 },
+    healthy: { api_answered: 1 },
+  },
+  "openstack-public-certificate-expiring-30-days": {
+    breached: { days_left: 12.5 },
+    healthy: { days_left: 80 },
+  },
+  "openstack-public-certificate-expiring-7-days": {
+    breached: { days_left: 2 },
+    healthy: { days_left: 12.5 },
+  },
+  "openstack-instance-boot-failing": {
+    breached: { boot_passed: 0 },
+    healthy: { boot_passed: 1 },
+  },
+  "openstack-instance-boot-slow": {
+    breached: { boot_seconds: 412 },
+    healthy: { boot_seconds: 42 },
+  },
+  "openstack-volume-attach-failing": {
+    breached: { volume_passed: 0 },
+    healthy: { volume_passed: 1 },
+  },
+  "openstack-floating-ip-unreachable": {
+    breached: { floating_ip_passed: 0 },
+    healthy: { floating_ip_passed: 1 },
+  },
   "openstack-identity-api-down": {
     breached: { api_up: 0, series_in_collection: 1 },
     healthy: { api_up: 1, series_in_collection: 8 },
@@ -750,6 +837,23 @@ const SCENES: Readonly<Record<string, Scene>> = {
     breached: { magnum_conductor_up: 0 },
     healthy: { magnum_conductor_up: 1 },
   },
+  "openstack-shared-file-systems-api-down": {
+    breached: { api_up: 0, collection_answered: 1 },
+    healthy: { api_up: 1, collection_answered: 1 },
+  },
+  "openstack-share-service-down": {
+    breached: { manila_service_up: 0 },
+    healthy: { manila_service_up: 1 },
+  },
+  // A share's size, which is what its _share_gb series reads, whatever its status.
+  "openstack-share-in-error": {
+    breached: { in_error: 1 },
+    healthy: { in_error: 0 },
+  },
+  "openstack-share-stuck": {
+    breached: { in_creating: 1 },
+    healthy: { in_creating: 0 },
+  },
   // Each word's code as it was recorded, which only says the row is there.
   "openstack-stack-failed": {
     breached: { in_create_failed: 4, in_update_failed: 10 },
@@ -895,6 +999,10 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Stack Stuck In Progress",
         "Kubernetes Cluster Failed",
         "Kubernetes Cluster Stuck",
+        "Shared File Systems API Down",
+        "Manila Service Down",
+        "Share in Error",
+        "Share Stuck",
         "Compute Service Down",
         "Scheduler or Conductor Down",
         // Beyond the issue's table: the outage the pages call Critical.
@@ -930,6 +1038,15 @@ describe("OpenStack alert templates: the rules every template passes", () => {
         "Bare Metal Node in Maintenance Too Long",
         "Bare Metal Power State Unexpected",
         "Project Quota Nearly Reached",
+        // What a probe finds from outside the cloud (#5749).
+        "Token Issue Failing",
+        "Service API Check Failing",
+        "Public Certificate Expiring in 30 Days",
+        "Public Certificate Expiring in 7 Days",
+        "Instance Boot Failing",
+        "Instance Boot Slow",
+        "Volume Attach Failing",
+        "Floating IP Unreachable",
         "Flavor Can No Longer Be Placed",
         `Capacity Forecast Under ${OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS} Days`,
         "Reserved Headroom Gone",
@@ -1342,10 +1459,42 @@ describe("OpenStack alert templates: the rules every template passes", () => {
           },
         );
 
+        /*
+         * What a check says of Keystone is there on every report, so it is its own. Anything else
+         * from a check stands on the check's own series: they go on whichever way the cloud is
+         * collected, and stop when the probe does.
+         */
+        const isFromCheck: boolean = Boolean(
+          getOpenStackMetricByMetricName(metricNameOf(queries[0]!))?.fromCheck,
+        );
+
+        if (!anchor && isFromCheck) {
+          expect(template.id).toBe("openstack-token-issue-failing");
+          return;
+        }
+
         // An API's own series and its collection's are already that.
         if (!anchor) {
           expect(template.id).toMatch(/-api-down$/);
           expect(metricNameOf(queries[0]!)).toMatch(/^openstack_\w+_up$/);
+          return;
+        }
+
+        if (isFromCheck) {
+          expect(metricNameOf(anchor)).toBe(
+            OPENSTACK_CHECK_API_METRICS.has(metricNameOf(queries[0]!))
+              ? OpenStackCheckMetric.TokenSuccess
+              : OpenStackCheckMetric.LifecycleSuccess,
+          );
+          expect(attributesOf(anchor)).toEqual({});
+          expect(aggregationOf(anchor)).toBe(MetricsAggregationType.Min);
+
+          for (const instance of [firingOf(step), recoveryOf(step)]) {
+            expect(comparedAliases(instance)).not.toContain(
+              OPENSTACK_ANCHOR_METRIC_ALIAS,
+            );
+          }
+
           return;
         }
 
@@ -1765,6 +1914,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
             Boolean(OPENSTACK_EXPORTER_SERIES[metricName]) ||
               OPENSTACK_RECEIVER_SERIES.includes(metricName) ||
               getOpenStackMetricByMetricName(metricName)!.fromInstanceSource ||
+              getOpenStackMetricByMetricName(metricName)!.fromCheck ||
               // A series only a native read sends, on a template that says so.
               (getOpenStackMetricByMetricName(metricName)!.onlyFromProbe &&
                 template.requiresProbe) ||
@@ -1793,6 +1943,7 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       expect(probeOnly.sort()).toEqual([
         "openstack-container-infra-conductor-down",
         "openstack-orchestration-engine-down",
+        "openstack-share-service-down",
       ]);
       for (const id of probeOnly) {
         const template: OpenStackAlertTemplate =
@@ -1850,6 +2001,8 @@ describe("OpenStack alert templates: the rules every template passes", () => {
       ["openstack-stack-stuck", ["id", "name"]],
       ["openstack-container-cluster-failed", ["uuid", "name"]],
       ["openstack-container-cluster-stuck", ["uuid", "name"]],
+      ["openstack-share-in-error", ["id", "name"]],
+      ["openstack-share-stuck", ["id", "name"]],
     ])("%s names what it is about", (id: string, keys: Array<string>) => {
       const groupBy: Array<string> = MonitorStep.getGroupByAttributeKeys(
         stepOf(getOpenStackAlertTemplateById(id)!),

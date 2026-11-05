@@ -1,11 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
+import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
 import {
   OPENSTACK_CEPH_STATUS_FACT,
   OPENSTACK_STORAGE_POOL_CEPH_LINK_FACT,
   OpenStackCephClusterCandidate,
   OpenStackHostNameForms,
+  OpenStackMagnumClusterOfStack,
   OpenStackReachAcrossProducts,
+  OpenStackServerOfNode,
   OpenStackStoragePoolCephLink,
   describeOpenStackReachAcrossProducts,
   getEmptyOpenStackReachAcrossProducts,
@@ -13,7 +16,10 @@ import {
   getOpenStackCephHealthNow,
   getOpenStackCephStatusFact,
   getOpenStackHostNameForms,
+  getOpenStackMagnumClusterOfServers,
   getOpenStackPoolNameCandidates,
+  getOpenStackServerNamesOfStack,
+  getOpenStackStackNameOfServer,
   getOpenStackStoragePoolCephChoice,
   getOpenStackStoragePoolCephLink,
   isOpenStackHostNameMatch,
@@ -587,5 +593,238 @@ describe("in words", () => {
         getEmptyOpenStackReachAcrossProducts(),
       ),
     ).toBe("");
+  });
+});
+
+describe("a Magnum cluster and the Kubernetes cluster it is", () => {
+  const STACK: string = "ou-cluster-real-rfhmez6mgxk3";
+
+  describe("the stack a server's name says built it", () => {
+    test.each<[string, string]>([
+      ["a control plane node", `${STACK}-master-0`],
+      ["a worker", `${STACK}-node-12`],
+      ["a worker on an older driver", `${STACK}-minion-3`],
+    ])("%s", (_name: string, serverName: string) => {
+      expect(getOpenStackStackNameOfServer(serverName)).toBe(STACK);
+    });
+
+    test("only the end of a name is read, so a stack can be called anything", () => {
+      expect(getOpenStackStackNameOfServer("node-1-master-2-node-3")).toBe(
+        "node-1-master-2",
+      );
+    });
+
+    test.each<[string, string | null | undefined]>([
+      ["no name", null],
+      ["nothing", undefined],
+      ["an empty name", ""],
+      ["a name of its own", "web-1"],
+      ["a role and no stack", "master-0"],
+      ["a dash where the stack would be", "-master-0"],
+      ["no number", `${STACK}-master`],
+      ["a number with nothing in it", `${STACK}-master-`],
+      ["a number that isn't one", `${STACK}-master-1a`],
+      ["a role nothing gives", `${STACK}-worker-1`],
+      ["a dash after the number", `${STACK}-master-1-`],
+      ["a capital in the role", `${STACK}-Master-1`],
+    ])("%s names no stack", (_name: string, serverName) => {
+      expect(getOpenStackStackNameOfServer(serverName)).toBeNull();
+    });
+
+    test("a name as long as OpenStack allows, of nothing but dashes, costs one pass", () => {
+      expect(getOpenStackStackNameOfServer("-".repeat(255))).toBeNull();
+    });
+  });
+
+  describe("the names a stack's servers can have", () => {
+    test("each role, up to what the cluster was asked for and past it", () => {
+      const names: Array<string> = getOpenStackServerNamesOfStack({
+        stackName: STACK,
+        masterCount: 3,
+        nodeCount: 40,
+      });
+
+      expect(names).toEqual(
+        expect.arrayContaining([
+          `${STACK}-master-0`,
+          `${STACK}-master-2`,
+          `${STACK}-master-22`,
+          `${STACK}-node-0`,
+          `${STACK}-node-39`,
+          `${STACK}-node-59`,
+          `${STACK}-minion-59`,
+        ]),
+      );
+      expect(names).not.toContain(`${STACK}-master-23`);
+      expect(names).not.toContain(`${STACK}-node-60`);
+    });
+
+    test.each<[string, number | null | undefined]>([
+      ["not known", undefined],
+      ["null", null],
+      ["none", 0],
+      ["a nonsense count", -5],
+    ])("a count that is %s still looks at the first few", (_name, count) => {
+      const names: Array<string> = getOpenStackServerNamesOfStack({
+        stackName: STACK,
+        masterCount: count,
+        nodeCount: count,
+      });
+      expect(names).toContain(`${STACK}-master-0`);
+      expect(names).toContain(`${STACK}-node-19`);
+      expect(names).not.toContain(`${STACK}-node-20`);
+    });
+
+    test("a count past anything real is no unbounded read", () => {
+      expect(
+        getOpenStackServerNamesOfStack({
+          stackName: STACK,
+          masterCount: 1_000_000_000,
+          nodeCount: 1_000_000_000,
+        }).length,
+      ).toBe(15000);
+    });
+
+    test("every name it gives reads back as that stack", () => {
+      const random: SeededRandom = seededRandom(5743);
+      for (let round: number = 0; round < 50; round++) {
+        const stackName: string = `${["ou", "prod-a", "node-1", "x-master-1"][random(4)]}-${random(1_000_000)}`;
+        for (const name of getOpenStackServerNamesOfStack({
+          stackName,
+          masterCount: random(5),
+          nodeCount: random(50),
+        })) {
+          expect(getOpenStackStackNameOfServer(name)).toBe(stackName);
+        }
+      }
+    });
+  });
+
+  describe("the one Magnum cluster these servers say they are", () => {
+    const CLOUD: string = "cloud-a";
+
+    const server: (
+      name: string | null,
+      overrides?: Partial<OpenStackServerOfNode>,
+    ) => OpenStackServerOfNode = (
+      name: string | null,
+      overrides: Partial<OpenStackServerOfNode> = {},
+    ): OpenStackServerOfNode => {
+      return {
+        instanceId: `uuid-of-${name}`,
+        openStackCloudId: CLOUD,
+        regionName: "RegionOne",
+        name,
+        ...overrides,
+      };
+    };
+
+    const cluster: (
+      externalId: string,
+      stackName: string,
+      overrides?: Partial<OpenStackMagnumClusterOfStack>,
+    ) => OpenStackMagnumClusterOfStack = (
+      externalId: string,
+      stackName: string,
+      overrides: Partial<OpenStackMagnumClusterOfStack> = {},
+    ): OpenStackMagnumClusterOfStack => {
+      return {
+        openStackCloudId: CLOUD,
+        regionName: "RegionOne",
+        externalId,
+        stackName,
+        ...overrides,
+      };
+    };
+
+    const answer: (
+      servers: Array<OpenStackServerOfNode>,
+      clusters: Array<OpenStackMagnumClusterOfStack>,
+    ) => string | null = (
+      servers: Array<OpenStackServerOfNode>,
+      clusters: Array<OpenStackMagnumClusterOfStack>,
+    ): string | null => {
+      return (
+        getOpenStackMagnumClusterOfServers({ servers, clusters })?.externalId ||
+        null
+      );
+    };
+
+    test("its servers say which it is", () => {
+      expect(
+        answer(
+          [server("a-master-0"), server("a-node-0"), server("a-node-1")],
+          [cluster("one", "a"), cluster("two", "b")],
+        ),
+      ).toBe("one");
+    });
+
+    test("a machine joined by hand, or a node group of its own, says nothing either way", () => {
+      expect(
+        answer(
+          [server("a-master-0"), server("by-hand"), server("gpu-b1-node-0")],
+          [cluster("one", "a")],
+        ),
+      ).toBe("one");
+    });
+
+    test.each<
+      [string, Array<OpenStackServerOfNode>, Array<OpenStackMagnumClusterOfStack>]
+    >([
+      ["no servers", [], [cluster("one", "a")]],
+      ["no clusters", [server("a-master-0")], []],
+      ["no name that says anything", [server("web-1"), server(null)], [cluster("one", "web")]],
+      ["a stack no cluster names", [server("c-master-0")], [cluster("one", "a")]],
+      [
+        "servers of two clusters",
+        [server("a-master-0"), server("b-node-0")],
+        [cluster("one", "a"), cluster("two", "b")],
+      ],
+      [
+        "one stack name two clusters could be, in two of a cloud's projects",
+        [server("a-master-0")],
+        [cluster("one", "a"), cluster("two", "a")],
+      ],
+      [
+        "a stack of that name in another region",
+        [server("a-master-0")],
+        [cluster("one", "a", { regionName: "RegionTwo" })],
+      ],
+      [
+        "a stack of that name in another cloud",
+        [server("a-master-0")],
+        [cluster("one", "a", { openStackCloudId: "cloud-b" })],
+      ],
+      [
+        "a server whose UUID two clouds hold",
+        [
+          server("a-master-0", { instanceId: "same" }),
+          server("a-master-0", { instanceId: "same", openStackCloudId: "cloud-b" }),
+        ],
+        [cluster("one", "a")],
+      ],
+    ])("%s: no link", (_name, servers, clusters) => {
+      expect(answer(servers, clusters)).toBeNull();
+    });
+
+    test("whichever order things are read in", () => {
+      const random: SeededRandom = seededRandom(5743);
+      const servers: Array<OpenStackServerOfNode> = [
+        server("a-master-0"),
+        server("a-node-0"),
+        server("web-1"),
+        server(null),
+      ];
+      const clusters: Array<OpenStackMagnumClusterOfStack> = [
+        cluster("one", "a"),
+        cluster("two", "b"),
+        cluster("three", "a", { regionName: "RegionTwo" }),
+      ];
+      for (let round: number = 0; round < 50; round++) {
+        expect(
+          answer(shuffled(servers, random), shuffled(clusters, random)),
+        ).toBe("one");
+      }
+    });
   });
 });

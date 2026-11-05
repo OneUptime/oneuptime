@@ -354,6 +354,7 @@ function noRequests(): OpenStackRequestsByService {
     [OpenStackServiceType.Image]: 0,
     [OpenStackServiceType.Orchestration]: 0,
     [OpenStackServiceType.ContainerInfra]: 0,
+    [OpenStackServiceType.SharedFileSystems]: 0,
     [OpenStackServiceType.BareMetal]: 0,
   };
 }
@@ -387,6 +388,8 @@ export function simulateOpenStackProbeRequests(data: {
   fromMinute: number;
   toMinute: number;
   options?: OpenStackProbeLoadOptions | undefined;
+  // Collections that were not made, because the one before was still running.
+  skippedMinutes?: ReadonlySet<number> | undefined;
 }): OpenStackRequestsByService {
   const { counts } = data;
   const options: OpenStackProbeLoadOptions = data.options || {};
@@ -398,9 +401,6 @@ export function simulateOpenStackProbeRequests(data: {
   const changed: number = options.instancesChangedPerCollection ?? 0;
   const slowEvery: number = getOpenStackSlowServiceEveryMinutes(interval);
 
-  const fullEvery: number =
-    Math.ceil(OPENSTACK_FULL_INSTANCE_READ_EVERY_MINUTES / interval) * interval;
-
   const requests: OpenStackRequestsByService = noRequests();
   const add: (service: OpenStackServiceType, count: number) => void = (
     service: OpenStackServiceType,
@@ -411,10 +411,16 @@ export function simulateOpenStackProbeRequests(data: {
 
   let tokenValidUntil: number = -1;
   let extensionsReadAt: number = -Infinity;
+  let slowServicesReadAt: number = -Infinity;
+  let instancesReadWholeAt: number = -Infinity;
   let actionReadsWaiting: number = 0;
   let dhcpAgentsReadAt: number = -Infinity;
 
   for (let minute: number = 0; minute < data.toMinute; minute += interval) {
+    if (data.skippedMinutes?.has(minute)) {
+      continue;
+    }
+
     const isCounted: boolean = minute >= data.fromMinute;
     const count: (service: OpenStackServiceType, value: number) => void = (
       service: OpenStackServiceType,
@@ -433,7 +439,9 @@ export function simulateOpenStackProbeRequests(data: {
       count(OpenStackServiceType.Identity, 1);
     }
 
-    if (minute % slowEvery === 0) {
+    // Half a minute under, as the collector keeps it, so a turn isn't missed by being early.
+    if (minute - slowServicesReadAt >= slowEvery - 0.5) {
+      slowServicesReadAt = minute;
       // Domains, projects, regions, users and groups: Keystone pages none of them.
       count(OpenStackServiceType.Identity, 5);
       count(
@@ -442,7 +450,13 @@ export function simulateOpenStackProbeRequests(data: {
       );
     }
 
-    const isFullRead: boolean = minute % fullEvery === 0;
+    const isFullRead: boolean =
+      minute - instancesReadWholeAt >=
+      OPENSTACK_FULL_INSTANCE_READ_EVERY_MINUTES;
+
+    if (isFullRead) {
+      instancesReadWholeAt = minute;
+    }
 
     // Its versions, services, aggregates and zones, then the lists.
     count(
