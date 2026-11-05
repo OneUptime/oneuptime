@@ -43,9 +43,7 @@ import {
 const GROUP: string = "services-octavia";
 const OCTAVIA_URL: string = `${RECORDED_HOST}/load-balancer`;
 const PREFIX: string = "/load-balancer/v2";
-const CATALOG: Array<JSONObject> = [
-  catalogEntry("load-balancer", OCTAVIA_URL),
-];
+const CATALOG: Array<JSONObject> = [catalogEntry("load-balancer", OCTAVIA_URL)];
 
 const SCENES: ReadonlyArray<string> = [
   "baseline",
@@ -62,7 +60,11 @@ const SCENES: ReadonlyArray<string> = [
   "recovered",
 ];
 
-function namesById(scene: RecordedScene, call: string, key: string): Map<string, string> {
+function namesById(
+  scene: RecordedScene,
+  call: string,
+  key: string,
+): Map<string, string> {
   const answer: JSONObject | undefined = recordedJson(scene, call);
   return new Map(
     ((answer?.[key] as JSONArray) || []).map(
@@ -216,9 +218,9 @@ describe("Octavia, on what a real cloud said", () => {
       expect(rowsOf(rows, OpenStackResourceKind.LoadBalancer)).toHaveLength(
         counted("openstack_loadbalancer_total_loadbalancers"),
       );
-      expect(
-        rowsOf(rows, OpenStackResourceKind.LoadBalancerPool),
-      ).toHaveLength(counted("openstack_loadbalancer_total_pools"));
+      expect(rowsOf(rows, OpenStackResourceKind.LoadBalancerPool)).toHaveLength(
+        counted("openstack_loadbalancer_total_pools"),
+      );
       expect(rowsOf(rows, OpenStackResourceKind.Amphora)).toHaveLength(
         counted("openstack_loadbalancer_total_amphorae"),
       );
@@ -237,12 +239,12 @@ describe("Octavia, on what a real cloud said", () => {
       return { status: 503, body: "{}" };
     });
 
-    expect(pointsNamed(points, "openstack_loadbalancer_loadbalancer_status")).toEqual(
-      [],
-    );
-    expect(pointsNamed(points, "openstack_loadbalancer_listener_status")).toEqual(
-      [],
-    );
+    expect(
+      pointsNamed(points, "openstack_loadbalancer_loadbalancer_status"),
+    ).toEqual([]);
+    expect(
+      pointsNamed(points, "openstack_loadbalancer_listener_status"),
+    ).toEqual([]);
     expect(
       rowsOf(rowsOfReport(report).rows, OpenStackResourceKind.LoadBalancer),
     ).toEqual([]);
@@ -280,11 +282,17 @@ describe("two moments of one active-standby pair", () => {
       };
       expect(
         strip(
-          comparableOfProbe(points, "openstack_loadbalancer_loadbalancer_status"),
+          comparableOfProbe(
+            points,
+            "openstack_loadbalancer_loadbalancer_status",
+          ),
         ),
       ).toEqual(
         strip(
-          comparableOfExporter(scene, "openstack_loadbalancer_loadbalancer_status"),
+          comparableOfExporter(
+            scene,
+            "openstack_loadbalancer_loadbalancer_status",
+          ),
         ),
       );
     },
@@ -388,37 +396,42 @@ describe("what it costs", () => {
       recordedJson(scene, "octavia-pools")?.["pools"] as JSONArray
     )[0] as JSONObject;
     const pools: Array<JSONObject> = [];
-    for (let at: number = 0; at < OCTAVIA_MEMBER_READS_PER_COLLECTION + 5; at++) {
+    for (
+      let at: number = 0;
+      at < OCTAVIA_MEMBER_READS_PER_COLLECTION + 5;
+      at++
+    ) {
       pools.push({ ...pool, id: `pool-${at}`, name: `pool-${at}` });
     }
-    const harness: Awaited<ReturnType<typeof collect>> = await collectFromRecordedService({
-      catalog: CATALOG,
-      answer: (path: string): RecordedAnswer | undefined => {
-        if (path === `${PREFIX}/lbaas/pools`) {
-          return { status: 200, body: JSON.stringify({ pools }) };
-        }
-        if (path.endsWith("/members")) {
-          return {
-            status: 200,
-            body: JSON.stringify({
-              members: [
-                {
-                  id: `member-of-${path.split("/")[5]}`,
-                  name: "m",
-                  operating_status: "ONLINE",
-                  provisioning_status: "ACTIVE",
-                  address: "10.0.0.1",
-                  protocol_port: 80,
-                  weight: 1,
-                  backup: false,
-                },
-              ],
-            }),
-          };
-        }
-        return answerFrom(scene)(path);
-      },
-    });
+    const harness: Awaited<ReturnType<typeof collect>> =
+      await collectFromRecordedService({
+        catalog: CATALOG,
+        answer: (path: string): RecordedAnswer | undefined => {
+          if (path === `${PREFIX}/lbaas/pools`) {
+            return { status: 200, body: JSON.stringify({ pools }) };
+          }
+          if (path.endsWith("/members")) {
+            return {
+              status: 200,
+              body: JSON.stringify({
+                members: [
+                  {
+                    id: `member-of-${path.split("/")[5]}`,
+                    name: "m",
+                    operating_status: "ONLINE",
+                    provisioning_status: "ACTIVE",
+                    address: "10.0.0.1",
+                    protocol_port: 80,
+                    weight: 1,
+                    backup: false,
+                  },
+                ],
+              }),
+            };
+          }
+          return answerFrom(scene)(path);
+        },
+      });
     const first: Array<string> = octaviaRequests(harness.requests).filter(
       (path: string): boolean => {
         return path.endsWith("/members");
@@ -466,7 +479,10 @@ describe("traffic is a rate between two readings", () => {
     );
 
     expect(
-      pointsNamed(first.points, "openstack_loadbalancer_stats_active_connections"),
+      pointsNamed(
+        first.points,
+        "openstack_loadbalancer_stats_active_connections",
+      ),
     ).toHaveLength(3);
     for (const metric of [
       "openstack_loadbalancer_stats_connections_per_second",
@@ -523,7 +539,13 @@ describe("traffic is a rate between two readings", () => {
 describe("rates, on awkward counters", () => {
   const counters = (
     total: number,
-  ): { activeConnections: number; totalConnections: number; bytesIn: number; bytesOut: number; requestErrors: number } => {
+  ): {
+    activeConnections: number;
+    totalConnections: number;
+    bytesIn: number;
+    bytesOut: number;
+    requestErrors: number;
+  } => {
     return {
       activeConnections: 1,
       totalConnections: total,
@@ -613,9 +635,9 @@ describe("a credential Octavia refuses some of", () => {
       },
     );
 
-    expect(pointsNamed(points, "openstack_loadbalancer_amphora_status")).toEqual(
-      [],
-    );
+    expect(
+      pointsNamed(points, "openstack_loadbalancer_amphora_status"),
+    ).toEqual([]);
     expect(pointsNamed(points, "openstack_loadbalancer_member_status")).toEqual(
       [],
     );
@@ -645,7 +667,8 @@ describe("a credential Octavia refuses some of", () => {
     );
 
     expect(
-      pointsNamed(points, "openstack_loadbalancer_total_loadbalancers")[0]?.value,
+      pointsNamed(points, "openstack_loadbalancer_total_loadbalancers")[0]
+        ?.value,
     ).toBe(0);
     expect(pointsNamed(points, "openstack_loadbalancer_up")[0]?.value).toBe(1);
   });

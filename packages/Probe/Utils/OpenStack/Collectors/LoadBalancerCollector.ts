@@ -109,11 +109,7 @@ export function getOctaviaRates(data: {
       ? difference(data.now.stats.bytesOut, before.bytesOut, seconds)
       : null,
     requestErrorsPerSecond: before
-      ? difference(
-          data.now.stats.requestErrors,
-          before.requestErrors,
-          seconds,
-        )
+      ? difference(data.now.stats.requestErrors, before.requestErrors, seconds)
       : null,
   };
 }
@@ -284,7 +280,9 @@ export default async function collectLoadBalancer(
     const active: Set<string> = new Set(
       balancers
         .filter((balancer: OctaviaLoadBalancerRecord): boolean => {
-          return balancer.provisioningStatus === "ACTIVE" && Boolean(balancer.id);
+          return (
+            balancer.provisioningStatus === "ACTIVE" && Boolean(balancer.id)
+          );
         })
         .map((balancer: OctaviaLoadBalancerRecord): string => {
           return balancer.id as string;
