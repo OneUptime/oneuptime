@@ -153,6 +153,8 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["ImageDetail.tsx", "OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL"],
   ["Stacks.tsx", "OPENSTACK_CLOUD_VIEW_STACKS"],
   ["StackDetail.tsx", "OPENSTACK_CLOUD_VIEW_STACK_DETAIL"],
+  ["Shares.tsx", "OPENSTACK_CLOUD_VIEW_SHARES"],
+  ["ShareDetail.tsx", "OPENSTACK_CLOUD_VIEW_SHARE_DETAIL"],
   ["ContainerClusters.tsx", "OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS"],
   [
     "ContainerClusterDetail.tsx",
@@ -548,6 +550,7 @@ describe("the side menus have no dead links", () => {
       ["projectCount", "projects"],
       ["stackCount", "stacks"],
       ["containerClusterCount", "containerClusters"],
+      ["shareCount", "shares"],
     ] as Array<[string, string]>) {
       expect(reader).toContain(`${summaryKey}: readNumber("${summaryKey}")`);
       expect(layout).toContain(`${countKey}: summary.${summaryKey}`);
@@ -574,6 +577,7 @@ describe("a service a cloud may not run", () => {
 
   test.each([
     ["Stacks", "runsHeat"],
+    ["Shares", "runsManila"],
     ["Kubernetes Clusters", "runsMagnum"],
   ])("%s is in the menu only for a cloud that runs it", (title: string, flag: string) => {
     const entry: number = sideMenu.indexOf(`title: "${title}"`);

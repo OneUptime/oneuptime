@@ -12,6 +12,7 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_STUCK_MINUTES,
   OPENSTACK_IMAGE_STUCK_MINUTES,
   OPENSTACK_INSTANCE_STUCK_MINUTES,
+  OPENSTACK_SHARE_STUCK_MINUTES,
   OPENSTACK_STACK_STUCK_MINUTES,
   OPENSTACK_VOLUME_STUCK_MINUTES,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
@@ -23,6 +24,8 @@ import {
   OPENSTACK_CONTAINER_CLUSTER_IN_PROGRESS_STATUSES,
   OPENSTACK_IMAGE_TRANSITIONAL_STATUSES,
   OPENSTACK_INSTANCE_TRANSITIONAL_STATUSES,
+  OPENSTACK_SHARE_ERROR_STATUSES,
+  OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
   OPENSTACK_STACK_FAILED_STATUSES,
   OPENSTACK_STACK_IN_PROGRESS_STATUSES,
   OPENSTACK_VOLUME_ERROR_STATUSES,
@@ -436,6 +439,22 @@ function failedPreset(statuses: ReadonlySet<string>): OpenStackStatePreset {
     },
   };
 }
+
+export const OPENSTACK_SHARE_STATE_PRESETS: Array<OpenStackStatePreset> = [
+  stuckPreset({
+    statuses: OPENSTACK_SHARE_TRANSITIONAL_STATUSES,
+    minutes: OPENSTACK_SHARE_STUCK_MINUTES,
+  }),
+  {
+    value: "error",
+    label: LABEL_IN_ERROR,
+    getQuery: (): Query<OpenStackResource> => {
+      return {
+        status: new Includes(Array.from(OPENSTACK_SHARE_ERROR_STATUSES)),
+      };
+    },
+  },
+];
 
 export const OPENSTACK_STACK_STATE_PRESETS: Array<OpenStackStatePreset> = [
   stuckPreset({

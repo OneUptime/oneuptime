@@ -73,6 +73,10 @@ export const OPENSTACK_OPTIONAL_SERVICES: ReadonlyArray<OpenStackOptionalService
       upMetricName: "openstack_container_infra_up",
       isReadByProbe: true,
     },
+    {
+      service: OpenStackServiceType.SharedFileSystems,
+      upMetricName: "openstack_sharev2_up",
+    },
   ];
 
 export function getOpenStackOptionalService(

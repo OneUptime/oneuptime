@@ -47,6 +47,7 @@ export interface ResourceCounts {
   bareMetalNodes?: number | undefined;
   stacks?: number | undefined;
   containerClusters?: number | undefined;
+  shares?: number | undefined;
   /*
    * The services a cloud may not run that this one does, in the region being read. What decides
    * whether their entries are here at all: a cloud without one shows no trace of it.
@@ -72,6 +73,7 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
   };
   const runsHeat: boolean = runs(OpenStackServiceType.Orchestration);
   const runsMagnum: boolean = runs(OpenStackServiceType.ContainerInfra);
+  const runsManila: boolean = runs(OpenStackServiceType.SharedFileSystems);
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -409,6 +411,21 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Image}
         />
+        {runsManila ? (
+          <SideMenuItem
+            link={{
+              title: "Shares",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_SHARES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Folder}
+            badge={counts.shares}
+          />
+        ) : (
+          <></>
+        )}
       </SideMenuSection>
 
       {runsHeat || runsMagnum ? (

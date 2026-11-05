@@ -76,6 +76,7 @@ const PART_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Stack]: PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL,
   [OpenStackResourceKind.ContainerCluster]:
     PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL,
+  [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
 };
 
 const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
@@ -98,6 +99,7 @@ const LIST_PAGES: Partial<Record<OpenStackResourceKind, PageMap>> = {
   [OpenStackResourceKind.Stack]: PageMap.OPENSTACK_CLOUD_VIEW_STACKS,
   [OpenStackResourceKind.ContainerCluster]:
     PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS,
+  [OpenStackResourceKind.Share]: PageMap.OPENSTACK_CLOUD_VIEW_SHARES,
 };
 
 export function routeParamFromOpenStackId(externalId: string): string {

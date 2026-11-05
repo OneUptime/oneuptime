@@ -41,6 +41,7 @@ import {
   OPENSTACK_BARE_METAL_STATE_PRESETS,
   OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS,
   OPENSTACK_IMAGE_STATE_PRESETS,
+  OPENSTACK_SHARE_STATE_PRESETS,
   OPENSTACK_STACK_STATE_PRESETS,
   OPENSTACK_INSTANCE_STATE_PRESETS,
   OPENSTACK_VOLUME_STATE_PRESETS,
@@ -1613,6 +1614,85 @@ export const OpenStackContainerClusterList: FunctionComponent<
       filters={[]}
       facets={facets}
       statePresets={OPENSTACK_CONTAINER_CLUSTER_STATE_PRESETS}
+      checkAccess={true}
+      getViewRoute={routes.routeFor}
+      searchPlaceholder="Search by name or ID"
+    />
+  );
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Shares
+ * ---------------------------------------------------------------------------
+ *
+ * Only on a cloud that runs Manila. Its status in Manila's own word, and a share with no zone never
+ * reached a backend, recorded, which the zone's empty cell says by itself.
+ */
+const SHARE_COLUMNS: Array<OpenStackColumn | OpenStackListColumn> = [
+  OpenStackColumn.Status,
+  getOpenStackSizeColumn({
+    title: "Size",
+    field: "diskCapacityBytes",
+    format: formatOpenStackBytes,
+  }),
+  OpenStackColumn.TimeInState,
+  OpenStackColumn.Project,
+  getOpenStackFactColumn({
+    id: "share-protocol",
+    title: "Protocol",
+    hideOnMobile: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "shareProtocol");
+    },
+  }),
+  getOpenStackFactColumn({
+    id: "share-type",
+    title: "Type",
+    hideOnMobile: true,
+    isHiddenByDefault: true,
+    getText: (row: OpenStackResource): string => {
+      return getOpenStackFactText(row, "shareType");
+    },
+  }),
+  OpenStackColumn.AvailabilityZone,
+  OpenStackColumn.Region,
+];
+
+export const OpenStackShareList: FunctionComponent<OpenStackListProps> = (
+  props: OpenStackListProps,
+): ReactElement => {
+  const routes: OpenStackPartRoutes = useRoutes(props.openStackCloudId);
+
+  const facets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      getOpenStackStatusFacet(OpenStackResourceKind.Share),
+      getOpenStackProjectFacet(props.openStackCloudId),
+    ];
+  }, [props.openStackCloudId.toString()]);
+
+  return (
+    <OpenStackResourceList
+      openStackCloudId={props.openStackCloudId}
+      kind={OpenStackResourceKind.Share}
+      query={props.query}
+      tableId={props.tableId || "openstack-shares-table"}
+      title={props.title || "Shares"}
+      description={
+        props.description ||
+        "Every Manila share in this cloud, its status in Manila's own words, and whose it is."
+      }
+      singularName="share"
+      pluralName="shares"
+      emptyTitle={props.emptyTitle || "No shares reported yet"}
+      emptyDescription={
+        props.emptyDescription ||
+        "These come from Manila. Only the Full view credential sees every project's: Manila shows anything less its own project's or none, and no error says so."
+      }
+      columns={SHARE_COLUMNS}
+      filters={[]}
+      facets={facets}
+      statePresets={OPENSTACK_SHARE_STATE_PRESETS}
       checkAccess={true}
       getViewRoute={routes.routeFor}
       searchPlaceholder="Search by name or ID"

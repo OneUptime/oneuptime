@@ -1222,6 +1222,9 @@ orchestration|stacks|/stacks|stacks|project|-|other projects' stacks, and whose 
 orchestration|services|/services|services|-|-|Heat's engines.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 container-infra|clusters|/clusters|clusters|*|OpenStack-API-Version: container-infra latest|other projects' Kubernetes clusters.|text:Magnum shows anything less none of them, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
 container-infra|services|/mservices|mservices|-|OpenStack-API-Version: container-infra latest|Magnum's conductors.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|shares, all projects|/shares/detail?all_tenants=1|shares|project_id|-|other projects' shares.|text:Manila shows anything less its own project's, and no error. To read every project's: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|services|/services|services|-|X-OpenStack-Manila-API-Version: 2.65|Manila's services.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
+sharev2|pools|/scheduler-stats/pools/detail|pools|-|X-OpenStack-Manila-API-Version: 2.65|Manila's pools.|text:Only an admin reads these: use a full-view credential (README.md, "Level 1: Full view").
 READS
     check_project_holdings "$REGION"
   done

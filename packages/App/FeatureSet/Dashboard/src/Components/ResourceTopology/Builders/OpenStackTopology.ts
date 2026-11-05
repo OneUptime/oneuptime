@@ -17,6 +17,7 @@ import {
   assessOpenStackHost,
   assessOpenStackInstanceOnHost,
   assessOpenStackNetwork,
+  assessOpenStackResource,
   assessOpenStackRouter,
   assessOpenStackService,
   assessOpenStackStoragePool,
@@ -56,7 +57,7 @@ import {
  *
  *   cloud > region > availability zone > hypervisor > instance > volume
  *   region > Network > external network > router > floating IP
- *   region > Storage > storage pool
+ *   region > Storage > storage pool, share
  *   region > Control plane > APIs and workers
  *
  * What the agent's exporter says, and so what is drawn. A volume names the instance it
@@ -634,6 +635,40 @@ export function buildOpenStackTopology(
 
   const networkIds: Map<string, string> = new Map();
   const networksByName: Map<string, Array<OpenStackResource>> = new Map();
+
+  /*
+   * What a cloud may not run has no node on one that doesn't, and a share names no pool or instance
+   * of its own in anything the exporter says, so it stands in Storage.
+   */
+  for (const row of rowsOf(OpenStackResourceKind.Share)) {
+    const verdict: {
+      health: ResourceTopologyHealth;
+      reasons: Array<ResourceTopologyText>;
+    } = judge(
+      () => {
+        return assessOpenStackResource({ row, now });
+      },
+      row.status ? "healthy" : "unknown",
+    );
+
+    nodes.push({
+      id: `share:${row.externalId}`,
+      parentId: sectionId(row.regionName, "storage", SECTION_STORAGE),
+      kind: "openstack.share",
+      name: getOpenStackDisplayName(row),
+      health: verdict.health,
+      status: asWritten(row),
+      reasons: verdict.reasons,
+      facts: projectFacts(row),
+      context: projectName(row),
+      keywords: projectKeywords(row),
+      link: linkTo(
+        cloudId,
+        PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL,
+        row.externalId!,
+      ),
+    });
+  }
 
   for (const row of rowsOf(OpenStackResourceKind.Network)) {
     const id: string = `network:${row.externalId}`;
