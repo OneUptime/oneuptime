@@ -82,6 +82,7 @@ const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
   [OpenStackServiceType.BareMetal]: "openstack_ironic",
   [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
   [OpenStackServiceType.Database]: "openstack_trove",
+  [OpenStackServiceType.LoadBalancer]: "openstack_loadbalancer",
   [OpenStackServiceType.KeyManager]: "openstack_barbican",
   [OpenStackServiceType.ObjectStore]: "openstack_object_store",
   [OpenStackServiceType.Metric]: "openstack_gnocchi",
