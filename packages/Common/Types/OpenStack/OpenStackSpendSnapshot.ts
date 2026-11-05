@@ -18,6 +18,8 @@ import {
   addOpenStackUsage,
   getEmptyOpenStackUsageQuantities,
   getOpenStackUsageTotals,
+  hasOpenStackUsage,
+  sumOpenStackUsageQuantities,
   toOpenStackUsageMonth,
 } from "./OpenStackProjectUsage";
 import { OpenStackWasteFinding } from "./OpenStackWaste";
@@ -642,6 +644,212 @@ export function getOpenStackSpendDay(data: {
     memoryGbHours: since("memoryGbHours"),
     volumeGbHours: since("volumeGbHours"),
     floatingIpHours: since("floatingIpHours"),
+  };
+}
+
+export interface OpenStackProjectNames {
+  name: string | null;
+  domainId: string | null;
+  domainName: string | null;
+}
+
+// One project's month, as the worker writes its row and a page reads it.
+export interface OpenStackSpendProjectRead {
+  project: OpenStackSpendProject;
+  totals: OpenStackUsageTotals;
+  cost: OpenStackProjectCost;
+  lastMonthCost: OpenStackProjectCost;
+  isRated: boolean;
+  ratedAt: string | null;
+  isPartlyPriced: boolean;
+}
+
+export function getOpenStackSpendProjectRead(data: {
+  openStackProjectId: string;
+  names: OpenStackProjectNames;
+  quantities: OpenStackUsageQuantities;
+  lastMonthQuantities: OpenStackUsageQuantities;
+  holding: OpenStackProjectHolding | null | undefined;
+  priceList: OpenStackPriceList | null;
+  rated: OpenStackRatedByPeriod;
+  thisMonth: string;
+  lastMonth: string;
+  isLastMonthRead: boolean;
+  now: Date;
+}): OpenStackSpendProjectRead {
+  const { quantities, priceList, now } = data;
+  const rated: OpenStackRatedPeriod | undefined = data.rated[data.thisMonth];
+  const cost: OpenStackProjectCost = getOpenStackProjectCost({
+    quantities,
+    priceList,
+    rated,
+  });
+  const lastMonthCost: OpenStackProjectCost = getOpenStackProjectCost({
+    quantities: data.lastMonthQuantities,
+    priceList,
+    rated: data.rated[data.lastMonth],
+  });
+  const onCourseFor: number | null = getOpenStackOnCourseFor({
+    cost,
+    holding: data.holding,
+    priceList,
+    now,
+  });
+  const totals: OpenStackUsageTotals = getOpenStackUsageTotals(quantities);
+  const lastMonthTotals: OpenStackUsageTotals = getOpenStackUsageTotals(
+    data.lastMonthQuantities,
+  );
+  const vcpuHoursOnCourseFor: number = getOpenStackVcpuHoursOnCourseFor({
+    quantities,
+    holding: data.holding,
+    now,
+  });
+
+  return {
+    project: {
+      openStackProjectId: data.openStackProjectId,
+      ...data.names,
+      thisMonth: cost.amount,
+      lastMonth: lastMonthCost.amount,
+      onCourseFor,
+      source: cost.source,
+      vcpuHours: totals.vcpuHours,
+      lastMonthVcpuHours: data.isLastMonthRead
+        ? lastMonthTotals.vcpuHours
+        : null,
+      vcpuHoursOnCourseFor,
+      growth: getOpenStackProjectGrowth({
+        onCourseFor,
+        lastMonth: lastMonthCost.amount,
+        vcpuHoursOnCourseFor,
+        lastMonthVcpuHours: lastMonthTotals.vcpuHours,
+        isLastMonthRead: data.isLastMonthRead,
+      }),
+    },
+    totals,
+    cost,
+    lastMonthCost,
+    isRated: Boolean(rated),
+    ratedAt: rated?.readAt ?? null,
+    // CloudKitty's figure is the whole of what it rated. It's what a price list leaves out that isn't.
+    isPartlyPriced:
+      Boolean(priceList) &&
+      cost.source !== OpenStackCostSource.CloudKitty &&
+      hasOpenStackUsage(quantities) &&
+      (cost.amount === null || cost.unpricedLineCount > 0),
+  };
+}
+
+function addCosts(
+  costs: ReadonlyArray<{ amount: number | null }>,
+): number | null {
+  let total: number | null = null;
+
+  for (const cost of costs) {
+    if (cost.amount !== null) {
+      total = (total || 0) + cost.amount;
+    }
+  }
+
+  return total === null ? null : roundMoney(total);
+}
+
+// What a page says of a whole cloud, from each of its projects' reads and what they add up to.
+export function getOpenStackSpendSummary(data: {
+  reads: ReadonlyArray<OpenStackSpendProjectRead>;
+  thisMonthQuantities: Iterable<OpenStackUsageQuantities>;
+  lastMonthQuantities: Iterable<OpenStackUsageQuantities>;
+  priceList: OpenStackPriceList | null;
+  isLastMonthRead: boolean;
+}): Pick<
+  OpenStackSpendSnapshot,
+  | "currency"
+  | "source"
+  | "projectCount"
+  | "projectsRatedByCloudKitty"
+  | "cloudKittyReadAt"
+  | "projectsPartlyPriced"
+  | "thisMonth"
+  | "lastMonth"
+  | "onCourseFor"
+  | "usage"
+  | "lastMonthUsage"
+  | "byFlavor"
+  | "flavorCount"
+  | "byVolumeType"
+  | "volumeTypeCount"
+  | "domains"
+  | "domainCount"
+  | "growers"
+> {
+  const projects: Array<OpenStackSpendProject> = data.reads.map(
+    (read: OpenStackSpendProjectRead): OpenStackSpendProject => {
+      return read.project;
+    },
+  );
+  const thisMonth: OpenStackUsageQuantities = sumOpenStackUsageQuantities(
+    data.thisMonthQuantities,
+  );
+  const lastMonth: OpenStackUsageQuantities = sumOpenStackUsageQuantities(
+    data.lastMonthQuantities,
+  );
+  let cloudKittyReadAt: string | null = null;
+
+  for (const read of data.reads) {
+    if (
+      read.ratedAt &&
+      (!cloudKittyReadAt || read.ratedAt > cloudKittyReadAt)
+    ) {
+      cloudKittyReadAt = read.ratedAt;
+    }
+  }
+
+  return {
+    currency: data.priceList?.currency ?? null,
+    source: getOpenStackSpendSource({ projects }),
+    projectCount: projects.length,
+    projectsRatedByCloudKitty: data.reads.filter(
+      (read: OpenStackSpendProjectRead): boolean => {
+        return read.isRated;
+      },
+    ).length,
+    cloudKittyReadAt,
+    projectsPartlyPriced: data.reads.filter(
+      (read: OpenStackSpendProjectRead): boolean => {
+        return read.isPartlyPriced;
+      },
+    ).length,
+    thisMonth: addCosts(
+      data.reads.map((read: OpenStackSpendProjectRead) => {
+        return read.cost;
+      }),
+    ),
+    lastMonth: data.isLastMonthRead
+      ? addCosts(
+          data.reads.map((read: OpenStackSpendProjectRead) => {
+            return read.lastMonthCost;
+          }),
+        )
+      : null,
+    onCourseFor: addCosts(
+      projects.map((project: OpenStackSpendProject) => {
+        return { amount: project.onCourseFor };
+      }),
+    ),
+    usage: getOpenStackUsageTotals(thisMonth),
+    lastMonthUsage: data.isLastMonthRead
+      ? getOpenStackUsageTotals(lastMonth)
+      : null,
+    ...getOpenStackSpendBreakdown({
+      quantities: thisMonth,
+      priceList: data.priceList,
+    }),
+    ...getOpenStackSpendDomains(
+      data.reads.map((read: OpenStackSpendProjectRead) => {
+        return { project: read.project, totals: read.totals };
+      }),
+    ),
+    growers: getOpenStackSpendGrowers(projects),
   };
 }
 

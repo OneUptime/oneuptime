@@ -310,6 +310,8 @@ function comparableRow(entry: OpenStackResourceBufferEntry): JSONObject {
     "dhcpNetworkCount",
     // What an instance booted from, nor for this.
     "imageId",
+    // Whether someone said to keep an image, which it doesn't report either.
+    "isProtected",
     // What Cinder's driver says of a pool, which the exporter has no label for either.
     "storageProtocol",
     "cephFsid",

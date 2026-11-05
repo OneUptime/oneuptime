@@ -221,6 +221,7 @@ describe("OpenStackMetricCatalog", () => {
         "openstack_cinder_up",
         "openstack_cinder_volume_gb",
         "openstack_glance_image_bytes",
+        "openstack_glance_image_created_at",
         "openstack_glance_up",
         "openstack_identity_up",
         "openstack_ironic_node",

@@ -35,7 +35,6 @@ import {
   getOpenStackProjectHoldings,
   getOpenStackUsageInterval,
   getOpenStackUsageTotals,
-  hasOpenStackUsage,
   sumOpenStackUsageQuantities,
   toOpenStackUsageDay,
   toOpenStackUsageMonth,
@@ -44,25 +43,20 @@ import {
   OPENSTACK_SPEND_DAYS_KEPT,
   OPENSTACK_SPEND_MONTHS_KEPT,
   OpenStackProjectCost,
-  OpenStackRatedByPeriod,
   OpenStackSpendComparison,
   OpenStackSpendCoverage,
   OpenStackSpendDay,
   OpenStackSpendMonth,
   OpenStackSpendProject,
+  OpenStackSpendProjectRead,
   OpenStackSpendSnapshot,
   addOpenStackSpendCoverage,
-  getOpenStackOnCourseFor,
   getOpenStackPriceListKey,
   getOpenStackProjectCost,
-  getOpenStackProjectGrowth,
   getOpenStackSameDayLastMonth,
-  getOpenStackSpendBreakdown,
   getOpenStackSpendDay,
-  getOpenStackSpendDomains,
-  getOpenStackSpendGrowers,
-  getOpenStackSpendSource,
-  getOpenStackVcpuHoursOnCourseFor,
+  getOpenStackSpendProjectRead,
+  getOpenStackSpendSummary,
   readOpenStackRatedByPeriod,
 } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
 import {
@@ -116,20 +110,6 @@ function isDue(
   return (
     !Number.isFinite(last) || now.getTime() - last >= everyMinutes * 60 * 1000
   );
-}
-
-function getCloudCost(
-  costs: ReadonlyArray<{ amount: number | null }>,
-): number | null {
-  let total: number | null = null;
-
-  for (const cost of costs) {
-    if (cost.amount !== null) {
-      total = (total || 0) + cost.amount;
-    }
-  }
-
-  return total === null ? null : Math.round(total * 10000) / 10000;
 }
 
 export interface OpenStackUsageRefreshResult {
@@ -267,17 +247,8 @@ export default class OpenStackUsageRefresh {
     ]);
 
     const projects: Array<OpenStackSpendProject> = [];
-    const projectTotals: Array<{
-      project: OpenStackSpendProject;
-      totals: OpenStackUsageTotals;
-    }> = [];
-    const thisMonthCosts: Array<OpenStackProjectCost> = [];
-    const lastMonthCosts: Array<OpenStackProjectCost> = [];
-    const onCourseCosts: Array<{ amount: number | null }> = [];
+    const reads: Array<OpenStackSpendProjectRead> = [];
     const writes: Array<OpenStackUsageRowWrite> = [];
-    let projectsRatedByCloudKitty: number = 0;
-    let projectsPartlyPriced: number = 0;
-    let cloudKittyReadAt: string | null = null;
 
     const namesOf: (id: string) => {
       name: string | null;
@@ -310,97 +281,41 @@ export default class OpenStackUsageRefresh {
     for (const id of projectIds) {
       const quantities: OpenStackUsageQuantities =
         thisMonthRows.get(id) || getEmptyOpenStackUsageQuantities();
-      const lastMonthQuantities: OpenStackUsageQuantities =
-        lastMonthRows.get(id) || getEmptyOpenStackUsageQuantities();
-      const rated: OpenStackRatedByPeriod = readOpenStackRatedByPeriod(
-        projectRows.get(id)?.rated,
-      );
-      const cost: OpenStackProjectCost = getOpenStackProjectCost({
-        quantities,
-        priceList,
-        rated: rated[thisMonth],
-      });
-      const lastMonthCost: OpenStackProjectCost = getOpenStackProjectCost({
-        quantities: lastMonthQuantities,
-        priceList,
-        rated: rated[lastMonth],
-      });
-      const onCourseFor: number | null = getOpenStackOnCourseFor({
-        cost,
-        holding: holdingOf.get(id),
-        priceList,
-        now,
-      });
-      const totals: OpenStackUsageTotals = getOpenStackUsageTotals(quantities);
-      const lastMonthTotals: OpenStackUsageTotals =
-        getOpenStackUsageTotals(lastMonthQuantities);
-      const vcpuHoursOnCourseFor: number = getOpenStackVcpuHoursOnCourseFor({
-        quantities,
-        holding: holdingOf.get(id),
-        now,
-      });
-      const growth: number | null = getOpenStackProjectGrowth({
-        onCourseFor,
-        lastMonth: lastMonthCost.amount,
-        vcpuHoursOnCourseFor,
-        lastMonthVcpuHours: lastMonthTotals.vcpuHours,
-        isLastMonthRead,
-      });
-
-      if (rated[thisMonth]) {
-        projectsRatedByCloudKitty++;
-        const readAt: string | null = rated[thisMonth]!.readAt;
-        if (readAt && (!cloudKittyReadAt || readAt > cloudKittyReadAt)) {
-          cloudKittyReadAt = readAt;
-        }
-      }
-
-      if (
-        hasOpenStackUsage(quantities) &&
-        priceList &&
-        cost.source !== "cloudkitty" &&
-        (cost.amount === null || cost.unpricedLineCount > 0)
-      ) {
-        projectsPartlyPriced++;
-      }
-
-      const project: OpenStackSpendProject = {
+      const read: OpenStackSpendProjectRead = getOpenStackSpendProjectRead({
         openStackProjectId: id,
-        ...namesOf(id),
-        thisMonth: cost.amount,
-        lastMonth: lastMonthCost.amount,
-        onCourseFor,
-        source: cost.source,
-        vcpuHours: totals.vcpuHours,
-        lastMonthVcpuHours: isLastMonthRead ? lastMonthTotals.vcpuHours : null,
-        vcpuHoursOnCourseFor,
-        growth,
-      };
+        names: namesOf(id),
+        quantities,
+        lastMonthQuantities:
+          lastMonthRows.get(id) || getEmptyOpenStackUsageQuantities(),
+        holding: holdingOf.get(id),
+        priceList,
+        rated: readOpenStackRatedByPeriod(projectRows.get(id)?.rated),
+        thisMonth,
+        lastMonth,
+        isLastMonthRead,
+        now,
+      });
 
-      projects.push(project);
-      projectTotals.push({ project, totals });
-      thisMonthCosts.push(cost);
-      lastMonthCosts.push(lastMonthCost);
-      onCourseCosts.push({ amount: onCourseFor });
-
+      reads.push(read);
+      projects.push(read.project);
       writes.push({
         openStackProjectId: id,
         period: thisMonth,
-        name: project.name,
-        domainId: project.domainId,
-        domainName: project.domainName,
+        name: read.project.name,
+        domainId: read.project.domainId,
+        domainName: read.project.domainName,
         quantities,
-        vcpuHours: totals.vcpuHours,
-        memoryGbHours: totals.memoryGbHours,
-        volumeGbHours: totals.volumeGbHours,
-        floatingIpHours: totals.floatingIpHours,
-        estimatedCost: cost.amount,
-        lastMonthCost: lastMonthCost.amount,
-        onCourseFor,
-        growth,
-        costSource: cost.source,
-        unpricedLineCount: cost.unpricedLineCount,
-        sortValue: cost.amount ?? totals.vcpuHours,
+        vcpuHours: read.totals.vcpuHours,
+        memoryGbHours: read.totals.memoryGbHours,
+        volumeGbHours: read.totals.volumeGbHours,
+        floatingIpHours: read.totals.floatingIpHours,
+        estimatedCost: read.cost.amount,
+        lastMonthCost: read.lastMonthCost.amount,
+        onCourseFor: read.project.onCourseFor,
+        growth: read.project.growth,
+        costSource: read.cost.source,
+        unpricedLineCount: read.cost.unpricedLineCount,
+        sortValue: read.cost.amount ?? read.totals.vcpuHours,
       });
     }
 
@@ -490,28 +405,16 @@ export default class OpenStackUsageRefresh {
       }
     }
 
-    const thisMonthTotal: OpenStackUsageQuantities =
-      sumOpenStackUsageQuantities(thisMonthRows.values());
-    const lastMonthTotal: OpenStackUsageQuantities =
-      sumOpenStackUsageQuantities(lastMonthRows.values());
-    const usage: OpenStackUsageTotals = getOpenStackUsageTotals(thisMonthTotal);
-
     const snapshot: OpenStackSpendSnapshot = {
       readAt: now.toISOString(),
       month: thisMonth,
-      currency: priceList?.currency ?? null,
-      source: getOpenStackSpendSource({ projects }),
-      projectCount: projects.length,
-      projectsRatedByCloudKitty,
-      cloudKittyReadAt,
-      projectsPartlyPriced,
-      thisMonth: getCloudCost(thisMonthCosts),
-      lastMonth: isLastMonthRead ? getCloudCost(lastMonthCosts) : null,
-      onCourseFor: getCloudCost(onCourseCosts),
-      usage,
-      lastMonthUsage: isLastMonthRead
-        ? getOpenStackUsageTotals(lastMonthTotal)
-        : null,
+      ...getOpenStackSpendSummary({
+        reads,
+        thisMonthQuantities: thisMonthRows.values(),
+        lastMonthQuantities: lastMonthRows.values(),
+        priceList,
+        isLastMonthRead,
+      }),
       comparison: await this.getComparison({
         projectId,
         openStackCloudId,
@@ -528,12 +431,6 @@ export default class OpenStackUsageRefresh {
         lastReadAt,
         now,
       }),
-      ...getOpenStackSpendBreakdown({
-        quantities: thisMonthTotal,
-        priceList,
-      }),
-      ...getOpenStackSpendDomains(projectTotals),
-      growers: getOpenStackSpendGrowers(projects),
       ...this.getHistory({ previous, applied, priceList, thisMonth }),
       ...(await this.getWaste({
         projectId,
