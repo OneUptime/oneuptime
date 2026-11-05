@@ -93,9 +93,13 @@ function shortSnapshot(loadedAt) {
         },
       ),
       // 30 GB free on each of zone-a's hosts, and 160 on zone-b's two, with none of this size.
-      flavor("m1.xlarge", { VCPU: 8, MEMORY_MB: 200000, DISK_GB: 160 }, {
-        instanceCount: 8,
-      }),
+      flavor(
+        "m1.xlarge",
+        { VCPU: 8, MEMORY_MB: 200000, DISK_GB: 160 },
+        {
+          instanceCount: 8,
+        },
+      ),
       flavor("ou.impossible", { VCPU: 1, MEMORY_MB: 1048576 }),
       flavor(
         "gold.large",

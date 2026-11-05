@@ -412,7 +412,9 @@ describe("the Capacity page", () => {
       await renderCapacity(snapshotWithNodes());
       await screen.findByTestId("openstack-capacity-bare-metal-classes");
 
-      expect(screen.queryByTestId("openstack-capacity-no-placement")).toBeNull();
+      expect(
+        screen.queryByTestId("openstack-capacity-no-placement"),
+      ).toBeNull();
     });
 
     test("it says what the agent can't tell of a flavor, with no read of its own to say so", async () => {
