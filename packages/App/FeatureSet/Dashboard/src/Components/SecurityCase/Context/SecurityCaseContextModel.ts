@@ -40,7 +40,9 @@ import {
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import {
   CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
   readCloudChangeTitleFactsJson,
+  readCloudHealthTitleFactsJson,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
 import {
   STORY_LINK_DETECTIONS,
@@ -203,6 +205,14 @@ export function parseSecurityCaseStory(
 
         if (cloudChange) {
           parsed.cloudChange = cloudChange;
+        }
+
+        // A cloud's health event's facts, likewise.
+        const cloudHealth: CloudHealthTitleFacts | null =
+          readCloudHealthTitleFactsJson(item["cloudHealth"]);
+
+        if (cloudHealth) {
+          parsed.cloudHealth = cloudHealth;
         }
 
         if (
@@ -463,6 +473,9 @@ export function parseSecurityCaseImpact(
         const lastCloudChange: CloudChangeTitleFacts | null = lastChange
           ? readCloudChangeTitleFactsJson(lastChange["cloudChange"])
           : null;
+        const lastCloudHealth: CloudHealthTitleFacts | null = lastChange
+          ? readCloudHealthTitleFactsJson(lastChange["cloudHealth"])
+          : null;
 
         return {
           kind: record["kind"] as SecurityConnectionKind,
@@ -491,6 +504,7 @@ export function parseSecurityCaseImpact(
                     ? { version: readString(lastChange["version"]) }
                     : {}),
                   ...(lastCloudChange ? { cloudChange: lastCloudChange } : {}),
+                  ...(lastCloudHealth ? { cloudHealth: lastCloudHealth } : {}),
                   isBeforeFirstDetection:
                     lastChange["isBeforeFirstDetection"] === true,
                 }

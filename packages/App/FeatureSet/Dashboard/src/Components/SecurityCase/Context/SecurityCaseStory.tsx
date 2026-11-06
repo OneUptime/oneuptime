@@ -73,7 +73,12 @@ import TableEmptyState, {
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getCloudChangeTitle } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  ChangeTitleDirection,
+  getChangeTitleDirection,
+  getCloudChangeTitle,
+  getCloudHealthTitle,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -163,6 +168,13 @@ function useItemTitle(item: SecurityCaseStoryItemJson): string {
   // An operation a cloud account recorded, in the reader's language.
   if (item.kind === SecurityCaseStoryItemKind.Change && item.cloudChange) {
     return getCloudChangeTitle(item.cloudChange, translator, {
+      setsValuesApart: true,
+    });
+  }
+
+  // What a cloud published about its health, its frame and state in the reader's language.
+  if (item.kind === SecurityCaseStoryItemKind.Change && item.cloudHealth) {
+    return getCloudHealthTitle(item.cloudHealth, translator, {
       setsValuesApart: true,
     });
   }
@@ -341,6 +353,19 @@ const StoryItem: FunctionComponent<{
   const translator: Translator = useTranslator();
   const item: SecurityCaseStoryItemJson = props.item;
   const title: string = useItemTitle(item);
+  /*
+   * A change worded in the reader's language reads their way - a Persian
+   * health event right to left, though it starts with "AWS Health:" - and
+   * every other title its own (getChangeTitleDirection).
+   */
+  const titleDirection: ChangeTitleDirection =
+    item.kind === SecurityCaseStoryItemKind.Change
+      ? getChangeTitleDirection({
+          facts: item.cloudChange,
+          health: item.cloudHealth,
+          translator,
+        })
+      : "auto";
   const titleRoute: Route | null = getStoryItemTitleRoute(item);
   const tone: ReturnType<typeof getStoryItemTone> = getStoryItemTone(item);
   const outcome: SecurityEventRequestOutcome | null =
@@ -348,7 +373,7 @@ const StoryItem: FunctionComponent<{
       ? item.requestOutcome
       : null;
   const titleText: ReactElement = (
-    <bdi>
+    <bdi dir={titleDirection}>
       {item.number ? (
         <span className="font-medium text-gray-500">{item.number} </span>
       ) : (
