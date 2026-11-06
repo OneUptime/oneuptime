@@ -10,6 +10,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import Email from "../../Types/Email";
+import MailgunRegion from "../../Types/Email/MailgunRegion";
 import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
@@ -29,9 +30,19 @@ import {
 } from "../../Types/CallAndSMS/CallAndSmsProvider";
 import { Column, Entity } from "typeorm";
 
+/*
+ * How the OneUptime server sends its own email (Admin Dashboard > Settings >
+ * Email): its Custom SMTP settings (an SMTP server, or Microsoft Graph), or
+ * a provider's HTTP API with the settings named for it below. Never set, it
+ * sends through Custom SMTP.
+ */
 export enum EmailServerType {
   Sendgrid = "Sendgrid",
   CustomSMTP = "Custom SMTP",
+  AmazonSES = "Amazon SES",
+  Mailgun = "Mailgun",
+  Postmark = "Postmark",
+  Resend = "Resend",
 }
 
 @TableMetadata({
@@ -429,7 +440,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     allowedValues: Object.values(MailTransportType),
     title: "SMTP Transport",
     description:
-      "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API.",
+      "How OneUptime delivers mail using the global SMTP config. 'SMTP' uses the host/port. 'Microsoft Graph' sends via the Microsoft Graph REST API. Any other value is read as 'SMTP': the providers with an HTTP API of their own are Email Server Types, each with its own settings.",
     defaultValue: MailTransportType.SMTP,
   })
   @Column({
@@ -964,7 +975,8 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.ShortText,
     allowedValues: Object.values(EmailServerType),
     title: "Email Server Type",
-    description: "Email Server Type",
+    description:
+      "How the server sends its own email: through its Custom SMTP settings (an SMTP server, or Microsoft Graph), or through SendGrid, Amazon SES, Mailgun, Postmark or Resend with the settings named for it. Custom SMTP when not set.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1024,6 +1036,302 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public sendgridFromName?: string = undefined;
+
+  /*
+   * THE PROVIDERS THE SERVER CAN SEND ITS OWN EMAIL THROUGH BY THEIR HTTP
+   * API (Email Server Type: Amazon SES, Mailgun, Postmark or Resend), each
+   * with its own key and its own sender, as SendGrid's above: switching the
+   * Email Server Type keeps each provider's settings as they were. Every
+   * key is encrypted at rest.
+   */
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Amazon SES Access Key ID",
+    description:
+      "The access key ID of an IAM user or role allowed to send with Amazon SES (ses:SendEmail).",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesAccessKeyId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Amazon SES Secret Access Key",
+    description:
+      "The secret access key that goes with the Amazon SES access key ID. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public amazonSesSecretAccessKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Amazon SES Region",
+    description:
+      "The AWS Region the sender identity is verified in, such as us-east-1.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesRegion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Amazon SES From Email",
+    description:
+      "The address emails sent through Amazon SES come from: a verified identity, or an address at a verified domain.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public amazonSesFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Amazon SES From Name",
+    description: "The name emails sent through Amazon SES come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public amazonSesFromName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Mailgun API Key",
+    description:
+      "A Mailgun API key, or a sending API key for the domain. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public mailgunApiKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Mailgun Domain",
+    description:
+      "The Mailgun sending domain mail goes out from, such as mg.example.com.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public mailgunDomain?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailgunRegion),
+    title: "Mailgun Region",
+    description:
+      "The region the Mailgun domain was created in: US or EU. US when not set.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public mailgunRegion?: MailgunRegion = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Mailgun From Email",
+    description:
+      "The address emails sent through Mailgun come from, at the Mailgun domain.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public mailgunFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Mailgun From Name",
+    description: "The name emails sent through Mailgun come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public mailgunFromName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Postmark Server API Token",
+    description:
+      "The API token of the Postmark server that sends, from its API Tokens tab. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public postmarkServerToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Postmark From Email",
+    description:
+      "The address emails sent through Postmark come from: a confirmed sender signature, or an address at a verified domain.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public postmarkFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Postmark From Name",
+    description: "The name emails sent through Postmark come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public postmarkFromName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Resend API Key",
+    description: "A Resend API key with sending access. Encrypted at rest.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public resendApiKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Resend From Email",
+    description:
+      "The address emails sent through Resend come from, at a domain verified in Resend.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public resendFromEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Resend From Name",
+    description: "The name emails sent through Resend come from.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public resendFromName?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

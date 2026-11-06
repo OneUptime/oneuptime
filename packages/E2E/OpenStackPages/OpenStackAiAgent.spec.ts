@@ -255,4 +255,36 @@ test.describe("AI > Insights and AI > Logs", () => {
       await expectNoSidewaysScroll(page);
     }
   });
+
+  /*
+   * #6025: a role that may read the cloud but not Runner jobs - the
+   * OpenStack read role - is told so in the commands card as every list it
+   * may not read tells it: the lock, "You don't have access to this list"
+   * and the one permission to ask for. It used to be a sentence that named
+   * the model's own rows ("Runner jobs") and eight roles and permissions.
+   */
+  test("a role that may not read the commands sees the lists' lock, naming the one permission to ask for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLOUD_PATH}/ai/logs?${CONNECTED}&role=read`);
+
+    const lock: ReturnType<Page["getByTestId"]> = page.getByTestId(
+      "resource-command-jobs-permission-note",
+    );
+
+    await expect(lock).toHaveAttribute("data-empty-state-kind", "no-access");
+    await expect(
+      page.getByTestId("resource-command-jobs-permission-note-title"),
+    ).toHaveText("You don't have access to this list");
+    await expect(
+      page.getByTestId("resource-command-jobs-permission-note-description"),
+    ).toHaveText(
+      "You need this permission: Read Runbook Execution. Ask a project admin for access.",
+    );
+    await expect(lock).not.toContainText(/Runner job|Runbook Viewer/);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ai-logs-commands-no-access");
+  });
 });

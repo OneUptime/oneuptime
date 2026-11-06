@@ -8,7 +8,10 @@ import {
   TableFoldedColumnsContext,
 } from "./TableCellContext";
 import TableRow from "./TableRow";
-import { TABLE_CARDS_CLASS_NAME } from "./TableLayout";
+import {
+  TABLE_CARDS_CLASS_NAME,
+  TABLE_ROWS_DRAWN_CLASS_NAME,
+} from "./TableLayout";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
@@ -279,11 +282,15 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
       );
     }
 
-    // Desktop view: render as table
+    /*
+     * Desktop view: render as table. The rows say so of themselves, for the
+     * table's measuring (TableLayout's TABLE_ROWS_DRAWN_CLASS_NAME).
+     */
     return (
       <tbody
         id={props.id}
         ref={provided?.innerRef}
+        className={TABLE_ROWS_DRAWN_CLASS_NAME}
         {...provided?.droppableProps}
       >
         {props.data &&

@@ -53,6 +53,7 @@ import {
   getTableFooterClassName,
 } from "./TableLayout";
 import useTableScrollState, {
+  TABLE_SETTLING_ATTRIBUTE,
   TableCannotFit,
   TableScrollState,
   TableScrollStateHold,
@@ -60,7 +61,11 @@ import useTableScrollState, {
 } from "./useTableScrollState";
 import { revealFromStickyEnd } from "./TableStickyEndFocus";
 import { DrawnTableColumns, getDrawnTableColumns } from "./FoldedColumns";
-import { TABLE_NARROW_BELOW_WIDTH_IN_PX, TableFitStep } from "./TableFit";
+import {
+  TABLE_NARROW_BELOW_WIDTH_IN_PX,
+  TableFitStep,
+  isTableSkeletonDrawnAsCards,
+} from "./TableFit";
 import useTableFit, { UseTableFitResult } from "./useTableFit";
 import useTableBoxWidth, { TableBoxWidth } from "./useTableBoxWidth";
 import useIsBelowWidth, {
@@ -104,6 +109,17 @@ import {
   DragAndDropLibrary,
   useDragAndDrop,
 } from "../DragAndDrop/DragAndDropLoader";
+
+/*
+ * How a table's rows are drawn while they settle (useTableScrollState's
+ * isSettling): see-through at once - no fade out, which would show the rows
+ * as they came for its length - and out of the pointer's way.
+ */
+export const TABLE_SETTLING_STYLE: React.CSSProperties = {
+  opacity: 0,
+  transition: "none",
+  pointerEvents: "none",
+};
 
 export interface BulkActionProps<T extends GenericObject> {
   buttons: Array<BulkActionButtonSchema<T>>;
@@ -402,6 +418,23 @@ const Table: TableFunction = <T extends GenericObject>(
   const isMobile: boolean = fit.step === TableFitStep.Cards;
   const isFolded: boolean = fit.step !== TableFitStep.Rows;
 
+  /*
+   * What is drawn: cards where the rows are cards, and - while the first
+   * page loads, in a box too narrow for rows that has not measured any yet -
+   * placeholders shaped as cards (TableFit's isTableSkeletonDrawnAsCards):
+   * on a first visit at a tablet's width the placeholders were rows, then
+   * the list turned into cards once its first rows were measured.
+   */
+  const isFirstPageLoading: boolean =
+    props.isLoading && props.data.length === 0;
+  const isDrawnAsCards: boolean =
+    isMobile ||
+    (isFirstPageLoading &&
+      isTableSkeletonDrawnAsCards({
+        step: fit.step,
+        boxWidth: boxWidth,
+      }));
+
   useEffect(() => {
     if (props.bulkSelectedItems) {
       setBulkSelectedItems(props.bulkSelectedItems);
@@ -553,7 +586,7 @@ const Table: TableFunction = <T extends GenericObject>(
   const densityOwnerId: string = `${columnWidthsScope}-density`;
 
   useLayoutEffect(() => {
-    if (!setCardMenuItem || isMobile) {
+    if (!setCardMenuItem || isDrawnAsCards) {
       return undefined;
     }
 
@@ -581,7 +614,7 @@ const Table: TableFunction = <T extends GenericObject>(
     return () => {
       setCardMenuItem(densityOwnerId, null);
     };
-  }, [setCardMenuItem, isMobile, density, densityOwnerId]);
+  }, [setCardMenuItem, isDrawnAsCards, density, densityOwnerId]);
 
   /*
    * The rule for the column being dragged, written straight onto the page
@@ -644,7 +677,7 @@ const Table: TableFunction = <T extends GenericObject>(
      * without what the last reading wrote on them (a name set free): they
      * are read again in that same commit, before the page is painted.
      */
-    watch: [isMobile, props.data, drawnColumns.length, dragAndDrop],
+    watch: [isDrawnAsCards, props.data, drawnColumns.length, dragAndDrop],
     hold: scrollStateHold,
     // Too wide even given way: folded, then as cards (TableFit).
     onCannotFit: onCannotFit,
@@ -753,6 +786,24 @@ const Table: TableFunction = <T extends GenericObject>(
         revealFromStickyEnd({ box: box, target: target });
       }
     });
+  };
+
+  /*
+   * The sized columns' rules changed while no edge is dragged - Reset
+   * column widths, a column given back with Delete: the table measures
+   * itself again at once, before the page is painted (SizedColumnsStyle's
+   * onRulesChange), rather than on the next frame. Its values were held at
+   * the widths the last measuring gave them; drawn so for a frame, a table
+   * whose columns were reset ran past its card before it fitted it again.
+   * A drag's own end measures again once the width it kept is drawn
+   * (onColumnResizeEnd).
+   */
+  const onSizedColumnsRulesChange: () => void = (): void => {
+    if (scrollStateHold.isHeldRef.current) {
+      return;
+    }
+
+    scrollStateHold.remeasureRef.current?.();
   };
 
   // The rows scroll by the box's class now: the drag's own scroll is let go.
@@ -929,14 +980,14 @@ const Table: TableFunction = <T extends GenericObject>(
   };
 
   const getTablebody: GetReactElementFunction = (): ReactElement => {
-    if (props.isLoading && props.data.length === 0) {
+    if (isFirstPageLoading) {
       return (
         <TableSkeletonRows
           columns={drawnColumns}
           enableDragAndDrop={props.enableDragAndDrop}
           isBulkActionsEnabled={isBulkActionsEnabled}
           itemsOnPage={props.itemsOnPage}
-          isMobile={isMobile}
+          isMobile={isDrawnAsCards}
           isPhone={isPhone}
           isOverflowing={scrollState.isOverflowing}
           hasEndFiller={hasEndFiller}
@@ -1226,15 +1277,31 @@ const Table: TableFunction = <T extends GenericObject>(
          * the <table> because a <div> cannot legally wrap a <tbody> inside
          * one.
          */}
+        {/*
+         * Not shown while its rows settle: drawn before the page had their
+         * rules or its fonts, they are measured again a frame later and
+         * fold, become cards or scroll then (useTableScrollState's
+         * isSettling) - shown already fitted, fading in, rather than
+         * running past the card first. Hidden by its own style, not a
+         * class: the rule of a class the page has not used yet is written
+         * only after the commit that draws it. See-through, with no fade
+         * out and no pointer (TABLE_SETTLING_STYLE): its rows and their
+         * words are where they are, for the measuring and for anything that
+         * reads them, for the frame or two they settle in.
+         */}
         <div
           data-testid="table-content"
+          {...(scrollState.isSettling
+            ? { [TABLE_SETTLING_ATTRIBUTE]: "true" }
+            : {})}
+          style={scrollState.isSettling ? TABLE_SETTLING_STYLE : undefined}
           className={
             isRefetchingWithData
               ? "opacity-60 pointer-events-none transition-opacity duration-150"
               : "transition-opacity duration-150"
           }
         >
-          {isMobile ? (
+          {isDrawnAsCards ? (
             /*
              * Cards: each row a card of its column names over their
              * values, under a band that does what the header row does -
@@ -1275,6 +1342,7 @@ const Table: TableFunction = <T extends GenericObject>(
                     store={columnWidths.store}
                     scope={columnWidthsScope}
                     columns={resizableColumns}
+                    onRulesChange={onSizedColumnsRulesChange}
                   />
                   <style
                     ref={dragStyleRef}

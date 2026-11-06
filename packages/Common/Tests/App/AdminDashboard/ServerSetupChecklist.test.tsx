@@ -1,3 +1,4 @@
+import MailTransportType from "../../../Types/Email/MailTransportType";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -267,6 +268,94 @@ describe("isEmailSetUp", () => {
         emailServerType: EmailServerType.CustomSMTP,
         smtpHost: " ",
         smtpFromEmail: "ops@example.com",
+      }),
+    ).toBe(false);
+  });
+
+  test("Microsoft Graph: its OAuth app and its mailbox, no host", () => {
+    expect(
+      isEmailSetUp({
+        smtpTransportType: MailTransportType.MicrosoftGraph,
+        smtpFromEmail: "ops@example.com",
+      }),
+    ).toBe(false);
+    expect(
+      isEmailSetUp({
+        emailServerType: EmailServerType.CustomSMTP,
+        smtpTransportType: MailTransportType.MicrosoftGraph,
+        smtpClientId: "client-id",
+        smtpFromEmail: "ops@example.com",
+      }),
+    ).toBe(true);
+  });
+
+  test("Amazon SES: its access key ID, its Region and its sender", () => {
+    const ses: Record<string, unknown> = {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      amazonSesRegion: "us-east-1",
+      amazonSesFromEmail: "ops@example.com",
+    };
+
+    expect(isEmailSetUp(ses as never)).toBe(true);
+
+    for (const missing of [
+      "amazonSesAccessKeyId",
+      "amazonSesRegion",
+      "amazonSesFromEmail",
+    ]) {
+      expect({
+        missing,
+        setUp: isEmailSetUp({ ...ses, [missing]: "" } as never),
+      }).toEqual({ missing, setUp: false });
+    }
+
+    // Whatever the SMTP fields hold.
+    expect(
+      isEmailSetUp({
+        emailServerType: EmailServerType.AmazonSES,
+        smtpHost: "smtp.example.com",
+        smtpFromEmail: "ops@example.com",
+      }),
+    ).toBe(false);
+  });
+
+  test("Mailgun: its domain and its sender", () => {
+    expect(
+      isEmailSetUp({
+        emailServerType: EmailServerType.Mailgun,
+        mailgunDomain: "mg.example.com",
+        mailgunFromEmail: "ops@mg.example.com",
+      }),
+    ).toBe(true);
+    expect(
+      isEmailSetUp({
+        emailServerType: EmailServerType.Mailgun,
+        mailgunFromEmail: "ops@mg.example.com",
+      }),
+    ).toBe(false);
+  });
+
+  test("Postmark and Resend: their sender", () => {
+    expect(
+      isEmailSetUp({
+        emailServerType: EmailServerType.Postmark,
+        postmarkFromEmail: "ops@example.com",
+      }),
+    ).toBe(true);
+    expect(
+      isEmailSetUp({
+        emailServerType: EmailServerType.Resend,
+        resendFromEmail: "ops@example.com",
+      }),
+    ).toBe(true);
+    expect(isEmailSetUp({ emailServerType: EmailServerType.Postmark })).toBe(
+      false,
+    );
+    expect(
+      isEmailSetUp({
+        emailServerType: EmailServerType.Resend,
+        postmarkFromEmail: "ops@example.com",
       }),
     ).toBe(false);
   });
@@ -585,12 +674,34 @@ describe("the card", () => {
     ];
     expect(Object.keys(request.select).sort()).toEqual([
       "_id",
+      "amazonSesAccessKeyId",
+      "amazonSesFromEmail",
+      "amazonSesRegion",
       "disableSignup",
       "emailServerType",
+      "mailgunDomain",
+      "mailgunFromEmail",
+      "postmarkFromEmail",
+      "resendFromEmail",
       "sendgridFromEmail",
+      "smtpClientId",
       "smtpFromEmail",
       "smtpHost",
+      "smtpTransportType",
     ]);
+
+    // An access key ID names an account; its secret, and every API key, stay unread.
+    for (const secret of [
+      "smtpPassword",
+      "smtpClientSecret",
+      "sendgridApiKey",
+      "amazonSesSecretAccessKey",
+      "mailgunApiKey",
+      "postmarkServerToken",
+      "resendApiKey",
+    ]) {
+      expect(request.select[secret]).toBeUndefined();
+    }
   });
 
   test("a done item shows its check and no button", async () => {

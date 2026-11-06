@@ -4,6 +4,7 @@ import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
+import MailTransportType from "Common/Types/Email/MailTransportType";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -35,8 +36,9 @@ import React, {
  * page, says where each of the three stands and opens the place that
  * changes it:
  *
- *   - Email: a mail server (Custom SMTP, or SendGrid) is set up, so OneUptime
- *     can send invitations, password resets and alerts by email;
+ *   - Email: a mail server (Custom SMTP) or an email provider (Amazon SES,
+ *     SendGrid, Mailgun, Postmark, Resend) is set up, so OneUptime can send
+ *     invitations, password resets and alerts by email;
  *   - HTTPS: people reach the server over HTTPS and HTTP_PROTOCOL=https;
  *   - Sign-ups: whether anyone who can open the server can sign up, the
  *     guide's advice being to turn that off once the team has its accounts.
@@ -157,27 +159,62 @@ export const SERVER_SETUP_COPY: {
 };
 
 /*
- * Whether the server can send email: the mail server it is set to send
- * through has its address and its sender. An instance that never picked one
- * sends through Custom SMTP, as the Email settings page reads it.
+ * What the Email answer reads of the server's settings: what it sends
+ * through, and for each way what says it is set up - never a password or
+ * a key.
  */
-export const isEmailSetUp: (config: {
+export interface EmailSetUpSettings {
   emailServerType?: EmailServerType | undefined;
+  smtpTransportType?: unknown;
   smtpHost?: unknown;
   smtpFromEmail?: unknown;
+  smtpClientId?: unknown;
   sendgridFromEmail?: unknown;
-}) => boolean = (config: {
-  emailServerType?: EmailServerType | undefined;
-  smtpHost?: unknown;
-  smtpFromEmail?: unknown;
-  sendgridFromEmail?: unknown;
-}): boolean => {
+  amazonSesAccessKeyId?: unknown;
+  amazonSesRegion?: unknown;
+  amazonSesFromEmail?: unknown;
+  mailgunDomain?: unknown;
+  mailgunFromEmail?: unknown;
+  postmarkFromEmail?: unknown;
+  resendFromEmail?: unknown;
+}
+
+/*
+ * Whether the server can send email: what it is set to send through has
+ * what it sends with and its sender - a mail server's host, Microsoft
+ * Graph's OAuth app, Amazon SES's access key and Region, Mailgun's domain -
+ * and the address mail comes from. An instance that never picked one sends
+ * through Custom SMTP, as the Email settings page reads it.
+ */
+export const isEmailSetUp: (config: EmailSetUpSettings) => boolean = (
+  config: EmailSetUpSettings,
+): boolean => {
   const isSet: (value: unknown) => boolean = (value: unknown): boolean => {
     return Boolean(value && String(value).trim());
   };
 
-  if (config.emailServerType === EmailServerType.Sendgrid) {
-    return isSet(config.sendgridFromEmail);
+  switch (config.emailServerType) {
+    case EmailServerType.Sendgrid:
+      return isSet(config.sendgridFromEmail);
+    case EmailServerType.AmazonSES:
+      return (
+        isSet(config.amazonSesAccessKeyId) &&
+        isSet(config.amazonSesRegion) &&
+        isSet(config.amazonSesFromEmail)
+      );
+    case EmailServerType.Mailgun:
+      return isSet(config.mailgunDomain) && isSet(config.mailgunFromEmail);
+    case EmailServerType.Postmark:
+      return isSet(config.postmarkFromEmail);
+    case EmailServerType.Resend:
+      return isSet(config.resendFromEmail);
+    default:
+      break;
+  }
+
+  // Microsoft Graph sends with no host: its OAuth app and its mailbox.
+  if (config.smtpTransportType === MailTransportType.MicrosoftGraph) {
+    return isSet(config.smtpClientId) && isSet(config.smtpFromEmail);
   }
 
   return isSet(config.smtpHost) && isSet(config.smtpFromEmail);
@@ -345,9 +382,18 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
             select: {
               _id: true,
               emailServerType: true,
+              smtpTransportType: true,
               smtpHost: true,
               smtpFromEmail: true,
+              smtpClientId: true,
               sendgridFromEmail: true,
+              amazonSesAccessKeyId: true,
+              amazonSesRegion: true,
+              amazonSesFromEmail: true,
+              mailgunDomain: true,
+              mailgunFromEmail: true,
+              postmarkFromEmail: true,
+              resendFromEmail: true,
               disableSignup: true,
             },
           });
