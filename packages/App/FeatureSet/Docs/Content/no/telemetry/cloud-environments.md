@@ -32,6 +32,7 @@ flowchart TB
 - **Miljøet samler alt.** Hver arbeidsbelastning med samme plattform, konto og region havner i ett miljø. Tjenestene beholder sine egne rader under **Tjenester**.
 - **Hver kjørende oppgave er en instans.** Fanen **Instanser** i miljøet viser de kjørende oppgavene, instansene eller replikaene, med CPU og minne i sanntid der plattformen kan levere dem.
 - **Hver tjeneste er en app.** En ECS-tjeneste, en Cloud Run-tjeneste eller en Container App er en app i miljøet sitt, og OneUptime tar vare på revisjonene den kjører: se [Apper og utrullinger](#apper-og-utrullinger).
+- **Strømmede CloudWatch-logger teller også.** En AWS-konto som [strømmer CloudWatch-loggene sine](/docs/telemetry/cloud-streaming), legger loggene fra App Runner-tjenestene, Elastic Beanstalk-miljøene og ECS-oppgavene og -klyngene sine på fanen **Logger** i miljøet deres, og miljøet dukker opp med dem hvis ingen app har rapportert til det ennå. De lager ingen app: en app får navn etter sin egen telemetri.
 
 ## Før du begynner
 

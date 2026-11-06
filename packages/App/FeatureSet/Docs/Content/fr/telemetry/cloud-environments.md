@@ -32,6 +32,7 @@ flowchart TB
 - **L'environnement regroupe tout.** Chaque charge de travail ayant la même plateforme, le même compte et la même région arrive dans un seul environnement. Les services gardent leurs propres lignes sous **Services**.
 - **Chaque tâche en cours est une instance.** L'onglet **Instances** de l'environnement liste ses tâches, instances ou réplicas en cours, avec le CPU et la mémoire en direct quand la plateforme peut les fournir.
 - **Chaque service est une application.** Un service ECS, un service Cloud Run ou une Container App est une application de son environnement, et OneUptime conserve les révisions qu'elle exécute : voir [Applications et déploiements](#applications-et-déploiements).
+- **Les journaux CloudWatch diffusés comptent aussi.** Un compte AWS qui [diffuse ses journaux CloudWatch](/docs/telemetry/cloud-streaming) place les journaux de ses services App Runner, de ses environnements Elastic Beanstalk, et de ses tâches et clusters ECS dans l'onglet **Journaux** de leur environnement, et l'environnement apparaît avec eux si aucune application ne lui a encore rien envoyé. Ils ne créent aucune application : une application est nommée par sa propre télémétrie.
 
 ## Avant de commencer
 

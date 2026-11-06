@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "فقط اگر {{first}} و {{second}}",
   "Only if {{first}} or {{second}}": "فقط اگر {{first}} یا {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "فقط اگر {{first}}، {{second}} و {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "فقط اگر {{first}}، {{second}} یا {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "فقط اگر {{first}}، {{second}} یا {{third}}",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "لاگ‌هایی که ویژگی‌های منبع cloud.platform، cloud.account.id و cloud.region این محیط را دارند، اینجا نمایش داده می‌شوند؛ وقتی حساب AWS آن CloudWatch Logs را جریان دهد، آن لاگ‌ها هم اینجا نمایش داده می‌شوند: در Cloud > اتصال، روی اتصال حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را انتخاب کنید."
 }

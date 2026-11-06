@@ -233,6 +233,7 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "The environment is the roll-up.",
     "Each running task is an instance.",
     "Each service is an app.",
+    "A stream's CloudWatch Logs count too.",
     "An ingestion key.",
     "OpenTelemetry in your application.",
     "Resource detector:",

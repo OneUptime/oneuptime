@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Solo si {{first}} y {{second}}",
   "Only if {{first}} or {{second}}": "Solo si {{first}} o {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Solo si {{first}}, {{second}} y {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Solo si {{first}}, {{second}} o {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Solo si {{first}}, {{second}} o {{third}}",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "Los registros aparecen aquí cuando llevan los atributos de recurso cloud.platform, cloud.account.id y cloud.region de este entorno, o cuando su cuenta de AWS transmite CloudWatch Logs: elige Transmitir métricas y registros en la conexión de la cuenta, en Cloud > Conectar."
 }

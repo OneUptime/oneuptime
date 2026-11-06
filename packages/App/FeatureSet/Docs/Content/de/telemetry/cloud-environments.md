@@ -32,6 +32,7 @@ flowchart TB
 - **Die Umgebung fasst zusammen.** Jeder Workload mit derselben Plattform, demselben Konto und derselben Region landet in einer Umgebung. Die Dienste behalten ihre eigenen Zeilen unter **Dienste**.
 - **Jeder laufende Task ist eine Instanz.** Der Tab **Instanzen** der Umgebung listet ihre laufenden Tasks, Instanzen oder Replikate auf, mit CPU und Arbeitsspeicher in Echtzeit, wo die Plattform sie liefern kann.
 - **Jeder Dienst ist eine App.** Ein ECS-Service, ein Cloud-Run-Dienst oder eine Container App ist eine App ihrer Umgebung, und OneUptime behält die Revisionen, die sie ausführt: siehe [Apps und Deployments](#apps-und-deployments).
+- **Gestreamte CloudWatch Logs zählen auch.** Ein AWS-Konto, das [seine CloudWatch Logs streamt](/docs/telemetry/cloud-streaming), legt die Protokolle seiner App-Runner-Dienste, Elastic-Beanstalk-Umgebungen sowie ECS-Tasks und -Cluster auf den Tab **Protokolle** ihrer Umgebung, und die Umgebung erscheint mit ihnen, falls noch keine App an sie gemeldet hat. Eine App entsteht daraus nicht: Eine App wird nach ihrer eigenen Telemetrie benannt.
 
 ## Bevor Sie beginnen
 

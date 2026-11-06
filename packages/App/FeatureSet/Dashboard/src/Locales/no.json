@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Bare hvis {{first}} og {{second}}",
   "Only if {{first}} or {{second}}": "Bare hvis {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bare hvis {{first}}, {{second}} og {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "Logger vises her når de har dette miljøets ressursattributter cloud.platform, cloud.account.id og cloud.region, eller når AWS-kontoen strømmer CloudWatch Logs: velg Strøm målinger og logger på kontoens tilkobling under Cloud > Koble til."
 }

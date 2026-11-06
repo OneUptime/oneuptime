@@ -79,6 +79,7 @@ Dialogen spør med noen sekunders mellomrom hva som har kommet. Firehose leverer
 | Målinger | På skyressursene de måler, med navnene og attributtene tilkoblingens lesinger gir dem |
 | Logger | I loggutforskeren, under tilkoblingens telemetritjeneste, med konto, region og logggruppe som attributter |
 | Logger fra en logggruppe som AWS navngir etter en ressurs | Også på den ressursen: siden dens i Sky får en fane **Logger** |
+| Logger fra en App Runner-tjeneste, et Elastic Beanstalk-miljø eller en ECS-oppgave eller -klynge | Også på miljøet i App-plattformer: fanen **Logger** |
 
 En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 
@@ -98,6 +99,8 @@ En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda skriver den.
+
+Logger fra en App Runner-tjeneste, et Elastic Beanstalk-miljø og en ECS-klynge bærer også `cloud.platform`, og det gjør også loggene til en ECS-oppgave, fra logggruppen ECS-konsollen kaller `/ecs/<task-definition-family>`, med `aws.ecs.task.family`. Med kontoen og regionen havner de dermed på miljøet sitt i App-plattformer, som dukker opp med dem hvis ingen app har rapportert til det ennå. De lager ingen app: en app får navn etter sin egen telemetri, slik [Skymiljøer](/docs/telemetry/cloud-environments) forklarer.
 
 ## Hva stakken oppretter
 

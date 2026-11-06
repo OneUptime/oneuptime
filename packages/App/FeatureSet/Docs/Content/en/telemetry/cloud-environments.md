@@ -32,6 +32,7 @@ flowchart TB
 - **The environment is the roll-up.** Every workload with the same platform, account and region lands in one environment. The services keep their own rows under **Services**.
 - **Each running task is an instance.** The environment's **Instances** tab lists its running tasks, instances or replicas, with live CPU and memory where the platform can supply them.
 - **Each service is an app.** An ECS service, a Cloud Run service or a Container App is an app of its environment, and OneUptime keeps the revisions it runs: see [Apps and deploys](#apps-and-deploys).
+- **A stream's CloudWatch Logs count too.** An AWS account that [streams its CloudWatch Logs](/docs/telemetry/cloud-streaming) puts the logs of its App Runner services, Elastic Beanstalk environments, and ECS tasks and clusters on their environment's **Logs** tab, and the environment appears with them if no app has reported to it yet. They make no app: an app is named by its own telemetry.
 
 ## Before you begin
 

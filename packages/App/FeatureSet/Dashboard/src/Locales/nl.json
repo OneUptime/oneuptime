@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Alleen als {{first}} en {{second}}",
   "Only if {{first}} or {{second}}": "Alleen als {{first}} of {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Alleen als {{first}}, {{second}} en {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "Logs verschijnen hier wanneer ze de resource-attributen cloud.platform, cloud.account.id en cloud.region van deze omgeving dragen, of zodra het AWS-account CloudWatch Logs streamt: kies Metrieken en logboeken streamen bij de koppeling van het account in Cloud > Koppelen."
 }

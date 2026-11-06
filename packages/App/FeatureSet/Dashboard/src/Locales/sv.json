@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Bara om {{first}} och {{second}}",
   "Only if {{first}} or {{second}}": "Bara om {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bara om {{first}}, {{second}} och {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Bara om {{first}}, {{second}} eller {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Bara om {{first}}, {{second}} eller {{third}}",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "Loggar visas här när de har den här miljöns resursattribut cloud.platform, cloud.account.id och cloud.region, eller när dess AWS-konto strömmar CloudWatch Logs: välj Strömma mätvärden och loggar på kontots anslutning under Cloud > Anslut."
 }
