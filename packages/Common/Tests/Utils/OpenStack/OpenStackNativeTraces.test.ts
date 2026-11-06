@@ -594,8 +594,10 @@ describe("on a real 2026.2, with nothing signed", () => {
               service: span.service,
               method: String(span.recorded.attributes["http.method"] || ""),
               path: String(span.recorded.attributes["http.path"] || ""),
-              startAt: new Date(Number(span.recorded.startNano / 1000000n)),
-              endAt: new Date(Number(span.recorded.endNano / 1000000n)),
+              startAt: new Date(
+                Number(span.recorded.startNano / BigInt(1000000)),
+              ),
+              endAt: new Date(Number(span.recorded.endNano / BigInt(1000000))),
               attributes: span.recorded.attributes,
             };
           }),
