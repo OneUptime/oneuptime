@@ -3,7 +3,7 @@
 OneUptime wordt gebouwd vanuit één repository en wordt geleverd in twee edities:
 
 - **Community Edition**: het hele platform voor monitoring, incidenten en observability, inclusief single sign-on met SAML en OpenID Connect, open source onder de Apache 2.0-licentie en gratis zelf te hosten op elke schaal.
-- **Enterprise Edition**: de Community Edition plus de enterprisemodules in de map [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) van de repository. Die modules voegen SCIM-provisioning toe, plus functies voor governance en instantiebeheer. Ze vallen onder de [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), en productiegebruik vereist een Enterprise-licentie voor uw aantal gebruikers.
+- **Enterprise Edition**: de Community Edition plus de enterprisemodules in de map [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee) van de repository. Die modules voegen SCIM-provisioning toe, plus functies voor governance en instantiebeheer. Ze vallen onder de [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE), en productiegebruik vereist een Enterprise-licentie voor uw aantal gebruikers.
 
 De twee edities zijn afzonderlijke containerimages. De Community-image bevat geen code uit `ee/`. OneUptime Cloud draait de Enterprise Edition, en in de cloud bepaalt uw abonnement welke van deze functies u krijgt.
 
@@ -113,7 +113,7 @@ De image die u draait, bepaalt de editie. `IS_ENTERPRISE_EDITION` schakelt geen 
 
 ## Licenties
 
-Het bestand [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) in de hoofdmap van de repository legt vast welke licentie wat dekt: alles in de map `ee/` valt onder de [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE), componenten van derden houden de licenties waaronder hun eigenaars ze leveren, en al het andere valt onder de Apache 2.0-licentie.
+Het bestand [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) in de hoofdmap van de repository legt vast welke licentie wat dekt: alles in de map `ee/` valt onder de [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE), componenten van derden houden de licenties waaronder hun eigenaars ze leveren, en al het andere valt onder de Apache 2.0-licentie.
 
 Een nieuwe installatie van de Enterprise Edition draait als **proefperiode van 14 dagen**, geteld vanaf de eerste keer dat de installatie de Enterprise Edition start. De proefperiode is bedoeld voor evaluatie: productiegebruik van de Enterprise Edition vereist een abonnement onder de OneUptime Enterprise License. Activeer een licentie voordat de proefperiode afloopt: daarna stoppen SCIM, auditlogging en bewaar-overschrijvingen, en wordt de enterpriseconfiguratie alleen-lezen (zie [Als een licentie verloopt of ontbreekt](#als-een-licentie-verloopt-of-ontbreekt)). Neem voor een licentie contact op met [sales@oneuptime.com](mailto:sales@oneuptime.com).
 

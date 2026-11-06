@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 과금이 켜져 있거나 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`(Helm values의 `outboundConnections.blockPrivateNetwork: true`)인 경우, 프로젝트 자체의 공급자는 이 클러스터 내부 주소에 도달할 수 없습니다. 이 주소가 클러스터의 사설 IP로 확인되기 때문입니다. 대신 Admin Dashboard의 **설정 → 글로벌 LLM 공급자** 에서 같은 필드로 공급자를 만드세요. 글로벌 LLM 공급자는 그 주소에 도달할 수 있습니다.
 
-GPU 스케줄링, 접근이 제한된 모델, 튜닝 옵션은 [Helm 차트의 vLLM 가이드](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)를 참조하세요.
+GPU 스케줄링, 접근이 제한된 모델, 튜닝 옵션은 [Helm 차트의 vLLM 가이드](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md)를 참조하세요.
 
 ## 좋은 운영 방법
 

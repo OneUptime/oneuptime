@@ -211,7 +211,7 @@ OneUptime Database Agent は、**PostgreSQL**、**MySQL / MariaDB**、**SQL Serv
 
 **1 つのエージェントで 1 台のデータベースサーバーを監視します**。エージェントが送るすべてのものに ID が付与されるため、サーバーごとに 1 つのエージェント (1 つのインストールディレクトリ) を実行し、レプリカを個別のページで見たい場合はレプリカごとに 1 つ実行してください。
 
-エージェントは [DatabaseAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) にあります: `docker-compose.yml`、レシーバーごとの Collector 設定 (`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`)、`install.sh`、`troubleshoot.sh`、systemd ユニットです。フォークや互換の代替エンジンは、そのファミリーの設定を実行して自分の名前を報告します。`DATABASE_SYSTEM=mariadb` は `configs/mysql.yaml` を実行し、データベースは MariaDB として表示されます。
+エージェントは [DatabaseAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) にあります: `docker-compose.yml`、レシーバーごとの Collector 設定 (`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`)、`install.sh`、`troubleshoot.sh`、systemd ユニットです。フォークや互換の代替エンジンは、そのファミリーの設定を実行して自分の名前を報告します。`DATABASE_SYSTEM=mariadb` は `configs/mysql.yaml` を実行し、データベースは MariaDB として表示されます。
 
 ### 始める前に
 

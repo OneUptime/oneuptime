@@ -100,7 +100,7 @@ PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因
 | 入口网关 | `nginx` | 请求量 |
 | 遥测写入器（开启时） | `telemetryWriter` | 不随负载增长：它把每次遥测插入批量写入 ClickHouse，因此按 ClickHouse 能承受的量确定规模 |
 
-Chart 内置 **KEDA**，因此应用、worker、探测器和全局 Runner 可以按队列积压自动伸缩。请同时开启 `keda.enabled` 和每个服务自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安装 KEDA 的集群上，第一次安装需要额外执行一轮：请参阅 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md)。KEDA 不管理的服务可以改用基于 CPU 或内存的自动伸缩器（`autoscaling`）。
+Chart 内置 **KEDA**，因此应用、worker、探测器和全局 Runner 可以按队列积压自动伸缩。请同时开启 `keda.enabled` 和每个服务自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安装 KEDA 的集群上，第一次安装需要额外执行一轮：请参阅 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)。KEDA 不管理的服务可以改用基于 CPU 或内存的自动伸缩器（`autoscaling`）。
 
 ## 起步档位
 
@@ -130,7 +130,7 @@ Chart 内置的数据存储默认以 **单实例** 运行。要在生产环境�
 | **Valkey** | Chart 不复制它。请让 OneUptime 指向带自动故障转移的外部托管 Redis 或 Valkey（`externalValkey`）。OneUptime 只连接单个主机和端口，因此请使用服务的主端点，而不是集群模式的端点。 |
 
 > [!WARNING]
-> 为现有安装开启任一 operator 都会启动一个新的空数据库：两者都不会复制被替换的单实例数据库中的数据。请按照 Chart 指南迁移数据：[PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) 和 [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md)。
+> 为现有安装开启任一 operator 都会启动一个新的空数据库：两者都不会复制被替换的单实例数据库中的数据。请按照 Chart 指南迁移数据：[PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) 和 [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md)。
 
 ## 保留期及其对存储的影响
 

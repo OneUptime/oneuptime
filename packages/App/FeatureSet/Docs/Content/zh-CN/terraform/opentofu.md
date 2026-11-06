@@ -97,7 +97,7 @@ flowchart TB
 
 ## 可复用的模块
 
-OneUptime 仓库中的 [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) 包含可以直接运行的配置，以及一个为一个服务完成设置的模块：为你提供的每个地址创建一个网站监视器，为它创建的所有内容加上一个标签，创建一个带一条升级规则的值班策略，以及一个列出这些监视器的状态页。它是普通的 HCL，所以在 Terraform 下也能使用。
+OneUptime 仓库中的 [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) 包含可以直接运行的配置，以及一个为一个服务完成设置的模块：为你提供的每个地址创建一个网站监视器，为它创建的所有内容加上一个标签，创建一个带一条升级规则的值班策略，以及一个列出这些监视器的状态页。它是普通的 HCL，所以在 Terraform 下也能使用。
 
 ```hcl title="main.tf"
 module "storefront" {

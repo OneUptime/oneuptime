@@ -381,7 +381,7 @@ describe("the card", () => {
       "/docs/installation/docker-compose#visitor-addresses",
     );
     expect(VISITOR_ADDRESSES_KUBERNETES_GUIDE).toBe(
-      "https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#visitor-addresses",
+      "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#visitor-addresses",
     );
   });
 

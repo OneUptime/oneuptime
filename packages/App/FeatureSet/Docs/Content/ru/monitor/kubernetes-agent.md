@@ -385,7 +385,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `kubeStateMetrics.enabled` | `false` | Состояние кластера из kube-state-metrics. |
 | `aiAgent.enabled` | `true` | ИИ-агент Kubernetes. Что ему разрешено делать, см. в [ИИ-агент Kubernetes](/docs/telemetry/kubernetes-agent#ии-агент-kubernetes). |
 
-[`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) чарта перечисляет и объясняет каждый параметр, а [Агент Kubernetes](/docs/telemetry/kubernetes-agent) рассказывает о фильтрации, сэмплировании и о том, как сократить объём данных.
+[`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) чарта перечисляет и объясняет каждый параметр, а [Агент Kubernetes](/docs/telemetry/kubernetes-agent) рассказывает о фильтрации, сэмплировании и о том, как сократить объём данных.
 
 ## Обновление
 

@@ -211,7 +211,7 @@ OneUptime Database Agent er en forudkonfigureret OpenTelemetry Collector til **P
 
 **Én agent overvåger én databaseserver.** Identiteten sættes på alt, hvad agenten sender, så kør én agent (én installationsmappe) pr. server og én pr. replika, hvis du vil have replikaer på deres egne sider.
 
-Agenten ligger i [mappen DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent): `docker-compose.yml`, én collectorkonfiguration pr. receiver (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` og en systemd-unit. En fork eller en kompatibel erstatning kører sin families konfiguration og rapporterer sit eget navn: `DATABASE_SYSTEM=mariadb` kører `configs/mysql.yaml`, og databasen vises som MariaDB.
+Agenten ligger i [mappen DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent): `docker-compose.yml`, én collectorkonfiguration pr. receiver (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` og en systemd-unit. En fork eller en kompatibel erstatning kører sin families konfiguration og rapporterer sit eget navn: `DATABASE_SYSTEM=mariadb` kører `configs/mysql.yaml`, og databasen vises som MariaDB.
 
 ### Før du begynder
 

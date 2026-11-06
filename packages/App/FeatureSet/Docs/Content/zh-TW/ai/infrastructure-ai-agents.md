@@ -518,7 +518,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 | 雲端帳戶 | 其執行所在位置的身分：在 AWS 上是其 ECS 任務的角色，該角色只能擔任 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的寫入角色；在 Azure 上是其 Container App 的受控識別；在 Google Cloud 上是其虛擬機器或 Cloud Run 服務執行時使用的服務帳戶 | 無：OneUptime 透過帳戶的唯讀連線讀取帳戶 | 其設定指令寫出的角色：已開啟變更的權限及其所需的讀取權限，僅此而已。在 AWS 上，每項變更都會擔任 `OneUptimeAiAgentWrite`，並附帶只針對該資源上這一項變更的工作階段原則 |
 | OpenStack 雲端 | 用於變更：`ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` 和 `_SECRET`，這是它自己專用的應用程式憑證：[指南](/docs/telemetry/openstack#用於變更的憑證) 說明如何建立。用於讀取：收集器的匯出程式所讀取的 `clouds.yaml` 中的應用程式憑證（`OS_CLIENT_CONFIG_FILE`、`OPENSTACK_EXPORTER_CLOUDS`，或以 `ONEUPTIME_AI_OPENSTACK_CLOUD` 指定另一個項目），或在設定時使用 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET`，並搭配 `OPENSTACK_AUTH_URL`；`ONEUPTIME_AI_OPENSTACK_REGION`、`ONEUPTIME_AI_OPENSTACK_INTERFACE`、`ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
-各收集器的 README 中有確切的指令：用於 Proxmox 修正權杖的 `pveum` 指令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)）、vSphere 修正角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)）、Ceph 的讀取和修正 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)），以及各引擎的資料庫授權（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)）。雲端 AI 代理程式的角色由其設定指令寫出：關閉某項變更並再次執行該指令，其權限就會從角色中移除。
+各收集器的 README 中有確切的指令：用於 Proxmox 修正權杖的 `pveum` 指令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)）、vSphere 修正角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)）、Ceph 的讀取和修正 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)），以及各引擎的資料庫授權（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)）。雲端 AI 代理程式的角色由其設定指令寫出：關閉某項變更並再次執行該指令，其權限就會從角色中移除。
 
 ## 安全性模型
 
@@ -593,7 +593,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `cloud … is not one of the changes this agent may make` | 在 **讓 AI 修正問題** 的 **更多欄位** 下開啟該變更，然後再次執行指令：這也會為代理程式的角色授予該變更的權限。 |
 | `the agent only changes resources that carry the …` | 為資源加上 `oneuptime-ai=allow` 標籤（在 Google Cloud 上為 label），或重新設定代理程式但不使用該標籤。 |
 
-[Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) 和 [資料庫](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) 代理程式的 README，以及 [主機 AI 代理程式](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent) 的 README，都有針對其自身連線錯誤的疑難排解表格。
+[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent) 和 [資料庫](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) 代理程式的 README，以及 [主機 AI 代理程式](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) 的 README，都有針對其自身連線錯誤的疑難排解表格。
 
 ## 不涵蓋的內容
 

@@ -100,7 +100,7 @@ PostgreSQL आपका कॉन्फ़िगरेशन और कामक
 | इनग्रेस गेटवे | `nginx` | अनुरोधों की मात्रा |
 | टेलीमेट्री राइटर, जब चालू हो | `telemetryWriter` | लोड के साथ नहीं: यह हर टेलीमेट्री इंसर्ट को ClickHouse में एक साथ भेजता है, इसलिए इसका आकार इस बात से तय होता है कि ClickHouse कितना संभाल सकता है |
 
-चार्ट में **KEDA** शामिल है, ताकि ऐप, वर्कर, प्रोब और ग्लोबल Runner अपनी कतार के बकाया के हिसाब से स्केल कर सकें। `keda.enabled` को हर सेवा के अपने `keda.enabled` (उदाहरण के लिए `app.keda.enabled`) के साथ चालू करें। जिस क्लस्टर पर अभी KEDA नहीं है, वहाँ पहले इंस्टॉलेशन में एक अतिरिक्त चरण लगता है: चार्ट की [KEDA गाइड](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) देखें। जिन सेवाओं को KEDA नहीं संभालता, वे इसके बजाय CPU या मेमोरी पर आधारित ऑटोस्केलर (`autoscaling`) इस्तेमाल कर सकती हैं।
+चार्ट में **KEDA** शामिल है, ताकि ऐप, वर्कर, प्रोब और ग्लोबल Runner अपनी कतार के बकाया के हिसाब से स्केल कर सकें। `keda.enabled` को हर सेवा के अपने `keda.enabled` (उदाहरण के लिए `app.keda.enabled`) के साथ चालू करें। जिस क्लस्टर पर अभी KEDA नहीं है, वहाँ पहले इंस्टॉलेशन में एक अतिरिक्त चरण लगता है: चार्ट की [KEDA गाइड](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) देखें। जिन सेवाओं को KEDA नहीं संभालता, वे इसके बजाय CPU या मेमोरी पर आधारित ऑटोस्केलर (`autoscaling`) इस्तेमाल कर सकती हैं।
 
 ## शुरुआती स्तर
 
@@ -130,7 +130,7 @@ PostgreSQL आपका कॉन्फ़िगरेशन और कामक
 | **Valkey** | चार्ट इसकी रेप्लिका नहीं बनाता। OneUptime को स्वचालित फ़ेलओवर वाले किसी बाहरी मैनेज्ड Redis या Valkey (`externalValkey`) की ओर इंगित करें। OneUptime एक ही होस्ट और पोर्ट से जुड़ता है, इसलिए सेवा का प्राइमरी एंडपॉइंट इस्तेमाल करें, क्लस्टर-मोड वाला नहीं। |
 
 > [!WARNING]
-> किसी मौजूदा इंस्टॉलेशन के लिए दोनों में से कोई भी ऑपरेटर चालू करने पर एक नया, खाली डेटाबेस शुरू होता है: दोनों में से कोई भी उस एकल-इंस्टेंस डेटाबेस का डेटा कॉपी नहीं करता जिसे वह बदलता है। अपना डेटा वैसे माइग्रेट करें जैसा चार्ट की गाइड बताती हैं – [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) के लिए और [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md) के लिए।
+> किसी मौजूदा इंस्टॉलेशन के लिए दोनों में से कोई भी ऑपरेटर चालू करने पर एक नया, खाली डेटाबेस शुरू होता है: दोनों में से कोई भी उस एकल-इंस्टेंस डेटाबेस का डेटा कॉपी नहीं करता जिसे वह बदलता है। अपना डेटा वैसे माइग्रेट करें जैसा चार्ट की गाइड बताती हैं – [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) के लिए और [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md) के लिए।
 
 ## प्रतिधारण और स्टोरेज पर इसका असर
 

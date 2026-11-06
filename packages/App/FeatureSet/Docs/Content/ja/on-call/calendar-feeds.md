@@ -261,7 +261,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 
 ## セルフホストの設定
 
-有効にする必要があるものはありません。フィードはどのインストールでも動作します。4 つの環境変数で制御でき、Docker Compose では `config.env` に、Helm では values の `onCallCalendarFeed` の下に設定します（チャートの [設定リファレンス](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) を参照）。
+有効にする必要があるものはありません。フィードはどのインストールでも動作します。4 つの環境変数で制御でき、Docker Compose では `config.env` に、Helm では values の `onCallCalendarFeed` の下に設定します（チャートの [設定リファレンス](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) を参照）。
 
 | 変数 | Helm の値 | 既定値 | 効果 |
 | --- | --- | --- | --- |
@@ -273,7 +273,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 その他の関連事項:
 
 - **`HOST` と `HTTP_PROTOCOL`** からリンクが作られます。 `HOST` が空か `localhost` の場合、または `HTTP_PROTOCOL` が `http` の場合、フィードのページに警告が表示され、リンクは外部から機能しません。 `HOST` がプライベートアドレス（ `10.x` 、 `172.16–31.x` 、 `192.168.x` 、コンテナー名のようなドットのない名前、または `.internal` 、 `.local` 、 `.lan` などの下の名前）の場合、ページには Google カレンダーと Outlook on the web がリンクに到達できないと表示されます。同じネットワーク内のコンピューター上のアプリからは引き続き到達できます。
-- **`TRUSTED_PROXY_HOPS`** は、アドレスごとの制限でどのアドレスを数えるかを決めます。既定値の `1` は、標準の Docker Compose と Helm の構成に適しています。 `X-Forwarded-For` に追記する独自のプロキシ（CDN、WAF、ロードバランサー）ごとに 1 を加えてください。そうしないと、すべてのカレンダークライアントが同じアドレスに見え、1 つの枠を共有してしまいます。チャートのドキュメントの [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) を参照してください。
+- **`TRUSTED_PROXY_HOPS`** は、アドレスごとの制限でどのアドレスを数えるかを決めます。既定値の `1` は、標準の Docker Compose と Helm の構成に適しています。 `X-Forwarded-For` に追記する独自のプロキシ（CDN、WAF、ロードバランサー）ごとに 1 を加えてください。そうしないと、すべてのカレンダークライアントが同じアドレスに見え、1 つの枠を共有してしまいます。チャートのドキュメントの [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) を参照してください。
 - **Redis** はキャッシュとレート制限を支えます。どちらも穏やかに縮退します。Redis がなくてもフィードは遅くなるだけで生成され、レート制限はリクエストを通します。
 - Helm チャートの分割モード（ `worker.enabled: true` ）では、フィードは API 層で生成されます。毎正時に集中するカレンダークライアントに合わせて、その層の規模を決めてください。
 - 上記の Nginx アクセスログの除外は、同梱の `packages/Nginx/default.conf.template` に含まれています。テンプレートをカスタマイズする場合も残してください。

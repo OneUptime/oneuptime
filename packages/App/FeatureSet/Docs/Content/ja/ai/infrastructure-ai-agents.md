@@ -518,7 +518,7 @@ AI エージェントのページが何を示していても、エージェン�
 | クラウド アカウント | 動作する場所の ID。AWS では ECS タスクのロールで、`ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` の書き込みロールしか引き受けられない。Azure では Container App のマネージド ID、Google Cloud では VM または Cloud Run サービスが動作するサービス アカウント | なし。OneUptime は読み取り専用の接続を通じてアカウントを読み取る | セットアップコマンドが書き出すロール: 有効にした変更の権限と、それに必要な読み取りだけ。AWS では、変更のたびに、その一つのリソースに対するその一つの変更だけを許すセッション ポリシー付きで `OneUptimeAiAgentWrite` を引き受ける |
 | OpenStack クラウド | 変更用には、専用のアプリケーション認証情報である `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` と `_SECRET`。作り方は[ガイド](/docs/telemetry/openstack#変更用の認証情報)にあります。読み取り用には、コレクターのエクスポーターが読む `clouds.yaml` のアプリケーション認証情報(`OS_CLIENT_CONFIG_FILE`、`OPENSTACK_EXPORTER_CLOUDS`、別のエントリを使う場合は `ONEUPTIME_AI_OPENSTACK_CLOUD`)、または設定されていれば `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` と `OPENSTACK_AUTH_URL`。ほかに `ONEUPTIME_AI_OPENSTACK_REGION`、`ONEUPTIME_AI_OPENSTACK_INTERFACE`、`ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
-各コレクターの README には正確なコマンドが載っています。Proxmox の修正用トークンを作る `pveum` コマンド([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent))、vSphere の修正用ロール([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent))、Ceph の読み取り用と修正用の caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent))、エンジンごとのデータベースの権限([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent))です。クラウド AI エージェントのロールはセットアップコマンドが書き出します。変更をオフにしてコマンドをもう一度実行すると、その権限はロールから外れます。
+各コレクターの README には正確なコマンドが載っています。Proxmox の修正用トークンを作る `pveum` コマンド([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent))、vSphere の修正用ロール([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent))、Ceph の読み取り用と修正用の caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent))、エンジンごとのデータベースの権限([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent))です。クラウド AI エージェントのロールはセットアップコマンドが書き出します。変更をオフにしてコマンドをもう一度実行すると、その権限はロールから外れます。
 
 ## セキュリティモデル
 
@@ -593,7 +593,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `cloud … is not one of the changes this agent may make` | **AI に問題を修正させる** の **その他の項目** でその変更をオンにして、コマンドをもう一度実行します。これでエージェントのロールにもその変更の権限が与えられます。 |
 | `the agent only changes resources that carry the …` | リソースに `oneuptime-ai=allow` のタグ(Google Cloud ではラベル)を付けるか、タグなしでエージェントをもう一度設定します。 |
 
-[Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)、[データベース](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) の各エージェントの README と、[ホスト AI エージェント](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent) の README には、それぞれの接続エラーに関するトラブルシューティング表があります。
+[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)、[データベース](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) の各エージェントの README と、[ホスト AI エージェント](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) の README には、それぞれの接続エラーに関するトラブルシューティング表があります。
 
 ## 対象外のもの
 

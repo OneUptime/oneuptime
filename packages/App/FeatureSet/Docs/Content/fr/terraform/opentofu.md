@@ -97,7 +97,7 @@ Commitez `.terraform.lock.hcl`, et exécutez désormais la configuration avec `t
 
 ## Un module réutilisable
 
-[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) dans le dépôt de OneUptime contient des configurations prêtes à exécuter, et un module qui met en place un service : un moniteur de site web pour chaque adresse que vous lui donnez, une étiquette sur tout ce qu'il crée, une politique d'astreinte avec une règle d'escalade, et une page de statut qui liste les moniteurs. C'est du HCL simple, il fonctionne donc aussi avec Terraform.
+[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) dans le dépôt de OneUptime contient des configurations prêtes à exécuter, et un module qui met en place un service : un moniteur de site web pour chaque adresse que vous lui donnez, une étiquette sur tout ce qu'il crée, une politique d'astreinte avec une règle d'escalade, et une page de statut qui liste les moniteurs. C'est du HCL simple, il fonctionne donc aussi avec Terraform.
 
 ```hcl title="main.tf"
 module "storefront" {
