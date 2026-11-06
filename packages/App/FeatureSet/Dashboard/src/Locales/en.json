@@ -45567,5 +45567,6 @@
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "OTLP Endpoint",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "Only someone who may start runbook executions can approve or dismiss this fix.",
-  "Only someone who may start runbook executions can dismiss this fix.": "Only someone who may start runbook executions can dismiss this fix."
+  "Only someone who may start runbook executions can dismiss this fix.": "Only someone who may start runbook executions can dismiss this fix.",
+  "{{label}}: {{count}}": "{{label}}: {{count}}"
 }

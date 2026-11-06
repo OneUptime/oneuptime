@@ -30,9 +30,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import {
   getGlobalTranslator,
+  PluralTemplate,
+  TemplateValues,
   translatableTerm,
-  translatePlural,
-  translateTemplate,
+  translatePlural as translatePluralAsGiven,
+  translateTemplate as translateTemplateAsGiven,
   translateTerm,
   translationKey,
   Translator,
@@ -67,6 +69,48 @@ import {
  */
 
 export const AI_INSIGHTS_PAGE_TITLE: string = translationKey("AI Insights");
+
+/*
+ * EVERY COUNT IN THE READER'S DIGITS. A template writes a value as it is
+ * given, and only a plural's own {{count}} was written the reader's way:
+ * a Persian page read "It happened ۱۲ times in the last 30 days" and "۳ of
+ * them were in the last 7 days, up from 1", and a German one "1240" where
+ * it writes "1.240". So every sentence of the page is filled through these
+ * two: each number among its values is a count, written as the reader's
+ * language writes numbers. A record's number ("#1042") is an identifier,
+ * not a count, and goes in as text (describeSubject).
+ */
+export function countsInReaderDigits(
+  values: TemplateValues | undefined,
+  translator: Translator = getGlobalTranslator(),
+): TemplateValues | undefined {
+  if (!values) {
+    return values;
+  }
+
+  const written: TemplateValues = {};
+
+  for (const name of Object.keys(values)) {
+    const value: TemplateValues[string] = values[name]!;
+
+    written[name] =
+      typeof value === "number" ? translator.formatNumber(value) : value;
+  }
+
+  return written;
+}
+
+function translateTemplate(template: string, values?: TemplateValues): string {
+  return translateTemplateAsGiven(template, countsInReaderDigits(values));
+}
+
+function translatePlural(
+  template: PluralTemplate,
+  count: number,
+  values?: TemplateValues,
+): string {
+  return translatePluralAsGiven(template, count, countsInReaderDigits(values));
+}
 
 export const AI_INSIGHTS_EMPTY_TITLE: string = translationKey(
   "Nothing to show yet",
@@ -733,13 +777,15 @@ export function describeSubject(subject: AiActivitySubject): string {
 
     if (number !== undefined && title) {
       return translateTemplate("Incident #{{number}}: {{title}}", {
-        number,
+        number: number.toString(),
         title,
       });
     }
 
     if (number !== undefined) {
-      return translateTemplate("Incident #{{number}}", { number });
+      return translateTemplate("Incident #{{number}}", {
+        number: number.toString(),
+      });
     }
 
     return title
@@ -759,11 +805,16 @@ export function describeSubject(subject: AiActivitySubject): string {
   }
 
   if (number !== undefined && title) {
-    return translateTemplate("Alert #{{number}}: {{title}}", { number, title });
+    return translateTemplate("Alert #{{number}}: {{title}}", {
+      number: number.toString(),
+      title,
+    });
   }
 
   if (number !== undefined) {
-    return translateTemplate("Alert #{{number}}", { number });
+    return translateTemplate("Alert #{{number}}", {
+      number: number.toString(),
+    });
   }
 
   return title
@@ -2032,6 +2083,44 @@ export function describeTrendWeeks(trend: Array<AiActivityTrendDay>): string {
   );
 }
 
+// A trend day's key: the UTC day it counts, as the server writes it.
+const TREND_DAY_REGEX: RegExp = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/*
+ * A trend day as the reader's calendar writes it - "07 Oct", "07. Okt.",
+ * "۰۷ اکتبر" - where the chart's ends and each bar's hover said "2026-10-07"
+ * in every language. The trend counts UTC days, so the day is read at its
+ * own noon UTC and shown as that same day wherever the reader is (as the
+ * cloud costs' Daily spend does): never the day before in America, or the
+ * day after in New Zealand. A key it cannot read is shown as written.
+ */
+export function describeTrendDate(date: string): string {
+  const parts: RegExpExecArray | null = TREND_DAY_REGEX.exec(date);
+
+  if (!parts) {
+    return date;
+  }
+
+  const utcNoon: Date = new Date(
+    Date.UTC(
+      Number(parts[1]),
+      Number(parts[2]) - 1,
+      Number(parts[3]),
+      12,
+      0,
+      0,
+    ),
+  );
+
+  if (Number.isNaN(utcNoon.getTime())) {
+    return date;
+  }
+
+  return OneUptimeDate.getDateAsLocalDayMonthString(
+    OneUptimeDate.getLocalDateFromWallClockInTimezone(utcNoon, "UTC"),
+  );
+}
+
 /*
  * A day's bar, on hover. Without the fixes for a reader who may not see
  * them: their 0 would read as "no fixes".
@@ -2044,7 +2133,7 @@ export function describeTrendDay(
     return translateTemplate(
       "{{date}}: {{investigations}} investigations, {{failed}} failed",
       {
-        date: day.date,
+        date: describeTrendDate(day.date),
         investigations: day.investigations,
         failed: day.failedInvestigations,
       },
@@ -2054,7 +2143,7 @@ export function describeTrendDay(
   return translateTemplate(
     "{{date}}: {{investigations}} investigations, {{failed}} failed, {{fixes}} fixes",
     {
-      date: day.date,
+      date: describeTrendDate(day.date),
       investigations: day.investigations,
       failed: day.failedInvestigations,
       fixes: day.fixes,

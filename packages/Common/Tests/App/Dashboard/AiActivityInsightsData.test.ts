@@ -1814,11 +1814,12 @@ describe("the trend", () => {
   test("each day says what happened on it, without the fixes for a reader who may not see them", () => {
     const day: AiActivityTrendDay = makeTrend()[29]!;
 
+    // The day as the reader's calendar writes it, not the server's key.
     expect(describeTrendDay(day)).toBe(
-      "2026-09-30: 2 investigations, 1 failed, 1 fixes",
+      "30 Sep: 2 investigations, 1 failed, 1 fixes",
     );
     expect(describeTrendDay(day, { fixesHidden: true })).toBe(
-      "2026-09-30: 2 investigations, 1 failed",
+      "30 Sep: 2 investigations, 1 failed",
     );
   });
 });

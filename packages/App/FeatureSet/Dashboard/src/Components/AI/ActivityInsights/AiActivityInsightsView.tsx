@@ -14,6 +14,7 @@ import {
   AiInsightWordingContext,
   AiInsightsFixApprovalPlace,
   AiInsightsFixSegment,
+  countsInReaderDigits,
   describeCoverage,
   describeFindingsTrust,
   describeFixVerification,
@@ -29,6 +30,7 @@ import {
   describeResourceHotspot,
   describeSubjectShort,
   describeTimeOfDay,
+  describeTrendDate,
   describeTrendDay,
   describeTrendWeeks,
   getActivityHealthNotes,
@@ -430,11 +432,15 @@ function ObjectChip(props: {
   count?: number | undefined;
   getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const route: Route | null = props.getObjectRoute
     ? props.getObjectRoute(props.object)
     : null;
+  // How many times it came up, in the reader's digits.
   const text: string = `${describeObject(props.object)}${
-    props.count && props.count > 1 ? ` ×${props.count}` : ""
+    props.count && props.count > 1
+      ? ` ×${translator.formatNumber(props.count)}`
+      : ""
   }`;
 
   return route ? (
@@ -1254,9 +1260,18 @@ function Trend(props: {
           );
         })}
       </div>
-      <div className="mt-1 flex justify-between text-xs text-gray-400">
-        <span>{props.trend[0]!.date}</span>
-        <span>{props.trend[props.trend.length - 1]!.date}</span>
+      {/*
+        The chart's first and last day, as the reader's calendar writes
+        them: a Persian page read "2026-10-07".
+      */}
+      <div
+        className="mt-1 flex justify-between text-xs text-gray-400"
+        data-testid="ai-insights-trend-ends"
+      >
+        <span>{describeTrendDate(props.trend[0]!.date)}</span>
+        <span>
+          {describeTrendDate(props.trend[props.trend.length - 1]!.date)}
+        </span>
       </div>
       <p
         className="mt-1 text-xs text-gray-500"
@@ -1503,7 +1518,10 @@ function ActivityCard(props: {
                 totals.failedInvestigations > 0
                   ? translator.translateTemplate(
                       "{{count}} failed or timed out",
-                      { count: totals.failedInvestigations },
+                      countsInReaderDigits(
+                        { count: totals.failedInvestigations },
+                        translator,
+                      ),
                     )
                   : undefined
               }
@@ -1516,10 +1534,16 @@ function ActivityCard(props: {
                     ? "Incidents investigated"
                     : "Alerts investigated"
                 }
-                value={translator.translateTemplate("{{count}} of {{total}}", {
-                  count: coverage.investigatedSubjects,
-                  total: coverage.subjects,
-                })}
+                value={translator.translateTemplate(
+                  "{{count}} of {{total}}",
+                  countsInReaderDigits(
+                    {
+                      count: coverage.investigatedSubjects,
+                      total: coverage.subjects,
+                    },
+                    translator,
+                  ),
+                )}
                 detail={translator.translateText("Created in the last 30 days")}
                 testId="ai-insights-stat-coverage"
               />
@@ -1539,9 +1563,13 @@ function ActivityCard(props: {
                 value={totals.fixes}
                 detail={
                   insights.fixOutcomes.verified > 0
-                    ? translator.translateTemplate("{{count}} verified", {
-                        count: insights.fixOutcomes.verified,
-                      })
+                    ? translator.translateTemplate(
+                        "{{count}} verified",
+                        countsInReaderDigits(
+                          { count: insights.fixOutcomes.verified },
+                          translator,
+                        ),
+                      )
                     : undefined
                 }
                 testId="ai-insights-stat-fixes"
@@ -1554,10 +1582,13 @@ function ActivityCard(props: {
                 totals.failedCommands + totals.timedOutCommands > 0
                   ? translator.translateTemplate(
                       "{{failed}} failed, {{timedOut}} never ran",
-                      {
-                        failed: totals.failedCommands,
-                        timedOut: totals.timedOutCommands,
-                      },
+                      countsInReaderDigits(
+                        {
+                          failed: totals.failedCommands,
+                          timedOut: totals.timedOutCommands,
+                        },
+                        translator,
+                      ),
                     )
                   : undefined
               }
