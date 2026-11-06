@@ -1103,6 +1103,86 @@ describe("streaming an AWS connection's metrics and logs", () => {
     expect(code).toContain("for REGION in ap-southeast-2 us-east-1; do");
   });
 
+  test("an organization's connection: Stop streaming's command is for its management account, and deletes the StackSet's stacks too", () => {
+    renderTable();
+
+    const confirmation: ReturnType<
+      NonNullable<CapturedAction["getConfirmation"]>
+    > = action("Stop streaming").getConfirmation!(
+      connection({
+        streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+        config: {
+          authMethod: "aws-role",
+          roleArn: "arn:aws:iam::111111111111:role/OneUptimeRead",
+          readScope: "organization",
+        },
+        lastPullResult: readResult({
+          resourceCount: 2,
+          regions: [{ region: "us-east-1", count: 2 }],
+        }),
+      }),
+    )!;
+
+    const { container } = render(confirmation.details!);
+    const code: string = container.querySelector("pre code")?.textContent || "";
+
+    /*
+     * One paragraph that ends at the command: where to run it, and that
+     * the member accounts' stacks go too - not one account's sentence
+     * ending in a colon, then another before the command.
+     */
+    const paragraphs: Array<HTMLParagraphElement> = Array.from(
+      container.querySelectorAll("p"),
+    );
+
+    expect(paragraphs).toHaveLength(1);
+    expect(paragraphs[0]).toHaveAttribute(
+      "data-testid",
+      "cloud-connection-stop-streaming-organization",
+    );
+    expect(paragraphs[0]).toHaveTextContent(
+      "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, the member accounts' too, run this in AWS CloudShell in the management account 111111111111:",
+    );
+    // The management account's own stacks, then the StackSet's when there is one.
+    expect(code).toContain("for REGION in us-east-1; do");
+    expect(code).toContain(
+      "aws cloudformation describe-stack-set --stack-set-name OneUptimeStream-20000000",
+    );
+    expect(code).toContain("aws cloudformation delete-stack-set");
+  });
+
+  test("a connection that reads one account: no word of an organization", () => {
+    renderTable();
+
+    const confirmation: ReturnType<
+      NonNullable<CapturedAction["getConfirmation"]>
+    > = action("Stop streaming").getConfirmation!(
+      connection({
+        streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+        config: {
+          authMethod: "aws-role",
+          roleArn: "arn:aws:iam::111111111111:role/OneUptimeRead",
+          readScope: "account",
+        },
+      }),
+    )!;
+
+    const { container } = render(confirmation.details!);
+
+    expect(
+      container.querySelector(
+        "[data-testid='cloud-connection-stop-streaming-organization']",
+      ),
+    ).toBeNull();
+    expect(container.querySelectorAll("p")).toHaveLength(1);
+    expect(container.querySelector("p")).toHaveTextContent(
+      "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
+    );
+    expect(
+      container.querySelector("pre code")?.textContent || "",
+    ).not.toContain("stack-set");
+  });
+
   test("Stop streaming stops every key of the connection, and the list reads again", async () => {
     renderTable();
 

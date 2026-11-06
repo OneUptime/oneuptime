@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -688,7 +689,8 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
     test("Escape mid-drag is the drag's alone: a dialog the explorer stands in stays open", () => {
       renderSidebar();
       const { handle } = layOutPage();
-      const dialogHears: jest.Mock = jest.fn();
+      const dialogHears: Mock<(event: Event) => void> =
+        jest.fn<(event: Event) => void>();
       document.addEventListener(
         "keydown",
         dialogHears as unknown as EventListener,
@@ -714,7 +716,8 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
     test("once the drag is over, Escape is the page's again", () => {
       renderSidebar();
       const { handle } = layOutPage();
-      const pageHears: jest.Mock = jest.fn();
+      const pageHears: Mock<(event: Event) => void> =
+        jest.fn<(event: Event) => void>();
       document.addEventListener(
         "keydown",
         pageHears as unknown as EventListener,
@@ -737,7 +740,8 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
     test("a sidebar that goes away mid-drag stops hearing Escape", () => {
       renderSidebar();
       const { handle } = layOutPage();
-      const pageHears: jest.Mock = jest.fn();
+      const pageHears: Mock<(event: Event) => void> =
+        jest.fn<(event: Event) => void>();
       document.addEventListener(
         "keydown",
         pageHears as unknown as EventListener,
@@ -827,7 +831,7 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
     });
 
     test("a press on the edge selects no text and clicks nothing under it", () => {
-      const parentClick: jest.Mock = jest.fn();
+      const parentClick: Mock<() => void> = jest.fn<() => void>();
       // A card or a row the explorer stands in, listening for clicks.
       render(
         <div onClick={parentClick as unknown as () => void}>{sidebar()}</div>,
@@ -1358,7 +1362,8 @@ describe("how the edge looks", () => {
   });
 
   test("an edge with no sidebar to size does nothing", () => {
-    const onWidthChange: jest.Mock = jest.fn();
+    const onWidthChange: Mock<(width: number | null) => void> =
+      jest.fn<(width: number | null) => void>();
     render(
       <FacetSidebarResizeHandle
         panelRef={React.createRef<HTMLElement>()}

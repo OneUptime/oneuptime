@@ -386,6 +386,8 @@ describe("Stream CloudWatch Metrics and Logs", () => {
       "Set it up another way": "dialog",
       "Every metric, not only the key ones": "dialog",
       Regions: "dialog",
+      // A connection that reads an AWS Organization: every account of it.
+      "Every account of the organization": "dialog",
       "Log groups": "dialog",
       Region: "dialog",
       "Every log group of the account, new ones too": "dialog",

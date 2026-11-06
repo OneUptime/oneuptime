@@ -71,6 +71,14 @@ const MIG: string =
   "//compute.googleapis.com/projects/my-project/regions/us-central1/instanceGroupManagers/web-mig";
 const SQL: string =
   "//sqladmin.googleapis.com/projects/my-project/instances/db-1";
+// App Platforms' own platforms.
+const APP_RUNNER: string =
+  "arn:aws:apprunner:us-east-1:123456789012:service/checkout-web/8fe1e10304f84fd2b0df550fe98a71fa";
+const BEANSTALK: string =
+  "arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/shop/shop-prod";
+const CONTAINER_GROUP: string = `${AZURE_PREFIX}/Microsoft.ContainerInstance/containerGroups/workers`;
+const APP_ENGINE: string =
+  "//appengine.googleapis.com/apps/my-project/services/default";
 
 function sentence(resourceType: AiResourceType, command: string): string {
   const words: CloudChangeWords | null = describeCloudChange({
@@ -211,6 +219,51 @@ describe("every change of the catalog reads as one sentence", () => {
       `cloud roll-back-service ${RUN} --to web-00041-abc`,
       "Roll the Cloud Run service web back to web-00041-abc",
     ],
+    [
+      AWS,
+      `cloud restart-service ${APP_RUNNER}`,
+      "Restart the App Runner service checkout-web",
+    ],
+    [
+      AWS,
+      `cloud restart-service ${BEANSTALK}`,
+      "Restart the Elastic Beanstalk environment shop-prod",
+    ],
+    [
+      AZURE,
+      `cloud restart-service ${CONTAINER_GROUP}`,
+      "Restart the container group workers",
+    ],
+    [
+      AZURE,
+      `cloud start-instance ${CONTAINER_GROUP}`,
+      "Start the container group workers",
+    ],
+    [
+      AZURE,
+      `cloud stop-instance ${CONTAINER_GROUP}`,
+      "Stop the container group workers",
+    ],
+    [
+      GCP,
+      `cloud roll-back-service ${APP_ENGINE}`,
+      "Roll the App Engine service default back to the version before",
+    ],
+    [
+      GCP,
+      `cloud roll-back-service ${APP_ENGINE} --to 20261105t101500`,
+      "Roll the App Engine service default back to 20261105t101500",
+    ],
+    [
+      GCP,
+      `cloud scale-out ${APP_ENGINE} --count 4`,
+      "Scale the App Engine service default out to 4 instances",
+    ],
+    [
+      GCP,
+      `cloud scale-in ${APP_ENGINE} --count 1`,
+      "Scale the App Engine service default in to 1 instance",
+    ],
   ])(
     "%s %s",
     (resourceType: AiResourceType, command: string, expected: string) => {
@@ -293,6 +346,11 @@ describe("a resource's short name", () => {
     expect(parsed("gcp", RUN)).toBe("web");
     expect(parsed("gcp", MIG)).toBe("web-mig");
     expect(parsed("gcp", SQL)).toBe("db-1");
+    // App Platforms' own platforms: the service, the environment, the group.
+    expect(parsed("aws", APP_RUNNER)).toBe("checkout-web");
+    expect(parsed("aws", BEANSTALK)).toBe("shop-prod");
+    expect(parsed("azure", CONTAINER_GROUP)).toBe("workers");
+    expect(parsed("gcp", APP_ENGINE)).toBe("default");
   });
 
   test("an id the catalog has no kind for is named by its last word", () => {
