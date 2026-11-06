@@ -4,6 +4,7 @@ import LogsTable, {
   LOGS_TABLE_SORT_BUTTON_CLASS_NAME,
 } from "../../../UI/Components/LogsViewer/components/LogsTable";
 import Log from "../../../Models/AnalyticsModels/Log";
+import LogSeverity from "../../../Types/Log/LogSeverity";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -42,7 +43,7 @@ function aLog(): Log {
   const log: Log = new Log();
   log.body = "checkpoint starting: time";
   log.time = new Date("2026-11-06T09:58:12.000Z");
-  log.severityText = "Information";
+  log.severityText = LogSeverity.Information;
   return log;
 }
 
