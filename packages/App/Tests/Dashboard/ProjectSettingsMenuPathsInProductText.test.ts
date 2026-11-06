@@ -1146,6 +1146,11 @@ describe("the Slack and Microsoft Teams pages go by their side menus' names", ()
       "Microsoft Teams",
       "USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION",
     ],
+    [
+      "Components/NotificationMethods/Mattermost.tsx",
+      "Mattermost",
+      "USER_SETTINGS_MATTERMOST_INTEGRATION",
+    ],
   ])(
     "%s: the dialog's button names the page it opens as the menu does",
     (file: string, entry: string, page: string) => {
@@ -1167,6 +1172,7 @@ describe("the Slack and Microsoft Teams pages go by their side menus' names", ()
     for (const [button, workspace] of [
       ["Open Slack Settings", "Slack"],
       ["Open Microsoft Teams Settings", "Microsoft Teams"],
+      ["Open Mattermost Settings", "Mattermost"],
     ] as Array<[string, string]>) {
       expect(english[button]).toBe(button);
 

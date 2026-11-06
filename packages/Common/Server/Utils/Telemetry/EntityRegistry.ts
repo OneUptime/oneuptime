@@ -44,7 +44,10 @@ import crypto from "crypto";
  * Databases product can scope telemetry, and the typed DatabaseServer table
  * (not the registry) is the row a user sees. `message.queue` is the same for
  * the Queues product and its MessageQueue table — an OTLP entity_ref of the
- * type still only adds a membership key.
+ * type still only adds a membership key. `openstack.resource` is what an
+ * OSProfiler span says it touched, and the OpenStackResource table is its row:
+ * a cloud can hold hundreds of thousands of parts, and a key on a span is all a
+ * part's page needs to find them.
  */
 const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
   EntityType.Container,
@@ -53,6 +56,7 @@ const MEMBERSHIP_ONLY_TYPES: ReadonlySet<EntityType> = new Set<EntityType>([
   EntityType.TelemetrySdk,
   EntityType.DatabaseServer,
   EntityType.MessageQueue,
+  EntityType.OpenStackResource,
 ]);
 
 /*
@@ -75,8 +79,11 @@ export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.KubernetesPod, 5000],
   [EntityType.KubernetesDeployment, 5000],
   [EntityType.ProxmoxCluster, 10000],
+  [EntityType.OpenStackCloud, 10000],
   [EntityType.ProxmoxNode, 1000],
+  [EntityType.OpenStackHypervisor, 1000],
   [EntityType.ProxmoxGuest, 5000],
+  [EntityType.OpenStackInstance, 5000],
   [EntityType.CephCluster, 10000],
   [EntityType.StorageArray, 10000],
   [EntityType.VMwareVCenter, 10000],

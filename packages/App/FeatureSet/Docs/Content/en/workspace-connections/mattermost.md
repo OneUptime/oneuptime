@@ -6,6 +6,7 @@ Connect OneUptime to your Mattermost server to post incidents, alerts, episodes,
 - [Connect Mattermost](#connect-mattermost): Create a bot account for OneUptime, then connect the project with its token.
 - [Connect your own account](#connect-your-own-mattermost-account): Link your Mattermost account to your OneUptime account.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
+- [Who is in a record's channel](#who-is-in-a-records-channel): See who is in it, join it and add people, from the record's page.
 - [Acting from Mattermost](#acting-on-incidents-alerts-and-events-from-mattermost): The buttons on OneUptime's messages.
 - [Network and self-hosting](#network-and-self-hosting): What each server must be able to reach.
 :::
@@ -50,7 +51,7 @@ Add the bot to the team OneUptime should post in, as you would add a person: **M
 
 ### Connect the project
 
-In OneUptime, go to **Project Settings** > **Workspace** > **Mattermost** and click **Connect with Mattermost**. Enter your server's address, such as `https://chat.example.com`, and the bot's access token. OneUptime checks the token with your server before it keeps anything. If the bot is in more than one team, OneUptime asks which one to post in.
+In OneUptime, go to **Project Settings** > **Workspace** > **Mattermost** and click **Connect with Mattermost**. Enter your server's address, such as `https://chat.example.com`, and the bot's access token. OneUptime checks the token with your server before it keeps anything. If the bot is in more than one team, OneUptime asks which one to post in. Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**, which leads here too.
 
 ### Add a notification rule
 
@@ -59,7 +60,7 @@ Go to **Incidents** > **Workspace** > **Mattermost**, and create a rule. For exa
 
 The bot's access token is kept on the OneUptime server only, encrypted with the project's other secrets, and is never shown again. The server address, the team and the bot's username are shown to everyone in the project, on the Mattermost settings page.
 
-A project is connected to one Mattermost team. To move it to another team, or another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too. Your notification rules and summaries are kept for when you connect again.
+A project is connected to one Mattermost team. To move it to another team, or another server, disconnect it first: **Project Settings** > **Workspace** > **Mattermost**, then **⋯** > **Disconnect Mattermost**. Disconnecting disconnects every member's own Mattermost account too, and removes their Mattermost notification methods and the on-call rules that use them. Your notification rules and summaries are kept for when you connect again.
 
 ## Connect your own Mattermost account
 
@@ -75,6 +76,18 @@ Open the link in the same browser where you asked for it: it works only there, o
 
 Your account's connection belongs to this project. In another project connected to the same Mattermost team, connect it there too.
 
+## Getting paged in Mattermost
+
+To be paged by direct message when you are on call, add Mattermost as one of your notification methods:
+
+:::steps
+1. Connect your own Mattermost account (see [Connect your own Mattermost account](#connect-your-own-mattermost-account)).
+2. Go to **User Settings** > **Notification Methods**, open the **Workspace Apps** tab and click **Add Mattermost Account**.
+3. Click **Send Test Message** on its row. The message arrives as a direct message from the project's bot.
+:::
+
+Adding it adds it to your on-call rules straight away, so pages reach you in Mattermost from then on. Change which pages it gets under **User Settings** > **On-Call Rules**. Each page carries a link to acknowledge it and one to escalate it. Disconnecting your Mattermost account removes this method and the on-call rules that use it.
+
 ## Notification rules
 
 A notification rule says which events post to Mattermost, and where. Each product has its own rules, under **Workspace** > **Mattermost** in its menu: **Incidents** (with **Incident Episodes** and a **Summary** tab), **Alerts** (with **Alert Episodes** and **Summary**), **Scheduled Maintenance**, **Monitors**, **On-Call Duty** and **Security Events**. They work as Slack's do: see [Notification rules](/docs/workspace-connections/slack#notification-rules) for conditions, destinations and who joins a channel.
@@ -85,9 +98,27 @@ To post to an existing channel, enter its name as it appears in its address, suc
 
 People join a rule's channel by the Mattermost account they connected, or else by the Mattermost account with their email address, when your server shows email addresses to the bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime names whoever it could not add in one message in the channel, with a link to connect their account.
 
+An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Mattermost** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, on your Mattermost server. A record with two channels of its own lists both under the button. A record that also has channels in Slack or Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
+
 **Test Rule** on a rule's row posts a test message for that rule to the channels it names, as it does for Slack.
 
 OneUptime's messages notify nobody with what they quote: a name or a description that holds `@channel`, `@here` or `@someone` is shown as written, and pings nobody.
+
+## Who is in a record's channel
+
+An incident, alert, episode or scheduled maintenance event with a Mattermost channel of its own has a **Mattermost Channel** card on its page in OneUptime. The card shows the channel, as a link that opens it on your Mattermost server, whether it is private, and who is in it, you first. From the card, without a Mattermost admin:
+
+- **Join channel** adds you, when you are not in the channel.
+- **Add people** opens a list of the project's people and teams: pick a person to add them, or a team to add everyone in it.
+
+OneUptime's bot adds them, as it adds the people of a rule's channel. The bot stays in the channels it creates, so this works for a private channel that everybody has left, too. A record that also has channels in Slack or Microsoft Teams lists them all on one **Chat Channels** card.
+
+- **Who may add people.** Whoever may edit the record: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member** for an incident, or **Edit Incident** in a custom role, and the same permission for an alert, an episode or an event (**Edit Alert**, for example). Anyone else sees who is in the channel, and how to get in.
+- **Who can be added.** Someone OneUptime can find in Mattermost, by the account they connected or else by their email address, when your server shows email addresses to the bot, and who is in the team the project is connected to. A guest account in that team can be added too: Mattermost lets a channel's members add guests. The card names whoever it could not add, and why.
+- **What it records.** Who was added, and by whom, in the record's feed (**Channel Member Added**) and in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.
+- **An archived channel.** The card still lists who is in it, and adds nobody until the channel is unarchived in Mattermost.
+- **A channel the bot was taken out of.** Mattermost shows a channel's people only to someone in it, even a public channel's, so the card says it can't see the channel. Someone in it can add the bot back in Mattermost. OneUptime also joins a public channel by itself the next time it posts there.
+- **Taking someone out.** OneUptime only adds people: remove someone from the channel in Mattermost.
 
 ## Acting on incidents, alerts and events from Mattermost
 
@@ -125,3 +156,5 @@ Every button OneUptime posts carries a signature, checked when it is pressed, fo
 | **The bot is not a member of the private Mattermost channel** | Add the bot to the channel in Mattermost. |
 | A button does nothing, or Mattermost says it could not complete the action | Mattermost cannot reach OneUptime. See [Network and self-hosting](#network-and-self-hosting). |
 | No direct message arrives with your link | Check the username, and that the bot is in a team you are in. |
+| The channel card says OneUptime can't see the channel | The channel was deleted, or the bot was removed from it. If it's still there, someone in it can add the bot back in Mattermost. |
+| The channel card says someone isn't in the Mattermost team | Add them, in Mattermost, to the team the project is connected to, then add them again. |

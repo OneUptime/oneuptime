@@ -13,6 +13,8 @@ Klik op een sjabloon om te zien wat het doet: de trigger, de blokken waaruit het
 
 Workflows worden uitgeschakeld aangemaakt, zodat hun trigger ze pas start als je ze inschakelt. Een nieuwe workflow opent in de **Bouwer**, het canvas waarop je hem ontwerpt.
 
+Je kunt een workflow ook aan Ask AI beschrijven en hem door Ask AI laten bouwen. Het vindt de trigger en de stappen, stelt ze in en verbindt ze, en vraagt je de workflow goed te keuren voordat hij wordt opgeslagen. Een nieuwe workflow begint uitgeschakeld: lees hem in de Builder, vul wachtwoorden, tokens of webhook-URL's in die voor jou zijn opengelaten, want Ask AI vraagt daar nooit om in het gesprek, en schakel hem daarna zelf in. Ask AI kan een workflow op dezelfde manier wijzigen. Op de pagina van een workflow betekent "deze workflow" die ene. Het slaat op als jou, dus het kan alleen doen wat jij in de Builder kunt doen, en de Builder toont de wijzigingen zodra ze zijn opgeslagen.
+
 ## Het canvas
 
 Een workflow vanaf nul opent met één gestippeld blok met de tekst **Kies wat deze workflow start**. Dat blok is het startpunt: klik erop om een trigger te kiezen. Een workflow die van een sjabloon is gemaakt, opent met zijn blokken al op hun plek.

@@ -34,6 +34,7 @@ const CHANNELS: Array<string> = [
   "alertByTelegram",
   "alertBySlack",
   "alertByMicrosoftTeams",
+  "alertByMattermost",
   "alertByWebhook",
 ];
 

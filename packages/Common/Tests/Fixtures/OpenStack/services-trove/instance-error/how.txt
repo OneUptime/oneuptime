@@ -1,0 +1,2 @@
+A database instance in ERROR, because Nova refused it.
+On its own: Nova refused it, and Trove gave up. The instance's fault says Nova's reason.

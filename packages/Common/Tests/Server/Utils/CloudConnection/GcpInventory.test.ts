@@ -20,6 +20,10 @@ import {
   getCloudResourceTypeDescriptor,
 } from "../../../../Types/Cloud/CloudResourceCatalog";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
+import {
+  getCloudRightSizingProfile,
+  readCloudResourceSize,
+} from "../../../../Types/Cloud/CloudRightSizing";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import { describe, expect, test } from "@jest/globals";
@@ -236,7 +240,7 @@ describe("identity", () => {
 });
 
 describe("what an asset keeps", () => {
-  test("a VM keeps its status and labels, runs in its network and subnet, answers on its addresses - and never keeps its metadata", () => {
+  test("a VM keeps its machine type, status and labels, runs in its network and subnet, answers on its addresses - and never keeps its metadata", () => {
     const item: CloudInventoryItem | null = buildGcpInventoryItem(
       asset(
         "compute.googleapis.com/Instance",
@@ -244,6 +248,7 @@ describe("what an asset keeps", () => {
           id: "1",
           name: "web-1",
           zone: "europe-west1-b",
+          machineType: `https://www.googleapis.com/compute/v1/projects/${PROJECT}/zones/europe-west1-b/machineTypes/n2-standard-8`,
           status: "RUNNING",
           labels: { team: "storefront" },
           metadata: {
@@ -264,7 +269,17 @@ describe("what an asset keeps", () => {
     );
 
     expect(item!.tags).toEqual({ team: "storefront" });
-    expect(item!.properties).toEqual({ status: "RUNNING" });
+    expect(item!.properties).toEqual({
+      machineType: `https://www.googleapis.com/compute/v1/projects/${PROJECT}/zones/europe-west1-b/machineTypes/n2-standard-8`,
+      status: "RUNNING",
+    });
+    // What OneUptime sizes it by: its machine type's name.
+    expect(
+      readCloudResourceSize(
+        getCloudRightSizingProfile("gcp", "gce_instance")!,
+        item!.properties,
+      ),
+    ).toBe("n2-standard-8");
     expect(JSON.stringify(item)).not.toContain("s3cret");
     expect(item!.relationships).toEqual([
       {

@@ -70,7 +70,7 @@ Nunca atrasado e nunca contado:
 | Assinantes de páginas de status | Todo e-mail que sua página de status envia aos seus próprios assinantes |
 | Violações de SLA | Um incidente do qual você é proprietário que perde o prazo de SLA de resposta ou de resolução |
 
-Só o e-mail é afetado. SMS, chamadas telefônicas, notificações push, WhatsApp, Telegram, Slack, Microsoft Teams e webhooks são entregues imediatamente, exatamente como antes, inclusive para as notificações cujo e-mail foi retido.
+Só o e-mail é afetado. SMS, chamadas telefônicas, notificações push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e webhooks são entregues imediatamente, exatamente como antes, inclusive para as notificações cujo e-mail foi retido.
 
 ## Limites
 
@@ -105,7 +105,7 @@ O que ela **não** altera:
 
 - **Quais notificações você recebe.** Isso é a configuração por tipo de evento e por canal em **Configurações do usuário → Configurações de notificação**, na página ao lado. O resumo e esta chave só mudam em quantos e-mails essas notificações são reunidas.
 - **Chamadas de plantão e e-mails de turno**, **e-mails de segurança da conta**, **e-mails de cobrança**, avisos de saúde da instância e e-mails para assinantes de páginas de status. Nada disso é resumido, então desativar o resumo não muda nada para eles — veja [O que nunca é resumido](#o-que-nunca-é-resumido).
-- **Qualquer outro canal.** SMS, chamadas, push, WhatsApp, Telegram, Slack, Microsoft Teams e webhooks já são imediatos.
+- **Qualquer outro canal.** SMS, chamadas, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e webhooks já são imediatos.
 
 ## Reduzir ainda mais
 

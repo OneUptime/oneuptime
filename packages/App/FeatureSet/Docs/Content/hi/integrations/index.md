@@ -28,7 +28,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | तरीका | किसके लिए सबसे अच्छा | उदाहरण |
 | --- | --- | --- |
 | बिल्ट-इन कनेक्शन | ऐसे टूल जिनसे OneUptime खुद जुड़ता है। आप एक फ़ॉर्म भरते हैं, और बनाने को कुछ नहीं होता। | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [सुरक्षा इवेंट](/docs/telemetry/security-events) कनेक्शन |
-| वर्कफ़्लो टेम्पलेट | टिकटिंग टूल, जो दोनों ओर से तालमेल में रहते हैं, मॉनिटरिंग की समस्याएं, सुरक्षा घटना रिपोर्ट और चैट संदेश। आप एक टेम्पलेट चुनते हैं और कुछ सेटिंग भरते हैं। | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
+| वर्कफ़्लो टेम्पलेट | टिकटिंग टूल, जो दोनों ओर से तालमेल में रहते हैं, मॉनिटरिंग की समस्याएं, सुरक्षा घटना रिपोर्ट और चैट संदेश। आप एक टेम्पलेट चुनते हैं और कुछ सेटिंग भरते हैं। | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
 | Incoming Request मॉनिटर | वेबहुक भेजने वाले अलर्टिंग टूल। हर अलर्ट पर एक घटना मिलती है, जो ऑन-कॉल को पेज होती है और अलर्ट ठीक होने पर सुलझ जाती है, बिना किसी वर्कफ़्लो के। | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | आपका बनाया वर्कफ़्लो | वेबहुक या REST API वाला कोई भी टूल, और आपका अपना कोई भी लॉजिक। | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | [Zabbix](/docs/integrations/zabbix) | दोनों | Zabbix की समस्याओं को घटनाओं या अलर्ट में बदलता है, ठीक होने पर उन्हें सुलझाता है, और OneUptime से समस्याओं को स्वीकार या बंद करता है। |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | इनबाउंड | Alertmanager की सूचनाओं को घटनाओं में बदलता है। |
 | [Grafana](/docs/integrations/grafana) | इनबाउंड | Grafana अलर्ट को घटनाओं में बदलता है। |
-| [Datadog](/docs/integrations/datadog) | इनबाउंड | Datadog मॉनिटर अलर्ट को घटनाओं में बदलता है। |
+| [Datadog](/docs/integrations/datadog) | इनबाउंड | Datadog मॉनिटर अलर्ट को घटनाओं या अलर्ट में बदलता है, और ठीक होने पर उन्हें सुलझाता है। |
+| [New Relic](/docs/integrations/new-relic) | इनबाउंड | New Relic इश्यू को घटनाओं या अलर्ट में बदलता है, और इश्यू बंद होने पर उन्हें सुलझाता है। |
 
 ### सुरक्षा टूल
 
@@ -133,7 +134,7 @@ URL ही एकमात्र क्रेडेंशियल है, इ�
 5. **वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई घटना चुनें, और चलाएं। टेस्ट रन सचमुच अनुरोध भेजता है। फिर **सक्षम** चालू करें।
 :::
 
-जब टूल को पहले डेटा का रूप बदला हुआ चाहिए, तो दोनों के बीच एक [Run Custom JavaScript](/docs/workflows/components#custom-code) ब्लॉक जोड़ें। Zendesk, New Relic, AWS (SNS के ज़रिए), StatusCake और बाकी सभी टूल के लिए तरीका यही है: बस URL और बॉडी बदलते हैं।
+जब टूल को पहले डेटा का रूप बदला हुआ चाहिए, तो दोनों के बीच एक [Run Custom JavaScript](/docs/workflows/components#custom-code) ब्लॉक जोड़ें। Zendesk, AWS (SNS के ज़रिए), StatusCake और बाकी सभी टूल के लिए तरीका यही है: बस URL और बॉडी बदलते हैं।
 
 ## क्रेडेंशियल सुरक्षित रखें
 

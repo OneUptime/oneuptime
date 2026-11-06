@@ -25,7 +25,15 @@ import WorkflowVariable from "../../../../Models/DatabaseModels/WorkflowVariable
 import { WORKFLOW_URL } from "../../../Config";
 import API from "../../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../../Utils/ModelAPI/ModelAPI";
-import { fetchModelSchema } from "../ModelSchema";
+import { ModelSchemaColumn, fetchModelSchema } from "../ModelSchema";
+import {
+  WorkflowCustomField,
+  withCustomFieldColumns,
+} from "../CustomFields/CustomFieldColumns";
+import {
+  hasCustomFields,
+  loadCustomFields,
+} from "../CustomFields/CustomFieldSource";
 import {
   LoadStepSamplesFunction,
   createStepSampleSource,
@@ -131,6 +139,40 @@ export const createVariableValueSource: CreateVariableValueSourceFunction = (
   };
 };
 
+export type LoadRecordColumnsFunction = (
+  tableName: string,
+) => Promise<Array<ModelSchemaColumn>>;
+
+/*
+ * A record's fields as a value list opens them: its columns, and each of the
+ * project's custom fields among them, so a step reads Priority rather than
+ * having to know customFields.Priority by heart. Where the custom fields cannot
+ * be read, the record's own fields are still there, and Custom Fields as one
+ * value with them.
+ */
+export const loadRecordColumns: LoadRecordColumnsFunction = async (
+  tableName: string,
+): Promise<Array<ModelSchemaColumn>> => {
+  const columns: Array<ModelSchemaColumn> = await fetchModelSchema(
+    tableName,
+    "read",
+  );
+
+  if (!hasCustomFields(tableName)) {
+    return columns;
+  }
+
+  let fields: Array<WorkflowCustomField> = [];
+
+  try {
+    fields = await loadCustomFields(tableName);
+  } catch {
+    // Not listed: the person may not read them, or their plan has none.
+  }
+
+  return withCustomFieldColumns(columns, fields);
+};
+
 export type CreateDefaultValueSourcesFunction =
   () => Array<ValueSuggestionSource>;
 
@@ -138,9 +180,7 @@ export const createDefaultValueSources: CreateDefaultValueSourcesFunction =
   (): Array<ValueSuggestionSource> => {
     return [
       createStepValueSource({
-        loadRecordColumns: (tableName: string) => {
-          return fetchModelSchema(tableName, "read");
-        },
+        loadRecordColumns: loadRecordColumns,
       }),
       createStepSampleSource({ load: loadStepSamples }),
       createVariableValueSource(),

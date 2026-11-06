@@ -6800,7 +6800,7 @@ test.describe("detections", () => {
     await menuSection(page, "Workspace").click();
     await expect(menuEntry(page, "Slack")).toBeVisible();
     await expect(menuEntry(page, "Microsoft Teams")).toHaveCount(0);
-    await expect(menuEntry(page, "Connect Slack or Teams")).toHaveCount(0);
+    await expect(menuEntry(page, "Connect a workspace")).toHaveCount(0);
 
     await open(page, OVERVIEW_PATH, { theme: "dark", width: 1280 });
     await expect(page.getByText("Riskiest Entities")).toBeVisible({

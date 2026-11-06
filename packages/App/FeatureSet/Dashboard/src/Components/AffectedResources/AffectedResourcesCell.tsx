@@ -6,6 +6,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -26,6 +27,7 @@ import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
 import IoTFleetElement from "../IoT/IoTFleetElement";
 import ProxmoxClusterElement from "../Proxmox/ProxmoxClusterElement";
+import OpenStackCloudElement from "../OpenStack/OpenStackCloudElement";
 import VMwareVCenterElement from "../VMware/VMwareVCenterElement";
 import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
@@ -61,6 +63,7 @@ type ResourceItem =
   | { _key: string; type: "DockerHost"; model: DockerHost }
   | { _key: string; type: "PodmanHost"; model: PodmanHost }
   | { _key: string; type: "ProxmoxCluster"; model: ProxmoxCluster }
+  | { _key: string; type: "OpenStackCloud"; model: OpenStackCloud }
   | { _key: string; type: "VMwareVCenter"; model: VMwareVCenter }
   | { _key: string; type: "CephCluster"; model: CephCluster }
   | { _key: string; type: "StorageArray"; model: StorageArray }
@@ -84,6 +87,7 @@ export interface ComponentProps {
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
@@ -158,6 +162,13 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       _key: `ProxmoxCluster:${cluster._id ? String(cluster._id) : Math.random()}`,
       type: "ProxmoxCluster",
       model: cluster,
+    });
+  }
+  for (const cloud of props.openStackClouds || []) {
+    items.push({
+      _key: `OpenStackCloud:${cloud._id ? String(cloud._id) : Math.random()}`,
+      type: "OpenStackCloud",
+      model: cloud,
     });
   }
   for (const vcenter of props.vmwareVCenters || []) {
@@ -309,6 +320,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <ProxmoxClusterElement
               proxmoxCluster={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "OpenStackCloud") {
+          return (
+            <OpenStackCloudElement
+              openStackCloud={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />

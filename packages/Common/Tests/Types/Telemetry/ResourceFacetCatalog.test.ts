@@ -66,6 +66,13 @@ const EXPECTED_CATALOG: Array<CatalogRow> = [
     IconProp.Proxmox,
   ],
   [
+    "openStackCloudId",
+    ServiceType.OpenStackCloud,
+    "OpenStack Cloud",
+    "OpenStack Clouds",
+    IconProp.Cloud,
+  ],
+  [
     "vmwareVCenterId",
     ServiceType.VMwareVCenter,
     "vCenter",
@@ -131,8 +138,8 @@ const EXPECTED_KEYS: Array<string> = EXPECTED_CATALOG.map(
 
 describe("ResourceFacetCatalog", () => {
   describe("contents", () => {
-    test("lists exactly the fourteen non-Service resource types, in sidebar order", () => {
-      expect(RESOURCE_FACET_CATALOG).toHaveLength(14);
+    test("lists exactly the fifteen non-Service resource types, in sidebar order", () => {
+      expect(RESOURCE_FACET_CATALOG).toHaveLength(15);
       expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual(EXPECTED_KEYS);
     });
 

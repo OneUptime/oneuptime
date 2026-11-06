@@ -159,6 +159,7 @@ Las plantillas leen los últimos 5 minutos salvo que la tabla diga otra cosa. Un
 - **Las series de PG y de pools son por pool**: no hay un indicador de todo el clúster, así que esas plantillas agrupan por `pool_id` y abren un incidente por pool.
 - **Las proporciones de capacidad** toman la **Suma** de ambos lados. Los dos salen de la misma consulta al mgr, así que el resultado es un porcentaje real. **Inactive Placement Groups** usa en cambio **Máximo** por pool, porque una suma acumularía consultas en una resta.
 - **Las plantillas de health checks** se recuperan cuando el check desaparece: sus criterios de recuperación cuentan una serie ausente como 0.
+- **Daemon Slow Operations** tiene una serie por daemon, así que cuando ningún daemon conserva su serie no queda nada que leer. Entonces se recupera solo si `ceph_health_status` llegó en la misma ventana, de modo que un agente detenido no cierra nada.
 
 Algunas alertas no tienen plantilla. El desequilibrio de PG necesita estadísticas entre series que los criterios no pueden calcular. La previsión de capacidad necesita un ajuste de crecimiento, que en su lugar dibuja el panel del clúster. La predicción de fallos de disco y el scrubbing atrasado no tienen métrica en el mgr, y NVMe-oF, la replicación de RBD y cephadm necesitan otros exportadores.
 

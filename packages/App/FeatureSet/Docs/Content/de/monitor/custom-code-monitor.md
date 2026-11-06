@@ -167,7 +167,7 @@ Einige Attributnamen gehören OneUptime, und ein Skript kann sie nicht schreiben
 
 - Die Identität des Monitors: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Alles in den Namensräumen `oneuptime.` oder `resource.` — sie tragen die Kennungen, die OneUptime bei der Aufnahme setzt.
-- Attribute zur Ressourcenidentität: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` und `docker.swarm.cluster.name`.
+- Attribute zur Ressourcenidentität: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` und `docker.swarm.cluster.name`.
 
 Diese Namen sind nicht nur Beschriftungen — OneUptime liest sie als Angabe, zu welcher Ressource ein Datenpunkt gehört. Eine Metrik mit `service.name: payments-api` würde auf dem Tab Metriken dieses Dienstes erscheinen, und wenn Sie später einen Metrik-Monitor nach `service.name` gruppieren, würden seine Warnungen mit diesem Dienst verknüpft, die Verantwortlichen dieses Dienstes benachrichtigen und während eines Wartungsfensters für ihn verstummen. Um einen Monitor einem Dienst oder Host zuzuordnen, verwenden Sie stattdessen die eigenen Labels des Monitors.
 

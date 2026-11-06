@@ -28,7 +28,7 @@ Een tweerichtingsintegratie, zoals Jira of Dynamics 365, gebruikt beide richting
 | Manier | Het beste voor | Voorbeelden |
 | --- | --- | --- |
 | Een ingebouwde koppeling | Tools waarmee OneUptime zelf verbinding maakt. Je vult een formulier in en er valt niets te bouwen. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), de koppelingen van [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) |
-| Een workflowsjabloon | Ticketingtools, in beide richtingen bijgewerkt, monitoringproblemen, beveiligingsincidentrapporten en chatberichten. Je kiest een sjabloon en vult een paar instellingen in. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
+| Een workflowsjabloon | Ticketingtools, in beide richtingen bijgewerkt, monitoringproblemen, beveiligingsincidentrapporten en chatberichten. Je kiest een sjabloon en vult een paar instellingen in. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
 | Een Incoming Request-monitor | Alertingtools die een webhook sturen. Je krijgt één incident per alert, aan de dienst doorgegeven en opgelost wanneer de alert herstelt, zonder workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Een workflow die je zelf bouwt | Elke tool met een webhook of een REST API, en elke eigen logica. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Zabbix](/docs/integrations/zabbix) | Beide | Maakt van Zabbix-problemen incidenten of waarschuwingen, lost ze op bij herstel, en bevestigt of sluit de problemen vanuit OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkomend | Maakt van Alertmanager-meldingen incidenten. |
 | [Grafana](/docs/integrations/grafana) | Inkomend | Maakt van Grafana-alerts incidenten. |
-| [Datadog](/docs/integrations/datadog) | Inkomend | Maakt van alerts van Datadog-monitors incidenten. |
+| [Datadog](/docs/integrations/datadog) | Inkomend | Maakt van alerts van Datadog-monitors incidenten of waarschuwingen, en lost ze op bij herstel. |
+| [New Relic](/docs/integrations/new-relic) | Inkomend | Maakt van New Relic-issues incidenten of waarschuwingen, en lost ze op wanneer het issue sluit. |
 
 ### Beveiligingstools
 
@@ -133,7 +134,7 @@ De URL is het enige inloggegeven, dus behandel hem als een wachtwoord. Zie [Webh
 5. Klik op **Workflow uitvoeren**, kies onder **Incident** een incident en voer hem uit. Een testuitvoering stuurt het verzoek echt. Zet daarna **Ingeschakeld** aan.
 :::
 
-Wanneer de tool de gegevens in een andere vorm nodig heeft, voeg je tussen de twee een [Run Custom JavaScript](/docs/workflows/components#custom-code)-blok toe. Het recept is hetzelfde voor Zendesk, New Relic, AWS (via SNS), StatusCake en alle andere: alleen de URL en de body veranderen.
+Wanneer de tool de gegevens in een andere vorm nodig heeft, voeg je tussen de twee een [Run Custom JavaScript](/docs/workflows/components#custom-code)-blok toe. Het recept is hetzelfde voor Zendesk, AWS (via SNS), StatusCake en alle andere: alleen de URL en de body veranderen.
 
 ## Inloggegevens veilig houden
 

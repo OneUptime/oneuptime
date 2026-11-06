@@ -1,0 +1,19 @@
+$ openstack volume backend pool list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "name": "compute-01@lvmdriver-1#lvmdriver-1",
+    "total_capacity_gb": 28.5,
+    "free_capacity_gb": 28.32,
+    "allocated_capacity_gb": 6,
+    "provisioned_capacity_gb": 7,
+    "max_over_subscription_ratio": "20.0",
+    "reserved_percentage": 0,
+    "total_volumes": 8,
+    "backend_state": "up",
+    "volume_backend_name": "lvmdriver-1"
+  }
+]

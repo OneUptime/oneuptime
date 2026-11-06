@@ -39,7 +39,7 @@
 | --- | --- |
 | پایش و APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | واکنش به حوادث | Incident Dashboard, Alert Dashboard |
-| زیرساخت | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| زیرساخت | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **پیشنهادی** شامل Monitor Dashboard، Incident Dashboard، Alert Dashboard، Kubernetes Dashboard، Hosts Dashboard و Metrics Dashboard است. قالب یک نقطه آغاز است، نه یک پیوند: وقتی داشبورد ساخته شد، هر طور که می‌خواهید تغییرش دهید. بعداً هیچ چیز آن را از روی قالب به‌روز نمی‌کند.
 

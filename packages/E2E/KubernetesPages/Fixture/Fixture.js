@@ -37,6 +37,8 @@
  *   ?lang=       de or fa reads the German or Persian locale file (Persian
  *                pages are right to left)
  *   ?theme=      dark adds html.dark (handled by server.js)
+ *   ?openstack=  instance: a node is an OpenStack instance
+ *                (SuiteHelpers/OpenStackPlacement.js)
  *
  * Every read is recorded on window.__kubernetesPagesFixture: listRequests,
  * itemRequests, countRequests, aggregateRequests, apiRequests and
@@ -106,6 +108,10 @@ import {
   readKubernetesPart,
 } from "Common/Tests/Helpers/KubernetesPartReads";
 import { getKubernetesPodWorkload } from "Common/Types/Kubernetes/KubernetesHealth";
+import {
+  getOpenStackPlacement,
+  getOpenStackPlacementScenario,
+} from "../../SuiteHelpers/OpenStackPlacement";
 
 /*
  * ---------------------------------------------------------------------------
@@ -118,6 +124,7 @@ const ESTATE = params.get("estate") === "calm" ? "calm" : "busy";
 const IS_BUSY = ESTATE === "busy";
 const COLLECTOR =
   params.get("collector") === "disconnected" ? "disconnected" : "connected";
+const OPENSTACK = getOpenStackPlacementScenario(params);
 const FAIL = ["attention", "part"].includes(params.get("fail"))
   ? params.get("fail")
   : "none";
@@ -1508,6 +1515,16 @@ async function handleApi(method, options) {
    * KubernetesResourceService answers them (Common/Tests/Helpers/
    * KubernetesPartReads, held to the service's own cases).
    */
+  // Which Magnum cluster a Kubernetes cluster is, as a project with no OpenStack answers.
+  if (
+    method === "POST" &&
+    parsed.pathname.includes(
+      "/openstack-resource/magnum-cluster-of-kubernetes-cluster/",
+    )
+  ) {
+    return ok({ link: null });
+  }
+
   if (
     method === "POST" &&
     parsed.pathname.includes("/kubernetes-resource/needs-attention/")
@@ -1599,6 +1616,16 @@ async function handleApi(method, options) {
 
   if (method === "POST" && parsed.pathname.endsWith("/receiving-gaps")) {
     return ok({ gaps: [] });
+  }
+
+  // Which instance a node is, from its spec.providerID. Most nodes are on no OpenStack.
+  if (
+    method === "POST" &&
+    parsed.pathname.includes(
+      "/openstack-resource/placement-of-kubernetes-node/",
+    )
+  ) {
+    return ok(getOpenStackPlacement(OPENSTACK));
   }
 
   if (

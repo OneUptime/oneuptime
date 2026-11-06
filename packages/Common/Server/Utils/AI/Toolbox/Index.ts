@@ -43,6 +43,12 @@ import {
   StartInvestigationTool,
 } from "./AIMetaTools";
 import { QueryProbesTool, QueryWorkflowsTool } from "./WorkflowProbeTools";
+import {
+  CheckWorkflowDraftTool,
+  CreateWorkflowTool,
+  FindWorkflowComponentsTool,
+  UpdateWorkflowTool,
+} from "./WorkflowBuilderTools";
 import { QueryTeamsTool } from "./TeamTools";
 import { CreateAlertNoteTool, CreateIncidentNoteTool } from "./NoteWriteTools";
 import { TopExceptionsTool } from "./ExceptionTools";
@@ -170,6 +176,9 @@ export default class AIToolbox {
     QuerySlosTool,
     QueryRunbooksTool,
     QueryWorkflowsTool,
+    // What a workflow can be made of, and whether a draft of one holds together.
+    FindWorkflowComponentsTool,
+    CheckWorkflowDraftTool,
     QueryProbesTool,
     QueryTeamsTool,
     /*
@@ -267,6 +276,12 @@ export default class AIToolbox {
      */
     OpenCodePullRequestTool,
     CommitCodeToBranchTool,
+    /*
+     * Workflows described in the conversation, built and changed as the
+     * person (#5945). One starts turned off, and nothing here turns it on.
+     */
+    CreateWorkflowTool,
+    UpdateWorkflowTool,
   ];
 
   public static getTools(): Array<ObservabilityTool> {

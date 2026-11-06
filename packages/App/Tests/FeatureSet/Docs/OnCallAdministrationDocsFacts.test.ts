@@ -270,7 +270,7 @@ const POLICY_MENU_SOURCE: string = POLICY_MENU_FILE.slice(
   POLICY_MENU_FILE.indexOf("<SideMenu>"),
 );
 
-const CONNECT_ENTRY_TITLE: string = "Connect Slack or Teams";
+const CONNECT_ENTRY_TITLE: string = "Connect a workspace";
 
 // The On-Call Duty menu, with the sections it adds from elsewhere.
 function onCallDutyMenu(): Array<MenuSection> {

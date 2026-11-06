@@ -69,6 +69,7 @@ import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluste
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -82,6 +83,8 @@ import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/Kubernete
 import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
+import { getAllOpenStackAlertTemplates } from "../../../Types/Monitor/OpenStackAlertTemplates";
+import { getAllOpenStackLogAlertTemplates } from "../../../Types/Monitor/OpenStackLogAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
@@ -95,12 +98,14 @@ import {
   DOCKER_SWARM_TEMPLATE_CATEGORIES,
   IOT_TEMPLATE_CATEGORIES,
   KUBERNETES_TEMPLATE_CATEGORIES,
+  OPENSTACK_TEMPLATE_CATEGORIES,
   PROXMOX_TEMPLATE_CATEGORIES,
   VMWARE_TEMPLATE_CATEGORIES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 import KubernetesRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Recommendations";
 import CephRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Recommendations";
 import ProxmoxRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Recommendations";
+import OpenStackRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Recommendations";
 import VMwareRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Recommendations";
 import DockerSwarmRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Recommendations";
 import IoTRecommendations from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Recommendations";
@@ -152,6 +157,29 @@ const CASES: Array<OrderCase> = [
     afterQuickSetup: Array.from(
       new Set(
         getAllProxmoxNotificationAlertTemplates().map(
+          (template: { category: string }): string => {
+            return template.category;
+          },
+        ),
+      ),
+    ),
+  },
+  {
+    name: "OpenStack",
+    page: OpenStackRecommendations as unknown as PageComponent,
+    modelType: OpenStackCloud,
+    path: "openstack",
+    // What a cloud may not run is recommended only to a cloud that runs it.
+    templates: getAllOpenStackAlertTemplates().filter(
+      (template: { forService?: unknown }): boolean => {
+        return !template.forService;
+      },
+    ),
+    categories: OPENSTACK_TEMPLATE_CATEGORIES,
+    // What a cloud's own services write and say: Logs monitors, after Quick Setup's.
+    afterQuickSetup: Array.from(
+      new Set(
+        getAllOpenStackLogAlertTemplates().map(
           (template: { category: string }): string => {
             return template.category;
           },

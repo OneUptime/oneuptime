@@ -75,6 +75,7 @@ export const TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES: ReadonlyArray<string> = [
   "DockerSwarmCluster",
   "KubernetesCluster",
   "ProxmoxCluster",
+  "OpenStackCloud",
   "CephCluster",
   "StorageArray",
   "VMwareVCenter",

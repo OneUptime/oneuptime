@@ -444,7 +444,7 @@ describe("the answer Slack lists", () => {
       },
     );
 
-    expect(optionGroups).toHaveLength(14);
+    expect(optionGroups).toHaveLength(15);
     expect(
       sizes.reduce((sum: number, size: number) => {
         return sum + size;

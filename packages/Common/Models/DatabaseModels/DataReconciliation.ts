@@ -1,3 +1,5 @@
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import DataAsset from "./DataAsset";
 import DataCheck from "./DataCheck";
 import Monitor from "./Monitor";
@@ -103,6 +105,13 @@ const hiddenColumnAccess: {
   update: [],
 };
 
+@EnableMCP()
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
+})
 @EnableDocumentation()
 @TableBillingAccessControl({
   create: PlanType.Free,

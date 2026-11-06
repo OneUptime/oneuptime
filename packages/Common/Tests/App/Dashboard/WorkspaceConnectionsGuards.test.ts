@@ -5,7 +5,10 @@ import {
   WORKSPACE_CONNECTIONS_PAGE_COPY,
   WORKSPACE_CONNECTION_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceConnectionCopy";
-import { WORKSPACE_MENU_ENTRY_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSideMenuSection";
+import {
+  WORKSPACE_MENU_ENTRY_TITLES,
+  WORKSPACE_SECTION_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSideMenuSection";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
@@ -401,6 +404,31 @@ describe("3. every new sentence is in every locale, translated", () => {
       }),
     ).toEqual([]);
   });
+
+  /*
+   * The entry a project with nothing connected sees opens a page of every
+   * workspace, so it names none of them, in the section's own word.
+   */
+  test.each(
+    LOCALE_FILES.filter((file: string): boolean => {
+      return file !== "en.json";
+    }),
+  )(
+    "%s words the connect entry as its section, naming no workspace",
+    (file: string) => {
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
+      );
+      const title: string = locale[
+        WORKSPACE_MENU_ENTRY_TITLES.Connect
+      ] as string;
+      const section: string = locale[WORKSPACE_SECTION_TITLE] as string;
+
+      expect(title).not.toBe(WORKSPACE_MENU_ENTRY_TITLES.Connect);
+      expect(title).not.toMatch(/Slack|Teams|Mattermost/);
+      expect(title.toLowerCase()).toContain(section.toLowerCase());
+    },
+  );
 
   test("the sentences that told people to retype a settings path are gone from every locale", () => {
     for (const file of LOCALE_FILES) {

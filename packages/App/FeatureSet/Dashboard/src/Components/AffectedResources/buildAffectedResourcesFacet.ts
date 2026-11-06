@@ -7,6 +7,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -61,6 +62,7 @@ type AffectedResourceType =
   | "dockerHost"
   | "podmanHost"
   | "proxmoxCluster"
+  | "openStackCloud"
   | "vmwareVCenter"
   | "cephCluster"
   | "storageArray"
@@ -126,6 +128,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     pluralLabel: "Proxmox Clusters",
     icon: IconProp.Proxmox,
     modelType: ProxmoxCluster,
+  },
+  openStackCloud: {
+    label: "OpenStack Cloud",
+    pluralLabel: "OpenStack Clouds",
+    icon: IconProp.Cloud,
+    modelType: OpenStackCloud,
   },
   vmwareVCenter: {
     label: "vCenter",
@@ -196,6 +204,7 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "dockerHost",
   "podmanHost",
   "proxmoxCluster",
+  "openStackCloud",
   "vmwareVCenter",
   "cephCluster",
   "storageArray",
@@ -240,6 +249,7 @@ const RESOURCE_QUERY_FIELD: Record<
   dockerHost: "dockerHosts",
   podmanHost: "podmanHosts",
   proxmoxCluster: "proxmoxClusters",
+  openStackCloud: "openStackClouds",
   vmwareVCenter: "vmwareVCenters",
   cephCluster: "cephClusters",
   storageArray: "storageArrays",

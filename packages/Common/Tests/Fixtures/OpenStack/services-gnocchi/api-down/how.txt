@@ -1,0 +1,2 @@
+Gnocchi's API stopped.
+On its own: Gnocchi's API is stopped, with gnocchi-metricd still running.

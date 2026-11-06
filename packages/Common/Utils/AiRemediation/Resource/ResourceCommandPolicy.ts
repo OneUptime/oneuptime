@@ -48,6 +48,7 @@ import GovcCommandPolicy from "./GovcCommandPolicy";
 import CephCommandPolicy from "./CephCommandPolicy";
 import DatabaseCommandPolicy from "./DatabaseCommandPolicy";
 import HostCommandPolicy from "./HostCommandPolicy";
+import OpenStackCommandPolicy from "./OpenStackCommandPolicy";
 import {
   AwsCloudCommandPolicy,
   AzureCloudCommandPolicy,
@@ -103,6 +104,7 @@ const TOOL_POLICY_BY_TYPE: Readonly<
   [AiResourceType.AwsAccount]: AwsCloudCommandPolicy,
   [AiResourceType.AzureSubscription]: AzureCloudCommandPolicy,
   [AiResourceType.GoogleCloudProject]: GcpCloudCommandPolicy,
+  [AiResourceType.OpenStackCloud]: OpenStackCommandPolicy,
 };
 
 // Refuses everything, for a resource type this build does not know.
@@ -231,6 +233,23 @@ function sanitizeToolResult(
   }
 
   return sanitized;
+}
+
+// The tool's own answer on a write target; a throw is read as "outside".
+function isInWriteScopeOfTool(
+  tool: ResourceToolPolicy,
+  target: string,
+  writeTargets: ReadonlyArray<string>,
+): boolean {
+  if (!tool.isTargetInWriteScope) {
+    return false;
+  }
+
+  try {
+    return tool.isTargetInWriteScope(target, writeTargets) === true;
+  } catch {
+    return false;
+  }
 }
 
 export default class ResourceCommandPolicy {
@@ -550,7 +569,21 @@ export default class ResourceCommandPolicy {
         return isWriteTier(result.tier);
       })
     ) {
-      return null;
+      /*
+       * A tool may say an entry can never pre-approve a change that always asks
+       * a person: the ladder would ignore it, and it would read as if it did.
+       */
+      const alwaysAsking: ResourceCommandPolicyResult | undefined =
+        ResourceCommandPolicy.getToolPolicy(data.resourceType)
+          .refusesAlwaysAskingAllowlistEntries === true
+          ? results.find((result: ResourceCommandPolicyResult): boolean => {
+              return isWriteTier(result.tier) && result.requiresHuman === true;
+            })
+          : undefined;
+
+      return alwaysAsking
+        ? `"${shown}" ${alwaysAsking.reason}. An allowlist entry pre-approves nothing here.`
+        : null;
     }
 
     const read: ResourceCommandPolicyResult | undefined = results.find(
@@ -666,7 +699,8 @@ export default class ResourceCommandPolicy {
    *   - a write never touches one of the agent's protected targets;
    *   - with ONEUPTIME_AI_WRITE_TARGETS set, every target must match one of
    *     its globs, and a write that names no target is refused (it cannot
-   *     be shown to stay inside them).
+   *     be shown to stay inside them). A tool may read more into an entry
+   *     (ResourceToolPolicy.isTargetInWriteScope).
    */
   public static getWriteScopeRefusal(data: {
     result: ResourceCommandPolicyResult;
@@ -738,7 +772,11 @@ export default class ResourceCommandPolicy {
       );
 
       if (protectedTarget !== undefined) {
-        return `"${shown}" would change ${target}, which the ${agentName} protects (${protectedTarget}): OneUptime AI never changes the agent itself or what it runs in.`;
+        return `"${shown}" would change ${target}, which the ${agentName} protects (${protectedTarget})${
+          toolPolicy.protectedTargetNote
+            ? `. ${toolPolicy.protectedTargetNote}`
+            : ": OneUptime AI never changes the agent itself or what it runs in."
+        }`;
       }
     }
 
@@ -766,9 +804,10 @@ export default class ResourceCommandPolicy {
     }
 
     for (const target of targets) {
-      const inScope: boolean = writeTargets.some((glob: string): boolean => {
-        return globMatchesTarget(glob, target);
-      });
+      const inScope: boolean =
+        writeTargets.some((glob: string): boolean => {
+          return globMatchesTarget(glob, target);
+        }) || isInWriteScopeOfTool(toolPolicy, target, writeTargets);
 
       if (!inScope) {
         return `"${shown}" would change ${target}, which is outside the targets the ${agentName} may change (${allowed}). Add it to ${RESOURCE_AI_WRITE_TARGETS_ENV} on the agent and restart it, or leave this change to a human.`;

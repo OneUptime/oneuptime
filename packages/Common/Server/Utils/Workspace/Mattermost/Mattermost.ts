@@ -68,6 +68,25 @@ export const MATTERMOST_CHANNEL_EXISTS_ERROR_ID: string =
   "store.sql_channel.save_channel.exists.app_error";
 
 /*
+ * How the error's id ends when an account is added to a channel of a team it
+ * is not in: "app.team...", "store.sql_team..." on older servers. A 404, as
+ * for a channel that is gone, so only the id tells the two apart. And the id
+ * for an account removed from the team.
+ */
+const NOT_IN_TEAM_ERROR_ID_END: string = "team.get_member.missing.app_error";
+const REMOVED_FROM_TEAM_ERROR_ID: string =
+  "api.channel.add_user.to.channel.failed.deleted.app_error";
+
+/*
+ * How the error's id ends when the account to add does not exist:
+ * "app.user...", "store.sql_user..." on older servers. And the id for an
+ * account deactivated: a 403, as for a bot not allowed to add anybody.
+ */
+const NO_ACCOUNT_ERROR_ID_END: string = "user.missing_account.const";
+const DEACTIVATED_ACCOUNT_ERROR_ID: string =
+  "app.channel.add_member.deleted_user.app_error";
+
+/*
  * What an email address may not hold to be placed in a path: white space,
  * or what ends or escapes a path segment.
  */
@@ -85,6 +104,8 @@ export interface MattermostChannel extends WorkspaceChannel {
   displayName: string;
   // "O" for a public channel, "P" for a private one, "D" / "G" for direct and group messages.
   type: string;
+  // Archived: Mattermost keeps the channel and everybody in it.
+  isArchived?: boolean | undefined;
 }
 
 // A Mattermost account, as OneUptime reads one.
@@ -96,6 +117,10 @@ export interface MattermostUser {
   isBot: boolean;
   // A guest account, which Mattermost lets into the channels it was let into only.
   isGuest: boolean;
+  // Its email address, when the server shows people's to the bot (Show Email Address).
+  email?: string | undefined;
+  // Deactivated: Mattermost keeps such an account in the channels it was in.
+  isDeactivated?: boolean | undefined;
 }
 
 // A team the bot account is a member of.
@@ -182,6 +207,9 @@ export default class MattermostUtil extends WorkspaceBase {
 
   // The most pages of channels read, so a huge team cannot hold a request forever.
   private static readonly MAX_CHANNEL_PAGES: number = 25;
+
+  // How many accounts Mattermost lists in one page: the most it gives (PerPageMaximum).
+  private static readonly CHANNEL_MEMBERS_PER_PAGE: number = 200;
 
   /*
    * Calls the Mattermost server of `connection` as its bot: `path` under
@@ -326,6 +354,38 @@ export default class MattermostUtil extends WorkspaceBase {
 
   public static isForbiddenError(error: unknown): boolean {
     return error instanceof MattermostRequestError && error.statusCode === 403;
+  }
+
+  // A token Mattermost no longer takes: revoked, or its bot deactivated.
+  public static isUnauthorizedError(error: unknown): boolean {
+    return error instanceof MattermostRequestError && error.statusCode === 401;
+  }
+
+  // The account to add is not in the channel's team.
+  public static isNotInTeamError(error: unknown): boolean {
+    return (
+      error instanceof MattermostRequestError &&
+      (error.errorId.endsWith(NOT_IN_TEAM_ERROR_ID_END) ||
+        error.errorId === REMOVED_FROM_TEAM_ERROR_ID)
+    );
+  }
+
+  // The account to add does not exist, or was deactivated.
+  public static isAccountGoneError(error: unknown): boolean {
+    return (
+      error instanceof MattermostRequestError &&
+      (error.errorId.endsWith(NO_ACCOUNT_ERROR_ID_END) ||
+        error.errorId === DEACTIVATED_ACCOUNT_ERROR_ID)
+    );
+  }
+
+  // Mattermost could not answer now: down, or its rate limit.
+  public static isUnavailableError(error: unknown): boolean {
+    return (
+      !(error instanceof MattermostRequestError) ||
+      error.statusCode === 429 ||
+      error.statusCode >= 500
+    );
   }
 
   /*
@@ -510,6 +570,9 @@ export default class MattermostUtil extends WorkspaceBase {
         : "";
     const nickname: string =
       typeof user["nickname"] === "string" ? (user["nickname"] as string) : "";
+    const email: string =
+      typeof user["email"] === "string" ? (user["email"] as string).trim() : "";
+    const deletedAt: unknown = user["delete_at"];
 
     return {
       id: id,
@@ -522,6 +585,10 @@ export default class MattermostUtil extends WorkspaceBase {
       isGuest:
         typeof user["roles"] === "string" &&
         (user["roles"] as string).split(" ").includes("system_guest"),
+      ...(email ? { email: email } : {}),
+      ...(typeof deletedAt === "number" && deletedAt > 0
+        ? { isDeactivated: true }
+        : {}),
     };
   }
 
@@ -872,6 +939,7 @@ export default class MattermostUtil extends WorkspaceBase {
 
     const name: string =
       typeof channel["name"] === "string" ? (channel["name"] as string) : id;
+    const deletedAt: unknown = channel["delete_at"];
 
     return {
       id: id,
@@ -883,7 +951,80 @@ export default class MattermostUtil extends WorkspaceBase {
       type:
         typeof channel["type"] === "string" ? (channel["type"] as string) : "",
       workspaceType: WorkspaceType.Mattermost,
+      ...(typeof deletedAt === "number" && deletedAt > 0
+        ? { isArchived: true }
+        : {}),
     };
+  }
+
+  /*
+   * The accounts in a channel, bots and deactivated accounts among them, page
+   * by page in username order, up to `max`. An entry OneUptime cannot read is
+   * left out.
+   *
+   * Mattermost lists a channel's people only for somebody in it - a public
+   * channel's too, unlike Slack - so a bot that is not in it is refused (403).
+   * An archived channel keeps its people, and lists them.
+   */
+  @CaptureSpan()
+  public static async getChannelMembers(data: {
+    authToken: string;
+    channelId: string;
+    max: number;
+  }): Promise<Array<MattermostUser>> {
+    const connection: MattermostConnectionData =
+      MattermostConnection.fromAuthToken(data.authToken);
+
+    const channelId: string = MattermostConnection.assertMattermostId(
+      data.channelId,
+      "channel",
+    );
+
+    const members: Map<string, MattermostUser> = new Map<
+      string,
+      MattermostUser
+    >();
+    const perPage: number = MattermostUtil.CHANNEL_MEMBERS_PER_PAGE;
+    // A server of the customer's own answers: it cannot hold a request forever.
+    const maxPages: number = Math.ceil(data.max / perPage);
+
+    for (let page: number = 0; page < maxPages; page++) {
+      const list: JSONArray = await MattermostUtil.callServer<JSONArray>({
+        ...connection,
+        method: HTTPMethod.GET,
+        path: "/api/v4/users",
+        query: {
+          in_channel: channelId,
+          page: page.toString(),
+          per_page: perPage.toString(),
+        },
+        retry: true,
+      });
+
+      if (!Array.isArray(list)) {
+        throw new BadDataException(
+          "Mattermost answered with a list of people OneUptime could not read.",
+        );
+      }
+
+      for (const item of list) {
+        try {
+          const member: MattermostUser = MattermostUtil.readUser(
+            (item || {}) as JSONObject,
+          );
+
+          members.set(member.id, member);
+        } catch {
+          // An entry OneUptime cannot read is left out.
+        }
+      }
+
+      if (list.length < perPage) {
+        break;
+      }
+    }
+
+    return Array.from(members.values()).slice(0, data.max);
   }
 
   // The bot joins a public channel, so it may post there.

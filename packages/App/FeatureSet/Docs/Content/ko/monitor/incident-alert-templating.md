@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | 사용할 수 없는 모든 그룹에 대한 한 줄로, 제목에 바로 쓸 수 있습니다. 모두 수집되면 비어 있습니다. | `string` |
 | `metrics` | 시리즈 이름별로 수집된 값. | `Object` |
 
-`metrics` 의 시리즈 이름에는 `oneuptime.monitor.database.connections.used.percent` 처럼 점이 들어 있고, 경로는 각 점을 객체 안으로 들어가는 한 단계로 읽으므로, 템플릿은 `metrics` 에서 값 하나를 골라낼 수 없습니다. `{{metrics}}` 를 JSON으로 통째로 넣거나 `{{collectionIssueSummary}}` 를 사용하세요. 수집되지 않은 메트릭은 `metrics` 에 없을 뿐 0이 아닙니다. 값 하나로 판단하려면 기준에서 [JavaScript 표현식](/docs/monitor/javascript-expression)으로 비교하세요.
+`metrics` 의 시리즈 이름에는 `oneuptime.monitor.database.connections.used.percent` 처럼 점이 들어 있지만, 템플릿에서도 값 하나를 골라낼 수 있습니다. `{{metrics.oneuptime.monitor.database.connections.used.percent}}` 처럼 `metrics.` 뒤에 이름 전체를 쓰세요. `{{metrics}}` 를 JSON으로 통째로 넣거나 `{{collectionIssueSummary}}` 를 사용하세요. 수집되지 않은 메트릭은 `metrics` 에 없을 뿐 0이 아닙니다. 값 하나로 판단하려면 기준에서 [JavaScript 표현식](/docs/monitor/javascript-expression)으로 비교하세요.
 
 ### 외부 상태 페이지 모니터
 
@@ -452,7 +452,7 @@ Alerts for payments:
 
 ### 메트릭 및 인프라 모니터
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array, IoT Device 모니터에는 고유한 변수가 하나 있습니다.
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array, IoT Device 모니터에는 고유한 변수가 하나 있습니다.
 
 | 변수 | 담긴 내용 | 유형 |
 | --- | --- | --- |

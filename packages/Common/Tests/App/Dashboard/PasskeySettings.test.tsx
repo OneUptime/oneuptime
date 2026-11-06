@@ -842,9 +842,11 @@ describe("Passkey settings registration", () => {
     expect(posted).toHaveLength(1);
     expect(screen.getByTestId("passkey-name")).toHaveValue("My laptop");
     expect(screen.getByTestId("passkey-name")).toHaveAttribute("readonly");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Follow the prompt from your browser or device.",
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Follow the prompt from your browser or device.",
+      );
+    });
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
     await act(async () => {
       finish!(WebAuthnTestUtil.credential(true));

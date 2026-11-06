@@ -92,11 +92,11 @@ describe("SeriesLabelDisplay", () => {
       /*
        * Custom-code and synthetic monitors choose their own attribute
        * keys via oneuptime.captureMetric(), so the registry can never be
-       * exhaustive. A user who groups by tenant_id must still get a
+       * exhaustive. A user who groups by customer_id must still get a
        * readable alert.
        */
-      expect(SeriesLabelDisplay.getFriendlyLabelName("tenant_id")).toBe(
-        "Tenant Id",
+      expect(SeriesLabelDisplay.getFriendlyLabelName("customer_id")).toBe(
+        "Customer Id",
       );
       expect(
         SeriesLabelDisplay.getFriendlyLabelName("resource.my.custom.thing"),
@@ -129,7 +129,52 @@ describe("SeriesLabelDisplay", () => {
     });
 
     test("does not claim an unregistered key", () => {
-      expect(SeriesLabelDisplay.isKnownLabelKey("tenant_id")).toBe(false);
+      expect(SeriesLabelDisplay.isKnownLabelKey("customer_id")).toBe(false);
+    });
+
+    test("OpenStack's labels say what they say, since every monitor type reads them", () => {
+      /*
+       * A monitor of someone's own metrics can group by tenant_id or uuid and
+       * mean anything by them, so neither reads as an OpenStack project or instance.
+       */
+      expect(SeriesLabelDisplay.getFriendlyLabelName("tenant_id")).toBe(
+        "Tenant ID",
+      );
+      expect(SeriesLabelDisplay.getFriendlyLabelName("tenant")).toBe("Tenant");
+      expect(SeriesLabelDisplay.getFriendlyLabelName("uuid")).toBe("UUID");
+    });
+
+    test("an OpenStack alert names the part, then its region, then the ids for the commands", () => {
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "openstack.region.name": "RegionOne",
+          hostname: "compute-01",
+          service: "nova-compute",
+        }),
+      ).toBe("Host: compute-01 | Service: nova-compute | Region: RegionOne");
+
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "openstack.region.name": "RegionOne",
+          tenant_id: "4f2d",
+          tenant: "payments",
+        }),
+      ).toBe("Tenant: payments | Region: RegionOne | Tenant ID: 4f2d");
+
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "openstack.region.name": "RegionOne",
+          network_id: "n-1",
+          network_name: "public",
+        }),
+      ).toBe("Network: public | Region: RegionOne | Network ID: n-1");
+
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "openstack.region.name": "RegionOne",
+          openstack_service: "compute",
+        }),
+      ).toBe("Service Type: compute | Region: RegionOne");
     });
 
     test("a failed systemd unit's alert names it Unit, ranked as a mount is", () => {
@@ -177,7 +222,9 @@ describe("SeriesLabelDisplay", () => {
     });
 
     test("an unregistered key sorts after the object it qualifies", () => {
-      expect(SeriesLabelDisplay.getLabelPriority("tenant_id")).toBeGreaterThan(
+      expect(
+        SeriesLabelDisplay.getLabelPriority("customer_id"),
+      ).toBeGreaterThan(
         SeriesLabelDisplay.getLabelPriority("resource.k8s.pod.name"),
       );
     });
@@ -616,7 +663,7 @@ describe("SeriesLabelDisplay", () => {
       expect(name).toBeLessThan(id);
       // An id is correct but not what a reader scans for: after any label.
       expect(id).toBeGreaterThan(
-        SeriesLabelDisplay.getLabelPriority("tenant_id"),
+        SeriesLabelDisplay.getLabelPriority("customer_id"),
       );
 
       expect(

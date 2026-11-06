@@ -6,7 +6,15 @@ import getJestMockFunction from "../../../MockType";
 import "@testing-library/jest-dom";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React from "react";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import { loadMarkdownEditor } from "../../../../UI/Components/Markdown.tsx/LazyMarkdownEditor";
 
 /*
  * A dialog whose only Markdown editor is folded away opens at its own width
@@ -61,6 +69,10 @@ function fold(): HTMLElement {
 function clickNatively(element: HTMLElement): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
+
+beforeAll(async () => {
+  await loadMarkdownEditor();
+});
 
 describe("a folded editor's dialog", () => {
   let previousActEnvironment: boolean | undefined;

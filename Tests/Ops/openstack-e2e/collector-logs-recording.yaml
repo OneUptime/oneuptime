@@ -1,0 +1,12 @@
+# Merged over the agent's real logs profiles by logs-record.sh: the same receivers,
+# operators and processors, with a file in place of OneUptime, so the recording is
+# exactly what would have been sent.
+exporters:
+  file/recording:
+    path: ${env:OPENSTACK_LOGS_RECORDING_FILE}
+    format: json
+
+service:
+  pipelines:
+    logs:
+      exporters: [file/recording]

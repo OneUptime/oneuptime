@@ -13664,7 +13664,7 @@ test.describe("links and quotes in a note", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * Open in Slack / Open in Microsoft Teams
+ * Open in Slack / Open in Microsoft Teams / Open in Mattermost
  * ---------------------------------------------------------------------------
  *
  * A record a workspace notification rule made a channel for has a button in
@@ -13675,8 +13675,10 @@ test.describe("links and quotes in a note", () => {
 
 const SLACK_CHANNEL_URL: string =
   "https://slack.com/app_redirect?channel=C0ACME0001&team=T0ACMECOM";
+const MATTERMOST_CHANNEL_URL: string =
+  "https://chat.acme-commerce.example/acme/channels/incident-1042-checkout-latency";
 
-test.describe("Open in Slack / Microsoft Teams", () => {
+test.describe("Open in Slack / Microsoft Teams / Mattermost", () => {
   test("no channel, no button", async ({ page }: { page: Page }) => {
     await openReady(page, INCIDENT_PAGE);
 
@@ -13738,6 +13740,108 @@ test.describe("Open in Slack / Microsoft Teams", () => {
       "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
     );
     await expect(teams).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  /*
+   * Mattermost is a server of the customer's own: the link is on the server
+   * the project was connected to, and the card's link to the channel too.
+   */
+  test("a Mattermost channel is a link to the project's own server, and its card says who is in it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost");
+
+    const mattermost: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Mattermost",
+    });
+
+    await expect(mattermost).toHaveAttribute("href", MATTERMOST_CHANNEL_URL);
+    await expect(mattermost).toHaveAttribute("target", "_blank");
+    await expect(mattermost).toHaveAttribute("rel", "noopener noreferrer");
+
+    await mattermost.hover();
+    await expect(
+      page
+        .locator("[data-tippy-root]")
+        .getByText("incident-1042-checkout-latency", { exact: true }),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-mattermost");
+
+    const card: Locator = page.getByTestId("record-channel-members-card");
+
+    await expect(
+      page.getByText("Mattermost Channel", { exact: true }),
+    ).toBeVisible();
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "href",
+      MATTERMOST_CHANNEL_URL,
+    );
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("channels in Slack and Mattermost: one Open channel that lists them, and one card that lists them both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route(
+        "https://chat.acme-commerce.example/**",
+        async (route: PlaywrightRoute) => {
+          await route.fulfill({
+            status: 200,
+            contentType: "text/plain",
+            body: "Mattermost",
+          });
+        },
+      );
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost,slack");
+
+    await expect(heroActions(page).getByRole("link")).toHaveCount(0);
+
+    await heroActions(page)
+      .getByRole("button", { name: "Open channel" })
+      .click();
+
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Slack · #incident-1042-checkout-latency",
+      "Mattermost · incident-1042-checkout-latency",
+    ]);
+    await screenshotElement(
+      hero(page),
+      "incident-hero-open-channel-mattermost",
+    );
+
+    await expect(page.getByTestId("record-channel-members-card")).toHaveCount(
+      1,
+    );
+    await expect(
+      page.getByText("Chat Channels", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByTestId("record-channel-name")).toHaveText([
+      "#incident-1042-checkout-latency",
+      "incident-1042-checkout-latency",
+    ]);
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu
+      .getByRole("menuitem", {
+        name: "Mattermost · incident-1042-checkout-latency",
+      })
+      .click();
+    const tab: Page = await opened;
+    await expect(tab).toHaveURL(MATTERMOST_CHANNEL_URL);
+    await tab.close();
   });
 
   /*
@@ -14949,6 +15053,113 @@ test.describe("the record's channel card", () => {
     ).toHaveLength(1);
 
     await screenshotElement(card, "incident-channel-card");
+  });
+
+  test("an incident's Mattermost channel: who is in it, as Mattermost words it, with Join channel and Add people", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Jordan Patel",
+      "Priya from Support",
+      "Sam Rivera",
+    ]);
+    await expect(card.getByTestId("record-channel-name")).toHaveText(
+      "incident-1042-checkout-latency",
+    );
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "title",
+      "Open in Mattermost",
+    );
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel · 3 people",
+    );
+    await expect(card.getByTestId("record-channel-join")).toBeVisible();
+    await expect(card.getByTestId("record-channel-add-people")).toBeVisible();
+
+    await screenshotElement(card, "incident-channel-card-mattermost");
+  });
+
+  test("Mattermost: Join channel and Add people go to its channel, and what they say names Mattermost", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, INCIDENT_PAGE, "channels=mattermost&members=empty");
+
+    const card: Locator = channelCard(page);
+
+    await card.getByTestId("record-channel-join").click();
+    await expect(card.getByTestId("record-channel-join-result")).toContainText(
+      "You're in the channel now.",
+    );
+    await expect(
+      card.getByRole("link", { name: "Open in Mattermost" }),
+    ).toHaveAttribute("href", MATTERMOST_CHANNEL_URL);
+    await expect(card.getByTestId("record-channel-person-you")).toBeVisible();
+
+    await card.getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await dialog.getByRole("option", { name: /Sam Rivera/ }).click();
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Sam Rivera.",
+    );
+
+    await dialog.getByRole("option", { name: /Alex Kim/ }).click();
+    await expect(dialog.getByRole("alert")).toContainText(
+      "OneUptime can't find Alex Kim in Mattermost",
+    );
+
+    expect(await channelAdds(page)).toEqual([
+      {
+        channelId: "c0acme0mattermost000000001",
+        userIds: [MAYA_ID],
+        teamIds: [],
+      },
+      {
+        channelId: "c0acme0mattermost000000001",
+        userIds: [SAM_ID],
+        teamIds: [],
+      },
+      {
+        channelId: "c0acme0mattermost000000001",
+        userIds: [ALEX_ID],
+        teamIds: [],
+      },
+    ]);
+  });
+
+  test("Mattermost: what a channel that can take nobody says names Mattermost, and where to connect it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=mattermost&members=not-connected",
+    );
+
+    const state: Locator = channelCard(page).getByTestId(
+      "record-channel-state",
+    );
+
+    await expect(state).toContainText(
+      "Mattermost isn't connected to this project.",
+    );
+    await expect(
+      state.getByRole("link", { name: "Connect Mattermost" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/mattermost-integration`,
+    );
   });
 
   test("everybody left the private channel: Join channel lets the viewer back in", async ({

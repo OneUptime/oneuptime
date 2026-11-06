@@ -1,0 +1,20 @@
+# HELP openstack_loadbalancer_loadbalancer_status loadbalancer_status
+# TYPE openstack_loadbalancer_loadbalancer_status gauge
+openstack_loadbalancer_loadbalancer_status{id="26ad4550-f695-4a4f-9840-f2b4f692703b",name="ou-lb-ovn",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="ovn",provisioning_status="ACTIVE",vip_address="10.77.0.74"} 0
+openstack_loadbalancer_loadbalancer_status{id="47126dd6-08cb-42a3-b6f3-aa2e50c3850e",name="ou-lb-failed",operating_status="OFFLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="amphora",provisioning_status="ERROR",vip_address="10.77.0.199"} 2
+openstack_loadbalancer_loadbalancer_status{id="86e276ff-1f82-4ff2-80c8-ddefae0c9b92",name="ou-lb",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.165"} 0
+openstack_loadbalancer_loadbalancer_status{id="ad0ffee2-b6c7-4351-908d-53828afc6367",name="ou-lb-ha",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",provider="amphora",provisioning_status="ACTIVE",vip_address="10.77.0.85"} 0
+# HELP openstack_loadbalancer_pool_status pool_status
+# TYPE openstack_loadbalancer_pool_status gauge
+openstack_loadbalancer_pool_status{id="a7b18438-fecf-4868-abbe-dda2fe0dd054",lb_algorithm="ROUND_ROBIN",loadbalancers="ad0ffee2-b6c7-4351-908d-53828afc6367",name="ou-lb-ha-pool",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",protocol="HTTP",provisioning_status="ACTIVE"} 0
+openstack_loadbalancer_pool_status{id="c8be32a6-b417-47e0-925c-83682f0c85f5",lb_algorithm="SOURCE_IP_PORT",loadbalancers="26ad4550-f695-4a4f-9840-f2b4f692703b",name="ou-lb-ovn-pool",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",protocol="TCP",provisioning_status="ACTIVE"} 0
+openstack_loadbalancer_pool_status{id="de863bbd-74a7-4453-95bc-eb4d350fc62a",lb_algorithm="ROUND_ROBIN",loadbalancers="86e276ff-1f82-4ff2-80c8-ddefae0c9b92",name="ou-lb-pool",operating_status="ONLINE",project_id="9ea59a6fc54a41b9844bbc05ec5c660b",protocol="HTTP",provisioning_status="ACTIVE"} 0
+# HELP openstack_loadbalancer_total_loadbalancers total_loadbalancers
+# TYPE openstack_loadbalancer_total_loadbalancers gauge
+openstack_loadbalancer_total_loadbalancers 4
+# HELP openstack_loadbalancer_total_pools total_pools
+# TYPE openstack_loadbalancer_total_pools gauge
+openstack_loadbalancer_total_pools 3
+# HELP openstack_loadbalancer_up up
+# TYPE openstack_loadbalancer_up gauge
+openstack_loadbalancer_up 1

@@ -59,7 +59,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 | **Warnungen** | **Alle Warnungen** und **Aktive Warnungen**, deren rotes Abzeichen die noch nicht behobenen Warnungen zählt.                |
 | **Episoden** | **Alle Episoden** und **Aktive Episoden**: zusammengehörige Warnungen, gebündelt zu einem Problem, an dem Sie arbeiten. |
 | **KI**        | **Einblicke**, **Protokolle** und **Einstellungen**: was OneUptime AI aus Ihren Warnungen gelernt hat, alles, was es getan hat, und was es darf. |
-| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat. |
 | **Regeln**    | **Gruppierungsregeln**, **Bereitschaftsregeln**, **Vorfallsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **Erinnerungsregeln**. |
 | **Einstellungen** | **Warnungsstatus**, **Warnungsschweregrad**, **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
 

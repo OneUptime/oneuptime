@@ -433,7 +433,7 @@ Alerts for payments:
 | `collectionIssueSummary` | Одна строка обо всех недоступных группах, готовая для заголовка. Пуста, если всё собрано. | `string` |
 | `metrics` | Собранные значения по имени серии. | `Object` |
 
-Имена серий в `metrics` содержат точки, например `oneuptime.monitor.database.connections.used.percent`, а путь читает каждую точку как шаг внутрь объекта, поэтому шаблон не может выбрать одно значение из `metrics`. Подставляйте `{{metrics}}` целиком, в виде JSON, или используйте `{{collectionIssueSummary}}`. Несобранной метрики в `metrics` просто нет, она не равна нулю. Чтобы действовать по одному значению, сравните его в критерии с помощью [выражения JavaScript](/docs/monitor/javascript-expression).
+Имена серий в `metrics` содержат точки, например `oneuptime.monitor.database.connections.used.percent`, но шаблон всё же может выбрать одно значение: запишите имя целиком после `metrics.`, как в `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Подставляйте `{{metrics}}` целиком, в виде JSON, или используйте `{{collectionIssueSummary}}`. Несобранной метрики в `metrics` просто нет, она не равна нулю. Чтобы действовать по одному значению, сравните его в критерии с помощью [выражения JavaScript](/docs/monitor/javascript-expression).
 
 ### Мониторы внешних страниц статуса
 
@@ -452,7 +452,7 @@ Alerts for payments:
 
 ### Мониторы метрик и инфраструктуры
 
-У мониторов Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array и IoT Device есть одна собственная переменная:
+У мониторов Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array и IoT Device есть одна собственная переменная:
 
 | Переменная | Что содержит | Тип |
 | --- | --- | --- |

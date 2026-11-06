@@ -69,6 +69,13 @@ const TableViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Owners",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS),
+          }}
+          icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
             title: "Services",
             to: routeOf(PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES),
           }}

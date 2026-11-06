@@ -13,6 +13,7 @@ import AlertStateService from "../../Services/AlertStateService";
 import CephClusterOwnerUserService from "../../Services/CephClusterOwnerUserService";
 import CloudResourceOwnerUserService from "../../Services/CloudResourceOwnerUserService";
 import DashboardOwnerUserService from "../../Services/DashboardOwnerUserService";
+import DataAssetOwnerUserService from "../../Services/DataAssetOwnerUserService";
 import DataStoreOwnerUserService from "../../Services/DataStoreOwnerUserService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseServerOwnerUserService from "../../Services/DatabaseServerOwnerUserService";
@@ -39,6 +40,7 @@ import OnCallDutyPolicyScheduleOwnerUserService from "../../Services/OnCallDutyP
 import PodmanHostOwnerUserService from "../../Services/PodmanHostOwnerUserService";
 import ProbeOwnerUserService from "../../Services/ProbeOwnerUserService";
 import ProxmoxClusterOwnerUserService from "../../Services/ProxmoxClusterOwnerUserService";
+import OpenStackCloudOwnerUserService from "../../Services/OpenStackCloudOwnerUserService";
 import RumApplicationOwnerUserService from "../../Services/RumApplicationOwnerUserService";
 import RunbookOwnerUserService from "../../Services/RunbookOwnerUserService";
 import RunnerOwnerUserService from "../../Services/RunnerOwnerUserService";
@@ -153,6 +155,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(CephClusterOwnerUserService, "cephClusterId"),
       ownerUserTable(CloudResourceOwnerUserService, "cloudResourceId"),
       ownerUserTable(DashboardOwnerUserService, "dashboardId"),
+      ownerUserTable(DataAssetOwnerUserService, "dataAssetId"),
       ownerUserTable(DataStoreOwnerUserService, "dataStoreId"),
       ownerUserTable(DatabaseServerOwnerUserService, "databaseServerId"),
       ownerUserTable(DockerHostOwnerUserService, "dockerHostId"),
@@ -180,6 +183,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(PodmanHostOwnerUserService, "podmanHostId"),
       ownerUserTable(ProbeOwnerUserService, "probeId"),
       ownerUserTable(ProxmoxClusterOwnerUserService, "proxmoxClusterId"),
+      ownerUserTable(OpenStackCloudOwnerUserService, "openStackCloudId"),
       ownerUserTable(RumApplicationOwnerUserService, "rumApplicationId"),
       ownerUserTable(RunbookOwnerUserService, "runbookId"),
       ownerUserTable(RunnerOwnerUserService, "runnerId"),

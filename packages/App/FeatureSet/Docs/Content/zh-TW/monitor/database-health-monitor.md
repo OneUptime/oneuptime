@@ -396,7 +396,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-若要在運算式中讀取某個指標，請對整個 `metrics` 物件使用索引——序列名稱中含有點，因此不能放在大括號內：
+若要在運算式中讀取某個指標，可以把含點的序列名稱直接寫在大括號內，也可以對整個 `metrics` 物件使用索引——兩種方式都可行：
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

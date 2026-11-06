@@ -9,6 +9,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
@@ -41,6 +42,7 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { describe, expect, test } from "@jest/globals";
 
@@ -68,6 +70,7 @@ const KIND_MODELS: Record<AiAffectedResourceKind, { new (): BaseModel }> = {
   [AiAffectedResourceKind.KubernetesCluster]: KubernetesCluster,
   [AiAffectedResourceKind.DockerSwarmCluster]: DockerSwarmCluster,
   [AiAffectedResourceKind.ProxmoxCluster]: ProxmoxCluster,
+  [AiAffectedResourceKind.OpenStackCloud]: OpenStackCloud,
   [AiAffectedResourceKind.VMwareVCenter]: VMwareVCenter,
   [AiAffectedResourceKind.CephCluster]: CephCluster,
   [AiAffectedResourceKind.StorageArray]: StorageArray,
@@ -170,7 +173,9 @@ describe("the kinds OneUptime AI links", () => {
         AiAffectedResourceKind.KubernetesCluster as string,
         AiAffectedResourceKind.CloudResource as string,
         ...ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-          return !isCloudAiResourceType(type);
+          return (
+            !isCloudAiResourceType(type) && !isReadOnlyAiResourceType(type)
+          );
         }).map((type: string): string => {
           return type;
         }),

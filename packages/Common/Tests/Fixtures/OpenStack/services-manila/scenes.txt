@@ -1,0 +1,8 @@
+baseline recorded
+share-error recorded
+share-stuck recorded
+share-service-stopped recorded
+share-service-killed recorded
+scheduler-stopped recorded
+api-down recorded
+recovered recorded

@@ -116,6 +116,7 @@ import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import Project from "../../../Models/DatabaseModels/Project";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
@@ -153,6 +154,7 @@ const RESOURCE_PROPS: Record<ResourceProp, ResourceModelType> = {
   dockerHosts: DockerHost,
   podmanHosts: PodmanHost,
   proxmoxClusters: ProxmoxCluster,
+  openStackClouds: OpenStackCloud,
   vmwareVCenters: VMwareVCenter,
   cephClusters: CephCluster,
   storageArrays: StorageArray,

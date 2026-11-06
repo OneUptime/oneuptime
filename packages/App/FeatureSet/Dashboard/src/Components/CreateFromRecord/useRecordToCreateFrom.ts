@@ -13,6 +13,7 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Service from "Common/Models/DatabaseModels/Service";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -49,6 +50,7 @@ const MODEL_TYPES: Record<CreateFromRecordKind, { new (): BaseModel }> = {
   [CreateFromRecordKind.DockerHost]: DockerHost,
   [CreateFromRecordKind.PodmanHost]: PodmanHost,
   [CreateFromRecordKind.ProxmoxCluster]: ProxmoxCluster,
+  [CreateFromRecordKind.OpenStackCloud]: OpenStackCloud,
   [CreateFromRecordKind.VMwareVCenter]: VMwareVCenter,
   [CreateFromRecordKind.CephCluster]: CephCluster,
   [CreateFromRecordKind.StorageArray]: StorageArray,

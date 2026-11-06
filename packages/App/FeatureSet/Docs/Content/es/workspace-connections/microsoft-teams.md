@@ -43,7 +43,7 @@ Una organización de Microsoft 365 puede estar conectada a más de un proyecto, 
 :::steps
 ### Dar el consentimiento de administrador
 
-Ve a **Ajustes del proyecto** > **Espacio de trabajo** > **Microsoft Teams** y haz clic en **Conceder consentimiento de administrador**. Un administrador de Microsoft 365 inicia sesión y autoriza la app de OneUptime para la organización. Luego la tarjeta dice **Consentimiento del administrador completado**. Mientras no haya ningún espacio de trabajo conectado, la sección **Espacio de trabajo** de los menús Incidentes, Alertas, Mantenimiento programado, Monitores y Guardia contiene **Conectar Slack o Teams**, que también lleva aquí.
+Ve a **Ajustes del proyecto** > **Espacio de trabajo** > **Microsoft Teams** y haz clic en **Conceder consentimiento de administrador**. Un administrador de Microsoft 365 inicia sesión y autoriza la app de OneUptime para la organización. Luego la tarjeta dice **Consentimiento del administrador completado**. Mientras no haya ningún espacio de trabajo conectado, la sección **Espacio de trabajo** de los menús Incidentes, Alertas, Mantenimiento programado, Monitores y Guardia contiene **Conectar un espacio de trabajo**, que también lleva aquí.
 
 ### Conectar tu cuenta
 

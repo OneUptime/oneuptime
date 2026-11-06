@@ -53,6 +53,9 @@ import { formatCloudMoney, hasCloudCosts } from "./CloudCostWords";
 import CloudDailySpendChart from "./CloudDailySpendChart";
 import { getCloudCostTiles } from "./CloudOverviewTiles";
 import CloudStatStrip from "./CloudStatStrip";
+import CloudUnusualDaysCard, {
+  getCloudUnusualDayRows,
+} from "./CloudUnusualDaysCard";
 import {
   CloudAccountRow,
   CloudAccountsTotals,
@@ -66,6 +69,8 @@ import {
  *   - The strip: the month so far against last month by now, what it is on
  *     course for, last month in full and what could be saved.
  *   - Daily spend: each of the last 30 days, a bar each.
+ *   - Unusual days: the days of the last two weeks that cost far more than
+ *     usual, as budgets alert on them - when there are any.
  *   - Where the money goes: what cost the most in a period - by service,
  *     Region, account or resource.
  *   - The accounts whose costs are not read, with why and what to do - so
@@ -444,6 +449,11 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
         })}
       />
       <CloudDailySpendCard scope={scope} />
+      <CloudUnusualDaysCard
+        rows={getCloudUnusualDayRows({ accounts: props.accounts, currency })}
+        currency={currency}
+        showAccounts={!props.cloudAccountId}
+      />
       <CloudCostBreakdownCard
         scope={scope}
         accounts={props.accounts}

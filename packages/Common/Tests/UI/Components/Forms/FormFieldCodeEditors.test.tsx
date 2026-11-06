@@ -7,7 +7,8 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import { loadAllFormFieldControls } from "../../../../UI/Components/Forms/Fields/FormFieldControls";
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -77,6 +78,10 @@ type StatusTextFunction = () => string;
 const statusText: StatusTextFunction = (): string => {
   return screen.getByTestId("code-editor-status").textContent || "";
 };
+
+beforeAll(async () => {
+  await loadAllFormFieldControls();
+});
 
 afterEach(() => {
   cleanup();

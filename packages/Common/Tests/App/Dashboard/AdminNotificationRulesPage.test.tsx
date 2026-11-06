@@ -386,6 +386,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -412,7 +413,7 @@ const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const SIGNED_IN_USER_ID: ObjectID = new ObjectID(SIGNED_IN_USER_ID_STRING);
 
 /*
- * The nine models only their owner may read. They are asserted as a SET because
+ * The ten models only their owner may read. They are asserted as a SET because
  * which one an admin surface reaches for hardly matters - every one of them
  * carries a raw identifier and most carry a credential.
  */
@@ -425,11 +426,12 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserMattermost,
   UserWebhook,
 ];
 
 /*
- * The RELATION spelling of those same nine, as they appear in a nested select
+ * The RELATION spelling of those same ten, as they appear in a nested select
  * on UserNotificationRule. Selecting any of them pulls a column out of the
  * method model itself - the address, the number, the handle - through a table
  * an administrator may read and which is not row-scoped for them. It is the
@@ -445,6 +447,7 @@ const METHOD_RELATION_KEYS: Array<string> = [
   "userTelegram",
   "userSlack",
   "userMicrosoftTeams",
+  "userMattermost",
   "userWebhook",
 ];
 
@@ -458,6 +461,7 @@ const METHOD_FOREIGN_KEYS: Array<keyof UserNotificationRule> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userMattermostId",
   "userWebhookId",
 ];
 

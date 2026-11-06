@@ -27,7 +27,7 @@ flowchart TB
 
 | Seite | Was sie enthält | Die Frage, die sie beantwortet |
 | --- | --- | --- |
-| **Benachrichtigungsmethoden** | Ihre E-Mail-Adressen, Telefonnummern, WhatsApp-Nummern, Telegram-, Slack- und Microsoft Teams-Konten, Push-Geräte und Webhooks | Wo kann OneUptime mich erreichen? |
+| **Benachrichtigungsmethoden** | Ihre E-Mail-Adressen, Telefonnummern, WhatsApp-Nummern, Telegram-, Slack-, Microsoft Teams- und Mattermost-Konten, Push-Geräte und Webhooks | Wo kann OneUptime mich erreichen? |
 | **Bereitschaftsregeln** | Für jede Art von Alarm und jeden Schweregrad: welche Methode versucht wird und nach welcher Zeit | Wie werde ich in der Bereitschaft alarmiert? |
 | **Benachrichtigungseinstellungen** | Für jedes Ereignis zu einem Datensatz, der Ihnen gehört, oder zu Ihren Schichten: welche Kanäle genutzt werden | Wovon erfahre ich sonst noch, und wo? |
 
@@ -90,7 +90,7 @@ Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel
 
 Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie keine Regel haben, etwa für einen Schweregrad, der nach Ihrem Beitritt hinzugekommen ist. OneUptime alarmiert Sie trotzdem, über das, was Sie verifiziert haben:
 
-1. Jede kostenlose Methode, die Sie haben: Push-Geräte, E-Mail-Adressen, Slack und Microsoft Teams.
+1. Jede kostenlose Methode, die Sie haben: Push-Geräte, E-Mail-Adressen, Slack, Microsoft Teams und Mattermost.
 2. Wenn Sie keine davon haben, eine kostenpflichtige Methode, in dieser Reihenfolge: SMS, ein Telefonanruf, WhatsApp, Telegram. Es ist die erste, die Sie verifiziert haben, auf einem Kanal, den das Projekt eingeschaltet hat.
 3. Wenn Sie auch davon keine haben, ein Webhook.
 

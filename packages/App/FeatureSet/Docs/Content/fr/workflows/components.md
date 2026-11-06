@@ -29,6 +29,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | Lire ou modifier des incidents, des moniteurs et d'autres enregistrements | [Composants de données OneUptime](#composants-de-données-oneuptime) |
 | Ouvrir, prendre en compte et résoudre des incidents ou des alertes pour les problèmes d'un autre outil | [Incidents et alertes d'autres outils](#incidents-et-alertes-dautres-outils) |
 | Prendre en compte ou fermer un problème Zabbix | [Zabbix](#zabbix) |
+| Demander à une personne d'approuver un correctif sur un cloud OpenStack | [Propose an OpenStack fix](#propose-an-openstack-fix) |
 
 Un bloc dédié vaut mieux qu'un bloc générique : le bloc Slack connaît les limites de Slack, et un bloc d'enregistrement connaît les champs de l'enregistrement, si bien que vous obtenez des erreurs et des journaux plus clairs qu'avec un bloc **API** qui ferait le même travail.
 
@@ -428,6 +429,28 @@ Pour prendre en compte ou fermer, le bloc lit d'abord le problème. Un problème
 
 **Updated** se produit quand Zabbix a accepté la mise à jour, et **Error** quand Zabbix était injoignable ou l'a refusée, avec la raison donnée par Zabbix : Zabbix répond à une requête refusée par un statut de succès, si bien que le bloc lit ce que Zabbix a répondu plutôt que son statut. Il renvoie **Summary**, ce qu'il a fait en une phrase.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Demande à une personne d'approuver une modification du cloud OpenStack concerné par une alerte ou un incident. Il n'effectue jamais la modification. Le correctif attend sur l'alerte ou l'incident, et dans les canaux où il publie, comme celui que propose OneUptime AI, quel que soit le mode de correctif du cloud. Un workflow ne peut pas approuver ce qu'il propose.
+
+Il n'a besoin d'aucun modèle d'IA, et il passe par les mêmes règles qu'un correctif proposé par OneUptime AI : la politique de commandes, les cibles d'écriture et les cibles protégées de l'agent, et la lecture par l'agent de ce que la modification touche. L'évacuation d'un hôte encore actif, ou d'un hôte que l'agent ne peut pas lire en entier, n'est pas proposée.
+
+| Paramètre | Ce qu'il fait |
+| --------- | ------------- |
+| **ID d'alerte** | L'alerte concernée par le correctif, en général l'ID renvoyé par votre déclencheur. Renseignez celui-ci ou **ID d'incident** : le cloud est déduit de ce à quoi l'enregistrement est lié. |
+| **ID d'incident** | L'incident concerné par le correctif, en général l'ID renvoyé par votre déclencheur. Renseignez celui-ci ou **ID d'alerte**. |
+| **Commande** | La modification à proposer, dans l'unique écriture que OneUptime accepte. Voir [les modifications qu'un correctif peut effectuer](/docs/telemetry/openstack#correctifs). Elle peut utiliser des valeurs de blocs précédents, et elle est lue une fois ceux-ci renseignés. |
+| **Pourquoi** | Ce que lit en premier la personne qui l'approuve. Laissé vide, il indique quel workflow l'a demandé. |
+| **OpenStack Cloud ID** | Sous **Plus de champs**. Uniquement pour un enregistrement lié à plusieurs clouds, ou à aucun. |
+
+Il renvoie **Suggestion ID** (le correctif en attente d'approbation), **Tier** (Sûr ou Plus risqué, tel que OneUptime lit la commande) et **Already Waiting** (vrai quand la même modification sur ce cloud attendait déjà, si bien qu'aucune seconde n'a été ajoutée).
+
+**Succès** se produit dès qu'une personne a été sollicitée, sans attendre sa réponse. **Erreur** se produit quand rien n'a été proposé, avec la raison dans **Error** : la commande est refusée, les correctifs ne sont pas encore autorisés sur ce cloud, ou les workflows d'un projet ont proposé 20 correctifs au cours de la dernière heure.
+
+Le modèle [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) est un bon point de départ.
+
 ## Composants de données OneUptime
 
 Pour chaque type d'enregistrement de OneUptime (moniteurs, incidents, alertes, pages de statut, politiques d'astreinte et bien d'autres), le panneau **Ajouter un composant** propose ces composants : sous **Ressources OneUptime**, cliquez sur le type d'enregistrement (**Parcourir toutes les ressources** contient ceux qui ne sont pas affichés), ou cherchez par le nom du type. Chaque titre est généré à partir du type d'enregistrement ; l'ensemble pour Monitor se lit donc ainsi :
@@ -485,9 +508,9 @@ Une requête est toujours limitée au projet dans lequel le workflow s'exécute.
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Une clé qui n'est pas une colonne est ignorée plutôt que rejetée — le journal de l'exécution nomme celles qu'il a écartées : regardez-y quand un champ n'arrive pas. **Fields to pass on**, sur les composants Find et les déclencheurs, se choisit dans une liste ; son **Modifier en JSON** montre les mêmes clés de colonnes avec des valeurs `true` : `{"_id": true, "name": true}`.
+Une clé qui n'est pas une colonne est ignorée plutôt que rejetée — le journal de l'exécution nomme celles qu'il a écartées : regardez-y quand un champ n'arrive pas. **Fields to pass on**, sur les composants Find et les déclencheurs, se choisit dans une liste ; son **Modifier en JSON** montre les mêmes clés de colonnes avec des valeurs `true` : `{"_id": true, "name": true}`. Les champs d'un enregistrement lié se placent sous sa clé, comme dans `{"monitor": {"name": true}}` : `{"monitor": true}` ne transmet que son ID.
 
-Les **champs personnalisés** forment une seule colonne, `customFields`, qui contient la valeur de chaque champ personnalisé sous le nom du champ. Les composants Update ne modifient que les champs personnalisés que vous nommez, et tous les autres gardent leur valeur :
+Les **Champs personnalisés** forment une seule colonne, `customFields`, qui contient la valeur de chaque champ personnalisé sous le nom du champ. Les composants Update ne modifient que les champs personnalisés que vous nommez, et tous les autres gardent leur valeur :
 
 ```json
 { "customFields": { "Notification Count": 1 } }
@@ -495,7 +518,11 @@ Les **champs personnalisés** forment une seule colonne, `customFields`, qui con
 
 définit **Notification Count** et laisse les autres champs personnalisés de l'enregistrement tels quels. Mettez un champ personnalisé à `null` pour le vider, ou mettez `customFields` lui-même à `null` pour les vider tous. Deux workflows qui modifient au même moment des champs personnalisés différents du même enregistrement aboutissent tous les deux. Cela ne vaut que pour les composants Update : l'API OneUptime écrit `customFields` en entier, si bien qu'une requête vers elle doit contenir chaque champ personnalisé que vous voulez conserver.
 
+Chaque champ personnalisé du projet est listé comme un champ à part entière partout où un composant nomme les champs d'un enregistrement : dans les champs qu'un composant écrit, avec le contrôle de son type et les options propres d'une liste déroulante ; dans les conditions d'une requête ; dans les valeurs qu'une étape ultérieure peut utiliser ; et dans les champs qu'un déclencheur surveille, de sorte qu'un workflow peut s'exécuter lorsqu'un seul champ personnalisé change. Un champ personnalisé de type fichier est téléversé sur un enregistrement : c'est le seul type qui reste en JSON.
+
 Vous tapez rarement ces clés vous-même. Dans les paramètres du composant, **Add a field** (ou **Add a condition** sur une requête) liste les colonnes du modèle par leur nom, avec le type de valeur que chacune accepte. Cherchez-y par nom, par clé de colonne ou par ce que fait le champ, puis appuyez sur **Entrée** pour ajouter la meilleure correspondance. Lors d'une création, les champs sans lesquels l'enregistrement ne peut pas être créé viennent en premier, puis les champs principaux du modèle (ceux qu'il remplit pour vous si vous les omettez), puis tout le reste.
+
+Un champ qui pointe vers un autre enregistrement, comme la gravité d'un incident, liste les enregistrements du projet par nom : choisissez-en un, et son ID est écrit pour vous. Une liste d'enregistrements, comme les étiquettes d'un incident, fonctionne de la même façon. Pour utiliser plutôt une valeur d'une étape précédente, cliquez sur `{ }` à côté de la liste.
 
 Les champs que OneUptime remplit lui-même ne sont pas proposés quand vous écrivez un enregistrement : le `_id` de l'enregistrement, **Créé le**, **Mis à jour le**, **Créé par l'utilisateur**, les slugs, les numéros d'enregistrement et les statuts de notification. Qui a créé, archivé ou résolu un enregistrement, et quand, n'est jamais à un workflow de le définir : un enregistrement créé par un workflow n'a pas de créateur, une valeur qu'un workflow envoie pour l'un de ces champs à côté d'autres champs est ignorée, et un Update qui n'envoie rien d'autre échoue avec un message qui les nomme. Une modification ne propose que les champs qui peuvent changer après la création d'un enregistrement. Une requête propose quand même l'ID, les horodatages et **Créé par l'utilisateur**, car ils sont utiles pour filtrer. **Supprimé le** n'est proposé nulle part : les enregistrements sont supprimés pour de bon, ce champ est donc toujours vide.
 

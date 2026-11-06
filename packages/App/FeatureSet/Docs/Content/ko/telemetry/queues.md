@@ -303,7 +303,7 @@ service:
 - `delay`는 CloudWatch가 기간을 게시하기를 기다리므로(몇 분이 걸립니다), 이 구성에서는 큐의 브로커 메트릭이 11분에서 17분 늦게 도착합니다: 이 메트릭에 대한 모니터에는 더 긴 창이 필요합니다([알림](#알림)의 **늦게 도착하는 메트릭** 참조).
 - 하나의 리시버는 하나의 리전과 하나의 네임스페이스를 읽습니다: 리전마다 인스턴스를 추가하세요.
 
-**스트리밍**은 CloudWatch가 메트릭을 게시하는 대로 푸시합니다. `AWS/SQS`(및 `AWS/SNS`) 네임스페이스에 대해 출력 형식이 **OpenTelemetry 1.0**인 CloudWatch Metric Stream을 만들고, 대상이 HTTP 엔드포인트(액세스 키를 가진 Collector)인 Amazon Data Firehose 스트림으로 전달하세요. Firehose는 포트 443의 `https://`로만 전달하므로, Collector에는 인증서와 공개 포트 443이 필요합니다(예: 로드 밸런서 뒤):
+**스트리밍 중**은 CloudWatch가 메트릭을 게시하는 대로 푸시합니다. `AWS/SQS`(및 `AWS/SNS`) 네임스페이스에 대해 출력 형식이 **OpenTelemetry 1.0**인 CloudWatch Metric Stream을 만들고, 대상이 HTTP 엔드포인트(액세스 키를 가진 Collector)인 Amazon Data Firehose 스트림으로 전달하세요. Firehose는 포트 443의 `https://`로만 전달하므로, Collector에는 인증서와 공개 포트 443이 필요합니다(예: 로드 밸런서 뒤):
 
 ```yaml
 extensions:
@@ -994,7 +994,7 @@ service:
 
 `rabbitmq.message.published.delta`의 각 포인트는 이전 스크레이프 이후 게시된 메시지 수이므로, `resource.rabbitmq.queue.name`으로 필터링하고 창 전체에서 합산하는 메트릭 모니터는 그 창에서 게시된 양을 셉니다: 15분 동안 1 미만이면 아무도 게시하지 않는 것입니다. Collector가 시작할 때마다 프로세서에는 큐의 첫 포인트에서 뺄 이전 값이 없으며, 기본적으로 그 포인트를 그대로 보냅니다: 카운터의 누적 합계 전체이며, 마치 큐가 지금까지 받은 모든 메시지가 한 번의 스크레이프에서 게시된 것처럼 보입니다. `initial_value: drop`은 그 포인트를 보류하므로, 큐의 복사본은 카운터를 보고하는 두 번째 스크레이프부터 시작합니다. 다른 카운터도 같은 방식으로, 각각 `copy_metric` 문과 `include` 항목을 하나씩 추가해 복사하세요. 이 경우 ActiveMQ의 JMX Scraper는 `rabbitmq` 대신 `otlp` 리시버가 있는 그런 Collector를 거쳐 보내야 합니다. RocketMQ의 카운터에는 그 `prometheus` 리시버의 파이프라인에 같은 두 프로세서를 사용합니다.
 
-**직접 만들 때는** 그 메트릭에서 큐를 지정하는 속성으로 필터링하세요. 이 속성은 한 시스템의 모든 큐에서 같습니다:
+**By hand**로 만들 때는 그 메트릭에서 큐를 지정하는 속성으로 필터링하세요. 이 속성은 한 시스템의 모든 큐에서 같습니다:
 
 | 알림 조건 | 메트릭 | 필터 | 집계 |
 | --- | --- | --- | --- |

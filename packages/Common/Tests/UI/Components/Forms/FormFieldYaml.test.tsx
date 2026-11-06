@@ -1,7 +1,8 @@
 import "@testing-library/jest-dom";
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import { loadYamlEditor } from "../../../../UI/Components/CodeEditor/LazyYamlEditor";
 
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../../UI/Components/Forms/Types/Field";
@@ -59,6 +60,10 @@ const renderField: RenderFieldFunction = (
     />,
   );
 };
+
+beforeAll(async () => {
+  await loadYamlEditor();
+});
 
 afterEach(() => {
   cleanup();

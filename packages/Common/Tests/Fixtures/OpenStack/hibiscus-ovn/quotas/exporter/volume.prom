@@ -1,0 +1,55 @@
+# HELP openstack_cinder_limits_backup_max_gb limits_backup_max_gb
+# TYPE openstack_cinder_limits_backup_max_gb gauge
+openstack_cinder_limits_backup_max_gb{tenant="admin",tenant_id="a0e206f92d0140f8a47dcfa5cb047fae"} 1000
+openstack_cinder_limits_backup_max_gb{tenant="alt_demo",tenant_id="49ee18e1bf4d47f5ad07cdb48df7f9d7"} 1000
+openstack_cinder_limits_backup_max_gb{tenant="demo",tenant_id="e82f1a8307b349d9bf0ce2eca6d00a2f"} 1000
+openstack_cinder_limits_backup_max_gb{tenant="invisible_to_admin",tenant_id="68abb645d7374300811ae02bafcfac9f"} 1000
+openstack_cinder_limits_backup_max_gb{tenant="ou-payments",tenant_id="a1cf7e298cee4dcd84b91033986d6cda"} 1000
+openstack_cinder_limits_backup_max_gb{tenant="ou-research",tenant_id="ac0cfecd7e014882830ccff390b28b69"} 1000
+openstack_cinder_limits_backup_max_gb{tenant="service",tenant_id="cff0318f91224779b9f00545d3efab7d"} 1000
+# HELP openstack_cinder_limits_backup_used_gb limits_backup_used_gb
+# TYPE openstack_cinder_limits_backup_used_gb gauge
+openstack_cinder_limits_backup_used_gb{tenant="admin",tenant_id="a0e206f92d0140f8a47dcfa5cb047fae"} 0
+openstack_cinder_limits_backup_used_gb{tenant="alt_demo",tenant_id="49ee18e1bf4d47f5ad07cdb48df7f9d7"} 0
+openstack_cinder_limits_backup_used_gb{tenant="demo",tenant_id="e82f1a8307b349d9bf0ce2eca6d00a2f"} 0
+openstack_cinder_limits_backup_used_gb{tenant="invisible_to_admin",tenant_id="68abb645d7374300811ae02bafcfac9f"} 0
+openstack_cinder_limits_backup_used_gb{tenant="ou-payments",tenant_id="a1cf7e298cee4dcd84b91033986d6cda"} 0
+openstack_cinder_limits_backup_used_gb{tenant="ou-research",tenant_id="ac0cfecd7e014882830ccff390b28b69"} 0
+openstack_cinder_limits_backup_used_gb{tenant="service",tenant_id="cff0318f91224779b9f00545d3efab7d"} 0
+# HELP openstack_cinder_limits_volume_max_gb limits_volume_max_gb
+# TYPE openstack_cinder_limits_volume_max_gb gauge
+openstack_cinder_limits_volume_max_gb{tenant="admin",tenant_id="a0e206f92d0140f8a47dcfa5cb047fae"} 1000
+openstack_cinder_limits_volume_max_gb{tenant="alt_demo",tenant_id="49ee18e1bf4d47f5ad07cdb48df7f9d7"} 1000
+openstack_cinder_limits_volume_max_gb{tenant="demo",tenant_id="e82f1a8307b349d9bf0ce2eca6d00a2f"} 1000
+openstack_cinder_limits_volume_max_gb{tenant="invisible_to_admin",tenant_id="68abb645d7374300811ae02bafcfac9f"} 1000
+openstack_cinder_limits_volume_max_gb{tenant="ou-payments",tenant_id="a1cf7e298cee4dcd84b91033986d6cda"} 1000
+openstack_cinder_limits_volume_max_gb{tenant="ou-research",tenant_id="ac0cfecd7e014882830ccff390b28b69"} 1000
+openstack_cinder_limits_volume_max_gb{tenant="service",tenant_id="cff0318f91224779b9f00545d3efab7d"} 1000
+# HELP openstack_cinder_limits_volume_used_gb limits_volume_used_gb
+# TYPE openstack_cinder_limits_volume_used_gb gauge
+openstack_cinder_limits_volume_used_gb{tenant="admin",tenant_id="a0e206f92d0140f8a47dcfa5cb047fae"} 0
+openstack_cinder_limits_volume_used_gb{tenant="alt_demo",tenant_id="49ee18e1bf4d47f5ad07cdb48df7f9d7"} 0
+openstack_cinder_limits_volume_used_gb{tenant="demo",tenant_id="e82f1a8307b349d9bf0ce2eca6d00a2f"} 0
+openstack_cinder_limits_volume_used_gb{tenant="invisible_to_admin",tenant_id="68abb645d7374300811ae02bafcfac9f"} 0
+openstack_cinder_limits_volume_used_gb{tenant="ou-payments",tenant_id="a1cf7e298cee4dcd84b91033986d6cda"} 4
+openstack_cinder_limits_volume_used_gb{tenant="ou-research",tenant_id="ac0cfecd7e014882830ccff390b28b69"} 0
+openstack_cinder_limits_volume_used_gb{tenant="service",tenant_id="cff0318f91224779b9f00545d3efab7d"} 0
+# HELP openstack_cinder_up up
+# TYPE openstack_cinder_up gauge
+openstack_cinder_up 1
+# HELP openstack_cinder_volume_type_quota_gigabytes volume_type_quota_gigabytes
+# TYPE openstack_cinder_volume_type_quota_gigabytes gauge
+openstack_cinder_volume_type_quota_gigabytes{tenant="admin",tenant_id="a0e206f92d0140f8a47dcfa5cb047fae",volume_type="__DEFAULT__"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="admin",tenant_id="a0e206f92d0140f8a47dcfa5cb047fae",volume_type="lvmdriver-1"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="alt_demo",tenant_id="49ee18e1bf4d47f5ad07cdb48df7f9d7",volume_type="__DEFAULT__"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="alt_demo",tenant_id="49ee18e1bf4d47f5ad07cdb48df7f9d7",volume_type="lvmdriver-1"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="demo",tenant_id="e82f1a8307b349d9bf0ce2eca6d00a2f",volume_type="__DEFAULT__"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="demo",tenant_id="e82f1a8307b349d9bf0ce2eca6d00a2f",volume_type="lvmdriver-1"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="invisible_to_admin",tenant_id="68abb645d7374300811ae02bafcfac9f",volume_type="__DEFAULT__"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="invisible_to_admin",tenant_id="68abb645d7374300811ae02bafcfac9f",volume_type="lvmdriver-1"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="ou-payments",tenant_id="a1cf7e298cee4dcd84b91033986d6cda",volume_type="__DEFAULT__"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="ou-payments",tenant_id="a1cf7e298cee4dcd84b91033986d6cda",volume_type="lvmdriver-1"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="ou-research",tenant_id="ac0cfecd7e014882830ccff390b28b69",volume_type="__DEFAULT__"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="ou-research",tenant_id="ac0cfecd7e014882830ccff390b28b69",volume_type="lvmdriver-1"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="service",tenant_id="cff0318f91224779b9f00545d3efab7d",volume_type="__DEFAULT__"} -1
+openstack_cinder_volume_type_quota_gigabytes{tenant="service",tenant_id="cff0318f91224779b9f00545d3efab7d",volume_type="lvmdriver-1"} -1

@@ -1,0 +1,24 @@
+[
+  {
+    "runId": "20261105064118-981e77",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:41:18.864Z",
+    "finishedAt": "2026-11-05T06:41:18.886Z",
+    "status": "Refused",
+    "message": "This credential has the admin role, so it could act beyond its project. Nothing was written. The lifecycle check only runs on a credential with the member role on the project it has to itself.",
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 22
+      }
+    ],
+    "phases": {
+      "credential": "Passed"
+    },
+    "leftoverCount": 0,
+    "requestCount": 1,
+    "writeCount": 0,
+    "warnings": []
+  }
+]

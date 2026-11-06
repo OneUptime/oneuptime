@@ -374,22 +374,22 @@ describe("PermissionModePicker — where the menu opens", () => {
     renderPicker();
 
     const opened: HTMLElement = open();
-    expect(opened).toHaveClass("right-0");
-    expect(opened).not.toHaveClass("left-0");
+    expect(opened).toHaveClass("right-2");
+    expect(opened).not.toHaveClass("left-2");
   });
 
   test("an explicit right is the same as the default", () => {
     renderPicker({ menuAlign: "right" });
 
-    expect(open()).toHaveClass("right-0");
+    expect(open()).toHaveClass("right-2");
   });
 
   test("lines up on the button's left edge when asked (Ask AI and the AI Investigation card)", () => {
     renderPicker({ menuAlign: "left" });
 
     const opened: HTMLElement = open();
-    expect(opened).toHaveClass("left-0");
-    expect(opened).not.toHaveClass("right-0");
+    expect(opened).toHaveClass("left-2");
+    expect(opened).not.toHaveClass("right-2");
   });
 
   test.each([["left"], ["right"]] as Array<["left" | "right"]>)(
@@ -402,7 +402,7 @@ describe("PermissionModePicker — where the menu opens", () => {
         "absolute",
         "bottom-full",
         "w-72",
-        "max-w-[calc(100vw-2rem)]",
+        "max-w-full",
       );
     },
   );
@@ -415,7 +415,7 @@ describe("PermissionModePicker — where the menu opens", () => {
     renderPicker({ menuAlign: "left", menuSide: "bottom" });
 
     const opened: HTMLElement = open();
-    expect(opened).toHaveClass("top-full", "mt-2", "left-0");
+    expect(opened).toHaveClass("top-full", "mt-2", "left-2");
     expect(opened).not.toHaveClass("bottom-full");
   });
 
@@ -526,7 +526,7 @@ describe("PermissionModePicker — a menu that would not fit", () => {
 
     const opened: HTMLElement = open();
     expect(opened).toHaveAttribute("data-menu-side", "top");
-    expect(opened).toHaveClass("bottom-full", "mb-2", "left-0");
+    expect(opened).toHaveClass("bottom-full", "mb-2", "left-2");
     expect(opened).not.toHaveClass("top-full");
   });
 

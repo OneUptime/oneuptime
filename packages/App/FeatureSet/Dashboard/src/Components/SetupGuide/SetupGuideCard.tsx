@@ -251,27 +251,31 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
   const wrapLongLines: boolean = Boolean(content.wrapLongLines);
 
   const steps: Array<SetupGuideStepView> = [
-    {
-      title: translate(SETUP_GUIDE_KEY_STEP_TITLE),
-      description: translate(
-        keyStep.description ||
-          props.keyStepDescription ||
-          DEFAULT_KEY_STEP_DESCRIPTION,
-      ),
-      content: (
-        <IngestionKeySelector
-          endpointLabel={
-            keyStep.endpointLabel || translationKey("OneUptime URL")
-          }
-          endpointValue={keyStep.endpointValue || oneuptimeUrl}
-          endpointHint={keyStep.endpointHint}
-          keyTypeFilter={keyTypeFilter}
-          newKeyName={props.newKeyName}
-          onSelectedKeyChange={setSelectedKey}
-          hideValues={keyStep.hideValues}
-        />
-      ),
-    },
+    ...(content.needsNoKey
+      ? []
+      : [
+          {
+            title: translate(SETUP_GUIDE_KEY_STEP_TITLE),
+            description: translate(
+              keyStep.description ||
+                props.keyStepDescription ||
+                DEFAULT_KEY_STEP_DESCRIPTION,
+            ),
+            content: (
+              <IngestionKeySelector
+                endpointLabel={
+                  keyStep.endpointLabel || translationKey("OneUptime URL")
+                }
+                endpointValue={keyStep.endpointValue || oneuptimeUrl}
+                endpointHint={keyStep.endpointHint}
+                keyTypeFilter={keyTypeFilter}
+                newKeyName={props.newKeyName}
+                onSelectedKeyChange={setSelectedKey}
+                hideValues={keyStep.hideValues}
+              />
+            ),
+          },
+        ]),
     ...content.steps.map((step: SetupGuideStep): SetupGuideStepView => {
       return {
         title: translate(step.title),

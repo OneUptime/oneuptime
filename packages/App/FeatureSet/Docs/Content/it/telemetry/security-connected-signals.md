@@ -1,6 +1,6 @@
 # Segnali collegati
 
-Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, dispositivi di rete, risorse cloud, funzioni serverless, servizi, i monitor che li controllano e membri - e cosa succedeva su ciascuno attorno al caso: i suoi registri, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Li cerca anche nei tuoi registri e nelle tue tracce: l'indirizzo di un attaccante nel registro degli accessi di un server web, un'email trapelata nell'errore di un'applicazione. Al contrario, la pagina di un host, di un cluster, di una risorsa cloud, di un servizio, di un monitor o di un membro dice cosa ha trovato Security Events su di esso.
+Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, cloud OpenStack, dispositivi di rete, risorse cloud, funzioni serverless, servizi, i monitor che li controllano e membri - e cosa succedeva su ciascuno attorno al caso: i suoi registri, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Li cerca anche nei tuoi registri e nelle tue tracce: l'indirizzo di un attaccante nel registro degli accessi di un server web, un'email trapelata nell'errore di un'applicazione. Al contrario, la pagina di un host, di un cluster, di una risorsa cloud, di un servizio, di un monitor o di un membro dice cosa ha trovato Security Events su di esso.
 
 :::cards
 - [Dove lo vedi](#dove-lo-vedi): La pagina di un caso, la scheda di un evento, la pagina di un'entità e le pagine di ciò che nominano.
@@ -32,7 +32,7 @@ OneUptime cerca ogni valore tra i record del progetto, dice quanto è sicura ogn
 - **Segnali collegati**, una pagina di ogni caso di sicurezza: apri un caso in **Prodotti → Eventi di sicurezza → Casi di sicurezza → Casi aperti**, poi **Segnali collegati** dopo **Entità** nel suo menu.
 - **Connesso**, una scheda di ogni evento di sicurezza: apri un evento in **Prodotti → Eventi di sicurezza → Eventi**. Elenca ciò che l'evento nomina, nell'ora attorno all'evento.
 - La pagina di un'entità, in **Prodotti → Eventi di sicurezza → Rischio delle entità**: dove OneUptime conosce l'utente, l'host o l'indirizzo, attorno al suo ultimo evento di sicurezza.
-- Una scheda **Sicurezza** nella pagina di ogni host, host Docker, host Podman, cluster Kubernetes, dispositivo di rete, risorsa cloud, funzione serverless, servizio, monitor, membro ed elemento di inventario: i casi di sicurezza aperti che lo nominano, quanti eventi di sicurezza e rilevamenti lo hanno nominato negli ultimi 7 giorni, il più grave tra questi e il suo rischio. **Apri in Security Events** lo apre lì. La scheda di un monitor riguarda gli host e gli indirizzi che controlla.
+- Una scheda **Sicurezza** nella pagina di ogni host, host Docker, host Podman, cluster Kubernetes, cloud OpenStack, dispositivo di rete, risorsa cloud, funzione serverless, servizio, monitor, membro ed elemento di inventario: i casi di sicurezza aperti che lo nominano, quanti eventi di sicurezza e rilevamenti lo hanno nominato negli ultimi 7 giorni, il più grave tra questi e il suo rischio. **Apri in Security Events** lo apre lì. La scheda di un monitor riguarda gli host e gli indirizzi che controlla.
 - Una scheda **Sicurezza** nella pagina di un incidente, quando un caso di sicurezza ha dichiarato l'incidente (**Dichiarato da**) o casi aperti nominano un host o un cluster che colpisce (**Casi aperti che nominano ciò che colpisce**).
 
 ## Come si abbina un valore
@@ -41,7 +41,7 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 
 | Cosa nomina il caso o l'evento | Abbinato a | Quanto è sicuro |
 | --- | --- | --- |
-| Un nome di host o di dominio uguale al nome che riporta un host, un host di container, un cluster o un dispositivo di rete, o un nome su cui risponde una risorsa cloud | Quel record | Esatto |
+| Un nome di host o di dominio uguale al nome che riporta un host, un host di container, un cluster, un cloud OpenStack o un dispositivo di rete, o un nome su cui risponde una risorsa cloud | Quel record | Esatto |
 | Lo stesso nome, dato senza dire che è un host | Quel record | Possibile |
 | Una forma breve o completa del nome di un record, come `web-1` e `web-1.acme.internal` | Quel record | Possibile |
 | Un indirizzo IP pubblico che ha un solo host o dispositivo di rete, o su cui risponde una sola risorsa cloud | Quel record | Esatto |
@@ -50,7 +50,7 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 | Un host, un indirizzo IP pubblico o l'host di un URL che un monitor controlla | Quel monitor | Esatto |
 | Un indirizzo IP privato che un monitor controlla | Quel monitor | Possibile |
 | L'email di un membro | Quel membro | Esatto |
-| Il record con cui è stata inviata una riga di registro, per gli eventi letti dai tuoi registri | Quell'host, cluster, risorsa cloud, funzione serverless o servizio | Esatto |
+| Il record con cui è stata inviata una riga di registro, per gli eventi letti dai tuoi registri | Quell'host, cluster, cloud OpenStack, risorsa cloud, funzione serverless o servizio | Esatto |
 | Un semplice nome utente, un hash di file o un processo | Niente: nessun record è indicizzato in base a loro | - |
 
 - Una possibile corrispondenza mostra **Possibile corrispondenza** accanto al suo nome e dice perché. Non viene mai contata nella pagina del record, e un incidente che il caso dichiara non viene mai collegato a essa.
@@ -94,7 +94,7 @@ Sotto i record, Segnali collegati cerca nei tuoi registri e nelle tue tracce, su
 
 ## Incidenti che un caso dichiara
 
-**Dichiara incidente** su un caso, o il passaggio di un playbook che ne dichiara uno, collega l'incidente agli host, agli host Docker e Podman, ai cluster Kubernetes, ai dispositivi di rete, alle risorse cloud e ai servizi a cui il caso è collegato in modo esatto. Il passaggio di un playbook che allerta la reperibilità collega allo stesso modo l'avviso che apre; ogni avviso e incidente che una regola di rilevamento o una corrispondenza di threat intelligence apre è collegato a ciò che la sua corrispondenza nomina in modo esatto, e ognuno di quelli che apre Data Security all'archivio di dati a cui si riferisce. L'incidente compare nelle loro pagine e vi si applicano le regole dei loro proprietari, e il suo feed nomina il caso e ciò a cui è stato collegato. Una possibile corrispondenza non viene mai collegata, e nemmeno un monitor: un incidente su un monitor può cambiarne lo stato e comparire nelle sue pagine di stato.
+**Dichiara incidente** su un caso, o il passaggio di un playbook che ne dichiara uno, collega l'incidente agli host, agli host Docker e Podman, ai cluster Kubernetes, ai cloud OpenStack, ai dispositivi di rete, alle risorse cloud e ai servizi a cui il caso è collegato in modo esatto. Il passaggio di un playbook che allerta la reperibilità collega allo stesso modo l'avviso che apre; ogni avviso e incidente che una regola di rilevamento o una corrispondenza di threat intelligence apre è collegato a ciò che la sua corrispondenza nomina in modo esatto, e ognuno di quelli che apre Data Security all'archivio di dati a cui si riferisce. L'incidente compare nelle loro pagine e vi si applicano le regole dei loro proprietari, e il suo feed nomina il caso e ciò a cui è stato collegato. Una possibile corrispondenza non viene mai collegata, e nemmeno un monitor: un incidente su un monitor può cambiarne lo stato e comparire nelle sue pagine di stato.
 
 ## OneUptime AI
 

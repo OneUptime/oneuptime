@@ -8,6 +8,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -313,6 +314,79 @@ export default class DataAlert extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public causeAlertId?: ObjectID = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Feedback",
+    description:
+      "What whoever handled the alert said of it: useful, expected, or not an issue.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public feedback?: string = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Feedback At",
+    description: "When the feedback was given.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public feedbackAt?: Date = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Feedback By User ID",
+    description: "Who gave the feedback.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public feedbackByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Is Cause Confirmed",
+    description:
+      "Whether the likely cause OneUptime named was the real one, once someone says.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public isCauseConfirmed?: boolean = undefined;
+
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Detected After (Seconds)",
+    description:
+      "How long after a table's update was due the alert opened; empty for an alert about anything else.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public detectedAfterInSeconds?: number = undefined;
 
   @ColumnAccessControl(columnAccess)
   @TableColumn({

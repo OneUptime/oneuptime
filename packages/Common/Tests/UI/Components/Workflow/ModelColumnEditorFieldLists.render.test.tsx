@@ -416,8 +416,10 @@ describe("Create One Incident", () => {
     );
 
     expect(note).toHaveTextContent(
-      "Monitors, Custom Fields can only be set with Edit as JSON.",
+      "Monitors can only be set with Edit as JSON.",
     );
+    // Each custom field is a field of its own, listed once the project has one.
+    expect(note).not.toHaveTextContent("Custom Fields");
     // Set through their own "ID" field, or by OneUptime - not missing at all.
     expect(note).not.toHaveTextContent("Created by User");
     expect(note).not.toHaveTextContent("Current Incident State");

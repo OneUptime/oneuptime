@@ -74,6 +74,7 @@ import MonitorMaintenanceSuppression, {
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
+import OpenStackDependencySuppression from "../OpenStack/OpenStackDependencySuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
@@ -147,7 +148,9 @@ export default class MonitorResourceUtil {
    * it stopped, and the monitor turned green. The monitor now keeps its
    * status, and its open incidents and alerts stay open, until data comes
    * back. A criteria that asks for silence - Has No Data, or If No Data set
-   * to Trigger - still matches it as before.
+   * to Trigger - still matches it as before, and a grouped recovery criteria
+   * that counts a missing series as zero matches it while the resource still
+   * reports (GroupedSeriesGone): then this is never reached.
    */
   public static isSilentInfrastructureWindow(input: {
     monitor: Monitor;
@@ -1242,34 +1245,6 @@ export default class MonitorResourceUtil {
         const matchedCriteriaInstance: MonitorCriteriaInstance =
           criteriaInstanceMap[response.criteriaMetId!]!;
 
-        const monitorStatusTimelineChange: MonitorStatusTimeline | null =
-          await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
-            monitor: monitor,
-            rootCause: response.rootCause,
-            dataToProcess: dataToProcess,
-            criteriaInstance: matchedCriteriaInstance,
-            props: {
-              telemetryQuery: telemetryQuery,
-            },
-          });
-
-        if (monitorStatusTimelineChange) {
-          const changedStatusName: string | null = await getMonitorStatusName(
-            matchedCriteriaInstance.data?.monitorStatusId ||
-              monitorStatusTimelineChange.monitorStatusId,
-          );
-
-          evaluationSummary.events.push({
-            type: "monitor-status-changed",
-            title: "Monitor status updated",
-            message: changedStatusName
-              ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
-              : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
-            relatedCriteriaId: matchedCriteriaInstance.data?.id,
-            at: OneUptimeDate.getCurrentDate(),
-          });
-        }
-
         /*
          * The criteria this evaluation is going to act on.
          *
@@ -1363,6 +1338,60 @@ export default class MonitorResourceUtil {
           maintenanceSuppression.suppressedSeriesFingerprints;
 
         /*
+         * Planned work on one host of an OpenStack cloud keeps the monitor's status, so a status page
+         * stays as it is: see isEveryBreachUnderMaintenance.
+         */
+        const monitorStatusTimelineChange: MonitorStatusTimeline | null =
+          MonitorMaintenanceSuppression.isEveryBreachUnderMaintenance({
+            monitor: monitor,
+            isPerSeriesEvaluation: isPerSeriesEvaluation,
+            criteriaInstance: matchedCriteriaInstance,
+            breachingFingerprints: new Set<string>(
+              criteriaFanOut.flatMap((matched: MatchedCriteriaResult) => {
+                const criteria: MonitorCriteriaInstance | undefined =
+                  criteriaInstanceMap[matched.criteriaId];
+
+                return criteria?.data?.createIncidents ||
+                  criteria?.data?.createAlerts
+                  ? matched.perSeriesMatches.map(
+                      (series: PerSeriesCriteriaMatch): string => {
+                        return series.fingerprint;
+                      },
+                    )
+                  : [];
+              }),
+            ),
+            suppressedFingerprints: suppressedSeriesFingerprints,
+          })
+            ? null
+            : await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+                monitor: monitor,
+                rootCause: response.rootCause,
+                dataToProcess: dataToProcess,
+                criteriaInstance: matchedCriteriaInstance,
+                props: {
+                  telemetryQuery: telemetryQuery,
+                },
+              });
+
+        if (monitorStatusTimelineChange) {
+          const changedStatusName: string | null = await getMonitorStatusName(
+            matchedCriteriaInstance.data?.monitorStatusId ||
+              monitorStatusTimelineChange.monitorStatusId,
+          );
+
+          evaluationSummary.events.push({
+            type: "monitor-status-changed",
+            title: "Monitor status updated",
+            message: changedStatusName
+              ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
+              : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
+            relatedCriteriaId: matchedCriteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
+        /*
          * Alert-dependency suppression: if any parent monitor this monitor
          * depends on is currently in a suppressing status (offline by
          * default), skip creating incidents/alerts for this evaluation.
@@ -1374,8 +1403,12 @@ export default class MonitorResourceUtil {
          * dependencies configured.
          */
         const dependencySuppression: DependencySuppressionResult =
-          await MonitorDependencySuppression.getDependencySuppression({
+          await OpenStackDependencySuppression.forEvaluation({
             monitor: monitor,
+            suppression:
+              await MonitorDependencySuppression.getDependencySuppression({
+                monitor: monitor,
+              }),
           });
 
         /*

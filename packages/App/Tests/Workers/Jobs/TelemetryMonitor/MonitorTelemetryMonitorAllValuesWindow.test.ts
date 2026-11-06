@@ -23,6 +23,7 @@ import { MonitorStepHostMonitorUtil } from "Common/Types/Monitor/MonitorStepHost
 import { MonitorStepPodmanMonitorUtil } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
 import { MonitorStepDockerSwarmMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorStepCephMonitorUtil } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
@@ -258,6 +259,12 @@ function stepFor(monitorType: MonitorType): MonitorStep {
     case MonitorType.Proxmox:
       return step.setProxmoxMonitor({
         ...MonitorStepProxmoxMonitorUtil.getDefault(),
+        metricViewConfig: VIEW,
+        rollingTime: ROLLING_TIME,
+      });
+    case MonitorType.OpenStack:
+      return step.setOpenStackMonitor({
+        ...MonitorStepOpenStackMonitorUtil.getDefault(),
         metricViewConfig: VIEW,
         rollingTime: ROLLING_TIME,
       });

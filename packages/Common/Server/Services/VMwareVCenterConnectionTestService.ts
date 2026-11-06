@@ -79,6 +79,31 @@ export class Service extends ProjectReferencesService<Model> {
     return ["probe", "vmwareVCenter"];
   }
 
+  /*
+   * A create answers with the row it saved, serialized whole, without a column
+   * read check, and the row holds the password, encrypted. For a test of a
+   * vCenter that is already set up, that is the vCenter's saved password, which
+   * whoever may test a connection never typed and may not read (read: []). The
+   * probe reads the password from the database, so what is handed back here has
+   * no need of it.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const created: Model = await super.create(createBy);
+
+    /*
+     * Cleared rather than deleted, as BaseAPI.createItem clears a model's
+     * `_id`: an unset column holds undefined, which serializes as nothing.
+     */
+    const row: Record<string, unknown> = created as unknown as Record<
+      string,
+      unknown
+    >;
+    row["vcenterPassword"] = undefined;
+
+    return created;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

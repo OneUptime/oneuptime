@@ -808,6 +808,49 @@ export default class InventoryItem {
       return { entityType: EntityType.ProxmoxGuest, id };
     },
 
+    // openstack.cloud — openstack.cloud.name only: a region is a filter inside it.
+    (attrs: EntityAttributes) => {
+      const id: Dictionary<string> | null =
+        InventoryItem.openStackCloudIdentity(attrs);
+      return id ? { entityType: EntityType.OpenStackCloud, id } : null;
+    },
+
+    // openstack.hypervisor — cloud + openstack.hypervisor.name.
+    (attrs: EntityAttributes) => {
+      const hypervisorName: string | null = InventoryItem.str(
+        attrs,
+        "openstack.hypervisor.name",
+      );
+      if (!hypervisorName) {
+        return null;
+      }
+      const id: Dictionary<string> = {
+        ...(InventoryItem.openStackCloudIdentity(attrs) || {}),
+        "openstack.hypervisor.name": hypervisorName,
+      };
+      return { entityType: EntityType.OpenStackHypervisor, id };
+    },
+
+    /*
+     * openstack.instance — cloud + openstack.instance.id. The hypervisor is not
+     * part of an instance's identity for the reason a Proxmox guest's node is
+     * not: a live migration moves it without changing what it is.
+     */
+    (attrs: EntityAttributes) => {
+      const instanceId: string | null = InventoryItem.str(
+        attrs,
+        "openstack.instance.id",
+      );
+      if (!instanceId) {
+        return null;
+      }
+      const id: Dictionary<string> = {
+        ...(InventoryItem.openStackCloudIdentity(attrs) || {}),
+        "openstack.instance.id": instanceId,
+      };
+      return { entityType: EntityType.OpenStackInstance, id };
+    },
+
     /*
      * ceph.cluster — ceph.cluster.name only. `ceph.cluster.fsid` is
      * descriptive, not identity: the typed Postgres row (CephCluster) and
@@ -1188,6 +1231,10 @@ export default class InventoryItem {
       "container.image.tags",
     ],
     [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
+    [EntityType.OpenStackInstance]: [
+      "openstack.instance.name",
+      "openstack.instance.flavor",
+    ],
     [EntityType.CephCluster]: ["ceph.cluster.fsid"],
     [EntityType.StorageArray]: ["storage.system"],
     /*
@@ -1496,6 +1543,16 @@ export default class InventoryItem {
     const name: string | null = this.str(attrs, "proxmox.cluster.name");
     if (name) {
       return { "proxmox.cluster.name": name };
+    }
+    return null;
+  }
+
+  private static openStackCloudIdentity(
+    attrs: EntityAttributes,
+  ): Dictionary<string> | null {
+    const name: string | null = this.str(attrs, "openstack.cloud.name");
+    if (name) {
+      return { "openstack.cloud.name": name };
     }
     return null;
   }

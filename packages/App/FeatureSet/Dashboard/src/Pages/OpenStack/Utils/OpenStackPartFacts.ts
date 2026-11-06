@@ -1,0 +1,1802 @@
+import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_IP_POOL_EXHAUSTED_PERCENT,
+  OPENSTACK_IP_POOL_WARNING_PERCENT,
+  OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
+  OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
+  OpenStackL3AgentFact,
+  getOpenStackNetworkIpPercent,
+  getOpenStackRouterAgents,
+  getOpenStackShortHostName,
+  isOpenStackAdminDisabled,
+  isOpenStackBareMetalMaintenanceTooLong,
+  isOpenStackBareMetalNodeInError,
+  isOpenStackBareMetalNodeStuck,
+  isOpenStackContainerClusterFailed,
+  isOpenStackFloatingIpAssociated,
+  isOpenStackServiceDown,
+  isOpenStackAmphoraInError,
+  isOpenStackLoadBalancerInError,
+  isOpenStackLoadBalancerStuck,
+  isOpenStackDnsInError,
+  isOpenStackDatabaseInstanceInError,
+  isOpenStackDatabaseInstanceStuck,
+  isOpenStackShareInError,
+  isOpenStackStackFailed,
+  isSameOpenStackHost,
+  minutesInState,
+  percentOf,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
+import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
+import { isOpenStackOptionalService } from "Common/Types/OpenStack/OpenStackOptionalServices";
+import {
+  OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY,
+  OPENSTACK_SERVICE_STATUS_UP,
+  OpenStackResourceKind,
+  OpenStackServiceFamily,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  OpenStackStatusReading,
+  getOpenStackStatusReading,
+} from "../../../Components/OpenStack/OpenStackStatus";
+import {
+  ResourceAttentionItem,
+  ResourceAttentionSeverity,
+  ResourceAttentionText,
+  ResourceHealth,
+} from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  ResourcePartStatus,
+  ResourcePartTone,
+} from "../../../Components/ResourcePart/ResourcePartTypes";
+import {
+  OpenIssueRecord,
+  readSeriesLabel,
+} from "../../../Components/ResourceTopology/ResourceTopologyIssues";
+import {
+  OPENSTACK_REASON_INSTANCE_ERROR,
+  OpenStackAssessment,
+  OpenStackRouteFor,
+  assessOpenStackResource,
+  formatOpenStackDuration,
+  getOpenStackAttentionItems,
+  getOpenStackBareMetalProvisionUpdatedAt,
+  getOpenStackHealth,
+} from "./OpenStackHealth";
+
+/*
+ * WHAT A PART OF AN OPENSTACK CLOUD IS, IN THE WORDS ITS PAGES USE.
+ *
+ * OpenStackHealth says what needs someone. This says what a part is: its state as a
+ * list and its page draw it, what Placement has promised on a hypervisor and at what
+ * ratio, which agents hold a router, whether a floating IP is in use, what a zone or an
+ * aggregate adds up to, and which of the alert templates watch each kind of part.
+ *
+ * Three things hold everywhere here:
+ *
+ *  - It reads OpenStack's own words and the rules' lines, and draws none of its own.
+ *  - What was not collected is said to be not collected. A hypervisor Nova lost keeps
+ *    its last numbers, which are not current and never idle capacity; an instance's
+ *    addresses are empty in the exporter's output; a pool's volumes are not in it at
+ *    all. A page says so, and never reads any of them as zero or as nothing wrong.
+ *  - A hypervisor's own name is the full one, a Service row's host the short one. Only
+ *    isSameOpenStackHost joins the two.
+ *
+ * Words are English, marked with translationKey() and looked up in the reader's
+ * language where they are drawn. React-free, so tests can read it.
+ */
+
+const REASON_LAST_KNOWN: string = translationKey(
+  "nova-compute is down. Its numbers are last known",
+);
+const STATE_HAS_ROOM: string = translationKey("Has room");
+const STATE_FILLING_UP: string = translationKey("Filling up");
+const STATE_NEARLY_FULL: string = translationKey("Nearly full");
+
+// Nova's own zone for its control services: never one anyone counts.
+export const OPENSTACK_INTERNAL_ZONE: string = "internal";
+
+/*
+ * The recommended alerts that watch each kind of part, in the order a part's Alerts
+ * card lists them. Each is one monitor on the cloud that fires for any part crossing
+ * it. Some are by region rather than by part, because that is all the exporter counts
+ * (a floating IP's), and the card says it watches the whole cloud.
+ */
+export const OPENSTACK_HYPERVISOR_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-compute-service-down",
+  "openstack-vcpu-allocation-high",
+  "openstack-memory-allocation-high",
+  "openstack-local-disk-allocation-high",
+  "openstack-hypervisor-cpu-saturated",
+  "openstack-hypervisor-memory-pressure",
+];
+
+export const OPENSTACK_INSTANCE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-instances-in-error",
+  "openstack-instance-cpu-saturated",
+  "openstack-instance-disk-latency-high",
+  "openstack-instance-stuck-building",
+  "openstack-instance-stuck-transitioning",
+  "openstack-instance-stuck-in-verify-resize",
+];
+
+export const OPENSTACK_NETWORK_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-external-ip-pool-nearly-full",
+  "openstack-network-out-of-ips",
+];
+
+export const OPENSTACK_ROUTER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-router-not-active",
+  "openstack-router-without-active-agent",
+  "openstack-router-with-two-active-agents",
+];
+
+export const OPENSTACK_FLOATING_IP_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-floating-ip-not-active",
+];
+
+export const OPENSTACK_NETWORK_AGENT_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-network-agent-down",
+];
+
+export const OPENSTACK_VOLUME_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-volumes-in-error",
+  "openstack-volume-stuck",
+];
+
+export const OPENSTACK_BARE_METAL_NODE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-bare-metal-node-in-error",
+  "openstack-bare-metal-node-stuck",
+  "openstack-bare-metal-node-maintenance-too-long",
+  "openstack-bare-metal-power-state-unexpected",
+];
+
+export const OPENSTACK_IMAGE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-image-stuck",
+];
+
+export const OPENSTACK_STORAGE_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-storage-pool-warning",
+  "openstack-storage-pool-critical",
+];
+
+export const OPENSTACK_LOAD_BALANCER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-load-balancer-in-error",
+  "openstack-load-balancer-stuck-pending",
+  "openstack-load-balancer-with-two-masters",
+];
+
+export const OPENSTACK_POOL_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-pool-without-healthy-members",
+];
+
+export const OPENSTACK_AMPHORA_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-amphora-in-error",
+];
+
+export const OPENSTACK_DNS_ZONE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-dns-zone-in-error",
+  "openstack-dns-zone-stuck-pending",
+  "openstack-dns-recordset-in-error",
+];
+
+// What watches every container this credential can read.
+export const OPENSTACK_OBJECT_CONTAINER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-object-container-growth",
+];
+
+export const OPENSTACK_DATABASE_INSTANCE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-database-instance-in-error",
+  "openstack-database-instance-stuck",
+  "openstack-database-volume-nearly-full",
+];
+
+export const OPENSTACK_SHARE_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-share-in-error",
+  "openstack-share-stuck",
+];
+
+export const OPENSTACK_STACK_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-stack-failed",
+  "openstack-stack-stuck",
+];
+
+export const OPENSTACK_CONTAINER_CLUSTER_ALERT_TEMPLATE_IDS: Array<string> = [
+  "openstack-container-cluster-failed",
+  "openstack-container-cluster-stuck",
+];
+
+function factsOf(row: OpenStackResource | null | undefined): JSONObject {
+  return (row?.facts as JSONObject | undefined) || {};
+}
+
+function textFact(
+  row: OpenStackResource | null | undefined,
+  name: string,
+): string {
+  const value: JSONValue | undefined = factsOf(row)[name];
+  return typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : "";
+}
+
+function numberFact(
+  row: OpenStackResource | null | undefined,
+  name: string,
+): number | null {
+  const value: JSONValue | undefined = factsOf(row)[name];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * How rows name each other
+ * ---------------------------------------------------------------------------
+ *
+ * Only UUIDs are unique across a cloud, so a hypervisor's, a flavor's and a pool's rows
+ * carry their region in their external id (OpenStackSnapshotScan).
+ */
+function regional(regionName: string | null | undefined, id: string): string {
+  return `${regionName || "default"}/${id}`;
+}
+
+export function getOpenStackHypervisorExternalId(
+  regionName: string | null | undefined,
+  hypervisorName: string,
+): string {
+  return regional(regionName, hypervisorName);
+}
+
+export function getOpenStackFlavorExternalId(
+  regionName: string | null | undefined,
+  flavorId: string,
+): string {
+  return regional(regionName, flavorId);
+}
+
+// The pool a volume names, in the name Cinder's pool list gives it.
+export function getOpenStackStoragePoolExternalId(
+  regionName: string | null | undefined,
+  poolName: string,
+): string {
+  return regional(regionName, poolName);
+}
+
+// Nova's own id for a flavor, without the region its row is keyed by.
+export function getOpenStackFlavorId(
+  row: Pick<OpenStackResource, "externalId" | "regionName">,
+): string {
+  const externalId: string = row.externalId || "";
+  const prefix: string = `${row.regionName || "default"}/`;
+  return externalId.startsWith(prefix)
+    ? externalId.substring(prefix.length)
+    : externalId;
+}
+
+// What a part goes by: its name, or the end of its id when OpenStack gave it none.
+/*
+ * A cluster's size in Magnum's two counts, and what it was asked for rather than what came up: a
+ * failed cluster reports the same numbers, recorded. Nodes, in the words Kubernetes people use.
+ */
+export function getOpenStackContainerClusterNodeCounts(
+  row: OpenStackResource | null | undefined,
+): { controlPlane: number | null; workers: number | null } {
+  return {
+    controlPlane: numberFact(row, "masterCount"),
+    workers: numberFact(row, "nodeCount"),
+  };
+}
+
+export function getOpenStackPartName(
+  row: Pick<OpenStackResource, "name"> | null | undefined,
+  externalId: string,
+): string {
+  return row?.name || externalId.substring(externalId.lastIndexOf("/") + 1);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A row's state: its word, its tone, and why
+ * ---------------------------------------------------------------------------
+ */
+export interface OpenStackRowState {
+  // English to look up, or OpenStack's own word to draw as written.
+  label: string;
+  isOpenStackWord: boolean;
+  tone: ResourcePartTone;
+  // The operator's words for why it is disabled, as written. Never looked up.
+  writtenReason?: string | undefined;
+  // What the rules say, at the alert templates' lines.
+  reasons: Array<ResourceAttentionText>;
+}
+
+/*
+ * A reason that says nothing the word beside it has not: "ERROR", "In ERROR". A stuck
+ * part's says what the word beside it doesn't: "Stuck", "BUILD for 3h".
+ */
+function repeatsItsWord(reason: ResourceAttentionText, word: string): boolean {
+  return (
+    reason.text === OPENSTACK_REASON_INSTANCE_ERROR ||
+    reason.values?.["status"] === word
+  );
+}
+
+// What the rules say can only make a word read worse, never better.
+function worseTone(
+  tone: ResourcePartTone,
+  assessment: OpenStackAssessment,
+): ResourcePartTone {
+  if (
+    tone === "danger" ||
+    assessment.severity === ResourceAttentionSeverity.Critical
+  ) {
+    return "danger";
+  }
+  return assessment.severity === ResourceAttentionSeverity.Warning
+    ? "warning"
+    : tone;
+}
+
+/*
+ * A pool reports no state of its own, only how full it is, so that is its state. At the
+ * storage pool templates' two lines.
+ */
+function getOpenStackStoragePoolReading(
+  row: OpenStackResource,
+): OpenStackStatusReading | null {
+  const percent: number | null = percentOf(
+    row.diskAllocatedBytes,
+    row.diskCapacityBytes,
+  );
+  if (percent === null) {
+    return null;
+  }
+  if (percent > OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT) {
+    return { label: STATE_NEARLY_FULL, tone: "danger", isOpenStackWord: false };
+  }
+  if (percent > OPENSTACK_STORAGE_POOL_WARNING_PERCENT) {
+    return { label: STATE_FILLING_UP, tone: "warning", isOpenStackWord: false };
+  }
+  return { label: STATE_HAS_ROOM, tone: "positive", isOpenStackWord: false };
+}
+
+/*
+ * The state a list's row and a part's hero both show. Null for a row with nothing to
+ * say: a hypervisor whose credential can't read Nova's services, say.
+ */
+export function getOpenStackRowState(
+  row: OpenStackResource,
+  now: Date,
+): OpenStackRowState | null {
+  const reading: OpenStackStatusReading | null =
+    row.kind === OpenStackResourceKind.StoragePool
+      ? getOpenStackStoragePoolReading(row)
+      : getOpenStackStatusReading({
+          kind: row.kind,
+          status: row.status,
+          adminState: row.adminState,
+          disabledReason: row.disabledReason,
+          isScrapeFailed: factsOf(row)["scrapeFailed"] === true,
+          stateChangedAt: row.stateChangedAt,
+          provisionUpdatedAt: getOpenStackBareMetalProvisionUpdatedAt(row),
+          now,
+        });
+
+  if (!reading) {
+    return null;
+  }
+
+  const assessment: OpenStackAssessment = assessOpenStackResource({ row, now });
+  const reasons: Array<ResourceAttentionText> = assessment.reasons.filter(
+    (reason: ResourceAttentionText): boolean => {
+      return !repeatsItsWord(reason, reading.label);
+    },
+  );
+
+  if (isOpenStackHypervisorLost(row)) {
+    reasons.push({ text: REASON_LAST_KNOWN });
+  }
+
+  // How full a pool is, in a word and then in a number, is said once by its Used column.
+  const isPool: boolean = row.kind === OpenStackResourceKind.StoragePool;
+
+  return {
+    label: reading.label,
+    isOpenStackWord: reading.isOpenStackWord,
+    tone: worseTone(reading.tone, assessment),
+    writtenReason: reading.writtenReason,
+    reasons: isPool ? [] : reasons,
+  };
+}
+
+// The same state, as ResourcePartHero draws it.
+export function getOpenStackPartStatus(
+  row: OpenStackResource,
+  now: Date,
+): ResourcePartStatus | null {
+  const state: OpenStackRowState | null = getOpenStackRowState(row, now);
+  if (!state) {
+    return null;
+  }
+  return state.isOpenStackWord
+    ? {
+        label: "{{status}}",
+        values: { status: state.label },
+        tone: state.tone,
+      }
+    : { label: state.label, tone: state.tone };
+}
+
+// How long a part has been in its state, as far as OneUptime has seen.
+export function getOpenStackTimeInState(
+  row: Pick<OpenStackResource, "stateChangedAt">,
+  now: Date,
+): string {
+  const minutes: number | null = minutesInState({
+    stateChangedAt: row.stateChangedAt,
+    now,
+  });
+  return minutes === null ? "" : formatOpenStackDuration(minutes);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Hypervisors: what is promised, at what ratio, and when it is only last known
+ * ---------------------------------------------------------------------------
+ */
+
+// Nova lost it. Its numbers keep arriving, as the last ones it had.
+export function isOpenStackHypervisorLost(
+  row: Pick<OpenStackResource, "kind" | "status" | "adminState">,
+): boolean {
+  return (
+    row.kind === OpenStackResourceKind.Hypervisor &&
+    isOpenStackServiceDown({ status: row.status, adminState: row.adminState })
+  );
+}
+
+// Whether it can take instances: only this counts as room anywhere on these pages.
+export function canOpenStackHypervisorGive(
+  row: Pick<OpenStackResource, "status" | "adminState">,
+): boolean {
+  return (
+    !isOpenStackServiceDown({
+      status: row.status,
+      adminState: row.adminState,
+    }) && !isOpenStackAdminDisabled(row.adminState)
+  );
+}
+
+export type OpenStackAllocationKey = "vcpu" | "memory" | "disk";
+
+export interface OpenStackAllocationLine {
+  key: OpenStackAllocationKey;
+  taken: number | null;
+  capacity: number | null;
+  percent: number | null;
+  // Placement's allocation ratio, from facts.allocationRatios. Null when Nova said.
+  ratio: number | null;
+  isOverLine: boolean;
+  isLastKnown: boolean;
+}
+
+export function getOpenStackAllocationLines(
+  row: OpenStackResource,
+): Array<OpenStackAllocationLine> {
+  const ratios: JSONObject =
+    (factsOf(row)["allocationRatios"] as JSONObject | undefined) || {};
+  const isLastKnown: boolean = isOpenStackHypervisorLost(row);
+
+  const line: (data: {
+    key: OpenStackAllocationKey;
+    taken: number | undefined;
+    capacity: number | undefined;
+    resource: string;
+  }) => OpenStackAllocationLine = (data: {
+    key: OpenStackAllocationKey;
+    taken: number | undefined;
+    capacity: number | undefined;
+    resource: string;
+  }): OpenStackAllocationLine => {
+    const percent: number | null = percentOf(data.taken, data.capacity);
+    const ratio: JSONValue | undefined = ratios[data.resource];
+    return {
+      key: data.key,
+      taken: data.taken ?? null,
+      capacity: data.capacity ?? null,
+      percent: percent,
+      ratio: typeof ratio === "number" ? ratio : null,
+      isOverLine:
+        !isLastKnown &&
+        percent !== null &&
+        percent > OPENSTACK_ALLOCATION_WARNING_PERCENT,
+      isLastKnown: isLastKnown,
+    };
+  };
+
+  return [
+    line({
+      key: "vcpu",
+      taken: row.vcpuAllocated,
+      capacity: row.vcpuCapacity,
+      resource: "VCPU",
+    }),
+    line({
+      key: "memory",
+      taken: row.memoryAllocatedBytes,
+      capacity: row.memoryCapacityBytes,
+      resource: "MEMORY_MB",
+    }),
+    line({
+      key: "disk",
+      taken: row.diskAllocatedBytes,
+      capacity: row.diskCapacityBytes,
+      resource: "DISK_GB",
+    }),
+  ];
+}
+
+// "16:1", as `openstack allocation candidate list` and every operator write it.
+export function formatOpenStackAllocationRatio(ratio: number | null): string {
+  if (ratio === null) {
+    return "";
+  }
+  return `${Number.isInteger(ratio) ? ratio : ratio.toFixed(1)}:1`;
+}
+
+// A hypervisor's aggregates, as the exporter joins them: "gpu,ssd".
+export function parseOpenStackAggregates(
+  row: OpenStackResource | null | undefined,
+): Array<string> {
+  return textFact(row, "aggregates")
+    .split(",")
+    .map((name: string): string => {
+      return name.trim();
+    })
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Availability zones and aggregates
+ * ---------------------------------------------------------------------------
+ *
+ * Neither has a row of its own: a zone and an aggregate are what hypervisors say about
+ * themselves. Hypervisors are few even on a large cloud, and the needs-attention read
+ * brings them whole, so these add up on the page, through the same rules every list
+ * reads, rather than through a second set of them in SQL.
+ */
+export type OpenStackHostGroupKind = "zone" | "aggregate";
+
+export interface OpenStackHostGroup {
+  kind: OpenStackHostGroupKind;
+  // A zone's or an aggregate's name, unique within its region.
+  name: string;
+  regionName: string;
+  // What its page is found by: `${regionName}/${name}`.
+  id: string;
+  hypervisors: Array<OpenStackResource>;
+  total: number;
+  up: number;
+  lost: number;
+  disabled: number;
+  // What can be promised and has been, from the hypervisors that can give.
+  vcpuAllocated: number;
+  vcpuCapacity: number;
+  memoryAllocatedBytes: number;
+  memoryCapacityBytes: number;
+  diskAllocatedBytes: number;
+  diskCapacityBytes: number;
+  // Last known for a hypervisor Nova lost, whose instances are still on it.
+  instanceCount: number;
+  health: ResourceHealth;
+  attention: Array<ResourceAttentionItem>;
+}
+
+export function getOpenStackHostGroupId(
+  regionName: string | null | undefined,
+  name: string,
+): string {
+  return `${regionName || ""}/${name}`;
+}
+
+export function parseOpenStackHostGroupId(id: string): {
+  regionName: string;
+  name: string;
+} {
+  const slash: number = id.indexOf("/");
+  return slash < 0
+    ? { regionName: "", name: id }
+    : { regionName: id.substring(0, slash), name: id.substring(slash + 1) };
+}
+
+export function getOpenStackHostGroupNames(
+  row: OpenStackResource,
+  kind: OpenStackHostGroupKind,
+): Array<string> {
+  if (kind === "aggregate") {
+    return parseOpenStackAggregates(row);
+  }
+  const zone: string = row.availabilityZone || "";
+  return zone && zone !== OPENSTACK_INTERNAL_ZONE ? [zone] : [];
+}
+
+/*
+ * Each group's hypervisors, and what they add up to. `rows` is what the needs-attention
+ * read brought: every hypervisor and service, and the instances, volumes and the rest
+ * that may need someone, of which a group takes the ones on its hypervisors.
+ */
+export function getOpenStackHostGroups(data: {
+  rows: Array<OpenStackResource>;
+  kind: OpenStackHostGroupKind;
+  now: Date;
+  routeFor?: OpenStackRouteFor | undefined;
+}): Array<OpenStackHostGroup> {
+  const groups: Map<string, OpenStackHostGroup> = new Map();
+
+  for (const row of data.rows) {
+    if (row.kind !== OpenStackResourceKind.Hypervisor) {
+      continue;
+    }
+    for (const name of getOpenStackHostGroupNames(row, data.kind)) {
+      const id: string = getOpenStackHostGroupId(row.regionName, name);
+      const group: OpenStackHostGroup = groups.get(id) || {
+        kind: data.kind,
+        name,
+        regionName: row.regionName || "",
+        id,
+        hypervisors: [],
+        total: 0,
+        up: 0,
+        lost: 0,
+        disabled: 0,
+        vcpuAllocated: 0,
+        vcpuCapacity: 0,
+        memoryAllocatedBytes: 0,
+        memoryCapacityBytes: 0,
+        diskAllocatedBytes: 0,
+        diskCapacityBytes: 0,
+        instanceCount: 0,
+        health: "Healthy",
+        attention: [],
+      };
+      group.hypervisors.push(row);
+      group.total += 1;
+      group.instanceCount += row.instanceCount || 0;
+      if (isOpenStackAdminDisabled(row.adminState)) {
+        group.disabled += 1;
+      } else if (isOpenStackHypervisorLost(row)) {
+        group.lost += 1;
+      } else if (row.status === OPENSTACK_SERVICE_STATUS_UP) {
+        group.up += 1;
+      }
+      if (canOpenStackHypervisorGive(row)) {
+        group.vcpuAllocated += row.vcpuAllocated || 0;
+        group.vcpuCapacity += row.vcpuCapacity || 0;
+        group.memoryAllocatedBytes += row.memoryAllocatedBytes || 0;
+        group.memoryCapacityBytes += row.memoryCapacityBytes || 0;
+        group.diskAllocatedBytes += row.diskAllocatedBytes || 0;
+        group.diskCapacityBytes += row.diskCapacityBytes || 0;
+      }
+      groups.set(id, group);
+    }
+  }
+
+  for (const group of groups.values()) {
+    const rows: Array<OpenStackResource> = getOpenStackRowsOfHostGroup(
+      group,
+      data.rows,
+    );
+    group.attention = getOpenStackAttentionItems({
+      rows,
+      now: data.now,
+      routeFor: data.routeFor,
+    });
+    group.health = getOpenStackHealth(group.attention);
+  }
+
+  return Array.from(groups.values()).sort(
+    (first: OpenStackHostGroup, second: OpenStackHostGroup): number => {
+      return (
+        first.regionName.localeCompare(second.regionName) ||
+        first.name.localeCompare(second.name, undefined, { numeric: true })
+      );
+    },
+  );
+}
+
+// A group's hypervisors, their nova-computes, and what may need someone on them.
+export function getOpenStackRowsOfHostGroup(
+  group: Pick<OpenStackHostGroup, "hypervisors" | "regionName">,
+  rows: Array<OpenStackResource>,
+): Array<OpenStackResource> {
+  const hypervisorNames: Set<string> = new Set(
+    group.hypervisors.map((row: OpenStackResource): string => {
+      return row.hypervisorName || "";
+    }),
+  );
+  const shortNames: Set<string> = new Set(
+    group.hypervisors.map((row: OpenStackResource): string => {
+      return getOpenStackShortHostName(row.hypervisorName);
+    }),
+  );
+
+  return rows.filter((row: OpenStackResource): boolean => {
+    if (row.regionName !== (group.regionName || undefined)) {
+      return false;
+    }
+    if (row.kind === OpenStackResourceKind.Hypervisor) {
+      return hypervisorNames.has(row.hypervisorName || "");
+    }
+    if (row.kind === OpenStackResourceKind.Instance) {
+      return hypervisorNames.has(row.hypervisorName || "");
+    }
+    if (row.kind === OpenStackResourceKind.Service) {
+      return (
+        row.name === "nova-compute" &&
+        shortNames.has(getOpenStackShortHostName(textFact(row, "host")))
+      );
+    }
+    return false;
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Instances
+ * ---------------------------------------------------------------------------
+ */
+export interface OpenStackInstanceAddresses {
+  ipv4: string;
+  ipv6: string;
+  isKnown: boolean;
+}
+
+/*
+ * The exporter's address labels are empty on a real cloud, whatever its code says, so an
+ * empty one is not an instance with no address, and a page says it is not collected. A probe
+ * reads Nova's addresses, so from one (updatedAt only comes from a probe), none means none:
+ * an instance that failed before it was placed has no port to hold one.
+ */
+export function getOpenStackInstanceAddresses(
+  row: OpenStackResource | null | undefined,
+): OpenStackInstanceAddresses {
+  const ipv4: string = textFact(row, "addressIpv4");
+  const ipv6: string = textFact(row, "addressIpv6");
+  return {
+    ipv4,
+    ipv6,
+    isKnown: Boolean(ipv4 || ipv6 || textFact(row, "updatedAt")),
+  };
+}
+
+/*
+ * What an instance booted from. Only a native read of Nova says: the exporter has no such label,
+ * on any series. What says a row came from one is when it last changed, which the exporter has no
+ * label for either, and then an instance with no image is one booted from a volume, which is what
+ * Nova answers for those. Anything else is not known, and a page says so.
+ */
+export type OpenStackInstanceImage =
+  | { state: "image"; imageId: string }
+  | { state: "booted-from-volume" }
+  | { state: "not-collected" };
+
+export function getOpenStackInstanceImage(
+  row: OpenStackResource | null | undefined,
+): OpenStackInstanceImage {
+  const imageId: string = textFact(row, "imageId");
+  if (imageId) {
+    return { state: "image", imageId };
+  }
+  return textFact(row, "updatedAt")
+    ? { state: "booted-from-volume" }
+    : { state: "not-collected" };
+}
+
+// An instance that failed before it was placed has no hypervisor. That is its story.
+export function isOpenStackInstanceUnplaced(
+  row: Pick<OpenStackResource, "kind" | "hypervisorName">,
+): boolean {
+  return row.kind === OpenStackResourceKind.Instance && !row.hypervisorName;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Networks and subnets
+ * ---------------------------------------------------------------------------
+ */
+export interface OpenStackSubnetAddresses {
+  // The subnet's name, or its CIDR when it has none.
+  name: string;
+  cidr: string;
+  ipVersion: string;
+  used: number | null;
+  total: number | null;
+  /*
+   * Null for IPv6: a /64 is 2^64 addresses, and no share of that says anything. The
+   * alert templates read IPv4 alone for the same reason.
+   */
+  percent: number | null;
+}
+
+export function getOpenStackNetworkSubnets(
+  row: OpenStackResource | null | undefined,
+): Array<OpenStackSubnetAddresses> {
+  const subnets: JSONValue | undefined = factsOf(row)["ipsBySubnet"];
+  if (!subnets || typeof subnets !== "object" || Array.isArray(subnets)) {
+    return [];
+  }
+  return Object.keys(subnets as JSONObject)
+    .map((name: string): OpenStackSubnetAddresses => {
+      const subnet: JSONObject =
+        ((subnets as JSONObject)[name] as JSONObject) || {};
+      const used: number | null =
+        typeof subnet["used"] === "number" ? subnet["used"] : null;
+      const total: number | null =
+        typeof subnet["total"] === "number" ? subnet["total"] : null;
+      const ipVersion: string =
+        typeof subnet["ipVersion"] === "string" ? subnet["ipVersion"] : "";
+      return {
+        name,
+        cidr: typeof subnet["cidr"] === "string" ? subnet["cidr"] : "",
+        ipVersion,
+        used,
+        total,
+        percent: ipVersion === "6" ? null : percentOf(used, total),
+      };
+    })
+    .sort(
+      (
+        first: OpenStackSubnetAddresses,
+        second: OpenStackSubnetAddresses,
+      ): number => {
+        return (
+          first.ipVersion.localeCompare(second.ipVersion) ||
+          first.name.localeCompare(second.name, undefined, { numeric: true })
+        );
+      },
+    );
+}
+
+export function getOpenStackAddressesFree(
+  row: OpenStackResource | null | undefined,
+): number | null {
+  const used: number | null = numberFact(row, "ipsUsed");
+  const total: number | null = numberFact(row, "ipsTotal");
+  return used === null || total === null ? null : Math.max(total - used, 0);
+}
+
+/*
+ * The same two lines as the external pool templates, for a bar: only an external network
+ * ever asks anyone for anything, and a tenant's own network filling up is theirs to see.
+ */
+export function getOpenStackAddressesTone(
+  row: OpenStackResource,
+): "positive" | "warning" | "danger" | undefined {
+  const percent: number | null = getOpenStackNetworkIpPercent(factsOf(row));
+  if (percent === null) {
+    return undefined;
+  }
+  if (percent >= OPENSTACK_IP_POOL_EXHAUSTED_PERCENT) {
+    return "danger";
+  }
+  return percent > OPENSTACK_IP_POOL_WARNING_PERCENT ? "warning" : "positive";
+}
+
+export function isOpenStackNetworkExternal(
+  row: OpenStackResource | null | undefined,
+): boolean {
+  return factsOf(row)["isExternal"] === true;
+}
+
+export function isOpenStackNetworkShared(
+  row: OpenStackResource | null | undefined,
+): boolean {
+  return factsOf(row)["isShared"] === true;
+}
+
+// The network's own subnet's numbers, read from its network's row by name, then CIDR.
+export function getOpenStackSubnetAddresses(data: {
+  subnet: OpenStackResource;
+  network: OpenStackResource | null | undefined;
+}): OpenStackSubnetAddresses | null {
+  const cidr: string = textFact(data.subnet, "cidr");
+  const name: string = data.subnet.name || "";
+  return (
+    getOpenStackNetworkSubnets(data.network).find(
+      (subnet: OpenStackSubnetAddresses): boolean => {
+        return (
+          (Boolean(cidr) && subnet.cidr === cidr) ||
+          (Boolean(name) && subnet.name === name)
+        );
+      },
+    ) || null
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Routers and the agents that hold them
+ * ---------------------------------------------------------------------------
+ */
+export type OpenStackNetworkBackend = "ml2-ovs" | "ovn" | "unknown";
+
+/*
+ * Read from what the agents list reports, never from a setting: an L3 agent says ML2/OVS,
+ * an OVN agent says OVN, and a credential that can't list agents can't say. The names
+ * differ by release ("ovn-controller", "OVN Controller agent", "neutron-ovn-agent").
+ */
+export function getOpenStackNetworkBackend(
+  agentNames: ReadonlyArray<string | null | undefined>,
+): OpenStackNetworkBackend {
+  let isOvn: boolean = false;
+  for (const name of agentNames) {
+    const lower: string = (name || "").toLowerCase();
+    if (lower.includes("l3-agent") || lower.includes("l3 agent")) {
+      return "ml2-ovs";
+    }
+    if (lower.includes("ovn")) {
+      isOvn = true;
+    }
+  }
+  return isOvn ? "ovn" : "unknown";
+}
+
+export type OpenStackRouterAgentState =
+  | "alive"
+  | "none-alive"
+  | "two-active"
+  | "not-applicable"
+  | "not-reported";
+
+export interface OpenStackRouterAgentReading {
+  state: OpenStackRouterAgentState;
+  alive: number;
+  total: number;
+  // English, with these values: "1 of 2 alive".
+  label: string;
+  values?: Record<string, string> | undefined;
+  tone: ResourcePartTone;
+  // The host of the agent actively carrying it, on an HA router.
+  activeHost: string | null;
+}
+
+const ROUTER_AGENTS_ALIVE: string = translationKey(
+  "{{alive}} of {{total}} alive",
+);
+const ROUTER_AGENTS_NOT_APPLICABLE: string = translationKey("Not applicable");
+const ROUTER_AGENTS_NOT_REPORTED: string = translationKey("Not reported");
+
+/*
+ * Which agents hold a router. On OVN there are none and there is nothing to be missing,
+ * so that reads Not applicable and never as a fault. An ML2/OVS router with no agent
+ * reported, and a cloud whose agents can't be listed, read Not reported: the exporter
+ * only names agents that hold a router, so saying more would be a guess.
+ */
+export function getOpenStackRouterAgentReading(data: {
+  row: OpenStackResource;
+  backend: OpenStackNetworkBackend;
+}): OpenStackRouterAgentReading {
+  const agents: Array<OpenStackL3AgentFact> = getOpenStackRouterAgents(
+    factsOf(data.row),
+  );
+
+  if (agents.length === 0) {
+    return {
+      state: data.backend === "ovn" ? "not-applicable" : "not-reported",
+      alive: 0,
+      total: 0,
+      label:
+        data.backend === "ovn"
+          ? ROUTER_AGENTS_NOT_APPLICABLE
+          : ROUTER_AGENTS_NOT_REPORTED,
+      tone: "neutral",
+      activeHost: null,
+    };
+  }
+
+  const alive: Array<OpenStackL3AgentFact> = agents.filter(
+    (agent: OpenStackL3AgentFact): boolean => {
+      return agent.isAlive && agent.isAdminUp;
+    },
+  );
+  const active: Array<OpenStackL3AgentFact> = alive.filter(
+    (agent: OpenStackL3AgentFact): boolean => {
+      return agent.haState === "active";
+    },
+  );
+
+  const state: OpenStackRouterAgentState =
+    alive.length === 0
+      ? "none-alive"
+      : active.length > 1
+        ? "two-active"
+        : "alive";
+
+  return {
+    state,
+    alive: alive.length,
+    total: agents.length,
+    label: ROUTER_AGENTS_ALIVE,
+    values: { alive: `${alive.length}`, total: `${agents.length}` },
+    tone: state === "alive" ? "positive" : "danger",
+    activeHost: active[0]?.host || null,
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Floating IPs
+ * ---------------------------------------------------------------------------
+ */
+export type OpenStackFloatingIpAssociation =
+  | "associated"
+  | "unassociated"
+  | "associated-not-active";
+
+export const OPENSTACK_FLOATING_IP_ASSOCIATION_WORDS: Record<
+  OpenStackFloatingIpAssociation,
+  string
+> = {
+  associated: translationKey("Associated"),
+  unassociated: translationKey("Unassociated"),
+  "associated-not-active": translationKey("Associated, not active"),
+};
+
+/*
+ * The exporter has no port label, so what says an address is in use is the router it
+ * goes through. Neutron says DOWN for a spare one, which is an address waiting and
+ * nothing to look at.
+ */
+export function getOpenStackFloatingIpAssociation(
+  row: OpenStackResource,
+): OpenStackFloatingIpAssociation {
+  if (!isOpenStackFloatingIpAssociated(factsOf(row))) {
+    return "unassociated";
+  }
+  return row.status && row.status !== "ACTIVE"
+    ? "associated-not-active"
+    : "associated";
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Why a part reads as it does, in a sentence
+ * ---------------------------------------------------------------------------
+ *
+ * A pill says what is wrong, and a page says why it matters and where to look next. At the
+ * same lines as the rules, because each of these only speaks when they do.
+ */
+const EXPLAIN_NETWORK_OUT: string = translationKey(
+  "This pool has no addresses left, so new floating IPs and router gateways on it fail. Release floating IPs nobody uses, or add a subnet to it. openstack ip availability show says what each subnet holds.",
+);
+const EXPLAIN_NETWORK_FILLING: string = translationKey(
+  "This pool is nearly out of addresses. Once it is, new floating IPs and router gateways on it fail. Release floating IPs nobody uses, or add a subnet to it.",
+);
+const EXPLAIN_ROUTER_NO_AGENT: string = translationKey(
+  "No L3 agent holding this router is alive, so the networks behind it have no way out. Check the agents below and their logs. openstack network agent add router moves it to one that is alive, if none of them will come back.",
+);
+const EXPLAIN_ROUTER_TWO_ACTIVE: string = translationKey(
+  "Two L3 agents are both active for this router, a split brain: its traffic can go to either, and some of it is lost. Check keepalived on the two hosts below, and the network between them.",
+);
+const EXPLAIN_ROUTER_NOT_ACTIVE: string = translationKey(
+  "Neutron says this router should be active and it is not, so traffic through it may not be flowing. Check openstack router show, then the agents that hold it and their logs.",
+);
+const EXPLAIN_FLOATING_IP: string = translationKey(
+  "This address is associated, through the router named here, and Neutron does not say it is ACTIVE. Traffic to it may not be arriving. Check the router, and the agent or OVN controller carrying it.",
+);
+const EXPLAIN_VOLUME_ERROR: string = translationKey(
+  "Cinder says this volume failed. openstack volume show says what it recorded, and the logs of cinder-volume on its backend say why. A volume in error can't be attached, and its data may need restoring.",
+);
+const EXPLAIN_VOLUME_STUCK: string = translationKey(
+  "This volume has been on its way to something else for longer than it should take. Check cinder-volume on its backend. openstack volume set --state can reset it, once you know nothing is still working on it.",
+);
+const EXPLAIN_INSTANCE_ERROR: string = translationKey(
+  "Nova says this instance failed. openstack server show says what it recorded: No valid host means the scheduler found no room, and anything else usually names the host or the service that failed.",
+);
+const EXPLAIN_INSTANCE_UNPLACED: string = translationKey(
+  "Nova never placed this instance on a hypervisor, so it failed before it reached one. That is usually the scheduler finding no room for its flavor, not a failing host.",
+);
+const EXPLAIN_INSTANCE_STUCK: string = translationKey(
+  "This instance has been on its way to something else for longer than it should take. Check nova-compute on its hypervisor, then openstack server show. A resize waiting at VERIFY_RESIZE needs someone to confirm or revert it.",
+);
+const EXPLAIN_POOL_FULL: string = translationKey(
+  "This pool is nearly full. Once Cinder's scheduler can't find room, new volumes fail with no valid host. Free space on its backend, or add capacity.",
+);
+const EXPLAIN_POOL_FILLING: string = translationKey(
+  "This pool is filling up. Add capacity or free space before Cinder's scheduler runs out of room for new volumes.",
+);
+const EXPLAIN_DNS_ZONE_ERROR: string = translationKey(
+  "Designate's worker gave up writing this zone to a DNS server, so what it answers there may be out of date. Names already served go on answering. Check that the DNS servers in its pool are answering, then designate-worker's log.",
+);
+const EXPLAIN_DNS_ZONE_PENDING: string = translationKey(
+  "This zone has stayed PENDING for longer than Designate's worker takes to give up, so nothing is working on it, and changes to it are being accepted and not carried out. Check that designate-worker is running, then openstack dns service list.",
+);
+const EXPLAIN_DATABASE_ERROR: string = translationKey(
+  "Trove gave up on this database, and it stays like this until someone deals with it. Whoever asked for it doesn't have it. Usually Nova refused its guest, or the guest never reported. openstack database instance show says which, in its fault.",
+);
+const EXPLAIN_DATABASE_STUCK: string = translationKey(
+  "This database has been on its way to something else for longer than Trove gives a guest of its own accord, so nothing is working on it any more. Trove has no list of its workers to say so: check that trove-taskmanager is running on its controller.",
+);
+const EXPLAIN_DATABASE_FULL: string = translationKey(
+  "This database's volume is nearly full, and it stops taking writes when that fills. Resize it with openstack database instance resize volume, or have whoever owns it clear out what it holds.",
+);
+const EXPLAIN_NODE_FAILED: string = translationKey(
+  "This node failed at what it was doing, and it stays failed until someone acts: Ironic retries none of these by itself. The machine is out of what the cloud can give until then.",
+);
+const EXPLAIN_NODE_STUCK: string = translationKey(
+  "This node has held one state on the way to another far past when Ironic gives up on waiting by default, and Ironic's own time has not moved. Look at the conductor's log.",
+);
+const EXPLAIN_NODE_MAINTENANCE_LONG: string = translationKey(
+  "This node has been in maintenance for more than a week, so somebody has probably forgotten it, and the machine has been out of what the cloud can give all that time.",
+);
+const EXPLAIN_NODE_POWER_OFF: string = translationKey(
+  "This node is deployed with its power off, so whatever runs on it has stopped, and nothing says anyone meant it.",
+);
+const EXPLAIN_SHARE_ERROR: string = translationKey(
+  "Manila couldn't do what this share was asked for, and it stays like this until someone deals with it. Whoever asked for it doesn't have what they asked for. openstack share message list says what Manila recorded about it. A share with no zone never reached a backend, which is what a share type nothing matches looks like.",
+);
+const EXPLAIN_SHARE_STUCK: string = translationKey(
+  "This share has been on its way to something else for longer than it should take. Manila has no timeout of its own for this, so either its backend is very slow or nothing is working on it any more. Check openstack share service list, then manila-share's log on the backend that holds it.",
+);
+const EXPLAIN_LOAD_BALANCER_ERROR: string = translationKey(
+  "Octavia couldn't do what this load balancer was asked for, and retries none of these by itself. It serves nothing, or the change asked of it was not made. openstack loadbalancer show says its statuses; octavia-worker's log says why, and Nova refusing the amphora (quota, no valid host) is the usual cause. openstack loadbalancer failover rebuilds it once that is fixed.",
+);
+const EXPLAIN_LOAD_BALANCER_STUCK: string = translationKey(
+  "This load balancer has been waiting on Octavia's worker for longer than it should take. Octavia's API accepts a request and its worker does it, so the worker is stopped or can't reach RabbitMQ, and no further change is accepted until this one moves. Check that octavia-worker is running and its log.",
+);
+const EXPLAIN_LOAD_BALANCER_TWO_MASTERS: string = translationKey(
+  "Two of this load balancer's amphorae both say they are the MASTER. That is a split pair: both answer for its address, so its connections reset and drop. Check the VRRP traffic between the two on the load balancer's network, then openstack loadbalancer failover.",
+);
+const EXPLAIN_POOL_NO_HEALTHY_MEMBERS: string = translationKey(
+  "Every member of this pool fails its health check, so the load balancer has nowhere to send what it gets. The pool and its load balancer still read ACTIVE, because that is a different thing from health. Check that the members run and listen on their port, that they answer the health monitor's path, and that their security group lets the amphora's checks in.",
+);
+const EXPLAIN_AMPHORA_ERROR: string = translationKey(
+  "The health manager could not replace this amphora. Its load balancer runs on its other amphora, if it has one, and serves nothing if it has none. Check octavia-health-manager's log; openstack loadbalancer failover rebuilds it.",
+);
+const EXPLAIN_AMPHORA_CERTIFICATE: string = translationKey(
+  "This amphora's certificate is nearly at its end, or past it. Octavia gives one 30 days and its housekeeping renews it with 14 left by default, so one under that was not renewed. Once it ends, Octavia's controller can no longer reach the amphora. Check octavia-housekeeping's log.",
+);
+const EXPLAIN_STACK_FAILED: string = translationKey(
+  "Heat could not finish what this stack was asked to do, and it stays like this until someone updates or deletes it. What it built so far may be partly there, and is still using its project's quota. Run openstack stack failures list to see which resource failed.",
+);
+const EXPLAIN_STACK_STUCK: string = translationKey(
+  "This stack has stayed in progress past the hour Heat gives a stack, unless someone chose longer. If nobody did, the engine working on it has probably stopped, and a restarted engine does not pick it back up. Check openstack orchestration service list and openstack stack show.",
+);
+const EXPLAIN_CLUSTER_FAILED: string = translationKey(
+  "Magnum could not finish this cluster, and what it built so far is still using its project's quota. Magnum builds a cluster with a Heat stack, so the reason is usually there: openstack coe cluster show says which node group failed, and openstack stack failures list on its stack says why.",
+);
+const EXPLAIN_CLUSTER_STUCK: string = translationKey(
+  "This cluster has stayed in progress past the hour Magnum gives a cluster, unless someone chose longer. Only Magnum's conductor moves a cluster on, so check openstack coe service list, then this cluster's Heat stack.",
+);
+const EXPLAIN_CLUSTER_UNHEALTHY: string = translationKey(
+  "Magnum can reach this cluster and reads it as unhealthy. openstack coe cluster show says why, in its health_status_reason.",
+);
+const EXPLAIN_IMAGE_STUCK: string = translationKey(
+  "This image has been on its way to something else for longer than it should take, which is what a failed upload looks like. Nothing will move it on, and instances asking for it fail. Upload it again, or delete it.",
+);
+
+export function getOpenStackPartExplanation(
+  row: OpenStackResource,
+  now: Date,
+): string | null {
+  const assessment: OpenStackAssessment = assessOpenStackResource({ row, now });
+
+  if (!assessment.severity) {
+    return null;
+  }
+
+  switch (row.kind) {
+    case OpenStackResourceKind.Network:
+      return assessment.severity === ResourceAttentionSeverity.Critical
+        ? EXPLAIN_NETWORK_OUT
+        : EXPLAIN_NETWORK_FILLING;
+    case OpenStackResourceKind.Router: {
+      const reading: OpenStackRouterAgentReading =
+        getOpenStackRouterAgentReading({ row, backend: "unknown" });
+      if (reading.state === "none-alive") {
+        return EXPLAIN_ROUTER_NO_AGENT;
+      }
+      return reading.state === "two-active"
+        ? EXPLAIN_ROUTER_TWO_ACTIVE
+        : EXPLAIN_ROUTER_NOT_ACTIVE;
+    }
+    case OpenStackResourceKind.FloatingIp:
+      return EXPLAIN_FLOATING_IP;
+    case OpenStackResourceKind.Volume:
+      return row.status && row.status.startsWith("error")
+        ? EXPLAIN_VOLUME_ERROR
+        : EXPLAIN_VOLUME_STUCK;
+    case OpenStackResourceKind.Instance:
+      if (row.status !== "ERROR") {
+        return EXPLAIN_INSTANCE_STUCK;
+      }
+      return isOpenStackInstanceUnplaced(row)
+        ? EXPLAIN_INSTANCE_UNPLACED
+        : EXPLAIN_INSTANCE_ERROR;
+    case OpenStackResourceKind.StoragePool:
+      return assessment.severity === ResourceAttentionSeverity.Critical
+        ? EXPLAIN_POOL_FULL
+        : EXPLAIN_POOL_FILLING;
+    case OpenStackResourceKind.Image:
+      return EXPLAIN_IMAGE_STUCK;
+    case OpenStackResourceKind.DnsZone:
+      return isOpenStackDnsInError(row.status)
+        ? EXPLAIN_DNS_ZONE_ERROR
+        : EXPLAIN_DNS_ZONE_PENDING;
+    case OpenStackResourceKind.DatabaseInstance:
+      if (isOpenStackDatabaseInstanceInError(row.status)) {
+        return EXPLAIN_DATABASE_ERROR;
+      }
+      return isOpenStackDatabaseInstanceStuck({
+        status: row.status,
+        stateChangedAt: row.stateChangedAt,
+        now,
+      })
+        ? EXPLAIN_DATABASE_STUCK
+        : EXPLAIN_DATABASE_FULL;
+    case OpenStackResourceKind.BareMetalNode:
+      return getOpenStackBareMetalExplanation(row, now);
+    case OpenStackResourceKind.LoadBalancer:
+      if (isOpenStackLoadBalancerInError(row.status)) {
+        return EXPLAIN_LOAD_BALANCER_ERROR;
+      }
+      return isOpenStackLoadBalancerStuck({
+        status: row.status,
+        stateChangedAt: row.stateChangedAt,
+        now,
+      })
+        ? EXPLAIN_LOAD_BALANCER_STUCK
+        : EXPLAIN_LOAD_BALANCER_TWO_MASTERS;
+    case OpenStackResourceKind.LoadBalancerPool:
+      return isOpenStackLoadBalancerInError(row.status)
+        ? EXPLAIN_LOAD_BALANCER_ERROR
+        : EXPLAIN_POOL_NO_HEALTHY_MEMBERS;
+    case OpenStackResourceKind.Amphora:
+      return isOpenStackAmphoraInError(row.status)
+        ? EXPLAIN_AMPHORA_ERROR
+        : EXPLAIN_AMPHORA_CERTIFICATE;
+    case OpenStackResourceKind.Share:
+      return isOpenStackShareInError(row.status)
+        ? EXPLAIN_SHARE_ERROR
+        : EXPLAIN_SHARE_STUCK;
+    case OpenStackResourceKind.Stack:
+      return isOpenStackStackFailed(row.status)
+        ? EXPLAIN_STACK_FAILED
+        : EXPLAIN_STACK_STUCK;
+    case OpenStackResourceKind.ContainerCluster:
+      if (isOpenStackContainerClusterFailed(row.status)) {
+        return EXPLAIN_CLUSTER_FAILED;
+      }
+      return factsOf(row)["healthStatus"] ===
+        OPENSTACK_CONTAINER_CLUSTER_UNHEALTHY
+        ? EXPLAIN_CLUSTER_UNHEALTHY
+        : EXPLAIN_CLUSTER_STUCK;
+    default:
+      return null;
+  }
+}
+
+/*
+ * One thing to read first, the worst of what the rules said: a failed node stays failed whatever else
+ * is true of it, and a node with its power off may be stuck in nothing.
+ */
+function getOpenStackBareMetalExplanation(
+  row: OpenStackResource,
+  now: Date,
+): string | null {
+  if (isOpenStackBareMetalNodeInError(row.status)) {
+    return EXPLAIN_NODE_FAILED;
+  }
+  if (
+    isOpenStackBareMetalNodeStuck({
+      status: row.status,
+      adminState: row.adminState,
+      stateChangedAt: row.stateChangedAt,
+      provisionUpdatedAt: getOpenStackBareMetalProvisionUpdatedAt(row),
+      now,
+    })
+  ) {
+    return EXPLAIN_NODE_STUCK;
+  }
+  if (
+    isOpenStackBareMetalMaintenanceTooLong({
+      adminState: row.adminState,
+      stateChangedAt: row.stateChangedAt,
+      now,
+    })
+  ) {
+    return EXPLAIN_NODE_MAINTENANCE_LONG;
+  }
+  return EXPLAIN_NODE_POWER_OFF;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Whether an open incident or alert is about a part
+ * ---------------------------------------------------------------------------
+ *
+ * A monitor of the cloud links what it opens to the cloud, and only the record's series
+ * labels say which part crossed the line. Each template groups by these (see the
+ * *_GROUP lists of OpenStackAlertTemplates). A template that only counts per region
+ * says nothing about one part, so its record is nobody's here and stays on the cloud's
+ * own Incidents and Alerts pages.
+ */
+function isSameRegion(
+  record: Pick<OpenIssueRecord, "seriesLabels">,
+  row: Pick<OpenStackResource, "regionName">,
+): boolean {
+  const region: string | null = readSeriesLabel(
+    record.seriesLabels,
+    "openstack.region.name",
+  );
+  return !region || !row.regionName || region === row.regionName;
+}
+
+export function isOpenStackIssueAbout(
+  record: Pick<OpenIssueRecord, "seriesLabels">,
+  row: OpenStackResource,
+): boolean {
+  const labels: JSONObject | null = record.seriesLabels;
+
+  switch (row.kind) {
+    case OpenStackResourceKind.Hypervisor: {
+      const service: string | null = readSeriesLabel(labels, "service");
+      // A worker's record is about this host only when the worker is its nova-compute.
+      if (service && service !== "nova-compute") {
+        return false;
+      }
+      return (
+        isSameRegion(record, row) &&
+        isSameOpenStackHost(
+          readSeriesLabel(labels, "hostname"),
+          row.hypervisorName,
+        )
+      );
+    }
+    case OpenStackResourceKind.Service:
+      return (
+        isSameRegion(record, row) &&
+        readSeriesLabel(labels, "service") === row.name &&
+        isSameOpenStackHost(
+          readSeriesLabel(labels, "hostname"),
+          textFact(row, "host"),
+        )
+      );
+    case OpenStackResourceKind.Instance:
+      return (
+        Boolean(row.externalId) &&
+        (readSeriesLabel(labels, "uuid") === row.externalId ||
+          readSeriesLabel(labels, "id") === row.externalId)
+      );
+    case OpenStackResourceKind.Volume:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
+    case OpenStackResourceKind.Image:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
+    case OpenStackResourceKind.BareMetalNode:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
+    case OpenStackResourceKind.StoragePool:
+      return (
+        isSameRegion(record, row) &&
+        Boolean(row.name) &&
+        readSeriesLabel(labels, "name") === row.name
+      );
+    case OpenStackResourceKind.Network:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "network_id") === row.externalId
+      );
+    case OpenStackResourceKind.Router:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "router_id") === row.externalId
+      );
+    case OpenStackResourceKind.Stack:
+    case OpenStackResourceKind.Share:
+    case OpenStackResourceKind.LoadBalancerPool:
+    case OpenStackResourceKind.Amphora:
+    case OpenStackResourceKind.DatabaseInstance:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "id") === row.externalId
+      );
+    // A pair with two masters is said by the amphorae's label, not by a series of its own.
+    case OpenStackResourceKind.LoadBalancer:
+      return (
+        Boolean(row.externalId) &&
+        (readSeriesLabel(labels, "id") === row.externalId ||
+          readSeriesLabel(labels, "loadbalancer_id") === row.externalId)
+      );
+    // A recordset's incident is its zone's: one failure of a zone's writes is one incident.
+    case OpenStackResourceKind.DnsZone:
+      return (
+        Boolean(row.externalId) &&
+        (readSeriesLabel(labels, "id") === row.externalId ||
+          readSeriesLabel(labels, "zone_id") === row.externalId)
+      );
+    case OpenStackResourceKind.ContainerCluster:
+      return (
+        Boolean(row.externalId) &&
+        readSeriesLabel(labels, "uuid") === row.externalId
+      );
+    default:
+      return false;
+  }
+}
+
+// Whether a record is about any of a zone's or an aggregate's hypervisors.
+export function isOpenStackIssueAboutHosts(
+  record: Pick<OpenIssueRecord, "seriesLabels">,
+  hypervisors: Array<OpenStackResource>,
+): boolean {
+  return hypervisors.some((row: OpenStackResource): boolean => {
+    return isOpenStackIssueAbout(record, row);
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A card's totals, from counts that come per region
+ * ---------------------------------------------------------------------------
+ *
+ * The server counts per region, because a flavor's ID only means something in its own. A
+ * card that totals them reads the region being read, or adds the regions up: one project
+ * in two regions is one line, not two. Most first, as the server answered.
+ */
+export function getOpenStackCountTotals(
+  rows: Array<OpenStackCountRow>,
+  region: string | null,
+): Array<OpenStackCountRow> {
+  const totals: Map<string | null, OpenStackCountRow> = new Map();
+  for (const row of rows) {
+    if (region && row.regionName !== region) {
+      continue;
+    }
+    const total: OpenStackCountRow | undefined = totals.get(row.value);
+    if (total) {
+      total.count += row.count;
+      total.sizeBytes += row.sizeBytes;
+    } else {
+      totals.set(row.value, { ...row, regionName: region });
+    }
+  }
+  return Array.from(totals.values()).sort(
+    (first: OpenStackCountRow, second: OpenStackCountRow): number => {
+      return second.count - first.count;
+    },
+  );
+}
+
+// When something fills up, at its recent growth: one answer for pages, alerts and the server.
+export type {
+  OpenStackForecast,
+  OpenStackGrowthSample,
+} from "Common/Types/OpenStack/OpenStackForecast";
+export { getOpenStackForecast } from "Common/Types/OpenStack/OpenStackForecast";
+
+/*
+ * ---------------------------------------------------------------------------
+ * What an empty list means
+ * ---------------------------------------------------------------------------
+ */
+export type OpenStackApiState =
+  | "up"
+  | "down"
+  // Down, and it has never once let this credential in: isOpenStackApiClosedToThisCredential.
+  | "closed"
+  | "not-reported"
+  | "not-read";
+
+export interface OpenStackEmptyWords {
+  title: string;
+  description: string;
+}
+
+// Which service's API answers for each kind's list.
+export const OPENSTACK_SERVICE_OF_KIND: Partial<
+  Record<OpenStackResourceKind, OpenStackServiceType>
+> = {
+  [OpenStackResourceKind.Hypervisor]: OpenStackServiceType.Compute,
+  [OpenStackResourceKind.Instance]: OpenStackServiceType.Compute,
+  [OpenStackResourceKind.Flavor]: OpenStackServiceType.Compute,
+  [OpenStackResourceKind.Network]: OpenStackServiceType.Network,
+  [OpenStackResourceKind.Subnet]: OpenStackServiceType.Network,
+  [OpenStackResourceKind.Router]: OpenStackServiceType.Network,
+  [OpenStackResourceKind.FloatingIp]: OpenStackServiceType.Network,
+  [OpenStackResourceKind.Service]: OpenStackServiceType.Network,
+  [OpenStackResourceKind.Volume]: OpenStackServiceType.Volume,
+  [OpenStackResourceKind.StoragePool]: OpenStackServiceType.Volume,
+  [OpenStackResourceKind.Snapshot]: OpenStackServiceType.Volume,
+  [OpenStackResourceKind.Backup]: OpenStackServiceType.Volume,
+  [OpenStackResourceKind.Image]: OpenStackServiceType.Image,
+  [OpenStackResourceKind.Domain]: OpenStackServiceType.Identity,
+  [OpenStackResourceKind.BareMetalNode]: OpenStackServiceType.BareMetal,
+  [OpenStackResourceKind.Stack]: OpenStackServiceType.Orchestration,
+  [OpenStackResourceKind.ContainerCluster]: OpenStackServiceType.ContainerInfra,
+  [OpenStackResourceKind.Share]: OpenStackServiceType.SharedFileSystems,
+  [OpenStackResourceKind.LoadBalancer]: OpenStackServiceType.LoadBalancer,
+  [OpenStackResourceKind.LoadBalancerPool]: OpenStackServiceType.LoadBalancer,
+  [OpenStackResourceKind.Amphora]: OpenStackServiceType.LoadBalancer,
+  [OpenStackResourceKind.DatabaseInstance]: OpenStackServiceType.Database,
+  [OpenStackResourceKind.ObjectContainer]: OpenStackServiceType.ObjectStore,
+  [OpenStackResourceKind.DnsZone]: OpenStackServiceType.Dns,
+  [OpenStackResourceKind.DnsRecordset]: OpenStackServiceType.Dns,
+};
+
+const NOT_ANSWERING: OpenStackEmptyWords = {
+  title: translationKey("This service's API isn't answering"),
+  description: translationKey(
+    "Nothing could be read from it, so this list may fill up again once it answers. Check the service's API on the Services page.",
+  ),
+};
+
+/*
+ * What a credential a service refuses is told, on an empty list of it. The exporter's read of each of
+ * these asks for what only an admin may, and refused, it reads just as a stopped API does, recorded.
+ */
+const CLOSED_TO_THIS_CREDENTIAL: OpenStackEmptyWords = {
+  title: translationKey("This credential has never read this service"),
+  description: translationKey(
+    "OneUptime has never had an answer from it with this credential. Either it refuses this credential, which reads just as its API being down does, or it has been down since OneUptime started reading it. Seeing it takes the Full view credential. Run troubleshoot.sh on the agent's machine to see what this credential can read.",
+  ),
+};
+
+const NOT_RUNNING: OpenStackEmptyWords = {
+  title: translationKey("This cloud doesn't run this service"),
+  description: translationKey(
+    "Nothing has been reported about it, which is what a service Keystone's catalog doesn't name looks like. If this cloud does run it, check that the agent's or the probe's credential can see it in the catalog.",
+  ),
+};
+
+/*
+ * Kinds a working cloud always has, once its service answers. An API that says up with
+ * none of these is a credential that isn't allowed to list them, because that is the only
+ * thing it can be. Every other kind can really be empty: a cloud with no routers is a
+ * cloud with no routers.
+ */
+const CANNOT_LIST: Partial<Record<OpenStackResourceKind, OpenStackEmptyWords>> =
+  {
+    [OpenStackResourceKind.Hypervisor]: {
+      title: translationKey("This credential can't list hypervisors"),
+      description: translationKey(
+        "Nova answers, and shows it no hypervisors. They take the Full view or Infrastructure only credential, because hypervisors and Placement are closed to a project's reader. Give the agent one of those, then run troubleshoot.sh on its machine to see what it can read.",
+      ),
+    },
+    [OpenStackResourceKind.StoragePool]: {
+      title: translationKey("This credential can't list storage pools"),
+      description: translationKey(
+        "Cinder answers, and shows it no pools. Only the Full view credential reads them: Cinder's own code asks for an admin, whatever the policy says. Give the agent that credential, then run troubleshoot.sh on its machine to see what it can read.",
+      ),
+    },
+    [OpenStackResourceKind.Service]: {
+      title: translationKey("This credential can't list network agents"),
+      description: translationKey(
+        "Neutron answers, and shows it no agents. They take the Full view or Infrastructure only credential. Give the agent one of those, then run troubleshoot.sh on its machine to see what it can read.",
+      ),
+    },
+    // Every cloud has one, and a plain reader is refused the list.
+    [OpenStackResourceKind.Domain]: {
+      title: translationKey("This credential can't list domains"),
+      description: translationKey(
+        "Keystone answers, and shows it no domains. They take the Full view or Infrastructure only credential. Give the agent one of those, then run troubleshoot.sh on its machine to see what it can read.",
+      ),
+    },
+  };
+
+// The same lists on a cloud a probe collects: its credential is changed from the dashboard.
+const CANNOT_LIST_ON_A_PROBE: Partial<
+  Record<OpenStackResourceKind, OpenStackEmptyWords>
+> = {
+  [OpenStackResourceKind.Hypervisor]: {
+    title: translationKey("This credential can't list hypervisors"),
+    description: translationKey(
+      "Nova answers, and shows it no hypervisors. They take the Full view or Infrastructure only credential, because hypervisors and Placement are closed to a project's reader. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.StoragePool]: {
+    title: translationKey("This credential can't list storage pools"),
+    description: translationKey(
+      "Cinder answers, and shows it no pools. Only the Full view credential reads them: Cinder's own code asks for an admin, whatever the policy says. Give the probe that credential with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.Service]: {
+    title: translationKey("This credential can't list network agents"),
+    description: translationKey(
+      "Neutron answers, and shows it no agents. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+  [OpenStackResourceKind.Domain]: {
+    title: translationKey("This credential can't list domains"),
+    description: translationKey(
+      "Keystone answers, and shows it no domains. They take the Full view or Infrastructure only credential. Give the probe one of those with Edit Connection, and Test Connection says what it can read.",
+    ),
+  },
+};
+
+/*
+ * A cloud can really have no instances, so an empty list alone says nothing. A credential
+ * that can't list hypervisors either is another matter: the agent's exporter asks Nova for
+ * every project's servers, and Nova refuses that read whole (recorded for a plain reader on
+ * every release).
+ */
+const CANNOT_LIST_INSTANCES: OpenStackEmptyWords = {
+  title: translationKey("This credential can't list instances"),
+  description: translationKey(
+    "Nova answers, and refuses it every project's instances, which is the list the agent's exporter asks for. They take the Full view or Infrastructure only credential. Give the agent one of those, or collect this cloud with a probe, which can list one project's instances. Then run troubleshoot.sh on the agent's machine to see what it can read.",
+  ),
+};
+
+/*
+ * What to say over an empty list, or null to leave it to the page's own words: nothing is
+ * known yet, or the list really can be empty.
+ */
+export function getOpenStackEmptyWords(data: {
+  kind: OpenStackResourceKind;
+  api: OpenStackApiState;
+  // Whether this credential lists any hypervisor, when a list of instances has asked.
+  hypervisorsAreListed?: boolean | undefined;
+  // A probe collects this cloud, so there is no agent to give a credential to.
+  isProbeCollected?: boolean | undefined;
+}): OpenStackEmptyWords | null {
+  if (data.api === "down") {
+    return NOT_ANSWERING;
+  }
+  if (data.api === "closed") {
+    return CLOSED_TO_THIS_CREDENTIAL;
+  }
+  /*
+   * Nothing said anything about this service, so far as OneUptime knows this cloud doesn't run it.
+   * Only someone who followed an old link or typed the address gets here: no menu leads to it.
+   */
+  if (
+    data.api === "not-reported" &&
+    isOpenStackOptionalService(OPENSTACK_SERVICE_OF_KIND[data.kind])
+  ) {
+    return NOT_RUNNING;
+  }
+  if (data.api === "up") {
+    if (data.kind === OpenStackResourceKind.Instance) {
+      // A probe lists its own project's instances, and that project can really have none.
+      return data.hypervisorsAreListed === false && !data.isProbeCollected
+        ? CANNOT_LIST_INSTANCES
+        : null;
+    }
+    return (
+      (data.isProbeCollected ? CANNOT_LIST_ON_A_PROBE : CANNOT_LIST)[
+        data.kind
+      ] || null
+    );
+  }
+  return null;
+}
+
+/*
+ * Neutron and Cinder answer a limited credential with a 200 and only its own project's
+ * rows, so a list can look whole and not be. A page can't always tell, because a cloud
+ * with one project looks the same. So it only ever says "may", and only when more than one
+ * project is known and every row is one project's.
+ */
+export function isOpenStackListPossiblyOneProject(data: {
+  projectIdsInList: ReadonlyArray<string | null>;
+  knownProjectCount: number;
+}): boolean {
+  const projects: Set<string> = new Set();
+  for (const projectId of data.projectIdsInList) {
+    if (projectId) {
+      projects.add(projectId);
+    }
+  }
+  return projects.size === 1 && data.knownProjectCount > 1;
+}
+
+/*
+ * What a page can say about a Neutron or Cinder list, from what else this credential reads.
+ * Only an admin lists Cinder's workers: its own code asks for one, whatever the policy says. So
+ * where Cinder answers, its workers say which this is. Listed, Neutron and Cinder show this
+ * credential every project, and a list of one project's rows is a cloud that holds them there.
+ * Closed, they show it its own project's rows and no error, on every level below Full view
+ * and on every recorded release, whatever the list holds, empty or not. Only a cloud
+ * with no Cinder to ask falls back to a guess from the rows.
+ */
+export type OpenStackListView =
+  | "whole"
+  | "own-project"
+  | "possibly-one-project";
+
+export function getOpenStackListView(data: {
+  volumeApi: OpenStackApiState;
+  volumeWorkerCount: number;
+  projectIdsInList: ReadonlyArray<string | null>;
+  knownProjectCount: number;
+}): OpenStackListView {
+  if (data.volumeWorkerCount > 0) {
+    return "whole";
+  }
+  if (data.volumeApi === "up") {
+    return "own-project";
+  }
+  return isOpenStackListPossiblyOneProject({
+    projectIdsInList: data.projectIdsInList,
+    knownProjectCount: data.knownProjectCount,
+  })
+    ? "possibly-one-project"
+    : "whole";
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Network agents
+ * ---------------------------------------------------------------------------
+ */
+export function isOpenStackNetworkAgent(row: OpenStackResource): boolean {
+  return (
+    row.kind === OpenStackResourceKind.Service &&
+    factsOf(row)["family"] === OpenStackServiceFamily.Network
+  );
+}
+
+/*
+ * A Neutron agent's row id, as the scan writes it: what a router's agent links to. Only the
+ * host of each agent is on the router's row, and the binary is always the L3 agent's.
+ */
+export function getOpenStackL3AgentExternalId(
+  regionName: string | null | undefined,
+  host: string,
+): string {
+  return regional(
+    regionName,
+    `${OpenStackServiceFamily.Network}/${host}/neutron-l3-agent`,
+  );
+}
+
+/*
+ * Only an L3 agent holds routers, and only the exporter's l3_agent_of_router series says
+ * which. A DHCP agent serves networks, and only a probe says which ones.
+ */
+export function isOpenStackL3Agent(
+  row: Pick<OpenStackResource, "name">,
+): boolean {
+  const name: string = (row.name || "").toLowerCase();
+  return name.includes("l3-agent") || name.includes("l3 agent");
+}
+
+export function isOpenStackDhcpAgent(
+  row: Pick<OpenStackResource, "name">,
+): boolean {
+  const name: string = (row.name || "").toLowerCase();
+  return name.includes("dhcp-agent") || name.includes("dhcp agent");
+}
+
+// How many networks a DHCP agent serves, or null when nothing collected says.
+export function getOpenStackDhcpNetworkCount(
+  row: OpenStackResource | null | undefined,
+): number | null {
+  return numberFact(row, "dhcpNetworkCount");
+}
+
+// Which DHCP agents serve a network, by the ids of their records, where a probe has said.
+export function getOpenStackNetworkDhcpAgentIds(
+  row: OpenStackResource | null | undefined,
+): Array<string> {
+  const ids: JSONValue | undefined = factsOf(row)["dhcpAgentIds"];
+  return Array.isArray(ids)
+    ? (ids as Array<JSONValue>).filter((id: JSONValue): id is string => {
+        return typeof id === "string";
+      })
+    : [];
+}

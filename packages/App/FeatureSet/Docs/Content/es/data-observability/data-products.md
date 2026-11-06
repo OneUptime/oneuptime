@@ -9,7 +9,7 @@ En **Observabilidad de datos > Productos de datos**, crea un producto de datos: 
 - **Actualizado antes de una hora del día (UTC):** los datos de cada día llegan ese mismo día, antes de esa hora. A partir de esa hora, cada tabla debe haber cambiado ese día; hasta entonces, vale la carga de ayer. Una carga que siempre llega con media hora de retraso va con retraso esa media hora todos los días.
 - **Una antigüedad máxima:** ninguna tabla puede tener un último cambio más antiguo que este valor.
 
-Cada cinco minutos, las tablas de cada producto se comprueban frente a su SLA. El producto está **Late** cuando lo está cualquiera de sus tablas, y sus datos son de la fecha del último cambio más antiguo entre ellas. Escribe `oneuptime.data.product.late_tables` y `oneuptime.data.product.data_age`, para que puedas graficar lado a lado la frescura de todos los productos.
+Cada cinco minutos, las tablas de cada producto se comprueban frente a su SLA. El producto está **Con retraso** cuando lo está cualquiera de sus tablas, y sus datos son de la fecha del último cambio más antiguo entre ellas. Escribe `oneuptime.data.product.late_tables` y `oneuptime.data.product.data_age`, para que puedas graficar lado a lado la frescura de todos los productos.
 
 ## En páginas de estado
 

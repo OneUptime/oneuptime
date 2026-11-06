@@ -42,6 +42,73 @@ export const TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS: number = 7;
  */
 export const ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH: number = 1;
 
+/*
+ * Data Observability's watched tables. Every project watches its first tables
+ * free, then pays per table a month, and less per table from a volume threshold
+ * up. These are the rates OneUptime Cloud lists. An install that bills can set
+ * its own (billing.watchedTables in the Helm chart), which reach the server as
+ * WatchedTablePricingConfig.
+ */
+export interface WatchedTablePricing {
+  includedTables: number;
+  pricePerTableInUSD: number;
+  volumeThresholdInTables: number;
+  volumePricePerTableInUSD: number;
+}
+
+export const DEFAULT_WATCHED_TABLE_PRICING: WatchedTablePricing = {
+  includedTables: 100,
+  pricePerTableInUSD: 1,
+  volumeThresholdInTables: 1000,
+  volumePricePerTableInUSD: 0.25,
+};
+
+// What a project watching that many tables pays for a month.
+export function getWatchedTablesCostInUSD(
+  tableCount: number,
+  pricing: WatchedTablePricing,
+): number {
+  const billedTables: number = Math.max(0, tableCount - pricing.includedTables);
+  const tablesAtVolumePrice: number = Math.max(
+    0,
+    tableCount -
+      Math.max(pricing.volumeThresholdInTables, pricing.includedTables),
+  );
+
+  return (
+    (billedTables - tablesAtVolumePrice) * pricing.pricePerTableInUSD +
+    tablesAtVolumePrice * pricing.volumePricePerTableInUSD
+  );
+}
+
+/*
+ * The same month in cents, which is what reaches the payment provider: its price
+ * is one cent a unit, so the rates above stay the only copy of what a table costs.
+ */
+export function getWatchedTablesCostInCents(
+  tableCount: number,
+  pricing: WatchedTablePricing,
+): number {
+  return Math.round(getWatchedTablesCostInUSD(tableCount, pricing) * 100);
+}
+
+// The rates in a sentence, as the pricing page and its markdown say them.
+export function describeWatchedTablePricing(
+  pricing: WatchedTablePricing,
+): string {
+  const price: string = formatPriceInUSD(pricing.pricePerTableInUSD);
+  const base: string =
+    pricing.includedTables > 0
+      ? `First ${pricing.includedTables.toLocaleString("en-US")} tables free, then ${price} per table a month`
+      : `${price} per table a month`;
+
+  if (pricing.volumePricePerTableInUSD === pricing.pricePerTableInUSD) {
+    return base;
+  }
+
+  return `${base}, ${formatPriceInUSD(pricing.volumePricePerTableInUSD)} above ${pricing.volumeThresholdInTables.toLocaleString("en-US")}`;
+}
+
 export const PRICING_PAGE_URL: string = "https://oneuptime.com/pricing";
 
 /**

@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - master
+      - main
 
 # Read-only: these jobs check out and test the code, nothing more.
 permissions:
@@ -240,7 +241,8 @@ jobs:
   # the laptop's projects in one half and the phone's in the other. Model
   # Tables and Monitor Overview are split since 2026-11-01 by
   # MODEL_TABLES_SHARD and MONITOR_OVERVIEW_SHARD, by test as Event Overview
-  # is (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
+  # is, and the OpenStack pages since 2026-11-05 by OPENSTACK_PAGES_SHARD
+  # (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, its
   # minutes in Tests/Ops/DashboardOfflineUiMinutes.json, and its output
@@ -275,6 +277,8 @@ jobs:
       MODEL_TABLES_SHARD: ${{ matrix.model_tables_shard || '' }}
       # And of Monitor Overview (playwright.monitor-overview-ui.config.ts).
       MONITOR_OVERVIEW_SHARD: ${{ matrix.monitor_overview_shard || '' }}
+      # And of the OpenStack pages (playwright.openstack-pages-ui.config.ts).
+      OPENSTACK_PAGES_SHARD: ${{ matrix.openstack_pages_shard || '' }}
     strategy:
       # Every group reports its own suites, whatever happens to the others.
       fail-fast: false
@@ -1014,6 +1018,12 @@ jobs:
           # CI=1, its bundle built) joined it the same day, when group 1, where
           # it had been, gained Trace Detail on master: Postmortems (0.8) went
           # to group 1 to make room. About 21.3.
+          # Cloud Spend grew to 34 tests on 2026-11-04 (a resource's
+          # right-sizing, its costs read at any hour of the UTC day, an unusual
+          # day on Costs): 4.9 minutes locally with CI=1, its bundle built.
+          # Archivable Values (1.8) moved on to group 16: about 21. Its UI
+          # review added two right-sizing states the same day (about 8
+          # seconds): 5.0, about 21.1.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -1021,7 +1031,6 @@ jobs:
               test-resource-topology-ui
               test-runbooks-menu-ui
               test-cloud-spend-ui
-              test-archivable-values-ui
               test-dashboard-playlists-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
@@ -1390,6 +1399,8 @@ jobs:
           # about half a minute. Resource Onboarding (0.6) joined it from
           # group 8 on 2026-11-04, when Cloud Connect's streaming tests took
           # that group past 22: 20.1.
+          # Archivable Values (1.8) came from group 9 the same day, when Cloud
+          # Spend grew there: about 21.9.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1398,6 +1409,7 @@ jobs:
               test-discovery-ui
               test-suite-helpers-ui
               test-resource-onboarding-ui
+              test-archivable-values-ui
           # Added on 2026-11-03, when the sixteen groups' run steps added up to
           # 367.1 and 364.4 minutes on the last two runs with these suites
           # (master's of 2026-11-02 23:47, 41541694087, and 14.0.102's first
@@ -1418,9 +1430,15 @@ jobs:
           # File Systems and a host's, a file system's and a volume's page),
           # each at 1280, 1024, 768 and 390 pixels, dark, German and Persian,
           # joined it on 2026-11-03, the lightest group (16.5): 19.9.
+          # Multi-Device SNMP Walk (13 tests, 1.7 minutes locally with its
+          # bundle, Chromium only: the Network's SNMP Walk page walking seven
+          # routers at once, the OIDs compared, Collect on every device that
+          # answers, the CSV, the walk read back, at 1280 and 390 pixels, dark
+          # and German) joined it beside SNMP Walk on 2026-11-03: 21.6.
           - group: 17
             suites: >-
               test-snmp-walk-ui
+              test-multi-device-snmp-walk-ui
               test-rules-menu-section-ui
               test-slo-burn-rate-ui
               test-dashboard-value-widget-ui
@@ -1449,6 +1467,20 @@ jobs:
               test-asset-details-ui
               test-dashboard-table-thresholds-ui
               test-value-picker-ui
+          # Added on 2026-11-04 for an OpenStack cloud's pages: its Overview, its
+          # lists and the pages of its parts, on what real clouds' exporters
+          # answered, read through the real snapshot scan, at 1280, 1024, 768 and
+          # 390 pixels, dark, German and Persian. Two groups of their own, because
+          # the product's pages are still joining it and it outgrew one on
+          # 2026-11-05: no group had the room for it.
+          - group: 19
+            openstack_pages_shard: 1/2
+            suites: >-
+              test-openstack-pages-ui
+          - group: 20
+            openstack_pages_shard: 2/2
+            suites: >-
+              test-openstack-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1703,6 +1735,8 @@ jobs:
             output/playwright/openshift-pages-ui/test-results
             output/playwright/snmp-walk-ui/*.png
             output/playwright/snmp-walk-ui/test-results
+            output/playwright/multi-device-snmp-walk-ui/*.png
+            output/playwright/multi-device-snmp-walk-ui/test-results
             output/playwright/asset-details-ui/*.png
             output/playwright/asset-details-ui/test-results
             output/playwright/docker-swarm-pages-ui/*.png
@@ -1715,6 +1749,8 @@ jobs:
             output/playwright/resource-overviews-ui/test-results
             output/playwright/proxmox-pages-ui/*.png
             output/playwright/proxmox-pages-ui/test-results
+            output/playwright/openstack-pages-ui/*.png
+            output/playwright/openstack-pages-ui/test-results
             output/playwright/kubernetes-pages-ui/*.png
             output/playwright/kubernetes-pages-ui/test-results
             output/playwright/host-pages-ui/*.png

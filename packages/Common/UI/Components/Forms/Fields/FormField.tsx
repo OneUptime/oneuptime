@@ -6,7 +6,8 @@ import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,
 } from "../../Checkbox/Checkbox";
-import CodeEditor, { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import CodeEditor from "../../CodeEditor/LazyCodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
 import {
@@ -14,7 +15,7 @@ import {
   getDropdownChange,
 } from "../../Dropdown/DropdownChange";
 import EntityDropdown from "../../EntityDropdown/EntityDropdown";
-import FilePicker from "../../FilePicker/FilePicker";
+import FilePicker from "../../FilePicker/LazyFilePicker";
 import Input, { InputType } from "../../Input/Input";
 import TimePicker from "../../TimePicker/Index";
 import Link from "../../Link/Link";
@@ -47,8 +48,8 @@ import React, { ReactElement, ReactNode, useEffect, useId } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
-import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
-import YamlEditor from "../../CodeEditor/YamlEditor";
+import MarkdownEditor from "../../Markdown.tsx/LazyMarkdownEditor";
+import YamlEditor from "../../CodeEditor/LazyYamlEditor";
 import PeoplePicker from "../../PeoplePicker/PeoplePicker";
 import {
   getPeoplePickerKinds,

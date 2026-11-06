@@ -1,5 +1,22 @@
 import PageComponentProps from "../../PageComponentProps";
 import { useTableViewContext } from "./TableViewContext";
+import DataObservabilityApi from "../../../Components/DataObservability/DataObservabilityApi";
+import { SensitivityPill } from "../../../Components/DataSecurity/DataSecurityPills";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import AppLink from "../../../Components/AppLink/AppLink";
+import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
+import Route from "Common/Types/API/Route";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import {
+  DataColumnMapping,
+  readColumnMappings,
+} from "Common/Types/DataObservability/DataColumnLineage";
+import { DataColumnSensitivity } from "Common/Types/DataObservability/DataColumnSensitivity";
+import DataAssetKind from "Common/Types/DataObservability/DataAssetKind";
+import ObjectID from "Common/Types/ObjectID";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
   DataAssetColumn,
   readDataAssetColumns,
@@ -12,21 +29,208 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 /*
  * The table's columns as its last collection read them, in their order: each
  * one's name, type and whether it allows empty values. How they changed over
- * time is on the Timeline.
+ * time is on the Timeline. Where the table's lineage names columns (Snowflake's
+ * access history, OpenLineage's column lineage), each one says where it comes
+ * from and what it feeds. What Data Security knows a column holds shows beside
+ * it, from its scans or, until one reads the column, from the column's name.
  */
+
+// The most links one cell shows: the rest are counted.
+const MAX_LINKS_PER_CELL: number = 3;
+
+interface ColumnLink {
+  dataAssetId: string;
+  label: string;
+}
+
+interface ColumnLinks {
+  comesFrom: Map<string, Array<ColumnLink>>;
+  feeds: Map<string, Array<ColumnLink>>;
+}
+
+function addLink(
+  links: Map<string, Array<ColumnLink>>,
+  column: string,
+  link: ColumnLink,
+): void {
+  links.set(column, [...(links.get(column) || []), link]);
+}
+
+function describeTable(asset: DataAsset | undefined): string {
+  return asset?.schemaName
+    ? `${asset.schemaName}.${asset.name || ""}`
+    : asset?.name || "";
+}
+
+async function readColumnLinks(dataAssetId: ObjectID): Promise<ColumnLinks> {
+  const links: ColumnLinks = { comesFrom: new Map(), feeds: new Map() };
+  const select: {
+    columnMappings: true;
+    upstreamDataAsset: { _id: true; name: true; schemaName: true };
+    downstreamDataAsset: { _id: true; name: true; schemaName: true };
+  } = {
+    columnMappings: true,
+    upstreamDataAsset: { _id: true, name: true, schemaName: true },
+    downstreamDataAsset: { _id: true, name: true, schemaName: true },
+  };
+  const [incoming, outgoing]: [
+    ListResult<DataAssetLineage>,
+    ListResult<DataAssetLineage>,
+  ] = await Promise.all([
+    ModelAPI.getList<DataAssetLineage>({
+      modelType: DataAssetLineage,
+      query: { downstreamDataAssetId: dataAssetId },
+      limit: 200,
+      skip: 0,
+      select,
+      sort: {},
+    }),
+    ModelAPI.getList<DataAssetLineage>({
+      modelType: DataAssetLineage,
+      query: { upstreamDataAssetId: dataAssetId },
+      limit: 200,
+      skip: 0,
+      select,
+      sort: {},
+    }),
+  ]);
+
+  for (const edge of incoming.data) {
+    for (const mapping of readColumnMappings(edge.columnMappings)) {
+      addLink(links.comesFrom, mapping.downstreamColumn, {
+        dataAssetId: edge.upstreamDataAsset?.id?.toString() || "",
+        label: `${describeTable(edge.upstreamDataAsset)}.${mapping.upstreamColumn}`,
+      });
+    }
+  }
+
+  for (const edge of outgoing.data) {
+    readColumnMappings(edge.columnMappings).forEach(
+      (mapping: DataColumnMapping): void => {
+        addLink(links.feeds, mapping.upstreamColumn, {
+          dataAssetId: edge.downstreamDataAsset?.id?.toString() || "",
+          label: `${describeTable(edge.downstreamDataAsset)}.${mapping.downstreamColumn}`,
+        });
+      },
+    );
+  }
+
+  return links;
+}
+
+const ColumnLinksCell: FunctionComponent<{
+  links: Array<ColumnLink> | undefined;
+}> = (props: { links: Array<ColumnLink> | undefined }): ReactElement => {
+  const links: Array<ColumnLink> = props.links || [];
+
+  if (links.length === 0) {
+    return <span className="text-gray-400">-</span>;
+  }
+
+  return (
+    <div className="space-y-0.5">
+      {links.slice(0, MAX_LINKS_PER_CELL).map((link: ColumnLink) => {
+        return (
+          <div key={`${link.dataAssetId}:${link.label}`}>
+            <AppLink
+              className="font-mono text-gray-700 hover:underline"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DATA_OBSERVABILITY_TABLE_VIEW] as Route,
+                { modelId: new ObjectID(link.dataAssetId) },
+              )}
+            >
+              {link.label}
+            </AppLink>
+          </div>
+        );
+      })}
+      {links.length > MAX_LINKS_PER_CELL ? (
+        <div className="text-xs text-gray-500">
+          +{links.length - MAX_LINKS_PER_CELL}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
+const ColumnSensitivityCell: FunctionComponent<{
+  sensitivity: DataColumnSensitivity | undefined;
+}> = (props: {
+  sensitivity: DataColumnSensitivity | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (!props.sensitivity) {
+    return <span className="text-gray-400">-</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-gray-700">{props.sensitivity.dataTypeName}</span>
+      <SensitivityPill
+        sensitivity={props.sensitivity.sensitivity || undefined}
+      />
+      {props.sensitivity.isFromName ? (
+        <span className="text-xs text-gray-500">
+          {translator.translateText("From its name")}
+        </span>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
 const TableColumnsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const { dataAsset } = useTableViewContext();
+  const { dataAsset, dataAssetId } = useTableViewContext();
   const columns: Array<DataAssetColumn> = readDataAssetColumns(
     dataAsset?.columns,
   );
+  const [links, setLinks] = useState<ColumnLinks | null>(null);
+  const [sensitivities, setSensitivities] = useState<
+    Array<DataColumnSensitivity>
+  >([]);
+
+  // Extra to the columns: a page that cannot read lineage still lists them.
+  useEffect(() => {
+    readColumnLinks(dataAssetId)
+      .then(setLinks)
+      .catch(() => {
+        setLinks(null);
+      });
+    DataObservabilityApi.getTableSensitivity(dataAssetId)
+      .then(setSensitivities)
+      .catch(() => {
+        setSensitivities([]);
+      });
+  }, [dataAssetId?.toString()]);
+
+  const sensitivityByColumn: Map<string, DataColumnSensitivity> = new Map(
+    sensitivities.map(
+      (item: DataColumnSensitivity): [string, DataColumnSensitivity] => {
+        return [item.column, item];
+      },
+    ),
+  );
+  const hasSensitivity: boolean = sensitivities.length > 0;
+
+  const hasColumnLineage: boolean =
+    Boolean(links) && (links!.comesFrom.size > 0 || links!.feeds.size > 0);
 
   /*
    * The columns as wide as a person makes them (Common's
@@ -40,6 +244,13 @@ const TableColumnsPage: FunctionComponent<
       { id: "name", cellNumber: 2 },
       { id: "type", cellNumber: 3 },
       { id: "allowsEmpty", cellNumber: 4 },
+      ...(hasSensitivity ? [{ id: "holds", cellNumber: 5 }] : []),
+      ...(hasColumnLineage
+        ? [
+            { id: "comesFrom", cellNumber: hasSensitivity ? 6 : 5 },
+            { id: "feeds", cellNumber: hasSensitivity ? 7 : 6 },
+          ]
+        : []),
     ],
   });
 
@@ -51,9 +262,13 @@ const TableColumnsPage: FunctionComponent<
       <div className="overflow-x-auto px-6 pb-6">
         {columns.length === 0 ? (
           <p className="text-sm text-gray-500">
-            {translator.translateText(
-              "No columns read yet. They show after the next collection.",
-            )}
+            {dataAsset?.assetKind === DataAssetKind.StoragePath
+              ? translator.translateText(
+                  "A storage path has no columns: only its objects' names, sizes and times are read.",
+                )
+              : translator.translateText(
+                  "No columns read yet. They show after the next collection.",
+                )}
           </p>
         ) : (
           <>
@@ -96,6 +311,47 @@ const TableColumnsPage: FunctionComponent<
                   >
                     <span>{translator.translateText("Allows Empty")}</span>
                   </ResizableHeaderCell>
+                  {hasSensitivity ? (
+                    <ResizableHeaderCell
+                      className="py-2 pr-4"
+                      resize={tableColumns.getResize(
+                        "holds",
+                        translator.translateText("Holds") || "Holds",
+                        ColumnWidthKind.Text,
+                      )}
+                    >
+                      <span>{translator.translateText("Holds")}</span>
+                    </ResizableHeaderCell>
+                  ) : (
+                    <></>
+                  )}
+                  {hasColumnLineage ? (
+                    <>
+                      <ResizableHeaderCell
+                        className="py-2 pr-4"
+                        resize={tableColumns.getResize(
+                          "comesFrom",
+                          translator.translateText("Comes From") ||
+                            "Comes From",
+                          ColumnWidthKind.Name,
+                        )}
+                      >
+                        <span>{translator.translateText("Comes From")}</span>
+                      </ResizableHeaderCell>
+                      <ResizableHeaderCell
+                        className="py-2 pr-4"
+                        resize={tableColumns.getResize(
+                          "feeds",
+                          translator.translateText("Feeds") || "Feeds",
+                          ColumnWidthKind.Name,
+                        )}
+                      >
+                        <span>{translator.translateText("Feeds")}</span>
+                      </ResizableHeaderCell>
+                    </>
+                  ) : (
+                    <></>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -116,6 +372,31 @@ const TableColumnsPage: FunctionComponent<
                           ? translator.translateText("Yes")
                           : translator.translateText("No")}
                       </td>
+                      {hasSensitivity ? (
+                        <td className="py-2 pr-4">
+                          <ColumnSensitivityCell
+                            sensitivity={sensitivityByColumn.get(column.name)}
+                          />
+                        </td>
+                      ) : (
+                        <></>
+                      )}
+                      {hasColumnLineage ? (
+                        <>
+                          <td className="py-2 pr-4">
+                            <ColumnLinksCell
+                              links={links!.comesFrom.get(column.name)}
+                            />
+                          </td>
+                          <td className="py-2 pr-4">
+                            <ColumnLinksCell
+                              links={links!.feeds.get(column.name)}
+                            />
+                          </td>
+                        </>
+                      ) : (
+                        <></>
+                      )}
                     </tr>
                   );
                 })}

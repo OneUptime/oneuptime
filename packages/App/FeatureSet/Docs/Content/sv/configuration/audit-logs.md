@@ -99,6 +99,7 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 | Inventarieobjekt | `Inventory Item` |
 | Insamlarkonfigurationer | `Collector Config` |
 | vCenter-servrar | `vCenter` |
+| OpenStack-moln och kontrollerna som körs mot dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
 | Säkerhetsärenden och deras prioriteter och statusar, playbooks och deras körningar, skyddade entiteter, entitetskritikalitet samt en entitets risk när någon återställer den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Regelundantag | `Rule Exception` |
@@ -107,6 +108,7 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 | Hunts | `Hunt` |
 | Uppgifter och bevis i säkerhetsärenden | `Security Case Task`, `Security Case Evidence` |
 | Datalager och deras fynd, samt Datasäkerhets problem, inställningar, kontrollinställningar, anpassade datatyper och hemvistregler | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Inställningar för Dataobserverbarhet | `Data Observability Setting` |
 | Exporter av granskningsloggen | `Audit Log Export` |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.

@@ -858,6 +858,23 @@ export default class Project extends TenantModel {
   })
   @TableColumn({
     type: TableColumnType.Number,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    unique: false,
+  })
+  public currentWatchedTablesCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
     isDefaultValueColumn: true,
     required: true,
     hideColumnInDocumentation: true,

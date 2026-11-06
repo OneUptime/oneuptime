@@ -1,0 +1,5 @@
+bootstrap-servers took 53 seconds, and exited 0
+prechecks took 62 seconds, and exited 0
+pull took 205 seconds, and exited 0
+deploy took 709 seconds, and exited 0
+post-deploy took 7 seconds, and exited 0

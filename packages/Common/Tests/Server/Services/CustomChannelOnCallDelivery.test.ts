@@ -9,6 +9,7 @@ import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicySe
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
   ExecuteFallbackNotificationOptions,
@@ -616,6 +617,7 @@ describe("the fallback", () => {
     jest.spyOn(UserEmailService, "findOneBy").mockResolvedValue(null);
     jest.spyOn(UserSlackService, "findOneBy").mockResolvedValue(null);
     jest.spyOn(UserMicrosoftTeamsService, "findOneBy").mockResolvedValue(null);
+    jest.spyOn(UserMattermostService, "findOneBy").mockResolvedValue(null);
   }
 
   function channelPagingEveryone(name: string): CustomNotificationChannel {

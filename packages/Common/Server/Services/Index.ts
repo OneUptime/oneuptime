@@ -93,20 +93,32 @@ import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
 import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
 import PodmanHostLabelRuleService from "./PodmanHostLabelRuleService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import OpenStackCloudService from "./OpenStackCloudService";
+import OpenStackCloudConnectionTestService from "./OpenStackCloudConnectionTestService";
+import OpenStackProjectUsageService from "./OpenStackProjectUsageService";
+import OpenStackBudgetService from "./OpenStackBudgetService";
+import OpenStackProjectNoticeService from "./OpenStackProjectNoticeService";
+import OpenStackProjectNoticeDeliveryService from "./OpenStackProjectNoticeDeliveryService";
+import OpenStackCloudCheckService from "./OpenStackCloudCheckService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
+import OpenStackResourceService from "./OpenStackResourceService";
 import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
+import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
 import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
+import OpenStackCloudOwnerRuleService from "./OpenStackCloudOwnerRuleService";
 import DockerSwarmClusterOwnerRuleService from "./DockerSwarmClusterOwnerRuleService";
 import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
+import OpenStackCloudOwnerTeamService from "./OpenStackCloudOwnerTeamService";
 import DockerSwarmClusterOwnerTeamService from "./DockerSwarmClusterOwnerTeamService";
 import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
+import OpenStackCloudOwnerUserService from "./OpenStackCloudOwnerUserService";
 import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserService";
 import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
 import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
@@ -181,6 +193,7 @@ import StorageArrayFeedService from "./StorageArrayFeedService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import OpenStackCloudFeedService from "./OpenStackCloudFeedService";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
@@ -344,6 +357,7 @@ import UserWhatsAppService from "./UserWhatsAppService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import WorkflowLogService from "./WorkflowLogService";
 import WorkflowOwnerRuleService from "./WorkflowOwnerRuleService";
 import WorkflowOwnerUserService from "./WorkflowOwnerUserService";
@@ -407,7 +421,10 @@ import SecurityCaseCustomFieldService from "./SecurityCaseCustomFieldService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
+import DataBiConnectionService from "./DataBiConnectionService";
+import DataDashboardService from "./DataDashboardService";
 import DataStoreService from "./DataStoreService";
+import DataWarehouseJobService from "./DataWarehouseJobService";
 import DataStoreFindingService from "./DataStoreFindingService";
 import DataStoreAccessService from "./DataStoreAccessService";
 import DataSecurityIdentityService from "./DataSecurityIdentityService";
@@ -432,6 +449,12 @@ import DataPipelineService from "./DataPipelineService";
 import DataPipelineRunService from "./DataPipelineRunService";
 import DataProductService from "./DataProductService";
 import DataReconciliationService from "./DataReconciliationService";
+import DataIssueReportService from "./DataIssueReportService";
+import DataAssetOwnerUserService from "./DataAssetOwnerUserService";
+import DataAssetOwnerTeamService from "./DataAssetOwnerTeamService";
+import DataAssetOwnerRuleService from "./DataAssetOwnerRuleService";
+import DataAssetLabelRuleService from "./DataAssetLabelRuleService";
+import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
@@ -686,20 +709,32 @@ const services: Array<BaseService> = [
   PodmanHostOwnerTeamService,
   PodmanHostLabelRuleService,
   ProxmoxClusterService,
+  OpenStackCloudService,
+  OpenStackCloudConnectionTestService,
+  OpenStackProjectUsageService,
+  OpenStackBudgetService,
+  OpenStackProjectNoticeService,
+  OpenStackProjectNoticeDeliveryService,
+  OpenStackCloudCheckService,
   DockerSwarmClusterService,
   CephClusterService,
   ProxmoxResourceService,
+  OpenStackResourceService,
   DockerSwarmResourceService,
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
   ProxmoxClusterLabelRuleService,
+  OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,
   ProxmoxClusterOwnerRuleService,
+  OpenStackCloudOwnerRuleService,
   DockerSwarmClusterOwnerRuleService,
   ProxmoxClusterOwnerTeamService,
+  OpenStackCloudOwnerTeamService,
   DockerSwarmClusterOwnerTeamService,
   ProxmoxClusterOwnerUserService,
+  OpenStackCloudOwnerUserService,
   DockerSwarmClusterOwnerUserService,
   CephClusterLabelRuleService,
   CephClusterOwnerRuleService,
@@ -757,6 +792,7 @@ const services: Array<BaseService> = [
   DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
+  OpenStackCloudFeedService,
   VMwareVCenterFeedService,
   HostFeedService,
   CloudResourceFeedService,
@@ -864,6 +900,7 @@ const services: Array<BaseService> = [
   UserTelegramService,
   UserSlackService,
   UserMicrosoftTeamsService,
+  UserMattermostService,
   UserTotpAuthService,
   UserTwoFactorBackupCodeService,
   UserWebAuthnService,
@@ -964,7 +1001,10 @@ const services: Array<BaseService> = [
   SecurityPlaybookRunService,
 
   // Data Security (DSPM)
+  DataBiConnectionService,
+  DataDashboardService,
   DataStoreService,
+  DataWarehouseJobService,
   DataStoreFindingService,
   DataStoreAccessService,
   DataSecurityIdentityService,
@@ -989,6 +1029,12 @@ const services: Array<BaseService> = [
   DataPipelineRunService,
   DataProductService,
   DataReconciliationService,
+  DataIssueReportService,
+  DataAssetOwnerUserService,
+  DataAssetOwnerTeamService,
+  DataAssetOwnerRuleService,
+  DataAssetLabelRuleService,
+  DataObservabilitySettingService,
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,

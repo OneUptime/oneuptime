@@ -118,6 +118,14 @@ const OWN_TILE_FILES: ReadonlyArray<string> = [
 
 const TILE_ELEMENT: RegExp = /<GoldenMetricTile\b[\s\S]*?\/>/g;
 const LITERAL_TITLE: RegExp = /^<GoldenMetricTile\s+title="([^"]+)"/;
+/*
+ * These two draw one tile per row of a table, where a list of literals would say the same thing
+ * several times. Each table's words go through translationKey, so they reach the locale files.
+ */
+const TITLES_FROM_A_TABLE: ReadonlyArray<string> = [
+  "Pages/OpenStack/View/Capacity.tsx",
+  "Components/OpenStack/Part/OpenStackServiceOverview.tsx",
+];
 const LITERAL_SUBLABEL: RegExp = /\bsublabel="([^"]+)"/g;
 const LOOKED_UP_PROP: RegExp =
   /\b(title|sublabel)=\{\s*(tx|translator\.translateText|translateText)\(/;
@@ -303,7 +311,12 @@ describe("the pages hand their tiles English", () => {
 
     const withoutLiteral: Array<string> = tiles
       .filter((tile: PageTile): boolean => {
-        return !LITERAL_TITLE.test(tile.element);
+        return (
+          !LITERAL_TITLE.test(tile.element) &&
+          !TITLES_FROM_A_TABLE.some((table: string): boolean => {
+            return tile.file.endsWith(table);
+          })
+        );
       })
       .map((tile: PageTile): string => {
         return `${tile.file}: ${tile.element.slice(0, 80)}`;

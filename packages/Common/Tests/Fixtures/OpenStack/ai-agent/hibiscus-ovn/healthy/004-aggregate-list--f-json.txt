@@ -1,0 +1,29 @@
+$ openstack aggregate list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": 1,
+    "name": "ou-fast",
+    "availability_zone": null,
+    "hosts": [
+      "compute-01"
+    ],
+    "metadata": {
+      "oneuptime": "ou-fast"
+    }
+  },
+  {
+    "id": 2,
+    "name": "ou-gpu",
+    "availability_zone": null,
+    "hosts": [
+      "compute-01"
+    ],
+    "metadata": {
+      "oneuptime": "ou-gpu"
+    }
+  }
+]

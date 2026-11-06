@@ -169,7 +169,7 @@ describe("Incidents side menu", () => {
 
       expect(linksIn("Workspace")).toEqual([
         {
-          title: "Connect Slack or Teams",
+          title: "Connect a workspace",
           href: routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTIONS),
         },
       ]);

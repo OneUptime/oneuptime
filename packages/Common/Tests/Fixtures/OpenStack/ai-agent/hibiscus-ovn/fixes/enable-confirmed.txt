@@ -1,0 +1,1 @@
+nova-compute on compute-01 reads enabled again, to the admin's own client.

@@ -48,6 +48,7 @@ import Services from "../../../Server/Services/Index";
 import IoTFleetService from "../../../Server/Services/IoTFleetService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import OTelIngestService from "../../../Server/Services/OpenTelemetryIngestService";
+import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import ServiceService from "../../../Server/Services/ServiceService";
@@ -464,6 +465,7 @@ describe("TelemetryUsageBillingService.buildTelemetryRetentionMap", () => {
       PodmanHostService,
       KubernetesClusterService,
       ProxmoxClusterService,
+      OpenStackCloudService,
       VMwareVCenterService,
       CephClusterService,
       StorageArrayService,

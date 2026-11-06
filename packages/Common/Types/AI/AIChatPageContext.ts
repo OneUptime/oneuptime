@@ -36,6 +36,8 @@ enum AIChatPageContextType {
    * account, an Azure subscription or a Google Cloud project.
    */
   CloudAccount = "CloudAccount",
+  // One workflow's pages, its Builder among them: "this workflow".
+  Workflow = "Workflow",
 
   // Area pages — no id; the user is browsing a list or an explorer.
   IncidentsList = "IncidentsList",
@@ -101,6 +103,7 @@ const ENTITY_TYPES: Array<AIChatPageContextType> = [
   AIChatPageContextType.DataStore,
   AIChatPageContextType.DataSecurityIssue,
   AIChatPageContextType.CloudAccount,
+  AIChatPageContextType.Workflow,
 ];
 
 export class AIChatPageContextHelper {

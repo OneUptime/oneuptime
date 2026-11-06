@@ -62,6 +62,7 @@ flowchart LR
 | AWS CloudTrail | ورودها به کنسول، تغییرات در حساب‌های AWS شما و فراخوانی‌هایی که AWS رد کرد |
 | لاگ‌های ممیزی Google Cloud | تغییرات در پروژه‌های Google Cloud شما، فراخوانی‌هایی که Google رد کرد، و ورودهای Google Workspace که با Google Cloud به اشتراک گذاشته می‌شوند |
 | لاگ‌های فعالیت Azure و Entra ID | تغییرات در اشتراک‌های Azure شما، هشدارهای Defender for Cloud، و ورودها و تغییرات دایرکتوری Microsoft Entra ID |
+| ردّ ممیزی OpenStack | ورودهای ناموفق، اعطای نقش‌ها و تغییرات در Keystone، آنچه فیلتر ممیزی از هر API دید، گروه‌های امنیتی که به روی همهٔ دنیا باز شده‌اند و imageهایی که عمومی شده‌اند |
 | CEF | تهدیدها، اتصال‌های مسدودشده و ورودها از دیوارهای آتش، IDS، WAF و دیگر محصولات امنیتی که Common Event Format می‌فرستند |
 | LEEF | همین‌ها از محصولاتی که Log Event Extended Format می‌فرستند، چنان‌که بسیاری برای IBM QRadar می‌کنند |
 | Palo Alto Networks | تهدیدها، اتصال‌های مسدودشده، ورودهای GlobalProtect و مدیران، و تغییرهای پیکربندی از syslog خود PAN-OS |

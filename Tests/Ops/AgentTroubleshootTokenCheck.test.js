@@ -20,9 +20,9 @@
  *    "Token ACCEPTED".
  *
  * One matrix, run through every script that carries this check: the Ceph,
- * Proxmox, VMware, Storage Array and Docker Swarm agents (docker compose;
- * probes run as `docker run curl` in the agent's network namespace) and the
- * Kubernetes agent chart's (probes run as `kubectl run curl` in the
+ * Proxmox, OpenStack, VMware, Storage Array and Docker Swarm agents (docker
+ * compose; probes run as `docker run curl` in the agent's network namespace)
+ * and the Kubernetes agent chart's (probes run as `kubectl run curl` in the
  * cluster). The Database Agent's differs in shape and has its own tests in
  * DatabaseAgentScripts.test.js.
  */
@@ -279,8 +279,10 @@ const CASES = [
  * probe from <probe>.out (body, then the OUSTATUS line curl's -w appends),
  * exiting with <probe>.exit as `docker run` passes curl's exit code on.
  * Anything else it is asked to fetch (a scrape target — a Ceph mgr, a
- * Proxmox exporter, a FlashArray's metrics endpoint — or the collector's own
- * metrics) gets a plausible healthy answer.
+ * Proxmox or OpenStack exporter, a FlashArray's metrics endpoint — or the
+ * collector's own metrics) gets a plausible healthy answer. What `docker run -i`
+ * is handed on stdin (the OpenStack agent's key, which stays off the command
+ * line) is logged with its arguments.
  */
 function dockerStub(bin) {
   writeExecutable(
@@ -306,12 +308,15 @@ case "$1" in
   logs) cat "$STUB_DIR/collector.log" 2>/dev/null; exit 0 ;;
   run)
     case "$*" in
+      "run --rm -i "*) cat >> "$STUB_DIR/docker.log" ;;
+    esac
+    case "$*" in
       */otlp/v1/validate*) probe_answer validate ;;
       */otlp/v1/metrics*) probe_answer otlp-metrics ;;
       */fluentd/v1/logs*) probe_answer fluentd ;;
       *127.0.0.1:8888/metrics*)
         printf 'otelcol_receiver_accepted_metric_points 10\\notelcol_exporter_sent_metric_points 10\\notelcol_exporter_send_failed_metric_points 0\\n' ;;
-      *) printf 'ceph_health_status 0\\npve_up 1\\npurefa_info{array_name="fa-prod",os="Purity//FA",system_id="0b6a4e39",version="6.7.3"} 1\\n\\nOUSTATUS:200\\n' ;;
+      *) printf 'ceph_health_status 0\\npve_up 1\\nopenstack_identity_up 1\\npurefa_info{array_name="fa-prod",os="Purity//FA",system_id="0b6a4e39",version="6.7.3"} 1\\n\\nOUSTATUS:200\\n' ;;
     esac
     exit 0 ;;
 esac
@@ -351,6 +356,16 @@ const DOCKER_AGENTS = [
       `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
       "PROXMOX_CLUSTER_NAME=pve-prod",
       "PVE_HOST=192.168.1.10",
+    ],
+  },
+  {
+    agent: "OpenStackAgent",
+    env: [
+      `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+      "OPENSTACK_CLOUD_NAME=openstack-prod",
+      "OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]",
+      "OPENSTACK_EXPORTER_ADDRESS=openstack-exporter:9180",
+      "COMPOSE_PROFILES=openstack-exporter",
     ],
   },
   {
@@ -631,7 +646,7 @@ describe.each(DOCKER_AGENTS)("agents/$agent/troubleshoot.sh", (config) => {
 });
 
 /*
- * The Ceph, Proxmox, VMware and Storage Array install scripts write .env
+ * The Ceph, Proxmox, OpenStack, VMware and Storage Array install scripts write .env
  * quoted for Docker Compose ('value', or "value" with \\ \" and $$). With
  * the collector down there is no container environment to read, and the
  * script falls back to .env: it must read it as Compose does, or it would

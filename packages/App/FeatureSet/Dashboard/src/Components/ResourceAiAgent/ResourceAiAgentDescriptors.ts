@@ -8,6 +8,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
+  isReadOnlyAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
@@ -15,6 +16,7 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -43,7 +45,8 @@ export type ResourceAiModel =
   | CephCluster
   | DatabaseServer
   | Host
-  | CloudAccount;
+  | CloudAccount
+  | OpenStackCloud;
 
 export type ResourceAiModelType = { new (): ResourceAiModel };
 
@@ -91,6 +94,11 @@ export interface ResourceAiAgentDescriptor {
    * account's "Let AI fix problems"), never installed beside a collector.
    */
   isCloudAccount: boolean;
+  /*
+   * OneUptime AI only reads this kind of resource: it has no command that
+   * changes one, so the page has no fixes to offer and says why.
+   */
+  isReadOnly: boolean;
   // An allowlist entry to show as the field's example: a riskier command.
   allowlistPlaceholder: string;
   // What fixes may change, and the changes that always ask a person.
@@ -115,7 +123,7 @@ export interface ResourceAiAgentDescriptor {
  */
 type DescriptorCopy = Omit<
   ResourceAiAgentDescriptor,
-  "resourceType" | "agentName" | "noun" | "allowlistPlaceholder"
+  "resourceType" | "agentName" | "noun" | "allowlistPlaceholder" | "isReadOnly"
 >;
 
 /*
@@ -391,6 +399,36 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     readExamples: "describe, recent-events, quota-usage, read-logs",
     commandsTableId: "google-cloud-project-ai-commands",
   },
+  [AiResourceType.OpenStackCloud]: {
+    modelType: OpenStackCloud,
+    agentPage: PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT,
+    insightsPage: PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS,
+    agentCardDescription: translationKey(
+      "The small container next to your OpenStack agent that turns each openstack command OneUptime AI asks for into one call to the cloud's API. It reads with one credential, and changes something only with a second one you give it.",
+    ),
+    investigateTitle: translationKey("Investigate with openstack"),
+    readExamples:
+      "server list, compute service list, hypervisor list, network agent list, volume service list",
+    readOnlyCommandsPhrase: translationKey("read-only openstack commands"),
+    commandsCardTitle: translationKey("openstack commands"),
+    toolVersionLabel: "Nova API",
+    identityColumn: "name",
+    writeExamples: translationKey(
+      "start or soft-reboot an instance, enable a compute service or a network agent",
+    ),
+    alwaysHumanExamples: translationKey(
+      "evacuating the instances of a dead hypervisor",
+    ),
+    riskierExamples: translationKey(
+      "riskier changes such as hard-rebooting or migrating an instance, or disabling a compute service or a network agent",
+    ),
+    riskierChanges: translationKey(
+      "hard-rebooting or migrating an instance, or disabling a compute service or a network agent",
+    ),
+    commandsTableId: "openstack-cloud-ai-commands",
+    isCloudAccount: false,
+  },
 };
 
 /*
@@ -406,6 +444,7 @@ export const RESOURCE_AI_NAME_KEYS: ReadonlyArray<string> = [
   translationKey("Proxmox cluster"),
   translationKey("VMware vCenter"),
   translationKey("Ceph cluster"),
+  translationKey("OpenStack cloud"),
   translationKey("database server"),
   translationKey("host"),
   translationKey("Docker AI agent"),
@@ -414,6 +453,7 @@ export const RESOURCE_AI_NAME_KEYS: ReadonlyArray<string> = [
   translationKey("Proxmox AI agent"),
   translationKey("VMware AI agent"),
   translationKey("Ceph AI agent"),
+  translationKey("OpenStack AI agent"),
   translationKey("Database AI agent"),
   translationKey("Host AI agent"),
   translationKey("AWS account"),
@@ -437,6 +477,7 @@ export const RESOURCE_AI_AGENT_DESCRIPTORS: Readonly<
       agentName: info.agentDisplayName,
       noun: getResourceSentenceName(type),
       allowlistPlaceholder: RESOURCE_AI_ALLOWLIST_EXAMPLES[type],
+      isReadOnly: isReadOnlyAiResourceType(type),
     };
 
     return descriptors;

@@ -1,0 +1,1 @@
+{"amphora_stats": [{"active_connections": 0, "bytes_in": 0, "bytes_out": 0, "id": "4857d190-5867-49f6-9390-1d3bc65eac9f", "listener_id": "f93b894f-e06a-4c76-9cb7-b33ef5e0d99d", "loadbalancer_id": "3ababc03-93f7-4b7f-90be-3aec0b457dc6", "request_errors": 0, "total_connections": 0}]}

@@ -33,6 +33,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Route from "Common/Types/API/Route";
@@ -213,6 +214,18 @@ const entityPageRules: Array<EntityPageRule> = [
     noun: translationKey("exception"),
     chipLabel: "This exception",
     icon: IconProp.Bug,
+    isValidId: isUuid,
+  },
+  /*
+   * A workflow's pages, its Builder among them: "this workflow" is this one,
+   * which Ask AI reads and can change - each change asked first.
+   */
+  {
+    pageMapKey: PageMap.WORKFLOW_VIEW,
+    type: AIChatPageContextType.Workflow,
+    noun: translationKey("workflow"),
+    chipLabel: "This workflow",
+    icon: IconProp.Workflow,
     isValidId: isUuid,
   },
   /*
@@ -697,6 +710,14 @@ export default class PageContextUtil {
           return PageContextUtil.titleOnly(
             item?.message || item?.exceptionType,
           );
+        }
+        case AIChatPageContextType.Workflow: {
+          const item: Workflow | null = await ModelAPI.getItem<Workflow>({
+            modelType: Workflow,
+            id: id,
+            select: { name: true },
+          });
+          return PageContextUtil.titleOnly(item?.name);
         }
         case AIChatPageContextType.SecurityCase: {
           const item: SecurityCase | null =
@@ -1371,6 +1392,31 @@ export default class PageContextUtil {
             icon: IconProp.Cube,
             title: "Memory",
             question: "What holds the most memory in my services right now?",
+          },
+        ];
+      case AIChatPageContextType.Workflow:
+        return [
+          {
+            icon: IconProp.Document,
+            title: "Explain it",
+            question:
+              "Explain what this workflow does, step by step, and what starts it.",
+          },
+          {
+            icon: IconProp.Alert,
+            title: "Why did it fail?",
+            question:
+              "Did this workflow's recent runs fail? If so, why, and how do I fix it?",
+          },
+          {
+            icon: IconProp.Clock,
+            title: "When did it run?",
+            question: "When did this workflow last run, and what started it?",
+          },
+          {
+            icon: IconProp.Edit,
+            title: "Improve it",
+            question: "What would make this workflow simpler or more reliable?",
           },
         ];
       case AIChatPageContextType.SecurityCase:

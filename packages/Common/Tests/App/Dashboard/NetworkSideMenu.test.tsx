@@ -275,16 +275,24 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
     ],
   },
   /*
-   * The way back to archived devices, which the device lists leave out.
-   * Rarely needed, so it waits in Advanced, folded away like Rules and
-   * Settings. Advanced is a fold in the menu, not a place: the page's trail
-   * stays Project > Network > Archived Devices, as every product's Archived
-   * page hangs straight under its product.
+   * Tools few visits need, folded away like Rules and Settings: walking
+   * many devices at once (#5548), mostly reached from the Devices list's
+   * Bulk Actions and an OID's menu on a device's own SNMP Walk page, and
+   * the way back to archived devices, which the device lists leave out.
+   * Advanced is a fold in the menu, not a place: each page's trail hangs
+   * straight under Network, as every product's Archived page hangs
+   * straight under its product.
    */
   {
     title: "Advanced",
     defaultCollapsed: true,
     entries: [
+      {
+        title: "SNMP Walk",
+        pageMapKey: PageMap.NETWORK_SNMP_WALK,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "SNMP Walk"],
+      },
       {
         title: "Archived Devices",
         pageMapKey: PageMap.NETWORK_DEVICE_ARCHIVED,
@@ -424,15 +432,22 @@ describe("Network side menu", () => {
       ]);
     });
 
-    test("keeps Archived Devices out of the day-to-day Network section", async () => {
+    test("keeps SNMP Walk and Archived Devices out of the day-to-day Network section", async () => {
       await renderNetworkMenu();
 
-      expect(
-        linksIn("Network").map((link: MenuLink): string => {
+      const dayToDay: Array<string> = linksIn("Network").map(
+        (link: MenuLink): string => {
           return link.title;
-        }),
-      ).not.toContain("Archived Devices");
+        },
+      );
+
+      expect(dayToDay).not.toContain("Archived Devices");
+      expect(dayToDay).not.toContain("SNMP Walk");
       expect(linksIn("Advanced")).toEqual([
+        {
+          title: "SNMP Walk",
+          href: routeFor(PageMap.NETWORK_SNMP_WALK),
+        },
         {
           title: "Archived Devices",
           href: routeFor(PageMap.NETWORK_DEVICE_ARCHIVED),
@@ -603,7 +618,7 @@ describe("Network side menu", () => {
       expect(linksIn("Settings")).toEqual(expectedLinks(EXPECTED_SECTIONS[3]!));
     });
 
-    test("Advanced expands and collapses without unmounting Archived Devices", async () => {
+    test("Advanced expands and collapses without unmounting its pages", async () => {
       await renderNetworkMenu();
 
       expect(isExpanded("Advanced")).toBe(false);
@@ -612,7 +627,7 @@ describe("Network side menu", () => {
         "opacity-0",
         "invisible",
       );
-      expect(linksIn("Advanced")).toHaveLength(1);
+      expect(linksIn("Advanced")).toHaveLength(2);
 
       fireEvent.click(sectionToggle("Advanced"));
 
@@ -628,11 +643,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all twenty-eight destinations reachable exactly once", async () => {
+    test("keeps all twenty-nine destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(28);
-      expect(allLinks()).toHaveLength(28);
+      expect(EXPECTED_ENTRIES).toHaveLength(29);
+      expect(allLinks()).toHaveLength(29);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );

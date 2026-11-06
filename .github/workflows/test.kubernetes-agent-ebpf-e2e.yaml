@@ -30,6 +30,7 @@ on:
   push:
     branches:
       - master
+      - main
     paths:
       - "HelmChart/Public/kubernetes-agent/**"
       - "Tests/Ops/agent-ebpf-e2e/**"

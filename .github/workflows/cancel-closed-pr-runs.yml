@@ -64,6 +64,7 @@ jobs:
           - Iron Bank Preflight
           - Kubernetes AI Agent Test
           - Kubernetes Agent eBPF E2E
+          - Kubernetes Cost Agent Test
           - Kubernetes Log Tailer Test
           - Mobile Recorder Native Consumer Build
           - Mobile Recorder Test

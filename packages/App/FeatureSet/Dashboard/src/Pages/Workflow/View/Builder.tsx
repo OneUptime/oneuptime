@@ -1,21 +1,23 @@
 import PageComponentProps from "../../PageComponentProps";
+import EventName from "../../../Utils/EventName";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
-import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import useRunWatch, {
   FetchLatestRunFunction,
   UseRunWatchResult,
   WatchedRunDetail,
 } from "Common/UI/Components/Workflow/UseRunWatch";
 import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
-import { parseTrace } from "Common/Types/Workflow/StepTrace";
+import RunAgainButton from "Common/UI/Components/Workflow/RunAgain/RunAgainButton";
+import {
+  fetchLatestWorkflowRun,
+  sendRunAgain,
+} from "Common/UI/Components/Workflow/RunAgain/RunAgainSource";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
@@ -34,7 +36,6 @@ import useWorkflowEnabled, {
 } from "Common/UI/Components/Workflow/UseWorkflowEnabled";
 import WorkflowEnabledSwitch from "Common/UI/Components/Workflow/WorkflowEnabledSwitch";
 import WorkflowTurnedOffNotice from "Common/UI/Components/Workflow/WorkflowTurnedOffNotice";
-import { getWorkflowRunStartedBy } from "Common/UI/Components/Workflow/WorkflowRunExport";
 import {
   getLockedReason,
   getWorkflowEditGate,
@@ -69,7 +70,8 @@ import {
 import Select from "Common/Types/BaseDatabase/Select";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
@@ -83,6 +85,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Edge, Node } from "reactflow";
@@ -164,51 +167,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const fetchLatestRun: FetchLatestRunFunction =
     async (): Promise<WatchedRunDetail | null> => {
-      const result: ListResult<WorkflowLog> =
-        await ModelAPI.getList<WorkflowLog>({
-          modelType: WorkflowLog,
-          query: { workflowId: modelId },
-          limit: 1,
-          skip: 0,
-          select: {
-            _id: true,
-            workflowStatus: true,
-            logs: true,
-            stepTrace: true,
-            // A run downloaded from the modal is named and headed with these.
-            createdAt: true,
-            startedAt: true,
-            completedAt: true,
-            /*
-             * A run started while the workflow is off is a test run, and the
-             * modal says so, with who started it.
-             */
-            isTestRun: true,
-            startedByUser: {
-              name: true,
-              email: true,
-            },
-          },
-          sort: { createdAt: SortOrder.Descending },
-        });
-
-      const latest: WorkflowLog | undefined = result.data[0];
-
-      if (!latest || !latest._id) {
-        return null;
-      }
-
-      return {
-        runId: latest._id.toString(),
-        status: latest.workflowStatus as WorkflowStatus,
-        logs: latest.logs || "",
-        stepTrace: parseTrace((latest.stepTrace as JSONValue) || null),
-        scheduledAt: latest.createdAt || null,
-        startedAt: latest.startedAt || null,
-        completedAt: latest.completedAt || null,
-        isTestRun: latest.isTestRun === true,
-        startedBy: getWorkflowRunStartedBy(latest.startedByUser),
-      };
+      return await fetchLatestWorkflowRun(modelId);
     };
 
   const runWatch: UseRunWatchResult = useRunWatch({
@@ -307,6 +266,37 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     getWorkflowEditGate(),
   );
   const isViewOnly: boolean = Boolean(editLockedReason);
+
+  /*
+   * Ask AI changed this workflow, from the panel beside this page: what is on
+   * the canvas is out of date, and the next save would write it back over that
+   * change. A save still waiting for its moment is dropped: what Ask AI read to
+   * change it did not have it, but what was typed a moment before is not worth
+   * losing what was just approved. Read through a ref, as the page's functions
+   * are rebuilt on every render.
+   */
+  const reloadGraph: React.MutableRefObject<() => void> = useRef<() => void>(
+    () => {},
+  );
+
+  useEffect(() => {
+    type ChangedEvent = (event: CustomEvent) => void;
+
+    const onChanged: ChangedEvent = (event: CustomEvent): void => {
+      if (event.detail?.["workflowId"] === modelId.toString()) {
+        reloadGraph.current();
+      }
+    };
+
+    GlobalEvents.addEventListener(EventName.WORKFLOW_CHANGED_BY_AI, onChanged);
+
+    return () => {
+      GlobalEvents.removeEventListener(
+        EventName.WORKFLOW_CHANGED_BY_AI,
+        onChanged,
+      );
+    };
+  }, [modelId.toString()]);
 
   type StartWatchingRunFunction = () => void;
 
@@ -475,6 +465,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
 
     setIsLoading(false);
+  };
+
+  reloadGraph.current = (): void => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      setSaveTimeout(null);
+    }
+
+    void loadGraph();
   };
 
   type SaveGraphFunction = (
@@ -648,6 +647,25 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       throw result;
     }
 
+    startWatchingRun();
+  };
+
+  type SendRunAgainFromBuilderFunction = (runId: string) => Promise<void>;
+
+  /*
+   * Run again, with what an earlier run started with, followed as any run from
+   * here is. Rejects with the reason it did not start, for the dialog that
+   * asked to say: it is not sent while archived, as a run is not.
+   */
+  const sendRunAgainFromBuilder: SendRunAgainFromBuilderFunction = async (
+    runId: string,
+  ): Promise<void> => {
+    if (isArchived) {
+      throw new Error(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE);
+    }
+
+    await runWatch.captureRunBeforeTrigger();
+    await sendRunAgain(runId);
     startWatchingRun();
   };
 
@@ -946,6 +964,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 await sendWorkflowRun(component);
               });
             }}
+            onRunAgain={sendRunAgainFromBuilder}
           />
         )}
 
@@ -973,6 +992,17 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             statusMessage={runWatch.message}
             isStatusMessageError={runWatch.hasFailed}
             isRunning={runWatch.isWatching}
+            toolbar={
+              runWatch.run?.canRunAgain && !runWatch.isWatching ? (
+                <RunAgainButton
+                  send={async (): Promise<void> => {
+                    await sendRunAgainFromBuilder(
+                      runWatch.run?.runId as string,
+                    );
+                  }}
+                />
+              ) : undefined
+            }
             onClose={() => {
               setShowRunLogModal(false);
             }}

@@ -159,6 +159,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 - **PG- und Pool-Serien gibt es pro Pool**: Es gibt keinen clusterweiten Messwert, daher gruppieren diese Vorlagen nach `pool_id` und öffnen einen Vorfall pro Pool.
 - **Kapazitätsquoten** nehmen auf beiden Seiten die **Summe**. Beide stammen aus derselben mgr-Abfrage, daher ergibt sich ein echter Prozentsatz. **Inactive Placement Groups** verwendet stattdessen **Maximum** pro Pool, weil eine Summe bei einer Subtraktion die Abfragen aufaddieren würde.
 - **Health-Check-Vorlagen** erholen sich, wenn der Check verschwindet: Ihre Erholungskriterien zählen eine fehlende Serie als 0.
+- **Daemon Slow Operations** hat eine Serie pro Daemon. Hat kein Daemon mehr eine Serie, gibt es nichts mehr zu lesen. Die Vorlage erholt sich dann nur, wenn `ceph_health_status` im selben Fenster eingetroffen ist, sodass ein gestoppter Agent nichts schließt.
 
 Manche Alarme haben keine Vorlage. Eine PG-Ungleichverteilung braucht Statistik über mehrere Serien, die Kriterien nicht berechnen können. Eine Kapazitätsprognose braucht eine Wachstumskurve, die stattdessen das Dashboard des Clusters zeichnet. Für vorhergesagte Plattenausfälle und veraltetes Scrubbing gibt es keine mgr-Metrik, und NVMe-oF, RBD-Mirroring und cephadm brauchen andere Exporter.
 

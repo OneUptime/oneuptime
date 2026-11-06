@@ -185,7 +185,7 @@ flowchart TB
     field -->|"Não"| nothing
 ```
 
-**On Create**, **On Update** e **On Create or Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Fields to pass on** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio.
+**On Create**, **On Update** e **On Create or Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Fields to pass on** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio. O mesmo vale para um campo em que o registro não tem nada, como o monitor de um alerta que nenhum monitor gerou.
 
 **On Create or Update** também repassa **What Happened**: `created` quando um registro novo iniciou a execução, e `updated` quando foi uma alteração, como em `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar os dois casos de forma diferente, compare-o em um bloco **If / Else**, ou siga um caminho para cada um com **Switch / Case**.
 

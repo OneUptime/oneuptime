@@ -281,12 +281,34 @@ describe("the strings in every Admin Dashboard language", () => {
     }
   });
 
-  test("the Admin Dashboard's Spanish asks as it always does, formally", () => {
-    expect(
-      readLocale("es")[
-        "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone."
-      ],
-    ).toContain("¿Está seguro de que desea eliminar");
+  /*
+   * The delete question is a string the two dashboards share, and the Admin
+   * Dashboard says a shared string as the same language's Dashboard does
+   * (App/Tests/AdminDashboard/AdminSharedStringsLocales, 2807833b3d5). The
+   * Dashboard's Spanish addresses its reader as tú (7281e405ef), so the
+   * Admin's question does too: one voice in both dashboards.
+   */
+  test("the Admin Dashboard's Spanish asks as the Dashboard's does", () => {
+    const question: string =
+      "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.";
+    const dashboardSpanish: unknown = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          LOCALES_DIR,
+          "..",
+          "..",
+          "..",
+          "Dashboard",
+          "src",
+          "Locales",
+          "es.json",
+        ),
+        "utf8",
+      ),
+    )[question];
+
+    expect(dashboardSpanish).toContain("¿Seguro que quieres eliminar");
+    expect(readLocale("es")[question]).toBe(dashboardSpanish);
   });
 
   test("Japanese never puts a half-width question mark after Japanese text", () => {

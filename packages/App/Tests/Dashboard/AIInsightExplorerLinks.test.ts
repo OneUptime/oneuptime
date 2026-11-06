@@ -1486,6 +1486,7 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
            * metric, and the service as its resource.service.name attribute
            * while its id is unknown.
            */
+          case AIInsightType.DataDrift:
           case AIInsightType.MetricDrift:
           case AIInsightType.MetricHighCardinality:
           case AIInsightType.MetricHistogramBuckets: {

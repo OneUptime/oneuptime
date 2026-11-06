@@ -24,7 +24,7 @@ flowchart TB
     ack["Du bekräftar"] -.->|"stoppar resten"| third
 ```
 
-De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsApp, Telegram, Slack och Microsoft Teams har en bekräftelselänk, och ett samtal ber dig trycka 1. Kan du inte ta ett larm kan du eskalera det från samma meddelanden, och ett samtal ber dig trycka 2: policyn larmar nästa nivå direkt, och du larmas inte om det igen. Se [Eskalera ett larm](/docs/on-call/escalation-rules#eskalera-ett-larm). Varje larm du får finns under **Användarinställningar → Jourloggar**, där **Visa tidslinje** visar varje skickat meddelande och om det levererades.
+De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsApp, Telegram, Slack, Microsoft Teams och Mattermost har en bekräftelselänk, och ett samtal ber dig trycka 1. Kan du inte ta ett larm kan du eskalera det från samma meddelanden, och ett samtal ber dig trycka 2: policyn larmar nästa nivå direkt, och du larmas inte om det igen. Se [Eskalera ett larm](/docs/on-call/escalation-rules#eskalera-ett-larm). Varje larm du får finns under **Användarinställningar → Jourloggar**, där **Visa tidslinje** visar varje skickat meddelande och om det levererades.
 
 ## De fyra flikarna
 

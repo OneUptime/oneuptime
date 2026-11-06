@@ -56,7 +56,7 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Översikt**  | **Alla händelser** och **Pågående händelser**, vars märke räknar de händelser som pågår just nu.                            |
 | **Kalender** | **Underhållskalender**: varje händelse på en månad, en vecka eller en dag, bredvid de kalendrar utanför projektet som du lägger till. |
-| **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har något av dem. |
+| **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**, beroende på vad projektet har anslutit, eller **Anslut en arbetsyta** när det inte har något av dem. |
 | **Regler**    | **Ägarregler**, **Runbook-regler**, **Etikettregler**, **Påminnelseregler**.                                                  |
 | **Inställningar** | **Händelsestatus**, **Händelsemallar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar**, **Numrering**.      |
 

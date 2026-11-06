@@ -1,10 +1,10 @@
 # Kontroller och problem i Datasäkerhet
 
-Datasäkerhet kör 33 kontroller på varje datalager, i nio grupper. En kontroll läser det som är känt om ett datalager - hur det är konfigurerat, vad som har hittats i det, vem som kan nå det, var det finns - och godkänns, underkänns eller kan inte avgöra. En kontroll som underkänns öppnar ett problem på det datalagret, och problemet stängs av sig självt när kontrollen godkänns. Den här sidan listar varje kontroll, hur ett problems allvarlighetsgrad och riskpoäng räknas fram och vad som händer med ett problem under dess livstid.
+Datasäkerhet kör 34 kontroller på varje datalager, i nio grupper. En kontroll läser det som är känt om ett datalager - hur det är konfigurerat, vad som har hittats i det, vem som kan nå det, var det finns - och godkänns, underkänns eller kan inte avgöra. En kontroll som underkänns öppnar ett problem på det datalagret, och problemet stängs av sig självt när kontrollen godkänns. Den här sidan listar varje kontroll, hur ett problems allvarlighetsgrad och riskpoäng räknas fram och vad som händer med ett problem under dess livstid.
 
 :::cards
 - [Hur en kontroll avgör](#hur-en-kontroll-avgör): Godkänd, underkänd eller kan inte avgöra, och hur allvarligt ett underkännande är.
-- [Varje kontroll](#varje-kontroll): Alla 33, med vad var och en kontrollerar och hur det åtgärdas.
+- [Varje kontroll](#varje-kontroll): Alla 34, med vad var och en kontrollerar och hur det åtgärdas.
 - [Riskpoäng](#riskpoäng): Hur problem ordnas inom en allvarlighetsgrad.
 - [Vad som händer med ett problem](#vad-som-händer-med-ett-problem): Öppet, löst, accepterat, inte ett problem.
 - [Åtgärda härifrån](#åtgärda-härifrån): Stäng en exponering, eller slå på ett skydd som saknas, med ett klick.
@@ -87,6 +87,7 @@ Allvarlighetsgraden anges för data som är Begränsad, Konfidentiell, Intern oc
 | Lösenord lagras i klartext (`plaintext-passwords`) | Alla datalager utom telemetri | Ett lösenordsfält innehåller värden som inte är lösenordshashar (bcrypt, argon2, scrypt eller PBKDF2). | Kritisk / Kritisk / Kritisk / Kritisk | Hasha lösenord med bcrypt, scrypt eller argon2, migrera de lagrade och tvinga varje konto att återställa sitt lösenord. |
 | Produktionsdata har kopierats till ett datalager utanför produktion (`production-data-in-non-production`) | Alla datalager utom telemetri | Värden som hittades i ett produktionsdatalager hittades också här, i ett datalager för utveckling, test eller staging. | Hög / Medel / — / — | Ersätt kopian med maskerade eller syntetiska data, och ta bort de verkliga data från datalagret utanför produktion. |
 | Känsliga data som ingen har använt på 90 dagar (`stale-sensitive-data`) | Alla datalager utom telemetri | Datalagret innehåller känsliga data och har inte haft några läsningar eller skrivningar på 90 dagar. | Medel / Låg / — / — | Bekräfta att data inte längre behövs, och arkivera dem sedan med ett slutdatum för lagring, eller ta bort dem. |
+| En ny kolumn innehåller personuppgifter (`new-personal-data-column`) | Alla datalager utom telemetri | En kolumn som lades till under de senaste 14 dagarna har ett namn som säger att den innehåller personuppgifter. | Hög / Hög / Medel / Medel | Bekräfta att kolumnen ska innehålla dessa data och anteckna varför. Om den inte ska det, ta bort den eller sluta skriva till den. |
 | Ingen äger detta känsliga datalager (`no-owner`) | Alla datalager | Datalagret innehåller känsliga data och har ingen ägare. | Medel / Låg / — / — | Lägg till en ägare på datalagrets sida **Ägare**, eller en ägarregel som matchar dess taggar. |
 
 ### Telemetri

@@ -54,6 +54,7 @@ Two containers start as root, on purpose:
 
 - **Single sign-on.** Sign people in with SAML or OpenID Connect against your identity provider, in every edition: see [SSO](/docs/identity/sso) and, for every project at once, [Global SSO](/docs/identity/global-sso). An identity provider that accepts PIV or CAC credentials brings them to OneUptime this way.
 - **Require it.** Turn on **Require SSO for Login** for the whole server in **Admin Dashboard > Settings > Single Sign-On**: every project then requires SSO of everyone but master admins, and the sign-in page offers SSO alone.
+- **Sign-in links.** The sign-in page offers to email people a link that signs them in without their password; two-factor authentication still applies. Turn off **Let people sign in with an emailed link** in **Admin Dashboard > Settings > Authentication** to take it off the page and stop links already sent. See [Sign in with an emailed link](/docs/introduction/your-account#이메일로-받은-링크로-로그인).
 - **Two factors.** People who sign in with a password can add an authenticator app or a security key as a second factor.
 - **Accounts.** Create and remove accounts from your identity provider with [SCIM](/docs/identity/scim) (Enterprise Edition), so someone who leaves loses access when their account goes.
 - **Sessions.** Limit how long a sign-in lasts, and how long it may sit unused, with [Session Length](/docs/self-hosted/session-length) (Enterprise Edition).

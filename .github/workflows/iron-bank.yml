@@ -35,6 +35,10 @@ name: Iron Bank Preflight
 #
 # Without the robot account, and on a fork's pull requests (which get no
 # secrets), each job stops after step 3 with a warning.
+#
+# One more job, with the robot account, builds all four images and installs the
+# Helm chart with IronBank/values.yaml on a KinD cluster, on Iron Bank's own
+# PostgreSQL, ClickHouse and Valkey (HelmChart/Tests/suites/iron-bank-install.sh).
 
 # Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
 concurrency:
@@ -46,6 +50,8 @@ on:
     paths:
       - "IronBank/**"
       - "Scripts/IronBank/**"
+      - "HelmChart/Tests/suites/iron-bank.sh"
+      - "HelmChart/Tests/suites/iron-bank-install.sh"
       - ".github/workflows/iron-bank.yml"
   # Daily: Iron Bank keeps scanning the images it has published, so a CVE
   # published today is a finding in yesterday's release.
@@ -143,7 +149,7 @@ jobs:
             node Scripts/IronBank/PinRelease.js --project "$NAME" --version "$VERSION" --check
           else
             node Scripts/IronBank/PinRelease.js --project "$NAME" --version "$VERSION"
-            git diff -- "$PROJECT"
+            git diff -- "$PROJECT" IronBank/values.yaml
           fi
 
       - name: Check the projects against the release Dockerfiles
@@ -180,28 +186,12 @@ jobs:
         if: steps.registry1.outputs.available == 'true'
         run: bash Scripts/IronBank/fetch_resources.sh "$PROJECT"
 
-      # As Iron Bank's pipeline builds it: the base image the manifest's args
-      # name (under registry1's ironbank/ project), and the manifest's labels.
-      # The build reaches Alpine's or Debian's package repositories for the
-      # Dockerfile's packages, as Iron Bank's does through its proxy; the Ops
-      # suites hold the Dockerfiles to fetching nothing else.
       - name: Build the image on Iron Bank's base image
         if: steps.registry1.outputs.available == 'true'
         run: |
           MANIFEST="$PROJECT/hardening_manifest.yaml"
-          BASE_IMAGE="$(yq -r '.args.BASE_IMAGE' "$MANIFEST")"
-          BASE_TAG="$(yq -r '.args.BASE_TAG' "$MANIFEST")"
-          BASE="registry1.dso.mil/ironbank/${BASE_IMAGE}:${BASE_TAG}"
-          echo "BASE=${BASE}" >> "$GITHUB_ENV"
-          docker pull --quiet "$BASE"
-          mapfile -t LABELS < <(yq -r '.labels | to_entries | .[] | "--label=" + .key + "=" + .value' "$MANIFEST")
-          docker build \
-            --build-arg BASE_REGISTRY=registry1.dso.mil/ironbank \
-            --build-arg BASE_IMAGE="$BASE_IMAGE" \
-            --build-arg BASE_TAG="$BASE_TAG" \
-            "${LABELS[@]}" \
-            -t "$IMAGE" \
-            "$PROJECT"
+          echo "BASE=registry1.dso.mil/ironbank/$(yq -r '.args.BASE_IMAGE' "$MANIFEST"):$(yq -r '.args.BASE_TAG' "$MANIFEST")" >> "$GITHUB_ENV"
+          bash Scripts/IronBank/build_image.sh "$PROJECT" "$IMAGE"
 
       - name: Check the App is the Enterprise Edition
         if: steps.registry1.outputs.available == 'true' && matrix.project == 'App'
@@ -287,3 +277,75 @@ jobs:
           name: iron-bank-${{ matrix.project }}-${{ steps.release.outputs.version }}
           path: ${{ runner.temp }}/iron-bank
           if-no-files-found: warn
+
+  # The whole product from Iron Bank's images, as IronBank/values.yaml runs it.
+  # OneUptime's images are built here, under the names they will have on Registry1,
+  # because they reach it only once Iron Bank has approved them.
+  install:
+    name: Install the chart from Iron Bank's images
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # The release's images are pulled by digest, and the cluster's node image
+      # is someone else's on Docker Hub.
+      - uses: ./.github/actions/docker-hub-mirror
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Look for the Registry1 robot account
+        id: registry1
+        env:
+          REGISTRY1_USERNAME: ${{ secrets.REGISTRY1_USERNAME }}
+          REGISTRY1_PASSWORD: ${{ secrets.REGISTRY1_PASSWORD }}
+        run: |
+          if [ -n "$REGISTRY1_USERNAME" ] && [ -n "$REGISTRY1_PASSWORD" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Iron Bank preflight::No Registry1 credentials (secrets REGISTRY1_USERNAME and REGISTRY1_PASSWORD), so the chart was not installed from Iron Bank's images. IronBank/README.md says how to get a robot account."
+          fi
+
+      - name: Log in to Registry1
+        if: steps.registry1.outputs.available == 'true'
+        env:
+          REGISTRY1_USERNAME: ${{ secrets.REGISTRY1_USERNAME }}
+          REGISTRY1_PASSWORD: ${{ secrets.REGISTRY1_PASSWORD }}
+        run: |
+          echo "$REGISTRY1_PASSWORD" | bash ./Scripts/GHA/docker_login.sh --registry registry1.dso.mil --username "$REGISTRY1_USERNAME"
+
+      # On a pull request, what the projects are pinned to. On the schedule, or
+      # when run by hand, the latest published release (or the one asked for), as
+      # the preflight jobs do: the chart here is master's, which that release
+      # matches and an older pin need not.
+      - name: Move the projects to the release
+        if: steps.registry1.outputs.available == 'true' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          VERSION="${REQUESTED:-$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)}"
+          for NAME in App Ingress Runner Probe; do
+            node Scripts/IronBank/PinRelease.js --project "$NAME" --version "$VERSION"
+          done
+
+      - name: Build OneUptime's images on Iron Bank's base images
+        if: steps.registry1.outputs.available == 'true'
+        run: |
+          for NAME in App Ingress Runner Probe; do
+            PROJECT="IronBank/$NAME"
+            MANIFEST="$PROJECT/hardening_manifest.yaml"
+            bash Scripts/IronBank/fetch_resources.sh "$PROJECT"
+            bash Scripts/IronBank/build_image.sh "$PROJECT" \
+              "registry1.dso.mil/ironbank/$(yq -r '.name' "$MANIFEST"):$(yq -r '.tags[0]' "$MANIFEST")"
+          done
+
+      - name: Install the chart and check that it works
+        if: steps.registry1.outputs.available == 'true'
+        env:
+          REGISTRY1_USERNAME: ${{ secrets.REGISTRY1_USERNAME }}
+          REGISTRY1_PASSWORD: ${{ secrets.REGISTRY1_PASSWORD }}
+        run: bash ./HelmChart/Tests/run.sh iron-bank iron-bank-install

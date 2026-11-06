@@ -146,6 +146,9 @@ export const AI_ACTION_TITLES: {
   runSecurityPlaybook: string;
   runSecurityPlaybookUnnamed: string;
   openPullRequest: string;
+  createWorkflow: string;
+  updateWorkflow: string;
+  updateWorkflowUnnamed: string;
 } = {
   createIncident: translationKey("Create incident: {{title}}"),
   acknowledgeIncident: translationKey("Acknowledge incident {{incident}}"),
@@ -213,6 +216,9 @@ export const AI_ACTION_TITLES: {
     "Run a playbook on a security case",
   ),
   openPullRequest: translationKey("Open pull request: {{title}}"),
+  createWorkflow: translationKey("Create workflow: {{name}}"),
+  updateWorkflow: translationKey("Update workflow {{workflow}}"),
+  updateWorkflowUnnamed: translationKey("Update workflow"),
 };
 
 export const AI_ACTION_PLURAL_TITLES: {
@@ -240,6 +246,12 @@ export const AI_ACTION_LINES: {
   severity: string;
   startsAcknowledged: string;
   startsResolved: string;
+  workflowSteps: string;
+  workflowStartsOff: string;
+  workflowAddsSteps: string;
+  workflowRemovesSteps: string;
+  workflowChangesSteps: string;
+  workflowIsOn: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
   linkedTo: translationKey("Linked to {{resources}}."),
@@ -260,6 +272,17 @@ export const AI_ACTION_LINES: {
     "Starts acknowledged, so it pages nobody.",
   ),
   startsResolved: translationKey("Starts resolved, so it pages nobody."),
+  // A workflow's steps, by the Builder's titles for them.
+  workflowSteps: translationKey("Steps: {{steps}}."),
+  workflowStartsOff: translationKey(
+    "It starts turned off, so nothing runs until someone turns it on.",
+  ),
+  workflowAddsSteps: translationKey("Adds {{steps}}."),
+  workflowRemovesSteps: translationKey("Removes {{steps}}."),
+  workflowChangesSteps: translationKey("Changes {{steps}}."),
+  workflowIsOn: translationKey(
+    "This workflow is on, so its next run uses the change.",
+  ),
 };
 
 /*
@@ -312,12 +335,14 @@ export const AI_ACTION_CARD_KINDS: {
   onCallPolicy: string;
   runbook: string;
   securityCase: string;
+  workflow: string;
 } = {
   incident: translationKey("Incident"),
   alert: translationKey("Alert"),
   onCallPolicy: translationKey("On-call policy"),
   runbook: translationKey("Runbook"),
   securityCase: translationKey("Security case"),
+  workflow: translationKey("Workflow"),
 };
 
 // The line under a card's heading: what happened to the record.
@@ -339,6 +364,8 @@ export const AI_ACTION_CARD_LINES: {
   investigationQueued: string;
   playbookStarted: string;
   playbookStepsWaitForApproval: string;
+  workflowTurnedOff: string;
+  workflowOnNextRun: string;
 } = {
   // The severity a new record took, or the one it was changed to.
   severity: translationKey("Severity: {{severity}}"),
@@ -374,6 +401,8 @@ export const AI_ACTION_CARD_LINES: {
   playbookStepsWaitForApproval: translationKey(
     "Steps that need approval wait on the case",
   ),
+  workflowTurnedOff: translationKey("Turned off until someone turns it on"),
+  workflowOnNextRun: translationKey("Turned on: its next run uses this"),
 };
 
 // The names of a card's facts.
@@ -383,12 +412,17 @@ export const AI_ACTION_CARD_FACTS: {
   description: string;
   note: string;
   statusUpdate: string;
+  workflowSteps: string;
+  toFillIn: string;
 } = {
   affectedResources: translationKey("Affected resources"),
   alreadyLinked: translationKey("Already linked"),
   description: translationKey("Description"),
   note: translationKey("Note"),
   statusUpdate: translationKey("Status update"),
+  // Which steps a workflow has, by name: never how many (a count says little).
+  workflowSteps: translationKey("Workflow steps"),
+  toFillIn: translationKey("Still to fill in"),
 };
 
 /*

@@ -396,7 +396,7 @@ Bij een Database Health-monitor heeft de expressie toegang tot:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-Om één metric in een expressie te lezen, indexeer je het hele `metrics`-object — de reeksnamen bevatten punten en kunnen dus niet tussen de accolades:
+Om één metric in een expressie te lezen, zet je de reeksnaam met zijn punten tussen de accolades of indexeer je het hele `metrics`-object — beide werken:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -1,0 +1,1 @@
+{"instances": [{"id": "1bcb3905-8800-473c-83c6-e800c6922080", "name": "ou-db-ok", "status": "BUILD", "operating_status": "", "flavor": {"id": "4910c6f3-f190-4e8f-8954-9bb8706caf92"}, "datastore": {"type": "mysql", "version": "8.4"}, "region": "RegionOne", "access": {"is_public": false}, "tenant_id": "be5872d641e34ab18a2151cc7c1cee73", "volume": {"size": 1}}]}

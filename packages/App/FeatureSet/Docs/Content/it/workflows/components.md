@@ -29,6 +29,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Leggere o modificare incidenti, monitor e altri record        | [Componenti dati di OneUptime](#componenti-dati-di-oneuptime)        |
 | Aprire, prendere in carico e risolvere incidenti o avvisi per i problemi di un altro strumento | [Incidenti e avvisi da altri strumenti](#incidenti-e-avvisi-da-altri-strumenti) |
 | Prendere in carico o chiudere un problema di Zabbix | [Zabbix](#zabbix) |
+| Chiedere a una persona di approvare una correzione a un cloud OpenStack   | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 Un blocco dedicato è meglio di uno generico: il blocco Slack conosce i limiti di Slack, e un blocco record conosce i campi del record, così ottieni errori e registri più chiari che con un blocco **API** che fa lo stesso lavoro.
 
@@ -428,6 +429,28 @@ Per prendere in carico o chiudere, il blocco legge prima il problema. Un problem
 
 **Updated** scatta quando Zabbix ha accettato l'aggiornamento, ed **Error** quando Zabbix non era raggiungibile o l'ha rifiutato, con il motivo di Zabbix: Zabbix risponde a una richiesta rifiutata con uno stato di successo, quindi il blocco legge ciò che Zabbix ha risposto anziché il suo stato. Restituisce **Summary**, ciò che ha fatto in una frase.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Chiede a una persona di approvare una modifica al cloud OpenStack a cui si riferisce un avviso o un incidente. Non fa mai la modifica. La correzione attende sull'avviso o sull'incidente, e nei canali in cui pubblica, come una che propone OneUptime AI, qualunque sia la modalità di correzione del cloud. Un workflow non può approvare ciò che propone.
+
+Non richiede alcun modello IA e passa per le stesse regole di una correzione proposta da OneUptime AI: la policy dei comandi, gli obiettivi di scrittura e gli obiettivi protetti dell'agente, e la lettura che l'agente fa di ciò che la modifica tocca. Un'evacuazione di un host ancora attivo, o che l'agente non riesce a leggere per intero, non viene proposta.
+
+| Impostazione | Cosa fa |
+| ------------ | ------- |
+| **Alert ID** | L'avviso a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Incident ID**, e il cloud deriva da ciò a cui è collegato il record. |
+| **Incident ID** | L'incidente a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **Alert ID**. |
+| **Comando** | La modifica da proporre, nell'unica grafia che OneUptime accetta. Vedi [le modifiche che una correzione può fare](/docs/telemetry/openstack#correzioni). Può usare valori dei blocchi precedenti, e viene letto dopo che sono stati compilati. |
+| **Perché** | Ciò che la persona che approva legge per primo. Se vuoto, indica quale workflow l'ha chiesto. |
+| **OpenStack Cloud ID** | In **Altri campi**. Solo per un record collegato a più di un cloud, o a nessuno. |
+
+Restituisce **Suggestion ID** (la correzione in attesa di approvazione), **Tier** (Safe o Riskier, come OneUptime legge il comando) e **Already Waiting** (true quando la stessa modifica su quel cloud era già in attesa, quindi non ne è stata aggiunta una seconda).
+
+**Success** scatta quando una persona è stata interpellata, senza attendere la sua risposta. **Error** scatta quando non è stato proposto nulla, con il motivo in **Error**: il comando è rifiutato, le correzioni non sono ancora consentite su quel cloud, oppure i workflow di un progetto hanno proposto 20 correzioni nell'ultima ora.
+
+Il modello [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) è un punto di partenza.
+
 ## Componenti dati di OneUptime
 
 Per ogni tipo di record in OneUptime (monitor, incidenti, avvisi, pagine di stato, policy di reperibilità e molti altri), il pannello **Aggiungi componente** ha questi componenti: sotto **Risorse OneUptime**, fai clic sul tipo di record (**Sfoglia tutte le risorse** contiene quelli non mostrati), oppure cerca per nome del tipo. Ogni titolo è generato dal tipo di record, quindi l'insieme di Monitor è questo:
@@ -485,9 +508,9 @@ Una query è sempre limitata al progetto in cui viene eseguito il workflow. Non 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Fields to pass on**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`.
+Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Fields to pass on**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`. I campi di un record collegato vanno sotto la sua chiave, come in `{"monitor": {"name": true}}`: `{"monitor": true}` trasmette solo il suo ID.
 
-I **campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
+I **Campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
 
 ```json
 { "customFields": { "Notification Count": 1 } }
@@ -495,7 +518,11 @@ I **campi personalizzati** sono un'unica colonna, `customFields`, che contiene i
 
 imposta **Notification Count** e lascia gli altri campi personalizzati del record come erano. Imposta un campo personalizzato a `null` per svuotarlo, oppure imposta `customFields` stesso a `null` per svuotarli tutti. Due workflow che aggiornano nello stesso momento campi personalizzati diversi dello stesso record vanno entrambi a buon fine. Questo vale solo per i componenti Update: l'API di OneUptime scrive `customFields` per intero, quindi una richiesta all'API deve contenere ogni campo personalizzato che vuoi conservare.
 
+Ogni campo personalizzato del progetto è elencato come campo a sé ovunque un componente nomini i campi di un record: nei campi che un componente scrive, con il controllo del suo tipo e le opzioni proprie di un menu a discesa; nelle condizioni di una query; nei valori che un passaggio successivo può usare; e nei campi che un trigger osserva, così un workflow può essere eseguito quando cambia un solo campo personalizzato. Un campo personalizzato di tipo file viene caricato su un record, quindi è l'unico tipo che resta in JSON.
+
 Raramente scrivi queste chiavi a mano. Nelle impostazioni del componente, **Add a field** (o **Add a condition** su una query) elenca le colonne del modello per nome, con il tipo di valore che ciascuna accetta. Cercale per nome, per chiave di colonna o per ciò che fa il campo, e premi **Enter** per aggiungere la corrispondenza migliore. In una creazione vengono prima i campi senza i quali il record non si può creare, poi i campi principali del modello (quelli che compila per te se li ometti), poi tutto il resto.
+
+Un campo che punta a un altro record, come la gravità di un incidente, elenca i record del progetto per nome: scegline uno e il suo ID viene scritto per te. Un elenco di record, come le etichette di un incidente, funziona allo stesso modo. Per usare invece un valore di un passaggio precedente, premi `{ }` accanto all'elenco.
 
 I campi che OneUptime compila da solo non vengono offerti quando scrivi un record: l'`_id` del record, **Creato il**, **Aggiornato il**, **Creato da utente**, gli slug, i numeri dei record e gli stati delle notifiche. Chi ha creato, archiviato o risolto un record, e quando, non spetta mai a un workflow: un record creato da un workflow non ha un creatore, un valore che un workflow invia per uno di quei campi insieme ad altri campi viene ignorato, e un Update che non invia nient'altro fallisce con un messaggio che li nomina. Un aggiornamento offre solo i campi che possono cambiare dopo che un record esiste. Una query offre comunque l'ID, gli orari e **Creato da utente**, perché sono utili per filtrare. **Deleted At** non viene offerto da nessuna parte: i record vengono eliminati del tutto, quindi è sempre vuoto.
 

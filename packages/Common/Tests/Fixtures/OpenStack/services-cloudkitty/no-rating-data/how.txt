@@ -1,0 +1,2 @@
+Deployed, with nothing to rate yet.
+On its own: CloudKitty is deployed and nothing has been booted, so it has nothing to rate.

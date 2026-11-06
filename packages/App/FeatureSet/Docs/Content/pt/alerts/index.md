@@ -59,7 +59,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. A lista de alertas fica
 | **Alertas**            | **Todos os alertas** e **Alertas ativos**, cujo selo vermelho conta os alertas que ainda não foram resolvidos.              |
 | **Episódios** | **Todos os episódios** e **Episódios ativos**: alertas relacionados, agrupados em um único problema para trabalhar. |
 | **IA**                 | **Insights**, **Registros** e **Configurações**: o que o OneUptime AI aprendeu com seus alertas, tudo o que fez e o que pode fazer. |
-| **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**, conforme o que o projeto conectou, ou **Conectar Slack ou Teams** quando não tem nenhum. |
+| **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**, conforme o que o projeto conectou, ou **Conectar um espaço de trabalho** quando não tem nenhum. |
 | **Regras**             | **Regras de agrupamento**, **Regras de Plantão**, **Regras de incidentes**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de lembrete**. |
 | **Configurações**      | **Estado do alerta**, **Severidade do alerta**, **Modelos de notas**, **Campos personalizados**, **Medições**, **Participação em episódios**, **Numeração**. |
 

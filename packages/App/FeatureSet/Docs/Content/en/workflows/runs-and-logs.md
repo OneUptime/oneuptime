@@ -18,6 +18,8 @@ Every time a workflow runs, OneUptime saves a record of what happened — when i
 
 Starting a run from the **Builder** opens the same **Workflow Run** view already following the run, so you can watch it happen rather than going looking for it afterwards.
 
+To try a run again with the same values, press Run again in its view, or in the ⋯ menu of its row. A new run starts from the trigger with what that run started with, so a webhook's payload does not have to be sent again, and it runs the workflow as it is now, so you can change a step and try it straight away. Its steps run for real, and while the workflow is off it is a test run. The Run Workflow panel in the Builder offers the last run's values in the same way. A test of one step is run again from the step. A run that started with more than 1 MB of values can't be run again, and neither can a run from before OneUptime kept these values. They are encrypted, and nobody can read them through the API.
+
 ## Run statuses
 
 ```mermaid title="The statuses a run goes through"
@@ -126,7 +128,7 @@ A block that doesn't run is usually a wiring problem. Open the **Builder** and c
 Open the run and look at the step. A reference that didn't resolve is called out on the step itself as a warning, and its setting in the **Received** block is marked **Did not resolve**.
 
 - If you see the literal `{{local.components.…}}` text, the reference didn't resolve. Usually that's a typo in the component ID or the return-value ID — remember it's the block's **Identifier**, not the name displayed on it. Check the spelling of `local.components` itself too: `{{local.componets.api-get-1.returnValues.response-body}}` is sent as literal text and the run still reports **Executed**. If the run was a **Run just this step** test, the earlier block didn't run at all — run the whole workflow instead.
-- If you see **Empty text**, the earlier block ran but didn't produce that field.
+- If you see **Empty text**, or a gap in a message, the earlier block ran but has nothing in that field. Either the record holds no value there, which the **Full Log** tab notes on a line of its own, or the block doesn't pass the field on, which the step warns about.
 
 The same warning is in the **Full Log** tab as a line starting with `Warning:`.
 :::

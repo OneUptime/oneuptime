@@ -43,7 +43,7 @@ Tre ting får det til at virke:
 :::steps
 ### Giv administratorsamtykke
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**, og klik på **Giv administratorsamtykke**. En Microsoft 365-administrator logger ind og tillader OneUptime-appen for organisationen. Kortet siger derefter **Admin Consent Completed**. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind Slack eller Teams**, som også fører hertil.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**, og klik på **Giv administratorsamtykke**. En Microsoft 365-administrator logger ind og tillader OneUptime-appen for organisationen. Kortet siger derefter **Admin Consent Completed**. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Forbind din konto
 

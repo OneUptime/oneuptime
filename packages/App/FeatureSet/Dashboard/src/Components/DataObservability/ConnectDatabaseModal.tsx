@@ -1,10 +1,12 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import WatchedTablesCost from "./WatchedTablesCost";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   DataObservabilityCollector,
   DataObservabilityConnectStoreResponse,
+  DataObservabilitySourceSuggestion,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -17,6 +19,8 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -28,6 +32,8 @@ import React, {
 export interface ComponentProps {
   onClose: () => void;
   onConnected: (dataStoreId: ObjectID) => void;
+  // A database the project already knows of: the form starts from what is known of it.
+  suggestion?: DataObservabilitySourceSuggestion | undefined;
 }
 
 /*
@@ -67,12 +73,12 @@ const KIND_OPTIONS: Array<DropdownOption> = [
  *    in an environment variable of that probe - it never leaves the
  *    network.
  *
- * Either way only the catalog is read, never a row, and the login should be
- * read-only. The form asks for the little that is needed and nothing more.
+ * Either way only the catalog is read, and the login should be read-only. The form asks for the little that is needed and nothing more.
  */
 const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -126,8 +132,9 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
   return (
     <BasicFormModal<JSONObject>
       title="Connect a Database"
-      description="Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. Never a row. Use a read-only login."
+      description="Reads the database's catalog every few minutes: tables, columns, row counts, sizes and last changes. No value leaves it. Use a read-only login."
       name="Data Observability > Connect a Database"
+      beforeFormElement={<WatchedTablesCost />}
       submitButtonText="Connect"
       isLoading={isLoading}
       isSubmitting={isSaving}
@@ -136,7 +143,8 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
       formProps={{
         name: "Connect a Database",
         initialValues: {
-          kind: DataStoreKind.PostgreSql,
+          name: props.suggestion?.name || "",
+          kind: props.suggestion?.kind || DataStoreKind.PostgreSql,
           collector: DataObservabilityCollector.OneUptime,
         },
         steps: STEPS,
@@ -184,8 +192,11 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             title: "Connection String",
             stepId: CONNECTION_STEP_ID,
             // Documentation shows every engine's format in full, with examples.
-            description:
-              "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks and Athena. Documentation shows each engine's.",
+            description: props.suggestion?.connectionExample
+              ? translator.translateTemplate("For this database: {{example}}", {
+                  example: props.suggestion.connectionExample,
+                })
+              : "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks and Athena. Documentation shows each engine's.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<JSONObject>): boolean => {
               return (
@@ -246,6 +257,9 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             await DataObservabilityApi.connectStore({
               name: String(values["name"] || ""),
               kind: String(values["kind"] || ""),
+              ...(props.suggestion?.dataStoreId
+                ? { dataStoreId: props.suggestion.dataStoreId }
+                : {}),
               ...(isProbe
                 ? {
                     probeId: String(values["probeId"] || ""),

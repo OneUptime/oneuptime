@@ -739,6 +739,7 @@ describe("a row of the run lists, as a run to download", () => {
     const run: WorkflowRunExport = getWorkflowRunExportFromWorkflowLog(aRow());
 
     expect(run).toEqual({
+      canRunAgain: false,
       runId: RUN_ID,
       workflowId: WORKFLOW_ID,
       workflowName: "Nightly sync",

@@ -45,6 +45,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
 import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import { OpenStackPlacementOfKubernetesNode } from "../../../Components/OpenStack/Part/OpenStackPlacementOfHost";
 import {
   getKubernetesPodsTab,
   getKubernetesWorkloadLogsTab,
@@ -403,6 +404,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
             error={partState.error}
             onRetry={partState.refresh}
             routes={routes}
+          />
+          <OpenStackPlacementOfKubernetesNode
+            clusterId={modelId}
+            nodeName={nodeName}
           />
           <KubernetesOverviewTab
             summaryFields={summaryFields}

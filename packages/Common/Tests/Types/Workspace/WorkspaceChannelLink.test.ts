@@ -5,11 +5,14 @@ import WorkspaceChannelLinkUtil, {
   WorkspaceChannelRecordType,
 } from "../../../Types/Workspace/WorkspaceChannelLink";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { generatedTexts } from "../../Helpers/GeneratedTexts";
 
 /*
- * The links behind Open in Slack / Open in Microsoft Teams: built only from
- * ids of the shapes each product gives, on a fixed host, so nothing a stored
- * channel row holds can send the button anywhere else.
+ * The links behind Open in Slack / Open in Microsoft Teams / Open in
+ * Mattermost: built only from ids of the shapes each product gives, on the
+ * product's own host - for Mattermost, the server the project was connected
+ * to - so nothing a stored channel row holds can send the button anywhere
+ * else.
  */
 
 const TEAM_GUID: string = "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
@@ -211,6 +214,285 @@ describe("Microsoft Teams", () => {
   );
 });
 
+describe("Mattermost", () => {
+  const SERVER: string = "https://chat.example.com";
+  const TEAM: string = "acme";
+  const CHANNEL: string = "inc-42";
+
+  const url: (data: {
+    serverUrl?: string | undefined;
+    teamName?: string | undefined;
+    channelName?: string | undefined;
+  }) => string | null = (data: {
+    serverUrl?: string | undefined;
+    teamName?: string | undefined;
+    channelName?: string | undefined;
+  }): string | null => {
+    return WorkspaceChannelLinkUtil.getMattermostChannelUrl({
+      serverUrl: "serverUrl" in data ? data.serverUrl : SERVER,
+      teamName: "teamName" in data ? data.teamName : TEAM,
+      channelName: "channelName" in data ? data.channelName : CHANNEL,
+    });
+  };
+
+  test("is the channel's own address, on the connected server, in its team", () => {
+    expect(url({})).toBe("https://chat.example.com/acme/channels/inc-42");
+  });
+
+  test.each<[string, string, string]>([
+    [
+      "on a path keeps its path",
+      "https://example.com/mattermost",
+      "https://example.com/mattermost/acme/channels/inc-42",
+    ],
+    [
+      "on a port keeps its port",
+      "https://chat.example.com:8065",
+      "https://chat.example.com:8065/acme/channels/inc-42",
+    ],
+    [
+      "connected over http stays http",
+      "http://10.0.0.5:8065",
+      "http://10.0.0.5:8065/acme/channels/inc-42",
+    ],
+    [
+      "with a trailing slash has none in its link",
+      "https://chat.example.com/",
+      "https://chat.example.com/acme/channels/inc-42",
+    ],
+    [
+      "on a path with trailing slashes has none in its link",
+      "https://example.com/mattermost//",
+      "https://example.com/mattermost/acme/channels/inc-42",
+    ],
+  ])("a server %s", (_label: string, serverUrl: string, expected: string) => {
+    expect(url({ serverUrl })).toBe(expected);
+  });
+
+  test("surrounding spaces are not part of a name", () => {
+    expect(
+      url({
+        serverUrl: ` ${SERVER} `,
+        teamName: ` ${TEAM} `,
+        channelName: ` ${CHANNEL} `,
+      }),
+    ).toBe("https://chat.example.com/acme/channels/inc-42");
+  });
+
+  test.each<[string | undefined]>([
+    [undefined],
+    [""],
+    ["   "],
+    ["../../evil"],
+    [".."],
+    ["a/b"],
+    ["a\\b"],
+    ["%2e%2e%2fevil"],
+    ["x?y=1"],
+    ["x#y"],
+    ["x y"],
+    ["Inc-42"],
+    ["#inc-42"],
+    ["~inc-42"],
+    ["@evil.example"],
+    ["https://evil.example"],
+    ["a".repeat(65)],
+  ])(
+    "no link from a channel that is not one of Mattermost's: %p",
+    (name: string | undefined) => {
+      expect(url({ channelName: name })).toBeNull();
+    },
+  );
+
+  test.each<[string | undefined]>([
+    [undefined],
+    [""],
+    ["../../evil"],
+    ["a/b"],
+    ["x?y=1"],
+    ["Acme Inc"],
+    ["@evil.example"],
+    ["a".repeat(65)],
+  ])(
+    "no link from a team that is not one of Mattermost's: %p",
+    (teamName: string | undefined) => {
+      expect(url({ teamName })).toBeNull();
+    },
+  );
+
+  test.each<[string | undefined]>([
+    [undefined],
+    [""],
+    ["chat.example.com"],
+    ["//evil.example"],
+    ["javascript:alert(1)"],
+    ["data:text/html,evil"],
+    ["ftp://chat.example.com"],
+    ["file:///etc/passwd"],
+    ["https://user:secret@chat.example.com"],
+    ["https://chat.example.com@evil.example"],
+    ["https://chat.example.com?x=1"],
+    ["https://chat.example.com#x"],
+  ])(
+    "no link on a server that is not a server's address: %p",
+    (serverUrl: string | undefined) => {
+      expect(url({ serverUrl })).toBeNull();
+    },
+  );
+
+  test("a stored value that is not text is no name, and fails nothing", () => {
+    for (const value of [42, true, {}, [], null]) {
+      const notText: string = value as unknown as string;
+
+      expect(url({ serverUrl: notText })).toBeNull();
+      expect(url({ teamName: notText })).toBeNull();
+      expect(url({ channelName: notText })).toBeNull();
+    }
+  });
+
+  /*
+   * What a channel row holds is written by whoever named the channel. Every
+   * link it gets is a channel of the connected team, on the connected server.
+   */
+  test("whatever a channel is called, its link stays on the connected server", () => {
+    const pieces: ReadonlyArray<string> = [
+      "a",
+      "7",
+      "-",
+      "_",
+      "/",
+      "\\",
+      ".",
+      "..",
+      ":",
+      "@",
+      "?",
+      "#",
+      "%2f",
+      "%2e",
+      " ",
+      "\t",
+      "\n",
+      "https://",
+      "evil.example",
+    ];
+    let linked: number = 0;
+
+    for (const name of generatedTexts(20000, 5693, pieces, 9)) {
+      const link: string | null = url({
+        serverUrl: "https://example.com/mattermost",
+        channelName: name,
+      });
+
+      if (!link) {
+        continue;
+      }
+
+      linked++;
+
+      const parsed: URL = new URL(link);
+
+      expect(parsed.origin).toBe("https://example.com");
+      expect(parsed.pathname).toBe(`/mattermost/acme/channels/${name.trim()}`);
+      expect(parsed.username).toBe("");
+      expect(parsed.search).toBe("");
+      expect(parsed.hash).toBe("");
+
+      // And the page takes it: a link it refused would hide the button.
+      expect(
+        WorkspaceChannelLinkUtil.isOnWorkspaceHost({
+          workspaceType: WorkspaceType.Mattermost,
+          url: link,
+        }),
+      ).toBe(true);
+    }
+
+    // The sweep reached names that do get a link, not only ones refused.
+    expect(linked).toBeGreaterThan(50);
+  });
+
+  describe("what the page takes", () => {
+    const isTaken: (link: string) => boolean = (link: string): boolean => {
+      return WorkspaceChannelLinkUtil.isOnWorkspaceHost({
+        workspaceType: WorkspaceType.Mattermost,
+        url: link,
+      });
+    };
+
+    test.each<[string]>([
+      ["https://chat.example.com"],
+      ["https://chat.example.com:8065"],
+      ["https://example.com/mattermost"],
+      ["http://10.0.0.5:8065"],
+      ["https://[2001:db8::1]:8065"],
+    ])("every link the server builds, on %s", (serverUrl: string) => {
+      expect(isTaken(url({ serverUrl })!)).toBe(true);
+    });
+
+    test.each<[string, string]>([
+      ["a script", "javascript:alert(1)//acme/channels/inc-42"],
+      ["a page of data", "data:text/html,/acme/channels/inc-42"],
+      ["another scheme", "ftp://chat.example.com/acme/channels/inc-42"],
+      ["a local file", "file:///acme/channels/inc-42"],
+      [
+        "a user name in front of the host",
+        "https://chat.example.com@evil.example/acme/channels/inc-42",
+      ],
+      [
+        "a password",
+        "https://user:secret@chat.example.com/acme/channels/inc-42",
+      ],
+      ["a query", "https://chat.example.com/acme/channels/inc-42?x=1"],
+      ["a fragment", "https://chat.example.com/acme/channels/inc-42#x"],
+      ["no channel", "https://chat.example.com/acme/channels/"],
+      ["no channels word", "https://chat.example.com/acme/inc-42"],
+      ["no team", "https://chat.example.com/channels/inc-42"],
+      ["only the server", "https://chat.example.com"],
+      ["another page", "https://chat.example.com/login"],
+      ["more after the channel", "https://chat.example.com/acme/channels/a/b"],
+      [
+        "a capital in the channel",
+        "https://chat.example.com/acme/channels/Inc",
+      ],
+      ["a capital in the team", "https://chat.example.com/Acme/channels/inc"],
+      ["an encoded slash", "https://chat.example.com/acme/channels/a%2fb"],
+      ["a direct message", "https://chat.example.com/acme/messages/@admin"],
+      ["not an address", "not a url"],
+    ])("not %s", (_label: string, link: string) => {
+      expect(isTaken(link)).toBe(false);
+    });
+
+    test("a channel's address is not a link to Slack or Microsoft Teams", () => {
+      for (const workspaceType of [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]) {
+        expect(
+          WorkspaceChannelLinkUtil.isOnWorkspaceHost({
+            workspaceType,
+            url: url({})!,
+          }),
+        ).toBe(false);
+      }
+    });
+
+    test("Slack and Microsoft Teams stay https, on their own hosts", () => {
+      expect(
+        WorkspaceChannelLinkUtil.isOnWorkspaceHost({
+          workspaceType: WorkspaceType.Slack,
+          url: "http://slack.com/acme/channels/inc-42",
+        }),
+      ).toBe(false);
+      expect(
+        WorkspaceChannelLinkUtil.isOnWorkspaceHost({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          url: "https://chat.example.com/acme/channels/inc-42",
+        }),
+      ).toBe(false);
+    });
+  });
+});
+
 describe("the answer the page reads", () => {
   const LINKS: Array<WorkspaceChannelLink> = [
     {
@@ -222,6 +504,11 @@ describe("the answer the page reads", () => {
       workspaceType: WorkspaceType.MicrosoftTeams,
       channelName: "Incident 42",
       url: `https://teams.microsoft.com/l/channel/x/y?groupId=${TEAM_GUID}`,
+    },
+    {
+      workspaceType: WorkspaceType.Mattermost,
+      channelName: "inc-42",
+      url: "https://chat.example.com/acme/channels/inc-42",
     },
   ];
 
@@ -241,7 +528,7 @@ describe("the answer the page reads", () => {
     expect(WorkspaceChannelLinkUtil.fromJSONArray(value)).toEqual([]);
   });
 
-  test("keeps only well-formed links to Slack's and Microsoft's own hosts", () => {
+  test("keeps only well-formed links to Slack's and Microsoft's own hosts, and to Mattermost channels", () => {
     expect(
       WorkspaceChannelLinkUtil.fromJSONArray([
         ...WorkspaceChannelLinkUtil.toJSONArray(LINKS),
@@ -280,6 +567,31 @@ describe("the answer the page reads", () => {
           workspaceType: WorkspaceType.Slack,
           channelName: "javascript",
           url: "javascript:alert(1)",
+        },
+        {
+          workspaceType: WorkspaceType.Mattermost,
+          channelName: "javascript",
+          url: "javascript:alert(1)//acme/channels/inc-42",
+        },
+        {
+          workspaceType: WorkspaceType.Mattermost,
+          channelName: "a user name in front of the host",
+          url: "https://chat.example.com@evil.example/acme/channels/inc-42",
+        },
+        {
+          workspaceType: WorkspaceType.Mattermost,
+          channelName: "not a channel",
+          url: "https://evil.example/login",
+        },
+        {
+          workspaceType: WorkspaceType.Mattermost,
+          channelName: "a Slack link in a Mattermost row",
+          url: "https://slack.com/app_redirect?channel=C1&team=T1",
+        },
+        {
+          workspaceType: WorkspaceType.Slack,
+          channelName: "a Mattermost link in a Slack row",
+          url: "https://chat.example.com/acme/channels/inc-42",
         },
       ]),
     ).toEqual(LINKS);

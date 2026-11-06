@@ -1,0 +1,67 @@
+$ openstack subnet list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "16097571-80dc-4789-9e86-c7c247c02e6d",
+    "name": "ou-research-subnet",
+    "network_id": "cabef246-cc67-4c29-9b90-9d4273ad18f1",
+    "cidr": "10.78.0.0/24",
+    "ip_version": 4,
+    "gateway_ip": "10.78.0.1",
+    "enable_dhcp": true,
+    "project_id": "b9e66b583ae5401b8ec2edf04f41c61a"
+  },
+  {
+    "id": "8e84684c-2f1b-494a-b8f3-ed1e71c692e2",
+    "name": "public-subnet",
+    "network_id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "cidr": "172.24.4.0/24",
+    "ip_version": 4,
+    "gateway_ip": "172.24.4.1",
+    "enable_dhcp": false,
+    "project_id": "7d12d4f1273942508ecbab053dd52b4f"
+  },
+  {
+    "id": "8e9b0a45-d1e7-4fc6-8076-4dfcfaf4b263",
+    "name": "private-subnet",
+    "network_id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "cidr": "10.0.0.0/26",
+    "ip_version": 4,
+    "gateway_ip": "10.0.0.1",
+    "enable_dhcp": true,
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451"
+  },
+  {
+    "id": "a4a43c4c-e6a0-4212-8ccc-b686ea01c332",
+    "name": "ipv6-public-subnet",
+    "network_id": "192716e7-2e4c-45bc-a438-2d6734e67f15",
+    "cidr": "2001:db8::/64",
+    "ip_version": 6,
+    "gateway_ip": "2001:db8::2",
+    "enable_dhcp": false,
+    "project_id": "7d12d4f1273942508ecbab053dd52b4f"
+  },
+  {
+    "id": "b1b73687-a8b2-4b65-b172-e1aa7a7c3f3f",
+    "name": "ipv6-private-subnet",
+    "network_id": "1875f08e-6c0d-4041-a9a6-c6c784c65836",
+    "cidr": "fde1:27f8:565f::/64",
+    "ip_version": 6,
+    "gateway_ip": "fde1:27f8:565f::1",
+    "enable_dhcp": true,
+    "project_id": "e71c5446a4554b279a7bfa4c63d0b451"
+  },
+  {
+    "id": "fa214541-6b48-475e-992f-64928760622f",
+    "name": "ou-subnet",
+    "network_id": "5f3755d2-bd6f-4696-bbd3-df5ea611d0e4",
+    "cidr": "10.77.0.0/24",
+    "ip_version": 4,
+    "gateway_ip": "10.77.0.1",
+    "enable_dhcp": true,
+    "project_id": "adbada83aeeb41cebd344c2f7cf44372"
+  }
+]

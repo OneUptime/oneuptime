@@ -342,7 +342,7 @@ describe("the section", () => {
       ),
     ).toEqual([
       {
-        title: "Connect Slack or Teams",
+        title: "Connect a workspace",
         href: routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTIONS),
         icon: IconProp.ChatBubbleLeftRight,
       },
@@ -448,7 +448,7 @@ describe("the section", () => {
       ).map((item: { title: string }): string => {
         return item.title;
       }),
-    ).toEqual(["Microsoft Teams", "Connect Slack or Teams"]);
+    ).toEqual(["Microsoft Teams", "Connect a workspace"]);
   });
 
   test("names, icons and order are one table, with an entry for each kind", () => {
@@ -462,7 +462,7 @@ describe("the section", () => {
       [Slack]: "Slack",
       [MicrosoftTeams]: "Microsoft Teams",
       [Mattermost]: "Mattermost",
-      [Connect]: "Connect Slack or Teams",
+      [Connect]: "Connect a workspace",
     });
     expect(WORKSPACE_MENU_ENTRY_ICONS).toEqual({
       [Slack]: IconProp.Slack,
@@ -470,5 +470,29 @@ describe("the section", () => {
       [Mattermost]: IconProp.Mattermost,
       [Connect]: IconProp.ChatBubbleLeftRight,
     });
+  });
+
+  test("the connect entry names no workspace, so a new one does not rename it", () => {
+    const workspaceWords: Array<string> = WORKSPACE_MENU_ENTRY_ORDER.filter(
+      (entry: WorkspaceMenuEntry): boolean => {
+        return entry !== Connect;
+      },
+    ).flatMap((entry: WorkspaceMenuEntry): Array<string> => {
+      return WORKSPACE_MENU_ENTRY_TITLES[entry].split(" ");
+    });
+
+    expect(workspaceWords).toEqual([
+      "Slack",
+      "Microsoft",
+      "Teams",
+      "Mattermost",
+    ]);
+    expect(
+      WORKSPACE_MENU_ENTRY_TITLES[Connect].split(" ").filter(
+        (word: string): boolean => {
+          return workspaceWords.includes(word);
+        },
+      ),
+    ).toEqual([]);
   });
 });

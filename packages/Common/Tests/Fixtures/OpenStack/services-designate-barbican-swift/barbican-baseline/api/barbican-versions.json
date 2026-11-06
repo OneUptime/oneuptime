@@ -1,0 +1,1 @@
+{"versions": {"values": [{"id": "v1", "status": "stable", "media-types": [{"base": "application/json", "type": "application/vnd.openstack.key-manager-v1+json"}]}]}}

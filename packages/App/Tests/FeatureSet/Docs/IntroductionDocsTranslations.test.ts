@@ -702,6 +702,45 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   });
 
   describe("Your Account", () => {
+    it("says what a new password ends, after the steps that set one", () => {
+      // What closes a "### " section, found by its place among them: the words differ.
+      const closingWords: (markdown: string, heading: number) => string = (
+        markdown: string,
+        heading: number,
+      ): string => {
+        const lines: Array<string> = markdown.split("\n");
+        const headings: Array<number> = lines.flatMap(
+          (line: string, index: number): Array<number> => {
+            return line.startsWith("### ") ? [index] : [];
+          },
+        );
+        const section: string = lines
+          .slice(headings[heading], headings[heading + 1])
+          .join("\n");
+
+        return section.slice(section.lastIndexOf(":::") + 3).trim();
+      };
+
+      const heading: number = englishPage(YOUR_ACCOUNT)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.startsWith("### ");
+        })
+        .indexOf("### Change your password");
+
+      const english: string = closingWords(englishPage(YOUR_ACCOUNT), heading);
+      const translated: string = closingWords(
+        readPage(language, YOUR_ACCOUNT),
+        heading,
+      );
+
+      expect(english).toContain(
+        "any password reset link or sign-in link already sent stops working",
+      );
+      expect(translated).not.toBe("");
+      expect(translated).not.toBe(english);
+    });
+
     it("names the user menu's items as this language's Dashboard draws them", () => {
       const translated: string = readPage(language, YOUR_ACCOUNT);
 

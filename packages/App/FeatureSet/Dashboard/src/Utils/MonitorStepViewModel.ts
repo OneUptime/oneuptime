@@ -307,6 +307,7 @@ export default class MonitorStepViewModel {
       data.hostMonitor?.rollingTime ||
       data.podmanMonitor?.rollingTime ||
       data.proxmoxMonitor?.rollingTime ||
+      data.openstackMonitor?.rollingTime ||
       data.vmwareMonitor?.rollingTime ||
       data.cephMonitor?.rollingTime ||
       data.storageArrayMonitor?.rollingTime
@@ -483,6 +484,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getHostRows(data);
       case MonitorType.Proxmox:
         return MonitorStepViewModel.getProxmoxRows(data);
+      case MonitorType.OpenStack:
+        return MonitorStepViewModel.getOpenStackRows(data);
       case MonitorType.VMware:
         return MonitorStepViewModel.getVMwareRows(data);
       case MonitorType.DockerSwarm:
@@ -1864,6 +1867,68 @@ export default class MonitorStepViewModel {
       ...MonitorStepViewModel.getMetricConfigRows(data, {
         metricViewConfig: proxmoxMonitor?.metricViewConfig,
         rollingTime: proxmoxMonitor?.rollingTime,
+      }),
+    ]);
+  }
+
+  private static getOpenStackRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const openstackMonitor: MonitorStepType["openstackMonitor"] =
+      data.openstackMonitor;
+
+    return compact([
+      {
+        key: "cloudIdentifier",
+        title: "Cloud",
+        description: "The OpenStack cloud this monitor watches.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(openstackMonitor?.cloudIdentifier),
+        placeholder: "No cloud selected",
+      },
+      optional({
+        key: "openstackRegion",
+        title: "Region",
+        description: "Only this region is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(openstackMonitor?.resourceFilters?.regionName),
+        placeholder: "All regions",
+      }),
+      optional({
+        key: "openstackAvailabilityZone",
+        title: "Availability Zone",
+        description: "Only series in this availability zone are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(openstackMonitor?.resourceFilters?.availabilityZone),
+        placeholder: "All availability zones",
+      }),
+      optional({
+        key: "openstackHypervisor",
+        title: "Hypervisor",
+        description: "Only series on this hypervisor are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(openstackMonitor?.resourceFilters?.hypervisorName),
+        placeholder: "All hypervisors",
+      }),
+      optional({
+        key: "openstackService",
+        title: "Service",
+        description: "Only this worker's series are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(openstackMonitor?.resourceFilters?.serviceName),
+        placeholder: "All services",
+      }),
+      optional({
+        key: "openstackProject",
+        title: "Project",
+        description: "Only this project's series are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(openstackMonitor?.resourceFilters?.projectId),
+        placeholder: "All projects",
+      }),
+      ...MonitorStepViewModel.getMetricConfigRows(data, {
+        metricViewConfig: openstackMonitor?.metricViewConfig,
+        rollingTime: openstackMonitor?.rollingTime,
       }),
     ]);
   }

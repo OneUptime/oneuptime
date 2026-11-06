@@ -25,6 +25,14 @@ const config = createConfig({
     ),
   },
 });
+/*
+ * A second page, /form-field-loading: a form that loads its control when it
+ * needs it (FormFieldLoading.spec.ts), so it imports none itself.
+ */
+config.entryPoints = [
+  path.join(__dirname, "Fixture.js"),
+  path.join(__dirname, "FormFieldLoadingFixture.js"),
+];
 config.target = "es2022";
 config.loader[".js"] = "jsx";
 config.sourcemap = false;
@@ -57,7 +65,9 @@ if (!universalRule) {
 }
 
 // The dashboard's index.ejs: class-based dark mode, Inter, and that rule.
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Code editor fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("/fonts/InterVariable.woff2") format("woff2");}${universalRule[0]}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const htmlFor = (
+  script,
+) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Code editor fixture</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url("/fonts/InterVariable.woff2") format("woff2");}${universalRule[0]}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/${script}"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -86,7 +96,13 @@ async function main() {
       return;
     }
     response.setHeader("Content-Type", "text/html");
-    response.end(html);
+    response.end(
+      htmlFor(
+        url.pathname === "/form-field-loading"
+          ? "FormFieldLoadingFixture.js"
+          : "Fixture.js",
+      ),
+    );
   });
   server.listen(port, "127.0.0.1");
   process.on("SIGTERM", () => server.close());

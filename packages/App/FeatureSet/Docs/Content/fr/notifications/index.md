@@ -27,7 +27,7 @@ flowchart TB
 
 | Page | Ce qu'elle contient | La question à laquelle elle répond |
 | --- | --- | --- |
-| **Méthodes de notification** | Vos adresses e-mail, numéros de téléphone, numéros WhatsApp, comptes Telegram, Slack et Microsoft Teams, appareils push et webhooks | Où OneUptime peut-il me joindre ? |
+| **Méthodes de notification** | Vos adresses e-mail, numéros de téléphone, numéros WhatsApp, comptes Telegram, Slack, Microsoft Teams et Mattermost, appareils push et webhooks | Où OneUptime peut-il me joindre ? |
 | **Règles d'astreinte** | Pour chaque type d'alerte et chaque gravité, quelle méthode essayer et après combien de temps | Comment suis-je alerté pendant mon astreinte ? |
 | **Paramètres de notification** | Pour chaque événement concernant un élément dont vous êtes propriétaire ou vos permanences, quels canaux utiliser | De quoi d'autre suis-je informé, et où ? |
 
@@ -90,7 +90,7 @@ Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règ
 
 Une alerte peut vous parvenir pour un type et une gravité pour lesquels vous n'avez pas de règle : une gravité ajoutée après votre arrivée, par exemple. OneUptime vous alerte quand même, par ce que vous avez vérifié :
 
-1. Chaque méthode gratuite que vous avez : appareils push, adresses e-mail, Slack et Microsoft Teams.
+1. Chaque méthode gratuite que vous avez : appareils push, adresses e-mail, Slack, Microsoft Teams et Mattermost.
 2. Si vous n'en avez aucune, une seule méthode payante, dans cet ordre : SMS, appel téléphonique, WhatsApp, Telegram. C'est la première que vous avez vérifiée, sur un canal que le projet a activé.
 3. Si vous n'en avez aucune non plus, un webhook.
 

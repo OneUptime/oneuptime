@@ -12,10 +12,12 @@ import ObjectID from "../../Types/ObjectID";
  *
  * THE RULE
  *
- *  - Counted per account, and only once the password is right: the sign-in
- *    routes call startCheck after the password, the block and the verified
- *    address have all been checked. Nobody without the password can move the
- *    count, so nobody without it can make the owner wait.
+ *  - Counted per account, and only once the first step has passed: the
+ *    sign-in routes call startCheck after the password (or the sign-in link
+ *    that stands in for it, Types/Accounts/MagicLink), the block and the
+ *    verified address have all been checked. Nobody without the password or a
+ *    working link can move the count, so nobody without one can make the
+ *    owner wait.
  *
  *  - The first WRONG_CODES_BEFORE_WAITING wrong codes in a row cost nothing,
  *    so somebody who mistypes signs in as before. After that each next code

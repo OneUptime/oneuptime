@@ -440,6 +440,92 @@ describe("ScheduledMaintenanceStateService: the states an event is not complete 
   });
 });
 
+describe("ScheduledMaintenanceStateService: the states an event is over in", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("Ended, Completed and the project's own states after Ended", async () => {
+    mockProgressStateReads();
+
+    const ids: Array<ObjectID> =
+      await ScheduledMaintenanceStateService.getOverScheduledMaintenanceStateIds(
+        PROGRESS_PROJECT_ID,
+      );
+
+    expect(idsOf(ids)).toEqual(
+      idsOf(
+        (
+          [
+            "ended",
+            "reviewing",
+            "completed",
+            "archived",
+          ] as Array<ProgressStateKey>
+        ).map((key: ProgressStateKey): ObjectID => {
+          return progressStateId(key);
+        }),
+      ),
+    );
+  });
+
+  test("an event is over the moment it ends, while it is still not complete", async () => {
+    mockProgressStateReads();
+
+    const over: Array<string> = idsOf(
+      await ScheduledMaintenanceStateService.getOverScheduledMaintenanceStateIds(
+        PROGRESS_PROJECT_ID,
+      ),
+    );
+    const incomplete: Array<string> = idsOf(
+      await ScheduledMaintenanceStateService.getIncompleteScheduledMaintenanceStateIds(
+        PROGRESS_PROJECT_ID,
+      ),
+    );
+
+    for (const key of ["ended", "reviewing"] as Array<ProgressStateKey>) {
+      const id: string = progressStateId(key).toString().toLowerCase();
+
+      expect(over).toContain(id);
+      expect(incomplete).toContain(id);
+    }
+  });
+
+  test("a draft placed before Scheduled is not over, and nor is anything before Ended", async () => {
+    const states: Array<ScheduledMaintenanceState> = [
+      draftState(DRAFT_PROJECT_ID),
+      ...statesOf(DRAFT_PROJECT_ID),
+    ];
+
+    mockProgressStateReads(states);
+
+    const ids: Array<ObjectID> =
+      await ScheduledMaintenanceStateService.getOverScheduledMaintenanceStateIds(
+        DRAFT_PROJECT_ID,
+      );
+
+    expect(idsOf(ids)).toEqual(
+      idsOfNamed(states, ["Ended", "Reviewing", "Completed", "Archived"]),
+    );
+  });
+
+  test("only the project's own list", async () => {
+    const otherStates: Array<ScheduledMaintenanceState> = statesOf(
+      OTHER_PROJECT_ID,
+      BUILT_IN_KEYS,
+    );
+
+    mockProgressStateReads([...makeProgressStates(), ...otherStates]);
+
+    const ids: Array<ObjectID> =
+      await ScheduledMaintenanceStateService.getOverScheduledMaintenanceStateIds(
+        OTHER_PROJECT_ID,
+      );
+
+    expect(idsOf(ids)).toEqual(idsOfNamed(otherStates, ["Ended", "Completed"]));
+  });
+});
+
 describe("ScheduledMaintenanceStateService.getMayBeInProgressStateQuery", () => {
   test("leaves out the built-in scheduled, ended and completed states, and lets the ongoing state and every state of a project's own through", () => {
     const query: Record<string, unknown> =

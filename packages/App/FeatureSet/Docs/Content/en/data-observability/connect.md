@@ -16,6 +16,10 @@ On **Data Observability > Databases**, choose **Connect a Database**, then:
 
 A database already connected for Data Security is watched too, with nothing to connect, and so is every BigQuery dataset your [cloud connection](/docs/telemetry/cloud-accounts) found.
 
+## Databases you could connect
+
+**Databases You Could Connect**, under **Databases**, lists what your project already knows of and nobody has connected: databases your traces talk to, ones in your cloud accounts, and ones Database Monitoring watches. **Connect** starts the form from what is known of each, with a connection string to fill in. **Dismiss** keeps one from coming back. Nothing is read until you connect it.
+
 ## A read-only login, per engine
 
 :::tabs
@@ -30,7 +34,7 @@ The connection string: `postgres://oneuptime_reader:...@orders-db.internal:5432/
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB is read over its own driver: `mongodb+srv://oneuptime_reader:...@cluster
 | Checks | Every 15 minutes, hour, 6 hours or day, as each says |
 | Lineage and last reads from query history | Once an hour, back to the last read |
 
-Every statement runs read-only, with a statement and lock timeout where the engine has them. The connection string is never logged and is taken out of every error. A statistic the login may not read is left out with a warning on the database, never a failed collection.
+Every statement runs read-only, with a statement and lock timeout where the engine has them. The connection string is never logged and is taken out of every error. A statistic the login may not read is left out with a warning on the database, never a failed collection. Connections to private addresses are refused on OneUptime Cloud: use a probe.
+
+## Read replicas
+
+A PostgreSQL or SQL Server read replica does not move its write counters, so a table there can look unchanged while it changes. OneUptime sees that it is a replica, leaves the counters out, says so on the database, and falls back to the table's size and rows. Connect the primary where you can, or name a [freshness column](/docs/data-observability/table-health) for the tables that matter.
+
+## Storage paths
+
+Not everything you rely on is in a database. An export that lands in a bucket every night is as late, or as short, as any table. Under **Storage Paths**, choose **Edit Paths** for a bucket your [cloud connection](/docs/telemetry/cloud-accounts) found, on Amazon S3, Google Cloud Storage or an Azure storage account, and name the paths that matter, one per line. On Azure, start each with its container's name.
+
+Each path then shows under **Tables**: its newest object is when it last changed, its objects are its rows, and their size its size, and the same alerts apply. Only names, sizes and times are read, never an object. A path holding more than 10000 objects has no exact count, size or newest object, and says so: name a narrower one.
 
 ## Troubleshooting
 
 - **The database shows Failed.** Its message says why: a host OneUptime cannot reach, a login refused, a TLS mode the server does not accept. For a database inside your network, connect it through a probe.
 - **Tables show no last change.** The login cannot read the engine's statistics: grant what your engine's tab lists, or wait for a table's rows to change twice.
 - **A table is missing.** It is in a schema the login cannot use, or it is excluded on the database. Grant `USAGE` on its schema, or remove the exclusion.
+- **A MySQL table has no columns.** The login needs `REFERENCES`, as above: it shows a table's columns without giving any read of its rows.
 
 ## Next steps
 

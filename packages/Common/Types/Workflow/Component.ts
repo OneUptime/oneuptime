@@ -216,6 +216,33 @@ export interface Argument {
    */
   isSensitive?: boolean | undefined;
   placeholder?: string | undefined;
+  /*
+   * For a setting stored as text that names the project's records - a Page
+   * step's Incident ID - the table they are in. It lists them by name, with
+   * { } beside the list for a value from an earlier step
+   * (Workflow/LinkedRecord/LinkedRecordField), and what is stored is the ID.
+   */
+  linkedTable?: string | undefined;
+  // It names several records, separated by commas.
+  isLinkedList?: boolean | undefined;
+  /*
+   * It need not name a record at all - From Another Tool's Severity also takes
+   * a severity by its name, or "most severe" - so any words typed are kept.
+   */
+  linkedAllowsAnyText?: boolean | undefined;
+  /*
+   * For a JSON setting that holds custom fields and nothing else, keyed by
+   * their names - From Another Tool's Custom Fields - the table of the records
+   * whose custom fields they are. Its fields are listed by name, each with its
+   * own control (Workflow/CustomFields/CustomFieldsArgumentEditor).
+   */
+  customFieldsOf?: string | undefined;
+  /*
+   * For a text setting that names one of those custom fields - From Another
+   * Tool's Outside ID Field - the same table. Its fields are listed, and any
+   * other name can be typed.
+   */
+  customFieldNameOf?: string | undefined;
 }
 
 // A setting whose value comes from an earlier step or a variable: {{...}}.

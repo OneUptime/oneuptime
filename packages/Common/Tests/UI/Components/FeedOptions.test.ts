@@ -39,6 +39,7 @@ import MonitorFeed, {
   MonitorFeedEventType,
 } from "../../../Models/DatabaseModels/MonitorFeed";
 import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import { OpenStackCloudFeedEventType } from "../../../Models/DatabaseModels/OpenStackCloudFeed";
 import { PodmanHostFeedEventType } from "../../../Models/DatabaseModels/PodmanHostFeed";
 import { ProxmoxClusterFeedEventType } from "../../../Models/DatabaseModels/ProxmoxClusterFeed";
 import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
@@ -156,6 +157,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     name: "OnCallDutyPolicyFeed",
     enumName: "OnCallDutyPolicyFeedEventType",
     eventTypes: Object.values(OnCallDutyPolicyFeedEventType),
+  },
+  {
+    name: "OpenStackCloudFeed",
+    enumName: "OpenStackCloudFeedEventType",
+    eventTypes: Object.values(OpenStackCloudFeedEventType),
   },
   {
     name: "PodmanHostFeed",
@@ -437,6 +443,15 @@ describe("getFeedEventTypeLabel", () => {
     [
       VMwareVCenterFeedEventType.VMwareVCenterRestored,
       "VMware vCenter Restored",
+    ],
+    // "OpenStack" keeps its product spelling, never "Open Stack".
+    [
+      OpenStackCloudFeedEventType.OpenStackCloudCreated,
+      "OpenStack Cloud Created",
+    ],
+    [
+      OpenStackCloudFeedEventType.OpenStackCloudRestored,
+      "OpenStack Cloud Restored",
     ],
     // The SLO feed's long prefix is "SLO" everywhere else in the dashboard.
     [

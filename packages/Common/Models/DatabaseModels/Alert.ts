@@ -21,6 +21,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import OpenStackCloud from "./OpenStackCloud";
 import VMwareVCenter from "./VMwareVCenter";
 import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
@@ -1089,6 +1090,60 @@ export default class Alert extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: OpenStackCloud,
+    title: "OpenStack Clouds",
+    description: "List of OpenStack clouds affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return OpenStackCloud;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertOpenStackCloud",
+    inverseJoinColumn: {
+      name: "openStackCloudId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public openStackClouds?: Array<OpenStackCloud> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -43,7 +43,7 @@ En Microsoft 365-organisation kan vara ansluten till mer än ett projekt, till e
 :::steps
 ### Ge administratörsmedgivande
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** och klicka på **Bevilja administratörssamtycke**. En Microsoft 365-administratör loggar in och tillåter OneUptime-appen för organisationen. Kortet säger sedan **Admin Consent Completed**. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut Slack eller Teams**, som också leder hit.
+Gå till **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** och klicka på **Bevilja administratörssamtycke**. En Microsoft 365-administratör loggar in och tillåter OneUptime-appen för organisationen. Kortet säger sedan **Admin Consent Completed**. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut en arbetsyta**, som också leder hit.
 
 ### Anslut ditt konto
 

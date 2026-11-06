@@ -110,6 +110,11 @@ export interface SetupGuideKeyStep {
 export interface SetupGuideContent {
   keyStep?: SetupGuideKeyStep | undefined;
   /*
+   * This answer's steps send OneUptime no telemetry, so there is no key to pick. Only for an
+   * answer among others: a guide with one way through always has a key to choose.
+   */
+  needsNoKey?: boolean | undefined;
+  /*
    * Every code block of the guide wraps a line too long for its box instead
    * of scrolling it sideways: a one-line install command is read whole -
    * its address and its key - before it is run, on a phone too. Copy still
@@ -121,8 +126,9 @@ export interface SetupGuideContent {
   // "Before you start" — one line of inline markdown each.
   prerequisites?: Array<string> | undefined;
   /*
-   * The steps after "Choose an ingestion key", which SetupGuideCard always
-   * renders as step 1 because every guide needs a key before anything else.
+   * The steps after "Choose an ingestion key", which SetupGuideCard renders
+   * as step 1 because a guide needs a key before anything else, unless
+   * needsNoKey says this one does not.
    */
   steps: Array<SetupGuideStep>;
   advanced?: Array<SetupGuideTopic> | undefined;
@@ -286,7 +292,8 @@ export function getSetupGuideMarkdown(content: SetupGuideContent): string {
      * Step 1 on screen is the ingestion key, which is not part of the
      * content, so the content's first step is numbered 2.
      */
-    const lines: Array<string> = [`## Step ${index + 2}: ${step.title}`];
+    const number: number = content.needsNoKey ? index + 1 : index + 2;
+    const lines: Array<string> = [`## Step ${number}: ${step.title}`];
     if (step.description) {
       lines.push("", step.description.trim());
     }
