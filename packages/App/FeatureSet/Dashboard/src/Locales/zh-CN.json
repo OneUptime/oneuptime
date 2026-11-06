@@ -45796,6 +45796,7 @@
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "通知所用的语言。",
   "{{language}} (default)": "{{language}} (默认)",
+  "Resize the filters": "调整过滤器的宽度",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "只有可以启动 Runbook 执行的人才能批准或忽略此修复。",
   "Only someone who may start runbook executions can dismiss this fix.": "只有可以启动 Runbook 执行的人才能忽略此修复。",
   "{{label}}: {{count}}": "{{label}}：{{count}}",

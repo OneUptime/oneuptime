@@ -45796,6 +45796,7 @@
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "La langue de ses notifications.",
   "{{language}} (default)": "{{language}} (par défaut)",
+  "Resize the filters": "Redimensionner les filtres",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "Seule une personne autorisée à lancer des exécutions de runbook peut approuver ou ignorer ce correctif.",
   "Only someone who may start runbook executions can dismiss this fix.": "Seule une personne autorisée à lancer des exécutions de runbook peut ignorer ce correctif.",
   "{{label}}: {{count}}": "{{label}} : {{count}}",

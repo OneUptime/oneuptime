@@ -45796,6 +45796,7 @@
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "Язык, на котором им приходят уведомления.",
   "{{language}} (default)": "{{language}} (по умолчанию)",
+  "Resize the filters": "Изменить ширину панели фильтров",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "Одобрить или отклонить это исправление может только тот, у кого есть право запускать выполнения сценариев.",
   "Only someone who may start runbook executions can dismiss this fix.": "Отклонить это исправление может только тот, у кого есть право запускать выполнения сценариев.",
   "{{label}}: {{count}}": "{{label}}: {{count}}",

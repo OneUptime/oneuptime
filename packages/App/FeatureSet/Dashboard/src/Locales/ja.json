@@ -45796,6 +45796,7 @@
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "通知に使う言語です。",
   "{{language}} (default)": "{{language}} (デフォルト)",
+  "Resize the filters": "フィルターの幅を変更",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "この修正を承認または却下できるのは、Runbook の実行を開始できるユーザーだけです。",
   "Only someone who may start runbook executions can dismiss this fix.": "この修正を却下できるのは、Runbook の実行を開始できるユーザーだけです。",
   "{{label}}: {{count}}": "{{label}}: {{count}}",
