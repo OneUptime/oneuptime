@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Sjablonen openen
 
-Ga naar **Monitoren → Instellingen → Sjablonen** en klik op **Monitor Sjabloon aanmaken**.
+Ga naar **Monitoren → Instellingen → Sjablonen** en klik op **Monitorsjabloon aanmaken**.
 
 ### Het sjabloon een naam geven
 
@@ -47,17 +47,17 @@ Kies onder **Standaardinstellingen voor monitor** het **Monitortype**, met dezel
 
 ### De criteria en het interval instellen
 
-Vul onder **Criteria** in wat er gecontroleerd wordt en de criteria, zoals bij [Monitor maken](/docs/monitor/create-monitor#criteria). Met de kaart **Template sync settings** bovenaan beschermt u velden tegen synchronisaties (zie [Waarden per monitor behouden](#waarden-per-monitor-behouden)). Voor een monitortype dat sondes controleren, vraagt de laatste stap, **Interval**, om het **Bewakingsinterval**. Klik op de laatste stap op **Monitor Sjabloon aanmaken**.
+Vul onder **Criteria** in wat er gecontroleerd wordt en de criteria, zoals bij [Monitor maken](/docs/monitor/create-monitor#criteria). Met de kaart **Template sync settings** bovenaan beschermt u velden tegen synchronisaties (zie [Waarden per monitor behouden](#waarden-per-monitor-behouden)). Voor een monitortype dat sondes controleren, vraagt de laatste stap, **Interval**, om het **Bewakingsinterval**. Klik op de laatste stap op **Monitorsjabloon aanmaken**.
 :::
 
-Het sjabloon wordt aan de lijst toegevoegd. Open het om de pagina te zien, met een kaart voor elk deel: **Sjablooninformatie**, **Standaardinstellingen voor monitor**, **Bewakingscriteria**, **Bewakingsinterval** (met **Minimale sonde-overeenstemming**), **Labels**, **Custom Field Defaults** (wanneer het project aangepaste monitorvelden heeft) en **Gekoppelde monitoren**. U wijzigt elk deel op zijn eigen kaart, bijvoorbeeld met **Criteria bewerken** of **Interval bewerken**.
+Het sjabloon wordt aan de lijst toegevoegd. Open het om de pagina te zien, met een kaart voor elk deel: **Sjablooninformatie**, **Standaardinstellingen voor monitor**, **Bewakingscriteria**, **Bewakingsinterval** (met **Minimale sonde-overeenstemming**), **Labels**, **Standaardwaarden voor aangepaste velden** (wanneer het project aangepaste monitorvelden heeft) en **Gekoppelde monitoren**. U wijzigt elk deel op zijn eigen kaart, bijvoorbeeld met **Criteria bewerken** of **Interval bewerken**.
 
 ## Monitoren maken vanuit een sjabloon
 
 - **Nieuwe monitor.** Klik in de lijst op **Monitor maken** in de rij van het sjabloon, of op **Monitor aanmaken vanaf sjabloon** op de pagina ervan. **Monitor maken** opent met het type en de instellingen van het sjabloon ingevuld; wijzig wat nodig is en maak hem. De nieuwe monitor is aan het sjabloon gekoppeld.
 - **Monitoren die u al hebt.** Klik onder **Gekoppelde monitoren** op **Bestaande monitoren koppelen** en kies ze. Ze houden hun instellingen totdat u synchroniseert.
 
-Waarden die onder **Custom Field Defaults** zijn ingesteld, worden naar elke monitor geschreven die vanuit het sjabloon wordt gemaakt, ook naar monitoren die regels voor automatisch importeren en waarschuwingsbeleid ermee maken.
+Waarden die onder **Standaardwaarden voor aangepaste velden** zijn ingesteld, worden naar elke monitor geschreven die vanuit het sjabloon wordt gemaakt, ook naar monitoren die regels voor automatisch importeren en waarschuwingsbeleid ermee maken.
 
 ## Wijzigingen synchroniseren naar gekoppelde monitoren
 
@@ -68,7 +68,7 @@ Een sjabloon bewerken wijzigt alleen het sjabloon. Om een wijziging naar de geko
 | **Criteria synchroniseren naar gekoppelde monitoren** | De criteria en de stapinstellingen, zoals bestemmingen en aanvraagopties, behalve beschermde velden | Het bewakingsinterval, de minimale sonde-overeenstemming, de naam, de beschrijving, de labels en de waarden van aangepaste velden |
 | **Synchronisatie-interval naar gekoppelde monitoren** | Het bewakingsinterval en de minimale sonde-overeenstemming | De criteria, de naam, de beschrijving, de labels en de waarden van aangepaste velden |
 | **Labels synchroniseren naar gekoppelde monitoren** | De labels, en verder niets | Al het andere |
-| **Sync Custom Fields to Linked Monitors** | De aangepaste velden waarvoor het sjabloon een standaardwaarde heeft, in plaats van wat elke monitor had | Aangepaste velden die het sjabloon leeg laat, en al het andere |
+| **Aangepaste velden synchroniseren naar gekoppelde monitors** | De aangepaste velden waarvoor het sjabloon een standaardwaarde heeft, in plaats van wat elke monitor had | Aangepaste velden die het sjabloon leeg laat, en al het andere |
 
 Om één monitor te synchroniseren, klikt u op **Synchroniseren vanuit sjabloon** in de rij ervan onder **Gekoppelde monitoren**. Dat kopieert de criteria en stapinstellingen (behalve beschermde velden), het bewakingsinterval, de minimale sonde-overeenstemming en de labels, en laat de naam, de beschrijving en de waarden van aangepaste velden van de monitor ongemoeid. **Ontkoppelen van sjabloon** koppelt een monitor los; hij houdt zijn instellingen.
 
@@ -116,7 +116,7 @@ Welke opties er zijn, hangt af van het monitortype. Daaronder vallen bestemminge
 Bij sjablonen met meerdere stappen worden beschermde waarden gekoppeld via de stap-ID's. Zelfstandig gemaakte monitoren met één stap kunnen ook een sjabloon met één stap ontvangen. Als een beschermde stap niet kan worden gekoppeld, wordt de synchronisatie geweigerd voordat er een monitor wordt bijgewerkt, zodat een nieuwe of verplaatste stap niet per ongeluk de bestemming of inloggegevens van een andere stap kopieert.
 
 > [!IMPORTANT]
-> Verwijder, voordat u het monitortype van een opgeslagen sjabloon wijzigt (met **Standaardinstellingen voor monitor bewerken**), onder **Criteria bewerken** de uitzonderingen die niet voor het nieuwe type gelden. Alle uitzonderingen van een sjabloon moeten voor het monitortype ervan bestaan.
+> Verwijder, voordat u het monitortype van een opgeslagen sjabloon wijzigt (met **Standaardwaarden van monitor bewerken**), onder **Criteria bewerken** de uitzonderingen die niet voor het nieuwe type gelden. Alle uitzonderingen van een sjabloon moeten voor het monitortype ervan bestaan.
 
 ## Configuratie via de API
 

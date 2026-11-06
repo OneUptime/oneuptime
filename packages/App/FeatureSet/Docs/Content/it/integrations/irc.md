@@ -71,7 +71,7 @@ Salta questo passo se server, rete e canale non richiedono password. Altrimenti 
 | **SASL Password**   | La rete vuole che tu acceda al tuo account. **SASL Username** prende il nome dell'account. | `IRC_SASL_PASSWORD`    |
 | **Channel Key**     | Il canale ha una chiave (modalità `+k`).                                                   | `IRC_CHANNEL_KEY`      |
 
-Per salvarne una, apri **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**. Scrivi il nome in **Nome** e fai clic su **Avanti**. Incolla la password in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**. I log delle esecuzioni mostrano `[REDACTED]` al posto del valore di una variabile segreta.
+Per salvarne una, apri **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**. Scrivi il nome in **Nome** e fai clic su **Avanti**. Incolla la password in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**. I log delle esecuzioni mostrano `[REDACTED]` al posto del valore di una variabile segreta.
 
 ### Costruire il workflow
 

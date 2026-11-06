@@ -10,6 +10,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The words and looks "What AI may do" shares between a Kubernetes
@@ -471,11 +472,11 @@ export function getPermissionTitlesText(
   permissionTitles: ReadonlyArray<string>,
   translator: Translator = getGlobalTranslator(),
 ): string {
-  return permissionTitles
-    .map((title: string): string => {
+  return joinList(
+    permissionTitles.map((title: string): string => {
       return translator.translateText(title) || title;
-    })
-    .join(", ");
+    }),
+  );
 }
 
 /*

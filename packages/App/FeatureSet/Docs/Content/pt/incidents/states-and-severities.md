@@ -37,7 +37,7 @@ flowchart TB
 
 O modelo `IncidentState` tem `name`, `description`, `color` e `order`, mais três booleanos: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Tudo o que o produto faz com os estados se baseia nesses booleanos e em `order` — nunca no nome do estado. É por isso que você pode renomear **Resolvido** para «Closed» sem quebrar nada: o indicador acompanha a linha.
 
-O modelo `IncidentSeverity` tem `name`, `description`, `color` e `order`, e nada mais. Não há indicadores. Nada no OneUptime trata por si só **Critical Incident** de forma diferente de **Minor Incident** — a severidade só importa onde você aponta algo para ela, como o critério de correspondência **Incidente Severidades** de uma regra de plantão.
+O modelo `IncidentSeverity` tem `name`, `description`, `color` e `order`, e nada mais. Não há indicadores. Nada no OneUptime trata por si só **Critical Incident** de forma diferente de **Minor Incident** — a severidade só importa onde você aponta algo para ela, como o critério de correspondência **Severidades dos incidentes** de uma regra de plantão.
 
 Algumas regras rápidas:
 
@@ -83,7 +83,7 @@ Um estado que você adiciona é uma etapa da sua resposta que os três iniciais 
 :::steps
 ### Abrir a lista de estados
 
-Vá em **Incidentes → Configurações → Estado do incidente**. O cartão **Incidente Estados** lista seus estados na ordem deles, uma linha cada: uma alça para arrastá-lo, sua cor e seu nome, como **Conta como** um incidente nele, e sua descrição. A frase abaixo do título diz isso claramente: os incidentes só descem por esta lista.
+Vá em **Incidentes → Configurações → Estado do incidente**. O cartão **Estados do incidente** lista seus estados na ordem deles, uma linha cada: uma alça para arrastá-lo, sua cor e seu nome, como **Conta como** um incidente nele, e sua descrição. A frase abaixo do título diz isso claramente: os incidentes só descem por esta lista.
 
 ### Criar o estado
 
@@ -149,7 +149,7 @@ Duas diferenças em relação aos estados:
 - **Não há proteção contra exclusão.** Qualquer severidade pode ser excluída, incluindo as três iniciais.
 - **Não há indicadores a herdar, nem «Conta como».** Uma severidade nova se comporta exatamente como as iniciais — é um rótulo com uma cor e uma posição.
 
-Onde a severidade faz mais do que descrever: em **Incidentes → Regras → Regras de Plantão**, o campo **Incidente Severidades** de uma regra é um critério de correspondência. Listar **Critical Incident** ali é como se expressa «acionar a equipe de banco de dados para tudo o que for crítico» — a política de plantão fica na regra, não na severidade.
+Onde a severidade faz mais do que descrever: em **Incidentes → Regras → Regras de Plantão**, o campo **Severidades dos incidentes** de uma regra é um critério de correspondência. Listar **Critical Incident** ali é como se expressa «acionar a equipe de banco de dados para tudo o que for crítico» — a política de plantão fica na regra, não na severidade.
 
 **Alterar a severidade de um incidente** — em **Editar** no cartão **Detalhes do incidente** do incidente, pela API ou pelo Terraform (`incidentSeverityId`), com um workflow ou com as ferramentas de IA — faz as mesmas quatro coisas, seja como for enviada: o feed do incidente recebe uma entrada **Incident updated** que nomeia a nova severidade, os prazos de SLA do incidente são recalculados, sua regra de lembrete é reavaliada, e as métricas de incidentes contam uma mudança de severidade. Salvar a severidade que o incidente já tem não faz nada disso, então editar só o título de um incidente deixa seus prazos de SLA, seus lembretes e sua contagem de mudanças de severidade como estavam. A severidade de um alerta funciona do mesmo jeito para a entrada de feed e os lembretes dele.
 

@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Åbn Skabeloner
 
-Gå til **Monitorer → Indstillinger → Skabeloner**, og klik på **Opret Monitor Skabelon**.
+Gå til **Monitorer → Indstillinger → Skabeloner**, og klik på **Opret Monitorskabelon**.
 
 ### Navngiv skabelonen
 
@@ -47,17 +47,17 @@ Vælg under **Overvågningsstandarder** **Monitortype** med den samme vælger so
 
 ### Angiv kriterierne og intervallet
 
-Udfyld under **Kriterier**, hvad der skal tjekkes, og kriterierne, som i [Opret monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felter mod synkroniseringer (se [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor)). For en monitortype, som sonder tjekker, beder det sidste trin, **Interval**, om **Overvågningsinterval**. Klik på **Opret Monitor Skabelon** på det sidste trin.
+Udfyld under **Kriterier**, hvad der skal tjekkes, og kriterierne, som i [Opret monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felter mod synkroniseringer (se [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor)). For en monitortype, som sonder tjekker, beder det sidste trin, **Interval**, om **Overvågningsinterval**. Klik på **Opret Monitorskabelon** på det sidste trin.
 :::
 
-Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver del: **Skabeloninformation**, **Overvågningsstandarder**, **Overvågningskriterier**, **Overvågningsinterval** (med **Minimum sondeenighed**), **Etiketter**, **Custom Field Defaults** (når projektet har brugerdefinerede monitorfelter) og **Tilknyttede overvågninger**. Du ændrer hver del på dens eget kort, for eksempel med **Rediger Kriterier** eller **Rediger Interval**.
+Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver del: **Skabeloninformation**, **Overvågningsstandarder**, **Overvågningskriterier**, **Overvågningsinterval** (med **Minimum sondeenighed**), **Etiketter**, **Standardværdier for brugerdefinerede felter** (når projektet har brugerdefinerede monitorfelter) og **Tilknyttede overvågninger**. Du ændrer hver del på dens eget kort, for eksempel med **Rediger kriterier** eller **Rediger interval**.
 
 ## Opret monitorer ud fra en skabelon
 
 - **Ny monitor.** Klik på **Opret monitor** i skabelonens række på listen eller på **Opret overvågning fra skabelon** på dens side. **Opret monitor** åbner med skabelonens type og indstillinger udfyldt; ret det, du har brug for, og opret den. Den nye monitor er knyttet til skabelonen.
 - **Monitorer, du allerede har.** Klik på **Tilknyt eksisterende overvågninger** under **Tilknyttede overvågninger**, og vælg dem. De beholder deres indstillinger, indtil du synkroniserer.
 
-Værdier, der er sat under **Custom Field Defaults**, skrives til hver monitor, der oprettes ud fra skabelonen, også monitorer, som regler for automatisk import og advarselspolitikker opretter ud fra den.
+Værdier, der er sat under **Standardværdier for brugerdefinerede felter**, skrives til hver monitor, der oprettes ud fra skabelonen, også monitorer, som regler for automatisk import og advarselspolitikker opretter ud fra den.
 
 ## Synkronisér ændringer til tilknyttede monitorer
 
@@ -68,7 +68,7 @@ At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til d
 | **Synkronisér kriterier til tilknyttede overvågninger** | Kriterierne og trinindstillingerne, som destinationer og anmodningsindstillinger, undtagen beskyttede felter | Overvågningsintervallet, minimum sondeenighed, navnet, beskrivelsen, etiketterne og værdierne i brugerdefinerede felter |
 | **Synkronisér interval til tilknyttede overvågninger** | Overvågningsintervallet og minimum sondeenighed | Kriterierne, navnet, beskrivelsen, etiketterne og værdierne i brugerdefinerede felter |
 | **Synkronisér etiketter til tilknyttede overvågninger** | Etiketterne og intet andet | Alt andet |
-| **Sync Custom Fields to Linked Monitors** | De brugerdefinerede felter, som skabelonen har en standardværdi for, i stedet for det, hver monitor havde | Brugerdefinerede felter, som skabelonen lader stå tomme, og alt andet |
+| **Synkroniser brugerdefinerede felter til tilknyttede monitorer** | De brugerdefinerede felter, som skabelonen har en standardværdi for, i stedet for det, hver monitor havde | Brugerdefinerede felter, som skabelonen lader stå tomme, og alt andet |
 
 For at synkronisere en enkelt monitor klikker du på **Synkronisér fra skabelon** i dens række under **Tilknyttede overvågninger**. Det kopierer kriterierne og trinindstillingerne (undtagen beskyttede felter), overvågningsintervallet, minimum sondeenighed og etiketterne og lader monitorens navn, beskrivelse og værdier i brugerdefinerede felter være. **Fjern kæde fra skabelon** frakobler en monitor; den beholder sine indstillinger.
 
@@ -85,7 +85,7 @@ Gå til **Monitorer → Indstillinger → Skabeloner**, og åbn skabelonen.
 
 ### Rediger dens kriterier
 
-Klik på **Rediger Kriterier** på kortet **Overvågningskriterier**.
+Klik på **Rediger kriterier** på kortet **Overvågningskriterier**.
 
 ### Beskyt felterne
 
@@ -116,7 +116,7 @@ Hvilke muligheder der findes, afhænger af monitortypen. De omfatter destination
 I skabeloner med flere trin matches beskyttede værdier via trin-id'erne. Uafhængigt oprettede monitorer med ét trin kan også modtage en skabelon med ét trin. Kan et beskyttet trin ikke matches, afvises synkroniseringen, før nogen monitor opdateres, så et nyt eller omrokeret trin ikke ved et uheld kan kopiere et andet trins destination eller legitimationsoplysninger.
 
 > [!IMPORTANT]
-> Før du ændrer monitortypen for en gemt skabelon (med **Rediger Overvågningsstandarder**), skal du under **Rediger Kriterier** fjerne de undtagelser, der ikke gælder for den nye type. Alle en skabelons undtagelser skal findes for dens monitortype.
+> Før du ændrer monitortypen for en gemt skabelon (med **Rediger monitorens standarder**), skal du under **Rediger kriterier** fjerne de undtagelser, der ikke gælder for den nye type. Alle en skabelons undtagelser skal findes for dens monitortype.
 
 ## Konfiguration via API
 

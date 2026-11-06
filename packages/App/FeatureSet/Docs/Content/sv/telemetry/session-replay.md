@@ -744,7 +744,7 @@ Bredvid scenen visar panelen allt som hände, på inspelningens klocka, med en f
 
 Flikarna Loggar och Spår och serverhalvan av Fel läses med samma behörigheter som sidorna för loggar, spår och undantag; en roll utan dem ser en låst flik som nämner behörigheten. Rader som servern har märkt placeras på inspelningens klocka genom att förankra dem till spår som inspelningen själv observerade; panelen säger om förankringen lyckades («server times anchored via 6 traces»), eller om radens tid är ungefärlig.
 
-Panelens sökfält (`/`) accepterar fritext och token: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. En omfångsväljare begränsar varje flik till ±30 sekunder runt uppspelningshuvudet. Panelen följer uppspelningshuvudet tills du scrollar den; en etikett **Resume following** (eller `M`) slår på följfunktionen igen.
+Panelens sökfält (`/`) accepterar fritext och token: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. En omfångsväljare begränsar varje flik till ±30 sekunder runt uppspelningshuvudet. Panelen följer uppspelningshuvudet tills du scrollar den; en etikett **Följ igen** (eller `M`) slår på följfunktionen igen.
 
 ### Kortkommandon
 

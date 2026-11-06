@@ -9,6 +9,7 @@ import {
   getNarrowChartDayLabelIndexes,
 } from "./DayLabels";
 import React, { FunctionComponent, ReactElement } from "react";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface StackedSeries {
   key: string;
@@ -112,7 +113,7 @@ const StackedDayBars: FunctionComponent<ComponentProps> = (
               const title: string = `${formatDayLabel(
                 day.day,
               )}: ${translator.formatNumber(day.total)}${
-                parts.length > 0 ? ` (${parts.join(", ")})` : ""
+                parts.length > 0 ? ` (${joinList(parts)})` : ""
               }`;
 
               return (

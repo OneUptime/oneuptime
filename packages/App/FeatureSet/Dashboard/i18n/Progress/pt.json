@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11542
+    "keys": 45983,
+    "untranslated": 11009
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -90,6 +90,7 @@
     "Fahrenheit",
     "Failover",
     "Fatal",
+    "Favicon",
     "Feed",
     "Flags",
     "Flavor",
@@ -207,6 +208,7 @@
     "Pools",
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Profiler",
     "Prompt",
     "Pull Requests",

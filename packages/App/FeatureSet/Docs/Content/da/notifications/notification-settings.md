@@ -34,7 +34,7 @@ Gå til **Brugerindstillinger → Notifikationsindstillinger**. Fanerne er **Hæ
 
 ### Find begivenheden
 
-Hver fane har et eller flere kort, som **Hændelse Episoder** på fanen **Hændelser**. Hver række er en begivenhed, med en linje, der siger, hvornår den sendes.
+Hver fane har et eller flere kort, som **Hændelsesepisoder** på fanen **Hændelser**. Hver række er en begivenhed, med en linje, der siger, hvornår den sendes.
 
 ### Klik på en kanal
 

@@ -113,20 +113,20 @@ Allt i formuläret kan ändras på händelsens egna sidor, utom de tre prenumera
 
 | För att ändra                               | Gå till                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Maintenance Details** i dess **Översikt**, steget **Händelse** |
+| Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Underhållsdetaljer** i dess **Översikt**, steget **Händelse** |
 | Statussidorna, när den publiceras, eller påminnelserna | Samma **Redigera**, steget **Statussidor**                           |
 | Monitorerna, deras status eller andra resurser | **Redigera** på kortet **Berörda resurser**                                 |
 | Beskrivningen                               | **Beskrivning** i dess sidomeny                                                |
 | Ägarna                                      | **Ägare** i dess sidomeny                                                      |
 
-**Ändra övervakningsstatus till** kan ändras tills händelsen börjar. Därefter visar kortet den skrivskyddad, eftersom monitorerna redan har den statusen. En redigering lägger till en post i **Schemalagd Underhåll Flöde** som nämner vad den ändrade; att spara utan ändringar lägger inte till någon.
+**Ändra övervakningsstatus till** kan ändras tills händelsen börjar. Därefter visar kortet den skrivskyddad, eftersom monitorerna redan har den statusen. En redigering lägger till en post i **Flöde för schemalagt underhåll** som nämner vad den ändrade; att spara utan ändringar lägger inte till någon.
 
 ## Skriv anteckningar medan arbetet pågår
 
-- **Offentliga anteckningar** är uppdateringar till dina kunder: de visas på händelsens statussidor, och var och en kan meddela deras prenumeranter med **Notify status page subscribers**.
+- **Offentliga anteckningar** är uppdateringar till dina kunder: de visas på händelsens statussidor, och var och en kan meddela deras prenumeranter med **Avisera statussidans prenumeranter**.
 - **Privata anteckningar** är bara för ditt team.
 
-Skriv en på händelsens sida **Offentliga anteckningar** eller **Privata anteckningar**, eller från menyn **Åtgärder** i **Schemalagd Underhåll Flöde** med **Add Public Note** eller **Lägg till privat anteckning**. Samma meny kör en runbook med **Execute Runbook**. En anteckningsmall fyller i text som ditt team ofta skriver: se [Underhållsregler och inställningar](/docs/scheduled-maintenance/settings#anteckningsmallar).
+Skriv en på händelsens sida **Offentliga anteckningar** eller **Privata anteckningar**, eller från menyn **Åtgärder** i **Flöde för schemalagt underhåll** med **Lägg till offentlig anteckning** eller **Lägg till privat anteckning**. Samma meny kör en runbook med **Kör runbook**. En anteckningsmall fyller i text som ditt team ofta skriver: se [Underhållsregler och inställningar](/docs/scheduled-maintenance/settings#anteckningsmallar).
 
 ## Skapa händelser från kod
 

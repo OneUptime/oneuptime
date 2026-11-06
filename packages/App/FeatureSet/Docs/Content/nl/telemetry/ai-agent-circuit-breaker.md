@@ -116,7 +116,7 @@ Het verzoek gaat uit van OneUptime. Op OneUptime Cloud moet je endpoint vanaf in
 
 ## Bouw de workflow
 
-Bewaar eerst het token van het endpoint op een plek waar de workflow het kan gebruiken zonder het te tonen: open **Workflows → Globale variabelen**, klik op **Workflow Variabele aanmaken**, noem hem `AGENT_KILL_TOKEN`, zet het token in **Inhoud** en zet **Geheim** aan. Een geheime waarde wordt uit de logboeken van runs en de sporen van stappen gehaald.
+Bewaar eerst het token van het endpoint op een plek waar de workflow het kan gebruiken zonder het te tonen: open **Workflows → Globale variabelen**, klik op **Workflowvariabele aanmaken**, noem hem `AGENT_KILL_TOKEN`, zet het token in **Inhoud** en zet **Geheim** aan. Een geheime waarde wordt uit de logboeken van runs en de sporen van stappen gehaald.
 
 :::steps
 ### Maak de workflow aan

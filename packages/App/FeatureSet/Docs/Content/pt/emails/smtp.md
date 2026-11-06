@@ -34,7 +34,7 @@ Adicione o servidor de e-mail de um projeto em **Configurações do projeto > No
 
 :::tabs
 @tab Projeto
-Em **Configurações do projeto > Notificações > Configurações de notificação**, abra **Mais configurações** e clique em **Criar: SMTP Configuração** no cartão **Configurações SMTP Personalizadas**.
+Em **Configurações do projeto > Notificações > Configurações de notificação**, abra **Mais configurações** e clique em **Criar: Configuração SMTP** no cartão **Configurações SMTP Personalizadas**.
 @tab Instância auto-hospedada
 No Admin Dashboard, abra **Configurações** e depois **Notificações > E-mails** no menu lateral (**Notificações** começa recolhido). No cartão **Configurações do servidor de e-mail**, clique em **Editar servidor** e defina **Tipo de servidor de e-mail** como `Custom SMTP`. Depois clique em **Editar config SMTP** no cartão **Configurações personalizadas de e-mail e SMTP**, que aparece abaixo.
 :::

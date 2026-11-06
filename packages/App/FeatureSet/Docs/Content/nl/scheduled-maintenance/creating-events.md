@@ -35,7 +35,7 @@ Ga naar **Geplande onderhoud → Alle gebeurtenissen** en klik op **Geplande ond
 
 ### Zeggen wat er gebeurt en wanneer
 
-Typ een **Titel** en voeg een **Beschrijving** toe als dat helpt: die is in Markdown en verschijnt op je statuspagina's. **Begint op** staat al op het volgende hele uur van je klok, en **Eindigt op** een uur later; wijzig ze alleen als ze niet kloppen. Als je **Begint op** verschuift, schuift **Eindigt op** mee, zodat het venster zijn lengte houdt. **Eigenaren**, **Labels** en **Data Observability Databases** wachten ingeklapt onder **Meer velden**.
+Typ een **Titel** en voeg een **Beschrijving** toe als dat helpt: die is in Markdown en verschijnt op je statuspagina's. **Begint op** staat al op het volgende hele uur van je klok, en **Eindigt op** een uur later; wijzig ze alleen als ze niet kloppen. Als je **Begint op** verschuift, schuift **Eindigt op** mee, zodat het venster zijn lengte houdt. **Eigenaren**, **Labels** en **Databases van Data Observability** wachten ingeklapt onder **Meer velden**.
 
 ### Kiezen wat het raakt
 
@@ -113,20 +113,20 @@ Alles uit het formulier kun je op de pagina's van de gebeurtenis wijzigen, behal
 
 | Om te wijzigen                              | Ga naar                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| De titel, het venster of de labels          | **Bewerken** op de kaart **Maintenance Details** van haar **Overzicht**, stap **Gebeurtenis** |
+| De titel, het venster of de labels          | **Bewerken** op de kaart **Onderhoudsgegevens** van haar **Overzicht**, stap **Gebeurtenis** |
 | De statuspagina's, wanneer ze wordt gepubliceerd, of de herinneringen | Hetzelfde **Bewerken**, stap **Statuspagina's**             |
 | De monitoren, hun status of andere resources | **Bewerken** op de kaart **Getroffen resources**                              |
 | De beschrijving                             | **Beschrijving** in haar zijmenu                                               |
 | De eigenaren                                | **Eigenaren** in haar zijmenu                                                  |
 
-**Monitorstatus wijzigen naar** kun je wijzigen tot de gebeurtenis begint. Daarna toont de kaart de waarde alleen-lezen, omdat de monitoren al in die status staan. Een wijziging voegt aan de **Gepland Onderhoud Feed** een vermelding toe die noemt wat ze veranderde; opslaan zonder wijziging voegt er geen toe.
+**Monitorstatus wijzigen naar** kun je wijzigen tot de gebeurtenis begint. Daarna toont de kaart de waarde alleen-lezen, omdat de monitoren al in die status staan. Een wijziging voegt aan de **Feed van gepland onderhoud** een vermelding toe die noemt wat ze veranderde; opslaan zonder wijziging voegt er geen toe.
 
 ## Notities plaatsen terwijl het werk loopt
 
-- **Openbare notities** zijn updates voor je klanten: ze verschijnen op de statuspagina's van de gebeurtenis, en elk ervan kan hun abonnees informeren met **Notify status page subscribers**.
+- **Openbare notities** zijn updates voor je klanten: ze verschijnen op de statuspagina's van de gebeurtenis, en elk ervan kan hun abonnees informeren met **Abonnees van de statuspagina een melding sturen**.
 - **Privénotities** zijn alleen voor je team.
 
-Schrijf er een op de pagina **Openbare notities** of **Privénotities** van de gebeurtenis, of via het menu **Acties** van de **Gepland Onderhoud Feed** met **Add Public Note** of **Privénotitie toevoegen**. Hetzelfde menu start een runbook met **Execute Runbook**. Een notitiesjabloon vult tekst in die je team vaak schrijft: zie [Onderhoudsregels en instellingen](/docs/scheduled-maintenance/settings#notitiesjablonen).
+Schrijf er een op de pagina **Openbare notities** of **Privénotities** van de gebeurtenis, of via het menu **Acties** van de **Feed van gepland onderhoud** met **Openbare notitie toevoegen** of **Privénotitie toevoegen**. Hetzelfde menu start een runbook met **Runbook uitvoeren**. Een notitiesjabloon vult tekst in die je team vaak schrijft: zie [Onderhoudsregels en instellingen](/docs/scheduled-maintenance/settings#notitiesjablonen).
 
 ## Gebeurtenissen vanuit code maken
 

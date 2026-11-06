@@ -790,12 +790,12 @@ Enhetens sidor **Incidenter** och **Larm**, under **Aktivitet** i dess meny, lis
 
 ### Standardvärden för anpassade fält
 
-Om ditt projekt definierar anpassade monitorfält — tillverkare, konfigurationsobjekt, ansvarig tjänst, vad din CMDB än behöver — kan en monitormall fylla i dem. Öppna mallen från **Monitorer → Inställningar → Mallar** och ange dess **Custom Field Defaults**.
+Om ditt projekt definierar anpassade monitorfält — tillverkare, konfigurationsobjekt, ansvarig tjänst, vad din CMDB än behöver — kan en monitormall fylla i dem. Öppna mallen från **Monitorer → Inställningar → Mallar** och ange dess **Standardvärden för anpassade fält**.
 
 Varje monitor som därefter skapas från den mallen får de värdena: de som du skapar med **Skapa övervakning från mall**, och de som en regel för automatisk import eller en larmpolicy skapar när en [discovery-skanning](#upptäck-enheter-med-en-nätverksskanning) tar in tusen enheter på en gång.
 
 - Ett fält som lämnas tomt i mallen är inget standardvärde: varje monitor fortsätter att fylla i det själv, så en mall kan sätta tillverkaren för en hel switchflotta medan konfigurationsobjektet förblir per enhet.
-- Standardvärden gäller när en monitor skapas, inte för monitorer som redan finns. **Sync Custom Fields to Linked Monitors**, på samma kort, för ut dem till de befintliga monitorerna. Den skriver över de fält som mallen anger, inklusive värden som skrivits för hand, och dess bekräftelse namnger de fälten först; fält som mallen lämnar tomma rörs aldrig.
+- Standardvärden gäller när en monitor skapas, inte för monitorer som redan finns. **Synkronisera anpassade fält till länkade monitorer**, på samma kort, för ut dem till de befintliga monitorerna. Den skriver över de fält som mallen anger, inklusive värden som skrivits för hand, och dess bekräftelse namnger de fälten först; fält som mallen lämnar tomma rörs aldrig.
 
 En vanlig **Synkronisera från mall** lämnar anpassade fält orörda: att föra ut kriterier eller ett intervall skriver aldrig om värdena på dina monitorer.
 

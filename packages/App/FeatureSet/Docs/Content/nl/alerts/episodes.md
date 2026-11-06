@@ -129,7 +129,7 @@ flowchart TB
     grouped -->|"Sluit aan bij een episode"| none["Verder draait er niets"]
 ```
 
-- **Een nieuwe episode** voert het **Bereikbaarheidsbeleid** van de regel uit, plus dat van elke overeenkomende regel op het tabblad **Episode Rules** van **Waarschuwingen → Regels → Bereikbaarheidsregels**.
+- **Een nieuwe episode** voert het **Bereikbaarheidsbeleid** van de regel uit, plus dat van elke overeenkomende regel op het tabblad **Episoderegels** van **Waarschuwingen → Regels → Bereikbaarheidsregels**.
 - **Een waarschuwing die zich bij een open episode voegt,** voert alleen haar eigen beleid uit. Dat van de episode draait niet opnieuw.
 - **Een waarschuwing die op meer waarschuwingen wacht,** voert ook alleen haar eigen beleid uit. Staat **Wachten op meer waarschuwingen** aan en is het beleid van de regel het enige dat oproept, dan roept een losse waarschuwing niemand op tot er genoeg van lopen.
 - **Wie de oproep van een episode beantwoordt,** bevestigt de episode, en daarmee elke waarschuwing erin.
@@ -175,7 +175,7 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
 | **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 
-**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Alerts in this episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Episode verplaatsen naar** in het menu **⋯**.
+**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Waarschuwingen in deze episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Episode verplaatsen naar** in het menu **⋯**.
 
 **Waarschuwingen → Actieve episodes** toont de episodes die nog niet zijn opgelost, en de badge ernaast telt ze.
 

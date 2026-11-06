@@ -37,7 +37,7 @@ flowchart TB
 
 Il modello `IncidentState` ha `name`, `description`, `color` e `order`, più tre booleani: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Tutto ciò che il prodotto fa con gli stati si basa su quei booleani e su `order` — mai sul nome dello stato. Ecco perché potete rinominare **Risolto** in «Closed» senza rompere nulla: il flag resta sulla riga.
 
-Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag. Nulla in OneUptime tratta di per sé **Critical Incident** diversamente da **Minor Incident** — la gravità conta solo dove le fate puntare qualcosa, come il criterio di corrispondenza **Incidente Gravità** di una regola di reperibilità.
+Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag. Nulla in OneUptime tratta di per sé **Critical Incident** diversamente da **Minor Incident** — la gravità conta solo dove le fate puntare qualcosa, come il criterio di corrispondenza **Gravità degli incidenti** di una regola di reperibilità.
 
 Qualche regola veloce:
 
@@ -83,7 +83,7 @@ Uno stato che aggiungete è un passaggio della vostra risposta che i tre predefi
 :::steps
 ### Aprire l'elenco degli stati
 
-Andate in **Incidenti → Impostazioni → Stato incidente**. La scheda **Incidente Stati** elenca i vostri stati nel loro ordine, una riga ciascuno: una maniglia per trascinarlo, il suo colore e il suo nome, come **Conta come** un incidente in esso, e la sua descrizione. La frase sotto il titolo lo dice chiaramente: gli incidenti scendono soltanto lungo questo elenco.
+Andate in **Incidenti → Impostazioni → Stato incidente**. La scheda **Stati incidente** elenca i vostri stati nel loro ordine, una riga ciascuno: una maniglia per trascinarlo, il suo colore e il suo nome, come **Conta come** un incidente in esso, e la sua descrizione. La frase sotto il titolo lo dice chiaramente: gli incidenti scendono soltanto lungo questo elenco.
 
 ### Creare lo stato
 
@@ -149,7 +149,7 @@ Due differenze rispetto agli stati:
 - **Non c'è protezione contro l'eliminazione.** Qualsiasi gravità può essere eliminata, comprese le tre predefinite.
 - **Non ci sono flag da ereditare, né «Conta come».** Una nuova gravità si comporta esattamente come quelle predefinite — è un'etichetta con un colore e un grado.
 
-Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di reperibilità**, il campo **Incidente Gravità** di una regola è un criterio di corrispondenza. Elencarvi **Critical Incident** è il modo in cui si esprime «avvisa il team del database per tutto ciò che è critico» — la policy di reperibilità vive sulla regola, non sulla gravità.
+Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di reperibilità**, il campo **Gravità degli incidenti** di una regola è un criterio di corrispondenza. Elencarvi **Critical Incident** è il modo in cui si esprime «avvisa il team del database per tutto ciò che è critico» — la policy di reperibilità vive sulla regola, non sulla gravità.
 
 **Cambiare la gravità di un incidente** — con **Modifica** sulla scheda **Dettagli dell'incidente** dell'incidente, tramite l'API o Terraform (`incidentSeverityId`), con un workflow o con gli strumenti di IA — fa le stesse quattro cose in qualunque modo venga inviata: il feed dell'incidente riceve una voce **Incident updated** che nomina la nuova gravità, le scadenze dello SLA dell'incidente vengono ricalcolate, la sua regola di promemoria viene riabbinata, e le metriche degli incidenti contano un cambio di gravità. Salvare la gravità che l'incidente ha già non fa nulla di tutto ciò, quindi modificare solo il titolo di un incidente lascia le sue scadenze SLA, i suoi promemoria e il conteggio dei cambi di gravità come erano. La gravità di un avviso funziona allo stesso modo per la sua voce di feed e i suoi promemoria.
 

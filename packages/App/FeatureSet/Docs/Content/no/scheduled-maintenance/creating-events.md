@@ -113,20 +113,20 @@ Alt i skjemaet kan endres på hendelsens egne sider, unntatt de tre abonnenttids
 
 | For å endre                                 | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Tittelen, vinduet eller etikettene          | **Rediger** på kortet **Maintenance Details** i **Oversikt**, trinnet **Hendelse** |
+| Tittelen, vinduet eller etikettene          | **Rediger** på kortet **Detaljer om vedlikehold** i **Oversikt**, trinnet **Hendelse** |
 | Statussidene, når den publiseres, eller påminnelsene | Samme **Rediger**, trinnet **Statussider**                             |
 | Monitorene, statusen deres eller andre ressurser | **Rediger** på kortet **Berørte ressurser**                               |
 | Beskrivelsen                                | **Beskrivelse** i sidemenyen                                                   |
 | Eierne                                      | **Eiere** i sidemenyen                                                         |
 
-**Endre overvåkingsstatus til** kan endres til hendelsen starter. Etter det viser kortet den skrivebeskyttet, fordi monitorene allerede har den statusen. En redigering legger til en oppføring i **Planlagt Vedlikehold Feed** som nevner hva den endret; å lagre uten endringer legger ikke til noen.
+**Endre overvåkingsstatus til** kan endres til hendelsen starter. Etter det viser kortet den skrivebeskyttet, fordi monitorene allerede har den statusen. En redigering legger til en oppføring i **Feed for planlagt vedlikehold** som nevner hva den endret; å lagre uten endringer legger ikke til noen.
 
 ## Skriv notater mens arbeidet pågår
 
-- **Offentlige notater** er oppdateringer til kundene dine: de vises på statussidene til hendelsen, og hvert av dem kan gi abonnentene deres beskjed med **Notify status page subscribers**.
+- **Offentlige notater** er oppdateringer til kundene dine: de vises på statussidene til hendelsen, og hvert av dem kan gi abonnentene deres beskjed med **Varsle abonnentene på statussiden**.
 - **Private notater** er bare for teamet ditt.
 
-Skriv et på hendelsens side **Offentlige notater** eller **Private notater**, eller fra menyen **Handlinger** i **Planlagt Vedlikehold Feed** med **Add Public Note** eller **Legg til privat notat**. Den samme menyen kjører en runbook med **Execute Runbook**. En notatmal fyller ut tekst teamet ditt ofte skriver: se [Vedlikeholdsregler og innstillinger](/docs/scheduled-maintenance/settings#notatmaler).
+Skriv et på hendelsens side **Offentlige notater** eller **Private notater**, eller fra menyen **Handlinger** i **Feed for planlagt vedlikehold** med **Legg til offentlig notat** eller **Legg til privat notat**. Den samme menyen kjører en runbook med **Kjør runbook**. En notatmal fyller ut tekst teamet ditt ofte skriver: se [Vedlikeholdsregler og innstillinger](/docs/scheduled-maintenance/settings#notatmaler).
 
 ## Opprett hendelser fra kode
 

@@ -1,3 +1,6 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
@@ -94,6 +97,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   let widthClass: string = "max-w-2xl";
 
   if (props.size === SideOverSize.Small) {
@@ -217,7 +221,10 @@ const SideOver: FunctionComponent<ComponentProps> = (
                       id={descriptionId}
                       data-testid="side-over-description"
                     >
-                      {translateString(props.description) ?? props.description}
+                      {readAsWritten(
+                        translateString(props.description) ?? props.description,
+                        translator.language,
+                      )}
                     </p>
                   ) : (
                     <></>

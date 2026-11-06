@@ -78,7 +78,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 - `name` e `siteType` são obrigatórios. `siteType` precisa ser um dos tipos de site do projeto.
 - `parentName` indica o site pai, que pode estar no mesmo arquivo: as linhas sem pai, ou com um pai que já existe, entram primeiro, e depois os filhos delas. Deixe vazio para um site de nível mais alto.
-- Uma linha cujo pai não é encontrado é ignorada, e os resultados a listam. **Preview Import** mostra o que o arquivo vai criar antes de qualquer coisa ser gravada.
+- Uma linha cujo pai não é encontrado é ignorada, e os resultados a listam. **Pré-visualizar importação** mostra o que o arquivo vai criar antes de qualquer coisa ser gravada.
 
 ## O mapa
 

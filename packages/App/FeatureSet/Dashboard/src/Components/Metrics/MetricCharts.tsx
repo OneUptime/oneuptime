@@ -119,6 +119,7 @@ import {
   MORE_SERIES_TEMPLATE,
   SERIES_COUNT_TEMPLATE,
 } from "./SeriesCounts";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -1382,13 +1383,13 @@ function renderSeriesControls(input: {
           />
           {hiddenFromTopN > 0 ? (
             <span className="text-gray-400">
-              {" · "}
+              <InlineSeparator />
               {translator.translateText(rankedByLabel)}
             </span>
           ) : null}
           {controls.hiddenSeries.size > 0 ? (
             <span className="text-gray-400">
-              {" · "}
+              <InlineSeparator />
               {translator.translateTemplate("{{count}} hidden", {
                 count: translator.formatNumber(controls.hiddenSeries.size),
               })}

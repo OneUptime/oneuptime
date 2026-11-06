@@ -77,7 +77,7 @@ Varje villkor jämför en sak hos incidenten, larmet eller den schemalagda under
 | Kriterium | Vad det kontrollerar |
 | --- | --- |
 | **Monitorer** | De monitorer som incidenten eller den schemalagda underhållshändelsen påverkar, eller den monitor som utlöste larmet. |
-| **Incident Allvarligheter** / **Larm Allvarligheter** | Incidentens eller larmets allvarlighetsgrad. Schemalagda underhållshändelser har ingen allvarlighetsgrad, så deras regler erbjuder det inte. |
+| **Allvarlighetsgrader för incidenter** / **Allvarlighetsgrader för larm** | Incidentens eller larmets allvarlighetsgrad. Schemalagda underhållshändelser har ingen allvarlighetsgrad, så deras regler erbjuder det inte. |
 | **Incidentetiketter** / **Larmetiketter** / **Händelseetiketter** | Etiketterna på själva incidenten, larmet eller händelsen, inklusive dem som etikettregler lade till när den skapades. |
 | **Övervakningsetiketter** | Etiketterna på dess monitorer. Ge dina monitorer etiketten `production` eller `staging` för att köra ett runbook i bara en miljö. |
 | **Incidenttitel** / **Larmtitel** / **Händelsetitel** | Dess titel. |
@@ -98,7 +98,7 @@ Med två eller fler villkor väljer du **Matcha alla** (varje villkor måste var
 - Monitorvillkor kontrolleras en monitor i taget. Med **Matcha alla** kräver "**Övervakningsnamn** innehåller `api`" och "**Övervakningsetiketter** har någon av _Production_" en monitor som uppfyller båda, inte en monitor för vartdera.
 - Runbook-regler körs efter etikettregler, så en etikett som en etikettregel sätter på en ny incident, ett nytt larm eller en ny händelse kan starta ett runbook.
 - En incident eller ett larm som skapas redan löst startar inget runbook: det var över innan det registrerades. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
-- Ett villkor på en annan produkts allvarlighetsgrad — till exempel **Larm Allvarligheter** i en incidentregel — kan aldrig bli sant, så API:et vägrar spara det.
+- Ett villkor på en annan produkts allvarlighetsgrad — till exempel **Allvarlighetsgrader för larm** i en incidentregel — kan aldrig bli sant, så API:et vägrar spara det.
 - Regler utvärderas en gång, när händelsen skapas. Att redigera en incidents titel, allvarlighetsgrad eller etiketter senare utlöser inte reglerna igen.
 
 ## Exempel
@@ -165,7 +165,7 @@ Regler ser händelsen som den skapades, med de etiketter som etikettregler lade 
 :::
 
 :::details API:et avvisar en regel med "can only be used by"
-Ett allvarlighetskriterium hör till en produkt. **Larm Allvarligheter** i en incidentregel, eller **Incident Allvarligheter** i en larmregel, skulle aldrig kunna matcha, så regeln avvisas med ett meddelande som "Alert Severities can only be used by alert runbook rules." Ta bort det villkoret. Instrumentpanelen erbjuder bara varje produkts egna kriterier.
+Ett allvarlighetskriterium hör till en produkt. **Allvarlighetsgrader för larm** i en incidentregel, eller **Allvarlighetsgrader för incidenter** i en larmregel, skulle aldrig kunna matcha, så regeln avvisas med ett meddelande som "Alert Severities can only be used by alert runbook rules." Ta bort det villkoret. Instrumentpanelen erbjuder bara varje produkts egna kriterier.
 :::
 
 ## Nästa steg

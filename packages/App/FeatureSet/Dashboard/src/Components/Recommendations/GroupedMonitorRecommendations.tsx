@@ -76,6 +76,7 @@ import {
 import RecommendationToolbar from "./RecommendationToolbar";
 import { notifyRecommendationsChanged } from "./RecommendationsChanged";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import {
   RecommendationCounts,
   RecommendationFilterState,
@@ -771,7 +772,7 @@ const GroupedMonitorRecommendations: FunctionComponent<ComponentProps> = (
                   : ""}
               </span>
               <span className="text-gray-300" aria-hidden="true">
-                ·
+                <InlineSeparator markOnly />
               </span>
               <button
                 type="button"

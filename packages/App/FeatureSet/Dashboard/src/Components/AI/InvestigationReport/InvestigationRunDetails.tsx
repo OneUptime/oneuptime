@@ -32,6 +32,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface InvestigationRunUsage {
   toolCallCount: number;
@@ -151,7 +152,7 @@ export function describeKubectlUsage(
           other: "{{count}} kubectl commands ({{notes}})",
         },
         executed,
-        { notes: notes.join(", ") },
+        { notes: joinList(notes) },
       )
     : translator.translatePlural(
         {
@@ -273,7 +274,7 @@ export function describeInfrastructureUsage(
           other: "{{count}} infrastructure commands ({{notes}})",
         },
         executed,
-        { notes: notes.join(", ") },
+        { notes: joinList(notes) },
       )
     : translator.translatePlural(
         {

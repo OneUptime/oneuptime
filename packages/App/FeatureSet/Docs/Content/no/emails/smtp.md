@@ -34,7 +34,7 @@ Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Var
 
 :::tabs
 @tab Prosjekt
-Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, og klikk på **Opprett SMTP Konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**.
+Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**.
 @tab Selvdriftet instans
 Åpne **Innstillinger** i Admin Dashboard, og deretter **Varsler > E-poster** i sidemenyen (**Varsler** er slått sammen fra start). Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og sett **E-posttjenertype** til `Custom SMTP`. Klikk deretter på **Rediger SMTP-konfig** i kortet **Egendefinerte e-post- og SMTP-innstillinger**, som vises under.
 :::

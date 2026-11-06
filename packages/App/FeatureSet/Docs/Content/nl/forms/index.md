@@ -113,7 +113,7 @@ Een sjabloon en een formulier besparen u allebei het twee keer intypen van hetze
 | Wat men ziet | Uw monitoren, beleid, eigenaren en elk veld | Naam, beschrijving en vragen van het formulier, en alleen de opties die u aanbiedt |
 | Statuspagina's | Wat het sjabloon en het meldformulier zeggen | Verborgen tot iemand die het afhandelt het incident publiceert |
 
-Ze werken samen. Geef een incidentformulier op de pagina **Bij verzenden** een **Incident Sjabloon**, en elk incident dat het meldt, wordt vanuit dat sjabloon gemeld: bouw het sjabloon voor wat uw team bij het incident nodig heeft, en het formulier voor wat u de inzender wilt vragen.
+Ze werken samen. Geef een incidentformulier op de pagina **Bij verzenden** een **Incidentsjabloon**, en elk incident dat het meldt, wordt vanuit dat sjabloon gemeld: bouw het sjabloon voor wat uw team bij het incident nodig heeft, en het formulier voor wat u de inzender wilt vragen.
 
 ## Inzendingen
 

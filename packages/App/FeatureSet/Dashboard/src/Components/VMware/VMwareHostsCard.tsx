@@ -28,6 +28,7 @@ import {
   formatBytes,
   formatMhz,
 } from "../../Pages/VMware/Utils/VMwareResourceUtils";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A vCenter's ESXi hosts at a glance - what vCenter's own Hosts tab opens
@@ -274,7 +275,7 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
                             (fact: string, index: number): ReactElement => {
                               return (
                                 <React.Fragment key={`${fact}-${index}`}>
-                                  {index > 0 ? " · " : ""}
+                                  {index > 0 ? <InlineSeparator /> : null}
                                   <span
                                     className={
                                       index === 0 && props.showCluster !== false

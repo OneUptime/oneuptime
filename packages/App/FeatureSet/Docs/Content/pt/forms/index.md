@@ -113,7 +113,7 @@ Um modelo e um formulário evitam que você digite o mesmo incidente duas vezes,
 | O que se vê | Seus monitores, políticas, proprietários e cada campo | O nome, a descrição e as perguntas do formulário, e só as opções que você escolheu oferecer |
 | Páginas de status | O que disserem o modelo e o formulário de declaração | Oculto até alguém da resposta publicar o incidente |
 
-Eles funcionam juntos. Dê a um formulário de incidentes um **Incidente Modelo** na página **Ao enviar** dele, e cada incidente que ele declara é declarado a partir desse modelo: monte o modelo com o que sua equipe precisa no incidente, e o formulário com o que você quer perguntar a quem envia.
+Eles funcionam juntos. Dê a um formulário de incidentes um **Modelo de incidente** na página **Ao enviar** dele, e cada incidente que ele declara é declarado a partir desse modelo: monte o modelo com o que sua equipe precisa no incidente, e o formulário com o que você quer perguntar a quem envia.
 
 ## Envios
 

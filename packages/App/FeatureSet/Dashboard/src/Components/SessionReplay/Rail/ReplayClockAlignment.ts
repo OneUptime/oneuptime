@@ -1,5 +1,10 @@
 import Span from "Common/Models/AnalyticsModels/Span";
 import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import {
   REPLAY_CLOCK_ANCHOR_MAX_DELTA_MS,
   REPLAY_CLOCK_ANCHOR_MIN_PAIRS,
   REPLAY_CLOCK_ANCHOR_TOLERANCE_MS,
@@ -384,11 +389,48 @@ export function formatAlignmentUncertainty(
  * The header note. Names the cause, quantifies it. Pending returns an
  * empty string so nothing is claimed before telemetry has loaded.
  */
+// The header note's sentences, worded whole in each language.
+export const CLOCK_ANCHORED_NOTE: PluralTemplate = {
+  one: "Server times anchored via {{count}} trace",
+  other: "Server times anchored via {{count}} traces",
+};
+export const CLOCK_ANCHORED_WITHIN_NOTE: PluralTemplate = {
+  one: "Server times anchored via {{count}} trace ({{uncertainty}})",
+  other: "Server times anchored via {{count}} traces ({{uncertainty}})",
+};
+export const CLOCK_SKEW_NOTE: string = translationKey(
+  "Server times unanchored; clock skew up to {{skew}}",
+);
+export const CLOCK_UNANCHORED_NOTE: string = translationKey(
+  "Server times unanchored; no trace shared between the recording and the backend yet",
+);
+
 export function describeClockAlignment(
   alignment: ReplayClockAlignmentState,
+  // The reader's; without one, the English it always was.
+  translator?: Translator | undefined,
 ): string {
   if (alignment.status === "pending") {
     return "";
+  }
+
+  if (translator) {
+    if (alignment.status === "anchored") {
+      return alignment.uncertaintyMs > 0
+        ? translator.translatePlural(
+            CLOCK_ANCHORED_WITHIN_NOTE,
+            alignment.pairCount,
+            { uncertainty: formatAlignmentUncertainty(alignment) },
+          )
+        : translator.translatePlural(CLOCK_ANCHORED_NOTE, alignment.pairCount);
+    }
+
+    return alignment.uncertaintyMs > 0
+      ? translator.translateTemplate(CLOCK_SKEW_NOTE, {
+          skew: formatSecondsForCopy(alignment.uncertaintyMs),
+        })
+      : translator.translateText(CLOCK_UNANCHORED_NOTE) ||
+          CLOCK_UNANCHORED_NOTE;
   }
 
   if (alignment.status === "anchored") {

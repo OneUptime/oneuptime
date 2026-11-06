@@ -7,6 +7,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { PlaylistEntry } from "./PlaylistDashboards";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The player's one bar (issue #5235), above the dashboard on screen: what
@@ -196,7 +197,9 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
                   </span>
                   {props.position > 0 ? (
                     <>
-                      <span aria-hidden="true">·</span>
+                      <span aria-hidden="true">
+                        <InlineSeparator markOnly />
+                      </span>
                       <span className="flex-none whitespace-nowrap">
                         {translator.translateTemplate(
                           "{{position}} of {{count}}",
@@ -213,7 +216,7 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
                   {upcoming ? (
                     <>
                       <span aria-hidden="true" className="max-sm:hidden">
-                        ·
+                        <InlineSeparator markOnly />
                       </span>
                       <span
                         className="min-w-0 truncate max-sm:hidden"

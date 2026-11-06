@@ -744,7 +744,7 @@ URL 永遠不會包含參照。它包含 `userKey`（儲存此人所用的假名
 
 日誌與追蹤分頁，以及錯誤分頁的伺服器端那一半，都以與日誌、追蹤與例外狀況頁面相同的權限讀取；沒有這些權限的角色會看到一個寫明所需權限的鎖定分頁。伺服器標記過的行，會透過錨定到錄製本身觀察到的追蹤，放到錄製的時鐘上；面板會說明錨定是否成功（「server times anchored via 6 traces」），或者某一行的時間是近似的。
 
-面板的搜尋方塊（ `/` ）接受自由文字與搜尋詞： `status:500` 、 `status:>=400` 、 `status:5xx` 、 `status:failed` 、 `level:error` 、 `kind:network` 、 `trace:<id>` 、 `method:post` 、 `url:/api/orders` 、 `service:payment` 。範圍切換可以把任何分頁縮小到播放位置前後 ±30 秒。面板會跟隨播放位置，直到你捲動它；一個 **Resume following** 標籤（或 `M` ）會重新開啟跟隨。
+面板的搜尋方塊（ `/` ）接受自由文字與搜尋詞： `status:500` 、 `status:>=400` 、 `status:5xx` 、 `status:failed` 、 `level:error` 、 `kind:network` 、 `trace:<id>` 、 `method:post` 、 `url:/api/orders` 、 `service:payment` 。範圍切換可以把任何分頁縮小到播放位置前後 ±30 秒。面板會跟隨播放位置，直到你捲動它；一個 **繼續跟隨** 標籤（或 `M` ）會重新開啟跟隨。
 
 ### 鍵盤快速鍵
 

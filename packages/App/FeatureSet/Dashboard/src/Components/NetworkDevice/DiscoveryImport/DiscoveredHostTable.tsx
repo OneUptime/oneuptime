@@ -60,6 +60,7 @@ import {
   isSelectedIpAddress,
   toggleSelectionForShownHosts,
 } from "../DiscoveredHostFilter";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * THE HOSTS OF A SCAN, TO CHOOSE FROM (Network > Discovery > Review Results,
@@ -721,19 +722,19 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
                   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.",
                 )}
               >
-                {" · "}
+                <InlineSeparator />
                 {translator.translateText("NetBIOS name")}
               </span>
             )}
             {secondaryFullName && (
               <span className="text-gray-400">
-                {" · "}
+                <InlineSeparator />
                 {secondaryFullName}
               </span>
             )}
             {secondaryDnsHostname && (
               <span className="text-gray-400">
-                {" · "}
+                <InlineSeparator />
                 {secondaryDnsHostname}
               </span>
             )}

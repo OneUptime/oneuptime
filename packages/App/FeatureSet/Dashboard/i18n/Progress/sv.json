@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11559
+    "keys": 45983,
+    "untranslated": 11020
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -78,6 +78,7 @@
     "Export",
     "Fahrenheit",
     "Failover",
+    "Favicon",
     "Feed",
     "Filter",
     "Filter:",
@@ -196,6 +197,7 @@
     "Portugal (+351)",
     "Position",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Precision",
     "Problem",
     "Process",
@@ -325,6 +327,7 @@
     "message",
     "min",
     "mm",
+    "monitor",
     "ms",
     "name",
     "nova-compute",

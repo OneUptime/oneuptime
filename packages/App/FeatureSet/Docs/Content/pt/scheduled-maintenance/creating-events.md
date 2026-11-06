@@ -113,20 +113,20 @@ Tudo o que está no formulário pode ser alterado nas páginas do evento, exceto
 
 | Para alterar                                | Vá em                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| O título, a janela ou os rótulos            | **Editar** no cartão **Maintenance Details** da sua **Visão geral**, passo **Evento** |
+| O título, a janela ou os rótulos            | **Editar** no cartão **Detalhes da manutenção** da sua **Visão geral**, passo **Evento** |
 | As páginas de status, quando ele é publicado, ou os lembretes | O mesmo **Editar**, passo **Páginas de status**                 |
 | Os monitores, o status deles ou outros recursos | **Editar** no cartão **Recursos afetados**                                  |
 | A descrição                                 | **Descrição** no menu lateral dele                                             |
 | Os proprietários                            | **Proprietários** no menu lateral dele                                         |
 
-**Alterar status do monitor para** pode ser alterado até o evento começar. Depois disso, o cartão o mostra só para leitura, porque os monitores já estão nesse status. Uma edição adiciona ao **Agendado Manutenção Feed** uma entrada que nomeia o que ela mudou; salvar sem mudar nada não adiciona nenhuma.
+**Alterar status do monitor para** pode ser alterado até o evento começar. Depois disso, o cartão o mostra só para leitura, porque os monitores já estão nesse status. Uma edição adiciona ao **Feed da manutenção programada** uma entrada que nomeia o que ela mudou; salvar sem mudar nada não adiciona nenhuma.
 
 ## Publicar notas enquanto o trabalho avança
 
-- As **Notas públicas** são atualizações para os seus clientes: aparecem nas páginas de status do evento, e cada uma pode avisar os assinantes delas com **Notify status page subscribers**.
+- As **Notas públicas** são atualizações para os seus clientes: aparecem nas páginas de status do evento, e cada uma pode avisar os assinantes delas com **Notificar os assinantes da página de status**.
 - As **Notas privadas** são só para a sua equipe.
 
-Escreva uma na página **Notas públicas** ou **Notas privadas** do evento, ou pelo menu **Ações** do **Agendado Manutenção Feed** com **Add Public Note** ou **Adicionar nota privada**. O mesmo menu executa um runbook com **Execute Runbook**. Um modelo de nota preenche um texto que a sua equipe escreve com frequência: veja [Regras e configurações da manutenção](/docs/scheduled-maintenance/settings#modelos-de-notas).
+Escreva uma na página **Notas públicas** ou **Notas privadas** do evento, ou pelo menu **Ações** do **Feed da manutenção programada** com **Adicionar nota pública** ou **Adicionar nota privada**. O mesmo menu executa um runbook com **Executar runbook**. Um modelo de nota preenche um texto que a sua equipe escreve com frequência: veja [Regras e configurações da manutenção](/docs/scheduled-maintenance/settings#modelos-de-notas).
 
 ## Criar eventos pelo código
 

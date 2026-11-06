@@ -226,6 +226,7 @@ import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import InlineLoadingLine from "../Loader/InlineLoadingLine";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 /*
  * A row's Delete whose dialog first asks the server what the delete would
@@ -5473,7 +5474,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                       ),
                     }}
                   />
-                  <span className="mx-1.5">·</span>
+                  <span className="mx-1.5">
+                    <InlineSeparator markOnly />
+                  </span>
                   <TranslatedSentence
                     template="{{enterKey}} to select"
                     slots={{
