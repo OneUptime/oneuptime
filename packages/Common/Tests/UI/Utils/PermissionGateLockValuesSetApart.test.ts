@@ -57,6 +57,7 @@ import PermissionGate, {
   NEEDS_PERMISSION_TEMPLATE,
 } from "../../../UI/Utils/PermissionGate";
 import { buildNoAccessState } from "../../../UI/Components/ModelTable/ModelTableEmptyState";
+import { TableEmptyStateProps } from "../../../UI/Components/Table/TableEmptyState";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import Permission from "../../../Types/Permission";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
@@ -166,17 +167,17 @@ describe("what would allow it, in Persian", () => {
   });
 
   test("a list's no-access state carries the title set apart", () => {
-    const state: { description?: string | undefined } = buildNoAccessState({
+    const state: TableEmptyStateProps = buildNoAccessState({
       neededPermissions: PermissionGate.getNeededPermissionsSentence(
         PermissionGate.getReadPermissionsOfItsKind(new Monitor()),
         persian,
       ),
-      translate: (text: string): string | undefined => {
-        return persian.translateText(text);
+      translate: (text: string): string => {
+        return persian.translateText(text) || text;
       },
     });
 
-    expect(state.description).toContain(isolated("Read Monitor"));
+    expect(String(state.description)).toContain(isolated("Read Monitor"));
   });
 });
 

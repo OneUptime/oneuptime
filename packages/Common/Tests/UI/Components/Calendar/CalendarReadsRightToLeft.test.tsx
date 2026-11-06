@@ -263,21 +263,21 @@ describe("a block's stripe on its leading edge", () => {
   test("left to right, the stripe is on the left, as it always was", () => {
     const style: SoftEventStyle = getSoftEventStyle("#d97706");
 
-    expect(style.boxShadow.startsWith("inset 3px 0 0 ")).toBe(true);
+    expect(String(style.boxShadow).startsWith("inset 3px 0 0 ")).toBe(true);
     expect(getSoftEventStyle("#d97706", "ltr")).toEqual(style);
   });
 
   test("right to left, the stripe is on the right, in both themes", () => {
     const style: SoftEventStyle = getSoftEventStyle("#d97706", "rtl");
 
-    expect(style.boxShadow.startsWith("inset -3px 0 0 ")).toBe(true);
+    expect(String(style.boxShadow).startsWith("inset -3px 0 0 ")).toBe(true);
     expect(
       String(style[SOFT_EVENT_DARK_SHADOW_PROPERTY]).startsWith(
         "inset -3px 0 0 ",
       ),
     ).toBe(true);
     // Only the stripe's side is turned: its colour, the ring and the wash stay.
-    expect(style.boxShadow.replace("inset -3px", "inset 3px")).toBe(
+    expect(String(style.boxShadow).replace("inset -3px", "inset 3px")).toBe(
       getSoftEventStyle("#d97706").boxShadow,
     );
     expect(style.backgroundColor).toBe(
