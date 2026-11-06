@@ -906,6 +906,7 @@ import { AddOpenStackCloudCheck1808993900000 } from "./1808993900000-AddOpenStac
 import { AddOpenStackUsageAndBudgets1808993950000 } from "./1808993950000-AddOpenStackUsageAndBudgets";
 import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpenStackProjectNotices";
 import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
+import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
 
 export default [
   InitialMigration,
@@ -1816,4 +1817,5 @@ export default [
   AddOpenStackUsageAndBudgets1808993950000,
   AddOpenStackProjectNotices1808994120000,
   AddWorkflowLogRunAgain1808994200000,
+  AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
 ];

@@ -3420,9 +3420,61 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       }
 
       await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+      /*
+       * The table fits its card: in German at 1280, beside a 12-hour time
+       * and "Konfigurationsänderung", the By column's 10rem floor held it
+       * 16 pixels past its card, and the Region scrolled (#5704's review).
+       */
+      if (isDesktop()) {
+        expect(
+          await page
+            .getByTestId("table-scroll")
+            .evaluate((element: HTMLElement): number => {
+              return element.scrollWidth - element.clientWidth;
+            }),
+        ).toBeLessThanOrEqual(1);
+      }
+
       await shoot(page, `account-changes-ai-${language}`);
     });
   }
+});
+
+/*
+ * #5704's review: a browser set to US English reads times on a 12-hour
+ * clock, each time wider by its AM or PM. In German at 1280, beside
+ * "Konfigurationsänderung", the By column's 10rem floor then held the table
+ * 16 pixels past its card, and the Region scrolled. Its 7rem floor lets it
+ * fit (CloudChangesTable's CLOUD_CHANGE_BY_CONTENT_CLASS_NAME).
+ */
+test.describe("an account's Changes in German, on a 12-hour clock", () => {
+  test.use({ locale: "en-US" });
+
+  test("the table fits its card at 1280: no column scrolls past it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "A phone draws each change as a card.");
+
+    await openAccounts(page, `${AI_CHANGES_PATH}&lang=de`);
+    await waitForAiLines(page);
+
+    // The times are on a 12-hour clock.
+    await expect(
+      page.locator("tbody tr").first().locator("td").nth(1),
+    ).toHaveText(/\b(AM|PM)$/);
+    expect(
+      await page
+        .getByTestId("table-scroll")
+        .evaluate((element: HTMLElement): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+    ).toBeLessThanOrEqual(1);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-changes-ai-de-12-hour");
+  });
 });
 
 /*

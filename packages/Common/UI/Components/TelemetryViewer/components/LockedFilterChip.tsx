@@ -51,8 +51,15 @@ import useTranslator from "../../../Utils/UseTranslator";
 
 export const COPIED_FEEDBACK_MS: number = 1500;
 
+/*
+ * Never wider than its row: a long value - an Azure resource's id on a
+ * phone - wraps inside the chip (LOCKED_FILTER_CHIP_VALUE_CLASS_NAME)
+ * rather than pushing the page sideways.
+ */
 export const LOCKED_FILTER_CHIP_CLASS_NAME: string =
-  "inline-flex items-center gap-1 rounded-md border border-gray-300 bg-gray-100 py-0.5 pl-2 pr-2 text-xs text-gray-700";
+  "inline-flex max-w-full items-center gap-1 rounded-md border border-gray-300 bg-gray-100 py-0.5 pl-2 pr-2 text-xs text-gray-700";
+
+export const LOCKED_FILTER_CHIP_VALUE_CLASS_NAME: string = "min-w-0 break-all";
 
 export const COPIED_SEARCH_SYNTAX_ANNOUNCEMENT: string = translationKey(
   "Copied search syntax",
@@ -547,10 +554,15 @@ const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
               : "text-gray-400"
         }`}
       />
-      <span className="font-medium text-gray-500">
+      <span className="shrink-0 font-medium text-gray-500">
         {translator.translateText(props.displayKey)}:
       </span>
-      <span>{props.displayValue}</span>
+      <span
+        className={LOCKED_FILTER_CHIP_VALUE_CLASS_NAME}
+        data-testid="locked-filter-chip-value"
+      >
+        {props.displayValue}
+      </span>
       {props.hasScopeMatches ? (
         <span
           className="inline-flex items-center"
@@ -601,7 +613,7 @@ const DetailedLockedFilterChip: FunctionComponent<
   const control: ReactElement = (
     <button
       type="button"
-      className="inline-flex cursor-help items-center gap-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+      className="inline-flex min-w-0 max-w-full cursor-help items-center gap-1 rounded text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
       aria-label={getLockedFilterChipAriaLabel(
         props.displayKey,
         props.displayValue,

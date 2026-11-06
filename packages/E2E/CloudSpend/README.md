@@ -34,7 +34,10 @@ summary (`summarizeCloudAccountCosts`, `summarizeCloudAccountSavings` from
 `Common/Types/Cloud/CloudCost`), each day's sum and each breakdown (the
 `/aggregate` sums, in the window, currency and accounts asked for), the
 budgets' month so far. So the Overview, Costs, an account's Costs and Budgets
-agree with each other, as they do for real.
+agree with each other, as they do for real. Yesterday, `data-lake`'s Amazon
+Athena cost about two and a half times its usual day: the one unusual day
+on Costs, found by the writer's own `findCloudCostAnomalies`
+(`Common/Types/Cloud/CloudCostAnomaly`).
 
 Seven ways to spend less from the clouds' recommenders (rightsizing, a
 Savings Plan, an idle volume and address, a gp2 volume to upgrade), three
@@ -54,6 +57,16 @@ App Platforms environments with four apps in the accounts.
 | `?fail=costs`          | The first read of each costs card fails; Refresh answers |
 | `?lang=de`, `?lang=fa` | German, Persian (right to left)                          |
 | `?theme=dark`          | Dark                                                     |
+| `?usage=learning`      | `shop-web-1` read for three days only: not sized yet     |
+| `?usage=fits`          | `shop-web-1` busy enough for its size: right-sized       |
+
+The figures are made up from the page's own clock, and the accounts' costs
+read two hours before it, but never before today's start (a read made before
+midnight would end at yesterday while every page sums today's rows). To run
+the whole suite at another hour, start the page's clock there:
+`CLOUD_SPEND_CLOCK=2026-03-01T00:30:00Z npm run test-cloud-spend-ui`. The
+suite's own "at any hour of the UTC day" tests run at 00:30 and 12:00 UTC on a
+month's first day.
 
 Every read is recorded on `window.__cloudSpendFixture` (`listRequests`,
 `countRequests`, `itemRequests`, `aggregateRequests`, `creates`, `updates`
