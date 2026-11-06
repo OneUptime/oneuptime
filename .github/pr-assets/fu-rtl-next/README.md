@@ -16,3 +16,15 @@ and canvas changes (the same code as `main`); "after" is the branch.
 - `separator-beside-persian-digits.png`: the separators considered between two facts beside
   Persian digits, in the product's font stack. The middle dot reads as Persian's zero ("۰");
   the bullet, chosen, reads as a separator.
+
+From the UI review, drawn with the same production components, Tailwind runtime, Theme.css
+and Inter on a Persian page, at device scale 2. "Before" is the builder's branch; "after" is
+the review's.
+
+- `calendar-overlap-fa-*`: a week in a 760px card with two blocks at once on Monday. Before,
+  react-big-calendar placed each block by its left edge, so the first sat at the day's far,
+  left end; after, it is told the page reads right to left (rtl): the first block sits at the
+  day's right edge and the next beside it.
+- `chart-axis-fa-*`: a line chart's time axis. Before, each Persian label was laid out left
+  to right and put its day at the far end of its hour; after, each label reads the way its
+  own words do: its day, its month, then its hour.
