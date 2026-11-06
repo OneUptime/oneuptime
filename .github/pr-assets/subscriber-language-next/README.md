@@ -3,17 +3,19 @@
 How these were made: the subscriber lists are the real status page routes (StatusPagesRoutes, with
 the side menu and breadcrumbs) bundled with the Dashboard's own esbuild config and rendered in
 headless Chromium with the model APIs answered from memory, the Dashboard's Tailwind runtime and
-the Inter font, at 2x. The emails are the real uptime report, rendered through MailService.render
-from a report built by the real tree util and written in each language by StatusPageReportText.
-`before-*` is the builder's branch at 741bce83ea, rendered the same way. They are not screenshots
-of a running stack, and every name and number in them is made up. The status page's default
-language is German (Deutsch) in every list.
+the Inter font, at 2x, on main as merged at bb66a84800. The `before-list-*` shots are the same
+build with the builder's cell sentence ("Page default (Deutsch)") put back in the new one's
+place. The emails are the real uptime report, rendered through MailService.render from a report
+built by the real tree util and written in each language by StatusPageReportText; the
+`before-report-*` shots are the builder's branch at 741bce83ea, rendered the same way. They are
+not screenshots of a running stack, and every name and number in them is made up. The status
+page's default language is German (Deutsch) in every list.
 
 - `before-list-ru.png`, `after-list-ru.png`: Microsoft Teams Subscribers in Russian. A subscriber
   who follows the page read "По умолчанию д..." - cut to fit, the language gone. It now reads
   "Deutsch (по умолчанию)", the language first, so a cut cell still names it.
 - `before-list-de-dark.png`, `after-list-de-dark.png`: Email Subscribers in German, dark:
-  "Seitenstandard (Deuts" became "Deutsch (Standard)".
+  "Seitenstandard (..." became "Deutsch (Standar...".
 - `before-list-en.png`, `after-list-en.png`: the same list in English, beside the side menu at
   1280: "Page default (De..." became "Deutsch (default)".
 - `after-list-fa.png`: in Persian, read from the right.
