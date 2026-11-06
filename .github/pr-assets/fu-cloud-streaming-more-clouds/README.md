@@ -42,3 +42,23 @@ streaming Azure and Google Cloud is new.
 - `stream-azure-dialog-dark-de-desktop.png`, `stream-gcp-dialog-fa-desktop.png`: the Azure dialog
   dark in German, and the Google Cloud dialog in Persian, laid out right to left with the command
   and the filter left to right.
+
+## UI review
+
+Taken the same way, with the same fixture, by the UI review: the whole dialog at 1280px (the
+dialog alone), and Stop streaming at 390px (2x). "Before" is the builder's branch, "after" the
+review's.
+
+- `review-azure-no-subscription-before.png`, `-after.png`: an Azure connection that has read no
+  subscription yet (just connected, or its reads fail). Before, its one field was folded under
+  More fields while Turn on reading sat locked with no reason; after, the dialog asks for the
+  subscriptions under its question, and a locked Turn on reading says why. Every step's button
+  starts where its words start.
+- `review-azure-subscription-typo-before.png`, `-after.png`: reading on, and a subscription typed
+  that is no ID. Before, step 1 said "this command makes them in ?"; after, it keeps saying where
+  it reads.
+- `review-azure-stop-phone-before.png`, `-after.png`: Stop streaming on Azure at 390px. Its
+  twenty-line command is drawn 240px tall at most, as the dialogs' commands are, so the question
+  and its buttons stay in view.
+- `review-azure-no-subscription-dark-de-after.png`, `review-azure-no-subscription-fa-after.png`:
+  the same dialog dark in German, and in Persian, right to left.
