@@ -31,7 +31,7 @@ flowchart TB
 
 ## Amazon Web Services
 
-A conexão lê os custos com `ce:GetCostAndUsage` e as recomendações com `cost-optimization-hub:ListRecommendations`. Cada um precisa que algo seja ativado na conta primeiro:
+A conexão lê os custos com `ce:GetCostAndUsage`, seus compromissos com `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage` e `ce:GetReservationUtilization`, e as recomendações com `cost-optimization-hub:ListRecommendations`. O Cost Explorer e o Cost Optimization Hub precisam ser ativados na conta primeiro:
 
 :::steps
 ### Ativar o Cost Explorer
@@ -43,7 +43,13 @@ Abra o Cost Explorer uma vez no console AWS Billing and Cost Management: a AWS p
 Abra o Cost Optimization Hub no mesmo console e ative-o, para a organização a partir da conta de gerenciamento dela ou só para a conta. As recomendações dele chegam em até um dia.
 :::
 
-O Cost Explorer cobra $0.01 por solicitação, e uma leitura dos custos faz algumas. O Cost Optimization Hub é gratuito.
+O Cost Explorer cobra $0.01 por solicitação: uma leitura dos custos faz algumas, e os compromissos são lidos com quatro por dia. O Cost Optimization Hub é gratuito.
+
+### Custos por recurso
+
+O Cost Explorer também informa quanto cada recurso custa, nos últimos 14 dias, depois que os dados no nível do recurso são ativados. No console AWS Billing and Cost Management, abra as preferências do Cost Management e ative os dados no nível do recurso com granularidade diária, para a organização pela conta de gerenciamento dela. A AWS os prepara em até 48 horas.
+
+Depois edite a conexão em **Nuvem → Conectar** e, em **Mais campos**, ative **Custos por recurso**. A conexão os lê com `ce:GetCostAndUsageWithResources` uma vez por dia: os 14 dias na primeira vez, depois os três últimos de novo, com algumas solicitações a cada vez. O que ela lê fica com os custos da conta depois que o Cost Explorer o esquece. Uma conexão criada antes precisa executar o comando de configuração de novo, o que adiciona a ação.
 
 ## Microsoft Azure
 
@@ -86,7 +92,17 @@ Um recurso de que nenhum recomendador cuida, porque ele não está ativado, não
 - **Superprovisionado** quando o tamanho com metade, ou um quarto, ainda teria folga: no tamanho menor, o percentil 95 da CPU ficaria em no máximo 60%, a leitura de CPU mais alta em no máximo 100% e o pico da memória em no máximo 70%, quando a memória é lida.
 - **Subprovisionado** quando o percentil 95 da CPU fica em 85% ou mais, ou o pico da memória em 90% ou mais: o tamanho com o dobro.
 
-Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele mostra o **Ajuste de tamanho** ao lado de quanto custa, e um superprovisionado aparece em **Nuvem → Gastos → Economias**, com o OneUptime como origem. O que uma mudança economiza é a parte dela no que o recurso custou nos últimos 30 dias, então isso é conhecido assim que sua nuvem fatura o recurso pelo nome: a exportação detalhada do Azure e do Google Cloud faz isso, o AWS Cost Explorer não. Uma instância EC2 informa a memória só com o agente do CloudWatch, e uma VM do Compute Engine só com o Ops Agent: sem ele, é dimensionada apenas pela CPU. Tamanhos com burst, como t3, a série B e e2-micro, nunca são dimensionados.
+Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele mostra o **Ajuste de tamanho** ao lado de quanto custa, e um superprovisionado aparece em **Nuvem → Gastos → Economias**, com o OneUptime como origem. O que uma mudança economiza é a parte dela no que o recurso custou nos últimos 30 dias, então isso é conhecido assim que sua nuvem fatura o recurso pelo nome: a exportação detalhada do Azure e do Google Cloud faz isso, e a AWS também, depois que Custos por recurso é ativado. Uma instância EC2 informa a memória só com o agente do CloudWatch, e uma VM do Compute Engine só com o Ops Agent: sem ele, é dimensionada apenas pela CPU. Tamanhos com burst, como t3, a série B e e2-micro, nunca são dimensionados.
+
+### Compromissos
+
+**Nuvem → Gastos → Economias** e os **Custos** de uma conta mostram quanto do gasto dos últimos 30 dias os compromissos de cada conta pagaram, e quanto deles foi usado, uma linha por tipo:
+
+- AWS: Savings Plans e instâncias reservadas, pelo Cost Explorer. A conta de gerenciamento de uma organização os lê para cada conta da organização.
+- Azure: planos de economia e reservas, pelo Cost Management, em custo amortizado.
+- Google Cloud: descontos por compromisso de uso, pela sua exportação de faturamento. A exportação não diz quanto de um compromisso ficou sem uso, então quanto é usado não é mostrado.
+
+Uma conta sem compromissos mostra o que rodou a preços sob demanda e que um compromisso pagaria por menos. Os valores de cada tipo são os da sua nuvem, e os tipos nunca são somados: uma reserva e um Savings Plan podem contar os dois o gasto da mesma máquina como deles para cobrir.
 
 ## Orçamentos
 
@@ -108,13 +124,23 @@ Agentes de IA podem criar e alterar orçamentos pelo [servidor MCP](/docs/ai/mcp
 
 Após cada leitura, cada um dos últimos 14 dias completos de uma conta é comparado com os 14 dias anteriores. Um dia é incomum quando um serviço custou o dobro do seu dia habitual ou mais, ou a conta inteira uma vez e meia o seu dia habitual ou mais. Nos dois casos, precisa ser pelo menos 10 a mais que o normal, na moeda da conta, e pelo menos 5% do dia habitual da conta, para que alguns centavos nunca contem como um pico. O valor habitual de um dia é a mediana dos 14 dias anteriores, então um pico isolado o move pouco, e uma conta só é avaliada quando tem uma semana de custos.
 
-**Nuvem → Gastos → Custos** lista os dias incomuns abaixo do gasto diário. Um orçamento que inclui a conta gera um alerta para cada conta e dia, no dia seguinte, nomeando cada serviço que subiu. Um pico que dura vários dias é avisado no dia em que começou, e um dia de mais de uma semana atrás não é avisado. Um orçamento criado antes de esses alertas existirem não os gera até que você o edite e os ative.
+**Nuvem → Gastos → Custos** marca os dias incomuns no gasto diário, acima das barras deles, e os lista abaixo. Em todas as contas, cada marca abre os **Custos** da conta dela. Um orçamento que inclui a conta gera um alerta para cada conta e dia, no dia seguinte, nomeando cada serviço que subiu. Um pico que dura vários dias é avisado no dia em que começou, e um dia de mais de uma semana atrás não é avisado. Um orçamento criado antes de esses alertas existirem não os gera até que você o edite e os ative.
+
+## Para onde vai o dinheiro
+
+**Nuvem → Gastos → Custos** detalha o gasto de um período por serviço, região, conta ou recurso, e de mais três formas:
+
+- Por ambiente de plataformas de aplicativos: o serviço de plataforma de cada ambiente na conta e na região dele, como Amazon ECS ou Cloud Run, e os recursos de um ambiente do Elastic Beanstalk pela tag que a AWS dá a eles.
+- Por aplicativo: o que uma plataforma cobra de um aplicativo pelo nome, como um serviço do Cloud Run ou um Container App. O Amazon ECS cobra suas tarefas e o App Service seus planos, então os custos dos aplicativos deles ficam com o ambiente.
+- Por tag: cada valor da tag que você escolher. Um custo mantém as tags que tinha quando foi lido: os rótulos de uma exportação de faturamento do Google Cloud ou, se não houver, as tags do recurso ao qual é cobrado, o que na AWS exige Custos por recurso.
+
+Abaixo da lista, o card diz quanto deu o restante: o que não está em nenhum ambiente, o que é cobrado de um ambiente como um todo ou o que não tem a tag. Os custos lidos antes de as tags serem mantidas são lidos de novo uma vez, até onde vai uma primeira leitura, para que as tags deles sejam preenchidas.
 
 ## O que você vê no OneUptime
 
 - **A visão geral da Nuvem.** **Nuvem → Visão geral** mostra os gastos do mês em relação aos do mês passado até o mesmo dia, os serviços que mais custam e as maiores formas de gastar menos, ao lado do que precisa de atenção.
-- **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias, lista os dias que custaram muito mais que o normal e detalha um período por serviço, região, conta ou recurso. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
-- **Os custos de uma conta.** Os **Custos** de uma conta mostram o mesmo só para a conta, com as formas de gastar menos dela.
+- **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias marcando os dias que custaram muito mais que o normal, lista esses dias e detalha um período por serviço, região, conta, recurso, ambiente de plataformas de aplicativos, aplicativo ou tag. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
+- **Os custos de uma conta.** Os **Custos** de uma conta mostram o mesmo só para a conta, com os compromissos e as formas de gastar menos dela.
 - **O custo de um recurso.** A página de um recurso mostra quanto ele custou este mês e nos últimos 30 dias quando a nuvem dele o fatura pelo nome, com as formas de gastar menos dele e o ajuste de tamanho dele.
 
 ## Solução de problemas
@@ -125,6 +151,14 @@ A conexão ainda não pode ler os custos da conta. Execute novamente o comando d
 
 :::details Uma conta diz Não configurado
 A nuvem dela ainda não tem custos para fornecer. Na AWS, ative o Cost Explorer; no Google Cloud, informe a tabela da exportação em **Tabela da exportação de faturamento**. Os primeiros valores chegam com a leitura seguinte, em até 12 horas.
+:::
+
+:::details Custos por recurso diz Não configurado
+Os dados no nível do recurso não estão ativados para a conta. Ative-os com granularidade diária nas preferências do Cost Management do console AWS Billing and Cost Management, pela conta de gerenciamento da organização para os membros dela. A AWS os prepara em até 48 horas, e a leitura do dia seguinte os pega.
+:::
+
+:::details Os compromissos dizem Precisa de permissão
+A conexão ainda não pode ler os Savings Plans e as reservas da conta. Execute o comando de configuração dela de novo em **Nuvem → Conectar**: ele adiciona as quatro ações com que eles são lidos.
 :::
 
 :::details Os valores deixam uma conta de fora
