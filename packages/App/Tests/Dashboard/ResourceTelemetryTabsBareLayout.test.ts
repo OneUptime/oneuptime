@@ -54,8 +54,13 @@ const ATTRIBUTE_NAME_PART: RegExp = /[\w-]/;
 /*
  * The line under the logs list's own "No logs found": a message of its own
  * that says how logs get here, never the title again (LogsEmptyHintsGuard).
+ * A sentence written there, or one a function picks by what is true of the
+ * resource - an App Platforms environment's, by its platform
+ * (getCloudEnvironmentNoLogsMessage, whose sentences
+ * CloudEnvironmentStreamedLogs holds).
  */
-const EMPTY_STATE_MESSAGE: RegExp = /^"[^"]+"$/;
+const EMPTY_STATE_MESSAGE: RegExp =
+  /^(?:"[^"]+"|\{get[A-Za-z]+NoLogsMessage\([^)]*\)\})$/;
 const RESTATES_THE_TITLE: RegExp = /^"No logs\b/i;
 
 interface JsxElement {
