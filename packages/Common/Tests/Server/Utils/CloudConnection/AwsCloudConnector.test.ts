@@ -967,4 +967,231 @@ describe("read", () => {
       "86400": new Date((day19 + 86400) * 1000).toISOString(),
     });
   });
+
+  /*
+   * ACM publishes a certificate's DaysToExpiry twice a day: read once an
+   * hour, over the hour that ended an hour before, and listed whatever its
+   * last point's age - the last three hours' listing would hold it for a
+   * few hours after each point and lose it for the rest of the day.
+   */
+  describe("a certificate's days to expiry", () => {
+    const CERTIFICATE_ARN: string =
+      "arn:aws:acm:us-east-1:123456789012:certificate/0f4a8f3e-6c2b-4e7a-9d1c-2b3a4c5d6e7f";
+    // 12:07: the hourly window ends an hour back, on the hour: 11:00.
+    const HOURLY_END_S: number = Date.UTC(2026, 9, 21, 11) / 1000;
+    const HOURLY_START_S: number = HOURLY_END_S - 3 * 3600;
+
+    function certificate(values: Array<[number, number]>): FakeMetric {
+      return {
+        namespace: "AWS/CertificateManager",
+        metricName: "DaysToExpiry",
+        dimensions: [["CertificateArn", CERTIFICATE_ARN]],
+        values: values,
+        // Its last point is hours old: RecentlyActive would not list it.
+        quiet: true,
+      };
+    }
+
+    function listCallsOf(
+      fake: FakeAws,
+      namespace: string,
+    ): Array<{ body: JSONObject }> {
+      return fake.cloudWatchCalls.filter(
+        (call: { action: string; body: JSONObject }): boolean => {
+          return (
+            call.action === "ListMetrics" &&
+            call.body["Namespace"] === namespace
+          );
+        },
+      );
+    }
+
+    test("are listed whatever their last point's age, while every other namespace keeps the last three hours", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: {
+          "us-east-1": {
+            metrics: [
+              ...ec2("i-0aaa", [10]),
+              // Published at 09:00, twice a day.
+              certificate([[HOURLY_END_S - 2 * 3600, 41]]),
+              // An instance that stopped reporting hours ago: not listed.
+              {
+                namespace: "AWS/EC2",
+                metricName: "CPUUtilization",
+                dimensions: [["InstanceId", "i-0quiet"]],
+                quiet: true,
+              },
+            ],
+          },
+        },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        readOptions(fake),
+      );
+
+      expect(result.nextState.activePairs).toContain(
+        "us-east-1|AWS/CertificateManager",
+      );
+      expect(
+        result.resources
+          .map((entry: CloudDiscoveredResource): string => {
+            return `${entry.resource.resourceType} ${entry.resource.name}`;
+          })
+          .sort(),
+      ).toEqual([
+        "AWS::CertificateManager::Certificate 0f4a8f3e-6c2b-4e7a-9d1c-2b3a4c5d6e7f",
+        "AWS::EC2::Instance i-0aaa",
+      ]);
+
+      // ACM's listings never ask for RecentlyActive; EC2's always do.
+      const acmLists: Array<{ body: JSONObject }> = listCallsOf(
+        fake,
+        "AWS/CertificateManager",
+      );
+
+      expect(acmLists.length).toBeGreaterThan(0);
+      for (const call of acmLists) {
+        expect(call.body["RecentlyActive"]).toBeUndefined();
+        expect(call.body["MetricName"]).toBe("DaysToExpiry");
+      }
+
+      for (const call of listCallsOf(fake, "AWS/EC2")) {
+        expect(call.body["RecentlyActive"]).toBe("PT3H");
+      }
+    });
+
+    test("are read an hour at a time, over the hours that ended an hour before, with their own cursor", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: {
+          "us-east-1": {
+            metrics: [
+              ...ec2("i-0aaa", [10]),
+              certificate([
+                // Yesterday evening's: before the first read's three hours.
+                [HOURLY_END_S - 14 * 3600, 42],
+                // This morning's, at 09:00.
+                [HOURLY_END_S - 2 * 3600, 41],
+              ]),
+            ],
+          },
+        },
+      });
+
+      const first: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        readOptions(fake),
+      );
+
+      const hourly: Array<{ body: JSONObject }> = fake.cloudWatchCalls.filter(
+        (call: { action: string; body: JSONObject }): boolean => {
+          return (
+            call.action === "GetMetricData" &&
+            (
+              (call.body["MetricDataQueries"] as Array<JSONObject>)[0]![
+                "MetricStat"
+              ] as JSONObject
+            )["Period"] === 3600
+          );
+        },
+      );
+
+      expect(hourly).toHaveLength(1);
+      expect(hourly[0]!.body["StartTime"]).toBe(HOURLY_START_S);
+      expect(hourly[0]!.body["EndTime"]).toBe(HOURLY_END_S);
+
+      const stat: JSONObject = (
+        hourly[0]!.body["MetricDataQueries"] as Array<JSONObject>
+      )[0]!["MetricStat"] as JSONObject;
+
+      expect(stat["Stat"]).toBe("Minimum");
+      expect((stat["Metric"] as JSONObject)["MetricName"]).toBe(
+        "DaysToExpiry",
+      );
+      expect((stat["Metric"] as JSONObject)["Dimensions"]).toEqual([
+        { Name: "CertificateArn", Value: CERTIFICATE_ARN },
+      ]);
+
+      // The five-minute metrics and the hourly one keep cursors of their own.
+      expect(first.nextState.cursors).toEqual({
+        "300": new Date(WINDOW_END_S * 1000).toISOString(),
+        "3600": new Date(HOURLY_END_S * 1000).toISOString(),
+      });
+
+      // This morning's reading is written, on the certificate.
+      const written: Array<{ metricName: string; resource: CloudMonitoredResource }> =
+        resolvedFromPayloads(first).filter(
+          (entry: { metricName: string }): boolean => {
+            return (
+              entry.metricName ===
+              "amazonaws.com/AWS/CertificateManager/DaysToExpiry"
+            );
+          },
+        );
+
+      expect(written).toHaveLength(1);
+      expect(written[0]!.resource.resourceType).toBe(
+        "AWS::CertificateManager::Certificate",
+      );
+      expect(written[0]!.resource.providerResourceId).toBe(CERTIFICATE_ARN);
+
+      // Ten minutes on, no new whole hour: no hourly read.
+      fake.cloudWatchCalls.length = 0;
+
+      await connector.read(keySettings({ regions: "us-east-1" }), {
+        ...readOptions(fake, first.nextState),
+        now: () => {
+          return new Date(NOW.getTime() + 10 * 60 * 1000);
+        },
+      });
+
+      expect(
+        fake.cloudWatchCalls.filter(
+          (call: { action: string; body: JSONObject }): boolean => {
+            return (
+              call.action === "GetMetricData" &&
+              (
+                (call.body["MetricDataQueries"] as Array<JSONObject>)[0]![
+                  "MetricStat"
+                ] as JSONObject
+              )["Period"] === 3600
+            );
+          },
+        ),
+      ).toHaveLength(0);
+
+      // An hour on, the next hour.
+      fake.cloudWatchCalls.length = 0;
+
+      const later: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake, first.nextState),
+          now: () => {
+            return new Date(NOW.getTime() + 60 * 60 * 1000);
+          },
+        },
+      );
+
+      const next: { body: JSONObject } | undefined = fake.cloudWatchCalls.find(
+        (call: { action: string; body: JSONObject }): boolean => {
+          return (
+            call.action === "GetMetricData" &&
+            (
+              (call.body["MetricDataQueries"] as Array<JSONObject>)[0]![
+                "MetricStat"
+              ] as JSONObject
+            )["Period"] === 3600
+          );
+        },
+      );
+
+      expect(next?.body["StartTime"]).toBe(HOURLY_END_S);
+      expect(next?.body["EndTime"]).toBe(HOURLY_END_S + 3600);
+      expect(later.nextState.cursors!["3600"]).toBe(
+        new Date((HOURLY_END_S + 3600) * 1000).toISOString(),
+      );
+    });
+  });
 });

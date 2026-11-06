@@ -51,6 +51,12 @@ export interface FakeMetric {
   dimensions: Array<[string, string]>;
   // [epoch seconds, value]
   values?: Array<[number, number]> | undefined;
+  /*
+   * No point in the last three hours (a certificate's days, published twice
+   * a day): ListMetrics leaves it out when asked for RecentlyActive, as
+   * CloudWatch does, and lists it when not.
+   */
+  quiet?: boolean | undefined;
 }
 
 export interface FakeRegion {
@@ -1855,7 +1861,9 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
           (metric: FakeMetric): boolean => {
             return (
               metric.namespace === body["Namespace"] &&
-              (!body["MetricName"] || metric.metricName === body["MetricName"])
+              (!body["MetricName"] ||
+                metric.metricName === body["MetricName"]) &&
+              (!metric.quiet || !body["RecentlyActive"])
             );
           },
         );

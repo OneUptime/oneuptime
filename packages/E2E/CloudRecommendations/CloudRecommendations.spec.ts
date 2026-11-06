@@ -37,7 +37,9 @@ const WEB_1: string = resourceId(7);
 const WEB_2: string = resourceId(8);
 const WEB_3: string = resourceId(9);
 const ORDERS_DB: string = resourceId(3);
+const REPORTS_DB: string = resourceId(4);
 const PROD_VPC: string = resourceId(11);
+const WWW_CERTIFICATE: string = resourceId(15);
 
 function resourcePage(id: string, tab: string): string {
   return `${DASHBOARD}/cloud/${id}/${tab}`;
@@ -46,10 +48,17 @@ function resourcePage(id: string, tab: string): string {
 const STATUS_CHECKS: string = "CloudResource:cloud-aws-ec2-status-check-failed";
 const EC2_HIGH_CPU: string = "CloudResource:cloud-aws-ec2-high-cpu";
 const RDS_LOW_STORAGE: string = "CloudResource:cloud-aws-rds-low-storage";
+const RDS_CONNECTIONS: string =
+  "CloudResource:cloud-aws-rds-connections-near-limit";
+const CERTIFICATE_EXPIRING: string =
+  "CloudResource:cloud-aws-acm-certificate-expiring";
 const EC2_GROUP: string = "aws|aws::ec2::instance";
+const ACM_GROUP: string = "aws|aws::certificatemanager::certificate";
 
 // Every five minutes: a cloud's metrics arrive a period at a time.
 const EVERY_FIVE_MINUTES: string = "*/5 * * * *";
+// Once an hour: a certificate's days come twice a day.
+const EVERY_HOUR: string = "0 * * * *";
 
 const LAPTOP: { width: number; height: number } = { width: 1280, height: 900 };
 const PHONE: { width: number; height: number } = { width: 390, height: 844 };
@@ -229,8 +238,9 @@ test.describe("an account's Recommendations", () => {
 
     await expect(
       list.locator("[data-testid^='cloud-account-recommendation-group-']"),
-    ).toHaveCount(5);
+    ).toHaveCount(6);
     await expect(list.getByRole("heading", { level: 3 })).toHaveText([
+      "ACM Certificate",
       "EC2 Instance",
       "Elastic Load Balancer (ALB, NLB, GWLB)",
       "Lambda Function",
@@ -270,7 +280,7 @@ test.describe("an account's Recommendations", () => {
     ).toHaveText("Add All 4 Monitors");
 
     // The menu counts every one still to set up: the page's own number.
-    await expect(recommendationsEntry(page)).toHaveText("Recommendations16");
+    await expect(recommendationsEntry(page)).toHaveText("Recommendations18");
 
     /*
      * The ones left out, by why, at the end: web-3, whose metrics have not
@@ -348,7 +358,7 @@ test.describe("an account's Recommendations", () => {
      * menu counts two fewer.
      */
     await expect(row(page, STATUS_CHECKS)).toHaveCount(0);
-    await expect(recommendationsEntry(page)).toHaveText("Recommendations14");
+    await expect(recommendationsEntry(page)).toHaveText("Recommendations16");
     await showEveryRecommendation(page);
     await expect(coverage(page, STATUS_CHECKS)).toHaveText(
       "Set up on 2 of 2 resources",
@@ -364,6 +374,72 @@ test.describe("an account's Recommendations", () => {
     ).toHaveText("Add to 2 Resources");
   });
 
+  /*
+   * The newer monitors: a certificate's, read once an hour over 2 days (ACM
+   * publishes its days twice a day), and a database's connections, offered
+   * to the instance whose class and engine its inventory lists - orders-db,
+   * not reports-db, which waits for its inventory.
+   */
+  test("a certificate's Certificate Expiring, made to run once an hour, and Connections Near the Limit on the database whose class is known", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openAccount(page);
+
+    const certificates: Locator = page.getByTestId(
+      `cloud-account-recommendation-group-${ACM_GROUP}`,
+    );
+    await expect(certificates).toContainText("Recommended for 1 resource");
+    await expect(row(page, CERTIFICATE_EXPIRING)).toContainText(
+      "Certificate Expiring",
+    );
+    await expect(row(page, CERTIFICATE_EXPIRING)).toContainText(
+      "The certificate expires in 30 days or fewer.",
+    );
+    await expect(coverage(page, CERTIFICATE_EXPIRING)).toHaveText(
+      "Set up on 0 of 1 resource",
+    );
+    await expect(row(page, RDS_CONNECTIONS)).toContainText(
+      "Connections stay at 90% or more of the instance's limit for 30 minutes.",
+    );
+    await expect(coverage(page, RDS_CONNECTIONS)).toHaveText(
+      "Set up on 0 of 1 resource",
+    );
+    await screenshot(page, "cloud-account-recommendations-newer-1280");
+
+    await page
+      .getByTestId(`cloud-account-recommendation-add-${CERTIFICATE_EXPIRING}`)
+      .click();
+    await page.getByRole("button", { name: "Create Monitors" }).last().click();
+
+    const done: Locator = page.getByRole("button", { name: "Close" }).last();
+    await expect(done).toBeEnabled({ timeout: 30000 });
+    await done.click();
+
+    expect(
+      (await recorded(page)).creates.map(
+        (created: CreatedModel): Array<unknown> => {
+          return [
+            created.name,
+            created.monitorType,
+            created.monitoringInterval,
+            created.cloudResourceIds,
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        "www.acme-commerce.example - Certificate Expiring",
+        "Metrics",
+        EVERY_HOUR,
+        [WWW_CERTIFICATE],
+      ],
+    ]);
+    await expect(recommendationsEntry(page)).toHaveText("Recommendations17");
+  });
+
   test("what was made and what was dismissed is counted, row by row and resource by resource", async ({
     page,
   }: {
@@ -377,8 +453,8 @@ test.describe("an account's Recommendations", () => {
     );
     // Dismissed on its one resource: nothing left to set up, so not listed.
     await expect(row(page, RDS_LOW_STORAGE)).toHaveCount(0);
-    // Sixteen, less three made and one dismissed.
-    await expect(recommendationsEntry(page)).toHaveText("Recommendations12");
+    // Eighteen, less three made and one dismissed.
+    await expect(recommendationsEntry(page)).toHaveText("Recommendations14");
 
     await showEveryRecommendation(page);
     await expect(coverage(page, RDS_LOW_STORAGE)).toHaveText(
@@ -616,6 +692,40 @@ test.describe("a cloud resource's Recommendations", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "cloud-resource-recommendations-390");
+  });
+
+  test("an RDS instance on a parameter group of its own is offered Connections Near the Limit, and told what its line assumes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, resourcePage(ORDERS_DB, "recommendations"));
+
+    await expect(
+      page.getByText(
+        "Connections Near the Limit alerts at 90% of 1,691, the default connection limit of a db.r6g.large instance running PostgreSQL. Its parameter group, orders-postgres16, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Connections Near the Limit", { exact: true }),
+    ).toBeVisible();
+    // High CPU, Low Free Storage and Connections Near the Limit.
+    await expect(recommendationsEntry(page)).toHaveText("Recommendations3");
+    await screenshot(page, "cloud-resource-recommendations-rds-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cloud-resource-recommendations-rds-390");
+
+    // One its inventory has not listed yet: both of its own wait for it, said once.
+    await page.setViewportSize(LAPTOP);
+    await open(page, resourcePage(REPORTS_DB, "recommendations"));
+    await expect(
+      page.getByText(
+        "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.",
+      ),
+    ).toBeVisible();
   });
 
   test("a type with none says so, and points at its Metrics tab", async ({

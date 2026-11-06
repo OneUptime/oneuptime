@@ -7,8 +7,10 @@ import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import RollingTime from "../RollingTime/RollingTime";
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
+  AWS_DEFAULT_PERIOD_SECONDS,
   AwsKeyMetric,
   AwsStatistic,
+  HOURLY_PERIOD_SECONDS,
   getAwsKeyMetrics,
   getAwsStoredMetricName,
   getAzureStoredMetricName,
@@ -100,6 +102,17 @@ import {
  * monitor evaluated every minute would read the same points four times out
  * of five, and cost five times the queries.
  *
+ * A metric its cloud publishes a few times a day is the exception: ACM
+ * publishes a certificate's DaysToExpiry twice a day, and the connection
+ * reads it once an hour (CloudKeyMetrics), so a 30-minute window would
+ * hold nothing most of the day. Its template reads the last 2 days
+ * (CLOUD_SLOW_METRIC_WINDOW), which hold four readings or so and still one
+ * when a read or two were missed, and is evaluated once an hour
+ * (CLOUD_SLOW_METRIC_MONITORING_INTERVAL), as often as a reading can come.
+ * A stream changes nothing there: the key metrics' stream leaves it to
+ * the connection's hourly read (CloudStreamTemplate), and a stream of every
+ * metric brings the same two readings a day an hour or two sooner.
+ *
  * HOW A WINDOW IS JUDGED
  *
  *   - A level (CPU, memory, storage, latency, availability, health): a
@@ -109,6 +122,11 @@ import {
  *     in red) fires on its first point and clears once a whole window has
  *     none; an age (the oldest message waiting) only grows while a message
  *     waits, so one point at the line is the wait.
+ *   - A countdown (the days a certificate has left): every reading of the
+ *     window at or under the line, which is the window's largest at or under
+ *     it (Maximum Value) - so the renewed certificate's first reading clears
+ *     it at once, where the window still holds the days before the renewal -
+ *     or no reading at all: ACM stops publishing a certificate that expired.
  *   - A count (errors, throttles, failed runs or deliveries) and a share of
  *     two counts (failed requests over requests): the window read whole, as
  *     one value (MonitorStepMetricMonitor.aggregatesWholeWindow). A
@@ -152,6 +170,8 @@ export type CloudAlertTemplateSeverity = "Critical" | "Warning";
  *   - breakage: the first point at the line, cleared by a whole window
  *     without one;
  *   - age: the first point at the line, cleared below a dead band;
+ *   - countdown: every point in the window at or under the line, or none at
+ *     all, cleared by the first point above it;
  *   - total: the window's count, read whole;
  *   - share: the share of the window's requests that failed, read whole.
  */
@@ -159,6 +179,7 @@ export type CloudAlertMeasure =
   | "sustained"
   | "breakage"
   | "age"
+  | "countdown"
   | "total"
   | "share";
 
@@ -172,6 +193,15 @@ export const CLOUD_ALERT_WINDOWS: Readonly<Record<CloudProvider, RollingTime>> =
 
 // How often a recommended cloud monitor is evaluated: every five minutes.
 export const CLOUD_ALERT_MONITORING_INTERVAL: string = "*/5 * * * *";
+
+/*
+ * A template over a metric its cloud publishes a few times a day, which
+ * the connection reads once an hour (an AWS key metric whose period is an
+ * hour or more: ACM's DaysToExpiry): the last 2 days, evaluated once an
+ * hour (see WINDOWS above).
+ */
+export const CLOUD_SLOW_METRIC_WINDOW: RollingTime = RollingTime.Past2Days;
+export const CLOUD_SLOW_METRIC_MONITORING_INTERVAL: string = "0 * * * *";
 
 /*
  * The service each cloud's numbers come from, by its own name - a product
@@ -206,6 +236,23 @@ export const CLOUD_SLOW_RESPONSE_SECONDS: number = 1;
 
 // Where an RDS instance's allocated storage is kept (its inventory, GiB).
 export const CLOUD_ALLOCATED_STORAGE_PROPERTY: string = "AllocatedStorage";
+
+/*
+ * The share of an RDS instance's connection limit its connections may hold:
+ * AWS's own recommended alarm says 90 to 95% of the limit, and the lower
+ * end leaves room for the limit, which is the class's default as worked
+ * out (RdsConnectionLimits), to be a little high.
+ */
+export const CLOUD_CONNECTIONS_HIGH_PERCENT: number = 90;
+
+/*
+ * The days a certificate may have left before it is said: ACM renews a
+ * certificate it issued 45 to 60 days before it expires, and says so when
+ * it cannot - first at 30 days, then at 15, 7, 3 and 1. A certificate at 30
+ * is one ACM could not renew (imported, not in use, or its validation
+ * gone), with a month left to fix it.
+ */
+export const CLOUD_CERTIFICATE_EXPIRY_DAYS: number = 30;
 
 const GIB: number = 1024 * 1024 * 1024;
 
@@ -264,6 +311,8 @@ export interface CloudAlertTemplateArgs {
   readings?: CloudResourceReadings | null | undefined;
   // An RDS instance's allocated storage, in GiB.
   allocatedStorageGiB?: number | null | undefined;
+  // An RDS instance's connection limit (RdsConnectionLimits).
+  connectionLimit?: number | null | undefined;
   onlineMonitorStatusId: ObjectID;
   offlineMonitorStatusId: ObjectID;
   defaultIncidentSeverityId: ObjectID;
@@ -277,6 +326,8 @@ export interface CloudAlertTemplateContext {
   resourceType?: string | null | undefined;
   telemetryAttributes?: Dictionary<string> | null | undefined;
   allocatedStorageGiB?: number | null | undefined;
+  // An RDS instance's connection limit (RdsConnectionLimits).
+  connectionLimit?: number | null | undefined;
   // Its readings: the names its Azure metrics are stored under.
   readings?: CloudResourceReadings | null | undefined;
   /*
@@ -324,6 +375,11 @@ export interface CloudAlertTemplate {
   minimumRequests?: { alias: string; value: number; label: string } | undefined;
   // What it needs to know of the resource besides its attributes.
   requiresAllocatedStorage?: boolean | undefined;
+  /*
+   * Its line is a share of the instance's own connection limit
+   * (RdsConnectionLimits): offered once that is known.
+   */
+  requiresConnectionLimit?: boolean | undefined;
   /*
    * Offered only to a resource that reports its metric, whoever reads it:
    * a metric of one tier of a service, which the others never send (an
@@ -526,11 +582,37 @@ function buildFormula(formula: CloudAlertFormula): MetricFormulaConfigData {
   };
 }
 
-// The breach's threshold for one resource: RDS storage is a share of its own.
+// An RDS instance's connection limit, when it is a usable one: a positive number.
+function readConnectionLimit(value: unknown): number | null {
+  const limit: number = Number(value);
+
+  return Number.isFinite(limit) && limit > 0 ? limit : null;
+}
+
+/*
+ * The line of a template whose threshold is a share of an RDS instance's
+ * connection limit: 90% of it, in whole connections.
+ */
+export function getCloudConnectionsThreshold(connectionLimit: number): number {
+  return Math.floor((connectionLimit * CLOUD_CONNECTIONS_HIGH_PERCENT) / 100);
+}
+
+/*
+ * The breach's threshold for one resource: RDS storage is a share of its
+ * own, and so are its connections.
+ */
 function getThreshold(
   template: CloudAlertTemplate,
   args: CloudAlertTemplateArgs,
 ): number {
+  if (template.requiresConnectionLimit) {
+    const limit: number | null = readConnectionLimit(args.connectionLimit);
+
+    return limit === null
+      ? template.threshold
+      : getCloudConnectionsThreshold(limit);
+  }
+
   if (!template.requiresAllocatedStorage) {
     return template.threshold;
   }
@@ -546,17 +628,25 @@ function getThreshold(
   );
 }
 
-function describeCriteria(template: CloudAlertTemplate): string {
+function describeCriteria(
+  template: CloudAlertTemplate,
+  args: CloudAlertTemplateArgs,
+): string {
   const minutes: string = template.rollingTime
     .replace("Past ", "")
     .trim()
     .toLowerCase();
+  const limit: number | null = template.requiresConnectionLimit
+    ? readConnectionLimit(args.connectionLimit)
+    : null;
 
   switch (template.measure) {
     case "breakage":
       return `Triggers on the first reading ${template.thresholdLabel} in the past ${minutes}.`;
     case "age":
       return `Triggers when a reading is ${template.thresholdLabel}.`;
+    case "countdown":
+      return `Triggers when every reading of the past ${minutes} is ${template.thresholdLabel}, or the past ${minutes} hold no reading.`;
     case "total":
       return `Triggers when the past ${minutes} hold ${template.thresholdLabel}.`;
     case "share":
@@ -564,7 +654,11 @@ function describeCriteria(template: CloudAlertTemplate): string {
         template.minimumRequests ? `, ${template.minimumRequests.label}` : ""
       }.`;
     default:
-      return `Triggers when every reading of the past ${minutes} is ${template.thresholdLabel}.`;
+      return `Triggers when every reading of the past ${minutes} is ${template.thresholdLabel}${
+        limit === null
+          ? ""
+          : ` (${getCloudConnectionsThreshold(limit)} of ${limit} connections)`
+      }.`;
   }
 }
 
@@ -577,6 +671,12 @@ function buildCriteria(
     template.measure === "total" || template.measure === "share";
   const isFirstPoint: boolean =
     isWhole || template.measure === "breakage" || template.measure === "age";
+  /*
+   * A countdown is read by its largest reading: "every reading at or under
+   * the line" on the firing side, "one above it" on the healthy side - so a
+   * renewal clears it with its first reading (see HOW A WINDOW IS JUDGED).
+   */
+  const isCountdown: boolean = template.measure === "countdown";
 
   const minimumRequests: AdditionalCriteriaFilterSpec | undefined =
     template.minimumRequests
@@ -598,17 +698,26 @@ function buildCriteria(
     incidentTitle: `[Cloud] ${template.name} - ${args.monitorName}`,
     incidentDescription: template.incidentDescription,
     criteriaName: `${template.name} - ${template.thresholdLabel}`,
-    criteriaDescription: describeCriteria(template),
+    criteriaDescription: describeCriteria(template, args),
     resourceNoun: "cloud resource",
     /*
      * A broken state, an age, and a window read whole fire on a point; a
-     * level must hold for the whole window (see HOW A WINDOW IS JUDGED).
+     * level must hold for the whole window; a countdown is its window's
+     * largest reading (see HOW A WINDOW IS JUDGED).
      */
-    metricAggregationType: isFirstPoint
-      ? EvaluateOverTimeType.AnyValue
-      : EvaluateOverTimeType.AllValues,
+    metricAggregationType: isCountdown
+      ? EvaluateOverTimeType.MaximumValue
+      : isFirstPoint
+        ? EvaluateOverTimeType.AnyValue
+        : EvaluateOverTimeType.AllValues,
     additionalFilters: minimumRequests ? [minimumRequests] : undefined,
     filterCondition: minimumRequests ? FilterCondition.All : undefined,
+    /*
+     * A countdown that stops is the thing it counts down to: ACM stops
+     * publishing a certificate's days once it expires, so an empty window
+     * fires too, and the incident stays open past the expiry.
+     */
+    triggerOnNoData: isCountdown ? true : undefined,
   });
 
   /*
@@ -616,7 +725,8 @@ function buildCriteria(
    * empty window - no failure, no request - reads as zero; a broken state
    * clears once every point of a window is whole again; a level below its
    * dead band; a share, as soon as it is under the line or the window held
-   * too few requests to judge.
+   * too few requests to judge; a countdown with its first reading above the
+   * line (a count of days only rises when it is renewed: no dead band).
    */
   const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
     onlineMonitorStatusId: args.onlineMonitorStatusId,
@@ -624,11 +734,15 @@ function buildCriteria(
     filterType: getRecoveryFilterType(template.filterType),
     value: threshold,
     recoveryValue:
-      isWhole || template.measure === "breakage" ? threshold : undefined,
+      isWhole || template.measure === "breakage" || isCountdown
+        ? threshold
+        : undefined,
     isBinaryMetric: template.measure === "breakage",
-    metricAggregationType: isWhole
-      ? EvaluateOverTimeType.AnyValue
-      : EvaluateOverTimeType.AllValues,
+    metricAggregationType: isCountdown
+      ? EvaluateOverTimeType.MaximumValue
+      : isWhole
+        ? EvaluateOverTimeType.AnyValue
+        : EvaluateOverTimeType.AllValues,
     treatNoDataAsZero: isWhole,
     additionalFilters: minimumRequests
       ? [
@@ -696,13 +810,41 @@ type TemplateSpec = Omit<
   | "getMonitorStep"
 >;
 
+/*
+ * Whether a template reads a metric its cloud publishes a few times a day:
+ * an AWS key metric the connection reads once an hour or less often
+ * (CloudKeyMetrics' periodSeconds). Its window and its schedule follow the
+ * metric (see WINDOWS above), and a stream makes it no sooner that matters.
+ */
+export function isCloudSlowMetricTemplate(data: {
+  provider: CloudProvider;
+  queries: Array<CloudAlertQuery>;
+}): boolean {
+  return (
+    data.provider === CloudProvider.AWS &&
+    data.queries.length > 0 &&
+    data.queries.every((query: CloudAlertQuery): boolean => {
+      const periodSeconds: number =
+        getAwsKeyMetricOf(query.metric.namespace || "", query.metric.metricName)
+          ?.periodSeconds || AWS_DEFAULT_PERIOD_SECONDS;
+
+      return periodSeconds >= HOURLY_PERIOD_SECONDS;
+    })
+  );
+}
+
 function define(spec: TemplateSpec): CloudAlertTemplate {
+  const isSlow: boolean = isCloudSlowMetricTemplate(spec);
   const template: CloudAlertTemplate = {
     ...spec,
     monitorType: MonitorType.Metrics,
-    rollingTime: CLOUD_ALERT_WINDOWS[spec.provider],
-    monitoringInterval: CLOUD_ALERT_MONITORING_INTERVAL,
-    isBetterStreamed: spec.provider === CloudProvider.AWS,
+    rollingTime: isSlow
+      ? CLOUD_SLOW_METRIC_WINDOW
+      : CLOUD_ALERT_WINDOWS[spec.provider],
+    monitoringInterval: isSlow
+      ? CLOUD_SLOW_METRIC_MONITORING_INTERVAL
+      : CLOUD_ALERT_MONITORING_INTERVAL,
+    isBetterStreamed: spec.provider === CloudProvider.AWS && !isSlow,
     getMonitorStep: (args: CloudAlertTemplateArgs): MonitorStep => {
       return buildMonitorStep(template, args);
     },
@@ -1023,6 +1165,13 @@ const AZURE: CloudProvider = CloudProvider.Azure;
  */
 const READ_FROM_CLOUDWATCH: string =
   "Read from Amazon CloudWatch by the account's connection, or streamed through Amazon Data Firehose: works better streamed, whose metrics arrive within minutes, so it fires sooner.";
+/*
+ * Where a template over a metric published a few times a day reads it
+ * (isCloudSlowMetricTemplate): a stream carries each reading sooner, and
+ * the monitor reads the same readings either way.
+ */
+const READ_SLOWLY_FROM_CLOUDWATCH: string =
+  "Read from Amazon CloudWatch by the account's connection once an hour, whether or not the account streams its metrics: a stream would bring the same two readings a day an hour or two sooner, which changes nothing here.";
 const READ_FROM_AZURE_MONITOR: string =
   "Read from Azure Monitor by the subscription's connection.";
 const READ_FROM_CLOUD_MONITORING: string =
@@ -1312,6 +1461,29 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
     incidentDescription:
       "The database has less than 10% of its allocated storage free; a database that runs out goes read-only. Turn on storage autoscaling or raise its allocated storage, and look for what grew: tables, indexes, logs or temporary files.",
   }),
+  define({
+    id: "cloud-aws-rds-connections-near-limit",
+    name: "Connections Near the Limit",
+    summary:
+      "Connections stay at 90% or more of the instance's limit for 30 minutes.",
+    description: `Fires when every reading of DatabaseConnections (Average) in the past 30 minutes is at or above ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of the instance's connection limit: past the limit, new connections are refused. The limit is the default max_connections of its class and engine, worked out from the class's memory as RDS does - about 60 on a db.t3.micro running MySQL, about 1,700 on a db.r6g.large running PostgreSQL - and taken from AWS's table for Aurora MySQL. A parameter group of your own that sets max_connections moves it: then change the monitor's threshold to ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of that. Offered once the account's inventory lists the instance's class and engine: MySQL, MariaDB, PostgreSQL, Aurora MySQL or Aurora PostgreSQL. ${READ_FROM_CLOUDWATCH}`,
+    category: "Utilization",
+    severity: "Warning",
+    provider: AWS,
+    resourceTypes: ["AWS::RDS::DBInstance"],
+    measure: "sustained",
+    queries: [
+      { alias: VALUE, metric: awsMetric("AWS/RDS", "DatabaseConnections") },
+    ],
+    comparedAlias: VALUE,
+    filterType: FilterType.GreaterThanOrEqualTo,
+    // Replaced by 90% of the instance's own connection limit (getThreshold).
+    threshold: 0,
+    thresholdLabel: `at or above ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of its connection limit`,
+    requiresConnectionLimit: true,
+    incidentDescription:
+      "The database held 90% or more of the connections it allows for 30 minutes; past its limit, new connections are refused with a too-many-connections error. Look for clients that open connections without closing or pooling them, put RDS Proxy in front of it, or move it to a class with more memory. If its parameter group sets max_connections, that number is the limit: check it, and change this monitor's threshold to match.",
+  }),
   sustainedAtOrAbove({
     id: "cloud-aws-docdb-high-cpu",
     name: "High CPU",
@@ -1545,6 +1717,29 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
     thresholdLabel: "under 1",
     incidentDescription:
       "The MSK cluster has no active controller, so its partitions cannot elect leaders and its brokers' metadata stops changing. Check the brokers' health in the AWS console and their ZooKeeper or KRaft connections.",
+  }),
+  define({
+    id: "cloud-aws-acm-certificate-expiring",
+    name: "Certificate Expiring",
+    summary: `The certificate expires in ${CLOUD_CERTIFICATE_EXPIRY_DAYS} days or fewer.`,
+    description: `Fires when every reading of DaysToExpiry (Minimum) in the past 2 days is ${CLOUD_CERTIFICATE_EXPIRY_DAYS} or fewer, or the past 2 days hold none: ACM publishes it twice a day for every certificate, and stops once one expires. ACM renews a certificate it issued 45 to 60 days before it expires, and starts warning at 30 days when it cannot, so one with 30 days left is one it could not renew - imported, not in use, or its DNS validation record gone - with a month to fix it. Clears with the first reading after it is renewed or imported again. ${READ_SLOWLY_FROM_CLOUDWATCH}`,
+    category: "Availability",
+    severity: "Warning",
+    provider: AWS,
+    resourceTypes: ["AWS::CertificateManager::Certificate"],
+    measure: "countdown",
+    queries: [
+      {
+        alias: VALUE,
+        metric: awsMetric("AWS/CertificateManager", "DaysToExpiry"),
+      },
+    ],
+    comparedAlias: VALUE,
+    filterType: FilterType.LessThanOrEqualTo,
+    threshold: CLOUD_CERTIFICATE_EXPIRY_DAYS,
+    thresholdLabel: `${CLOUD_CERTIFICATE_EXPIRY_DAYS} days or fewer`,
+    incidentDescription:
+      "The certificate expires in 30 days or fewer, or ACM stopped publishing its days to expiry because it expired. ACM never renews an imported certificate: import the renewed one over it, which keeps its ARN. One ACM issued renews only while it is in use and its domains still validate: its renewal status in the ACM console says why it did not, and a DNS-validated one needs its CNAME records in place. A certificate deleted on purpose stops being read too: then delete this monitor.",
   }),
 ];
 
@@ -2359,7 +2554,8 @@ export function readAllocatedStorageGiB(properties: unknown): number | null {
  * its metrics' attributes are recorded - and, for an AWS type read from
  * more than one CloudWatch namespace (an ALB and an NLB are one type), the
  * ones of the namespace its metrics come from. An RDS instance's storage
- * template waits for the inventory to list its allocated storage.
+ * template waits for the inventory to list its allocated storage, and its
+ * connections template for a connection limit (RdsConnectionLimits).
  */
 export function getCloudAlertTemplatesFor(
   context: CloudAlertTemplateContext,
@@ -2398,6 +2594,13 @@ export function getCloudAlertTemplatesFor(
       if (!(Number.isFinite(allocated) && allocated > 0)) {
         return false;
       }
+    }
+
+    if (
+      template.requiresConnectionLimit &&
+      readConnectionLimit(context.connectionLimit) === null
+    ) {
+      return false;
     }
 
     if (

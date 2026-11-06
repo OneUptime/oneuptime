@@ -45857,5 +45857,10 @@
   "{{affected}} of {{count}} SLOs affected": "{{count}} 个 SLO 中有 {{affected}} 个受影响",
   "{{affected}} of {{count}} SLOs affected_one": "{{count}} 个 SLO 中有 {{affected}} 个受影响",
   "{{count}} fixes are waiting for approval": "{{count}} 个修复正在等待批准",
-  "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval"
+  "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval",
+  "Connections Near the Limit alerts at 90% of {{limit}}, the default connection limit of a {{instanceClass}} instance running {{engine}}. Its parameter group, {{parameterGroup}}, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.": "“Connections Near the Limit”会在达到 {{limit}} 的 90% 时告警，{{limit}} 是运行 {{engine}} 的 {{instanceClass}} 实例的默认连接上限。它的参数组 {{parameterGroup}} 是你自己的：如果该参数组设置了 max_connections，请把监视器的阈值改为该值的 90%。",
+  "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. To alert on the connections of an instance running {{engine}}, open DatabaseConnections on its Metrics tab and create a monitor from the view.": "“Connections Near the Limit”适用于 MySQL、MariaDB、PostgreSQL 和 Aurora，它们的连接上限取决于实例类。要为运行 {{engine}} 的实例的连接设置警报，请在其“指标”选项卡中打开 DatabaseConnections，然后从该视图创建监视器。",
+  "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. To alert on its connections, open DatabaseConnections on its Metrics tab and create a monitor from the view.": "不提供“Connections Near the Limit”：OneUptime 尚不知道 {{instanceClass}} 实例的连接上限。要为其连接设置警报，请在其“指标”选项卡中打开 DatabaseConnections，然后从该视图创建监视器。",
+  "Connections Near the Limit is offered once the account's inventory lists the instance's class and engine.": "账户清单列出该实例的实例类和引擎后，就会提供“Connections Near the Limit”。",
+  "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.": "账户清单列出该实例后，就会提供“Low Free Storage”和“Connections Near the Limit”。"
 }

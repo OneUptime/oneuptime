@@ -539,11 +539,16 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
         return { DBInstanceIdentifier: listed.identifier };
       },
     },
-    // Never MasterUserPassword or a connection string.
+    /*
+     * Never MasterUserPassword or a connection string. Its class, engine
+     * and parameter group's name say its connection limit
+     * (RdsConnectionLimits): the group's name only, never its values.
+     */
     properties: [
       "DBInstanceClass",
       "Engine",
       "EngineVersion",
+      "DBParameterGroupName",
       "MultiAZ",
       "AllocatedStorage",
       "StorageType",

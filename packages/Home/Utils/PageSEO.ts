@@ -1446,6 +1446,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Multi-account and multi-region rollups",
         "Linked incidents and alerts",
         "Resource saturation alerting",
+        "Recommended monitors for every kind of cloud resource",
         "Each resource's health from its key metrics",
         "Costs from AWS Cost Explorer, Azure Cost Management and Google Cloud billing",
         "Rightsizing and savings from each cloud's own recommender",

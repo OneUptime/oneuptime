@@ -45857,5 +45857,10 @@
   "{{affected}} of {{count}} SLOs affected": "SLO {{count}}개 중 {{affected}}개 영향",
   "{{affected}} of {{count}} SLOs affected_one": "SLO {{count}}개 중 {{affected}}개 영향",
   "{{count}} fixes are waiting for approval": "수정 {{count}}건이 승인을 기다리고 있습니다",
-  "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval"
+  "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval",
+  "Connections Near the Limit alerts at 90% of {{limit}}, the default connection limit of a {{instanceClass}} instance running {{engine}}. Its parameter group, {{parameterGroup}}, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.": "'Connections Near the Limit'는 {{engine}}을(를) 실행하는 {{instanceClass}} 인스턴스의 기본 연결 한도인 {{limit}}의 90%에서 경고합니다. 이 인스턴스의 파라미터 그룹 {{parameterGroup}}은(는) 직접 만든 것입니다. max_connections를 설정한다면 모니터의 임계값을 그 값의 90%로 바꾸세요.",
+  "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. To alert on the connections of an instance running {{engine}}, open DatabaseConnections on its Metrics tab and create a monitor from the view.": "'Connections Near the Limit'는 연결 한도가 클래스를 따르는 MySQL, MariaDB, PostgreSQL, Aurora용입니다. {{engine}}을(를) 실행하는 인스턴스의 연결에 대해 알림을 설정하려면 메트릭 탭에서 DatabaseConnections를 열고 해당 보기에서 모니터를 만드세요.",
+  "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. To alert on its connections, open DatabaseConnections on its Metrics tab and create a monitor from the view.": "'Connections Near the Limit'는 제안되지 않습니다. OneUptime은 아직 {{instanceClass}} 인스턴스의 연결 한도를 알지 못합니다. 이 인스턴스의 연결에 대해 알림을 설정하려면 메트릭 탭에서 DatabaseConnections를 열고 해당 보기에서 모니터를 만드세요.",
+  "Connections Near the Limit is offered once the account's inventory lists the instance's class and engine.": "'Connections Near the Limit'는 계정 인벤토리에 인스턴스의 클래스와 엔진이 표시되면 제안됩니다.",
+  "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.": "'Low Free Storage'와 'Connections Near the Limit'는 계정 인벤토리에 인스턴스가 표시되면 제안됩니다."
 }
