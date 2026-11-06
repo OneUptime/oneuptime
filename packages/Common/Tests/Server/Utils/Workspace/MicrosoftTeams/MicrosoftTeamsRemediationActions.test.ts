@@ -375,6 +375,89 @@ describe("Dismiss", () => {
   });
 });
 
+/*
+ * Two people approve a riskier fix (#6148's follow-up): the person who
+ * gave its first approval is told why approving again does nothing - before
+ * an approval card opens on a press the server would refuse, and in place
+ * of a refusal on a card left open. Dismiss is theirs as anyone's.
+ */
+describe("the person who approved a riskier fix first", () => {
+  const ALREADY: string =
+    "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.";
+
+  function approvedFirstBy(userId: ObjectID): AutoRemediationSuggestion {
+    const row: AutoRemediationSuggestion = new AutoRemediationSuggestion();
+    row.id = SUGGESTION_ID;
+    row.projectId = PROJECT_ID;
+    row.status = AutoRemediationSuggestionStatus.Suggested;
+    row.firstApprovedByUserId = userId;
+    return row;
+  }
+
+  beforeEach(() => {
+    readFix.mockResolvedValue(approvedFirstBy(USER_ID) as never);
+    jest
+      .spyOn(WorkspaceRemediationActions, "getFixApprovals")
+      .mockResolvedValue({
+        needed: 2,
+        hasFirstApproval: true,
+        firstApproverName: "Maya Chen",
+      } as never);
+  });
+
+  test("pressing Review and approve answers why, with no approval card", async () => {
+    const turn: FakeTurn = createTurn();
+
+    await handle(
+      MicrosoftTeamsRemediationActionType.ViewApproveRemediation,
+      turn,
+    );
+
+    expect(turn.replies).toHaveLength(1);
+    expect(replyText(turn.replies[0])).toContain(ALREADY);
+    expect(
+      (card(turn.replies[0])["actions"] as Array<unknown> | undefined) || [],
+    ).toHaveLength(0);
+    expect(approve).not.toHaveBeenCalled();
+  });
+
+  test("pressing Approve and run on a card left open answers the same, approves nothing and keeps the card", async () => {
+    const turn: FakeTurn = createTurn();
+
+    await handle(
+      MicrosoftTeamsRemediationActionType.SubmitApproveRemediation,
+      turn,
+    );
+
+    expect(approve).not.toHaveBeenCalled();
+    expect(turn.deleted).toEqual([]);
+    expect(replyText(turn.replies[0])).toContain(ALREADY);
+  });
+
+  test("Dismiss is still theirs", async () => {
+    const turn: FakeTurn = createTurn();
+
+    await handle(MicrosoftTeamsRemediationActionType.DismissRemediation, turn);
+
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(replyText(turn.replies[0])).toContain("You dismissed this fix.");
+  });
+
+  test("someone else's press answers with the approval card, as the second approval", async () => {
+    readFix.mockResolvedValue(
+      approvedFirstBy(new ObjectID("90000000-0000-4000-8000-000000000009")) as never,
+    );
+    const turn: FakeTurn = createTurn();
+
+    await handle(
+      MicrosoftTeamsRemediationActionType.ViewApproveRemediation,
+      turn,
+    );
+
+    expect(replyText(turn.replies[0])).toContain("Approve this fix?");
+  });
+});
+
 describe("an account that is not connected", () => {
   test("is asked to connect it, and to press the button again", () => {
     expect(
