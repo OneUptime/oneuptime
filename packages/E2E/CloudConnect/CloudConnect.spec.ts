@@ -413,6 +413,8 @@ test.describe("one paste, whatever the cloud", () => {
         readScope: "account",
         roleArn: ROLE_ARN,
         readIntervalInMinutes: "10",
+        // AWS's costs per resource, under More fields: off until turned on.
+        resourceCosts: "off",
         // Data Security's levels, under More fields: off until chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",
@@ -1658,7 +1660,12 @@ test.describe("an account's pages", () => {
      * read again until the table has fitted its columns to the new width,
      * which it does a frame after the window changes (useTableBoxWidth): one
      * read right after the resize found the old frame, or no cells at all,
-     * one run in 97 under load (2026-11-02).
+     * one run in 97 under load (2026-11-02). Beside the side menu the box is
+     * narrower than 48rem, so whether the rows fit there turns on how wide
+     * the times are, and the fixture's times are its clock's: when they did
+     * not fit, the list was drawn as cards and a read of row cells alone
+     * found none (main, 2026-11-06). The time is read wherever it is drawn:
+     * a row's second cell, or the value under a card's Time.
      */
     for (const width of [1280, 1024]) {
       await page.setViewportSize({ width, height: 900 });
@@ -1666,7 +1673,9 @@ test.describe("an account's pages", () => {
         .poll(
           (): Promise<Array<boolean>> => {
             return page
-              .locator("tbody tr td:nth-child(2) > div")
+              .locator(
+                'tbody tr td:nth-child(2) > div, dl > div:has(> dt:text-is("Time")) > dd',
+              )
               .evaluateAll((cells: Array<Element>): Array<boolean> => {
                 return cells.map((cell: Element): boolean => {
                   return cell.scrollWidth > cell.clientWidth + 1;

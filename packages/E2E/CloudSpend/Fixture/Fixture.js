@@ -76,8 +76,10 @@ import {
   startOfUtcMonth,
   summarizeCloudAccountCosts,
   summarizeCloudAccountSavings,
+  summarizeCloudCostTagKeys,
   toCloudCostDay,
 } from "Common/Types/Cloud/CloudCost";
+import { CloudCommitmentKind } from "Common/Types/Cloud/CloudCommitments";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
@@ -205,29 +207,38 @@ const CONNECTION = uuid("80000000", 1);
 /*
  * What each account's cloud bills a day, by service, Region and (where the
  * cloud names it) resource: AWS Cost Explorer says the service and Region,
- * a Google Cloud detailed billing export names each resource too.
+ * a Google Cloud detailed billing export names each resource too. Each
+ * line keeps the tags it was read with (a billing export's labels, else
+ * its resource's), as CloudCost's tags column does; CloudFront's and a
+ * bucket's carry none. web-prod's two ECS lines are its two App Platforms
+ * environments' (checkout in us-east-1, billing in eu-west-1): ECS bills
+ * its tasks, never an app.
  */
 const BILLED = {
   [WEB_PROD]: {
     currency: "USD",
+    accountId: "123456789012",
     lines: [
       {
         service: "Amazon Elastic Compute Cloud - Compute",
         region: "us-east-1",
         resourceId: "",
         base: 142,
+        tags: { team: "web", env: "prod" },
       },
       {
         service: "Amazon Relational Database Service",
         region: "us-east-1",
         resourceId: "",
         base: 76,
+        tags: { team: "web", env: "prod" },
       },
       {
         service: "Amazon Simple Storage Service",
         region: "us-east-1",
         resourceId: "",
         base: 29,
+        tags: { team: "web" },
       },
       {
         service: "Amazon CloudFront",
@@ -240,25 +251,55 @@ const BILLED = {
         region: "us-east-1",
         resourceId: "",
         base: 18,
+        tags: { team: "web", env: "prod" },
       },
-      { service: "AWS Lambda", region: "eu-west-1", resourceId: "", base: 12 },
+      {
+        service: "AWS Lambda",
+        region: "eu-west-1",
+        resourceId: "",
+        base: 12,
+        tags: { team: "platform", env: "prod" },
+      },
+      {
+        service: "Amazon Elastic Container Service",
+        region: "us-east-1",
+        resourceId: "",
+        base: 30,
+        tags: { team: "checkout", env: "prod" },
+      },
+      {
+        service: "Amazon Elastic Container Service",
+        region: "eu-west-1",
+        resourceId: "",
+        base: 6,
+        tags: { team: "billing", env: "prod" },
+      },
     ],
   },
   [DATA_LAKE]: {
     currency: "USD",
+    accountId: "210987654321",
     lines: [
       {
         service: "Amazon Simple Storage Service",
         region: "us-west-2",
         resourceId: "",
         base: 64,
+        tags: { team: "data", env: "prod" },
       },
-      { service: "AWS Glue", region: "us-west-2", resourceId: "", base: 31 },
+      {
+        service: "AWS Glue",
+        region: "us-west-2",
+        resourceId: "",
+        base: 31,
+        tags: { team: "data" },
+      },
       {
         service: "Amazon Athena",
         region: "us-west-2",
         resourceId: "",
         base: 21,
+        tags: { team: "data", env: "prod" },
         /*
          * Yesterday a query ran away: about two and a half times its usual
          * day - an unusual day on Costs, and a budget's alert.
@@ -270,6 +311,7 @@ const BILLED = {
   },
   [ANALYTICS]: {
     currency: "USD",
+    accountId: "acme-analytics",
     lines: [
       {
         service: "Compute Engine",
@@ -277,12 +319,14 @@ const BILLED = {
         resourceId:
           "//compute.googleapis.com/projects/acme-analytics/zones/europe-west1-b/instances/etl-runner-1",
         base: 34,
+        tags: { team: "data", env: "prod" },
       },
       {
         service: "BigQuery",
         region: "europe-west1",
         resourceId: "",
         base: 26,
+        tags: { team: "data" },
       },
       {
         service: "Cloud Storage",
@@ -295,6 +339,7 @@ const BILLED = {
   },
   [EU_SHOP]: {
     currency: "EUR",
+    accountId: "5f0c2d7e-9a41-4f3b-8c6e-1d2a3b4c5d6e",
     lines: [
       {
         service: "Virtual Machines",
@@ -302,6 +347,7 @@ const BILLED = {
         resourceId:
           "/subscriptions/5f0c2d7e-9a41-4f3b-8c6e-1d2a3b4c5d6e/resourcegroups/shop/providers/microsoft.compute/virtualmachines/shop-web-1",
         base: 17,
+        tags: { team: "shop", env: "prod" },
       },
     ],
   },
@@ -335,11 +381,13 @@ for (const [accountRow, billed] of Object.entries(BILLED)) {
         Math.round(line.base * swing * growth * partial * spike * 100) / 100;
       COST_ROWS.push({
         cloudAccountId: accountRow,
+        accountId: billed.accountId,
         day: new Date(day),
         currency: billed.currency,
         service: line.service,
         region: line.region,
         resourceId: line.resourceId,
+        tags: line.tags || {},
         cost: cost,
       });
     }
@@ -394,8 +442,38 @@ function costSummaryOf(accountRow) {
     dailyServiceTotals,
     latestDay: summary.latestDay,
   });
+  // The tags its last 30 days' costs carry, as the writer sums them.
+  const thirtyDaysBack = toCloudCostDay(addUtcDays(COSTS_READ_AT, -29));
+  const tagKeys = summarizeCloudCostTagKeys(
+    COST_ROWS.filter((row) => {
+      return (
+        row.cloudAccountId === accountRow &&
+        toCloudCostDay(row.day) >= thirtyDaysBack
+      );
+    }).map((row) => {
+      return { tags: row.tags, amount: row.cost };
+    }),
+  );
 
-  return anomalies.length > 0 ? { ...summary, anomalies } : summary;
+  return {
+    ...summary,
+    ...(anomalies.length > 0 ? { anomalies } : {}),
+    ...(tagKeys.length > 0 ? { tagKeys } : {}),
+    /*
+     * data-lake's connection reads costs per resource, but resource-level
+     * data is not turned on in its Cost Management preferences: Costs'
+     * breakdown by resource says so, in the read's own words.
+     */
+    ...(accountRow === DATA_LAKE
+      ? {
+          resources: {
+            state: CloudCostState.NotSetUp,
+            message:
+              "Resource-level data is not turned on for this account. Turn on resource-level data at daily granularity in the AWS Billing and Cost Management console's Cost Management preferences, from the organization's management account: AWS prepares it within 48 hours.",
+          },
+        }
+      : {}),
+  };
 }
 
 /*
@@ -586,8 +664,78 @@ const RECOMMENDATIONS = [
   }),
 ];
 
+/*
+ * How much of the last 30 days' spend each account's commitments paid for,
+ * and how much of them was used, as each cloud's reader keeps it on the
+ * account's savings summary: web-prod's Savings Plans covering most and a
+ * reservation all used, analytics' committed use discount (its export says
+ * nothing of what went unused), eu-shop with none, and data-lake's role
+ * not allowed to read them yet.
+ */
+const COMMITMENTS_READ_AT = new Date(LOADED_AT - 3 * HOUR).toISOString();
+
+function commitments(currency, kinds, fields) {
+  return {
+    state: CloudCostState.Reading,
+    currency,
+    days: 30,
+    kinds,
+    readAt: COMMITMENTS_READ_AT,
+    ...fields,
+  };
+}
+
+const COMMITMENTS = {
+  [WEB_PROD]: commitments("USD", [
+    {
+      kind: CloudCommitmentKind.SavingsPlans,
+      coveredSpend: 7872,
+      onDemandSpend: 4428,
+      commitmentSpend: 6000,
+      unusedSpend: 210,
+    },
+    {
+      kind: CloudCommitmentKind.Reservations,
+      coveredSpend: 1200,
+      onDemandSpend: 0,
+      commitmentSpend: 1000,
+      unusedSpend: 0,
+    },
+  ]),
+  [DATA_LAKE]: commitments("USD", [], {
+    state: CloudCostState.NotAllowed,
+    message:
+      "The role may not read Savings Plans and Reserved Instances from Cost Explorer (ce:GetSavingsPlansCoverage, ce:GetSavingsPlansUtilization, ce:GetReservationCoverage, ce:GetReservationUtilization). Run the setup command again to allow it.",
+  }),
+  [ANALYTICS]: commitments("USD", [
+    {
+      kind: CloudCommitmentKind.CommittedUseDiscounts,
+      coveredSpend: 300,
+      onDemandSpend: 700,
+      commitmentSpend: 280,
+      unusedSpend: null,
+    },
+  ]),
+  [EU_SHOP]: commitments("EUR", [
+    {
+      kind: CloudCommitmentKind.SavingsPlans,
+      coveredSpend: 0,
+      onDemandSpend: 950,
+      commitmentSpend: 0,
+      unusedSpend: 0,
+    },
+    {
+      kind: CloudCommitmentKind.Reservations,
+      coveredSpend: 0,
+      onDemandSpend: 0,
+      commitmentSpend: 0,
+      unusedSpend: 0,
+    },
+  ]),
+};
+
 function savingsSummaryOf(accountRow) {
-  return summarizeCloudAccountSavings({
+  const summary = summarizeCloudAccountSavings({
     savings: RECOMMENDATIONS.filter((row) => {
       return row.cloudAccountId === accountRow;
     }).map((row) => {
@@ -599,6 +747,10 @@ function savingsSummaryOf(accountRow) {
     }),
     now: new Date(LOADED_AT - 3 * HOUR),
   });
+
+  return COMMITMENTS[accountRow]
+    ? { ...summary, commitments: COMMITMENTS[accountRow] }
+    : summary;
 }
 
 function notRead(state, message) {
@@ -1162,6 +1314,19 @@ const EMPTY_TABLES = [
   "AlertState",
   // A resource's Metrics card: no metric catalog in this workspace.
   "MetricType",
+  /*
+   * An account's side menu counts the monitors it recommends for its
+   * resources still to set up (CloudAccountRecommendationData): none is
+   * set up or dismissed in this workspace.
+   */
+  "Monitor",
+  "RecommendationDismissal",
+  /*
+   * A resource's side menu counts the scheduled maintenance holding it,
+   * by the states that are not ended: none holds one here.
+   */
+  "ScheduledMaintenance",
+  "ScheduledMaintenanceState",
 ];
 
 function isModelled(modelType) {
@@ -1357,10 +1522,14 @@ AnalyticsModelAPI.aggregate = async (options) => {
     return answerMetric(aggregateBy, query);
   }
 
+  // A breakdown by a tag's value: the one key asked, as /aggregate takes it.
+  const tagKeys = aggregateBy.groupByAttributeKeys || [];
+
   fixture.aggregateRequests.push({
     modelName: tableName(options.modelType),
     interval: aggregateBy.aggregationInterval,
     groupBy: groupBy,
+    groupByAttributeKeys: [...tagKeys],
     query: serialize(query),
   });
 
@@ -1387,6 +1556,14 @@ AnalyticsModelAPI.aggregate = async (options) => {
       return false;
     }
     if (query.resourceId && row.resourceId !== String(query.resourceId)) {
+      return false;
+    }
+    // The App Platforms' services alone, for a breakdown by app.
+    if (query.service instanceof Includes) {
+      if (!query.service.values.map(String).includes(row.service)) {
+        return false;
+      }
+    } else if (query.service && row.service !== String(query.service)) {
       return false;
     }
     if (query.cloudAccountId instanceof Includes) {
@@ -1417,11 +1594,14 @@ AnalyticsModelAPI.aggregate = async (options) => {
     const key =
       aggregateBy.aggregationInterval === AggregationInterval.Day
         ? row.day.toISOString()
-        : groupBy
-            .map((field) => {
+        : [
+            ...tagKeys.map((tagKey) => {
+              return String(row.tags[tagKey] ?? "");
+            }),
+            ...groupBy.map((field) => {
               return String(row[field] ?? "");
-            })
-            .join("\u0000");
+            }),
+          ].join("\u0000");
     const entry = sums.get(key) || { row, value: 0 };
     entry.value += row.cost;
     sums.set(key, entry);
@@ -1438,6 +1618,14 @@ AnalyticsModelAPI.aggregate = async (options) => {
       const result = { value: Math.round(entry.value * 100) / 100 };
       for (const field of groupBy) {
         result[field] = entry.row[field];
+      }
+      if (tagKeys.length > 0) {
+        // { [key]: value }, "" for the costs without the tag.
+        result.attributes = Object.fromEntries(
+          tagKeys.map((tagKey) => {
+            return [tagKey, entry.row.tags[tagKey] ?? ""];
+          }),
+        );
       }
       return result;
     }),

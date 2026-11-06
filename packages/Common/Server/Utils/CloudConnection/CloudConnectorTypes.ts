@@ -2,6 +2,7 @@ import {
   CloudCostState,
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
@@ -141,6 +142,20 @@ export interface CloudConnectionPullState {
   costsReadAt?: string | undefined;
   // When the ways to spend less were last read: due a day later.
   savingsReadAt?: string | undefined;
+  /*
+   * Which reading of the costs the stored ones are (CLOUD_COSTS_READ_VERSION):
+   * a connection whose costs were read by an older one reads them as far
+   * back as a first read does, once, so the days already kept get what the
+   * newer one keeps besides (each cost's tags).
+   */
+  costsVersion?: number | undefined;
+  /*
+   * AWS, with Costs per resource on: when Cost Explorer's resource-level
+   * costs were last read in full - due again a day later, when the last
+   * days it still finishes are read again. Absent until the first, which
+   * reads the 14 days Cost Explorer keeps.
+   */
+  resourceCostsReadAt?: string | undefined;
 }
 
 /*
@@ -438,6 +453,21 @@ export interface CloudCostRecord {
   resourceId: string;
   currency: string;
   amount: number;
+  /*
+   * The cost's tags (labels, on Google Cloud): the ones its billing names
+   * - a Google Cloud billing export's labels - else, for a cost billed to
+   * a resource, the tags OneUptime holds for the resource. Kept with the
+   * cost (CloudCost.tags), so Costs breaks the spend down by them.
+   */
+  tags?: Record<string, string> | undefined;
+  /*
+   * The whole of its account, day, service and Region, resources' costs
+   * stored apart included: an AWS figure of a day Cost Explorer's
+   * resource-level costs were not read for, while they are kept for others.
+   * The writer keeps the resources' rows and brings the rest ("" resource)
+   * in line with it (CloudCostWriter).
+   */
+  isServiceTotal?: boolean | undefined;
 }
 
 /*
@@ -470,6 +500,23 @@ export interface CloudCostsResult {
   accounts: Array<CloudCostAccountOutcome>;
   warnings: Array<string>;
   complete: boolean;
+  /*
+   * The days the records cover, when the connector read further back than
+   * it was asked (AWS's first read of costs per resource takes the 14 days
+   * Cost Explorer keeps): the writer brings these in line instead.
+   */
+  window?: { start: Date; end: Date } | undefined;
+  /*
+   * Per account, whether its costs per resource could be read - AWS, with
+   * Costs per resource on - and why not. Kept on its summary.
+   */
+  resourceCosts?: Array<CloudCostAccountOutcome> | undefined;
+  /*
+   * When the costs per resource were read in full by this read: the lane
+   * keeps it (CloudConnectionPullState.resourceCostsReadAt) once what was
+   * read is written, so a read whose writing fails is read again.
+   */
+  resourceCostsReadAt?: string | undefined;
 }
 
 // One way to spend less in a connection's account, as its cloud's recommender says it.
@@ -514,6 +561,15 @@ export interface CloudSavingsResult {
   accounts: Array<CloudCostAccountOutcome>;
   warnings: Array<string>;
   complete: boolean;
+  /*
+   * How much of each account's spend its commitments cover, and how much
+   * of them is used (CloudCommitments) - or why that could not be read. An
+   * AWS organization's are one, on its management account. Kept on the
+   * account's savings summary.
+   */
+  commitments?:
+    | Array<{ accountId: string; summary: CloudCommitmentSummary }>
+    | undefined;
 }
 
 export interface CloudConnector {

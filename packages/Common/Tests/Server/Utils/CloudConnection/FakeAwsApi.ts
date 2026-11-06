@@ -278,6 +278,21 @@ export interface FakeAwsOptions {
    */
   costPages?: Array<JSONObject> | undefined;
   costError?: FakeResponse | undefined;
+  /*
+   * Cost Explorer's resource-level costs (GetCostAndUsageWithResources):
+   * each request answered by the next of these pages, the last repeating -
+   * or by the error. No pages: nothing for any resource.
+   */
+  resourceCostPages?: Array<JSONObject> | undefined;
+  resourceCostError?: FakeResponse | undefined;
+  /*
+   * Cost Explorer's Savings Plans and reservations reads, by action
+   * (GetSavingsPlansCoverage, GetSavingsPlansUtilization,
+   * GetReservationCoverage, GetReservationUtilization): the answer each
+   * gives. One not given answers DataUnavailableException, as an account
+   * with none of the kind does.
+   */
+  commitmentAnswers?: Record<string, JSONObject | FakeResponse> | undefined;
   // Cost Optimization Hub (ListRecommendations): its items, or the error.
   savingsItems?: Array<JSONObject> | undefined;
   savingsError?: FakeResponse | undefined;
@@ -1579,13 +1594,45 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         const action: string =
           headerOf(request, "X-Amz-Target").split(".")[1] || "";
         const body: JSONObject = bodyOf(request);
-        const turn: number = costCalls.filter(
-          (call: { service: string }): boolean => {
-            return call.service === service;
-          },
-        ).length;
 
         costCalls.push({ service, action, region, body });
+
+        if (service === "ce" && action === "GetCostAndUsageWithResources") {
+          if (options.resourceCostError) {
+            return options.resourceCostError;
+          }
+
+          const pages: Array<JSONObject> = options.resourceCostPages || [
+            { ResultsByTime: [] },
+          ];
+          const resourceTurn: number = costCalls.filter(
+            (call: { action: string }): boolean => {
+              return call.action === action;
+            },
+          ).length;
+
+          return json(pages[Math.min(resourceTurn - 1, pages.length - 1)]!);
+        }
+
+        if (
+          service === "ce" &&
+          (action.startsWith("GetSavingsPlans") ||
+            action.startsWith("GetReservation"))
+        ) {
+          const answer: JSONObject | FakeResponse | undefined =
+            options.commitmentAnswers?.[action];
+
+          if (!answer) {
+            return {
+              status: 400,
+              body: '{"__type":"DataUnavailableException","message":"Data is not available."}',
+            };
+          }
+
+          return "status" in answer && typeof answer["status"] === "number"
+            ? (answer as FakeResponse)
+            : json(answer as JSONObject);
+        }
 
         if (service === "ce") {
           if (options.costError) {
@@ -1595,8 +1642,12 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
           const pages: Array<JSONObject> = options.costPages || [
             { ResultsByTime: [] },
           ];
+          const costTurn: number =
+            costCalls.filter((call: { action: string }): boolean => {
+              return call.action === "GetCostAndUsage";
+            }).length - 1;
 
-          return json(pages[Math.min(turn, pages.length - 1)]!);
+          return json(pages[Math.min(costTurn, pages.length - 1)]!);
         }
 
         if (options.savingsError) {
