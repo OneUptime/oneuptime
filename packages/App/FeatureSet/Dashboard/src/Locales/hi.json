@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "कमांड देखने के लिए Runner जॉब पढ़ने की अनुमति चाहिए ({{permissions}} में से कोई एक)। किसी घटना या अलर्ट की जाँच या सुधार के दौरान AI ने जो कमांड चलाए, वे उस घटना या अलर्ट पर भी दिखते हैं।",
   "Seen in the last {{minutes}} minutes": "पिछले {{minutes}} मिनट में देखा गया",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "इस टेम्पलेट से जोड़ने के लिए मॉनिटर चुनें। किसी दूसरे टेम्पलेट से जुड़े मॉनिटर इस पर आ जाते हैं।",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "प्रोजेक्ट डिफ़ॉल्ट पर रीसेट करें",
   "Show these columns to everyone in this project": "इस प्रोजेक्ट में सभी को ये कॉलम दिखाएँ",
   "These are this project's default columns for this list. Changes you save are only for you.": "ये इस सूची के लिए इस प्रोजेक्ट के डिफ़ॉल्ट कॉलम हैं। आप जो बदलाव सहेजेंगे, वे सिर्फ़ आपके लिए होंगे।",
-  "This list has default columns for everyone in this project.": "इस सूची में इस प्रोजेक्ट के सभी लोगों के लिए डिफ़ॉल्ट कॉलम हैं।"
+  "This list has default columns for everyone in this project.": "इस सूची में इस प्रोजेक्ट के सभी लोगों के लिए डिफ़ॉल्ट कॉलम हैं।",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "किसी घटना या अलर्ट की जाँच या सुधार के दौरान AI ने जो कमांड चलाए, वे उस घटना या अलर्ट पर भी दिखते हैं।",
+  "Seeing the commands needs permission to read Runner jobs.": "कमांड देखने के लिए Runner जॉब पढ़ने की अनुमति चाहिए।"
 }

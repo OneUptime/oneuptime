@@ -69,7 +69,6 @@ import {
   getAccessTestPermissionGate,
   getAccessTestPermissionMessage,
   getAccessTestPermissionRequirement,
-  getKubectlJobsPermissionTitles,
   getKubernetesAiAccessEditCapabilities,
   holdsKubernetesAiAccessPermission,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessPermissions";
@@ -85,6 +84,8 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
+import { getCommandJobsPermissionNote } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/CommandJobsPermissionNote";
+import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { AgentAiFixesMode } from "../../../Types/AI/AgentAiSettings";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -1975,9 +1976,31 @@ describe("command history permission", () => {
     expect(canReadKubectlJobs()).toBe(true);
   });
 
-  test("names the permissions that would unlock it", () => {
-    expect(getKubectlJobsPermissionTitles()).toEqual(
-      expect.arrayContaining(["Viewer", "Runbook Viewer"]),
+  /*
+   * The note names the one permission to ask for, as every lock does -
+   * not the eight roles and permissions that read Runner jobs.
+   */
+  test("names the permission that would unlock it", () => {
+    grant([...BASE_PERMISSIONS, Permission.SettingsAdmin]);
+
+    const note: string = getCommandJobsPermissionNote(getGlobalTranslator());
+
+    expect(note).toBe(
+      "Seeing the commands needs permission to read Runner jobs. You need this permission: Read Runbook Execution. Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
+    );
+    for (const role of ["Project Owner", "Viewer", "Runbook Viewer"]) {
+      expect(note).not.toContain(role);
+    }
+  });
+
+  test("or the team that blocks it", () => {
+    grant(
+      [...BASE_PERMISSIONS, Permission.SettingsAdmin],
+      [Permission.ReadRunbookExecution],
+    );
+
+    expect(getCommandJobsPermissionNote(getGlobalTranslator())).toBe(
+      "Seeing the commands needs permission to read Runner jobs. A team you are on blocks Read Runbook Execution. Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
     );
   });
 });

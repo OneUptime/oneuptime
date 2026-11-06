@@ -1,10 +1,8 @@
 import PageComponentProps from "../../../PageComponentProps";
 import PageMap from "../../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
-import {
-  canReadKubectlJobs,
-  getKubectlJobsPermissionTitles,
-} from "../../Utils/KubernetesAiAccessPermissions";
+import { canReadKubectlJobs } from "../../Utils/KubernetesAiAccessPermissions";
+import { getCommandJobsPermissionNote } from "../../../../Components/ResourceAiAgent/CommandJobsPermissionNote";
 import {
   getAutomaticInvestigation,
   parseStatus,
@@ -1047,10 +1045,7 @@ const KubernetesClusterAILogs: FunctionComponent<
             className="text-sm text-gray-600"
             data-testid="kubectl-jobs-permission-note"
           >
-            {translator.translateTemplate(
-              "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
-              { permissions: getKubectlJobsPermissionTitles().join(", ") },
-            )}
+            {getCommandJobsPermissionNote(translator)}
           </p>
         </Card>
       )}

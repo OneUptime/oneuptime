@@ -34,10 +34,8 @@ import {
   getResourceInvestigationSummary,
   parseResourceAiLogs,
 } from "./ResourceAiLogs";
-import {
-  canReadResourceCommandJobs,
-  getResourceCommandJobsPermissionTitles,
-} from "./ResourceAiAccessPermissions";
+import { canReadResourceCommandJobs } from "./ResourceAiAccessPermissions";
+import { getCommandJobsPermissionNote } from "./CommandJobsPermissionNote";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -723,13 +721,7 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
             className="text-sm text-gray-600"
             data-testid="resource-command-jobs-permission-note"
           >
-            {translator.translateTemplate(
-              "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
-              {
-                permissions:
-                  getResourceCommandJobsPermissionTitles().join(", "),
-              },
-            )}
+            {getCommandJobsPermissionNote(translator)}
           </p>
         </Card>
       )}

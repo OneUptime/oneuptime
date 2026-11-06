@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "För att se kommandona krävs behörighet att läsa Runner-jobb (en av: {{permissions}}). Kommandon som AI körde när en incident eller ett larm utreddes eller åtgärdades visas också på den incidenten eller det larmet.",
   "Seen in the last {{minutes}} minutes": "Sedd de senaste {{minutes}} minuterna",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Välj monitorer som ska kopplas till den här mallen. Monitorer som är kopplade till en annan mall flyttas hit.",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "Återställ till projektets standard",
   "Show these columns to everyone in this project": "Visa de här kolumnerna för alla i det här projektet",
   "These are this project's default columns for this list. Changes you save are only for you.": "Det här är projektets standardkolumner för den här listan. Ändringar du sparar gäller bara dig.",
-  "This list has default columns for everyone in this project.": "Den här listan har standardkolumner för alla i det här projektet."
+  "This list has default columns for everyone in this project.": "Den här listan har standardkolumner för alla i det här projektet.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Kommandon som AI körde när en incident eller ett larm utreddes eller åtgärdades visas också på den incidenten eller det larmet.",
+  "Seeing the commands needs permission to read Runner jobs.": "För att se kommandona krävs behörighet att läsa Runner-jobb."
 }

@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "دیدن فرمان‌ها به مجوز خواندن کارهای Runner نیاز دارد (یکی از: {{permissions}}). فرمان‌هایی که هوش مصنوعی هنگام بررسی یا اصلاح یک حادثه یا هشدار اجرا کرد، روی همان حادثه یا هشدار هم نمایش داده می‌شوند.",
   "Seen in the last {{minutes}} minutes": "در {{minutes}} دقیقه اخیر دیده شده",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "مانیتورهایی را برای پیوند به این قالب انتخاب کنید. مانیتورهایی که به قالب دیگری پیوند دارند به این قالب منتقل می‌شوند.",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "بازنشانی به پیش‌فرض پروژه",
   "Show these columns to everyone in this project": "نمایش این ستون‌ها به همه در این پروژه",
   "These are this project's default columns for this list. Changes you save are only for you.": "این‌ها ستون‌های پیش‌فرض این پروژه برای این فهرست هستند. تغییراتی که ذخیره می‌کنید فقط برای خودتان است.",
-  "This list has default columns for everyone in this project.": "این فهرست برای همه در این پروژه ستون‌های پیش‌فرض دارد."
+  "This list has default columns for everyone in this project.": "این فهرست برای همه در این پروژه ستون‌های پیش‌فرض دارد.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "فرمان‌هایی که هوش مصنوعی هنگام بررسی یا اصلاح یک حادثه یا هشدار اجرا کرد، روی همان حادثه یا هشدار هم نمایش داده می‌شوند.",
+  "Seeing the commands needs permission to read Runner jobs.": "دیدن فرمان‌ها به مجوز خواندن کارهای Runner نیاز دارد."
 }

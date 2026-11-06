@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "명령을 보려면 Runner 작업을 읽을 권한({{permissions}} 중 하나)이 필요합니다. 인시던트나 경고를 조사하거나 수정하는 동안 AI가 실행한 명령은 해당 인시던트나 경고에도 표시됩니다.",
   "Seen in the last {{minutes}} minutes": "최근 {{minutes}}분 내 확인됨",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "이 템플릿에 연결할 모니터를 고르세요. 다른 템플릿에 연결된 모니터는 이 템플릿으로 옮겨집니다.",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "프로젝트 기본값으로 재설정",
   "Show these columns to everyone in this project": "이 프로젝트의 모든 사용자에게 이 열 표시",
   "These are this project's default columns for this list. Changes you save are only for you.": "이 목록에 설정된 이 프로젝트의 기본 열입니다. 저장한 변경 사항은 나에게만 적용됩니다.",
-  "This list has default columns for everyone in this project.": "이 목록에는 이 프로젝트의 모든 사용자를 위한 기본 열이 있습니다."
+  "This list has default columns for everyone in this project.": "이 목록에는 이 프로젝트의 모든 사용자를 위한 기본 열이 있습니다.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "인시던트나 경고를 조사하거나 수정하는 동안 AI가 실행한 명령은 해당 인시던트나 경고에도 표시됩니다.",
+  "Seeing the commands needs permission to read Runner jobs.": "명령을 보려면 Runner 작업을 읽을 권한이 필요합니다."
 }

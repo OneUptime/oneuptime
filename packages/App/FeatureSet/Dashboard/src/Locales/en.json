@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
   "Seen in the last {{minutes}} minutes": "Seen in the last {{minutes}} minutes",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Pick monitors to link to this template. Monitors linked to another template move to this one.",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "Reset to project default",
   "Show these columns to everyone in this project": "Show these columns to everyone in this project",
   "These are this project's default columns for this list. Changes you save are only for you.": "These are this project's default columns for this list. Changes you save are only for you.",
-  "This list has default columns for everyone in this project.": "This list has default columns for everyone in this project."
+  "This list has default columns for everyone in this project.": "This list has default columns for everyone in this project.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
+  "Seeing the commands needs permission to read Runner jobs.": "Seeing the commands needs permission to read Runner jobs."
 }

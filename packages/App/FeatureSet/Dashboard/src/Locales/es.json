@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Escalar a {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Recopilar el endpoint de métricas de {{engine}}",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "Consulta la {{docsLink}} para ver el catálogo completo de herramientas y la sintaxis de consulta.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Ver los comandos requiere permiso para leer los trabajos de los Runners (uno de: {{permissions}}). Los comandos que ejecutó la IA mientras investigaba o corregía un incidente o una alerta también aparecen en ese incidente o esa alerta.",
   "Seen in the last {{minutes}} minutes": "Visto en los últimos {{minutes}} minutos",
   "Select all ({{count}})": "Seleccionar todo ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Elija los monitores que se vincularán a esta plantilla. Los monitores vinculados a otra plantilla pasan a esta.",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "Restablecer los valores predeterminados del proyecto",
   "Show these columns to everyone in this project": "Mostrar estas columnas a todos en este proyecto",
   "These are this project's default columns for this list. Changes you save are only for you.": "Estas son las columnas predeterminadas de este proyecto para esta lista. Los cambios que guardes son solo para ti.",
-  "This list has default columns for everyone in this project.": "Esta lista tiene columnas predeterminadas para todos en este proyecto."
+  "This list has default columns for everyone in this project.": "Esta lista tiene columnas predeterminadas para todos en este proyecto.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Los comandos que ejecutó la IA mientras investigaba o corregía un incidente o una alerta también aparecen en ese incidente o esa alerta.",
+  "Seeing the commands needs permission to read Runner jobs.": "Ver los comandos requiere permiso para leer los trabajos de los Runners."
 }

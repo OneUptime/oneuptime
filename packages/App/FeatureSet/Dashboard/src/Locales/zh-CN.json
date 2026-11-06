@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "查看这些命令需要读取 Runner 作业的权限（以下任一：{{permissions}}）。AI 在调查或修复事件或警报时运行的命令也会显示在该事件或警报上。",
   "Seen in the last {{minutes}} minutes": "最近 {{minutes}} 分钟内出现过",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "选择要关联到此模板的监视器。已关联到其他模板的监视器会转到此模板。",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "重置为项目默认值",
   "Show these columns to everyone in this project": "向此项目中的所有人显示这些列",
   "These are this project's default columns for this list. Changes you save are only for you.": "这些是此项目为此列表设置的默认列。您保存的更改只对您自己生效。",
-  "This list has default columns for everyone in this project.": "此列表为此项目中的所有人设置了默认列。"
+  "This list has default columns for everyone in this project.": "此列表为此项目中的所有人设置了默认列。",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "AI 在调查或修复事件或警报时运行的命令也会显示在该事件或警报上。",
+  "Seeing the commands needs permission to read Runner jobs.": "查看这些命令需要读取 Runner 作业的权限。"
 }

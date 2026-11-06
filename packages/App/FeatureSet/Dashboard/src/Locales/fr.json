@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Pour voir les commandes, il faut l'autorisation de lire les tâches des Runners (l'une de : {{permissions}}). Les commandes que l'IA a exécutées pendant l'investigation ou la correction d'un incident ou d'une alerte apparaissent aussi sur cet incident ou cette alerte.",
   "Seen in the last {{minutes}} minutes": "Vue au cours des {{minutes}} dernières minutes",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Choisissez les moniteurs à lier à ce modèle. Les moniteurs liés à un autre modèle passent à celui-ci.",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "Réinitialiser aux valeurs par défaut du projet",
   "Show these columns to everyone in this project": "Afficher ces colonnes pour tout le monde dans ce projet",
   "These are this project's default columns for this list. Changes you save are only for you.": "Ce sont les colonnes par défaut de ce projet pour cette liste. Les modifications que vous enregistrez ne s'appliquent qu'à vous.",
-  "This list has default columns for everyone in this project.": "Cette liste a des colonnes par défaut pour tout le monde dans ce projet."
+  "This list has default columns for everyone in this project.": "Cette liste a des colonnes par défaut pour tout le monde dans ce projet.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Les commandes que l'IA a exécutées pendant l'investigation ou la correction d'un incident ou d'une alerte apparaissent aussi sur cet incident ou cette alerte.",
+  "Seeing the commands needs permission to read Runner jobs.": "Pour voir les commandes, il faut l'autorisation de lire les tâches des Runners."
 }

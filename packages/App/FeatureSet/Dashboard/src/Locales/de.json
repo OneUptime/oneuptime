@@ -19912,7 +19912,6 @@
   "Scale to {{replicas}}: {{workload}}": "Scale to {{replicas}}: {{workload}}",
   "Scrape {{engine}}'s metrics endpoint": "Scrape {{engine}}'s metrics endpoint",
   "See the {{docsLink}} for the full tool catalog and query syntax.": "See the {{docsLink}} for the full tool catalog and query syntax.",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Um die Befehle zu sehen, benötigen Sie die Berechtigung zum Lesen von Runner-Jobs (eine von: {{permissions}}). Befehle, die die KI beim Untersuchen oder Beheben eines Vorfalls oder einer Warnung ausgeführt hat, erscheinen auch bei diesem Vorfall bzw. dieser Warnung.",
   "Seen in the last {{minutes}} minutes": "In den letzten {{minutes}} Minuten gesehen",
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Wählen Sie Monitore, die mit dieser Vorlage verknüpft werden sollen. Monitore, die mit einer anderen Vorlage verknüpft sind, wechseln zu dieser.",
@@ -45359,5 +45358,7 @@
   "Reset to project default": "Auf Projektstandard zurücksetzen",
   "Show these columns to everyone in this project": "Diese Spalten allen in diesem Projekt anzeigen",
   "These are this project's default columns for this list. Changes you save are only for you.": "Dies sind die Standardspalten dieses Projekts für diese Liste. Änderungen, die Sie speichern, gelten nur für Sie.",
-  "This list has default columns for everyone in this project.": "Diese Liste hat Standardspalten für alle in diesem Projekt."
+  "This list has default columns for everyone in this project.": "Diese Liste hat Standardspalten für alle in diesem Projekt.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Befehle, die die KI beim Untersuchen oder Beheben eines Vorfalls oder einer Warnung ausgeführt hat, erscheinen auch bei diesem Vorfall bzw. dieser Warnung.",
+  "Seeing the commands needs permission to read Runner jobs.": "Um die Befehle zu sehen, benötigen Sie die Berechtigung zum Lesen von Runner-Jobs."
 }

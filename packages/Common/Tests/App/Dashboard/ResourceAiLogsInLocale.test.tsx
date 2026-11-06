@@ -152,6 +152,7 @@ const ENGLISH: Locale = readLocale("en");
 const AI_LOGS_FILES: Array<string> = [
   "ResourceAiAgent/ResourceAiLogs.ts",
   "ResourceAiAgent/ResourceAiLogsPage.tsx",
+  "ResourceAiAgent/CommandJobsPermissionNote.ts",
 ];
 
 // Each sentence the page writes out, exactly as it is written there.
@@ -193,7 +194,8 @@ const AI_LOGS_SENTENCES: Array<string> = [
   "Why",
   "When",
   "{{status}} (exit {{exitCode}})",
-  "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
+  "Seeing the commands needs permission to read Runner jobs.",
+  "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
 ];
 
 // The page's words held in its module: titles, labels and every status.
