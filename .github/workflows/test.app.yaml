@@ -1120,7 +1120,8 @@ jobs:
           # #5715's follow-ups grew this half of Event Overview by about 0.3
           # minutes (the impact's short numbers on the folded investigation,
           # the marks after citation chips and record pills on phones in
-          # English, German and Persian, and a Viewer's fixes with no buttons):
+          # English, German and Persian, and the fixes of a member who may not
+          # act on them, with no buttons):
           # 22.2 here, past the budget, to 19.7.
           - group: 10
             event_overview_shard: 2/2
