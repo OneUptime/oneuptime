@@ -1832,6 +1832,13 @@
   "Copied": "Gekopieerd",
   "Status: {{status}}": "Toestand: {{status}}",
   "Loading content": "Inhoud laden",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Dit zijn de standaardkolommen van dit project voor deze lijst. Wijzigingen die u opslaat, gelden alleen voor u.",
+  "Show these columns to everyone in this project": "Deze kolommen aan iedereen in dit project tonen",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Vervangt de standaardkolommen van deze lijst. Wie eigen kolommen heeft gekozen, houdt die.",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Iedereen die voor deze lijst geen eigen kolommen heeft gekozen, ziet deze.",
+  "This list has default columns for everyone in this project.": "Deze lijst heeft standaardkolommen voor iedereen in dit project.",
+  "Remove default": "Standaard verwijderen",
+  "Reset to project default": "Terugzetten naar projectstandaard",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",

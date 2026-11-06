@@ -1832,6 +1832,13 @@
   "Copied": "कॉपी हो गया",
   "Status: {{status}}": "स्थिति: {{status}}",
   "Loading content": "सामग्री लोड हो रही है",
+  "These are this project's default columns for this list. Changes you save are only for you.": "ये इस सूची के लिए इस प्रोजेक्ट के डिफ़ॉल्ट कॉलम हैं। आप जो बदलाव सहेजेंगे, वे सिर्फ़ आपके लिए होंगे।",
+  "Show these columns to everyone in this project": "इस प्रोजेक्ट में सभी को ये कॉलम दिखाएँ",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "इस सूची के डिफ़ॉल्ट कॉलम बदल देता है। जिन्होंने अपने कॉलम चुने हैं, उनके वही रहते हैं।",
+  "Anyone who hasn't picked their own columns for this list sees these.": "जिन्होंने इस सूची के लिए अपने कॉलम नहीं चुने हैं, वे सभी यही देखते हैं।",
+  "This list has default columns for everyone in this project.": "इस सूची में इस प्रोजेक्ट के सभी लोगों के लिए डिफ़ॉल्ट कॉलम हैं।",
+  "Remove default": "डिफ़ॉल्ट हटाएँ",
+  "Reset to project default": "प्रोजेक्ट डिफ़ॉल्ट पर रीसेट करें",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",
