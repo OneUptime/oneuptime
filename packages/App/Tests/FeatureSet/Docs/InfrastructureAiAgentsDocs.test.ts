@@ -31,7 +31,9 @@ import {
   CloudAiAgentEnvironmentVariable,
   CloudAiAgentSetupOptions,
   GCP_CLOUD_AI_AGENT_MACHINE_TYPE,
+  GCP_TOKEN_CREATOR_ROLE,
   getAwsCloudAiAgentTemplate,
+  getAzureCloudAiAgentReaderPermissions,
   getCloudAiAgentEnvironment,
   getCloudAiAgentRolePermissions,
   getAwsOrganizationCloudAiAgentInstancesCommand,
@@ -59,12 +61,14 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+  AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
   GCP_CLOUD_AI_AGENT_NETWORK_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+  getAzureCloudAiAgentWriteIdentityId,
   getCloudAiAgentOwnTargets,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import { buildCloudAiAgentKey } from "Common/Types/CloudConnection/CloudAiAgentKey";
@@ -86,6 +90,7 @@ import {
   RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+  RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -200,6 +205,8 @@ const UNCONDITIONAL_APPLIANCE: RegExp =
 const A_MINUTE: RegExp = /\ba minute\b/;
 const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
 const HEADING_LINE: RegExp = /^#{1,6} \S/;
+// A line a list follows: it ends with its language's colon.
+const LIST_LEAD_END: RegExp = /[:：]$/;
 // `export const NAME: string = "value";`, the value on the same or the next line.
 const STRING_CONSTANT: RegExp =
   /export const ([A-Z][A-Z0-9_]*): string =\s*"([^"\n]*)";/g;
@@ -1809,6 +1816,7 @@ describe("Infrastructure AI Agents docs", (): void => {
         azure: [
           AZURE_CLOUD_AI_AGENT_APP_NAME,
           AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
+          AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
         ],
         gcp: [
           GCP_CLOUD_AI_AGENT_SERVICE_NAME,
@@ -1859,6 +1867,36 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(rows["azure"]![2]).toContain(
         "The key it connects with is a Container Apps secret.",
       );
+      /*
+       * Azure: the Container App's own identity reads, and each change runs
+       * as the write identity, attached to that one app, as the setup
+       * command makes them: the app is given both, the reads' role goes to
+       * its own identity and the changes' role to the write identity.
+       */
+      expect(oneLine(rows["azure"]![2] as string)).toContain(
+        `whose own managed identity may only read. Each change runs as a second, user-assigned managed identity, \`${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}\`, which holds a custom role on the subscription with the permissions of the changes turned on and is attached to the agent's Container App and nothing else: the agent asks for its token for each change.`,
+      );
+
+      const azureCommand: string = getCloudAiAgentSetupCommand(
+        cloudSetupOptions(CloudProvider.Azure, "azure"),
+      );
+
+      expect(azureCommand).toContain(
+        `--system-assigned --user-assigned ${getAzureCloudAiAgentWriteIdentityId(CLOUD_ACCOUNT_IDS.azure)}`,
+      );
+      expect(azureCommand).toContain(
+        '--assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$READER_ROLE"',
+      );
+      expect(azureCommand).toContain(
+        '--assignee-object-id "$WRITE_PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$ROLE"',
+      );
+      expect(
+        getAzureCloudAiAgentReaderPermissions().every(
+          (permission: string): boolean => {
+            return permission.endsWith("/read");
+          },
+        ),
+      ).toBe(true);
       expect(rows["gcp"]![2]).toContain(
         "The key it connects with is kept in Secret Manager, which only the agent's own service account may read, and running the command again destroys the key's older versions.",
       );
@@ -3445,10 +3483,185 @@ describe("Infrastructure AI Agents docs", (): void => {
         `//iam.googleapis.com/projects/my-project/serviceAccounts/${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}@*`,
       ]);
       expect(oneLine(bullet)).toContain(
-        "on AWS the `oneuptime-ai-agent` stack (in a member account of an organization, the `StackSet-oneuptime-ai-agent-*` stack the organization's StackSet made), its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service accounts `oneuptime-ai-agent` and `oneuptime-ai-agent-write`.",
+        "on AWS the `oneuptime-ai-agent` stack (in a member account of an organization, the `StackSet-oneuptime-ai-agent-*` stack the organization's StackSet made), its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group, with the write identity `oneuptime-ai-agent-write` in it; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service accounts `oneuptime-ai-agent` and `oneuptime-ai-agent-write`.",
       );
       expect(codeSpans(bullet)).toContain(
         `StackSet-${AWS_CLOUD_AI_AGENT_STACK_SET_NAME}-*`,
+      );
+      // The write identity is in the resource group the agent protects.
+      expect(codeSpans(bullet)).toContain(
+        AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
+      );
+      expect(
+        getAzureCloudAiAgentWriteIdentityId(CLOUD_ACCOUNT_IDS.azure)
+          .toLowerCase()
+          .startsWith(
+            `/subscriptions/${CLOUD_ACCOUNT_IDS.azure}/resourcegroups/${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}/`,
+          ),
+      ).toBe(true);
+    });
+
+    it("says what running a Cloud AI agent somewhere else needs on each cloud, as its setup command makes it", (): void => {
+      const cloud: string = section(page, "### In a cloud account");
+      const lines: Array<string> = cloud.split("\n");
+      const lead: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("To run the agent somewhere else, ");
+      });
+
+      expect(lead).toBeGreaterThan(-1);
+      // Its variables are the ones the dialog's More fields lists.
+      expect(lines[lead]).toBe(
+        `To run the agent somewhere else, deploy its image with the variables listed under **${MORE_FIELDS_SECTION_TITLE}**, and give it what the command would:`,
+      );
+      /*
+       * Then a list, a cloud a line, each as the page's other lists label
+       * theirs (- **Hosts:** ...), in the order the table above names them.
+       */
+      expect(lines.slice(lead + 1, lead + 6)).toEqual([
+        "",
+        // AWS: a role that may only assume the write role, as the template's task role.
+        `- **AWS:** a role that may only assume the write role \`${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}\`, which trusts it and holds the permissions of the changes turned on.`,
+        // Azure: an identity of its own that reads, and the write identity attached.
+        `- **Azure:** a managed identity of its own that only reads, with the write identity \`${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}\` attached where it runs.`,
+        // Google Cloud: a service account that reads, with Token Creator on the write account.
+        `- **Google Cloud:** a service account that only reads, with Service Account Token Creator (\`${GCP_TOKEN_CREATOR_ROLE}\`) on the write service account \`${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}\`.`,
+        "",
+      ]);
+      expect(GCP_TOKEN_CREATOR_ROLE).toBe(
+        "roles/iam.serviceAccountTokenCreator",
+      );
+
+      // The variables name the same write role, identity and account.
+      const variables: (
+        provider: CloudProvider,
+        catalog: CloudCatalogProvider,
+      ) => Record<string, string> = (
+        provider: CloudProvider,
+        catalog: CloudCatalogProvider,
+      ): Record<string, string> => {
+        const environment: Record<string, string> = {};
+
+        for (const variable of getCloudAiAgentEnvironment(
+          cloudSetupOptions(provider, catalog),
+        )) {
+          environment[variable.name] = variable.value;
+        }
+
+        return environment;
+      };
+
+      expect(
+        variables(CloudProvider.AWS, "aws")[RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV],
+      ).toMatch(new RegExp(`:role/${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}$`));
+      expect(
+        variables(CloudProvider.Azure, "azure")[
+          RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV
+        ],
+      ).toBe(getAzureCloudAiAgentWriteIdentityId(CLOUD_ACCOUNT_IDS.azure));
+      expect(
+        variables(CloudProvider.GCP, "gcp")[
+          RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV
+        ],
+      ).toBe(
+        `${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}@${CLOUD_ACCOUNT_IDS.gcp}.iam.gserviceaccount.com`,
+      );
+
+      // The setup command grants Token Creator on the write account, and attaches the write identity.
+      const gcpCommand: string = getCloudAiAgentSetupCommand(
+        cloudSetupOptions(CloudProvider.GCP, "gcp"),
+      );
+
+      expect(gcpCommand).toContain(`--role ${GCP_TOKEN_CREATOR_ROLE}`);
+      expect(
+        getCloudAiAgentSetupCommand(
+          cloudSetupOptions(CloudProvider.Azure, "azure"),
+        ),
+      ).toContain(
+        `--user-assigned ${variables(CloudProvider.Azure, "azure")[RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV]}`,
+      );
+    });
+
+    it("lists what running the agent somewhere else needs on the English lines in every language, a cloud a line, each with its names", (): void => {
+      const englishLines: Array<string> = page.split("\n");
+      const lead: number = englishLines.findIndex((line: string): boolean => {
+        return line.startsWith("To run the agent somewhere else, ");
+      });
+      // Each cloud's line: its label, and the names it gives as code.
+      const clouds: Array<{ label: string; names: Array<string> }> = [
+        { label: "AWS", names: [AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME] },
+        { label: "Azure", names: [AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME] },
+        {
+          label: "Google Cloud",
+          names: [
+            GCP_TOKEN_CREATOR_ROLE,
+            GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+          ],
+        },
+      ];
+      const languages: Array<string> = fs
+        .readdirSync(CONTENT_DIR)
+        .filter((language: string): boolean => {
+          return fs.existsSync(pageFile(PAGE, language));
+        });
+
+      expect(lead).toBeGreaterThan(-1);
+      expect(languages).toHaveLength(17);
+
+      for (const language of languages) {
+        const lines: Array<string> = readPage(PAGE, language).split("\n");
+        // The lead ends with the language's colon, over a list of three.
+        const listed: Array<string> = lines.slice(lead + 2, lead + 5);
+
+        expect({ language, lead: lines[lead] }).toEqual({
+          language,
+          lead: expect.stringMatching(LIST_LEAD_END),
+        });
+        expect({ language, blank: [lines[lead + 1], lines[lead + 5]] }).toEqual(
+          { language, blank: ["", ""] },
+        );
+
+        clouds.forEach(
+          (
+            cloud: { label: string; names: Array<string> },
+            index: number,
+          ): void => {
+            const line: string = listed[index] || "";
+
+            expect({
+              language,
+              label: line.startsWith(`- **${cloud.label}`),
+            }).toEqual({ language, label: true });
+            // In the order its language's sentence puts them.
+            expect({ language, names: codeSpans(line).sort() }).toEqual({
+              language,
+              names: [...cloud.names].sort(),
+            });
+          },
+        );
+      }
+    });
+
+    it("explains why Azure's changes run as a write identity: no narrower or shorter token, and PIM needs Entra ID P2", (): void => {
+      const row: string = oneLine(
+        tableRow(
+          section(page, "## Credentials and least privilege"),
+          "Cloud accounts",
+        ),
+      );
+
+      expect(row).toContain(
+        `on Azure its Container App's own managed identity, which may only read, and the write identity in \`${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV}\`, attached to the same Container App;`,
+      );
+      expect(row).toContain(
+        "on Azure each change runs as `oneuptime-ai-agent-write`, which the agent signs in as for that change.",
+      );
+      expect(row).toContain(
+        "Azure gives a managed identity no token narrower or shorter-lived than its roles, and time-bound access through Privileged Identity Management needs Microsoft Entra ID P2, so the standing access to make changes sits with an identity the agent uses only for changes, never with the one it reads with",
+      );
+      // The old line said the managed identity holds the role itself.
+      expect(row).not.toContain("the managed identity holds the role itself");
+      expect(RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV).toBe(
+        "ONEUPTIME_AI_AZURE_WRITE_IDENTITY",
       );
     });
 

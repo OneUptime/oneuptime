@@ -1,5 +1,6 @@
 import {
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+  RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
   RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
@@ -41,6 +42,14 @@ import {
  *                                    is not a service account refuses every
  *                                    change, rather than falling back to the
  *                                    agent's own account.
+ *   ONEUPTIME_AI_AZURE_WRITE_IDENTITY
+ *                                    Azure: the resource ID of the
+ *                                    user-assigned managed identity each
+ *                                    change runs as, with a token the agent
+ *                                    asks for that change. A value that is
+ *                                    not such an ID refuses every change,
+ *                                    rather than falling back to the
+ *                                    agent's own identity.
  *
  * Pure: Config reads it for the start-up warnings, the executor for every
  * command and the posture.
@@ -49,6 +58,16 @@ import {
 export interface CloudRequiredTag {
   key: string;
   value: string;
+}
+
+// An Azure user-assigned managed identity, as its resource ID names it.
+export interface AzureWriteIdentity {
+  // The resource ID, as written (trimmed): what its token is asked for by.
+  resourceId: string;
+  // Lowercased: the subscription it belongs to.
+  subscriptionId: string;
+  resourceGroup: string;
+  name: string;
 }
 
 export interface CloudAgentSettings {
@@ -66,6 +85,9 @@ export interface CloudAgentSettings {
   gcpWriteServiceAccount: string | null;
   // Set but not a service account: every change is refused with this.
   gcpWriteServiceAccountProblem: string | null;
+  azureWriteIdentity: AzureWriteIdentity | null;
+  // Set but not a user-assigned identity's ID: every change is refused with this.
+  azureWriteIdentityProblem: string | null;
   warnings: Array<string>;
 }
 
@@ -80,6 +102,61 @@ const SERVICE_ACCOUNT_PATTERN: RegExp =
 // The project a service account's email names.
 export function getServiceAccountProject(email: string): string {
   return email.slice(email.indexOf("@") + 1, email.indexOf("."));
+}
+
+/*
+ * A user-assigned managed identity's resource ID, without case as Azure
+ * reads it: its subscription, its resource group (letters, digits and
+ * _ - . ( ), at most 90) and its name (3 to 128 letters, digits, _ and -,
+ * starting with a letter or a digit). Anchored, with bounded repeats.
+ */
+const USER_ASSIGNED_IDENTITY_ID_PATTERN: RegExp =
+  /^\/subscriptions\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/resourcegroups\/([\w.()-]{1,90})\/providers\/microsoft\.managedidentity\/userassignedidentities\/([A-Za-z0-9][\w-]{2,127})$/i;
+
+// The ID Azure Resource Manager makes for one, as messages show it (lowercased).
+const USER_ASSIGNED_IDENTITY_ID_EXAMPLE: string =
+  "/subscriptions/<subscription id>/resourcegroups/oneuptime-ai-agent/providers/microsoft.managedidentity/userassignedidentities/oneuptime-ai-agent-write";
+
+/*
+ * Why a write identity of another subscription than the one the agent
+ * serves changes nothing (no full stop), or null for one of its own: the
+ * write identity is the subscription's own, as its setup command makes it,
+ * so a change never runs as an identity another subscription's owners
+ * hold - and the agent never falls back to its own identity instead. An
+ * agent that does not know its subscription changes nothing anyway, and
+ * says so for that reason (null here).
+ */
+export function describeAzureWriteIdentityElsewhere(data: {
+  identity: AzureWriteIdentity;
+  subscriptionId: string;
+}): string | null {
+  const serves: string = data.subscriptionId.trim().toLowerCase();
+
+  if (!serves || data.identity.subscriptionId === serves) {
+    return null;
+  }
+
+  // Short enough for the posture (MAX_POSTURE_STRING_LENGTH) with both ids.
+  return `${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV} names an identity of subscription ${data.identity.subscriptionId}, but the agent serves subscription ${serves}, so it changes nothing`;
+}
+
+// A user-assigned identity's resource ID read apart, or null for anything else.
+export function parseAzureWriteIdentity(
+  value: string,
+): AzureWriteIdentity | null {
+  const match: RegExpExecArray | null =
+    USER_ASSIGNED_IDENTITY_ID_PATTERN.exec(value);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    resourceId: value,
+    subscriptionId: (match[1] || "").toLowerCase(),
+    resourceGroup: match[2] || "",
+    name: match[3] || "",
+  };
 }
 
 function readTrimmed(env: NodeJS.ProcessEnv, name: string): string {
@@ -247,6 +324,32 @@ export function parseCloudAgentSettings(
     );
   }
 
+  let azureWriteIdentity: AzureWriteIdentity | null = null;
+  let azureWriteIdentityProblem: string | null = null;
+  const identitySetting: string = readTrimmed(
+    env,
+    RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  );
+
+  if (provider === "azure" && identitySetting) {
+    azureWriteIdentity = parseAzureWriteIdentity(identitySetting);
+
+    if (!azureWriteIdentity) {
+      /*
+       * Shown lowercased, as an Azure ID reads the same either way: the
+       * output's redactor reads a camel-cased one as base64.
+       */
+      azureWriteIdentityProblem = `${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV}="${identitySetting
+        .slice(0, 160)
+        .toLowerCase()}" is not the resource ID of a user-assigned managed identity (${USER_ASSIGNED_IDENTITY_ID_EXAMPLE}), so the agent changes nothing until it is fixed.`;
+      warnings.push(azureWriteIdentityProblem);
+    }
+  } else if (provider !== "azure" && identitySetting) {
+    warnings.push(
+      `${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV} is set, but this agent serves ${CLOUD_CATALOG_PROVIDER_NAMES[provider]}, so it is ignored.`,
+    );
+  }
+
   return {
     provider,
     enabledOperations: operations.enabled,
@@ -257,6 +360,8 @@ export function parseCloudAgentSettings(
     awsWriteRoleProblem,
     gcpWriteServiceAccount,
     gcpWriteServiceAccountProblem,
+    azureWriteIdentity,
+    azureWriteIdentityProblem,
     warnings,
   };
 }

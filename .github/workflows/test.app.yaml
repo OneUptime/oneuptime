@@ -977,7 +977,8 @@ jobs:
           # streaming for each, the Logs tabs, dark German and Persian; about
           # 1.9 minutes on a runner): the suite 12.1, the group 23.3, so Host
           # Collectors (1.2) moved to group 3 and VMware Host Page (1.4) to
-          # group 14: 20.7.
+          # group 14: 20.7. Azure's write identity added 1 test the same day
+          # (a desktop's only, about 0.1): the suite 12.2, the group 20.8.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui

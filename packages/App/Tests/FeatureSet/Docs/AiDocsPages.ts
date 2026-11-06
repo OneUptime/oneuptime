@@ -372,6 +372,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Proxmox:",
     "OpenStack clouds:",
     "Cloud accounts:",
+    // What running the Cloud AI agent somewhere else needs, cloud by cloud.
+    "AWS:",
+    "Azure:",
+    "Google Cloud:",
     "OneUptime AI's tools.",
     "When OneUptime queues it.",
     "On the agent, before anything runs.",

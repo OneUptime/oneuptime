@@ -38,13 +38,38 @@ export const AWS_CLOUD_AI_AGENT_STACK_SET_NAME: string =
   AWS_CLOUD_AI_AGENT_STACK_NAME;
 
 /*
- * Azure: a resource group holding one Container App with a system-assigned
- * managed identity, given a custom role built from the enabled operations.
+ * Azure: a resource group holding one Container App, which runs as a
+ * system-assigned managed identity of its own that may only read (a custom
+ * role of the enabled operations' reads). Its changes are made as a second
+ * identity, the write identity: a user-assigned managed identity in the
+ * same resource group, which holds the custom role built from the enabled
+ * operations and is attached to the agent's Container App and to nothing
+ * else. For each change the agent asks the Container App's identity
+ * endpoint for a token of it, by its resource ID. A managed identity's
+ * token cannot be narrowed to one change or made to last less than Azure
+ * makes it (about a day), so the standing write access sits with an
+ * identity the agent signs in as only for a change, never with the one it
+ * reads with.
  */
 export const AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP: string = CLOUD_AI_AGENT_NAME;
 export const AZURE_CLOUD_AI_AGENT_APP_NAME: string = CLOUD_AI_AGENT_NAME;
 export const AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME: string = `${CLOUD_AI_AGENT_NAME}-env`;
+// The write identity's role: the enabled operations' permissions.
 export const AZURE_CLOUD_AI_AGENT_ROLE_NAME: string = "OneUptime AI Agent";
+// The agent's own identity's role: the reads of those operations alone.
+export const AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME: string =
+  "OneUptime AI Agent Reader";
+export const AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME: string = `${CLOUD_AI_AGENT_NAME}-write`;
+
+/*
+ * The write identity's resource ID in a subscription: what the Container
+ * App is given it by, and what the agent asks for its token with.
+ */
+export function getAzureCloudAiAgentWriteIdentityId(
+  subscriptionId: string,
+): string {
+  return `/subscriptions/${subscriptionId.trim().toLowerCase()}/resourceGroups/${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}`;
+}
 
 /*
  * Google Cloud: the agent runs as a service account of its own, which may
