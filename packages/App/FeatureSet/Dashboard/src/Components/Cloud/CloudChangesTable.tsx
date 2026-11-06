@@ -42,6 +42,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  ReactNode,
   useMemo,
   useRef,
   useState,
@@ -250,6 +251,35 @@ export function getCloudHealthDetail(
 }
 
 /*
+ * Text with an identifier in it kept whole on its line: "Tracking-ID:
+ * 7NQ8-TX0." breaks before the identifier, never at its hyphen. The text as
+ * it is when the identifier is not in it.
+ */
+export function keepIdentifierWhole(
+  text: string,
+  identifier: string | undefined,
+): ReactNode {
+  const at: number = identifier ? text.indexOf(identifier) : -1;
+
+  if (!identifier || at < 0) {
+    return text;
+  }
+
+  return (
+    <>
+      {text.slice(0, at)}
+      <span
+        className="whitespace-nowrap"
+        data-testid="cloud-change-detail-identifier"
+      >
+        {identifier}
+      </span>
+      {text.slice(at + identifier.length)}
+    </>
+  );
+}
+
+/*
  * The line under a health event's title. The provider's words are drawn as
  * they were written - in English, as the clouds answer, and marked so
  * (lang) - never translated or rewritten: OneUptime would be inventing
@@ -286,7 +316,9 @@ export const CloudHealthDetail: FunctionComponent<{
       )}
       {written && worded ? " " : ""}
       {worded ? (
-        <span data-testid="cloud-change-detail-worded">{worded}</span>
+        <span data-testid="cloud-change-detail-worded">
+          {keepIdentifierWhole(worded, props.detail.identifier)}
+        </span>
       ) : (
         <></>
       )}

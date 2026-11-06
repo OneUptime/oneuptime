@@ -992,40 +992,67 @@ describe("the Impact, in Persian", () => {
   });
 
   /*
-   * As the resource hero's label: a monospace font draws no Persian letter
-   * of its own. The version tag's Persian word takes the page's font; the
-   * version itself stays monospace. In German the whole tag is monospace,
-   * as it always was.
+   * #6149's UI review: the version tag's words are in the page's font in
+   * every language - a monospace font draws no Persian letter of its own -
+   * and only the version is monospace, as a record's ID line draws its label
+   * and its value. The tag is one piece on its line (inline-block), after a
+   * space of the sentence's own.
    */
-  test("the version tag's Persian word is in the page's font, the version in monospace", async () => {
-    await drawImpact("fa");
+  test("the version tag: its words in the page's font, the version in monospace, the tag whole", async () => {
+    for (const language of ["fa", "de"]) {
+      await drawImpact(language);
 
-    const tag: HTMLElement = screen.getByTestId(
-      Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion,
-    );
-    const version: HTMLElement = within(tag).getByText("2.3.1");
-    const words: HTMLElement = Array.from(tag.querySelectorAll("span")).find(
-      (span: HTMLSpanElement): boolean => {
-        return (span.textContent || "").includes("نسخه");
-      },
-    ) as HTMLElement;
+      const tag: HTMLElement = screen.getByTestId(
+        Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion,
+      );
+      const version: HTMLElement = within(tag).getByText("2.3.1");
+      const monospace: Array<Element> = Array.from(
+        tag.querySelectorAll(".font-mono"),
+      );
 
-    expect(tag).not.toHaveClass("font-mono");
-    expect(version.tagName).toBe("BDI");
-    expect(version).toHaveClass("font-mono");
-    expect(words).toBeDefined();
-    expect(words).not.toHaveClass("font-mono");
-    cleanup();
+      expect(textOf(tag)).toBe(
+        language === "fa" ? "نسخه 2.3.1" : "Version 2.3.1",
+      );
+      expect(tag).toHaveClass("inline-block", "max-w-full");
+      expect(tag).not.toHaveClass("font-mono");
+      expect(version.tagName).toBe("BDI");
+      expect(monospace).toEqual([version]);
+      // A space, not a margin, sets it apart from the sentence before it.
+      expect(tag.previousSibling?.textContent).toBe(" ");
+      expect(tag).not.toHaveClass("ml-1.5");
+      cleanup();
+    }
+  });
 
-    await drawImpact("de");
+  /*
+   * #6149's UI review: a record's peers and status pages are listed the way
+   * the reader's language lists - Persian with its own comma, "checkout،
+   * payments" - and German with a comma and a space, as before.
+   */
+  test("a record's peers and status pages, listed with the reader's commas", async () => {
+    const twoPages: SecurityCaseImpactJson = impact({
+      statusPages: [
+        { id: "s1", name: "Acme Status", monitorIds: [MONITOR_ID] },
+        { id: "s2", name: "Partner Status", monitorIds: [MONITOR_ID] },
+      ],
+    });
 
-    const germanTag: HTMLElement = screen.getByTestId(
-      Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion,
-    );
+    for (const [language, separator] of [
+      ["fa", "، "],
+      ["de", ", "],
+    ] as Array<[string, string]>) {
+      await drawImpact(language, twoPages);
+      fireEvent.click(
+        screen.getByTestId(Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactToggle),
+      );
 
-    expect(germanTag).toHaveTextContent("Version 2.3.1");
-    for (const piece of Array.from(germanTag.querySelectorAll("span, bdi"))) {
-      expect(piece).toHaveClass("font-mono");
+      const details: string = textOf(
+        screen.getByTestId(Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactDetails),
+      );
+
+      expect(details).toContain(`checkout${separator}payments`);
+      expect(details).toContain(`Acme Status${separator}Partner Status`);
+      cleanup();
     }
   });
 
@@ -1055,7 +1082,7 @@ describe("the Impact, in English", () => {
     );
 
     expect(textOf(lastChange())).toBe(
-      `Last changeAWS Health: EC2 operational issue (open) on web-alb, ${time}: before the first detectionVersion 2.3.1`,
+      `Last changeAWS Health: EC2 operational issue (open) on web-alb, ${time}: before the first detection Version 2.3.1`,
     );
     expect(
       screen.getByTestId(

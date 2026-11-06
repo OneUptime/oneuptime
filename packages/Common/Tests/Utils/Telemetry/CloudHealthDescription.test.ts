@@ -220,7 +220,19 @@ describe("an Azure Service Health event", () => {
     expect(described("azure", "ServiceHealth Incident", STORED)).toEqual({
       written: "",
       worded: "Azure published an incident. Tracking ID: ABC-123.",
+      // A page keeps the tracking id whole on its line (#6149's UI review).
+      identifier: "ABC-123",
     });
+  });
+
+  test("names no identifier when Azure gave no tracking id", () => {
+    expect(
+      described(
+        "azure",
+        "ServiceHealth Incident",
+        "Incident published by Azure.",
+      ),
+    ).toEqual({ written: "", worded: "Azure published an incident." });
   });
 
   test.each([

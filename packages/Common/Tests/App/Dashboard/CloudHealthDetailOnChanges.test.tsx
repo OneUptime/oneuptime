@@ -158,6 +158,7 @@ describe("what a health event's line says", () => {
     ).toEqual({
       written: "",
       worded: "Azure hat einen Vorfall veröffentlicht. Tracking-ID: ABC-123.",
+      identifier: "ABC-123",
     });
   });
 
@@ -255,6 +256,37 @@ describe("the line drawn", () => {
     expect(line.textContent).toBe(
       "Virtual machine is unavailable. Azure caused it.",
     );
+  });
+
+  /*
+   * #6149's UI review: Azure's tracking id is kept whole on its line - a
+   * German line broke it at its hyphen, "7NQ8-" over "TX0." - and the line
+   * reads, and copies, word for word as before.
+   */
+  test("the tracking id is kept whole, in every language", async () => {
+    for (const language of ["de", "fa", "ja"]) {
+      const line: HTMLElement = await drawDetail(language, AZURE_SERVICE_ROW);
+      const identifier: HTMLElement = screen.getByTestId(
+        "cloud-change-detail-identifier",
+      );
+
+      expect(identifier.textContent).toBe("ABC-123");
+      expect(identifier).toHaveClass("whitespace-nowrap");
+      expect(line.textContent).toBe(
+        getCloudHealthDetail(AZURE_SERVICE_ROW, dashboardTranslator(language))!
+          .worded,
+      );
+      cleanup();
+    }
+  });
+
+  test("a line with no identifier keeps none", async () => {
+    await drawDetail("de", AZURE_RESOURCE_ROW);
+    expect(screen.queryByTestId("cloud-change-detail-identifier")).toBeNull();
+    cleanup();
+
+    await drawDetail("de", AWS_ROW);
+    expect(screen.queryByTestId("cloud-change-detail-identifier")).toBeNull();
   });
 
   test("Japanese lists Google's products its own way", async () => {

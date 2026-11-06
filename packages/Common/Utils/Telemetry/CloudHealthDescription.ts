@@ -394,6 +394,11 @@ export interface CloudHealthDescription {
   written: string;
   // OneUptime's words about the event, in the translator's language: "" when it has none.
   worded: string;
+  /*
+   * An identifier in the worded line, which a page keeps whole on its line:
+   * Azure's tracking id ("7NQ8-TX0" never broken at its hyphen).
+   */
+  identifier?: string | undefined;
 }
 
 /*
@@ -430,6 +435,7 @@ export function getCloudHealthDescription(
           ],
           translator.language,
         ),
+        ...(facts.trackingId ? { identifier: facts.trackingId } : {}),
       };
     }
     case CloudHealthDescriptionKind.AzureResourceCause: {

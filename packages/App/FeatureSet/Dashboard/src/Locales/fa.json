@@ -41923,7 +41923,7 @@
   "AWS Health: {{event}}": "AWS Health: {{event}}",
   "Azure Service Health: {{event}}": "Azure Service Health: {{event}}",
   "Azure Resource Health: {{event}}": "Azure Resource Health: {{event}}",
-  "Azure Resource Health: {{status}} → {{event}}": "Azure Resource Health: {{status}} → {{event}}",
+  "Azure Resource Health: {{status}} → {{event}}": "Azure Resource Health: {{status}} ← {{event}}",
   "Google Cloud Service Health: {{event}}": "Google Cloud Service Health: {{event}}",
   "Failed: {{operation}} on {{resource}}": "ناموفق: {{operation}} روی {{resource}}",
   "Filter {{count}} series_one": "پالایش {{count}} سری",

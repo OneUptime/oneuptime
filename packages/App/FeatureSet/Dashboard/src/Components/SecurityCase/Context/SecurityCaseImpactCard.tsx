@@ -66,10 +66,6 @@ import {
   getTopFlowPeers,
 } from "./SecurityCaseContextModel";
 import Route from "Common/Types/API/Route";
-import {
-  getTextReadingDirectionByMostLetters,
-  RIGHT_TO_LEFT,
-} from "Common/Types/ReadingDirection";
 import { Gray500, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
@@ -112,6 +108,7 @@ import {
   Translator,
   composedValue,
   createTranslator,
+  getListSeparator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -159,17 +156,20 @@ const ENGLISH_SENTENCE_TRANSLATOR: Translator = createTranslator(
 );
 
 /*
- * The last change's version tag, "Version 2.3.1", is set in monospace, the
- * version always - but words that read right to left take the page's font:
- * a monospace font draws no Persian letter of its own, and the one it
- * borrows sets joined letters in fixed-width cells (as the resource hero's
- * identifier label does, ResourceOverview).
+ * The last change's version tag, "Version 2.3.1": its words in the page's
+ * font in every language and the version in monospace, as a record's ID
+ * line draws its label and its value. A monospace font draws no Persian or
+ * Japanese letter of its own, and the one it borrows set "نسخه" and
+ * "バージョン" apart from the sentence beside them (#6149's UI review).
+ *
+ * Kept whole: from its start to its version it moves to the next line as
+ * one piece, never "Version" at the end of a line and the version under
+ * it; a version longer than the whole line still breaks inside itself.
  */
-export function getVersionWordsClassName(words: string): string {
-  return getTextReadingDirectionByMostLetters(words) === RIGHT_TO_LEFT
-    ? ""
-    : "font-mono";
-}
+export const IMPACT_VERSION_TAG_CLASS_NAME: string =
+  "inline-block max-w-full text-xs text-gray-500";
+
+export const IMPACT_VERSION_CLASS_NAME: string = "font-mono";
 
 const SECTION_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
@@ -251,6 +251,8 @@ const PeerList: FunctionComponent<{
     PEERS_SHOWN,
   );
   const more: number = props.peers.length - shown.length;
+  // Listed the way the reader's language lists: "a, b", "a، b", "a、b".
+  const separator: string = getListSeparator(translator.language);
 
   return (
     <span className="[overflow-wrap:anywhere]">
@@ -258,7 +260,7 @@ const PeerList: FunctionComponent<{
         (peer: SecurityCaseImpactPeerJson, index: number): ReactElement => {
           return (
             <React.Fragment key={peer.key}>
-              {index > 0 ? ", " : ""}
+              {index > 0 ? separator : ""}
               <bdi className="text-gray-900">{peer.name}</bdi>
             </React.Fragment>
           );
@@ -291,6 +293,7 @@ const ImpactRecord: FunctionComponent<{
     props.statusPages,
   );
   const name: ReactElement = <bdi>{record.name}</bdi>;
+  const separator: string = getListSeparator(translator.language);
 
   return (
     <li
@@ -421,7 +424,7 @@ const ImpactRecord: FunctionComponent<{
 
                       return (
                         <React.Fragment key={page.id}>
-                          {index > 0 ? ", " : ""}
+                          {index > 0 ? separator : ""}
                           {pageRoute ? (
                             <AppLink
                               to={pageRoute}
@@ -814,32 +817,29 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                         }}
                       />
                       {leading.change.version ? (
-                        <span
-                          className="ml-1.5 text-xs text-gray-500"
-                          data-testid={
-                            SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion
-                          }
-                        >
-                          <TranslatedSentence
-                            template={IMPACT_VERSION}
-                            slots={{
-                              version: (
-                                <bdi className="font-mono">
-                                  {leading.change.version}
-                                </bdi>
-                              ),
-                            }}
-                            renderText={(text: string): ReactElement => {
-                              return (
-                                <span
-                                  className={getVersionWordsClassName(text)}
-                                >
-                                  {text}
-                                </span>
-                              );
-                            }}
-                          />
-                        </span>
+                        <>
+                          {/*
+                           * A space of the sentence's own, so the line reads
+                           * and copies as "... detection Version 2.3.1".
+                           */}{" "}
+                          <span
+                            className={IMPACT_VERSION_TAG_CLASS_NAME}
+                            data-testid={
+                              SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion
+                            }
+                          >
+                            <TranslatedSentence
+                              template={IMPACT_VERSION}
+                              slots={{
+                                version: (
+                                  <bdi className={IMPACT_VERSION_CLASS_NAME}>
+                                    {leading.change.version}
+                                  </bdi>
+                                ),
+                              }}
+                            />
+                          </span>
+                        </>
                       ) : (
                         <></>
                       )}
