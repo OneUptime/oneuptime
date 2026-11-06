@@ -735,7 +735,7 @@ const RuleCriteriaBuilder: <TEntity>(
       {props.error && !hasRowProblem && (
         <FieldError
           message={props.error}
-          className="text-sm text-red-600"
+          className="text-sm"
           dataTestId="rule-criteria-error"
         />
       )}

@@ -262,10 +262,7 @@ const CheckRow: FunctionComponent<CheckRowProps> = (
       </dl>
 
       {props.error ? (
-        <FieldError
-          message={props.error}
-          className="mt-2 pl-14 text-sm text-red-600"
-        />
+        <FieldError message={props.error} className="mt-2 pl-14 text-sm" />
       ) : (
         <></>
       )}

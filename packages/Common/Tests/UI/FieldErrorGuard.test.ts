@@ -20,7 +20,7 @@ import { listScanRoots, listSourceFiles } from "../ForeignHiddenRuleGuard";
  * attribute.
  *
  * And by its shape: a red line holding nothing but a field's error prop -
- * <p className="mt-1 text-sm text-red-400">{props.error}</p> - is the same
+ * <p className="mt-1 text-sm text-red-700">{props.error}</p> - is the same
  * line under another test id, or none. The Markdown editor's, the card and
  * entity pickers' and a dozen of the Dashboard's own fields drew theirs that
  * way, and an English answer put its full stop first under each of them on
@@ -45,7 +45,7 @@ const HAND_WRITTEN_ERROR_LINE_REGEX: RegExp =
 const ERROR_PROP_LINE_REGEX: RegExp =
   /<(p|div|span)\b([^<>]*)>\s*\{\s*props\.error\s*\}\s*<\/\1>/g;
 
-// The colour that makes such a line an error's: text-red-400, text-red-600.
+// The colour that makes such a line an error's: text-red-500, text-red-700.
 const RED_TEXT_CLASS_REGEX: RegExp = /\btext-red-\d+\b/;
 
 // A run of white space, written as one space in a finding.
@@ -144,7 +144,7 @@ describe("a field's error line", () => {
     ).toEqual([]);
     expect(
       findErrorPropLines(
-        '<FieldError message={props.error} className="mt-2 text-sm text-red-600" />',
+        '<FieldError message={props.error} className="mt-2 text-sm" />',
       ),
     ).toEqual([]);
   });

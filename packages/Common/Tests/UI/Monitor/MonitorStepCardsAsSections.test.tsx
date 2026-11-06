@@ -15,20 +15,22 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import { CARD_SECTIONS_ON_PHONES_TEST_ID } from "../../../UI/Components/Card/CardSectionsOnPhones";
+import { CARD_FORM_SECTIONS_TEST_ID } from "../../../UI/Components/Card/CardFormSections";
+import { CARD_FORM_SECTION_FRAME_CLASS_NAME } from "../../../UI/Components/Card/Card";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
- * Create Monitor's criteria step on a phone: its cards are sections of the
- * page's card (and of the edit dialog), not frames inside its frame.
+ * Create Monitor's criteria step: its cards are sections of the page's card
+ * (and of the edit dialog) at every width, not frames inside its frame.
  *
- * "The criteria editor on phones is still nested several boxes deep: a
- * redesign." The step drew Monitor Target, Test Monitor and Monitor
- * Criteria as cards inside the page's card; on a phone each frame and its
- * padding came off the width of every field in them. MonitorStep now draws
- * them in CardSectionsOnPhones: a section on a phone, the card it always
- * was from sm up (Common's CardSectionsOnPhones suite holds Card to that).
+ * The step drew Monitor Target, Test Monitor and Monitor Criteria as cards
+ * inside the page's card. On a phone each frame and its padding came off
+ * the width of every field in them, and #5482 drew them as sections there;
+ * from sm up they were still cards in a card, which the maintainer asked to
+ * remove everywhere. MonitorStep now draws them in CardFormSections: a
+ * section of the card it is in at every width (Common's CardFormSections
+ * suite holds Card to that).
  *
  * The real MonitorStep form, with the same mocks as
  * MonitorStepDestinationField.test.tsx: the criteria, the test button and
@@ -385,7 +387,7 @@ function cardTitles(cards: Array<HTMLElement>): Array<string> {
   });
 }
 
-describe("the criteria step's cards on a phone", () => {
+describe("the criteria step's cards", () => {
   test.each([MonitorType.Website, MonitorType.API, MonitorType.Ping])(
     "%s: Monitor Target, Test Monitor and Monitor Criteria are sections of the card they are in",
     async (monitorType: MonitorType) => {
@@ -394,7 +396,7 @@ describe("the criteria step's cards on a phone", () => {
       await screen.findByText("Monitor Criteria");
 
       const holder: HTMLElement = screen.getByTestId(
-        CARD_SECTIONS_ON_PHONES_TEST_ID,
+        CARD_FORM_SECTIONS_TEST_ID,
       );
       const cards: Array<HTMLElement> = within(holder).getAllByTestId("card");
 
@@ -410,8 +412,42 @@ describe("the criteria step's cards on a phone", () => {
         expect([
           cardTitles([card])[0],
           card.getAttribute("data-card-surface"),
-        ]).toEqual([cardTitles([card])[0], "section-on-phones"]);
+        ]).toEqual([cardTitles([card])[0], "form-section"]);
+        // A rule above it, and no frame round it at any width.
+        expect([
+          cardTitles([card])[0],
+          (card.firstElementChild as HTMLElement).className,
+        ]).toEqual([cardTitles([card])[0], CARD_FORM_SECTION_FRAME_CLASS_NAME]);
       }
+    },
+  );
+
+  /*
+   * Every type's configuration card is drawn in the same holder, so none of
+   * them is a card in the page's card at any width either.
+   */
+  test.each([
+    [MonitorType.SQLQuery, "SQL Query Monitor Configuration"],
+    [MonitorType.Metrics, "Metric to watch"],
+    [MonitorType.Kubernetes, "Kubernetes Monitor Configuration"],
+    [MonitorType.NetworkDevice, "Network Device Monitor Configuration"],
+    [MonitorType.DNS, "DNS Monitor Configuration"],
+    [MonitorType.Domain, "Domain Monitor Configuration"],
+    [MonitorType.ExternalStatusPage, "External Status Page Configuration"],
+  ])(
+    "%s: its configuration card, %s, is a section too",
+    async (monitorType: MonitorType, title: string) => {
+      render(editor(monitorType));
+
+      const heading: HTMLElement = await screen.findByText(title);
+      const card: HTMLElement = heading.closest(
+        "[data-testid='card']",
+      ) as HTMLElement;
+
+      expect(card).toHaveAttribute("data-card-surface", "form-section");
+      expect(card.parentElement).toBe(
+        screen.getByTestId(CARD_FORM_SECTIONS_TEST_ID),
+      );
     },
   );
 
@@ -420,16 +456,14 @@ describe("the criteria step's cards on a phone", () => {
 
     await screen.findByText("Monitor Criteria");
 
-    const holder: HTMLElement = screen.getByTestId(
-      CARD_SECTIONS_ON_PHONES_TEST_ID,
-    );
+    const holder: HTMLElement = screen.getByTestId(CARD_FORM_SECTIONS_TEST_ID);
 
     expect(holder).toHaveClass("mt-5", "space-y-6");
 
     /*
      * The cards are its own children, so space-y-6 is the gap above each
-     * one's rule on a phone - as far as its title sits under the rule - and
-     * the gap between the cards from sm up, as before.
+     * one's rule - as far as its title sits under the rule - at every
+     * width.
      */
     const cards: Array<HTMLElement> = within(holder).getAllByTestId("card");
 

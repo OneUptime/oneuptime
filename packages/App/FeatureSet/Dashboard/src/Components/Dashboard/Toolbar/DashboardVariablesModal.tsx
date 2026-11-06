@@ -12,6 +12,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import AutocompleteTextInput from "Common/UI/Components/AutocompleteTextInput/AutocompleteTextInput";
 import DashboardVariable, {
   DashboardVariableType,
@@ -128,9 +129,7 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
           {translator.translateText("Loading project labels…")}
         </p>
       ) : error ? (
-        <p role="alert" className="text-xs text-red-600">
-          {error}
-        </p>
+        <FieldError message={error} className="text-xs" />
       ) : (
         <Dropdown
           ariaLabel="Allowed project labels"
@@ -202,9 +201,10 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
             }}
           />
           {props.nameError && (
-            <p className="text-[11px] text-red-500 mt-1">
-              {translator.translateText(props.nameError)}
-            </p>
+            <FieldError
+              message={props.nameError}
+              className="mt-1 text-[11px]"
+            />
           )}
         </div>
 
@@ -327,6 +327,12 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
           </label>
           <Dropdown
             ariaLabel="Variable source"
+            /*
+             * A variable always has a source: another is picked in its
+             * place, never none. Its clear button did nothing - the empty
+             * pick is ignored below - as a required pick's has none.
+             */
+            isClearable={false}
             options={[
               DashboardVariableType.TelemetryAttribute,
               DashboardVariableType.ProjectLabel,
@@ -409,9 +415,10 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
               </label>
               <LabelChoices variable={variable} onChange={props.onChange} />
               {props.labelError && (
-                <p role="alert" className="text-xs text-red-600 mt-1">
-                  {translator.translateText(props.labelError)}
-                </p>
+                <FieldError
+                  message={props.labelError}
+                  className="mt-1 text-xs"
+                />
               )}
             </>
           ) : variable.type === DashboardVariableType.CustomList ? (

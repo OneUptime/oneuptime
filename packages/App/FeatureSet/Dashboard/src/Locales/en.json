@@ -45364,6 +45364,7 @@
   "Google Cloud Service Health: {{event}} (active)": "Google Cloud Service Health: {{event}} (active)",
   "Google Cloud Service Health: {{event}} (closed)": "Google Cloud Service Health: {{event}} (closed)",
   "Making a key for this agent…": "Making a key for this agent…",
+  "No exceptions match these filters right now.": "No exceptions match these filters right now.",
   "OneUptime did not send a key for this agent. Try again.": "OneUptime did not send a key for this agent. Try again.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.",
