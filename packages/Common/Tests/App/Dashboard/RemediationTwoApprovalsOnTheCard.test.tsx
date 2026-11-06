@@ -333,6 +333,60 @@ describe("a riskier fix nobody approved yet, where two people must approve it", 
     expect(ruleReads()).toBe(2);
   });
 
+  test("what is announced is the pressed fix's alone: another fix on the card says nothing", async () => {
+    const OTHER_ID: string = "0193c0de-6666-4aaa-8bbb-0000000000f9";
+    // A fix of safe changes, proposed after the riskier one.
+    const safeFix: AutoRemediationSuggestion = waitingFix({
+      _id: OTHER_ID,
+      commandPlan: plan(KubectlCommandTier.SafeWrite),
+      createdAt: new Date("2026-11-06T09:30:00Z"),
+    });
+    served = [waitingFix(), safeFix];
+    postSpy.mockImplementation((async (request: PostRequest) => {
+      served = [waitingFix(firstApprovedBy(MAYA, "Maya Chen")), safeFix];
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          suggestionId: request.data["suggestionId"] as string,
+          status: AutoRemediationSuggestionStatus.Suggested,
+          isWaitingForSecondApproval: true,
+        },
+        {},
+      );
+    }) as never);
+
+    renderStep();
+    await openRemediationFixes();
+    /*
+     * Once the rule is read: the riskier fix - the older one, so drawn
+     * first - is the first of two approvals; the safe one runs on one.
+     */
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("remediation-approve-button")[0],
+      ).not.toHaveTextContent("Run");
+    });
+    expect(
+      screen.getAllByTestId("remediation-approve-button")[1],
+    ).toHaveTextContent("Approve & Run");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getAllByTestId("remediation-approve-button")[0]!);
+    });
+
+    await waitFor(() => {
+      expect(stepKinds()).toContain("firstApproval");
+    });
+    const announcements: Array<HTMLElement> = screen.getAllByTestId(
+      "remediation-fix-announcement",
+    );
+    expect(announcements).toHaveLength(2);
+    expect(announcements[0]).toHaveTextContent(
+      "You approved it first. It runs once someone else approves it too.",
+    );
+    expect(announcements[1]).toBeEmptyDOMElement();
+  });
+
   test("a rule turned on elsewhere after the page opened: the press that turns out to be the first of two reads as one at once", async () => {
     // This page read the rule while it was off: its button runs the fix.
     isRuleOn = false;
