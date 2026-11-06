@@ -141,9 +141,9 @@ Wanneer de tool de gegevens in een andere vorm nodig heeft, voeg je tussen de tw
 Plak nooit een API-sleutel of een token in een blok. Sla hem één keer op als geheime globale variabele:
 
 :::steps
-1. Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**.
+1. Ga naar **Workflows → Globale variabelen** en klik op **Workflowvariabele aanmaken**.
 2. Geef hem een naam, zoals `JIRA_AUTH`, en klik op **Volgende**.
-3. Plak de sleutel in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
+3. Plak de sleutel in **Inhoud**, zet **Geheim** aan en klik op **Workflowvariabele aanmaken**.
 :::
 
 Elk blok leest hem als `{{global.variables.JIRA_AUTH}}`. De inhoud van een variabele kan na het opslaan niet meer worden gelezen, en die van een geheime variabele wordt in de uitvoeringslogboeken vervangen door `[REDACTED]`. Voor tokens die verlopen, zoals die van Microsoft Entra ID, haalt een [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen) zelf een nieuwe op. Zie [Workflow-variabelen](/docs/workflows/variables#globale-variabelen).

@@ -72,8 +72,8 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 
 | Produkt | Faner på produktets **Slack**-side |
 | --- | --- |
-| **Hendelser** | **Hendelser**, **Hendelse Episoder**, **Sammendrag** |
-| **Varsler** | **Varsler**, **Varsel Episoder**, **Sammendrag** |
+| **Hendelser** | **Hendelser**, **Hendelsesepisoder**, **Sammendrag** |
+| **Varsler** | **Varsler**, **Varselsepisoder**, **Sammendrag** |
 | **Planlagt vedlikehold** | Én liste med regler |
 | **Monitorer** | Én liste med regler |
 | **Vakttjeneste** | Én liste med regler |

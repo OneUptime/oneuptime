@@ -193,7 +193,7 @@ De **Exception Count** is 3, dus **Meer dan** `0` komt overeen: de monitor gaat 
 ## Problemen oplossen
 
 :::details Uitzonderingen verschijnen in de verkenner, maar de monitor telt 0
-Vergelijk de waarde van **Omgevingen** met het filter `env:` van de verkenner: de vergelijking is exact en hoofdlettergevoelig, en uitzonderingen zonder omgeving worden weggelaten wanneer het filter is ingesteld. Controleer daarna of die uitzonderingen zijn opgelost of gearchiveerd. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Overeenkomende uitzonderingen** toont wat de filters selecteren.
+Vergelijk de waarde van **Omgevingen** met het filter `env:` van de verkenner: de vergelijking is exact en hoofdlettergevoelig, en uitzonderingen zonder omgeving worden weggelaten wanneer het filter is ingesteld. Controleer daarna of die uitzonderingen zijn opgelost of gearchiveerd. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Bewakingscriteria bewerken**: **Overeenkomende uitzonderingen** toont wat de filters selecteren.
 :::
 
 :::details Het incident werd opgelost toen ik de uitzondering oploste

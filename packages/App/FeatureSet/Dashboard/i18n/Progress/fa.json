@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11500
+    "keys": 45951,
+    "untranslated": 10978
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -100,6 +100,7 @@
     "Placement Groups",
     "Pool",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Powered by OneUptime",
     "Project view",
     "Provision State",
     "Provisioning Status",

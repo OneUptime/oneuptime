@@ -744,7 +744,7 @@ Naast het podium toont het paneel alles wat er gebeurde, op de klok van de opnam
 
 Logs, Traces en de serverhelft van Errors worden gelezen met dezelfde machtigingen als de pagina's Logs, Traces en Exceptions; een rol zonder die machtigingen ziet een vergrendeld tabblad dat de machtiging noemt. Door de server gemarkeerde rijen worden op de klok van de opname geplaatst door ze te verankeren aan traces die de opname zelf heeft waargenomen; het paneel zegt of die verankering lukte («server times anchored via 6 traces») of dat de tijd van de rij bij benadering is.
 
-Het zoekvak van het paneel (`/`) accepteert vrije tekst en tokens: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Een bereikkiezer beperkt elk tabblad tot ±30 seconden rond de afspeelkop. Het paneel volgt de afspeelkop totdat je het scrolt; een label **Resume following** (of `M`) zet het volgen weer aan.
+Het zoekvak van het paneel (`/`) accepteert vrije tekst en tokens: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Een bereikkiezer beperkt elk tabblad tot ±30 seconden rond de afspeelkop. Het paneel volgt de afspeelkop totdat je het scrolt; een label **Weer volgen** (of `M`) zet het volgen weer aan.
 
 ### Sneltoetsen
 

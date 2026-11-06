@@ -65,7 +65,7 @@ Ett tillstånd som du lägger till är ett steg som ditt team går igenom och so
 :::steps
 ### Öppna listan över tillstånd
 
-Gå till **Larm → Inställningar → Larmstatus**. Kortet **Larm Tillstånd** listar dina tillstånd i deras ordning. Varje rad visar färg och namn, vad ett larm i det **Räknas som**, och beskrivningen.
+Gå till **Larm → Inställningar → Larmstatus**. Kortet **Larmstatusar** listar dina tillstånd i deras ordning. Varje rad visar färg och namn, vad ett larm i det **Räknas som**, och beskrivningen.
 
 ### Skapa tillståndet
 
@@ -106,11 +106,11 @@ Incidenter börjar med tre allvarlighetsgrader och larm med två. När mallen i 
 
 ## Redigera allvarlighetsgrader
 
-Gå till **Larm → Inställningar → Larmallvar**. Kortet **Larm Allvarligheter** listar dem med den allvarligaste först; dra en rad för att ändra dess rang. **Skapa Larmallvar** lägger till en sist i listan, som den minst allvarliga, med samma **Namn**, **Beskrivning** och **Färg** som ett tillstånd.
+Gå till **Larm → Inställningar → Larmallvar**. Kortet **Allvarlighetsgrader för larm** listar dem med den allvarligaste först; dra en rad för att ändra dess rang. **Skapa Larmallvar** lägger till en sist i listan, som den minst allvarliga, med samma **Namn**, **Beskrivning** och **Färg** som ett tillstånd.
 
 Rangen avgör vilken allvarlighetsgrad som vinner där OneUptime jämför dem: En episods allvarlighetsgrad stiger till den hos det allvarligaste larmet som ansluter till den. Allvarlighetsgrader har inga flaggor och inget borttagningslås: Vilken allvarlighetsgrad som helst kan tas bort, även de två förifyllda.
 
-En allvarlighetsgrad larmar ingen på egen hand. För att larma efter allvarlighetsgrad lägger du till en jourregel vars **Larm Allvarligheter** matchar den: se [Larmregler och inställningar](/docs/alerts/settings). Att ändra ett larms allvarlighetsgrad skriver en post i dess flöde och matchar dess påminnelseregel på nytt.
+En allvarlighetsgrad larmar ingen på egen hand. För att larma efter allvarlighetsgrad lägger du till en jourregel vars **Allvarlighetsgrader för larm** matchar den: se [Larmregler och inställningar](/docs/alerts/settings). Att ändra ett larms allvarlighetsgrad skriver en post i dess flöde och matchar dess påminnelseregel på nytt.
 
 ## Arkivera en status eller allvarlighetsgrad
 

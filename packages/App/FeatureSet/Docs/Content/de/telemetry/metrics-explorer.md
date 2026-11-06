@@ -108,7 +108,7 @@ Ziehen Sie über ein Diagramm, um in einen Moment hineinzuzoomen, und doppelklic
 
 ## Metrik-Einblicke
 
-Der Tab **Einblicke** zählt die Metriken eines Zeitraums: **Aktive Metriken**, **Berichtsdienste** und den Durchschnitt pro Dienst. Er ordnet die Metriken Kategorien zu und listet die Dienste, die sie melden.
+Der Tab **Einblicke** zählt die Metriken eines Zeitraums: **Aktive Metriken**, **Meldende Dienste** und den Durchschnitt pro Dienst. Er ordnet die Metriken Kategorien zu und listet die Dienste, die sie melden.
 
 ## Metriken mit KI verbessern und fehlende ergänzen
 

@@ -34,7 +34,7 @@ Il modulo **Dichiara nuovo incidente** chiede un incidente in tre passaggi — *
 1. Aprite **Incidenti → Tutti gli incidenti** e fate clic su **Dichiara incidente** in alto a destra dell'elenco **Incidenti**. Il modulo si apre su **Dettagli dell'incidente**.
 2. Inserite un **Titolo** e scegliete una **Gravità incidente**. Il resto del modulo è facoltativo.
 3. Fate clic su **Avanti** per percorrere i passaggi rimanenti, compilando ciò che sapete già: monitor e altre risorse, policy di reperibilità, ruoli.
-4. Leggete il riepilogo e fate clic su **Dichiara incidente**. Arrivate sul nuovo incidente, e il suo **Incidente Feed** inizia a registrare.
+4. Leggete il riepilogo e fate clic su **Dichiara incidente**. Arrivate sul nuovo incidente, e il suo **Feed dell'incidente** inizia a registrare.
 :::
 
 Solo il primo passaggio ha campi obbligatori, più qualsiasi campo personalizzato che i vostri amministratori hanno contrassegnato come **Obbligatorio alla creazione**, che viene chiesto dal passaggio **Dettagli**. Ogni passaggio prima del riepilogo ha un semplice **Avanti**, e **Dichiara incidente** si trova nel riepilogo, l'ultimo passaggio. Se avete fretta, compilate **Dettagli dell'incidente** e premete **Avanti** negli altri passaggi senza compilarli: collegare risorse, aggiungere policy di reperibilità e assegnare ruoli possono anche aspettare le pagine dell'incidente stesso. Premere **Enter** in un campo fa anche avanzare; non dichiara mai prima del riepilogo.
@@ -142,7 +142,7 @@ Se continuate a dichiarare lo stesso tipo di incidente — lo stesso schema di t
 3. Cambiate ciò che questa volta è diverso, poi percorrete i passaggi e dichiarate come di consueto.
 :::
 
-Se il vostro progetto non ha ancora modelli, ottenete invece una finestra **No Incident Templates**, con un pulsante **Create Template** che vi porta a **Incidenti → Impostazioni → Modelli di incidenti**.
+Se il vostro progetto non ha ancora modelli, ottenete invece una finestra **Nessun modello di incidente**, con un pulsante **Create Template** che vi porta a **Incidenti → Impostazioni → Modelli di incidenti**.
 
 I modelli si costruiscono con la loro procedura guidata in quattro passaggi — **Informazioni del modello**, **Dettagli dell'incidente**, **Risorse interessate**, **Reperibilità** — più i passaggi **Campi personalizzati** e **Campi personalizzati alla creazione** dopo **Risorse interessate** quando il vostro progetto ha campi personalizzati dell'incidente. Lo **Stato iniziale dell'incidente**, i **Proprietari** e le **Etichette** del modello si trovano sotto **Altri campi** alla fine di **Dettagli dell'incidente**. **Risorse interessate** pone le domande come il modulo di dichiarazione — **Monitor**, poi **Cambia lo stato del monitor in**, poi **Altre risorse interessate**, con **Limita a queste pagine di stato** sotto **Altri campi** — tranne che un modello chiede sempre lo stato del monitor: si applica anche ai monitor scelti quando un incidente viene dichiarato dal modello. Questi sono i campi:
 
@@ -178,7 +178,7 @@ Qualche regola veloce:
 La maggior parte degli incidenti non dovrebbe aver bisogno di una persona che li digiti. I criteri di un monitor possono dichiararne uno nel momento in cui un filtro corrisponde:
 
 :::steps
-1. Aprite il monitor, scegliete **Criteri** nel suo menu laterale e fate clic su **Edit Monitoring Criteria**. (Un nuovo monitor chiede gli stessi criteri mentre lo create.)
+1. Aprite il monitor, scegliete **Criteri** nel suo menu laterale e fate clic su **Modifica criteri di monitoraggio**. (Un nuovo monitor chiede gli stessi criteri mentre lo create.)
 2. Nel filtro dei criteri che deve dichiarare, attivate **Quando i filtri corrispondono, dichiara un incidente.** Compare una sezione **Crea incidente** con un pulsante **Aggiungi incidente** — un filtro dei criteri può dichiarare più di un incidente.
 3. Compilate i campi dell'incidente (sotto) e salvate. La prossima volta che il filtro corrisponde, l'incidente viene dichiarato e avvisa le sue policy di reperibilità.
 :::

@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åbn skabelonerne
 
-Gå til **Planlagt vedligeholdelse → Indstillinger → Begivenhedsskabeloner**. **Indstillinger** starter foldet sammen i sidemenuen: fold den ud først. Klik på **Opret Planlagt Vedligeholdelse Skabelon**.
+Gå til **Planlagt vedligeholdelse → Indstillinger → Begivenhedsskabeloner**. **Indstillinger** starter foldet sammen i sidemenuen: fold den ud først. Klik på **Opret Skabelon for planlagt vedligeholdelse**.
 
 ### Navngiv skabelonen
 

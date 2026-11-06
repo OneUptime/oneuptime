@@ -77,7 +77,7 @@ Cada condição compara uma característica do incidente, alerta ou evento de ma
 | Critério | O que verifica |
 | --- | --- |
 | **Monitores** | Os monitores que o incidente ou o evento de manutenção programada afeta, ou o monitor que gerou o alerta. |
-| **Incidente Severidades** / **Alerta Severidades** | A severidade do incidente ou do alerta. Eventos de manutenção programada não têm severidade, então as regras deles não a oferecem. |
+| **Severidades dos incidentes** / **Severidades dos alertas** | A severidade do incidente ou do alerta. Eventos de manutenção programada não têm severidade, então as regras deles não a oferecem. |
 | **Rótulos de incidentes** / **Rótulos de alerta** / **Rótulos do evento** | Os rótulos do próprio incidente, alerta ou evento, incluindo os que as regras de rótulos adicionaram na criação. |
 | **Rótulos do Monitor** | Os rótulos dos seus monitores. Rotule seus monitores como `production` ou `staging` para executar um runbook só em um ambiente. |
 | **Título do Incidente** / **Título do alerta** / **Título do evento** | O título. |
@@ -98,7 +98,7 @@ Com duas ou mais condições, escolha **Corresponder a todas** (todas as condiç
 - As condições de monitor são verificadas um monitor de cada vez. Com **Corresponder a todas**, "**Nome do Monitor** contém `api`" e "**Rótulos do Monitor** tem algum de _Production_" precisam de um monitor que atenda às duas, não de um monitor para cada uma.
 - As regras de runbook rodam depois das regras de rótulos, então um rótulo que uma regra de rótulos adiciona a um novo incidente, alerta ou evento pode iniciar um runbook.
 - Um incidente ou alerta criado já resolvido não inicia nenhum runbook: ele terminou antes de ser registrado. Consulte [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
-- Uma condição sobre a severidade de outro produto — **Alerta Severidades** em uma regra de incidentes, por exemplo — nunca pode ser verdadeira, então a API se recusa a salvá-la.
+- Uma condição sobre a severidade de outro produto — **Severidades dos alertas** em uma regra de incidentes, por exemplo — nunca pode ser verdadeira, então a API se recusa a salvá-la.
 - As regras são avaliadas uma vez, quando o evento é criado. Editar depois o título, a severidade ou os rótulos de um incidente não dispara as regras de novo.
 
 ## Exemplos
@@ -165,7 +165,7 @@ As regras veem o evento como ele foi criado, com os rótulos que as regras de r�
 :::
 
 :::details A API recusa uma regra com "can only be used by"
-Um critério de severidade pertence a um único produto. **Alerta Severidades** em uma regra de incidentes, ou **Incidente Severidades** em uma regra de alertas, nunca poderia corresponder, então a regra é recusada com uma mensagem como "Alert Severities can only be used by alert runbook rules." Remova essa condição. O painel só oferece os critérios próprios de cada produto.
+Um critério de severidade pertence a um único produto. **Severidades dos alertas** em uma regra de incidentes, ou **Severidades dos incidentes** em uma regra de alertas, nunca poderia corresponder, então a regra é recusada com uma mensagem como "Alert Severities can only be used by alert runbook rules." Remova essa condição. O painel só oferece os critérios próprios de cada produto.
 :::
 
 ## Próximos passos

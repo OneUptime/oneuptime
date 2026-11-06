@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11559
+    "keys": 45951,
+    "untranslated": 11023
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -103,9 +103,11 @@
     "Element",
     "Embedding",
     "Endpoint",
+    "Episode",
     "Fahrenheit",
     "Failover",
     "Fatal",
+    "Favicon",
     "Feed",
     "Filter",
     "Filter:",
@@ -241,6 +243,7 @@
     "Position",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "Powered by OneUptime",
     "Principal",
     "Problem",
     "Profiler",
@@ -332,6 +335,7 @@
     "Uplink",
     "Uplink {{uplink}}",
     "Uplinks",
+    "Upload logo",
     "Uploads",
     "VIP",
     "VLAN",
@@ -382,6 +386,7 @@
     "debug",
     "deployment",
     "destination",
+    "episode",
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "failed password",
     "filter",
@@ -512,6 +517,7 @@
     "{{count}} mon",
     "{{count}} mons",
     "{{count}} node",
+    "{{count}} note",
     "{{count}} person",
     "{{count}} placement group",
     "{{count}} placement groups",

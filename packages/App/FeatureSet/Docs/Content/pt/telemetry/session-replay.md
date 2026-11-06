@@ -744,7 +744,7 @@ Ao lado do palco, o painel lista tudo o que aconteceu, no relógio da gravação
 
 Logs, Traces e a metade do servidor de Errors são lidos com as mesmas permissões das páginas Logs, Traces e Exceptions; uma função sem elas vê uma aba bloqueada que indica a permissão. As linhas marcadas pelo servidor são posicionadas no relógio da gravação ancorando-as nos traços que a própria gravação observou; o painel diz se essa ancoragem funcionou («server times anchored via 6 traces») ou se a hora da linha é aproximada.
 
-A caixa de busca do painel (`/`) aceita texto livre e tokens: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Um seletor de alcance limita qualquer aba a ±30 segundos em torno da agulha. O painel acompanha a agulha até você rolá-lo; um rótulo **Resume following** (ou `M`) reativa o acompanhamento.
+A caixa de busca do painel (`/`) aceita texto livre e tokens: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Um seletor de alcance limita qualquer aba a ±30 segundos em torno da agulha. O painel acompanha a agulha até você rolá-lo; um rótulo **Voltar a acompanhar** (ou `M`) reativa o acompanhamento.
 
 ### Atalhos de teclado
 
