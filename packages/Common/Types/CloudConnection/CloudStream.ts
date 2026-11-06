@@ -441,6 +441,12 @@ export interface CloudStreamRefusal {
 export interface CloudStreamSummary {
   // When any delivery last arrived - a CloudWatch Logs test message too.
   lastDeliveryAt?: string | undefined;
+  /*
+   * Azure: when OneUptime last read the event hubs without a problem,
+   * events or none. A read that went well after one that failed means the
+   * stream is no longer refused, though nothing new came.
+   */
+  lastReadAt?: string | undefined;
   metricSources: Array<CloudStreamMetricSource>;
   logSources: Array<CloudStreamLogSource>;
   lastRefusal?: CloudStreamRefusal | undefined;
@@ -510,6 +516,12 @@ export function readCloudStreamSummary(value: unknown): CloudStreamSummary {
   const stored: JSONObject = value as JSONObject;
 
   summary.lastDeliveryAt = readTime(stored["lastDeliveryAt"]);
+
+  const lastReadAt: string | undefined = readTime(stored["lastReadAt"]);
+
+  if (lastReadAt) {
+    summary.lastReadAt = lastReadAt;
+  }
 
   for (const item of readObjects(stored["metricSources"])) {
     const lastAt: string | undefined = readTime(item["lastAt"]);
@@ -667,6 +679,10 @@ export function mergeCloudStreamSummary(data: {
     data.stored.lastDeliveryAt,
     data.seen.lastDeliveryAt,
   );
+  const lastReadAt: string = newer(
+    data.stored.lastReadAt,
+    data.seen.lastReadAt,
+  );
 
   const refusals: Array<CloudStreamRefusal> = [
     data.stored.lastRefusal,
@@ -683,6 +699,7 @@ export function mergeCloudStreamSummary(data: {
 
   return {
     ...(lastDeliveryAt ? { lastDeliveryAt } : {}),
+    ...(lastReadAt ? { lastReadAt } : {}),
     metricSources: mergeSources<CloudStreamMetricSource>({
       stored: data.stored.metricSources,
       seen: data.seen.metricSources,
@@ -793,9 +810,12 @@ export function getStreamedMetricKeys(data: {
  *
  *   off        no stream key: the connection is read on its schedule only;
  *   waiting    a key, and nothing delivered with any key yet;
- *   refused    the newest delivery was refused (why: lastRefusal);
+ *   refused    the newest delivery was refused (why: lastRefusal) - for
+ *              Azure, the newest read of its event hubs failed;
  *   receiving  a delivery in the last CLOUD_STREAM_ACTIVE_WINDOW_MS;
  *   quiet      deliveries came, but none lately.
+ *
+ * For Azure "a key" is reading turned on (streamKeyCreatedAt).
  */
 export type CloudStreamState =
   | "off"
@@ -819,10 +839,14 @@ export function getCloudStreamState(data: {
   const lastRefusal: number = data.summary.lastRefusal
     ? Date.parse(data.summary.lastRefusal.at)
     : NaN;
+  const lastRead: number = data.summary.lastReadAt
+    ? Date.parse(data.summary.lastReadAt)
+    : NaN;
 
   if (
     Number.isFinite(lastRefusal) &&
     (!Number.isFinite(lastDelivery) || lastRefusal > lastDelivery) &&
+    (!Number.isFinite(lastRead) || lastRefusal > lastRead) &&
     data.now.getTime() - lastRefusal <= CLOUD_STREAM_ACTIVE_WINDOW_MS
   ) {
     return "refused";

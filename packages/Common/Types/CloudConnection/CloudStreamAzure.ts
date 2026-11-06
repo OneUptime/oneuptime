@@ -219,6 +219,87 @@ export function getAzureEventHubsHost(data: {
     : null;
 }
 
+/*
+ * ---- Where OneUptime read each event hub to --------------------------------
+ *
+ * CloudConnection.streamState for an Azure connection: the subscription
+ * the command put the event hubs in, and the next offset of each
+ * partition of each namespace's event hub. Server only.
+ */
+
+export const AZURE_CLOUD_STREAM_MAX_NAMESPACES: number = 64;
+export const AZURE_CLOUD_STREAM_MAX_PARTITIONS: number = 32;
+
+export interface AzureCloudStreamState {
+  hostSubscriptionId: string;
+  // Namespace name -> partition -> the next offset to read.
+  offsets: Record<string, Record<string, number>>;
+}
+
+export function readAzureCloudStreamState(
+  value: unknown,
+): AzureCloudStreamState | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const stored: Record<string, unknown> = value as Record<string, unknown>;
+  const hostSubscriptionId: unknown = stored["hostSubscriptionId"];
+
+  if (
+    typeof hostSubscriptionId !== "string" ||
+    !ObjectID.isValidUUID(hostSubscriptionId)
+  ) {
+    return null;
+  }
+
+  const offsets: Record<string, Record<string, number>> = {};
+  const rawOffsets: unknown = stored["offsets"];
+
+  if (rawOffsets && typeof rawOffsets === "object" && !Array.isArray(rawOffsets)) {
+    for (const namespace of Object.keys(rawOffsets).slice(
+      0,
+      AZURE_CLOUD_STREAM_MAX_NAMESPACES,
+    )) {
+      const partitions: unknown = (rawOffsets as Record<string, unknown>)[namespace];
+
+      if (
+        !isAzureEventHubsNamespace(namespace) ||
+        !partitions ||
+        typeof partitions !== "object" ||
+        Array.isArray(partitions)
+      ) {
+        continue;
+      }
+
+      const read: Record<string, number> = {};
+
+      for (const partition of Object.keys(partitions).slice(
+        0,
+        AZURE_CLOUD_STREAM_MAX_PARTITIONS,
+      )) {
+        const offset: unknown = (partitions as Record<string, unknown>)[partition];
+        const index: number = Number(partition);
+
+        if (
+          Number.isInteger(index) &&
+          index >= 0 &&
+          String(index) === partition &&
+          typeof offset === "number" &&
+          Number.isSafeInteger(offset) &&
+          offset >= 0
+        ) {
+          read[partition] = offset;
+        }
+      }
+
+      offsets[namespace] = read;
+    }
+  }
+
+  return { hostSubscriptionId: hostSubscriptionId.toLowerCase(), offsets };
+}
+
 export const STREAM_NO_APP: string = translationKey(
   "This connection does not say which app registration it reads with. Save it again with its app to stream.",
 );

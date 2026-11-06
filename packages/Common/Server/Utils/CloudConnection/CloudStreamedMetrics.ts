@@ -24,7 +24,18 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
  * metric CloudWatch publishes once a day (S3's storage) never comes through
  * a stream, so the read keeps writing it. When a stream goes quiet the
  * read writes everything again.
+ *
+ * An Azure connection's read is the same, by subscription, region and
+ * resource type (an Azure stream's "namespaces"): for each type its event
+ * hubs delivered lately, the read leaves out the key metrics it reads a
+ * minute at a time (timegrain PT1M), which the stream writes in its place
+ * (AzureDiagnosticRecords). A metric read at a coarser grain - an hourly
+ * storage capacity - is never the stream's, and the read keeps writing it.
  */
+
+// Azure: the subscription on the read's resources, and the grain a stream writes.
+const AZURE_SUBSCRIPTION_ATTRIBUTE: string = "azuremonitor.subscription_id";
+export const AZURE_STREAMED_TIME_GRAIN: string = "PT1M";
 
 const DAILY_KEY_METRICS: ReadonlySet<string> = new Set<string>(
   (AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>).flatMap(
@@ -95,12 +106,40 @@ export function withoutStreamedMetrics(data: {
       resourceAttributes,
       "cloud.region",
     );
+    const subscriptionId: string = readStringAttribute(
+      resourceAttributes,
+      AZURE_SUBSCRIPTION_ATTRIBUTE,
+    );
 
     const isStreamed: (point: unknown) => boolean = (
       point: unknown,
     ): boolean => {
+      const pointAttributes: JSONArray = readArray(
+        readObject(point)["attributes"],
+      );
+
+      if (subscriptionId) {
+        const type: string = readStringAttribute(pointAttributes, "type");
+        const grain: string = readStringAttribute(
+          pointAttributes,
+          "timegrain",
+        );
+
+        return (
+          Boolean(type) &&
+          grain.toUpperCase() === AZURE_STREAMED_TIME_GRAIN &&
+          data.streamedKeys.has(
+            getStreamedMetricKey({
+              accountId: subscriptionId,
+              region: readStringAttribute(pointAttributes, "location"),
+              namespace: type,
+            }),
+          )
+        );
+      }
+
       const namespace: string = readStringAttribute(
-        readArray(readObject(point)["attributes"]),
+        pointAttributes,
         "Namespace",
       );
 

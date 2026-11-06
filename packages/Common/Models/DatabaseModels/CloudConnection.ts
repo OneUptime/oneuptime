@@ -355,10 +355,12 @@ export default class CloudConnection extends BaseModel {
 
   /*
    * The SHA-256 of the stream key Amazon Data Firehose sends this
-   * connection's metrics and logs with, and of the key it replaced while
-   * that one still works (CloudStreamKeyHashes). The keys themselves are
-   * never stored, and even their hashes are nobody's to read: the stream
-   * key routes write this column, the ingest endpoint reads it.
+   * connection's metrics and logs with - or Pub/Sub's push token names, for
+   * Google Cloud - and of the key it replaced while that one still works
+   * (CloudStreamKeyHashes), with the push service account a Google Cloud
+   * key was made for. The keys themselves are never stored, and even their
+   * hashes are nobody's to read: the stream key routes write this column,
+   * the ingest endpoints read it.
    */
   @ColumnAccessControl({ create: [], read: [], update: [] })
   @TableColumn({
@@ -366,7 +368,7 @@ export default class CloudConnection extends BaseModel {
     required: false,
     title: "Stream Key Hashes",
     description:
-      "SHA-256 of the stream key Firehose sends, and of the key it replaced while that one works. Server only; never readable.",
+      "SHA-256 of the stream key Firehose or Pub/Sub sends, and of the key it replaced while that one works. Server only; never readable.",
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public streamKeyHashes?: JSONObject = undefined;
@@ -393,6 +395,23 @@ export default class CloudConnection extends BaseModel {
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public streamSummary?: JSONObject = undefined;
+
+  /*
+   * Azure: where OneUptime has read each of the connection's event hubs to
+   * (AzureCloudStreamState) - the subscription that holds them, and the
+   * next offset of each partition. Written by the reads of the event hubs
+   * alone, and nobody's to read: offsets say nothing a person needs.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Stream State",
+    description:
+      "Azure: the subscription holding the connection's event hubs, and where each was read to. Server only; never readable.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public streamState?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],
