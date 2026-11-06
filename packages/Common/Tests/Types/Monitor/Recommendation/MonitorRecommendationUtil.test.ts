@@ -93,6 +93,16 @@ function getAllCriteriaAlerts(monitorStep: MonitorStep): Array<CriteriaAlert> {
 const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
   MonitorRecommendationCatalog.getAllRecommendations();
 
+/*
+ * The resource types whose monitors are scoped by a telemetry filter rather
+ * than by a row's identifier: an App Platforms app's spans and metrics carry
+ * no CloudApp id, only its environment's and its own attributes.
+ */
+const FILTER_SCOPED_RESOURCE_TYPES: Set<MonitorRecommendationResourceType> =
+  new Set<MonitorRecommendationResourceType>([
+    MonitorRecommendationResourceType.CloudApp,
+  ]);
+
 // One representative recommendation per resource type, for the focused tests.
 const ONE_PER_RESOURCE_TYPE: Array<MonitorRecommendation> =
   MonitorRecommendationCatalog.getResourceTypeDefinitions().map(
@@ -257,7 +267,68 @@ describe("MonitorRecommendationUtil", () => {
           );
 
         expect(fingerprint).toBeDefined();
+
+        if (FILTER_SCOPED_RESOURCE_TYPES.has(recommendation.resourceType)) {
+          // No row id is in the step; the filter is (see below).
+          expect(fingerprint?.resourceIdentifier).toBe("");
+          continue;
+        }
+
         expect(fingerprint?.resourceIdentifier).toBe(RESOURCE_IDENTIFIER);
+      }
+    });
+
+    it("scopes an App Platforms app's monitors by its telemetry filter, which its fingerprint holds", () => {
+      /*
+       * Spans and metrics carry no CloudApp row id, so an app's monitors
+       * are scoped by its environment's and its own attributes, as its
+       * Traces tab is - and a filter that went missing would read the whole
+       * project. Two apps' filters must fingerprint apart.
+       */
+      const filtersFor: (cluster: string) => Record<string, string> = (
+        cluster: string,
+      ): Record<string, string> => {
+        return {
+          "resource.cloud.platform": "aws_ecs",
+          "resource.aws.ecs.task.family": "checkout",
+          "resource.aws.ecs.cluster.arn": `arn:aws:ecs:us-east-1:123456789012:cluster/${cluster}`,
+        };
+      };
+      const fingerprintsFor: (cluster: string) => Array<string> = (
+        cluster: string,
+      ): Array<string> => {
+        const recommendations: Array<MonitorRecommendation> =
+          MonitorRecommendationCatalog.getRecommendations(
+            MonitorRecommendationResourceType.CloudApp,
+            { cloudAppTelemetryFilters: filtersFor(cluster) },
+          );
+
+        expect(recommendations.length).toBeGreaterThan(0);
+
+        return recommendations.map(
+          (recommendation: MonitorRecommendation): string => {
+            const fingerprint: MonitorRecommendationFingerprint =
+              MonitorRecommendationUtil.getFingerprintFromMonitorStep(
+                recommendation.getMonitorStep(buildArgs()),
+              )!;
+            const scope: string = [
+              ...fingerprint.configValues,
+              ...fingerprint.queryAttributes,
+            ].join("|");
+
+            expect(scope).toContain(`cluster/${cluster}`);
+            expect(scope).toContain("aws_ecs");
+
+            return MonitorRecommendationUtil.serializeFingerprint(fingerprint);
+          },
+        );
+      };
+
+      const production: Array<string> = fingerprintsFor("production");
+      const staging: Array<string> = fingerprintsFor("staging");
+
+      for (const fingerprint of production) {
+        expect(staging).not.toContain(fingerprint);
       }
     });
 

@@ -627,6 +627,8 @@ Les installations auto-hébergées peuvent modifier ces valeurs avec des variabl
 
 ## Alerter sur une ressource
 
+Une ressource d'un [compte connecté](/docs/telemetry/cloud-accounts) se voit proposer, dans son onglet **Recommandations**, les moniteurs que OneUptime recommande pour son type, chacun créé en une étape. Pour alerter sur toute autre métrique qu'elle signale :
+
 :::steps
 1. Ouvrez la ressource et son onglet **Métriques**, qui liste chaque métrique que son fournisseur rapporte à son sujet.
 2. Ouvrez une métrique pour la tracer dans l'explorateur de métriques, déjà filtrée sur la ressource.

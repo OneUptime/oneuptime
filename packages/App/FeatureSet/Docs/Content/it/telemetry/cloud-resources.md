@@ -627,6 +627,8 @@ Le installazioni ospitate in autonomia possono cambiare questi valori con variab
 
 ## Avvisi su una risorsa
 
+A una risorsa di un [account connesso](/docs/telemetry/cloud-accounts) vengono proposti, nella sua scheda **Raccomandazioni**, i monitor che OneUptime consiglia per il suo tipo, ognuno creato in un passaggio. Per ricevere avvisi su qualsiasi altra metrica che riporta:
+
 :::steps
 1. Apri la risorsa e la sua scheda **Metriche**, che elenca ogni metrica che il suo provider riporta su di essa.
 2. Apri una metrica per rappresentarla nell'esploratore delle metriche, già filtrata sulla risorsa.

@@ -67,6 +67,9 @@ export const APP_SET_UP_ALERTS: string = translationKey("Set up alerts");
 export const APP_SET_UP_ALERTS_HINT: string = translationKey(
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.",
 );
+export const APP_SET_UP_APP_ALERTS_HINT: string = translationKey(
+  "The alerts recommended for this app: failed operations, error bursts, slow requests and traffic that stops.",
+);
 // The words beside the name and the facts under it ask for this much room.
 export const CLOUD_APP_HEADER_TEXT_CLASS_NAME: string =
   "min-w-0 flex-1 md:min-w-[20rem]";
@@ -97,7 +100,15 @@ export interface ComponentProps {
   revisions?: ReadonlyArray<CloudAppRevisionMarkerSource> | undefined;
   // The service the app's telemetry is under, in Services, when it has one.
   serviceRoute?: Route | undefined;
-  // That service's recommended alerts, when it has a service.
+  /*
+   * The app's own recommended monitors (its Recommendations tab), when its
+   * telemetry can be told apart: Set up alerts opens them.
+   */
+  onSetUpAlerts?: (() => void) | undefined;
+  /*
+   * Its service's recommended alerts, for an app whose own telemetry
+   * cannot be told apart (a name too long to filter by), when it has one.
+   */
   alertsRoute?: Route | undefined;
   environmentRoute: Route;
   controls?: ReactElement | undefined;
@@ -298,14 +309,29 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        {props.serviceRoute || app.image || props.alertsRoute ? (
+        {props.serviceRoute ||
+        app.image ||
+        props.alertsRoute ||
+        props.onSetUpAlerts ? (
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
             {/*
-             * Alerts that work out of the box: the service's recommended
+             * Alerts that work out of the box: the app's own recommended
              * monitors - its requests failing, slowing or stopping - one
-             * click from the app.
+             * click away, on its Recommendations tab; or its service's, for
+             * an app whose own telemetry cannot be told apart.
              */}
-            {props.alertsRoute ? (
+            {props.onSetUpAlerts ? (
+              <button
+                type="button"
+                onClick={props.onSetUpAlerts}
+                className={`inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100 ${LINK_FOCUS_CLASS_NAME}`}
+                title={translator.translateText(APP_SET_UP_APP_ALERTS_HINT)}
+                data-testid="cloud-app-set-up-alerts"
+              >
+                <Icon icon={IconProp.Bell} className="h-3 w-3" />
+                <span>{translator.translateText(APP_SET_UP_ALERTS)}</span>
+              </button>
+            ) : props.alertsRoute ? (
               <AppLink
                 to={props.alertsRoute}
                 className={`inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100 ${LINK_FOCUS_CLASS_NAME}`}
