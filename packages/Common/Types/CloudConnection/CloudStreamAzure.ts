@@ -491,8 +491,10 @@ export function getAzureCloudStreamCommand(data: {
 
 /*
  * Stopping for good: each resource's diagnostic setting deleted, then the
- * resource group - every event hub in it, and the app's role on it. What
- * was streamed stays in OneUptime.
+ * resource group - every event hub in it, and the app's role on it - in
+ * whichever of the subscriptions holds it: the one the event hubs were
+ * made in need not be the first listed now. What was streamed stays in
+ * OneUptime.
  */
 export function getAzureCloudStreamDeleteCommand(data: {
   connectionId: string;
@@ -514,7 +516,6 @@ export function getAzureCloudStreamDeleteCommand(data: {
       },
     )
     .slice(0, AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS);
-  const host: string = subscriptions[0] || "";
 
   return [
     "oneuptime_stream_stop() {",
@@ -528,7 +529,11 @@ export function getAzureCloudStreamDeleteCommand(data: {
     '    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)',
     "  done",
     "  wait",
-    `  az group delete --subscription ${quoteForShell(host)} --name ${names.resourceGroup} --yes --no-wait`,
+    `  for SUB in ${subscriptions.map(quoteForShell).join(" ")}; do`,
+    `    if [ "$(az group exists --subscription "$SUB" --name ${names.resourceGroup} 2> /dev/null)" = true ]; then`,
+    `      az group delete --subscription "$SUB" --name ${names.resourceGroup} --yes --no-wait && echo "Deleting ${names.resourceGroup} in $SUB."`,
+    "    fi",
+    "  done",
     "}",
     "oneuptime_stream_stop",
   ].join("\n");

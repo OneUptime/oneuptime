@@ -391,7 +391,7 @@ export default class CloudConnection extends BaseModel {
     required: false,
     title: "Stream Summary",
     description:
-      "What the connection's Firehose streams delivered: the accounts, Regions and namespaces of metrics, the log groups, and the last delivery refused.",
+      "What the connection's streams delivered: the accounts, regions and namespaces or resource types of metrics, the log groups, categories or log names of logs, and the last delivery refused.",
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public streamSummary?: JSONObject = undefined;
@@ -399,16 +399,17 @@ export default class CloudConnection extends BaseModel {
   /*
    * Azure: where OneUptime has read each of the connection's event hubs to
    * (AzureCloudStreamState) - the subscription that holds them, and the
-   * next offset of each partition. Written by the reads of the event hubs
-   * alone, and nobody's to read: offsets say nothing a person needs.
+   * next offset of each partition. Written by Start reading and the reads
+   * of the event hubs alone. Readable: the streaming dialog says which
+   * subscription's event hubs are read, and offsets give nothing away.
    */
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
   @TableColumn({
     type: TableColumnType.JSON,
     required: false,
     title: "Stream State",
     description:
-      "Azure: the subscription holding the connection's event hubs, and where each was read to. Server only; never readable.",
+      "Azure: the subscription holding the connection's event hubs, and where OneUptime has read each to.",
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public streamState?: JSONObject = undefined;

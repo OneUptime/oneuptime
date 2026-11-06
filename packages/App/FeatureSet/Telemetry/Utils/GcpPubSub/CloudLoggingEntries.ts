@@ -49,6 +49,16 @@ import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 
 export const PUBSUB_SCOPE_NAME: string = "oneuptime-gcp-pubsub";
 
+/*
+ * Monitored resource types Cloud Logging writes logs under that Cloud
+ * Monitoring calls otherwise: an HTTP(S) load balancer's request logs are
+ * http_load_balancer's, its metrics https_lb_rule's - the same URL map, so
+ * the same resource.
+ */
+export const LOG_RESOURCE_TYPE_ALIASES: Readonly<Record<string, string>> = {
+  http_load_balancer: "https_lb_rule",
+};
+
 export const GCP_LOG_NAME_ATTRIBUTE: string = "gcp.log.name";
 export const GCP_LOG_ID_ATTRIBUTE: string = "gcp.log.id";
 export const GCP_INSERT_ID_ATTRIBUTE: string = "gcp.log.insert_id";
@@ -402,7 +412,8 @@ export function buildCloudLoggingResourceLogs(data: {
   const stored: Record<string, string> = {};
 
   if (entry.resourceType) {
-    stored[`resource.${GCP_RESOURCE_TYPE_ATTRIBUTE}`] = entry.resourceType;
+    stored[`resource.${GCP_RESOURCE_TYPE_ATTRIBUTE}`] =
+      LOG_RESOURCE_TYPE_ALIASES[entry.resourceType] || entry.resourceType;
   }
 
   for (const key of Object.keys(labels)) {

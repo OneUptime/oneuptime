@@ -327,6 +327,52 @@ describe("the entry's resource", () => {
     }
   });
 
+  test("a load balancer's request log, written under http_load_balancer, is filed under its https_lb_rule - the URL map its metrics land on", () => {
+    const built: ReturnType<typeof buildCloudLoggingResourceLogs> = build({
+      insertId: "1x2y3z4w5v",
+      jsonPayload: {
+        "@type":
+          "type.googleapis.com/google.cloud.loadbalancing.type.LoadBalancerLogEntry",
+        statusDetails: "response_sent_by_backend",
+        remoteIp: "203.0.113.7",
+      },
+      httpRequest: {
+        requestMethod: "GET",
+        requestUrl: "https://shop.example.com/cart",
+        status: 200,
+        responseSize: "5120",
+        remoteIp: "203.0.113.7",
+        latency: "0.012345s",
+      },
+      resource: {
+        type: "http_load_balancer",
+        labels: {
+          project_id: PROJECT,
+          zone: "global",
+          url_map_name: "shop-lb",
+          target_proxy_name: "shop-lb-target-proxy",
+          forwarding_rule_name: "shop-lb-forwarding-rule",
+          backend_service_name: "shop-backend",
+        },
+      },
+      timestamp: ENTRY_TIME,
+      severity: "INFO",
+      logName: `projects/${PROJECT}/logs/requests`,
+    });
+    const expected: CloudMonitoredResource = resourceOf("https_lb_rule", {
+      project_id: PROJECT,
+      region: "global",
+      url_map_name: "shop-lb",
+      forwarding_rule_name: "shop-lb-forwarding-rule",
+    });
+    const attributes: Record<string, string> = resourceAttributes(built.resourceLogs);
+
+    expect(attributes["cloud.resource_id"]).toBe(expected.providerResourceId);
+    expect(built.facts.resource?.identityKey).toBe(expected.identityKey);
+    // The log keeps its own type's name.
+    expect(attributes["gcp.resource_type"]).toBe("http_load_balancer");
+  });
+
   test("a zone is said as its region", () => {
     expect(build(computeSyslogEntry()).facts.region).toBe("us-central1");
   });

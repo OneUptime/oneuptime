@@ -4,14 +4,20 @@ import {
   CLOUD_RESOURCE_ID_ATTRIBUTE,
   CloudLogGroupResource,
   STORED_CLOUD_RESOURCE_ID_ATTRIBUTE,
+  AZURE_TYPES_WITHOUT_RESOURCE_LOGS,
   canCloudResourceHaveStreamedLogs,
+  GCP_TYPES_WITHOUT_LOGS,
   getAwsLogGroupResource,
 } from "../../../Types/Cloud/CloudLogGroups";
 import {
   CloudMonitoredResource,
   resolveCloudMonitoredResource,
 } from "../../../Types/Cloud/CloudMonitoredResource";
-import { getCloudResourceTypeLabel } from "../../../Types/Cloud/CloudResourceCatalog";
+import {
+  AZURE_RESOURCE_TYPES,
+  CloudResourceTypeDescriptor,
+  getCloudResourceTypeLabel,
+} from "../../../Types/Cloud/CloudResourceCatalog";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -395,10 +401,86 @@ describe("which resource pages have a Logs tab", () => {
       { provider: "aws", type: "AWS::EC2::Volume" },
       { provider: "aws", type: "AWS::EC2::VPC" },
       { provider: "azure", type: "AWS::Lambda::Function" },
+      { provider: "gcp", type: "AWS::Lambda::Function" },
+      { provider: "aws", type: "Microsoft.Web/sites" },
       { provider: null, type: null },
     ]) {
       expect(canCloudResourceHaveStreamedLogs(data)).toBe(false);
     }
+  });
+
+  test("every Azure type of the catalog whose diagnostic settings send logs, whatever its case", () => {
+    for (const type of [
+      "Microsoft.Web/sites",
+      "Microsoft.Sql/servers/databases",
+      "Microsoft.KeyVault/vaults",
+      "Microsoft.ContainerService/managedClusters",
+      "Microsoft.App/managedEnvironments",
+      "Microsoft.Network/applicationGateways",
+      "Microsoft.DocumentDB/databaseAccounts",
+      "microsoft.web/SITES",
+    ]) {
+      expect(canCloudResourceHaveStreamedLogs({ provider: "azure", type })).toBe(
+        true,
+      );
+    }
+
+    // Every type the catalog lists either has the tab or is named as having no logs.
+    const listed: Array<string> = AZURE_RESOURCE_TYPES.map(
+      (descriptor: CloudResourceTypeDescriptor): string => {
+        return descriptor.type;
+      },
+    );
+    const withoutTab: Array<string> = listed.filter((type: string): boolean => {
+      return !canCloudResourceHaveStreamedLogs({ provider: "Azure", type });
+    });
+
+    expect(withoutTab.map((type: string) => {
+      return type.toLowerCase();
+    }).sort()).toEqual(Array.from(AZURE_TYPES_WITHOUT_RESOURCE_LOGS).sort());
+  });
+
+  test("no Azure tab for a resource with no logs of its own, nor for a type no stream sets diagnostic settings on", () => {
+    for (const type of [
+      "Microsoft.Compute/virtualMachines",
+      "Microsoft.Compute/disks",
+      "Microsoft.Network/virtualNetworks",
+      "Microsoft.Storage/storageAccounts",
+      "Microsoft.Web/serverfarms",
+      "Microsoft.App/containerApps",
+      // Not in the catalog: the stream's command sets no diagnostic setting on it.
+      "Microsoft.Network/networkSecurityGroups",
+      "",
+    ]) {
+      expect(canCloudResourceHaveStreamedLogs({ provider: "azure", type })).toBe(
+        false,
+      );
+    }
+  });
+
+  test("the Google Cloud types Cloud Logging files logs under, and not an instance group nor a type of no rule", () => {
+    for (const type of [
+      "gce_instance",
+      "cloud_run_revision",
+      "cloud_function",
+      "cloudsql_database",
+      "https_lb_rule",
+      "internal_http_lb_rule",
+      "gcs_bucket",
+      "pubsub_subscription",
+    ]) {
+      expect(canCloudResourceHaveStreamedLogs({ provider: "gcp", type })).toBe(
+        true,
+      );
+    }
+
+    for (const type of ["instance_group", "http_load_balancer", "k8s_container", ""]) {
+      expect(canCloudResourceHaveStreamedLogs({ provider: "GCP", type })).toBe(
+        false,
+      );
+    }
+
+    expect(Array.from(GCP_TYPES_WITHOUT_LOGS)).toEqual(["instance_group"]);
   });
 
   test("filters on the stored resource attribute the logs carry", () => {

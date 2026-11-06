@@ -129,6 +129,9 @@ az() {
     "role assignment list")
       if [ "$FAKE_ROLE_EXISTS" = 1 ]; then echo "/subscriptions/x/providers/Microsoft.Authorization/roleAssignments/1"; fi
       return 0 ;;
+    "group exists "*)
+      if listed "$FAKE_GROUPS" "$sub"; then echo true; else echo false; fi
+      return 0 ;;
     "eventhubs namespace show")
       if listed "$FAKE_NAMESPACES" "$name" || listed "$(cat "$STATE")" "ns $name"; then return 0; fi
       echo "(ResourceNotFound)" >&2
@@ -172,6 +175,8 @@ interface Scenario {
   namespaces?: Array<string>;
   roleExists?: boolean;
   fail?: Array<string>;
+  // The subscriptions the command's resource group is in.
+  groups?: Array<string>;
 }
 
 interface ShellRun {
@@ -231,6 +236,7 @@ function run(command: string, scenario: Scenario = {}, after: string = ""): Shel
         FAKE_NAMESPACES: (scenario.namespaces || []).join("\n"),
         FAKE_ROLE_EXISTS: scenario.roleExists ? "1" : "0",
         FAKE_FAIL: (scenario.fail || []).join("\n"),
+        FAKE_GROUPS: (scenario.groups || []).join("\n"),
       },
     },
   );
@@ -548,7 +554,7 @@ describe("Stop streaming's command for Azure", () => {
       connectionId: CONNECTION,
       subscriptionIds: [SUB_A, SUB_B.toUpperCase(), SUB_B],
     });
-    const shellRun: ShellRun = run(text);
+    const shellRun: ShellRun = run(text, { groups: [SUB_A] });
     const deleted: Array<string> = callsOf(shellRun, "monitor diagnostic-settings delete")
       .map((call: Array<string>): string => {
         expect(flag(call, "--name")).toBe(NAMES.diagnosticSetting);
@@ -560,7 +566,38 @@ describe("Stop streaming's command for Azure", () => {
     expect(callsOf(shellRun, "group delete")).toEqual([
       ["az", "group", "delete", "--subscription", SUB_A, "--name", NAMES.resourceGroup, "--yes", "--no-wait"],
     ]);
+    expect(shellRun.output).toEqual([`Deleting ${NAMES.resourceGroup} in ${SUB_A}.`]);
     expect(text).not.toMatch(NO_EXIT);
+  });
+
+  test("the resource group is deleted in whichever subscription holds it, the first listed or not", () => {
+    const shellRun: ShellRun = run(
+      getAzureCloudStreamDeleteCommand({
+        connectionId: CONNECTION,
+        subscriptionIds: [SUB_A, SUB_B],
+      }),
+      { groups: [SUB_B] },
+    );
+
+    expect(callsOf(shellRun, "group exists").map((call: Array<string>) => {
+      return flag(call, "--subscription");
+    })).toEqual([SUB_A, SUB_B]);
+    expect(callsOf(shellRun, "group delete")).toEqual([
+      ["az", "group", "delete", "--subscription", SUB_B, "--name", NAMES.resourceGroup, "--yes", "--no-wait"],
+    ]);
+  });
+
+  test("with the resource group gone already, it deletes nothing more and says nothing", () => {
+    const shellRun: ShellRun = run(
+      getAzureCloudStreamDeleteCommand({
+        connectionId: CONNECTION,
+        subscriptionIds: [SUB_A, SUB_B],
+      }),
+    );
+
+    expect(callsOf(shellRun, "group delete")).toEqual([]);
+    expect(shellRun.output).toEqual([]);
+    expect(shellRun.status).toBe(0);
   });
 });
 
