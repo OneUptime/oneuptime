@@ -4,12 +4,16 @@ import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
-import MailTransportType from "Common/Types/Email/MailTransportType";
+import MailTransportType, {
+  isApiKeyMailTransport,
+  toMailTransportType,
+} from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
+import { PROJECT_SMTP_CONFIG_SEND_SELECT } from "Common/Server/Utils/Mail/ProjectSmtpConfigSelect";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -67,23 +71,10 @@ router.post(
           props: {
             isRoot: true,
           },
+          // Every column a send reads, for every transport, and the project.
           select: {
-            _id: true,
-            transportType: true,
-            hostname: true,
-            port: true,
-            username: true,
-            password: true,
-            fromEmail: true,
-            fromName: true,
-            secure: true,
+            ...PROJECT_SMTP_CONFIG_SEND_SELECT,
             projectId: true,
-            authType: true,
-            clientId: true,
-            clientSecret: true,
-            tokenUrl: true,
-            scope: true,
-            oauthProviderType: true,
           },
         });
 
@@ -138,8 +129,9 @@ router.post(
         );
       }
 
-      const transportType: MailTransportType =
-        mailServer.transportType || MailTransportType.SMTP;
+      const transportType: MailTransportType = toMailTransportType(
+        mailServer.transportType,
+      );
       const authType: SMTPAuthenticationType =
         mailServer.authType || SMTPAuthenticationType.UsernamePassword;
 
@@ -160,6 +152,20 @@ router.post(
           throw new BadDataException(
             "Microsoft Graph send failed: " +
               (err instanceof Error ? err.message : String(err)),
+          );
+        }
+
+        /*
+         * So do the HTTP API providers': each says what the provider said
+         * and what to change, starting with the provider's name ("Amazon SES
+         * needs a verified identity in us-east-1 for ..."), with no key in
+         * it (HttpMailApi.scrub).
+         */
+        if (isApiKeyMailTransport(transportType)) {
+          throw new BadDataException(
+            err instanceof Error && err.message
+              ? err.message
+              : `${transportType} did not send the test email.`,
           );
         }
 

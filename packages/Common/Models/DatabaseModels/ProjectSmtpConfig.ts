@@ -17,6 +17,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import Email from "../../Types/Email";
+import MailgunRegion from "../../Types/Email/MailgunRegion";
 import MailTransportType from "../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
@@ -673,7 +674,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     allowedValues: Object.values(MailTransportType),
     title: "Transport",
     description:
-      "How OneUptime delivers mail for this config. 'SMTP' uses the hostname/port. 'Microsoft Graph' sends via the Microsoft Graph REST API — use this when your Microsoft 365 tenant has SMTP AUTH disabled.",
+      "How OneUptime delivers mail for this config. 'SMTP' uses the hostname and port. 'Microsoft Graph' sends through the Microsoft Graph REST API, for a Microsoft 365 tenant with SMTP AUTH turned off. 'Amazon SES', 'SendGrid', 'Mailgun', 'Postmark' and 'Resend' send through that provider's HTTPS API with its own key, set in the columns named for it.",
     defaultValue: MailTransportType.SMTP,
     isDefaultValueColumn: true,
     example: "SMTP",
@@ -909,4 +910,330 @@ export default class ProjectSmtpConfig extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public oauthProviderType?: OAuthProviderType = undefined;
+
+  /*
+   * THE KEYS OF THE PROVIDERS THAT SEND THROUGH AN HTTP API OF THEIR OWN.
+   *
+   * Each transport reads only its own columns (ProjectSmtpConfigService.
+   * toEmailServer): Amazon SES its IAM access key and Region, SendGrid,
+   * Postmark and Resend their key, Mailgun its key, sending domain and
+   * region. Every key is a password-equivalent credential - with it alone,
+   * anyone sends mail as the project's domain - so, like the SMTP password
+   * and the OAuth client secret, it is read only by the project's owners and
+   * admins and whoever is granted Read SMTP Config, and it is encrypted at
+   * rest, like every other stored provider credential (the Twilio auth
+   * token, the LLM provider's API key). An access key ID and a sending
+   * domain identify an account but sign in to nothing, so they stay
+   * readable by the config's wider audience, as the SMTP username does.
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Amazon SES Access Key ID",
+    description:
+      "The access key ID of an IAM user or role allowed to send with Amazon SES (ses:SendEmail). Required when Transport is Amazon SES.",
+    example: "AKIAIOSFODNN7EXAMPLE",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public amazonSesAccessKeyId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Amazon SES Secret Access Key",
+    description:
+      "The secret access key that goes with the access key ID. Required when Transport is Amazon SES. Encrypted at rest.",
+    example: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public amazonSesSecretAccessKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Amazon SES Region",
+    description:
+      "The AWS Region your sender identity is verified in, such as us-east-1. Required when Transport is Amazon SES.",
+    example: "us-east-1",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public amazonSesRegion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "SendGrid API Key",
+    description:
+      "A SendGrid API key with the Mail Send permission. Required when Transport is SendGrid. Encrypted at rest.",
+    example:
+      "SG.xxxxxxxxxxxxxxxxxxxxxx.yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public sendgridApiKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Mailgun API Key",
+    description:
+      "A Mailgun API key, or a sending API key for the domain. Required when Transport is Mailgun. Encrypted at rest.",
+    example: "key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public mailgunApiKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Mailgun Domain",
+    description:
+      "The Mailgun sending domain mail goes out from, such as mg.example.com. Required when Transport is Mailgun.",
+    example: "mg.example.com",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public mailgunDomain?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(MailgunRegion),
+    title: "Mailgun Region",
+    description:
+      "The region the Mailgun domain was created in: US or EU. US when not set.",
+    example: "US",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public mailgunRegion?: MailgunRegion = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Postmark Server API Token",
+    description:
+      "The API token of the Postmark server that sends, from its API Tokens tab. Required when Transport is Postmark. Encrypted at rest.",
+    example: "00000000-0000-0000-0000-000000000000",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public postmarkServerToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "Resend API Key",
+    description:
+      "A Resend API key with sending access. Required when Transport is Resend. Encrypted at rest.",
+    example: "re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public resendApiKey?: string = undefined;
 }

@@ -6,6 +6,8 @@ Invia la posta di OneUptime tramite il tuo server di posta. Un progetto aggiunge
 - **OAuth 2.0**: per Microsoft 365 e Google Workspace, dove l'autenticazione di base è spesso disattivata.
 - **Nessuno**: per i server relay che non richiedono autenticazione.
 
+Per inviare tramite Amazon SES, SendGrid, Mailgun, Postmark o Resend invece che tramite un server di posta, vedi [Provider email](/docs/emails/email-providers).
+
 ```mermaid title="Quale server di posta invia cosa"
 flowchart TB
     SP["La posta di una pagina di stato"] --> Q{"Configurazione SMTP personalizzata<br/>scelta per la pagina?"}
@@ -17,7 +19,7 @@ flowchart TB
 In un'installazione self-hosted, il server di posta di OneUptime è quello impostato nell'Admin Dashboard. Una pagina di stato sceglie la sua configurazione SMTP nella propria pagina **Impostazioni iscritti**, nella scheda **SMTP personalizzato**.
 
 :::cards
-- [Aggiungere un server di posta](#aggiungere-un-server-smtp): Due passaggi, con tutto il resto ripiegato.
+- [Aggiungere un server di posta](#aggiungere-un-server-smtp): Pochi passaggi, con tutto il resto ripiegato.
 - [Microsoft 365](#configurazione-di-microsoft-365): OAuth con una registrazione dell'app in Entra.
 - [Google Workspace](#configurazione-di-google-workspace): OAuth con un account di servizio.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Errori comuni e il loro significato.
@@ -25,7 +27,7 @@ In un'installazione self-hosted, il server di posta di OneUptime è quello impos
 
 ## Aggiungere un server SMTP
 
-Aggiungi il server di posta di un progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, nella scheda **Configurazioni SMTP personalizzate**, in **Altre impostazioni**. In un'installazione self-hosted, il server da cui invia OneUptime stesso si imposta in **Admin Dashboard > Impostazioni > Notifiche > E-mail**, nella scheda **Impostazioni e-mail e SMTP personalizzate**. Entrambi i moduli chiedono le stesse cose, in due passaggi.
+Aggiungi il server di posta di un progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, nella scheda **Configurazioni SMTP personalizzate**, in **Altre impostazioni**. In un'installazione self-hosted, il server da cui invia OneUptime stesso si imposta in **Admin Dashboard > Impostazioni > Notifiche > E-mail**, nella scheda **Impostazioni e-mail e SMTP personalizzate**. Entrambi i moduli chiedono il server e il mittente; il modulo di un progetto chiede prima il suo **Provider**.
 
 :::steps
 ### Aprire il modulo
@@ -37,13 +39,17 @@ In **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, apri **Al
 Nell'Admin Dashboard, apri **Impostazioni**, poi **Notifiche > E-mail** nel menu laterale (**Notifiche** è inizialmente chiuso). Nella scheda **Impostazioni del server e-mail**, fai clic su **Modifica server** e imposta **Tipo di server email** su `Custom SMTP`. Poi fai clic su **Modifica config SMTP** nella scheda **Impostazioni e-mail e SMTP personalizzate**, che compare sotto.
 :::
 
+### Scegliere il provider
+
+Il modulo di un progetto si apre sul passaggio **Provider**: inserisci il **Nome** e lascia scelto **Server SMTP** per inviare tramite un server di posta. Per inviare invece tramite Microsoft Graph o un [provider email](/docs/emails/email-providers), sceglilo qui. La **Descrizione**, una nota per il tuo team, è ripiegata sotto **Altri campi**. Il modulo dell'istanza non ha il passaggio **Provider**.
+
 ### Compilare il passaggio Server
 
-Nel passaggio **Server**, inserisci il **Nome** (solo configurazioni di progetto), l'**Nome host**, la **Porta** (una nuova configurazione di progetto parte da `587`), il **Nome utente** e la **Password**.
+Nel passaggio **Server**, inserisci il **Nome host**, la **Porta** (una nuova configurazione di progetto parte da `587`), il **Nome utente** e la **Password**.
 
 ### Controllare Altri campi
 
-Tutto il resto è ripiegato sotto **Altri campi**, alla fine del passaggio **Server**. Finché è ripiegato, la sua intestazione dice come viene inviata la posta, per esempio «La posta viene inviata tramite SMTP, con accesso tramite nome utente e password. TLS è obbligatorio.» Aprilo solo se devi cambiare una delle impostazioni della tabella qui sotto.
+Le altre impostazioni del server sono ripiegate sotto **Altri campi**, alla fine del passaggio **Server**. Finché è ripiegato, la sua intestazione dice come viene inviata la posta, per esempio «La posta viene inviata tramite SMTP, con accesso tramite nome utente e password. TLS è obbligatorio.» Aprilo solo se devi cambiare una delle impostazioni della tabella qui sotto. Nel modulo di un progetto, i campi OAuth hanno un proprio passaggio **OAuth**, dopo **Server**.
 
 ### Compilare il passaggio Mittente
 
@@ -60,13 +66,13 @@ Queste sono le impostazioni sotto **Altri campi**:
 
 | Campo | Cosa fa |
 | --- | --- |
-| **Trasporto** | `SMTP` (predefinito), oppure `Microsoft Graph` per un tenant Microsoft 365 con SMTP AUTH disattivato. Scegliere Microsoft Graph nasconde hostname, porta, nome utente e password, e mostra i campi OAuth. |
+| **Trasporto** | `SMTP` (predefinito), oppure `Microsoft Graph` per un tenant Microsoft 365 con SMTP AUTH disattivato. Scegliere Microsoft Graph nasconde hostname, porta, nome utente e password, e mostra i campi OAuth. Solo nel modulo dell'istanza: un progetto sceglie invece il suo **Provider**. |
 | **Richiedi TLS** | Attivo per una nuova configurazione di progetto. Invia email solo su una connessione cifrata con un certificato valido. Se l'opzione è disattivata, il certificato non viene verificato. La porta 465 è sempre cifrata. Se l'opzione è disattivata, la posta sulle altre porte viene cifrata solo se il server lo offre. |
 | **Tipo di autenticazione** | `Username and Password` (predefinito), `OAuth`, oppure `None` per un relay che non richiede accesso. |
-| **Campi OAuth** | **Tipo di provider OAuth**, **Client ID OAuth**, **Client Secret OAuth**, **URL del token OAuth** e **Scope OAuth**, mostrati quando si sceglie OAuth o Microsoft Graph. |
-| **Descrizione** | Una nota per il tuo team (solo configurazioni di progetto). |
+| **Campi OAuth** | **Tipo di provider OAuth**, **Client ID OAuth**, **Client Secret OAuth**, **URL del token OAuth** e **Scope OAuth**, mostrati quando si sceglie OAuth o Microsoft Graph. Il modulo di un progetto li chiede nel suo passaggio **OAuth**. |
+| **Descrizione** | Una nota per il tuo team (solo configurazioni di progetto), nel passaggio **Provider**. |
 
-**Microsoft Graph.** Apri **Altri campi**, imposta **Trasporto** su `Microsoft Graph` e inserisci i dati di un'app Azure che abbia l'autorizzazione dell'applicazione **Mail.Send**: il suo client ID e il suo client secret, l'URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e lo scope `https://graph.microsoft.com/.default`. La posta parte dalla casella dell'**Email mittente**, che deve essere una casella con licenza nel tuo tenant.
+**Microsoft Graph.** Nel modulo di un progetto, scegli `Microsoft Graph` come **Provider**; nel modulo dell'istanza, apri **Altri campi** e imposta **Trasporto** su `Microsoft Graph`. Poi inserisci i dati di un'app Azure che abbia l'autorizzazione dell'applicazione **Mail.Send**: il suo client ID e il suo client secret, l'URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` e lo scope `https://graph.microsoft.com/.default`. La posta parte dalla casella dell'**Email mittente**, che deve essere una casella con licenza nel tuo tenant.
 
 > [!NOTE]
 > Su OneUptime Cloud, il server di posta di un progetto deve essere raggiungibile da Internet: un host che si risolve in un indirizzo privato o interno viene rifiutato. In un'installazione self-hosted, gli indirizzi privati sono consentiti a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sia `true`; gli indirizzi di loopback e link-local vengono sempre rifiutati. Il server di posta dell'istanza non viene controllato in questo modo.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Invia l'e-mail
 ```
 
-**Tipo di autenticazione** e i campi OAuth si trovano sotto **Altri campi**, nel passaggio Server del modulo. Per accedere con OAuth, compila:
+**Tipo di autenticazione** si trova sotto **Altri campi**, nel passaggio Server del modulo. Anche i campi OAuth si trovano lì nel modulo dell'istanza, e nel passaggio **OAuth** in quello di un progetto. Per accedere con OAuth, compila:
 
 | Campo | Descrizione |
 | --- | --- |
@@ -309,6 +315,7 @@ Controlla l'**Email mittente**: il tuo server deve consentire l'invio da quell'i
 ## Passaggi successivi
 
 :::cards
+- [Provider email](/docs/emails/email-providers): Inviare invece tramite Amazon SES, SendGrid, Mailgun, Postmark o Resend.
 - [Riepilogo delle notifiche](/docs/emails/notification-rollup): Come OneUptime raggruppa le raffiche di e-mail ai proprietari.
 - [Iscritti e annunci](/docs/status-pages/subscribers): Inviare la posta agli iscritti di una pagina di stato con una configurazione SMTP del progetto.
 :::
