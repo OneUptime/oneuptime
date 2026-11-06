@@ -18,8 +18,14 @@ import RealTimeDetections, {
 } from "../../../../../Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
 import RealTimeJobs, {
   REAL_TIME_HANDOVER_MARGIN_MS,
+  REAL_TIME_WINDOWED_FIRST_DELAY_MS,
   getRealTimeHandoverWindow,
+  getRealTimeJobDelayInMs,
 } from "../../../../../Server/Utils/SecurityEvent/RealTime/RealTimeJobs";
+import ProjectSigmaRules from "../../../../../Server/Utils/SecurityEvent/Correlation/ProjectSigmaRules";
+import logger from "../../../../../Server/Utils/Logger";
+import { SigmaRuleReferenceResolver } from "../../../../../Types/SecurityEvent/SigmaCorrelation";
+import { indexSigmaRules } from "../../../../../Utils/SecurityEvent/Sigma/SigmaRuleIndex";
 import { buildSecurityEventDbRow } from "../../../../../Server/Utils/SecurityEvent/SecurityEventRow";
 import {
   DETECTION_EVALUATION_DELAY_IN_SECONDS,
@@ -59,10 +65,12 @@ if (
 /*
  * Real-time detection rules, both halves: a write's rows screened against
  * the project's real-time rules (kept for half a minute, never failing the
- * write), a job queued for each rule with candidates, its events in chunks;
- * and the job, which confirms only for a rule still on and in real time,
- * waits - twice as long each time - for events not yet readable, and hands
- * the rule's own query just those events.
+ * write) - a single rule against its detection, a correlation against
+ * every rule it reads - a job queued for each rule with candidates, its
+ * events in chunks, and a rule that counts in windows waiting a little
+ * longer; and the job, which confirms only for a rule still on and in real
+ * time, waits - twice as long each time - for events not yet readable, and
+ * hands the rule's own query those events.
  */
 
 type Spy = ReturnType<typeof getJestSpyOn>;
@@ -320,34 +328,284 @@ describe("RealTimeDetections.screen: a write's half", () => {
     expect(findBy).toHaveBeenCalledTimes(1);
   });
 
-  test("a rule that no longer reads, or reads events together, is left to the schedule", async () => {
+  test("a rule that no longer reads is left out, and costs the write nothing", async () => {
+    const error: Spy = getJestSpyOn(logger, "error").mockImplementation((() => {
+      return undefined;
+    }) as never);
     findBy.mockResolvedValue([
       storedRule(RULE_ID, "detection: [not yaml"),
+    ] as never);
+
+    await expect(
+      RealTimeDetections.screen({
+        projectId: PROJECT_ID,
+        rows: [event({ activityName: "log cleared" })],
+      }),
+    ).resolves.toBe(0);
+
+    expect(addJob).not.toHaveBeenCalled();
+    expect(String(error.mock.calls[0]![0])).toContain(
+      `rule ${RULE_ID} could not be read`,
+    );
+  });
+
+  test("reads what tells a rule that counts from one that fires on each event", async () => {
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [event({})],
+    });
+
+    expect((findBy.mock.calls[0]![0] as { select: JSONObject }).select).toEqual(
+      {
+        _id: true,
+        projectId: true,
+        sigmaRuleYaml: true,
+        matchCountThreshold: true,
+        distinctCountField: true,
+      },
+    );
+  });
+
+  test("a correlation is screened against every rule it reads, and its job counts in windows", async () => {
+    findBy.mockResolvedValue([
       storedRule(
         OTHER_RULE_ID,
-        `title: Many
+        `title: Failures, then a success
+correlation:
+  type: temporal_ordered
+  rules: [failed, succeeded]
+  group-by: [principalUser]
+  timespan: 10m
+---
+title: Failed
+name: failed
+detection:
+  selection:
+    statusName: Failure
+  condition: selection
+---
+title: Succeeded
+name: succeeded
+detection:
+  selection:
+    statusName: Success
+    principalUser: alice
+  condition: selection`,
+      ),
+    ] as never);
+
+    const failure: JSONObject = event({
+      statusName: "Failure",
+      principalUser: "bob",
+    });
+    const success: JSONObject = event({ statusName: "Success" });
+    // A success of somebody else's matches neither rule.
+    const neither: JSONObject = event({
+      statusName: "Success",
+      principalUser: "carol",
+    });
+
+    await expect(
+      RealTimeDetections.screen({
+        projectId: PROJECT_ID,
+        rows: [failure, success, neither],
+      }),
+    ).resolves.toBe(1);
+
+    expect(jobs()).toEqual([
+      {
+        projectId: PROJECT_ID.toString(),
+        ruleId: OTHER_RULE_ID,
+        events: [
+          { id: failure["_id"], time: "2026-10-30T09:00:00.000Z" },
+          { id: success["_id"], time: "2026-10-30T09:00:00.000Z" },
+        ],
+        attempt: 1,
+        countsInWindows: true,
+      },
+    ]);
+    // It reads what every write before its own brought: it waits longer.
+    expect((addJob.mock.calls[0]![4] as { delayInMs: number }).delayInMs).toBe(
+      REAL_TIME_WINDOWED_FIRST_DELAY_MS,
+    );
+  });
+
+  test("a counting step's rules are screened as the step reads them", async () => {
+    findBy.mockResolvedValue([
+      storedRule(
+        RULE_ID,
+        `title: Burst
 correlation:
   type: event_count
-  rules: [a]
+  rules: [cleared, deleted]
+  group-by: [principalHost]
   timespan: 5m
   condition:
     gte: 3
 ---
-title: A
-name: a
+title: Cleared
+name: cleared
 detection:
   selection:
     activityName|contains: cleared
+  condition: selection
+---
+title: Deleted
+name: deleted
+detection:
+  selection:
+    activityName|contains: deleted
   condition: selection`,
       ),
     ] as never);
 
     await RealTimeDetections.screen({
       projectId: PROJECT_ID,
-      rows: [event({ activityName: "log cleared" })],
+      rows: [
+        event({ activityName: "log cleared" }),
+        event({ activityName: "file deleted" }),
+        event({ activityName: "Logon" }),
+      ],
     });
 
+    expect(jobs()).toHaveLength(1);
+    expect(jobs()[0]!.events).toHaveLength(2);
+    expect(jobs()[0]!.countsInWindows).toBe(true);
+  });
+
+  test("a single rule that counts - a threshold above 1, a distinct count - waits longer; one that fires on each event does not", async () => {
+    const counting: DetectionRule = storedRule(RULE_ID, AUDIT_CLEARED);
+    counting.matchCountThreshold = 5;
+    const distinct: DetectionRule = storedRule(OTHER_RULE_ID, ROOT_SIGN_IN);
+    distinct.distinctCountField = "principalHost";
+    const single: DetectionRule = storedRule(
+      "45454545-4545-4454-8454-454545454545",
+      AUDIT_CLEARED,
+    );
+    single.matchCountThreshold = 1;
+    single.distinctCountField = "  ";
+    findBy.mockResolvedValue([counting, distinct, single] as never);
+
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [
+        event({ activityName: "Audit log cleared" }),
+        event({ principalUser: "root" }),
+      ],
+    });
+
+    expect(
+      jobs().map((job: RealTimeJobData): [string, boolean] => {
+        return [job.ruleId, job.countsInWindows === true];
+      }),
+    ).toEqual([
+      [RULE_ID, true],
+      [OTHER_RULE_ID, true],
+      ["45454545-4545-4454-8454-454545454545", false],
+    ]);
+    expect(
+      addJob.mock.calls.map((call: Array<unknown>): number => {
+        return (call[4] as { delayInMs: number }).delayInMs;
+      }),
+    ).toEqual([
+      REAL_TIME_WINDOWED_FIRST_DELAY_MS,
+      REAL_TIME_WINDOWED_FIRST_DELAY_MS,
+      REAL_TIME_FIRST_DELAY_MS,
+    ]);
+  });
+
+  test("a correlation that names the project's other rules reads them, without itself, and is screened against them", async () => {
+    const resolver: SigmaRuleReferenceResolver = indexSigmaRules([
+      {
+        id: "46464646-4646-4464-8464-464646464646",
+        sigmaRuleYaml: `title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    statusName: Failure
+  condition: selection`,
+      },
+    ]);
+    const load: Spy = getJestSpyOn(ProjectSigmaRules, "load").mockResolvedValue(
+      resolver as never,
+    );
+    findBy.mockResolvedValue([
+      storedRule(
+        RULE_ID,
+        `title: Brute force
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 5m
+  condition:
+    gte: 10`,
+      ),
+    ] as never);
+
+    const failure: JSONObject = event({ statusName: "Failure" });
+
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [failure, event({})],
+    });
+
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load.mock.calls[0]![0]).toEqual(PROJECT_ID);
+    expect(
+      (load.mock.calls[0]![1] as { excludeRuleId?: ObjectID }).excludeRuleId,
+    ).toEqual(new ObjectID(RULE_ID));
+    expect(jobs()).toHaveLength(1);
+    expect(jobs()[0]!.events).toEqual([
+      { id: failure["_id"], time: "2026-10-30T09:00:00.000Z" },
+    ]);
+  });
+
+  test("a rule whose YAML holds every rule it reads reads no other", async () => {
+    const load: Spy = getJestSpyOn(ProjectSigmaRules, "load");
+
+    await RealTimeDetections.screen({
+      projectId: PROJECT_ID,
+      rows: [event({})],
+    });
+
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  test("a correlation naming a rule the project no longer has screens nothing, and says it could not be read", async () => {
+    const error: Spy = getJestSpyOn(logger, "error").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    getJestSpyOn(ProjectSigmaRules, "load").mockResolvedValue(
+      indexSigmaRules([]) as never,
+    );
+    findBy.mockResolvedValue([
+      storedRule(
+        RULE_ID,
+        `title: Brute force
+correlation:
+  type: event_count
+  rules: [gone]
+  group-by: [principalIp]
+  timespan: 5m
+  condition:
+    gte: 10`,
+      ),
+    ] as never);
+
+    await expect(
+      RealTimeDetections.screen({
+        projectId: PROJECT_ID,
+        rows: [event({ statusName: "Failure" })],
+      }),
+    ).resolves.toBe(0);
+
     expect(addJob).not.toHaveBeenCalled();
+    expect(String(error.mock.calls[0]![0])).toContain(
+      `rule ${RULE_ID} could not be read`,
+    );
+    // Why: the rule it names, which the project no longer has.
+    expect(String(error.mock.calls[1]![0])).toContain("gone");
   });
 
   test("never fails the write: a read or a queue that fails is logged, nothing more", async () => {
@@ -450,6 +708,11 @@ describe("RealTimeDetectionJob: the worker's half", () => {
     expect(Object.values(run.restrictTo.query_params)).toEqual([
       ["row-1", "row-2"],
     ]);
+    // The events themselves too: a rule that counts reads the windows they fall in.
+    expect(
+      (evaluateRealTime.mock.calls[0]![1] as { candidates: unknown })
+        .candidates,
+    ).toEqual(JOB.events);
   });
 
   test("a rule turned off, back on its schedule, or gone confirms nothing", async () => {
@@ -477,6 +740,37 @@ describe("RealTimeDetectionJob: the worker's half", () => {
     expect(addJob.mock.calls[0]![3]).toEqual({ ...JOB, attempt: 3 });
     expect((addJob.mock.calls[0]![4] as { delayInMs: number }).delayInMs).toBe(
       REAL_TIME_FIRST_DELAY_MS * 4,
+    );
+  });
+
+  test("a rule that counts is waited for as long again, from its own longer first wait", async () => {
+    countReadable.mockResolvedValue(1 as never);
+
+    await RealTimeDetectionJob.evaluate({
+      ...JOB,
+      attempt: 2,
+      countsInWindows: true,
+    });
+
+    expect(addJob.mock.calls[0]![3]).toEqual({
+      ...JOB,
+      attempt: 3,
+      countsInWindows: true,
+    });
+    expect((addJob.mock.calls[0]![4] as { delayInMs: number }).delayInMs).toBe(
+      REAL_TIME_WINDOWED_FIRST_DELAY_MS * 4,
+    );
+    expect(
+      [1, 2, 3, 4, 5].map((attempt: number): number => {
+        return getRealTimeJobDelayInMs({ attempt });
+      }),
+    ).toEqual([5000, 10000, 20000, 40000, 80000]);
+    expect(getRealTimeJobDelayInMs({ attempt: 1, countsInWindows: true })).toBe(
+      REAL_TIME_WINDOWED_FIRST_DELAY_MS,
+    );
+    // A job of a rule that counts waits out the writer's batch, five seconds at most.
+    expect(REAL_TIME_WINDOWED_FIRST_DELAY_MS).toBeGreaterThanOrEqual(
+      REAL_TIME_FIRST_DELAY_MS + 5000,
     );
   });
 
@@ -528,6 +822,13 @@ describe("RealTimeDetectionJob: the worker's half", () => {
       events: [{ id: "row-1", time: "2026-10-30T09:00:01.000Z" }],
       attempt: 1,
     });
+    // A job of a rule that counts says so; anything else is not taken for it.
+    expect(
+      readRealTimeJobData({ ...JOB, countsInWindows: true } as never),
+    ).toEqual({ ...JOB, countsInWindows: true });
+    expect(
+      readRealTimeJobData({ ...JOB, countsInWindows: "true" } as never),
+    ).toEqual(JOB);
   });
 });
 

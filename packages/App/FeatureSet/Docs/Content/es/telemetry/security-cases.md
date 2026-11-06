@@ -306,11 +306,12 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Automatización | Run a workflow | Inicia un flujo de trabajo de OneUptime con el caso como entrada |
 | Automatización | Run a runbook | Inicia uno de tus runbooks de OneUptime con el caso como entradas |
 | Automatización | Fix the code with AI | Pide a OneUptime AI un pull request que corrija las excepciones que lanzaron las solicitudes del caso |
+| Control del flujo | Detener la ejecución | Termina la ejecución ahí, como completada: los pasos siguientes no se ejecutan |
 
 Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando ha terminado el anterior. Además, cada paso puede:
 
 - **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los ocho pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook**, **Post a status page announcement** y los dos pasos de almacenes de datos empiezan con la aprobación activada, porque ejecutan comandos en tus sistemas, hablan con tus clientes o cambian los ajustes de una nube; quien añade el paso puede desactivarla.
-- **Ejecutar este paso**: **Siempre**, o solo después de un resultado de un paso anterior, como que **Comprobar las entidades con la inteligencia de amenazas** encuentre una entidad maliciosa conocida; consulta [Ramificar según el resultado de un paso](#ramificar-según-el-resultado-de-un-paso).
+- **Ejecutar este paso**: **Siempre**, o solo después de resultados de pasos anteriores, como que **Comprobar las entidades con la inteligencia de amenazas** encuentre una entidad maliciosa conocida; consulta [Ramificar según el resultado de un paso](#ramificar-según-el-resultado-de-un-paso).
 - **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución. Está en **Más campos**, junto con **Ejecutar este paso**.
 
 ### Ramificar según el resultado de un paso
@@ -324,6 +325,12 @@ Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando h
 | Cualquier otro paso | Tuvo éxito, y falló cuando tiene activado **Continuar si falla** |
 
 Dos pasos que esperan resultados opuestos de un mismo paso son un si y un si no: suspender a un usuario solo cuando la inteligencia de amenazas lo conoce y, si no, añadir una tarea para confirmar con él el inicio de sesión. Cuando el paso esperado termina de otra forma, el paso que espera se omite, y la ejecución dice por qué debajo de él; lo mismo pasa con un paso que espera a uno que se omitió. La tarjeta de un paso dice a qué espera, y un paso al que otro espera no se puede mover debajo de él ni eliminar hasta que ese otro se ejecute de otra forma. La plantilla **Escalar indicadores maliciosos conocidos** sube la prioridad y el estado de un caso solo cuando hubo coincidencia de inteligencia de amenazas, y un paso guardado con el antiguo interruptor de inteligencia de amenazas lo conserva como **Solo si una comprobación anterior de inteligencia de amenazas encontró una entidad maliciosa conocida**.
+
+Un paso puede esperar hasta cinco resultados: elige cada uno en **Ejecutar este paso**, y **Ejecutar cuando** pregunta cómo se leen, **Cuando ocurrieron todos** o **Cuando ocurrió cualquiera de ellos**. Suspender a un usuario solo cuando la inteligencia de amenazas lo conoce y se encontró su actividad, o avisar a la guardia cuando cualquiera de las dos búsquedas encontró algo. Un paso que espera todos sus resultados no puede esperar dos resultados de un mismo paso, como encontró algo y no encontró nada, ya que ninguna ejecución tiene ambos.
+
+### Detener la ejecución
+
+**Detener la ejecución**, en **Control del flujo**, termina la ejecución donde está, como completada: los pasos siguientes se omiten, cada uno diciendo dónde se detuvo la ejecución, y la ejecución termina con éxito. Con **Ejecutar este paso**, se detiene solo después de un resultado: detenerse cuando la inteligencia de amenazas no encontró nada malicioso conocido y, si no, dejar que se ejecuten los pasos de contención de debajo. Lo que escribas en **Motivo de la detención** se indica en la cronología del caso cuando la ejecución se detiene ahí. No tiene nada que aprobar y nunca falla, así que no tiene **Requiere aprobación** ni **Continuar si falla**, y ningún paso puede esperarlo. Uno que se ejecuta siempre termina todas las ejecuciones, así que solo puede ser el último paso.
 
 ### Responder con OneUptime
 
@@ -394,7 +401,7 @@ Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de
 | En cola | Esperando a un worker |
 | En ejecución | Ejecutando sus pasos |
 | Esperando aprobación | Retenida antes de un paso que necesita aprobación |
-| Completado con éxito | Todos los pasos se ejecutaron o se omitieron |
+| Completado con éxito | Todos los pasos se ejecutaron o se omitieron, o un paso **Detener la ejecución** la terminó |
 | Fallido | Un paso falló y la ejecución se detuvo |
 | Cancelado | Alguien la canceló o rechazó un paso |
 
@@ -454,6 +461,10 @@ El caso no trata de ningún usuario ni host, solo de una dirección, por ejemplo
 
 :::details Se omitió un paso que se ejecuta solo después de otro
 El paso al que espera terminó de otra forma, o se omitió él mismo: no encontró nada malicioso conocido, por ejemplo, cuando el paso espera una entidad maliciosa conocida. Abre la ejecución en el caso: el paso omitido dice a qué paso esperaba y qué resultado. Para cambiarlo, edita el paso y abre **Más campos**.
+:::
+
+:::details Una ejecución terminó antes de sus últimos pasos
+Se ejecutó un paso **Detener la ejecución**: llegó el resultado que espera, o se ejecuta siempre. Abre la ejecución en el caso: los pasos siguientes dicen dónde se detuvo la ejecución, y el paso de detención dice por qué si le diste un motivo. Para cambiar cuándo se detiene, edita el paso y abre **Más campos**.
 :::
 
 :::details No se puede eliminar ni archivar un estado o una prioridad

@@ -495,9 +495,9 @@ describe("the Security Events page on rule exceptions", () => {
     expect(evaluator).toContain(
       "restrictTo: andRestrictions(setupTest?.restrictTo, exceptionsFilter),",
     );
-    // A real-time run's handed events too, with the same filter.
+    // A real-time run's handed events too, and a window of a rule that counts, with the same filter.
     expect(evaluator).toContain(
-      "matchedGroups = await this.findSingleRuleMatches({ rule, parsedRule, startTime, endTime, restrictTo: setupTest?.restrictTo || realTime?.restrictTo, exceptionsFilter, });",
+      "matchedGroups = await this.findSingleRuleMatches({ rule, parsedRule, startTime, endTime, restrictTo: setupTest?.restrictTo || realTime?.restrictTo, exceptionsFilter, arrival: countWindow?.arrival, });",
     );
     // Run on Past Events: a saved rule's exceptions, a rule not saved yet none.
     expect(retrohunt).toContain(

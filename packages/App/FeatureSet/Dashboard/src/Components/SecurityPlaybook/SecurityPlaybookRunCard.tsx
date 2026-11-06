@@ -234,14 +234,24 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
                           summary.stoppedAt.title,
                       },
                     )
-                  : translator.translatePlural(
-                      {
-                        one: "{{done}} of {{count}} step done",
-                        other: "{{done}} of {{count}} steps done",
-                      },
-                      summary.total,
-                      { done: translator.formatNumber(summary.done) },
-                    )}
+                  : summary.endedAt
+                    ? translator.translateTemplate(
+                        "Ended at step {{number}} of {{count}}, as the playbook says",
+                        {
+                          number: translator.formatNumber(
+                            summary.endedAt.index + 1,
+                          ),
+                          count: translator.formatNumber(summary.total),
+                        },
+                      )
+                    : translator.translatePlural(
+                        {
+                          one: "{{done}} of {{count}} step done",
+                          other: "{{done}} of {{count}} steps done",
+                        },
+                        summary.total,
+                        { done: translator.formatNumber(summary.done) },
+                      )}
               </span>
               <button
                 type="button"

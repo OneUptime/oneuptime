@@ -36,7 +36,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *   - projectId / time-window predicates and the maxGroups LIMIT stay
  *     bound parameters, whatever the threshold shape;
  *   - result rows map distinctCount (default 0 when the column is absent)
- *     without disturbing the existing field mapping.
+ *     without disturbing the existing field mapping;
+ *   - a window of a rule that counts in real time (`arrival`) reads the
+ *     window as one write found it - ids no later than its last - and
+ *     keeps a group only when the write brought it to the threshold.
  *
  * Every service boundary is stubbed: executeQuery captures the Statement,
  * and the database handle only supplies the schema name. No ClickHouse.
@@ -279,6 +282,110 @@ describe("SecurityEventService.findDetectionMatches — SQL contract", () => {
       expect(statement.query_params["p5"]).toBe(1);
       // The clamp must never leak a value <= 0 into any bound param.
       expect(Object.values(statement.query_params)).not.toContain(-5);
+    });
+  });
+
+  describe("a window of a rule that counts in real time, as one write found it", () => {
+    const ARRIVAL: NonNullable<FindDetectionMatchesData["arrival"]> = {
+      candidateIds: [
+        "019a4f00-0001-7000-8000-000000000001",
+        "019a4f00-0002-7000-8000-000000000002",
+      ],
+      firstId: "019a4f00-0001-7000-8000-000000000001",
+      lastId: "019a4f00-0002-7000-8000-000000000002",
+      candidateStartTime: new Date("2026-08-25T10:00:59.000Z"),
+      candidateEndTime: new Date("2026-08-25T10:03:11.000Z"),
+    };
+
+    test("counts what had come in before the write beside the window, and keeps a group the write brought to the threshold", async () => {
+      const spy: Spy = stubExecuteQuery([]);
+
+      await callFindDetectionMatches({ minMatchCount: 5, arrival: ARRIVAL });
+
+      const statement: Statement = capturedStatement(spy);
+
+      expect(statement.query).toBe(
+        "SELECT '' AS groupValue, count() AS matchCount, 0 AS distinctCount, " +
+          "countIf(_id < {p0:String}) AS matchCountBefore, 0 AS distinctCountBefore, " +
+          "countIf(has({p1:Array(String)}, _id)) AS candidateMatches, " +
+          "any(message) AS sampleMessage, " +
+          "arrayDistinct(arrayFlatten(groupArray(20)(observables))) AS sampleObservables " +
+          `FROM ${DATABASE_NAME}.SecurityEventItemV1 ` +
+          "WHERE projectId = {p2:String} AND time >= {p3:DateTime64(9)} AND time < {p4:DateTime64(9)} " +
+          "AND (statusName = {p5:String}) AND _id <= {p6:String} " +
+          "GROUP BY groupValue HAVING candidateMatches > 0 AND matchCount >= {p7:Int32} AND matchCountBefore < {p8:Int32} " +
+          "ORDER BY matchCount DESC LIMIT {p9:Int32}" +
+          SETTINGS_SUFFIX,
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0: ARRIVAL.firstId,
+        p1: ARRIVAL.candidateIds,
+        p2: PROJECT_ID.toString(),
+        p3: OneUptimeDate.toClickhouseDateTime64(START_TIME),
+        p4: OneUptimeDate.toClickhouseDateTime64(END_TIME),
+        p5: "Failure",
+        p6: ARRIVAL.lastId,
+        p7: 5,
+        p8: 5,
+        p9: MAX_GROUPS,
+      });
+    });
+
+    test("a distinct count counts the values that had come in before, and thresholds on them", async () => {
+      const spy: Spy = stubExecuteQuery([]);
+
+      await callFindDetectionMatches({
+        distinctCountExpression: buildFieldExpression("targetUser"),
+        minMatchCount: 3,
+        arrival: ARRIVAL,
+      });
+
+      const statement: Statement = capturedStatement(spy);
+
+      expect(statement.query).toContain(
+        "uniqExact(nullIf({p0:Identifier}, '')) AS distinctCount, countIf(_id < {p1:String}) AS matchCountBefore, uniqExactIf(nullIf({p2:Identifier}, ''), _id < {p3:String}) AS distinctCountBefore",
+      );
+      expect(statement.query).toContain(
+        "HAVING candidateMatches > 0 AND distinctCount >= {p10:Int32} AND distinctCountBefore < {p11:Int32}",
+      );
+      expect(statement.query_params["p10"]).toBe(3);
+      expect(statement.query_params["p11"]).toBe(3);
+    });
+
+    test("only the groups the write's events name, read where they happened", async () => {
+      const spy: Spy = stubExecuteQuery([]);
+
+      await callFindDetectionMatches({
+        groupByExpression: buildFieldExpression("principalIp"),
+        minMatchCount: 5,
+        arrival: ARRIVAL,
+      });
+
+      const statement: Statement = capturedStatement(spy);
+
+      expect(statement.query).toContain(
+        "AND _id <= {p7:String} AND {p8:Identifier} IN (SELECT {p9:Identifier} " +
+          `FROM ${DATABASE_NAME}.SecurityEventItemV1 ` +
+          "WHERE projectId = {p10:String} AND time >= {p11:DateTime64(9)} AND time < {p12:DateTime64(9)} AND has({p13:Array(String)}, _id)) GROUP BY groupValue",
+      );
+      expect(statement.query_params["p10"]).toBe(PROJECT_ID.toString());
+      expect(statement.query_params["p11"]).toBe(
+        OneUptimeDate.toClickhouseDateTime64(ARRIVAL.candidateStartTime),
+      );
+      expect(statement.query_params["p12"]).toBe(
+        OneUptimeDate.toClickhouseDateTime64(ARRIVAL.candidateEndTime),
+      );
+      expect(statement.query_params["p13"]).toEqual(ARRIVAL.candidateIds);
+    });
+
+    test("a rule at threshold 1 still waits for the write to bring it there", async () => {
+      const spy: Spy = stubExecuteQuery([]);
+
+      await callFindDetectionMatches({ minMatchCount: 1, arrival: ARRIVAL });
+
+      expect(capturedStatement(spy).query).toContain(
+        "HAVING candidateMatches > 0 AND matchCount >= {p7:Int32} AND matchCountBefore < {p8:Int32}",
+      );
     });
   });
 

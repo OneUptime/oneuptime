@@ -223,7 +223,7 @@ detection:
     expect(findAllBy).toHaveBeenCalledTimes(1);
   });
 
-  test("an update with a self-contained correlation reads no other rule, and its own rows only to see whether they run in real time", async () => {
+  test("an update with a self-contained correlation reads no other rule, and no row: a correlation can run in real time too", async () => {
     const hold: Spy = getJestSpyOn(
       DetectionRuleService,
       "findRowsAndHoldUpdateToThem",
@@ -235,15 +235,11 @@ detection:
     );
 
     expect(result.carryForward).toBeNull();
-    // A correlation cannot run in real time: the rows are read once, for that.
-    expect(hold).toHaveBeenCalledTimes(1);
-    expect(
-      (hold.mock.calls[0]![1] as { isRealTime?: boolean }).isRealTime,
-    ).toBe(true);
+    expect(hold).not.toHaveBeenCalled();
     expect(findAllBy).not.toHaveBeenCalled();
   });
 
-  test("a real-time rule's YAML cannot become a correlation: it is told to go back to its interval first", async () => {
+  test("a real-time rule's YAML can become a correlation, which then counts in windows of its interval", async () => {
     const realTime: DetectionRule = storedRule(RULE_ID.toString(), FAILED);
     realTime.isRealTime = true;
 
@@ -254,8 +250,29 @@ detection:
 
     await expect(
       service.onBeforeUpdate(updateBy({ sigmaRuleYaml: SELF_CONTAINED })),
+    ).resolves.toBeDefined();
+  });
+
+  test("a real-time rule's YAML cannot become a correlation that reads a regular expression: it is told what to change", async () => {
+    const realTime: DetectionRule = storedRule(RULE_ID.toString(), FAILED);
+    realTime.isRealTime = true;
+
+    getJestSpyOn(
+      DetectionRuleService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([realTime] as never);
+
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({
+          sigmaRuleYaml: SELF_CONTAINED.replace(
+            "statusName: Failure",
+            "statusName|re: '^Fail'",
+          ),
+        }),
+      ),
     ).rejects.toThrow(
-      "This rule cannot run in real time. A correlation reads several events together over its timespan, so it runs on its interval.",
+      "This rule cannot run in real time. It uses a regular expression (|re), which only runs on a schedule: use contains, startswith or endswith to run it in real time.",
     );
   });
 });
