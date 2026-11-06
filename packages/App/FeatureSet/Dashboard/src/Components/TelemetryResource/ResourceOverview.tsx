@@ -8,6 +8,10 @@ import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import DetailRecordLine from "Common/UI/Components/Detail/DetailRecordLine";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  getTextReadingDirectionByMostLetters,
+  RIGHT_TO_LEFT,
+} from "Common/Types/ReadingDirection";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import {
@@ -271,6 +275,28 @@ export function getResourceOverviewIdentifierWords(
     before: textOf(parts.slice(0, slotAt)),
     after: textOf(parts.slice(slotAt + 1)),
   };
+}
+
+// The identifier line's words around the identifier: kept whole, with the spaces the language writes.
+export const RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME: string =
+  "flex-none whitespace-pre";
+
+/*
+ * How the identifier line draws its words around the identifier. In
+ * monospace, as the whole line always was - a type, an account or an
+ * attribute's name ("service.name") reads like the code it names - unless
+ * the words read right to left: a monospace font draws no Persian letter
+ * of its own, and the one it borrowed set the label's joined letters in
+ * fixed-width cells beside the page's Persian (#6149's review). Those words
+ * take the page's font; the identifier stays in monospace. An attribute's
+ * name on a Persian page is still code, in monospace.
+ */
+export function getResourceOverviewIdentifierWordsClassName(
+  words: string,
+): string {
+  return getTextReadingDirectionByMostLetters(words) === RIGHT_TO_LEFT
+    ? RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME
+    : `${RESOURCE_OVERVIEW_IDENTIFIER_WORDS_CLASS_NAME} font-mono`;
 }
 
 const tileColorClasses: Record<
@@ -664,7 +690,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                    * Each piece is set in monospace itself, as the whole
                    * line always was: the page gives every element Inter
                    * (index.ejs's universal rule), so a child would not
-                   * keep the line's font.
+                   * keep the line's font. Words that read right to left
+                   * - a Persian label - keep the page's font instead
+                   * (getResourceOverviewIdentifierWordsClassName).
                    *
                    * The label and its colon are the reader's sentence
                    * ("{{label}}: {{identifier}}"), so each language writes
@@ -680,7 +708,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     {identifierWords.before ? (
                       <span
                         data-testid="resource-overview-identifier-label"
-                        className="flex-none whitespace-pre font-mono"
+                        className={getResourceOverviewIdentifierWordsClassName(
+                          identifierWords.before,
+                        )}
                       >
                         {identifierWords.before}
                       </span>
@@ -695,7 +725,11 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                       {props.identifier}
                     </bdi>
                     {identifierWords.after ? (
-                      <span className="flex-none whitespace-pre font-mono">
+                      <span
+                        className={getResourceOverviewIdentifierWordsClassName(
+                          identifierWords.after,
+                        )}
+                      >
                         {identifierWords.after}
                       </span>
                     ) : (

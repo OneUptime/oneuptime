@@ -3221,9 +3221,14 @@ const READERS: Array<{ code: string; locale: Record<string, string> }> = [
 /*
  * #5702's review: the hero's identifier line is monospace, both its label
  * and its value - set apart in elements of their own, each took the page's
- * universal Inter rule until each said font-mono.
+ * universal Inter rule until each said font-mono. #6149's follow-up: a label
+ * that reads right to left (Persian) takes the page's font instead, as no
+ * monospace font draws its letters; the identifier stays monospace.
  */
-async function expectIdentifierInMonospace(page: Page): Promise<void> {
+async function expectIdentifierInMonospace(
+  page: Page,
+  readerCode: string,
+): Promise<void> {
   const fonts: Array<string> = await page
     .getByTestId("resource-overview-identifier")
     .evaluate((line: Element): Array<string> => {
@@ -3233,8 +3238,15 @@ async function expectIdentifierInMonospace(page: Page): Promise<void> {
     });
 
   expect(fonts).toHaveLength(2);
-  for (const font of fonts) {
-    expect(font).toMatch(/mono/i);
+  const [labelFont, identifierFont] = fonts as [string, string];
+
+  expect(identifierFont).toMatch(/mono/i);
+
+  if (readerCode === "fa") {
+    expect(labelFont).not.toMatch(/mono/i);
+    expect(labelFont).toMatch(/Inter/);
+  } else {
+    expect(labelFont).toMatch(/mono/i);
   }
 }
 
@@ -3281,7 +3293,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       expect(await readText(identifier)).toBe(
         `${wordIn(reader.locale, "account")}: 123456789012`,
       );
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
       // Its status says what it means, under the pointer.
       await expect(
         page.getByTestId("resource-overview-status"),
@@ -3360,6 +3372,16 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         "direction",
         "ltr",
       );
+      /*
+       * #6149's follow-up: AWS's own words are drawn as written - never
+       * translated or rewritten - and marked as the English they are.
+       */
+      await expect(
+        page.getByTestId("cloud-change-detail-written"),
+      ).toHaveAttribute("lang", "en");
+      await expect(page.getByTestId("cloud-change-detail-worded")).toHaveCount(
+        0,
+      );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-changes-${reader.code}`);
     });
@@ -3411,7 +3433,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
           },
         );
       expect(reading).toEqual({ direction: "ltr", startVisible: true });
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
 
       // How it is run, in words.
       await expect(
@@ -3464,6 +3486,127 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       ]);
       await expectNoSidewaysScroll(page, { tolerance: 1 });
+    });
+
+    /*
+     * #6149's follow-up: what Azure published about its health
+     * (?changes=health). The sentences OneUptime writes about an event -
+     * who published it, its tracking id, what caused a resource's change -
+     * read in the reader's words, from the English the row keeps; Azure's
+     * own words are drawn as written, marked as the English they are, set
+     * apart in the reader's line.
+     */
+    test(`${reader.code}: what Azure published about its health`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAccounts(
+        page,
+        `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}/changes?state=connected&changes=health&lang=${reader.code}`,
+      );
+
+      expect(await changeTitles(page)).toEqual([
+        wordIn(reader.locale, "Azure Service Health: {{event}} (Active)", {
+          event: "Network connectivity issues in West Europe",
+        }),
+        wordIn(reader.locale, "Azure Resource Health: {{status}} → {{event}}", {
+          status: wordIn(reader.locale, "Available"),
+          event: wordIn(reader.locale, "Unavailable"),
+        }),
+      ]);
+
+      const details: Locator = page.getByTestId("cloud-change-detail");
+      await expect(details).toHaveCount(2);
+      const readerDirection: string = reader.code === "fa" ? "rtl" : "ltr";
+
+      // The incident's line is all OneUptime's: in the reader's words.
+      const published: Locator = details.nth(0);
+      expect(await readText(published)).toBe(
+        `${wordIn(reader.locale, "Azure published an incident.")} ${wordIn(
+          reader.locale,
+          "Tracking ID: {{trackingId}}.",
+          { trackingId: "7NQ8-TX0" },
+        )}`,
+      );
+      await expect(
+        published.getByTestId("cloud-change-detail-written"),
+      ).toHaveCount(0);
+      await expect(published).toHaveCSS("direction", readerDirection);
+      /*
+       * #6149's UI review: Azure's tracking id is kept whole on its line,
+       * never broken at its hyphen ("7NQ8-" over "TX0." in German).
+       */
+      const identifier: Locator = published.getByTestId(
+        "cloud-change-detail-identifier",
+      );
+      await expect(identifier).toHaveText("7NQ8-TX0");
+      await expect(identifier).toHaveCSS("white-space", "nowrap");
+      expect(
+        await identifier.evaluate((element: Element): number => {
+          return element.getClientRects().length;
+        }),
+      ).toBe(1);
+
+      // The resource's: Azure's title as written, then what caused it.
+      const caused: Locator = details.nth(1);
+      const written: Locator = caused.getByTestId(
+        "cloud-change-detail-written",
+      );
+      await expect(written).toHaveText(
+        "The virtual machine is being restarted for a planned platform update.",
+      );
+      await expect(written).toHaveAttribute("lang", "en");
+      await expect(written).toHaveCSS("direction", "ltr");
+      const worded: Locator = caused.getByTestId("cloud-change-detail-worded");
+      await expect(worded).toHaveText(
+        wordIn(reader.locale, "Azure caused it."),
+      );
+      await expect(caused).toHaveCSS("direction", readerDirection);
+
+      // Never the stored English sentences.
+      await expect(
+        page.getByText("Incident published by Azure", { exact: false }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("Azure caused it.", { exact: true }),
+      ).toHaveCount(0);
+
+      /*
+       * Read from the reader's end: Azure's words start the line - at its
+       * right on a Persian page - and the reader's follow them, further
+       * along the same line or on the next; both are seen, within the two
+       * lines the list gives what was said about a change.
+       */
+      const [lineBox, writtenBox, wordedBox]: Array<FrameBox> =
+        await boxesInOneFrame([caused, written, worded]);
+      if (reader.code === "fa") {
+        expect(
+          Math.abs(
+            lineBox!.x + lineBox!.width - (writtenBox!.x + writtenBox!.width),
+          ),
+        ).toBeLessThan(1.5);
+      } else {
+        expect(Math.abs(lineBox!.x - writtenBox!.x)).toBeLessThan(1.5);
+      }
+      if (Math.abs(writtenBox!.y - wordedBox!.y) < 2) {
+        if (reader.code === "fa") {
+          expect(writtenBox!.x).toBeGreaterThanOrEqual(
+            wordedBox!.x + wordedBox!.width,
+          );
+        } else {
+          expect(wordedBox!.x).toBeGreaterThanOrEqual(
+            writtenBox!.x + writtenBox!.width,
+          );
+        }
+      } else {
+        expect(wordedBox!.y).toBeGreaterThan(writtenBox!.y);
+      }
+      expect(wordedBox!.y + wordedBox!.height).toBeLessThanOrEqual(
+        lineBox!.y + lineBox!.height + 0.5,
+      );
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `azure-health-${reader.code}`);
     });
   }
 });
