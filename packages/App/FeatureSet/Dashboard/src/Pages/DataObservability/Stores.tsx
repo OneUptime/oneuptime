@@ -30,6 +30,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The databases whose tables are watched, with who collects each - OneUptime,
@@ -187,7 +188,7 @@ const DataObservabilityStoresPage: FunctionComponent<
                         </div>
                         <div className="text-xs text-gray-500">
                           {store.kind}
-                          {" · "}
+                          <InlineSeparator />
                           {store.collector === DataObservabilityCollector.Probe
                             ? translator.translateTemplate(
                                 "Collected by probe {{probe}}",

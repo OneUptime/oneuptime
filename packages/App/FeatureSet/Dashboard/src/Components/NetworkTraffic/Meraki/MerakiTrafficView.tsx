@@ -96,6 +96,7 @@ import React, {
   ReactElement,
   ReactNode,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * THE MERAKI SIDE OF A TRAFFIC PAGE: a device's, a site's or the whole
@@ -229,7 +230,7 @@ const ConnectionLines: FunctionComponent<{
                 {connection.organizationName || connection.name}
               </span>
               <span>
-                {" · "}
+                <InlineSeparator />
                 {drawMerakiTemplate(
                   translator,
                   getMerakiConnectionSentence(connection, {

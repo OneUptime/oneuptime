@@ -310,10 +310,11 @@ const ADDRESS_LINE: RegExp =
 
 /*
  * One extra name on that line: rendered only when its identifier holds
- * something, and separated from what precedes it by a middle dot.
+ * something, and separated from what precedes it by the reader's separator
+ * (InlineSeparator: a middle dot, a bullet on a Persian page).
  */
 const SECONDARY_NAME_SPAN: RegExp =
-  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s*>\s*\{" · "\}\s*\{\1\}\s*<\/span>\s*\)\s*\}/g;
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s*>\s*<InlineSeparator\s*\/>\s*\{\1\}\s*<\/span>\s*\)\s*\}/g;
 
 /*
  * The one thing on that line that is not a name: the "NetBIOS name" hint
@@ -325,7 +326,7 @@ const SECONDARY_NAME_SPAN: RegExp =
  * language.
  */
 const NETBIOS_HINT_SPAN: RegExp =
-  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title=\{translator\.translateText\(\s*"([^"]+)"\s*,?\s*\)\}\s*>\s*\{" · "\}\s*\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>\s*\)\s*\}/;
+  /\{(\w+)\s*&&\s*\(\s*<span\s+className="[^"]*"\s+title=\{translator\.translateText\(\s*"([^"]+)"\s*,?\s*\)\}\s*>\s*<InlineSeparator\s*\/>\s*\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>\s*\)\s*\}/;
 
 let cachedRowNameSource: RowNameSource | null = null;
 

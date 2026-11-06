@@ -33,6 +33,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   // The rule's YAML as the form holds it.
@@ -255,7 +256,9 @@ const DetectionRuleWatchlists: FunctionComponent<ComponentProps> = (
                   ),
                 }}
               />
-              <span aria-hidden="true">{" · "}</span>
+              <span aria-hidden="true">
+                <InlineSeparator />
+              </span>
               <Link
                 to={getWatchlistsRoute(reference.name)}
                 openInNewTab={true}
