@@ -188,6 +188,18 @@ describe("the statement", () => {
     expect(unsorted.query).toContain("ORDER BY cost DESC");
   });
 
+  test("a percentile is a quantile, as the generic aggregate compiles it", () => {
+    const built: Statement = service().toAggregateStatement(
+      aggregateBy({
+        groupByAttributeKeys: ["team"],
+        aggregationType: AggregationType.P95,
+      }),
+    ).statement;
+
+    expect(built.query).toContain("quantile(0.95)(cost) as cost");
+    expect(built.query).not.toContain("p95(");
+  });
+
   test("a column the costs do not have is refused, beside a tag as anywhere", () => {
     expect(() => {
       service().toAggregateStatement(

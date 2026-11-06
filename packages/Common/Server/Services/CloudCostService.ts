@@ -3,6 +3,7 @@ import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import CloudCost from "../../Models/AnalyticsModels/CloudCost";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
+import { getPercentileLevel } from "../../Types/BaseDatabase/AggregationType";
 import { CLOUD_COST_TAG_KEY_MAX_LENGTH } from "../../Types/Cloud/CloudCost";
 import BadDataException from "../../Types/Exception/BadDataException";
 import AggregateBy, {
@@ -119,10 +120,18 @@ export class CloudCostService extends AnalyticsDatabaseService<CloudCost> {
         ? this.statementGenerator.toGroupByStatement(aggregateBy.groupBy!)
         : null;
 
+    // A percentile as the generic aggregate compiles it: quantile(level).
+    const percentileLevel: number | null = getPercentileLevel(
+      aggregateBy.aggregationType,
+    );
+    const aggregation: string =
+      percentileLevel !== null
+        ? `quantile(${percentileLevel})(${aggregateColumn})`
+        : `${aggregateBy.aggregationType.toLocaleLowerCase()}(${aggregateColumn})`;
     const statement: Statement = SQL`SELECT `;
 
     statement.append(
-      `${aggregateBy.aggregationType.toLocaleLowerCase()}(${aggregateColumn}) as ${aggregateColumn}, ${AggregateUtil.buildBucketTimestampSelect(interval, timestampColumn)}`,
+      `${aggregation} as ${aggregateColumn}, ${AggregateUtil.buildBucketTimestampSelect(interval, timestampColumn)}`,
     );
     statement.append(
       SQL`, map(${{
