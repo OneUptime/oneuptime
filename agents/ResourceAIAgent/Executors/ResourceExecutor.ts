@@ -64,12 +64,22 @@ export interface ResourceCommandRequest {
   agentResourceId?: string | null | undefined;
 }
 
+/*
+ * What the job loop tells a running command: why it must stop, once
+ * OneUptime said so on a job heartbeat (Enable AI was turned off while the
+ * agent held the job), else null. An executor that can stop before it
+ * changes anything asks it there; one that cannot ignores it.
+ */
+export interface RunControl {
+  stopReason: () => string | null;
+}
+
 // A command that passed every check, ready to run.
 export interface PreparedCommand {
   refusal: null;
   displayCommand: string;
   tier: ResourceCommandTier;
-  run: () => Promise<ExecResult>;
+  run: (control?: RunControl | undefined) => Promise<ExecResult>;
 }
 
 export interface RefusedCommand {

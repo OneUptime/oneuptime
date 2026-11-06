@@ -315,18 +315,23 @@ describe("who the account's Cloud AI agent is", () => {
     ).toEqual([]);
   });
 
-  test("Google Cloud: its setup's service account in this project, and the one it reports", () => {
+  test("Google Cloud: its setup's two service accounts in this project, and the ones it reports", () => {
     expect(
       getCloudAiAgentPrincipals({
         provider: CloudProvider.GCP,
         accountId: GCP_PROJECT,
         posture: posture({
           gcpServiceAccount: "Team-AI@acme-prod.iam.gserviceaccount.com",
+          gcpWriteServiceAccount:
+            "Team-AI-Write@acme-prod.iam.gserviceaccount.com",
         }),
       }).gcpServiceAccounts,
     ).toEqual([
       "oneuptime-ai-agent@acme-prod.iam.gserviceaccount.com",
+      // Its changes run as the write account, with a token for each change.
+      "oneuptime-ai-agent-write@acme-prod.iam.gserviceaccount.com",
       "team-ai@acme-prod.iam.gserviceaccount.com",
+      "team-ai-write@acme-prod.iam.gserviceaccount.com",
     ]);
   });
 });
@@ -505,9 +510,24 @@ describe("whether the agent made a change", () => {
         gcp,
       ),
     ).toBe(true);
+    // A change made with the write account's token for it: the agent's change too.
+    expect(
+      isCloudAiAgentChange(
+        gcpChange("oneuptime-ai-agent-write@acme-prod.iam.gserviceaccount.com"),
+        gcp,
+      ),
+    ).toBe(true);
     expect(
       isCloudAiAgentChange(
         gcpChange("oneuptime-ai-agent@other-project.iam.gserviceaccount.com"),
+        gcp,
+      ),
+    ).toBe(false);
+    expect(
+      isCloudAiAgentChange(
+        gcpChange(
+          "oneuptime-ai-agent-write@other-project.iam.gserviceaccount.com",
+        ),
         gcp,
       ),
     ).toBe(false);

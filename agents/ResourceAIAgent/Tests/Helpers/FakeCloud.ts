@@ -749,6 +749,11 @@ export const GCP_PROJECT_NUMBER: string = "987654321012";
 export const GCP_SERVICE_ACCOUNT: string =
   "oneuptime-ai-agent@shop-prod-1234.iam.gserviceaccount.com";
 export const GCP_TOKEN: string = "ya29.gcp-access-token";
+// The account each change runs as, which the setup command makes.
+export const GCP_WRITE_SERVICE_ACCOUNT: string =
+  "oneuptime-ai-agent-write@shop-prod-1234.iam.gserviceaccount.com";
+export const GCP_GENERATE_ACCESS_TOKEN_URL: string = `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_WRITE_SERVICE_ACCOUNT}:generateAccessToken`;
+export const GCP_TEST_IAM_PERMISSIONS_URL: string = `https://iam.googleapis.com/v1/projects/-/serviceAccounts/${GCP_WRITE_SERVICE_ACCOUNT}:testIamPermissions`;
 export const GCP_METADATA: string =
   "http://metadata.google.internal/computeMetadata/v1";
 
@@ -847,6 +852,32 @@ export class FakeGcp {
     return this.calls.filter((call: GcpCall): boolean => {
       return call.method === method && call.bare === url;
     });
+  }
+
+  /*
+   * IAM Credentials' generateAccessToken for the write account: a token of
+   * its own each time it is asked (ya29.write-1, ya29.write-2, ...), for the
+   * lifetime asked.
+   */
+  public issueWriteTokens(): this {
+    let issued: number = 0;
+
+    return this.handle(
+      "POST",
+      GCP_GENERATE_ACCESS_TOKEN_URL,
+      (call: GcpCall): FakeAnswer => {
+        issued++;
+
+        return jsonReply({
+          accessToken: `ya29.write-${issued}`,
+          expireTime: new Date(
+            Date.parse("2026-10-27T12:00:00.000Z") +
+              Number.parseInt(String(call.body?.["lifetime"] || "0"), 10) *
+                1000,
+          ).toISOString(),
+        });
+      },
+    );
   }
 
   private dispatch(request: CloudHttpRequest, url: URL): FakeAnswer {
