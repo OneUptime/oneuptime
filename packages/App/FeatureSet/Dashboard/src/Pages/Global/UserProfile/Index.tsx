@@ -14,10 +14,7 @@ import {
   getUserLanguageLabelOfCode,
   USER_LANGUAGE_OPTIONS,
 } from "../../../Components/UserLanguage/UserLanguageOptions";
-import {
-  getDashboardLanguage,
-  switchDashboardLanguage,
-} from "../../../Utils/DashboardLanguageSwitch";
+import { followUserLanguage } from "../../../Utils/DashboardLanguageSwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -42,11 +39,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * every browser they sign in on (UserLanguageInit). Cleared, the
          * page stays in the language it shows.
          */
-        const language: string = getUserChosenLanguage(user);
-
-        if (language && language !== getDashboardLanguage(i18n)) {
-          void switchDashboardLanguage(i18n, language);
-        }
+        void followUserLanguage(i18n, getUserChosenLanguage(user));
       }}
       isEditable={true}
       formFields={[
@@ -143,7 +136,10 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               if (!language) {
                 return (
-                  <p className="text-gray-500" data-testid="user-profile-language-not-set">
+                  <p
+                    className="text-gray-500"
+                    data-testid="user-profile-language-not-set"
+                  >
                     {translator.translateText("Not set (English)")}
                   </p>
                 );

@@ -1921,13 +1921,21 @@ describe("Your Account", () => {
     expect(YOUR_ACCOUNT).toContain(
       "Your language is saved in your account once you pick it, and every browser you sign in on starts in it.",
     );
-    expect(dashboard("Components/LanguageSwitcher/LanguageSwitcher.tsx")).toContain(
+    expect(
+      dashboard("Components/LanguageSwitcher/LanguageSwitcher.tsx"),
+    ).toContain(
       "await UserLanguageUtil.saveSignedInUserLanguage(nextLanguage);",
     );
     expect(dashboard("App.tsx")).toContain("<UserLanguageInit />");
-    expect(
-      dashboard("Components/UserLanguage/UserLanguageInit.tsx"),
-    ).toContain("await switchDashboardLanguage(language);");
+
+    const languageInit: string = dashboard(
+      "Components/UserLanguage/UserLanguageInit.tsx",
+    );
+
+    expect(languageInit).toContain("await followUserLanguage(");
+    expect(languageInit).toContain(
+      "await UserLanguageUtil.readSignedInUserLanguage(),",
+    );
     expect(YOUR_ACCOUNT).toContain(
       "Your pick is saved to your account, as **Language** on your profile is, and OneUptime writes your on-call pages in it.",
     );

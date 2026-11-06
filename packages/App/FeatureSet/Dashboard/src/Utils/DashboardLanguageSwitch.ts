@@ -31,3 +31,24 @@ export const getDashboardLanguage: (i18n: I18n) => string = (
 ): string => {
   return i18n.resolvedLanguage || i18n.language || "en";
 };
+
+/*
+ * Shows the Dashboard in a person's own language (Types/UserLanguage) when
+ * they picked one it does not show yet; one who picked none ("") is left
+ * in the language the page shows. Resolves whether it switched.
+ */
+export const followUserLanguage: (
+  i18n: I18n,
+  language: string,
+) => Promise<boolean> = async (
+  i18n: I18n,
+  language: string,
+): Promise<boolean> => {
+  if (!language || language === getDashboardLanguage(i18n)) {
+    return false;
+  }
+
+  await switchDashboardLanguage(i18n, language);
+
+  return true;
+};
