@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 11662
+    "keys": 45581,
+    "untranslated": 11560
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -372,6 +372,7 @@
     "{{count}} pod",
     "{{count}} pods",
     "{{count}} pool",
+    "{{count}} problem",
     "{{count}} region",
     "{{count}} repository",
     "{{count}} s",

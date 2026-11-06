@@ -128,6 +128,46 @@ describe("each kind's pages are in its own product", () => {
     );
   });
 
+  test("a resource has its recommended monitors and the maintenance that holds it; an environment neither", () => {
+    /*
+     * A resource's Recommendations read the metrics its connection reads
+     * (CloudAlertTemplates), and the maintenance that holds it silences
+     * them. An environment's apps have recommendations of their own, on
+     * each app's page.
+     */
+    expect(RESOURCE_VIEW_PAGES[CloudResourceViewTab.Recommendations]).toBe(
+      PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
+    );
+    expect(RESOURCE_VIEW_PAGES[CloudResourceViewTab.ScheduledMaintenance]).toBe(
+      PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE,
+    );
+
+    for (const tab of [
+      CloudResourceViewTab.Recommendations,
+      CloudResourceViewTab.ScheduledMaintenance,
+    ]) {
+      expect(ENVIRONMENT_VIEW_PAGES[tab]).toBeUndefined();
+      expect(
+        getCloudResourceViewRoute({
+          cloudResourceKind: CloudResourceKind.Resource,
+          modelId: ROW_ID,
+          tab,
+        }).toString(),
+      ).toBe(`${CLOUD}/${ROW_ID}/${CLOUD_RESOURCE_VIEW_TAB_PATHS[tab]}`);
+      // An environment's address of the tab opens its Overview instead.
+      expect(
+        getCloudResourceViewPageKey(CloudResourceKind.Environment, tab),
+      ).toBe(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW);
+    }
+
+    expect(
+      CLOUD_RESOURCE_VIEW_TAB_PATHS[CloudResourceViewTab.Recommendations],
+    ).toBe("recommendations");
+    expect(
+      CLOUD_RESOURCE_VIEW_TAB_PATHS[CloudResourceViewTab.ScheduledMaintenance],
+    ).toBe("scheduled-maintenance");
+  });
+
   test("a tab the kind does not have opens its Overview", () => {
     expect(
       getCloudResourceViewPageKey(

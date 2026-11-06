@@ -42,8 +42,11 @@ minutes ago from `reports--v12abc`, deployed two days ago, to the
 `reports--v11def` it ran before). Their requests,
 errors and p95 over the last hour, and `checkout-api`'s per revision, come
 back from `/telemetry/traces/analytics` (`APP_SIGNALS`, `REVISION_SIGNALS`).
-The service `checkout-api`'s telemetry is under is in Services, so its app page
-offers **Set up alerts**. `checkout`'s feed holds the line `checkout-api`'s
+The service `checkout-api`'s telemetry is under is in Services, and its app
+page's **Set up alerts** opens the app's own Recommendations tab, whose
+monitors read the app's spans and request durations by its telemetry filter;
+the project's monitor statuses and severities they are made with are modelled,
+and every monitor the tab makes is kept. `checkout`'s feed holds the line `checkout-api`'s
 deploy of 43 wrote, and `reports`' environment's the line of its rollback
 (`CloudResourceFeed`, as `CloudAppChangeRecorder` writes them).
 
@@ -54,8 +57,10 @@ Owner and label rules come in each kind: App Platforms' own, Cloud's own
 (never listed here), and one made before the split, for both, which wears the
 **Also in Cloud** pill.
 
-Lists are filtered on the query's plain values, `Includes`, `EqualToOrNull`,
-`NotNull`, `InBetween`, `GreaterThan` and ids, and sorted as the server sorts
+Lists are filtered on the query's plain values, `Includes`, `IncludesNone` (a
+chip set to "is not", which, as the server's `NOT IN`, never matches an empty
+column), `EqualToOrNull`, `NotNull`, `InBetween`, `GreaterThan` and ids, and
+sorted as the server sorts
 them, dates and numbers by value. The telemetry explorers (an
 environment's Metrics, Logs and Traces) read an environment that has sent no
 logs or spans in the range. Any route not listed above renders a "Not
@@ -75,8 +80,10 @@ Query parameters on any page:
 
 `window.__appPlatformsFixture` holds every read: `listRequests`,
 `countRequests`, `itemRequests`, `aggregateRequests`, `apiRequests`,
-`analyticsRequests` (the grouped trace reads, with their bodies) and
-`unhandled` - anything the fixture does not model. Every test fails on a page
+`analyticsRequests` (the grouped trace reads, with their bodies), `creates`
+(each monitor an app's Recommendations tab made: its name, type, filter,
+services and linked environment) and `unhandled` - anything the fixture does
+not model. Every test fails on a page
 error, on a request that leaves `127.0.0.1`, and on anything in `unhandled`.
 
 Screenshots land in `output/playwright/app-platforms-ui/*-synthetic.png`.

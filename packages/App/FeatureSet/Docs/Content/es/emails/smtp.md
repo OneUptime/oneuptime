@@ -6,6 +6,8 @@ Envía el correo de OneUptime a través de tu propio servidor de correo. Un proy
 - **OAuth 2.0**: para Microsoft 365 y Google Workspace, donde la autenticación básica suele estar desactivada.
 - **Ninguno**: para servidores de retransmisión que no exigen autenticación.
 
+Para enviar a través de Amazon SES, SendGrid, Mailgun, Postmark o Resend en lugar de un servidor de correo, consulta [Proveedores de correo electrónico](/docs/emails/email-providers).
+
 ```mermaid title="Qué servidor de correo envía qué"
 flowchart TB
     SP["Correo de una página de estado"] --> Q{"¿Configuración SMTP personalizada<br/>elegida para la página?"}
@@ -17,7 +19,7 @@ flowchart TB
 En una instalación autoalojada, el servidor de correo de OneUptime es el que se define en el Admin Dashboard. Una página de estado elige su configuración SMTP en su página **Ajustes de suscriptores**, en la tarjeta **SMTP personalizado**.
 
 :::cards
-- [Añadir un servidor de correo](#añadir-un-servidor-smtp): Dos pasos, con todo lo demás plegado.
+- [Añadir un servidor de correo](#añadir-un-servidor-smtp): Unos pocos pasos, con todo lo demás plegado.
 - [Microsoft 365](#configuración-de-microsoft-365): OAuth con un registro de aplicación en Entra.
 - [Google Workspace](#configuración-de-google-workspace): OAuth con una cuenta de servicio.
 - [Solución de problemas](#solución-de-problemas): Errores habituales y qué significan.
@@ -25,7 +27,7 @@ En una instalación autoalojada, el servidor de correo de OneUptime es el que se
 
 ## Añadir un servidor SMTP
 
-Añade el servidor de correo de un proyecto en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, en la tarjeta **Configuraciones de SMTP personalizado**, en **Más ajustes**. En una instalación autoalojada, el servidor desde el que envía el propio OneUptime se define en **Admin Dashboard > Ajustes > Notificaciones > Correos**, en la tarjeta **Ajustes personalizados de correo y SMTP**. Ambos formularios piden lo mismo, en dos pasos.
+Añade el servidor de correo de un proyecto en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, en la tarjeta **Configuraciones de SMTP personalizado**, en **Más ajustes**. En una instalación autoalojada, el servidor desde el que envía el propio OneUptime se define en **Admin Dashboard > Ajustes > Notificaciones > Correos**, en la tarjeta **Ajustes personalizados de correo y SMTP**. Ambos formularios piden el servidor y el remitente; el formulario de un proyecto pide primero su **Proveedor**.
 
 :::steps
 ### Abrir el formulario
@@ -37,13 +39,17 @@ En **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, abre *
 En el Admin Dashboard, abre **Ajustes** y luego **Notificaciones > Correos** en el menú lateral (**Notificaciones** empieza plegado). En la tarjeta **Ajustes del servidor de correo**, haz clic en **Editar servidor** y establece **Tipo de servidor de correo electrónico** en `Custom SMTP`. Después haz clic en **Editar config SMTP** en la tarjeta **Ajustes personalizados de correo y SMTP**, que aparece debajo.
 :::
 
+### Elegir el proveedor
+
+El formulario de un proyecto se abre en el paso **Proveedor**: introduce el **Nombre** y deja elegido **Servidor SMTP** para enviar a través de un servidor de correo. Para enviar en su lugar a través de Microsoft Graph o de un [proveedor de correo electrónico](/docs/emails/email-providers), elígelo aquí. La **Descripción**, una nota para tu equipo, está plegada en **Más campos**. El formulario de la instancia no tiene paso **Proveedor**.
+
 ### Rellenar el paso Servidor
 
-En el paso **Servidor**, introduce el **Nombre** (solo configuraciones de proyecto), el **Nombre de host**, el **Puerto** (una configuración de proyecto nueva empieza en `587`), el **Nombre de usuario** y la **Contraseña**.
+En el paso **Servidor**, introduce el **Nombre de host**, el **Puerto** (una configuración de proyecto nueva empieza en `587`), el **Nombre de usuario** y la **Contraseña**.
 
 ### Revisar Más campos
 
-Todo lo demás está plegado en **Más campos**, al final del paso **Servidor**. Mientras está plegado, su encabezado dice cómo se envía el correo, por ejemplo «El correo se envía por SMTP, iniciando sesión con el nombre de usuario y la contraseña. TLS es obligatorio.» Ábrelo solo si necesitas cambiar alguno de los ajustes de la tabla de abajo.
+Los demás ajustes del servidor están plegados en **Más campos**, al final del paso **Servidor**. Mientras está plegado, su encabezado dice cómo se envía el correo, por ejemplo «El correo se envía por SMTP, iniciando sesión con el nombre de usuario y la contraseña. TLS es obligatorio.» Ábrelo solo si necesitas cambiar alguno de los ajustes de la tabla de abajo. En el formulario de un proyecto, los campos de OAuth tienen un paso **OAuth** propio, después de **Servidor**.
 
 ### Rellenar el paso Remitente
 
@@ -60,13 +66,13 @@ Estos son los ajustes de **Más campos**:
 
 | Campo | Qué hace |
 | --- | --- |
-| **Transporte** | `SMTP` (el predeterminado), o `Microsoft Graph` para un inquilino de Microsoft 365 que tiene SMTP AUTH desactivado. Elegir Microsoft Graph oculta el nombre de host, el puerto, el nombre de usuario y la contraseña, y muestra los campos de OAuth. |
+| **Transporte** | `SMTP` (el predeterminado), o `Microsoft Graph` para un inquilino de Microsoft 365 que tiene SMTP AUTH desactivado. Elegir Microsoft Graph oculta el nombre de host, el puerto, el nombre de usuario y la contraseña, y muestra los campos de OAuth. Solo en el formulario de la instancia: un proyecto elige en su lugar su **Proveedor**. |
 | **Exigir TLS** | Activado en una configuración de proyecto nueva. Enviar correo solo por una conexión cifrada con un certificado válido. Si esta opción está desactivada, el certificado no se comprueba. El puerto 465 siempre está cifrado. Si esta opción está desactivada, el correo por otros puertos solo se cifra si el servidor lo ofrece. |
 | **Tipo de autenticación** | `Username and Password` (el predeterminado), `OAuth`, o `None` para un relay que no necesita iniciar sesión. |
-| **Campos de OAuth** | **Tipo de proveedor de OAuth**, **ID de cliente de OAuth**, **Secreto de cliente de OAuth**, **URL del token de OAuth** y **Ámbito de OAuth**, que aparecen al elegir OAuth o Microsoft Graph. |
-| **Descripción** | Una nota para tu equipo (solo configuraciones de proyecto). |
+| **Campos de OAuth** | **Tipo de proveedor de OAuth**, **ID de cliente de OAuth**, **Secreto de cliente de OAuth**, **URL del token de OAuth** y **Ámbito de OAuth**, que aparecen al elegir OAuth o Microsoft Graph. El formulario de un proyecto los pide en su paso **OAuth**. |
+| **Descripción** | Una nota para tu equipo (solo configuraciones de proyecto), en el paso **Proveedor**. |
 
-**Microsoft Graph.** Abre **Más campos**, establece **Transporte** en `Microsoft Graph` y rellena los datos de una aplicación de Azure que tenga el permiso de aplicación **Mail.Send**: su ID de cliente y su secreto de cliente, la URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` y el ámbito `https://graph.microsoft.com/.default`. El correo se envía desde el buzón del **Correo del remitente**, que debe ser un buzón con licencia de tu inquilino.
+**Microsoft Graph.** En el formulario de un proyecto, elige `Microsoft Graph` como **Proveedor**; en el formulario de la instancia, abre **Más campos** y establece **Transporte** en `Microsoft Graph`. Después rellena los datos de una aplicación de Azure que tenga el permiso de aplicación **Mail.Send**: su ID de cliente y su secreto de cliente, la URL del token `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` y el ámbito `https://graph.microsoft.com/.default`. El correo se envía desde el buzón del **Correo del remitente**, que debe ser un buzón con licencia de tu inquilino.
 
 > [!NOTE]
 > En OneUptime Cloud, el servidor de correo de un proyecto debe ser accesible desde Internet: se rechaza un host que se resuelve en una dirección privada o interna. En una instalación autoalojada, las direcciones privadas se permiten salvo que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sea `true`; las direcciones de loopback y link-local se rechazan siempre. El servidor de correo propio de la instancia no se comprueba de esta forma.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Enviar el correo
 ```
 
-**Tipo de autenticación** y los campos de OAuth están en **Más campos**, en el paso Servidor del formulario. Para iniciar sesión con OAuth, rellena:
+**Tipo de autenticación** está en **Más campos**, en el paso Servidor del formulario. Los campos de OAuth también están ahí en el formulario de la instancia, y en el paso **OAuth** en el de un proyecto. Para iniciar sesión con OAuth, rellena:
 
 | Campo | Descripción |
 | --- | --- |
@@ -309,6 +315,7 @@ Comprueba el **Correo del remitente**: tu servidor debe permitir enviar desde é
 ## Próximos pasos
 
 :::cards
+- [Proveedores de correo electrónico](/docs/emails/email-providers): Enviar en su lugar a través de Amazon SES, SendGrid, Mailgun, Postmark o Resend.
 - [Resumen de notificaciones](/docs/emails/notification-rollup): Cómo agrupa OneUptime las ráfagas de correo a los propietarios.
 - [Suscriptores y anuncios](/docs/status-pages/subscribers): Enviar el correo a los suscriptores de una página de estado con una configuración SMTP del proyecto.
 :::

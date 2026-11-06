@@ -6,6 +6,10 @@ import {
 } from "../../../Components/StatusPage/HistoryChartBarColorPreviewModel";
 import SearchEngineIndexingCard from "../../../Components/StatusPage/SearchEngineIndexingCard";
 import StatusPageThemeCard from "../../../Components/StatusPage/StatusPageThemeCard";
+import {
+  getStatusPageLanguageLabel,
+  STATUS_PAGE_LANGUAGE_OPTIONS,
+} from "../../../Components/StatusPage/StatusPageLanguageOptions";
 import StatusPageBrandingCopy, {
   BRANDING_ADVANCED_SECTION_TEST_ID,
   BrandingAdvancedValues,
@@ -71,17 +75,13 @@ import React, {
  * so they are on Advanced Settings.
  */
 
+// The languages as every picker of them names them (StatusPageLanguageOptions).
 const languageDropdownOptions: Array<DropdownOption> =
-  SUPPORTED_STATUS_PAGE_LANGUAGES.map((language: StatusPageLanguage) => {
-    return {
-      value: language.code,
-      label: `${language.nativeName} (${language.englishName})`,
-    };
-  });
+  STATUS_PAGE_LANGUAGE_OPTIONS;
 
 const codeToLabel: Record<string, string> = Object.fromEntries(
   SUPPORTED_STATUS_PAGE_LANGUAGES.map((language: StatusPageLanguage) => {
-    return [language.code, `${language.nativeName} (${language.englishName})`];
+    return [language.code, getStatusPageLanguageLabel(language)];
   }),
 );
 

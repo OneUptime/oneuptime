@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 11661
+    "keys": 45581,
+    "untranslated": 11559
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -109,12 +109,15 @@
     "IP",
     "In",
     "Incident",
+    "Incident #{{number}}",
+    "Incident #{{number}}: {{title}}",
     "Incident {{number}}",
     "Incident {{number}}: {{title}}",
     "Incident:",
     "Incident: {{owners}}",
     "Incident: {{policies}}",
     "Incident: {{severity}}",
+    "Incident: {{title}}",
     "Index",
     "Info",
     "Information",
@@ -402,6 +405,7 @@
     "{{count}} placement group",
     "{{count}} placement groups",
     "{{count}} pool",
+    "{{count}} problem",
     "{{count}} process",
     "{{count}} region",
     "{{count}} rotation",

@@ -79,6 +79,8 @@ const EVENT_OTHER_TYPES: Array<string> = [
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
+  // A held cloud resource silences the monitors reading its metrics.
+  "CloudResource",
   "NetworkSite",
   "Service",
 ];
@@ -476,6 +478,7 @@ describe.each(FORMS)("$label", (form: ScheduledMaintenanceForm) => {
       DockerSwarmCluster: "dockerSwarmClusters",
       IoTFleet: "iotFleets",
       DatabaseServer: "databaseServers",
+      CloudResource: "cloudResources",
       NetworkSite: "networkSites",
       Service: "services",
     };
@@ -702,7 +705,7 @@ describe("the split's copy, in every language", () => {
     "Change Monitor Status to",
     "Search monitors...",
     "Search and attach the monitors affected by this scheduled maintenance.",
-    "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
+    "Hosts, clusters, databases, cloud resources, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
     EVENT_STATUS_DESCRIPTION,
     STARTED_DESCRIPTION,
     "No monitors affected by this scheduled maintenance event.",

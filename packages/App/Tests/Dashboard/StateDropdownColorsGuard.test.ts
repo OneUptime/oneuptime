@@ -545,9 +545,13 @@ describe("5. the monitor criteria and recommendations show status and severity c
   test.each(["IncidentSeverity", "AlertSeverity"])(
     "the recommendations fetch every %s with its colour",
     (model: string) => {
+      /*
+       * Read once for a resource's page and a cloud account's
+       * (MonitorRecommendationProjectSetup), with the project's statuses.
+       */
       const selects: Array<string> = listSelectsFor(
         readDashboardSource(
-          "Components/Recommendations/MonitorRecommendations.tsx",
+          "Components/Recommendations/MonitorRecommendationProjectSetup.ts",
         ),
         model,
       );

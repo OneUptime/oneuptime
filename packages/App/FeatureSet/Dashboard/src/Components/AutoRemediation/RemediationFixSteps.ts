@@ -458,6 +458,12 @@ export type RemediationFixStepSuggestion = Pick<
 export function getRemediationFixSteps(data: {
   suggestion: RemediationFixStepSuggestion;
   translator?: Translator | undefined;
+  /*
+   * Whether the reader may approve the fix (RemediationFixActGate): false
+   * when their permissions certainly do not let them, and a fix that
+   * waits then needs approval - not theirs. Left out, theirs.
+   */
+  mayApprove?: boolean | undefined;
 }): Array<RemediationFixStep> {
   const translator: Translator = data.translator || getGlobalTranslator();
   const suggestion: RemediationFixStepSuggestion = data.suggestion;
@@ -582,7 +588,9 @@ export function getRemediationFixSteps(data: {
       title: text(
         isUnapprovable
           ? REMEDIATION_FIX_STEP_COPY.cannotBeApproved
-          : REMEDIATION_FIX_STEP_COPY.waitingForApproval,
+          : data.mayApprove === false
+            ? REMEDIATION_FIX_STEP_COPY.waitingForSomeonesApproval
+            : REMEDIATION_FIX_STEP_COPY.waitingForApproval,
       ),
       summary: null,
       isSummaryWritten: false,

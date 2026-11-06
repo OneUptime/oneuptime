@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 11692
+    "keys": 45581,
+    "untranslated": 11590
   },
   "sameAsEnglish": [
     " is",
@@ -189,12 +189,15 @@
     "In {{count}} project",
     "In {{status}}",
     "Incident",
+    "Incident #{{number}}",
+    "Incident #{{number}}: {{title}}",
     "Incident {{number}}",
     "Incident {{number}}: {{title}}",
     "Incident:",
     "Incident: {{owners}}",
     "Incident: {{policies}}",
     "Incident: {{severity}}",
+    "Incident: {{title}}",
     "Index",
     "Indicator",
     "Info",

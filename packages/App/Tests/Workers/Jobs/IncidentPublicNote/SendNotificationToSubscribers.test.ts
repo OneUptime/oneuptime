@@ -11,6 +11,7 @@ import URL from "Common/Types/API/URL";
 import Color from "Common/Types/Color";
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import OneUptimeDate from "Common/Types/Date";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -3459,5 +3460,67 @@ describe("IncidentPublicNote: a note posted with a state change names the state"
     expect(sentSlack()[0]).toContain(
       StateChangeNoteMessage.getChatStatusLine(RESOLVED).toString(),
     );
+  });
+});
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE: the incident's
+ * default state and severity names and when the note was posted are in the
+ * page's default language (SubscriberIncidentEmailBuilder, through
+ * SubscriberTemplateValues), whoever reads it; English for a page with no
+ * default language.
+ */
+describe("IncidentPublicNote custom templates, in the page's language", () => {
+  const pageIn: (language: string) => StatusPage = (
+    language: string,
+  ): StatusPage => {
+    const page: StatusPage = statusPage({ withCustomSmtpAndSms: true });
+    page.defaultLanguage = language;
+    return page;
+  };
+
+  test("the default state name and when the note was posted are the page's language's", async () => {
+    createdNotes = [publicNote()];
+    storedIncident!.incidentSeverity!.name = "Minor Incident";
+    useCustomTemplatesOnEveryChannel(
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+      [pageIn("pt")],
+    );
+
+    await runJob(CREATED_JOB);
+
+    const portuguesePostedAt: string = writeInLanguage("pt", (): string => {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT);
+    });
+
+    expect(portuguesePostedAt).not.toBe(
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT),
+    );
+
+    const calls: Array<CompileCall> = compileCalls();
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      // The incident's state, "Identified", is one of OneUptime's names.
+      expect(call.variables["incidentState"]).toBe("Identificado");
+      expect(call.variables["incidentSeverity"]).toBe("Incidente menor");
+      expect(call.variables["postedAt"]).toBe(portuguesePostedAt);
+      expect(call.variables["incidentTitle"]).toBe(INCIDENT_TITLE);
+    }
+  });
+
+  test("a page without a default language fills them in English", async () => {
+    createdNotes = [publicNote()];
+    useCustomTemplatesOnEveryChannel(
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+    );
+
+    await runJob(CREATED_JOB);
+
+    for (const call of compileCalls()) {
+      expect(call.variables["incidentState"]).toBe(INCIDENT_STATE_NAME);
+      expect(call.variables["postedAt"]).toBe(
+        OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT),
+      );
+    }
   });
 });

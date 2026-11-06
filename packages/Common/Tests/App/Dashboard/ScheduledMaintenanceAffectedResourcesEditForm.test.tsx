@@ -584,7 +584,7 @@ describe("the Edit dialog of a scheduled maintenance event's Affected Resources 
     ).toBeInTheDocument();
     expect(
       within(others).getByText(
-        "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
+        "Hosts, clusters, databases, cloud resources, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
       ),
     ).toBeInTheDocument();
   });

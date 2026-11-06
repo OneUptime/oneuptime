@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 11661
+    "keys": 45581,
+    "untranslated": 11559
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -518,6 +518,7 @@
     "{{count}} pods",
     "{{count}} pool",
     "{{count}} pools",
+    "{{count}} problem",
     "{{count}} region",
     "{{count}} rotation",
     "{{count}} router",

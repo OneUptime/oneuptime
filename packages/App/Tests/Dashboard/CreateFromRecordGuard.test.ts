@@ -224,11 +224,15 @@ const RECORD_TABS: Array<RecordTabShape> = [
     CreateFromRecordKind.DatabaseServer,
     INCIDENTS_ALERTS_AND_MAINTENANCE,
   ),
-  // Incidents and alerts hold cloud resources; a maintenance event does not.
-  ...kindTabs("Cloud", CreateFromRecordKind.CloudResource, [
-    CreatedRecordKind.Incident,
-    CreatedRecordKind.Alert,
-  ]),
+  /*
+   * Incidents, alerts and maintenance events hold cloud resources: an event
+   * that holds one silences the monitors reading its metrics.
+   */
+  ...kindTabs(
+    "Cloud",
+    CreateFromRecordKind.CloudResource,
+    INCIDENTS_ALERTS_AND_MAINTENANCE,
+  ),
   // A cloud environment is a cloud resource row, with App Platforms' tabs.
   ...kindTabs("AppPlatforms", CreateFromRecordKind.CloudEnvironment, [
     CreatedRecordKind.Incident,

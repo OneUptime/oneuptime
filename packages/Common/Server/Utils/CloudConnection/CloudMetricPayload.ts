@@ -4,6 +4,7 @@ import {
   resolveCloudMonitoredResource,
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
+import { CLOUD_CONNECTION_ID_ATTRIBUTE } from "../../../Types/Cloud/CloudConnectionTelemetry";
 import TelemetryUtil, { AttributeType } from "../Telemetry/Telemetry";
 
 /*
@@ -20,11 +21,10 @@ import TelemetryUtil, { AttributeType } from "../Telemetry/Telemetry";
  * pages read them the same either way.
  *
  * Every OTel resource also carries the connection's telemetry service
- * (service.name) and the connection's id.
+ * (service.name) and the connection's id (CloudConnectionTelemetry).
  */
 
-export const CLOUD_CONNECTION_ID_ATTRIBUTE: string =
-  "oneuptime.cloud.connection.id";
+export { CLOUD_CONNECTION_ID_ATTRIBUTE };
 export const CLOUD_CONNECTION_SCOPE_NAME: string = "oneuptime-cloud-connection";
 export const CLOUD_CONNECTION_SCOPE_VERSION: string = "1.0.0";
 

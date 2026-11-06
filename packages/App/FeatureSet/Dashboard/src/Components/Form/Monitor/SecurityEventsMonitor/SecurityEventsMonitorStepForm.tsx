@@ -14,8 +14,8 @@ import {
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import Card from "Common/UI/Components/Card/Card";
+import CardFormSections from "Common/UI/Components/Card/CardFormSections";
 import SecurityEventsMonitorPreview from "../../../Monitor/SecurityEventsMonitor/SecurityEventsMonitorPreview";
 import SecurityEventAttributeUtil from "../../../SecurityEvents/SecurityEventAttributeUtil";
 import SecurityEventsWatchlistFilters from "./SecurityEventsWatchlistFilters";
@@ -293,22 +293,25 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
-      <div>
-        <HorizontalRule />
-        <FieldLabelElement
-          title={"Security Events Preview"}
-          description={
-            "The security events these filters match, so you can check the filters before you save."
-          }
-          hideOptionalLabel={true}
-          isHeading={true}
-        />
-        <div className="mt-5 mb-5">
+      {/*
+       * The preview is a section of the step of its own, as Monitor
+       * Criteria is (CardFormSections): a rule above it and a section's
+       * title, where a larger, lighter heading of its own read as a step
+       * above the sections round it.
+       */}
+      <CardFormSections
+        className="mt-6"
+        dataTestId="security-events-monitor-preview-section"
+      >
+        <Card
+          title="Security Events Preview"
+          description="The security events these filters match, so you can check the filters before you save."
+        >
           <SecurityEventsMonitorPreview
             monitorStepSecurityEventsMonitor={monitorStepSecurityEventsMonitor}
           />
-        </div>
-      </div>
+        </Card>
+      </CardFormSections>
     </div>
   );
 };

@@ -72,9 +72,13 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import CloudAppPlatformsCard, {
-  APP_PLATFORMS_OTHER_ENVIRONMENTS,
   fetchCloudAppPlatformsCounts,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAppPlatformsCard";
+import {
+  APP_PLATFORMS_APPS_TABLE_ID,
+  APP_PLATFORMS_ENVIRONMENTS_TABLE_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/AppPlatformsAccountFacet";
+import { JSONObject } from "../../../Types/JSON";
 import CloudSavingsCard from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudSavingsCard";
 import CloudSavingsTable from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudSavingsTable";
 import CloudStatStrip from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudStatStrip";
@@ -88,7 +92,6 @@ import { TILE_TITLE_LONG_WORD_BOX_CLASS_NAME } from "../../../../App/FeatureSet/
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const instances: Record<string, i18n> = {};
 
@@ -404,12 +407,16 @@ describe("a stat tile's title and its (i)", () => {
   });
 });
 
-describe("the App Platforms card says what its lists hold beyond the accounts Cloud reads", () => {
-  function environment(id: string, accountId: string): CloudResource {
+describe("the App Platforms card links to exactly what it counts", () => {
+  function environment(
+    id: string,
+    accountId: string,
+    provider: string = "aws",
+  ): CloudResource {
     const resource: CloudResource = new CloudResource();
     Object.assign(resource, {
       _id: id,
-      cloudProvider: "aws",
+      cloudProvider: provider,
       cloudAccountId: accountId,
       cloudResourceKind: CloudResourceKind.Environment,
     });
@@ -428,86 +435,121 @@ describe("the App Platforms card says what its lists hold beyond the accounts Cl
 
   const READ: Array<{ provider: string; accountId: string }> = [
     { provider: "aws", accountId: "123456789012" },
+    { provider: "gcp", accountId: "Shop-Prod" },
   ];
 
-  test("counts the environments in accounts no connection here reads", async () => {
+  /*
+   * The facet state a link carries in a list's URL namespace (its "-facets"
+   * parameter), read back as the list reads it.
+   */
+  function facetsOf(link: HTMLElement, tableId: string): JSONObject | null {
+    const url: URL = new URL(link.getAttribute("href") || "", "https://x.test");
+    const raw: string | null = url.searchParams.get(`${tableId}-facets`);
+
+    return raw ? (JSON.parse(raw) as JSONObject) : null;
+  }
+
+  test("counts the environments in the accounts Cloud reads, and names those accounts as their telemetry spells them", async () => {
     listEnvironments([
       environment("10000000-0000-4000-8000-0000000000e1", "123456789012"),
       environment("10000000-0000-4000-8000-0000000000e2", "123456789012"),
-      environment("10000000-0000-4000-8000-0000000000e3", "999999999999"),
+      // Matched whatever its case; named as the environment spells it.
+      environment("10000000-0000-4000-8000-0000000000e3", "shop-prod", "gcp"),
+      environment("10000000-0000-4000-8000-0000000000e4", "999999999999"),
+      // The same account id under another cloud is no account Cloud reads.
+      environment(
+        "10000000-0000-4000-8000-0000000000e5",
+        "123456789012",
+        "gcp",
+      ),
     ]);
 
     expect(await fetchCloudAppPlatformsCounts(READ)).toEqual({
-      environments: 2,
+      environments: 3,
       apps: 4,
-      otherEnvironments: 1,
+      accountIds: ["123456789012", "shop-prod"],
     });
   });
 
-  test("says so under the counts, in English and in German", async () => {
+  test("each count opens its list with the Cloud Account chip set to those accounts", async () => {
     listEnvironments([
       environment("10000000-0000-4000-8000-0000000000e1", "123456789012"),
-      environment("10000000-0000-4000-8000-0000000000e3", "999999999999"),
-      environment("10000000-0000-4000-8000-0000000000e4", "888888888888"),
+      environment("10000000-0000-4000-8000-0000000000e3", "shop-prod", "gcp"),
+      environment("10000000-0000-4000-8000-0000000000e4", "999999999999"),
     ]);
 
     await drawIn("en", <CloudAppPlatformsCard accounts={READ} />);
-    expect(
-      await screen.findByTestId("cloud-app-platforms-other-environments"),
-    ).toHaveTextContent(
-      "App Platforms also lists 2 environments, with their apps, from accounts not connected to Cloud.",
-    );
-    cleanup();
 
-    await drawIn("de", <CloudAppPlatformsCard accounts={READ} />);
-    expect(
-      withoutIsolateMarks(
-        (await screen.findByTestId("cloud-app-platforms-other-environments"))
-          .textContent || "",
-      ),
-    ).toBe(
-      "In App-Plattformen stehen außerdem 2 Umgebungen samt ihren Apps aus Konten, die nicht mit Cloud verbunden sind.",
+    const environments: HTMLElement = await screen.findByTestId(
+      "cloud-app-platforms-environments",
     );
-    expect(APP_PLATFORMS_OTHER_ENVIRONMENTS.one).toContain("{{count}}");
+    const apps: HTMLElement = screen.getByTestId("cloud-app-platforms-apps");
+
+    expect(environments).toHaveTextContent("2 environments");
+    expect(apps).toHaveTextContent("4 apps");
+
+    expect(
+      new URL(environments.getAttribute("href") || "", "https://x.test")
+        .pathname,
+    ).toBe(`/dashboard/${PROJECT_ID}/app-platforms/environments`);
+    expect(
+      new URL(apps.getAttribute("href") || "", "https://x.test").pathname,
+    ).toBe(`/dashboard/${PROJECT_ID}/app-platforms/apps`);
+
+    const chip: JSONObject = {
+      facetSelections: { cloudAccountId: ["123456789012", "shop-prod"] },
+      facetOperators: { cloudAccountId: "is" },
+    };
+
+    expect(facetsOf(environments, APP_PLATFORMS_ENVIRONMENTS_TABLE_ID)).toEqual(
+      chip,
+    );
+    expect(facetsOf(apps, APP_PLATFORMS_APPS_TABLE_ID)).toEqual(chip);
   });
 
   /*
-   * On a phone the card's description is folded away, so the line says
-   * where the lists are and what "not read" means by itself: App
-   * Platforms, and the word Cloud > Connect uses (#5702's review).
+   * The line said what the lists held beyond the count, because they opened
+   * whole (#5646's and #5702's reviews). They open narrowed now, so the card
+   * says nothing more.
    */
-  test("names App Platforms and says not connected, in both forms", () => {
-    for (const sentence of [
-      APP_PLATFORMS_OTHER_ENVIRONMENTS.one,
-      APP_PLATFORMS_OTHER_ENVIRONMENTS.other,
-    ]) {
-      expect(sentence).toMatch(/^App Platforms also lists /);
-      expect(sentence).toContain("not connected to Cloud");
-      expect(sentence).not.toContain("The lists");
-      expect(sentence).not.toContain("does not read");
-    }
-  });
-
-  test("one: in the singular; none: no line", async () => {
+  test("says nothing of the environments in other accounts: the lists it opens hold none of them", async () => {
     listEnvironments([
       environment("10000000-0000-4000-8000-0000000000e1", "123456789012"),
-      environment("10000000-0000-4000-8000-0000000000e3", "999999999999"),
+      environment("10000000-0000-4000-8000-0000000000e4", "999999999999"),
+      environment("10000000-0000-4000-8000-0000000000e6", "888888888888"),
     ]);
-    await drawIn("en", <CloudAppPlatformsCard accounts={READ} />);
-    expect(
-      await screen.findByTestId("cloud-app-platforms-other-environments"),
-    ).toHaveTextContent(
-      "App Platforms also lists 1 environment, with its apps, from an account not connected to Cloud.",
+
+    await drawIn("de", <CloudAppPlatformsCard accounts={READ} />);
+
+    const card: HTMLElement = await screen.findByTestId(
+      "cloud-app-platforms-card",
     );
-    cleanup();
 
-    listEnvironments([
-      environment("10000000-0000-4000-8000-0000000000e1", "123456789012"),
-    ]);
-    await drawIn("en", <CloudAppPlatformsCard accounts={READ} />);
-    await screen.findByTestId("cloud-app-platforms-card");
     expect(
       screen.queryByTestId("cloud-app-platforms-other-environments"),
     ).toBeNull();
+    expect(card).not.toHaveTextContent("nicht mit Cloud verbunden");
+    expect(card).not.toHaveTextContent("888888888888");
+    expect(
+      screen.getByTestId("cloud-app-platforms-environments"),
+    ).toHaveTextContent("1 Umgebung");
+  });
+
+  test("no environment in the accounts Cloud reads: no card, and no apps counted", async () => {
+    listEnvironments([
+      environment("10000000-0000-4000-8000-0000000000e4", "999999999999"),
+    ]);
+
+    expect(await fetchCloudAppPlatformsCounts(READ)).toEqual({
+      environments: 0,
+      apps: 0,
+      accountIds: [],
+    });
+    expect(ModelAPI.count).not.toHaveBeenCalled();
+    expect(await fetchCloudAppPlatformsCounts([])).toEqual({
+      environments: 0,
+      apps: 0,
+      accountIds: [],
+    });
   });
 });

@@ -122,12 +122,56 @@ wait_for() { # wait_for <seconds> <kubectl args...>: kubectl ... --timeout=<what
   return 1
 }
 # A workload that never got Ready: nothing downstream of it measures
-# anything, so stop, with what its pods say (e.g. the app's npm install).
+# anything, so stop, with what its pods say (e.g. the app's npm install), what
+# Kubernetes saw (a probe's own error is only in the events), and what the
+# container runtime and the kernel saw (#6184: on k3s under ubuntu-26.04 a
+# container ran, logged nothing and answered no exec probe). Gathered with
+# set -e off, so one failing look never hides the rest.
 not_ready() { # not_ready <namespace> <deploy/name>
   local f="${OUT}/not-ready-$1.txt"
-  kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1" describe pods >"$f" 2>&1 || true
-  kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1" logs "$2" --all-containers --prefix >>"$f" 2>&1 || true
-  die "$2 in namespace $1 is not Ready; its pods are described in $f"
+  (
+    set +e
+    not_ready_facts "$1" "$2"
+  ) >"$f" 2>&1
+  die "$2 in namespace $1 is not Ready; what its pods, Kubernetes, the runtime and the kernel said is in $f"
+}
+not_ready_facts() { # not_ready_facts <namespace> <deploy/name>
+  local kc=(kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1") probe node
+  local -a argv
+  echo "=== kubectl describe pods"
+  "${kc[@]}" describe pods
+  echo "=== events"
+  "${kc[@]}" get events --sort-by=.lastTimestamp -o wide
+  echo "=== logs of $2"
+  "${kc[@]}" logs "$2" --all-containers --prefix --timestamps
+  echo "=== kubectl exec $2 -- true"
+  timeout 60 "${kc[@]}" exec "$2" -- true
+  echo "exit $?"
+  probe="$("${kc[@]}" get "$2" -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.exec.command}')"
+  if [ -n "${probe}" ]; then
+    mapfile -t argv < <(printf '%s' "${probe}" | python3 -I -c 'import json, sys; print("\n".join(json.load(sys.stdin)))')
+    echo "=== its readiness probe, by hand: ${argv[*]}"
+    timeout 60 "${kc[@]}" exec "$2" -- "${argv[@]}"
+    echo "exit $?"
+  fi
+  for node in ${NODES}; do
+    echo "=== ${node}: the runtime's containers in namespace $1"
+    node_sh "${node}" "NS='$1' CRICTL='$(crictl_cmd)'; $(cat "${HERE}/container-facts.sh")"
+  done
+  echo "=== kernel messages (AppArmor, seccomp, audit, oops)"
+  sudo dmesg | grep -iE 'apparmor|audit|denied|seccomp|segfault|oops|call trace' | tail -n 100
+  case "${PLATFORM}" in
+    k3s)
+      echo "=== k3s's journal"
+      sudo journalctl -u k3s --no-pager -n 300
+      ;;
+    kind)
+      for node in ${NODES}; do
+        echo "=== ${node}: containerd's journal"
+        node_sh "${node}" "journalctl -u containerd --no-pager -n 200"
+      done
+      ;;
+  esac
 }
 h() { helm --kubeconfig "${KC}" "$@"; }
 retry() { # retry <attempts> <cmd...>
@@ -196,13 +240,43 @@ platform_up() {
   esac
 }
 
+# kind imports an image with `ctr images import --all-platforms`, which needs
+# every platform the image's index names. Docker's containerd image store (the
+# default since Docker 29; ubuntu-latest had 29.4.2 on 2026-11-06) saves a
+# pulled multi-platform image's whole index but holds only this machine's
+# platform, so `kind load docker-image` failed on the first one it lacked:
+# "ctr: content digest sha256:...: not found" (#6180). An archive of this
+# machine's platform alone loads on either image store: a Docker without
+# `save --platform` (before 28) has the classic store, which saves one anyway.
+# Its help is read whole, not piped to grep -q: under pipefail a grep that
+# stops early can fail the pipe.
+save_image_for_nodes() { # save_image_for_nodes <image> <archive>
+  local help
+  help="$(docker image save --help 2>&1)"
+  case "${help}" in
+    *--platform*)
+      docker image save --platform "$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" \
+        -o "$2" "$1"
+      ;;
+    *) docker image save -o "$2" "$1" ;;
+  esac
+}
+kind_load_image() { # kind_load_image <image>
+  local archive status=0
+  archive="$(mktemp "${TMPDIR:-/tmp}/agent-ebpf-e2e-image.XXXXXX")" || return 1
+  save_image_for_nodes "$1" "${archive}" &&
+    kind load image-archive --name "${CLUSTER}" "${archive}" || status=$?
+  rm -f "${archive}"
+  return "${status}"
+}
+
 platform_load_images() {
   local img
   case "${PLATFORM}" in
     kind)
       for img in ${ALL_IMAGES}; do
         log "loading ${img} into the KinD nodes"
-        retry 3 kind load docker-image --name "${CLUSTER}" "${img}" >>"${OUT}/image-load.log" 2>&1 ||
+        retry 3 kind_load_image "${img}" >>"${OUT}/image-load.log" 2>&1 ||
           die "kind load ${img} failed"
       done
       ;;

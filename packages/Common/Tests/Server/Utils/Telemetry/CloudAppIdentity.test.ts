@@ -275,6 +275,137 @@ describe("what is not an app's name", () => {
   });
 });
 
+/*
+ * A cloud connection writes what it reads and what its stream delivers
+ * into the ingest under its own telemetry service (service.name) and its
+ * id (oneuptime.cloud.connection.id). A stream's App Runner, Elastic
+ * Beanstalk and ECS logs carry a managed cloud.platform, so they are their
+ * environment's; their service.name names the connection, and the rest
+ * names an AWS resource, so none of it may make up an app.
+ */
+describe("what a cloud connection delivers names no app", () => {
+  const CONNECTION: Record<string, string> = {
+    "service.name": "Production AWS",
+    "oneuptime.cloud.connection.id": "33333333-3333-4333-8333-333333333333",
+    "cloud.provider": "aws",
+    "cloud.account.id": "123456789012",
+    "cloud.region": "us-east-1",
+  };
+
+  test.each(MANAGED_CLOUD_PLATFORMS)(
+    "on $platform, the connection's service.name is no app's",
+    (descriptor: ManagedCloudPlatformDescriptor) => {
+      expect(
+        resolve(descriptor.platform, {
+          ...CONNECTION,
+          "cloud.platform": descriptor.platform,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test.each([
+    {
+      label: "an App Runner service's",
+      platform: ManagedCloudPlatform.AwsAppRunner,
+      attributes: {
+        "cloud.resource_id":
+          "arn:aws:apprunner:us-east-1:123456789012:service/storefront/8a7b6c5d4e3f",
+        "aws.log.group.name":
+          "/aws/apprunner/storefront/8a7b6c5d4e3f/application",
+      },
+    },
+    {
+      label: "an Elastic Beanstalk environment's",
+      platform: ManagedCloudPlatform.AwsElasticBeanstalk,
+      attributes: {
+        "cloud.resource_id": "storefront-prod",
+        "aws.log.group.name":
+          "/aws/elasticbeanstalk/storefront-prod/var/log/web.stdout.log",
+      },
+    },
+    {
+      // A task's group names its family, without the cluster.
+      label: "an ECS task's",
+      platform: ManagedCloudPlatform.AwsEcs,
+      attributes: {
+        "aws.ecs.task.family": "storefront-web",
+        "aws.log.group.name": "/ecs/storefront-web",
+      },
+    },
+    {
+      // Container Insights names the cluster, and no family.
+      label: "an ECS cluster's",
+      platform: ManagedCloudPlatform.AwsEcs,
+      attributes: {
+        "cloud.resource_id": CLUSTER_ARN,
+        "aws.ecs.cluster.arn": CLUSTER_ARN,
+        "aws.log.group.name":
+          "/aws/ecs/containerinsights/production/performance",
+      },
+    },
+  ])(
+    "$label logs, as a stream's Firehose ingest stamps them, make no app",
+    (example: {
+      label: string;
+      platform: ManagedCloudPlatform;
+      attributes: Record<string, string>;
+    }) => {
+      const streamed: Record<string, string> = {
+        ...CONNECTION,
+        ...example.attributes,
+        "cloud.platform": example.platform,
+      };
+
+      expect(resolve(example.platform, streamed)).toBeNull();
+    },
+  );
+
+  test("not even from the attributes an app's own telemetry names it by", () => {
+    // Everything an ECS app is named, kept apart and versioned by, from a connection.
+    expect(
+      resolve(ManagedCloudPlatform.AwsEcs, {
+        ...CONNECTION,
+        "aws.ecs.task.family": "checkout-api",
+        "aws.ecs.cluster.arn": CLUSTER_ARN,
+        "aws.ecs.task.revision": "43",
+      }),
+    ).toBeNull();
+  });
+
+  test("the very attributes without a connection's id name the app, as the app's own telemetry does", () => {
+    const own: Record<string, string> = { ...CONNECTION };
+    delete own["oneuptime.cloud.connection.id"];
+
+    expect(resolve(ManagedCloudPlatform.AwsAppRunner, own)?.name).toBe(
+      "Production AWS",
+    );
+    expect(
+      resolve(ManagedCloudPlatform.AwsEcs, {
+        ...own,
+        "aws.ecs.task.family": "checkout-api",
+        "aws.ecs.cluster.arn": CLUSTER_ARN,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        name: "checkout-api",
+        groupName: "production",
+      }),
+    );
+  });
+
+  test("a blank connection id is no connection's", () => {
+    for (const blank of ["", "   "]) {
+      expect(
+        resolve(ManagedCloudPlatform.AwsAppRunner, {
+          "service.name": "storefront",
+          "oneuptime.cloud.connection.id": blank,
+        })?.name,
+      ).toBe("storefront");
+    }
+  });
+});
+
 describe("what fits in a row", () => {
   test("a long name is cut to the column, but the key is the whole name's", () => {
     const long: string = "a".repeat(CLOUD_APP_FIELD_MAX_LENGTH + 20);

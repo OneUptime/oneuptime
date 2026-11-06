@@ -9,8 +9,9 @@ import { FastestRun, fastestRun } from "../Helpers/FastestRun";
  * Where a long name may break (Utils/NameBreaks): after a dot or a slash
  * inside it, before a letter or a placeholder - so a metric's name wraps
  * as "http.server.request." / "count" instead of "request.coun" / "t" -
- * and nowhere else; a short name stays whole. The parts always join back
- * to the text as written.
+ * or, in a name with neither, after its underscores: a Prometheus metric's
+ * as "http_server_request_" / "duration"; and nowhere else. A short name
+ * stays whole. The parts always join back to the text as written.
  */
 
 function breaks(text: string, fromLength?: number): Array<string> {
@@ -62,6 +63,59 @@ describe("a long name breaks after its own separators", () => {
       "payments/",
       "{paymentId}/",
       "capture",
+    ]);
+  });
+
+  /*
+   * #5485's follow-up: a BreakableName audit for underscored metric names.
+   * Prometheus and StatsD write their metrics' names with underscores and
+   * no dot, and a long one had nowhere to break but a letter, as in
+   * "http_server_request_dur" / "ation_seconds_bucket".
+   */
+  test("a Prometheus metric's name, after each underscore", () => {
+    expect(breaks("http_server_request_duration_seconds_bucket")).toEqual([
+      "http_",
+      "server_",
+      "request_",
+      "duration_",
+      "seconds_",
+      "bucket",
+    ]);
+    expect(breaks("container_network_receive_bytes_total")).toEqual([
+      "container_",
+      "network_",
+      "receive_",
+      "bytes_",
+      "total",
+    ]);
+  });
+
+  test("a name of dots and underscores, after its dots alone: they say where its words are", () => {
+    expect(breaks("container.blockio.io_service_bytes_recursive")).toEqual([
+      "container.",
+      "blockio.",
+      "io_service_bytes_recursive",
+    ]);
+    expect(breaks("system.network.packets_dropped.{direction}")).toEqual([
+      "system.",
+      "network.",
+      "packets_dropped.",
+      "{direction}",
+    ]);
+    // A path's slashes too.
+    expect(breaks("/var/log/checkout_service_errors")).toEqual([
+      "/var/",
+      "log/",
+      "checkout_service_errors",
+    ]);
+  });
+
+  test("underscores, where dots and slashes give no break: one at the start does not count", () => {
+    expect(breaks(".hidden_configuration_file_name")).toEqual([
+      ".hidden_",
+      "configuration_",
+      "file_",
+      "name",
     ]);
   });
 
@@ -133,6 +187,40 @@ describe("what stays whole", () => {
     ]);
   });
 
+  test("an underscore before a digit, or in a short name, stays put", () => {
+    expect(breaks("http_requests_p99_95_quantile")).toEqual([
+      "http_",
+      "requests_",
+      "p99_95_",
+      "quantile",
+    ]);
+    expect(breaks("user_id")).toEqual(["user_id"]);
+    expect(breaks("go_gc_duration_seconds", 30)).toEqual([
+      "go_gc_duration_seconds",
+    ]);
+  });
+
+  test("separators that start a word never end a part of it", () => {
+    expect(breaks("__private_attribute_name_for_tests")).toEqual([
+      "__private_",
+      "attribute_",
+      "name_",
+      "for_",
+      "tests",
+    ]);
+    expect(breaks("_internal_queue_depth_in_messages")).toEqual([
+      "_internal_",
+      "queue_",
+      "depth_",
+      "in_",
+      "messages",
+    ]);
+    expect(breaks("./scripts/rebuild-everything-now")).toEqual([
+      "./scripts/",
+      "rebuild-everything-now",
+    ]);
+  });
+
   test("a run of separators, as in an address, stays together", () => {
     expect(breaks("https://grafana.example.com/d/checkout")).toEqual([
       "https://",
@@ -155,6 +243,8 @@ describe("text a service sent is read quickly, whatever it holds", () => {
   test.each([
     ["dots", "a.".repeat(200000)],
     ["slashes", "a/".repeat(200000)],
+    ["underscores", "a_".repeat(200000)],
+    ["leading underscores", "_".repeat(200000) + "a"],
     ["dots and spaces", "a.a.a.a.a.a.a.a.a.a.a ".repeat(18000)],
   ])("%s", (_name: string, text: string) => {
     const timed: FastestRun<Array<string>> = fastestRun({

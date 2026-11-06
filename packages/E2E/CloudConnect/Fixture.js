@@ -30,6 +30,7 @@ import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/
 import CloudResourceIncidentsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Incidents";
 import CloudResourceAlertsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Alerts";
 import CloudResourceChangesPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Changes";
+import CloudResourceLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Logs";
 import PageMap from "../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
@@ -47,8 +48,11 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Log from "Common/Models/AnalyticsModels/Log";
+import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import Project from "Common/Models/DatabaseModels/Project";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { getCloudAiAgentKeyEditRefusal } from "Common/Types/AI/ResourceAiAccessPermissions";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -63,8 +67,27 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import { getCloudStreamPushServiceAccountEmail } from "Common/Types/CloudConnection/CloudStream";
+import {
+  NIGHTLY_EXPORT_LOG_GROUP,
+  NIGHTLY_EXPORT_REGION,
+  ORDERS_DB_LOG_GROUP,
+  ORDERS_DB_REGION,
+  STREAM_CONNECTION_ID,
+  STREAM_SERVICE_ID,
+  STREAM_SERVICE_NAME,
+  buildStreamedLogs,
+  countStreamedLogs,
+  listStreamedLogs,
+  logGroupResourceId,
+  streamedLogsAttributeKeys,
+  streamedLogsAttributeValues,
+  streamedLogsFacets,
+  streamedLogsHistogram,
+} from "./StreamedLogs";
 
 /*
  * The fixture page: the real Cloud > Connect page in the real Cloud layout
@@ -144,10 +167,49 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *   ?https=1    the page is a OneUptime on an HTTPS address (server.js):
  *               Firehose delivers to no other
  *
+ * A resource's Logs page (/dashboard/<project>/cloud/<resource>/logs)
+ * draws what the stream delivered from the log group AWS names after the
+ * resource, as the Firehose ingest writes it (StreamedLogs): orders-db's
+ * PostgreSQL log of the last hour, and nightly-export's last two runs, three
+ * and four days ago. Its list, count, histogram, facets and attribute
+ * lookups are answered as the server answers them, every read recorded
+ * on state.logReads; a log read the fixture does not model lands on
+ * state.unhandled. The viewer's live subscription is recorded on
+ * state.realtime, and nothing is ever sent on it.
+ *
  * window.__cloudConnectFixture.deliver() makes the first delivery arrive,
- * as it does a few minutes after the stream's command finished. The page says
- * which language it is in and which way it reads, as production's
- * followLanguageForPage does: Persian is laid out right to left.
+ * as it does a few minutes after the stream's command finished.
+ *
+ * How the Azure connection streams its metrics and resource logs - Azure
+ * Monitor sends them to event hubs OneUptime reads (Stream metrics and
+ * logs, on its row) - and the Google Cloud connection its logs, pushed
+ * through Pub/Sub (Stream logs), answered from POST
+ * /cloud-connection/<id>/start-streaming, /stream-key and /stop-streaming
+ * as the server answers them:
+ *
+ *   ?azurestream=  none (default: reading is off)
+ *               | reading (on for the event hubs in Contoso production's
+ *               subscription, nothing read yet)
+ *               | receiving (metrics from westeurope and logs from
+ *               northeurope, a minute ago)
+ *               | failing (the connection's app may not read the event
+ *               hubs)
+ *   ?gcpstream=    none (default: it has no stream key)
+ *               | waiting (a key, and no push yet)
+ *               | receiving (logs of acme-prod from europe-west1, a
+ *               minute ago)
+ *               | refused (a push came with a token Google did not sign
+ *               for the connection's push service account)
+ *
+ * window.__cloudConnectFixture.deliver("azure") and deliver("gcp") make
+ * their first events arrive. A web app and a virtual machine of the Azure
+ * subscription, and a Compute Engine instance and an instance group of
+ * the Google Cloud project, have pages of their own, for the Logs tab
+ * their streams give.
+ *
+ * The page says which language it is in and which way it reads, as
+ * production's followLanguageForPage does: Persian is laid out right to
+ * left.
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -192,6 +254,16 @@ const streamState = ["waiting", "receiving", "refused"].includes(
   params.get("stream"),
 )
   ? params.get("stream")
+  : "none";
+const azureStreamState = ["reading", "receiving", "failing"].includes(
+  params.get("azurestream"),
+)
+  ? params.get("azurestream")
+  : "none";
+const gcpStreamState = ["waiting", "receiving", "refused"].includes(
+  params.get("gcpstream"),
+)
+  ? params.get("gcpstream")
   : "none";
 
 // What the AWS connection's streams delivered: metrics and logs a minute ago.
@@ -255,6 +327,113 @@ function streamFields() {
       logSources: [],
       lastRefusal: {
         reason: "wrong-key",
+        at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+    },
+  };
+}
+
+// The subscription whose event hubs the Azure connection reads: Contoso production's.
+const AZURE_SUBSCRIPTION = "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b";
+
+// What the Azure connection read from its event hubs: metrics and logs a minute ago.
+function azureReceivingSummary() {
+  const at = new Date(Date.now() - 60 * 1000).toISOString();
+  return {
+    lastDeliveryAt: at,
+    lastReadAt: at,
+    metricSources: [
+      {
+        accountId: AZURE_SUBSCRIPTION,
+        region: "westeurope",
+        namespaces: [
+          "Microsoft.Compute/virtualMachines",
+          "Microsoft.Sql/servers/databases",
+          "Microsoft.Web/sites",
+        ],
+        lastAt: at,
+      },
+    ],
+    logSources: [
+      {
+        accountId: AZURE_SUBSCRIPTION,
+        region: "northeurope",
+        logGroups: ["AppServiceHTTPLogs", "AppServiceConsoleLogs"],
+        lastAt: at,
+      },
+    ],
+  };
+}
+
+// Whether the Azure connection's event hubs are read, and what was, as ?azurestream= sets them.
+function azureStreamFields() {
+  if (azureStreamState === "none") {
+    return {};
+  }
+  const reading = {
+    streamKeyCreatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    streamState: { hostSubscriptionId: AZURE_SUBSCRIPTION, offsets: {} },
+  };
+  if (azureStreamState === "reading") {
+    return { ...reading, streamSummary: {} };
+  }
+  if (azureStreamState === "receiving") {
+    return { ...reading, streamSummary: azureReceivingSummary() };
+  }
+  return {
+    ...reading,
+    streamSummary: {
+      metricSources: [],
+      logSources: [],
+      lastRefusal: {
+        reason: "no-access",
+        at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+    },
+  };
+}
+
+// What Pub/Sub pushed for the Google Cloud connection: three logs a minute ago.
+function gcpReceivingSummary() {
+  const at = new Date(Date.now() - 60 * 1000).toISOString();
+  return {
+    lastDeliveryAt: at,
+    metricSources: [],
+    logSources: [
+      {
+        accountId: "acme-prod",
+        region: "europe-west1",
+        logGroups: [
+          "run.googleapis.com/requests",
+          "run.googleapis.com/stderr",
+          "cloudaudit.googleapis.com/activity",
+        ],
+        lastAt: at,
+      },
+    ],
+  };
+}
+
+// The Google Cloud connection's stream key and what Pub/Sub pushed, as ?gcpstream= sets them.
+function gcpStreamFields() {
+  if (gcpStreamState === "none") {
+    return {};
+  }
+  const madeAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  if (gcpStreamState === "waiting") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: {} };
+  }
+  if (gcpStreamState === "receiving") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: gcpReceivingSummary() };
+  }
+  return {
+    streamKeyCreatedAt: madeAt,
+    streamSummary: {
+      lastDeliveryAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+      metricSources: [],
+      logSources: [],
+      lastRefusal: {
+        reason: "wrong-token",
         at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
       },
     },
@@ -401,6 +580,7 @@ const connections =
             },
           }),
           connection("20000000-0000-4000-8000-000000000002", {
+            ...azureStreamFields(),
             name: "Contoso production",
             provider: "azure",
             config: {
@@ -430,6 +610,7 @@ const connections =
             },
           }),
           connection("20000000-0000-4000-8000-000000000003", {
+            ...gcpStreamFields(),
             name: "Google Cloud acme-prod",
             provider: "gcp",
             isEnabled: false,
@@ -577,6 +758,8 @@ function cloudResource(id, fields) {
     projectId: new ObjectID(PROJECT_ID),
     cloudProvider: "aws",
     cloudAccountId: "123456789012",
+    // The AWS connection reads it, as it reads every resource of the account.
+    cloudConnectionId: new ObjectID(STREAM_CONNECTION_ID),
     isArchived: false,
     labels: [],
     ...fields,
@@ -690,7 +873,11 @@ const AWS_RESOURCES = [
     name: "orders-db",
     cloudResourceKind: "resource",
     cloudResourceType: "AWS::RDS::DBInstance",
-    providerResourceId: "orders-db",
+    // Its ARN, as the inventory lists it and its log group's rule names it.
+    providerResourceId: logGroupResourceId(
+      ORDERS_DB_LOG_GROUP,
+      ORDERS_DB_REGION,
+    ),
     cloudRegion: "eu-west-1",
     otelCollectorStatus: "connected",
     lastSeenAt: new Date(NOW - 3 * MINUTE),
@@ -721,7 +908,10 @@ const AWS_RESOURCES = [
     name: "nightly-export",
     cloudResourceKind: "resource",
     cloudResourceType: "AWS::Lambda::Function",
-    providerResourceId: "nightly-export",
+    providerResourceId: logGroupResourceId(
+      NIGHTLY_EXPORT_LOG_GROUP,
+      NIGHTLY_EXPORT_REGION,
+    ),
     cloudRegion: "us-east-1",
     otelCollectorStatus: "disconnected",
     lastSeenAt: new Date(NOW - 3 * 24 * 60 * MINUTE),
@@ -787,6 +977,72 @@ const AWS_RESOURCES = [
       Arn: "arn:aws:sqs:eu-west-1:123456789012:orders-dlq",
       MessageRetentionPeriod: 1209600,
     },
+  }),
+];
+
+/*
+ * A web app and a virtual machine of the Azure subscription, and a Compute
+ * Engine instance and an instance group of the Google Cloud project, each
+ * drawn on its own page for the Logs tab its stream gives
+ * (CloudLogGroups): a web app's resource logs and an instance's entries;
+ * none for a machine Azure keeps no resource logs of, or for a group of
+ * instances, whose logs are its instances'.
+ */
+const AZURE_WEB_APP_ID = "40000000-0000-4000-8000-000000000101";
+const AZURE_VM_ID = "40000000-0000-4000-8000-000000000102";
+const GCE_INSTANCE_ID = "40000000-0000-4000-8000-000000000103";
+const GCE_GROUP_ID = "40000000-0000-4000-8000-000000000104";
+const AZURE_GROUP_PATH = `/subscriptions/${AZURE_SUBSCRIPTION}/resourceGroups/storefront/providers`;
+// The connections that read them: Contoso production, and Google Cloud acme-prod.
+const AZURE_CONNECTION_ID = new ObjectID(
+  "20000000-0000-4000-8000-000000000002",
+);
+const GCP_CONNECTION_ID = new ObjectID("20000000-0000-4000-8000-000000000003");
+
+const OTHER_CLOUD_RESOURCES = [
+  cloudResource(AZURE_WEB_APP_ID, {
+    name: "checkout-web",
+    cloudProvider: "azure",
+    cloudAccountId: AZURE_SUBSCRIPTION,
+    cloudConnectionId: AZURE_CONNECTION_ID,
+    cloudResourceKind: "resource",
+    cloudResourceType: "Microsoft.Web/sites",
+    providerResourceId: `${AZURE_GROUP_PATH}/Microsoft.Web/sites/checkout-web`,
+    cloudRegion: "westeurope",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource(AZURE_VM_ID, {
+    name: "build-agent-1",
+    cloudProvider: "azure",
+    cloudAccountId: AZURE_SUBSCRIPTION,
+    cloudConnectionId: AZURE_CONNECTION_ID,
+    cloudResourceKind: "resource",
+    cloudResourceType: "Microsoft.Compute/virtualMachines",
+    providerResourceId: `${AZURE_GROUP_PATH}/Microsoft.Compute/virtualMachines/build-agent-1`,
+    cloudRegion: "westeurope",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource(GCE_INSTANCE_ID, {
+    name: "orders-worker-1",
+    cloudProvider: "gcp",
+    cloudAccountId: "acme-prod",
+    cloudConnectionId: GCP_CONNECTION_ID,
+    cloudResourceKind: "resource",
+    cloudResourceType: "gce_instance",
+    providerResourceId: "4410912387654321098",
+    cloudRegion: "europe-west1",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource(GCE_GROUP_ID, {
+    name: "orders-workers",
+    cloudProvider: "gcp",
+    cloudAccountId: "acme-prod",
+    cloudConnectionId: GCP_CONNECTION_ID,
+    cloudResourceKind: "resource",
+    cloudResourceType: "instance_group",
+    providerResourceId: "6620987612345678901",
+    cloudRegion: "europe-west1",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
   }),
 ];
 
@@ -1022,34 +1278,67 @@ const CHANGES =
 const AI_FIX_ID = "80000000-0000-4000-8000-000000000001";
 const AI_FIX_INCIDENT_ID = "70000000-0000-4000-8000-000000000001";
 const AI_SESSION = "oneuptime-ai-scale-out-9f2c61d0";
+// The ECS service the fix scaled out, as the account's inventory holds it.
+const CHECKOUT_SERVICE_ARN =
+  "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout";
+const CHECKOUT_SERVICE_ID = "40000000-0000-4000-8000-0000000000c1";
 
-function aiChange(minutesAgo, step, title) {
+/*
+ * One change the agent made, exactly as the recorder writes it
+ * (buildCloudChangeEntry): CloudTrail's operation is the service and the
+ * event name ("ecs:UpdateService"), which classifyCloudChange calls a
+ * deploy; the title names the resource by the name the inventory holds,
+ * which is kept beside it with the resource's row; the description says
+ * who ran it on the cloud's id. The fix and its rollback are two jobs of
+ * the agent's, each its own CloudTrail event.
+ */
+function aiChange(minutesAgo, step, jobId, eventId) {
   return cloudChange(
     minutesAgo,
     {
-      eventType: "scaling",
-      title: title,
-      description: `${AI_SESSION} ran UpdateService in account 123456789012 (us-east-1), on checkout.`,
+      eventType: "deployment",
+      title: "ecs:UpdateService on checkout",
+      description: `${AI_SESSION} ran ecs:UpdateService in account 123456789012 (us-east-1), on ${CHECKOUT_SERVICE_ARN}.`,
     },
     {
+      "oneuptime.cloud.operation": "ecs:UpdateService",
+      "oneuptime.cloud.event_id": eventId,
       "oneuptime.change.status": "succeeded",
       "cloud.region": "us-east-1",
       "oneuptime.cloud.actor": AI_SESSION,
-      "oneuptime.cloud.operation": "UpdateService",
+      "cloud.resource_id": CHECKOUT_SERVICE_ARN,
+      "oneuptime.resource.type": "CloudResource",
+      "oneuptime.resource.id": CHECKOUT_SERVICE_ID,
+      "oneuptime.cloud.resource_name": "checkout",
       "oneuptime.change.made_by": "oneuptime-ai",
-      "oneuptime.runner_job.id": "90000000-0000-4000-8000-000000000001",
+      "oneuptime.runner_job.id": jobId,
+      "oneuptime.ai.step": step,
       "oneuptime.auto_remediation_suggestion.id": AI_FIX_ID,
       "oneuptime.ai_run.id": "60000000-0000-4000-8000-000000000001",
-      "oneuptime.ai.step": step,
       "oneuptime.incident.id": AI_FIX_INCIDENT_ID,
     },
   );
 }
 
 if (dataState === "connected" && params.get("changes") === "ai") {
+  /*
+   * A rollback is the same operation on the same resource, and the recorder
+   * titles it the same way: its step (oneuptime.ai.step) is what says it
+   * undid the fix.
+   */
   CHANGES.push(
-    aiChange(39, "fix", "UpdateService on checkout"),
-    aiChange(30, "rollback", "UpdateService on checkout (rolled back)"),
+    aiChange(
+      39,
+      "fix",
+      "90000000-0000-4000-8000-000000000001",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b01",
+    ),
+    aiChange(
+      30,
+      "rollback",
+      "90000000-0000-4000-8000-000000000002",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b02",
+    ),
   );
   // Newest first, as the list reads them.
   CHANGES.sort((left, right) => {
@@ -1164,7 +1453,18 @@ const state = {
   // Every stream key made, by connection, and every Stop streaming.
   streamKeys: [],
   streamStops: [],
+  // Every time reading an Azure connection's event hubs was turned on, and where.
+  streamStarts: [],
+  // What a resource's Logs page read: its list, count, chart and facets.
+  logReads: [],
+  // A log read the fixture does not model.
+  unhandled: [],
+  // The logs viewer's live subscriptions.
+  realtime: [],
 };
+
+// What the AWS connection's stream delivered from CloudWatch Logs.
+const STREAMED_LOGS = buildStreamedLogs(PROJECT_ID, NOW);
 
 /*
  * What a test answers, for the cloud it tests - the form's own cloud, or a
@@ -1602,13 +1902,21 @@ const RUNNER_JOBS = [
 
 window.__cloudConnectFixture = {
   state: state,
-  // The first delivery arrives, a few minutes after the stream's command.
-  deliver: () => {
+  /*
+   * The first delivery arrives, a few minutes after the stream's command:
+   * AWS's unless a cloud is named ("azure", "gcp").
+   */
+  deliver: (provider = "aws") => {
     const found = connections.find((item) => {
-      return item.provider === "aws";
+      return item.provider === provider;
     });
     if (found) {
-      found.streamSummary = receivingSummary();
+      found.streamSummary =
+        provider === "azure"
+          ? azureReceivingSummary()
+          : provider === "gcp"
+            ? gcpReceivingSummary()
+            : receivingSummary();
     }
   },
   // The Cloud AI agent connects, as it does once its command finished.
@@ -1699,6 +2007,26 @@ ModelAPI.getList = async (args) => {
       return Object.assign(new CloudResource(), item);
     });
     return { data: data, count: data.length, skip: 0, limit: args.limit };
+  }
+
+  /*
+   * The services a logs viewer names its rows by: the AWS connection's
+   * telemetry service, which its stream writes into.
+   */
+  if (args.modelType === Service) {
+    state.listRequests.push({ model: "Service" });
+    const service = Object.assign(new Service(), {
+      _id: STREAM_SERVICE_ID,
+      name: STREAM_SERVICE_NAME,
+      serviceColor: new Color("#f59e0b"),
+    });
+    return { data: [service], count: 1, skip: 0, limit: args.limit };
+  }
+
+  // A resource's Logs page has no saved views yet.
+  if (args.modelType === LogSavedView) {
+    state.listRequests.push({ model: "LogSavedView" });
+    return { data: [], count: 0, skip: 0, limit: args.limit };
   }
 
   // The project's Server key (the Cloud AI agent connects with its own).
@@ -1798,10 +2126,28 @@ ModelAPI.getItem = async (args) => {
   }
 
   if (args.modelType === CloudResource) {
-    const found = AWS_RESOURCES.find((item) => {
+    const found = [...AWS_RESOURCES, ...OTHER_CLOUD_RESOURCES].find((item) => {
       return item._id === args.id.toString();
     });
-    return found ? Object.assign(new CloudResource(), found) : null;
+    if (!found) {
+      return null;
+    }
+    const item = Object.assign(new CloudResource(), found);
+    /*
+     * The connection that reads it, as far as a page asks of it: its name,
+     * and whether it streams (a stream key, as ?stream= sets it).
+     */
+    const reading = connections.find((entry) => {
+      return entry.id.toString() === String(found.cloudConnectionId);
+    });
+    if (args.select && args.select.cloudConnection && reading) {
+      item.cloudConnection = Object.assign(new CloudConnection(), {
+        _id: reading.id.toString(),
+        name: reading.name,
+        streamKeyCreatedAt: reading.streamKeyCreatedAt,
+      });
+    }
+    return item;
   }
 
   state.itemAsks++;
@@ -1837,6 +2183,16 @@ ModelAPI.count = async (args) => {
 
 // What changed in an account or a resource, newest first.
 AnalyticsModelAPI.getList = async (args) => {
+  // A resource's streamed logs, newest first, a page at a time.
+  if (args.modelType === Log) {
+    state.logReads.push({
+      kind: "list",
+      attributes: JSON.parse(JSON.stringify(args.query?.attributes || {})),
+      skip: Number(args.skip || 0),
+      limit: Number(args.limit || 10),
+    });
+    return listStreamedLogs(STREAMED_LOGS, args, state.unhandled);
+  }
   state.listRequests.push({
     model: "ChangeEvent",
     attributes: JSON.parse(JSON.stringify(args.query?.attributes || {})),
@@ -1860,6 +2216,13 @@ AnalyticsModelAPI.getList = async (args) => {
 };
 
 AnalyticsModelAPI.count = async (modelType, query) => {
+  if (modelType === Log) {
+    state.logReads.push({
+      kind: "count",
+      attributes: JSON.parse(JSON.stringify(query?.attributes || {})),
+    });
+    return countStreamedLogs(STREAMED_LOGS, query, state.unhandled);
+  }
   if (modelType !== ChangeEvent) {
     return 0;
   }
@@ -1936,8 +2299,43 @@ API.get = async (options) => {
   return new HTTPResponse(200, {}, {});
 };
 
+/*
+ * The logs viewer's own endpoints, answered over the streamed rows as
+ * TelemetryAPI answers them. Any other telemetry read is not modelled.
+ */
+const LOG_ENDPOINTS = {
+  "/telemetry/logs/histogram": (body) => {
+    return streamedLogsHistogram(STREAMED_LOGS, body, state.unhandled);
+  },
+  "/telemetry/logs/facets": (body) => {
+    return streamedLogsFacets(STREAMED_LOGS, body, state.unhandled);
+  },
+  "/telemetry/logs/get-attributes": () => {
+    return streamedLogsAttributeKeys(STREAMED_LOGS);
+  },
+  "/telemetry/logs/get-attribute-values": (body) => {
+    return streamedLogsAttributeValues(STREAMED_LOGS, body);
+  },
+};
+
 API.post = async (options) => {
   const url = options.url.toString();
+
+  if (url.includes("/telemetry/")) {
+    const route = url.slice(url.indexOf("/telemetry/"));
+    const body = options.data || {};
+    const endpoint = LOG_ENDPOINTS[route];
+    state.logReads.push({
+      kind: route,
+      attributes: JSON.parse(JSON.stringify(body.attributes || {})),
+      facetKeys: body.facetKeys || [],
+    });
+    if (!endpoint) {
+      state.unhandled.push({ kind: "api", path: route });
+      return new HTTPResponse(200, {}, {});
+    }
+    return new HTTPResponse(200, endpoint(body), {});
+  }
 
   if (url.includes("/resource-ai-access/")) {
     const route = url.slice(url.indexOf("/resource-ai-access/"));
@@ -2022,8 +2420,39 @@ API.post = async (options) => {
   }
 
   /*
-   * A new stream key for an AWS connection, shown this once; the key it
-   * replaces works for a day more. Stop streaming: no key of it works.
+   * Reading an Azure connection's event hubs turned on, in the
+   * subscription given: since when - kept, when it was on already.
+   */
+  if (url.endsWith("/start-streaming")) {
+    const id = new URL(url).pathname.split("/").slice(-2)[0];
+    const found = connections.find((item) => {
+      return item.id.toString() === id;
+    });
+    const hostSubscriptionId = String(
+      (options.data || {}).hostSubscriptionId || "",
+    );
+    state.streamStarts.push({ id: id, hostSubscriptionId: hostSubscriptionId });
+    const startedAt =
+      found && found.streamKeyCreatedAt
+        ? new Date(found.streamKeyCreatedAt)
+        : new Date();
+    if (found) {
+      found.streamKeyCreatedAt = startedAt;
+      found.streamState = {
+        hostSubscriptionId: hostSubscriptionId,
+        offsets: {},
+      };
+      found.streamSummary = found.streamSummary || {};
+    }
+    return new HTTPResponse(200, { startedAt: startedAt.toISOString() }, {});
+  }
+
+  /*
+   * A new stream key for an AWS or a Google Cloud connection, shown this
+   * once; the key it replaces works for a day more. A Google Cloud key
+   * comes with the push service account its pushes are signed as. Stop
+   * streaming: no key of it works, and an Azure connection's event hubs
+   * are read no more.
    */
   if (url.endsWith("/stream-key") || url.endsWith("/stop-streaming")) {
     const pathname = new URL(url).pathname;
@@ -2060,6 +2489,13 @@ API.post = async (options) => {
         previousKeyWorksUntil: hadKey
           ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
           : null,
+        pushServiceAccount:
+          found && found.provider === "gcp"
+            ? getCloudStreamPushServiceAccountEmail({
+                connectionId: id,
+                projectId: String(found.config.keyProjectId || ""),
+              })
+            : null,
       },
       {},
     );
@@ -2129,6 +2565,20 @@ API.post = async (options) => {
 
   return new HTTPResponse(200, {}, {});
 };
+
+/*
+ * The logs viewer listens for new rows. The subscription is recorded and
+ * nothing is ever sent: no socket leaves the page.
+ */
+function subscribe(listen) {
+  state.realtime.push({
+    model: listen && listen.modelType ? new listen.modelType().tableName : "",
+    eventType: listen ? listen.eventType : undefined,
+  });
+  return () => {};
+}
+Realtime.listenToAnalyticsModelEvent = subscribe;
+Realtime.listenToModelEvent = subscribe;
 
 // What App.tsx does for every page: the router's hooks, handed to Navigation.
 function useNavigationHooks() {
@@ -2209,6 +2659,7 @@ const RESOURCE_INCIDENTS_ROUTE =
   RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS];
 const RESOURCE_ALERTS_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW_ALERTS];
 const RESOURCE_CHANGES_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW_CHANGES];
+const RESOURCE_LOGS_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS];
 
 const FixtureAccountTopology = withNavigation(
   CloudAccountTopologyPage,
@@ -2257,6 +2708,10 @@ const FixtureResourceAlerts = withNavigation(
 const FixtureResourceChanges = withNavigation(
   CloudResourceChangesPage,
   RESOURCE_CHANGES_ROUTE,
+);
+const FixtureResourceLogs = withNavigation(
+  CloudResourceLogsPage,
+  RESOURCE_LOGS_ROUTE,
 );
 
 // A page the Connect page links to that is not modelled: says where it is.
@@ -2351,6 +2806,10 @@ function FixtureApp() {
           <Route
             path={RESOURCE_CHANGES_ROUTE.toString()}
             element={<FixtureResourceChanges />}
+          />
+          <Route
+            path={RESOURCE_LOGS_ROUTE.toString()}
+            element={<FixtureResourceLogs />}
           />
         </Route>
         <Route path="*" element={<StubPage />} />
