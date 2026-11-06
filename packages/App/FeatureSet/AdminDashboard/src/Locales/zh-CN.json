@@ -1832,6 +1832,13 @@
   "Copied": "已复制",
   "Status: {{status}}": "状态：{{status}}",
   "Loading content": "正在加载内容",
+  "These are this project's default columns for this list. Changes you save are only for you.": "这些是此项目为此列表设置的默认列。您保存的更改只对您自己生效。",
+  "Show these columns to everyone in this project": "向此项目中的所有人显示这些列",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "将替换此列表的默认列。已选择自己列的人保持不变。",
+  "Anyone who hasn't picked their own columns for this list sees these.": "尚未为此列表选择自己列的人都会看到这些列。",
+  "This list has default columns for everyone in this project.": "此列表为此项目中的所有人设置了默认列。",
+  "Remove default": "移除默认设置",
+  "Reset to project default": "重置为项目默认值",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",
