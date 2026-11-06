@@ -185,6 +185,8 @@ import {
   SECURITY_CASE_ROW_NUMBER_TEST_ID,
   SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID,
   SECURITY_CASE_ROW_TEAM_TEST_ID,
+  SECURITY_CASE_ROW_TITLE_TEST_ID,
+  SECURITY_CASE_TITLE_CLASS_NAME,
   VIEW_UNASSIGNED_CASES,
   VIEW_UNASSIGNED_CASES_TEST_ID,
   getSecurityCasesTablePreferencesKey,
@@ -1497,7 +1499,60 @@ describe("the list a person sees", () => {
     ).toEqual(["CASE-154", "CASE-155"]);
     expect(numbers[0]!.nextElementSibling).toBe(english);
     expect(numbers[1]!.nextElementSibling).toBe(persian);
-    expect(english.parentElement).toHaveClass("line-clamp-2", "break-words");
+    expect(english.parentElement).toHaveClass("line-clamp-3", "break-words");
+  });
+
+  /*
+   * "Russian Security case names still cut at 1280" (#5485's follow-up):
+   * at the Case column's 14rem floor two lines cut the longer languages'
+   * titles at a 1280 laptop. A title has three lines now - one class, on
+   * every row's title, and nothing else about the cell changes (the
+   * browser suite, SecurityOperations.spec.ts, reads the titles whole).
+   */
+  test("each case's number and title share one line box of at most three lines, the cell's floor as it was", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000156",
+        "CASE-156",
+        "Impossible travel for k.morgan@acme-commerce.example",
+        undefined,
+      ),
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000157",
+        "CASE-157",
+        "Defender XDR: suspicious PowerShell on web-03",
+        undefined,
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+
+    const titles: Array<HTMLElement> = await screen.findAllByTestId(
+      SECURITY_CASE_ROW_TITLE_TEST_ID,
+    );
+
+    expect(titles.length).toBeGreaterThan(0);
+
+    for (const title of titles) {
+      expect(title.className).toBe(SECURITY_CASE_TITLE_CLASS_NAME);
+      // The number first, inside the clamped line.
+      expect(
+        title.querySelector(
+          `[data-testid=${SECURITY_CASE_ROW_NUMBER_TEST_ID}]`,
+        ),
+      ).not.toBeNull();
+      // The cell keeps its one track and its 14rem floor.
+      expect(title.closest(".grid")).toHaveClass(
+        "grid",
+        "min-w-[14rem]",
+        "grid-cols-1",
+      );
+    }
+
+    const classes: Array<string> = SECURITY_CASE_TITLE_CLASS_NAME.split(" ");
+    expect(classes).toContain("line-clamp-3");
+    expect(classes).not.toContain("line-clamp-2");
+    expect(classes).toEqual(expect.arrayContaining(["break-words"]));
   });
 
   /*

@@ -138,6 +138,22 @@ export const SECURITY_CASE_ROW_NUMBER_TEST_ID: string =
 export const SECURITY_CASE_ROW_DETECTIONS_TEST_ID: string =
   "security-case-row-detections";
 
+/*
+ * A case's number and title, over at most three lines (the Case column's
+ * cell, below): at the column's 14rem floor two lines cut the longer
+ * languages' titles at a 1280 laptop - in Russian and German "Defender
+ * XDR: suspicious PowerShell on web..." and "Impossible travel for
+ * k.morgan@acme-commerce...". Three hold a title of some 80 letters whole
+ * there, and the row, as tall as its source line and entity chips, seldom
+ * grows for it.
+ */
+export const SECURITY_CASE_TITLE_CLASS_NAME: string =
+  "line-clamp-3 break-words font-medium text-gray-900 group-hover:underline";
+
+// The case's title link, for the tests that read how it is cut.
+export const SECURITY_CASE_ROW_TITLE_TEST_ID: string =
+  "security-case-row-title";
+
 // A case as its page names it: its number, then its title.
 export const getSecurityCaseName: (securityCase: SecurityCase) => string = (
   securityCase: SecurityCase,
@@ -371,7 +387,7 @@ const SecurityCasesList: FunctionComponent<{
     case: {
       /*
        * What the case is, what raised it and who or what it is about,
-       * in one column that wraps: the title over at most two lines,
+       * in one column that wraps: the title over at most three lines,
        * then its source and the first entities it names. The other
        * columns are short values, so the queue fits beside the side
        * menu.
@@ -419,7 +435,10 @@ const SecurityCasesList: FunctionComponent<{
                 the number belongs at the start of the line, where a
                 Persian reader begins.
               */}
-              <span className="line-clamp-2 break-words font-medium text-gray-900 group-hover:underline">
+              <span
+                className={SECURITY_CASE_TITLE_CLASS_NAME}
+                data-testid={SECURITY_CASE_ROW_TITLE_TEST_ID}
+              >
                 <span
                   className="mr-1.5 font-mono text-xs text-gray-500"
                   data-testid={SECURITY_CASE_ROW_NUMBER_TEST_ID}
