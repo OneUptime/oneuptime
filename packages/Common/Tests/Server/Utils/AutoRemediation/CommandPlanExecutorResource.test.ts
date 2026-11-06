@@ -23,6 +23,7 @@ import {
   ResourceAiRemediationMode,
 } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
+import ResourceCommandPolicy from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -542,6 +543,62 @@ describe("CommandPlanExecutor.executeRollback — resource commands", () => {
     expect(lastFeedMarkdown()).toContain(
       "the Docker host no longer allows them unattended",
     );
+  });
+
+  /*
+   * #6148's follow-up: the resource policy ends its reason with a full stop,
+   * and the record read "... Requires human approval: ....  Undo it
+   * manually" with two of them. One now, on the record and the timeline.
+   */
+  it("ends a riskier undo's refusal with one full stop before Undo it manually", async () => {
+    liveStatus.mockResolvedValue(
+      resource({ aiRemediationMode: ResourceAiRemediationMode.Automatic }),
+    );
+
+    const reason: string = ResourceCommandPolicy.evaluateForAutoExecution({
+      resourceType: AiResourceType.DockerHost,
+      command: "docker stop web",
+      allowlistPatterns: [],
+      bypassApproval: false,
+    }).reason;
+
+    // What made it read "..": the policy ends its reason itself.
+    expect(reason.endsWith(".")).toBe(true);
+
+    await rollBack([
+      executed({
+        command: "docker start web",
+        rollbackCommand: "docker stop web",
+      }),
+    ]);
+
+    const errorMessage: string = String(
+      (commandAt(0)["rollbackExecution"] as Record<string, unknown>)[
+        "errorMessage"
+      ],
+    );
+
+    expect(errorMessage).toBe(
+      `Rollback not run: Docker host "web-1" no longer allows this change unattended (its AI remediation mode is now Automatic): ${reason.slice(
+        0,
+        -1,
+      )}. Undo it manually: docker stop web`,
+    );
+    expect(errorMessage).not.toContain("..");
+    expect(lastFeedMarkdown()).not.toContain(".. Undo");
+
+    // The timeline's record of the undo quotes it, ended once too.
+    const record: string = String(
+      (
+        feed.mock.calls[feed.mock.calls.length - 1]![0] as Record<
+          string,
+          unknown
+        >
+      )["moreInformationInMarkdown"],
+    );
+
+    expect(record).toContain(`${reason.slice(0, -1)}. Undo it manually:`);
+    expect(record).not.toContain(".. Undo");
   });
 
   it("runs a riskier undo the resource still allows unattended (Bypass approval)", async () => {

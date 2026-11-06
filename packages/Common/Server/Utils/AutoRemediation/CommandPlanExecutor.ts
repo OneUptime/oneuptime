@@ -190,6 +190,21 @@ const RUN_STATE_JOB_SELECT: {
 type PlanWriter = "executor" | "rollback";
 
 /*
+ * A refusal set inside a sentence its caller ends: its own closing full
+ * stop taken off. The reasons the command policies give end with one
+ * ("Requires human approval: ... so a human must approve it."), and an
+ * undo left for a person read "... approve it.. Undo it manually: ..."
+ * (#6148's follow-up). Every refusal getClusterExecutionRefusal and
+ * getResourceExecutionRefusal return goes through this, and so does every
+ * caller that ends one.
+ */
+export function withoutClosingFullStop(text: string): string {
+  const trimmed: string = text.trimEnd();
+
+  return trimmed.endsWith(".") ? trimmed.slice(0, -1).trimEnd() : trimmed;
+}
+
+/*
  * What the rollback arm did, for the verifier: it gates the follow-up round
  * on it and records it on the verification note. rollbackStatus is
  * undefined when the arm could not settle the rollback (no plan, or the
@@ -727,7 +742,9 @@ export default class CommandPlanExecutor {
         if (clusterRefusal) {
           command.rollbackExecution = {
             status: AiRemediationCommandExecutionStatus.Skipped,
-            errorMessage: `Rollback not run: ${clusterRefusal}. Undo it manually: ${rollbackCommand}`,
+            errorMessage: `Rollback not run: ${withoutClosingFullStop(
+              clusterRefusal,
+            )}. Undo it manually: ${rollbackCommand}`,
           };
           leftForHuman.push(command);
           anyFailed = true;
@@ -914,7 +931,9 @@ export default class CommandPlanExecutor {
       return {
         state: {
           status: AiRemediationCommandExecutionStatus.Failed,
-          errorMessage: `Refused at execution time: ${clusterRefusal}.`,
+          errorMessage: `Refused at execution time: ${withoutClosingFullStop(
+            clusterRefusal,
+          )}.`,
         },
         job: null,
         recordsClusterOutcome: false,
@@ -1302,9 +1321,9 @@ export default class CommandPlanExecutor {
 
     if (scopeRefusal) {
       // The callers end the sentence themselves.
-      return `the cluster's Runner would refuse it: ${
-        scopeRefusal.endsWith(".") ? scopeRefusal.slice(0, -1) : scopeRefusal
-      }`;
+      return `the cluster's Runner would refuse it: ${withoutClosingFullStop(
+        scopeRefusal,
+      )}`;
     }
 
     if (data.purpose === "rollback") {
@@ -1318,7 +1337,10 @@ export default class CommandPlanExecutor {
         });
 
       if (verdict.verdict !== AiRemediationCommandPolicyVerdict.AutoApproved) {
-        return `cluster "${status.clusterName}" no longer allows this change unattended (its AI remediation mode is now ${status.remediationMode}): ${verdict.reason}`;
+        // The policy's reason ends with a full stop; the callers end it.
+        return `cluster "${status.clusterName}" no longer allows this change unattended (its AI remediation mode is now ${status.remediationMode}): ${withoutClosingFullStop(
+          verdict.reason,
+        )}`;
       }
     }
 
@@ -1413,9 +1435,9 @@ export default class CommandPlanExecutor {
 
     if (scopeRefusal) {
       // The callers end the sentence themselves.
-      return `the ${agentName} would refuse it: ${
-        scopeRefusal.endsWith(".") ? scopeRefusal.slice(0, -1) : scopeRefusal
-      }`;
+      return `the ${agentName} would refuse it: ${withoutClosingFullStop(
+        scopeRefusal,
+      )}`;
     }
 
     if (data.purpose === "rollback") {
@@ -1430,7 +1452,10 @@ export default class CommandPlanExecutor {
         });
 
       if (verdict.verdict !== AiRemediationCommandPolicyVerdict.AutoApproved) {
-        return `${liveLabel} no longer allows this change unattended (its AI remediation mode is now ${status.aiRemediationMode}): ${verdict.reason}`;
+        // The policy's reason ends with a full stop; the callers end it.
+        return `${liveLabel} no longer allows this change unattended (its AI remediation mode is now ${status.aiRemediationMode}): ${withoutClosingFullStop(
+          verdict.reason,
+        )}`;
       }
     }
 
