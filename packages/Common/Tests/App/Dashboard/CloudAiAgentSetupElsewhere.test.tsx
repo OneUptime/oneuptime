@@ -52,7 +52,7 @@ import {
   dashboardTranslator,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
@@ -340,13 +340,20 @@ describe("Run the agent somewhere else, in German and Persian", () => {
   });
 
   test("Persian words: the Dashboard's own terms, read right to left around Latin names", async () => {
+    const azureSentence: HTMLElement = await elsewhereSentence(
+      CloudProvider.Azure,
+      "fa",
+    );
     const azure: string = withoutIsolateMarks(
-      (await elsewhereSentence(CloudProvider.Azure, "fa"))
-        .textContent as string,
+      azureSentence.textContent as string,
     );
 
     expect(azure).toContain("هویت مدیریت‌شده");
     expect(azure).toContain("فرمان راه‌اندازی");
+    // Each Latin name is set apart, so it never moves the Persian words around it.
+    expect(azureSentence.textContent).toContain(
+      isolated(AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME),
+    );
     cleanup();
 
     const gcp: string = withoutIsolateMarks(
@@ -354,6 +361,36 @@ describe("Run the agent somewhere else, in German and Persian", () => {
     );
 
     expect(gcp).toContain("حساب سرویس");
+  });
+
+  test("the names are code, as the changes' names above them, in every language - and never set apart where the sentence reads left to right", async () => {
+    for (const language of ["en", "de", "fa"]) {
+      const sentence: HTMLElement = await elsewhereSentence(
+        CloudProvider.GCP,
+        language,
+      );
+      const names: Array<string> = Array.from(
+        sentence.querySelectorAll("code"),
+      ).map((code: Element): string => {
+        return code.textContent || "";
+      });
+
+      expect({ language, names }).toEqual({
+        language,
+        names: [
+          "docker.io/oneuptime/resource-ai-agent:release",
+          GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+        ],
+      });
+
+      if (language !== "fa") {
+        expect(sentence.textContent).toBe(
+          withoutIsolateMarks(sentence.textContent || ""),
+        );
+      }
+
+      cleanup();
+    }
   });
 });
 

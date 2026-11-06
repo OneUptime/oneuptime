@@ -85,6 +85,7 @@ import {
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -424,6 +425,15 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   const environment: Array<CloudAiAgentEnvironmentVariable> = command
     ? getCloudAiAgentEnvironment(options)
     : [];
+
+  // What "Run the agent somewhere else" names: the image, and the write role, identity or account.
+  const elsewhereNames: Record<string, ReactElement> = {};
+
+  for (const [name, value] of Object.entries(
+    getCloudAiAgentElsewhereValues(props.provider),
+  )) {
+    elsewhereNames[name] = <code className="font-mono">{value}</code>;
+  }
 
   /*
    * What More fields holds, as its folded line lists it - and what of it is
@@ -934,10 +944,14 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                 className="text-xs text-gray-600"
                 data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-elsewhere`}
               >
-                {translator.translateTemplate(
-                  CLOUD_AI_AGENT_ELSEWHERE_TEXTS[props.provider],
-                  getCloudAiAgentElsewhereValues(props.provider),
-                )}
+                {/*
+                 * The names as code, as the changes above are, and set
+                 * apart in a sentence read right to left.
+                 */}
+                <TranslatedSentence
+                  template={CLOUD_AI_AGENT_ELSEWHERE_TEXTS[props.provider]}
+                  slots={elsewhereNames}
+                />
               </p>
               {environment.length > 0 ? (
                 <CodeBlock

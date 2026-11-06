@@ -2008,6 +2008,23 @@ function readLocale(language: string): Record<string, string> {
 const GERMAN: Record<string, string> = readLocale("de");
 const PERSIAN: Record<string, string> = readLocale("fa");
 
+// The Cloud AI agent's image, as Run the agent somewhere else names it.
+const AGENT_IMAGE: string = "docker.io/oneuptime/resource-ai-agent:release";
+
+// Google Cloud's sentence for running the agent somewhere else.
+const GCP_ELSEWHERE: string =
+  "Deploy the image {{image}} your own way in Google Cloud, with these variables. Run it as a service account that only reads, with Service Account Token Creator on the write account {{writeAccount}}, which holds the enabled changes' permissions, as the setup command makes them.";
+
+/*
+ * A name drawn in a sentence of the language: set apart from the words
+ * around it where the sentence reads right to left.
+ */
+function nameIn(locale: Record<string, string>, value: string): string {
+  return locale === PERSIAN
+    ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
+    : value;
+}
+
 // A word as a locale draws it (a template's {{values}} filled in).
 function wordIn(
   locale: Record<string, string>,
@@ -2214,6 +2231,12 @@ test.describe("OneUptime AI on a cloud account", () => {
     // Running it somewhere else: the agent's variables, with its mode.
     await expect(setupDialog(page)).toContainText(
       "ONEUPTIME_AI_FIXES=automatic",
+    );
+    // And what it needs besides them on AWS: a role that may only assume the write role.
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(
+      `Deploy the image ${AGENT_IMAGE} your own way, with these variables. The role it runs as needs only to assume the write role OneUptimeAiAgentWrite, which trusts it and holds the enabled changes' permissions, as the setup command makes them.`,
     );
 
     // A phone: the dialog fits its width, long lines scroll in their box.
@@ -3789,6 +3812,15 @@ test.describe("where Google Cloud's agent runs", () => {
     await expect(hostChoice(page)).toContainText(
       "A Cloud Run service with CPU always allocated: about $45 a month. For a project that allows no VM an external IP address.",
     );
+    // Running it somewhere else: the write account, and Token Creator on it, as the command makes them.
+    await expect(
+      setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+    ).toHaveText(
+      wordIn({}, GCP_ELSEWHERE, {
+        image: AGENT_IMAGE,
+        writeAccount: "oneuptime-ai-agent-write",
+      }),
+    );
     await shoot(page, "account-ai-setup-gcp-host");
 
     // Cloud Run: its command, its price and its logs.
@@ -3847,6 +3879,22 @@ test.describe("where Google Cloud's agent runs", () => {
         wordIn(locale, "A small VM"),
       );
       expect(wordIn(locale, "A small VM")).not.toBe("A small VM");
+      // Running it somewhere else, in the language's words, with the names as they are.
+      await expect(
+        setupDialog(page).getByTestId("cloud-ai-agent-setup-elsewhere"),
+      ).toHaveText(
+        wordIn(locale, GCP_ELSEWHERE, {
+          image: nameIn(locale, AGENT_IMAGE),
+          writeAccount: nameIn(locale, "oneuptime-ai-agent-write"),
+        }),
+      );
+      // The names are code, as the changes' names above them are.
+      await expect(
+        setupDialog(page)
+          .getByTestId("cloud-ai-agent-setup-elsewhere")
+          .locator("code"),
+      ).toHaveText([AGENT_IMAGE, "oneuptime-ai-agent-write"]);
+      expect(wordIn(locale, GCP_ELSEWHERE)).not.toBe(GCP_ELSEWHERE);
       await expect(hostChoice(page)).toContainText(
         wordIn(
           locale,
