@@ -364,6 +364,7 @@
     "{{count}} hypervisor",
     "{{count}} manager",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} node",
     "{{count}} person",

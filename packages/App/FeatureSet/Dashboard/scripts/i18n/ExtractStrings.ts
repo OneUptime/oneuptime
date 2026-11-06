@@ -374,6 +374,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A cloud health event's description: OneUptime's own sentences in it -
+   * an Azure event's kind and tracking id, what caused a resource's change,
+   * the products an incident affects - in the reader's language. Only the
+   * sentences are keys: the provider's own words are drawn as written.
+   */
+  {
+    directory: "packages/Common/Utils/Telemetry/CloudHealthDescription.ts",
+    kind: "keys",
+  },
+  /*
    * The column titles of the tables OneUptime AI's tools put beside an
    * answer ("Time", "Severity", "Last seen"): the chat draws each in the
    * reader's language (DataTableWidget). Only the titles the tools mark are

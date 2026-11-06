@@ -1383,6 +1383,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Cloud/CloudRightSizing.ts",
       // A cloud change's title in the reader's language - only its frame.
       "keys packages/Common/Utils/Telemetry/CloudChangeTitle.ts",
+      // A health event's description: OneUptime's sentences, never the provider's words.
+      "keys packages/Common/Utils/Telemetry/CloudHealthDescription.ts",
       // The column titles of OneUptime AI's tables - not its prompts.
       "keys packages/Common/Server/Utils/AI/Toolbox",
       // What an AI action's approval card says, and the kinds of resource it names.

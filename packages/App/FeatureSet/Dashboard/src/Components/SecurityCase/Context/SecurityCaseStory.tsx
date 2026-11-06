@@ -1,5 +1,6 @@
 import AppLink from "../../AppLink/AppLink";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
+import { getChangeEventTypeLabel } from "../../Metrics/Utils/UseEventTimeReferenceLines";
 import {
   SECURITY_CASE_CONTEXT_TEST_IDS,
   STORY_CASE_OPENED,
@@ -150,6 +151,26 @@ function sourceNames(
   );
 }
 
+/*
+ * The state an item's pill names: a change by its kind, as the Changes
+ * lists and the chart markers name it ("Config change", in the reader's
+ * language) - the story used to draw the stored code, "config-change" -
+ * and an incident's, an alert's or a playbook run's state as it is called.
+ * A change of a kind those lists do not name has no pill: the label above
+ * its title already says it is a change event.
+ */
+export function getStoryItemStateLabel(
+  item: Pick<SecurityCaseStoryItemJson, "kind" | "stateName">,
+): string {
+  if (item.kind === SecurityCaseStoryItemKind.Change) {
+    const label: string = getChangeEventTypeLabel(item.stateName);
+
+    return label === getChangeEventTypeLabel(undefined) ? "" : label;
+  }
+
+  return item.stateName || "";
+}
+
 // What an item says, as its title: its source's words, or the case's step.
 function useItemTitle(item: SecurityCaseStoryItemJson): string {
   const translator: Translator = useTranslator();
@@ -237,10 +258,16 @@ const StoryItemFacts: FunctionComponent<{
   const translator: Translator = useTranslator();
   const item: SecurityCaseStoryItemJson = props.item;
   const facts: Array<ReactElement> = [];
+  /*
+   * Each value set apart from its line (setsValuesApart): a time, a name
+   * or a count in Latin letters keeps its place in a Persian line.
+   */
   const until: string | null = item.endTime
-    ? translator.translateTemplate(STORY_UNTIL, {
-        time: OneUptimeDate.getLocalHourAndMinuteFromDate(item.endTime),
-      })
+    ? translator.translateTemplate(
+        STORY_UNTIL,
+        { time: OneUptimeDate.getLocalHourAndMinuteFromDate(item.endTime) },
+        { setsValuesApart: true },
+      )
     : null;
 
   if (item.kind === SecurityCaseStoryItemKind.Events && (item.count || 0) > 1) {
@@ -281,10 +308,18 @@ const StoryItemFacts: FunctionComponent<{
             to={recordRoute}
             className="text-gray-700 hover:text-indigo-700 hover:underline"
           >
-            {translator.translateTemplate(STORY_ON_RECORD, { name })}
+            {translator.translateTemplate(
+              STORY_ON_RECORD,
+              { name },
+              { setsValuesApart: true },
+            )}
           </AppLink>
         ) : (
-          translator.translateTemplate(STORY_ON_RECORD, { name })
+          translator.translateTemplate(
+            STORY_ON_RECORD,
+            { name },
+            { setsValuesApart: true },
+          )
         )}
       </span>,
     );
@@ -298,6 +333,7 @@ const StoryItemFacts: FunctionComponent<{
             ? STORY_WRITTEN_BY
             : STORY_STARTED_BY,
           { name: item.actorName },
+          { setsValuesApart: true },
         )}
       </span>,
     );
@@ -318,10 +354,14 @@ const StoryItemFacts: FunctionComponent<{
 
             return (
               <span key={entry.outcome || "none"} className="whitespace-nowrap">
-                {translator.translateTemplate(STORY_OUTCOME_TALLY, {
-                  label,
-                  count: translator.formatNumber(entry.count),
-                })}
+                {translator.translateTemplate(
+                  STORY_OUTCOME_TALLY,
+                  {
+                    label,
+                    count: translator.formatNumber(entry.count),
+                  },
+                  { setsValuesApart: true },
+                )}
               </span>
             );
           },
@@ -372,6 +412,7 @@ const StoryItem: FunctionComponent<{
     isSecurityEventRequestOutcome(item.requestOutcome)
       ? item.requestOutcome
       : null;
+  const stateLabel: string = getStoryItemStateLabel(item);
   const titleText: ReactElement = (
     <bdi dir={titleDirection}>
       {item.number ? (
@@ -428,9 +469,9 @@ const StoryItem: FunctionComponent<{
           ) : (
             <></>
           )}
-          {item.stateName && !outcome ? (
+          {stateLabel && !outcome ? (
             <Pill
-              text={item.stateName}
+              text={stateLabel}
               color={item.stateColor ? new Color(item.stateColor) : Gray500}
               size={PillSize.Small}
             />
@@ -600,14 +641,18 @@ const SecurityCaseStory: FunctionComponent<ComponentProps> = (
               className="h-3.5 w-3.5 shrink-0 text-gray-400"
             />
             <span>
-              {translator.translateTemplate(STORY_WINDOW, {
-                start: OneUptimeDate.getDateAsLocalShortDateTimeString(
-                  story.windowStart,
-                ),
-                end: OneUptimeDate.getDateAsLocalShortDateTimeString(
-                  story.windowEnd,
-                ),
-              })}
+              {translator.translateTemplate(
+                STORY_WINDOW,
+                {
+                  start: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                    story.windowStart,
+                  ),
+                  end: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                    story.windowEnd,
+                  ),
+                },
+                { setsValuesApart: true },
+              )}
             </span>
           </div>
         ) : (

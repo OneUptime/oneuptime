@@ -101,9 +101,19 @@ import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
 import API from "Common/UI/Utils/API/API";
-import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { useSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
+import {
+  DEFAULT_LANGUAGE,
+  Translator,
+  composedValue,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getChangeTitleForReader } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  getChangeTitleDirection,
+  getChangeTitleForReader,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -137,6 +147,12 @@ export interface ComponentProps {
 
 // How many peers a record's row names before "+N more".
 const PEERS_SHOWN: number = 3;
+
+// What words a title inside a sentence still in English: no lookup, English throughout.
+const ENGLISH_SENTENCE_TRANSLATOR: Translator = createTranslator(
+  undefined,
+  DEFAULT_LANGUAGE,
+);
 
 const SECTION_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
@@ -415,6 +431,48 @@ const ImpactRecord: FunctionComponent<{
   );
 };
 
+/*
+ * The last change's title in the language of the sentence it is drawn in
+ * (TranslatedSentence's, the reader's once their language words it): a
+ * cloud change or a health event worded from its facts, any other change
+ * by the title it was stored with. Set apart, and laid out the way it
+ * reads: a title worded for the reader their way - a Persian health event
+ * right to left, though it starts with "AWS Health:" - and a title as
+ * written its own way (getChangeTitleDirection).
+ */
+const ImpactChangeTitle: FunctionComponent<{
+  change: NonNullable<SecurityCaseImpactRecordJson["lastChange"]>;
+}> = (props: {
+  change: NonNullable<SecurityCaseImpactRecordJson["lastChange"]>;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const sentenceLanguage: string | null = useSentenceLanguage();
+  // A sentence its language does not word yet is English, and so is its title.
+  const sentence: Translator =
+    sentenceLanguage !== null && sentenceLanguage !== translator.language
+      ? ENGLISH_SENTENCE_TRANSLATOR
+      : translator;
+
+  return (
+    <bdi
+      dir={getChangeTitleDirection({
+        facts: props.change.cloudChange,
+        health: props.change.cloudHealth,
+        translator: sentence,
+      })}
+      data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeTitle}
+    >
+      {getChangeTitleForReader({
+        title: props.change.title,
+        eventType: props.change.eventType,
+        facts: props.change.cloudChange,
+        health: props.change.cloudHealth,
+        translator: sentence,
+      })}
+    </bdi>
+  );
+};
+
 // Why OneUptime says the records are reachable from the internet: one line a piece.
 const EvidenceLine: FunctionComponent<{
   evidence: SecurityCaseExposureEvidenceJson;
@@ -435,23 +493,32 @@ const EvidenceLine: FunctionComponent<{
 
     return (
       <li>
-        {translator.translateTemplate(IMPACT_EVIDENCE[evidence.kind], {
-          address: evidence.address,
-          outcome,
-          time: evidence.time
-            ? OneUptimeDate.fromNow(new Date(evidence.time))
-            : "",
-        })}
+        {translator.translateTemplate(
+          IMPACT_EVIDENCE[evidence.kind],
+          {
+            address: evidence.address,
+            outcome,
+            time: evidence.time
+              ? OneUptimeDate.fromNow(new Date(evidence.time))
+              : "",
+          },
+          // An address in a Persian sentence keeps its dots and digits in place.
+          { setsValuesApart: true },
+        )}
       </li>
     );
   }
 
   return (
     <li>
-      {translator.translateTemplate(IMPACT_EVIDENCE[evidence.kind], {
-        name: evidence.recordName || "",
-        address: evidence.address,
-      })}
+      {translator.translateTemplate(
+        IMPACT_EVIDENCE[evidence.kind],
+        {
+          name: evidence.recordName || "",
+          address: evidence.address,
+        },
+        { setsValuesApart: true },
+      )}
     </li>
   );
 };
@@ -707,37 +774,35 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                 <FactRow label={IMPACT_LAST_CHANGE}>
                   {leading ? (
                     <span className="[overflow-wrap:anywhere]">
-                      {translator.translateTemplate(
-                        leading.change.isBeforeFirstDetection
-                          ? IMPACT_CHANGE_BEFORE
-                          : IMPACT_CHANGE_AFTER,
-                        {
-                          /*
-                           * A cloud change's title in the sentence's own
-                           * language, worded from its facts.
-                           */
-                          title: composedValue(
-                            (sentence: Translator): string => {
-                              return getChangeTitleForReader({
-                                title: leading.change.title,
-                                eventType: leading.change.eventType,
-                                facts: leading.change.cloudChange,
-                                health: leading.change.cloudHealth,
-                                translator: sentence,
-                              });
-                            },
-                          ),
-                          name: leading.record.name,
+                      {/*
+                       * One sentence in the reader's language, the change's
+                       * title and the record's name each set apart in it
+                       * (ImpactChangeTitle): a Latin name or a Persian
+                       * health title keeps its words in their order.
+                       */}
+                      <TranslatedSentence
+                        template={
+                          leading.change.isBeforeFirstDetection
+                            ? IMPACT_CHANGE_BEFORE
+                            : IMPACT_CHANGE_AFTER
+                        }
+                        values={{
                           time: OneUptimeDate.fromNow(
                             new Date(leading.change.time),
                           ),
-                        },
-                      )}
+                        }}
+                        slots={{
+                          title: <ImpactChangeTitle change={leading.change} />,
+                          name: <bdi>{leading.record.name}</bdi>,
+                        }}
+                      />
                       {leading.change.version ? (
                         <span className="ml-1.5 font-mono text-xs text-gray-500">
-                          {translator.translateTemplate(IMPACT_VERSION, {
-                            version: leading.change.version,
-                          })}
+                          {translator.translateTemplate(
+                            IMPACT_VERSION,
+                            { version: leading.change.version },
+                            { setsValuesApart: true },
+                          )}
                         </span>
                       ) : (
                         <></>
@@ -838,6 +903,7 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                                   peer: peer.peerAddress,
                                   bytes: formatTrafficBytes(peer.bytes),
                                 },
+                                { setsValuesApart: true },
                               )}
                             </li>
                           );

@@ -708,14 +708,28 @@ export const createTranslator: (
    * The form for `count` the way i18next resolves it: the language's own
    * category ("few" for 3 in Russian) under the key plus "_few", else the key
    * itself, which holds the language's general (other) form.
+   *
+   * A language's "one" form is said for every count its language calls one
+   * - 21 and 31 in Russian, 0 in French - so it names the count. A one form
+   * written for an English one that names none ("Fired once", "Repeats
+   * every minute") can only say one: any other count of that category reads
+   * the general form instead, which reads right for any count
+   * ("Срабатываний: 21", not "Сработало один раз").
    */
-  const findPlural: (key: string, count: number) => string | undefined = (
+  const findPlural: (
     key: string,
     count: number,
+    oneFormNamesTheCount?: boolean,
+  ) => string | undefined = (
+    key: string,
+    count: number,
+    oneFormNamesTheCount: boolean = true,
   ): string | undefined => {
     const category: string = getPluralCategory(activeLanguage, count);
+    const saysOnlyOne: boolean =
+      category === "one" && !oneFormNamesTheCount && count !== 1;
 
-    if (category !== "other") {
+    if (category !== "other" && !saysOnlyOne) {
       const form: string | undefined = find(`${key}_${category}`);
 
       if (form !== undefined) {
@@ -739,7 +753,11 @@ export const createTranslator: (
   ): string => {
     // English has two forms: exactly one, and everything else.
     const english: string = count === 1 ? template.one : template.other;
-    const stored: string | undefined = findPlural(template.other, count);
+    const stored: string | undefined = findPlural(
+      template.other,
+      count,
+      getTemplatePlaceholders(template.one).includes("count"),
+    );
 
     /*
      * An English form left in a locale is a placeholder, not a translation:
