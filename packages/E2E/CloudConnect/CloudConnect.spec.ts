@@ -3131,9 +3131,14 @@ const READERS: Array<{ code: string; locale: Record<string, string> }> = [
 /*
  * #5702's review: the hero's identifier line is monospace, both its label
  * and its value - set apart in elements of their own, each took the page's
- * universal Inter rule until each said font-mono.
+ * universal Inter rule until each said font-mono. #6149's follow-up: a label
+ * that reads right to left (Persian) takes the page's font instead, as no
+ * monospace font draws its letters; the identifier stays monospace.
  */
-async function expectIdentifierInMonospace(page: Page): Promise<void> {
+async function expectIdentifierInMonospace(
+  page: Page,
+  readerCode: string,
+): Promise<void> {
   const fonts: Array<string> = await page
     .getByTestId("resource-overview-identifier")
     .evaluate((line: Element): Array<string> => {
@@ -3143,8 +3148,15 @@ async function expectIdentifierInMonospace(page: Page): Promise<void> {
     });
 
   expect(fonts).toHaveLength(2);
-  for (const font of fonts) {
-    expect(font).toMatch(/mono/i);
+  const [labelFont, identifierFont] = fonts as [string, string];
+
+  expect(identifierFont).toMatch(/mono/i);
+
+  if (readerCode === "fa") {
+    expect(labelFont).not.toMatch(/mono/i);
+    expect(labelFont).toMatch(/Inter/);
+  } else {
+    expect(labelFont).toMatch(/mono/i);
   }
 }
 
@@ -3191,7 +3203,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       expect(await readText(identifier)).toBe(
         `${wordIn(reader.locale, "account")}: 123456789012`,
       );
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
       // Its status says what it means, under the pointer.
       await expect(
         page.getByTestId("resource-overview-status"),
@@ -3270,6 +3282,16 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         "direction",
         "ltr",
       );
+      /*
+       * #6149's follow-up: AWS's own words are drawn as written - never
+       * translated or rewritten - and marked as the English they are.
+       */
+      await expect(
+        page.getByTestId("cloud-change-detail-written"),
+      ).toHaveAttribute("lang", "en");
+      await expect(page.getByTestId("cloud-change-detail-worded")).toHaveCount(
+        0,
+      );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-changes-${reader.code}`);
     });
@@ -3321,7 +3343,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
           },
         );
       expect(reading).toEqual({ direction: "ltr", startVisible: true });
-      await expectIdentifierInMonospace(page);
+      await expectIdentifierInMonospace(page, reader.code);
 
       // How it is run, in words.
       await expect(

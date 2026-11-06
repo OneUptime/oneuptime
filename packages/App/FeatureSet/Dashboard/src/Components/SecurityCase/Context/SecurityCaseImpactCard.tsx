@@ -66,6 +66,10 @@ import {
   getTopFlowPeers,
 } from "./SecurityCaseContextModel";
 import Route from "Common/Types/API/Route";
+import {
+  getTextReadingDirectionByMostLetters,
+  RIGHT_TO_LEFT,
+} from "Common/Types/ReadingDirection";
 import { Gray500, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
@@ -153,6 +157,19 @@ const ENGLISH_SENTENCE_TRANSLATOR: Translator = createTranslator(
   undefined,
   DEFAULT_LANGUAGE,
 );
+
+/*
+ * The last change's version tag, "Version 2.3.1", is set in monospace, the
+ * version always - but words that read right to left take the page's font:
+ * a monospace font draws no Persian letter of its own, and the one it
+ * borrows sets joined letters in fixed-width cells (as the resource hero's
+ * identifier label does, ResourceOverview).
+ */
+export function getVersionWordsClassName(words: string): string {
+  return getTextReadingDirectionByMostLetters(words) === RIGHT_TO_LEFT
+    ? ""
+    : "font-mono";
+}
 
 const SECTION_HEADING_CLASS_NAME: string =
   "text-xs font-medium uppercase tracking-wide text-gray-500";
@@ -797,12 +814,31 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                         }}
                       />
                       {leading.change.version ? (
-                        <span className="ml-1.5 font-mono text-xs text-gray-500">
-                          {translator.translateTemplate(
-                            IMPACT_VERSION,
-                            { version: leading.change.version },
-                            { setsValuesApart: true },
-                          )}
+                        <span
+                          className="ml-1.5 text-xs text-gray-500"
+                          data-testid={
+                            SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion
+                          }
+                        >
+                          <TranslatedSentence
+                            template={IMPACT_VERSION}
+                            slots={{
+                              version: (
+                                <bdi className="font-mono">
+                                  {leading.change.version}
+                                </bdi>
+                              ),
+                            }}
+                            renderText={(text: string): ReactElement => {
+                              return (
+                                <span
+                                  className={getVersionWordsClassName(text)}
+                                >
+                                  {text}
+                                </span>
+                              );
+                            }}
+                          />
                         </span>
                       ) : (
                         <></>

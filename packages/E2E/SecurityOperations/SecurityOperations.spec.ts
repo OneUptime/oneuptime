@@ -4497,6 +4497,116 @@ test.describe("a case", () => {
     await expect(page.getByText("31 times")).toBeVisible({ timeout: 30000 });
   });
 
+  /*
+   * #6149's follow-up: a case's Story and Impact read in the reader's
+   * language - every sentence of both cards, the last change's sentence
+   * among them, which used to put a German change title inside English
+   * words - and in Persian right to left, a Latin name, address or time set
+   * apart in its line.
+   */
+  test("the Story and the Impact read in German, and in Persian right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const impact: Locator = page.getByTestId("security-case-impact");
+    const summary: Locator = impact.getByTestId("security-case-impact-summary");
+    const lastChange: Locator = impact.getByTestId(
+      "security-case-impact-last-change",
+    );
+
+    await open(page, DOMAIN_CASE_PATH, { lang: "de" });
+    await expect(summary).toBeVisible({ timeout: 30000 });
+    await expect(summary.getByRole("listitem")).toHaveText([
+      "Aus dem Internet erreichbar",
+      "Nennt 1 Datensatz",
+      "Ruft 2 andere auf",
+      "Aufgerufen von 1",
+      "1 Monitor",
+      "1 Statusseite",
+    ]);
+    await expect(impact).toContainText(
+      "build-runner-07 hat eine öffentliche Adresse, 198.51.100.23.",
+    );
+    await expect(lastChange).toContainText("Letzte Änderung");
+    await expect(lastChange).toContainText(
+      /Deployed runner image 2026\.10\.2 auf build-runner-07, .+: vor der ersten Erkennung/,
+    );
+    await expect(lastChange).toContainText("Version 2026.10.2");
+    await impact
+      .getByRole("button", {
+        name: "Gefährdete Datensätze anzeigen",
+        exact: true,
+      })
+      .click();
+    await expect(
+      impact.getByTestId("security-case-impact-details"),
+    ).toContainText("Überwacht von");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-impact-de");
+
+    // The story in German: its filters, its items' words, its window.
+    await open(page, `${SPRAY_CASE_PATH}/story`, { lang: "de" });
+    const story: Locator = page.getByTestId("security-case-story");
+    const items: Locator = story.getByTestId("security-case-story-item");
+
+    await expect(items.first()).toBeVisible({ timeout: 30000 });
+    await expect(
+      story.getByTestId("security-case-story-filter-Attack"),
+    ).toContainText("Angriff");
+    await expect(
+      story.getByTestId("security-case-story-filter-Response"),
+    ).toContainText("Reaktion");
+    await expect(items.nth(0)).toContainText("413 solche Ereignisse");
+    await expect(items.nth(1)).toContainText("31-mal ausgelöst");
+    await expect(items.nth(2)).toContainText("Fall eröffnet");
+    await expect(items.nth(5)).toContainText("Fall bestätigt");
+    await expect(items.nth(8)).toContainText("Geschrieben von Maya Chen");
+    await expect(story).toContainText("Rund um die Erkennungen des Falls:");
+    await expect(story).not.toContainText("events like this");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-story-de");
+
+    /*
+     * In Persian the cards read right to left; the deploy's own title reads
+     * its own way inside the Persian sentence, and the record's name is set
+     * apart in it.
+     */
+    await open(page, DOMAIN_CASE_PATH, { lang: "fa" });
+    await expect(summary).toBeVisible({ timeout: 30000 });
+    await expect(lastChange).toContainText("آخرین تغییر");
+    await expect(lastChange).toContainText("پیش از نخستین تشخیص");
+    await expect(
+      lastChange.getByTestId("security-case-impact-last-change-title"),
+    ).toHaveCSS("direction", "ltr");
+    await expect(impact).toHaveCSS("direction", "rtl");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-impact-fa");
+
+    await open(page, `${SPRAY_CASE_PATH}/story`, { lang: "fa" });
+    await expect(items.first()).toBeVisible({ timeout: 30000 });
+    await expect(
+      story.getByTestId("security-case-story-filter-Attack"),
+    ).toContainText("حمله");
+    await expect(items.nth(5)).toContainText("پرونده تأیید شد");
+    await expect(items.nth(8)).toContainText("Maya Chen");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-story-fa");
+
+    // On a phone, in German and in the dark.
+    await open(page, DOMAIN_CASE_PATH, {
+      lang: "de",
+      width: 390,
+      height: 844,
+      theme: "dark",
+    });
+    await expect(lastChange).toContainText("Letzte Änderung", {
+      timeout: 30000,
+    });
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "case-impact-de-390-dark");
+  });
+
   test("the Private Notes page: what the team wrote, and the composer for more", async ({
     page,
   }: {

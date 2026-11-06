@@ -1,10 +1,7 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import Page, {
-  PAGE_RECORD_TITLE_SENTENCE,
-  PageRecordHeading,
-  PageRecordTitle,
-} from "./Page";
+import Page, { PageRecordHeading, PageRecordTitle } from "./Page";
+import { PAGE_RECORD_TITLE_SENTENCE } from "./PageRecordTitle";
 import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
 import { nameRecordInTrail } from "./RecordNameInTrail";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";

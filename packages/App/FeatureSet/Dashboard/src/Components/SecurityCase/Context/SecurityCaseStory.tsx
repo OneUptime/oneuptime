@@ -151,24 +151,34 @@ function sourceNames(
   );
 }
 
+// What the server calls a change it was given no kind for (SecurityCaseStory).
+const STORY_CHANGE_WITHOUT_KIND: string = "change";
+
 /*
  * The state an item's pill names: a change by its kind, as the Changes
  * lists and the chart markers name it ("Config change", in the reader's
  * language) - the story used to draw the stored code, "config-change" -
  * and an incident's, an alert's or a playbook run's state as it is called.
- * A change of a kind those lists do not name has no pill: the label above
- * its title already says it is a change event.
+ * A kind of change those lists do not name is the sender's own word
+ * ("release"), drawn as written; a change sent with no kind has no pill:
+ * the label above its title already says it is a change event.
  */
 export function getStoryItemStateLabel(
   item: Pick<SecurityCaseStoryItemJson, "kind" | "stateName">,
 ): string {
-  if (item.kind === SecurityCaseStoryItemKind.Change) {
-    const label: string = getChangeEventTypeLabel(item.stateName);
+  const stateName: string = (item.stateName || "").trim();
 
-    return label === getChangeEventTypeLabel(undefined) ? "" : label;
+  if (item.kind !== SecurityCaseStoryItemKind.Change) {
+    return stateName;
   }
 
-  return item.stateName || "";
+  const label: string = getChangeEventTypeLabel(stateName);
+
+  if (label !== getChangeEventTypeLabel(undefined)) {
+    return label;
+  }
+
+  return stateName.toLowerCase() === STORY_CHANGE_WITHOUT_KIND ? "" : stateName;
 }
 
 // What an item says, as its title: its source's words, or the case's step.

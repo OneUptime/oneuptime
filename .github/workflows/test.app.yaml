@@ -1197,6 +1197,8 @@ jobs:
           # Security Operations gained two tests on 2026-11-06 (#6025: the
           # Russian case queue's titles and assignees whole at a 1280 and a
           # 1216 laptop, about 6 seconds locally): 21.0.
+          # And one more the same day (#6158: a case's Story and Impact in
+          # German and in Persian, six pages, about 14 seconds locally): 21.3.
           - group: 11
             suites: >-
               test-security-operations-ui

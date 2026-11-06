@@ -675,11 +675,18 @@ describe("a story item's pill", () => {
     ).toBe("Investigating");
   });
 
-  test("draws no pill for a change of a kind the lists do not name: its label says what it is", () => {
+  test("draws a kind the lists do not name as the sender wrote it, and no pill for a change sent with none", () => {
     expect(
       getStoryItemStateLabel({
         kind: SecurityCaseStoryItemKind.Change,
         stateName: "schema-migration",
+      }),
+    ).toBe("schema-migration");
+    // The server's word for a change with no kind (SecurityCaseStory).
+    expect(
+      getStoryItemStateLabel({
+        kind: SecurityCaseStoryItemKind.Change,
+        stateName: "change",
       }),
     ).toBe("");
     expect(
@@ -981,6 +988,44 @@ describe("the Impact, in Persian", () => {
           return element.tagName === "BDI";
         }),
     ).toBe(true);
+  });
+
+  /*
+   * As the resource hero's label: a monospace font draws no Persian letter
+   * of its own. The version tag's Persian word takes the page's font; the
+   * version itself stays monospace. In German the whole tag is monospace,
+   * as it always was.
+   */
+  test("the version tag's Persian word is in the page's font, the version in monospace", async () => {
+    await drawImpact("fa");
+
+    const tag: HTMLElement = screen.getByTestId(
+      Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion,
+    );
+    const version: HTMLElement = within(tag).getByText("2.3.1");
+    const words: HTMLElement = Array.from(tag.querySelectorAll("span")).find(
+      (span: HTMLSpanElement): boolean => {
+        return (span.textContent || "").includes("نسخه");
+      },
+    ) as HTMLElement;
+
+    expect(tag).not.toHaveClass("font-mono");
+    expect(version.tagName).toBe("BDI");
+    expect(version).toHaveClass("font-mono");
+    expect(words).toBeDefined();
+    expect(words).not.toHaveClass("font-mono");
+    cleanup();
+
+    await drawImpact("de");
+
+    const germanTag: HTMLElement = screen.getByTestId(
+      Copy.SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChangeVersion,
+    );
+
+    expect(germanTag).toHaveTextContent("Version 2.3.1");
+    for (const piece of Array.from(germanTag.querySelectorAll("span, bdi"))) {
+      expect(piece).toHaveClass("font-mono");
+    }
   });
 
   test("an address keeps its dots and digits in place: set apart in its sentence", async () => {

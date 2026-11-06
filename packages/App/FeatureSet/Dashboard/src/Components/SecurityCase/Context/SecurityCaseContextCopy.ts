@@ -353,6 +353,7 @@ export const SECURITY_CASE_CONTEXT_TEST_IDS: {
   impactOwners: string;
   impactLastChange: string;
   impactLastChangeTitle: string;
+  impactLastChangeVersion: string;
   impactDetails: string;
   impactToggle: string;
   impactRecord: string;
@@ -378,6 +379,7 @@ export const SECURITY_CASE_CONTEXT_TEST_IDS: {
   impactOwners: "security-case-impact-owners",
   impactLastChange: "security-case-impact-last-change",
   impactLastChangeTitle: "security-case-impact-last-change-title",
+  impactLastChangeVersion: "security-case-impact-last-change-version",
   impactDetails: "security-case-impact-details",
   impactToggle: "security-case-impact-toggle",
   impactRecord: "security-case-impact-record",

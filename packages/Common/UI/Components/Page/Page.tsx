@@ -14,6 +14,7 @@ import useTranslateValue from "../../Utils/Translation";
 import { getProductName } from "../../Utils/ProductBranding";
 import PageTrailEndContext from "./PageTrailEnd";
 import { getRecordCrumbName } from "./RecordNameInTrail";
+import { PAGE_RECORD_TITLE_SENTENCE } from "./PageRecordTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -152,13 +153,6 @@ export const PAGE_RECORD_HEADING_TEST_IDS: {
   number: "page-record-number",
   name: "page-record-name",
 };
-
-/*
- * A record's heading by its title and name (recordTitle): "Network Device -
- * sw-core-01". One sentence, so a language could word it its own way; it
- * has no words of its own, so every language takes the reader's title.
- */
-export const PAGE_RECORD_TITLE_SENTENCE: string = "{{title}} - {{name}}";
 
 /*
  * The name is set apart (IsolatedText): in a Persian heading a name's
