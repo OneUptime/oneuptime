@@ -202,8 +202,8 @@ For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på
 | **Hændelse**                              | Reagere, når en hændelse erklæres, opdateres (kvitteret, løst) eller slettes.             |
 | **Advarsel**                              | De samme tre begivenheder, for advarsler.                                                 |
 | **Overvågning**                           | Reagere, når en monitor tilføjes, redigeres eller fjernes.                                |
-| **Planlagt Vedligeholdelse Begivenhed**   | Annoncere et vedligeholdelsesvindue automatisk, når det planlægges.                       |
-| **Statusside Abonnent**                   | Byde en person velkommen, der abonnerer på en statusside.                                 |
+| **Planlagt vedligeholdelsesbegivenhed**   | Annoncere et vedligeholdelsesvindue automatisk, når det planlægges.                       |
+| **Statussideabonnent**                   | Byde en person velkommen, der abonnerer på en statusside.                                 |
 | **Vagtpolitik**                           | Synkronisere ændringer i politikken med et andet vagtplansystem.                          |
 
 I panelet **Tilføj udløser** ligger de under **OneUptime-ressourcer**: klik på ressourcen og derefter på triggeren. **Gennemse alle ressourcer** har dem alle, og søgefeltet finder en trigger ud fra få ord, som `incident created`.

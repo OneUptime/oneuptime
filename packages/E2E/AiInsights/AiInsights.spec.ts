@@ -101,7 +101,8 @@ const LATIN_DIGIT: RegExp = /[0-9]/;
 const PERSIAN_DIGIT: RegExp = /[\u06F0-\u06F9]/;
 /*
  * A middle dot beside a Persian digit: Persian writes zero as a dot, so
- * "۴ · ۲" reads "۴۰ ۲". Facts are joined with the Persian comma instead.
+ * "۴ · ۲" reads "۴۰ ۲". Facts are set apart with a bullet instead, as
+ * every line of Persian facts in the product is (InlineSeparator).
  */
 const DOT_BESIDE_PERSIAN_DIGIT: RegExp =
   /[\u06F0-\u06F9]\s*\u00B7|\u00B7\s*[\u06F0-\u06F9]/;
@@ -510,9 +511,9 @@ test.describe("the Fixes section", () => {
 
     /*
      * Each line of facts - a problem's fixes, what people said of its
-     * findings, how often it came up, a monitor's and a service's - joined
-     * with the Persian comma: no middle dot beside a count, where it read
-     * as a zero.
+     * findings, how often it came up, a monitor's and a service's - set
+     * apart with a bullet: no middle dot beside a count, where it read as
+     * a zero.
      */
     const factLines: Array<string> = await textsOf(
       page.locator(
@@ -536,7 +537,7 @@ test.describe("the Fixes section", () => {
         dot: false,
       });
     }
-    expect(factLines.join(" ")).toContain("\u060C ");
+    expect(factLines.join(" ")).toContain(" \u2022 ");
 
     // The numbers at a glance and the trend: no Latin digit left.
     for (const testId of [

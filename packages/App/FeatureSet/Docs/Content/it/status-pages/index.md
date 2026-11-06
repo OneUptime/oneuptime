@@ -34,7 +34,7 @@ La pagina mostra come risorse i monitor che vi inserite, e gli incidenti vi arri
 ## In sintesi
 
 - **Si crea con un nome.** Una nuova pagina di stato chiede solo il suo **Nome**; **Descrizione** ed **Etichette** aspettano in **Altri campi**. Risorse, branding e domini si configurano dopo.
-- **Le risorse sono ciò che vedono i visitatori.** Ogni riga della pagina è una **Pagina di stato Risorsa**: un monitor (o gruppo di monitor) con un proprio nome visualizzato, un tooltip e opzioni di uptime. I gruppi dividono una pagina lunga in sezioni e si possono annidare.
+- **Le risorse sono ciò che vedono i visitatori.** Ogni riga della pagina è una **Risorsa della pagina di stato**: un monitor (o gruppo di monitor) con un proprio nome visualizzato, un tooltip e opzioni di uptime. I gruppi dividono una pagina lunga in sezioni e si possono annidare.
 - **Un URL di anteprima fin dal primo giorno.** Ogni pagina di stato riceve un link di anteprima, così potete vederla prima che esista un dominio personalizzato.
 - **I percorsi per i visitatori dipendono dalle impostazioni.** Incidenti, episodi, annunci ed eventi pianificati compaiono solo finché il loro interruttore in **Cosa mostra la tua pagina di stato** (in **Impostazioni avanzate**) è attivo, e la pagina di iscrizione solo finché lo è **Mostra pagina iscritti**.
 - **Chi può vederla è una sola scelta.** Chiunque abbia il link, solo chi accede (utenti privati, SSO SAML o OIDC) o chiunque abbia la password, nella schermata **Accesso** della pagina, con una lista di IP consentiti facoltativa in **Altre impostazioni**.

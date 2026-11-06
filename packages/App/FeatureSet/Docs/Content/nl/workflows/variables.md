@@ -30,7 +30,7 @@ Waarden voor het hele project die je één keer opslaat en in elke workflow herg
 :::steps
 ### Globale variabelen openen
 
-Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**.
+Ga naar **Workflows → Globale variabelen** en klik op **Workflowvariabele aanmaken**.
 
 ### De variabele een naam geven
 
@@ -48,7 +48,7 @@ Vul bij de stap **Waarde** in:
 - **Inhoud** — de waarde zelf. Het is een veld voor lange tekst, dus waarden over meerdere regels werken.
 - **Geheim** — als dit aan staat, wordt de waarde weggepoetst uit de logboeken van uitvoeringen en de stappensporen.
 
-Klik op **Workflow Variabele aanmaken**. Wil je daarvoor de naam of de beschrijving wijzigen, klik dan op **Variabele** in de lijst met stappen naast het formulier (zichtbaar op brede schermen); wat je in een van beide stappen typte, blijft bewaard.
+Klik op **Workflowvariabele aanmaken**. Wil je daarvoor de naam of de beschrijving wijzigen, klik dan op **Variabele** in de lijst met stappen naast het formulier (zichtbaar op brede schermen); wat je in een van beide stappen typte, blijft bewaard.
 :::
 
 Gebruik een globale variabele in elke workflow met:
@@ -66,15 +66,15 @@ De lijst toont de naam en de beschrijving van elke variabele. Klik op **Bekijken
 | **Variabele bewerken**                     | Wijzigt de naam, de beschrijving en — bij een statische variabele die nog niet geheim is — de geheim-markering. Is een variabele eenmaal geheim, dan blijft ze geheim. |
 | **Update Content**                         | Vervangt een statische waarde. De opgeslagen inhoud kan niet worden teruggelezen, dus je typt de nieuwe waarde helemaal.                         |
 | **Use in Workflows**                       | Toont de exacte verwijzing om in je blokken te plakken, met een kopieerknop.                                                                     |
-| **Workflow Variabele verwijderen**         | Verwijdert haar, nadat je hebt bevestigd. De bevestiging noemt de variabele, zodat je kunt controleren dat het de juiste is.                      |
+| **Workflowvariabele verwijderen**         | Verwijdert haar, nadat je hebt bevestigd. De bevestiging noemt de variabele, zodat je kunt controleren dat het de juiste is.                      |
 
-Om in plaats daarvan een variabele voor een **OAuth 2.0-toegangstoken** te maken, open je het menu **Meer** (**⋯**) naast **Workflow Variabele aanmaken** en kies je **Create OAuth 2.0 Variable**. OAuth 2.0-variabelen hebben [een eigen sectie](#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen) hieronder. Het type van een variabele kan na het opslaan niet meer worden gewijzigd.
+Om in plaats daarvan een variabele voor een **OAuth 2.0-toegangstoken** te maken, open je het menu **Meer** (**⋯**) naast **Workflowvariabele aanmaken** en kies je **Create OAuth 2.0 Variable**. OAuth 2.0-variabelen hebben [een eigen sectie](#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen) hieronder. Het type van een variabele kan na het opslaan niet meer worden gewijzigd.
 
 Je kunt een variabele ook bijwerken via de API; dat wordt [aan het eind van deze pagina](#een-variabele-bijwerken-vanuit-een-workflow) uitgelegd. Globale variabelen en workflow-variabelen zijn een functie van het abonnement Growth.
 
 ## Lokale workflowvariabelen
 
-Variabelen die bij één workflow horen, beheerd onder **Workflow-variabelen** in het menu van die workflow. Ze werken hetzelfde als globale variabelen: **Workflow Variabele aanmaken** maakt een statische variabele, het menu **Meer** (**⋯**) maakt een OAuth 2.0-variabele en **Bekijken** opent de pagina van een variabele. Verwijs ernaar met:
+Variabelen die bij één workflow horen, beheerd onder **Workflow-variabelen** in het menu van die workflow. Ze werken hetzelfde als globale variabelen: **Workflowvariabele aanmaken** maakt een statische variabele, het menu **Meer** (**⋯**) maakt een OAuth 2.0-variabele en **Bekijken** opent de pagina van een variabele. Verwijs ernaar met:
 
 ```text
 {{local.variables.NAME}}

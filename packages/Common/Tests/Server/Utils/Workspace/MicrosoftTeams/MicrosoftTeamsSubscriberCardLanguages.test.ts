@@ -11,6 +11,10 @@ import { Translator } from "../../../../../UI/Utils/TranslateTemplate";
 import API from "../../../../../Utils/API";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import {
+  isolated,
+  withoutIsolateMarks,
+} from "../../../../Helpers/IsolateMarks";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -76,7 +80,8 @@ interface Fact {
   value: string;
 }
 
-function factsOf(card: JSONObject): Array<Fact> {
+// A card's facts as they were sent, a Persian value's isolate marks and all.
+function sentFactsOf(card: JSONObject): Array<Fact> {
   return ((card["sections"] as Array<JSONObject>) || []).flatMap(
     (section: JSONObject): Array<Fact> => {
       return ((section["facts"] as Array<JSONObject>) || []).map(
@@ -88,12 +93,54 @@ function factsOf(card: JSONObject): Array<Fact> {
   );
 }
 
+/*
+ * A card's facts as a reader sees them: a Persian card's values are set
+ * apart in isolates (SubscriberMessageText.chatValue), whose marks are
+ * invisible.
+ */
+function factsOf(card: JSONObject): Array<Fact> {
+  return sentFactsOf(card).map((fact: Fact): Fact => {
+    return { name: fact.name, value: withoutIsolateMarks(fact.value) };
+  });
+}
+
 function textOf(card: JSONObject): string {
   return ((card["sections"] as Array<JSONObject>) || [])
     .map((section: JSONObject): string => {
       return (section["text"] as string) || "";
     })
+    .filter((text: string): boolean => {
+      return text.length > 0;
+    })
     .join("\n");
+}
+
+/*
+ * What a card draws, top to bottom: each section's text, then its facts
+ * ("Label: value"), as Teams draws a section.
+ */
+function drawnLinesOf(card: JSONObject): Array<string> {
+  return ((card["sections"] as Array<JSONObject>) || []).flatMap(
+    (section: JSONObject): Array<string> => {
+      const text: Array<string> = section["text"]
+        ? [String(section["text"])]
+        : [];
+      const facts: Array<string> = (
+        (section["facts"] as Array<JSONObject>) || []
+      ).map((fact: JSONObject): string => {
+        return `${String(fact["name"])}: ${String(fact["value"])}`;
+      });
+
+      return [...text, ...facts];
+    },
+  );
+}
+
+// Where in a card's drawing the first line holding `text` is.
+function drawnIndexOf(card: JSONObject, text: string): number {
+  return drawnLinesOf(card).findIndex((line: string): boolean => {
+    return line.includes(text);
+  });
 }
 
 // A label as the card names its fact: without its colon ("Gravité :" is "Gravité").
@@ -173,6 +220,63 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: STATUS_PAGE_URL, 
       );
     });
 
+    /*
+     * Teams draws a section's text above its facts: one section of all of
+     * the card's text and facts drew the description above the severity
+     * the message names before it.
+     */
+    test("an incident's card draws its severity and resources, then its description, as the message names them", async () => {
+      const card: JSONObject = await cardFor(
+        mdText`## ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: "Checkout is down" })}
+
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, "Critical")}
+
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, "Checkout API")}
+
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, SubscriberMessageText.asMarkdown(DESCRIPTION))}
+
+${SubscriberMessageText.chatLinks(translator, { statusPageUrl: STATUS_PAGE_URL, unsubscribeUrl: UNSUBSCRIBE_URL })}`.toString(),
+      );
+
+      const severity: number = drawnIndexOf(card, "Critical");
+      const resources: number = drawnIndexOf(card, "Checkout API");
+      const description: number = drawnIndexOf(card, DESCRIPTION);
+
+      expect(severity).toBeGreaterThanOrEqual(0);
+      expect(severity).toBeLessThan(resources);
+      expect(resources).toBeLessThan(description);
+      // Two sections: the facts, then the text written under them.
+      expect(card["sections"]).toHaveLength(2);
+    });
+
+    test("a note's card draws its sentence, its facts, then the note, as the message names them", async () => {
+      const card: JSONObject = await cardFor(
+        SubscriberMessageText.incidentNoteChatMessage(translator, {
+          title: "Checkout is down",
+          sentence: SubscriberChatText.newIncidentNote,
+          resourcesAffected: "Checkout API",
+          severityName: "Major Incident",
+          note: NOTE,
+          statusPageUrl: STATUS_PAGE_URL,
+          unsubscribeUrl: UNSUBSCRIBE_URL,
+        }),
+      );
+
+      const sentence: number = drawnIndexOf(
+        card,
+        SubscriberMessageText.text(
+          translator,
+          SubscriberChatText.newIncidentNote,
+        ),
+      );
+      const resources: number = drawnIndexOf(card, "Checkout API");
+      const note: number = drawnIndexOf(card, NOTE);
+
+      expect(sentence).toBeGreaterThanOrEqual(0);
+      expect(sentence).toBeLessThan(resources);
+      expect(resources).toBeLessThan(note);
+    });
+
     test("a state change: the heading without its Markdown marks, then three facts", async () => {
       const card: JSONObject = await cardFor(
         SubscriberMessageText.incidentStateChangeChatMessage(translator, {
@@ -201,6 +305,77 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: STATUS_PAGE_URL, 
   },
 );
 
+/*
+ * A Persian card lays its lines out from the right: a value after its label
+ * - "Checkout API (EU)", an English description - is isolated, so its
+ * bracket and its full stop stay at its end. Every other language's card
+ * carries no isolate mark.
+ */
+describe("a subscriber's Teams card read from the right", () => {
+  test("in Persian each fact's value, and the description's first line, are isolated", async () => {
+    const translator: Translator = getServerTranslator("fa");
+    const card: JSONObject = await cardFor(
+      SubscriberMessageText.incidentStateChangeChatMessage(translator, {
+        title: "Checkout is down",
+        resourcesAffected: "Checkout API (EU)",
+        severityName: "Major Incident",
+        stateName: "Resolved",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      }),
+    );
+
+    expect(
+      sentFactsOf(card).map((fact: Fact): string => {
+        return fact.value;
+      }),
+    ).toEqual([
+      isolated("Checkout API (EU)"),
+      isolated(
+        SubscriberMessageText.nameInLanguage(translator, "Major Incident"),
+      ),
+      isolated(SubscriberMessageText.nameInLanguage(translator, "Resolved")),
+    ]);
+
+    // A description of two paragraphs: the one beside its label is isolated.
+    sentCards = [];
+
+    const described: JSONObject = await cardFor(
+      mdText`## ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: "Checkout is down" })}
+
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, SubscriberMessageText.asMarkdown(`${DESCRIPTION}\n\nRefunds wait.`))}`.toString(),
+    );
+
+    expect(textOf(described)).toContain(
+      `${isolated(DESCRIPTION)}\n\nRefunds wait.`,
+    );
+  });
+
+  test.each(
+    READER_LANGUAGE_CODES.filter((language: string): boolean => {
+      return language !== "fa";
+    }),
+  )("in %s no value carries an isolate mark", async (language: string) => {
+    const card: JSONObject = await cardFor(
+      SubscriberMessageText.incidentStateChangeChatMessage(
+        getServerTranslator(language),
+        {
+          title: "Checkout is down",
+          resourcesAffected: "Checkout API (EU)",
+          severityName: "Major Incident",
+          stateName: "Resolved",
+          statusPageUrl: STATUS_PAGE_URL,
+          unsubscribeUrl: UNSUBSCRIBE_URL,
+        },
+      ),
+    );
+
+    expect(JSON.stringify(card)).toBe(
+      withoutIsolateMarks(JSON.stringify(card)),
+    );
+  });
+});
+
 describe("the label as it was written", () => {
   test("a Chinese label keeps its full-width colon in the text", async () => {
     const card: JSONObject = await cardFor(
@@ -228,6 +403,14 @@ describe("the label as it was written", () => {
     expect(textOf(card)).toBe(
       "**Description:** Payments fail in the EU.\n\n**Note:** \n\nTraffic moved.",
     );
+    // The severity first, as written: its fact, then the text under it.
+    expect(card["sections"]).toEqual([
+      { markdown: true, facts: [{ name: "Severity", value: "Critical" }] },
+      {
+        markdown: true,
+        text: "**Description:** Payments fail in the EU.\n\n**Note:** \n\nTraffic moved.",
+      },
+    ]);
   });
 
   test("the line of links is the card's buttons, not its text too", async () => {

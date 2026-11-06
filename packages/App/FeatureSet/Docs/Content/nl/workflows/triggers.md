@@ -202,8 +202,8 @@ Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je
 | **Incident**                              | Reageren als een incident wordt gemeld, bijgewerkt (bevestigd, opgelost) of verwijderd.   |
 | **Waarschuwing**                          | Dezelfde drie gebeurtenissen, voor waarschuwingen.                                        |
 | **Monitor**                               | Reageren als een monitor wordt toegevoegd, bewerkt of verwijderd.                         |
-| **Gepland Onderhoud Gebeurtenis**         | Een onderhoudsvenster automatisch aankondigen zodra het is ingepland.                     |
-| **Statuspagina Abonnee**                  | Iemand verwelkomen die zich abonneert op een statuspagina.                                |
+| **Geplande onderhoudsgebeurtenis**         | Een onderhoudsvenster automatisch aankondigen zodra het is ingepland.                     |
+| **Abonnee van statuspagina**                  | Iemand verwelkomen die zich abonneert op een statuspagina.                                |
 | **Bereikbaarheidsbeleid**                 | Beleidswijzigingen synchroniseren met een ander roostersysteem.                           |
 
 In het paneel **Trigger toevoegen** staan ze onder **OneUptime-resources**: klik op de resource en daarna op de trigger. **Door alle resources bladeren** bevat ze allemaal, en het zoekveld vindt een trigger aan de hand van een paar woorden, zoals `incident created`.

@@ -202,8 +202,8 @@ Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui 
 | **Incidente**                             | Reagire quando un incidente viene dichiarato, aggiornato (preso in carico, risolto) o eliminato. |
 | **Avviso**                                | Gli stessi tre eventi, per gli avvisi.                                                    |
 | **Monitor**                               | Reagire quando un monitor viene aggiunto, modificato o rimosso.                           |
-| **Pianificato Manutenzione Evento**       | Annunciare automaticamente una finestra di manutenzione quando viene pianificata.         |
-| **Pagina di stato Iscritto**              | Dare il benvenuto a chi si iscrive a una pagina di stato.                                 |
+| **Evento di manutenzione programmata**       | Annunciare automaticamente una finestra di manutenzione quando viene pianificata.         |
+| **Iscritto alla pagina di stato**              | Dare il benvenuto a chi si iscrive a una pagina di stato.                                 |
 | **Policy di reperibilità**                | Sincronizzare le modifiche della policy con un altro sistema di turni.                    |
 
 Nel pannello **Aggiungi trigger** si trovano sotto **Risorse OneUptime**: fai clic sulla risorsa, poi sul trigger. **Sfoglia tutte le risorse** le contiene tutte, e la casella di ricerca trova un trigger da poche parole, come `incident created`.

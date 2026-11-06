@@ -1210,8 +1210,9 @@ describe("page and card wiring", () => {
 
     // Both counts read that filtered state, and so does the chart plan.
     expect(COMPANION_TABS).toContain("if (metricNames.length === 0) {");
-    expect(COMPANION_TABS).toContain(
-      "Showing ${chartPlan.queryConfigs.length} of ${metricNames.length} metrics.",
+    // Counted by the names found, in the reader's own forms (#6028).
+    expect(COMPANION_TABS).toMatch(
+      /translator\.translatePlural\(\s*COMPANION_METRICS_SHOWN,\s*metricNames\.length,\s*\{ shown: translator\.formatNumber\(chartPlan\.queryConfigs\.length\) \},?\s*\)/,
     );
     expect(COMPANION_TABS).toContain("metricNames: metricNames || [],");
   });

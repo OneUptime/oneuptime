@@ -129,7 +129,7 @@ flowchart TB
     grouped -->|"Blir med i en episode"| none["Ingenting mer kjører"]
 ```
 
-- **En ny episode** kjører regelens **Vaktpolicyer** pluss dem fra enhver samsvarende regel på fanen **Episode Rules** under **Varsler → Regler → Vaktregler**.
+- **En ny episode** kjører regelens **Vaktpolicyer** pluss dem fra enhver samsvarende regel på fanen **Episoderegler** under **Varsler → Regler → Vaktregler**.
 - **Et varsel som blir med i en åpen episode**, kjører bare sine egne policyer. Episodens kjører ikke på nytt.
 - **Et varsel som venter på flere varsler**, kjører også bare sine egne policyer. Når **Vent på flere varsler** er slått på og regelens policyer er de eneste som tilkaller, tilkaller et enkelt varsel ingen før nok av dem pågår.
 - **Svarer noen på en episodes tilkalling**, bekreftes episoden og dermed hvert varsel i den.
@@ -175,7 +175,7 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avansert** | **Revisjonslogger**, **Slett episode** |
 
-**Utvikler** og **Avansert** starter sammenfoldet. På **Oversikt** nevner toppen episodens **Eiere**, team først, og den første ruten, **Opprettet**, sier når episoden ble opprettet — **Automatisk**, når en grupperingsregel åpnet den. Kortet **Hva som skjedde** står øverst på siden — episodens beskrivelse og **Rotårsak** — deretter **Alerts in this episode** og **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Flytt episode til** i menyen **⋯**.
+**Utvikler** og **Avansert** starter sammenfoldet. På **Oversikt** nevner toppen episodens **Eiere**, team først, og den første ruten, **Opprettet**, sier når episoden ble opprettet — **Automatisk**, når en grupperingsregel åpnet den. Kortet **Hva som skjedde** står øverst på siden — episodens beskrivelse og **Rotårsak** — deretter **Varsler i denne episoden** og **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Flytt episode til** i menyen **⋯**.
 
 **Varsler → Aktive episoder** viser episodene som ikke er løst ennå, og merket ved siden av teller dem.
 

@@ -349,9 +349,9 @@ Chaque notification aux abonnés a son propre statut, à côté de ce qu'elle co
 | --- | --- | --- |
 | **Sending Soon** | **Notification prochaine des abonnés** | En file d'attente. La tâche qui l'envoie tourne chaque minute. |
 | **Notifications en cours d'envoi** | **Notification des abonnés** | La tâche traite les abonnés. |
-| **Notifications envoyées** | **Subscribers notified** | Elle est partie. Voir plus bas ce que cela signifie. |
+| **Notifications envoyées** | **Abonnés avertis** | Elle est partie. Voir plus bas ce que cela signifie. |
 | **Échec** | **Échec de la notification** | Tous les abonnés ne l'ont pas reçue, ou l'envoi s'est arrêté. Le message dit ce qui a été envoyé et ce que fait **Réessayer**. |
-| **Notifications ignorées.** | **Subscribers not notified** | Rien ne devait être envoyé, par exemple parce que l'incident est masqué des pages de statut. Le message dit pourquoi. |
+| **Notifications ignorées.** | **Abonnés non avertis** | Rien ne devait être envoyé, par exemple parce que l'incident est masqué des pages de statut. Le message dit pourquoi. |
 
 ### Comment un envoi est compté
 

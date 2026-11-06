@@ -1747,7 +1747,7 @@ html.dark .rbc-overlay .rbc-overlay-header {
  * theme's faint ones.
  */
 html.dark .oneuptime-calendar .rbc-time-content > * + * > * {
-  border-left-color: var(--ou-border-subtle) !important;
+  border-inline-start-color: var(--ou-border-subtle) !important;
 }
 
 html.dark .oneuptime-calendar .rbc-day-slot .rbc-time-slot {
@@ -2275,6 +2275,19 @@ pre:dir(rtl) {
 }
 
 /*
+ * A time axis's label is a phrase of the page's own language, though: a
+ * Persian "۳۱ اکتبر، ۲۳:۰۰" laid out left to right put the day at the far
+ * end of the hour ("۳۱ ۲۳:۰۰ اکتبر،"), so it read "October, 23:00 31". Each
+ * label along the time axis reads the way its own words do (plaintext, as
+ * a canvas node's lines do), centred on its tick as before; an English or
+ * German label reads left to right as it always has. The value axis keeps
+ * its labels' end anchors, which a label read right to left would turn.
+ */
+.recharts-surface:dir(rtl) .recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value {
+  unicode-bidi: plaintext;
+}
+
+/*
  * A React Flow canvas - a workflow, the service map, the topology, Correlate
  * - is laid out left to right in every language (React Flow's own
  * .react-flow { direction: ltr }): a node's place is its x and y, and its
@@ -2292,7 +2305,13 @@ pre:dir(rtl) {
  * that way.
  *
  * The panels over the canvas - its controls, a legend, a toolbar - are the
- * page's own words, and read the page's way.
+ * page's own words, and read the page's way. They are the page's chrome,
+ * not the drawing, so they also sit on the page's sides: React Flow places
+ * a panel on a physical side (its zoom buttons at the bottom left, a
+ * minimap at the bottom right), and on a page read right to left each is
+ * mirrored - the zoom buttons at the bottom right, where a line starts, as
+ * every page's start-side chrome is. One rule for every canvas: a canvas
+ * names the side a page read left to right puts its panel on.
  */
 .react-flow__node:dir(rtl),
 .react-flow__node:dir(rtl) :not([dir], .react-flow__node [dir] *),
@@ -2302,6 +2321,16 @@ pre:dir(rtl) {
 
 .react-flow__panel:dir(rtl) {
   direction: rtl;
+}
+
+.react-flow__panel.left:dir(rtl) {
+  left: auto;
+  right: 0;
+}
+
+.react-flow__panel.right:dir(rtl) {
+  right: auto;
+  left: 0;
 }
 
 :is(code, kbd, samp):dir(rtl) {

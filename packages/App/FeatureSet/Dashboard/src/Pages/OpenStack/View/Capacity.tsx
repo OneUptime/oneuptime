@@ -63,6 +63,7 @@ import { getOpenStackHostGroupId } from "../Utils/OpenStackPartFacts";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * CAN WE FIT THIS?
@@ -520,12 +521,13 @@ const FlavorsTable: FunctionComponent<{
                     {flavor.hostsWithRoom.toLocaleString()}
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
-                    {Object.keys(flavor.byZone)
-                      .sort()
-                      .map((zone: string): string => {
-                        return `${zoneTitle(zone, translator)} ${flavor.byZone[zone]!.toLocaleString()}`;
-                      })
-                      .join(", ")}
+                    {joinList(
+                      Object.keys(flavor.byZone)
+                        .sort()
+                        .map((zone: string): string => {
+                          return `${zoneTitle(zone, translator)} ${flavor.byZone[zone]!.toLocaleString()}`;
+                        }),
+                    )}
                   </td>
                   <td className={WIDE_CELL_CLASS_NAME}>
                     {flavor.instanceCount.toLocaleString()}
@@ -1065,16 +1067,17 @@ const OpenStackCloudCapacity: FunctionComponent<
             },
             notCounted.length + snapshot.hostsNotCountedLeftOut,
           )}{" "}
-          {notCounted
-            .slice(0, 5)
-            .map((host: OpenStackCapacityHostNotCounted): string => {
-              return `${host.name} (${
-                host.state === "lost"
-                  ? translator.translateText("lost")
-                  : translator.translateText("disabled")
-              })`;
-            })
-            .join(", ")}
+          {joinList(
+            notCounted
+              .slice(0, 5)
+              .map((host: OpenStackCapacityHostNotCounted): string => {
+                return `${host.name} (${
+                  host.state === "lost"
+                    ? translator.translateText("lost")
+                    : translator.translateText("disabled")
+                })`;
+              }),
+          )}
         </OpenStackPartNotice>
       ) : (
         <></>

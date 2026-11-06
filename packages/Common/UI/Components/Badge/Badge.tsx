@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export enum BadgeType {
   DANGER,
@@ -15,6 +17,8 @@ export interface ComponentProps {
 const Badge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   // Base styling for all badges
   let className: string =
     "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-600 ring-1 ring-inset ring-gray-200 shadow-sm";
@@ -42,7 +46,12 @@ const Badge: FunctionComponent<ComponentProps> = (
         className={`${className} ml-auto min-w-[1.75rem] whitespace-nowrap rounded-full px-2 py-0.5 text-center text-xs font-semibold leading-4 tabular-nums transition-all duration-200`}
         aria-hidden="true"
       >
-        {props.badgeCount}
+        {/*
+         * Written as the reader's language writes a number, as every other
+         * count on the page is: "۱۲" on a Persian page - where "12" sat
+         * beside a side menu's Persian words - and "1,234" in English.
+         */}
+        {translator.formatNumber(props.badgeCount)}
       </span>
     );
   }

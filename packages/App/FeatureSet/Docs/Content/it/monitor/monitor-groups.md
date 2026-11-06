@@ -61,7 +61,7 @@ Andate in **Monitor → Gruppi di monitor**. La scheda **Gruppi di monitor** ele
 
 ### Creare il gruppo
 
-Fate clic su **Crea: Monitor Gruppo**, inserite un **Nome** e, se volete, una **Descrizione**, poi fate clic su **Crea: Monitor Gruppo** in fondo al modulo. Il gruppo parte senza monitor.
+Fate clic su **Crea: Gruppo di monitor**, inserite un **Nome** e, se volete, una **Descrizione**, poi fate clic su **Crea: Gruppo di monitor** in fondo al modulo. Il gruppo parte senza monitor.
 
 ### Aggiungere i suoi monitor
 
@@ -101,7 +101,7 @@ Andate in **Pagine di stato**, aprite la pagina e fate clic su **Risorse** nel s
 
 ### Passare il dialogo a un gruppo
 
-Fate clic su **Aggiungi monitor**. Sotto il menu a discesa dei monitor, fate clic su **Add a Monitor Group instead.** Il menu a discesa diventa **Monitor Gruppo**.
+Fate clic su **Aggiungi monitor**. Sotto il menu a discesa dei monitor, fate clic su **Aggiungi invece un gruppo di monitor.** Il menu a discesa diventa **Gruppo di monitor**.
 
 ### Scegliere il gruppo e aggiungerlo
 
@@ -134,7 +134,7 @@ L'interruttore **Gruppi di monitor** è disattivato. Attivatelo in **Impostazion
 :::
 
 :::details Una pagina di stato non riesce ad aggiungere il gruppo
-**Add a Monitor Group instead.** compare nel dialogo solo finché l'interruttore **Gruppi di monitor** è attivo per il progetto.
+**Aggiungi invece un gruppo di monitor.** compare nel dialogo solo finché l'interruttore **Gruppi di monitor** è attivo per il progetto.
 :::
 
 ## Passaggi successivi

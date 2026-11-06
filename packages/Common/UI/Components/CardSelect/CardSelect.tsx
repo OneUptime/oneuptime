@@ -18,6 +18,7 @@ import React, {
 import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import joinAriaIds from "../../Utils/AriaIds";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 export interface CardSelectOption {
   value: string;
@@ -1442,7 +1443,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                           aria-hidden="true"
                           className="pe-0.5 ps-1.5 text-gray-400"
                         >
-                          ·
+                          <InlineSeparator markOnly />
                         </span>
                       )}
                     </span>
