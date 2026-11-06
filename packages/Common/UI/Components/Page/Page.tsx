@@ -4,6 +4,8 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import PageLoader from "../Loader/PageLoader";
 import LabelElement from "../Label/Label";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import { translatableTerm } from "../../Utils/TranslateTemplate";
 import Link from "../../../Types/Link";
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import { sortLabels } from "../../../Utils/LabelOrder";
@@ -12,6 +14,7 @@ import useTranslateValue from "../../Utils/Translation";
 import { getProductName } from "../../Utils/ProductBranding";
 import PageTrailEndContext from "./PageTrailEnd";
 import { getRecordCrumbName } from "./RecordNameInTrail";
+import { PAGE_RECORD_TITLE_SENTENCE } from "./PageRecordTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -80,6 +83,20 @@ export interface ComponentProps {
    * (Utils/Project/RecordNumber). The name is drawn as typed.
    */
   recordHeading?: PageRecordHeading | undefined;
+  /*
+   * The page is one record's, headed by what the record is and its name,
+   * "Cloud Environment - prod-eu" (ModelPage): the title in the reader's
+   * language, the name as typed, set apart. `title` still holds the whole
+   * heading, for the browser tab and anything else that reads it as text.
+   */
+  recordTitle?: PageRecordTitle | undefined;
+}
+
+export interface PageRecordTitle {
+  // What the record is, in English: "Cloud Environment", drawn in the reader's language.
+  title: string;
+  // The record's name as typed: "prod-eu-1".
+  name: string;
 }
 
 export interface PageRecordHeading {
@@ -137,6 +154,38 @@ export const PAGE_RECORD_HEADING_TEST_IDS: {
   name: "page-record-name",
 };
 
+/*
+ * The name is set apart (IsolatedText): in a Persian heading a name's
+ * digits and dashes joined the words around it and moved ("prod-eu-1" read
+ * "1-prod-eu" beside "محیط ابری -"), as they did in every Persian record
+ * heading. Set apart, it reads the way its own letters do, where the
+ * heading puts it.
+ *
+ * On a phone the heading wraps, a long name breaking where it must. From
+ * 640px up it is one line, as before: the title and its dash keep their
+ * width, and the name alone is cut short with an ellipsis at its own end -
+ * so an English name on a Persian page still reads from its start, where a
+ * cut across the whole line took the start away. The whole heading on
+ * hover. The text between title and name is drawn as written (pre), so the
+ * row keeps its space before the name.
+ */
+export const PAGE_RECORD_TITLE_HEADING_CLASS_NAME: string =
+  "break-words [overflow-wrap:anywhere] text-xl font-semibold leading-7 text-gray-900 sm:flex sm:min-w-0 sm:items-baseline sm:tracking-tight";
+
+export const PAGE_RECORD_TITLE_WORDS_CLASS_NAME: string =
+  "sm:shrink-0 sm:whitespace-pre";
+
+export const PAGE_RECORD_TITLE_NAME_CLASS_NAME: string =
+  "sm:min-w-0 sm:truncate";
+
+export const PAGE_RECORD_TITLE_TEST_IDS: {
+  heading: string;
+  name: string;
+} = {
+  heading: "page-record-title-heading",
+  name: "page-record-title-name",
+};
+
 const Page: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -157,6 +206,15 @@ const Page: FunctionComponent<ComponentProps> = (
   const recordHeadingText: string | undefined = recordHeading
     ? getNumberedRecordName(recordHeading)
     : undefined;
+
+  // A record's heading by its title and name, when the page is one's and both are known.
+  const recordTitle: PageRecordTitle | null =
+    !recordHeading &&
+    props.recordTitle &&
+    props.recordTitle.title.trim() &&
+    props.recordTitle.name.trim()
+      ? props.recordTitle
+      : null;
 
   // A trail the page inside handed up (usePageBreadcrumbLinks), while it has one.
   const [innerBreadcrumbLinks, setInnerBreadcrumbLinks] =
@@ -272,6 +330,37 @@ const Page: FunctionComponent<ComponentProps> = (
                         className={PAGE_RECORD_NAME_CLASS_NAME}
                         text={recordHeading.name}
                         dataTestId={PAGE_RECORD_HEADING_TEST_IDS.name}
+                      />
+                    </h1>
+                  ) : recordTitle ? (
+                    <h1
+                      className={PAGE_RECORD_TITLE_HEADING_CLASS_NAME}
+                      title={translatedTitle}
+                      data-testid={PAGE_RECORD_TITLE_TEST_IDS.heading}
+                    >
+                      <TranslatedSentence
+                        template={PAGE_RECORD_TITLE_SENTENCE}
+                        values={{
+                          title: translatableTerm(recordTitle.title),
+                        }}
+                        slots={{
+                          name: (
+                            <IsolatedText
+                              className={PAGE_RECORD_TITLE_NAME_CLASS_NAME}
+                              text={recordTitle.name}
+                              dataTestId={PAGE_RECORD_TITLE_TEST_IDS.name}
+                            />
+                          ),
+                        }}
+                        renderText={(text: string): ReactElement => {
+                          return (
+                            <span
+                              className={PAGE_RECORD_TITLE_WORDS_CLASS_NAME}
+                            >
+                              {text}
+                            </span>
+                          );
+                        }}
                       />
                     </h1>
                   ) : (
