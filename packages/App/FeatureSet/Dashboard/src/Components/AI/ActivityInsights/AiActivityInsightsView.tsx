@@ -396,8 +396,15 @@ function InvestigationWords(props: {
           <dt className="text-xs font-medium text-gray-500">
             {translator.translateText(AI_INSIGHTS_FINDING_LABEL)}
           </dt>
+          {/*
+            The investigation's own words read their own way (bdi): an
+            English finding on a Persian page kept its full stop at its end,
+            not at the start of its line.
+          */}
           <dd className="mt-0.5 break-words text-sm text-gray-800">
-            {props.finding.text}
+            <bdi data-testid="ai-insights-finding-text">
+              {props.finding.text}
+            </bdi>
             {props.finding.source === "report" ? (
               <span className="ml-1 text-xs text-gray-400">
                 {translator.translateText(AI_INSIGHTS_FROM_REPORT_NOTE)}
@@ -416,7 +423,7 @@ function InvestigationWords(props: {
             {translator.translateText(AI_INSIGHTS_NEXT_STEP_LABEL)}
           </dt>
           <dd className="mt-0.5 break-words text-sm text-gray-800">
-            {props.nextStep}
+            <bdi data-testid="ai-insights-next-step-text">{props.nextStep}</bdi>
           </dd>
         </div>
       ) : (
@@ -472,7 +479,7 @@ function MonitorChips(props: {
             to={getMonitorRoute(monitor.id)}
             className={LINKED_CHIP_CLASS_NAME}
           >
-            <span className="truncate">{monitor.name}</span>
+            <bdi className="truncate">{monitor.name}</bdi>
           </Link>
         );
       })}
@@ -793,7 +800,8 @@ function ProblemRow(props: {
           to={getSubjectRoute(problem.latestSubject)}
           className="min-w-0 break-words text-sm font-semibold text-gray-900 hover:text-indigo-700 hover:underline"
         >
-          {getProblemTitle(problem)}
+          {/* A title as the system wrote it reads its own way. */}
+          <bdi>{getProblemTitle(problem)}</bdi>
         </Link>
         {badge ? <Badge badge={badge} /> : <></>}
       </div>
@@ -1024,7 +1032,7 @@ function ResourceHotspotsCard(props: {
                     to={props.getRoute(hotspot.id)}
                     className="min-w-0 break-words text-sm font-medium text-gray-900 hover:text-indigo-700 hover:underline"
                   >
-                    {hotspot.name}
+                    <bdi>{hotspot.name}</bdi>
                   </Link>
                   <span className="text-xs text-gray-500">
                     {describeResourceHotspot(hotspot, props.subjectKind)}
@@ -1158,7 +1166,7 @@ function PreventiveInsightsCard(props: {
                     to={getPreventiveInsightRoute(insight.id)}
                     className="break-words text-sm text-gray-900 hover:text-indigo-700 hover:underline"
                   >
-                    {insight.title}
+                    <bdi>{insight.title}</bdi>
                   </Link>
                 </div>
                 <span className="text-xs text-gray-500">

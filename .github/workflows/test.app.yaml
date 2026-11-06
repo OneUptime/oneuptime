@@ -1472,10 +1472,18 @@ jobs:
           # 390 pixels, dark, German and Persian. Two groups of their own, because
           # the product's pages are still joining it and it outgrew one on
           # 2026-11-05: no group had the room for it.
+          # AI Insights (1.1 minutes locally with its bundle, Chromium only:
+          # the incidents' and the alerts' AI Insights pages - the Fixes
+          # section's bar, its verification line and where fixes were approved
+          # - at 1280 and 390 pixels, light and dark, German and Persian, with
+          # nothing investigated, fixes hidden, Enable AI off and a read that
+          # fails) joined the first OpenStack half on 2026-11-06, the group
+          # with the most room: about 12.8.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
               test-openstack-pages-ui
+              test-ai-insights-ui
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
@@ -1712,6 +1720,8 @@ jobs:
             output/playwright/app-platforms-ui/test-results
             output/playwright/cloud-spend-ui/*.png
             output/playwright/cloud-spend-ui/test-results
+            output/playwright/ai-insights-ui/*.png
+            output/playwright/ai-insights-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
             output/playwright/resource-onboarding-ui/*.png

@@ -83,7 +83,7 @@ const LANGUAGES: Array<string> = [
 ];
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
-const PERSIAN_DIGIT: RegExp = /[۰-۹]/;
+const PERSIAN_DIGIT: RegExp = /[\u06F0-\u06F9]/;
 // Two words of Latin letters in a row: English, on a page in another script.
 const LATIN_WORDS: RegExp = /[A-Za-z]{2,}[\s'’-]+[A-Za-z]{2,}/;
 
@@ -364,6 +364,35 @@ describe("a Persian page writes every count in Persian digits", () => {
 
     expect(evidence).toContain(String(DISK_SUBJECT.number));
     expect(evidence).not.toContain("۸۱۲");
+  });
+});
+
+describe("the system's words read their own way on a Persian page", () => {
+  test("an investigation's finding and step, a problem's title and a monitor's name are each set apart (bdi)", async () => {
+    await inLanguage("fa");
+    renderView(incidentInsights(), "incident");
+
+    // An English sentence keeps its full stop at its own end.
+    for (const testId of [
+      "ai-insights-finding-text",
+      "ai-insights-next-step-text",
+    ]) {
+      const words: Array<HTMLElement> = screen.getAllByTestId(testId);
+
+      expect(words.length).toBeGreaterThan(0);
+      for (const element of words) {
+        expect(element.tagName).toBe("BDI");
+      }
+    }
+    expect(
+      screen.getAllByTestId("ai-insights-finding-text")[0],
+    ).toHaveTextContent(TLDR_FINDING);
+
+    for (const name of within(
+      screen.getByTestId("ai-insights-monitors"),
+    ).getAllByText("Checkout API")) {
+      expect(name.tagName).toBe("BDI");
+    }
   });
 });
 
