@@ -113,7 +113,7 @@ Un modello e un modulo ti evitano entrambi di digitare due volte lo stesso incid
 | Cosa si vede | I tuoi monitor, le policy, i proprietari e ogni campo | Il nome, la descrizione e le domande del modulo, e solo le opzioni che hai scelto di offrire |
 | Pagine di stato | Ciò che dicono il modello e il modulo di dichiarazione | Nascosto finché qualcuno che interviene non pubblica l'incidente |
 
-Funzionano insieme. Assegna a un modulo di incidenti un **Incidente Modello** nella sua pagina **All'invio**, e ogni incidente che dichiara viene dichiarato da quel modello: costruisci il modello per ciò che serve al tuo team sull'incidente, e il modulo per ciò che vuoi chiedere a chi invia.
+Funzionano insieme. Assegna a un modulo di incidenti un **Modello di incidente** nella sua pagina **All'invio**, e ogni incidente che dichiara viene dichiarato da quel modello: costruisci il modello per ciò che serve al tuo team sull'incidente, e il modulo per ciò che vuoi chiedere a chi invia.
 
 ## Invii
 

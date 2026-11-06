@@ -65,7 +65,7 @@ Een status die je toevoegt, is een stap die je team doorloopt en die de drie voo
 :::steps
 ### De statuslijst openen
 
-Ga naar **Waarschuwingen → Instellingen → Status waarschuwing**. De kaart **Waarschuwing Statussen** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, waarvoor een waarschuwing erin **Telt als**, en haar beschrijving.
+Ga naar **Waarschuwingen → Instellingen → Status waarschuwing**. De kaart **Waarschuwingsstatussen** toont je statussen in hun volgorde. Elke rij toont haar kleur en naam, waarvoor een waarschuwing erin **Telt als**, en haar beschrijving.
 
 ### De status aanmaken
 

@@ -83,7 +83,7 @@ En tilstand, du tilføjer, er et trin i din indsats, som de tre forudoprettede i
 :::steps
 ### Åbn listen over tilstande
 
-Gå til **Hændelser → Indstillinger → Hændelsesstatus**. Kortet **Hændelse Tilstande** viser dine tilstande i deres rækkefølge, én række hver: et greb at trække den i, dens farve og navn, hvad en hændelse i den **Tæller som**, og dens beskrivelse. Sætningen under titlen siger det ligeud: hændelser bevæger sig kun nedad i denne liste.
+Gå til **Hændelser → Indstillinger → Hændelsesstatus**. Kortet **Hændelsesstatusser** viser dine tilstande i deres rækkefølge, én række hver: et greb at trække den i, dens farve og navn, hvad en hændelse i den **Tæller som**, og dens beskrivelse. Sætningen under titlen siger det ligeud: hændelser bevæger sig kun nedad i denne liste.
 
 ### Opret tilstanden
 

@@ -113,20 +113,20 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 
 | For at ændre                                | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Maintenance Details** i dens **Oversigt**, trinnet **Begivenhed** |
+| Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Detaljer om vedligeholdelse** i dens **Oversigt**, trinnet **Begivenhed** |
 | Statussiderne, hvornår den offentliggøres, eller påmindelserne | Samme **Rediger**, trinnet **Statussider**                   |
 | Monitorerne, deres status eller andre ressourcer | **Rediger** på kortet **Berørte ressourcer**                              |
 | Beskrivelsen                                | **Beskrivelse** i dens sidemenu                                                |
 | Ejerne                                      | **Ejere** i dens sidemenu                                                      |
 
-**Skift overvågningsstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Planlagt Vedligeholdelse Feed**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
+**Skift overvågningsstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Feed for planlagt vedligeholdelse**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
 
 ## Post noter, mens arbejdet skrider frem
 
-- **Offentlige noter** er opdateringer til dine kunder: de vises på begivenhedens statussider, og hver af dem kan give deres abonnenter besked med **Notify status page subscribers**.
+- **Offentlige noter** er opdateringer til dine kunder: de vises på begivenhedens statussider, og hver af dem kan give deres abonnenter besked med **Giv abonnenter på statussiden besked**.
 - **Private noter** er kun for dit team.
 
-Skriv en på begivenhedens side **Offentlige noter** eller **Private noter**, eller fra menuen **Handlinger** i **Planlagt Vedligeholdelse Feed** med **Add Public Note** eller **Tilføj privat note**. Den samme menu kører en runbook med **Execute Runbook**. En noteskabelon udfylder tekst, dit team ofte skriver: se [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings#noteskabeloner).
+Skriv en på begivenhedens side **Offentlige noter** eller **Private noter**, eller fra menuen **Handlinger** i **Feed for planlagt vedligeholdelse** med **Tilføj offentlig note** eller **Tilføj privat note**. Den samme menu kører en runbook med **Kør runbook**. En noteskabelon udfylder tekst, dit team ofte skriver: se [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings#noteskabeloner).
 
 ## Opret begivenheder fra kode
 

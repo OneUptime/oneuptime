@@ -40,7 +40,7 @@ De twee soorten notities lijken in het dashboard op elkaar en gedragen zich heel
 | Model                    | `IncidentPublicNote`                                                | `IncidentInternalNote`                                          |
 | Getoond op statuspagina's | Ja, als deel van de tijdlijn van het incident                      | Nooit — niets in de statuspagina-app leest ze                   |
 | Plaatsingstijd           | `postedAt`, die je zelf kunt instellen                              | Geen: gestempeld en gesorteerd op `createdAt`                   |
-| Meldt abonnees           | Als **Notify status page subscribers** aanstaat                     | Nooit: ze heeft helemaal geen velden voor abonnees              |
+| Meldt abonnees           | Als **Abonnees van de statuspagina een melding sturen** aanstaat                     | Nooit: ze heeft helemaal geen velden voor abonnees              |
 | Bijlagen bereikbaar voor | Bezoekers van de statuspagina, via een route van de statuspagina    | Alleen de geauthenticeerde dashboard-API                        |
 | Meldt eigenaren          | Ja                                                                  | Ja                                                              |
 
@@ -64,42 +64,42 @@ Open het incident en kies **Notities → Openbare notities** in het zijmenu. De 
 
 ### Schrijf de update
 
-Schrijf de notitie in Markdown, of begin vanuit een van je **Sjablonen** of vanuit **Concept met AI**. Voeg met **Attach** bestanden toe als abonnees ze moeten zien.
+Schrijf de notitie in Markdown, of begin vanuit een van je **Sjablonen** of vanuit **Concept met AI**. Voeg met **Bijvoegen** bestanden toe als abonnees ze moeten zien.
 
 ### Bepaal wie bericht krijgt
 
-Laat **Notify status page subscribers** aangevinkt om abonnees een melding te sturen, of vink het uit om stil te publiceren. **Will notify** eronder toont welke statuspagina's de notitie bereikt, en **Voorbeeld** toont de e-mail die ze krijgen.
+Laat **Abonnees van de statuspagina een melding sturen** aangevinkt om abonnees een melding te sturen, of vink het uit om stil te publiceren. **Will notify** eronder toont welke statuspagina's de notitie bereikt, en **Voorbeeld** toont de e-mail die ze krijgen.
 
 ### Plaats haar
 
-Klik op **Post update**, of druk op Ctrl+Enter (⌘+Enter op een Mac). De notitie verschijnt bovenaan de lijst, met een badge die haar melding volgt.
+Klik op **Update plaatsen**, of druk op Ctrl+Enter (⌘+Enter op een Mac). De notitie verschijnt bovenaan de lijst, met een badge die haar melding volgt.
 :::
 
-Dezelfde editor opent in een dialoogvenster vanuit **Add Public Note** in het menu **Acties** van de incidentfeed (zie [De incidentfeed](#de-incidentfeed)), dus een notitie wordt vanaf beide plekken op dezelfde manier geschreven.
+Dezelfde editor opent in een dialoogvenster vanuit **Openbare notitie toevoegen** in het menu **Acties** van de incidentfeed (zie [De incidentfeed](#de-incidentfeed)), dus een notitie wordt vanaf beide plekken op dezelfde manier geschreven.
 
 | Bedieningselement                  | Doel                                                                                                                                          |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | De notitie                         | De tekst, in Markdown. Verplicht.                                                                                                             |
 | **Sjablonen**                      | Zet een van je notitiesjablonen in de notitie, na wat je al hebt getypt. Zie [Notitiesjablonen](#notitiesjablonen).                             |
 | **Concept met AI**                  | Schrijft vanuit het incident een concept van de notitie, dat je zelf bewerkt. Zie [Een notitie met AI genereren](#een-notitie-met-ai-genereren). |
-| **Attach**                         | Bestanden die met abonnees op de statuspagina worden gedeeld. Optioneel.                                                                      |
-| **Posted now**                     | Wanneer de notitie zegt geplaatst te zijn: het moment dat je haar plaatst, tenzij je hier een eerder tijdstip kiest, in je huidige tijdzone.   |
-| **Notify status page subscribers** | Selectievakje. Standaard aan, tenzij het incident werd gemeld zonder abonnees op de hoogte te stellen — dan begint het uit. Zet het uit om stil te publiceren. |
+| **Bijvoegen**                         | Bestanden die met abonnees op de statuspagina worden gedeeld. Optioneel.                                                                      |
+| **Nu geplaatst**                     | Wanneer de notitie zegt geplaatst te zijn: het moment dat je haar plaatst, tenzij je hier een eerder tijdstip kiest, in je huidige tijdzone.   |
+| **Abonnees van de statuspagina een melding sturen** | Selectievakje. Standaard aan, tenzij het incident werd gemeld zonder abonnees op de hoogte te stellen — dan begint het uit. Zet het uit om stil te publiceren. |
 
 **Stille incidenten blijven stil.** Werd een incident gemeld met **Statuspagina-abonnees op de hoogte stellen** uit (of als privé-incident), dan hebben de abonnees er nooit iets over gehoord, dus een openbare notitie hoort niet het eerste te zijn wat ze horen. Op zo'n incident begint het selectievakje uit, met een regel eronder die uitlegt waarom. Je kunt het nog steeds aanvinken om abonnees over die notitie te informeren. Notities die zonder expliciete keuze worden geplaatst, volgen dezelfde regel: notities uit Slack en Microsoft Teams, workflows, en API-verzoeken die `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` weglaten. Een expliciete `true` of `false` blijft altijd behouden. Openbare notities op [gepland-onderhoudsevenementen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen) en [incidentepisodes](/docs/status-pages/subscribers#incidentepisoden) volgen een vergelijkbare regel, gebaseerd op of het evenement of de episode zelf bij het aanmaken abonnees een melding stuurde. Een privé-incident of privé-episode krijgt helemaal geen openbare notities.
 
-**Zie wie de notitie bereikt.** Zolang **Notify status page subscribers** aangevinkt is, noemt een regel **Will notify** eronder de statuspagina's waar de notitie naartoe gaat, met per kanaal een aantal abonnees "tot", en de pagina's die de monitoren van het incident tonen maar geen bericht krijgen, met de reden. Krijgt niemand bericht, dan toont hij niets, tenzij het incident verborgen is voor statuspagina's of het bereik van statuspagina's van het incident de reden is. Hij volgt het bereik van statuspagina's van het incident, dus een notitie op een incident dat tot twee locatiepagina's is beperkt, zegt dat ze die twee bereikt. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
+**Zie wie de notitie bereikt.** Zolang **Abonnees van de statuspagina een melding sturen** aangevinkt is, noemt een regel **Will notify** eronder de statuspagina's waar de notitie naartoe gaat, met per kanaal een aantal abonnees "tot", en de pagina's die de monitoren van het incident tonen maar geen bericht krijgen, met de reden. Krijgt niemand bericht, dan toont hij niets, tenzij het incident verborgen is voor statuspagina's of het bereik van statuspagina's van het incident de reden is. Hij volgt het bereik van statuspagina's van het incident, dus een notitie op een incident dat tot twee locatiepagina's is beperkt, zegt dat ze die twee bereikt. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
 
 **Zie wat ze krijgen.** Naast hetzelfde selectievakje toont **Voorbeeld** de e-mail die de abonnees van elk van die statuspagina's krijgen voor de notitie die je schrijft, en welk sjabloon die gebruikt en waarom. Het blijft grijs tot de notitie wat tekst heeft. **Test naar mij sturen** stuurt die e-mail naar het e-mailadres van je eigen account, en naar niemand anders. Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers#een-voorbeeld-van-de-e-mail-bekijken-voordat-die-wordt-verzonden).
 
 > [!TIP]
-> **De plaatsingstijd is het echte tijdstempel van de notitie.** Statuspagina's sorteren en tonen openbare notities op `postedAt`, niet op wanneer je ze typte — dus als je de statuspagina bijwerkt met een update die je 40 minuten geleden verstuurde, kies dan **Posted now** en stel in wanneer het echt gebeurde. Komt een notitie via de API (`/api/incident-public-note`) zonder tijdstip binnen, dan stempelt OneUptime de huidige tijd.
+> **De plaatsingstijd is het echte tijdstempel van de notitie.** Statuspagina's sorteren en tonen openbare notities op `postedAt`, niet op wanneer je ze typte — dus als je de statuspagina bijwerkt met een update die je 40 minuten geleden verstuurde, kies dan **Nu geplaatst** en stel in wanneer het echt gebeurde. Komt een notitie via de API (`/api/incident-public-note`) zonder tijdstip binnen, dan stempelt OneUptime de huidige tijd.
 
-Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdown met haar bijlagen en, in haar kop, hoe het met haar melding aan abonnees staat. **Search notes…** vindt notities op wat ze zeggen, en de feed kan met de nieuwste of de oudste eerst worden gelezen. Links naar andere sites en naar bijlagen openen in een nieuw tabblad. Regels die met `>` beginnen, worden als citaat getoond; begin het met een eigen regel, `> [!NOTE]`, `> [!TIP]` of `> [!WARNING]`, om het in plaats daarvan als opvallend kader te tonen.
+Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdown met haar bijlagen en, in haar kop, hoe het met haar melding aan abonnees staat. **Notities doorzoeken…** vindt notities op wat ze zeggen, en de feed kan met de nieuwste of de oudste eerst worden gelezen. Links naar andere sites en naar bijlagen openen in een nieuw tabblad. Regels die met `>` beginnen, worden als citaat getoond; begin het met een eigen regel, `> [!NOTE]`, `> [!TIP]` of `> [!WARNING]`, om het in plaats daarvan als opvallend kader te tonen.
 
 ## Een privénotitie plaatsen
 
-**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Private · Only your team can see this**, met de notitie, **Sjablonen**, **Concept met AI** en **Attach** voor bestanden die bedoeld zijn voor het team dat op het incident reageert. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
+**Notities → Privénotities** is bewust eenvoudiger. Het is dezelfde editor, met **Private · Only your team can see this**, met de notitie, **Sjablonen**, **Concept met AI** en **Bijvoegen** voor bestanden die bedoeld zijn voor het team dat op het incident reageert. **Privénotitie toevoegen** in het menu **Acties** van de incidentfeed opent hem in een dialoogvenster. Via de API zijn privénotities `/api/incident-internal-note`.
 
 Geen plaatsingstijd, geen selectievakje voor abonnees — de notitie wordt gestempeld wanneer ze wordt aangemaakt.
 
@@ -109,7 +109,7 @@ Beide soorten notities worden geschreven in de Markdown-editor, die lijstitems n
 
 Een privé-incident staat op geen enkele statuspagina en stuurt geen enkele abonnee een melding (zie [Een incident van de statuspagina houden](/docs/incidents/states-and-severities#een-incident-van-de-statuspagina-houden)), dus een openbare notitie erbij zou niemand bereiken voor wie ze geschreven is. OneUptime biedt er geen aan:
 
-- **De pagina met openbare notities** zegt "Dit incident is privé, dus er kunnen geen openbare notities aan worden toegevoegd. Gebruik een privénotitie." waar het invoerveld stond, met een knop **Privénotitie toevoegen** die de privénotities opent. **Add Public Note** in het menu **Acties** van de feed is vergrendeld en zegt hetzelfde.
+- **De pagina met openbare notities** zegt "Dit incident is privé, dus er kunnen geen openbare notities aan worden toegevoegd. Gebruik een privénotitie." waar het invoerveld stond, met een knop **Privénotitie toevoegen** die de privénotities opent. **Openbare notitie toevoegen** in het menu **Acties** van de feed is vergrendeld en zegt hetzelfde.
 - **Bij het wijzigen van de status** vouwt het dialoogvenster een privénotitie onder **Privénotitie toevoegen** in plaats van de openbare, en vraagt niets over abonnees. De bulkactie **Status wijzigen** voegt haar notitie als privénotitie toe aan elk privé-incident dat ze verplaatst, en stuurt niemand een melding over die incidenten.
 - **In Slack en Microsoft Teams** slaat een 📣 of 📢 op een bericht in het kanaal het bericht op als privénotitie, en de bevestiging zegt waarom.
 - **Via de API, workflows en OneUptime AI** wordt een openbare notitie erbij geweigerd met dezelfde zin, en een statuswijziging die met zo'n notitie wordt verstuurd, wordt in zijn geheel geweigerd, dus de status verandert niet. De herinneringen voor openbare notities van een SLA-regel wachten tot het weer openbaar is; de privéherinneringen worden gewoon geplaatst.
@@ -118,7 +118,7 @@ Openbare notities die zijn geplaatst voordat het incident privé werd, blijven. 
 
 ## Bijlagen bij notities
 
-Beide soorten notities accepteren bestandsbijlagen via de knop **Attach** van de editor, en beide tonen onder de tekst van de notitie een lijst bijlagen met per bestand een link **Download attachment**.
+Beide soorten notities accepteren bestandsbijlagen via de knop **Bijvoegen** van de editor, en beide tonen onder de tekst van de notitie een lijst bijlagen met per bestand een link **Download attachment**.
 
 Waar ze uiteenlopen, is wie het bestand kan ophalen:
 
@@ -138,12 +138,12 @@ Een notitie lezen via de API, Terraform of een workflow toont alleen de bijlagen
 
 ## Een notitie met AI genereren
 
-De editor heeft een knop **Concept met AI**, op beide notitiepagina's en in de dialoogvensters **Add Public Note** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de AI-provider van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
+De editor heeft een knop **Concept met AI**, op beide notitiepagina's en in de dialoogvensters **Openbare notitie toevoegen** en **Privénotitie toevoegen** van de feed. Hij stuurt het incident naar de AI-provider van je project en zet de gegenereerde Markdown in de notitie, waar je die bewerkt voordat je plaatst — er wordt niets automatisch gepubliceerd.
 
 | Dialoogvenster                     | Wat het schrijft                                                     | Sjablonen                                                         |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Generate Public Note with AI**   | Een notitie voor klanten, op basis van een analyse van de incidentgegevens. | **Status Update**, **Resolution Notice**, **Maintenance Update** |
-| **Generate Private Note with AI**  | Een interne technische notitie.                                      | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
+| **Openbare notitie maken met AI**   | Een notitie voor klanten, op basis van een analyse van de incidentgegevens. | **Status Update**, **Resolution Notice**, **Maintenance Update** |
+| **Privénotitie maken met AI**  | Een interne technische notitie.                                      | **Investigation Update**, **Technical Analysis**, **Shift Handoff** |
 
 Achter de knop stuurt het dashboard een verzoek naar `/incident/generate-note-from-ai/{incidentId}` met het gekozen sjabloon en een notitietype `public` of `internal`.
 
@@ -196,22 +196,22 @@ flowchart TB
 6. Elke abonnee moet door zijn eigen voorkeuren komen — niet afgemeld, en geabonneerd op dit middel en op het gebeurtenistype `Incident` waar de pagina abonnees laat kiezen.
 
 > [!NOTE]
-> **Meldingen zijn niet direct.** De taak die ze verstuurt, draait één keer per minuut, dus reken op maximaal ongeveer een minuut tussen het opslaan van de notitie en het vertrek van de e-mail. Dat is wat **Notifying subscribers soon** op een notitie betekent, en **Sending Soon** bij de eigen meldingen van het incident.
+> **Meldingen zijn niet direct.** De taak die ze verstuurt, draait één keer per minuut, dus reken op maximaal ongeveer een minuut tussen het opslaan van de notitie en het vertrek van de e-mail. Dat is wat **Abonnees krijgen binnenkort een melding** op een notitie betekent, en **Sending Soon** bij de eigen meldingen van het incident.
 
 De kop van een openbare notitie volgt de hele reis met een badge. Klik erop voor het statusbericht van de melding, dat zegt wat er gebeurde:
 
 | Badge                          | Wat het betekent                                                                                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Subscribers not notified**   | Er is niets verstuurd: de notitie werd geplaatst met **Statuspagina-abonnees op de hoogte stellen** uitgevinkt, of een van de poorten hierboven ging dicht. De reden is vastgelegd. |
-| **Notifying subscribers soon** | In de wachtrij, wachtend op de volgende run van de verzendtaak.                                                                                   |
-| **Notifying subscribers**      | De taak werkt de lijst met abonnees af.                                                                                                           |
-| **Subscribers notified**       | Het bericht van elke abonnee is verstuurd. Het statusbericht noemt per statuspagina hoeveel er via elk kanaal zijn gegaan.                        |
-| **Notification failed**        | Niet elke abonnee heeft het bericht gekregen, of de taak stopte met een fout. Het statusbericht zegt welke.                                         |
+| **Abonnees geen melding gestuurd**   | Er is niets verstuurd: de notitie werd geplaatst met **Statuspagina-abonnees op de hoogte stellen** uitgevinkt, of een van de poorten hierboven ging dicht. De reden is vastgelegd. |
+| **Abonnees krijgen binnenkort een melding** | In de wachtrij, wachtend op de volgende run van de verzendtaak.                                                                                   |
+| **Abonnees krijgen een melding**      | De taak werkt de lijst met abonnees af.                                                                                                           |
+| **Abonnees een melding gestuurd**       | Het bericht van elke abonnee is verstuurd. Het statusbericht noemt per statuspagina hoeveel er via elk kanaal zijn gegaan.                        |
+| **Melding mislukt**        | Niet elke abonnee heeft het bericht gekregen, of de taak stopte met een fout. Het statusbericht zegt welke.                                         |
 
-**Verstuurd betekent verstuurd.** De taak wacht op elk bericht: een e-mail of sms telt als verstuurd zodra de mailserver of de sms-provider hem heeft aangenomen, en een bericht naar Slack, Microsoft Teams of een webhook zodra de andere kant heeft geantwoord. Een bericht dat wordt geweigerd, een fout geeft of binnen 4 minuten geen antwoord krijgt, telt als mislukt, en één mislukking zet de badge op **Notification failed**; de andere abonnees krijgen het bericht nog steeds. Het statusbericht luidt dan bijvoorbeeld `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Verstuurd" is zo ver als OneUptime kan kijken: een mailserver kan een e-mail later nog terugsturen.
+**Verstuurd betekent verstuurd.** De taak wacht op elk bericht: een e-mail of sms telt als verstuurd zodra de mailserver of de sms-provider hem heeft aangenomen, en een bericht naar Slack, Microsoft Teams of een webhook zodra de andere kant heeft geantwoord. Een bericht dat wordt geweigerd, een fout geeft of binnen 4 minuten geen antwoord krijgt, telt als mislukt, en één mislukking zet de badge op **Melding mislukt**; de andere abonnees krijgen het bericht nog steeds. Het statusbericht luidt dan bijvoorbeeld `Not every subscriber was sent this notification: 2 of 61 messages failed. Site 03: 41 email sent. Site 07: 16 email, 2 SMS sent; 2 email failed.` "Verstuurd" is zo ver als OneUptime kan kijken: een mailserver kan een e-mail later nog terugsturen.
 
 :::details Grote pagina's en lange verzendingen
-De abonnees van een statuspagina worden per 10.000 gelezen tot iedereen is bereikt, en er zijn 20 berichten tegelijk onderweg. Eén melding begint na 20 minuten geen nieuwe berichten meer: wat ze tot dan niet bereikte, wordt vermeld, en ze wordt als **Notification failed** gemarkeerd. Een verzending die halverwege werd onderbroken — de server herstartte of reageerde niet meer — wordt ook als **Notification failed** gemarkeerd, met een bericht dat begint met `Interrupted:`, zodra ze 40 minuten op **Notifying subscribers** staat, zodat ze daar nooit eeuwig blijft hangen. Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers#controleren-wat-er-is-verzonden).
+De abonnees van een statuspagina worden per 10.000 gelezen tot iedereen is bereikt, en er zijn 20 berichten tegelijk onderweg. Eén melding begint na 20 minuten geen nieuwe berichten meer: wat ze tot dan niet bereikte, wordt vermeld, en ze wordt als **Melding mislukt** gemarkeerd. Een verzending die halverwege werd onderbroken — de server herstartte of reageerde niet meer — wordt ook als **Melding mislukt** gemarkeerd, met een bericht dat begint met `Interrupted:`, zodra ze 40 minuten op **Abonnees krijgen een melding** staat, zodat ze daar nooit eeuwig blijft hangen. Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers#controleren-wat-er-is-verzonden).
 :::
 
 ### De melding van een notitie opnieuw versturen
@@ -248,10 +248,10 @@ Sommige items dragen extra details — een melding aan eigenaren noemt bijvoorbe
 
 De kop van de kaart heeft ook een menu **Acties**, zodat je kunt handelen zonder de tijdlijn te verlaten:
 
-- **Execute Runbook** — start een [runbook](/docs/runbooks/index) voor dit incident.
+- **Runbook uitvoeren** — start een [runbook](/docs/runbooks/index) voor dit incident.
 - **Bereikbaarheidsdienstbeleid uitvoeren** — roep op verzoek een beleid op. Een gearchiveerd beleid roept niemand op: zijn uitvoeringslogboek op het incident zegt dat het niet is uitgevoerd omdat het beleid gearchiveerd is.
-- **Add Public Note** — de editor van de pagina **Openbare notities**, in een dialoogvenster: schrijf de notitie, en daarna **Post update**. Sjablonen, **Concept met AI**, bijlagen, **Notify status page subscribers** met wie de notitie bereikt, en **Voorbeeld** zijn er allemaal. De notitie wordt nu geplaatst; om haar terug te dateren, kies je **Posted now**.
-- **Privénotitie toevoegen** — de editor van de pagina **Privénotities**, in een dialoogvenster: schrijf de notitie, en daarna **Add note**.
+- **Openbare notitie toevoegen** — de editor van de pagina **Openbare notities**, in een dialoogvenster: schrijf de notitie, en daarna **Update plaatsen**. Sjablonen, **Concept met AI**, bijlagen, **Abonnees van de statuspagina een melding sturen** met wie de notitie bereikt, en **Voorbeeld** zijn er allemaal. De notitie wordt nu geplaatst; om haar terug te dateren, kies je **Nu geplaatst**.
+- **Privénotitie toevoegen** — de editor van de pagina **Privénotities**, in een dialoogvenster: schrijf de notitie, en daarna **Notitie toevoegen**.
 
 Beide notitieacties zijn vergrendeld, met de naam van de ontbrekende machtiging, voor iemand die geen notities mag schrijven. Nadat een notitie is geplaatst, sluit het dialoogvenster en toont de feed haar.
 

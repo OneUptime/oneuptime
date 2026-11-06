@@ -106,11 +106,11 @@ En tilstand du legger til, er et trinn teamet ditt går gjennom som de fire stan
 :::steps
 ### Åpne tilstandslisten
 
-Gå til **Planlagt vedlikehold → Innstillinger → Hendelsesstatus**. Kortet **Planlagt Vedlikehold Tilstander** viser tilstandene dine i rekkefølge. Hver rad viser fargen og navnet, hva en hendelse i den regnes som (kolonnen **Teller som**), og beskrivelsen.
+Gå til **Planlagt vedlikehold → Innstillinger → Hendelsesstatus**. Kortet **Tilstander for planlagt vedlikehold** viser tilstandene dine i rekkefølge. Hver rad viser fargen og navnet, hva en hendelse i den regnes som (kolonnen **Teller som**), og beskrivelsen.
 
 ### Opprett tilstanden
 
-Klikk på **Opprett Planlagt Vedlikehold Tilstand** og fyll ut **Navn**, **Beskrivelse** og **Farge**. Den nye tilstanden legges til rett over den fullførte tilstanden.
+Klikk på **Opprett Tilstand for planlagt vedlikehold** og fyll ut **Navn**, **Beskrivelse** og **Farge**. Den nye tilstanden legges til rett over den fullførte tilstanden.
 
 ### Dra den på plass
 

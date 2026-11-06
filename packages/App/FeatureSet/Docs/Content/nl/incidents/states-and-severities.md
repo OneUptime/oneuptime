@@ -83,7 +83,7 @@ Een status die je toevoegt, is een stap in je respons die de drie vooraf aangema
 :::steps
 ### Open de statuslijst
 
-Ga naar **Incidenten → Instellingen → Status incident**. De kaart **Incident Statussen** toont je statussen in hun volgorde, één rij per status: een greep om hem aan te slepen, zijn kleur en naam, waarvoor een incident erin **Telt als**, en zijn beschrijving. De zin onder de titel zegt het duidelijk: incidenten gaan in deze lijst alleen omlaag.
+Ga naar **Incidenten → Instellingen → Status incident**. De kaart **Incidentstatussen** toont je statussen in hun volgorde, één rij per status: een greep om hem aan te slepen, zijn kleur en naam, waarvoor een incident erin **Telt als**, en zijn beschrijving. De zin onder de titel zegt het duidelijk: incidenten gaan in deze lijst alleen omlaag.
 
 ### Maak de status aan
 

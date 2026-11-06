@@ -58,7 +58,7 @@ As regras diferem na forma como várias correspondências são resolvidas:
 - **Regras de agrupamento**, **Regras de incidentes** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
 - **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
 
-**Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Alert Rules**, para alertas, e **Episode Rules**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
+**Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
 
 A maioria das regras atua sobre alertas e episódios criados depois que você as salva. Para aplicar uma regra de proprietário, de rótulos ou de privacidade aos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de lembrete são a exceção: salvar uma faz todos os alertas abertos corresponderem novamente.
 
@@ -143,7 +143,7 @@ Os proprietários recebem cada lembrete como **Lembrete de alerta**, que fica at
 
 ### Modelos de notas
 
-**Alertas → Configurações → Modelos de notas** contém textos prontos para notas privadas. O cartão **Modelos de nota privada para alertas** os lista; **Criar: Alerta Nota Modelo** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota privada em um alerta ou episódio, e quando confirma ou resolve um, e seu texto pode ser editado antes de ser publicado. Os modelos de notas de alerta são texto simples: ao contrário dos modelos de notas de incidente, eles não preenchem variáveis.
+**Alertas → Configurações → Modelos de notas** contém textos prontos para notas privadas. O cartão **Modelos de nota privada para alertas** os lista; **Criar: Modelo de nota de alerta** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota privada em um alerta ou episódio, e quando confirma ou resolve um, e seu texto pode ser editado antes de ser publicado. Os modelos de notas de alerta são texto simples: ao contrário dos modelos de notas de incidente, eles não preenchem variáveis.
 
 ### Campos personalizados
 
@@ -170,7 +170,7 @@ O cartão **Próximo número** abaixo define o número que o próximo alerta e o
 
 ## Workflows
 
-Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, o mesmo para **Alerta Episódio**, **Alerta Estado Linha do tempo** e os demais, e ações como **Create One Alert** e **Update One Alert**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
+Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, o mesmo para **Episódio de alertas**, **Linha do tempo de estado do alerta** e os demais, e ações como **Create One Alert** e **Update One Alert**. As definições de campos personalizados de alerta são a única exceção: elas não têm gatilhos de workflow. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Quem pode alterar isso
 

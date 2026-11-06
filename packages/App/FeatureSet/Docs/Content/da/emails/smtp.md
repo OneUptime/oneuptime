@@ -34,7 +34,7 @@ Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > N
 
 :::tabs
 @tab Projekt
-Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og klik på **Opret SMTP Konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**.
+Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og klik på **Opret SMTP-konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**.
 @tab Selvhostet instans
 Åbn **Indstillinger** i Admin Dashboard og derefter **Notifikationer > E-mails** i sidemenuen (**Notifikationer** er foldet sammen fra start). Klik i kortet **E-mail-serverindstillinger** på **Rediger server**, og sæt **E-mailservertype** til `Custom SMTP`. Klik derefter på **Rediger SMTP-konfig** i kortet **Tilpassede e-mail- og SMTP-indstillinger**, som vises nedenunder.
 :::

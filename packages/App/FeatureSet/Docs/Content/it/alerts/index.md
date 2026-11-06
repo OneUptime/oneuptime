@@ -97,7 +97,7 @@ Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in 
 
 1. **Riceve un numero e uno stato.** Il numero dell'avviso viene da un contatore per progetto ed è mostrato con il vostro prefisso (`ALT-42`). L'avviso parte dal vostro stato di creazione, a meno che il modulo, l'API, un workflow o Chiedi all'IA non ne abbia scelto un altro.
 2. **Le regole di privacy girano per prime**, così tutto ciò che viene dopo sa se l'avviso è privato.
-3. **Il feed e i vostri strumenti di chat lo vengono a sapere.** Una voce **Avviso creato** viene scritta in **Avviso Feed**, e i canali indicati dalle vostre regole di Slack e Microsoft Teams vengono informati; una regola può creare un canale per l'avviso.
+3. **Il feed e i vostri strumenti di chat lo vengono a sapere.** Una voce **Avviso creato** viene scritta in **Feed dell'avviso**, e i canali indicati dalle vostre regole di Slack e Microsoft Teams vengono informati; una regola può creare un canale per l'avviso.
 4. **Vengono aggiunti proprietari ed etichette**: quelli indicati dai criteri del monitor o dalla richiesta, poi quelli delle regole del proprietario e delle etichette che corrispondono.
 5. **Le regole di reperibilità aggiungono le loro policy**, poi le regole di runbook avviano i runbook corrispondenti.
 6. **Le policy di reperibilità vengono eseguite.** Ogni policy dell'avviso chiama le sue persone in parallelo; se una fallisce, le altre non si fermano. Poi la prima regola degli incidenti che corrisponde dichiara un incidente dall'avviso, subito o allo scadere della sua attesa.
@@ -126,7 +126,7 @@ Aprite l'avviso. La sua intestazione mostra il suo stato, la sua gravità, da qu
 
 Il passaggio a un altro stato chiede una conferma, con una nota privata facoltativa compressa sotto **Aggiungi una nota privata**. Che cosa fa ogni stato è spiegato in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities).
 
-Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate le sue pagine **Causa principale** e **Rimedio** e aggiungete **Proprietari**. Il menu **Azioni** di **Avviso Feed** esegue anche un runbook con **Execute Runbook**, o chiama altre persone con **Esegui criterio di reperibilità**.
+Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate le sue pagine **Causa principale** e **Rimedio** e aggiungete **Proprietari**. Il menu **Azioni** di **Feed dell'avviso** esegue anche un runbook con **Esegui runbook**, o chiama altre persone con **Esegui criterio di reperibilità**.
 
 ## Che cosa mostra ogni pagina di un avviso
 
@@ -142,7 +142,7 @@ Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate 
 
 **Panoramica**, **Indagine**, **Team** e **Note** sono aperte; le altre sezioni restano compresse finché non ci fate clic.
 
-- **Panoramica** — l'intestazione indica i **Proprietari** dell'avviso, prima i team, accanto al suo monitor e al suo episodio. Il riquadro **Creato** mostra quando e da che cosa è stato creato, altri due il tempo impiegato per riconoscerlo e risolverlo; la durata è il primo dato dell'intestazione. La scheda **Cosa è successo** apre la pagina — la descrizione dell'avviso e la sua **Causa principale** — poi la scheda **OneUptime AI**, con **Chiedi a OneUptime AI** in fondo, e **Avviso Feed** registra tutto ciò che è successo all'avviso. Accanto si trovano la scheda **Risorse interessate**, la scheda **Dettagli dell'avviso** e le misurazioni dell'avviso.
+- **Panoramica** — l'intestazione indica i **Proprietari** dell'avviso, prima i team, accanto al suo monitor e al suo episodio. Il riquadro **Creato** mostra quando e da che cosa è stato creato, altri due il tempo impiegato per riconoscerlo e risolverlo; la durata è il primo dato dell'intestazione. La scheda **Cosa è successo** apre la pagina — la descrizione dell'avviso e la sua **Causa principale** — poi la scheda **OneUptime AI**, con **Chiedi a OneUptime AI** in fondo, e **Feed dell'avviso** registra tutto ciò che è successo all'avviso. Accanto si trovano la scheda **Risorse interessate**, la scheda **Dettagli dell'avviso** e le misurazioni dell'avviso.
 - **Cronologia stato** — ogni stato in cui è stato l'avviso, quando e per quanto tempo. Vedere [La cronologia degli stati](/docs/alerts/states-and-severities#la-cronologia-degli-stati).
 - **Incidenti collegati** — gli incidenti di cui fa parte questo avviso, con **Collega incidente** e **Dichiara incidente**.
 - **Impostazioni** — **Chi può vedere questo avviso**, con l'interruttore **Avviso privato**, e **Promemoria**, con **Invia promemoria**. Ogni interruttore salva nel momento in cui lo azionate.

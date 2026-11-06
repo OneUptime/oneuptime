@@ -744,7 +744,7 @@ Il ne passe jamais outre vos choix. Un onglet que vous avez mis en pause à sa f
 
 Logs, Traces et la moitié serveur de Errors sont lus avec les mêmes autorisations que les pages Logs, Traces et Exceptions ; un rôle qui ne les a pas voit un onglet verrouillé qui nomme l'autorisation. Les lignes marquées par le serveur sont placées sur l'horloge de l'enregistrement en les ancrant aux traces que l'enregistrement lui-même a observées ; le rail dit si cet ancrage a réussi (« server times anchored via 6 traces ») ou si l'heure de la ligne est approximative.
 
-Le champ de recherche du rail (`/`) accepte du texte libre et des jetons : `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Un sélecteur de portée réduit n'importe quel onglet à ±30 secondes autour de la tête de lecture. Le rail suit la tête de lecture jusqu'à ce que vous le fassiez défiler ; une puce **Resume following** (ou `M`) réactive le suivi.
+Le champ de recherche du rail (`/`) accepte du texte libre et des jetons : `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. Un sélecteur de portée réduit n'importe quel onglet à ±30 secondes autour de la tête de lecture. Le rail suit la tête de lecture jusqu'à ce que vous le fassiez défiler ; une puce **Reprendre le suivi** (ou `M`) réactive le suivi.
 
 ### Raccourcis clavier
 

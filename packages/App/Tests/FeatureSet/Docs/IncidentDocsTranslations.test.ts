@@ -133,6 +133,11 @@ const PROSE: Record<string, Array<string>> = {
     "Automatically",
     // The subscriber email's row, quoted as the email shows it.
     "Status",
+    /*
+     * The opening sentence's word for the classification ("a **severity**
+     * that says how much it hurts"), not the field the Logs pivot names.
+     */
+    "severity",
   ],
   "incidents/notes-owners-and-feed": ["Automation", "People", "Notifications"],
   "incidents/linked-alerts": [

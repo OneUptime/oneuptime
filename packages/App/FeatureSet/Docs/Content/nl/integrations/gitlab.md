@@ -31,9 +31,9 @@ De workflow draait één keer voor elk nieuw incident. Zijn blok **API Post (JSO
 ## Het token opslaan
 
 :::steps
-1. Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**.
+1. Ga naar **Workflows → Globale variabelen** en klik op **Workflowvariabele aanmaken**.
 2. Noem hem `GITLAB_TOKEN` en klik op **Volgende**.
-3. Plak het token in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
+3. Plak het token in **Inhoud**, zet **Geheim** aan en klik op **Workflowvariabele aanmaken**.
 :::
 
 Een geheime variabele wordt in runlogs vervangen door `[REDACTED]`, dus het token verschijnt nooit in een run.

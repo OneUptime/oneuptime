@@ -50,14 +50,14 @@ Under **Standardvärden för övervakning** väljer du **Monitortyp** med samma 
 Under **Kriterier** fyller du i vad som ska kontrolleras och kriterierna, som i [Skapa monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** överst skyddar du fält mot synkroniseringar (se [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor)). För en monitortyp som sonder kontrollerar frågar det sista steget, **Intervall**, efter **Övervakningsintervall**. Klicka på **Skapa Monitor Mall** på det sista steget.
 :::
 
-Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Övervakningskriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Custom Field Defaults** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera Kriterier** eller **Redigera Intervall**.
+Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Övervakningskriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.
 
 ## Skapa monitorer från en mall
 
 - **Ny monitor.** Klicka på **Skapa monitor** på mallens rad i listan, eller på **Skapa övervakning från mall** på dess sida. **Skapa monitor** öppnas med mallens typ och inställningar ifyllda; ändra det du behöver och skapa den. Den nya monitorn länkas till mallen.
 - **Monitorer du redan har.** Under **Länkade övervakare** klickar du på **Länka befintliga övervakare** och väljer dem. De behåller sina inställningar tills du synkroniserar.
 
-Värden som angetts under **Custom Field Defaults** skrivs till varje monitor som skapas från mallen, även monitorer som regler för automatisk import och larmpolicyer skapar från den.
+Värden som angetts under **Standardvärden för anpassade fält** skrivs till varje monitor som skapas från mallen, även monitorer som regler för automatisk import och larmpolicyer skapar från den.
 
 ## Synkronisera ändringar till länkade monitorer
 
@@ -68,7 +68,7 @@ Att redigera en mall ändrar bara mallen. För att kopiera en ändring till de l
 | **Synkronisera kriterier till länkade övervakare** | Kriterierna och steginställningarna, som mål och begärandealternativ, utom skyddade fält | Övervakningsintervallet, minsta sondöverensstämmelse, namnet, beskrivningen, etiketterna och värdena i anpassade fält |
 | **Synkronisera intervall till länkade övervakare** | Övervakningsintervallet och minsta sondöverensstämmelse | Kriterierna, namnet, beskrivningen, etiketterna och värdena i anpassade fält |
 | **Synkronisera etiketter till länkade övervakare** | Etiketterna och inget annat | Allt annat |
-| **Sync Custom Fields to Linked Monitors** | De anpassade fält som mallen har ett standardvärde för, i stället för det varje monitor hade | Anpassade fält som mallen lämnar tomma, och allt annat |
+| **Synkronisera anpassade fält till länkade monitorer** | De anpassade fält som mallen har ett standardvärde för, i stället för det varje monitor hade | Anpassade fält som mallen lämnar tomma, och allt annat |
 
 För att synkronisera en enskild monitor klickar du på **Synkronisera från mall** på dess rad under **Länkade övervakare**. Det kopierar kriterierna och steginställningarna (utom skyddade fält), övervakningsintervallet, minsta sondöverensstämmelse och etiketterna, och lämnar monitorns namn, beskrivning och värden i anpassade fält orörda. **Avlänka från mall** kopplar loss en monitor; den behåller sina inställningar.
 
@@ -85,7 +85,7 @@ Gå till **Monitorer → Inställningar → Mallar** och öppna mallen.
 
 ### Redigera dess kriterier
 
-Klicka på **Redigera Kriterier** på kortet **Övervakningskriterier**.
+Klicka på **Redigera kriterier** på kortet **Övervakningskriterier**.
 
 ### Skydda fälten
 
@@ -116,7 +116,7 @@ Vilka alternativ som finns beror på monitortypen. De omfattar mål och portar, 
 För mallar med flera steg matchas skyddade värden via steg-ID:na. Fristående skapade monitorer med ett steg kan också ta emot en mall med ett steg. Om ett skyddat steg inte kan matchas avvisas synkroniseringen innan någon monitor uppdateras, så att ett nytt eller omordnat steg inte av misstag kan kopiera ett annat stegs mål eller inloggningsuppgifter.
 
 > [!IMPORTANT]
-> Innan du ändrar monitortypen för en sparad mall (med **Redigera Standardvärden för övervakning**) tar du under **Redigera Kriterier** bort de undantag som inte gäller för den nya typen. Alla en malls undantag måste finnas för dess monitortyp.
+> Innan du ändrar monitortypen för en sparad mall (med **Redigera monitorns standardvärden**) tar du under **Redigera kriterier** bort de undantag som inte gäller för den nya typen. Alla en malls undantag måste finnas för dess monitortyp.
 
 ## Konfiguration via API
 

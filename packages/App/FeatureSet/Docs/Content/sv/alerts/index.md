@@ -126,7 +126,7 @@ Dess regler, ägare, flöde och första tillstånd sker ändå i båda fallen. I
 
 Ett byte till ett annat tillstånd ber dig bekräfta, med en valfri privat anteckning hopfälld under **Lägg till en privat anteckning**. Vad varje tillstånd gör står på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities).
 
-Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckningar**, fyller i sidorna **Rotorsak** och **Åtgärd** och lägger till **Ägare**. Menyn **Åtgärder** i **Larm Flöde** kör också en runbook med **Execute Runbook**, eller larmar fler personer med **Kör jourpolicy**.
+Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckningar**, fyller i sidorna **Rotorsak** och **Åtgärd** och lägger till **Ägare**. Menyn **Åtgärder** i **Larm Flöde** kör också en runbook med **Kör runbook**, eller larmar fler personer med **Kör jourpolicy**.
 
 ## Vad varje sida av ett larm visar
 

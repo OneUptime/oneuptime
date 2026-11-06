@@ -313,7 +313,7 @@ Zolang herstellen aan staat, zet een onderzoek dat eindigt met een zekere, onder
 Al het andere is gelijk aan de knop:
 
 - De pull request opent klaar voor review, geschreven vanuit de geplaatste analyse, en heeft een gekoppelde repository nodig, een die de matchende regels noemen als ze er noemen, en een Runner die online is om erin te werken: die de repository kiest, of een globale Runner.
-- Hij telt mee voor de dagelijkse limiet voor hersteltaken van dat signaal (**Daily Incident AI Fix Task Limit** of **Daily Alert AI Fix Task Limit**, onder **Meer instellingen** op de AI-instellingenpagina ervan) en voor het maximum aan open pull requests van de repository, als een van beide is ingesteld. Niet ingesteld beperkt geen van beide iets.
+- Hij telt mee voor de dagelijkse limiet voor hersteltaken van dat signaal (**Dagelijkse limiet voor AI-hersteltaken voor incidenten** of **Dagelijkse limiet voor AI-hersteltaken voor waarschuwingen**, onder **Meer instellingen** op de AI-instellingenpagina ervan) en voor het maximum aan open pull requests van de repository, als een van beide is ingesteld. Niet ingesteld beperkt geen van beide iets.
 - Elke trigger zoekt eerst naar een hersteltaak die al in de wachtrij staat of draait voor hetzelfde incident of dezelfde waarschuwing, zodat een automatische trigger en een klik normaal één taak worden, niet twee pull requests. De controle is een lezing vóór het schrijven, geen vergrendeling, dus twee triggers op precies hetzelfde moment kunnen er nog allebei door komen.
 - De run wordt door het systeem geschreven, aan niemand toegeschreven, en niets wordt vanzelf gemerged.
 

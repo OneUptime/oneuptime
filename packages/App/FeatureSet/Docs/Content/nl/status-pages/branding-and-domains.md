@@ -29,12 +29,12 @@ De huisstijl was vroeger verdeeld over aparte schermen **Basishuisstijl**, **Kop
 
 ### Logo en omslagafbeelding
 
-De eerste kaart, **Logo en omslagafbeelding**, heeft een knop **Edit Images** die twee stappen opent:
+De eerste kaart, **Logo en omslagafbeelding**, heeft een knop **Afbeeldingen bewerken** die twee stappen opent:
 
 | Stap | Velden |
 | ---- | ------ |
-| **Logo** | De upload van het logo (plaatshouder `Upload logo`), **Logo voor donker thema** (plaatshouder `Upload logo for the dark theme`), een optioneel logo gemaakt voor een donkere achtergrond, en **Logo Alt Text** (plaatshouder `Logo of My Company`). Laat de alt-tekst leeg en de titel van de statuspagina wordt in plaats daarvan gebruikt. |
-| **Omslagafbeelding** | **Omslag**, een upload (plaatshouder `Upload cover image`) voor de brede banner achter de koptekst, en **Cover Image Alt Text**. Laat de alt-tekst leeg als de omslag puur decoratief is. |
+| **Logo** | De upload van het logo (plaatshouder `Upload logo`), **Logo voor donker thema** (plaatshouder `Upload logo for the dark theme`), een optioneel logo gemaakt voor een donkere achtergrond, en **Alternatieve tekst voor logo** (plaatshouder `Logo of My Company`). Laat de alt-tekst leeg en de titel van de statuspagina wordt in plaats daarvan gebruikt. |
+| **Omslagafbeelding** | **Omslag**, een upload (plaatshouder `Upload cover image`) voor de brede banner achter de koptekst, en **Alternatieve tekst voor omslagafbeelding**. Laat de alt-tekst leeg als de omslag puur decoratief is. |
 
 Het logo, het logo voor donker thema, de omslagafbeelding en de favicon zijn bestanden die in het eigen project van de statuspagina zijn geüpload, en dat wordt gecontroleerd telkens wanneer er een wordt opgeslagen, vanuit het dashboard, de API, Terraform of een workflow. Een bestand dat in een ander project is geüpload, wordt geweigerd met de woorden die een bestand krijgt dat niet meer bestaat: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." of "The favicon's file could not be found. Upload the favicon again." De afbeelding opnieuw uploaden vanaf de pagina lost het op.
 
@@ -77,7 +77,7 @@ De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagi
 
 ### Footer
 
-- **Copyrightinformatie**: **Edit Copyright** opent één veld, **Copyrightinformatie**, met de plaatshouder `Acme, Inc.`.
+- **Copyrightinformatie**: **Copyright bewerken** opent één veld, **Copyrightinformatie**, met de plaatshouder `Acme, Inc.`.
 - **Footerlinks**: hetzelfde paar **Titel** en **Koppeling** als bij de koptekstlinks, herschikt door te slepen en toegevoegd met **Footerlink toevoegen**.
 
 Koptekstlinks zijn voor navigatie; footerlinks zijn voor de kleine lettertjes, zoals juridische informatie, privacy en voorwaarden.
@@ -88,7 +88,7 @@ De laatste sectie van de pagina staat ingeklapt onder **Meer instellingen**, omd
 
 **Kleuren van de geschiedenisgrafiek.** Naast het **Thema** zijn dit de enige ingebouwde kleurinstellingen van een statuspagina. Elke balk van de uptimegeschiedenis is een dag.
 
-- **Standaard balkkleur**: **Edit Default Bar Color** opent de kiezer **Standaard balkkleur**. Het is de kleur van een dag waarop geen balkkleurregel past. Elke nieuwe statuspagina begint met groen.
+- **Standaard balkkleur**: **Standaardkleur van balk bewerken** opent de kiezer **Standaard balkkleur**. Het is de kleur van een dag waarop geen balkkleurregel past. Elke nieuwe statuspagina begint met groen.
 - **Regels voor balkkleuren**: een geordende tabel met regels die u door te slepen sorteert. Elke regel heeft **Wanneer uptime % groter is dan of gelijk is aan** en **Gebruik dan deze balkkleur**; de kolommen van de tabel heten `When Uptime Percent >=` en `Then, Bar Color is`. De regels worden van boven naar beneden gecontroleerd, en de eerste die de uptime van een dag bereikt, bepaalt de kleur; houd hogere percentages dus boven lagere: een regel onder een regel met hetzelfde of een lager percentage kleurt nooit een dag. De kleur van een nieuwe regel is al gekozen, een die de andere regels nog niet gebruiken; kies in plaats daarvan de kleur die u wilt.
 - **Voorbeeld van balkkleuren**: elke kleur die een dag kan krijgen, zoals de meeste mensen die zien (**Volledig kleurenzicht**) en zoals mensen met rood-groenkleurenblindheid die zien (**Deuteranopie (rood-groen)**, **Protanopie (rood-groen)**). Het waarschuwt wanneer twee kleuren er voor hen hetzelfde uitzien en wanneer een regel nooit een dag kleurt.
 

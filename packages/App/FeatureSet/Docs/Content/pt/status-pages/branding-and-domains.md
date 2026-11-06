@@ -29,12 +29,12 @@ A marca ficava dividida entre telas separadas de **Marca essencial**, **Cabeçal
 
 ### Logotipo e imagem de capa
 
-O primeiro cartão, **Logotipo e Imagem de Capa**, tem um botão **Edit Images** que abre duas etapas:
+O primeiro cartão, **Logotipo e Imagem de Capa**, tem um botão **Editar imagens** que abre duas etapas:
 
 | Etapa | Campos |
 | ---- | ------ |
-| **Logotipo** | O envio do logotipo (texto de exemplo `Upload logo`), **Logotipo do tema escuro** (texto de exemplo `Upload logo for the dark theme`), um logotipo opcional feito para um fundo escuro, e **Logo Alt Text** (texto de exemplo `Logo of My Company`). Deixe o texto alternativo em branco e o título da página de status é usado no lugar dele. |
-| **Imagem de capa** | **Capa**, um envio (texto de exemplo `Upload cover image`) para a faixa larga atrás do cabeçalho, e **Cover Image Alt Text**. Deixe o texto alternativo em branco se a capa for puramente decorativa. |
+| **Logotipo** | O envio do logotipo (texto de exemplo `Upload logo`), **Logotipo do tema escuro** (texto de exemplo `Upload logo for the dark theme`), um logotipo opcional feito para um fundo escuro, e **Texto alternativo do logotipo** (texto de exemplo `Logo of My Company`). Deixe o texto alternativo em branco e o título da página de status é usado no lugar dele. |
+| **Imagem de capa** | **Capa**, um envio (texto de exemplo `Upload cover image`) para a faixa larga atrás do cabeçalho, e **Texto alternativo da imagem de capa**. Deixe o texto alternativo em branco se a capa for puramente decorativa. |
 
 O logotipo, o logotipo do tema escuro, a imagem de capa e o favicon são arquivos enviados no próprio projeto da página de status, e isso é verificado sempre que um deles é salvo, pelo painel, pela API, pelo Terraform ou por um fluxo de trabalho. Um arquivo enviado em outro projeto é recusado com as mesmas palavras que recebe um arquivo que não existe mais: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." ou "The favicon's file could not be found. Upload the favicon again." Enviar a imagem de novo pela página resolve.
 
@@ -77,7 +77,7 @@ A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de st
 
 ### Rodapé
 
-- **Informações de direitos autorais**: **Edit Copyright** abre um campo, **Informações de direitos autorais**, com o texto de exemplo `Acme, Inc.`.
+- **Informações de direitos autorais**: **Editar direitos autorais** abre um campo, **Informações de direitos autorais**, com o texto de exemplo `Acme, Inc.`.
 - **Links do rodapé**: o mesmo par **Título** e **Link** dos links do cabeçalho, ordenados arrastando e adicionados com **Adicionar: Link do rodapé**.
 
 Os links do cabeçalho servem para navegar; os do rodapé, para as letras miúdas, como avisos legais, privacidade e termos.
@@ -88,7 +88,7 @@ A última seção da página fica recolhida em **Mais configurações**, porque 
 
 **Cores do gráfico de histórico.** Além do **Tema**, estes são os únicos controles de cor embutidos de uma página de status. Cada barra do histórico de tempo de atividade é um dia.
 
-- **Cor Padrão da Barra**: **Edit Default Bar Color** abre o seletor **Cor Padrão da Barra**. É a cor de um dia ao qual nenhuma regra de cor das barras corresponde. Toda página de status nova começa com verde.
+- **Cor Padrão da Barra**: **Editar cor padrão da barra** abre o seletor **Cor Padrão da Barra**. É a cor de um dia ao qual nenhuma regra de cor das barras corresponde. Toda página de status nova começa com verde.
 - **Regras de cor das barras**: uma tabela ordenada de regras que você ordena arrastando. Cada regra tem **Quando a % de tempo de atividade for maior ou igual a** e **Então, use esta cor de barra**; as colunas da tabela dizem `When Uptime Percent >=` e `Then, Bar Color is`. As regras são verificadas de cima para baixo, e a primeira que o tempo de atividade de um dia alcança define a sua cor, então mantenha as porcentagens maiores acima das menores: uma regra abaixo de outra com porcentagem igual ou menor nunca colore um dia. A cor de uma regra nova já vem escolhida, uma que as outras regras ainda não usam; escolha a que você quiser no lugar dela.
 - **Prévia das cores das barras**: cada cor que um dia pode ter, como a maioria das pessoas a vê (**Visão de cores completa**) e como as pessoas com daltonismo vermelho-verde a veem (**Deuteranopia (vermelho-verde)**, **Protanopia (vermelho-verde)**). Avisa quando duas cores parecem iguais para elas e quando uma regra nunca colore um dia.
 

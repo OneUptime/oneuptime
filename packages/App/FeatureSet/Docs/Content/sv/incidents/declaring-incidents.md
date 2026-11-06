@@ -142,7 +142,7 @@ Fortsätter du att deklarera samma sorts incident — samma titelmönster, samma
 3. Ändra det som är annorlunda den här gången, gå sedan igenom stegen och deklarera som vanligt.
 :::
 
-Har ditt projekt inga mallar än får du i stället en dialog **No Incident Templates**, med en knapp **Create Template** som tar dig till **Incidenter → Inställningar → Incidentmallar**.
+Har ditt projekt inga mallar än får du i stället en dialog **Inga incidentmallar**, med en knapp **Create Template** som tar dig till **Incidenter → Inställningar → Incidentmallar**.
 
 Mallar byggs med en egen guide i fyra steg — **Mallinformation**, **Incidentdetaljer**, **Berörda resurser**, **Jour** — plus stegen **Anpassade fält** och **Anpassade fält vid skapande** efter **Berörda resurser** när ditt projekt har anpassade incidentfält. Mallens **Inledande incidenttillstånd**, **Ägare** och **Etiketter** finns under **Fler fält** i slutet av **Incidentdetaljer**. **Berörda resurser** frågar som deklarationsformuläret gör — **Monitorer**, sedan **Ändra övervakningsstatus till**, sedan **Andra påverkade resurser**, med **Begränsa till dessa statussidor** under **Fler fält** — förutom att en mall alltid frågar efter monitorstatusen: den gäller också monitorerna som väljs när en incident deklareras från mallen. Det här är fälten:
 
@@ -178,7 +178,7 @@ Några snabba regler:
 De flesta incidenter borde inte behöva skrivas in av en människa. En monitors kriterier kan deklarera en i samma ögonblick som ett filter matchar:
 
 :::steps
-1. Öppna monitorn, välj **Kriterier** i dess sidomeny och klicka på **Edit Monitoring Criteria**. (En ny monitor frågar efter samma kriterier medan du skapar den.)
+1. Öppna monitorn, välj **Kriterier** i dess sidomeny och klicka på **Redigera övervakningskriterier**. (En ny monitor frågar efter samma kriterier medan du skapar den.)
 2. Slå på **När filter matchar, deklarera en incident.** i kriteriefiltret som ska deklarera. Ett avsnitt **Skapa incident** visas med en knapp **Lägg till incident** — ett kriteriefilter kan deklarera mer än en incident.
 3. Fyll i incidentens fält (se nedan) och spara. Nästa gång filtret matchar deklareras incidenten och larmar sina jourpolicyer.
 :::

@@ -313,7 +313,7 @@ Enquanto a correção estiver ativada, uma investigação que termina com uma ca
 Todo o resto é igual ao botão:
 
 - O pull request abre pronto para revisão, escrito a partir da análise publicada, e precisa de um repositório conectado, um dos que as regras correspondentes nomeiam quando nomeiam algum, e de um Runner online para trabalhar nele: o que o repositório escolhe, ou um Runner global.
-- Ele conta para o limite diário de tarefas de correção daquele sinal (**Daily Incident AI Fix Task Limit** ou **Daily Alert AI Fix Task Limit**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
+- Ele conta para o limite diário de tarefas de correção daquele sinal (**Limite diário de tarefas de correção com IA para incidentes** ou **Limite diário de tarefas de correção com IA para alertas**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
 - Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, então um gatilho automático e um clique normalmente viram uma única tarefa, não dois pull requests. A verificação é uma leitura antes da escrita, não um bloqueio, então dois gatilhos no mesmo instante ainda podem passar os dois.
 - A execução é escrita pelo sistema, não é atribuída a ninguém, e nada é mesclado sozinho.
 

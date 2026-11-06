@@ -58,7 +58,7 @@ Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 - **Regole di raggruppamento**, **Regole degli incidenti** e **Regole dei promemoria** vengono controllate dall'alto verso il basso del loro elenco, e vince la prima corrispondenza. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
 - **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette**, **Regole di privacy** e **Regole di runbook** agiscono tutte quando corrispondono. Policy di reperibilità, proprietari ed etichette aggiunti da più regole vengono aggiunti una sola volta.
 
-**Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno due schede: **Alert Rules**, per gli avvisi, ed **Episode Rules**, che agiscono allo stesso modo su ogni nuovo episodio di avviso. Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per sospenderla, e l'elenco mostra un **Abilitato** verde o un **Disabilitato** rosso per ogni regola.
+**Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno due schede: **Regole degli avvisi**, per gli avvisi, ed **Regole degli episodi**, che agiscono allo stesso modo su ogni nuovo episodio di avviso. Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per sospenderla, e l'elenco mostra un **Abilitato** verde o un **Disabilitato** rosso per ogni regola.
 
 La maggior parte delle regole agisce sugli avvisi e sugli episodi creati dopo il salvataggio. Per applicare una regola del proprietario, delle etichette o di privacy a quelli che avete già, usate **Esegui ora**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole di promemoria sono l'eccezione: salvarne una ricalcola ogni avviso aperto.
 
@@ -143,7 +143,7 @@ I proprietari ricevono ogni promemoria come **Promemoria avviso**, attivo via e-
 
 ### Modelli di note
 
-**Avvisi → Impostazioni → Modelli di note** contiene testo già pronto per le note private. La scheda **Modelli di nota privata per gli avvisi** li elenca; **Crea: Avviso Nota Modello** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene proposto quando qualcuno scrive una nota privata su un avviso o un episodio, e quando ne riconosce o ne risolve uno, e il suo testo può essere modificato prima della pubblicazione. I modelli di nota degli avvisi sono testo semplice: a differenza dei modelli di nota degli incidenti, non compilano variabili.
+**Avvisi → Impostazioni → Modelli di note** contiene testo già pronto per le note private. La scheda **Modelli di nota privata per gli avvisi** li elenca; **Crea: Modello di nota per avvisi** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene proposto quando qualcuno scrive una nota privata su un avviso o un episodio, e quando ne riconosce o ne risolve uno, e il suo testo può essere modificato prima della pubblicazione. I modelli di nota degli avvisi sono testo semplice: a differenza dei modelli di nota degli incidenti, non compilano variabili.
 
 ### Campi personalizzati
 
@@ -170,7 +170,7 @@ La scheda **Numero successivo** sotto imposta il numero che ricevono il prossimo
 
 ## Workflow
 
-Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Avviso Episodio**, **Avviso Stato Cronologia** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
+Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
 
 ## Chi può modificarle
 

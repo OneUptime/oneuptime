@@ -40,12 +40,12 @@ Um modelo de incidente é o esqueleto salvo de um incidente. Em vez de digitar d
 
 :::steps
 1. Vá em **Incidentes → Configurações → Modelos de incidentes** (`/dashboard/{projectId}/incidents/settings/templates`). O cartão se chama **Modelos de incidentes**.
-2. Clique em **Criar: Incidente Modelo**. Dê um nome ao modelo em **Informações do modelo** e depois preencha em **Detalhes do incidente** o incidente que ele declara: um **Título**, uma **Severidade do incidente** e uma **Descrição**.
+2. Clique em **Criar: Modelo de incidente**. Dê um nome ao modelo em **Informações do modelo** e depois preencha em **Detalhes do incidente** o incidente que ele declara: um **Título**, uma **Severidade do incidente** e uma **Descrição**.
 3. Pressione **Próximo** para percorrer as etapas opcionais — os recursos que ele afeta, seus campos personalizados e suas políticas de plantão — preenchendo o que todo incidente desse tipo tem em comum.
-4. Clique em **Criar: Incidente Modelo** na última etapa. A partir de agora, o modelo é oferecido por **Criar a partir de modelo** na lista de incidentes.
+4. Clique em **Criar: Modelo de incidente** na última etapa. A partir de agora, o modelo é oferecido por **Criar a partir de modelo** na lista de incidentes.
 :::
 
-A criação leva você por um assistente de quatro etapas, com mais duas etapas quando seu projeto tem campos personalizados de incidente. Só as duas primeiras pedem algo que você precisa responder: **Próximo** percorre as etapas opcionais depois delas, e **Criar: Incidente Modelo** fica na última etapa.
+A criação leva você por um assistente de quatro etapas, com mais duas etapas quando seu projeto tem campos personalizados de incidente. Só as duas primeiras pedem algo que você precisa responder: **Próximo** percorre as etapas opcionais depois delas, e **Criar: Modelo de incidente** fica na última etapa.
 
 - **Informações do modelo** — **Nome do modelo** e **Descrição do modelo**. Eles nomeiam o próprio modelo; nunca aparecem no incidente.
 - **Detalhes do incidente** — **Título**, **Descrição** (Markdown) e **Severidade do incidente**. Em **Mais campos**, cujo cabeçalho recolhido nomeia os três e mostra cada um que estiver definido:
@@ -62,8 +62,8 @@ Algumas regras rápidas:
 - A lista de modelos mostra só **Nome** e **Descrição**. As linhas não podem ser editadas nem excluídas pela lista — abra um modelo (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) para alterá-lo.
 - Quem pode editar um modelo pode alterar seus detalhes e seus recursos afetados, incluindo **Estado Inicial do Incidente** e **Alterar status do monitor para**: Project Owners, Project Admins e Project Members, Incident Admins e Incident Members, e uma função com **Edit Incident Template**.
 - Os modelos aceitam importação e exportação em JSON, então você pode levar um de um projeto para outro.
-- Sem modelos, a lista diz **Nenhum modelo de incidente encontrado** com **Criar: Incidente Modelo** logo abaixo.
-- Sem modelos também, **Criar a partir de modelo** na lista de incidentes abre uma caixa de diálogo **No Incident Templates** que diz onde os modelos são criados, e seu botão **Create Template** abre **Incidentes → Configurações → Modelos de incidentes**.
+- Sem modelos, a lista diz **Nenhum modelo de incidente encontrado** com **Criar: Modelo de incidente** logo abaixo.
+- Sem modelos também, **Criar a partir de modelo** na lista de incidentes abre uma caixa de diálogo **Nenhum modelo de incidente** que diz onde os modelos são criados, e seu botão **Create Template** abre **Incidentes → Configurações → Modelos de incidentes**.
 
 ### Como um modelo é aplicado
 
@@ -80,7 +80,7 @@ flowchart TB
 ```
 
 - **No painel** — o botão **Criar a partir de modelo** na lista de incidentes abre um seletor **Selecionar Modelo de Incidente**, e a página de declaração lê o modelo do parâmetro de consulta `incidentTemplateId` e depois preenche o formulário com o modelo, mais suas equipes proprietárias e seus usuários proprietários. Sua etapa **Detalhes** segue os [campos personalizados na criação](#campos-personalizados-na-criação) do modelo. Os proprietários viram proprietários do incidente sem ser notificados, depois que os canais do Slack e do Microsoft Teams do incidente existem, então uma regra de notificação que convida os proprietários do incidente para um canal novo também os convida.
-- **No servidor** — um [formulário](/docs/forms/on-submit#o-modelo-de-incidente) que tem um **Incidente Modelo**, e a etapa **Create One Incident** de um workflow com uma configuração **Incident Template** escolhida, declaram o incidente a partir do modelo no servidor. A etapa lê o modelo como Project Admin do projeto do workflow, então um modelo de outro projeto, ou um que foi excluído, é recusado, e em um plano que não inclui modelos de incidente a etapa é recusada com o plano de que precisa. Os proprietários do modelo viram proprietários do incidente, como no painel. Veja [Componentes de workflow](/docs/workflows/components).
+- **No servidor** — um [formulário](/docs/forms/on-submit#o-modelo-de-incidente) que tem um **Modelo de incidente**, e a etapa **Create One Incident** de um workflow com uma configuração **Incident Template** escolhida, declaram o incidente a partir do modelo no servidor. A etapa lê o modelo como Project Admin do projeto do workflow, então um modelo de outro projeto, ou um que foi excluído, é recusado, e em um plano que não inclui modelos de incidente a etapa é recusada com o plano de que precisa. Os proprietários do modelo viram proprietários do incidente, como no painel. Veja [Componentes de workflow](/docs/workflows/components).
 
 Um incidente declarado no servidor registra o modelo em `createdIncidentTemplateId`. Só o OneUptime define essa coluna, para um formulário ou uma etapa de workflow que nomeia um modelo: uma chave de API ou um usuário conectado não pode, e uma requisição que envia `createdIncidentTemplateId` é recusada. Para declarar a partir de um modelo pela API, leia-o em `/api/incident-templates` e envie os valores dele na requisição.
 
@@ -129,7 +129,7 @@ Os modelos de notas dão aos respondedores texto pronto para as atualizações d
 
 :::steps
 1. Vá em **Incidentes → Configurações → Modelos de notas** (`/dashboard/{projectId}/incidents/settings/note-templates`). O cartão se chama **Modelos de nota pública ou privada para incidentes** — uma única biblioteca atende aos dois tipos de nota.
-2. Clique em **Criar: Incidente Nota Modelo** e preencha sua única página: **Nome do modelo** e **Descrição do modelo**, ambos obrigatórios, e depois a própria **Nota**, em Markdown, obrigatória: o texto com que uma nota começa quando o modelo é escolhido.
+2. Clique em **Criar: Modelo de nota de incidente** e preencha sua única página: **Nome do modelo** e **Descrição do modelo**, ambos obrigatórios, e depois a própria **Nota**, em Markdown, obrigatória: o texto com que uma nota começa quando o modelo é escolhido.
 3. Salve-o. O modelo é oferecido por **Modelos** nas duas páginas de notas, e por **Selecionar Modelo de Nota** nas caixas de diálogo **Confirmar incidente** e **Resolver incidente**.
 :::
 
@@ -187,12 +187,12 @@ Os campos personalizados deixam você levar seus próprios metadados em todo inc
 
 :::steps
 1. Vá em **Incidentes → Configurações → Campos personalizados** (`/dashboard/{projectId}/incidents/settings/custom-fields`). A página se chama **Campos personalizados do incidente** e lista os campos na **Ordem** deles, cada um só com seu **Nome do campo** e seu **Tipo do campo**.
-2. Clique em **Criar: Incidente Personalizado Campo** e preencha o **Nome do campo**, a **Descrição do campo** e o **Tipo do campo** — e, para um tipo lista suspensa, as opções dele, logo abaixo do tipo.
+2. Clique em **Criar: Campo personalizado de incidente** e preencha o **Nome do campo**, a **Descrição do campo** e o **Tipo do campo** — e, para um tipo lista suspensa, as opções dele, logo abaixo do tipo.
 3. Para perguntar o campo sempre que um incidente for declarado, abra **Mais campos** e ative **Mostrar na criação**, e **Obrigatório na criação** se ele precisar ser respondido.
 4. Salve-o e depois arraste a linha pela alça até onde o campo deve ser listado. **Editar** na linha de um campo abre o resto das configurações dele.
 :::
 
-Criar um campo pede seu **Nome do campo**, sua **Descrição do campo** e seu **Tipo do campo** em uma única página — e, para um tipo lista suspensa, as opções dele, logo abaixo do tipo. Os valores de um campo novo são digitados. Todo o resto fica em **Mais campos**, que começa recolhido quer você crie um campo, quer o edite; recolhido, o cabeçalho dele nomeia o que há dentro e mostra o que está definido. Para criar um campo que copie seu valor de um campo personalizado de monitor, abra o menu **Mais** (**⋯**) ao lado de **Criar: Incidente Personalizado Campo** e escolha **Criar campo personalizado mapeado** — veja [Campos copiados de um monitor](#campos-copiados-de-um-monitor).
+Criar um campo pede seu **Nome do campo**, sua **Descrição do campo** e seu **Tipo do campo** em uma única página — e, para um tipo lista suspensa, as opções dele, logo abaixo do tipo. Os valores de um campo novo são digitados. Todo o resto fica em **Mais campos**, que começa recolhido quer você crie um campo, quer o edite; recolhido, o cabeçalho dele nomeia o que há dentro e mostra o que está definido. Para criar um campo que copie seu valor de um campo personalizado de monitor, abra o menu **Mais** (**⋯**) ao lado de **Criar: Campo personalizado de incidente** e escolha **Criar campo personalizado mapeado** — veja [Campos copiados de um monitor](#campos-copiados-de-um-monitor).
 
 Cada definição tem:
 
@@ -255,7 +255,7 @@ Os [campos personalizados na criação](#campos-personalizados-na-criação) de 
 
 ### Campos copiados de um monitor
 
-Um campo personalizado pode pegar seu valor de um campo personalizado dos monitores do incidente, em vez de ser digitado — uma região ou um nível de cliente que seus monitores já registram, por exemplo. Para criar um, abra o menu **Mais** (**⋯**) ao lado de **Criar: Incidente Personalizado Campo** e escolha **Criar campo personalizado mapeado**. Ele pede três coisas:
+Um campo personalizado pode pegar seu valor de um campo personalizado dos monitores do incidente, em vez de ser digitado — uma região ou um nível de cliente que seus monitores já registram, por exemplo. Para criar um, abra o menu **Mais** (**⋯**) ao lado de **Criar: Campo personalizado de incidente** e escolha **Criar campo personalizado mapeado**. Ele pede três coisas:
 
 - **Campo do monitor** — o campo personalizado de monitor a copiar. Todos são oferecidos, cada um com o tipo abaixo do nome. O novo campo recebe esse tipo, e as opções de uma lista suspensa, para que os dois sempre combinem.
 - **Nome do campo** — começa com o nome do campo do monitor, até você digitar outro.
@@ -501,7 +501,7 @@ As funções de incidente são os papéis com nome a que você atribui pessoas d
 
 Um projeto novo começa com uma função, **Comandante do incidente**, a pessoa responsável pela resposta. O OneUptime a preenche para você: quando você declara um incidente pelo painel sem escolher ninguém para a função, você se torna o Comandante do incidente dele, e um incidente que ainda não tem um recebe a primeira pessoa que muda o estado dele, a menos que ela já tenha outra função nele. Comandante do incidente pode ser renomeada, mas não excluída, e é sempre ocupada por uma pessoa. O **Excluir** dela fica bloqueado, e diz por quê.
 
-Adicione as outras funções que sua equipe usa, como Respondedor, Responsável pela comunicação ou Escriba, com **Criar: Incidente Função**. O formulário tem uma página: um nome e uma descrição, e depois **Mais campos**, recolhido, com **Permitir vários usuários**, o ícone da função e a cor dela. A cor de uma função nova já vem escolhida, uma que as funções da lista ainda não usam, e o ícone é opcional, então você só abre **Mais campos** para mudá-los. Uma função é ocupada por uma pessoa por incidente, a menos que você ative **Permitir vários usuários**. Os projetos criados por versões anteriores do OneUptime também começavam com Responder, Communications Lead e Observer. Eles as mantêm até você excluí-las.
+Adicione as outras funções que sua equipe usa, como Respondedor, Responsável pela comunicação ou Escriba, com **Criar: Função no incidente**. O formulário tem uma página: um nome e uma descrição, e depois **Mais campos**, recolhido, com **Permitir vários usuários**, o ícone da função e a cor dela. A cor de uma função nova já vem escolhida, uma que as funções da lista ainda não usam, e o ícone é opcional, então você só abre **Mais campos** para mudá-los. Uma função é ocupada por uma pessoa por incidente, a menos que você ative **Permitir vários usuários**. Os projetos criados por versões anteriores do OneUptime também começavam com Responder, Communications Lead e Observer. Eles as mantêm até você excluí-las.
 
 As funções são só definições. Você atribui pessoas a elas incidente por incidente — o assistente de declaração pergunta isso na etapa **Plantão e funções**, com um campo **Atribuir funções do incidente**, e cada incidente tem uma página **Funções** no menu lateral. Os critérios de um monitor e uma regra de agrupamento de incidentes podem escolher pessoas para elas com antecedência. Cada um desses formulários pergunta com os mesmos cartões, um por função: uma função marcada como **Principal** é Comandante do incidente ou outra função principal, e uma função que aceita uma pessoa retira o seletor dela depois que tem uma. No cartão **Funções** de um incidente, uma função que aceita várias pessoas oferece **Add More**.
 
@@ -513,7 +513,7 @@ Arquive uma função que sua equipe não usa mais pelo menu **⋯** da sua linha
 
 Todo incidente recebe um número de um contador do projeto. Sem prefixo, ele aparece como `#42`; com um, aparece como `INC-42`. Se sua equipe diz «INC-42» em voz alta, faça o produto dizer isso também. Os projetos novos começam com `INC-` para incidentes e `IE-` para episódios de incidente.
 
-Vá em **Incidentes → Configurações → Numeração** (`/dashboard/{projectId}/incidents/settings/numbering`). O cartão **Prefixo do número** tem uma linha para **Incidentes** e uma para **Incidente Episódios**. Cada uma mostra o prefixo dela e um exemplo do número que ele forma: `INC-`, e depois **Exemplo:** `INC-42`. Um projeto sem prefixo mostra **Sem prefixo** e `#42`.
+Vá em **Incidentes → Configurações → Numeração** (`/dashboard/{projectId}/incidents/settings/numbering`). O cartão **Prefixo do número** tem uma linha para **Incidentes** e uma para **Episódios de incidentes**. Cada uma mostra o prefixo dela e um exemplo do número que ele forma: `INC-`, e depois **Exemplo:** `INC-42`. Um projeto sem prefixo mostra **Sem prefixo** e `#42`.
 
 :::steps
 1. Clique em **Atualizar**. A caixa de diálogo **Editar prefixo do número** se abre, com dois campos: **Prefixo de número de incidente** (texto de exemplo `INC-`) e **Prefixo de número de episódio de incidente** (texto de exemplo `IE-`).
@@ -539,7 +539,7 @@ Alertas e eventos de manutenção programada têm a mesma página: **Alertas →
 
 Cada incidente novo recebe o número depois do mais alto usado até agora, e cada episódio novo também: `INC-1`, `INC-2`, `INC-3` desde o primeiro de um projeto. Vindo de outra ferramenta? Faça os números do OneUptime começarem depois do último dessa ferramenta, para que um número nunca indique dois incidentes diferentes: uma equipe cujo último incidente na ferramenta antiga foi `INC-2345` define o próximo número como `2346`, ou como `10000` para distinguir num relance os incidentes do OneUptime.
 
-O cartão **Próximo número**, abaixo de **Prefixo do número** na mesma página, tem uma linha para **Incidentes** e uma para **Incidente Episódios**. Cada uma mostra o número que o próximo recebe, com o prefixo, e depois **Mais alto até agora:** e o número mais alto usado, ou **Nenhum usado ainda**.
+O cartão **Próximo número**, abaixo de **Prefixo do número** na mesma página, tem uma linha para **Incidentes** e uma para **Episódios de incidentes**. Cada uma mostra o número que o próximo recebe, com o prefixo, e depois **Mais alto até agora:** e o número mais alto usado, ou **Nenhum usado ainda**.
 
 :::steps
 1. Clique em **Atualizar** no cartão **Próximo número**. A caixa de diálogo **Editar próximo número** abre, com **Próximo número de incidente** e **Próximo número de episódio de incidente**, cada um preenchido com o número que vem a seguir e dizendo o que precisa superar.
@@ -603,7 +603,7 @@ As regras de agrupamento, de SLA, de lembrete e de IA também agem sobre o novo 
 > [!IMPORTANT]
 > **A semântica de ordem não é uniforme.** As regras de agrupamento, as regras de SLA e as Reminder Rules são avaliadas em ordem, e as listas delas são ordenadas arrastando: uma regra nova é adicionada no fim. As regras de plantão não — toda regra que corresponde dispara. Não suponha que um mesmo modelo vale para as nove.
 
-As páginas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Regras de incidentes** e uma aba **Episode Rules**, cada uma com sua própria tabela. Configure a aba **Regras de incidentes** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Regras de lembrete** são tabelas únicas.
+As páginas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Regras de incidentes** e uma aba **Regras de episódios**, cada uma com sua própria tabela. Configure a aba **Regras de incidentes** a menos que você esteja falando especificamente de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de IA**, **Regras de SLA** e **Regras de lembrete** são tabelas únicas.
 
 As regras de proprietário, de rótulos e de privacidade só agem sobre os incidentes e episódios criados depois que a regra existe. Para aplicar uma delas aos incidentes que já existem, use **Executar agora** na linha da regra, na página dela ou nas ações em massa da tabela — veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de plantão, de runbook, de IA, de agrupamento, de SLA e de lembrete não podem ser executadas em incidentes existentes.
 
@@ -615,7 +615,7 @@ As regras de proprietário, de rótulos e de privacidade só agem sobre os incid
 
 **Incidentes → Regras → Regras de Rótulos** coloca rótulos nos incidentes novos que correspondem, e **Regras de proprietário** adiciona a eles usuários e equipes proprietários. **Alertas → Regras** e **Manutenção programada → Regras** têm as mesmas duas páginas e funcionam do mesmo jeito. Criar uma regra leva duas etapas: **Corresponder**, as condições que um incidente precisa atender, e depois **Rótulos** (ou **Proprietários**), o que a regra adiciona. O **Nome** dela é preenchido a partir do que você escolhe até você digitar um nome próprio, e a **Descrição** opcional (e o **Notificar proprietários** de uma regra de proprietário) espera em **Mais campos**.
 
-**Uma regra pode herdar.** Em **Rótulos a Adicionar** (ou **Proprietários**), a seção recolhida **Herdar Rótulos** (ou **Herdar Proprietários**) contém seis interruptores que também repassam os rótulos (ou os proprietários) dos monitores, hosts, clusters Kubernetes, hosts Docker, hosts Podman e serviços do incidente. Uma regra que herda pode deixar **Rótulos a Adicionar** vazio, e então recebe o nome daquilo de que herda (_Inherit labels from monitors, hosts_); uma regra nova que nem nomeia nem herda nada não pode ser salva — nem pelo formulário, nem pela API ou pelo Terraform. As regras de episódio, na aba **Episode Rules**, não têm interruptores de herança. Em uma regra de proprietários de incidentes ou alertas, **Herdar Proprietários** termina com **Equipe do criador**: das equipes listadas ali, cada uma em que está a pessoa que declara o incidente ou cria o alerta também vira proprietária.
+**Uma regra pode herdar.** Em **Rótulos a Adicionar** (ou **Proprietários**), a seção recolhida **Herdar Rótulos** (ou **Herdar Proprietários**) contém seis interruptores que também repassam os rótulos (ou os proprietários) dos monitores, hosts, clusters Kubernetes, hosts Docker, hosts Podman e serviços do incidente. Uma regra que herda pode deixar **Rótulos a Adicionar** vazio, e então recebe o nome daquilo de que herda (_Inherit labels from monitors, hosts_); uma regra nova que nem nomeia nem herda nada não pode ser salva — nem pelo formulário, nem pela API ou pelo Terraform. As regras de episódio, na aba **Regras de episódios**, não têm interruptores de herança. Em uma regra de proprietários de incidentes ou alertas, **Herdar Proprietários** termina com **Equipe do criador**: das equipes listadas ali, cada uma em que está a pessoa que declara o incidente ou cria o alerta também vira proprietária.
 
 **Regras antigas que não adicionam nada** — salvas antes de o OneUptime perguntar o que elas adicionam — ainda podem ser renomeadas, desativadas ou excluídas, e a lista marca cada uma com **Não adiciona nada**. [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) explica o formulário passo a passo.
 
@@ -649,7 +649,7 @@ As regras salvas antes de o formulário perguntar pelos proprietários ainda pod
 
 ## Regras de plantão de incidente
 
-**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para novos incidentes que corresponderem. A página tem duas abas: **Regras de incidentes** e **Episode Rules**.
+**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para novos incidentes que corresponderem. A página tem duas abas: **Regras de incidentes** e **Regras de episódios**.
 
 O formulário de criação tem duas etapas:
 

@@ -108,7 +108,7 @@ Arrastre sobre un gráfico para acercarse a un momento y haga doble clic para al
 
 ## Análisis de métricas
 
-La pestaña **Análisis** cuenta las métricas de un intervalo de tiempo: **Métricas activas**, **Servicios de informes** y la media por servicio. Agrupa las métricas en categorías y enumera los servicios que las informan.
+La pestaña **Análisis** cuenta las métricas de un intervalo de tiempo: **Métricas activas**, **Servicios que envían datos** y la media por servicio. Agrupa las métricas en categorías y enumera los servicios que las informan.
 
 ## Mejorar las métricas y añadir las que faltan con IA
 

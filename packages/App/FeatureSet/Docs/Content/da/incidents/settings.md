@@ -40,12 +40,12 @@ En hændelsesskabelon er et gemt skelet af en hændelse. I stedet for at skrive 
 
 :::steps
 1. Gå til **Hændelser → Indstillinger → Hændelsesskabeloner** (`/dashboard/{projectId}/incidents/settings/templates`). Kortet hedder **Hændelsesskabeloner**.
-2. Klik på **Opret Hændelse Skabelon**. Navngiv skabelonen på **Skabeloninformation**, og udfyld derefter den hændelse, den erklærer, på **Hændelsesdetaljer**: en **Titel**, en **Hændelsesalvor** og en **Beskrivelse**.
+2. Klik på **Opret Hændelsesskabelon**. Navngiv skabelonen på **Skabeloninformation**, og udfyld derefter den hændelse, den erklærer, på **Hændelsesdetaljer**: en **Titel**, en **Hændelsesalvor** og en **Beskrivelse**.
 3. Tryk **Næste** gennem de valgfri trin — de ressourcer, den berører, dens brugerdefinerede felter og dens vagtpolitikker — og udfyld det, som hver hændelse af den slags har til fælles.
-4. Klik på **Opret Hændelse Skabelon** på det sidste trin. Fra nu af tilbydes skabelonen af **Opret fra skabelon** i listen over hændelser.
+4. Klik på **Opret Hændelsesskabelon** på det sidste trin. Fra nu af tilbydes skabelonen af **Opret fra skabelon** i listen over hændelser.
 :::
 
-Oprettelsen fører dig gennem en guide i fire trin, med to trin mere, når dit projekt har brugerdefinerede hændelsesfelter. Kun de to første spørger om noget, du skal svare på: **Næste** går gennem de valgfri trin efter dem, og **Opret Hændelse Skabelon** står på det sidste trin.
+Oprettelsen fører dig gennem en guide i fire trin, med to trin mere, når dit projekt har brugerdefinerede hændelsesfelter. Kun de to første spørger om noget, du skal svare på: **Næste** går gennem de valgfri trin efter dem, og **Opret Hændelsesskabelon** står på det sidste trin.
 
 - **Skabeloninformation** — **Skabelonnavn** og **Skabelonbeskrivelse**. De navngiver selve skabelonen; de vises aldrig på hændelsen.
 - **Hændelsesdetaljer** — **Titel**, **Beskrivelse** (Markdown) og **Hændelsesalvor**. Under **Flere felter**, hvis sammenfoldede overskrift nævner de tre og viser hver, der er sat:
@@ -62,8 +62,8 @@ Et par hurtige regler:
 - Listen over skabeloner viser kun **Navn** og **Beskrivelse**. Rækker kan ikke redigeres eller slettes fra listen — åbn en skabelon (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) for at ændre den.
 - Alle, der kan redigere en skabelon, kan ændre dens detaljer og dens berørte ressourcer, **Indledende hændelsestilstand** og **Skift overvågningsstatus til** inklusive: Project Owners, Project Admins og Project Members, Incident Admins og Incident Members og en rolle med **Edit Incident Template**.
 - Skabeloner understøtter import og eksport i JSON, så du kan flytte en mellem projekter.
-- Uden skabeloner siger listen **Ingen hændelsesskabeloner fundet** med **Opret Hændelse Skabelon** lige nedenunder.
-- Heller ikke uden skabeloner åbner **Opret fra skabelon** i listen over hændelser en dialog **No Incident Templates**, der siger, hvor skabeloner laves, og dens knap **Create Template** åbner **Hændelser → Indstillinger → Hændelsesskabeloner**.
+- Uden skabeloner siger listen **Ingen hændelsesskabeloner fundet** med **Opret Hændelsesskabelon** lige nedenunder.
+- Heller ikke uden skabeloner åbner **Opret fra skabelon** i listen over hændelser en dialog **Ingen hændelsesskabeloner**, der siger, hvor skabeloner laves, og dens knap **Create Template** åbner **Hændelser → Indstillinger → Hændelsesskabeloner**.
 
 ### Sådan anvendes en skabelon
 
@@ -80,7 +80,7 @@ flowchart TB
 ```
 
 - **I dashboardet** — knappen **Opret fra skabelon** i listen over hændelser åbner en vælger **Vælg hændelsesskabelon**, og erklæringssiden læser skabelonen fra forespørgselsparameteren `incidentTemplateId` og udfylder derefter formularen med skabelonen plus dens ejerteams og ejerbrugere. Dens trin **Detaljer** følger skabelonens [brugerdefinerede felter ved oprettelse](#brugerdefinerede-felter-ved-oprettelse). Ejerne bliver hændelsens ejere uden at få besked, når hændelsens Slack- og Microsoft Teams-kanaler findes, så en notifikationsregel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem.
-- **På serveren** — en [formular](/docs/forms/on-submit#hændelsesskabelonen), der har en **Hændelse Skabelon**, og et workflows trin **Create One Incident** med en valgt **Incident Template** erklærer hændelsen fra skabelonen på serveren. Trinnet læser skabelonen som Project Admin for workflowets projekt, så en skabelon fra et andet projekt, eller en, der er slettet, afvises, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, det kræver. Skabelonens ejere bliver hændelsens ejere, som i dashboardet. Se [Workflow-komponenter](/docs/workflows/components).
+- **På serveren** — en [formular](/docs/forms/on-submit#hændelsesskabelonen), der har en **Hændelsesskabelon**, og et workflows trin **Create One Incident** med en valgt **Incident Template** erklærer hændelsen fra skabelonen på serveren. Trinnet læser skabelonen som Project Admin for workflowets projekt, så en skabelon fra et andet projekt, eller en, der er slettet, afvises, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, det kræver. Skabelonens ejere bliver hændelsens ejere, som i dashboardet. Se [Workflow-komponenter](/docs/workflows/components).
 
 En hændelse, der erklæres på serveren, registrerer skabelonen i `createdIncidentTemplateId`. Kun OneUptime sætter den kolonne, for en formular eller et workflow-trin, der nævner en skabelon: en API-nøgle eller en indlogget bruger kan ikke, og en anmodning, der sender `createdIncidentTemplateId`, afvises. For at erklære fra en skabelon via API'et læser du den fra `/api/incident-templates` og sender dens værdier i anmodningen.
 
@@ -129,7 +129,7 @@ Noteskabeloner giver dem, der reagerer, færdig tekst til opdateringer om hænde
 
 :::steps
 1. Gå til **Hændelser → Indstillinger → Noteskabeloner** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet hedder **Skabeloner til offentlige eller private noter for hændelser** — ét bibliotek tjener begge slags noter.
-2. Klik på **Opret Hændelse Note Skabelon**, og udfyld dens ene side: **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævet, og derefter selve **Note**, i Markdown, påkrævet: den tekst, en note starter med, når skabelonen vælges.
+2. Klik på **Opret Noteskabelon for hændelser**, og udfyld dens ene side: **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævet, og derefter selve **Note**, i Markdown, påkrævet: den tekst, en note starter med, når skabelonen vælges.
 3. Gem den. Skabelonen tilbydes af **Skabeloner** på begge notesider og af **Vælg noteskabelon** i dialogerne **Bekræft hændelse** og **Løs hændelse**.
 :::
 
@@ -169,7 +169,7 @@ En postmortem-skabelon er skelettet til den rapport, du laver efter en hændelse
 
 :::steps
 1. Gå til **Hændelser → Indstillinger → Postmortem-skabeloner** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet hedder **Postmortem-skabeloner**.
-2. Klik på **Opret Hændelse Postmortem Skabelon**, og udfyld dens ene side: **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævet, og derefter **Postmortem-skabelon**, selve teksten, i Markdown, påkrævet.
+2. Klik på **Opret Postmortem-skabelon for hændelser**, og udfyld dens ene side: **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævet, og derefter **Postmortem-skabelon**, selve teksten, i Markdown, påkrævet.
 3. Gem den. Hver hændelses side **Postmortem** tilbyder nu **Anvend skabelon**. Så længe intet er skrevet, hedder knappen **Start fra skabelon**; når postmortem er skrevet, ligger **Anvend skabelon** i kortets menu **⋯**.
 :::
 
@@ -187,12 +187,12 @@ Med brugerdefinerede felter bærer du dine egne metadata på hver hændelse — 
 
 :::steps
 1. Gå til **Hændelser → Indstillinger → Brugerdefinerede felter** (`/dashboard/{projectId}/incidents/settings/custom-fields`). Siden hedder **Brugerdefinerede hændelsesfelter** og viser felterne i deres **Rækkefølge**, hver kun ved sit **Feltnavn** og sin **Felttype**.
-2. Klik på **Opret Hændelse Brugerdefineret Felt**, og udfyld dets **Feltnavn**, **Feltbeskrivelse** og **Felttype** — og, for en rullemenutype, dets muligheder, lige under typen.
+2. Klik på **Opret Brugerdefineret felt for hændelser**, og udfyld dets **Feltnavn**, **Feltbeskrivelse** og **Felttype** — og, for en rullemenutype, dets muligheder, lige under typen.
 3. For at spørge om feltet, hver gang en hændelse erklæres, åbner du **Flere felter** og slår **Vis ved oprettelse** til, og **Påkrævet ved oprettelse**, hvis det skal besvares.
 4. Gem det, og træk derefter rækken i dens greb derhen, hvor feltet skal stå. **Rediger** på et felts række åbner resten af dets indstillinger.
 :::
 
-At oprette et felt spørger om dets **Feltnavn**, **Feltbeskrivelse** og **Felttype** på én side — og, for en rullemenutype, dets muligheder, lige under typen. Et nyt felts værdier skrives ind. Alt andet ligger under **Flere felter**, som starter sammenfoldet, uanset om du opretter eller redigerer et felt; sammenfoldet nævner overskriften, hvad der er i det, og viser, hvad der er sat. For at lave et felt, der kopierer sin værdi fra et brugerdefineret monitorfelt i stedet, åbner du menuen **Mere** (**⋯**) ved siden af **Opret Hændelse Brugerdefineret Felt** og vælger **Opret tilknyttet brugerdefineret felt** — se [Felter, der kopieres fra en monitor](#felter-der-kopieres-fra-en-monitor).
+At oprette et felt spørger om dets **Feltnavn**, **Feltbeskrivelse** og **Felttype** på én side — og, for en rullemenutype, dets muligheder, lige under typen. Et nyt felts værdier skrives ind. Alt andet ligger under **Flere felter**, som starter sammenfoldet, uanset om du opretter eller redigerer et felt; sammenfoldet nævner overskriften, hvad der er i det, og viser, hvad der er sat. For at lave et felt, der kopierer sin værdi fra et brugerdefineret monitorfelt i stedet, åbner du menuen **Mere** (**⋯**) ved siden af **Opret Brugerdefineret felt for hændelser** og vælger **Opret tilknyttet brugerdefineret felt** — se [Felter, der kopieres fra en monitor](#felter-der-kopieres-fra-en-monitor).
 
 Hver definition har:
 
@@ -255,7 +255,7 @@ En skabelons [brugerdefinerede felter ved oprettelse](#brugerdefinerede-felter-v
 
 ### Felter, der kopieres fra en monitor
 
-Et brugerdefineret felt kan tage sin værdi fra et brugerdefineret felt på hændelsens monitorer i stedet for at få den skrevet ind — en region eller et kundeniveau, dine monitorer allerede registrerer, for eksempel. For at lave et åbner du menuen **Mere** (**⋯**) ved siden af **Opret Hændelse Brugerdefineret Felt** og vælger **Opret tilknyttet brugerdefineret felt**. Det spørger om tre ting:
+Et brugerdefineret felt kan tage sin værdi fra et brugerdefineret felt på hændelsens monitorer i stedet for at få den skrevet ind — en region eller et kundeniveau, dine monitorer allerede registrerer, for eksempel. For at lave et åbner du menuen **Mere** (**⋯**) ved siden af **Opret Brugerdefineret felt for hændelser** og vælger **Opret tilknyttet brugerdefineret felt**. Det spørger om tre ting:
 
 - **Monitorfelt** — det brugerdefinerede monitorfelt, der skal kopieres. Hvert tilbydes, hver med sin type under sit navn. Det nye felt får den type, og en rullemenus muligheder, så de to altid passer sammen.
 - **Feltnavn** — starter som monitorfeltets navn, indtil du skriver et andet.
@@ -501,7 +501,7 @@ Hændelsesroller er de navngivne opgaver, du tildeler folk under en indsats. Def
 
 Et nyt projekt starter med én rolle, **Hændelsesleder**, den person, der har ansvaret for indsatsen. OneUptime udfylder den for dig: erklærer du en hændelse fra dashboardet uden at vælge nogen til rollen, bliver du dens Hændelsesleder, og en hændelse, der stadig ikke har en, får den første person, der ændrer dens tilstand, medmindre vedkommende allerede har en anden rolle på den. Hændelsesleder kan omdøbes, men ikke slettes, og den besiddes altid af én person. Dens **Slet** er låst og siger hvorfor.
 
-Tilføj de andre roller, dit team bruger, som Responder, Communications Lead eller Scribe, med **Opret Hændelse Rolle**. Formularen er én side: et navn og en beskrivelse og derefter **Flere felter**, foldet sammen, med **Tillad flere brugere**, rollens ikon og dens farve. En ny rolles farve er allerede valgt, en farve, som rollerne i listen ikke bruger endnu, og ikonet er valgfrit, så du åbner kun **Flere felter** for at ændre dem. En rolle besiddes af én person pr. hændelse, medmindre du slår **Tillad flere brugere** til. Projekter, der blev oprettet af tidligere versioner af OneUptime, startede også med Responder, Communications Lead og Observer. De beholder dem, indtil du sletter dem.
+Tilføj de andre roller, dit team bruger, som Responder, Communications Lead eller Scribe, med **Opret Hændelsesrolle**. Formularen er én side: et navn og en beskrivelse og derefter **Flere felter**, foldet sammen, med **Tillad flere brugere**, rollens ikon og dens farve. En ny rolles farve er allerede valgt, en farve, som rollerne i listen ikke bruger endnu, og ikonet er valgfrit, så du åbner kun **Flere felter** for at ændre dem. En rolle besiddes af én person pr. hændelse, medmindre du slår **Tillad flere brugere** til. Projekter, der blev oprettet af tidligere versioner af OneUptime, startede også med Responder, Communications Lead og Observer. De beholder dem, indtil du sletter dem.
 
 Roller er kun definitioner. Du tildeler folk til dem pr. hændelse — erklæringsguiden spørger på sit trin **Vagt og roller** med et felt **Tildel hændelsesroller**, og hver hændelse har en side **Roller** i sin sidemenu. En monitors kriterier og en grupperingsregel for hændelser kan vælge folk til dem på forhånd. Hver af de formularer spørger med de samme kort, ét pr. rolle: en rolle med mærket **Primær** er Hændelsesleder eller en anden primær rolle, og en rolle til én person fjerner sin vælger, når den har en. På en hændelses kort **Roller** tilbyder en rolle til flere personer **Add More**.
 
@@ -513,7 +513,7 @@ Arkivér en rolle, som dit team ikke længere bruger, fra rækkens menu **⋯** 
 
 Hver hændelse får et nummer fra en tæller pr. projekt. Uden præfiks vises det som `#42`; med et vises det som `INC-42`. Siger dit team "INC-42" højt, så få produktet til at sige det samme. Nye projekter starter med `INC-` til hændelser og `IE-` til hændelsesepisoder.
 
-Gå til **Hændelser → Indstillinger → Nummerering** (`/dashboard/{projectId}/incidents/settings/numbering`). Kortet **Nummerpræfiks** har en række for **Hændelser** og en for **Hændelse Episoder**. Hver viser sit præfiks og et eksempel på det nummer, det danner: `INC-`, og derefter **Eksempel:** `INC-42`. Et projekt uden præfiks viser **Intet præfiks** og `#42`.
+Gå til **Hændelser → Indstillinger → Nummerering** (`/dashboard/{projectId}/incidents/settings/numbering`). Kortet **Nummerpræfiks** har en række for **Hændelser** og en for **Hændelsesepisoder**. Hver viser sit præfiks og et eksempel på det nummer, det danner: `INC-`, og derefter **Eksempel:** `INC-42`. Et projekt uden præfiks viser **Intet præfiks** og `#42`.
 
 :::steps
 1. Klik på **Opdater**. Dialogen **Rediger nummerpræfiks** åbner med to felter: **Nummerpræfiks for hændelse** (pladsholder `INC-`) og **Nummerpræfiks for hændelsesepisode** (pladsholder `IE-`).
@@ -539,7 +539,7 @@ Advarsler og planlagte vedligeholdelseshændelser har den samme side: **Advarsle
 
 Hver ny hændelse får nummeret efter det højeste, der er brugt indtil nu, og hver ny episode også: `INC-1`, `INC-2`, `INC-3` fra et projekts første. Skifter du fra et andet værktøj? Lad OneUptimes numre starte efter værktøjets sidste, så et nummer aldrig betyder to forskellige hændelser: Et team, hvis sidste hændelse i det gamle værktøj var `INC-2345`, sætter det næste nummer til `2346`, eller til `10000` for at kende sine hændelser i OneUptime fra hinanden med det samme.
 
-Kortet **Næste nummer**, under **Nummerpræfiks** på den samme side, har en række for **Hændelser** og en for **Hændelse Episoder**. Hver viser det nummer, den næste får, med præfiks, og derefter **Højeste indtil nu:** og det højeste brugte nummer, eller **Ingen brugt endnu**.
+Kortet **Næste nummer**, under **Nummerpræfiks** på den samme side, har en række for **Hændelser** og en for **Hændelsesepisoder**. Hver viser det nummer, den næste får, med præfiks, og derefter **Højeste indtil nu:** og det højeste brugte nummer, eller **Ingen brugt endnu**.
 
 :::steps
 1. Klik på **Opdater** på kortet **Næste nummer**. Dialogen **Rediger næste nummer** åbner med **Næste hændelsesnummer** og **Næste nummer for hændelsesepisode**, hver udfyldt med det nummer, der kommer næst, og med det, den skal være højere end.
@@ -603,7 +603,7 @@ Grupperings-, SLA-, påmindelses- og AI-regler virker også på den nye hændels
 > [!IMPORTANT]
 > **Betydningen af rækkefølge er ikke ens.** Grupperingsregler, SLA-regler og Reminder Rules evalueres i rækkefølge, og deres lister ordnes ved at trække: en ny regel tilføjes til sidst. Vagtregler gør ikke — hver matchende regel udløses. Gå ikke ud fra, at én model gælder for alle ni.
 
-Siderne **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har faner — en fane **Hændelsesregler** og en fane **Episode Rules**, hver med sin egen tabel. Sæt fanen **Hændelsesregler** op, medmindre du specifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Påmindelsesregler** er enkelte tabeller.
+Siderne **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har faner — en fane **Hændelsesregler** og en fane **Episoderegler**, hver med sin egen tabel. Sæt fanen **Hændelsesregler** op, medmindre du specifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Påmindelsesregler** er enkelte tabeller.
 
 Ejer-, etiket- og privatlivsregler virker kun på hændelser og episoder, der oprettes, efter at reglen findes. For at anvende en af dem på hændelser, der allerede findes, bruger du **Kør nu** på reglens række, på dens egen side eller fra tabellens massehandlinger — se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now). Vagt-, runbook-, AI-, grupperings-, SLA- og påmindelsesregler kan ikke køres på eksisterende hændelser.
 
@@ -615,7 +615,7 @@ Ejer-, etiket- og privatlivsregler virker kun på hændelser og episoder, der op
 
 **Hændelser → Regler → Etiketregler** sætter etiketter på nye hændelser, der matcher, og **Ejerregler** tilføjer brugere og teams som ejere til dem. **Advarsler → Regler** og **Planlagt vedligeholdelse → Regler** har de samme to sider og virker på samme måde. At oprette en regel tager to trin: **Match**, de betingelser, en hændelse skal opfylde, og derefter **Etiketter** (eller **Ejere**), hvad reglen tilføjer. Dens **Navn** udfyldes ud fra det, du vælger, indtil du selv skriver et navn, og den valgfri **Beskrivelse** (og en ejerregels **Underret ejere**) venter under **Flere felter**.
 
-**En regel kan nedarve.** Under **Etiketter at tilføje** (eller **Ejere**) rummer det sammenfoldede afsnit **Nedarv etiketter** (eller **Nedarv ejere**) seks kontakter, der også giver etiketterne (eller ejerne) videre fra hændelsens monitorer, værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester. En regel, der nedarver, kan lade **Etiketter at tilføje** stå tomt og navngives så efter det, den nedarver fra (_Inherit labels from monitors, hosts_); en ny regel, der hverken nævner eller nedarver noget, kan ikke gemmes — hverken fra formularen, API'et eller Terraform. Episoderegler på fanen **Episode Rules** har ingen kontakter til at nedarve. På en ejerregel for hændelser eller advarsler slutter **Nedarv ejere** med **Opretterens team**: af de teams, der står der, bliver hvert team, som personen, der erklærer hændelsen eller opretter advarslen, er med i, også ejer.
+**En regel kan nedarve.** Under **Etiketter at tilføje** (eller **Ejere**) rummer det sammenfoldede afsnit **Nedarv etiketter** (eller **Nedarv ejere**) seks kontakter, der også giver etiketterne (eller ejerne) videre fra hændelsens monitorer, værter, Kubernetes-klynger, Docker-værter, Podman-værter og tjenester. En regel, der nedarver, kan lade **Etiketter at tilføje** stå tomt og navngives så efter det, den nedarver fra (_Inherit labels from monitors, hosts_); en ny regel, der hverken nævner eller nedarver noget, kan ikke gemmes — hverken fra formularen, API'et eller Terraform. Episoderegler på fanen **Episoderegler** har ingen kontakter til at nedarve. På en ejerregel for hændelser eller advarsler slutter **Nedarv ejere** med **Opretterens team**: af de teams, der står der, bliver hvert team, som personen, der erklærer hændelsen eller opretter advarslen, er med i, også ejer.
 
 **Ældre regler, der ikke tilføjer noget** — gemt, før OneUptime spurgte, hvad de tilføjer — kan stadig omdøbes, slås fra eller slettes, og listen markerer hver med **Tilføjer intet**. [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) gennemgår formularen trin for trin.
 
@@ -649,7 +649,7 @@ Regler, der blev gemt, før formularen spurgte om ejere, kan stadig have et stan
 
 ## Vagtregler for hændelser
 
-**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, siger, hvad de gør: tilkalder automatisk via vagtpolitikker for nye hændelser, der matcher. Siden har to faner: **Hændelsesregler** og **Episode Rules**.
+**Hændelser → Regler → Vagtregler** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) er dér, du gør tilkaldelse automatisk. Kortet, **Hændelsesvagtregler**, siger, hvad de gør: tilkalder automatisk via vagtpolitikker for nye hændelser, der matcher. Siden har to faner: **Hændelsesregler** og **Episoderegler**.
 
 Oprettelsesformularen har to trin:
 

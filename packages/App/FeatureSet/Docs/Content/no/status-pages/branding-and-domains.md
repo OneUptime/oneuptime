@@ -29,12 +29,12 @@ Merkevaren var tidligere delt på separate skjermer for **Grunnleggende merkevar
 
 ### Logo og forsidebilde
 
-Det første kortet, **Logo og forsidebilde**, har knappen **Edit Images**, som åpner to trinn:
+Det første kortet, **Logo og forsidebilde**, har knappen **Rediger bilder**, som åpner to trinn:
 
 | Trinn | Felt |
 | ---- | ------ |
-| **Logo** | Opplastingen av logoen (plassholder `Upload logo`), **Logo for mørkt tema** (plassholder `Upload logo for the dark theme`), en valgfri logo laget for en mørk bakgrunn, og **Logo Alt Text** (plassholder `Logo of My Company`). La alt-teksten stå tom, så brukes statussidens tittel i stedet. |
-| **Forsidebilde** | **Forside**, en opplasting (plassholder `Upload cover image`) for det brede banneret bak toppteksten, og **Cover Image Alt Text**. La alt-teksten stå tom hvis forsiden bare er pynt. |
+| **Logo** | Opplastingen av logoen (plassholder `Upload logo`), **Logo for mørkt tema** (plassholder `Upload logo for the dark theme`), en valgfri logo laget for en mørk bakgrunn, og **Alternativ tekst for logo** (plassholder `Logo of My Company`). La alt-teksten stå tom, så brukes statussidens tittel i stedet. |
+| **Forsidebilde** | **Forside**, en opplasting (plassholder `Upload cover image`) for det brede banneret bak toppteksten, og **Alternativ tekst for forsidebilde**. La alt-teksten stå tom hvis forsiden bare er pynt. |
 
 Logoen, logoen for mørkt tema, forsidebildet og faviconet er filer som er lastet opp i statussidens eget prosjekt, og det sjekkes hver gang ett av dem lagres, fra dashbordet, API-et, Terraform eller en arbeidsflyt. En fil som er lastet opp i et annet prosjekt, avvises med ordene en fil som ikke lenger finnes, får: «The logo's file could not be found. Upload the logo again.», «The dark theme logo's file could not be found. Upload the dark theme logo again.», «The cover image's file could not be found. Upload the cover image again.» eller «The favicon's file could not be found. Upload the favicon again.» Å laste opp bildet på nytt fra siden løser det.
 
@@ -77,7 +77,7 @@ Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som ne
 
 ### Bunntekst
 
-- **Opphavsrettsinformasjon**: **Edit Copyright** åpner ett felt, **Opphavsrettsinformasjon**, med plassholderen `Acme, Inc.`.
+- **Opphavsrettsinformasjon**: **Rediger opphavsrett** åpner ett felt, **Opphavsrettsinformasjon**, med plassholderen `Acme, Inc.`.
 - **Bunntekstlenker**: det samme paret **Tittel** og **Lenke** som topptekstlenkene, sortert ved å dra og lagt til med **Legg til Bunntekstlenke**.
 
 Topptekstlenker er for navigering; bunntekstlenker er for det med liten skrift, som juridisk informasjon, personvern og vilkår.
@@ -88,7 +88,7 @@ Sidens siste seksjon ligger sammenslått under **Flere innstillinger**, fordi f�
 
 **Historikkdiagrammets farger.** Utenom **Tema** er dette de eneste innebygde fargeinnstillingene på en statusside. Hver stolpe i oppetidshistorikken er en dag.
 
-- **Standard stolpefarge**: **Edit Default Bar Color** åpner velgeren **Standard stolpefarge**. Det er fargen til en dag som ingen stolpefargeregel samsvarer med. Alle nye statussider starter med grønn.
+- **Standard stolpefarge**: **Rediger standardfarge for stolper** åpner velgeren **Standard stolpefarge**. Det er fargen til en dag som ingen stolpefargeregel samsvarer med. Alle nye statussider starter med grønn.
 - **Regler for stolpefarger**: en ordnet tabell med regler du sorterer ved å dra. Hver regel har **Når oppetid % er større enn eller lik** og **Bruk så denne stolpefargen**; tabellens kolonner heter `When Uptime Percent >=` og `Then, Bar Color is`. Reglene sjekkes ovenfra, og den første som en dags oppetid når, bestemmer fargen, så hold høyere prosenter over lavere: en regel under en med samme eller lavere prosent farger aldri en dag. Fargen på en ny regel er allerede valgt, en som de andre reglene ikke bruker ennå; velg heller den du vil ha.
 - **Forhåndsvisning av stolpefarger**: hver farge en dag kan få, slik de fleste ser den (**Fullt fargesyn**), og slik personer med rød-grønn fargeblindhet ser den (**Deuteranopi (rød-grønn)**, **Protanopi (rød-grønn)**). Den advarer når to farger ser like ut for dem, og når en regel aldri farger en dag.
 

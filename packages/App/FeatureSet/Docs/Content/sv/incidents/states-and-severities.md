@@ -83,7 +83,7 @@ Ett tillstånd som du lägger till är ett steg i din insats som de tre förskap
 :::steps
 ### Öppna listan över tillstånd
 
-Gå till **Incidenter → Inställningar → Incidentstatus**. Kortet **Incident Tillstånd** visar dina tillstånd i deras ordning, en rad var: ett grepp att dra det i, dess färg och namn, vad en incident i det **Räknas som**, och dess beskrivning. Meningen under titeln säger det rakt ut: incidenter rör sig bara nedåt i den här listan.
+Gå till **Incidenter → Inställningar → Incidentstatus**. Kortet **Incidentstatusar** visar dina tillstånd i deras ordning, en rad var: ett grepp att dra det i, dess färg och namn, vad en incident i det **Räknas som**, och dess beskrivning. Meningen under titeln säger det rakt ut: incidenter rör sig bara nedåt i den här listan.
 
 ### Skapa tillståndet
 

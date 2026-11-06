@@ -296,7 +296,7 @@ I modelli coprono i casi comuni. Per costruire una direzione da solo, o cambiarl
 
 Jira Cloud accetta l'autenticazione Basic costruita con l'email dell'account e un token API, codificati insieme, come in [Cosa chiedono i modelli](#cosa-chiedono-i-modelli).
 
-1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**. Chiamala `JIRA_AUTH`, incolla il valore codificato in **Contenuto**, attiva **Segreto** e creala.
+1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**. Chiamala `JIRA_AUTH`, incolla il valore codificato in **Contenuto**, attiva **Segreto** e creala.
 2. Crea una seconda variabile, `JIRA_URL`, che contenga `https://your-domain.atlassian.net` senza barra finale, e lascia **Segreto** disattivato.
 
 Qualsiasi blocco può allora inviare `Basic {{global.variables.JIRA_AUTH}}` come intestazione `Authorization`, e il token non compare mai nel workflow né nelle sue esecuzioni. Con un token con ambiti, `JIRA_URL` è invece `https://api.atlassian.com/ex/jira/<cloudId>`, e ogni percorso qui sotto vi si aggiunge senza modifiche.

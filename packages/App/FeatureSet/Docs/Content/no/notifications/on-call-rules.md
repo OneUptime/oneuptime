@@ -33,9 +33,9 @@ De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsA
 | Fane | Tilkallinger for | Kort for |
 | --- | --- | --- |
 | **Hendelser** | Hendelser | Alvorlighetsgrader for hendelser |
-| **Hendelse Episoder** | Episoder som samler hendelser | Alvorlighetsgrader for hendelser |
+| **Hendelsesepisoder** | Episoder som samler hendelser | Alvorlighetsgrader for hendelser |
 | **Varsler** | Varsler | Alvorlighetsgrader for varsler |
-| **Varsel Episoder** | Episoder som samler varsler | Alvorlighetsgrader for varsler |
+| **Varselsepisoder** | Episoder som samler varsler | Alvorlighetsgrader for varsler |
 
 En episode tilkaller deg gjennom sine egne vaktpolicyer, atskilt fra hendelsene eller varslene i den, så reglene dens har sin egen fane. Sidens adresse angir den åpne fanen, for eksempel `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andre verdiene er `incident-episodes` og `alert-episodes`, og uten `type` åpner siden på **Hendelser**.
 

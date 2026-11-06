@@ -65,7 +65,7 @@ Ett tillstånd som du lägger till är ett steg som ditt team går igenom och so
 :::steps
 ### Öppna listan över tillstånd
 
-Gå till **Larm → Inställningar → Larmstatus**. Kortet **Larm Tillstånd** listar dina tillstånd i deras ordning. Varje rad visar färg och namn, vad ett larm i det **Räknas som**, och beskrivningen.
+Gå till **Larm → Inställningar → Larmstatus**. Kortet **Larmstatusar** listar dina tillstånd i deras ordning. Varje rad visar färg och namn, vad ett larm i det **Räknas som**, och beskrivningen.
 
 ### Skapa tillståndet
 

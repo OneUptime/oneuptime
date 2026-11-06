@@ -65,7 +65,7 @@ Uno stato che aggiungete è un passaggio che il vostro team attraversa e che i t
 :::steps
 ### Aprire l'elenco degli stati
 
-Andate in **Avvisi → Impostazioni → Stato avviso**. La scheda **Avviso Stati** elenca i vostri stati nel loro ordine. Ogni riga mostra il suo colore e il suo nome, come **Conta come** un avviso che vi si trova, e la sua descrizione.
+Andate in **Avvisi → Impostazioni → Stato avviso**. La scheda **Stati avviso** elenca i vostri stati nel loro ordine. Ogni riga mostra il suo colore e il suo nome, come **Conta come** un avviso che vi si trova, e la sua descrizione.
 
 ### Creare lo stato
 

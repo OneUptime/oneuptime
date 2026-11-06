@@ -83,7 +83,7 @@ En tilstand du legger til, er et trinn i responsen din som de tre forhåndsoppre
 :::steps
 ### Åpne listen over tilstander
 
-Gå til **Hendelser → Innstillinger → Hendelsesstatus**. Kortet **Hendelse Tilstander** viser tilstandene dine i rekkefølge, én rad hver: et grep å dra den i, fargen og navnet, hva en hendelse i den **Teller som**, og beskrivelsen. Setningen under tittelen sier det rett ut: hendelser beveger seg bare nedover i denne listen.
+Gå til **Hendelser → Innstillinger → Hendelsesstatus**. Kortet **Hendelsesstatuser** viser tilstandene dine i rekkefølge, én rad hver: et grep å dra den i, fargen og navnet, hva en hendelse i den **Teller som**, og beskrivelsen. Setningen under tittelen sier det rett ut: hendelser beveger seg bare nedover i denne listen.
 
 ### Opprett tilstanden
 

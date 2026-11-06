@@ -65,7 +65,7 @@ En tilstand du legger til, er et trinn teamet ditt går gjennom som de tre forh�
 :::steps
 ### Åpne listen over tilstander
 
-Gå til **Varsler → Innstillinger → Varselsstatus**. Kortet **Varsel Tilstander** viser tilstandene dine i rekkefølge. Hver rad viser farge og navn, hva et varsel i den **Teller som**, og beskrivelsen.
+Gå til **Varsler → Innstillinger → Varselsstatus**. Kortet **Varselsstatuser** viser tilstandene dine i rekkefølge. Hver rad viser farge og navn, hva et varsel i den **Teller som**, og beskrivelsen.
 
 ### Opprett tilstanden
 

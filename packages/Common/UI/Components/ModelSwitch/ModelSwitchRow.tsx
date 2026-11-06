@@ -555,7 +555,10 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
           : ""}
         {descriptionText && props.note ? " " : ""}
         {props.note
-          ? readAsWritten(translator.translateText(props.note), translator.language)
+          ? readAsWritten(
+              translator.translateText(props.note),
+              translator.language,
+            )
           : ""}
         {leftoverNote || ""}
         {warningLine || ""}

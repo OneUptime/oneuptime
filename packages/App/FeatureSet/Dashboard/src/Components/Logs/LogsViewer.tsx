@@ -2667,7 +2667,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       dropped: Array<string>,
     ): string => {
       const hint: string = formatDroppedScopeHint(dropped, translator);
-      return hint ? `${translator.translateText(baseText)} — ${hint}` : baseText;
+      return hint
+        ? `${translator.translateText(baseText)} — ${hint}`
+        : baseText;
     };
 
     return [

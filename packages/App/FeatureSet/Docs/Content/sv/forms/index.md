@@ -113,7 +113,7 @@ En mall och ett formulär besparar dig båda att skriva samma incident två gån
 | Vad man ser | Dina monitorer, policyer, ägare och varje fält | Formulärets namn, beskrivning och frågor, och bara de alternativ som du erbjuder |
 | Statussidor | Det som mallen och deklarationsformuläret säger | Dold tills någon som hanterar den publicerar incidenten |
 
-De fungerar tillsammans. Ge ett incidentformulär en **Incident Mall** på dess sida **Vid inlämning**, så deklareras varje incident som det deklarerar från den mallen: bygg mallen för det som ditt team behöver på incidenten, och formuläret för det som du vill fråga avsändaren om.
+De fungerar tillsammans. Ge ett incidentformulär en **Incidentmall** på dess sida **Vid inlämning**, så deklareras varje incident som det deklarerar från den mallen: bygg mallen för det som ditt team behöver på incidenten, och formuläret för det som du vill fråga avsändaren om.
 
 ## Inlämningar
 

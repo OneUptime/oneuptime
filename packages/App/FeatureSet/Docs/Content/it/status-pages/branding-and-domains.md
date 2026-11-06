@@ -29,12 +29,12 @@ Il branding era un tempo diviso tra schermate separate **Branding essenziale**, 
 
 ### Logo e immagine di copertina
 
-La prima scheda, **Logo e immagine di copertina**, ha un pulsante **Edit Images** che apre due passaggi:
+La prima scheda, **Logo e immagine di copertina**, ha un pulsante **Modifica immagini** che apre due passaggi:
 
 | Passaggio | Campi |
 | ---- | ------ |
-| **Logo** | Il caricamento del logo (segnaposto `Upload logo`), **Logo per il tema scuro** (segnaposto `Upload logo for the dark theme`), un logo facoltativo pensato per uno sfondo scuro, e **Logo Alt Text** (segnaposto `Logo of My Company`). Lasciate vuoto il testo alternativo e verrà usato il titolo della pagina di stato. |
-| **Immagine di copertina** | **Copertina**, un caricamento (segnaposto `Upload cover image`) per l'ampio banner dietro l'intestazione, e **Cover Image Alt Text**. Lasciate vuoto il testo alternativo se la copertina è puramente decorativa. |
+| **Logo** | Il caricamento del logo (segnaposto `Upload logo`), **Logo per il tema scuro** (segnaposto `Upload logo for the dark theme`), un logo facoltativo pensato per uno sfondo scuro, e **Testo alternativo del logo** (segnaposto `Logo of My Company`). Lasciate vuoto il testo alternativo e verrà usato il titolo della pagina di stato. |
+| **Immagine di copertina** | **Copertina**, un caricamento (segnaposto `Upload cover image`) per l'ampio banner dietro l'intestazione, e **Testo alternativo dell'immagine di copertina**. Lasciate vuoto il testo alternativo se la copertina è puramente decorativa. |
 
 Il logo, il logo per il tema scuro, l'immagine di copertina e la favicon sono file caricati nel progetto stesso della pagina di stato, e questo viene verificato a ogni salvataggio, dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole di un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." oppure "The favicon's file could not be found. Upload the favicon again." Caricare di nuovo l'immagine dalla pagina risolve il problema.
 
@@ -77,7 +77,7 @@ La tabella **Link intestazione** contiene i link nell'intestazione della pagina 
 
 ### Footer
 
-- **Informazioni sul copyright**: **Edit Copyright** apre un campo, **Informazioni sul copyright**, con il segnaposto `Acme, Inc.`.
+- **Informazioni sul copyright**: **Modifica copyright** apre un campo, **Informazioni sul copyright**, con il segnaposto `Acme, Inc.`.
 - **Link del footer**: la stessa coppia **Titolo** e **Collegamento** dei link dell'intestazione, ordinati trascinandoli e aggiunti con **Aggiungi: Link del footer**.
 
 I link dell'intestazione servono alla navigazione; quelli del footer alle clausole, come note legali, privacy e termini.
@@ -88,7 +88,7 @@ L'ultima sezione della pagina è chiusa in **Altre impostazioni**, perché pochi
 
 **Colori del grafico della cronologia.** Oltre al **Tema**, sono le uniche impostazioni di colore integrate di una pagina di stato. Ogni barra della cronologia uptime è un giorno.
 
-- **Colore predefinito della barra**: **Edit Default Bar Color** apre il selettore **Colore predefinito della barra**. È il colore di un giorno a cui non corrisponde alcuna regola per il colore delle barre. Ogni nuova pagina di stato parte con il verde.
+- **Colore predefinito della barra**: **Modifica colore predefinito della barra** apre il selettore **Colore predefinito della barra**. È il colore di un giorno a cui non corrisponde alcuna regola per il colore delle barre. Ogni nuova pagina di stato parte con il verde.
 - **Regole per il colore delle barre**: una tabella ordinata di regole che ordinate trascinandole. Ogni regola ha **Quando la % di uptime è maggiore o uguale a** e **Quindi, usa questo colore della barra**; le colonne della tabella dicono `When Uptime Percent >=` e `Then, Bar Color is`. Le regole vengono controllate dall'alto, e la prima raggiunta dall'uptime di un giorno ne stabilisce il colore, quindi tenete le percentuali più alte sopra quelle più basse: una regola sotto un'altra con percentuale uguale o inferiore non colora mai un giorno. Il colore di una nuova regola è già scelto, uno che le altre regole non usano ancora; scegliete invece quello che volete.
 - **Anteprima dei colori delle barre**: ogni colore che un giorno può assumere, come lo vede la maggior parte delle persone (**Visione dei colori completa**) e come lo vedono le persone con daltonismo rosso-verde (**Deuteranopia (rosso-verde)**, **Protanopia (rosso-verde)**). Avvisa quando due colori sembrano uguali a loro e quando una regola non colora mai un giorno.
 

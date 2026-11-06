@@ -65,7 +65,7 @@ En tilstand, du tilføjer, er et trin, dit team går igennem, som de tre forudop
 :::steps
 ### Åbn listen over tilstande
 
-Gå til **Advarsler → Indstillinger → Advarselsstatus**. Kortet **Advarsel Tilstande** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en advarsel i den **Tæller som**, og sin beskrivelse.
+Gå til **Advarsler → Indstillinger → Advarselsstatus**. Kortet **Advarselsstatusser** viser dine tilstande i deres rækkefølge. Hver række viser sin farve og sit navn, hvad en advarsel i den **Tæller som**, og sin beskrivelse.
 
 ### Opret tilstanden
 

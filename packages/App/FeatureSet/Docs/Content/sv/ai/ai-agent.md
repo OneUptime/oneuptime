@@ -313,7 +313,7 @@ Medan åtgärdandet är på ställer en utredning som slutar med en säker, bela
 Allt annat är som med knappen:
 
 - Pull requesten öppnas redo för granskning, skriven utifrån den publicerade analysen, och behöver ett anslutet repository, ett av dem som de matchande reglerna nämner när de nämner något, och en Runner som är online för att arbeta i det: den som repositoryt väljer, eller en global Runner.
-- Den räknas mot signalens dagliga gräns för åtgärdsuppgifter (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Fler inställningar** på dess AI-inställningssida) och mot repositoriets tak för öppna pull requests, när något av dem är satt. Osatta begränsar ingen av dem något.
+- Den räknas mot signalens dagliga gräns för åtgärdsuppgifter (**Daglig gräns för AI-åtgärdsuppgifter för incidenter** eller **Daglig gräns för AI-åtgärdsuppgifter för larm**, under **Fler inställningar** på dess AI-inställningssida) och mot repositoriets tak för öppna pull requests, när något av dem är satt. Osatta begränsar ingen av dem något.
 - Varje utlösare letar först efter en åtgärdsuppgift som redan står i kö eller körs för samma incident eller larm, så en automatisk utlösare och ett klick blir normalt en uppgift, inte två pull requests. Kontrollen är en läsning före skrivningen, inte ett lås, så två utlösare i exakt samma ögonblick kan fortfarande båda komma igenom.
 - Körningen skrivs av systemet, tillskrivs ingen, och inget mergas av sig självt.
 

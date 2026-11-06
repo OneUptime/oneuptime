@@ -83,7 +83,7 @@ Um estado que você adiciona é uma etapa da sua resposta que os três iniciais 
 :::steps
 ### Abrir a lista de estados
 
-Vá em **Incidentes → Configurações → Estado do incidente**. O cartão **Incidente Estados** lista seus estados na ordem deles, uma linha cada: uma alça para arrastá-lo, sua cor e seu nome, como **Conta como** um incidente nele, e sua descrição. A frase abaixo do título diz isso claramente: os incidentes só descem por esta lista.
+Vá em **Incidentes → Configurações → Estado do incidente**. O cartão **Estados do incidente** lista seus estados na ordem deles, uma linha cada: uma alça para arrastá-lo, sua cor e seu nome, como **Conta como** um incidente nele, e sua descrição. A frase abaixo do título diz isso claramente: os incidentes só descem por esta lista.
 
 ### Criar o estado
 

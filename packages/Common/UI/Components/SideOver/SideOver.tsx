@@ -222,8 +222,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                       data-testid="side-over-description"
                     >
                       {readAsWritten(
-                        translateString(props.description) ??
-                          props.description,
+                        translateString(props.description) ?? props.description,
                         translator.language,
                       )}
                     </p>

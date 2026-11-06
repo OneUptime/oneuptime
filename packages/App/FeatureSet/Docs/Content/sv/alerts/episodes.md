@@ -115,7 +115,7 @@ flowchart TB
     grouped -->|"Ansluter till en episod"| none["Inget mer körs"]
 ```
 
-- **En ny episod** kör regelns **Jourpolicyer**, plus de från varje matchande regel på fliken **Episode Rules** under **Larm → Regler → Jourregler**.
+- **En ny episod** kör regelns **Jourpolicyer**, plus de från varje matchande regel på fliken **Episodregler** under **Larm → Regler → Jourregler**.
 - **Ett larm som ansluter till en öppen episod** kör bara sina egna policyer. Episodens körs inte igen.
 - **Att svara på en episods larmanrop** bekräftar episoden, och därmed varje larm i den.
 
@@ -160,7 +160,7 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 
-**Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Alerts in this episode** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.
+**Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Larm i den här episoden** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.
 
 **Larm → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 

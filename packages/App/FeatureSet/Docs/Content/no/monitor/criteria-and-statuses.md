@@ -39,7 +39,7 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 | Del | Hva den inneholder |
 | --- | --- |
 | **Kriterienavn** | Navnet i listen over kriterier og i rotårsaken til hver hendelse og hvert varsel kriteriet åpner. **Legg til kriterier** gir et nytt kriterium navn etter filtrene, og navnet følger dem til du skriver ditt eget. |
-| **Filtre** | Hva kontrollen må vise, som ett eller flere filtre. Kubernetes- og metrikkmonitorer kaller dem **Alert Rules**. |
+| **Filtre** | Hva kontrollen må vise, som ett eller flere filtre. Kubernetes- og metrikkmonitorer kaller dem **Varselsregler**. |
 | **Handlinger** | Hva som skjer når filtrene samsvarer: endre statusen, opprette et varsel, erklære en hendelse eller en kombinasjon. |
 | **Innstillinger** | **Aktiver disse kriteriene**, en valgfri **Beskrivelse** og, på monitorer for innkommende forespørsler, **Group incidents and alerts by a payload field**. |
 
@@ -88,7 +88,7 @@ flowchart TB
 - **Én om gangen.** Så lenge en hendelse som et kriterium har erklært fortsatt er åpen, erklærer ikke det samme kriteriet en ny når det samsvarer igjen. Varsler fungerer på samme måte. En monitor som grupperer etter vert eller payload-felt, holder én åpen per vert eller verdi, og et kriterium på en monitor for innkommende e-post med **Åpne en ny hendelse for hver e-post** åpner én per e-post.
 - **Lukking.** Ved en senere kontroll der et annet kriterium samsvarer, eller ingen, løses en hendelse der kriteriet har **Løs hendelse automatisk** slått på, og det samme gjelder et varsel med **Løs varsel automatisk**. Begge ligger under **Flere felt** i hendelsen eller varselet, og kriteriene en ny monitor starter med, har dem slått på.
 - **Flere sonder.** En monitor som kontrolleres av mer enn én sonde, endres bare når sondene er enige. Se [Slik evalueres kriteriene](/docs/monitor/create-monitor#slik-evalueres-kriterier).
-- **En overordnet monitor som er nede.** På en monitors side **Konfigurasjon → Avhengigheter** angir **Depends On Monitors** monitorene den er avhengig av. Så lenge én av dem har en status som står i **Suppress When Parent Status Is** (enhver frakoblet-status, hvis feltet står tomt), åpner monitoren ingen hendelser eller varsler. Statusen endres fortsatt, og det som er åpent, løses fortsatt.
+- **En overordnet monitor som er nede.** På en monitors side **Konfigurasjon → Avhengigheter** angir **Avhenger av monitorer** monitorene den er avhengig av. Så lenge én av dem har en status som står i **Undertrykk når overordnet status er** (enhver frakoblet-status, hvis feltet står tomt), åpner monitoren ingen hendelser eller varsler. Statusen endres fortsatt, og det som er åpent, løses fortsatt.
 - **Planlagt vedlikehold.** En monitor i en vedlikeholdshendelse som pågår, kontrolleres ikke, så kriteriene kjører ikke. Se [Planlagt vedlikehold – Oversikt](/docs/scheduled-maintenance/index).
 
 For å se hvordan en kontroll ble vurdert, åpner du monitorens **Oversikt**: kortet **Monitor-sammendrag** viser hvilket kriterium som samsvarte og hva hvert kriterium gjorde, også en hendelse som ble hoppet over fordi en allerede var åpen.
@@ -187,7 +187,7 @@ Et kriterium høyere opp i listen samsvarte først. Åpne **Konfigurasjon → Kr
 :::
 
 :::details Ingen hendelse ble åpnet da monitoren gikk ned
-Sjekk kriteriet som samsvarte: **Når filtre samsvarer, erklær en hendelse.** må være slått på. En hendelse erklæres ikke så lenge det samme kriteriets hendelse fortsatt er åpen, så lenge en overordnet monitor i **Depends On Monitors** er nede, eller så lenge monitoren er i planlagt vedlikehold. Kortet **Monitor-sammendrag** på monitorens **Oversikt** forteller hvilken det var.
+Sjekk kriteriet som samsvarte: **Når filtre samsvarer, erklær en hendelse.** må være slått på. En hendelse erklæres ikke så lenge det samme kriteriets hendelse fortsatt er åpen, så lenge en overordnet monitor i **Avhenger av monitorer** er nede, eller så lenge monitoren er i planlagt vedlikehold. Kortet **Monitor-sammendrag** på monitorens **Oversikt** forteller hvilken det var.
 :::
 
 :::details Hendelsen forblir åpen etter at monitoren har kommet seg

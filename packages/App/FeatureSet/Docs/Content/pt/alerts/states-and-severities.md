@@ -65,7 +65,7 @@ Um estado que você adiciona é uma etapa pela qual sua equipe passa e que os tr
 :::steps
 ### Abrir a lista de estados
 
-Vá para **Alertas → Configurações → Estado do alerta**. O cartão **Alerta Estados** lista seus estados na ordem deles. Cada linha mostra sua cor e seu nome, como **Conta como** um alerta que está nele, e sua descrição.
+Vá para **Alertas → Configurações → Estado do alerta**. O cartão **Estados do alerta** lista seus estados na ordem deles. Cada linha mostra sua cor e seu nome, como **Conta como** um alerta que está nele, e sua descrição.
 
 ### Criar o estado
 

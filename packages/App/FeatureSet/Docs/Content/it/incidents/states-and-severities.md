@@ -83,7 +83,7 @@ Uno stato che aggiungete è un passaggio della vostra risposta che i tre predefi
 :::steps
 ### Aprire l'elenco degli stati
 
-Andate in **Incidenti → Impostazioni → Stato incidente**. La scheda **Incidente Stati** elenca i vostri stati nel loro ordine, una riga ciascuno: una maniglia per trascinarlo, il suo colore e il suo nome, come **Conta come** un incidente in esso, e la sua descrizione. La frase sotto il titolo lo dice chiaramente: gli incidenti scendono soltanto lungo questo elenco.
+Andate in **Incidenti → Impostazioni → Stato incidente**. La scheda **Stati incidente** elenca i vostri stati nel loro ordine, una riga ciascuno: una maniglia per trascinarlo, il suo colore e il suo nome, come **Conta come** un incidente in esso, e la sua descrizione. La frase sotto il titolo lo dice chiaramente: gli incidenti scendono soltanto lungo questo elenco.
 
 ### Creare lo stato
 

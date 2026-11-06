@@ -265,7 +265,9 @@ const RAIL_ERRORS_LOCKED_NOTICE: string = translationKey(
 const RAIL_NOW_DIVIDER: string = translationKey("now {{time}}");
 // The list's name for a screen reader: "Console signals".
 const RAIL_LIST_NAME: string = translationKey("{{tab}} signals");
-const RAIL_SELECTED_ROW: string = translationKey("Selected {{title}} at {{time}}");
+const RAIL_SELECTED_ROW: string = translationKey(
+  "Selected {{title}} at {{time}}",
+);
 
 const EMPTY_SNAPSHOT: ReplayBackendSignalsSnapshot = {
   slots: makeIdleBackendSignalsState(),
@@ -1903,11 +1905,9 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         aria-label={translator.translateTemplate(RAIL_LIST_NAME, {
           tab: translatableTerm(
             (
-              REPLAY_RAIL_TABS.find(
-                (tab: ReplayRailTabDefinition): boolean => {
-                  return tab.id === activeTab;
-                },
-              ) as ReplayRailTabDefinition
+              REPLAY_RAIL_TABS.find((tab: ReplayRailTabDefinition): boolean => {
+                return tab.id === activeTab;
+              }) as ReplayRailTabDefinition
             ).label,
           ),
         })}

@@ -58,7 +58,7 @@ Reglerne adskiller sig i, hvordan flere match afgøres:
 - **Grupperingsregler**, **Hændelsesregler** og **Påmindelsesregler** kontrolleres oppefra og ned i deres liste, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
 - **Vagtregler**, **Ejerregler**, **Etiketregler**, **Privatlivsregler** og **Runbook-regler** handler alle, når de matcher. Vagtpolitikker, ejere og etiketter, som flere regler tilføjer, tilføjes én gang.
 
-**Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Alert Rules** for advarsler og **Episode Rules**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel.
+**Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Advarselsregler** for advarsler og **Episoderegler**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel.
 
 De fleste regler handler på advarsler og episoder, der oprettes, efter at du har gemt dem. For at anvende en ejer-, etiket- eller privatlivsregel på dem, du allerede har, bruger du **Kør nu**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now). Påmindelsesregler er undtagelsen: Når du gemmer en, matches hver åben advarsel igen.
 
@@ -143,7 +143,7 @@ Ejere får hver påmindelse som **Påmindelse om advarsel**, som er slået til v
 
 ### Noteskabeloner
 
-**Advarsler → Indstillinger → Noteskabeloner** rummer færdig tekst til private noter. Kortet **Skabeloner til private noter for advarsler** viser dem; **Opret Advarsel Note Skabelon** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en privat note på en advarsel eller en episode, og når de bekræfter eller løser en, og dens tekst kan redigeres, før den slås op. Noteskabeloner for advarsler er ren tekst: I modsætning til noteskabeloner for hændelser udfylder de ingen variabler.
+**Advarsler → Indstillinger → Noteskabeloner** rummer færdig tekst til private noter. Kortet **Skabeloner til private noter for advarsler** viser dem; **Opret Noteskabelon for advarsler** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en privat note på en advarsel eller en episode, og når de bekræfter eller løser en, og dens tekst kan redigeres, før den slås op. Noteskabeloner for advarsler er ren tekst: I modsætning til noteskabeloner for hændelser udfylder de ingen variabler.
 
 ### Brugerdefinerede felter
 
@@ -170,7 +170,7 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste advarsel og d
 
 ## Workflows
 
-Hver advarselsmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarsel Episode**, **Advarsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen workflow-udløsere. Se [Workflows – Oversigt](/docs/workflows/index).
+Hver advarselsmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarselsepisode**, **Tilstandstidslinje for advarsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen workflow-udløsere. Se [Workflows – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 

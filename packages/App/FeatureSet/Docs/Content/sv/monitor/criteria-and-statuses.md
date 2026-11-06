@@ -39,7 +39,7 @@ Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrolle
 | Del | Vad den innehåller |
 | --- | --- |
 | **Kriterienamn** | Namnet i listan över kriterier och i grundorsaken till varje incident och larm som kriteriet öppnar. **Lägg till kriterier** namnger ett nytt kriterium efter dess filter, och namnet följer dem tills du skriver ett eget. |
-| **Filter** | Vad kontrollen måste visa, som ett eller flera filter. Kubernetes- och måttmonitorer kallar dem **Alert Rules**. |
+| **Filter** | Vad kontrollen måste visa, som ett eller flera filter. Kubernetes- och måttmonitorer kallar dem **Larmregler**. |
 | **Åtgärder** | Vad som händer när filtren matchar: ändra statusen, skapa ett larm, deklarera en incident eller någon kombination. |
 | **Inställningar** | **Aktivera det här kriteriet**, en valfri **Beskrivning** och, på monitorer för inkommande förfrågningar, **Group incidents and alerts by a payload field**. |
 
@@ -88,7 +88,7 @@ flowchart TB
 - **En i taget.** Så länge en incident som ett kriterium har deklarerat fortfarande är öppen, deklarerar samma kriterium ingen ny när det matchar igen. Larm fungerar på samma sätt. En monitor som grupperar efter värd eller payload-fält håller en öppen per värd eller värde, och ett kriterium på en monitor för inkommande e-post med **Öppna en ny incident för varje e-postmeddelande** öppnar en per e-postmeddelande.
 - **Stängning.** Vid en senare kontroll där ett annat kriterium matchar, eller inget, löses en incident vars kriterium har **Lös incident automatiskt** påslaget, och likaså ett larm med **Lös larm automatiskt**. Båda finns under **Fler fält** i incidenten eller larmet, och de kriterier som en ny monitor börjar med har dem påslagna.
 - **Flera sonder.** En monitor som kontrolleras av mer än en sond ändras bara när dess sonder är överens. Se [Hur kriterier utvärderas](/docs/monitor/create-monitor#så-utvärderas-kriterier).
-- **En överordnad monitor som är nere.** På en monitors sida **Konfiguration → Beroenden** anger **Depends On Monitors** de monitorer den är beroende av. Så länge någon av dem har en status som står i **Suppress When Parent Status Is** (vilken offline-status som helst, om fältet lämnas tomt), öppnar monitorn inga incidenter eller larm. Dess status ändras fortfarande, och det som är öppet löses fortfarande.
+- **En överordnad monitor som är nere.** På en monitors sida **Konfiguration → Beroenden** anger **Beror på monitorer** de monitorer den är beroende av. Så länge någon av dem har en status som står i **Undertryck när överordnad status är** (vilken offline-status som helst, om fältet lämnas tomt), öppnar monitorn inga incidenter eller larm. Dess status ändras fortfarande, och det som är öppet löses fortfarande.
 - **Schemalagt underhåll.** En monitor i en underhållshändelse som pågår kontrolleras inte, så dess kriterier körs inte. Se [Schemalagt underhåll – Översikt](/docs/scheduled-maintenance/index).
 
 För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet **Monitor-sammanfattning** visar vilket kriterium som matchade och vad varje kriterium gjorde, även en incident som hoppades över eftersom en redan var öppen.
@@ -187,7 +187,7 @@ Ett kriterium högre upp i listan matchade först. Öppna **Konfiguration → Kr
 :::
 
 :::details Ingen incident öppnades när monitorn gick ned
-Kontrollera kriteriet som matchade: **När filter matchar, deklarera en incident.** måste vara påslaget. En incident deklareras inte så länge samma kriteriums incident fortfarande är öppen, så länge en överordnad monitor i **Depends On Monitors** är nere, eller så länge monitorn är i schemalagt underhåll. Kortet **Monitor-sammanfattning** på monitorns **Översikt** säger vilket det var.
+Kontrollera kriteriet som matchade: **När filter matchar, deklarera en incident.** måste vara påslaget. En incident deklareras inte så länge samma kriteriums incident fortfarande är öppen, så länge en överordnad monitor i **Beror på monitorer** är nere, eller så länge monitorn är i schemalagt underhåll. Kortet **Monitor-sammanfattning** på monitorns **Översikt** säger vilket det var.
 :::
 
 :::details Incidenten förblir öppen efter att monitorn har återhämtat sig

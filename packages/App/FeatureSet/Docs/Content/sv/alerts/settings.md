@@ -58,7 +58,7 @@ Reglerna skiljer sig åt i hur flera matchningar avgörs:
 - **Grupperingsregler**, **Incidentregler** och **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första matchningen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 - **Jourregler**, **Ägarregler**, **Etikettregler**, **Sekretessregler** och **Runbook-regler** verkar alla när de matchar. Jourpolicyer, ägare och etiketter som flera regler lägger till läggs till en gång.
 
-**Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Alert Rules**, för larm, och **Episode Rules**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel.
+**Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Larmregler**, för larm, och **Episodregler**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel.
 
 De flesta regler verkar på larm och episoder som skapas efter att du har sparat dem. För att tillämpa en ägar-, etikett- eller sekretessregel på dem som du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Påminnelseregler är undantaget: När du sparar en matchas varje öppet larm på nytt.
 
@@ -143,7 +143,7 @@ I **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur ofta �
 
 ### Anteckningsmallar
 
-**Larm → Inställningar → Anteckningsmallar** innehåller färdig text för privata anteckningar. Kortet **Mallar för privata anteckningar för larm** listar dem; **Skapa Larm Anteckning Mall** frågar efter **Mallnamn**, **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en privat anteckning på ett larm eller en episod, och när de bekräftar eller löser ett, och dess text kan redigeras innan den publiceras. Anteckningsmallar för larm är ren text: Till skillnad från anteckningsmallar för incidenter fyller de inte i några variabler.
+**Larm → Inställningar → Anteckningsmallar** innehåller färdig text för privata anteckningar. Kortet **Mallar för privata anteckningar för larm** listar dem; **Skapa Anteckningsmall för larm** frågar efter **Mallnamn**, **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en privat anteckning på ett larm eller en episod, och när de bekräftar eller löser ett, och dess text kan redigeras innan den publiceras. Anteckningsmallar för larm är ren text: Till skillnad från anteckningsmallar för incidenter fyller de inte i några variabler.
 
 ### Anpassade fält
 
@@ -170,7 +170,7 @@ Kortet **Nästa nummer** under det anger numret som nästa larm och nästa episo
 
 ## Arbetsflöden
 
-Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** och **On Delete Alert**, samma sak för **Larm Episod**, **Larm Tillstånd Tidslinje** och de andra, och åtgärder som **Create One Alert** och **Update One Alert**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
+Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** och **On Delete Alert**, samma sak för **Larmepisod**, **Tillståndstidslinje för larm** och de andra, och åtgärder som **Create One Alert** och **Update One Alert**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Vem som kan ändra dem
 

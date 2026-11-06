@@ -57,7 +57,7 @@ flowchart LR
 | 필드 | 설명 |
 | --- | --- |
 | **로고** | 양식 페이지 상단, 이름 위에 OneUptime 로고 대신 표시됩니다. 512 KB 이하의 PNG, JPEG, GIF, WebP, SVG 이미지입니다. 제거하면 OneUptime 로고로 돌아갑니다. |
-| **Logo Alt Text** | 화면 읽기 프로그램이 읽어 주는 로고의 내용으로, 보통 조직의 이름입니다. 로고가 있으면 묻습니다. 비워 두면 화면 읽기 프로그램이 로고를 건너뛰며, 어차피 그 뒤에 양식 이름이 이어집니다. 로고를 제거하면 이 값도 지워집니다. |
+| **로고 대체 텍스트** | 화면 읽기 프로그램이 읽어 주는 로고의 내용으로, 보통 조직의 이름입니다. 로고가 있으면 묻습니다. 비워 두면 화면 읽기 프로그램이 로고를 건너뛰며, 어차피 그 뒤에 양식 이름이 이어집니다. 로고를 제거하면 이 값도 지워집니다. |
 | **파비콘** | 양식이 열려 있는 동안 브라우저 탭에 표시되는 아이콘으로, OneUptime 파비콘 대신 표시됩니다. 128 KB 이하의 PNG, JPEG, GIF, WebP, SVG, ICO 이미지이며, 정사각형 PNG, SVG, ICO 가 가장 좋습니다. 제거하면 OneUptime 파비콘으로 돌아갑니다. |
 
 로고는 대체하는 OneUptime 로고의 높이를 유지하며, 가로로 긴 로고는 페이지 너비에 맞춰집니다. 모든 이미지는 저장할 때 (대시보드, API, Terraform, 워크플로 어디에서든) 확인됩니다. 양식 자체의 프로젝트에 업로드된 것이어야 하고, 위의 유형 중 하나여야 하며, 한도를 넘지 않아야 합니다. 이 이미지들 중 하나가 아닌 로고는 "The logo must be a PNG, JPEG, GIF, WebP or SVG image." 로, 너무 큰 로고는 "The logo must be 512 KB or smaller." 로, 업로드가 사라졌거나 다른 프로젝트에서 업로드된 로고는 "The logo's file could not be found. Upload the logo again." 로 거부됩니다. 파비콘도 같은 방식으로 "The favicon must be a PNG, JPEG, GIF, WebP, SVG or ICO image.", "The favicon must be 128 KB or smaller.", "The favicon's file could not be found. Upload the favicon again." 로 거부됩니다.

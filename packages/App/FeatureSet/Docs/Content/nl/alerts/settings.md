@@ -58,7 +58,7 @@ De regels verschillen in hoe meerdere overeenkomsten worden afgehandeld:
 - **Groeperingsregels**, **Incidentregels** en **Herinneringsregels** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste overeenkomst wint. Sleep een regel om haar plek te wijzigen; een nieuwe regel komt aan het einde.
 - **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels**, **Privacyregels** en **Runbook-regels** werken allemaal wanneer ze overeenkomen. Bereikbaarheidsbeleid, eigenaren en labels die meerdere regels toevoegen, worden één keer toegevoegd.
 
-**Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben twee tabbladen: **Alert Rules**, voor waarschuwingen, en **Episode Rules**, die op dezelfde manier op elke nieuwe waarschuwingsepisode werken. Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in haar bewerkformulier om haar te pauzeren, en de lijst toont per regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**.
+**Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben twee tabbladen: **Waarschuwingsregels**, voor waarschuwingen, en **Episoderegels**, die op dezelfde manier op elke nieuwe waarschuwingsepisode werken. Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in haar bewerkformulier om haar te pauzeren, en de lijst toont per regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**.
 
 De meeste regels werken op waarschuwingen en episodes die na het opslaan worden aangemaakt. Om een eigenaars-, label- of privacyregel toe te passen op wat je al hebt, gebruik je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Herinneringsregels zijn de uitzondering: als je er een opslaat, wordt elke open waarschuwing opnieuw gematcht.
 
@@ -143,7 +143,7 @@ Eigenaren krijgen elke herinnering als **Waarschuwingsherinnering**, dat standaa
 
 ### Notitie-sjablonen
 
-**Waarschuwingen → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor privénotities. De kaart **Privénotitiesjablonen voor waarschuwingen** toont ze; **Waarschuwing Notitie Sjabloon aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een privénotitie schrijft bij een waarschuwing of een episode, en wanneer iemand er een bevestigt of oplost, en de tekst kan worden bewerkt voordat ze wordt geplaatst. Notitie-sjablonen voor waarschuwingen zijn platte tekst: anders dan notitie-sjablonen voor incidenten vullen ze geen variabelen in.
+**Waarschuwingen → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor privénotities. De kaart **Privénotitiesjablonen voor waarschuwingen** toont ze; **Notitiesjabloon voor waarschuwingen aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een privénotitie schrijft bij een waarschuwing of een episode, en wanneer iemand er een bevestigt of oplost, en de tekst kan worden bewerkt voordat ze wordt geplaatst. Notitie-sjablonen voor waarschuwingen zijn platte tekst: anders dan notitie-sjablonen voor incidenten vullen ze geen variabelen in.
 
 ### Aangepaste velden
 
@@ -170,7 +170,7 @@ De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende waarschu
 
 ## Workflows
 
-Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** en **On Delete Alert**, hetzelfde voor **Waarschuwing Episode**, **Waarschuwing Status Tijdlijn** en de andere, en acties zoals **Create One Alert** en **Update One Alert**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
+Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** en **On Delete Alert**, hetzelfde voor **Waarschuwingsepisode**, **Statustijdlijn van waarschuwing** en de andere, en acties zoals **Create One Alert** en **Update One Alert**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
 
 ## Wie dit kan wijzigen
 

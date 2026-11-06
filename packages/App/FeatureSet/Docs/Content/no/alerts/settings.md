@@ -58,7 +58,7 @@ Reglene skiller seg i hvordan flere samsvar avgjøres:
 - **Grupperingsregler**, **Hendelsesregler** og **Påminnelsesregler** kontrolleres ovenfra og ned i listen sin, og det første samsvaret vinner. Dra en regel for å endre plassen; en ny regel havner sist.
 - **Vaktregler**, **Eierregler**, **Etikettregler**, **Personvernregler** og **Runbook-regler** virker alle når de samsvarer. Vaktpolicyer, eiere og etiketter som flere regler legger til, legges til én gang.
 
-**Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Alert Rules** for varsler og **Episode Rules**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
+**Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Varselsregler** for varsler og **Episoderegler**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
 
 De fleste regler virker på varsler og episoder som opprettes etter at du har lagret dem. For å bruke en eier-, etikett- eller personvernregel på dem du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Påminnelsesregler er unntaket: Når du lagrer en, samsvares hvert åpent varsel på nytt.
 
@@ -143,7 +143,7 @@ Eiere får hver påminnelse som **Påminnelse om varsel**, som er slått på via
 
 ### Notatmaler
 
-**Varsler → Innstillinger → Notatmaler** inneholder ferdig tekst for private notater. Kortet **Maler for private notater for varsler** viser dem; **Opprett Varsel Notat Mal** ber om **Malnavn**, **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et privat notat på et varsel eller en episode, og når de bekrefter eller løser en, og teksten kan redigeres før den publiseres. Notatmaler for varsler er ren tekst: I motsetning til notatmaler for hendelser fyller de ikke ut noen variabler.
+**Varsler → Innstillinger → Notatmaler** inneholder ferdig tekst for private notater. Kortet **Maler for private notater for varsler** viser dem; **Opprett Notatmal for varsler** ber om **Malnavn**, **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et privat notat på et varsel eller en episode, og når de bekrefter eller løser en, og teksten kan redigeres før den publiseres. Notatmaler for varsler er ren tekst: I motsetning til notatmaler for hendelser fyller de ikke ut noen variabler.
 
 ### Egendefinerte felt
 
@@ -170,7 +170,7 @@ Kortet **Neste nummer** under setter nummeret det neste varselet og den neste ep
 
 ## Arbeidsflyter
 
-Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Varsel Episode**, **Varsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Varselsepisode**, **Tilstandstidslinje for varsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dem
 

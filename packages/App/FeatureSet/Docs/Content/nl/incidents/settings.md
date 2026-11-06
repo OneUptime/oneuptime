@@ -40,12 +40,12 @@ Een incidentsjabloon is het opgeslagen geraamte van een incident. In plaats van 
 
 :::steps
 1. Ga naar **Incidenten → Instellingen → Incident-sjablonen** (`/dashboard/{projectId}/incidents/settings/templates`). De kaart heet **Incident-sjablonen**.
-2. Klik op **Incident Sjabloon aanmaken**. Geef het sjabloon een naam op **Sjablooninformatie** en vul daarna op **Incidentdetails** het incident in dat het meldt: een **Titel**, een **Ernst van incident** en een **Beschrijving**.
+2. Klik op **Incidentsjabloon aanmaken**. Geef het sjabloon een naam op **Sjablooninformatie** en vul daarna op **Incidentdetails** het incident in dat het meldt: een **Titel**, een **Ernst van incident** en een **Beschrijving**.
 3. Druk door de optionele stappen op **Volgende** — de middelen die het treft, de aangepaste velden en het bereikbaarheidsbeleid — en vul in wat elk incident van deze soort gemeen heeft.
-4. Klik op de laatste stap op **Incident Sjabloon aanmaken**. Vanaf nu wordt het sjabloon aangeboden door **Maken op basis van sjabloon** in de incidentenlijst.
+4. Klik op de laatste stap op **Incidentsjabloon aanmaken**. Vanaf nu wordt het sjabloon aangeboden door **Maken op basis van sjabloon** in de incidentenlijst.
 :::
 
-Het aanmaken leidt je door een wizard van vier stappen, met nog twee stappen als je project aangepaste incidentvelden heeft. Alleen de eerste twee vragen om iets wat je moet beantwoorden: **Volgende** loopt de optionele stappen daarna door, en **Incident Sjabloon aanmaken** staat op de laatste stap.
+Het aanmaken leidt je door een wizard van vier stappen, met nog twee stappen als je project aangepaste incidentvelden heeft. Alleen de eerste twee vragen om iets wat je moet beantwoorden: **Volgende** loopt de optionele stappen daarna door, en **Incidentsjabloon aanmaken** staat op de laatste stap.
 
 - **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**. Die geven het sjabloon zelf een naam; ze verschijnen nooit op het incident.
 - **Incidentdetails** — **Titel**, **Beschrijving** (Markdown) en **Ernst van incident**. Onder **Meer velden**, waarvan de ingeklapte kop de drie noemt en elk toont dat is ingesteld:
@@ -62,8 +62,8 @@ Een paar korte regels:
 - De sjablonenlijst toont alleen **Naam** en **Beschrijving**. Rijen kunnen vanuit de lijst niet worden bewerkt of verwijderd — open een sjabloon (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) om het te wijzigen.
 - Iedereen die een sjabloon kan bewerken, kan de details en de getroffen middelen ervan wijzigen, **Initiële incidentstatus** en **Monitorstatus wijzigen naar** inbegrepen: Project Owners, Project Admins en Project Members, Incident Admins en Incident Members, en een rol met **Edit Incident Template**.
 - Sjablonen ondersteunen import en export in JSON, zodat je er een van het ene project naar het andere kunt verplaatsen.
-- Zonder sjablonen zegt de lijst **Geen incidentsjablonen gevonden** met **Incident Sjabloon aanmaken** er direct onder.
-- Ook zonder sjablonen opent **Maken op basis van sjabloon** in de incidentenlijst een dialoogvenster **No Incident Templates** dat zegt waar sjablonen worden gemaakt, en de knop **Create Template** ervan opent **Incidenten → Instellingen → Incident-sjablonen**.
+- Zonder sjablonen zegt de lijst **Geen incidentsjablonen gevonden** met **Incidentsjabloon aanmaken** er direct onder.
+- Ook zonder sjablonen opent **Maken op basis van sjabloon** in de incidentenlijst een dialoogvenster **Geen incidentsjablonen** dat zegt waar sjablonen worden gemaakt, en de knop **Create Template** ervan opent **Incidenten → Instellingen → Incident-sjablonen**.
 
 ### Hoe een sjabloon wordt toegepast
 
@@ -80,7 +80,7 @@ flowchart TB
 ```
 
 - **In het dashboard** — de knop **Maken op basis van sjabloon** in de incidentenlijst opent een kiezer **Selecteer incidentsjabloon**, en de meldpagina leest het sjabloon uit de queryparameter `incidentTemplateId` en vult het formulier daarna vooraf in met het sjabloon plus de teams en gebruikers die er eigenaar van zijn. De stap **Details** volgt de [aangepaste velden bij aanmaken](#aangepaste-velden-bij-aanmaken) van het sjabloon. De eigenaren worden eigenaar van het incident zonder melding, zodra de Slack- en Microsoft Teams-kanalen van het incident bestaan, zodat een meldingsregel die de eigenaren van een incident in een nieuw kanaal uitnodigt, hen ook uitnodigt.
-- **Op de server** — een [formulier](/docs/forms/on-submit#het-incidentsjabloon) dat een **Incident Sjabloon** heeft, en de stap **Create One Incident** van een workflow met een gekozen **Incident Template**, melden het incident op de server vanuit het sjabloon. De stap leest het sjabloon als Project Admin van het project van de workflow, dus een sjabloon uit een ander project, of een dat is verwijderd, wordt geweigerd, en bij een abonnement zonder incidentsjablonen wordt de stap geweigerd met het abonnement dat ervoor nodig is. De eigenaren van het sjabloon worden eigenaar van het incident, zoals in het dashboard. Zie [Workflow-componenten](/docs/workflows/components).
+- **Op de server** — een [formulier](/docs/forms/on-submit#het-incidentsjabloon) dat een **Incidentsjabloon** heeft, en de stap **Create One Incident** van een workflow met een gekozen **Incident Template**, melden het incident op de server vanuit het sjabloon. De stap leest het sjabloon als Project Admin van het project van de workflow, dus een sjabloon uit een ander project, of een dat is verwijderd, wordt geweigerd, en bij een abonnement zonder incidentsjablonen wordt de stap geweigerd met het abonnement dat ervoor nodig is. De eigenaren van het sjabloon worden eigenaar van het incident, zoals in het dashboard. Zie [Workflow-componenten](/docs/workflows/components).
 
 Een incident dat op de server wordt gemeld, legt het sjabloon vast in `createdIncidentTemplateId`. Alleen OneUptime zet die kolom, voor een formulier of een workflowstap die een sjabloon noemt: een API-sleutel of een aangemelde gebruiker kan dat niet, en een verzoek dat `createdIncidentTemplateId` meestuurt, wordt geweigerd. Om via de API vanuit een sjabloon te melden, lees je het uit `/api/incident-templates` en stuur je de waarden ervan mee in het verzoek.
 
@@ -129,7 +129,7 @@ Notitiesjablonen geven responders kant-en-klare tekst voor incidentupdates, zoda
 
 :::steps
 1. Ga naar **Incidenten → Instellingen → Notitie-sjablonen** (`/dashboard/{projectId}/incidents/settings/note-templates`). De kaart heet **Openbare of privénotitiesjablonen voor incidenten** — één bibliotheek dient voor beide soorten notities.
-2. Klik op **Incident Notitie Sjabloon aanmaken** en vul de ene pagina in: **Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht, en dan de **Notitie** zelf, in Markdown, verplicht: de tekst waarmee een notitie begint als het sjabloon wordt gekozen.
+2. Klik op **Notitiesjabloon voor incidenten aanmaken** en vul de ene pagina in: **Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht, en dan de **Notitie** zelf, in Markdown, verplicht: de tekst waarmee een notitie begint als het sjabloon wordt gekozen.
 3. Sla het op. Het sjabloon wordt aangeboden door **Sjablonen** op beide notitiepagina's, en door **Selecteer notitiesjabloon** in de dialoogvensters **Incident bevestigen** en **Incident oplossen**.
 :::
 
@@ -169,7 +169,7 @@ Een postmortem-sjabloon is het geraamte van het verslag dat je na een incident m
 
 :::steps
 1. Ga naar **Incidenten → Instellingen → Postmortem-sjablonen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). De kaart heet **Postmortem-sjablonen**.
-2. Klik op **Incident Postmortem Sjabloon aanmaken** en vul de ene pagina in: **Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht, en dan **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
+2. Klik op **Postmortem-sjabloon voor incidenten aanmaken** en vul de ene pagina in: **Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht, en dan **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
 3. Sla het op. De pagina **Postmortem** van elk incident biedt nu **Sjabloon toepassen** aan. Zolang er nog niets geschreven is, heet de knop **Beginnen met sjabloon**; zodra het postmortem geschreven is, staat **Sjabloon toepassen** in het menu **⋯** van de kaart.
 :::
 
@@ -187,12 +187,12 @@ Met aangepaste velden neem je je eigen metadata mee op elk incident — de naam 
 
 :::steps
 1. Ga naar **Incidenten → Instellingen → Aangepaste velden** (`/dashboard/{projectId}/incidents/settings/custom-fields`). De pagina heet **Aangepaste incidentvelden** en toont de velden in hun **Volgorde**, elk alleen met zijn **Veldnaam** en **Veldtype**.
-2. Klik op **Incident Aangepast Veld aanmaken** en vul de **Veldnaam**, de **Veldbeschrijving** en het **Veldtype** in — en, voor een type vervolgkeuzelijst, de opties, direct onder het type.
+2. Klik op **Aangepast veld voor incidenten aanmaken** en vul de **Veldnaam**, de **Veldbeschrijving** en het **Veldtype** in — en, voor een type vervolgkeuzelijst, de opties, direct onder het type.
 3. Om bij elke melding van een incident om het veld te vragen, open je **Meer velden** en zet je **Tonen bij aanmaken** aan, en **Verplicht bij aanmaken** als het moet worden beantwoord.
 4. Sla het op en sleep de rij daarna aan haar greep naar waar het veld moet staan. **Bewerken** op de rij van een veld opent de rest van de instellingen ervan.
 :::
 
-Een veld aanmaken vraagt om de **Veldnaam**, de **Veldbeschrijving** en het **Veldtype** op één pagina — en, voor een type vervolgkeuzelijst, de opties, direct onder het type. De waarden van een nieuw veld worden getypt. Al het andere staat onder **Meer velden**, dat ingeklapt begint, of je nu een veld aanmaakt of bewerkt; ingeklapt noemt de kop wat erin zit en toont hij wat is ingesteld. Om een veld te maken dat zijn waarde uit een aangepast monitorveld kopieert, open je het menu **Meer** (**⋯**) naast **Incident Aangepast Veld aanmaken** en kies je **Gekoppeld aangepast veld aanmaken** — zie [Velden die uit een monitor worden gekopieerd](#velden-die-uit-een-monitor-worden-gekopieerd).
+Een veld aanmaken vraagt om de **Veldnaam**, de **Veldbeschrijving** en het **Veldtype** op één pagina — en, voor een type vervolgkeuzelijst, de opties, direct onder het type. De waarden van een nieuw veld worden getypt. Al het andere staat onder **Meer velden**, dat ingeklapt begint, of je nu een veld aanmaakt of bewerkt; ingeklapt noemt de kop wat erin zit en toont hij wat is ingesteld. Om een veld te maken dat zijn waarde uit een aangepast monitorveld kopieert, open je het menu **Meer** (**⋯**) naast **Aangepast veld voor incidenten aanmaken** en kies je **Gekoppeld aangepast veld aanmaken** — zie [Velden die uit een monitor worden gekopieerd](#velden-die-uit-een-monitor-worden-gekopieerd).
 
 Elke definitie heeft:
 
@@ -255,7 +255,7 @@ De [aangepaste velden bij aanmaken](#aangepaste-velden-bij-aanmaken) van een sja
 
 ### Velden die uit een monitor worden gekopieerd
 
-Een aangepast veld kan zijn waarde halen uit een aangepast veld van de monitoren van het incident, in plaats van dat ze wordt getypt — een regio of een klantniveau dat je monitoren al vastleggen bijvoorbeeld. Om er een te maken, open je het menu **Meer** (**⋯**) naast **Incident Aangepast Veld aanmaken** en kies je **Gekoppeld aangepast veld aanmaken**. Het vraagt om drie dingen:
+Een aangepast veld kan zijn waarde halen uit een aangepast veld van de monitoren van het incident, in plaats van dat ze wordt getypt — een regio of een klantniveau dat je monitoren al vastleggen bijvoorbeeld. Om er een te maken, open je het menu **Meer** (**⋯**) naast **Aangepast veld voor incidenten aanmaken** en kies je **Gekoppeld aangepast veld aanmaken**. Het vraagt om drie dingen:
 
 - **Monitorveld** — het aangepaste monitorveld dat wordt gekopieerd. Elk veld wordt aangeboden, elk met zijn type onder zijn naam. Het nieuwe veld krijgt dat type, en de opties van een vervolgkeuzelijst, zodat de twee altijd overeenkomen.
 - **Veldnaam** — begint als de naam van het monitorveld, tot je een andere typt.
@@ -501,7 +501,7 @@ Incidentrollen zijn de benoemde taken waaraan je mensen toewijst tijdens een res
 
 Een nieuw project begint met één rol, **Incidentcommandant**, de persoon die de leiding heeft over de respons. OneUptime vult die voor je in: meld je vanuit het dashboard een incident zonder iemand voor de rol te kiezen, dan word jij de Incident Commander ervan, en een incident dat er nog geen heeft, krijgt de eerste persoon die de status ervan wijzigt, tenzij die al een andere rol erop heeft. Incident Commander kan worden hernoemd, maar niet verwijderd, en wordt altijd door één persoon vervuld. Het **Verwijderen** ervan is vergrendeld, en zegt waarom.
 
-Voeg de andere rollen toe die je team gebruikt, zoals Responder, Communications Lead of Scribe, met **Incident Rol aanmaken**. Het formulier is één pagina: een naam en een beschrijving, en dan **Meer velden**, ingeklapt, met **Meerdere gebruikers toestaan**, het pictogram van de rol en haar kleur. De kleur van een nieuwe rol is al gekozen, een kleur die de rollen in de lijst nog niet gebruiken, en het pictogram is optioneel, dus je opent **Meer velden** alleen om ze te wijzigen. Een rol wordt per incident door één persoon vervuld, tenzij je **Meerdere gebruikers toestaan** aanzet. Projecten die door eerdere versies van OneUptime zijn aangemaakt, begonnen ook met Responder, Communications Lead en Observer. Die houden ze tot je ze verwijdert.
+Voeg de andere rollen toe die je team gebruikt, zoals Responder, Communications Lead of Scribe, met **Incidentrol aanmaken**. Het formulier is één pagina: een naam en een beschrijving, en dan **Meer velden**, ingeklapt, met **Meerdere gebruikers toestaan**, het pictogram van de rol en haar kleur. De kleur van een nieuwe rol is al gekozen, een kleur die de rollen in de lijst nog niet gebruiken, en het pictogram is optioneel, dus je opent **Meer velden** alleen om ze te wijzigen. Een rol wordt per incident door één persoon vervuld, tenzij je **Meerdere gebruikers toestaan** aanzet. Projecten die door eerdere versies van OneUptime zijn aangemaakt, begonnen ook met Responder, Communications Lead en Observer. Die houden ze tot je ze verwijdert.
 
 Rollen zijn alleen definities. Je wijst er per incident mensen aan toe — de meldwizard vraagt erom in de stap **Bereikbaarheid en rollen**, met een veld **Incidentrollen toewijzen**, en elk incident heeft een pagina **Rollen** in het zijmenu. De criteria van een monitor en een groeperingsregel voor incidenten kunnen er van tevoren mensen voor kiezen. Elk van deze formulieren vraagt erom met dezelfde kaarten, één per rol: een rol met het label **Primair** is Incident Commander of een andere primaire rol, en een rol voor één persoon laat zijn kiezer weg zodra hij er een heeft. Op de kaart **Rollen** van een incident biedt een rol voor meerdere personen **Add More** aan.
 
@@ -603,7 +603,7 @@ Groeperings-, SLA-, herinnerings- en AI-regels werken ook op het nieuwe incident
 > [!IMPORTANT]
 > **De betekenis van volgorde is niet overal gelijk.** Groeperingsregels, SLA-regels en Reminder Rules worden op volgorde geëvalueerd, en hun lijsten worden door slepen geordend: een nieuwe regel wordt aan het eind toegevoegd. Bereikbaarheidsregels niet — elke overeenkomende regel gaat af. Ga er niet van uit dat één model voor alle negen geldt.
 
-De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — een tabblad **Incidentregels** en een tabblad **Episode Rules**, elk met een eigen tabel. Stel het tabblad **Incidentregels** in, tenzij je specifiek episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **AI-regels**, **SLA-regels** en **Herinneringsregels** zijn enkele tabellen.
+De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — een tabblad **Incidentregels** en een tabblad **Episoderegels**, elk met een eigen tabel. Stel het tabblad **Incidentregels** in, tenzij je specifiek episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **AI-regels**, **SLA-regels** en **Herinneringsregels** zijn enkele tabellen.
 
 Eigenaars-, label- en privacyregels werken alleen op incidenten en episodes die worden aangemaakt nadat de regel bestaat. Om er een toe te passen op incidenten die er al zijn, gebruik je **Nu uitvoeren** op de rij van de regel, op haar eigen pagina, of vanuit de bulkacties van de tabel — zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Bereikbaarheids-, runbook-, AI-, groeperings-, SLA- en herinneringsregels kunnen niet op bestaande incidenten worden uitgevoerd.
 
@@ -615,7 +615,7 @@ Eigenaars-, label- en privacyregels werken alleen op incidenten en episodes die 
 
 **Incidenten → Regels → Labelregels** zet labels op nieuwe incidenten die overeenkomen, en **Eigenaarsregels** voegt er gebruikers en teams als eigenaar aan toe. **Waarschuwingen → Regels** en **Geplande onderhoud → Regels** hebben dezelfde twee pagina's en werken op dezelfde manier. Een regel aanmaken gaat in twee stappen: **Overeenkomst**, de voorwaarden waaraan een incident moet voldoen, en dan **Labels** (of **Eigenaren**), wat de regel toevoegt. Zijn **Naam** wordt ingevuld vanuit wat je kiest tot je zelf een naam typt, en de optionele **Beschrijving** (en het **Eigenaren op de hoogte stellen** van een eigenaarsregel) wacht onder **Meer velden**.
 
-**Een regel kan overnemen.** Onder **Toe te voegen labels** (of **Eigenaren**) bevat de ingeklapte sectie **Labels overnemen** (of **Eigenaren overnemen**) zes schakelaars die ook de labels (of eigenaren) doorgeven van de monitoren, hosts, Kubernetes-clusters, Docker-hosts, Podman-hosts en services van het incident. Een regel die overneemt, kan **Toe te voegen labels** leeg laten, en krijgt dan de naam van waarvan hij overneemt (_Inherit labels from monitors, hosts_); een nieuwe regel die niets noemt en niets overneemt, kan niet worden opgeslagen — niet vanuit het formulier, en niet via de API of Terraform. Episoderegels, op het tabblad **Episode Rules**, hebben geen schakelaars om over te nemen. Op een eigenaarsregel voor incidenten of waarschuwingen eindigt **Eigenaren overnemen** met **Team van de maker**: van de teams die daar staan, wordt elk team waarin de persoon zit die het incident meldt of de waarschuwing aanmaakt, ook eigenaar.
+**Een regel kan overnemen.** Onder **Toe te voegen labels** (of **Eigenaren**) bevat de ingeklapte sectie **Labels overnemen** (of **Eigenaren overnemen**) zes schakelaars die ook de labels (of eigenaren) doorgeven van de monitoren, hosts, Kubernetes-clusters, Docker-hosts, Podman-hosts en services van het incident. Een regel die overneemt, kan **Toe te voegen labels** leeg laten, en krijgt dan de naam van waarvan hij overneemt (_Inherit labels from monitors, hosts_); een nieuwe regel die niets noemt en niets overneemt, kan niet worden opgeslagen — niet vanuit het formulier, en niet via de API of Terraform. Episoderegels, op het tabblad **Episoderegels**, hebben geen schakelaars om over te nemen. Op een eigenaarsregel voor incidenten of waarschuwingen eindigt **Eigenaren overnemen** met **Team van de maker**: van de teams die daar staan, wordt elk team waarin de persoon zit die het incident meldt of de waarschuwing aanmaakt, ook eigenaar.
 
 **Oudere regels die niets toevoegen** — opgeslagen voordat OneUptime vroeg wat ze toevoegen — kunnen nog worden hernoemd, uitgezet of verwijderd, en de lijst markeert elk ervan met **Voegt niets toe**. [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) behandelt het formulier stap voor stap.
 
@@ -649,7 +649,7 @@ Regels die werden opgeslagen voordat het formulier om eigenaren vroeg, kunnen no
 
 ## Bereikbaarheidsregels voor incidenten
 
-**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, zegt wat ze doen: automatisch bereikbaarheidsbeleid oproepen voor nieuwe incidenten die overeenkomen. De pagina heeft twee tabbladen: **Incidentregels** en **Episode Rules**.
+**Incidenten → Regels → Bereikbaarheidsregels** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is waar je het oproepen automatisch maakt. De kaart, **Bereikbaarheidsregels incident**, zegt wat ze doen: automatisch bereikbaarheidsbeleid oproepen voor nieuwe incidenten die overeenkomen. De pagina heeft twee tabbladen: **Incidentregels** en **Episoderegels**.
 
 Het aanmaakformulier heeft twee stappen:
 

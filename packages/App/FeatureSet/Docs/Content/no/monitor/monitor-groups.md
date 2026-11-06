@@ -101,7 +101,7 @@ Gå til **Statussider**, åpne siden og klikk på **Ressurser** i sidemenyen.
 
 ### Bytt dialogen til en gruppe
 
-Klikk på **Legg til monitor**. Under nedtrekkslisten med monitorer klikker du på **Add a Monitor Group instead.** Nedtrekkslisten blir til **Monitor Gruppe**.
+Klikk på **Legg til monitor**. Under nedtrekkslisten med monitorer klikker du på **Legg heller til en monitorgruppe.** Nedtrekkslisten blir til **Monitor Gruppe**.
 
 ### Velg gruppen, og legg den til
 
@@ -134,7 +134,7 @@ Det er regelen: gruppen viser den verste monitoren sin. Åpne **Monitorer** i gr
 :::
 
 :::details En statusside kan ikke legge til gruppen
-**Add a Monitor Group instead.** vises bare i dialogen så lenge bryteren **Monitorgrupper** er slått på for prosjektet.
+**Legg heller til en monitorgruppe.** vises bare i dialogen så lenge bryteren **Monitorgrupper** er slått på for prosjektet.
 :::
 
 ## Neste trinn
