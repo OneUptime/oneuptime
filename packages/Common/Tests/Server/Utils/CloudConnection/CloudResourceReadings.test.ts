@@ -267,8 +267,17 @@ describe("collectCloudResourceReadings", () => {
     )[0];
 
     expect(entry?.provider).toBe(CloudProvider.Azure);
+    /*
+     * With the name it is stored under, which ends with the aggregation the
+     * read used: a recommended monitor reads that name, and is offered only
+     * once a reading names it (CloudAlertTemplates).
+     */
     expect(entry?.readings).toEqual({
-      vmavailabilitymetric: { value: 0, time: new Date(T2).toISOString() },
+      vmavailabilitymetric: {
+        value: 0,
+        time: new Date(T2).toISOString(),
+        metric: getAzureStoredMetricName("VmAvailabilityMetric", "Average"),
+      },
     });
   });
 

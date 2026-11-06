@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
-import RecommendationToolbar from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationToolbar";
+import RecommendationToolbar, {
+  SEARCH_BESIDE_FILTERS_CLASS_NAME,
+  SEARCH_BOX_BESIDE_FILTERS_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationToolbar";
+
+// The class the search box's wrapper carries once it may sit beside the filters.
+const SEARCH_BOX_CLASS: string =
+  SEARCH_BOX_BESIDE_FILTERS_CLASS_NAME.split(" ")[0]!;
 import {
   RecommendationCounts,
   RecommendationFilterState,
@@ -514,6 +521,45 @@ describe("RecommendationToolbar", () => {
       await user.type(screen.getByPlaceholderText(SEARCH_PLACEHOLDER), "c");
 
       expect(latestFilterState().searchText).toBe("c");
+    });
+  });
+
+  /*
+   * A record page's card is 430px wide at a 768px window, beside the side
+   * menu: keyed to the window's sm, the search box shared that with the
+   * three severity buttons and was squeezed to "Search recom". Keyed to
+   * the toolbar's own width, the two share a row only once there is room
+   * for both, and stack below that.
+   */
+  describe("search and severity row", () => {
+    test("is laid out by the toolbar's own width, not the window's", () => {
+      renderToolbar();
+
+      const toolbar: HTMLElement = screen.getByTestId(
+        "recommendation-coverage",
+      ).parentElement!;
+      // The search input's nearest wrapper that may sit beside the filters.
+      let searchBox: HTMLElement | null =
+        screen.getByPlaceholderText(SEARCH_PLACEHOLDER);
+
+      while (searchBox && !searchBox.classList.contains(SEARCH_BOX_CLASS)) {
+        searchBox = searchBox.parentElement;
+      }
+
+      expect(toolbar.className).toContain("[container-type:inline-size]");
+      expect(searchBox).not.toBeNull();
+
+      const row: HTMLElement = searchBox!.parentElement!;
+
+      for (const className of SEARCH_BESIDE_FILTERS_CLASS_NAME.split(" ")) {
+        expect(row.classList.contains(className)).toBe(true);
+      }
+      for (const className of SEARCH_BOX_BESIDE_FILTERS_CLASS_NAME.split(" ")) {
+        expect(searchBox!.classList.contains(className)).toBe(true);
+      }
+      // Nothing of the row follows the window's breakpoints any more.
+      expect(row.className).not.toContain("sm:");
+      expect(searchBox!.className).not.toContain("sm:");
     });
   });
 });

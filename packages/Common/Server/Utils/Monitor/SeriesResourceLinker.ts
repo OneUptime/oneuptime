@@ -20,6 +20,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import CephClusterService from "../../Services/CephClusterService";
+import CloudResourceService from "../../Services/CloudResourceService";
 import DatabaseServerEndpointService from "../../Services/DatabaseServerEndpointService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
 import DockerHostService from "../../Services/DockerHostService";
@@ -106,9 +107,11 @@ export interface SeriesResolvedResourceIds {
   databaseServerIds: Array<string>;
   storageArrayIds: Array<string>;
   /*
-   * Cloud resources carry no series stamp: a monitor names its cloud
-   * resource in its Linked Resources (a cloud resource's recommended
-   * monitors are created that way), so only that path fills this.
+   * Cloud resources carry no series stamp. A monitor names its cloud
+   * resource in its Linked Resources (MonitorResourceContext) and - when
+   * its query was built on the resource's Metrics page, or by the
+   * resource's Recommendations - in its query's event scope
+   * (MonitorStepResourceIdentity).
    */
   cloudResourceIds: Array<string>;
   /*
@@ -303,6 +306,16 @@ export default class SeriesResourceLinker {
         nameColumn: "name",
         findBy: NetworkDeviceService.findBy.bind(NetworkDeviceService),
       },
+      /*
+       * Id-only: a query's event scope names its cloud resource by its
+       * primary key (SeriesResourceRefs.cloudResourceIds).
+       */
+      {
+        ids: refs.cloudResourceIds || [],
+        names: [],
+        nameColumn: "name",
+        findBy: CloudResourceService.findBy.bind(CloudResourceService),
+      },
     ];
 
     const [resolvedBySpec, databaseServerIdsByEndpoint] = await Promise.all([
@@ -339,6 +352,7 @@ export default class SeriesResourceLinker {
       databaseServerIdsById,
       storageArrayIds,
       networkDeviceIds,
+      cloudResourceIds,
     ] = resolvedBySpec;
 
     /*
@@ -366,7 +380,7 @@ export default class SeriesResourceLinker {
       iotFleetIds: iotFleetIds || [],
       databaseServerIds: databaseServerIds,
       storageArrayIds: storageArrayIds || [],
-      cloudResourceIds: [],
+      cloudResourceIds: cloudResourceIds || [],
       networkDeviceIds: networkDeviceIds || [],
     };
   }

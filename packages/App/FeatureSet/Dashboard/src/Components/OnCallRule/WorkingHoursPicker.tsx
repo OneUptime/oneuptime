@@ -265,7 +265,7 @@ const WorkingHoursPicker: FunctionComponent<ComponentProps> = (
   const errorLine: ReactElement = (
     <FieldError
       message={props.error || ""}
-      className="mt-1.5 text-sm text-red-400"
+      className="mt-1.5 text-sm"
       announce="none"
     />
   );

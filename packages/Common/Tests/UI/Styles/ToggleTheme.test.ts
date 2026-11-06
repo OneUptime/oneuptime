@@ -651,10 +651,9 @@ describe("the switch's colour classes in the dark theme", () => {
   const FILES: Array<string> = [TOGGLE_FILE, REPLAY_UI_FILE];
 
   /*
-   * text-red-400 is every form field's error colour (Input, TextArea,
-   * Dropdown): 5.9:1 on a dark card, so it needs no rule of its own.
+   * A switch's error is drawn by FieldError, in its red: the switch only
+   * places the line (FieldErrorColorGuard), so no red of its own is here.
    */
-  const SAME_IN_BOTH_THEMES: Array<string> = ["text-red-400"];
 
   // Block comments only: prose in Theme.css must not count as a rule.
   const THEME_CSS: string = fs
@@ -857,7 +856,7 @@ describe("the switch's colour classes in the dark theme", () => {
 
     const unmapped: Array<string> = FILES.flatMap(colourTokens).filter(
       (token: string): boolean => {
-        return !isRemapped(token) && !SAME_IN_BOTH_THEMES.includes(token);
+        return !isRemapped(token);
       },
     );
 

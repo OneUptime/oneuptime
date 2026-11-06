@@ -700,6 +700,8 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
+  [PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.CLOUD_ACCOUNTS]: `accounts`,
   [PageMap.CLOUD_ACCOUNT_VIEW]: `accounts/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES]: `accounts/${RouteParams.ModelID}/resources`,
@@ -711,6 +713,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
   [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: `accounts/${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: `accounts/${RouteParams.ModelID}/costs`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS]: `accounts/${RouteParams.ModelID}/recommendations`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -6634,6 +6637,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
   [PageMap.CLOUD_ACCOUNTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNTS]
@@ -6697,6 +6712,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_COSTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS]
     }`,
   ),
 

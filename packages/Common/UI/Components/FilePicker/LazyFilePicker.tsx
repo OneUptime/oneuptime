@@ -219,7 +219,7 @@ export const FilePickerPlaceholder: FunctionComponent<
           {shownError && (
             <FieldError
               message={shownError}
-              className="text-sm text-red-400"
+              className="text-sm"
               announce="none"
             />
           )}

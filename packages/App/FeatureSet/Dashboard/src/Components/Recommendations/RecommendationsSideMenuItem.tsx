@@ -31,6 +31,7 @@ import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
 } from "./RecommendationResourceRegistry";
 import { RecommendationViewModel } from "./RecommendationViewModel";
+import { useRecommendationsChangedCount } from "./RecommendationsChanged";
 
 export interface ComponentProps {
   link: Link;
@@ -58,6 +59,8 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [count, setCount] = useState<number | undefined>(undefined);
+  // Counted again when the page beside it sets up or dismisses some.
+  const changes: number = useRecommendationsChangedCount();
 
   useAsyncEffect(async () => {
     const definition: MonitorRecommendationResourceTypeDefinition | undefined =
@@ -214,7 +217,7 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
     } catch {
       // Badge simply won't show a count. The page behind it still works.
     }
-  }, [props.resourceType, props.resourceId.toString()]);
+  }, [props.resourceType, props.resourceId.toString(), changes]);
 
   return (
     <SideMenuItem

@@ -19,7 +19,9 @@ import Dictionary from "Common/Types/Dictionary";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
   readCloudChangeTitleFactsJson,
+  readCloudHealthTitleFactsJson,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -188,14 +190,17 @@ function readChanges(
 
       const cloudChange: CloudChangeTitleFacts | null =
         readCloudChangeTitleFactsJson(change["cloudChange"]);
+      const cloudHealth: CloudHealthTitleFacts | null =
+        readCloudHealthTitleFactsJson(change["cloudHealth"]);
 
       return {
         id: readString(change["id"]),
         time: readString(change["time"]),
         title: readString(change["title"]),
         eventType: readString(change["eventType"]) || "change",
-        // A cloud change's facts, which its title is worded from.
+        // A cloud change's facts, or a health event's, which its title is worded from.
         ...(cloudChange ? { cloudChange } : {}),
+        ...(cloudHealth ? { cloudHealth } : {}),
       };
     })
     .filter(

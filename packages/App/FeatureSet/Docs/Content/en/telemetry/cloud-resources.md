@@ -627,6 +627,8 @@ Self-hosted installations can change these with environment variables on the app
 
 ## Alerting on a resource
 
+A resource of a [connected account](/docs/telemetry/cloud-accounts) is offered the monitors OneUptime recommends for its type on its **Recommendations** tab, each made in one step. To alert on any other metric it reports:
+
 :::steps
 1. Open the resource and its **Metrics** tab, which lists every metric its provider reports about it.
 2. Open a metric to chart it in the metrics explorer, already filtered to the resource.

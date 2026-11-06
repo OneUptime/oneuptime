@@ -9,6 +9,7 @@ import {
   ResourceCommandRequest,
   ResourceExecutor,
   ResourcePostureProbe,
+  RunControl,
 } from "../../Executors/ResourceExecutor";
 import SpawnSandbox from "../../Executors/SpawnSandbox";
 import AiResourceType from "../../Common/Types/ResourceAiAgent/AiResourceType";
@@ -142,6 +143,8 @@ export const DEFAULT_FAKE_PROBE: ResourcePostureProbe = {
 export default class FakeExecutor implements ResourceExecutor {
   public readonly prepared: Array<ResourceCommandRequest> = [];
   public readonly ran: Array<ResourceCommandRequest> = [];
+  // What the job loop told each command it ran (RunControl), in order.
+  public readonly controls: Array<RunControl | undefined> = [];
   public probes: number = 0;
   public sweeps: number = 0;
   public removals: number = 0;
@@ -205,7 +208,8 @@ export default class FakeExecutor implements ResourceExecutor {
       refusal: null,
       displayCommand,
       tier,
-      run: (): Promise<ExecResult> => {
+      run: (control?: RunControl | undefined): Promise<ExecResult> => {
+        this.controls.push(control);
         return this.run(request, guarded);
       },
     };

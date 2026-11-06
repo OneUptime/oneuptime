@@ -6,6 +6,7 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import FieldError, {
   FIELD_ERROR_CLASS_NAME,
+  FIELD_ERROR_COLOR_CLASS_NAME,
   FIELD_ERROR_TEST_ID,
 } from "../../../../UI/Components/Forms/Fields/FieldError";
 import Input from "../../../../UI/Components/Input/Input";
@@ -147,7 +148,7 @@ describe("the fields that drew their own error line", () => {
     ).not.toBeNull();
   });
 
-  test("a card picker keeps its own spacing and colour", () => {
+  test("a card picker keeps its own spacing, in every field's red", () => {
     draw(
       "fa",
       <CardSelect
@@ -164,7 +165,7 @@ describe("the fields that drew their own error line", () => {
       />,
     );
 
-    expect(line()).toHaveAttribute("class", "mt-2 text-sm text-red-600");
+    expect(line()).toHaveAttribute("class", "mt-2 text-sm text-red-700");
     expect(line()).toHaveAttribute("role", "alert");
     expect(line().querySelector("bdi")).toHaveAttribute("dir", "ltr");
   });
@@ -239,11 +240,11 @@ describe("how it is said and drawn", () => {
     expect(line()).not.toHaveAttribute("aria-live");
   });
 
-  test("red, under the field; a field may space or colour it its own way", () => {
+  test("red, under the field; a field may place it its own way, never colour it", () => {
     draw("en", <FieldError message="Promo code is invalid." />);
 
     expect(line()).toHaveAttribute("class", FIELD_ERROR_CLASS_NAME);
-    expect(FIELD_ERROR_CLASS_NAME).toBe("mt-1 text-sm text-red-400");
+    expect(FIELD_ERROR_CLASS_NAME).toBe("mt-1 text-sm text-red-700");
 
     cleanup();
 
@@ -252,6 +253,73 @@ describe("how it is said and drawn", () => {
       <FieldError message="Promo code is invalid." className="text-xs" />,
     );
 
-    expect(line()).toHaveAttribute("class", "text-xs");
+    // Its place is the field's; its red is FieldError's own.
+    expect(line()).toHaveAttribute("class", "text-xs text-red-700");
+
+    cleanup();
+
+    draw(
+      "en",
+      <FieldError
+        message="Promo code is invalid."
+        className="mt-2 pl-14 text-sm"
+      />,
+    );
+
+    expect(line()).toHaveAttribute("class", "mt-2 pl-14 text-sm text-red-700");
+  });
+
+  /*
+   * The fields that placed their error line their own way coloured it too,
+   * in four reds - red-400 (2.8:1 on white), red-500 (3.8:1), red-600 and
+   * red-700 - so one form showed two: Create Monitor's "Monitor Type is
+   * required." in red-600 over "Name is required." in red-400. Each now
+   * places the line and FieldError colours it.
+   */
+  test("every field's error is the one red, however the field places it", () => {
+    draw(
+      "en",
+      <>
+        <Input onChange={() => {}} error="Name is required." />
+        <Toggle
+          title="Enabled"
+          value={false}
+          onChange={() => {}}
+          error="Turn on at least one channel."
+        />
+        <TextArea onChange={() => {}} error="Description is too long." />
+        <CardSelect
+          options={[
+            {
+              value: "Website",
+              title: "Website",
+              description: "Checks a page loads.",
+              icon: IconProp.Globe,
+            },
+          ]}
+          onChange={() => {}}
+          error="Monitor Type is required."
+        />
+        <PermissionPicker onChange={() => {}} error="Pick a permission." />
+      </>,
+    );
+
+    const lines: Array<HTMLElement> =
+      screen.getAllByTestId(FIELD_ERROR_TEST_ID);
+
+    expect(lines).toHaveLength(5);
+
+    for (const errorLine of lines) {
+      expect([errorLine.textContent, errorLine.className]).toEqual([
+        errorLine.textContent,
+        expect.stringContaining(FIELD_ERROR_COLOR_CLASS_NAME),
+      ]);
+      // And no other red: a field's className never colours the line.
+      expect(
+        errorLine.className.split(" ").filter((token: string): boolean => {
+          return token.startsWith("text-red-");
+        }),
+      ).toEqual([FIELD_ERROR_COLOR_CLASS_NAME]);
+    }
   });
 });

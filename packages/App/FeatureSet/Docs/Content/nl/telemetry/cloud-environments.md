@@ -32,6 +32,7 @@ flowchart TB
 - **De omgeving bundelt alles.** Elke workload met hetzelfde platform, hetzelfde account en dezelfde regio komt in één omgeving terecht. De services houden hun eigen rijen onder **Services**.
 - **Elke draaiende taak is een instantie.** Het tabblad **Instanties** van de omgeving toont de draaiende taken, instanties of replica's, met live CPU en geheugen waar het platform die kan leveren.
 - **Elke service is een app.** Een ECS-service, een Cloud Run-service of een Container App is een app van zijn omgeving, en OneUptime bewaart de revisies die hij draait: zie [Apps en implementaties](#apps-en-implementaties).
+- **Gestreamde CloudWatch-logboeken tellen ook mee.** Een AWS-account dat [zijn CloudWatch-logboeken streamt](/docs/telemetry/cloud-streaming), zet de logboeken van zijn App Runner-services, Elastic Beanstalk-omgevingen, en ECS-taken en -clusters op het tabblad **Logboeken** van hun omgeving, en de omgeving verschijnt met ze als nog geen app ernaar heeft gerapporteerd. Ze maken geen app: een app wordt genoemd naar zijn eigen telemetrie.
 
 ## Voordat je begint
 
@@ -118,7 +119,7 @@ Het eerste attribuut dat de telemetrie draagt, geeft de app zijn naam, dus een a
 - **Beide zijn wijzigingen.** Elk is een stippellijn in de grafieken van de app en de omgeving, een regel in de **Feed** van de omgeving en een [wijzigingsgebeurtenis](/docs/telemetry/change-events) die OneUptime AI leest als het een incident in de omgeving onderzoekt. **Recente implementaties** onder **App-platforms → Overzicht** toont de nieuwste.
 - **Per app worden hoogstens 12 nieuwe revisies per uur vastgelegd.** Een `service.version` die bij elke build verandert, zou anders elke minuut een implementatie zijn.
 
-De pagina van een app heeft een **Overzicht** met zijn aanvragen, fouten, latentie, instanties en de revisies die nu draaien, een tabblad **Revisies** met de cijfers van elke revisie, en de tabbladen **Instanties**, **Logboeken** en **Traces**, gefilterd op de app. **Waarschuwingen instellen** opent de aanbevolen monitors van de service van de app, onder **Services**.
+De pagina van een app heeft een **Overzicht** met zijn aanvragen, fouten, latentie, instanties en de revisies die nu draaien, een tabblad **Revisies** met de cijfers van elke revisie, de tabbladen **Instanties**, **Logboeken** en **Traces**, gefilterd op de app, en een tabblad **Aanbevelingen** met de monitors die OneUptime ervoor aanbeveelt: mislukte bewerkingen, foutpieken, verkeer dat stopt en trage aanvragen, gelezen uit de eigen spans van de app en zijn `http.server.request.duration`, elk gekoppeld aan de omgeving van de app. **Waarschuwingen instellen** opent dat tabblad; voor een app waarvan de naam te lang is om zijn telemetrie op te filteren, opent het in plaats daarvan de aanbevolen monitors van de service van de app, onder **Services**.
 
 Een app die 30 dagen niets stuurt, wordt met zijn revisies verwijderd, net als een revisie die 30 dagen door geen instantie wordt gemeld, tenzij de app hem nog draait. Bij een zelf gehoste OneUptime stelt `CLOUD_APP_RETENTION_DAYS` die 30 in.
 

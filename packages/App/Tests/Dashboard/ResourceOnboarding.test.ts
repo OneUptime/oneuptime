@@ -752,9 +752,13 @@ describe("the shared setup guide card", () => {
     const inputsAt: number = card.indexOf("{props.inputs}");
 
     expect(inputsAt).toBeGreaterThan(card.indexOf("<SetupGuideOptionPicker"));
-    expect(inputsAt).toBeLessThan(
-      card.indexOf("<SetupGuideSteps steps={steps} />"),
+    // The steps, laid out the guide's way (SetupGuideContent.language).
+    const stepsAt: number = card.indexOf(
+      "<SetupGuideSteps steps={steps} direction={direction} />",
     );
+
+    expect(stepsAt).toBeGreaterThan(-1);
+    expect(inputsAt).toBeLessThan(stepsAt);
   });
 
   test("every resource guide card hands the frame on", () => {

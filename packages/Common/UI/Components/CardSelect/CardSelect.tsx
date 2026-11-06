@@ -1104,11 +1104,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <FieldError
-        id={errorId}
-        message={props.error}
-        className="mt-2 text-sm text-red-600"
-      />
+      <FieldError id={errorId} message={props.error} className="mt-2 text-sm" />
     );
   };
 

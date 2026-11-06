@@ -70,12 +70,12 @@ No se envía nada hasta que eliges una página de estado: un evento que no apare
 
 Hay dos cosas que rellenan el formulario por ti sobre la marcha:
 
-- **Recursos vinculados.** Cuando eliges un monitor, los hosts, clústeres, servicios y otros recursos a los que está vinculado se añaden en **Otros recursos afectados**, y una línea bajo el campo los nombra. Quita los que no quieras. Los recursos en la nube no se añaden: un evento de mantenimiento no los contiene.
+- **Recursos vinculados.** Cuando eliges un monitor, los hosts, clústeres, servicios y otros recursos a los que está vinculado se añaden en **Otros recursos afectados**, y una línea bajo el campo los nombra. Quita los que no quieras. Los recursos en la nube también se añaden: mientras el evento está en curso, sus monitores no abren incidentes ni alertas.
 - **Páginas de estado sugeridas.** En **Mostrar evento en estas páginas de estado** se sugieren las páginas que muestran tus monitores: haz clic en el nombre de una página para añadirla, o en **Añadir todas**. No se elige nada por ti. Consulta [Eventos de mantenimiento programado](/docs/status-pages/subscribers#eventos-de-mantenimiento-programado).
 
 ## Empezar desde un recurso o una plantilla
 
-En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un servicio o un sitio de red, **Crear evento de mantenimiento programado** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
+En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un recurso en la nube, un servicio o un sitio de red, **Crear evento de mantenimiento programado** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
 
 **Crear desde plantilla**, junto al botón de crear, te pide **Seleccionar plantilla de mantenimiento programado** y luego abre el formulario relleno a partir de la plantilla. Consulta [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates).
 

@@ -293,6 +293,7 @@ import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./180899
 import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
 import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
 import { AddUserNotificationSettingAlertByMattermost1808992950000 } from "./1808992950000-AddUserNotificationSettingAlertByMattermost";
+import { AddScheduledMaintenanceCloudResources1808994417000 } from "./1808994417000-AddScheduledMaintenanceCloudResources";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -907,6 +908,7 @@ import { AddOpenStackUsageAndBudgets1808993950000 } from "./1808993950000-AddOpe
 import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpenStackProjectNotices";
 import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
 import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
+import { AddCloudAccountAiAgentKeys1808994400000 } from "./1808994400000-AddCloudAccountAiAgentKeys";
 import { AddEmailProviderSettings1808994500000 } from "./1808994500000-AddEmailProviderSettings";
 
 export default [
@@ -1819,5 +1821,7 @@ export default [
   AddOpenStackProjectNotices1808994120000,
   AddWorkflowLogRunAgain1808994200000,
   AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
+  AddCloudAccountAiAgentKeys1808994400000,
+  AddScheduledMaintenanceCloudResources1808994417000,
   AddEmailProviderSettings1808994500000,
 ];

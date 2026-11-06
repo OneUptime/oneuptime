@@ -564,10 +564,19 @@ describe("Cloud Environment copy", () => {
     );
     /*
      * The Logs tab renders its viewer bare, like the Traces and Metrics tabs,
-     * so its empty state is the copy left to say "environment".
+     * so its empty state is the copy left to say "environment" - on every
+     * platform, and on the ones a stream's CloudWatch Logs reach as well.
      */
-    expect(readCode("Pages/AppPlatforms/View/Logs.tsx")).toContain(
-      'noLogsMessage="Logs appear here when they carry this environment\'s cloud.platform, cloud.account.id and cloud.region resource attributes."',
+    const logsTab: string = readCode("Pages/AppPlatforms/View/Logs.tsx");
+
+    expect(logsTab).toContain(
+      '"Logs appear here when they carry this environment\'s cloud.platform, cloud.account.id and cloud.region resource attributes."',
+    );
+    expect(logsTab).toContain(
+      "\"Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.\"",
+    );
+    expect(logsTab).toContain(
+      "noLogsMessage={getCloudEnvironmentNoLogsMessage(",
     );
     expect(readCode("Pages/AppPlatforms/SideMenu.tsx")).toContain(
       'title: "All Environments"',

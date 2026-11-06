@@ -72,6 +72,32 @@ export const NOT_RUN_LEASE_LOST_MESSAGE: string =
 export const NOT_RUN_SHUTTING_DOWN_MESSAGE: string =
   "The AI agent did not run this command: it was shutting down (a restart or an upgrade). Try again in a minute.";
 
+/*
+ * Reported instead of running the command when the server answers the
+ * pre-spawn heartbeat that it must stop: OneUptime AI was turned off for
+ * the project (Enable AI) after the agent claimed the job. No exit code:
+ * it did not run.
+ */
+export const NOT_RUN_STOPPED_MESSAGE: string =
+  "The AI agent did not run this command: when it was about to start, OneUptime said to stop";
+
+// What the server's job heartbeat answers about stopping, when it says to.
+export function readStopReason(response: IngestResponse): string | null {
+  if (response.kind !== "ok" || !response.body) {
+    return null;
+  }
+
+  if (response.body["stop"] !== true) {
+    return null;
+  }
+
+  const reason: unknown = response.body["reason"];
+
+  return typeof reason === "string" && reason.trim()
+    ? reason.trim().slice(0, 500)
+    : "OneUptime said to stop this command.";
+}
+
 // RunbookStepType.ResourceCommand: the only step type this agent runs.
 export const RESOURCE_COMMAND_STEP_TYPE: string = "ResourceCommand";
 
@@ -145,6 +171,11 @@ interface JobLease {
   isLost: boolean;
   // The job is done here; a heartbeat answered after this is ignored.
   isFinished: boolean;
+  /*
+   * Why OneUptime said to stop the command (a job heartbeat answered
+   * stop: true), or null: the command is told (RunControl).
+   */
+  stopReason?: string | null | undefined;
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -511,6 +542,20 @@ export default class JobLoop {
         };
       }
 
+      // Told to stop before it started: it does not run.
+      if (data.lease.stopReason) {
+        Logger.warn("OneUptime said to stop a command before it ran", {
+          jobId: job.jobId,
+          reason: data.lease.stopReason,
+        });
+
+        return {
+          success: false,
+          output: "",
+          errorMessage: `${NOT_RUN_STOPPED_MESSAGE}: ${data.lease.stopReason}`,
+        };
+      }
+
       Logger.info("Running a command", {
         jobId: job.jobId,
         origin: job.origin,
@@ -521,7 +566,11 @@ export default class JobLoop {
         command: prepared.displayCommand,
       });
 
-      return await prepared.run();
+      return await prepared.run({
+        stopReason: (): string | null => {
+          return data.lease.stopReason || null;
+        },
+      });
     } catch (err: unknown) {
       Logger.error("The job failed unexpectedly", {
         jobId: job.jobId,
@@ -559,6 +608,7 @@ export default class JobLoop {
 
     if (response.kind === "ok") {
       this.renewLease(data.lease, sentAtMs);
+      this.noteStop(data.lease, response);
       return true;
     }
 
@@ -572,6 +622,15 @@ export default class JobLoop {
       { jobId: data.job.jobId, answer: response.message },
     );
     return true;
+  }
+
+  // A heartbeat that says to stop: kept, the first reason given.
+  private noteStop(lease: JobLease, response: IngestResponse): void {
+    const reason: string | null = readStopReason(response);
+
+    if (reason && !lease.stopReason) {
+      lease.stopReason = reason;
+    }
   }
 
   private renewLease(lease: JobLease, sentAtMs: number): void {
@@ -618,6 +677,7 @@ export default class JobLoop {
 
         if (response.kind === "ok") {
           this.renewLease(data.lease, sentAtMs);
+          this.noteStop(data.lease, response);
           return;
         }
 

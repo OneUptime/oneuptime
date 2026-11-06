@@ -75,7 +75,7 @@ describe("what a monitor can be linked to", () => {
     );
   });
 
-  test("each create form's field writes the linked kinds, and maintenance its network sites too - never cloud resources, which an event does not hold", () => {
+  test("each create form's field writes the linked kinds, and maintenance its network sites too - and cloud resources, which an event holds", () => {
     /*
      * An incident's and an alert's field also holds network devices (issue
      * #5341). A monitor is not linked to one by hand, so none is ever added
@@ -91,12 +91,17 @@ describe("what a monitor can be linked to", () => {
     ]);
     expect(MONITOR_LINKED_RESOURCE_KEYS).not.toContain("networkDevices");
     expect(MONITOR_LINKED_RESOURCE_KEYS).toContain("cloudResources");
+    /*
+     * A maintenance event holds cloud resources too: holding one silences
+     * the monitors that read its metrics while it is in progress.
+     */
     expect(SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS).toEqual([
-      ...MONITOR_LINKED_RESOURCE_KEYS.filter((key: string): boolean => {
-        return key !== "cloudResources";
-      }),
+      ...MONITOR_LINKED_RESOURCE_KEYS,
       "networkSites",
     ]);
+    expect(SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS).toContain(
+      "cloudResources",
+    );
   });
 });
 
