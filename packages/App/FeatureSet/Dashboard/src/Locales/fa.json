@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} اصلاح منتظر تأیید است",
   "{{count}} fixes are waiting for approval_one": "یک اصلاح منتظر تأیید است",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "اصلاحی که تغییری پرخطرتر دارد، مثل متوقف کردن چیزی یا مقیاس دادن آن به صفر، فقط وقتی اجرا می‌شود که دو نفر مختلف آن را تأیید کنند، اینجا یا در Slack یا Microsoft Teams.",
-  "Ask two people to approve riskier fixes": "درخواست تأیید دو نفر برای اصلاح‌های پرخطرتر",
+  "Two people approve riskier fixes": "تأیید اصلاح‌های پرخطرتر توسط دو نفر",
   "First Approved At": "زمان نخستین تأیید",
   "First Approved From": "محل نخستین تأیید",
   "First Approved by User": "کاربر نخستین تأیید",

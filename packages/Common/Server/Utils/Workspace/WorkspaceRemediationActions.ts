@@ -15,8 +15,8 @@ import IncidentService from "../../Services/IncidentService";
 import UserService from "../../Services/UserService";
 import RemediationApproval, {
   getAlreadyApprovedFirstMessage,
-  RemediationApprovalResult,
 } from "../AutoRemediation/RemediationApproval";
+import { JSONObject } from "../../../Types/JSON";
 import RemediationChatMessage, {
   RemediationActionValue,
   RemediationChatApprovals,
@@ -423,14 +423,12 @@ export default class WorkspaceRemediationActions {
     // The fix as the press read it: what the answer names it for.
     suggestion?: AutoRemediationSuggestion | undefined;
   }): Promise<WorkspaceAnswer> {
-    const result: RemediationApprovalResult = await RemediationApproval.approve(
-      {
-        props: data.props,
-        suggestionId: data.value.suggestionId.toString(),
-        expectedPlanFingerprint: data.value.fingerprint,
-        from: data.from,
-      },
-    );
+    const result: JSONObject = await RemediationApproval.approve({
+      props: data.props,
+      suggestionId: data.value.suggestionId.toString(),
+      expectedPlanFingerprint: data.value.fingerprint,
+      from: data.from,
+    });
 
     // The first of two approvals: recorded, and nothing runs yet.
     if (result["isWaitingForSecondApproval"] === true) {

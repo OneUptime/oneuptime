@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "수정 {{count}}건이 승인을 기다리고 있습니다",
   "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "중지나 0으로 스케일링처럼 위험이 큰 변경이 포함된 수정은 여기, Slack 또는 Microsoft Teams에서 서로 다른 두 사람이 승인해야만 실행됩니다.",
-  "Ask two people to approve riskier fixes": "위험이 큰 수정은 두 사람에게 승인 요청",
+  "Two people approve riskier fixes": "위험이 큰 수정은 두 사람이 승인",
   "First Approved At": "첫 승인 일시",
   "First Approved From": "첫 승인 위치",
   "First Approved by User": "첫 승인 사용자",

@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "Исправления ждут одобрения: {{count}}",
   "{{count}} fixes are waiting for approval_one": "Исправление ждёт одобрения",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "Исправление с более рискованным изменением, например остановкой чего-либо или масштабированием до нуля, выполняется только после одобрения двумя разными людьми — здесь, в Slack или в Microsoft Teams.",
-  "Ask two people to approve riskier fixes": "Просить двух человек одобрять более рискованные исправления",
+  "Two people approve riskier fixes": "Два человека одобряют более рискованные исправления",
   "First Approved At": "Время первого одобрения",
   "First Approved From": "Где дано первое одобрение",
   "First Approved by User": "Первым одобрил пользователь",

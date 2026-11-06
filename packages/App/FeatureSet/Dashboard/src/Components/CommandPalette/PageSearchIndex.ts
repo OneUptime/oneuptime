@@ -640,7 +640,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                */
               { name: "Fix approvals", anchor: "FixApprovals" },
               {
-                name: "Ask two people to approve riskier fixes",
+                name: "Two people approve riskier fixes",
                 anchor: "FixApprovals",
               },
             ],

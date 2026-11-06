@@ -57,7 +57,7 @@ export const FixApprovalsCopy: {
   cardDescription: translationKey(
     "How many people approve a fix OneUptime AI proposes before it runs.",
   ),
-  switchTitle: translationKey("Ask two people to approve riskier fixes"),
+  switchTitle: translationKey("Two people approve riskier fixes"),
   switchDescription: translationKey(
     "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.",
   ),

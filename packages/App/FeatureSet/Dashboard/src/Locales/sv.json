@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} åtgärder väntar på godkännande",
   "{{count}} fixes are waiting for approval_one": "En åtgärd väntar på godkännande",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "En åtgärd med en riskablare ändring, till exempel att stoppa något eller skala det till noll, körs först när två olika personer har godkänt den, här eller i Slack eller Microsoft Teams.",
-  "Ask two people to approve riskier fixes": "Låt två personer godkänna riskablare åtgärder",
+  "Two people approve riskier fixes": "Två personer godkänner riskablare åtgärder",
   "First Approved At": "Först godkänd",
   "First Approved From": "Först godkänd från",
   "First Approved by User": "Först godkänd av användare",

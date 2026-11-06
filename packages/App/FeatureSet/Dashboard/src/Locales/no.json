@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} rettinger venter på godkjenning",
   "{{count}} fixes are waiting for approval_one": "En retting venter på godkjenning",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "En retting med en mer risikabel endring, for eksempel å stoppe noe eller skalere det til null, kjører først når to forskjellige personer har godkjent den, her eller i Slack eller Microsoft Teams.",
-  "Ask two people to approve riskier fixes": "La to personer godkjenne mer risikable rettinger",
+  "Two people approve riskier fixes": "To personer godkjenner mer risikable rettinger",
   "First Approved At": "Først godkjent",
   "First Approved From": "Først godkjent fra",
   "First Approved by User": "Først godkjent av bruker",

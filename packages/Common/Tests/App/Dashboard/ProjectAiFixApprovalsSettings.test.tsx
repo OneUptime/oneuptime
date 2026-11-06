@@ -67,7 +67,7 @@ jest.mock("react-i18next", () => {
  * (#6148's follow-up), rendered for real with the network and the
  * permission snapshot stubbed.
  *
- * One switch, off by default: "Ask two people to approve riskier fixes".
+ * One switch, off by default: "Two people approve riskier fixes".
  * Folded, More settings names the card beside Daily limits, and draws it as
  * a chip - "Fix approvals: Two people" - while it is on, so folding never
  * hides it. A project owner or admin flips it, and it saves that column

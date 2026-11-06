@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} 个修复正在等待批准",
   "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "包含风险较高变更（例如停止某个对象或将其缩放到零）的修复，只有在两个不同的人批准后才会运行，可在此处、Slack 或 Microsoft Teams 中批准。",
-  "Ask two people to approve riskier fixes": "风险较高的修复需两人批准",
+  "Two people approve riskier fixes": "风险较高的修复由两人批准",
   "First Approved At": "首次批准时间",
   "First Approved From": "首次批准来源",
   "First Approved by User": "首次批准用户",

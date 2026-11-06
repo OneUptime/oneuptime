@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} oplossingen wachten op goedkeuring",
   "{{count}} fixes are waiting for approval_one": "Een oplossing wacht op goedkeuring",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "Een oplossing met een riskantere wijziging, zoals iets stoppen of naar nul schalen, wordt pas uitgevoerd als twee verschillende mensen hem goedkeuren, hier, in Slack of in Microsoft Teams.",
-  "Ask two people to approve riskier fixes": "Riskantere oplossingen door twee mensen laten goedkeuren",
+  "Two people approve riskier fixes": "Twee mensen keuren riskantere oplossingen goed",
   "First Approved At": "Eerst goedgekeurd op",
   "First Approved From": "Eerst goedgekeurd via",
   "First Approved by User": "Eerst goedgekeurd door gebruiker",

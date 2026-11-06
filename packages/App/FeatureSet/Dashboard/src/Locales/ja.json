@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} 件の修正が承認待ちです",
   "{{count}} fixes are waiting for approval_one": "A fix is waiting for approval",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "停止やゼロへのスケールなど、リスクの高い変更を含む修正は、ここ、Slack、または Microsoft Teams で 2 人の異なるユーザーが承認するまで実行されません。",
-  "Ask two people to approve riskier fixes": "リスクの高い修正は 2 人に承認を求める",
+  "Two people approve riskier fixes": "リスクの高い修正は 2 人が承認",
   "First Approved At": "最初の承認日時",
   "First Approved From": "最初に承認した場所",
   "First Approved by User": "最初に承認したユーザー",

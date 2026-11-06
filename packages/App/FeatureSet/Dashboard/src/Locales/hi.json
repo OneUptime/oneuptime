@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} सुधार मंज़ूरी का इंतज़ार कर रहे हैं",
   "{{count}} fixes are waiting for approval_one": "एक सुधार मंज़ूरी का इंतज़ार कर रहा है",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "ज़्यादा जोखिम वाले बदलाव वाला सुधार, जैसे किसी चीज़ को रोकना या उसे शून्य तक स्केल करना, तभी चलता है जब दो अलग-अलग लोग उसे स्वीकृत करें, यहाँ या Slack या Microsoft Teams में।",
-  "Ask two people to approve riskier fixes": "ज़्यादा जोखिम वाले सुधारों के लिए दो लोगों से स्वीकृति माँगें",
+  "Two people approve riskier fixes": "ज़्यादा जोखिम वाले सुधार दो लोग स्वीकृत करें",
   "First Approved At": "पहली स्वीकृति का समय",
   "First Approved From": "पहली स्वीकृति कहाँ से",
   "First Approved by User": "पहले स्वीकृत करने वाला उपयोगकर्ता",

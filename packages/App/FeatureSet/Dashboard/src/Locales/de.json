@@ -45813,7 +45813,7 @@
   "{{count}} fixes are waiting for approval": "{{count}} Korrekturen warten auf Genehmigung",
   "{{count}} fixes are waiting for approval_one": "Eine Korrektur wartet auf Genehmigung",
   "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it, here or in Slack or Microsoft Teams.": "Eine Korrektur mit einer riskanteren Änderung, etwa etwas anzuhalten oder auf null zu skalieren, läuft erst, wenn zwei verschiedene Personen sie genehmigen – hier oder in Slack oder Microsoft Teams.",
-  "Ask two people to approve riskier fixes": "Riskantere Korrekturen von zwei Personen genehmigen lassen",
+  "Two people approve riskier fixes": "Zwei Personen genehmigen riskantere Korrekturen",
   "First Approved At": "Zuerst genehmigt am",
   "First Approved From": "Zuerst genehmigt über",
   "First Approved by User": "Zuerst genehmigt von Benutzer",
