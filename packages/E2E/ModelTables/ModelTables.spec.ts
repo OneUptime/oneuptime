@@ -2614,7 +2614,8 @@ test.describe("a table gives way before its rows scroll", () => {
    * In German at 1280px the alerts list was 19px past its card given way,
    * and 147px past it drawn whole: a table that only just does not fit
    * stays given way, the end of its last value scrolling under the row's
-   * buttons (TABLE_NEARLY_FITS_WITHIN_IN_PX).
+   * buttons (TABLE_NEARLY_FITS_WITHIN_IN_PX; up to 8rem in a card of 48rem
+   * or more, TableFit's TABLE_WIDE_BOX_NEARLY_FITS_WITHIN_IN_PX).
    */
   test("only just too wide given way - a few pixels past its card - it stays given way, the last of them scrolling under its Actions", async ({
     page,
@@ -4206,6 +4207,512 @@ test.describe("a table fits its own card", () => {
     await expect(
       page.getByRole("menuitemcheckbox", { name: "Compact rows" }),
     ).toHaveCount(0);
+  });
+});
+
+/*
+ * "A first visit at a tablet width paints skeleton rows, then cards once
+ * measured", and "Alerts in German at 1280px still scroll: folded and
+ * given way, the list is about 40px too wide (Warnungsnummer is one word)"
+ * - #5485's follow-ups.
+ *
+ * On a page's first list, the first rows are drawn before the page has
+ * their rules (the Dashboard's Tailwind runtime writes a class's rule only
+ * after the commit that draws it): measured then, they were painted as they
+ * came - 1,439px wide in an 834px card, for four frames - before they
+ * folded or turned into cards. They are measured again once the page has
+ * their rules, and shown only then (useTableScrollState's isSettling); and
+ * a box too narrow for rows draws its first page's placeholders as cards
+ * (TableFit's isTableSkeletonDrawnAsCards).
+ */
+test.describe("a first visit, and a header of one long word", () => {
+  const RUNBOOKS: string = `/dashboard/${PROJECT}/runbooks`;
+
+  interface FirstFrame {
+    // What the list's box drew in the frame.
+    kind: string;
+    tableWidth: number;
+    boxWidth: number;
+  }
+
+  /*
+   * From the page's first frame on, what the first list's box draws in
+   * each frame, read in the frame itself (a requestAnimationFrame callback
+   * runs just before its frame is laid out and painted): nothing yet,
+   * placeholders as rows or as cards, rows not shown while they settle,
+   * rows (with the table's and the box's widths), or cards.
+   */
+  async function recordFirstFrames(page: Page): Promise<void> {
+    await page.addInitScript((): void => {
+      const frames: Array<FirstFrame> = [];
+
+      (
+        window as unknown as { __firstFrames: Array<FirstFrame> }
+      ).__firstFrames = frames;
+
+      const read: () => void = (): void => {
+        const box: HTMLElement | null = document.querySelector(
+          '[data-testid="table-scroll"]',
+        );
+        let frame: FirstFrame = { kind: "none", tableWidth: 0, boxWidth: 0 };
+
+        if (box) {
+          const content: HTMLElement | null = box.querySelector(
+            '[data-testid="table-content"]',
+          );
+          const skeleton: HTMLElement | null = box.querySelector(
+            '[data-testid="table-skeleton-loader"]',
+          );
+          const table: HTMLTableElement | null = box.querySelector("table");
+          const boxWidth: number = box.getBoundingClientRect().width;
+
+          if (
+            content &&
+            content.getAttribute("data-settling") === "true" &&
+            getComputedStyle(content).opacity === "0"
+          ) {
+            frame = { kind: "settling", tableWidth: 0, boxWidth: boxWidth };
+          } else if (skeleton) {
+            frame = {
+              kind:
+                skeleton.tagName === "TBODY"
+                  ? "placeholder rows"
+                  : "placeholder cards",
+              tableWidth: 0,
+              boxWidth: boxWidth,
+            };
+          } else if (table) {
+            frame = {
+              kind: "rows",
+              tableWidth: table.getBoundingClientRect().width,
+              boxWidth: boxWidth,
+            };
+          } else {
+            frame = { kind: "cards", tableWidth: 0, boxWidth: boxWidth };
+          }
+        }
+
+        const last: FirstFrame | undefined = frames[frames.length - 1];
+
+        if (
+          !last ||
+          last.kind !== frame.kind ||
+          Math.round(last.tableWidth) !== Math.round(frame.tableWidth)
+        ) {
+          frames.push(frame);
+        }
+
+        requestAnimationFrame(read);
+      };
+
+      requestAnimationFrame(read);
+    });
+  }
+
+  async function firstFrames(page: Page): Promise<Array<FirstFrame>> {
+    return await page.evaluate((): Array<FirstFrame> => {
+      return (window as unknown as { __firstFrames: Array<FirstFrame> })
+        .__firstFrames;
+    });
+  }
+
+  function kinds(frames: Array<FirstFrame>): Array<string> {
+    return frames
+      .map((frame: FirstFrame): string => {
+        return frame.kind;
+      })
+      .filter((kind: string, index: number, all: Array<string>): boolean => {
+        return kind !== "none" && all[index - 1] !== kind;
+      });
+  }
+
+  for (const width of [1280, 900]) {
+    test(`a first visit at ${width}px shows its rows once, as they stay: measured with their rules first, never painted running past their card and then fitted`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await recordFirstFrames(page);
+      await open(page, `${INCIDENTS}?data=rich&delay=400`, width);
+      await expect(bodyRows(page, "incidents-table").first()).toBeVisible();
+
+      const frames: Array<FirstFrame> = await firstFrames(page);
+      const rows: Array<FirstFrame> = frames.filter(
+        (frame: FirstFrame): boolean => {
+          return frame.kind === "rows";
+        },
+      );
+
+      // One drawing of the rows - the one they keep.
+      expect(
+        rows.map((frame: FirstFrame): number => {
+          return Math.round(frame.tableWidth);
+        }),
+      ).toHaveLength(1);
+
+      const shown: FirstFrame = rows[0] as FirstFrame;
+
+      // At most 8rem past a wide card, given way: never the whole 1,439px.
+      expect(shown.tableWidth).toBeLessThanOrEqual(shown.boxWidth + 128);
+      expect(kinds(frames)[0]).toBe("placeholder rows");
+    });
+  }
+
+  test("a list that turns into cards in its card shows no rows first: placeholders, then its cards", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordFirstFrames(page);
+    // 724px card: under 48rem, and the long status pages do not fit it.
+    await open(page, `${STATUS_PAGES}?data=long&delay=400`, 790);
+    await expect(page.getByTestId("table-cards-header")).toBeVisible();
+
+    const drawn: Array<string> = kinds(await firstFrames(page));
+
+    expect(drawn).not.toContain("rows");
+    expect(drawn[drawn.length - 1]).toBe("cards");
+  });
+
+  test("in a card too narrow for rows - beside the side menu at 820px - the first page's placeholders are cards: no rows that turn into cards", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await recordFirstFrames(page);
+    await open(page, `${RUNBOOKS}?delay=400`, 820, 1000);
+    await expect(page.getByTestId("table-cards-header")).toBeVisible();
+
+    const frames: Array<FirstFrame> = await firstFrames(page);
+    const drawn: Array<string> = kinds(frames);
+
+    expect(drawn).not.toContain("placeholder rows");
+    expect(drawn).not.toContain("rows");
+    expect(drawn[0]).toBe("placeholder cards");
+    expect(drawn[drawn.length - 1]).toBe("cards");
+
+    // The card the list is in: narrower than 36rem.
+    const card: FirstFrame = frames[frames.length - 1] as FirstFrame;
+
+    expect(card.boxWidth).toBeLessThan(576);
+    await screenshot(page, "runbooks-first-visit-cards-820");
+  });
+
+  test("in German, 'Warnungsnummer' breaks where German hyphenates it, so the alerts list fits its card with every state whole - not cut to 'E.'", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // An 894px card: a little narrower than beside the side menu at 1280px.
+    await open(page, `${ALERTS}?lang=de`, 960);
+    await expect(bodyRows(page, "alerts-table").first()).toBeVisible();
+
+    const read: {
+      overflowing: string | null;
+      numberTitleLines: number;
+      numberTitleLang: string | null;
+      states: Array<{ text: string; isCut: boolean }>;
+    } = await page.evaluate(() => {
+      const box: Element = document.querySelector(
+        '[data-testid="table-scroll"]',
+      ) as Element;
+      const title: HTMLElement | undefined = Array.from(
+        document.querySelectorAll<HTMLElement>("thead th span[lang]"),
+      ).find((span: HTMLElement): boolean => {
+        return (span.textContent || "").trim() === "Warnungsnummer";
+      });
+      const tops: Set<number> = new Set();
+
+      if (title) {
+        const range: Range = document.createRange();
+
+        range.selectNodeContents(title);
+
+        for (const rect of Array.from(range.getClientRects())) {
+          tops.add(Math.round(rect.top));
+        }
+      }
+
+      const stateCells: Array<HTMLElement> = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          "#alerts-table-body > tr > td:nth-child(4) span",
+        ),
+      ).filter((span: HTMLElement): boolean => {
+        return ["Erstellt", "Bestätigt", "Behoben"].includes(
+          (span.textContent || "").trim(),
+        );
+      });
+
+      return {
+        overflowing: box.getAttribute("data-overflowing"),
+        numberTitleLines: tops.size,
+        numberTitleLang: title ? title.getAttribute("lang") : null,
+        states: stateCells.map((span: HTMLElement) => {
+          return {
+            text: (span.textContent || "").trim(),
+            isCut: span.scrollWidth > span.clientWidth + 1,
+          };
+        }),
+      };
+    });
+
+    expect(read.numberTitleLang).toBe("de");
+    // "Warnungs- / nummer": two lines.
+    expect(read.numberTitleLines).toBe(2);
+    expect(read.overflowing).toBe("false");
+    expect(read.states.length).toBeGreaterThan(0);
+
+    for (const state of read.states) {
+      expect(state.isCut, `"${state.text}" is cut short`).toBe(false);
+    }
+
+    await screenshot(page, "alerts-de-hyphenated-number-960");
+  });
+
+  test("in a wide card a list up to 8rem too wide given way stays given way, rather than scrolling every value whole hundreds of pixels wider", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // An 834px card: 48rem or more, so no cards to turn to.
+    await open(page, `${ALERTS}?lang=de`, 900);
+    await expect(bodyRows(page, "alerts-table").first()).toBeVisible();
+
+    const read: {
+      overflowing: string | null;
+      tableWidth: number;
+      boxWidth: number;
+      given: number;
+    } = await page.evaluate(() => {
+      const box: Element = document.querySelector(
+        '[data-testid="table-scroll"]',
+      ) as Element;
+      const table: Element = box.querySelector("table") as Element;
+
+      return {
+        overflowing: box.getAttribute("data-overflowing"),
+        tableWidth: table.getBoundingClientRect().width,
+        boxWidth: box.getBoundingClientRect().width,
+        given: table.querySelectorAll("[data-give]").length,
+      };
+    });
+
+    expect(read.boxWidth).toBeGreaterThanOrEqual(768);
+    expect(read.overflowing).toBe("true");
+    expect(read.given).toBeGreaterThan(0);
+    expect(read.tableWidth - read.boxWidth).toBeGreaterThan(32);
+    expect(read.tableWidth - read.boxWidth).toBeLessThanOrEqual(128);
+    await screenshot(page, "alerts-de-given-way-900");
+  });
+});
+
+/*
+ * "Default columns per project" (#5485's follow-ups): a Project Owner or
+ * Admin shows a list's columns to everyone in the project from its Customize
+ * Columns, and everyone who has picked no columns of their own for the list
+ * sees them (Project.defaultTableColumns). The project's defaults come with
+ * the project the page holds, so the list draws them from its first paint.
+ * ?defaultColumns=incidents: the incidents list's default has Labels and
+ * Owners off; ?defaultColumns=none: the project keeps none yet.
+ */
+test.describe("default columns per project", () => {
+  async function openColumns(page: Page): Promise<Locator> {
+    await page.getByRole("button", { name: "More options" }).first().click();
+    await page.getByRole("menuitem", { name: "Columns", exact: true }).click();
+
+    const picker: Locator = page.getByTestId("column-customization-modal");
+
+    await expect(picker).toBeVisible();
+    await expect(page.getByTestId("modal")).toHaveCSS("opacity", "1");
+
+    return picker;
+  }
+
+  async function headerTitles(page: Page): Promise<Array<string>> {
+    return (await header(page).allInnerTexts()).map((title: string): string => {
+      return title.trim();
+    });
+  }
+
+  async function projectUpdates(page: Page): Promise<Array<unknown>> {
+    return (
+      (await fixture(page)) as unknown as {
+        updates: Array<{ tableName: string; data: unknown }>;
+      }
+    ).updates
+      .filter((update: { tableName: string }): boolean => {
+        return update.tableName === "Project";
+      })
+      .map((update: { data: unknown }): unknown => {
+        return update.data;
+      });
+  }
+
+  async function ownColumns(page: Page): Promise<string | null> {
+    return await page.evaluate((): string | null => {
+      return window.localStorage.getItem(
+        "BaseModelTableColumns.incidents-table",
+      );
+    });
+  }
+
+  test("a list draws the project's default from its first paint: Labels and Owners off for anyone who picked none of their own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=incidents`, 1600);
+
+    const titles: Array<string> = await headerTitles(page);
+
+    expect(titles).toEqual(
+      expect.arrayContaining(["Incident Number", "Title", "State"]),
+    );
+    expect(titles).not.toContain("Labels");
+    expect(titles).not.toContain("Owners");
+  });
+
+  test("someone who may not change it is told the columns are the project's, and that what they save is theirs alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=incidents&role=viewer`, 1600);
+
+    const picker: Locator = await openColumns(page);
+
+    await expect(
+      picker.getByTestId("column-customization-project-default-note"),
+    ).toHaveText(
+      "These are this project's default columns for this list. Changes you save are only for you.",
+    );
+    await expect(
+      picker.getByTestId("column-customization-everyone"),
+    ).toHaveCount(0);
+    await expect(
+      picker.getByTestId("column-customization-remove-default"),
+    ).toHaveCount(0);
+    await screenshot(page, "default-columns-viewer-note-1600");
+  });
+
+  test("a Project Owner shows their columns to everyone: the project keeps them, and the list opens with them after a reload", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=none`, 1600);
+
+    const picker: Locator = await openColumns(page);
+    const everyone: Locator = picker
+      .getByTestId("column-customization-everyone")
+      .locator("xpath=ancestor::div[1]")
+      .getByRole("checkbox");
+
+    await expect(everyone).not.toBeChecked();
+    await expect(
+      picker.getByText(
+        "Anyone who hasn't picked their own columns for this list sees these.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "default-columns-owner-box-1600");
+
+    await picker.getByTestId("column-toggle-labels").uncheck();
+    await everyone.check();
+    await page.getByTestId("modal-footer-submit-button").click();
+    await expect(picker).toHaveCount(0);
+
+    await expect
+      .poll(async () => {
+        return await projectUpdates(page);
+      })
+      .toEqual([
+        {
+          defaultTableColumns: {
+            "incidents-table": expect.objectContaining({ hidden: ["labels"] }),
+          },
+        },
+      ]);
+    expect(await headerTitles(page)).not.toContain("Labels");
+    // The Owner sees what everyone sees: nothing of their own kept.
+    expect(await ownColumns(page)).toBeNull();
+
+    await page.reload();
+    await expect(page.getByTestId("table-skeleton-loader")).toHaveCount(0);
+    await expect(bodyRows(page, "incidents-table").first()).toBeVisible();
+
+    expect(await headerTitles(page)).not.toContain("Labels");
+    expect(await headerTitles(page)).toContain("Owners");
+  });
+
+  test("a Project Owner takes the list's default away: everyone sees the list's own columns again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=incidents`, 1600);
+    expect(await headerTitles(page)).not.toContain("Labels");
+
+    const picker: Locator = await openColumns(page);
+
+    await expect(
+      picker.getByText(
+        "This list has default columns for everyone in this project.",
+      ),
+    ).toBeVisible();
+    await expect(
+      picker.getByText(
+        "Replaces this list's default columns. Anyone who picked their own keeps theirs.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "default-columns-owner-remove-1600");
+
+    await picker.getByTestId("column-customization-remove-default").click();
+    await expect(picker).toHaveCount(0);
+
+    expect(await projectUpdates(page)).toEqual([{ defaultTableColumns: null }]);
+    await expect(header(page).filter({ hasText: "Labels" })).toHaveCount(1);
+    await expect(header(page).filter({ hasText: "Owners" })).toHaveCount(1);
+  });
+
+  test("a person's own columns win, and Reset takes them back to the project's default - and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.addInitScript((): void => {
+      window.localStorage.setItem(
+        "BaseModelTableColumns.incidents-table",
+        JSON.stringify({ order: ["title", "incidentNumber"], hidden: [] }),
+      );
+    });
+    await open(page, `${INCIDENTS}?defaultColumns=incidents&role=viewer`, 1600);
+
+    const isTitleFirst: (titles: Array<string>) => boolean = (
+      titles: Array<string>,
+    ): boolean => {
+      return titles.indexOf("Title") < titles.indexOf("Incident Number");
+    };
+
+    // Their own: Title before the number, Labels and Owners on.
+    expect(isTitleFirst(await headerTitles(page))).toBe(true);
+    expect(await headerTitles(page)).toContain("Labels");
+
+    const picker: Locator = await openColumns(page);
+    const reset: Locator = picker
+      .locator("xpath=ancestor::*[@data-testid='modal']")
+      .getByTestId("column-customization-reset");
+
+    await expect(reset).toHaveText("Reset to project default");
+    await reset.click();
+    await expect(picker).toHaveCount(0);
+
+    await expect
+      .poll(async () => {
+        return await headerTitles(page);
+      })
+      .not.toContain("Labels");
+    expect(isTitleFirst(await headerTitles(page))).toBe(false);
+    expect(await ownColumns(page)).toBeNull();
   });
 });
 

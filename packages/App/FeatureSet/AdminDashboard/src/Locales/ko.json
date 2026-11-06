@@ -1848,6 +1848,13 @@
   "Copied": "복사됨",
   "Status: {{status}}": "상태: {{status}}",
   "Loading content": "콘텐츠를 불러오는 중",
+  "These are this project's default columns for this list. Changes you save are only for you.": "이 목록에 설정된 이 프로젝트의 기본 열입니다. 저장한 변경 사항은 나에게만 적용됩니다.",
+  "Show these columns to everyone in this project": "이 프로젝트의 모든 사용자에게 이 열 표시",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "이 목록의 기본 열을 바꿉니다. 자신의 열을 고른 사람은 그대로 유지합니다.",
+  "Anyone who hasn't picked their own columns for this list sees these.": "이 목록에서 자신의 열을 고르지 않은 사람은 모두 이 열을 봅니다.",
+  "This list has default columns for everyone in this project.": "이 목록에는 이 프로젝트의 모든 사용자를 위한 기본 열이 있습니다.",
+  "Remove default": "기본값 제거",
+  "Reset to project default": "프로젝트 기본값으로 재설정",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

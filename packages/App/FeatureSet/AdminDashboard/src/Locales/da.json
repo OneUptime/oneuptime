@@ -1848,6 +1848,13 @@
   "Copied": "Kopieret",
   "Status: {{status}}": "Tilstand: {{status}}",
   "Loading content": "Indlæser indhold",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Dette er projektets standardkolonner for denne liste. Ændringer, du gemmer, gælder kun for dig.",
+  "Show these columns to everyone in this project": "Vis disse kolonner for alle i dette projekt",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Erstatter denne listes standardkolonner. Alle, der har valgt deres egne, beholder dem.",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Alle, der ikke har valgt deres egne kolonner til denne liste, ser disse.",
+  "This list has default columns for everyone in this project.": "Denne liste har standardkolonner for alle i dette projekt.",
+  "Remove default": "Fjern standard",
+  "Reset to project default": "Nulstil til projektets standard",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",

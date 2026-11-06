@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewriting either table, and no index or foreign key is added: nothing
  * scans or locks them.
  */
-export class AddEmailProviderSettings1808994500000
+export class AddEmailProviderSettings1808994600000
   implements MigrationInterface
 {
-  public name: string = "AddEmailProviderSettings1808994500000";
+  public name: string = "AddEmailProviderSettings1808994600000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

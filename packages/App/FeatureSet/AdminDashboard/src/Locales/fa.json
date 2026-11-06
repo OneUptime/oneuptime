@@ -1848,6 +1848,13 @@
   "Copied": "کپی شد",
   "Status: {{status}}": "وضعیت: {{status}}",
   "Loading content": "در حال بارگذاری محتوا",
+  "These are this project's default columns for this list. Changes you save are only for you.": "این‌ها ستون‌های پیش‌فرض این پروژه برای این فهرست هستند. تغییراتی که ذخیره می‌کنید فقط برای خودتان است.",
+  "Show these columns to everyone in this project": "نمایش این ستون‌ها به همه در این پروژه",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "ستون‌های پیش‌فرض این فهرست را جایگزین می‌کند. هر کس ستون‌های خودش را انتخاب کرده، همان‌ها را نگه می‌دارد.",
+  "Anyone who hasn't picked their own columns for this list sees these.": "هر کسی که ستون‌های خودش را برای این فهرست انتخاب نکرده، همین‌ها را می‌بیند.",
+  "This list has default columns for everyone in this project.": "این فهرست برای همه در این پروژه ستون‌های پیش‌فرض دارد.",
+  "Remove default": "حذف پیش‌فرض",
+  "Reset to project default": "بازنشانی به پیش‌فرض پروژه",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",
