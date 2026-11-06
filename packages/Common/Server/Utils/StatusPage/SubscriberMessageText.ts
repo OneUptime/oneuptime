@@ -12,6 +12,7 @@ import {
   Translator,
 } from "../../../Types/Translator";
 import { translateStateName } from "../../../Types/StatusPage/DefaultStatusNames";
+import { isolateValueForReader } from "../ServerTranslation";
 
 /*
  * ONEUPTIME'S OWN WORDS IN A STATUS PAGE'S SUBSCRIBER MESSAGES.
@@ -279,14 +280,44 @@ export default class SubscriberMessageText {
   /*
    * "**Severity:** Major Incident": a label and its value. The value is
    * placed after the label's text, as it always was, so it is escaped as a
-   * value in the middle of a line ("-" stays "-").
+   * value in the middle of a line ("-" stays "-"). For a reader whose
+   * language reads from the right it is set apart from the label
+   * (chatValue).
    */
   public static chatLine(
     translator: Translator,
     label: string,
     value: string | MarkdownText,
   ): MarkdownText {
-    return mdText`**${this.text(translator, label)}** ${value}`;
+    return mdText`**${this.text(translator, label)}** ${this.chatValue(translator, value)}`;
+  }
+
+  /*
+   * A chat line's value as its reader's language holds it: in Persian,
+   * isolated - what <bdi> is on a page - so a resource named "API (EU)"
+   * after "**منابع تحت تأثیر:**" keeps its closing bracket at its end, where
+   * Slack and Teams, laying the line out from the right, showed it at its
+   * start, and an English description keeps its full stop at its end. Of
+   * Markdown of several lines, the first line, which follows the label
+   * (ServerTranslation's isolateValueForReader). In every other language
+   * the value is as it was, character for character.
+   */
+  public static chatValue(
+    translator: Translator,
+    value: string | MarkdownText,
+  ): string | MarkdownText {
+    if (typeof value === "string") {
+      return isolateValueForReader(translator.language, value);
+    }
+
+    const markdown: string = value.toString();
+    const isolated: string = isolateValueForReader(
+      translator.language,
+      markdown,
+    );
+
+    // Invisible marks around Markdown that stays the Markdown it was.
+    return isolated === markdown ? value : FeedMarkdown.asMarkdown(isolated);
   }
 
   /*
@@ -380,7 +411,8 @@ ${this.chatLinks(translator, { statusPageUrl: data.statusPageUrl, unsubscribeUrl
    * The Slack and Microsoft Teams message a channel gets when it is
    * subscribed: what it will hear about, and the links to the page and to
    * unsubscribe. The page's name is plain text its admins typed: escaped in
-   * the heading and inside the link's own words, so it reads as typed.
+   * the heading and inside the link's own words, so it reads as typed, and
+   * in the link set apart as every chat line's value is (chatValue).
    */
   public static subscribedChatMessage(
     translator: Translator,
@@ -398,7 +430,7 @@ ${this.chatLinks(translator, { statusPageUrl: data.statusPageUrl, unsubscribeUrl
 
 **${text(SubscribedChatText.subscribed)}**
 
-🔗 **${text(SubscribedChatText.statusPage)}** [${data.statusPageName}](${data.statusPageUrl})
+🔗 **${text(SubscribedChatText.statusPage)}** [${this.chatValue(translator, data.statusPageName)}](${data.statusPageUrl})
 🔕 **${text(SubscribedChatText.unsubscribe)}** [${text(SubscribedChatText.stopTheseNotifications)}](${data.unsubscribeUrl})
 
 ${text(SubscribedChatText.youWillReceive)}
