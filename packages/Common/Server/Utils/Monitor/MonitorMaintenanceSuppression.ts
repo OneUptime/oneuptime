@@ -31,6 +31,7 @@ import SeriesResourceLabels, {
 } from "./SeriesResourceLabels";
 import { SeriesResolvedResourceIds } from "./SeriesResourceLinker";
 import OpenStackMaintenanceParts from "../OpenStack/OpenStackMaintenanceParts";
+import { getCloudEnvironmentKeyOfRow } from "../../../Types/Cloud/CloudEnvironmentTelemetryScope";
 
 /*
  * Ids and names of one resource type that are currently inside an
@@ -112,6 +113,16 @@ export interface MaintainedResourceKeys {
    * shape parity and is never filled.
    */
   cloudResources: ResourceKeySet;
+  /*
+   * The App Platforms environments under maintenance, by the key of the
+   * telemetry they hold (getCloudEnvironmentKeyOfRow: platform, account and
+   * Region), each to its row's id. Every one is in cloudResources too. A
+   * monitor names no environment by its id: an app's monitors, and those
+   * built from an environment's tabs, read its telemetry by those three
+   * attributes (getSuppressingCloudEnvironmentIds). Absent while no
+   * environment is held.
+   */
+  cloudEnvironments?: Map<string, string> | undefined;
 }
 
 /*
@@ -136,6 +147,13 @@ export interface MonitorMaintenanceSuppressionResult {
    * Absent (none) on a result built before cloud resources could be held.
    */
   suppressingCloudResourceIds?: Array<string> | undefined;
+  /*
+   * The App Platforms environments under maintenance that silence a monitor
+   * whose every query reads nothing but their telemetry - an app's
+   * recommended monitors, and those built from an app's or an environment's
+   * tabs (getSuppressingCloudEnvironmentIds). Absent (none) otherwise.
+   */
+  suppressingCloudEnvironmentIds?: Array<string> | undefined;
   /*
    * The stores under maintenance that silence a monitor of Data Observability:
    * every store it watches is one. Empty for any other monitor.
@@ -254,8 +272,20 @@ export default class MonitorMaintenanceSuppression {
       input.monitor,
     );
     const watchesData: boolean = this.monitorWatchesData(input.monitor);
+    /*
+     * The environment each of its queries reads: only a monitor whose every
+     * query reads one can be silenced by an environment's maintenance, so
+     * only such a monitor pays for the lookup on this account.
+     */
+    const environmentKeys: Array<string | null> =
+      this.readCloudEnvironmentKeys(input.monitor);
+    const readsOnlyEnvironments: boolean =
+      environmentKeys.length > 0 &&
+      environmentKeys.every((key: string | null): boolean => {
+        return Boolean(key);
+      });
 
-    if (!hasSeries && !namesHeldKind && !watchesData) {
+    if (!hasSeries && !namesHeldKind && !watchesData && !readsOnlyEnvironments) {
       return result;
     }
 
@@ -323,6 +353,18 @@ export default class MonitorMaintenanceSuppression {
       }
     }
 
+    if (readsOnlyEnvironments && maintained.cloudEnvironments?.size) {
+      const environmentIds: Array<string> =
+        this.getSuppressingCloudEnvironmentIds({
+          queryEnvironmentKeys: environmentKeys,
+          maintained: maintained,
+        });
+
+      if (environmentIds.length > 0) {
+        result.suppressingCloudEnvironmentIds = environmentIds;
+      }
+    }
+
     return result;
   }
 
@@ -332,8 +374,56 @@ export default class MonitorMaintenanceSuppression {
     return (
       result.suppressingDatabaseServerIds.length > 0 ||
       (result.suppressingCloudResourceIds || []).length > 0 ||
+      (result.suppressingCloudEnvironmentIds || []).length > 0 ||
       (result.suppressingDataStoreIds || []).length > 0
     );
+  }
+
+  /*
+   * The whole-monitor decision for a monitor that reads an App Platforms
+   * environment's telemetry: the environments it reads, when EVERY query it
+   * makes reads nothing but one of them (each query's environment key, as
+   * MonitorStepResourceIdentity.getCloudEnvironmentKeysOfQueries reads it)
+   * and every one of those is under an ongoing maintenance window; otherwise
+   * none. An app's recommended monitors read its environment's platform,
+   * account and Region and its own attributes, so maintenance that holds the
+   * environment holds every app in it - and only those: a query of another
+   * environment, or one that pins less than all its environment's parts,
+   * reads telemetry the maintenance does not cover, and keeps the monitor
+   * alerting. Pure, so it can be tested without a database.
+   */
+  public static getSuppressingCloudEnvironmentIds(input: {
+    queryEnvironmentKeys: Array<string | null>;
+    maintained: Pick<MaintainedResourceKeys, "cloudEnvironments">;
+  }): Array<string> {
+    const environments: Map<string, string> | undefined =
+      input.maintained.cloudEnvironments;
+
+    if (
+      !environments ||
+      environments.size === 0 ||
+      input.queryEnvironmentKeys.length === 0
+    ) {
+      return [];
+    }
+
+    const environmentIds: Array<string> = [];
+
+    for (const key of input.queryEnvironmentKeys) {
+      const environmentId: string | undefined = key
+        ? environments.get(key)
+        : undefined;
+
+      if (!environmentId) {
+        return [];
+      }
+
+      if (!environmentIds.includes(environmentId)) {
+        environmentIds.push(environmentId);
+      }
+    }
+
+    return environmentIds;
   }
 
   /*
@@ -476,12 +566,15 @@ export default class MonitorMaintenanceSuppression {
   /*
    * What silenced the monitor, as the evaluation summary says it: "the
    * database <id> this monitor watches is", "the cloud resource <id> and
-   * the database <id> this monitor watches are".
+   * the database <id> this monitor watches are", "the environment <id>
+   * this monitor watches is".
    */
   public static describeSuppressingResources(
     suppression: MonitorMaintenanceSuppressionResult,
   ): string {
     const parts: Array<string> = [];
+    const cloudEnvironmentIds: Array<string> =
+      suppression.suppressingCloudEnvironmentIds || [];
     const cloudResourceIds: Array<string> =
       suppression.suppressingCloudResourceIds || [];
     // A store Data Observability watches is said as a database, as it is drawn.
@@ -489,6 +582,14 @@ export default class MonitorMaintenanceSuppression {
       ...suppression.suppressingDatabaseServerIds,
       ...(suppression.suppressingDataStoreIds || []),
     ];
+
+    if (cloudEnvironmentIds.length > 0) {
+      parts.push(
+        cloudEnvironmentIds.length === 1
+          ? `the environment ${cloudEnvironmentIds[0]}`
+          : `the environments ${cloudEnvironmentIds.join(", ")}`,
+      );
+    }
 
     if (cloudResourceIds.length > 0) {
       parts.push(
@@ -507,7 +608,10 @@ export default class MonitorMaintenanceSuppression {
     }
 
     const isOne: boolean =
-      cloudResourceIds.length + databaseServerIds.length === 1;
+      cloudEnvironmentIds.length +
+        cloudResourceIds.length +
+        databaseServerIds.length ===
+      1;
 
     return `${parts.join(" and ")} this monitor watches ${isOne ? "is" : "are"}`;
   }
@@ -536,6 +640,27 @@ export default class MonitorMaintenanceSuppression {
         `Failed to read the resources monitor ${monitor.id?.toString()} names for maintenance suppression: ${err}`,
       );
       return false;
+    }
+  }
+
+  /*
+   * The environment key of each telemetry query the monitor makes
+   * (MonitorStepResourceIdentity.getCloudEnvironmentKeysOfQueries), or none
+   * when its steps cannot be read: query-free, as above, and never throwing
+   * out of the evaluation.
+   */
+  private static readCloudEnvironmentKeys(
+    monitor: Monitor,
+  ): Array<string | null> {
+    try {
+      return MonitorStepResourceIdentity.getCloudEnvironmentKeysOfQueries(
+        monitor,
+      );
+    } catch (err) {
+      logger.error(
+        `Failed to read the environments monitor ${monitor.id?.toString()} reads for maintenance suppression: ${err}`,
+      );
+      return [];
     }
   }
 
@@ -855,6 +980,7 @@ export default class MonitorMaintenanceSuppression {
       maintained.services.names.size > 0 ||
       maintained.databaseServers.ids.size > 0 ||
       maintained.cloudResources.ids.size > 0 ||
+      Boolean(maintained.cloudEnvironments?.size) ||
       Boolean(maintained.dataStoreIds?.size)
     );
   }
@@ -896,6 +1022,7 @@ export default class MonitorMaintenanceSuppression {
     };
 
     const dataStores: Set<string> = new Set<string>();
+    const cloudEnvironments: Map<string, string> = new Map<string, string>();
 
     const inProgressStateIds: Array<ObjectID> =
       await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
@@ -929,7 +1056,17 @@ export default class MonitorMaintenanceSuppression {
           iotFleets: { _id: true, name: true },
           services: { _id: true, name: true },
           databaseServers: { _id: true },
-          cloudResources: { _id: true },
+          /*
+           * An environment's kind and the three columns its telemetry is
+           * keyed by: what its apps' monitors read it by.
+           */
+          cloudResources: {
+            _id: true,
+            cloudResourceKind: true,
+            cloudPlatform: true,
+            cloudAccountId: true,
+            cloudRegion: true,
+          },
           dataStoreIds: true,
         },
         skip: 0,
@@ -1036,6 +1173,26 @@ export default class MonitorMaintenanceSuppression {
             : undefined,
           undefined,
         );
+
+        /*
+         * An App Platforms environment holds the telemetry its apps send:
+         * by the key their monitors read it by.
+         */
+        const environmentKey: string | null = getCloudEnvironmentKeyOfRow({
+          cloudResourceKind: cloudResource.cloudResourceKind as
+            | string
+            | undefined,
+          cloudPlatform: cloudResource.cloudPlatform as string | undefined,
+          cloudAccountId: cloudResource.cloudAccountId as string | undefined,
+          cloudRegion: cloudResource.cloudRegion as string | undefined,
+        });
+
+        if (environmentKey && cloudResource._id) {
+          cloudEnvironments.set(
+            environmentKey,
+            String(cloudResource._id).toLowerCase(),
+          );
+        }
       }
       for (const dataStoreId of event.dataStoreIds || []) {
         dataStores.add(String(dataStoreId));
@@ -1072,6 +1229,10 @@ export default class MonitorMaintenanceSuppression {
 
     if (dataStores.size > 0) {
       maintained.dataStoreIds = dataStores;
+    }
+
+    if (cloudEnvironments.size > 0) {
+      maintained.cloudEnvironments = cloudEnvironments;
     }
 
     maintained.openStackParts =

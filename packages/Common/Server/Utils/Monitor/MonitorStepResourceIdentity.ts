@@ -7,6 +7,7 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import SqlConnectionConfig from "../../../Types/Monitor/SqlConnectionConfig";
 import SqlDatabaseType from "../../../Types/Monitor/SqlDatabaseType";
 import ObjectID from "../../../Types/ObjectID";
+import { getCloudEnvironmentKeyOfFilter } from "../../../Types/Cloud/CloudEnvironmentTelemetryScope";
 import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "./SeriesResourceLabels";
@@ -91,6 +92,70 @@ export default class MonitorStepResourceIdentity {
     }
 
     return this.dedupeRefs(refs);
+  }
+
+  /*
+   * The App Platforms environment each telemetry query of the monitor reads,
+   * as its environment key (getCloudEnvironmentKeyOfFilter): a Traces or a
+   * Logs step's attribute filter, and every query of a Metrics step - the
+   * three kinds an environment's and its apps' tabs build monitors of, and
+   * an app's recommended monitors are (CloudAppAlertTemplates). Null for a
+   * query that pins no platform, so reads no one environment's telemetry.
+   *
+   * Read by the monitor's own type, as the worker evaluates it: a sub-config
+   * of another kind left on a step by an older build is never queried, and
+   * must not keep the monitor from being an environment's. Empty for a
+   * monitor of any other kind, and for one with no query at all.
+   */
+  public static getCloudEnvironmentKeysOfQueries(
+    monitor: Monitor,
+  ): Array<string | null> {
+    const keys: Array<string | null> = [];
+
+    for (const monitorStep of monitor.monitorSteps?.data
+      ?.monitorStepsInstanceArray || []) {
+      const stepData: MonitorStep["data"] = monitorStep?.data;
+
+      if (!stepData) {
+        continue;
+      }
+
+      switch (monitor.monitorType) {
+        case MonitorType.Traces:
+          if (stepData.traceMonitor) {
+            keys.push(
+              getCloudEnvironmentKeyOfFilter(stepData.traceMonitor.attributes),
+            );
+          }
+          break;
+        case MonitorType.Logs:
+          if (stepData.logMonitor) {
+            keys.push(
+              getCloudEnvironmentKeyOfFilter(stepData.logMonitor.attributes),
+            );
+          }
+          break;
+        case MonitorType.Metrics: {
+          const queryConfigs: unknown =
+            stepData.metricMonitor?.metricViewConfig?.queryConfigs;
+
+          for (const queryConfig of Array.isArray(queryConfigs)
+            ? (queryConfigs as Array<MetricQueryConfigData>)
+            : []) {
+            keys.push(
+              getCloudEnvironmentKeyOfFilter(
+                queryConfig?.metricQueryData?.filterData?.attributes,
+              ),
+            );
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
+    return keys;
   }
 
   // The metric filters a monitor scopes itself with, across its steps.
