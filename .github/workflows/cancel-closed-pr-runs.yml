@@ -19,7 +19,7 @@ name: Cancel Closed PR Runs
 # are scarce exactly when cancelling matters. Joining a group needs no token.
 #
 # Runs that already finished keep their result. The merge commit's own push
-# runs are in "<workflow name>-refs/heads/master", a different group, and are
+# runs are in "<workflow name>-refs/heads/main", a different group, and are
 # not touched. Tests/Ops/CancelClosedPrRuns.test.js holds the matrix to the
 # workflows that run on pull_request, and each of their groups to
 # "<name>-<PR number>".
@@ -64,12 +64,14 @@ jobs:
           - Iron Bank Preflight
           - Kubernetes AI Agent Test
           - Kubernetes Agent eBPF E2E
+          - Kubernetes Cost Agent Test
           - Kubernetes Log Tailer Test
           - Mobile Recorder Native Consumer Build
           - Mobile Recorder Test
           - MobileApp Test
           - Nginx Test
           - OpenAPI Spec Generation
+          - OpenStack E2E
           - Ops Config Test
           - Postgres Schema Drift
           - Probe Test

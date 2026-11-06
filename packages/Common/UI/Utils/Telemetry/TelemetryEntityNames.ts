@@ -18,6 +18,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
@@ -107,6 +108,11 @@ export const TELEMETRY_ENTITY_TYPES: Record<
   [ServiceType.ProxmoxCluster]: {
     label: "Proxmox Cluster",
     modelType: ProxmoxCluster,
+    nameFields: ["name"],
+  },
+  [ServiceType.OpenStackCloud]: {
+    label: "OpenStack Cloud",
+    modelType: OpenStackCloud,
     nameFields: ["name"],
   },
   [ServiceType.CephCluster]: {
@@ -237,6 +243,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.DataReconciliation,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
+  ServiceType.OpenStackCloud,
   ServiceType.CephCluster,
   ServiceType.StorageArray,
   ServiceType.DockerSwarmCluster,

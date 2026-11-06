@@ -211,7 +211,7 @@ OneUptime Database Agent는 **PostgreSQL**, **MySQL / MariaDB**, **SQL Server**,
 
 **에이전트 하나가 데이터베이스 서버 하나를 모니터링합니다.** 에이전트가 보내는 모든 것에 ID가 붙으므로 서버마다 에이전트 하나(설치 디렉터리 하나)를 실행하고, 복제본을 각자의 페이지에서 보고 싶다면 복제본마다 하나씩 실행하세요.
 
-에이전트는 [DatabaseAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)에 있습니다: `docker-compose.yml`, 리시버별 Collector 구성(`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh`, systemd 유닛. 포크나 호환 대체 엔진은 해당 계열의 구성을 실행하고 자신의 이름을 보고합니다. `DATABASE_SYSTEM=mariadb`는 `configs/mysql.yaml`을 실행하며, 데이터베이스는 MariaDB로 표시됩니다.
+에이전트는 [DatabaseAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)에 있습니다: `docker-compose.yml`, 리시버별 Collector 구성(`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh`, systemd 유닛. 포크나 호환 대체 엔진은 해당 계열의 구성을 실행하고 자신의 이름을 보고합니다. `DATABASE_SYSTEM=mariadb`는 `configs/mysql.yaml`을 실행하며, 데이터베이스는 MariaDB로 표시됩니다.
 
 ### 시작하기 전에
 
@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -371,13 +372,14 @@ docker compose up -d
 | `DATABASE_ENDPOINT_HOST` | SQL Server | `DATABASE_ENDPOINT`의 호스트만. SQL Server 리시버는 호스트와 포트를 따로 받습니다. `install.sh`가 씁니다 |
 | `DATABASE_ENDPOINT_PORT` | SQL Server | `DATABASE_ENDPOINT`의 포트만. `install.sh`가 씁니다 |
 | `DATABASE_ORACLE_SERVICE` | Oracle | 연결할 Oracle 서비스. 예: `FREEPDB1` 또는 `ORCLPDB1` |
-| `DATABASE_SERVER_ADDRESS` | 예 | 데이터베이스의 ID이며 `server.address`로 붙습니다. **애플리케이션**이 데이터베이스에 접근할 때 사용하는 호스트 이름입니다. `localhost`는 절대 쓰지 마세요. OneUptime은 한 머신에서만 의미가 있는 주소를 무시합니다. 한 네트워크 안에서만 확인되는 이름(사설 IP, 단일 레이블 이름, 클러스터 로컬 이름, `.internal`이나 `.local` 이름)은 그 이름을 이미 엔드포인트로 가진 데이터베이스에만 들어갑니다. 바꾸지 마세요. 바꾸면 두 번째 데이터베이스가 등록됩니다 |
+| `DATABASE_SERVER_ADDRESS` | 예 | 데이터베이스의 ID이며 `server.address`로 붙습니다. **application**이 데이터베이스에 접근할 때 사용하는 호스트 이름입니다. `localhost`는 절대 쓰지 마세요. OneUptime은 한 머신에서만 의미가 있는 주소를 무시합니다. 한 네트워크 안에서만 확인되는 이름(사설 IP, 단일 레이블 이름, 클러스터 로컬 이름, `.internal`이나 `.local` 이름)은 그 이름을 이미 엔드포인트로 가진 데이터베이스에만 들어갑니다. 바꾸지 마세요. 바꾸면 두 번째 데이터베이스가 등록됩니다 |
 | `DATABASE_SERVER_PORT` | 예 | 애플리케이션이 사용하는 포트이며 `server.port`로 붙습니다 |
 | `DATABASE_USERNAME` | PostgreSQL, MySQL, SQL Server, Oracle | 모니터링 사용자. 인증이 없는 Redis, MongoDB, Elasticsearch 서버에서는 선택 사항이고, Memcached에서는 사용하지 않습니다 |
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | 그 비밀번호. `.env`에서는 작은따옴표로 감싸고 모든 `$`를 `$$`로 씁니다(`install.sh`가 둘 다 해 줍니다) |
 | `DATABASE_TLS_INSECURE` | 아니요 | `true`(기본값)는 TLS 없이 연결하고, `false`는 TLS를 켭니다 |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | 아니요 | `true`는 Collector 이미지가 신뢰하지 않는 인증서(자체 서명, 사설 CA)를 받아들입니다. 기본값은 `false` |
 | `DATABASE_TLS_SSLMODE` | 아니요 | PostgreSQL: 위의 두 설정을 libpq의 `sslmode`로 나타낸 값으로, 구성 파일 자체의 SQL 검사에 쓰입니다. `DATABASE_TLS_INSECURE`가 `true`인 동안은 `disable`, `DATABASE_TLS_INSECURE_SKIP_VERIFY`가 `true`이면 `require`, 그 밖에는 `verify-full`입니다. `install.sh`가 기록합니다. 기본값은 `disable` |
+| `DATABASE_TLS_MYSQL` | 아니요 | MySQL과 MariaDB: 드라이버의 `tls`와 같은 두 설정으로, 구성 파일이 Galera를 읽을 때 쓰입니다. `DATABASE_TLS_INSECURE`가 `true`인 동안은 `false`, `DATABASE_TLS_INSECURE_SKIP_VERIFY`가 `true`이면 `skip-verify`, 그 밖에는 `true`입니다. `install.sh`가 정해 주며, 매니페스트에서는 직접 설정하세요. 기본값은 `false` |
 | `DATABASE_COLLECTION_INTERVAL` | 아니요 | 엔진 통계를 읽는 주기. 기본값은 `30s` |
 | `DATABASE_QUERY_EVENTS` | 아니요 | `true`는 쿼리 샘플과 상위 쿼리를 로그로 보냅니다(PostgreSQL, MySQL, MongoDB, SQL Server, Oracle). 쿼리 텍스트가 들어 있습니다. 기본값은 `false` |
 | `DATABASE_SERVER_ID` | 아니요 | OneUptime이 이미 표시하는 데이터베이스의 ID(**문서** 탭에 미리 채워져 있음). 그러면 데이터가 그 데이터베이스에 직접 들어가며, 보고하는 주소가 무엇이든(또는 없더라도) 그 페이지에 표시됩니다. Kubernetes와 사설 IP에서는 이 방법을 쓰세요. 수집 키가 속한 프로젝트의 데이터베이스여야 합니다 |
@@ -398,6 +400,8 @@ docker compose up -d
 PostgreSQL 리시버의 `postgresqlreceiver.preciselagmetrics` 기능 게이트는 기본으로 켜져 있으며, 복제 시간 지연을 `postgresql.wal.lag` 대신 `postgresql.wal.delay`로 기록합니다. 이 메트릭은 업스트림에서 꺼져 있으므로 에이전트가 켭니다. 각 구성에는 그 밖의 선택적 메트릭이 주석으로 나열되어 있으며, 어느 것이든 같은 방식으로 켤 수 있습니다. 데이터베이스 개요의 **Engine metrics** 섹션은 이 표의 엔진마다 엄선한 세트를 차트로 보여 줍니다(Elasticsearch / OpenSearch는 클러스터 상태, 노드, 할당되지 않은 샤드, 대기 중인 작업, JVM 힙, 여유 디스크, 검색과 인덱싱. Memcached는 연결, 메모리, 항목, get 적중과 미스, 명령, 축출). **메트릭** 탭에는 모든 것이 있습니다. 그곳에서 개요가 차트로 보여 주는 메트릭은 개요와 같은 값(시리즈를 같은 방식으로 결합하고, 카운터는 초당 비율)을 보여 주며, 방법을 알려 주는 캡션(_시리즈 합계_, _초당, 모든 시리즈_)이 붙습니다. 다른 모든 행은 시리즈의 평균을 보여 주며, 속성으로 목록을 필터링하는 동안에는 모든 행이 평균을 보여 줍니다. MariaDB는 `mysql.buffer_pool.limit`을 리시버가 선언하는 바이트가 아니라 버퍼 풀의 페이지 수로 보고하므로, MariaDB 데이터베이스에서는 그 행과 차트를 페이지 단위로 읽어야 합니다. MariaDB에는 `Innodb_rows_*` 상태 카운터가 없으므로 리시버는 MariaDB에 대해 `mysql.row_operations`를 보내지 않으며, MariaDB 개요에는 **행 작업** 차트가 없습니다. 행 읽기와 쓰기는 **핸들러 작업**에 표시됩니다.
 
 PostgreSQL 구성 파일은 Collector의 `sqlquery` 리시버로 같은 간격에 서버에 네 가지를 직접 묻기도 합니다. 가동 시간(`postgresql.uptime`, `pg_postmaster_start_time()`에서), 가장 오래된 트랜잭션 ID의 나이(`postgresql.xid.oldest_age`, `pg_database`에서 가장 큰 `age(datfrozenxid)`), 가장 오래 열려 있는 트랜잭션이 열려 있던 시간(`postgresql.transaction.longest_duration`), 잠금을 기다리는 세션 수(`postgresql.sessions.waiting_on_lock`)이며, 마지막 두 가지는 `pg_stat_activity`에서 읽습니다. `postgresql` 리시버는 이 중 어느 것도 보고하지 않지만, 재시작, 열린 채 방치된 트랜잭션, 잠금 대기열, 다가오는 트랜잭션 ID 랩어라운드를 보여 주는 것은 바로 이 값들입니다. PostgreSQL은 나이가 21억 가까이 되면 쓰기를 받지 않으므로, 상태는 10억부터 확인이 필요하고 15억부터 위험합니다. `pg_monitor`로 충분합니다. 이 쿼리는 `DATABASE_TLS_SSLMODE`로 연결하며, 공백이 들어간 비밀번호로는 로그인할 수 없습니다(공백을 `+`로 보내기 때문). `install.sh`가 이를 경고합니다. 직접 운영하는 Collector에서는 `configs/postgresql.yaml`의 `sqlquery/oneuptime` 리시버를 그 `metrics` 파이프라인에 복사하세요.
+
+MySQL 구성 파일은 Galera 클러스터에서 서버가 어떤 상태인지도 같은 `sqlquery` 리시버로 같은 간격에 읽습니다. `mysql` 리시버는 이에 대해 아무것도 보고하지 않기 때문입니다. 클러스터의 노드 수(`mysql.wsrep.cluster_size`), 이 노드의 상태(`mysql.wsrep.local_state`, 4가 Synced), 일부러 동기화에서 벗어나도록 요청받은 횟수(`mysql.wsrep.desync_count`), 복제가 이 노드 때문에 멈춘 정도(`mysql.wsrep.flow_control_paused`), 적용을 기다리는 쓰기 집합 수(`mysql.wsrep.local_recv_queue`)입니다. `SHOW GLOBAL STATUS`를 읽으므로 위의 로그인 외에는 아무것도 필요하지 않으며, `DATABASE_TLS_MYSQL`이 말하는 방식으로 연결합니다. 클러스터에 속하지 않은 서버는 이 값을 하나도 보내지 않으며, 그렇다고 문제가 있다고 보지도 않습니다. **Galera Node Out of Sync**가 이 값을 읽으며, 누군가 백업을 위해 `wsrep_desync`로 뺀 노드는 이 모니터를 발생시키지 않습니다.
 
 데이터베이스의 **버전**은 리시버가 보고하는 경우 리시버에서 가져옵니다: `db.system.version`(MySQL / MariaDB, MongoDB), `redis.version`(Redis, KeyDB), `oracle.db.version`(Oracle), `elasticsearch.node.version`(Elasticsearch / OpenSearch). PostgreSQL, SQL Server, Memcached 리시버는 보고하지 않으므로, 에이전트만 있으면 이 데이터베이스들은 버전을 표시하지 않습니다. Kubernetes, Docker, Podman에서도 실행되는 데이터베이스는 컨테이너 이미지의 버전을 표시합니다.
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ processors:
 | 엔진 | 비정상 | 저하됨 |
 | --- | --- | --- |
 | PostgreSQL | 연결 수가 `max_connections`의 95%; 트랜잭션 ID가 랩어라운드에 가까움 | 연결 수가 `max_connections`의 80%; 트랜잭션 ID가 랩어라운드 쪽으로 오래됨; 재생이 30초 뒤처진 레플리카; WAL이 1 GB 뒤처진 레플리카; 재시작; 한 시간째 열려 있는 트랜잭션; 잠금을 기다리는 세션; 500 GB 이상인 데이터베이스 |
-| MySQL / MariaDB | — | 연결 136개; 실행 중인 스레드 50개; 버퍼 풀의 75%가 더티; 30초 뒤처진 레플리카; 재시작 |
+| MySQL / MariaDB | — | 연결 136개; 실행 중인 스레드 50개; 버퍼 풀의 75%가 더티; 30초 뒤처진 레플리카; 재시작; 아무도 요청하지 않았는데 동기화에서 벗어난 Galera 노드 |
 | SQL Server | — | 90% 미만인 버퍼 캐시 적중률; 300초 미만인 페이지 예상 수명; 차단된 세션; 메모리를 기다리는 쿼리 |
 | Oracle | 90% 찬 테이블스페이스 | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | 메모리가 `maxmemory`의 90%; 256 MB 사용 시 1.5인 조각화 비율; 클라이언트 9,000개; 재시작 |

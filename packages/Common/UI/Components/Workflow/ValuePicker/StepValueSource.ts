@@ -20,13 +20,17 @@
  *     the ones it does, under whose they are and how to pass them on.
  */
 
-import { JSONObject } from "../../../../Types/JSON";
 import {
   ComponentInputType,
   NodeDataProp,
   ReturnValue,
 } from "../../../../Types/Workflow/Component";
 import { SELECT_FIELDS_NAME } from "../../../../Types/Workflow/Components/BaseModel";
+import { CUSTOM_FIELDS_COLUMN } from "../../../../Types/Workflow/CustomFieldsColumn";
+import {
+  RELATION_FIELD_SEPARATOR,
+  selectedColumnIds,
+} from "../../../../Types/Workflow/PassedOnFields";
 import { componentReturnValueReference } from "../../../../Types/Workflow/TemplateSyntax";
 import type { ModelSchemaColumn } from "../ModelSchema";
 import { columnTypeLabel } from "../ColumnEditor/ColumnControl";
@@ -50,6 +54,11 @@ import {
 } from "./ValueSuggestion";
 import { translationKey } from "../../../Utils/TranslateTemplate";
 
+export { selectedColumnIds };
+
+// Between a record and a field of it, as the field lists name one.
+const FIELD_TITLE_SEPARATOR: string = " › ";
+
 export type LoadRecordColumnsFunction = (
   tableName: string,
 ) => Promise<Array<ModelSchemaColumn>>;
@@ -67,11 +76,6 @@ export const stepGroupId: StepGroupIdFunction = (
 
 // After the variables (order 1000 and 1001): the steps that cannot be read.
 export const UNAVAILABLE_GROUP_ORDER: number = 2000;
-
-// The record ID, which a record step always passes on.
-const ID_COLUMN: string = "_id";
-
-const RELATION_FIELD_SEPARATOR: string = ".";
 
 export const StepValueCopy: {
   readonly sometimesWhen: string;
@@ -101,80 +105,6 @@ export const StepValueCopy: {
   ),
 };
 
-type SelectedColumnIdsFunction = (
-  component: NodeDataProp,
-) => Array<string> | null;
-
-/**
- * The fields a database step actually reads, from its Fields to pass on
- * (stored as "select"); null when that cannot be told, in which case every
- * field is offered alike. A related record's fields are "relation.field".
- * The record's ID is always passed on.
- *
- * An On Delete trigger receives the record's ID and nothing else.
- */
-export const selectedColumnIds: SelectedColumnIdsFunction = (
-  component: NodeDataProp,
-): Array<string> | null => {
-  if ((component.metadataId || "").endsWith("-on-delete")) {
-    return [ID_COLUMN];
-  }
-
-  const hasSelectArgument: boolean = Boolean(
-    component.metadata?.arguments?.some((arg: { id: string }) => {
-      return arg.id === "select";
-    }),
-  );
-
-  if (!hasSelectArgument) {
-    return null;
-  }
-
-  let select: unknown = component.arguments?.["select"];
-
-  if (typeof select === "string") {
-    if (select.trim() === "") {
-      return null;
-    }
-
-    try {
-      select = JSON.parse(select);
-    } catch {
-      return null;
-    }
-  }
-
-  if (!select || typeof select !== "object" || Array.isArray(select)) {
-    return null;
-  }
-
-  const ids: Array<string> = [];
-
-  for (const key of Object.keys(select as JSONObject)) {
-    const value: unknown = (select as JSONObject)[key];
-
-    if (!value) {
-      continue;
-    }
-
-    ids.push(key);
-
-    if (typeof value === "object" && !Array.isArray(value)) {
-      for (const subKey of Object.keys(value as JSONObject)) {
-        if ((value as JSONObject)[subKey]) {
-          ids.push(`${key}${RELATION_FIELD_SEPARATOR}${subKey}`);
-        }
-      }
-    }
-  }
-
-  if (ids.length === 0) {
-    return null;
-  }
-
-  return ids.includes(ID_COLUMN) ? ids : [ID_COLUMN, ...ids];
-};
-
 export interface BuildStepValueGroupsOptions {
   /** Loads a model's columns, so a record can be opened to its fields. */
   loadRecordColumns?: LoadRecordColumnsFunction | undefined;
@@ -199,20 +129,36 @@ export const recordFieldSuggestions: RecordFieldSuggestionsFunction = (data: {
 }): Array<ValueSuggestion> => {
   const selected: Array<string> | null = selectedColumnIds(data.component);
 
+  const customFieldsTitle: string =
+    data.columns.find((column: ModelSchemaColumn): boolean => {
+      return column.id === CUSTOM_FIELDS_COLUMN;
+    })?.title || "Custom Fields";
+
   const fields: Array<ValueSuggestion> = data.columns
     // A relation holds a whole other record; its fields are added below.
     .filter((column: ModelSchemaColumn) => {
       return !column.isRelation;
     })
     .map((column: ModelSchemaColumn): ValueSuggestion => {
-      const isSelected: boolean = !selected || selected.includes(column.id);
+      /*
+       * A custom field is passed on with the column all of them live in, and
+       * is named under it, as a related record's field is named under that
+       * record.
+       */
+      const isSelected: boolean =
+        !selected ||
+        selected.includes(
+          column.customField ? CUSTOM_FIELDS_COLUMN : column.id,
+        );
       const suggestion: ValueSuggestion = {
         reference: componentReturnValueReference(
           data.component.id,
           data.returnValue.id,
           [column.id],
         ),
-        label: column.title || column.id,
+        label: column.customField
+          ? `${customFieldsTitle}${FIELD_TITLE_SEPARATOR}${column.title}`
+          : column.title || column.id,
         description: isColumnDescriptionInformative(column)
           ? column.description
           : undefined,

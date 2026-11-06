@@ -104,7 +104,7 @@ function markdownLinkTargets(markdown) {
  * "and ee/" anyway. It renders as "license: Apache 2.0 + Enterprise (ee/)".
  */
 const LICENSE_BADGE =
-  '<a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>';
+  '<a href="https://github.com/OneUptime/oneuptime/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>';
 
 const DYNAMIC_LICENSE_BADGE = "img.shields.io/github/license";
 

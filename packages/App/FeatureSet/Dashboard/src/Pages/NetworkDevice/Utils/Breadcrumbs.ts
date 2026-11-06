@@ -121,6 +121,11 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "Archived Devices",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SNMP_WALK, [
+      "Project",
+      "Network",
+      "SNMP Walk",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_DISCOVERY, [
       "Project",
       "Network",

@@ -12,6 +12,7 @@ enum MonitorType {
   Podman = "Podman",
   DockerSwarm = "Docker Swarm",
   Proxmox = "Proxmox",
+  OpenStack = "OpenStack",
   VMware = "VMware",
   Ceph = "Ceph",
   StorageArray = "Storage Array",
@@ -116,6 +117,7 @@ const METRIC_BACKED_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.OpenStack,
   MonitorType.VMware,
   MonitorType.Ceph,
   MonitorType.StorageArray,
@@ -235,6 +237,7 @@ export class MonitorTypeHelper {
           MonitorType.Podman,
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
+          MonitorType.OpenStack,
           MonitorType.VMware,
           MonitorType.Ceph,
           MonitorType.StorageArray,
@@ -302,8 +305,8 @@ export class MonitorTypeHelper {
 
   /*
    * The metric-backed types that watch one resource an agent reports on -
-   * Host, Kubernetes, Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph,
-   * Storage Array, IoT Device: every metric-backed type but Metrics.
+   * Host, Kubernetes, Docker, Podman, Docker Swarm, Proxmox, OpenStack, VMware,
+   * Ceph, Storage Array, IoT Device: every metric-backed type but Metrics.
    *
    * Their data is scraped on a schedule, so a window with no data at all
    * means the agent (or the resource) stopped sending, never "all is
@@ -525,6 +528,28 @@ export class MonitorTypeHelper {
           "virtualization",
           "ha",
           "cluster",
+        ],
+      },
+      {
+        monitorType: MonitorType.OpenStack,
+        title: "OpenStack",
+        description:
+          "API, worker, hypervisor, network and storage health across a cloud's regions.",
+        icon: IconProp.Cloud,
+        keywords: [
+          "keystone",
+          "nova",
+          "neutron",
+          "cinder",
+          "glance",
+          "placement",
+          "hypervisor",
+          "instance",
+          "region",
+          "project",
+          "tenant",
+          "private cloud",
+          "iaas",
         ],
       },
       {
@@ -1125,6 +1150,7 @@ export class MonitorTypeHelper {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.OpenStack,
       MonitorType.VMware,
       MonitorType.Ceph,
       MonitorType.StorageArray,

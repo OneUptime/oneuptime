@@ -24,6 +24,12 @@ import StatusPageTheme, {
   STATUS_PAGE_THEMES,
   STATUS_PAGE_THEME_COLUMN,
 } from "Common/Types/StatusPage/StatusPageTheme";
+import {
+  EmailLogoSourceType,
+  STATUS_PAGE_EMAIL_LOGO_BOX,
+  svgDrawsText,
+  toPixelBox,
+} from "Common/Server/Utils/Mail/EmailLogoImage";
 
 /*
  * A status page's branding is one Branding page now, where it was five
@@ -645,5 +651,70 @@ describe("the rest of the English docs", () => {
     expect(resources).toContain(
       "The colors of the history chart bars are set under **More settings** on the **Branding** page",
     );
+  });
+});
+
+/*
+ * A status page's emails carry its logo inside them, made into an image for
+ * the email's header when it is not one every mail client draws already
+ * (Common/Server/Utils/Mail/EmailLogoImage): an SVG, a WebP, a file over
+ * 512 KB. An SVG whose words are text keeps its address, since the server
+ * has no font to draw them with. The page says which logos go, and how to
+ * make one that does not.
+ */
+describe("Status Page Branding & Domains: the logo inside the page's emails", () => {
+  const page: string = readPage(BRANDING_PAGE);
+
+  it("says the emails carry a PNG, JPEG, GIF, WebP or SVG logo, as an image sized for the email's header", () => {
+    expect(page).toContain(
+      "Those emails carry the logo inside them, so it shows even where a mail client loads no images from the internet or cannot reach OneUptime: a PNG, JPEG, GIF, WebP or SVG logo goes in as an image sized for the email's header.",
+    );
+
+    // The five types a logo is made from, and no others.
+    expect(Object.values(EmailLogoSourceType).sort()).toEqual([
+      "gif",
+      "jpeg",
+      "png",
+      "svg",
+      "webp",
+    ]);
+
+    // The header of a status page's emails, three times over.
+    expect(toPixelBox(STATUS_PAGE_EMAIL_LOGO_BOX)).toEqual({
+      width: 600,
+      height: 144,
+    });
+  });
+
+  it("says an SVG logo whose words are text keeps its address, and how to make one that goes", () => {
+    expect(page).toContain(
+      "An SVG logo whose words are text, rather than shapes, is shown from its address instead, because the server has no font to draw the words with: turn the text into outlines in your design tool, or upload a PNG.",
+    );
+
+    const svg: (body: string) => Buffer = (body: string): Buffer => {
+      return Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40">${body}</svg>`,
+      );
+    };
+
+    // Words as text keep the address; the same words as outlines go.
+    expect(svgDrawsText(svg('<text x="5" y="30">Acme</text>'))).toBe(true);
+    expect(
+      svgDrawsText(svg('<path d="M5 30 L15 5 L25 30 Z" fill="#0f172a"/>')),
+    ).toBe(false);
+  });
+
+  it("puts it right after what the page's emails show of its logo, before the theme", () => {
+    const shown: number = page.indexOf(
+      "a logo the page cannot show is left out of them too, rather than shown as a broken image.",
+    );
+    const carried: number = page.indexOf(
+      "Those emails carry the logo inside them",
+    );
+    const theme: number = page.indexOf("### Theme");
+
+    expect(shown).toBeGreaterThan(-1);
+    expect(carried).toBeGreaterThan(shown);
+    expect(theme).toBeGreaterThan(carried);
   });
 });

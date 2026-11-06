@@ -385,7 +385,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `kubeStateMetrics.enabled` | `false` | 来自 kube-state-metrics 的集群状态。 |
 | `aiAgent.enabled` | `true` | Kubernetes AI 代理。它可以做什么，请参阅 [Kubernetes AI 代理](/docs/telemetry/kubernetes-agent#kubernetes-ai-代理)。 |
 
-Chart 的 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) 列出并解释了每个选项，[Kubernetes 代理](/docs/telemetry/kubernetes-agent) 介绍了过滤、采样以及如何控制数据量。
+Chart 的 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) 列出并解释了每个选项，[Kubernetes 代理](/docs/telemetry/kubernetes-agent) 介绍了过滤、采样以及如何控制数据量。
 
 ## 升级
 

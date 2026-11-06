@@ -1,0 +1,2 @@
+rabbitmq_detailed_queue_messages_ready{vhost="/",queue="ou-consumed"} 0
+rabbitmq_detailed_queue_consumers{vhost="/",queue="ou-consumed"} 1

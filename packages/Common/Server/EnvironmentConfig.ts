@@ -12,6 +12,10 @@ import { getDistributedDdlTaskTimeoutSeconds } from "./Utils/AnalyticsDatabase/C
 import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
 import Route from "../Types/API/Route";
+import {
+  DEFAULT_WATCHED_TABLE_PRICING,
+  WatchedTablePricing,
+} from "../Types/Billing/PayAsYouGoPricing";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import Email from "../Types/Email";
 import { JSONObject } from "../Types/JSON";
@@ -1270,6 +1274,40 @@ export const AllowedActiveMonitorCountInFreePlan: number = process.env[
       process.env["ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"].toString(),
     )
   : 10;
+
+function readAmount(variableName: string, fallback: number): number {
+  const amount: number = parseFloat(process.env[variableName] || "");
+
+  return Number.isFinite(amount) && amount >= 0 ? amount : fallback;
+}
+
+/*
+ * What Data Observability's watched tables cost where billing is on:
+ * billing.watchedTables in the Helm chart. Nothing is charged while
+ * WatchedTableStripePriceId is empty.
+ */
+export const WatchedTablePricingConfig: WatchedTablePricing = {
+  includedTables: readAmount(
+    "WATCHED_TABLES_INCLUDED_PER_PROJECT",
+    DEFAULT_WATCHED_TABLE_PRICING.includedTables,
+  ),
+  pricePerTableInUSD: readAmount(
+    "WATCHED_TABLE_PRICE_IN_USD",
+    DEFAULT_WATCHED_TABLE_PRICING.pricePerTableInUSD,
+  ),
+  volumeThresholdInTables: readAmount(
+    "WATCHED_TABLE_VOLUME_THRESHOLD",
+    DEFAULT_WATCHED_TABLE_PRICING.volumeThresholdInTables,
+  ),
+  volumePricePerTableInUSD: readAmount(
+    "WATCHED_TABLE_VOLUME_PRICE_IN_USD",
+    DEFAULT_WATCHED_TABLE_PRICING.volumePricePerTableInUSD,
+  ),
+};
+
+export const WatchedTableStripePriceId: string = (
+  process.env["WATCHED_TABLE_STRIPE_PRICE_ID"] || ""
+).trim();
 
 export const AllowedStatusPageCountInFreePlan: number = process.env[
   "ALLOWED_STATUS_PAGE_COUNT_IN_FREE_PLAN"

@@ -6,7 +6,7 @@ import { SecurityEntityType } from "../SecurityCase/SecurityEntity";
  * What a playbook step can do. Each action is one verb an analyst would
  * otherwise do by hand on a case: change the case, look something up, tell
  * somebody, escalate it, contain a threat through a connected product, or
- * hand the case to something else.
+ * hand the case to something else - or, for the run itself, stop it there.
  */
 export enum SecurityPlaybookActionType {
   // Case
@@ -55,6 +55,9 @@ export enum SecurityPlaybookActionType {
   RunWorkflow = "Run Workflow",
   RunRunbook = "Run Runbook",
   FixWithAi = "Fix With AI",
+
+  // Flow control
+  StopRun = "Stop Run",
 }
 
 export enum SecurityPlaybookActionCategory {
@@ -64,9 +67,11 @@ export enum SecurityPlaybookActionCategory {
   Escalate = "Escalate",
   Contain = "Contain",
   Automate = "Automate",
+  // What the run itself does next: stop there.
+  FlowControl = "Flow control",
 }
 
-// The order the step picker shows the categories in: the order of a response.
+// The order the step picker shows the categories in: the order of a response, then the run's own.
 export const SECURITY_PLAYBOOK_ACTION_CATEGORIES: ReadonlyArray<SecurityPlaybookActionCategory> =
   [
     SecurityPlaybookActionCategory.Case,
@@ -75,6 +80,7 @@ export const SECURITY_PLAYBOOK_ACTION_CATEGORIES: ReadonlyArray<SecurityPlaybook
     SecurityPlaybookActionCategory.Escalate,
     SecurityPlaybookActionCategory.Contain,
     SecurityPlaybookActionCategory.Automate,
+    SecurityPlaybookActionCategory.FlowControl,
   ];
 
 export interface SecurityPlaybookActionDefinition {
@@ -465,6 +471,19 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       icon: IconProp.Sparkles,
       isDisruptive: false,
     },
+    /*
+     * The run's own: end it there, as done - with Run This Step, only after
+     * a result, such as when threat intel found nothing to contain.
+     */
+    {
+      type: SecurityPlaybookActionType.StopRun,
+      title: "Stop the run",
+      description:
+        "End the run here, as done: the steps after it do not run. With Run This Step, stop only after a result, such as when threat intel found nothing.",
+      category: SecurityPlaybookActionCategory.FlowControl,
+      icon: IconProp.StopCircle,
+      isDisruptive: false,
+    },
   ];
 
 export function getSecurityPlaybookAction(
@@ -516,12 +535,14 @@ export function getSecurityPlaybookUndoAction(
 
 /*
  * The categories whose steps only read and write the case inside OneUptime:
- * nobody is told, paged or escalated to, and nothing outside is changed.
+ * nobody is told, paged or escalated to, and nothing outside is changed. A
+ * step that stops the run does neither.
  */
 export const SECURITY_PLAYBOOK_INSIDE_CATEGORIES: ReadonlyArray<SecurityPlaybookActionCategory> =
   [
     SecurityPlaybookActionCategory.Case,
     SecurityPlaybookActionCategory.Investigate,
+    SecurityPlaybookActionCategory.FlowControl,
   ];
 
 /*

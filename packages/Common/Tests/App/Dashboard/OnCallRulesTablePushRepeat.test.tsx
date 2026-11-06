@@ -192,7 +192,7 @@ const currentUserId: ObjectID = new ObjectID(CURRENT_USER_ID_STRING);
 const OTHER_USER_ID: ObjectID = new ObjectID(OTHER_USER_ID_STRING);
 
 /*
- * The nine relation spellings an administrator's projection must never ask
+ * The ten relation spellings an administrator's projection must never ask
  * for: selecting one reads the raw method row through the rule (see the essay
  * on getSuppliedMethodSelect in the component).
  */
@@ -205,6 +205,7 @@ const METHOD_RELATIONS: Array<string> = [
   "userTelegram",
   "userSlack",
   "userMicrosoftTeams",
+  "userMattermost",
   "userWebhook",
 ];
 

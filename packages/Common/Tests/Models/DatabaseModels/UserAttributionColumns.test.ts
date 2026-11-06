@@ -252,6 +252,12 @@ describe("which columns record a person doing something", () => {
        * chooses it.
        */
       "done",
+      /*
+       * DataAlert.feedbackByUserId: who said whether a data alert was right.
+       * DataAlertFeedbackRecorder stamps it from the caller as the feedback is
+       * recorded; no request chooses it.
+       */
+      "feedback",
       "humanVerdict",
       /*
        * MarketplaceSubscription.linkedByUserId: who linked a cloud
@@ -271,6 +277,7 @@ describe("which columns record a person doing something", () => {
       "merged",
       "overrided",
       "pinned",
+      "previewSeen",
       "projectCreated",
       "projectDeleted",
       "requested",

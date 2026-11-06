@@ -99,6 +99,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Elementi dell'inventario | `Inventory Item` |
 | Configurazioni del collector | `Collector Config` |
 | vCenter | `vCenter` |
+| Cloud OpenStack, e i controlli eseguiti su di essi | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Catture dei pacchetti, e i loro download | `Packet Capture` |
 | Casi di sicurezza con le loro priorità e i loro stati, playbook e le loro esecuzioni, entità protette, criticità delle entità, e il rischio di un'entità quando qualcuno lo azzera | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Eccezioni delle regole | `Rule Exception` |
@@ -107,6 +108,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Cacce | `Hunt` |
 | Attività e prove dei casi di sicurezza | `Security Case Task`, `Security Case Evidence` |
 | Gli archivi dati e i loro risultati, e i problemi, le impostazioni, le impostazioni dei controlli, i tipi di dati personalizzati e le regole di residenza di Sicurezza dei dati | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Impostazioni di Osservabilità dei dati | `Data Observability Setting` |
 | Esportazioni del registro di audit | `Audit Log Export` |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.

@@ -2,7 +2,7 @@
 
 /*
  * Writes the notes of a GitHub release from what it ships: every pull request
- * and every commit pushed straight to master between the last published
+ * and every commit pushed straight to main between the last published
  * release and the commit being released, sorted by what they mean to the
  * person reading the release page.
  *
@@ -25,7 +25,7 @@
  *     --version 14.0.98 --output notes.md
  *   gh release edit 14.0.98 --notes-file notes.md
  *
- * With --to master and no --version, it shows what the next release will say.
+ * With --to main and no --version, it shows what the next release will say.
  *
  * Options:
  *   --version <x.y.z>    the release (default: the VERSION file)
@@ -409,10 +409,10 @@ function isReleaseGate(pullRequest) {
 
 /*
  * Sorts the commits of a release into the pull requests that brought them and
- * the commits pushed straight to master. GitHub answers a commit pushed to
- * master with the gate pull request that later carried it, so the gate is no
+ * the commits pushed straight to main. GitHub answers a commit pushed to
+ * main with the gate pull request that later carried it, so the gate is no
  * answer at all: those commits are the ones the notes must not lose (fixes
- * made on master just before a cut). The version bump and merges of branches
+ * made on main just before a cut). The version bump and merges of branches
  * into each other change nothing of their own.
  */
 function sortChanges(commits, pullRequestsOfCommits) {
@@ -482,7 +482,7 @@ function buildEntries({ pullRequests, directCommits }, repository) {
   const seen = new Set();
   for (const commit of directCommits) {
     const subject = subjectOf(commit);
-    // A fix made on master and picked onto `release` is one change.
+    // A fix made on main and picked onto `release` is one change.
     if (!seen.has(subject)) {
       seen.add(subject);
       const url = `https://github.com/${repository}/commit/${commit.sha}`;

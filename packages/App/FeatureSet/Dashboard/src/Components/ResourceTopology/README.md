@@ -2,7 +2,7 @@
 
 One map for every resource that holds other things: a vCenter, a Kubernetes
 cluster, a host, a Docker or Podman host, a Docker Swarm, Proxmox or Ceph
-cluster, a storage array and a cloud account. Each product's **Topology** page
+cluster, an OpenStack cloud, a storage array and a cloud account. Each product's **Topology** page
 is `ResourceTopologyPage` over the graph its builder makes, so they all look
 and work the same way.
 
@@ -87,6 +87,12 @@ relations, issues, truncations })`.
    what it calls or is called by. A lane's parts that hold nothing are chips
    (each call's line carries its rate), and a lane is as wide as its widest
    part or its heading's words.
-5. **Tests.** Builders are pinned in `packages/App/Tests/Dashboard/ResourceTopology*`;
+5. **Too large to read at once.** A resource can hold far more than a browser
+   should read. OpenStack's loader asks the server, which past a stated size
+   answers with the structure and only what has failed and what that affects
+   (`OpenStackResourceService.getTopologyRead`). The arrangement's `reveal` opens
+   the first view on those parts, and the page's `notices` say what was left out
+   and what no source says.
+6. **Tests.** Builders are pinned in `packages/App/Tests/Dashboard/ResourceTopology*`;
    the layout rules in `ResourceTopologyLayout.test.ts`; the browser suite in
    `packages/E2E/ResourceTopology` (add the product to its fixture).

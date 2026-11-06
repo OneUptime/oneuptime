@@ -14,6 +14,7 @@ import TeamMemberAPI from "../../../Server/API/TeamMemberAPI";
 import UserCallAPI from "../../../Server/API/UserCallAPI";
 import UserEmailAPI from "../../../Server/API/UserEmailAPI";
 import UserIncomingCallNumberAPI from "../../../Server/API/UserIncomingCallNumberAPI";
+import UserMattermostAPI from "../../../Server/API/UserMattermostAPI";
 import UserMicrosoftTeamsAPI from "../../../Server/API/UserMicrosoftTeamsAPI";
 import UserSlackAPI from "../../../Server/API/UserSlackAPI";
 import UserSmsAPI from "../../../Server/API/UserSmsAPI";
@@ -157,6 +158,11 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     method: "POST",
     uri: "/user-microsoft-teams/test",
     registeredBy: "UserMicrosoftTeamsAPI",
+  },
+  {
+    method: "POST",
+    uri: "/user-mattermost/test",
+    registeredBy: "UserMattermostAPI",
   },
   { method: "POST", uri: "/user-webhook/test", registeredBy: "UserWebhookAPI" },
 
@@ -388,6 +394,7 @@ beforeAll(() => {
    */
   new UserSlackAPI();
   new UserMicrosoftTeamsAPI();
+  new UserMattermostAPI();
   new UserWebhookAPI();
   new UserWebAuthnAPI();
   new UserIncomingCallNumberAPI();

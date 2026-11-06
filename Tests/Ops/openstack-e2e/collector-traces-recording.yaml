@@ -1,0 +1,22 @@
+# Merged over the agent's real traces profile by traces-record.sh: the same receiver and
+# processors, with a file in place of OneUptime, so otlp-agent.json is exactly what would
+# have been sent. Beside it, what the driver sent before any of that, because the driver's
+# own output is what this recording is for. Appending, because the collector is stopped and
+# started again on purpose, and a file exporter empties its file when it starts.
+exporters:
+  file/agent:
+    path: ${env:OPENSTACK_TRACES_RECORDING_DIR}/otlp-agent.json
+    format: json
+    append: true
+  file/driver:
+    path: ${env:OPENSTACK_TRACES_RECORDING_DIR}/otlp-driver.json
+    format: json
+    append: true
+
+service:
+  pipelines:
+    traces:
+      exporters: [file/agent]
+    traces/driver:
+      receivers: [otlp]
+      exporters: [file/driver]

@@ -3,7 +3,7 @@
 OneUptime 由同一个仓库构建，以两个版本交付：
 
 - **Community Edition**：完整的监控、事件和可观测性平台，包括 SAML 和 OpenID Connect 单点登录，基于 Apache 2.0 许可证开源，可以免费自托管，规模不限。
-- **Enterprise Edition**：Community Edition 加上仓库 [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) 目录中的企业模块。这些模块增加了 SCIM 预配，以及治理和实例管理功能。它们依据 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) 授权，在生产环境中使用需要与你的用户数相符的 Enterprise 许可证。
+- **Enterprise Edition**：Community Edition 加上仓库 [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee) 目录中的企业模块。这些模块增加了 SCIM 预配，以及治理和实例管理功能。它们依据 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) 授权，在生产环境中使用需要与你的用户数相符的 Enterprise 许可证。
 
 两个版本是各自独立的容器镜像。Community 镜像不包含来自 `ee/` 的任何代码。OneUptime Cloud 运行的是 Enterprise Edition，在云端由你的套餐决定你能获得其中哪些功能。
 
@@ -113,7 +113,7 @@ npm run update
 
 ## 许可
 
-仓库根目录中的 [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) 文件规定了哪个许可证涵盖哪些内容：`ee/` 目录中的所有内容都适用 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE)，第三方组件保留其所有者提供它们时所用的许可证，其余所有内容都适用 Apache 2.0 许可证。
+仓库根目录中的 [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) 文件规定了哪个许可证涵盖哪些内容：`ee/` 目录中的所有内容都适用 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE)，第三方组件保留其所有者提供它们时所用的许可证，其余所有内容都适用 Apache 2.0 许可证。
 
 新的 Enterprise Edition 安装以 **14 天试用期** 运行，从该安装首次启动 Enterprise Edition 时开始计算。试用期用于评估：在生产环境中使用 Enterprise Edition 需要依据 OneUptime Enterprise License 订阅。请在试用期结束前激活许可证：试用期结束后，SCIM、审计日志记录和保留期覆盖都会停止，企业配置会变为只读（参见[许可证过期或缺失时](#许可证过期或缺失时)）。如需许可证，请联系 [sales@oneuptime.com](mailto:sales@oneuptime.com)。
 

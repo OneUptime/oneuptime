@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 import LlmConversationsView from "../../Components/LlmConversations/LlmConversationsView";
+import StaleTablesForAiApps from "../../Components/DataObservability/StaleTablesForAiApps";
 
 /*
  * The AI / LLM product's home: every conversation the project's AI had,
@@ -19,7 +20,12 @@ const LlmConversationsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <LlmConversationsView />;
+  return (
+    <div className="space-y-5">
+      <StaleTablesForAiApps />
+      <LlmConversationsView />
+    </div>
+  );
 };
 
 export default LlmConversationsPage;

@@ -447,6 +447,15 @@ export default interface Field<TEntity> {
   doNotRequireWhenEditing?: boolean | undefined;
 
   /*
+   * A write-only column with nothing stored to keep on this edit: an OpenStack cloud moving
+   * from its agent to a probe has no credential saved. An edit normally leaves such a field
+   * optional, because blank keeps what is stored. With nothing stored blank would keep
+   * nothing, so it is asked for as on a new record (ModelForm). Its value is still never read
+   * back.
+   */
+  hasNothingStoredWhenEditing?: boolean | undefined;
+
+  /*
    * The field only drives the form: it fills in, or edits a part of,
    * fields that are saved, and its own value is never sent. ModelForm
    * leaves it out of the request's misc data, where the value of a field

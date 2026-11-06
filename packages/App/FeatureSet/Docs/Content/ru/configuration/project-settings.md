@@ -31,7 +31,7 @@ flowchart LR
 | Раздел | Страницы | Где прочитать подробнее |
 | --- | --- | --- |
 | **Базовый** | **Проект**, **Метки** | [Сведения о проекте](#сведения-о-проекте), [Метки](#метки) |
-| **Рабочее пространство** | **Slack**, **Microsoft Teams**, **Видеозвонки** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Видеозвонки](/docs/workspace-connections/video-calls) |
+| **Рабочее пространство** | **Slack**, **Microsoft Teams**, **Mattermost**, **Видеозвонки** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Видеозвонки](/docs/workspace-connections/video-calls) |
 | **Телеметрия и APM** | **Ключи приема**, **Хранение данных** | [Ключи приема](/docs/telemetry/ingestion-keys), [Хранение данных](/docs/telemetry/data-retention) |
 | **Уведомления** | **Настройки уведомлений**, **Журналы уведомлений**, **Мобильные приложения** | [Уведомления](#уведомления) |
 | **ИИ** | **Функции ИИ**, **Провайдеры LLM**, **Внешние MCP-серверы**, **Кредиты ИИ**, **Журналы ИИ**, **MCP-сервер** | [Провайдеры LLM](/docs/ai/llm-provider), [Внешние MCP-серверы](/docs/ai/external-mcp-servers), [Сервер MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#контроль-затрат) |

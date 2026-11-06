@@ -94,21 +94,6 @@ jest.mock("../../../../UI/Utils/API/API", () => {
   };
 });
 
-/*
- * The real one loads the browser's OpenTelemetry set-up, whose zone.js
- * patches Promise for the whole file.
- */
-jest.mock("../../../../UI/Utils/Project", () => {
-  return {
-    __esModule: true,
-    default: {
-      getCurrentProjectId: (): null => {
-        return null;
-      },
-    },
-  };
-});
-
 jest.mock("recharts", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "recharts",

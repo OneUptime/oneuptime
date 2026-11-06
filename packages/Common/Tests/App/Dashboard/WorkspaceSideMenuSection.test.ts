@@ -30,7 +30,7 @@ import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
  * The menus themselves are rendered in WorkspaceMenusConnected.test.tsx.
  */
 
-const { Slack, MicrosoftTeams, Connect } = WorkspaceMenuEntry;
+const { Slack, MicrosoftTeams, Mattermost, Connect } = WorkspaceMenuEntry;
 
 function known(
   connected: Array<WorkspaceType>,
@@ -84,7 +84,21 @@ describe("which entries a product menu lists (it has a connect page)", () => {
     ],
     ["nothing remembered as connected", known([], false), [Connect]],
     ["the first answer still on its way", LOADING, [Connect]],
-    ["asking failed with nothing known", FAILED, [Slack, MicrosoftTeams]],
+    [
+      "asking failed with nothing known",
+      FAILED,
+      [Slack, MicrosoftTeams, Mattermost],
+    ],
+    ["Mattermost connected", known([WorkspaceType.Mattermost]), [Mattermost]],
+    [
+      "all three connected, in any order",
+      known([
+        WorkspaceType.Mattermost,
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]),
+      [Slack, MicrosoftTeams, Mattermost],
+    ],
     [
       "a refresh failed after Slack was known",
       {
@@ -127,7 +141,12 @@ describe("which entries User Settings lists (no connect page)", () => {
       [Slack, MicrosoftTeams],
     ],
     ["the first answer still on its way", LOADING, []],
-    ["asking failed with nothing known", FAILED, [Slack, MicrosoftTeams]],
+    [
+      "asking failed with nothing known",
+      FAILED,
+      [Slack, MicrosoftTeams, Mattermost],
+    ],
+    ["Mattermost connected", known([WorkspaceType.Mattermost]), [Mattermost]],
   ])(
     "%s: %j",
     (
@@ -226,7 +245,7 @@ describe("the page you are on is always listed", () => {
       FAILED,
       true,
       Connect,
-      [Slack, MicrosoftTeams, Connect],
+      [Slack, MicrosoftTeams, Mattermost, Connect],
     ],
   ])(
     "%s",
@@ -276,6 +295,7 @@ describe("the section", () => {
   const PAGES: WorkspaceMenuPages = {
     slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    mattermost: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST,
     connect: PageMap.INCIDENTS_WORKSPACE_CONNECTIONS,
   };
 
@@ -322,7 +342,7 @@ describe("the section", () => {
       ),
     ).toEqual([
       {
-        title: "Connect Slack or Teams",
+        title: "Connect a workspace",
         href: routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTIONS),
         icon: IconProp.ChatBubbleLeftRight,
       },
@@ -354,6 +374,23 @@ describe("the section", () => {
     ]);
   });
 
+  test("with Mattermost connected it holds Mattermost, at the product's own page, with its mark", () => {
+    expect(
+      itemsOf(
+        getWorkspaceSideMenuSection({
+          pages: PAGES,
+          connections: known([WorkspaceType.Mattermost]),
+        }),
+      ),
+    ).toEqual([
+      {
+        title: "Mattermost",
+        href: routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST),
+        icon: IconProp.Mattermost,
+      },
+    ]);
+  });
+
   test("every link carries the real project id", () => {
     for (const item of itemsOf(
       getWorkspaceSideMenuSection({
@@ -372,6 +409,7 @@ describe("the section", () => {
         pages: {
           slack: PageMap.USER_SETTINGS_SLACK_INTEGRATION,
           microsoftTeams: PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
+          mattermost: PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION,
         },
         connections: known([]),
       }),
@@ -410,24 +448,51 @@ describe("the section", () => {
       ).map((item: { title: string }): string => {
         return item.title;
       }),
-    ).toEqual(["Microsoft Teams", "Connect Slack or Teams"]);
+    ).toEqual(["Microsoft Teams", "Connect a workspace"]);
   });
 
   test("names, icons and order are one table, with an entry for each kind", () => {
     expect(WORKSPACE_MENU_ENTRY_ORDER).toEqual([
       Slack,
       MicrosoftTeams,
+      Mattermost,
       Connect,
     ]);
     expect(WORKSPACE_MENU_ENTRY_TITLES).toEqual({
       [Slack]: "Slack",
       [MicrosoftTeams]: "Microsoft Teams",
-      [Connect]: "Connect Slack or Teams",
+      [Mattermost]: "Mattermost",
+      [Connect]: "Connect a workspace",
     });
     expect(WORKSPACE_MENU_ENTRY_ICONS).toEqual({
       [Slack]: IconProp.Slack,
       [MicrosoftTeams]: IconProp.MicrosoftTeams,
+      [Mattermost]: IconProp.Mattermost,
       [Connect]: IconProp.ChatBubbleLeftRight,
     });
+  });
+
+  test("the connect entry names no workspace, so a new one does not rename it", () => {
+    const workspaceWords: Array<string> = WORKSPACE_MENU_ENTRY_ORDER.filter(
+      (entry: WorkspaceMenuEntry): boolean => {
+        return entry !== Connect;
+      },
+    ).flatMap((entry: WorkspaceMenuEntry): Array<string> => {
+      return WORKSPACE_MENU_ENTRY_TITLES[entry].split(" ");
+    });
+
+    expect(workspaceWords).toEqual([
+      "Slack",
+      "Microsoft",
+      "Teams",
+      "Mattermost",
+    ]);
+    expect(
+      WORKSPACE_MENU_ENTRY_TITLES[Connect].split(" ").filter(
+        (word: string): boolean => {
+          return workspaceWords.includes(word);
+        },
+      ),
+    ).toEqual([]);
   });
 });

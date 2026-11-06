@@ -35,6 +35,7 @@ Disse krever ikke at du sender noe. OneUptime registrerer dem ut fra telemetrien
 | En runbook | En runbook OneUptime kjørte, fullføres, mislykkes eller avbrytes etter at den har startet | `runbook` |
 | En skyendring | Aktivitetsloggen til en tilkoblet skykonto registrerer en endring: AWS CloudTrail, aktivitetsloggen i Azure eller revisjonsloggen Admin Activity i Google Cloud | `cloud` |
 | En leverandørhendelse | Skyleverandøren publiserer en helsehendelse om kontoen: AWS Health, Azure Service Health eller Resource Health, eller Google Cloud Service Health | `cloud-health` |
+| En OpenStack-endring | Skyens egne varsler sier hva som skjedde med en av delene dens, eller en probes lesing av Nova gjør det: se [Livssyklushendelser](/docs/telemetry/openstack#livssyklushendelser) | `openstack` |
 
 - **Den første versjonen en tjeneste rapporterer, er utgangspunktet dens, ikke en utrulling.** En tjeneste som har kjørt i måneder, blir ikke rullet ut i det øyeblikket OneUptime begynner å motta telemetrien dens.
 - **En rollback til en versjon som er sett de siste 30 dagene, registreres ikke,** fordi den versjonen ikke er ny. En rollback som OneUptime AI kjører, registreres som en rettelse.
@@ -50,7 +51,7 @@ En rollout krever [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som me
 
 En app-utrulling krever at appen kjører på en [administrert app-plattform](/docs/telemetry/cloud-environments#apper-og-utrullinger). Den registreres under appens miljø og tegnes i diagrammene til miljøet og til appen selv, og der registreres også en rollback til en revisjon appen kjørte før.
 
-En skyendring eller en leverandørhendelse krever en [tilkoblet skykonto](/docs/telemetry/cloud-accounts). Hver av dem knyttes til skyressursen den nevner, når OneUptime lister den ressursen, og tegnes på ressursens diagrammer. Typen kommer fra operasjonen: `deployment`, `scaling` eller `rollback` når navnet på operasjonen sier det, ellers `config-change`, og `provider-event` for en helsehendelse. Diagrammer som ikke er filtrert til noen ressurs, utelater aktivitetsloggen til en skykonto, så en travel konto ikke fortrenger utrullingene dine; leverandørens helsehendelser blir værende.
+En skyendring eller en leverandørhendelse krever en [tilkoblet skykonto](/docs/telemetry/cloud-accounts). Hver av dem knyttes til skyressursen den nevner, når OneUptime lister den ressursen, og tegnes på ressursens diagrammer. Typen kommer fra operasjonen: `deployment`, `scaling` eller `rollback` når navnet på operasjonen sier det, ellers `config-change`, og `provider-event` for en helsehendelse. Diagrammer som ikke er filtrert til noen ressurs, utelater aktivitetsloggen til en skykonto og endringene i en OpenStack-sky, så en travel konto ikke fortrenger utrullingene dine; leverandørens helsehendelser blir værende.
 
 ## Registrer en utrulling fra en pipeline
 

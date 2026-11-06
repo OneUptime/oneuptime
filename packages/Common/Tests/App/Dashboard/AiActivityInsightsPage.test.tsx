@@ -59,6 +59,7 @@ import {
   getResourceAiAgentDescriptor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import CephClusterAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/AI/Insights";
+import OpenStackCloudAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/AI/Insights";
 import DatabaseServerAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/AI/Insights";
 import DockerHostAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/AI/Insights";
 import DockerSwarmClusterAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/AI/Insights";
@@ -184,6 +185,7 @@ const THIN_PAGES: Partial<
   [AiResourceType.ProxmoxCluster]: ProxmoxClusterAiInsights,
   [AiResourceType.VMwareVCenter]: VMwareVCenterAiInsights,
   [AiResourceType.CephCluster]: CephClusterAiInsights,
+  [AiResourceType.OpenStackCloud]: OpenStackCloudAiInsights,
   [AiResourceType.DatabaseServer]: DatabaseServerAiInsights,
   [AiResourceType.Host]: HostAiInsights,
 };

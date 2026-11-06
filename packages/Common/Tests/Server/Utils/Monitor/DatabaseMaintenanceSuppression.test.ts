@@ -91,6 +91,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     podmanHosts: { ids: new Set<string>(), names: new Set<string>() },
     kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
+    openStackClouds: { ids: new Set<string>(), names: new Set<string>() },
     vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
     storageArrays: { ids: new Set<string>(), names: new Set<string>() },

@@ -52,6 +52,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
       ["Project", "Settings", "Microsoft Teams"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MATTERMOST_INTEGRATION, [
+      "Project",
+      "Settings",
+      "Mattermost",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_VIDEO_CALLS, [
       "Project",
       "Settings",

@@ -144,7 +144,7 @@ En sag, der er åbnet fra Google SecOps-advarsler, lukker dem også i Google Sec
 
 ## Sagsprioriteter og sagsstatusser
 
-Hvert projekt har sine egne sagsprioriteter og sagsstatusser, under **Produkter → Sikkerhedshændelser → Indstillinger → Sagsprioriteter** og **Sagsstatusser**. Omdøb dem, giv dem en anden farve, træk dem i en anden rækkefølge, og tilføj dine egne, f.eks. en status "Triage" eller en prioritet "Nødsituation" over **Kritisk**. Et nyt navn vises alle steder på én gang: i køen, på sagssiderne og oversigten, i notifikationer, i Slack og Microsoft Teams og i playbook-beskeder.
+Hvert projekt har sine egne sagsprioriteter og sagsstatusser, under **Produkter → Sikkerhedshændelser → Indstillinger → Sagsprioriteter** og **Sagsstatusser**. Omdøb dem, giv dem en anden farve, træk dem i en anden rækkefølge, og tilføj dine egne, f.eks. en status "Triage" eller en prioritet "Nødsituation" over **Kritisk**. Et nyt navn vises alle steder på én gang: i køen, på sagssiderne og oversigten, i notifikationer, i Slack, Microsoft Teams og Mattermost og i playbook-beskeder.
 
 Nogle er indbyggede, fordi OneUptime læser, hvad de betyder. De kan omdøbes og få en anden farve, men ikke slettes eller arkiveres, og de beholder deres rækkefølge:
 
@@ -157,7 +157,7 @@ Nogle er indbyggede, fordi OneUptime læser, hvad de betyder. De kan omdøbes og
 | Prioriteterne Kritisk, High, Medium, Low og Til orientering | En detektion åbner sin sag med prioriteten for sin alvorlighed, og en sag, som nogen åbner, starter på Medium |
 
 - Hvor en status står, afgør, hvad en sag i den tæller som, som kolonnen **Tæller som** viser: fra den kvitterede status og ned som kvitteret, fra den inddæmmede status og ned som inddæmmet, fra den lukkede status og ned som lukket. En status, du tilføjer, kommer lige over den lukkede status, og når du flytter en sag til en status, der lukker den, bliver du først bedt om en konklusion.
-- En prioritets plads er dens hastegrad, den mest presserende først: **For sager af mindst**, valgene for notifikationer og reglerne for Slack og Microsoft Teams læser denne rækkefølge. En prioritet, du tilføjer, kommer sidst, og kolonnen **Detekteringens alvorlighed** viser, hvilke detektioner der åbner deres sager med hver indbygget prioritet.
+- En prioritets plads er dens hastegrad, den mest presserende først: **For sager af mindst**, valgene for notifikationer og reglerne for Slack, Microsoft Teams og Mattermost læser denne rækkefølge. En prioritet, du tilføjer, kommer sidst, og kolonnen **Detekteringens alvorlighed** viser, hvilke detektioner der åbner deres sager med hver indbygget prioritet.
 
 For at holde op med at bruge en status eller prioritet, du selv har lavet, skal du bruge **Arkiver** i dens række. Ingen kan vælge den igen, og API'et, Terraform og MCP afviser den, men de sager, der har den, beholder den, og du kan stadig filtrere på den. Arkiverede værdier står i den foldede sektion **Arkiverede sagsstatusser** eller **Arkiverede sagsprioriteter** under tabellen, hvor **Fjern fra arkiv** henter en tilbage. **Slet** afvises, så længe sager har værdien, eller en playbook kører fra prioriteten.
 
@@ -218,7 +218,7 @@ OneUptime giver folk besked om fem ting på en sag. Ingen behøver at sætte nog
 
 ### Vælg, hvad du får besked om
 
-Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**: kanalerne for hver notifikation (e-mail, sms, opkald, push, Telegram, Slack, Microsoft Teams eller webhook) og, under **Ny sikkerhedssag**, den prioritet, der giver dem besked:
+Hver person vælger selv under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**: kanalerne for hver notifikation (e-mail, sms, opkald, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook) og, under **Ny sikkerhedssag**, den prioritet, der giver dem besked:
 
 | Valg | Giver besked om sager med |
 | --- | --- |
@@ -232,9 +232,9 @@ Valgene følger projektets sagsprioriteter under deres egne navne: dette er et n
 
 Der sendes ingen WhatsApp-beskeder for sikkerhedssager. En push-notifikation åbner sagen i OneUptime On-Call-appen (1.7.0 eller nyere), hvor du kan godkende eller afvise et playbook-trin, der venter, tage sagen og lukke den. Dens link åbner sagen i browseren.
 
-### Slå op i Slack- og Microsoft Teams-kanaler
+### Slå op i Slack-, Microsoft Teams- og Mattermost-kanaler
 
-For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams**). Er ingen af dem forbundet, er sektionens eneste punkt **Forbind Slack eller Teams**. En regel angiver de kanaler, den slår op i (og i Microsoft Teams chattene), og, hvis du vil, de sager, den gælder for:
+For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**). Er ingen af dem forbundet, er sektionens eneste punkt **Forbind et arbejdsområde**. En regel angiver de kanaler, den slår op i (og i Microsoft Teams chattene), og, hvis du vil, de sager, den gælder for:
 
 | Betingelse | Matcher på |
 | --- | --- |
@@ -306,11 +306,12 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
 | Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
 | Automate | Fix the code with AI | Beder OneUptime AI om en pull request, der retter de undtagelser, sagens anmodninger udløste |
+| Flow control | Stop kørslen | Afslutter kørslen der som udført: trinnene efter det kører ikke |
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
 - **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De otte trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook**, **Post a status page announcement** og de to datalagertrin starter med godkendelse slået til, fordi de kører kommandoer på jeres systemer, taler til jeres kunder eller ændrer en clouds indstillinger; den, der tilføjer trinnet, kan slå det fra.
-- **Kør dette trin**: **Altid**, eller kun efter et resultat af et tidligere trin, f.eks. at **Tjek entiteter mod trusselsinformation** finder en kendt ondsindet entitet; se [Forgren efter et trins resultat](#forgren-efter-et-trins-resultat).
+- **Kør dette trin**: **Altid**, eller kun efter resultater af tidligere trin, f.eks. at **Tjek entiteter mod trusselsinformation** finder en kendt ondsindet entitet; se [Forgren efter et trins resultat](#forgren-efter-et-trins-resultat).
 - **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen. Den findes under **Flere felter** sammen med **Kør dette trin**.
 
 ### Forgren efter et trins resultat
@@ -324,6 +325,12 @@ En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det f
 | Ethvert andet trin | Lykkedes, og mislykkedes, når det har **Fortsæt, hvis det mislykkes** slået til |
 
 To trin, der venter på modsatte resultater af det samme trin, er et hvis og et ellers: suspender kun en bruger, når trusselsinformationen kender vedkommende, og tilføj ellers en opgave om at bekræfte login med vedkommende. Når det trin, der ventes på, ender på en anden måde, springes det ventende trin over, og kørslen fortæller under det hvorfor; det samme gælder et trin, der venter på et, der blev sprunget over. Et trins kort viser, hvad det venter på, og et trin, som et andet venter på, kan ikke flyttes ned under det eller slettes, før det andet kører på en anden måde. Skabelonen **Eskalér kendte ondsindede indikatorer** hæver kun en sags prioritet og status ved træf i trusselsinformation, og et trin, der er gemt med den gamle kontakt for trusselsinformation, beholder den som **Kun hvis et tidligere tjek af trusselsinformation fandt en kendt ondsindet entitet**.
+
+Et trin kan vente på op til fem resultater: Vælg hvert af dem i **Kør dette trin**, og **Kør når** spørger, hvordan de læses, **Når alle er sket** eller **Når et af dem er sket**. Suspendér kun en bruger, når trusselsinformationen kender vedkommende, og deres aktivitet blev fundet, eller tilkald vagten, når et af de to opslag fandt noget. Et trin, der venter på alle sine resultater, kan ikke vente på to resultater af samme trin, f.eks. fundet og intet fundet, da ingen kørsel har begge.
+
+### Stop kørslen
+
+**Stop kørslen**, under **Flowstyring**, afslutter kørslen, hvor den er, som udført: Trinnene efter det springes over, og hvert af dem fortæller, hvor kørslen stoppede, og kørslen lykkes. Med **Kør dette trin** stopper det kun efter et resultat: stop, når trusselsinformationen ikke fandt noget kendt ondsindet, og lad ellers inddæmningstrinnene under det køre. Det, du skriver i **Grund til stop**, nævnes på sagens tidslinje, når kørslen stopper der. Det har intet at godkende og mislykkes aldrig, så det har hverken **Kræver godkendelse** eller **Fortsæt, hvis det mislykkes**, og intet trin kan vente på det. Et, der altid kører, afslutter hver kørsel og kan derfor kun være det sidste trin.
 
 ### Reaktion gennem OneUptime
 
@@ -394,7 +401,7 @@ Hver kørsel vises på sin sag og under **Produkter → Sikkerhedshændelser →
 | Queued | Venter på en worker |
 | Kører | Kører sine trin |
 | Waiting for Approval | Holdt tilbage før et trin, der kræver godkendelse |
-| Lykkedes | Alle trin kørte eller blev sprunget over |
+| Lykkedes | Alle trin kørte eller blev sprunget over, eller et trin **Stop kørslen** afsluttede den |
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
 
@@ -454,6 +461,10 @@ Sagen handler ikke om nogen bruger eller vært, f.eks. kun om en adresse, eller 
 
 :::details Et trin, der kun kører efter et andet, blev sprunget over
 Det trin, det venter på, endte på en anden måde eller blev selv sprunget over: Det fandt f.eks. intet kendt ondsindet, hvor trinnet venter på en kendt ondsindet entitet. Åbn kørslen på sagen: Det oversprungne trin fortæller, hvilket trin det ventede på, og hvilket resultat. For at ændre det skal du redigere trinnet og åbne **Flere felter**.
+:::
+
+:::details En kørsel sluttede før sine sidste trin
+Et trin **Stop kørslen** kørte: Det resultat, det venter på, kom, eller det kører altid. Åbn kørslen på sagen: Trinnene efter det fortæller, hvor kørslen stoppede, og stoptrinnet fortæller hvorfor, hvis du gav det en grund. For at ændre, hvornår det stopper, skal du redigere trinnet og åbne **Flere felter**.
 :::
 
 :::details En status eller prioritet kan ikke slettes eller arkiveres

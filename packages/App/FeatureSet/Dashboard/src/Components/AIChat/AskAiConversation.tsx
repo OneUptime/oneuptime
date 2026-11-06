@@ -19,7 +19,7 @@ export interface ComponentProps {
 }
 
 // The room left above a question scrolled to the top: the thread's padding.
-const QUESTION_TOP_GAP_PX: number = 24;
+const QUESTION_TOP_GAP_PX: number = 16;
 
 function prefersReducedMotion(): boolean {
   return (
@@ -49,7 +49,7 @@ const AskAiConversation: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement>(null);
   const [viewportHeight, setViewportHeight] = useState<number>(0);
 
-  // The conversation window's height, followed as the dialog resizes.
+  // The conversation window's height, followed as the panel resizes.
   useLayoutEffect(() => {
     const container: HTMLDivElement | null = scrollRef.current;
 
@@ -109,7 +109,7 @@ const AskAiConversation: FunctionComponent<ComponentProps> = (
   /*
    * A question just asked: scrolled to the top as it is sent. A
    * conversation that comes into view - opened from the history, or the
-   * dialog opened again on it - shows its last question at once.
+   * panel opened again on it - shows its last question at once.
    */
   const shownConversationRef: React.MutableRefObject<string | null> = useRef<
     string | null
@@ -155,7 +155,7 @@ const AskAiConversation: FunctionComponent<ComponentProps> = (
        */
       className="h-full overflow-y-auto overscroll-contain"
     >
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-3xl p-4">
         {chat.isLoadingConversation && chat.messages.length === 0 ? (
           <div
             role="status"

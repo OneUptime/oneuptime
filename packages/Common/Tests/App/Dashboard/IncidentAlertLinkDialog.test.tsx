@@ -227,33 +227,6 @@ const answerList: AnswerListFunction = async (
   return listResult([]);
 };
 
-type ActAsyncFunction = (body: () => Promise<void>) => Promise<void>;
-
-/*
- * zone.js reschedules the microtask React's act() uses to check that its
- * thenable was awaited; hooking then() up synchronously answers that check
- * in time (as BulkIncidentLinkActions.test.tsx does).
- */
-const actAsync: ActAsyncFunction = (
-  body: () => Promise<void>,
-): Promise<void> => {
-  const scope: PromiseLike<void> = act(body) as unknown as PromiseLike<void>;
-
-  return new Promise<void>(
-    (resolve: () => void, reject: (reason: unknown) => void): void => {
-      scope.then(resolve, reject);
-    },
-  );
-};
-
-type FailWithFunction = (message: string) => () => Promise<never>;
-
-const failWith: FailWithFunction = (message: string) => {
-  return async (): Promise<never> => {
-    throw new Error(message);
-  };
-};
-
 type LatestTableFunction = () => CapturedTableProps;
 
 const latestTable: LatestTableFunction = (): CapturedTableProps => {
@@ -319,7 +292,7 @@ const submit: SubmitFunction = async (value: unknown): Promise<void> => {
 
   const onSubmit: CapturedModalProps["onSubmit"] = capturedModal.onSubmit;
 
-  await actAsync(async () => {
+  await act(async () => {
     await onSubmit({ linkedRecordId: value });
   });
 };
@@ -466,8 +439,8 @@ describe("the link dialog on the Linked pages", () => {
     });
 
     test("keeps the dialog open with the reason when the link is refused", async () => {
-      createMock.mockImplementation(
-        failWith(
+      createMock.mockRejectedValue(
+        new Error(
           "The alert to link does not exist in this project, or you do not have access to it.",
         ),
       );
@@ -505,8 +478,8 @@ describe("the link dialog on the Linked pages", () => {
     });
 
     test("says a duplicate is already linked, however the server caught it", async () => {
-      createMock.mockImplementation(
-        failWith(
+      createMock.mockRejectedValue(
+        new Error(
           "A Incident Alert with the same Incident Id, Alert Id, Project Id already exists. Please use different values and try again.",
         ),
       );
@@ -524,8 +497,8 @@ describe("the link dialog on the Linked pages", () => {
 
     test("replaces the last reason with the new one", async () => {
       createMock
-        .mockImplementationOnce(failWith(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE))
-        .mockImplementationOnce(failWith("Alert not found."));
+        .mockRejectedValueOnce(new Error(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE))
+        .mockRejectedValueOnce(new Error("Alert not found."));
 
       await openPage(IncidentViewAlerts);
       await openDialog("Link Alert");
@@ -552,7 +525,7 @@ describe("the link dialog on the Linked pages", () => {
 
     test("clears the last error when trying again", async () => {
       createMock
-        .mockImplementationOnce(failWith(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE))
+        .mockRejectedValueOnce(new Error(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE))
         .mockResolvedValueOnce({});
 
       await openPage(IncidentViewAlerts);
@@ -671,8 +644,8 @@ describe("the link dialog on the Linked pages", () => {
     });
 
     test("shows an already-linked refusal in the dialog", async () => {
-      createMock.mockImplementation(
-        failWith(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE),
+      createMock.mockRejectedValue(
+        new Error(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE),
       );
 
       await openPage(AlertViewIncidents);

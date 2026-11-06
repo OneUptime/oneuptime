@@ -52,6 +52,7 @@ export enum CreateFromRecordKind {
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
   ProxmoxCluster = "ProxmoxCluster",
+  OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
@@ -291,6 +292,29 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
         },
         [CreatedRecordKind.ScheduledMaintenance]: {
           page: PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
+          title: SCHEDULED_MAINTENANCE_TAB_TITLE,
+        },
+      },
+    },
+    {
+      kind: CreateFromRecordKind.OpenStackCloud,
+      queryParam: "openStackCloudId",
+      listTitle: "OpenStack",
+      listPage: PageMap.OPENSTACK_CLOUDS,
+      viewTitle: "View Cloud",
+      viewPage: PageMap.OPENSTACK_CLOUD_VIEW,
+      field: namedRecords("openStackClouds"),
+      tabs: {
+        [CreatedRecordKind.Incident]: {
+          page: PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS,
+          title: INCIDENTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.Alert]: {
+          page: PageMap.OPENSTACK_CLOUD_VIEW_ALERTS,
+          title: ALERTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.ScheduledMaintenance]: {
+          page: PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE,
           title: SCHEDULED_MAINTENANCE_TAB_TITLE,
         },
       },

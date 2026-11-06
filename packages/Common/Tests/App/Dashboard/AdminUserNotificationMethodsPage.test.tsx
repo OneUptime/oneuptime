@@ -223,6 +223,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
@@ -251,7 +252,7 @@ const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const SIGNED_IN_USER_ID: ObjectID = new ObjectID(SIGNED_IN_USER_ID_STRING);
 
 /*
- * The nine models only their owner may read. Asserted as a SET because which
+ * The ten models only their owner may read. Asserted as a SET because which
  * one an admin surface reaches for hardly matters — every one carries a raw
  * identifier and most carry a credential.
  */
@@ -264,6 +265,7 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserTelegram,
   UserSlack,
   UserMicrosoftTeams,
+  UserMattermost,
   UserWebhook,
 ];
 
@@ -769,14 +771,15 @@ beforeEach((): void => {
   pendingRequestCount = 0;
 
   /*
-   * The self view offers Slack and Microsoft Teams only for the workspaces
-   * the project has connected. Both are, unless a test says otherwise.
+   * The self view offers Slack, Microsoft Teams and Mattermost only for the
+   * workspaces the project has connected. All are, unless a test says otherwise.
    */
   window.localStorage.clear();
   ConnectedWorkspaces.reset();
   ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [
     WorkspaceType.Slack,
     WorkspaceType.MicrosoftTeams,
+    WorkspaceType.Mattermost,
   ]);
 
   getListMock.mockReset();
@@ -1522,7 +1525,7 @@ describe("no unmasked identifier reaches the DOM", () => {
  * worked, right up until somebody needed to add a phone number.
  */
 describe("the self-serve view", () => {
-  test("reaches every one of the nine method models across its tabs", async () => {
+  test("reaches every one of the ten method models across its tabs", async () => {
     await renderSelfPage();
 
     /*
@@ -1539,6 +1542,7 @@ describe("the self-serve view", () => {
 
     expect(mountedTableModels).toContain(UserSlack);
     expect(mountedTableModels).toContain(UserMicrosoftTeams);
+    expect(mountedTableModels).toContain(UserMattermost);
 
     await openTab("Push Notifications");
 
@@ -1616,6 +1620,20 @@ describe("the self-serve view", () => {
 
     expect(mountedTableModels).toContain(UserSlack);
     expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+    expect(mountedTableModels).not.toContain(UserMattermost);
+  });
+
+  test("offers the Mattermost table alone in a project connected to Mattermost alone", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID_STRING, [
+      WorkspaceType.Mattermost,
+    ]);
+
+    await renderSelfPage();
+    await openTab("Workspace Apps");
+
+    expect(mountedTableModels).toContain(UserMattermost);
+    expect(mountedTableModels).not.toContain(UserSlack);
+    expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
   });
 
   test("has no Workspace Apps tab in a project with no workspace connected", async () => {
@@ -1629,6 +1647,7 @@ describe("the self-serve view", () => {
     expect(screen.getByTestId("tab-Webhooks")).toBeInTheDocument();
     expect(mountedTableModels).not.toContain(UserSlack);
     expect(mountedTableModels).not.toContain(UserMicrosoftTeams);
+    expect(mountedTableModels).not.toContain(UserMattermost);
   });
 
   test("the admin's view of somebody else asks nothing about workspaces", async () => {

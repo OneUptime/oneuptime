@@ -56,7 +56,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Vue d'ensemble** | **Tous les événements** et **Événements en cours**, dont le badge compte les événements en cours en ce moment.         |
 | **Calendrier** | **Calendrier de maintenance** : chaque événement sur un mois, une semaine ou un jour, à côté des calendriers extérieurs au projet que vous ajoutez. |
-| **Espace de travail** | **Slack** et **Microsoft Teams**, selon ce que le projet a connecté, ou **Connecter Slack ou Teams** s'il n'a ni l'un ni l'autre. |
+| **Espace de travail** | **Slack**, **Microsoft Teams** et **Mattermost**, selon ce que le projet a connecté, ou **Connecter un espace de travail** s'il n'en a aucun. |
 | **Règles**    | **Règles de propriétaire**, **Règles de runbook**, **Règles d'étiquettes**, **Règles de rappel**.                              |
 | **Paramètres** | **État de l'événement**, **Modèles d'événement**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
 
@@ -75,7 +75,7 @@ Pendant qu'un événement est en cours, OneUptime considère la panne qu'il pré
 - **Les sites réseau et les SLO se retiennent.** Un site réseau couvert par l'événement cesse de compter sa panne prévue contre les sites au-dessus de lui, et les règles de taux de consommation d'un SLO ne déclenchent rien tant que l'un de ses moniteurs est en maintenance. Voir [Sites réseau](/docs/monitor/network-sites#maintenance-planifiée-pour-les-sites-réseau) et [Alertes et incidents de taux de consommation](/docs/slo/burn-rate-alerts#maintenance-planifiée).
 - **Vos pages de statut l'affichent.** L'événement apparaît sur les pages de statut choisies, d'abord à venir, puis en cours, puis passé, tant que **Visible sur la page de statut** est activé dans ses **Paramètres**, et à partir de son **Publier le** si vous en avez choisi un. Une fois commencé, sur ces pages, l'historique de disponibilité de chaque ressource portant ses moniteurs le montre sur chaque jour que touche sa fenêtre, et ces ressources affichent « En maintenance » pendant qu'il se déroule ; l'historique de disponibilité du moniteur dans le tableau de bord le montre de la même façon. Voir [Pourcentages de disponibilité et graphiques d'historique](/docs/status-pages/resources-and-groups#pourcentages-de-disponibilité-et-graphiques-dhistorique).
 - **Les abonnés en sont informés.** Par défaut, les abonnés de ces pages sont prévenus quand il est planifié, quand il commence et quand il se termine, et reçoivent un rappel avant le début si vous définissez des rappels. Voir [Événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée).
-- **Votre équipe en est informée.** Ses propriétaires sont prévenus comme le prévoient leurs [paramètres de notification](/docs/notifications/notification-settings), et les règles Slack et Microsoft Teams sous **Espace de travail** le publient dans vos canaux.
+- **Votre équipe en est informée.** Ses propriétaires sont prévenus comme le prévoient leurs [paramètres de notification](/docs/notifications/notification-settings), et les règles Slack, Microsoft Teams et Mattermost sous **Espace de travail** le publient dans vos canaux.
 
 ## Les pages d'un événement
 

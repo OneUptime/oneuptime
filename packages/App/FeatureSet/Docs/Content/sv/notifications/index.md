@@ -27,7 +27,7 @@ flowchart TB
 
 | Sida | Vad den innehåller | Frågan den besvarar |
 | --- | --- | --- |
-| **Aviseringsmetoder** | Dina e-postadresser, telefonnummer, WhatsApp-nummer, Telegram-, Slack- och Microsoft Teams-konton, push-enheter och webhooks | Var kan OneUptime nå mig? |
+| **Aviseringsmetoder** | Dina e-postadresser, telefonnummer, WhatsApp-nummer, Telegram-, Slack-, Microsoft Teams- och Mattermost-konton, push-enheter och webhooks | Var kan OneUptime nå mig? |
 | **Jourregler** | För varje typ av larm och varje allvarlighetsgrad: vilken metod som provas och efter hur lång tid | Hur larmas jag när jag har jour? |
 | **Aviseringsinställningar** | För varje händelse om något du äger eller om dina jourpass: vilka kanaler som används | Vad mer får jag veta om, och var? |
 
@@ -48,9 +48,9 @@ De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställninga
 | **Inkommande samtalspolicy** | **Inkommande telefonnummer**: numret som en policy för inkommande samtal ringer dig på |
 | **Kalender** | **Kalenderflöde**: dina jourpass i din kalenderapp, och påminnelser innan de börjar |
 | **Profil** | **Anpassade fält**: uppgifter som ditt projekt ber sina medlemmar om |
-| **Arbetsyta** | **Slack** och **Microsoft Teams**: ditt eget konto, i varje arbetsyta som projektet har anslutit |
+| **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**: ditt eget konto, i varje arbetsyta som projektet har anslutit |
 
-**Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack eller Microsoft Teams.
+**Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack, Microsoft Teams eller Mattermost.
 
 Projektägare och administratörer kan också se din konfiguration: under **Användare** öppnar de din rad och dess avsnitt **Jour**, med **Beredskap**, **Aviseringsmetoder** och **Jourregler**. De kan lägga till en metod åt dig där, men koden går till själva metoden, så bara du kan verifiera den.
 
@@ -90,7 +90,7 @@ Varje metod som du verifierar senare får samma regler: en regel för varje allv
 
 Ett larm kan nå dig för en typ och en allvarlighetsgrad som du inte har någon regel för, till exempel en allvarlighetsgrad som lades till efter att du gick med. OneUptime larmar dig ändå, via det du har verifierat:
 
-1. Varje kostnadsfri metod du har: push-enheter, e-postadresser, Slack och Microsoft Teams.
+1. Varje kostnadsfri metod du har: push-enheter, e-postadresser, Slack, Microsoft Teams och Mattermost.
 2. Har du ingen av dem, en betald metod, i den här ordningen: SMS, ett telefonsamtal, WhatsApp, Telegram. Det är den första som du har verifierat, på en kanal som projektet har slagit på.
 3. Har du ingen av dem heller, en webhook.
 

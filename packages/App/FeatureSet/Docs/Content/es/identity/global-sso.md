@@ -100,8 +100,8 @@ Configurar un proveedor global no obliga a nadie a usarlo; el inicio de sesión 
 
 Mientras toda la instancia exige SSO:
 
-- La página de inicio de sesión solo ofrece SSO: un botón por cada proveedor global activado, y ni contraseña, ni clave de acceso, ni inicio de sesión con Google o Microsoft, ni registro. Conserva la búsqueda por correo, que encuentra el proveedor propio de un proyecto, solo mientras algún proyecto tenga uno.
-- OneUptime rechaza una contraseña, una clave de acceso, un inicio de sesión con Google o Microsoft y un registro con "This server requires single sign-on (SSO). Sign in with SSO instead." Solo la contraseña o la clave de acceso de un administrador maestro siguen iniciando su sesión. Las personas obtienen su cuenta iniciando sesión con SSO o por invitación.
+- La página de inicio de sesión solo ofrece SSO: un botón por cada proveedor global activado, y ni contraseña, ni clave de acceso, ni enlace enviado por correo, ni inicio de sesión con Google o Microsoft, ni registro. Conserva la búsqueda por correo, que encuentra el proveedor propio de un proyecto, solo mientras algún proyecto tenga uno.
+- OneUptime rechaza una contraseña, una clave de acceso, un enlace enviado por correo, un inicio de sesión con Google o Microsoft y un registro con "This server requires single sign-on (SSO). Sign in with SSO instead." Solo la contraseña o la clave de acceso de un administrador maestro siguen iniciando su sesión. Las personas obtienen su cuenta iniciando sesión con SSO o por invitación.
 - Quien ya inició sesión con una contraseña inicia sesión con SSO para abrir un proyecto. Llega a la página de inicio de sesión único del proyecto, que ofrece los proveedores propios del proyecto y los proveedores globales que inician sesión en él.
 - Los administradores maestros inician sesión con su contraseña en `/accounts/admin-login`, una dirección a la que no enlaza la página de inicio de sesión. La tarjeta **Exigir SSO** muestra la dirección completa bajo el interruptor, como **Inicio de sesión de administrador maestro**: guárdala, para desactivar la exigencia si tu proveedor de identidad deja de funcionar.
 
@@ -162,7 +162,7 @@ Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo 
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, clave de acceso, Google o Microsoft, o un registro. Inicia sesión con uno de los botones de SSO de la página de inicio de sesión. Un administrador maestro inicia sesión con su contraseña en `/accounts/admin-login`; para que todos puedan volver a iniciar sesión con contraseña, desactiva **Exigir SSO para iniciar sesión** en **Inicio de sesión único**.
+Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, clave de acceso, un enlace enviado por correo, Google o Microsoft, o un registro. Inicia sesión con uno de los botones de SSO de la página de inicio de sesión. Un administrador maestro inicia sesión con su contraseña en `/accounts/admin-login`; para que todos puedan volver a iniciar sesión con contraseña, desactiva **Exigir SSO para iniciar sesión** en **Inicio de sesión único**.
 :::
 
 ## Próximos pasos

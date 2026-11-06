@@ -59,8 +59,8 @@ import PermissionGate from "Common/UI/Utils/PermissionGate";
  *
  * WHAT IS DELIBERATELY NOT HERE: any read of a notification METHOD model.
  * UserEmail, UserSMS, UserCall, UserPush, UserWhatsApp, UserTelegram,
- * UserSlack, UserMicrosoftTeams and UserWebhook are scoped to the person who
- * owns the device, and nothing in this section reads them — not directly, and not through a nested relation select
+ * UserSlack, UserMicrosoftTeams, UserMattermost and UserWebhook are scoped to
+ * the person who owns the device, and nothing in this section reads them — not directly, and not through a nested relation select
  * on a rule, which reaches the same columns through a table an administrator IS
  * allowed to read. Everything any page here knows about a method comes masked
  * from the server: from the readiness payload, or from the admin notification

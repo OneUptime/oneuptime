@@ -144,7 +144,7 @@ En sak som er åpnet fra Google SecOps-varsler, lukker dem også i Google SecOps
 
 ## Saksprioriteter og saksstatuser
 
-Hvert prosjekt har sine egne saksprioriteter og saksstatuser, under **Produkter → Sikkerhetshendelser → Innstillinger → Saksprioriteter** og **Saksstatuser**. Gi dem nye navn og farger, dra dem i en annen rekkefølge, og legg til dine egne, for eksempel en status «Triage» eller en prioritet «Nødsituasjon» over **Kritisk**. Et nytt navn vises overalt med én gang: i køen, på sakssidene og oversikten, i varslinger, i Slack og Microsoft Teams og i playbook-meldinger.
+Hvert prosjekt har sine egne saksprioriteter og saksstatuser, under **Produkter → Sikkerhetshendelser → Innstillinger → Saksprioriteter** og **Saksstatuser**. Gi dem nye navn og farger, dra dem i en annen rekkefølge, og legg til dine egne, for eksempel en status «Triage» eller en prioritet «Nødsituasjon» over **Kritisk**. Et nytt navn vises overalt med én gang: i køen, på sakssidene og oversikten, i varslinger, i Slack, Microsoft Teams og Mattermost og i playbook-meldinger.
 
 Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og ny farge, men ikke slettes eller arkiveres, og de beholder rekkefølgen sin:
 
@@ -157,7 +157,7 @@ Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og n
 | Prioritetene Kritisk, High, Medium, Low og Til orientering | En deteksjon åpner saken sin med prioriteten for alvorlighetsgraden sin, og en sak som noen åpner, starter på Medium |
 
 - Hvor en status står, avgjør hva en sak i den teller som, slik kolonnen **Teller som** viser: fra den kvitterte statusen og ned som kvittert, fra den begrensede statusen og ned som begrenset, fra den lukkede statusen og ned som lukket. En status du legger til, havner rett over den lukkede statusen, og når du flytter en sak til en status som lukker den, blir du først bedt om en konklusjon.
-- Plassen til en prioritet sier hvor mye den haster, den som haster mest først: **For saker med minst**, valgene for varslinger og reglene for Slack og Microsoft Teams leser denne rekkefølgen. En prioritet du legger til, havner sist, og kolonnen **Deteksjonens alvorlighetsgrad** viser hvilke deteksjoner som åpner sakene sine med hver innebygde prioritet.
+- Plassen til en prioritet sier hvor mye den haster, den som haster mest først: **For saker med minst**, valgene for varslinger og reglene for Slack, Microsoft Teams og Mattermost leser denne rekkefølgen. En prioritet du legger til, havner sist, og kolonnen **Deteksjonens alvorlighetsgrad** viser hvilke deteksjoner som åpner sakene sine med hver innebygde prioritet.
 
 For å slutte å bruke en egen status eller prioritet bruker du **Arkiver** i raden dens. Ingen kan velge den igjen, og API-et, Terraform og MCP avviser den, men sakene som har den, beholder den, og du kan fortsatt filtrere på den. Arkiverte verdier står i den sammenslåtte delen **Arkiverte saksstatuser** eller **Arkiverte saksprioriteter** under tabellen, der **Fjern fra arkiv** henter en tilbake. **Slett** avvises så lenge saker har verdien eller en playbook kjører fra prioriteten.
 
@@ -218,7 +218,7 @@ OneUptime gir folk beskjed om fem ting på en sak. Ingen trenger å sette opp no
 
 ### Velg hva du får beskjed om
 
-Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
+Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
 
 | Valg | Varsler om saker med |
 | --- | --- |
@@ -232,9 +232,9 @@ Valgene følger prosjektets saksprioriteter, under sine egne navn: dette er valg
 
 Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
 
-### Legg ut i Slack- og Microsoft Teams-kanaler
+### Legg ut i Slack-, Microsoft Teams- og Mattermost-kanaler
 
-For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til Slack eller Teams**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
+For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til et arbeidsområde**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
 
 | Betingelse | Treffer på |
 | --- | --- |
@@ -306,11 +306,12 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Automate | Run a workflow | Starter en OneUptime-arbeidsflyt med saken som input |
 | Automate | Run a runbook | Starter en av OneUptime-runbookene dine med saken som input |
 | Automate | Fix the code with AI | Ber OneUptime AI om en pull request som retter unntakene sakens forespørsler utløste |
+| Flow control | Stopp kjøringen | Avslutter kjøringen der som fullført: stegene etter det kjører ikke |
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
 - **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De åtte stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av. **Run a runbook**, **Post a status page announcement** og de to stegene for datalagre starter med godkjenning slått på, fordi de kjører kommandoer på systemene deres, snakker til kundene deres eller endrer innstillingene i en sky; den som legger til steget, kan slå det av.
-- **Kjør dette trinnet**: **Alltid**, eller bare etter et resultat av et steg før det, for eksempel at **Sjekk entiteter mot trusselsinformasjon** finner en kjent ondsinnet entitet; se [Forgrein etter resultatet av et steg](#forgrein-etter-resultatet-av-et-steg).
+- **Kjør dette trinnet**: **Alltid**, eller bare etter resultater av steg før det, for eksempel at **Sjekk entiteter mot trusselsinformasjon** finner en kjent ondsinnet entitet; se [Forgrein etter resultatet av et steg](#forgrein-etter-resultatet-av-et-steg).
 - **Fortsett hvis det mislykkes**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen. Den ligger under **Flere felt**, sammen med **Kjør dette trinnet**.
 
 ### Forgrein etter resultatet av et steg
@@ -324,6 +325,12 @@ En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det fo
 | Ethvert annet steg | Lyktes, og mislyktes når det har **Fortsett hvis det mislykkes** slått på |
 
 To steg som venter på motsatte resultater av det samme steget, er et hvis og et ellers: suspender en bruker bare når trusselsinformasjonen kjenner vedkommende, og legg ellers til en oppgave om å bekrefte påloggingen med vedkommende. Når steget det ventes på, ender på en annen måte, hoppes det ventende steget over, og kjøringen sier under det hvorfor; det samme gjelder et steg som venter på et steg som ble hoppet over. Kortet til et steg viser hva det venter på, og et steg som et annet venter på, kan ikke flyttes under det eller slettes før det andre kjører på en annen måte. Malen **Eskaler kjente ondsinnede indikatorer** hever prioriteten og statusen til en sak bare ved treff i trusselsinformasjon, og et steg som ble lagret med den gamle bryteren for trusselsinformasjon, beholder den som **Bare hvis en tidligere sjekk mot trusselsinformasjon fant en kjent ondsinnet entitet**.
+
+Et steg kan vente på opptil fem resultater: Velg hvert av dem i **Kjør dette trinnet**, og **Kjør når** spør hvordan de leses, **Når alle har skjedd** eller **Når ett av dem har skjedd**. Suspender en bruker bare når trusselsinformasjonen kjenner vedkommende og aktiviteten deres ble funnet, eller tilkall vakten når ett av de to oppslagene fant noe. Et steg som venter på alle resultatene sine, kan ikke vente på to resultater av samme steg, for eksempel funnet og ingenting funnet, siden ingen kjøring har begge.
+
+### Stopp kjøringen
+
+**Stopp kjøringen**, under **Flytkontroll**, avslutter kjøringen der den er, som fullført: Stegene etter det hoppes over, og hvert av dem forteller hvor kjøringen stoppet, og kjøringen lykkes. Med **Kjør dette trinnet** stopper det bare etter et resultat: stopp når trusselsinformasjonen ikke fant noe kjent ondsinnet, og la ellers begrensningsstegene under det kjøre. Det du skriver i **Grunn til stopp**, nevnes på sakens tidslinje når kjøringen stopper der. Det har ingenting å godkjenne og mislykkes aldri, så det har verken **Krever godkjenning** eller **Fortsett hvis det mislykkes**, og ingen steg kan vente på det. Et som alltid kjører, avslutter hver kjøring og kan derfor bare være det siste steget.
 
 ### Svar gjennom OneUptime
 
@@ -394,7 +401,7 @@ Hver kjøring vises på saken sin og under **Produkter → Sikkerhetshendelser �
 | Queued | Venter på en worker |
 | Kjører | Kjører stegene sine |
 | Waiting for Approval | Holdt tilbake før et steg som krever godkjenning |
-| Vellykket | Alle steg kjørte eller ble hoppet over |
+| Vellykket | Alle steg kjørte eller ble hoppet over, eller et steg **Stopp kjøringen** avsluttet den |
 | Mislyktes | Et steg feilet, og kjøringen stoppet |
 | Avbrutt | Noen avbrøt den eller avviste et steg |
 
@@ -454,6 +461,10 @@ Saken gjelder ingen bruker eller vert, bare en adresse for eksempel, eller alle 
 
 :::details Et steg som bare kjører etter et annet, ble hoppet over
 Steget det venter på, endte på en annen måte eller ble selv hoppet over: Det fant for eksempel ikke noe kjent ondsinnet der steget venter på en kjent ondsinnet entitet. Åpne kjøringen på saken: Steget som ble hoppet over, forteller hvilket steg det ventet på, og hvilket resultat. For å endre det redigerer du steget og åpner **Flere felt**.
+:::
+
+:::details En kjøring sluttet før de siste stegene
+Et steg **Stopp kjøringen** kjørte: Resultatet det venter på, kom, eller det kjører alltid. Åpne kjøringen på saken: Stegene etter det forteller hvor kjøringen stoppet, og stoppsteget forteller hvorfor hvis du ga det en grunn. For å endre når det stopper, redigerer du steget og åpner **Flere felt**.
 :::
 
 :::details En status eller prioritet kan ikke slettes eller arkiveres

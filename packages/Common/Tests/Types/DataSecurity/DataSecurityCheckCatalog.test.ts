@@ -915,3 +915,32 @@ describe("a store of every kind", () => {
     }
   });
 });
+
+describe("a new column that holds personal data", () => {
+  function run(
+    newPersonalDataColumns: ReadonlyArray<string> | undefined,
+  ): DataSecurityCheckStatus {
+    return getDataSecurityCheck("new-personal-data-column")!.evaluate(
+      store({ newPersonalDataColumns }),
+    ).status;
+  }
+
+  test("a store nothing collects has no columns to judge", () => {
+    expect(run(undefined)).toBe(DataSecurityCheckStatus.NotApplicable);
+  });
+
+  test("a collected store with none passes, and one with any fails", () => {
+    expect(run([])).toBe(DataSecurityCheckStatus.Pass);
+    expect(run(["public.customers.email (Email address)"])).toBe(
+      DataSecurityCheckStatus.Fail,
+    );
+  });
+
+  test("the evidence names the columns", () => {
+    expect(
+      getDataSecurityCheck("new-personal-data-column")!.evaluate(
+        store({ newPersonalDataColumns: ["a.b.email (Email address)"] }),
+      ).evidence,
+    ).toContain("a.b.email");
+  });
+});

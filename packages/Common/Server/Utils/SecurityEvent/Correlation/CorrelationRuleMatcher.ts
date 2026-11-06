@@ -15,7 +15,10 @@ import {
   describeSigmaTimespan,
   minimumCountFor,
 } from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
-import { DetectionMatchGroup } from "../../../Services/SecurityEventService";
+import {
+  DetectionArrivalRead,
+  DetectionMatchGroup,
+} from "../../../Services/SecurityEventService";
 import { Statement } from "../../AnalyticsDatabase/Statement";
 import CorrelationQueries, {
   CORRELATION_TEMPORAL_CANDIDATE_LIMIT,
@@ -45,6 +48,13 @@ import CorrelationQueries, {
  *     step came before this run still counts when its last step is in it.
  *   - new_value: this run's window, against the timespan of history before
  *     it.
+ *
+ * In real time (`arrival`) a run is the window of the rule's interval one
+ * write's events fall in, read as it stood when the write came in, and a
+ * group is reported only when the write is what made it match
+ * (CorrelationQueries): a burst once, as the event that makes the count
+ * arrives; a sequence once, as its last step does; a new value as it is
+ * first seen.
  */
 
 export interface CorrelationMatchResult {
@@ -63,6 +73,8 @@ export interface CorrelationRuleMatchInput {
   endTime: Date;
   maxGroups: number;
   restrictTo?: Statement | undefined;
+  // In real time: the window as one write found it.
+  arrival?: DetectionArrivalRead | undefined;
 }
 
 // "3 minutes", "45 seconds", "less than a second": how far apart two times are.
@@ -161,6 +173,7 @@ export default class CorrelationRuleMatcher {
       startTime: input.startTime,
       endTime: input.endTime,
       restrictTo: input.restrictTo,
+      arrival: input.arrival,
     };
 
     const rows: Array<CorrelationCountRow> =
@@ -249,6 +262,7 @@ export default class CorrelationRuleMatcher {
           startTime: input.startTime,
           endTime: input.endTime,
           restrictTo: input.restrictTo,
+          arrival: input.arrival,
         },
         correlation: input.correlation,
         steps: input.steps,
@@ -260,11 +274,15 @@ export default class CorrelationRuleMatcher {
     const notBefore: number = input.startTime.getTime();
     const groups: Array<DetectionMatchGroup> = [];
 
-    for (const row of rows) {
-      // When each step happened: every event of a rule step, the count reached for a counting step.
-      const happened: Array<Array<number>> = input.steps.map(
+    // When each step happened: every event of a rule step, the count reached for a counting step.
+    const happenedAt: (
+      stepTimes: Array<Array<number>>,
+    ) => Array<Array<number>> = (
+      stepTimes: Array<Array<number>>,
+    ): Array<Array<number>> => {
+      return input.steps.map(
         (step: SigmaCorrelationStep, index: number): Array<number> => {
-          const times: Array<number> = row.stepTimes[index] || [];
+          const times: Array<number> = stepTimes[index] || [];
 
           return step.count
             ? countStepTimes(
@@ -275,12 +293,35 @@ export default class CorrelationRuleMatcher {
             : times;
         },
       );
+    };
 
-      const match: CorrelationMatch | null = ordered
+    const findMatch: (
+      happened: Array<Array<number>>,
+    ) => CorrelationMatch | null = (
+      happened: Array<Array<number>>,
+    ): CorrelationMatch | null => {
+      return ordered
         ? findOrderedChain(happened, timespanMs, notBefore)
         : findTogetherWindow(happened, timespanMs, minimumSteps, notBefore);
+    };
+
+    for (const row of rows) {
+      const match: CorrelationMatch | null = findMatch(
+        happenedAt(row.stepTimes),
+      );
 
       if (!match) {
+        continue;
+      }
+
+      /*
+       * In real time, a sequence the run had found already, with what came
+       * in before the write, was reported by the write that completed it.
+       */
+      if (
+        input.arrival &&
+        findMatch(happenedAt(row.stepTimesBefore || [])) !== null
+      ) {
         continue;
       }
 
@@ -334,6 +375,7 @@ export default class CorrelationRuleMatcher {
           startTime: input.startTime,
           endTime: input.endTime,
           restrictTo: input.restrictTo,
+          arrival: input.arrival,
         },
         historyFrom,
         correlation: input.correlation,

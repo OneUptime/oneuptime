@@ -1,0 +1,2 @@
+Trove's API stopped.
+On its own: Trove's API is stopped, by taking its site off Apache, which is how DevStack runs it.

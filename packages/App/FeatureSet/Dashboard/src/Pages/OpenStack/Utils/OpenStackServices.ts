@@ -1,0 +1,1356 @@
+import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { OpenStackRowsLeftOut } from "Common/Types/OpenStack/OpenStackOverview";
+import {
+  OPENSTACK_ALLOCATION_WARNING_PERCENT,
+  OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT,
+  OPENSTACK_STORAGE_POOL_WARNING_PERCENT,
+  isOpenStackAdminDisabled,
+  isOpenStackServiceDown,
+  percentOf,
+  OPENSTACK_GNOCCHI_MEASURES_FACT,
+  OPENSTACK_GNOCCHI_METRICS_FACT,
+  OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+  OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+  OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+  OPENSTACK_SWIFT_RECON_SERVERS_FACT,
+} from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  OPENSTACK_API_STATUS_CLOSED,
+  OPENSTACK_SERVICE_TITLES,
+  OpenStackResourceKind,
+  OpenStackServiceFamily,
+  OpenStackServiceType,
+} from "Common/Types/OpenStack/OpenStackResourceKind";
+import {
+  OPENSTACK_OPTIONAL_SERVICES,
+  OpenStackOptionalService,
+  isOpenStackApiClosedToThisCredential,
+} from "Common/Types/OpenStack/OpenStackOptionalServices";
+import {
+  OpenStackProjectQuota,
+  getOpenStackProjectQuotas,
+} from "Common/Types/OpenStack/OpenStackQuota";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ResourceAttentionItem,
+  ResourceAttentionSeverity,
+  ResourceHealth,
+} from "../../../Components/ResourcePart/ResourceAttention";
+import { readSeriesLabel } from "../../../Components/ResourceTopology/ResourceTopologyIssues";
+import {
+  OpenStackAssessment,
+  assessOpenStackService,
+  getOpenStackAttentionItems,
+  getOpenStackHealth,
+  getOpenStackStoragePoolPercent,
+} from "./OpenStackHealth";
+import {
+  OpenStackNetworkBackend,
+  getOpenStackEmptyWords,
+  getOpenStackNetworkBackend,
+} from "./OpenStackPartFacts";
+
+/*
+ * THE CONTROL PLANE, AS A PERSON READS IT.
+ *
+ * What `openstack compute service list`, `network agent list`, `volume service list` and
+ * `endpoint list` answer between them, grouped by OpenStack service and region with what
+ * needs someone first. The Overview's cards and the Services page both read this, so they
+ * cannot put things in different orders or count them differently, and it asks
+ * OpenStackHealth what needs someone rather than deciding again.
+ *
+ * Two things it holds to:
+ *
+ *  - Nothing here is a verdict of its own. A worker's rank and a group's health come from
+ *    the rules, whose lines are the alert templates'.
+ *  - An API that is down has said nothing about its workers. The exporter reads them from
+ *    that API, so they read as they last did, and a page has to say so.
+ *
+ * React-free, so tests can read it.
+ */
+
+// The order Keystone's catalog reads in, which a calm cloud's services keep.
+export const OPENSTACK_CATALOG_ORDER: ReadonlyArray<string> = [
+  OpenStackServiceType.Identity,
+  OpenStackServiceType.Compute,
+  OpenStackServiceType.Placement,
+  OpenStackServiceType.Network,
+  OpenStackServiceType.Volume,
+  OpenStackServiceType.Image,
+  ...OPENSTACK_OPTIONAL_SERVICES.map(
+    (entry: OpenStackOptionalService): OpenStackServiceType => {
+      return entry.service;
+    },
+  ),
+];
+
+// Which API answers for each family of workers: the exporter reads them through it.
+const SERVICE_OF_FAMILY: Record<string, OpenStackServiceType> = {
+  [OpenStackServiceFamily.Compute]: OpenStackServiceType.Compute,
+  [OpenStackServiceFamily.Network]: OpenStackServiceType.Network,
+  [OpenStackServiceFamily.Volume]: OpenStackServiceType.Volume,
+  [OpenStackServiceFamily.Orchestration]: OpenStackServiceType.Orchestration,
+  [OpenStackServiceFamily.ContainerInfra]: OpenStackServiceType.ContainerInfra,
+  [OpenStackServiceFamily.BareMetal]: OpenStackServiceType.BareMetal,
+  [OpenStackServiceFamily.SharedFileSystems]:
+    OpenStackServiceType.SharedFileSystems,
+  [OpenStackServiceFamily.Dns]: OpenStackServiceType.Dns,
+};
+
+function factsOf(row: OpenStackResource | null | undefined): JSONObject {
+  return (row?.facts as JSONObject | undefined) || {};
+}
+
+// "Compute (Nova)" for an API's row, whose name is its type in Keystone's catalog.
+export function getOpenStackServiceTitle(
+  service: string | null | undefined,
+): string {
+  return (
+    OPENSTACK_SERVICE_TITLES[service as OpenStackServiceType] || service || ""
+  );
+}
+
+// How a row reads in a list of everything: an API by its service, the rest by their name.
+export function getOpenStackAttentionName(row: OpenStackResource): string {
+  return row.kind === OpenStackResourceKind.Api
+    ? getOpenStackServiceTitle(row.name)
+    : row.name || "";
+}
+
+export function getOpenStackWorkerHost(row: OpenStackResource): string {
+  const host: JSONValue | undefined = factsOf(row)["host"];
+  return typeof host === "string" ? host : "";
+}
+
+/*
+ * The machine a worker runs on. Cinder writes a cinder-volume's host with its backend
+ * ("compute-01@lvmdriver-1"), and the machine is what comes before the @.
+ */
+export function getOpenStackWorkerMachine(row: OpenStackResource): string {
+  const host: string = getOpenStackWorkerHost(row);
+  const at: number = host.indexOf("@");
+  return at > 0 ? host.substring(0, at) : host;
+}
+
+export function getOpenStackWorkerFamily(row: OpenStackResource): string {
+  const family: JSONValue | undefined = factsOf(row)["family"];
+  return typeof family === "string" ? family : "";
+}
+
+/*
+ * How long collecting this API took, or null when nothing has said: only a cloud whose
+ * collector reports its own scrapes does, and an agent older than this reading has not.
+ */
+export function getOpenStackCollectionSeconds(
+  row: OpenStackResource | null | undefined,
+): number | null {
+  const seconds: JSONValue | undefined = factsOf(row)["collectionSeconds"];
+  return typeof seconds === "number" && Number.isFinite(seconds)
+    ? seconds
+    : null;
+}
+
+export function isOpenStackApiScrapeFailed(
+  row: OpenStackResource | null | undefined,
+): boolean {
+  return factsOf(row)["scrapeFailed"] === true;
+}
+
+/*
+ * Old records Neutron still lists for this agent beside the live one. On OVN a crash or a
+ * change of system-id leaves them behind, and they read as stale rather than as an
+ * outage: the agent is up (OpenStackSnapshotScan).
+ */
+export function getOpenStackStaleAgentIds(
+  row: OpenStackResource,
+): Array<string> {
+  const ids: JSONValue | undefined = factsOf(row)["staleAgentIds"];
+  return Array.isArray(ids)
+    ? (ids as Array<JSONValue>).filter((id: JSONValue): id is string => {
+        return typeof id === "string";
+      })
+    : [];
+}
+
+/*
+ * What needs someone first in a list of workers: one that is down, then one disabled for
+ * so long somebody probably forgot it, then one disabled on purpose, then the rest.
+ */
+export function getOpenStackWorkerRank(
+  row: OpenStackResource,
+  now: Date,
+): number {
+  if (
+    isOpenStackServiceDown({ status: row.status, adminState: row.adminState })
+  ) {
+    return 0;
+  }
+  if (isOpenStackAdminDisabled(row.adminState)) {
+    const assessment: OpenStackAssessment = assessOpenStackService({
+      row,
+      now,
+    });
+    return assessment.severity === ResourceAttentionSeverity.Warning ? 1 : 2;
+  }
+  return 3;
+}
+
+export function sortOpenStackWorkers(
+  rows: Array<OpenStackResource>,
+  now: Date,
+): Array<OpenStackResource> {
+  return [...rows].sort(
+    (a: OpenStackResource, b: OpenStackResource): number => {
+      return (
+        getOpenStackWorkerRank(a, now) - getOpenStackWorkerRank(b, now) ||
+        (a.name || "").localeCompare(b.name || "") ||
+        getOpenStackWorkerHost(a).localeCompare(
+          getOpenStackWorkerHost(b),
+          undefined,
+          { numeric: true, sensitivity: "base" },
+        )
+      );
+    },
+  );
+}
+
+export interface OpenStackWorkerCounts {
+  total: number;
+  up: number;
+  // Enabled, and down. One someone disabled is planned work, whatever it says.
+  down: number;
+  disabled: number;
+}
+
+/*
+ * What a read counted and did not bring: on a cloud of thousands of hosts, nearly all of its workers.
+ * Only for a page that says how many: none of these is anything to read.
+ */
+export function getOpenStackRowsLeftOut(data: {
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
+  kind: OpenStackResourceKind;
+  regionName?: string | null | undefined;
+}): Array<OpenStackRowsLeftOut> {
+  return (data.leftOut || []).filter((group: OpenStackRowsLeftOut): boolean => {
+    return (
+      group.kind === data.kind &&
+      (!data.regionName ||
+        !group.regionName ||
+        group.regionName === data.regionName)
+    );
+  });
+}
+
+export function getOpenStackWorkerCounts(
+  workers: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
+): OpenStackWorkerCounts {
+  const counts: OpenStackWorkerCounts = {
+    total: workers.length,
+    up: 0,
+    down: 0,
+    disabled: 0,
+  };
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    counts.total += group.count;
+    counts[group.state] += group.count;
+  }
+
+  for (const worker of workers) {
+    if (isOpenStackAdminDisabled(worker.adminState)) {
+      counts.disabled += 1;
+    } else if (
+      isOpenStackServiceDown({
+        status: worker.status,
+        adminState: worker.adminState,
+      })
+    ) {
+      counts.down += 1;
+    } else {
+      counts.up += 1;
+    }
+  }
+  return counts;
+}
+
+/*
+ * One OpenStack service in one region: its API and its workers. Identity, Placement and
+ * Glance have an API and nothing the exporter lists beneath it.
+ */
+export interface OpenStackServiceGroup {
+  key: string;
+  // Its type in Keystone's catalog: "compute".
+  service: string;
+  regionName: string | null;
+  api: OpenStackResource | null;
+  // What needs someone first.
+  workers: Array<OpenStackResource>;
+  counts: OpenStackWorkerCounts;
+  // How many of them were not read, because nothing is wrong with them: a very large cloud's.
+  notListedCount: number;
+  items: Array<ResourceAttentionItem>;
+  health: ResourceHealth;
+  // Its API isn't answering, so what its workers say is what they last said.
+  isLastKnown: boolean;
+}
+
+const HEALTH_RANK: Record<ResourceHealth, number> = {
+  Unhealthy: 0,
+  Degraded: 1,
+  Healthy: 2,
+};
+
+function catalogRank(service: string): number {
+  const index: number = OPENSTACK_CATALOG_ORDER.indexOf(service);
+  return index === -1 ? OPENSTACK_CATALOG_ORDER.length : index;
+}
+
+// A group while its rows are gathered, before anything is worked out from them.
+interface OpenStackServiceGroupRows {
+  service: string;
+  regionName: string | null;
+  api: OpenStackResource | null;
+  workers: Array<OpenStackResource>;
+  leftOut: Array<OpenStackRowsLeftOut>;
+}
+
+export function getOpenStackServiceGroups(data: {
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
+  now: Date;
+}): Array<OpenStackServiceGroup> {
+  const groups: Map<string, OpenStackServiceGroupRows> = new Map();
+
+  const groupOf: (
+    service: string,
+    regionName: string | null,
+  ) => OpenStackServiceGroupRows = (
+    service: string,
+    regionName: string | null,
+  ): OpenStackServiceGroupRows => {
+    const key: string = `${regionName || ""}/${service}`;
+    const found: OpenStackServiceGroupRows | undefined = groups.get(key);
+    if (found) {
+      return found;
+    }
+    const group: OpenStackServiceGroupRows = {
+      service,
+      regionName,
+      api: null,
+      workers: [],
+      leftOut: [],
+    };
+    groups.set(key, group);
+    return group;
+  };
+
+  for (const api of data.apis) {
+    if (api.name) {
+      groupOf(api.name, api.regionName || null).api = api;
+    }
+  }
+
+  for (const worker of data.workers) {
+    const service: OpenStackServiceType | undefined =
+      SERVICE_OF_FAMILY[getOpenStackWorkerFamily(worker)];
+    if (service) {
+      groupOf(service, worker.regionName || null).workers.push(worker);
+    }
+  }
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: data.leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    const service: OpenStackServiceType | undefined =
+      SERVICE_OF_FAMILY[group.family || ""];
+
+    if (service) {
+      groupOf(service, group.regionName).leftOut.push(group);
+    }
+  }
+
+  return Array.from(groups.entries())
+    .map(
+      ([key, group]: [
+        string,
+        OpenStackServiceGroupRows,
+      ]): OpenStackServiceGroup => {
+        const items: Array<ResourceAttentionItem> = getOpenStackAttentionItems({
+          rows: [...(group.api ? [group.api] : []), ...group.workers],
+          now: data.now,
+        });
+        return {
+          key,
+          service: group.service,
+          regionName: group.regionName,
+          api: group.api,
+          workers: sortOpenStackWorkers(group.workers, data.now),
+          counts: getOpenStackWorkerCounts(group.workers, group.leftOut),
+          notListedCount: group.leftOut.reduce(
+            (sum: number, leftOut: OpenStackRowsLeftOut): number => {
+              return sum + leftOut.count;
+            },
+            0,
+          ),
+          items,
+          health: getOpenStackHealth(items),
+          isLastKnown:
+            group.api?.status === "down" &&
+            (group.workers.length > 0 || group.leftOut.length > 0),
+        };
+      },
+    )
+    .sort((a: OpenStackServiceGroup, b: OpenStackServiceGroup): number => {
+      return (
+        HEALTH_RANK[a.health] - HEALTH_RANK[b.health] ||
+        // At one health, a whole API not answering before one worker of many.
+        Number(b.api?.status === "down") - Number(a.api?.status === "down") ||
+        catalogRank(a.service) - catalogRank(b.service) ||
+        (a.regionName || "").localeCompare(b.regionName || "")
+      );
+    });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The workers of a service a cloud may not run
+ * ---------------------------------------------------------------------------
+ *
+ * The exporter has no series for Heat's engines, Magnum's conductors or Ironic's, so on an agent's cloud a card
+ * for any of them has an API and no workers, which would read as though it had none. Only a native read of
+ * their APIs lists them, and only for an admin. Each behaves differently when one stops, recorded:
+ * with every engine stopped Heat's API can't answer at all, so this page does say so. Magnum's API
+ * carries on without its conductor, so nothing else here would.
+ */
+const WORKERS_NOT_READ_BY_THE_AGENT: Partial<Record<string, string>> = {
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "The agent's exporter has no series for Ironic's conductors, so none is listed here. Only a probe reads them, where its credential may.",
+  ),
+  [OpenStackServiceType.Orchestration]: translationKey(
+    "The agent's exporter doesn't read Heat's engines, so they aren't listed here. With every engine stopped Heat's API stops answering, which this page does say. A probe reads them.",
+  ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "The agent's exporter doesn't read Designate's services, so a stopped worker isn't shown here: Designate's API goes on taking changes, and its zones read PENDING, which is what says so. A probe reads them.",
+  ),
+  [OpenStackServiceType.SharedFileSystems]: translationKey(
+    "The agent's exporter doesn't read Manila's services, so a stopped one isn't shown anywhere here: Manila's API carries on answering without it, and its shares just stop changing. Run openstack share service list, or collect this cloud with a probe, which reads them.",
+  ),
+  [OpenStackServiceType.LoadBalancer]: translationKey(
+    "Nothing the agent reads lists Octavia's workers, so octavia-worker, octavia-health-manager and octavia-housekeeping aren't shown here, and a stopped one isn't shown anywhere: Octavia's API carries on answering without them. A load balancer left waiting on a stopped worker reads Stuck after an hour, and a failed amphora that the health manager did not replace reads in error.",
+  ),
+  [OpenStackServiceType.ContainerInfra]: translationKey(
+    "The agent's exporter doesn't read Magnum's conductors, so a stopped one isn't shown anywhere here: Magnum's API carries on answering without it, and its clusters just stop moving. Run openstack coe service list, or collect this cloud with a probe, which reads them.",
+  ),
+};
+
+const WORKERS_REFUSED_TO_THIS_CREDENTIAL: Partial<Record<string, string>> = {
+  // Recorded: 403 baremetal:conductor:get, to a project's admin.
+  [OpenStackServiceType.BareMetal]: translationKey(
+    "Ironic answers, and doesn't list its conductors to this credential. It refuses a project the list unless its policy says otherwise (baremetal:conductor:get). Its nodes read without it.",
+  ),
+  [OpenStackServiceType.Orchestration]: translationKey(
+    "Heat refuses this credential its list of engines, so they aren't listed here. Only the Full view credential reads them.",
+  ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "Designate refuses this credential its list of services, so they aren't listed here. Only the Full view credential reads them.",
+  ),
+  [OpenStackServiceType.SharedFileSystems]: translationKey(
+    "Manila refuses this credential its list of services, so they aren't listed here, and a stopped one isn't shown anywhere: Manila's API carries on answering without it. Only the Full view credential reads them.",
+  ),
+  [OpenStackServiceType.ContainerInfra]: translationKey(
+    "Magnum refuses this credential its list of conductors, so they aren't listed here, and a stopped one isn't shown anywhere: Magnum's API carries on answering without it. Only the Full view credential reads them.",
+  ),
+};
+
+export function getOpenStackWorkersNotListedWords(data: {
+  group: Pick<OpenStackServiceGroup, "service" | "workers" | "api">;
+  isCollectedByProbe: boolean;
+}): string | null {
+  if (data.group.workers.length > 0 || data.group.api?.status !== "up") {
+    return null;
+  }
+  return (
+    (data.isCollectedByProbe
+      ? WORKERS_REFUSED_TO_THIS_CREDENTIAL
+      : WORKERS_NOT_READ_BY_THE_AGENT)[data.group.service] || null
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Which backend Neutron runs, as the Services page says it
+ * ---------------------------------------------------------------------------
+ *
+ * Read from what the agents list reports, never from a setting. ML2/OVS has an agent on
+ * every host, OVN a controller: neither has the other's agents to miss. What decides it
+ * is what a router's page reads (getOpenStackNetworkBackend), so the two can't disagree,
+ * and this adds the words to say it with.
+ */
+export const OPENSTACK_BACKEND_OVN: string = "OVN";
+export const OPENSTACK_BACKEND_OVS: string = "ML2/OVS";
+export const OPENSTACK_BACKEND_LINUX_BRIDGE: string = "ML2/Linux bridge";
+
+export function getOpenStackNetworkBackendName(
+  workers: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
+): string | null {
+  const names: Array<string> = workers
+    .filter((worker: OpenStackResource): boolean => {
+      return (
+        getOpenStackWorkerFamily(worker) === OpenStackServiceFamily.Network
+      );
+    })
+    .map((worker: OpenStackResource): string => {
+      return (worker.name || "").toLowerCase();
+    });
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Service,
+  })) {
+    if (group.family === OpenStackServiceFamily.Network && group.name) {
+      names.push(group.name.toLowerCase());
+    }
+  }
+
+  const hasAgent: (word: string) => boolean = (word: string): boolean => {
+    return names.some((name: string): boolean => {
+      return name.includes(word);
+    });
+  };
+
+  const backend: OpenStackNetworkBackend = getOpenStackNetworkBackend(names);
+  if (backend === "ovn") {
+    return OPENSTACK_BACKEND_OVN;
+  }
+  if (hasAgent("openvswitch")) {
+    return OPENSTACK_BACKEND_OVS;
+  }
+  if (hasAgent("linuxbridge")) {
+    return OPENSTACK_BACKEND_LINUX_BRIDGE;
+  }
+  return backend === "ml2-ovs" ? OPENSTACK_BACKEND_OVS : null;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What this credential cannot see
+ * ---------------------------------------------------------------------------
+ *
+ * A credential may not be allowed to list a kind. The exporter still reports its API as
+ * up, with no rows of that kind. So for what a working cloud always has, an API that says
+ * up and no rows means the credential, and a page must not say "0 hypervisors" or call
+ * the cloud Healthy on the strength of what it could not read.
+ */
+const CANNOT_LIST_COMPUTE_SERVICES: string = translationKey(
+  "This credential can't list compute services",
+);
+
+const CANNOT_LIST_VOLUME_SERVICES: string = translationKey(
+  "This credential can't list volume services",
+);
+
+const CANNOT_READ_PLACEMENT: string = translationKey(
+  "This credential can't read Placement",
+);
+
+/*
+ * What an API's page says while it has never let this credential in: what it could be, because a refusal
+ * and a stopped API read the same, and what opens it. By service, for what each really does.
+ */
+const CLOSED_TO_THIS_CREDENTIAL_WORDS: Partial<Record<string, string>> = {
+  [OpenStackServiceType.ObjectStore]: translationKey(
+    "OneUptime has never had an answer from Swift with this credential. The exporter reads this credential's own project's account, and a refusal reads just as Swift being down does. So either Swift is down, or this credential has no role Swift's proxy lets in, or Swift's proxy-server.conf needs include_service_catalog = True under [filter:authtoken] for its access rules. Its alerts aren't offered until it has answered once: they could only say the same thing.",
+  ),
+  [OpenStackServiceType.Metric]: translationKey(
+    "OneUptime has never had an answer from Gnocchi with this credential. The exporter reads Gnocchi's status, which only an admin may, and a refusal reads just as Gnocchi being down does. So either Gnocchi is down, or this credential needs to be a Full view one. Its alerts aren't offered until it has answered once: they could only say the same thing.",
+  ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "Designate answers this credential, and refuses it every project's zones. The exporter reads every project's, and a refusal is the one thing that reads 0 here: a stopped Designate says nothing at all. Reading it takes the Full view credential.",
+  ),
+  [OpenStackServiceType.Database]: translationKey(
+    "OneUptime has never had an answer from Trove with this credential. The exporter reads Trove's mgmt API, which only an admin may, and a refusal reads just as Trove being down does. So either Trove refuses this credential, or it has been down since OneUptime started reading it. Reading it takes the Full view credential.",
+  ),
+};
+
+export function getOpenStackClosedToThisCredentialWords(
+  service: string | null | undefined,
+): string | null {
+  return CLOSED_TO_THIS_CREDENTIAL_WORDS[service || ""] || null;
+}
+
+// Each is a service whose read asks for what only an admin may, so a refusal reads as a stopped API.
+const CANNOT_READ_OPTIONAL_SERVICE: Partial<Record<string, string>> = {
+  [OpenStackServiceType.ObjectStore]: translationKey(
+    "This credential has never read Swift",
+  ),
+  [OpenStackServiceType.Metric]: translationKey(
+    "This credential has never read Gnocchi",
+  ),
+  [OpenStackServiceType.Dns]: translationKey(
+    "This credential has never read Designate's zones",
+  ),
+  [OpenStackServiceType.Database]: translationKey(
+    "This credential has never read Trove",
+  ),
+};
+
+export interface OpenStackAccessGap {
+  key: string;
+  // English: "This credential can't list hypervisors".
+  title: string;
+  // The service whose API says up with nothing to show.
+  service: string;
+  /*
+   * Cinder's services and pools answer anything but an admin with a 403, from Cinder's own
+   * code, so only the Full view credential reads them. Infrastructure only goes without them
+   * by design. Everything else closed here opens at that level too.
+   */
+  isFullViewOnly: boolean;
+}
+
+/*
+ * Placement closed to this credential reads the same as Placement stopped: the exporter says
+ * openstack_placement_up 0 when every call it made failed, and a 403 is a failed call. Recorded
+ * for a plain reader on all five releases. What tells them apart is Nova: where it answers and
+ * lists no compute services, this credential is closed to infrastructure, so Placement's word
+ * says nothing about Placement. Never a critical "API down", then, on a cloud nobody can
+ * see into, and an API this page can't judge is never called up either.
+ */
+function getRegionsClosedToInfrastructure(data: {
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+}): Set<string> {
+  const closed: Set<string> = new Set();
+  for (const api of data.apis) {
+    const regionName: string | null = api.regionName || null;
+    if (
+      api.name === OpenStackServiceType.Compute &&
+      api.status === "up" &&
+      !data.workers.some((worker: OpenStackResource): boolean => {
+        return (
+          getOpenStackWorkerFamily(worker) === OpenStackServiceFamily.Compute &&
+          (worker.regionName || null) === regionName
+        );
+      })
+    ) {
+      closed.add(regionName || "");
+    }
+  }
+  return closed;
+}
+
+/*
+ * Rows as this credential can honestly say them: the same rows, but for a Placement it can't
+ * read. Stateless and cheap, so a page calls it on whatever it read.
+ */
+export function getOpenStackRowsAsThisCredentialReadsThem(data: {
+  rows: Array<OpenStackResource>;
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+}): Array<OpenStackResource> {
+  const closed: Set<string> = getRegionsClosedToInfrastructure({
+    apis: data.apis,
+    workers: data.workers,
+  });
+  const asRead: Array<OpenStackResource> = data.rows.map(
+    (row: OpenStackResource): OpenStackResource => {
+      return row.kind === OpenStackResourceKind.Api &&
+        ((row.name === OpenStackServiceType.Placement &&
+          row.status === "down" &&
+          closed.has(row.regionName || "")) ||
+          isOpenStackApiClosedToThisCredential({
+            name: row.name,
+            status: row.status,
+            facts: row.facts as JSONObject | undefined,
+          }))
+        ? (Object.assign(new OpenStackResource(), row, {
+            status: OPENSTACK_API_STATUS_CLOSED,
+          }) as OpenStackResource)
+        : row;
+    },
+  );
+
+  // Nothing to say differently: the very list it was given, so what a page memoizes holds.
+  return asRead.every((row: OpenStackResource, index: number): boolean => {
+    return row === data.rows[index];
+  })
+    ? data.rows
+    : asRead;
+}
+
+function isApiUp(
+  apis: Array<OpenStackResource>,
+  service: string,
+  isListed: (regionName: string | null) => boolean,
+): boolean {
+  return apis.some((api: OpenStackResource): boolean => {
+    return (
+      api.name === service &&
+      api.status === "up" &&
+      !isListed(api.regionName || null)
+    );
+  });
+}
+
+export function getOpenStackAccessGaps(data: {
+  apis: Array<OpenStackResource>;
+  workers: Array<OpenStackResource>;
+  // Left out by a page that says nothing about them.
+  hypervisors?: Array<OpenStackResource> | undefined;
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined;
+  /*
+   * Whether a region holds any pool. Only pools past the rules' line are among the rows
+   * that may need someone, so a page says this from the summary's capacity.
+   */
+  hasStoragePools?: boolean | undefined;
+}): Array<OpenStackAccessGap> {
+  const hasWorkers: (
+    family: OpenStackServiceFamily,
+  ) => (regionName: string | null) => boolean = (
+    family: OpenStackServiceFamily,
+  ): ((regionName: string | null) => boolean) => {
+    return (regionName: string | null): boolean => {
+      return (
+        data.workers.some((worker: OpenStackResource): boolean => {
+          return (
+            getOpenStackWorkerFamily(worker) === family &&
+            (worker.regionName || null) === regionName
+          );
+        }) ||
+        (data.leftOut || []).some((group: OpenStackRowsLeftOut): boolean => {
+          return (
+            group.kind === OpenStackResourceKind.Service &&
+            group.family === family &&
+            (group.regionName || null) === regionName
+          );
+        })
+      );
+    };
+  };
+
+  const titleOf: (kind: OpenStackResourceKind) => string = (
+    kind: OpenStackResourceKind,
+  ): string => {
+    return getOpenStackEmptyWords({ kind, api: "up" })?.title || "";
+  };
+
+  const gaps: Array<OpenStackAccessGap> = [];
+
+  const hypervisors: Array<OpenStackResource> | undefined = data.hypervisors;
+  if (
+    hypervisors &&
+    isApiUp(
+      data.apis,
+      OpenStackServiceType.Compute,
+      (regionName: string | null): boolean => {
+        return (
+          hypervisors.some((row: OpenStackResource): boolean => {
+            return (row.regionName || null) === regionName;
+          }) ||
+          (data.leftOut || []).some((group: OpenStackRowsLeftOut): boolean => {
+            return (
+              group.kind === OpenStackResourceKind.Hypervisor &&
+              (group.regionName || null) === regionName
+            );
+          })
+        );
+      },
+    )
+  ) {
+    gaps.push({
+      key: "hypervisors",
+      title: titleOf(OpenStackResourceKind.Hypervisor),
+      service: OpenStackServiceType.Compute,
+      isFullViewOnly: false,
+    });
+  }
+
+  if (
+    isApiUp(
+      data.apis,
+      OpenStackServiceType.Compute,
+      hasWorkers(OpenStackServiceFamily.Compute),
+    )
+  ) {
+    gaps.push({
+      key: "compute-services",
+      title: CANNOT_LIST_COMPUTE_SERVICES,
+      service: OpenStackServiceType.Compute,
+      isFullViewOnly: false,
+    });
+  }
+
+  if (
+    isApiUp(
+      data.apis,
+      OpenStackServiceType.Network,
+      hasWorkers(OpenStackServiceFamily.Network),
+    )
+  ) {
+    gaps.push({
+      key: "network-agents",
+      title: titleOf(OpenStackResourceKind.Service),
+      service: OpenStackServiceType.Network,
+      isFullViewOnly: false,
+    });
+  }
+
+  if (
+    isApiUp(
+      data.apis,
+      OpenStackServiceType.Volume,
+      hasWorkers(OpenStackServiceFamily.Volume),
+    )
+  ) {
+    gaps.push({
+      key: "volume-services",
+      title: CANNOT_LIST_VOLUME_SERVICES,
+      service: OpenStackServiceType.Volume,
+      isFullViewOnly: true,
+    });
+  }
+
+  if (
+    data.hasStoragePools === false &&
+    isApiUp(data.apis, OpenStackServiceType.Volume, (): boolean => {
+      return false;
+    })
+  ) {
+    gaps.push({
+      key: "storage-pools",
+      title: titleOf(OpenStackResourceKind.StoragePool),
+      service: OpenStackServiceType.Volume,
+      isFullViewOnly: true,
+    });
+  }
+
+  for (const api of data.apis) {
+    const title: string | undefined =
+      CANNOT_READ_OPTIONAL_SERVICE[api.name || ""];
+    if (
+      title &&
+      (api.status === OPENSTACK_API_STATUS_CLOSED ||
+        isOpenStackApiClosedToThisCredential({
+          name: api.name,
+          status: api.status,
+          facts: api.facts as JSONObject | undefined,
+        })) &&
+      !gaps.some((gap: OpenStackAccessGap): boolean => {
+        return gap.service === api.name;
+      })
+    ) {
+      gaps.push({
+        key: `closed-${api.name}`,
+        title,
+        service: api.name || "",
+        isFullViewOnly: true,
+      });
+    }
+  }
+
+  const closedRegions: Set<string> = getRegionsClosedToInfrastructure({
+    apis: data.apis,
+    workers: data.workers,
+  });
+  if (
+    data.apis.some((api: OpenStackResource): boolean => {
+      return (
+        api.name === OpenStackServiceType.Placement &&
+        (api.status === "down" || api.status === OPENSTACK_API_STATUS_CLOSED) &&
+        closedRegions.has(api.regionName || "")
+      );
+    })
+  ) {
+    gaps.push({
+      key: "placement",
+      title: CANNOT_READ_PLACEMENT,
+      service: OpenStackServiceType.Placement,
+      isFullViewOnly: false,
+    });
+  }
+
+  return gaps;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A service's own page
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * What a service's address holds: an API's row is `region/type`, a worker's
+ * `region/family/host/binary`. No worker's binary is one of the catalog's types, so the
+ * end of the address says which: a region can hold a slash, and its start says nothing.
+ */
+export function isOpenStackApiExternalId(externalId: string): boolean {
+  return OPENSTACK_CATALOG_ORDER.includes(
+    externalId.substring(externalId.lastIndexOf("/") + 1),
+  );
+}
+
+/*
+ * A service with no parts of its own says what it has to say on its API's page, as a few numbers off its row.
+ */
+export interface OpenStackApiTile {
+  key: string;
+  title: string;
+  fact: string;
+  description: string;
+  // Left out unless this has been read, rather than saying it hasn't.
+  isOnlyWhenRead?: boolean | undefined;
+}
+
+const OPENSTACK_API_TILES_OF_A_SERVICE: Partial<
+  Record<string, ReadonlyArray<OpenStackApiTile>>
+> = {
+  // Only where someone named Swift's storage servers, and otherwise no trace of them.
+  [OpenStackServiceType.ObjectStore]: [
+    {
+      key: "recon-servers",
+      title: translationKey("Storage servers read"),
+      fact: OPENSTACK_SWIFT_RECON_SERVERS_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many of Swift's storage servers the cloud's settings name for /recon.",
+      ),
+    },
+    {
+      key: "recon-not-answering",
+      title: translationKey("Not answering"),
+      fact: OPENSTACK_SWIFT_RECON_NOT_ANSWERING_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many of those aren't answering. Swift's proxy goes on answering without them.",
+      ),
+    },
+    {
+      key: "recon-rings",
+      title: translationKey("Rings that differ"),
+      fact: OPENSTACK_SWIFT_RECON_RINGS_DIFFERING_FACT,
+      isOnlyWhenRead: true,
+      description: translationKey(
+        "How many rings those servers report different checksums for. Servers on different rings put data in different places.",
+      ),
+    },
+  ],
+  [OpenStackServiceType.KeyManager]: [
+    {
+      key: "secrets",
+      title: translationKey("Secrets"),
+      fact: "secretCount",
+      description: translationKey(
+        "How many secrets this credential's own project holds. Barbican answers about one project at a time, and OneUptime reads no secret itself.",
+      ),
+    },
+    {
+      key: "orders",
+      title: translationKey("Orders"),
+      fact: "orderCount",
+      description: translationKey(
+        "How many orders this credential's own project holds.",
+      ),
+    },
+    {
+      key: "containers",
+      title: translationKey("Containers"),
+      fact: "containerCount",
+      description: translationKey(
+        "How many secret containers this credential's own project holds.",
+      ),
+    },
+  ],
+  [OpenStackServiceType.Metric]: [
+    {
+      key: "measures",
+      title: translationKey("Measures waiting"),
+      fact: OPENSTACK_GNOCCHI_MEASURES_FACT,
+      description: translationKey(
+        "How many measures gnocchi-metricd has yet to process. A busy cloud's never reads 0: one that keeps rising means it isn't keeping up.",
+      ),
+    },
+    {
+      key: "metrics",
+      title: translationKey("Metrics waiting"),
+      fact: OPENSTACK_GNOCCHI_METRICS_FACT,
+      description: translationKey(
+        "How many metrics have measures waiting for gnocchi-metricd.",
+      ),
+    },
+    {
+      key: "processors",
+      title: translationKey("Processors"),
+      fact: OPENSTACK_GNOCCHI_PROCESSORS_FACT,
+      description: translationKey(
+        "How many metricd processors Gnocchi's status names. With none, measures pile up and nothing newer can be read, and its API goes on answering.",
+      ),
+    },
+  ],
+};
+
+export function getOpenStackApiTiles(
+  row: OpenStackResource,
+): ReadonlyArray<OpenStackApiTile> {
+  const facts: JSONObject = (row.facts as JSONObject | undefined) || {};
+  return (OPENSTACK_API_TILES_OF_A_SERVICE[row.name || ""] || []).filter(
+    (tile: OpenStackApiTile): boolean => {
+      return !tile.isOnlyWhenRead || (facts[tile.fact] as number) > 0;
+    },
+  );
+}
+
+// The alert templates that watch each kind of worker, as the Recommendations list has them.
+const API_DOWN_TEMPLATE_IDS: Record<string, string> = {
+  [OpenStackServiceType.Identity]: "openstack-identity-api-down",
+  [OpenStackServiceType.Compute]: "openstack-compute-api-down",
+  [OpenStackServiceType.Placement]: "openstack-placement-api-down",
+  [OpenStackServiceType.Network]: "openstack-network-api-down",
+  [OpenStackServiceType.Volume]: "openstack-block-storage-api-down",
+  [OpenStackServiceType.Image]: "openstack-image-api-down",
+  [OpenStackServiceType.Orchestration]: "openstack-orchestration-api-down",
+  [OpenStackServiceType.ContainerInfra]: "openstack-container-infra-api-down",
+  [OpenStackServiceType.Rating]: "openstack-rating-api-down",
+  [OpenStackServiceType.BareMetal]: "openstack-bare-metal-api-down",
+  [OpenStackServiceType.SharedFileSystems]:
+    "openstack-shared-file-systems-api-down",
+  [OpenStackServiceType.LoadBalancer]: "openstack-load-balancer-api-down",
+  [OpenStackServiceType.Database]: "openstack-database-api-down",
+  [OpenStackServiceType.KeyManager]: "openstack-key-manager-api-down",
+  [OpenStackServiceType.ObjectStore]: "openstack-object-store-api-down",
+  [OpenStackServiceType.Metric]: "openstack-metric-api-down",
+  [OpenStackServiceType.Dns]: "openstack-dns-api-down",
+};
+
+const SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS: Array<string> = [
+  "openstack-scheduler-or-conductor-down",
+  "openstack-every-scheduler-or-conductor-down",
+];
+
+export function getOpenStackWorkerAlertTemplateIds(
+  row: OpenStackResource,
+): Array<string> {
+  switch (getOpenStackWorkerFamily(row)) {
+    case OpenStackServiceFamily.Compute:
+      return row.name === "nova-compute"
+        ? ["openstack-compute-service-down"]
+        : SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS;
+    case OpenStackServiceFamily.Network:
+      return ["openstack-network-agent-down"];
+    case OpenStackServiceFamily.Volume:
+      return ["openstack-block-storage-service-down"];
+    case OpenStackServiceFamily.Orchestration:
+      return ["openstack-orchestration-engine-down"];
+    case OpenStackServiceFamily.ContainerInfra:
+      return ["openstack-container-infra-conductor-down"];
+    case OpenStackServiceFamily.SharedFileSystems:
+      return ["openstack-share-service-down"];
+    default:
+      return [];
+  }
+}
+
+// An API's own alert, and those on the workers it answers for.
+export function getOpenStackServiceAlertTemplateIds(
+  service: string,
+): Array<string> {
+  const ownDown: string | undefined = API_DOWN_TEMPLATE_IDS[service];
+  const own: Array<string> = ownDown ? [ownDown] : [];
+  switch (service) {
+    case OpenStackServiceType.Compute:
+      return [
+        ...own,
+        "openstack-compute-service-down",
+        ...SCHEDULER_OR_CONDUCTOR_TEMPLATE_IDS,
+      ];
+    case OpenStackServiceType.Network:
+      return [...own, "openstack-network-agent-down"];
+    case OpenStackServiceType.Volume:
+      return [...own, "openstack-block-storage-service-down"];
+    case OpenStackServiceType.Orchestration:
+      return [
+        ...own,
+        "openstack-orchestration-engine-down",
+        "openstack-stack-failed",
+        "openstack-stack-stuck",
+      ];
+    case OpenStackServiceType.ContainerInfra:
+      return [
+        ...own,
+        "openstack-container-infra-conductor-down",
+        "openstack-container-cluster-failed",
+        "openstack-container-cluster-stuck",
+      ];
+    case OpenStackServiceType.LoadBalancer:
+      return [
+        ...own,
+        "openstack-load-balancer-in-error",
+        "openstack-load-balancer-stuck-pending",
+        "openstack-load-balancer-with-two-masters",
+        "openstack-pool-without-healthy-members",
+        "openstack-amphora-in-error",
+      ];
+    case OpenStackServiceType.SharedFileSystems:
+      return [
+        ...own,
+        "openstack-share-service-down",
+        "openstack-share-in-error",
+        "openstack-share-stuck",
+      ];
+    case OpenStackServiceType.Dns:
+      return [
+        ...own,
+        "openstack-dns-zone-in-error",
+        "openstack-dns-zone-stuck-pending",
+        "openstack-dns-recordset-in-error",
+      ];
+    case OpenStackServiceType.Metric:
+      return [
+        ...own,
+        "openstack-metric-no-processors",
+        "openstack-metric-backlog-growing",
+      ];
+    case OpenStackServiceType.ObjectStore:
+      return [
+        ...own,
+        "openstack-object-container-growth",
+        "openstack-swift-storage-server-down",
+        "openstack-swift-rings-differ",
+        "openstack-swift-replication-stale",
+      ];
+    case OpenStackServiceType.Database:
+      return [
+        ...own,
+        "openstack-database-instance-in-error",
+        "openstack-database-instance-stuck",
+        "openstack-database-volume-nearly-full",
+      ];
+    default:
+      return own;
+  }
+}
+
+/*
+ * Whether an open incident or alert is about this API, or a worker it answers for. A
+ * monitor of an API groups by region and the service it collected, a monitor of a worker
+ * by its host and binary (OpenStackAlertTemplates), so each says it in its labels.
+ */
+export function isOpenStackIssueAboutService(data: {
+  labels: JSONObject | null;
+  service: string;
+  regionName: string | null | undefined;
+  workers: Array<OpenStackResource>;
+}): boolean {
+  const region: string | null = readSeriesLabel(
+    data.labels,
+    "openstack.region.name",
+  );
+  if (region && data.regionName && region !== data.regionName) {
+    return false;
+  }
+  if (readSeriesLabel(data.labels, "openstack_service") === data.service) {
+    return true;
+  }
+  const binary: string | null = readSeriesLabel(data.labels, "service");
+  return Boolean(
+    binary &&
+      data.workers.some((worker: OpenStackResource): boolean => {
+        return worker.name === binary;
+      }),
+  );
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Regions
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * Whether a row belongs to a region being read. A row with no region is Keystone's, and
+ * belongs to all of them. A project belongs to no region, and its quotas each to one, so
+ * a project at a quota in one region is that region's concern.
+ */
+export function isOpenStackRowInRegion(data: {
+  row: OpenStackResource;
+  regionName: string;
+  now: Date;
+}): boolean {
+  const { row, regionName, now } = data;
+  if (row.kind === OpenStackResourceKind.Project) {
+    return getOpenStackProjectQuotas(factsOf(row), now).some(
+      (quota: OpenStackProjectQuota): boolean => {
+        return quota.isAtLine && quota.regionName === regionName;
+      },
+    );
+  }
+  return !row.regionName || row.regionName === regionName;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The Overview's tiles
+ * ---------------------------------------------------------------------------
+ */
+export interface OpenStackHypervisorCounts {
+  total: number;
+  up: number;
+  // Nova lost it: its numbers are last known, and it is no capacity anyone can use.
+  lost: number;
+  disabled: number;
+}
+
+export function getOpenStackHypervisorCounts(
+  rows: Array<OpenStackResource>,
+  leftOut?: ReadonlyArray<OpenStackRowsLeftOut> | undefined,
+): OpenStackHypervisorCounts {
+  const counts: OpenStackHypervisorCounts = {
+    total: 0,
+    up: 0,
+    lost: 0,
+    disabled: 0,
+  };
+
+  for (const group of getOpenStackRowsLeftOut({
+    leftOut: leftOut,
+    kind: OpenStackResourceKind.Hypervisor,
+  })) {
+    counts.total += group.count;
+
+    if (group.state === "down") {
+      counts.lost += group.count;
+    } else {
+      counts[group.state] += group.count;
+    }
+  }
+
+  for (const row of rows) {
+    if (row.kind !== OpenStackResourceKind.Hypervisor) {
+      continue;
+    }
+    counts.total += 1;
+    if (isOpenStackAdminDisabled(row.adminState)) {
+      counts.disabled += 1;
+    } else if (
+      isOpenStackServiceDown({ status: row.status, adminState: row.adminState })
+    ) {
+      counts.lost += 1;
+    } else {
+      counts.up += 1;
+    }
+  }
+  return counts;
+}
+
+export type OpenStackAllocationKind = "vcpu" | "memory" | "disk";
+
+function allocationPercent(
+  row: OpenStackResource,
+  kind: OpenStackAllocationKind,
+): number | null {
+  switch (kind) {
+    case "vcpu":
+      return percentOf(row.vcpuAllocated, row.vcpuCapacity);
+    case "memory":
+      return percentOf(row.memoryAllocatedBytes, row.memoryCapacityBytes);
+    default:
+      return percentOf(row.diskAllocatedBytes, row.diskCapacityBytes);
+  }
+}
+
+function canTakeInstances(row: OpenStackResource): boolean {
+  return (
+    row.kind === OpenStackResourceKind.Hypervisor &&
+    !isOpenStackAdminDisabled(row.adminState) &&
+    !isOpenStackServiceDown({ status: row.status, adminState: row.adminState })
+  );
+}
+
+/*
+ * Whether any host that can take instances is past what Placement allows, which is what
+ * the rules warn about. A tile's bar reads this rather than the cloud's total, because a
+ * cloud at 60% can hold a host with no room left.
+ */
+export function hasOpenStackHostPastAllocationLine(
+  rows: Array<OpenStackResource>,
+  kind: OpenStackAllocationKind,
+): boolean {
+  return rows.some((row: OpenStackResource): boolean => {
+    const percent: number | null = canTakeInstances(row)
+      ? allocationPercent(row, kind)
+      : null;
+    return percent !== null && percent > OPENSTACK_ALLOCATION_WARNING_PERCENT;
+  });
+}
+
+export interface OpenStackBusyHypervisor {
+  row: OpenStackResource;
+  percent: number;
+}
+
+/*
+ * The hosts with the most promised out of them. Not a lost one, whose numbers are last
+ * known, nor a disabled one, which takes nothing new however full it reads.
+ */
+export function getOpenStackMostAllocatedHypervisors(data: {
+  rows: Array<OpenStackResource>;
+  kind: OpenStackAllocationKind;
+  limit: number;
+}): Array<OpenStackBusyHypervisor> {
+  const busy: Array<OpenStackBusyHypervisor> = [];
+  for (const row of data.rows) {
+    if (canTakeInstances(row)) {
+      const percent: number | null = allocationPercent(row, data.kind);
+      if (percent !== null) {
+        busy.push({ row, percent });
+      }
+    }
+  }
+  return busy
+    .sort((a: OpenStackBusyHypervisor, b: OpenStackBusyHypervisor): number => {
+      return (
+        b.percent - a.percent ||
+        (a.row.name || "").localeCompare(b.row.name || "")
+      );
+    })
+    .slice(0, data.limit);
+}
+
+/*
+ * The fullest pool among the rows that may need someone, which read every pool past the
+ * rules' lower line and no other: null means no pool is past it.
+ */
+export function getOpenStackFullestPoolPercent(
+  rows: Array<OpenStackResource>,
+): number | null {
+  let fullest: number | null = null;
+  for (const row of rows) {
+    if (row.kind === OpenStackResourceKind.StoragePool) {
+      const percent: number | null = getOpenStackStoragePoolPercent(row);
+      if (percent !== null && (fullest === null || percent > fullest)) {
+        fullest = percent;
+      }
+    }
+  }
+  return fullest;
+}
+
+// The tile's bar, at the same lines the rules draw for one pool.
+export function getOpenStackPoolTone(
+  percent: number | null,
+): "positive" | "warning" | "danger" {
+  if (percent !== null && percent > OPENSTACK_STORAGE_POOL_CRITICAL_PERCENT) {
+    return "danger";
+  }
+  if (percent !== null && percent > OPENSTACK_STORAGE_POOL_WARNING_PERCENT) {
+    return "warning";
+  }
+  return "positive";
+}

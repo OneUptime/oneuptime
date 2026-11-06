@@ -116,9 +116,13 @@ import MonitorStepPodmanMonitor, {
   MonitorStepPodmanMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
 import ProxmoxMonitorStepForm from "./ProxmoxMonitor/ProxmoxMonitorStepForm";
+import OpenStackMonitorStepForm from "./OpenStackMonitor/OpenStackMonitorStepForm";
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepOpenStackMonitor, {
+  MonitorStepOpenStackMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
 import VMwareMonitorStepForm from "./VMwareMonitor/VMwareMonitorStepForm";
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
@@ -2001,6 +2005,32 @@ return {
             }
             onChange={(value: MonitorStepProxmoxMonitor) => {
               monitorStep.setProxmoxMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+      {props.monitorType === MonitorType.OpenStack && (
+        <Card
+          title="OpenStack Monitor Configuration"
+          description={INFRASTRUCTURE_MONITOR_CONFIGURATION_DESCRIPTION}
+        >
+          <OpenStackMonitorStepForm
+            monitorStepOpenStackMonitor={
+              monitorStep.data?.openstackMonitor ||
+              MonitorStepOpenStackMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepOpenStackMonitor) => {
+              monitorStep.setOpenStackMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

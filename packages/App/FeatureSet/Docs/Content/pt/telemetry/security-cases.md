@@ -144,7 +144,7 @@ Um caso aberto a partir de alertas do Google SecOps também os fecha no Google S
 
 ## Prioridades e status dos casos
 
-Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Eventos de segurança → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack e no Microsoft Teams, e nas mensagens dos playbooks.
+Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Eventos de segurança → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack, no Microsoft Teams e no Mattermost, e nas mensagens dos playbooks.
 
 Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles podem ser renomeados e mudar de cor, mas não excluídos nem arquivados, e mantêm sua ordem:
 
@@ -157,7 +157,7 @@ Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles pod
 | As prioridades Crítico, High, Medium, Low e Informativos | Uma detecção abre seu caso na prioridade da sua gravidade, e um caso que alguém abre começa em Medium |
 
 - A posição de um status decide como conta um caso que está nele, como mostra a coluna **Conta como**: do status reconhecido para baixo, reconhecido; do status contido para baixo, contido; do status fechado para baixo, fechado. Um status que você adiciona fica logo acima do status fechado, e mover um caso para um status que o fecha pede um veredito antes.
-- A posição de uma prioridade é a sua urgência, a mais urgente primeiro: **Para casos de pelo menos**, as escolhas de notificação e as regras do Slack e do Microsoft Teams leem essa ordem. Uma prioridade que você adiciona vai para o fim, e a coluna **Gravidade da detecção** mostra quais detecções abrem seus casos em cada prioridade predefinida.
+- A posição de uma prioridade é a sua urgência, a mais urgente primeiro: **Para casos de pelo menos**, as escolhas de notificação e as regras do Slack, do Microsoft Teams e do Mattermost leem essa ordem. Uma prioridade que você adiciona vai para o fim, e a coluna **Gravidade da detecção** mostra quais detecções abrem seus casos em cada prioridade predefinida.
 
 Para parar de usar um status ou uma prioridade seus, use **Arquivar** na linha dele. Ninguém pode escolhê-lo de novo, e a API, o Terraform e o MCP o recusam, mas os casos que o têm o mantêm, e você ainda pode filtrar por ele. Os valores arquivados ficam listados na seção recolhida **Status de caso arquivados** ou **Prioridades de caso arquivadas** abaixo da tabela, onde **Desarquivar** traz um de volta. **Excluir** é recusado enquanto houver casos com o valor ou um playbook que parta da prioridade.
 
@@ -218,7 +218,7 @@ O OneUptime avisa as pessoas sobre cinco coisas em um caso. Ninguém precisa con
 
 ### Escolha sobre o que você é avisado
 
-Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configurações de notificação → Segurança**: os canais de cada notificação (e-mail, SMS, chamada, push, Telegram, Slack, Microsoft Teams ou webhook) e, em **Novo caso de segurança**, a prioridade que a notifica:
+Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configurações de notificação → Segurança**: os canais de cada notificação (e-mail, SMS, chamada, push, Telegram, Slack, Microsoft Teams, Mattermost ou webhook) e, em **Novo caso de segurança**, a prioridade que a notifica:
 
 | Opção | Notifica sobre casos de prioridade |
 | --- | --- |
@@ -232,9 +232,9 @@ As escolhas seguem as prioridades de caso do projeto, com os próprios nomes: es
 
 Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador.
 
-### Publique em canais do Slack e do Microsoft Teams
+### Publique em canais do Slack, do Microsoft Teams e do Mattermost
 
-Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
+Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**). Se nenhum estiver conectado, a única entrada da seção é **Conectar um espaço de trabalho**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
 
 | Condição | Corresponde a |
 | --- | --- |
@@ -306,11 +306,12 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Automação | Run a workflow | Inicia um fluxo de trabalho do OneUptime com o caso como entrada |
 | Automação | Run a runbook | Inicia um dos seus runbooks do OneUptime com o caso como entrada |
 | Automação | Fix the code with AI | Pede ao OneUptime AI um pull request que corrija as exceções lançadas pelas requisições do caso |
+| Controle de fluxo | Parar a execução | Encerra a execução ali, como concluída: as etapas seguintes não rodam |
 
 Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
 
 - **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As oito etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook**, **Post a status page announcement** e as duas etapas de repositório de dados começam com a aprovação ativada, porque executam comandos nos seus sistemas, falam com os seus clientes ou mudam as configurações de uma nuvem; quem adiciona a etapa pode desativá-la.
-- **Executar esta etapa**: **Sempre**, ou só depois de um resultado de uma etapa anterior, como **Verificar as entidades na inteligência de ameaças** encontrar uma entidade sabidamente maliciosa; veja [Ramificar pelo resultado de uma etapa](#ramificar-pelo-resultado-de-uma-etapa).
+- **Executar esta etapa**: **Sempre**, ou só depois de resultados de etapas anteriores, como **Verificar as entidades na inteligência de ameaças** encontrar uma entidade sabidamente maliciosa; veja [Ramificar pelo resultado de uma etapa](#ramificar-pelo-resultado-de-uma-etapa).
 - **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução. Fica em **Mais campos**, junto com **Executar esta etapa**.
 
 ### Ramificar pelo resultado de uma etapa
@@ -324,6 +325,12 @@ Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a
 | Qualquer outra etapa | Teve sucesso, e falhou quando tem **Continuar se falhar** ativado |
 
 Duas etapas que esperam resultados opostos de uma mesma etapa são um se e um senão: suspender um usuário só quando a inteligência de ameaças o conhece e, senão, adicionar uma tarefa para confirmar o login com ele. Quando a etapa esperada termina de outro jeito, a etapa que espera é pulada, e a execução diz o motivo embaixo dela; o mesmo vale para uma etapa que espera por uma que foi pulada. O cartão de uma etapa diz pelo que ela espera, e uma etapa pela qual outra espera não pode ser movida para baixo dela nem excluída até que essa outra rode de outro jeito. O modelo **Escalonar indicadores maliciosos conhecidos** sobe a prioridade e o status de um caso só quando houve correspondência de inteligência de ameaças, e uma etapa salva com a antiga opção de inteligência de ameaças a mantém como **Somente se uma verificação anterior de inteligência de ameaças encontrou uma entidade sabidamente maliciosa**.
+
+Uma etapa pode esperar até cinco resultados: escolha cada um em **Executar esta etapa**, e **Executar quando** pergunta como lê-los, **Quando todos aconteceram** ou **Quando qualquer um deles aconteceu**. Suspender um usuário só quando a inteligência de ameaças o conhece e a atividade dele foi encontrada, ou acionar o plantão quando qualquer uma das duas consultas encontrou algo. Uma etapa que espera todos os seus resultados não pode esperar dois resultados de uma mesma etapa, como encontrou e não encontrou nada, já que nenhuma execução tem os dois.
+
+### Parar a execução
+
+**Parar a execução**, em **Controle de fluxo**, encerra a execução onde ela está, como concluída: as etapas seguintes são puladas, cada uma dizendo onde a execução parou, e a execução é bem-sucedida. Com **Executar esta etapa**, ela para só depois de um resultado: parar quando a inteligência de ameaças não encontrou nada sabidamente malicioso e, caso contrário, deixar rodar as etapas de contenção abaixo dela. O que você escrever em **Motivo da parada** é informado na linha do tempo do caso quando a execução para ali. Ela não tem nada para aprovar e nunca falha, então não tem **Requer aprovação** nem **Continuar se falhar**, e nenhuma etapa pode esperar por ela. Uma que roda sempre encerra toda execução, então só pode ser a última etapa.
 
 ### Respondendo com o OneUptime
 
@@ -394,7 +401,7 @@ Cada execução aparece no caso dela e em **Produtos → Eventos de segurança �
 | Queued | Aguardando um worker |
 | Em execução | Executando as etapas dela |
 | Waiting for Approval | Parada antes de uma etapa que precisa de aprovação |
-| Bem-sucedido | Todas as etapas rodaram, ou foram puladas |
+| Bem-sucedido | Todas as etapas rodaram, ou foram puladas, ou uma etapa **Parar a execução** a encerrou |
 | Falhou | Uma etapa falhou e a execução parou |
 | Cancelado | Alguém a cancelou, ou rejeitou uma etapa |
 
@@ -454,6 +461,10 @@ O caso não trata de nenhum usuário ou host, só de um endereço, por exemplo, 
 
 :::details Uma etapa que só roda depois de outra foi pulada
 A etapa pela qual ela espera terminou de outro jeito, ou foi pulada também: não encontrou nada sabidamente malicioso, por exemplo, quando a etapa espera uma entidade sabidamente maliciosa. Abra a execução no caso: a etapa pulada diz por qual etapa esperava, e por qual resultado. Para mudar isso, edite a etapa e abra **Mais campos**.
+:::
+
+:::details Uma execução terminou antes das últimas etapas
+Uma etapa **Parar a execução** rodou: o resultado pelo qual ela espera veio, ou ela roda sempre. Abra a execução no caso: as etapas seguintes dizem onde a execução parou, e a etapa de parada diz por quê, se você deu um motivo a ela. Para mudar quando ela para, edite a etapa e abra **Mais campos**.
 :::
 
 :::details Um status ou uma prioridade não pode ser excluído nem arquivado

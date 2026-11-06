@@ -211,7 +211,7 @@ OneUptime Database Agent 是一个预先配置好的 OpenTelemetry Collector，�
 
 **一个代理监控一台数据库服务器。** 代理发送的所有内容都会打上身份标识，因此每台服务器运行一个代理（一个安装目录）；如果希望副本有自己的页面，就为每个副本各运行一个。
 
-代理位于 [DatabaseAgent 目录](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)：`docker-compose.yml`、每个接收器一份 Collector 配置（`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`）、`install.sh`、`troubleshoot.sh` 和一个 systemd 单元。分支或兼容替代品运行其系列的配置，并报告自己的名称：`DATABASE_SYSTEM=mariadb` 运行 `configs/mysql.yaml`，数据库显示为 MariaDB。
+代理位于 [DatabaseAgent 目录](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)：`docker-compose.yml`、每个接收器一份 Collector 配置（`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`）、`install.sh`、`troubleshoot.sh` 和一个 systemd 单元。分支或兼容替代品运行其系列的配置，并报告自己的名称：`DATABASE_SYSTEM=mariadb` 运行 `configs/mysql.yaml`，数据库显示为 MariaDB。
 
 ### 开始之前
 
@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -371,13 +372,14 @@ docker compose up -d
 | `DATABASE_ENDPOINT_HOST` | SQL Server | 单独的 `DATABASE_ENDPOINT` 主机部分；SQL Server 接收器分别接收主机和端口。由 `install.sh` 写入 |
 | `DATABASE_ENDPOINT_PORT` | SQL Server | 单独的 `DATABASE_ENDPOINT` 端口部分。由 `install.sh` 写入 |
 | `DATABASE_ORACLE_SERVICE` | Oracle | 要连接的 Oracle 服务，例如 `FREEPDB1` 或 `ORCLPDB1` |
-| `DATABASE_SERVER_ADDRESS` | 是 | 数据库的身份标识，标记为 `server.address`：你的 **应用** 访问它时使用的主机名。绝不能是 `localhost`；OneUptime 会忽略只在一台机器上有意义的地址。只在一个网络内解析的名称（私有 IP、单标签名称、集群本地名称、`.internal` 或 `.local` 名称）只会进入已经把它作为端点的数据库。请保持它稳定；更改它会注册第二个数据库 |
+| `DATABASE_SERVER_ADDRESS` | 是 | 数据库的身份标识，标记为 `server.address`：你的 **application** 访问它时使用的主机名。绝不能是 `localhost`；OneUptime 会忽略只在一台机器上有意义的地址。只在一个网络内解析的名称（私有 IP、单标签名称、集群本地名称、`.internal` 或 `.local` 名称）只会进入已经把它作为端点的数据库。请保持它稳定；更改它会注册第二个数据库 |
 | `DATABASE_SERVER_PORT` | 是 | 你的应用使用的端口，标记为 `server.port` |
 | `DATABASE_USERNAME` | PostgreSQL、MySQL、SQL Server、Oracle | 监控用户。对于没有身份验证的 Redis、MongoDB 和 Elasticsearch 服务器可选；Memcached 不使用 |
 | `DATABASE_PASSWORD` | PostgreSQL、SQL Server、Oracle | 它的密码。在 `.env` 中用单引号括起，并把每个 `$` 写成 `$$`（`install.sh` 会替你完成这两件事） |
 | `DATABASE_TLS_INSECURE` | 否 | `true`（默认）不使用 TLS 连接；`false` 开启 TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | 否 | `true` 接受 Collector 镜像不信任的证书（自签名、私有 CA）。默认为 `false` |
 | `DATABASE_TLS_SSLMODE` | 否 | PostgreSQL：把上面两项设置表示为 libpq 的 `sslmode`，供配置自身的 SQL 检查使用：`DATABASE_TLS_INSECURE` 为 `true` 时是 `disable`，`DATABASE_TLS_INSECURE_SKIP_VERIFY` 为 `true` 时是 `require`，否则是 `verify-full`。由 `install.sh` 写入。默认为 `disable` |
+| `DATABASE_TLS_MYSQL` | 否 | MySQL 和 MariaDB：与驱动程序的 `tls` 相同的两项设置，供配置读取 Galera 时使用——当 `DATABASE_TLS_INSECURE` 为 `true` 时为 `false`，当 `DATABASE_TLS_INSECURE_SKIP_VERIFY` 为 `true` 时为 `skip-verify`，否则为 `true`。`install.sh` 会算出它；在清单中请自行设置。默认为 `false` |
 | `DATABASE_COLLECTION_INTERVAL` | 否 | 读取引擎统计信息的频率。默认为 `30s` |
 | `DATABASE_QUERY_EVENTS` | 否 | `true` 会把查询样本和热门查询作为日志发送（PostgreSQL、MySQL、MongoDB、SQL Server 和 Oracle）。其中包含查询文本。默认为 `false` |
 | `DATABASE_SERVER_ID` | 否 | OneUptime 已显示的数据库的 id（它的 **文档** 选项卡上已预先填好）。这样数据会直接进入该数据库并显示在其页面上，无论它报告什么地址（或没有地址）；这是在 Kubernetes 中和对私有 IP 的推荐做法。它必须是摄取密钥所属项目中的数据库 |
@@ -398,6 +400,8 @@ docker compose up -d
 PostgreSQL 接收器的 `postgresqlreceiver.preciselagmetrics` 功能开关默认开启，它把复制时间延迟记录为 `postgresql.wal.delay` 而不是 `postgresql.wal.lag`，而该指标在上游默认关闭，所以代理开启了它。每份配置都在注释中列出了更多可选指标；可以用同样的方式开启其中任何一个。数据库概览中的 **Engine metrics** 部分为本表中的每个引擎绘制一组精选指标（对于 Elasticsearch / OpenSearch：集群健康状况、节点、未分配的分片、待处理任务、JVM 堆、可用磁盘、搜索和索引；对于 Memcached：连接、内存、条目、get 命中和未命中、命令和驱逐），**指标** 选项卡则包含全部指标。在那里，概览中绘制的指标显示概览的值（其序列以同样的方式合并，计数器按每秒速率显示），并带有一个说明方式的标题（_序列总和_、_每秒，所有序列_）；其他每一行显示其序列的平均值，在你按属性过滤列表时，每一行也都显示平均值。MariaDB 把 `mysql.buffer_pool.limit` 报告为缓冲池的页数，而不是接收器声明的字节数，因此在 MariaDB 数据库上，该行及其图表的单位是页。MariaDB 没有 `Innodb_rows_*` 状态计数器，因此接收器不会为它发送 `mysql.row_operations`，MariaDB 的概览中也没有 **行操作** 图表；它的行读写显示在 **Handler 操作** 中。
 
 PostgreSQL 配置还会用 Collector 的 `sqlquery` 接收器，以相同的间隔自己向服务器询问四件事：它已运行多久（`postgresql.uptime`，来自 `pg_postmaster_start_time()`）、最旧事务 ID 的年龄（`postgresql.xid.oldest_age`，即 `pg_database` 中最大的 `age(datfrozenxid)`）、最旧的未结束事务已打开多久（`postgresql.transaction.longest_duration`），以及有多少会话在等待锁（`postgresql.sessions.waiting_on_lock`），后两项来自 `pg_stat_activity`。`postgresql` 接收器不报告其中任何一项，而正是它们能看出重启、被遗留未提交的事务、排队等待锁的会话，以及即将到来的事务 ID 回卷：PostgreSQL 在年龄接近 21 亿时会停止接受写入，因此从 10 亿起其健康状况就需要查看，从 15 亿起即为严重。`pg_monitor` 已涵盖这些查询。该查询使用 `DATABASE_TLS_SSLMODE` 连接，并且无法用含空格的密码登录（它会把空格作为 `+` 发送），`install.sh` 会对此发出警告。使用自己的 Collector 时，请把 `configs/postgresql.yaml` 中的 `sqlquery/oneuptime` 接收器复制到它的 `metrics` 管道中。
+
+MySQL 配置还会用相同的 `sqlquery` 接收器，以相同的间隔读取服务器在 Galera 集群中所处的状态，因为 `mysql` 接收器完全不报告这些：集群有多少个节点（`mysql.wsrep.cluster_size`）、此节点的状态（`mysql.wsrep.local_state`，其中 4 表示已同步 Synced）、它被要求有意脱离同步多少次（`mysql.wsrep.desync_count`）、复制因它而暂停了多少（`mysql.wsrep.flow_control_paused`），以及有多少写集在等待应用（`mysql.wsrep.local_recv_queue`）。除了上面的登录之外它不需要任何其他东西，因为它读取的是 `SHOW GLOBAL STATUS`，并按 `DATABASE_TLS_MYSQL` 所说的方式连接。不在任何集群中的服务器不会发送其中任何一项，也没有任何东西表明它不健康。**Galera Node Out of Sync** 读取这些指标，而被人用 `wsrep_desync` 摘下做备份的节点不会触发它。
 
 数据库的 **版本** 来自接收器（如果接收器报告了版本）：`db.system.version`（MySQL / MariaDB、MongoDB）、`redis.version`（Redis、KeyDB）、`oracle.db.version`（Oracle）和 `elasticsearch.node.version`（Elasticsearch / OpenSearch）。PostgreSQL、SQL Server 和 Memcached 接收器不报告版本，因此仅有代理时，这些数据库不显示版本；同时在 Kubernetes、Docker 或 Podman 中运行的数据库会显示其容器镜像的版本。
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ processors:
 | 引擎 | 不健康 | 性能下降 |
 | --- | --- | --- |
 | PostgreSQL | 连接数达到 `max_connections` 的 95%；事务 ID 接近回卷 | 连接数达到 `max_connections` 的 80%；事务 ID 正在老化并趋向回卷；回放落后 30 秒的副本；WAL 落后 1 GB 的副本；一次重启；已打开一小时的事务；等待锁的会话；500 GB 或更大的数据库 |
-| MySQL / MariaDB | — | 136 个连接；50 个正在运行的线程；缓冲池 75% 为脏页；落后 30 秒的副本；一次重启 |
+| MySQL / MariaDB | — | 136 个连接；50 个正在运行的线程；缓冲池 75% 为脏页；落后 30 秒的副本；一次重启；没有人要求却失步的 Galera 节点 |
 | SQL Server | — | 低于 90% 的缓冲区缓存命中率；低于 300 秒的页面预期寿命；被阻塞的会话；等待内存的查询 |
 | Oracle | 已用 90% 的表空间 | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | 内存达到 `maxmemory` 的 90%；已用 256 MB 时碎片率为 1.5；9,000 个客户端；一次重启 |

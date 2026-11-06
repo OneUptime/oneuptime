@@ -288,6 +288,14 @@ export function buildPosture(data: {
     }
   }
 
+  if (data.config.writesOffReason) {
+    const reason: string | null = capString(data.config.writesOffReason);
+
+    if (reason) {
+      posture.writesOffReason = reason;
+    }
+  }
+
   if (data.probe.toolVersion) {
     posture.toolVersion = data.probe.toolVersion;
   }

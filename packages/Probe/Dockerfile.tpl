@@ -1,7 +1,9 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime-Probe Dockerfile
 #
+# Syntax 1.19 is the first whose stable channel has COPY --exclude, which keeps
+# Common's and the Probe's tests out of the image (see the copy of Common below).
 
 # Pull base image nodejs image.
 # Floating on the 26.x patch + bookworm-slim so each rebuild picks up the
@@ -107,7 +109,14 @@ COPY ./packages/Common/package*.json /usr/src/Common/
 # Set version in ./Common/package.json to the APP_VERSION
 RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Common/package.json
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
-COPY ./packages/Common /usr/src/Common
+# Common without its tests, which no image runs. They were 185 MB of this
+# copy, and one of their fixtures (an SVG data URI with a script in it) is what
+# ClamAV calls phishing. Left out as they are copied, because a later `rm` in
+# this stage would only hide them: they would stay in this layer, for a pull
+# to download and a scanner to read. Tests/Ops/ContainerImageHardening.test.js
+# holds every image to this. A development container mounts them from the
+# checkout (Scripts/Dev/docker-compose.dev.yml).
+COPY --exclude=Tests ./packages/Common /usr/src/Common
 
 
 
@@ -159,9 +168,17 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
 # without it Firefox still launches, renders, and plays WebM/VP9 and Ogg with
 # its own decoders, which is exactly what the image did before 1.63 (1.60 never
 # installed FFmpeg). So it is removed again in the same layer.
+#
+# Playwright's list also names xvfb, an X server for headed browsers, which
+# brings xserver-common: 14 high findings in the scans. The probe launches its
+# browsers headless, Playwright's default (SyntheticRuntime/SyntheticBrowser.ts),
+# and a monitor's script cannot launch its own (PlaywrightCapabilityBroker.ts),
+# so nothing starts them, and they go the same way. So do the OpenGL libraries
+# only xvfb needed: Chromium's WebGL is its own and still works, and headless
+# Firefox has none with or without them (compared on 14.0.103).
 RUN apt-get update \
     && npx playwright install --with-deps chromium firefox \
-    && apt-get purge -y --auto-remove libavcodec59 \
+    && apt-get purge -y --auto-remove libavcodec59 xvfb xserver-common \
     && rm -rf /var/lib/apt/lists/* \
     && chmod -R a+rX /ms-playwright-browsers \
     && chmod -R a+rX /usr/src/Common /usr/src/app
@@ -207,8 +224,10 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 #Run the app
 CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 {{ else }}
-# Copy app source
-COPY ./packages/Probe /usr/src/app
+# Copy app source, without its tests, like Common above. They import Common's,
+# so the compile below type-checks neither: the Compile workflow does, on the
+# checkout.
+COPY --exclude=Tests ./packages/Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
 # Production source is copied after the shared permission setup above. Keep it

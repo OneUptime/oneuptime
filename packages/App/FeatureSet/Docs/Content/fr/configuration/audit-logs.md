@@ -99,6 +99,7 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Éléments d'inventaire | `Inventory Item` |
 | Configurations du collecteur | `Collector Config` |
 | vCenter | `vCenter` |
+| Clouds OpenStack, et les vérifications exécutées sur eux | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Captures de paquets, et leurs téléchargements | `Packet Capture` |
 | Dossiers de sécurité et leurs priorités et statuts, playbooks et leurs exécutions, entités protégées, criticité des entités, et le risque d'une entité quand quelqu'un le réinitialise | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Exceptions de règle | `Rule Exception` |
@@ -107,6 +108,7 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Chasses | `Hunt` |
 | Tâches et preuves des dossiers de sécurité | `Security Case Task`, `Security Case Evidence` |
 | Magasins de données et leurs détections, et les problèmes, paramètres, paramètres des contrôles, types de données personnalisés et règles de résidence de Sécurité des données | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Paramètres d'Observabilité des données | `Data Observability Setting` |
 | Exports du journal d'audit | `Audit Log Export` |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.

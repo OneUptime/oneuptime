@@ -159,7 +159,9 @@ describe.each(ENGINES)("the %s config", (engine) => {
      * transactions, lock waits) with the collector's sqlquery receiver -
      * the same server over the same login, in the metrics pipeline only.
      */
-    const extra = engine === "postgresql" ? ["sqlquery/oneuptime"] : [];
+    const extra = ["postgresql", "mysql"].includes(engine)
+      ? ["sqlquery/oneuptime"]
+      : [];
 
     expect(Object.keys(parsed.receivers)).toEqual([engine, ...extra]);
 
@@ -734,5 +736,79 @@ describe("the postgresql config's SQL checks", () => {
     expect(pipelines.metrics.processors).toEqual(
       config("mysql").service.pipelines.metrics.processors,
     );
+  });
+});
+
+/*
+ * Galera's readings: where a MySQL or MariaDB server stands in a cluster, which the mysql
+ * receiver does not report. Recorded on a real three-node Galera and a MariaDB in no cluster
+ * (Tests/Ops/openstack-e2e/control-plane-clusters.sh, start_database_agent): local_state and
+ * desync_count moved together when a node was asked to fall out of step.
+ */
+describe("the mysql config's readings of Galera", () => {
+  const receiver = () => {
+    return config("mysql").receivers["sqlquery/oneuptime"];
+  };
+
+  test("connect to the agent's endpoint, with its login and its TLS, every collection", () => {
+    const sql = receiver();
+
+    expect(sql.driver).toBe("mysql");
+    expect(sql.host).toBe("${env:DATABASE_ENDPOINT_HOST}");
+    expect(sql.port).toBe("${env:DATABASE_ENDPOINT_PORT}");
+    // A schema every login can open: the statement reads nothing from it.
+    expect(sql.database).toBe("information_schema");
+    expect(sql.username).toBe("${env:DATABASE_USERNAME}");
+    expect(sql.password).toBe("${env:DATABASE_PASSWORD}");
+    expect(sql.additional_params).toEqual({
+      tls: "${env:DATABASE_TLS_MYSQL}",
+    });
+    expect(sql.collection_interval).toBe(
+      config("mysql").receivers.mysql.collection_interval,
+    );
+    expect(sql.datasource).toBeUndefined();
+  });
+
+  test("keep the port an integer field", () => {
+    expect(configText("mysql")).toMatch(SQL_CHECK_PORT_LINE);
+  });
+
+  test("ask only SHOW GLOBAL STATUS, which the monitoring login can, and read each from its own row", () => {
+    const [query, ...rest] = receiver().queries;
+
+    expect(rest).toEqual([]);
+    expect(query.sql).toMatch(/^SHOW GLOBAL STATUS WHERE /);
+    expect(query.sql).not.toMatch(/\bFROM\b/i);
+
+    const rows = query.metrics.map((metric) => {
+      return [metric.metric_name, metric.row_condition.value];
+    });
+
+    expect(rows).toEqual([
+      ["mysql.wsrep.cluster_size", "wsrep_cluster_size"],
+      ["mysql.wsrep.local_state", "wsrep_local_state"],
+      ["mysql.wsrep.desync_count", "wsrep_desync_count"],
+      ["mysql.wsrep.flow_control_paused", "wsrep_flow_control_paused"],
+      ["mysql.wsrep.local_recv_queue", "wsrep_local_recv_queue"],
+    ]);
+
+    for (const metric of query.metrics) {
+      expect(metric.value_column).toBe("Value");
+      expect(metric.row_condition.column).toBe("Variable_name");
+      expect(query.sql).toContain(`'${metric.row_condition.value}'`);
+    }
+  });
+
+  test("leave out a size of 0, which is MariaDB in no cluster", () => {
+    expect(receiver().queries[0].sql).toContain(
+      "(Variable_name = 'wsrep_cluster_size' AND Value > 0)",
+    );
+  });
+
+  test("run in the metrics pipeline only, behind the same identity stamp", () => {
+    const pipelines = config("mysql").service.pipelines;
+
+    expect(pipelines.metrics.receivers).toEqual(["mysql", "sqlquery/oneuptime"]);
+    expect(pipelines.logs.receivers).not.toContain("sqlquery/oneuptime");
   });
 });

@@ -1000,3 +1000,185 @@ describe("long text", () => {
     );
   });
 });
+
+/*
+ * Mattermost takes a channel's handle (its URL name) as Slack takes a
+ * channel name - lowercase letters, numbers, - and _ - but at most 64
+ * characters, at least 2, starting and ending with a letter or a number.
+ */
+describe("Mattermost names", () => {
+  const MATTERMOST: WorkspaceType = WorkspaceType.Mattermost;
+  const MATTERMOST_HANDLE: RegExp = /^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$/;
+
+  test("takes 64 characters", () => {
+    expect(WorkspaceChannelName.getMaxLength(MATTERMOST)).toBe(64);
+  });
+
+  test("the customer's case: incident INC-123 gets inc-123", () => {
+    expect(
+      nameOf({
+        workspaceType: MATTERMOST,
+        prefix: "",
+        parts: WorkspaceChannelName.forNumberedRecord({
+          eventType: NotificationRuleEventType.Incident,
+          number: 123,
+          numberWithPrefix: "INC-123",
+        }),
+      }),
+    ).toBe("inc-123");
+  });
+
+  test("a prefix is lowercased, and what a handle does not take is left out, as in Slack", () => {
+    const description: WorkspaceChannelNameDescription =
+      WorkspaceChannelName.describe({
+        workspaceType: MATTERMOST,
+        prefix: "Prod Alerts!-",
+        parts: incident("INC-42"),
+      });
+
+    expect(description.name).toBe("prodalerts-inc-42");
+    expect(description.prefixChanged).toBe(true);
+    expect(description.shortened).toBe(false);
+    expect(description.name).toBe(
+      nameOf({
+        workspaceType: SLACK,
+        prefix: "Prod Alerts!-",
+        parts: incident("INC-42"),
+      }),
+    );
+  });
+
+  test("a name does not start or end with a separator", () => {
+    expect(
+      nameOf({
+        workspaceType: MATTERMOST,
+        prefix: "__prod-",
+        parts: incident("INC-42"),
+      }),
+    ).toBe("prod-inc-42");
+
+    expect(
+      nameOf({
+        workspaceType: MATTERMOST,
+        prefix: "-",
+        parts: WorkspaceChannelName.forNamedRecord({
+          eventType: NotificationRuleEventType.Monitor,
+          name: "api_",
+        }),
+      }),
+    ).toBe("api");
+  });
+
+  test("nothing left of the prefix nor the record: the record's own name, not one name for every record", () => {
+    const parts: WorkspaceChannelNameParts =
+      WorkspaceChannelName.forNamedRecord({
+        eventType: NotificationRuleEventType.Monitor,
+        name: "???",
+      });
+
+    expect(nameOf({ workspaceType: MATTERMOST, prefix: "!!!", parts })).toBe(
+      "monitor",
+    );
+    expect(nameOf({ workspaceType: MATTERMOST, prefix: "--", parts })).toBe(
+      "monitor",
+    );
+  });
+
+  test("a long prefix is shortened, and the record's part stays whole", () => {
+    const description: WorkspaceChannelNameDescription =
+      WorkspaceChannelName.describe({
+        workspaceType: MATTERMOST,
+        prefix: "a".repeat(120),
+        parts: incident("INC-42"),
+      });
+
+    expect(description.name).toBe(`${"a".repeat(58)}inc-42`);
+    expect(description.name).toHaveLength(64);
+    expect(description.shortened).toBe(true);
+  });
+
+  test("the names tried after a taken one still fit", () => {
+    const parts: WorkspaceChannelNameParts =
+      WorkspaceChannelName.forNamedRecord({
+        eventType: NotificationRuleEventType.Monitor,
+        name: "m".repeat(200),
+      });
+
+    expect(
+      nameOf({ workspaceType: MATTERMOST, prefix: "", parts, attempt: 3 }),
+    ).toBe(`${"m".repeat(62)}-3`);
+  });
+
+  test("every name is a handle Mattermost takes, whatever the prefix and the record", () => {
+    const prefixes: Array<string> = generatedTexts(300, 17, [
+      "prod-",
+      "",
+      "-",
+      "__",
+      "Ops Team ",
+      "#",
+      "a".repeat(70),
+    ]);
+    const names: Array<string> = generatedTexts(300, 23, [
+      "API Health",
+      "???",
+      "_x_",
+      "m".repeat(90),
+    ]);
+
+    for (let index: number = 0; index < prefixes.length; index++) {
+      const parts: WorkspaceChannelNameParts =
+        WorkspaceChannelName.forNamedRecord({
+          eventType: NotificationRuleEventType.Monitor,
+          name: names[index % names.length] as string,
+        });
+
+      for (const attempt of [1, 2, 5]) {
+        const name: string = nameOf({
+          workspaceType: MATTERMOST,
+          prefix: prefixes[index] as string,
+          parts,
+          attempt,
+        });
+
+        expect({ name, ok: MATTERMOST_HANDLE.test(name) }).toEqual({
+          name,
+          ok: true,
+        });
+        expect(name.length).toBeGreaterThanOrEqual(2);
+        expect(name.length).toBeLessThanOrEqual(64);
+      }
+    }
+  });
+
+  test.each([
+    ["Town Square", "town-square"],
+    ["incident  42", "incident-42"],
+    ["--x--", "x-channel"],
+    ["a", "a-channel"],
+    ["!!!", "oneuptime"],
+    ["", "oneuptime"],
+    ["_ops_", "ops"],
+    ["a".repeat(80), "a".repeat(64)],
+    // The separators it starts with do not count against the 64.
+    [`${"-".repeat(70)}ops`, "ops"],
+    [`${"a".repeat(63)}-b`, "a".repeat(63)],
+  ])("toMattermostChannelName(%j) is %j", (name: string, expected: string) => {
+    expect(WorkspaceChannelName.toMattermostChannelName(name)).toBe(expected);
+  });
+
+  // The worst case for trimming a handle's ends: runs of separators that do not end it.
+  test("a 400,000-character name is made a handle in well under 2 seconds", () => {
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return WorkspaceChannelName.toMattermostChannelName(
+          `${"-_".repeat(100000)}x${" -".repeat(100000)}`,
+        );
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.inMs).toBeLessThan(2000);
+    expect(timed.result).toBe("x-channel");
+  });
+});

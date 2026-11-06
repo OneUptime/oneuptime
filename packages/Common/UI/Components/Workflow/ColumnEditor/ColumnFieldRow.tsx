@@ -11,7 +11,13 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import AutocompleteTextInput from "../../AutocompleteTextInput/AutocompleteTextInput";
 import Button, { ButtonStyleType } from "../../Button/Button";
 import { ModelSchemaColumn } from "../ModelSchema";
-import { columnTypeLabel, controlForColumn } from "./ColumnControl";
+import {
+  columnPickLabel,
+  controlForColumn,
+  getColumnTitle,
+} from "./ColumnControl";
+import { getCustomFieldName } from "../../../../Types/Workflow/CustomFieldsColumn";
+import { CustomFieldRowCopy } from "../CustomFields/CustomFieldColumns";
 import {
   ColumnValueMode,
   ModelColumnControl,
@@ -65,11 +71,24 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
   const labelId: string = useId();
   const control: ModelColumnControl = controlForColumn(props.column);
   const issue: string | null = rowIssue(props.row, props.column);
-  const isUnknownColumn: boolean = !props.column;
-  const typeLabel: string = columnTypeLabel(props.column);
-  // The model's own name for the field, in the reader's language.
+  /*
+   * A custom field this project no longer has - it was deleted or renamed - is
+   * still called by its name, and saved as it was: only the note under its value
+   * says what became of it.
+   */
+  const customFieldName: string | null = getCustomFieldName(props.row.columnId);
+  const isDeletedCustomField: boolean =
+    !props.column && customFieldName !== null;
+  const isUnknownColumn: boolean = !props.column && !isDeletedCustomField;
+  const typeLabel: string = columnPickLabel(props.column);
+  /*
+   * The field's name, in the reader's language: the model's own, or what it
+   * points at for a field picked from a list (Incident Severity).
+   */
   const columnTitle: string =
-    translator.translateText(props.column?.title) || "";
+    customFieldName !== null
+      ? customFieldName
+      : translator.translateText(getColumnTitle(props.column)) || "";
 
   /*
    * An empty required field is worth pointing at, but only quietly: the step
@@ -132,12 +151,20 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               a column called "Color" does not need "Color" printed under it.
             */}
             <span className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500">
-              <span className="truncate rounded bg-gray-100 px-1.5 py-0.5 font-mono">
-                {props.row.columnId}
-              </span>
-              {typeLabel.toLowerCase() !== columnTitle.toLowerCase() && (
-                <span className="truncate text-gray-400">{typeLabel}</span>
+              {/* What it is called on the wire says nothing of a custom field. */}
+              {customFieldName !== null ? (
+                <span className="truncate rounded bg-gray-100 px-1.5 py-0.5">
+                  {translator.translateText(CustomFieldRowCopy.chip)}
+                </span>
+              ) : (
+                <span className="truncate rounded bg-gray-100 px-1.5 py-0.5 font-mono">
+                  {props.row.columnId}
+                </span>
               )}
+              {!isDeletedCustomField &&
+                typeLabel.toLowerCase() !== columnTitle.toLowerCase() && (
+                  <span className="truncate text-gray-400">{typeLabel}</span>
+                )}
             </span>
             {/*
               Wrapped rather than truncated. This sentence is the model's own
@@ -161,6 +188,8 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
           valueMode={props.row.valueMode}
           text={props.row.text}
           values={props.row.values}
+          linkedTableName={props.column?.linkedTableName}
+          choices={props.column?.customField?.options}
           placeholder={props.column?.example || props.column?.placeholder}
           ariaLabelledby={isUnknownColumn ? undefined : labelId}
           autoFocus={props.autoFocus}
@@ -184,6 +213,15 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
         {issue && (
           <p className="mt-1 text-[11px] text-red-500">
             {translator.translateText(issue)}
+          </p>
+        )}
+
+        {isDeletedCustomField && (
+          <p
+            className="mt-1 text-[11px] text-amber-600"
+            data-testid="model-column-no-such-custom-field"
+          >
+            {translator.translateText(CustomFieldRowCopy.noSuchField)}
           </p>
         )}
 

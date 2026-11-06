@@ -62,6 +62,29 @@ interface LeftOut {
  * code, or a table someone wrote in Markdown.
  */
 const LEFT_OUT: Record<string, LeftOut> = {
+  "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackCostCalculator.tsx":
+    {
+      tables: 1,
+      why: "A service's name and two numbers a row, in a calculator: all of it fits, whatever the numbers typed.",
+    },
+  "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackProjectUsageCard.tsx":
+    {
+      tables: 2,
+      why: "A short sum in a project's card: a label and a few numbers, one row each, with the wider columns left to wide screens.",
+    },
+  "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity.tsx": {
+    tables: 6,
+    why: "Sums by zone, flavor, pool and host, a short name and a few numbers a row, which all fit; the columns a phone has no room for fold away.",
+  },
+  "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Spend.tsx": {
+    tables: 3,
+    why: "Sums by project and rule, a short name and a few numbers a row, which all fit; the columns a phone has no room for fold away.",
+  },
+  "packages/App/FeatureSet/Dashboard/src/Components/DataObservability/FailingRowsModal.tsx":
+    {
+      tables: 1,
+      why: "The columns are whatever a check's rows hold, known only once they are read, and the table scrolls sideways in its dialog.",
+    },
   "packages/Common/UI/Components/JSONTable/JSONTable.tsx": {
     tables: 1,
     why: "A record's fields, a name and its value a row: the names as wide as the longest, the values take the rest and wrap.",

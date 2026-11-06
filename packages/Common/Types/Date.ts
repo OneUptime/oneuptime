@@ -1082,17 +1082,18 @@ export default class OneUptimeDate {
 
   /*
    * "5 hours ago", "in 3 days" - in the reader's language when a frontend set
-   * one ("vor 5 Stunden"), rounded as moment rounds it.
+   * one ("vor 5 Stunden"), rounded as moment rounds it. Counted from now, or
+   * from the moment a view reads its own clock at (one its tests pin).
    */
-  public static fromNow(date: Date): string {
+  public static fromNow(date: Date, now?: Date | undefined): string {
     return writeInDateDisplayLanguage(
       (): string => {
-        return moment(date).fromNow();
+        return now ? moment(date).from(now) : moment(date).fromNow();
       },
       (_language: string, locale: string): string | null => {
         return formatRelativeDate({
           date: this.fromString(date),
-          now: new Date(),
+          now: now || new Date(),
           locale,
         });
       },

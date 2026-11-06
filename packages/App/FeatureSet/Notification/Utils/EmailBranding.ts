@@ -1,10 +1,11 @@
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
-import {
-  CarriedLogo,
-  toCarriedLogo,
-} from "Common/Server/Utils/Mail/EmailCarriedLogos";
+import { CarriedLogo } from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
+import EmailLogoImage, {
+  EmailLogoResult,
+  PRODUCT_EMAIL_LOGO_BOX,
+} from "Common/Server/Utils/Mail/EmailLogoImage";
 import URL from "Common/Types/API/URL";
 import ProductBrandingUtil, {
   ProductBranding,
@@ -126,27 +127,30 @@ export const getCurrentEmailBrandingVariables: () => Dictionary<string> =
 export const PRODUCT_LOGO_ATTACHMENT_NAME: string = "logo";
 
 /*
- * Each logo's bytes as an email carries them, written once for every email
+ * Each logo's bytes as an email carries them, made once for every email
  * that shows the logo until the enterprise module reads its settings
  * again, which hands over new bytes.
  */
-const carriedProductLogos: WeakMap<Buffer, CarriedLogo | null> = new WeakMap<
+const carriedProductLogos: WeakMap<
   Buffer,
-  CarriedLogo | null
->();
+  Promise<CarriedLogo | null>
+> = new WeakMap<Buffer, Promise<CarriedLogo | null>>();
 
 /*
  * The installation's own logo, carried inside an email that shows it by
  * `address` (Common/Server/Utils/Mail/EmailCarriedLogos.ts): when `address`
  * is the address brandLogoUrl gives the header (getEmailBrandingVariables)
  * and the enterprise module hands over the logo's bytes, a PNG, JPEG or
- * GIF small enough to go in every email. Null for any other address, and
- * for a logo that cannot go, which the header then shows from its address,
- * as before.
+ * GIF - as it was uploaded when it fits the header, else made smaller for
+ * the 200 x 32 box the header draws it in (EmailLogoImage). Null for any
+ * other address, and for a logo that cannot go, which the header then
+ * shows from its address, as before.
  */
-export const getCarriedProductLogo: (address: string) => CarriedLogo | null = (
+export const getCarriedProductLogo: (
   address: string,
-): CarriedLogo | null => {
+) => Promise<CarriedLogo | null> = async (
+  address: string,
+): Promise<CarriedLogo | null> => {
   const branding: ProductBranding | null =
     EnterpriseEdition.getProductBranding();
 
@@ -164,14 +168,23 @@ export const getCarriedProductLogo: (address: string) => CarriedLogo | null = (
     return null;
   }
 
-  if (!carriedProductLogos.has(bytes)) {
-    carriedProductLogos.set(
-      bytes,
-      toCarriedLogo(bytes, PRODUCT_LOGO_ATTACHMENT_NAME),
-    );
+  let carried: Promise<CarriedLogo | null> | undefined =
+    carriedProductLogos.get(bytes);
+
+  if (!carried) {
+    carried = EmailLogoImage.carriedLogoOf({
+      bytes: bytes,
+      name: PRODUCT_LOGO_ATTACHMENT_NAME,
+      box: PRODUCT_EMAIL_LOGO_BOX,
+      label: "The installation's logo",
+    }).then((result: EmailLogoResult): CarriedLogo | null => {
+      return result.logo;
+    });
+
+    carriedProductLogos.set(bytes, carried);
   }
 
-  return carriedProductLogos.get(bytes) || null;
+  return await carried;
 };
 
 /*

@@ -26,7 +26,7 @@
  * release.yml. So every workflow's needs graph is checked here too.
  *
  * Pull requests build the image in build.yml (amd64), and every push to
- * master builds both architectures in test-release.yaml, so a broken kubectl
+ * main builds both architectures in test-release.yaml, so a broken kubectl
  * download or digest fails before a release does.
  */
 
@@ -1204,7 +1204,7 @@ describe("every job that builds from the dev compose file warms the base images 
   );
 });
 
-describe("test-release.yaml: every push to master builds the Kubernetes AI agent for both architectures", () => {
+describe("test-release.yaml: every push to main builds the Kubernetes AI agent for both architectures", () => {
   const jobs = readYaml(TEST_RELEASE_WORKFLOW).jobs;
   const builds = callsFor(jobs, "build_docker_images.sh", IMAGE);
   const merges = callsFor(jobs, "merge_docker_manifests.sh", IMAGE);

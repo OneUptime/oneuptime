@@ -122,6 +122,7 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
       type: ComponentInputType.Text,
       required: true,
       placeholder: "Pick a value with { } or paste an ID",
+      linkedTable: "Incident",
       shownWhen: {
         argumentId: PAGE_ARGUMENT_IDS.about,
         values: [PageAbout.Incident],
@@ -135,6 +136,7 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
       type: ComponentInputType.Text,
       required: true,
       placeholder: "Pick a value with { } or paste an ID",
+      linkedTable: "Alert",
       shownWhen: {
         argumentId: PAGE_ARGUMENT_IDS.about,
         values: [PageAbout.Alert],

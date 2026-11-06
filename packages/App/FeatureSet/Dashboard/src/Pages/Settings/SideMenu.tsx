@@ -65,6 +65,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
+            title: "Mattermost",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_MATTERMOST_INTEGRATION] as Route,
+            ),
+          },
+          icon: IconProp.Mattermost,
+        },
+        {
+          link: {
             title: "Video Calls",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_VIDEO_CALLS] as Route,

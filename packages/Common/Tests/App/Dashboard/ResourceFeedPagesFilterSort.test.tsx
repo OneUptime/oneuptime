@@ -72,6 +72,7 @@ import DockerHostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/D
 import DockerSwarmClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Feed";
 import PodmanHostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/Feed";
 import ProxmoxClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Feed";
+import OpenStackCloudFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Feed";
 import CephClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Feed";
 import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Feed";
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
@@ -138,6 +139,9 @@ import PodmanHostFeed, {
 import ProxmoxClusterFeed, {
   ProxmoxClusterFeedEventType,
 } from "../../../Models/DatabaseModels/ProxmoxClusterFeed";
+import OpenStackCloudFeed, {
+  OpenStackCloudFeedEventType,
+} from "../../../Models/DatabaseModels/OpenStackCloudFeed";
 import CephClusterFeed, {
   CephClusterFeedEventType,
 } from "../../../Models/DatabaseModels/CephClusterFeed";
@@ -306,6 +310,16 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "proxmoxClusterId",
     eventTypeColumn: "proxmoxClusterFeedEventType",
     enumObject: ProxmoxClusterFeedEventType,
+  },
+  {
+    product: "OpenStack",
+    file: "Pages/OpenStack/View/Feed.tsx",
+    Page: OpenStackCloudFeedPage,
+    route: RouteMap[PageMap.OPENSTACK_CLOUD_VIEW_FEED] as Route,
+    modelType: OpenStackCloudFeed,
+    resourceIdColumn: "openStackCloudId",
+    eventTypeColumn: "openStackCloudFeedEventType",
+    enumObject: OpenStackCloudFeedEventType,
   },
   {
     product: "Ceph",

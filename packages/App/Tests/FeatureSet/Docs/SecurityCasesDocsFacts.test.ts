@@ -37,8 +37,11 @@ import {
   STATE_SETTINGS_COPY,
   StateSettingsPageCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
+import { getNotificationRuleDestinationDescription } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import { canRuleCreateChannel } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import {
   SECURITY_EVENTS_MENU,
+  SECURITY_EVENTS_WORKSPACE_PAGES,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
@@ -94,10 +97,16 @@ import {
   GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE,
 } from "Common/Server/Utils/SecurityEvent/Response/GoogleWorkspaceResponseClient";
 import {
+  SECURITY_PLAYBOOK_MAX_CONDITIONS_PER_STEP,
+  SecurityPlaybookConditionMatch,
   SecurityPlaybookStepOutcome,
   describeSecurityPlaybookStepOutcome,
   getSecurityPlaybookStepOutcomes,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition";
+import {
+  RUN_WHEN_ALL_LABEL,
+  RUN_WHEN_ANY_LABEL,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookStepForm";
 import { SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTemplates";
 import { MAX_NOTIFIED_DATA_STORES } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners";
 import Permission from "Common/Types/Permission";
@@ -146,6 +155,8 @@ import {
   SECURITY_PLAYBOOK_MAX_STEPS,
   SecurityPlaybookStep,
   TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
+  assertSecurityPlaybookStepConditions,
+  parseSecurityPlaybookSteps,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import { matchesProtectedEntityPattern } from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";
 import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
@@ -161,6 +172,7 @@ import {
 } from "Common/Utils/SecurityCase/SecurityCaseNotificationPriority";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1265,7 +1277,7 @@ describe("Security Cases and Playbooks docs", () => {
     }
 
     expect(steps).toContain(
-      "- **Run This Step**: **Always**, or only after a result of a step before it, such as **Check entities against threat intel** finding a known-bad entity;",
+      "- **Run This Step**: **Always**, or only after results of steps before it, such as **Check entities against threat intel** finding a known-bad entity;",
     );
     expect(steps).toContain(
       "Off, a failed step stops the run. It waits under **More fields**, with **Run This Step**.",
@@ -1387,14 +1399,153 @@ describe("Security Cases and Playbooks docs", () => {
     expect(branch).toContain(
       "When the step waited on ends another way, the step that waits is skipped, and the run says why under it",
     );
-    // The skipped step's reason, as the engine writes it.
-    expect(
-      flat(
-        source(
-          "Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition.ts",
-        ),
+    // The skipped step's reason, as the engine writes it: each result it waited on.
+    const condition: string = flat(
+      source("Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition.ts"),
+    );
+
+    expect(condition).toContain(
+      "reason: `Skipped: it runs only if ${joinClauses(",
+    );
+    expect(condition).toContain(
+      "`step ${waitedOn + 1} (${definition?.title || waitedOnStep.action}) ${describeSecurityPlaybookStepOutcome(waitedOnStep.action, condition.outcome)}`",
+    );
+  });
+
+  it("says a step waits on up to five results, read as Run When's two choices say, and that all of two results of one step is refused", () => {
+    const branch: string = flat(section(page, "Branch on a step's result"));
+    const dialog: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookStepDialog.tsx`,
       ),
-    ).toContain("reason: `Skipped: it runs only if step ${waitedOn + 1}");
+    );
+
+    expect(SECURITY_PLAYBOOK_MAX_CONDITIONS_PER_STEP).toBe(5);
+    expect(branch).toContain(
+      `A step can wait on up to five results: pick each in **Run This Step**, and **Run When** asks how they are read, **${RUN_WHEN_ALL_LABEL}** or **${RUN_WHEN_ANY_LABEL}**.`,
+    );
+    // The dialog's field, its two choices, and that it asks only for two results or more.
+    expect(dialog).toContain('title: "Run When",');
+    expect(dialog).toContain(
+      "return waitsOnSeveralResults(values as JSONObject);",
+    );
+    expect(Object.values(SecurityPlaybookConditionMatch)).toEqual([
+      "All",
+      "Any",
+    ]);
+
+    // Found and found nothing of one check, both waited on: refused, as the page says.
+    expect(branch).toContain(
+      "A step that waits on all of its results can't wait on two results of one step, such as found and found nothing, since no run has both.",
+    );
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        parseSecurityPlaybookSteps([
+          {
+            id: "check",
+            action: SecurityPlaybookActionType.CheckThreatIntel,
+            config: {},
+          },
+          {
+            id: "note",
+            action: SecurityPlaybookActionType.AddCaseNote,
+            config: { note: "n" },
+            runIf: {
+              match: SecurityPlaybookConditionMatch.All,
+              conditions: [
+                { stepId: "check", outcome: "Found" },
+                { stepId: "check", outcome: "Found Nothing" },
+              ],
+            },
+          },
+        ]),
+      );
+    }).toThrow("which one run never has together");
+  });
+
+  it("says what a Stop step does, as the engine, the dialog and the branching rule do it", () => {
+    const stop: string = flat(section(page, "Stop the run"));
+    const definition: SecurityPlaybookActionDefinition =
+      SECURITY_PLAYBOOK_ACTIONS.find(
+        (action: SecurityPlaybookActionDefinition): boolean => {
+          return action.type === SecurityPlaybookActionType.StopRun;
+        },
+      )!;
+    const dialog: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookStepDialog.tsx`,
+      ),
+    );
+    const engine: string = flat(
+      source("Common/Server/Utils/SecurityPlaybook/SecurityPlaybookEngine.ts"),
+    );
+
+    expect(stop).toContain(
+      `**${definition.title}**, under **${definition.category}**, ends the run where it is, as done: the steps after it are skipped, each saying where the run stopped, and the run succeeds.`,
+    );
+    expect(definition.category).toBe(
+      SecurityPlaybookActionCategory.FlowControl,
+    );
+    // The engine: the steps after it skipped, saying where, and the run Succeeded.
+    expect(engine).toContain(
+      "message: `Skipped: the run stopped at step ${stepNumber}.`,",
+    );
+    expect(engine).toContain("status: SecurityPlaybookRunStatus.Succeeded,");
+
+    // Why It Stops, said on the case's timeline.
+    expect(dialog).toContain('title: "Why It Stops",');
+    expect(dialog).toContain(
+      'description: "Said on the case\'s timeline when the run stops here.",',
+    );
+    expect(stop).toContain(
+      "What you write in **Why It Stops** is said on the case's timeline when the run stops there.",
+    );
+
+    // Nothing to approve, never failing, never waited on, and last when it always runs.
+    expect(stop).toContain(
+      "so it has neither **Needs Approval** nor **Carry On If It Fails**, and no step can wait on it. One that always runs ends every run, so it can only be the last step.",
+    );
+    expect(
+      parseSecurityPlaybookSteps([
+        {
+          id: "stop",
+          action: SecurityPlaybookActionType.StopRun,
+          config: {},
+          requiresApproval: true,
+          continueOnFailure: true,
+        },
+      ])[0],
+    ).toMatchObject({ requiresApproval: false, continueOnFailure: false });
+    expect(() => {
+      assertSecurityPlaybookStepConditions(
+        parseSecurityPlaybookSteps([
+          {
+            id: "stop",
+            action: SecurityPlaybookActionType.StopRun,
+            config: {},
+          },
+          {
+            id: "note",
+            action: SecurityPlaybookActionType.AddCaseNote,
+            config: { note: "n" },
+          },
+        ]),
+      );
+    }).toThrow(
+      "it always stops the run, so the steps after it would never run",
+    );
+
+    // A run it ended counts as Succeeded, as the runs table says.
+    const succeeded: Array<string> | undefined = rowsOf(
+      "Runs and approvals",
+    ).find((row: Array<string>): boolean => {
+      return row[0] === SecurityPlaybookRunStatus.Succeeded;
+    });
+
+    expect(succeeded?.[1]).toBe(
+      `Every step ran or was skipped, or a **${definition.title}** step ended it`,
+    );
+    expect(page).toContain(":::details A run ended before its last steps");
   });
 
   it("says Add tasks leaves out the tasks a case has, and Preserve the evidence keeps the events behind its detections", () => {
@@ -1855,9 +2006,9 @@ describe("Security Cases and Playbooks docs", () => {
     }
   });
 
-  it("lists the Slack and Microsoft Teams conditions a Security Case rule offers", () => {
+  it("lists the conditions a Security Case rule offers in Slack, Microsoft Teams and Mattermost", () => {
     const conditionRows: Array<Array<string>> = rowsOf(
-      "Post to Slack and Microsoft Teams channels",
+      "Post to Slack, Microsoft Teams and Mattermost channels",
     );
     const offered: Array<string> =
       NotificationRuleConditionUtil.getCheckOnByEventType(
@@ -1872,8 +2023,58 @@ describe("Security Cases and Playbooks docs", () => {
         .sort(),
     ).toEqual([...offered].sort());
     expect(page).toContain(
-      "**Products → Security Events → Workspace → Slack** (or **Microsoft Teams**)",
+      "the notification choices and the Slack, Microsoft Teams and Mattermost rules read this order.",
     );
+    expect(page).toContain(
+      "in Slack, Microsoft Teams and Mattermost, and in playbook messages.",
+    );
+  });
+
+  it("sends people to each workspace's rules, and with none connected to the entry that connects one", () => {
+    // Each workspace the section can list, then the page that connects one.
+    expect(Object.keys(SECURITY_EVENTS_WORKSPACE_PAGES)).toEqual([
+      "slack",
+      "microsoftTeams",
+      "mattermost",
+      "connect",
+    ]);
+    expect(page).toContain(
+      "**Products → Security Events → Workspace → Slack** (or **Microsoft Teams**, or **Mattermost**). With none connected, the section's one entry is **Connect a workspace**.",
+    );
+  });
+
+  it("says a rule posts to channels, and to chats in Microsoft Teams alone, as each workspace's rule form asks", () => {
+    const destinations: Array<[WorkspaceType, string]> = [
+      [WorkspaceType.Slack, "The channels the rule posts in."],
+      [
+        WorkspaceType.MicrosoftTeams,
+        "The channels and chats the rule posts in.",
+      ],
+      [WorkspaceType.Mattermost, "The channels the rule posts in."],
+    ];
+
+    for (const [workspaceType, destination] of destinations) {
+      expect(
+        getNotificationRuleDestinationDescription({
+          eventType: NotificationRuleEventType.SecurityCase,
+          workspaceType: workspaceType,
+        }),
+      ).toBe(destination);
+    }
+
+    expect(canRuleCreateChannel(NotificationRuleEventType.SecurityCase)).toBe(
+      false,
+    );
+
+    const rules: string = section(
+      page,
+      "Post to Slack, Microsoft Teams and Mattermost channels",
+    );
+
+    expect(rules).toContain(
+      "A rule names the channels to post to (and, in Microsoft Teams, the chats)",
+    );
+    expect(rules).toContain("A security case never gets a channel of its own.");
   });
 
   it("names the API's routes as the models serve them", () => {

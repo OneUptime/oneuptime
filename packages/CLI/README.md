@@ -274,6 +274,7 @@ Some of them, by area:
 | On-call               | `on-call-policy`, `on-call-policy-schedule`, `escalation-rule`                                                          |
 | Teams and access      | `team`, `team-member`, `label`, `api-key`                                                                               |
 | Infrastructure        | `host`, `kubernetes-cluster`, `network-device`, `service`                                                               |
+| Cloud                 | `cloud-account`, `cloud-resource`, `cloud-budget`                                                                       |
 | Automation            | `workflow`, `runbook`, `dashboard`                                                                                      |
 | Telemetry             | `log`, `metric`, `span`, `exception-instance`, `monitor-log`, `audit-log`                                               |
 

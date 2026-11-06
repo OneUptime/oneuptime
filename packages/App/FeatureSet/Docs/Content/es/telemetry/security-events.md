@@ -193,6 +193,7 @@ Cada tipo llega a OneUptime como registros normales:
 | AWS CloudTrail | Un trail entregado a CloudWatch Logs, leído por el receptor `awscloudwatch` del recolector, o, para una cuenta conectada en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
 | Registros de auditoría de Google Cloud | Un sink de registros hacia Pub/Sub, leído por el receptor `googlecloudpubsub` del recolector con `encoding: raw_text`, o, para un proyecto conectado en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
 | Registros de actividad de Azure y de Entra ID | Una configuración de diagnóstico que transmite a un Event Hub, leída por el receptor `azureeventhub` del recolector con `format: raw`, o, para el registro de actividad de una suscripción conectada en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
+| Registro de auditoría de OpenStack | Las notificaciones y el filtro de auditoría de una nube, enviados a sus registros con `driver = log` y leídos por el [perfil de registros](/docs/telemetry/openstack#quién-hizo-qué) del agente |
 | CEF, LEEF | El syslog del producto, retransmitido por [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | El propio syslog del firewall, retransmitido por [rsyslog](/docs/telemetry/syslog) |
 | Registros de auditoría de Kubernetes | El archivo de registro de auditoría del servidor de API, leído por el receptor `filelog` del recolector |
@@ -339,7 +340,7 @@ Cada ejecución programada se guarda 90 días. **Historial de ejecuciones**, al 
 
 La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y la ventana que leyó, y enlaza a la página de la cacería con esos eventos; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
 
-Para publicar en Slack o Microsoft Teams lo que encuentran las cacerías, añade una regla a **Reglas de cacerías** en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams**), debajo de las reglas que publican los [casos de seguridad](/docs/telemetry/security-cases#publicar-en-canales-de-slack-y-microsoft-teams). Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, las cacerías a las que se aplica, por **Nombre de la cacería**: un nombre que es tu texto, lo contiene, empieza o termina con él. Cada vez que una ejecución programada encuentra eventos, publica la cacería, su búsqueda, cuántos eventos y cuándo, con un enlace a ellos, y ninguna de las palabras propias de un evento. Una regla de cacerías la configura un rol que puede configurar playbooks de seguridad, como Project Owner, Project Admin o Security Admin.
+Para publicar en Slack, Microsoft Teams o Mattermost lo que encuentran las cacerías, añade una regla a **Reglas de cacerías** en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams** o **Mattermost**), debajo de las reglas que publican los [casos de seguridad](/docs/telemetry/security-cases#publicar-en-canales-de-slack-microsoft-teams-y-mattermost). Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, las cacerías a las que se aplica, por **Nombre de la cacería**: un nombre que es tu texto, lo contiene, empieza o termina con él. Cada vez que una ejecución programada encuentra eventos, publica la cacería, su búsqueda, cuántos eventos y cuándo, con un enlace a ellos, y ninguna de las palabras propias de un evento. Una regla de cacerías la configura un rol que puede configurar playbooks de seguridad, como Project Owner, Project Admin o Security Admin.
 
 ### Guardar eventos en un caso
 
@@ -465,11 +466,11 @@ detection:
 
 | Campo | Qué hace |
 | --- | --- |
-| **Intervalo de evaluación (minutos)** | Cada cuánto se ejecuta la regla: minutos enteros, de 1 a 1440. El formulario de una regla nueva empieza en 5. |
+| **Intervalo de evaluación (minutos)** | Cada cuánto se ejecuta la regla: minutos enteros, de 1 a 1440. El formulario de una regla nueva empieza en 5. En tiempo real, la duración de las ventanas que lee una regla que cuenta. |
 | **Ejecutar en tiempo real** | Desactivado en una regla nueva. Activado, la regla comprueba cada evento en cuanto llega en lugar de en cada intervalo; consulta [Reglas en tiempo real](#reglas-en-tiempo-real). |
 | **Campo de agrupación** | Opcional. Las coincidencias que comparten el valor de este campo, como `principalHost`, se cuentan, alertan y deduplican juntas: una alerta por host en lugar de cientos. |
 | **Campo de recuento distinto** | Opcional. Cuenta los valores distintos de este campo en lugar de los eventos coincidentes. Los valores vacíos no cuentan. |
-| **Umbral de número de coincidencias** | Un grupo se dispara solo cuando su recuento llega a este número dentro de una ejecución: de 1 a 1000000, y 1 se dispara con cualquier coincidencia. |
+| **Umbral de número de coincidencias** | Un grupo se dispara solo cuando su recuento llega a este número dentro de una ejecución, o de una ventana en tiempo real: de 1 a 1000000, y 1 se dispara con cualquier coincidencia. |
 
 La agrupación y el recuento distinto aceptan los mismos nombres de campo que la regla. Con ellos, el umbral dice «tantos, de lo mismo, en una ejecución», sin un monitor encima:
 
@@ -492,12 +493,14 @@ OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su interval
 
 ### Reglas en tiempo real
 
-Una regla que se dispara con un solo evento puede ejecutarse en tiempo real en lugar de en su intervalo: activa **Ejecutar en tiempo real**, en **Más campos** del paso **Al coincidir**. Cada evento que recibe OneUptime, de cualquier origen, se comprueba entonces con la regla en cuanto llega, y una coincidencia abre su caso, su alerta y su hallazgo en segundos.
+Cualquier regla, salvo una con el modificador `re`, puede ejecutarse en tiempo real en lugar de en su intervalo: activa **Ejecutar en tiempo real**, en **Más campos** del paso **Al coincidir**. Cada evento que recibe OneUptime, de cualquier origen, se comprueba entonces con la regla en cuanto llega:
 
-- Sirve para una regla con un **Umbral de número de coincidencias** de 1, sin **Campo de recuento distinto** y sin el modificador `re`. Una correlación cuenta eventos juntos, así que se ejecuta en su intervalo. El formulario dice qué cambiar cuando una regla no sirve.
+- Una regla que se dispara con un solo evento, con un **Umbral de número de coincidencias** de 1 y sin **Campo de recuento distinto**, abre su caso, su alerta y su hallazgo en segundos con cada coincidencia, y no tiene intervalo.
+- Una regla que cuenta y una correlación cuentan en las ventanas que lee su programación: seguidas según el reloj, cada una tan larga como el **Intervalo de evaluación (minutos)**. Un grupo se dispara en cuanto su ventana alcanza el recuento, aunque el evento que lo completa llegue tarde, y como mucho una vez por ventana, así que una ráfaga que sigue se dispara de nuevo en la siguiente. El `timespan` de una correlación sigue deslizándose entre ventanas.
 - Un proyecto ejecuta como máximo 50 reglas en tiempo real, ya que cada evento se comprueba con cada una.
-- En **Reglas de detección**, el **Estado** de una regla en tiempo real dice **Tiempo real**, y también su columna de intervalo. Una comprobación que falla aparece en su **Último error**, como la de una ejecución.
+- En **Reglas de detección**, el **Estado** de una regla en tiempo real dice **Tiempo real**, y también su columna de intervalo, tras el intervalo en una regla que cuenta. Una comprobación que falla aparece en su **Último error**, como la de una ejecución.
 - Al activarla, la regla lee primero lo que llegó desde su última ejecución, así que nada queda entre su programación y el tiempo real. Al desactivarla, vuelve a su intervalo, desde dos minutos antes.
+- Deshabilitada y habilitada de nuevo, una regla en tiempo real lee primero el tiempo que estuvo apagada, hasta las últimas 24 horas, como hace una regla programada.
 - Las excepciones y las listas de seguimiento se le aplican como a cualquier regla, y **Ejecutar sobre eventos pasados** la lee como a cualquier otra.
 
 ### Gravedad
@@ -625,11 +628,15 @@ Comprueba la clave en `x-oneuptime-token` y la ruta, `/security-events/v1/ingest
 :::
 
 :::details Una regla nunca coincide
-Comprueba su **Estado**: con **Deshabilitado** la regla no se ejecuta, y con **La ejecución falló**, **Ver error** en su fila muestra por qué. Abre un evento que esperabas que coincidiera y compáralo con la regla, campo a campo: un valor simple debe ser igual al campo entero, así que usa `contains` o `*` para una parte. Un atributo se nombra como está en el evento (`threat.matched`, no `attributes.threat.matched`). Con un umbral mayor que 1, las coincidencias tienen que caer en una sola ejecución.
+Comprueba su **Estado**: con **Deshabilitado** la regla no se ejecuta, y con **La ejecución falló**, **Ver error** en su fila muestra por qué. Abre un evento que esperabas que coincidiera y compáralo con la regla, campo a campo: un valor simple debe ser igual al campo entero, así que usa `contains` o `*` para una parte. Un atributo se nombra como está en el evento (`threat.matched`, no `attributes.threat.matched`). Con un umbral mayor que 1, las coincidencias tienen que caer en una sola ejecución, o en una sola ventana en una regla en tiempo real.
 :::
 
 :::details No se puede activar Ejecutar en tiempo real
-La regla cuenta coincidencias, cuenta valores distintos, lee una expresión regular o es una correlación, y el formulario dice cuál: pon **Umbral de número de coincidencias** en 1, vacía **Campo de recuento distinto**, o usa `contains`, `startswith` o `endswith` en lugar de `re`. Un proyecto ejecuta como máximo 50 reglas en tiempo real: desactívalo primero en otra regla.
+La regla lee una expresión regular, en sí misma o en una regla que lee su correlación, y el formulario lo dice: usa `contains`, `startswith` o `endswith` en lugar de `re`. Un proyecto ejecuta como máximo 50 reglas en tiempo real: desactívalo primero en otra regla.
+:::
+
+:::details Una regla en tiempo real que cuenta se disparó una sola vez en una ráfaga larga
+Se dispara en cuanto un grupo alcanza su recuento en una ventana, y como mucho una vez por ventana: los eventos que siguen en la misma ventana no forman una detección nueva. Si la ráfaga sigue, la ventana siguiente se dispara de nuevo. Con su programación, también se habría disparado una vez en esa ventana, minutos después.
 :::
 
 :::details Una regla coincidió, pero no se abrió ninguna alerta

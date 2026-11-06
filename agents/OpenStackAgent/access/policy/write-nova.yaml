@@ -1,0 +1,41 @@
+# Takes away from the oneuptime_remediation role every action on a server the OpenStack AI
+# agent never makes. POST /servers/{id}/action is one path for all of them, so an access rule
+# cannot tell a start from a forced delete, and only an admin context reaches another project's
+# instance: this is what is left of "admin" for that credential once the access rules and this
+# are both in place. Each rule keeps Nova's own default for everyone else.
+#
+# Merge these into your /etc/nova/policy.yaml. oslo.policy notices a changed file on its own,
+# so no restart is needed. To take them off again, empty the file rather than deleting it: on
+# Flamingo and Epoxy a service fails every request once a policy file it has read is gone,
+# until it is restarted.
+"os_compute_api:servers:stop": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:rebuild": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:rebuild:trusted_certs": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:resize": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:confirm_resize": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:revert_resize": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:create_image": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:create_image:allow_volume_backed": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:servers:trigger_crash_dump": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-deferred-delete:force": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-deferred-delete:restore": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-admin-actions:reset_state": "(rule:context_is_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-admin-actions:inject_network_info": "(rule:context_is_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-admin-password": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-create-backup": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-lock-server:lock": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-lock-server:unlock": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-lock-server:unlock:unlock_override": "(rule:context_is_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-pause-server:pause": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-pause-server:unpause": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-suspend-server:suspend": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-suspend-server:resume": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-rescue": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-unrescue": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-shelve:shelve": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-shelve:shelve_offload": "(rule:context_is_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-shelve:unshelve": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-security-groups:add": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-security-groups:remove": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-console-output": "(rule:project_member_or_admin) and not role:oneuptime_remediation"
+"os_compute_api:os-remote-consoles": "(rule:project_member_or_admin) and not role:oneuptime_remediation"

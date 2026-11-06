@@ -26,10 +26,14 @@ import {
 
 /*
  * The email that tells an account's owner wrong two factor codes are being
- * entered after their password (AuthenticationEmail.sendTwoFactorWrongCodesEmail,
+ * entered at the second step of signing in
+ * (AuthenticationEmail.sendTwoFactorWrongCodesEmail,
  * Templates/TwoFactorWrongCodes.hbs): who it goes to, what it is called, and
  * what it says - the rule as TwoFactorWrongCodes keeps it, what to do if it
- * was them, and the way out if it was not.
+ * was them, and the way out if it was not, which depends on what began the
+ * sign-in. Somebody who entered the password is shut out by a new one;
+ * somebody who opened a sign-in link can read the mailbox, and a new password
+ * does not secure that.
  */
 
 jest.mock("Common/Server/DatabaseConfig", () => {
@@ -146,6 +150,7 @@ describe("who it goes to and what it is called", () => {
     await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: account("owner@example.com"),
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
     });
 
     expect(sentMails()).toHaveLength(1);
@@ -168,6 +173,7 @@ describe("who it goes to and what it is called", () => {
     await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: account("owner@example.com"),
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
     });
 
     expect(sentMails()[0]!.subject).toBe(
@@ -179,6 +185,7 @@ describe("who it goes to and what it is called", () => {
     await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: account("owner@example.com"),
       wrongCodesInARow: 7,
+      isMagicLinkSignIn: false,
     });
 
     const vars: Record<string, string> = sentMails()[0]!.vars;
@@ -196,23 +203,55 @@ describe("who it goes to and what it is called", () => {
     );
   });
 
+  it.each([
+    [false, "false"],
+    [true, "true"],
+  ])(
+    "tells the template what began the sign-in, as text its condition compares: %s",
+    async (isMagicLinkSignIn: boolean, expected: string) => {
+      await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
+        user: account("owner@example.com"),
+        wrongCodesInARow: 5,
+        isMagicLinkSignIn: isMagicLinkSignIn,
+      });
+
+      expect(sentMails()[0]!.vars["isMagicLinkSignIn"]).toBe(expected);
+    },
+  );
+
+  it("is called the same whichever began the sign-in", async () => {
+    await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
+      user: account("owner@example.com"),
+      wrongCodesInARow: 5,
+      isMagicLinkSignIn: true,
+    });
+
+    expect(sentMails()[0]!.subject).toBe(
+      "Wrong two factor codes were entered for your OneUptime account",
+    );
+  });
+
   it("an account without an address is sent nothing", async () => {
     await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: account(),
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
     });
 
     expect(sentMails()).toHaveLength(0);
   });
 });
 
-describe("what it says", () => {
-  const vars: Record<string, string> = {
-    wrongCodeCount: "5",
-    enteredAt: "Oct 18, 2026, 12:07 UTC",
-    forgotPasswordUrl: "https://oneuptime.example.com/accounts/forgot-password",
-    homeUrl: "https://oneuptime.example.com/",
-  };
+const VARS: Record<string, string> = {
+  wrongCodeCount: "5",
+  enteredAt: "Oct 18, 2026, 12:07 UTC",
+  forgotPasswordUrl: "https://oneuptime.example.com/accounts/forgot-password",
+  homeUrl: "https://oneuptime.example.com/",
+  isMagicLinkSignIn: "false",
+};
+
+describe("what it says when the password began the sign-in", () => {
+  const vars: Record<string, string> = VARS;
 
   it("the rule as the count keeps it: a minute at first, longer after each wrong code, up to an hour", () => {
     expect(FIRST_WAIT_SECONDS).toBe(60);
@@ -268,6 +307,104 @@ describe("what it says", () => {
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
   });
+
+  it("sends nobody to their mailbox: nothing says it is being read", () => {
+    const text: string = textOf(render(vars));
+
+    expect(text).not.toContain("can read your email");
+    expect(text).not.toContain("sign-in link");
+    expect(text).not.toContain("forwarding");
+  });
+
+  it("is what an email that does not say what began the sign-in reads as", () => {
+    const withoutIt: Record<string, string> = { ...VARS };
+    delete withoutIt["isMagicLinkSignIn"];
+
+    expect(render(withoutIt)).toBe(render(vars));
+  });
+});
+
+describe("what it says when a sign-in link began the sign-in", () => {
+  const vars: Record<string, string> = { ...VARS, isMagicLinkSignIn: "true" };
+
+  it("says a sign-in link was opened, and that nobody entered the password", () => {
+    const text: string = textOf(render(vars));
+
+    expect(text).toContain(
+      "Someone opened a sign-in link emailed to you for your OneUptime account, then entered wrong codes at the second step of signing in.",
+    );
+    expect(text).not.toContain("entered the password");
+    expect(text).not.toContain("knows your password");
+  });
+
+  it("the rule, how many and when, as a password's email says them", () => {
+    const text: string = textOf(render(vars));
+
+    expect(text).toContain(
+      "each next code now waits before it is checked: one minute at first, then longer after each wrong code, up to an hour.",
+    );
+    expect(text).toContain("Wrong codes in a row: 5");
+    expect(text).toContain("Last wrong code at: Oct 18, 2026, 12:07 UTC");
+  });
+
+  it("what to do if it was them: a backup code and a security key finish a link's sign-in too", () => {
+    const text: string = textOf(render(vars));
+
+    expect(text).toContain("If this was you");
+    expect(text).toContain(
+      "check that your phone sets its clock automatically, then try again when the wait is over. A backup code or a security key also signs you in.",
+    );
+  });
+
+  it("if it was not them: someone can read their email, and a new password alone does not stop that person", () => {
+    const text: string = textOf(render(vars));
+
+    expect(text).toContain("If this was not you");
+    expect(text).toContain(", someone can read your email.");
+    expect(text).toContain(
+      "a new OneUptime password alone does not stop them asking for another link.",
+    );
+  });
+
+  it("has the mailbox secured before the password is reset, since a reset ends the wait for anyone who can ask for a new link", () => {
+    const text: string = textOf(render(vars));
+
+    const secure: number = text.indexOf(
+      "First, change your email account's password and remove any forwarding you did not set up",
+    );
+    const reset: number = text.indexOf(
+      "Then reset your OneUptime password: any link already sent stops working, and the wait ends for you.",
+    );
+
+    expect(secure).toBeGreaterThan(-1);
+    expect(reset).toBeGreaterThan(secure);
+  });
+
+  it("its one button still resets the password, and comes after what to do first", () => {
+    const text: string = textOf(render(vars));
+
+    expect(text.indexOf("Reset your password")).toBeGreaterThan(
+      text.indexOf("Then reset your OneUptime password"),
+    );
+  });
+
+  it("names the product the way the installation goes by, as text", () => {
+    const html: string = render({ ...vars, brandProductName: "Acme & Co" });
+
+    expect(html).toContain("for your Acme &amp; Co account");
+    expect(html).toContain("a new Acme &amp; Co password alone");
+    expect(html).toContain("Then reset your Acme &amp; Co password");
+    expect(html).not.toContain("OneUptime password");
+  });
+
+  it("its values are written as text here too", () => {
+    const html: string = render({
+      ...vars,
+      wrongCodeCount: "<img src=x onerror=alert(1)>",
+    });
+
+    expect(html).not.toContain("<img src=x");
+  });
 });
 
 describe("where the codes came from", () => {
@@ -275,6 +412,7 @@ describe("where the codes came from", () => {
     await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: account("owner@example.com"),
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
       origin: {
         ipAddress: "203.0.113.7",
         location: "Berlin, Germany",
@@ -293,6 +431,7 @@ describe("where the codes came from", () => {
     await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: account("owner@example.com"),
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
       origin: { ipAddress: "203.0.113.7" },
     });
 
@@ -303,6 +442,7 @@ describe("where the codes came from", () => {
     await AuthenticationEmail.sendTwoFactorWrongCodesEmail({
       user: account("owner@example.com"),
       wrongCodesInARow: 5,
+      isMagicLinkSignIn: false,
     });
 
     const vars: Record<string, string> = sentMails()[0]!.vars;

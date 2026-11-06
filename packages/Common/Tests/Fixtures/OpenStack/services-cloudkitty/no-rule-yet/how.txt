@@ -1,0 +1,2 @@
+Instances rated with no rule enabled.
+On its own: an instance in each of two projects, polled by Ceilometer, with no rating rule enabled. The summary's rows and those above 0: 2 0.

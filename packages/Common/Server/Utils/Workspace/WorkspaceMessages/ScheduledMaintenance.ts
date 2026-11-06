@@ -66,6 +66,14 @@ export default class ScheduledMaintenanceWorkspaceMessages {
         },
       );
 
+    const mattermostBlocks: WorkspaceMessageBlock[] =
+      await SlackScheduledMaintenanceMessages.getScheduledMaintenanceCreateMessageBlocks(
+        {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+          projectId: projectId!,
+        },
+      );
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -74,6 +82,10 @@ export default class ScheduledMaintenanceWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        messageBlocks: mattermostBlocks,
       },
     ];
   }

@@ -18,6 +18,7 @@ import UserSMS from "./UserSMS";
 import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
+import UserMattermost from "./UserMattermost";
 import UserWebhook from "./UserWebhook";
 import CustomNotificationChannel from "./CustomNotificationChannel";
 import UserWhatsApp from "./UserWhatsApp";
@@ -1185,6 +1186,54 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userMicrosoftTeamsId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userMattermostId",
+    type: TableColumnType.Entity,
+    modelType: UserMattermost,
+    title: "User Mattermost",
+    description:
+      "Relation to User Mattermost Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserMattermost;
+    },
+    {
+      eager: false,
+      nullable: true,
+      // The history stays when the rule or method it went through is removed.
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userMattermostId" })
+  public userMattermost?: UserMattermost = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Mattermost ID",
+    description: "ID of User Mattermost in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userMattermostId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -303,7 +303,7 @@ service:
 - `delay` wartet, bis CloudWatch einen Zeitraum veröffentlicht (das dauert einige Minuten), deshalb treffen die Broker-Metriken einer Warteschlange mit dieser Konfiguration 11 bis 17 Minuten verspätet ein: Ein Monitor darüber braucht ein längeres Fenster (siehe **Verspätete Metriken** unter [Warnungen](#warnungen)).
 - Ein Receiver liest eine Region und einen Namespace: Fügen Sie pro Region eine Instanz hinzu.
 
-**Streaming** sendet die Metriken, sobald CloudWatch sie veröffentlicht. Legen Sie für die Namespaces `AWS/SQS` (und `AWS/SNS`) einen CloudWatch Metric Stream mit dem Ausgabeformat **OpenTelemetry 1.0** an, der an einen Amazon-Data-Firehose-Stream liefert, dessen Ziel ein HTTP-Endpunkt ist: Ihr Collector, mit einem Zugriffsschlüssel. Firehose liefert nur an `https://` auf Port 443, deshalb braucht der Collector ein Zertifikat und einen öffentlichen Port 443 (zum Beispiel hinter einem Load Balancer):
+**Streamt** – sendet die Metriken, sobald CloudWatch sie veröffentlicht. Legen Sie für die Namespaces `AWS/SQS` (und `AWS/SNS`) einen CloudWatch Metric Stream mit dem Ausgabeformat **OpenTelemetry 1.0** an, der an einen Amazon-Data-Firehose-Stream liefert, dessen Ziel ein HTTP-Endpunkt ist: Ihr Collector, mit einem Zugriffsschlüssel. Firehose liefert nur an `https://` auf Port 443, deshalb braucht der Collector ein Zertifikat und einen öffentlichen Port 443 (zum Beispiel hinter einem Load Balancer):
 
 ```yaml
 extensions:

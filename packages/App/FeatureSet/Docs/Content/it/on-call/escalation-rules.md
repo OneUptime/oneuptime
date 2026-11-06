@@ -221,7 +221,7 @@ Ogni avviso si può escalare da dove ti ha raggiunto:
 | --- | --- |
 | E-mail | Il pulsante **Escalate**, poi **Escalate** nella pagina che apre |
 | SMS e WhatsApp | Il link nel messaggio apre la pagina di conferma, che ha anche **Escalate** |
-| Telegram, Slack e Microsoft Teams | Il link "Can't take it? Escalate", poi **Escalate** nella pagina che apre |
+| Telegram, Slack, Microsoft Teams e Mattermost | Il link "Can't take it? Escalate", poi **Escalate** nella pagina che apre |
 | Telefonata | Premi 2. La telefonata poi dice che cosa è successo |
 | Notifica push | Toccala: l'incidente, l'avviso o l'episodio si apre nell'app OneUptime On-Call, con **Escalate** sotto |
 | OneUptime | **Escala** in cima all'incidente, all'avviso o all'episodio, dopo i suoi pulsanti di stato |

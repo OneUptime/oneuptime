@@ -31,7 +31,7 @@ flowchart LR
 | Seção | Páginas | Onde ler mais |
 | --- | --- | --- |
 | **Básico** | **Projeto**, **Rótulos** | [Os detalhes do projeto](#os-detalhes-do-projeto), [Rótulos](#rótulos) |
-| **Espaço de trabalho** | **Slack**, **Microsoft Teams**, **Videochamadas** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videochamadas](/docs/workspace-connections/video-calls) |
+| **Espaço de trabalho** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochamadas** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochamadas](/docs/workspace-connections/video-calls) |
 | **Telemetria e APM** | **Chaves de ingestão**, **Retenção de dados** | [Chaves de ingestão](/docs/telemetry/ingestion-keys), [Retenção de dados](/docs/telemetry/data-retention) |
 | **Notificações** | **Configurações de notificação**, **Logs de notificação**, **Aplicativos móveis** | [Notificações](#notificações) |
 | **IA** | **Recursos de IA**, **Provedores LLM**, **Servidores MCP externos**, **Créditos de IA**, **Registros de IA**, **Servidor MCP** | [Provedores de LLM](/docs/ai/llm-provider), [Servidores MCP externos](/docs/ai/external-mcp-servers), [Servidor MCP](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#controle-de-custos) |

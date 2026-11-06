@@ -211,7 +211,7 @@ Le Database Agent de OneUptime est un OpenTelemetry Collector préconfiguré pou
 
 **Un agent surveille un serveur de base de données.** L'identité est apposée sur tout ce qu'envoie l'agent ; exécutez donc un agent — un répertoire d'installation — par serveur, et un par réplique si vous voulez les répliques sur leurs propres pages.
 
-L'agent se trouve dans le [répertoire DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) : `docker-compose.yml`, une configuration de collecteur par récepteur (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` et une unité systemd. Un fork ou un remplaçant compatible exécute la configuration de sa famille et indique son propre nom : `DATABASE_SYSTEM=mariadb` exécute `configs/mysql.yaml`, et la base de données s'affiche comme MariaDB.
+L'agent se trouve dans le [répertoire DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) : `docker-compose.yml`, une configuration de collecteur par récepteur (`configs/postgresql.yaml`, `configs/mysql.yaml`, `configs/sqlserver.yaml`, `configs/oracledb.yaml`, `configs/redis.yaml`, `configs/mongodb.yaml`, `configs/elasticsearch.yaml`, `configs/memcached.yaml`), `install.sh`, `troubleshoot.sh` et une unité systemd. Un fork ou un remplaçant compatible exécute la configuration de sa famille et indique son propre nom : `DATABASE_SYSTEM=mariadb` exécute `configs/mysql.yaml`, et la base de données s'affiche comme MariaDB.
 
 ### Avant de commencer
 
@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -378,6 +379,7 @@ Après la première collecte, la base de données apparaît sous **Bases de donn
 | `DATABASE_TLS_INSECURE` | Non | `true` (par défaut) se connecte sans TLS ; `false` active TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | Non | `true` accepte un certificat auquel l'image du collecteur ne fait pas confiance (auto-signé, AC privée). Vaut `false` par défaut |
 | `DATABASE_TLS_SSLMODE` | Non | PostgreSQL : les deux réglages ci-dessus traduits en `sslmode` de libpq, pour les vérifications SQL propres à la configuration — `disable` tant que `DATABASE_TLS_INSECURE` vaut `true`, `require` quand `DATABASE_TLS_INSECURE_SKIP_VERIFY` vaut `true`, `verify-full` sinon. `install.sh` l'écrit. Vaut `disable` par défaut |
+| `DATABASE_TLS_MYSQL` | Non | MySQL et MariaDB : les deux mêmes réglages que le `tls` du pilote, pour les lectures de Galera propres à la configuration — `false` tant que `DATABASE_TLS_INSECURE` vaut `true`, `skip-verify` quand `DATABASE_TLS_INSECURE_SKIP_VERIFY` vaut `true`, `true` sinon. `install.sh` le détermine ; définissez-le vous-même dans un manifeste. Vaut `false` par défaut |
 | `DATABASE_COLLECTION_INTERVAL` | Non | La fréquence de lecture des statistiques du moteur. Vaut `30s` par défaut |
 | `DATABASE_QUERY_EVENTS` | Non | `true` envoie les échantillons de requêtes et les requêtes principales sous forme de journaux (PostgreSQL, MySQL, MongoDB, SQL Server et Oracle). Ils contiennent le texte des requêtes. Vaut `false` par défaut |
 | `DATABASE_SERVER_ID` | Non | L'identifiant d'une base de données que OneUptime affiche déjà (son onglet **Documentation** le fournit, prérempli). Les données rejoignent alors directement cette base et s'affichent sur ses pages, quelle que soit l'adresse qu'elles indiquent (ou aucune) — la solution dans Kubernetes et pour les IP privées. Ce doit être une base de données du projet auquel appartient la clé d'ingestion |
@@ -398,6 +400,8 @@ Après la première collecte, la base de données apparaît sous **Bases de donn
 La feature gate `postgresqlreceiver.preciselagmetrics` du récepteur PostgreSQL, activée par défaut, enregistre le retard de réplication en temps sous `postgresql.wal.delay` plutôt que `postgresql.wal.lag`, et cette métrique est désactivée en amont — c'est pourquoi l'agent l'active. Chaque configuration liste d'autres métriques facultatives dans un commentaire ; activez-les de la même façon. La section **Métriques du moteur** de la vue d'ensemble d'une base de données trace une sélection choisie pour chaque moteur de ce tableau — pour Elasticsearch / OpenSearch la santé du cluster, les nœuds, les shards non attribués, les tâches en attente, le tas JVM, le disque libre, les recherches et l'indexation ; pour Memcached les connexions, la mémoire, les éléments, les succès et échecs de get, les commandes et les évictions —, et l'onglet **Métriques** a tout. Là, une métrique que trace la vue d'ensemble affiche la valeur de la vue d'ensemble — ses séries combinées de la même façon, un compteur sous forme de taux par seconde — avec une légende qui dit comment (_total des séries_, _par seconde, toutes les séries_) ; toute autre ligne affiche la moyenne de ses séries, comme le fait chaque ligne pendant que vous filtrez la liste par un attribut. MariaDB indique `mysql.buffer_pool.limit` comme le nombre de pages du buffer pool plutôt que les octets que déclare le récepteur ; sur une base MariaDB, cette ligne et son graphique se lisent donc en pages. MariaDB n'a pas de compteurs d'état `Innodb_rows_*` ; le récepteur n'envoie donc pas de `mysql.row_operations` pour elle, et la vue d'ensemble d'une base MariaDB n'a pas de graphique **Opérations sur les lignes** ; **Opérations du handler** montre ses lectures et écritures de lignes.
 
 La configuration PostgreSQL pose aussi elle-même quatre questions au serveur, avec le récepteur `sqlquery` du collecteur au même intervalle : depuis combien de temps il tourne (`postgresql.uptime`, d'après `pg_postmaster_start_time()`), l'âge de son plus ancien identifiant de transaction (`postgresql.xid.oldest_age`, le plus grand `age(datfrozenxid)` de `pg_database`), depuis combien de temps sa plus ancienne transaction est ouverte (`postgresql.transaction.longest_duration`) et combien de sessions attendent un verrou (`postgresql.sessions.waiting_on_lock`), ces deux dernières d'après `pg_stat_activity`. Le récepteur `postgresql` ne remonte aucune de ces valeurs, et ce sont elles qui révèlent un redémarrage, une transaction laissée ouverte, une file d'attente de verrous et l'approche du bouclage des identifiants de transaction : PostgreSQL cesse d'accepter les écritures vers un âge de 2,1 milliards, sa santé mérite donc un coup d'œil dès 1 milliard et devient critique dès 1,5 milliard. `pg_monitor` les couvre. La requête se connecte avec `DATABASE_TLS_SSLMODE` et ne peut pas se connecter avec un mot de passe qui contient une espace (elle l'envoie comme `+`), ce dont `install.sh` avertit. Avec votre propre collecteur, copiez le récepteur `sqlquery/oneuptime` de `configs/postgresql.yaml` dans son pipeline `metrics`.
+
+La configuration MySQL lit aussi la position d'un serveur dans un cluster Galera, avec le même récepteur `sqlquery` au même intervalle, car le récepteur `mysql` n'en signale rien : le nombre de nœuds du cluster (`mysql.wsrep.cluster_size`), l'état de ce nœud (`mysql.wsrep.local_state`, où 4 signifie Synced), le nombre de fois où on lui a demandé de se désynchroniser volontairement (`mysql.wsrep.desync_count`), la part de la réplication mise en pause pour lui (`mysql.wsrep.flow_control_paused`) et le nombre de writesets en attente d'application (`mysql.wsrep.local_recv_queue`). Elle ne nécessite rien de plus que l'identifiant de connexion ci-dessus, car elle lit `SHOW GLOBAL STATUS`, et elle se connecte comme l'indique `DATABASE_TLS_MYSQL`. Un serveur hors de tout cluster n'envoie rien de cela, et rien n'indique qu'il va mal. **Galera Node Out of Sync** lit ces valeurs, et un nœud que quelqu'un a retiré pour une sauvegarde avec `wsrep_desync` ne le déclenche pas.
 
 La **Version** de la base de données vient du récepteur quand il en indique une : `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) et `elasticsearch.node.version` (Elasticsearch / OpenSearch). Les récepteurs PostgreSQL, SQL Server et Memcached n'en indiquent aucune ; sous l'agent seul, ces bases n'affichent donc pas de version, et une base qui s'exécute aussi dans Kubernetes, Docker ou Podman affiche celle de son image de conteneur.
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ Les seuils sont ceux des [moniteurs recommandés](#moniteurs-recommandés) eux-m
 | Moteur | Défaillant | Dégradé |
 | --- | --- | --- |
 | PostgreSQL | Connexions à 95 % de `max_connections` ; identifiants de transaction proches du bouclage | Connexions à 80 % de `max_connections` ; identifiants de transaction qui vieillissent vers le bouclage ; un réplica en retard de 30 secondes sur le rejeu ; un réplica en retard de 1 Go de WAL ; un redémarrage ; une transaction ouverte depuis une heure ; une session qui attend un verrou ; une base de données de 500 Go ou plus |
-| MySQL / MariaDB | — | 136 connexions ; 50 threads en cours d'exécution ; 75 % du buffer pool modifié ; un réplica en retard de 30 secondes ; un redémarrage |
+| MySQL / MariaDB | — | 136 connexions ; 50 threads en cours d'exécution ; 75 % du buffer pool modifié ; un réplica en retard de 30 secondes ; un redémarrage ; un nœud Galera désynchronisé sans que personne ne l'ait demandé |
 | SQL Server | — | Un taux de réussite du cache de tampons inférieur à 90 % ; une espérance de vie des pages inférieure à 300 secondes ; une session bloquée ; une requête qui attend de la mémoire |
 | Oracle | Un tablespace plein à 90 % | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | Mémoire à 90 % de `maxmemory` ; un ratio de fragmentation de 1,5 avec 256 Mo utilisés ; 9 000 clients ; un redémarrage |

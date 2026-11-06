@@ -1970,12 +1970,19 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(adminText("pages.settings.authentication.signUpSwitchTitle")).toBe(
       "Let people sign up",
     );
+    expect(readSource("adminAuthentication")).toContain(
+      't("pages.settings.authentication.magicLinkSwitchTitle")',
+    );
+    expect(
+      adminText("pages.settings.authentication.magicLinkSwitchTitle"),
+    ).toBe("Let people sign in with an emailed link");
     expect(readSource("adminProbes")).toContain('t("common.disconnected")');
     expect(adminText("common.disconnected")).toBe("Disconnected");
 
     for (const words of [
       "**Settings > Authentication**",
       "**Let people sign up**",
+      "**Let people sign in with an emailed link**",
       "**Settings > Notifications > Emails**",
       "**Settings > Monitoring > Global Probes**",
     ]) {
@@ -2112,7 +2119,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
       "Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example).",
     );
     expect(page).toContain(
-      "https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md",
+      "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md",
     );
   });
 
@@ -2190,7 +2197,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
         exists: sourceExists(`HelmChart/Docs/${guide}`),
       }).toEqual({ guide, exists: true });
       expect(page).toContain(
-        `https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/${guide}`,
+        `https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/${guide}`,
       );
     }
   });

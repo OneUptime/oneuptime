@@ -10,6 +10,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
@@ -30,6 +31,7 @@ import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
@@ -75,6 +77,7 @@ export interface SeriesLinkableModel {
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   services?: Array<Service> | undefined;
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
@@ -96,6 +99,7 @@ export interface SeriesResolvedResourceIds {
   kubernetesClusterIds: Array<string>;
   serviceIds: Array<string>;
   proxmoxClusterIds: Array<string>;
+  openStackCloudIds: Array<string>;
   vmwareVCenterIds: Array<string>;
   cephClusterIds: Array<string>;
   dockerSwarmClusterIds: Array<string>;
@@ -250,6 +254,12 @@ export default class SeriesResourceLinker {
       },
       {
         ids: [],
+        names: refs.openStackCloudNames,
+        nameColumn: "name",
+        findBy: OpenStackCloudService.findBy.bind(OpenStackCloudService),
+      },
+      {
+        ids: [],
         names: refs.vmwareVCenterNames,
         nameColumn: "name",
         findBy: VMwareVCenterService.findBy.bind(VMwareVCenterService),
@@ -334,6 +344,7 @@ export default class SeriesResourceLinker {
       kubernetesClusterIds,
       serviceIds,
       proxmoxClusterIds,
+      openStackCloudIds,
       vmwareVCenterIds,
       cephClusterIds,
       dockerSwarmClusterIds,
@@ -362,6 +373,7 @@ export default class SeriesResourceLinker {
       kubernetesClusterIds: kubernetesClusterIds || [],
       serviceIds: serviceIds || [],
       proxmoxClusterIds: proxmoxClusterIds || [],
+      openStackCloudIds: openStackCloudIds || [],
       vmwareVCenterIds: vmwareVCenterIds || [],
       cephClusterIds: cephClusterIds || [],
       dockerSwarmClusterIds: dockerSwarmClusterIds || [],
@@ -540,6 +552,16 @@ export default class SeriesResourceLinker {
         resolved.proxmoxClusterIds,
         (): ProxmoxCluster => {
           return new ProxmoxCluster();
+        },
+      );
+    }
+
+    if (resolved.openStackCloudIds.length > 0) {
+      model.openStackClouds = this.mergeById(
+        model.openStackClouds,
+        resolved.openStackCloudIds,
+        (): OpenStackCloud => {
+          return new OpenStackCloud();
         },
       );
     }

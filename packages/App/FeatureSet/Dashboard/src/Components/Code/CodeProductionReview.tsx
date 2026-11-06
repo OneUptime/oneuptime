@@ -34,6 +34,8 @@ import {
   ProductionReviewDataImpactJSON,
   ProductionReviewDataProductJSON,
   ProductionReviewDataServiceJSON,
+  ProductionReviewDataStagingCheckJSON,
+  ProductionReviewDataStagingJSON,
   ProductionReviewDataTableJSON,
   ProductionReviewDeployJSON,
   ProductionReviewExceptionJSON,
@@ -328,6 +330,74 @@ const RowName: FunctionComponent<{
     >
       {props.children}
     </Link>
+  );
+};
+
+// How a changed table's copy on staging differs, with what its checks read there.
+const ProductionReviewStaging: FunctionComponent<{
+  staging: ProductionReviewDataStagingJSON;
+}> = (props: { staging: ProductionReviewDataStagingJSON }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const { staging } = props;
+
+  return (
+    <div className="mt-2 space-y-1 text-xs text-gray-600">
+      <div className="font-medium">
+        {translator.translateTemplate("On staging ({{store}})", {
+          store: staging.storeName,
+        })}
+      </div>
+      {staging.stagingRows !== null && staging.productionRows !== null ? (
+        <div>
+          {translator.translateTemplate(
+            "{{staging}} rows there, {{production}} in production",
+            {
+              staging: translator.formatNumber(staging.stagingRows),
+              production: translator.formatNumber(staging.productionRows),
+            },
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+      {staging.columnDifferences.map((difference: string): ReactElement => {
+        return <div key={difference}>{difference}</div>;
+      })}
+      {staging.checks.map(
+        (check: ProductionReviewDataStagingCheckJSON): ReactElement => {
+          return (
+            <div key={check.name}>
+              <span className="font-medium">{check.name}</span>
+              {": "}
+              {check.error
+                ? check.error
+                : translator.translateTemplate(
+                    "{{staging}} there, {{production}} in production",
+                    {
+                      staging:
+                        check.staging === null
+                          ? "-"
+                          : translator.formatNumber(check.staging),
+                      production:
+                        check.production === null
+                          ? "-"
+                          : translator.formatNumber(check.production),
+                    },
+                  )}
+            </div>
+          );
+        },
+      )}
+      {staging.areChecksRun ? (
+        <></>
+      ) : (
+        <div>
+          {translator.translateText(
+            "Its checks were not run, as only a probe can reach it.",
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -1100,6 +1170,11 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                       },
                     )}
                   </div>
+                ) : (
+                  <></>
+                )}
+                {impact.staging ? (
+                  <ProductionReviewStaging staging={impact.staging} />
                 ) : (
                   <></>
                 )}

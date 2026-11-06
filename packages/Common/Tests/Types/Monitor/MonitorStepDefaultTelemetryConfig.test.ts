@@ -122,6 +122,7 @@ describe("MonitorStep.getDefaultMonitorStep telemetry sub-config seeding", () =>
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.OpenStack,
       MonitorType.VMware,
       MonitorType.Ceph,
       MonitorType.StorageArray,

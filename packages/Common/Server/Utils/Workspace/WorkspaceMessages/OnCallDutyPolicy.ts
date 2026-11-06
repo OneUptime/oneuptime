@@ -63,6 +63,14 @@ export default class OnCallDutyPolicyWorkspaceMessages {
         },
       );
 
+    const mattermostBlocks: WorkspaceMessageBlock[] =
+      await SlackOnCallDutyPolicyMessages.getOnCallDutyPolicyCreateMessageBlocks(
+        {
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId!,
+        },
+      );
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -71,6 +79,10 @@ export default class OnCallDutyPolicyWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        messageBlocks: mattermostBlocks,
       },
     ];
   }

@@ -27,7 +27,7 @@ flowchart TB
 
 | Página | Lo que contiene | La pregunta que responde |
 | --- | --- | --- |
-| **Métodos de notificación** | Tus direcciones de correo, números de teléfono, números de WhatsApp, cuentas de Telegram, Slack y Microsoft Teams, dispositivos push y webhooks | ¿Dónde puede contactarme OneUptime? |
+| **Métodos de notificación** | Tus direcciones de correo, números de teléfono, números de WhatsApp, cuentas de Telegram, Slack, Microsoft Teams y Mattermost, dispositivos push y webhooks | ¿Dónde puede contactarme OneUptime? |
 | **Reglas de guardia** | Para cada tipo de aviso y cada gravedad, qué método probar y después de cuánto tiempo | ¿Cómo me avisan mientras estoy de guardia? |
 | **Ajustes de notificaciones** | Para cada evento sobre un registro que es tuyo o sobre tus turnos, qué canales usar | ¿De qué más me entero, y dónde? |
 
@@ -48,9 +48,9 @@ Abre **Ajustes de usuario**, a la derecha de la barra que está debajo de la bar
 | **Política de llamadas entrantes** | **Números de teléfono entrantes**: el número al que te llama una política de llamadas entrantes |
 | **Calendario** | **Feed de calendario**: tus turnos en tu aplicación de calendario, y recordatorios antes de que empiecen |
 | **Perfil** | **Campos personalizados**: datos que tu proyecto pide a sus miembros |
-| **Espacio de trabajo** | **Slack** y **Microsoft Teams**: tu propia cuenta, en cada espacio de trabajo que el proyecto ha conectado |
+| **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**: tu propia cuenta, en cada espacio de trabajo que el proyecto ha conectado |
 
-**Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack o Microsoft Teams.
+**Primeros pasos** y **Alertas y notificaciones** están abiertas; las demás secciones empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Espacio de trabajo** solo aparece si el proyecto ha conectado Slack, Microsoft Teams o Mattermost.
 
 Los propietarios y administradores del proyecto también pueden ver tu configuración: en **Usuarios**, abren tu fila y su sección **De guardia**, con **Preparación**, **Métodos de notificación** y **Reglas de guardia**. Pueden añadir un método por ti allí, pero el código va al propio método, así que solo tú puedes verificarlo.
 
@@ -90,7 +90,7 @@ Cada método que verifiques después recibe las mismas reglas: una regla para ca
 
 Un aviso puede llegarte para un tipo y una gravedad para los que no tienes regla: por ejemplo, una gravedad añadida después de que te unieras. OneUptime te avisa igualmente, por lo que tienes verificado:
 
-1. Cada método gratuito que tengas: dispositivos push, direcciones de correo, Slack y Microsoft Teams.
+1. Cada método gratuito que tengas: dispositivos push, direcciones de correo, Slack, Microsoft Teams y Mattermost.
 2. Si no tienes ninguno, un método de pago, en este orden: SMS, una llamada, WhatsApp, Telegram. Es el primero que tengas verificado, en un canal que el proyecto ha activado.
 3. Si tampoco tienes ninguno de esos, un webhook.
 

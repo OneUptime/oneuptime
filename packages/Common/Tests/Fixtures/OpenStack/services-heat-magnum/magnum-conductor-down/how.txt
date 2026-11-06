@@ -1,0 +1,2 @@
+Magnum's conductor stopped.
+On its own: the conductor is stopped, and Magnum's API says so once its heartbeat is old enough.

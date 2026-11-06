@@ -13,6 +13,8 @@ Klikk på en mal for å se hva den gjør: triggeren, blokkene den består av, og
 
 Arbeidsflyter opprettes avslått, så triggeren deres starter dem ikke før du slår dem på. En ny arbeidsflyt åpnes i **Bygger**, lerretet der du designer den.
 
+Du kan også beskrive en arbeidsflyt for Ask AI og la den bygge den for deg. Den finner utløseren og trinnene, setter dem opp og kobler dem sammen, og ber deg godkjenne arbeidsflyten før den lagres. En ny arbeidsflyt starter avslått: les den i Builder, fyll inn passord, tokener eller webhook-URL-er den har latt stå til deg, for Ask AI spør aldri om dem i samtalen, og slå den deretter på selv. Ask AI kan endre en arbeidsflyt på samme måte. På en arbeidsflyts side betyr «denne arbeidsflyten» akkurat den. Den lagrer som deg, så den kan bare gjøre det du kan gjøre i Builder, og Builder viser endringene så snart de er lagret.
+
 ## Lerretet
 
 En arbeidsflyt fra bunnen åpnes med én enkelt stiplet blokk med teksten **Velg hva som starter denne arbeidsflyten**. Den blokken er utgangspunktet — klikk på den for å velge en trigger. En arbeidsflyt som er opprettet fra en mal, åpnes med blokkene allerede på plass.

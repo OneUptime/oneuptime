@@ -99,6 +99,7 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Itens do inventário | `Inventory Item` |
 | Configurações do coletor | `Collector Config` |
 | vCenters | `vCenter` |
+| Nuvens OpenStack, e as verificações executadas nelas | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Capturas de pacotes, e os downloads delas | `Packet Capture` |
 | Casos de segurança e as suas prioridades e status, playbooks e as suas execuções, entidades protegidas, criticidade de entidades, e o risco de uma entidade quando alguém o redefine | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Exceções de regra | `Rule Exception` |
@@ -107,6 +108,7 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Caçadas | `Hunt` |
 | Tarefas e evidências dos casos de segurança | `Security Case Task`, `Security Case Evidence` |
 | Repositórios de dados e as suas descobertas, e os problemas, as configurações, as configurações das verificações, os tipos de dados personalizados e as regras de residência da Segurança de dados | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Configurações de Observabilidade de dados | `Data Observability Setting` |
 | Exportações do registro de auditoria | `Audit Log Export` |
 
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.

@@ -6,6 +6,19 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
+import DataCheck from "../../../Models/DatabaseModels/DataCheck";
+import DataStore from "../../../Models/DatabaseModels/DataStore";
+import { DataCheckAttribute } from "../../../Types/DataObservability/DataCheckMetric";
+import { DataObservabilityAttribute } from "../../../Types/DataObservability/DataObservabilityMetric";
+import { JSONObject } from "../../../Types/JSON";
+import MonitorStepOpenStackMonitor from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import {
+  OpenStackMaintainedCloud,
+  isOpenStackSeriesOnMaintainedPart,
+} from "../../../Types/OpenStack/OpenStackMaintenancePart";
+import DataCheckService from "../../Services/DataCheckService";
+import DataStoreService from "../../Services/DataStoreService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -17,6 +30,7 @@ import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "./SeriesResourceLabels";
 import { SeriesResolvedResourceIds } from "./SeriesResourceLinker";
+import OpenStackMaintenanceParts from "../OpenStack/OpenStackMaintenanceParts";
 
 /*
  * Ids and names of one resource type that are currently inside an
@@ -40,6 +54,16 @@ export interface MaintainedResourceKeys {
    * the name set is ever matched; the id set exists for shape parity.
    */
   proxmoxClusters: ResourceKeySet;
+  /*
+   * The OpenStack clouds under maintenance as a whole. An event that names some of a cloud's parts is
+   * about those parts and not the cloud: see openStackParts.
+   */
+  openStackClouds: ResourceKeySet;
+  /*
+   * The hosts and zones of a cloud under maintenance, which only a monitor of that cloud can ask about,
+   * because a series names its machine and not its cloud.
+   */
+  openStackParts?: Array<OpenStackMaintainedCloud> | undefined;
   /*
    * vCenters, like Proxmox/Ceph clusters, have no `oneuptime.*.id`
    * label stamp (the VMware Agent stamps `vmware.vcenter.name` only),
@@ -68,6 +92,11 @@ export interface MaintainedResourceKeys {
    */
   iotFleets: ResourceKeySet;
   services: ResourceKeySet;
+  /*
+   * The stores Data Observability watches: named on the event, or on a
+   * database server that is itself under maintenance. Ids only.
+   */
+  dataStoreIds?: Set<string> | undefined;
   /*
    * Databases are the reverse of the name-only clusters above: a series
    * identifies one only by the `oneuptime.database.server.id` stamp (see
@@ -107,6 +136,11 @@ export interface MonitorMaintenanceSuppressionResult {
    * Absent (none) on a result built before cloud resources could be held.
    */
   suppressingCloudResourceIds?: Array<string> | undefined;
+  /*
+   * The stores under maintenance that silence a monitor of Data Observability:
+   * every store it watches is one. Empty for any other monitor.
+   */
+  suppressingDataStoreIds?: Array<string> | undefined;
 }
 
 // The resources that silence a monitor whole, by kind (getSuppressingResourceIds).
@@ -219,8 +253,9 @@ export default class MonitorMaintenanceSuppression {
     const namesHeldKind: boolean = this.monitorNamesSilenceableResource(
       input.monitor,
     );
+    const watchesData: boolean = this.monitorWatchesData(input.monitor);
 
-    if (!hasSeries && !namesHeldKind) {
+    if (!hasSeries && !namesHeldKind && !watchesData) {
       return result;
     }
 
@@ -237,6 +272,25 @@ export default class MonitorMaintenanceSuppression {
           matchesPerSeries: input.matchesPerSeries || [],
           maintained,
         });
+
+      for (const fingerprint of this.getOpenStackSuppressedFingerprints({
+        monitor: input.monitor,
+        matchesPerSeries: input.matchesPerSeries || [],
+        maintained,
+      })) {
+        result.suppressedSeriesFingerprints.add(fingerprint);
+      }
+    }
+
+    if (watchesData && maintained.dataStoreIds?.size) {
+      const stores: Array<string> = await this.readDataStoresOfMonitor(
+        input.monitor,
+      );
+
+      result.suppressingDataStoreIds = this.getSuppressingDataStoreIds({
+        stores,
+        maintained,
+      });
     }
 
     if (
@@ -277,7 +331,8 @@ export default class MonitorMaintenanceSuppression {
   ): boolean {
     return (
       result.suppressingDatabaseServerIds.length > 0 ||
-      (result.suppressingCloudResourceIds || []).length > 0
+      (result.suppressingCloudResourceIds || []).length > 0 ||
+      (result.suppressingDataStoreIds || []).length > 0
     );
   }
 
@@ -329,6 +384,7 @@ export default class MonitorMaintenanceSuppression {
       },
       { ids: resolved.serviceIds, keys: maintained.services },
       { ids: resolved.proxmoxClusterIds, keys: maintained.proxmoxClusters },
+      { ids: resolved.openStackCloudIds, keys: maintained.openStackClouds },
       { ids: resolved.vmwareVCenterIds, keys: maintained.vmwareVCenters },
       { ids: resolved.cephClusterIds, keys: maintained.cephClusters },
       { ids: resolved.storageArrayIds, keys: maintained.storageArrays },
@@ -353,6 +409,23 @@ export default class MonitorMaintenanceSuppression {
       databaseServerIds: [...resolved.databaseServerIds],
       cloudResourceIds: [...resolved.cloudResourceIds],
     };
+  }
+
+  /*
+   * The whole-monitor decision for a monitor of Data Observability: the stores
+   * it watches, when it watches at least one and every one is under an ongoing
+   * maintenance window. Pure, so it can be tested without a database.
+   */
+  public static getSuppressingDataStoreIds(input: {
+    stores: Array<string>;
+    maintained: Pick<MaintainedResourceKeys, "dataStoreIds">;
+  }): Array<string> {
+    return input.stores.length > 0 &&
+      input.stores.every((id: string): boolean => {
+        return Boolean(input.maintained.dataStoreIds?.has(id));
+      })
+      ? input.stores
+      : [];
   }
 
   /*
@@ -411,8 +484,11 @@ export default class MonitorMaintenanceSuppression {
     const parts: Array<string> = [];
     const cloudResourceIds: Array<string> =
       suppression.suppressingCloudResourceIds || [];
-    const databaseServerIds: Array<string> =
-      suppression.suppressingDatabaseServerIds;
+    // A store Data Observability watches is said as a database, as it is drawn.
+    const databaseServerIds: Array<string> = [
+      ...suppression.suppressingDatabaseServerIds,
+      ...(suppression.suppressingDataStoreIds || []),
+    ];
 
     if (cloudResourceIds.length > 0) {
       parts.push(
@@ -464,6 +540,200 @@ export default class MonitorMaintenanceSuppression {
   }
 
   /*
+   * Whether a monitor reads Data Observability's metrics: scoped by a store, as
+   * its recommended alerts are, or by a data check. Query-free, as above.
+   */
+  private static monitorWatchesData(monitor: Monitor): boolean {
+    try {
+      const filters: JSONObject =
+        MonitorStepResourceIdentity.getMetricFilterAttributes(monitor);
+
+      return Boolean(
+        filters[DataObservabilityAttribute.DataStoreId] ||
+          filters[DataCheckAttribute.CheckId],
+      );
+    } catch (err) {
+      logger.error(
+        `Failed to read the data stores monitor ${monitor.id?.toString()} watches for maintenance suppression: ${err}`,
+      );
+      return false;
+    }
+  }
+
+  /*
+   * The stores a monitor of Data Observability watches: the one it is scoped by,
+   * or the one its data check reads. Asked only while a store is under
+   * maintenance, and a failed read silences nothing.
+   */
+  private static async readDataStoresOfMonitor(
+    monitor: Monitor,
+  ): Promise<Array<string>> {
+    try {
+      const filters: JSONObject =
+        MonitorStepResourceIdentity.getMetricFilterAttributes(monitor);
+      const stores: Array<string> = this.readFilterValues(
+        filters[DataObservabilityAttribute.DataStoreId],
+      );
+
+      if (stores.length > 0) {
+        return stores;
+      }
+
+      const checkIds: Array<string> = this.readFilterValues(
+        filters[DataCheckAttribute.CheckId],
+      );
+
+      if (checkIds.length === 0) {
+        return [];
+      }
+
+      const checks: Array<DataCheck> = await DataCheckService.findBy({
+        query: { _id: QueryHelper.any(checkIds) },
+        select: { dataStoreId: true },
+        skip: 0,
+        limit: checkIds.length,
+        props: { isRoot: true },
+      });
+
+      return Array.from(
+        new Set(
+          checks.map((check: DataCheck): string => {
+            return check.dataStoreId?.toString() || "";
+          }),
+        ),
+      ).filter(Boolean);
+    } catch (err) {
+      logger.error(
+        `Failed to read the data stores of monitor ${monitor.id?.toString()}: ${err}`,
+      );
+      return [];
+    }
+  }
+
+  private static readFilterValues(value: unknown): Array<string> {
+    const values: Array<unknown> = Array.isArray(value) ? value : [value];
+
+    return values.filter((item: unknown): item is string => {
+      return typeof item === "string" && item.length > 0;
+    });
+  }
+
+  /*
+   * The series of a monitor of an OpenStack cloud that maintenance on that cloud covers. A template
+   * groups by region, host and binary, so its series carry no cloud name for the matching below to
+   * find, and the monitor's own step says which cloud they are of: the whole of it under maintenance
+   * quiets all of them, and a host or a zone only what is on it. Pure, as the one below is.
+   */
+  public static getOpenStackSuppressedFingerprints(input: {
+    monitor: Monitor;
+    matchesPerSeries: Array<PerSeriesCriteriaMatch>;
+    maintained: Pick<
+      MaintainedResourceKeys,
+      "openStackClouds" | "openStackParts"
+    >;
+  }): Set<string> {
+    const suppressed: Set<string> = new Set<string>();
+
+    if (input.monitor.monitorType !== MonitorType.OpenStack) {
+      return suppressed;
+    }
+
+    const clouds: Array<{ name: string; id: string | undefined }> = [];
+
+    for (const step of input.monitor.monitorSteps?.data
+      ?.monitorStepsInstanceArray || []) {
+      const config: MonitorStepOpenStackMonitor | undefined =
+        step.data?.openstackMonitor;
+
+      if (config?.cloudIdentifier) {
+        clouds.push({
+          name: config.cloudIdentifier,
+          id: config.resourceId?.toString().toLowerCase(),
+        });
+      }
+    }
+
+    const isWholeCloudUnderMaintenance: boolean = clouds.some(
+      (cloud: { name: string; id: string | undefined }): boolean => {
+        return (
+          input.maintained.openStackClouds.names.has(cloud.name) ||
+          Boolean(
+            cloud.id && input.maintained.openStackClouds.ids.has(cloud.id),
+          )
+        );
+      },
+    );
+
+    const partsOfThisCloud: Array<OpenStackMaintainedCloud> = (
+      input.maintained.openStackParts || []
+    ).filter((maintainedCloud: OpenStackMaintainedCloud): boolean => {
+      return clouds.some(
+        (cloud: { name: string; id: string | undefined }): boolean => {
+          return (
+            maintainedCloud.cloudName === cloud.name ||
+            maintainedCloud.cloudId === cloud.id
+          );
+        },
+      );
+    });
+
+    for (const series of input.matchesPerSeries) {
+      if (!series.fingerprint) {
+        continue;
+      }
+
+      if (
+        isWholeCloudUnderMaintenance ||
+        partsOfThisCloud.some((cloud: OpenStackMaintainedCloud): boolean => {
+          return isOpenStackSeriesOnMaintainedPart({
+            labels: series.labels,
+            parts: cloud.parts,
+          });
+        })
+      ) {
+        suppressed.add(series.fingerprint);
+      }
+    }
+
+    return suppressed;
+  }
+
+  /*
+   * Whether a monitor of an OpenStack cloud should keep the status it has. Planned work on one host
+   * should not turn a whole region's row on a status page red: when everything a criteria that opens
+   * incidents or alerts matched is under maintenance, there is nothing to report yet. Any series
+   * outside the window speaks as it always did, and so does a criteria that says all is well. Other
+   * monitors keep the contract above: their status tracks what they read, and only creation is skipped.
+   */
+  public static isEveryBreachUnderMaintenance(input: {
+    monitor: Monitor;
+    isPerSeriesEvaluation: boolean;
+    criteriaInstance: MonitorCriteriaInstance | undefined;
+    breachingFingerprints: ReadonlySet<string>;
+    suppressedFingerprints: ReadonlySet<string>;
+  }): boolean {
+    if (
+      input.monitor.monitorType !== MonitorType.OpenStack ||
+      !input.isPerSeriesEvaluation ||
+      !(
+        input.criteriaInstance?.data?.createIncidents ||
+        input.criteriaInstance?.data?.createAlerts
+      ) ||
+      input.breachingFingerprints.size === 0
+    ) {
+      return false;
+    }
+
+    for (const fingerprint of input.breachingFingerprints) {
+      if (!input.suppressedFingerprints.has(fingerprint)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
    * Pure matching step, split out from the query so it can be unit
    * tested without a database. For each series, pull the resource
    * identifiers out of its labels and suppress the series if any of
@@ -508,6 +778,10 @@ export default class MonitorMaintenanceSuppression {
         this.intersects(
           refs.proxmoxClusterNames,
           input.maintained.proxmoxClusters.names,
+        ) ||
+        this.intersects(
+          refs.openStackCloudNames,
+          input.maintained.openStackClouds.names,
         ) ||
         this.intersects(
           refs.vmwareVCenterNames,
@@ -564,6 +838,9 @@ export default class MonitorMaintenanceSuppression {
       maintained.kubernetesClusters.names.size > 0 ||
       maintained.proxmoxClusters.ids.size > 0 ||
       maintained.proxmoxClusters.names.size > 0 ||
+      maintained.openStackClouds.ids.size > 0 ||
+      maintained.openStackClouds.names.size > 0 ||
+      Boolean(maintained.openStackParts?.length) ||
       maintained.vmwareVCenters.ids.size > 0 ||
       maintained.vmwareVCenters.names.size > 0 ||
       maintained.cephClusters.ids.size > 0 ||
@@ -577,7 +854,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.services.ids.size > 0 ||
       maintained.services.names.size > 0 ||
       maintained.databaseServers.ids.size > 0 ||
-      maintained.cloudResources.ids.size > 0
+      maintained.cloudResources.ids.size > 0 ||
+      Boolean(maintained.dataStoreIds?.size)
     );
   }
 
@@ -603,6 +881,7 @@ export default class MonitorMaintenanceSuppression {
       podmanHosts: { ids: new Set<string>(), names: new Set<string>() },
       kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
       proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
+      openStackClouds: { ids: new Set<string>(), names: new Set<string>() },
       vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
       cephClusters: { ids: new Set<string>(), names: new Set<string>() },
       storageArrays: { ids: new Set<string>(), names: new Set<string>() },
@@ -615,6 +894,8 @@ export default class MonitorMaintenanceSuppression {
       databaseServers: { ids: new Set<string>(), names: new Set<string>() },
       cloudResources: { ids: new Set<string>(), names: new Set<string>() },
     };
+
+    const dataStores: Set<string> = new Set<string>();
 
     const inProgressStateIds: Array<ObjectID> =
       await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
@@ -639,6 +920,8 @@ export default class MonitorMaintenanceSuppression {
           podmanHosts: { _id: true, hostIdentifier: true },
           kubernetesClusters: { _id: true, clusterIdentifier: true },
           proxmoxClusters: { _id: true, name: true },
+          openStackClouds: { _id: true, name: true },
+          openStackParts: true,
           vmwareVCenters: { _id: true, name: true },
           cephClusters: { _id: true, name: true },
           storageArrays: { _id: true, name: true },
@@ -647,6 +930,7 @@ export default class MonitorMaintenanceSuppression {
           services: { _id: true, name: true },
           databaseServers: { _id: true },
           cloudResources: { _id: true },
+          dataStoreIds: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -686,6 +970,25 @@ export default class MonitorMaintenanceSuppression {
           proxmoxCluster._id,
           proxmoxCluster.name,
         );
+      }
+
+      /*
+       * An event that names a cloud's hosts or zones is about those. Linked to the cloud so it lists
+       * on the cloud's page, it must not read as the whole cloud.
+       */
+      const cloudsWithParts: Set<string> =
+        OpenStackMaintenanceParts.getCloudsWithParts(event.openStackParts);
+
+      for (const openStackCloud of event.openStackClouds || []) {
+        if (
+          !cloudsWithParts.has(String(openStackCloud._id || "").toLowerCase())
+        ) {
+          this.addKey(
+            maintained.openStackClouds,
+            openStackCloud._id,
+            openStackCloud.name,
+          );
+        }
       }
       for (const vmwareVCenter of event.vmwareVCenters || []) {
         this.addKey(
@@ -732,7 +1035,48 @@ export default class MonitorMaintenanceSuppression {
           undefined,
         );
       }
+      for (const dataStoreId of event.dataStoreIds || []) {
+        dataStores.add(String(dataStoreId));
+      }
     }
+
+    // A database server under maintenance takes the stores it holds with it.
+    if (maintained.databaseServers.ids.size > 0) {
+      try {
+        const onServers: Array<DataStore> = await DataStoreService.findBy({
+          query: {
+            projectId: projectId,
+            databaseServerId: QueryHelper.any([
+              ...maintained.databaseServers.ids,
+            ]),
+          },
+          select: { _id: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        });
+
+        for (const store of onServers) {
+          if (store.id) {
+            dataStores.add(store.id.toString());
+          }
+        }
+      } catch (err) {
+        logger.error(
+          `Failed to read the data stores on database servers under maintenance: ${err}`,
+        );
+      }
+    }
+
+    if (dataStores.size > 0) {
+      maintained.dataStoreIds = dataStores;
+    }
+
+    maintained.openStackParts =
+      await OpenStackMaintenanceParts.readMaintainedClouds({
+        projectId: projectId,
+        events: ongoingEvents,
+      });
 
     return maintained;
   }

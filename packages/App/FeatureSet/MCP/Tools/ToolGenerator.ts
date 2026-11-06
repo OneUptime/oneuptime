@@ -48,9 +48,9 @@ import MCPLogger from "../Utils/MCPLogger";
  * resource and is asked only when it is needed. Tests/ToolListBudget holds the
  * answer to a size.
  */
-const QUERY_DESCRIPTION: string = `Filter. Each field takes a value (exact match) or an operator, such as {"_type":"GreaterThan","value":...}. Fields and operators: ${DESCRIBE_RESOURCE_TOOL_NAME}.`;
+const QUERY_DESCRIPTION: string = `A field's value, or an operator such as {"_type":"GreaterThan","value":...}. Fields and operators: ${DESCRIBE_RESOURCE_TOOL_NAME}.`;
 
-const FIELD_DETAILS_HINT: string = `Field details: ${DESCRIBE_RESOURCE_TOOL_NAME}.`;
+const FIELD_DETAILS_HINT: string = `Fields: ${DESCRIBE_RESOURCE_TOOL_NAME}.`;
 
 // Any field, so the fields are not listed tool by tool.
 function buildQueryProperty(): JSONSchemaProperty {
@@ -65,7 +65,7 @@ function buildQueryProperty(): JSONSchemaProperty {
 function buildSortProperty(exampleField: string): JSONSchemaProperty {
   return {
     type: "object",
-    description: `Fields to sort by. Example: {"${exampleField}":"DESC"}.`,
+    description: `For example {"${exampleField}":"DESC"}.`,
     additionalProperties: {
       type: "string",
       enum: [SortOrder.Ascending, SortOrder.Descending],
@@ -107,8 +107,8 @@ function buildSelectProperty(
 ): JSONSchemaProperty {
   const description: string =
     selectInfo.heavyFields.length > 0
-      ? `Field names to return. Omit for all but these large fields: ${selectInfo.heavyFields.join(", ")}.`
-      : "Field names to return. Omit for all readable fields.";
+      ? `Omit for all but ${selectInfo.heavyFields.join(", ")}.`
+      : "Omit for all.";
 
   return {
     type: "array",
@@ -427,7 +427,7 @@ function createCreateTool(
   return {
     name: `create_${sanitizeToolName(singularName)}`,
     title: `Create ${singularName}`,
-    description: `Create a new ${singularName}. Returns it with its ID. projectId comes from your credentials. ${FIELD_DETAILS_HINT}`,
+    description: `Create a ${singularName}. projectId comes from your credentials. ${FIELD_DETAILS_HINT}`,
     inputSchema: {
       type: "object",
       // Only the fields a call cannot leave out say what they mean.
@@ -459,13 +459,13 @@ function createReadTool(
   return {
     name: `get_${sanitizeToolName(singularName)}`,
     title: `Get ${singularName}`,
-    description: `Get one ${singularName} by ID. Find IDs with list_${sanitizeToolName(pluralName)}.`,
+    description: `Get one ${singularName} by ID.`,
     inputSchema: {
       type: "object",
       properties: {
         id: {
           type: "string",
-          description: `ID (UUID) of the ${singularName}.`,
+          description: "ID.",
         },
         select: buildSelectProperty(selectInfo),
       },
@@ -493,7 +493,7 @@ function createListTool(
   return {
     name: `list_${sanitizeToolName(pluralName)}`,
     title: `List ${pluralName}`,
-    description: `List ${pluralName} with filtering, sorting and paging. Returns the page and the total matching count.`,
+    description: `List ${pluralName}, with the total count.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -501,11 +501,10 @@ function createListTool(
         select: buildSelectProperty(selectInfo),
         skip: {
           type: "number",
-          description: "Records to skip. Default: 0.",
         },
         limit: {
           type: "number",
-          description: `Records to return. Default: ${LIST_DEFAULT_LIMIT}, maximum: ${LIST_MAX_LIMIT}.`,
+          description: `Default: ${LIST_DEFAULT_LIMIT}, maximum: ${LIST_MAX_LIMIT}.`,
         },
         sort: buildSortProperty("createdAt"),
       },
@@ -534,13 +533,13 @@ function createUpdateTool(
   return {
     name: `update_${sanitizeToolName(singularName)}`,
     title: `Update ${singularName}`,
-    description: `Update one ${singularName} by ID. Send only the fields to change. ${FIELD_DETAILS_HINT}`,
+    description: `Update one ${singularName} by ID: only the fields sent change. ${FIELD_DETAILS_HINT}`,
     inputSchema: {
       type: "object",
       properties: {
         id: {
           type: "string",
-          description: `ID (UUID) of the ${singularName} to update.`,
+          description: "ID.",
         },
         ...withoutFieldDescriptions(schemaProperties.properties || {}),
       },
@@ -567,13 +566,13 @@ function createDeleteTool(
   return {
     name: `delete_${sanitizeToolName(singularName)}`,
     title: `Delete ${singularName}`,
-    description: `Permanently delete one ${singularName} by ID. This cannot be undone.`,
+    description: `Permanently delete one ${singularName} by ID.`,
     inputSchema: {
       type: "object",
       properties: {
         id: {
           type: "string",
-          description: `ID (UUID) of the ${singularName} to delete.`,
+          description: "ID.",
         },
       },
       required: ["id"],
@@ -599,7 +598,7 @@ function createCountTool(
   return {
     name: `count_${sanitizeToolName(pluralName)}`,
     title: `Count ${pluralName}`,
-    description: `Count ${pluralName}, all of them or those a filter matches. Returns a single number.`,
+    description: `Count ${pluralName}, all or those a filter matches.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -643,11 +642,10 @@ function createAnalyticsListTool(
         },
         skip: {
           type: "number",
-          description: "Records to skip. Default: 0.",
         },
         limit: {
           type: "number",
-          description: `Records to return. Default: ${LIST_DEFAULT_LIMIT}, maximum: ${LIST_MAX_LIMIT}.`,
+          description: `Default: ${LIST_DEFAULT_LIMIT}, maximum: ${LIST_MAX_LIMIT}.`,
         },
         sort: buildSortProperty(timeColumn),
       },

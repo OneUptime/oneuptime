@@ -8,7 +8,7 @@
 #
 #   app-image.sh build [commit]   images "$PERF_PREFIX-app:branch" (this
 #                                 checkout) and ":base" (commit, default the
-#                                 merge base with origin/master); both serve
+#                                 merge base with origin/main); both serve
 #                                 this checkout's built Dashboard
 #   app-image.sh run <tag>        stops the App stack.sh runs (or a running
 #                                 image), runs this one on the host network
@@ -65,7 +65,7 @@ stop_app() {
 
 case "${1:-}" in
   build)
-    commit="${2:-$(git -C "$REPO" merge-base HEAD origin/master)}"
+    commit="${2:-$(git -C "$REPO" merge-base HEAD origin/main)}"
     context "$PERF_DIR/image/ctx-branch"
     tar -C "$REPO" --exclude node_modules --exclude packages/App/build --exclude packages/Common/build -cf - packages/Common packages/App \
       | tar -x -C "$PERF_DIR/image/ctx-branch"

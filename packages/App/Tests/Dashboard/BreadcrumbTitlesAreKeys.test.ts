@@ -162,12 +162,25 @@ function readLocale(language: string): Record<string, string> {
  * Kinds whose English word is also the language's own (Italian "volume",
  * Spanish "volumen"): a row's crumb that says it is not left in English.
  */
+/*
+ * Rows that are not the kind their list is named for, so the list's word is no word for them: an
+ * OpenStack load balancer's page lists its pools and amphorae, Ironic's its nodes, and Swift's
+ * its containers.
+ */
+const ROWS_NOT_OF_THEIR_LISTS_KIND: ReadonlyArray<string> = [
+  "Load Balancers > Pool Detail",
+  "Load Balancers > Amphora Detail",
+  "Bare Metal > Node Detail",
+  "Object Storage > Container Detail",
+];
+
 const KINDS_THAT_ARE_THE_LANGUAGES_OWN_WORD: Record<
   string,
   ReadonlyArray<string>
 > = {
-  es: ["volume"],
+  es: ["volume", "image"],
   it: ["volume"],
+  sv: ["router"],
 };
 
 /*
@@ -378,6 +391,9 @@ describe("every breadcrumb title in the Dashboard is a translation key", () => {
           return (
             list !== pair.list &&
             !ownWords.includes(kind) &&
+            !ROWS_NOT_OF_THEIR_LISTS_KIND.includes(
+              `${pair.list} > ${pair.row}`,
+            ) &&
             row.toLowerCase().includes(kind) &&
             !list.toLowerCase().includes(kind)
           );

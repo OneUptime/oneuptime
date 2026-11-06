@@ -73,6 +73,7 @@ export const FIXTURE_RECORDS: Dictionary<Array<DeveloperDocsLiveRecord>> = {
   OnCallDutyPolicySchedule: records("4", [["Primary rotation"]]),
   Probe: records("5", [["US East"]]),
   NetworkSite: records("6", [["Head office"]]),
+  DataAsset: records("7", [["orders"]]),
 };
 
 // The project, with everything looked up and the viewer known.

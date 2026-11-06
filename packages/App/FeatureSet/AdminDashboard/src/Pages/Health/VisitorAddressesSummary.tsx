@@ -49,7 +49,7 @@ export const VISITOR_ADDRESSES_API_ROUTE: string =
 export const VISITOR_ADDRESSES_COMPOSE_GUIDE: string =
   "/docs/installation/docker-compose#visitor-addresses";
 export const VISITOR_ADDRESSES_KUBERNETES_GUIDE: string =
-  "https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#visitor-addresses";
+  "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#visitor-addresses";
 
 /*
  * The card's own words. The description names the 30 days the server looks

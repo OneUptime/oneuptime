@@ -288,7 +288,12 @@ import { WidenThingNameColumns1808992530000 } from "./1808992530000-WidenThingNa
 import { AddDataCheckReconciliationIndex1808992540000 } from "./1808992540000-AddDataCheckReconciliationIndex";
 import { AddSecurityLogSourceCaseMinimumSeverity1808992580000 } from "./1808992580000-AddSecurityLogSourceCaseMinimumSeverity";
 import { AddCloudConnectionStreams1808992600000 } from "./1808992600000-AddCloudConnectionStreams";
-import { AddScheduledMaintenanceCloudResources1808992700000 } from "./1808992700000-AddScheduledMaintenanceCloudResources";
+import { AddMagicLinkLogin1808992650000 } from "./1808992650000-AddMagicLinkLogin";
+import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./1808992660000-AddFixApprovalSourceAndRunbookTrackRecord";
+import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
+import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
+import { AddUserNotificationSettingAlertByMattermost1808992950000 } from "./1808992950000-AddUserNotificationSettingAlertByMattermost";
+import { AddScheduledMaintenanceCloudResources1808994417000 } from "./1808994417000-AddScheduledMaintenanceCloudResources";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -888,6 +893,21 @@ import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "./179
 import { AddVMwareTables1792000000000 } from "./1792000000000-AddVMwareTables";
 import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100000000-AddGitHubCommandSettingsToCodeRepository";
 import { TwilioAuthTokenEncryptedColumn1801800000000 } from "./1801800000000-TwilioAuthTokenEncryptedColumn";
+import { AddDataAssetOwnersAndFeedback1808992700000 } from "./1808992700000-AddDataAssetOwnersAndFeedback";
+import { AddOpenStackClouds1808992900000 } from "./1808992900000-AddOpenStackClouds";
+import { AddOpenStackProbeCollection1808992910000 } from "./1808992910000-AddOpenStackProbeCollection";
+import { AddOpenStackProbeCollectionIndexAndKey1808992920000 } from "./1808992920000-AddOpenStackProbeCollectionIndexAndKey";
+import { AddOpenStackHostLinkAndInstanceMetrics1808992930000 } from "./1808992930000-AddOpenStackHostLinkAndInstanceMetrics";
+import { AddOpenStackHostLinkIndexAndKey1808992940000 } from "./1808992940000-AddOpenStackHostLinkIndexAndKey";
+import { AddOpenStackResourceNameIndex1808992960000 } from "./1808992960000-AddOpenStackResourceNameIndex";
+import { AddOpenStackCloudAiAccess1808993574600 } from "./1808993574600-AddOpenStackCloudAiAccess";
+import { AddOpenStackCloudCapacitySnapshot1808993745000 } from "./1808993745000-AddOpenStackCloudCapacitySnapshot";
+import { AddOpenStackRuleProjectAndDomain1808993750000 } from "./1808993750000-AddOpenStackRuleProjectAndDomain";
+import { AddOpenStackCloudCheck1808993900000 } from "./1808993900000-AddOpenStackCloudCheck";
+import { AddOpenStackUsageAndBudgets1808993950000 } from "./1808993950000-AddOpenStackUsageAndBudgets";
+import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpenStackProjectNotices";
+import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
+import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
 
 export default [
   InitialMigration,
@@ -1779,5 +1799,25 @@ export default [
   AddDataCheckReconciliationIndex1808992540000,
   AddSecurityLogSourceCaseMinimumSeverity1808992580000,
   AddCloudConnectionStreams1808992600000,
-  AddScheduledMaintenanceCloudResources1808992700000,
+  AddMagicLinkLogin1808992650000,
+  AddFixApprovalSourceAndRunbookTrackRecord1808992660000,
+  AddUserMattermost1808992670000,
+  AddUserMattermostIndexesAndKeys1808992680000,
+  AddDataAssetOwnersAndFeedback1808992700000,
+  AddOpenStackClouds1808992900000,
+  AddOpenStackProbeCollection1808992910000,
+  AddOpenStackProbeCollectionIndexAndKey1808992920000,
+  AddOpenStackHostLinkAndInstanceMetrics1808992930000,
+  AddOpenStackHostLinkIndexAndKey1808992940000,
+  AddUserNotificationSettingAlertByMattermost1808992950000,
+  AddOpenStackResourceNameIndex1808992960000,
+  AddOpenStackCloudAiAccess1808993574600,
+  AddOpenStackCloudCapacitySnapshot1808993745000,
+  AddOpenStackRuleProjectAndDomain1808993750000,
+  AddOpenStackCloudCheck1808993900000,
+  AddOpenStackUsageAndBudgets1808993950000,
+  AddOpenStackProjectNotices1808994120000,
+  AddWorkflowLogRunAgain1808994200000,
+  AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
+  AddScheduledMaintenanceCloudResources1808994417000,
 ];

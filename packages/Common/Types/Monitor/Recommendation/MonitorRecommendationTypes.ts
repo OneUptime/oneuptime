@@ -30,6 +30,7 @@ export enum MonitorRecommendationResourceType {
   DockerSwarm = "DockerSwarm",
   Podman = "Podman",
   Proxmox = "Proxmox",
+  OpenStack = "OpenStack",
   VMware = "VMware",
   Ceph = "Ceph",
   /*
@@ -106,6 +107,12 @@ export enum MonitorRecommendationResourceType {
  */
 export interface MonitorRecommendationContext {
   /*
+   * The services a cloud has reported, by what Keystone's catalog calls them. A template about a
+   * service a cloud may not run is offered only to a cloud reporting it. Not known is the same as
+   * not reporting it: an alert that could never fire is worse than one a moment late.
+   */
+  openStackServices?: ReadonlyArray<string> | null | undefined;
+  /*
    * The service's detected runtime. `null` and `undefined` mean the same
    * thing here — nothing identified the runtime — and both are accepted
    * because `detectServiceLanguage` returns `null` while an absent field is
@@ -177,6 +184,17 @@ export interface MonitorRecommendationContext {
    */
   kubernetesProvider?: string | null | undefined;
   /*
+   * Whether a probe collects this cloud. Some series only a native read of an API sends, and on an
+   * agent's cloud a template over one would never fire. Anything but true withholds them.
+   */
+  openStackIsCollectedByProbe?: boolean | null | undefined;
+  /*
+   * Whether this cloud's checks from outside are on. What they report is sent by nothing else, so
+   * an alert on one would never fire with it off. Anything but true withholds them.
+   */
+  openStackIsApiCheckOn?: boolean | null | undefined;
+  openStackIsLifecycleCheckOn?: boolean | null | undefined;
+  /*
    * A cloud resource's cloud and type (CloudResource.cloudProvider and
    * cloudResourceType: "aws", "AWS::RDS::DBInstance"). They pick its
    * templates (getCloudAlertTemplatesFor); without them nothing applies -
@@ -218,6 +236,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  * except for the name of the resource-identifier field:
  *
  *   clusterIdentifier -> Kubernetes, DockerSwarm, Proxmox, Ceph
+ *   cloudIdentifier   -> OpenStack
  *   vcenterIdentifier -> VMware
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice

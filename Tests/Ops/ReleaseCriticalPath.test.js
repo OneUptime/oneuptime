@@ -4,7 +4,7 @@
  * What a release run (release.yml) waits for, and what it no longer does.
  *
  * The organization runs 20 jobs at a time, and a release run's ~75 jobs queue
- * for them behind every pull request and master push: on 14.0.65 (run
+ * for them behind every pull request and main push: on 14.0.65 (run
  * 39000188317) the run took 4h42m, of which under two hours was work. So
  * release.yml starts each job as soon as it has what it truly needs, and has
  * fewer jobs on the way to the publish:

@@ -1101,13 +1101,31 @@ describe("Detection Rules guide: evaluation", () => {
 
     expect(evaluation).toContain("#### Rules that run in real time");
     expect(evaluation).toContain(
-      "a **Match Count Threshold** of 1, no **Distinct Count Field**, no `re` modifier, not a correlation",
+      "Any rule but one with a `re` modifier can run in real time instead",
     );
     expect(evaluation).toContain(
       "turn on **Run in Real Time** under **More fields** on the **On Match** step.",
     );
     expect(evaluation).toContain(
       `A project runs at most ${DETECTION_REAL_TIME_RULES_MAX} rules in real time.`,
+    );
+  });
+
+  test("says how a rule that counts runs in real time: its schedule's windows, at most once each, and catching up after it was off", () => {
+    const evaluation: string = sectionMarkdown(
+      DetectionRulesGuide,
+      "evaluation",
+    );
+
+    expect(evaluation).toContain(
+      "- **A rule that fires on one event** - a **Match Count Threshold** of 1 and no **Distinct Count Field** - opens its case, alert and finding within seconds of each match",
+    );
+    expect(evaluation).toContain(
+      "- **A rule that counts, and a correlation,** count in the windows their schedule reads: back to back, as long as the **Evaluation Interval**",
+    );
+    expect(evaluation).toContain("and at most once a window");
+    expect(evaluation).toContain(
+      `A real-time rule disabled and enabled again first reads the time it was off, up to the last ${DETECTION_MAX_LOOKBACK_IN_MINUTES / 60} hours, as a scheduled rule does.`,
     );
   });
 

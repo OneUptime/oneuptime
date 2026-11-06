@@ -123,7 +123,7 @@ JavaScript 표현식은 Website, API, Incoming Request, Incoming Email, SQL Quer
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-데이터베이스 상태 모니터에서는 `metrics` 객체 전체에 인덱스를 붙여 메트릭 하나를 읽습니다. 시계열 이름에 점이 들어 있어 중괄호 안에 넣을 수 없기 때문입니다.
+데이터베이스 상태 모니터에서는 시계열 이름을 점째로 중괄호 안에 쓰거나 `metrics` 객체 전체에 인덱스를 붙여 메트릭 하나를 읽습니다. 둘 다 동작합니다.
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -1,0 +1,1 @@
+{"replication_time": 0.045382022857666016, "replication_stats": {"attempted": 3, "deferred": 0, "diff": 0, "diff_capped": 0, "empty": 0, "failure": 0, "hashmatch": 0, "no_change": 3, "remote_merge": 0, "remove": 0, "rsync": 0, "start": 1793853447.6721823, "success": 3, "ts_repl": 0}, "replication_last": 1793853447.7175643}

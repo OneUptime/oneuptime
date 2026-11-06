@@ -2,7 +2,7 @@
 
 /**
  * The agents' install scripts download their files from the OneUptime they
- * report to, never from GitHub's master branch.
+ * report to, never from GitHub's main branch.
  *
  * Every OneUptime serves each agent's install.sh, and the files it
  * downloads, from its own image at /install/<agent>
@@ -21,8 +21,8 @@
  * served files, runs the block with the real curl against a local server
  * that answers as each kind of OneUptime does, and runs the VMware and
  * Host AI agents' scripts to the end (the other agents' suites run theirs:
- * ProxmoxCephAgentInstallers, DatabaseAgentScripts, StorageArrayAgentScripts
- * and ContainerAgentInstallers).
+ * ProxmoxCephAgentInstallers, OpenStackAgentInstallers, DatabaseAgentScripts,
+ * StorageArrayAgentScripts and ContainerAgentInstallers).
  */
 
 const fs = require("fs");

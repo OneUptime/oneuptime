@@ -144,7 +144,7 @@ Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google S
 
 ## Ärendeprioriteter och ärendestatusar
 
-Varje projekt har sina egna ärendeprioriteter och ärendestatusar, under **Produkter → Säkerhetshändelser → Inställningar → Ärendeprioriteter** och **Ärendestatusar**. Byt namn och färg på dem, dra dem i en annan ordning och lägg till egna, till exempel en status "Triage" eller en prioritet "Nödläge" ovanför **Kritisk**. Ett nytt namn syns överallt på en gång: i kön, på ärendesidorna och översikten, i aviseringar, i Slack och Microsoft Teams och i playbook-meddelanden.
+Varje projekt har sina egna ärendeprioriteter och ärendestatusar, under **Produkter → Säkerhetshändelser → Inställningar → Ärendeprioriteter** och **Ärendestatusar**. Byt namn och färg på dem, dra dem i en annan ordning och lägg till egna, till exempel en status "Triage" eller en prioritet "Nödläge" ovanför **Kritisk**. Ett nytt namn syns överallt på en gång: i kön, på ärendesidorna och översikten, i aviseringar, i Slack, Microsoft Teams och Mattermost och i playbook-meddelanden.
 
 Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn och färg men inte tas bort eller arkiveras, och de behåller sin ordning:
 
@@ -157,7 +157,7 @@ Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn 
 | Prioriteterna Critical, High, Medium, Low och Informational | En detektion öppnar sitt ärende med prioriteten för sin allvarlighetsgrad, och ett ärende som någon öppnar börjar på Medium |
 
 - Var en status står avgör vad ett ärende i den räknas som, som kolumnen **Räknas som** visar: från den kvitterade statusen och nedåt som kvitterat, från den begränsade statusen och nedåt som begränsat, från den stängda statusen och nedåt som stängt. En status du lägger till hamnar strax ovanför den stängda statusen, och när du flyttar ett ärende till en status som stänger det får du först ange en bedömning.
-- En prioritets plats är hur brådskande den är, den mest brådskande först: **För ärenden med minst**, valen för aviseringar och reglerna för Slack och Microsoft Teams läser den här ordningen. En prioritet du lägger till hamnar sist, och kolumnen **Detekteringens allvarlighetsgrad** visar vilka detektioner som öppnar sina ärenden med varje inbyggd prioritet.
+- En prioritets plats är hur brådskande den är, den mest brådskande först: **För ärenden med minst**, valen för aviseringar och reglerna för Slack, Microsoft Teams och Mattermost läser den här ordningen. En prioritet du lägger till hamnar sist, och kolumnen **Detekteringens allvarlighetsgrad** visar vilka detektioner som öppnar sina ärenden med varje inbyggd prioritet.
 
 För att sluta använda en egen status eller prioritet använder du **Arkivera** på dess rad. Ingen kan välja den igen, och API:t, Terraform och MCP avvisar den, men ärendena som har den behåller den, och du kan fortfarande filtrera på den. Arkiverade värden listas i den hopfällda sektionen **Arkiverade ärendestatusar** eller **Arkiverade ärendeprioriteter** under tabellen, där **Avarkivera** tar tillbaka ett. **Ta bort** avvisas så länge ärenden har värdet eller en playbook körs från prioriteten.
 
@@ -218,7 +218,7 @@ OneUptime berättar för personer om fem saker som händer i ett ärende. Ingen 
 
 ### Välj vad du får veta
 
-Var och en väljer själv, under **Användarinställningar → Aviseringsinställningar → Säkerhet**: kanalerna för varje avisering (e-post, SMS, samtal, push, Telegram, Slack, Microsoft Teams eller webhook) och, under **Nytt säkerhetsärende**, från vilken prioritet de aviseras:
+Var och en väljer själv, under **Användarinställningar → Aviseringsinställningar → Säkerhet**: kanalerna för varje avisering (e-post, SMS, samtal, push, Telegram, Slack, Microsoft Teams, Mattermost eller webhook) och, under **Nytt säkerhetsärende**, från vilken prioritet de aviseras:
 
 | Val | Aviserar om ärenden med |
 | --- | --- |
@@ -232,9 +232,9 @@ Valen följer projektets ärendeprioriteter, under deras egna namn: det här är
 
 WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren.
 
-### Posta i kanaler i Slack och Microsoft Teams
+### Posta i kanaler i Slack, Microsoft Teams och Mattermost
 
-För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut Slack eller Teams**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
+För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**). När inget av dem är anslutet är avsnittets enda post **Anslut en arbetsyta**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
 
 | Villkor | Matchar på |
 | --- | --- |
@@ -306,11 +306,12 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Automatisering | Run a workflow | Startar ett OneUptime-arbetsflöde med ärendet som indata |
 | Automatisering | Run a runbook | Startar en av dina OneUptime-runbooks med ärendet som indata |
 | Automatisering | Fix the code with AI | Ber OneUptime AI om en pull request som åtgärdar undantagen som ärendets förfrågningar orsakade |
+| Flödeskontroll | Stoppa körningen | Avslutar körningen där som klar: stegen efter det körs inte |
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
 - **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de åtta stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook**, **Post a status page announcement** och de två datalagerstegen börjar med godkännande påslaget, eftersom de kör kommandon på era system, vänder sig till era kunder eller ändrar ett molns inställningar; den som lägger till steget kan slå av det.
-- **Kör det här steget**: **Alltid**, eller bara efter ett resultat av ett steg före det, till exempel att **Kontrollera entiteter mot hotinformation** hittar en känd skadlig entitet; se [Förgrena efter ett stegs resultat](#förgrena-efter-ett-stegs-resultat).
+- **Kör det här steget**: **Alltid**, eller bara efter resultat av steg före det, till exempel att **Kontrollera entiteter mot hotinformation** hittar en känd skadlig entitet; se [Förgrena efter ett stegs resultat](#förgrena-efter-ett-stegs-resultat).
 - **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen. Den finns under **Fler fält**, tillsammans med **Kör det här steget**.
 
 ### Förgrena efter ett stegs resultat
@@ -324,6 +325,12 @@ En playbook har högst 25 steg. De körs i ordning, vart och ett när det föreg
 | Alla andra steg | Lyckades, och misslyckades när det har **Fortsätt om det misslyckas** påslaget |
 
 Två steg som väntar på motsatta resultat av samma steg är ett om och ett annars: stäng bara av en användare när hotinformationen känner till hen, och lägg annars till en uppgift om att bekräfta inloggningen med hen. När steget som det väntas på slutar på ett annat sätt hoppas det väntande steget över, och körningen anger varför under det; detsamma gäller ett steg som väntar på ett steg som hoppades över. Ett stegs kort visar vad det väntar på, och ett steg som ett annat väntar på kan inte flyttas under det eller tas bort förrän det andra körs på ett annat sätt. Mallen **Eskalera kända skadliga indikatorer** höjer ett ärendes prioritet och status bara vid träff i hotinformation, och ett steg som sparades med den gamla brytaren för hotinformation behåller den som **Bara om en tidigare kontroll mot hotinformation hittade en känd skadlig entitet**.
+
+Ett steg kan vänta på upp till fem resultat: välj vart och ett i **Kör det här steget**, och **Kör när** frågar hur de läses, **När alla har inträffat** eller **När något av dem har inträffat**. Stäng av en användare bara när hotinformationen känner till hen och hens aktivitet hittades, eller larma jouren när någon av de två sökningarna hittade något. Ett steg som väntar på alla sina resultat kan inte vänta på två resultat av samma steg, till exempel hittade och hittade inget, eftersom ingen körning har båda.
+
+### Stoppa körningen
+
+**Stoppa körningen**, under **Flödeskontroll**, avslutar körningen där den är, som klar: stegen efter det hoppas över och anger var för sig var körningen stoppade, och körningen lyckas. Med **Kör det här steget** stoppar det bara efter ett resultat: stoppa när hotinformationen inte hittade något känt skadligt, och låt annars begränsningsstegen under det köras. Det du skriver i **Anledning till stopp** anges på ärendets tidslinje när körningen stoppar där. Det har inget att godkänna och misslyckas aldrig, så det har varken **Kräver godkännande** eller **Fortsätt om det misslyckas**, och inget steg kan vänta på det. Ett som alltid körs avslutar varje körning och kan därför bara vara det sista steget.
 
 ### Agera genom OneUptime
 
@@ -394,7 +401,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Queued | Väntar på en worker |
 | Running | Kör sina steg |
 | Waiting for Approval | Stoppad före ett steg som kräver godkännande |
-| Succeeded | Varje steg kördes eller hoppades över |
+| Succeeded | Varje steg kördes eller hoppades över, eller ett steg **Stoppa körningen** avslutade den |
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |
 
@@ -454,6 +461,10 @@ Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (C
 
 :::details Ett steg som bara körs efter ett annat hoppades över
 Steget som det väntar på slutade på ett annat sätt eller hoppades själv över: det hittade till exempel inget känt skadligt där steget väntar på en känd skadlig entitet. Öppna körningen i ärendet: det överhoppade steget anger vilket steg det väntade på och vilket resultat. Om du vill ändra det redigerar du steget och öppnar **Fler fält**.
+:::
+
+:::details En körning slutade före sina sista steg
+Ett steg **Stoppa körningen** kördes: resultatet det väntar på kom, eller det körs alltid. Öppna körningen i ärendet: stegen efter det anger var körningen stoppade, och stoppsteget anger varför om du gav det en anledning. Om du vill ändra när det stoppar redigerar du steget och öppnar **Fler fält**.
 :::
 
 :::details En status eller prioritet går inte att ta bort eller arkivera

@@ -136,7 +136,11 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
       blocks.map((b: MessageBlocksByWorkspaceType) => {
         return b.workspaceType;
       }),
-    ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
+    ).toEqual([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ]);
 
     for (const entry of blocks) {
       expect(entry.messageBlocks).toHaveLength(1);

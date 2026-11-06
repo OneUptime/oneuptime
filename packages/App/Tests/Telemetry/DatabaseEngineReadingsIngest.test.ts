@@ -84,7 +84,10 @@ function stringAttribute(key: string, value: string): JSONObject {
   return { key: key, value: { stringValue: value } };
 }
 
-function intPoint(attributes: Record<string, string>, value: number): JSONObject {
+function intPoint(
+  attributes: Record<string, string>,
+  value: number,
+): JSONObject {
   return {
     attributes: Object.keys(attributes).map((key: string): JSONObject => {
       return stringAttribute(key, attributes[key]!);

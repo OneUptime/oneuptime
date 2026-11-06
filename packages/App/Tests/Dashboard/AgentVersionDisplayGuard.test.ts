@@ -107,6 +107,9 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Index.tsx": [
     "ProxmoxAgent",
   ],
+  "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index.tsx": [
+    "OpenStackAgent",
+  ],
   "packages/App/FeatureSet/Dashboard/src/Pages/Ceph/View/Index.tsx": [
     "CephAgent",
   ],

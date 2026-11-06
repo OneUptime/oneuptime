@@ -20,6 +20,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourceTopologyMap, {
   ResourceTopologyArrangement,
+  ResourceTopologyNotice,
 } from "./ResourceTopologyMap";
 import { tx } from "./ResourceTopologyNodes";
 
@@ -37,6 +38,8 @@ export interface ResourceTopologyData {
   issuesAreUnreadable: boolean;
   /* The resource on the master Topology, when it is drawn there. */
   masterTopologyRoute: Route | null;
+  /* What else the reader should know about this map, in a sentence each. */
+  notices?: Array<ResourceTopologyNotice> | undefined;
 }
 
 export interface ComponentProps {
@@ -229,6 +232,7 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
         searchPlaceholder={props.searchPlaceholder}
         issuesArePartial={data.issuesArePartial}
         issuesAreUnreadable={data.issuesAreUnreadable}
+        notices={data.notices}
       />
     );
   };

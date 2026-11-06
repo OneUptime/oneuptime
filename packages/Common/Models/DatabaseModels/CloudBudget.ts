@@ -12,6 +12,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -38,12 +39,17 @@ import {
  * enabled budget with what its accounts cost this month so far and what
  * they are on course to cost (CloudAccount.costSummary), and raises an
  * alert the first time in a month the spend passes each threshold - 80% and
- * 100% of the budget by default - and when the month is on course to pass
- * it: before the money is spent (CloudBudgetEvaluator). A new month starts
- * again from nothing, and the last month's alerts are resolved.
+ * 100% of the budget by default - when the month is on course to pass it:
+ * before the money is spent - and, unless turned off, on a day that cost
+ * far more than usual (CloudBudgetEvaluator). A new month starts again from
+ * nothing, and the last month's alerts are resolved.
  *
  * Who may set one: those who may change the cloud resources (the Cloud
  * Resource permissions, as an account's are).
+ *
+ * The MCP server has its create, get, list, update, delete and count tools,
+ * and the CLI its `cloud-budget` command, so AI agents and scripts manage
+ * budgets as people do.
  */
 
 // Postgres answers a decimal as text: read it back as the number it is.
@@ -105,6 +111,7 @@ const deletePermissions: Array<Permission> = [
 ];
 
 @EnableDocumentation()
+@EnableMCP()
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
@@ -371,6 +378,33 @@ export default class CloudBudget extends BaseModel {
     default: true,
   })
   public alertOnProjection?: boolean = undefined;
+
+  /*
+   * A day that cost far more than usual - a service at twice its usual day,
+   * or the whole account at half again (CloudCostAnomaly) - is an alert of
+   * its own, the day after: a budget sees a month, and a spike adds up for
+   * days before it passes a share of one.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Alert On Unusual Days",
+    description:
+      "Also alert when a day costs far more than usual: a service at twice its usual day, or the whole account at one and a half times.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public alertOnAnomaly?: boolean = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

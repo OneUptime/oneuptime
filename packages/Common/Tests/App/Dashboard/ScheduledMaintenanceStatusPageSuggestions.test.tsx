@@ -333,7 +333,16 @@ beforeEach(() => {
       {},
     );
   });
-  jest.spyOn(API, "post").mockImplementation(postMock as never);
+  jest.spyOn(API, "post").mockImplementation((async (request: {
+    url: { toString: () => string };
+  }): Promise<HTTPResponse<JSONObject>> => {
+    // The Data Observability Databases picker lists its stores as it draws.
+    if (request.url.toString().includes("/data-observability/stores")) {
+      return new HTTPResponse<JSONObject>(200, { stores: [] }, {});
+    }
+
+    return (await postMock(request)) as HTTPResponse<JSONObject>;
+  }) as never);
 });
 
 afterEach(() => {

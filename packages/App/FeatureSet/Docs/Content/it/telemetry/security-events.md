@@ -193,6 +193,7 @@ Ogni tipo arriva a OneUptime come normali log:
 | AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector, oppure, per un account collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
 | Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Audit trail di OpenStack | Le notifiche e il filtro di audit di un cloud inviati ai suoi log con `driver = log`, letti dal [profilo dei log](/docs/telemetry/openstack#chi-ha-fatto-cosa) dell'agente |
 | CEF, LEEF | Il syslog del prodotto, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Il syslog del firewall stesso, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Log di audit di Kubernetes | Il file di log di audit dell'API server, letto dal receiver `filelog` del collector |
@@ -339,7 +340,7 @@ Ogni esecuzione pianificata viene conservata per 90 giorni. **Cronologia delle e
 
 La notifica **Una caccia ha trovato eventi di sicurezza** nomina la caccia e la sua ricerca, quanti eventi ha trovato la sua esecuzione e la finestra che ha letto, e rimanda alla pagina della caccia su quegli eventi; non contiene alcuna parola degli eventi. Tutti la ricevono via email e push, e ne scelgono i canali in **Impostazioni utente → Impostazioni notifiche**. Come le altre email di routine, può essere trattenuta in un [riepilogo email](/docs/emails/notification-rollup).
 
-Per pubblicare su Slack o Microsoft Teams ciò che trovano le cacce, aggiungi una regola a **Regole delle cacce** in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams**), sotto le regole che pubblicano i [casi di sicurezza](/docs/telemetry/security-cases#pubblicare-nei-canali-di-slack-e-microsoft-teams). Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, le cacce a cui si applica, per **Nome della caccia**: un nome che è il tuo testo, lo contiene, inizia o finisce con esso. Ogni volta che un'esecuzione pianificata trova eventi, pubblica la caccia, la sua ricerca, quanti eventi e quando, con un link a essi, e nessuna delle parole proprie di un evento. Una regola delle cacce la configura un ruolo che può configurare playbook di sicurezza, come Project Owner, Project Admin o Security Admin.
+Per pubblicare su Slack, Microsoft Teams o Mattermost ciò che trovano le cacce, aggiungi una regola a **Regole delle cacce** in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams** o **Mattermost**), sotto le regole che pubblicano i [casi di sicurezza](/docs/telemetry/security-cases#pubblicare-nei-canali-di-slack-microsoft-teams-e-mattermost). Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, le cacce a cui si applica, per **Nome della caccia**: un nome che è il tuo testo, lo contiene, inizia o finisce con esso. Ogni volta che un'esecuzione pianificata trova eventi, pubblica la caccia, la sua ricerca, quanti eventi e quando, con un link a essi, e nessuna delle parole proprie di un evento. Una regola delle cacce la configura un ruolo che può configurare playbook di sicurezza, come Project Owner, Project Admin o Security Admin.
 
 ### Conservare eventi su un caso
 
@@ -465,11 +466,11 @@ detection:
 
 | Campo | Cosa fa |
 | --- | --- |
-| **Intervallo di valutazione (minuti)** | Ogni quanto gira la regola: minuti interi, da 1 a 1440. Il modulo di una nuova regola parte da 5. |
+| **Intervallo di valutazione (minuti)** | Ogni quanto gira la regola: minuti interi, da 1 a 1440. Il modulo di una nuova regola parte da 5. In tempo reale, la durata delle finestre che legge una regola che conta. |
 | **Esegui in tempo reale** | Disattivo su una nuova regola. Se attivo, la regola controlla ogni evento appena arriva invece che a ogni intervallo; vedi [Regole in tempo reale](#regole-in-tempo-reale). |
 | **Campo di raggruppamento** | Facoltativo. Le corrispondenze che condividono il valore di questo campo, come `principalHost`, vengono contate, avvisate e deduplicate insieme: un avviso per host invece di centinaia. |
 | **Campo di conteggio distinto** | Facoltativo. Conta i valori diversi di questo campo invece degli eventi corrispondenti. I valori vuoti non contano. |
-| **Soglia di corrispondenze** | Un gruppo scatta solo quando il suo conteggio raggiunge questo numero in un'esecuzione: da 1 a 1000000, e 1 scatta a qualsiasi corrispondenza. |
+| **Soglia di corrispondenze** | Un gruppo scatta solo quando il suo conteggio raggiunge questo numero in un'esecuzione, o in una finestra in tempo reale: da 1 a 1000000, e 1 scatta a qualsiasi corrispondenza. |
 
 Il raggruppamento e il conteggio distinto accettano gli stessi nomi di campo della regola. Con essi, la soglia dice «tanti, dalla stessa cosa, in un'esecuzione», senza un monitor sopra:
 
@@ -492,12 +493,14 @@ OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro in
 
 ### Regole in tempo reale
 
-Una regola che scatta su un solo evento può girare in tempo reale invece che al suo intervallo: attiva **Esegui in tempo reale**, in **Altri campi** del passo **In caso di corrispondenza**. Ogni evento che OneUptime riceve, da qualsiasi fonte, viene allora controllato con la regola appena arriva, e una corrispondenza apre il suo caso, il suo avviso e il suo risultato in pochi secondi.
+Qualsiasi regola, tranne una con il modificatore `re`, può girare in tempo reale invece che al suo intervallo: attiva **Esegui in tempo reale**, in **Altri campi** del passo **In caso di corrispondenza**. Ogni evento che OneUptime riceve, da qualsiasi fonte, viene allora controllato con la regola appena arriva:
 
-- È adatta a una regola con una **Soglia di corrispondenze** di 1, senza **Campo di conteggio distinto** e senza il modificatore `re`. Una correlazione conta gli eventi insieme, quindi gira al suo intervallo. Il modulo dice cosa cambiare quando una regola non è adatta.
+- Una regola che scatta su un solo evento, con una **Soglia di corrispondenze** di 1 e senza **Campo di conteggio distinto**, apre il suo caso, il suo avviso e il suo risultato in pochi secondi a ogni corrispondenza, e non ha intervallo.
+- Una regola che conta e una correlazione contano nelle finestre che legge la loro pianificazione: una dopo l'altra secondo l'orologio, ciascuna lunga quanto l'**Intervallo di valutazione (minuti)**. Un gruppo scatta nel momento in cui la sua finestra raggiunge il conteggio, anche quando l'evento che lo completa arriva in ritardo, e al massimo una volta per finestra, così una raffica che continua scatta di nuovo nella successiva. Il `timespan` di una correlazione continua a scorrere da una finestra all'altra.
 - Un progetto esegue al massimo 50 regole in tempo reale, perché ogni evento viene controllato con ciascuna.
-- In **Regole di rilevamento**, lo **Stato** di una regola in tempo reale dice **Tempo reale**, e così la sua colonna dell'intervallo. Un controllo che non riesce compare nel suo **Ultimo errore**, come per un'esecuzione.
+- In **Regole di rilevamento**, lo **Stato** di una regola in tempo reale dice **Tempo reale**, e così la sua colonna dell'intervallo, dopo l'intervallo per una regola che conta. Un controllo che non riesce compare nel suo **Ultimo errore**, come per un'esecuzione.
 - Una volta attivata, la regola legge prima ciò che è arrivato dalla sua ultima esecuzione, così nulla resta tra la pianificazione e il tempo reale. Disattivata, torna al suo intervallo, da due minuti prima.
+- Disattivata e riattivata, una regola in tempo reale legge prima il tempo in cui era spenta, fino alle ultime 24 ore, come fa una regola pianificata.
 - Eccezioni ed elenchi di controllo si applicano come a qualsiasi regola, e **Esegui su eventi passati** la legge come qualsiasi altra.
 
 ### Gravità
@@ -625,11 +628,15 @@ Controlla la chiave in `x-oneuptime-token` e il percorso, `/security-events/v1/i
 :::
 
 :::details Una regola non corrisponde mai
-Controlla il suo **Stato**: con **Disabilitato** la regola non viene eseguita, e con **Esecuzione non riuscita**, **Visualizza errore** nella sua riga mostra il motivo. Apri un evento che ti aspettavi corrispondesse e confrontalo con la regola, campo per campo: un valore semplice deve essere uguale all'intero campo, quindi usa `contains` o `*` per una parte. Un attributo si nomina come nell'evento (`threat.matched`, non `attributes.threat.matched`). Con una soglia maggiore di 1, le corrispondenze devono cadere in una sola esecuzione.
+Controlla il suo **Stato**: con **Disabilitato** la regola non viene eseguita, e con **Esecuzione non riuscita**, **Visualizza errore** nella sua riga mostra il motivo. Apri un evento che ti aspettavi corrispondesse e confrontalo con la regola, campo per campo: un valore semplice deve essere uguale all'intero campo, quindi usa `contains` o `*` per una parte. Un attributo si nomina come nell'evento (`threat.matched`, non `attributes.threat.matched`). Con una soglia maggiore di 1, le corrispondenze devono cadere in una sola esecuzione, o in una sola finestra per una regola in tempo reale.
 :::
 
 :::details Esegui in tempo reale non si attiva
-La regola conta corrispondenze, conta valori distinti, legge un'espressione regolare o è una correlazione, e il modulo dice quale: imposta **Soglia di corrispondenze** a 1, svuota **Campo di conteggio distinto**, oppure usa `contains`, `startswith` o `endswith` al posto di `re`. Un progetto esegue al massimo 50 regole in tempo reale: disattivalo prima su un'altra regola.
+La regola legge un'espressione regolare, in sé o in una regola che legge la sua correlazione, e il modulo lo dice: usa `contains`, `startswith` o `endswith` al posto di `re`. Un progetto esegue al massimo 50 regole in tempo reale: disattivalo prima su un'altra regola.
+:::
+
+:::details Una regola in tempo reale che conta è scattata una sola volta per una lunga raffica
+Scatta nel momento in cui un gruppo raggiunge il suo conteggio in una finestra, e al massimo una volta per finestra: gli eventi successivi nella stessa finestra non formano un nuovo rilevamento. Se la raffica continua, la finestra successiva scatta di nuovo. Con la sua pianificazione sarebbe scattata anch'essa una volta per quella finestra, qualche minuto dopo.
 :::
 
 :::details Una regola ha corrisposto, ma non si è aperto nessun avviso

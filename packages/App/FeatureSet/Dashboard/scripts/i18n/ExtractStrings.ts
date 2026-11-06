@@ -132,6 +132,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
   // What a failed vCenter collection means and what fixes it (VMwareCollectionError).
   { directory: "packages/Common/Types/VMware", kind: "ui" },
+  // What a failed OpenStack collection means and what fixes it (OpenStackCollectionError).
+  { directory: "packages/Common/Types/OpenStack", kind: "ui" },
   /*
    * What a case's verdicts mean, and what each playbook action does: the
    * close dialog and the step editor show them as written there.
@@ -342,6 +344,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A resource's right-sizing from OneUptime's own readings: its verdict,
+   * what to change and why, on its Overview. Only the words the file marks
+   * are read: a size is its cloud's own name, drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudRightSizing.ts",
+    kind: "keys",
+  },
+  /*
    * A cloud change's title - "Failed: DeleteLoadBalancer on web-alb" - in
    * the reader's language: a cloud resource's and an account's Changes,
    * the chart markers and the security cards word it from what the change
@@ -388,10 +399,10 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   /*
    * The curated metrics' names: a database's engine charts and tiles, a
    * queue's Broker health charts and tiles (with the unit words their
-   * titles add, "Buffer pool size (pages)"), and the storage array, Proxmox
-   * and Ceph metric pickers and Metrics tabs. Only the names the files mark
-   * are read: metric names, attribute keys and descriptions stay as
-   * written.
+   * titles add, "Buffer pool size (pages)"), and the storage array, Proxmox,
+   * OpenStack and Ceph metric pickers and Metrics tabs. Only the names the
+   * files mark are read: metric names, attribute keys and descriptions stay
+   * as written.
    */
   {
     directory:
@@ -409,6 +420,10 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Monitor/OpenStackMetricCatalog.ts",
     kind: "keys",
   },
   {

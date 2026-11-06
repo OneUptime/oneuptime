@@ -159,6 +159,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 - **Le serie di PG e pool sono per pool**: non esiste una misura dell'intero cluster, quindi quei modelli raggruppano per `pool_id` e aprono un incidente per pool.
 - **I rapporti di capacità** usano la **Somma** di entrambi i lati. Entrambi provengono dalla stessa raccolta del mgr, quindi il risultato è una vera percentuale. **Inactive Placement Groups** usa invece **Massimo** per pool, perché una somma accumulerebbe le raccolte in una sottrazione.
 - **I modelli degli health check** rientrano quando il check scompare: i loro criteri di rientro contano una serie mancante come 0.
+- **Daemon Slow Operations** ha una serie per daemon, quindi quando nessun daemon ha più una serie non c'è nulla da leggere. Rientra allora solo se `ceph_health_status` è arrivato nella stessa finestra, quindi un agente fermo non chiude nulla.
 
 Alcuni avvisi non hanno un modello. Lo sbilanciamento dei PG richiede statistiche su più serie che i criteri non possono calcolare. La previsione della capacità richiede una curva di crescita, che invece disegna la dashboard del cluster. La previsione dei guasti dei dischi e lo scrubbing arretrato non hanno metriche del mgr, mentre NVMe-oF, il mirroring RBD e cephadm richiedono altri exporter.
 

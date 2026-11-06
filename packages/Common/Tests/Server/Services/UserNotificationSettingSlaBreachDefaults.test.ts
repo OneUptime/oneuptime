@@ -54,6 +54,7 @@ const ALL_OFF: Record<Channel, boolean> = {
   alertByTelegram: false,
   alertBySlack: false,
   alertByMicrosoftTeams: false,
+  alertByMattermost: false,
   alertByWebhook: false,
   alertByCustomChannel: false,
 };

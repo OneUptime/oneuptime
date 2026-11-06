@@ -591,7 +591,7 @@ describe("DatabaseAlertTemplates — every metric is one the receiver emits and 
    * waits. Tests/Ops pins the query; this pins that each metric it emits is
    * one a template reads, and that nothing else claims to be read that way.
    */
-  test("the agent's own SQL checks are PostgreSQL's four, each read by a template and run by its config", () => {
+  test("the agent's own SQL checks are PostgreSQL's four and Galera's two, each read by a template and run by its config", () => {
     const agentQuery: Array<DatabaseAlertMetric> =
       DATABASE_ALERT_METRICS.filter((metric: DatabaseAlertMetric): boolean => {
         return metric.source === "agent-query";
@@ -606,26 +606,35 @@ describe("DatabaseAlertTemplates — every metric is one the receiver emits and 
       "postgresql.xid.oldest_age",
       "postgresql.transaction.longest_duration",
       "postgresql.sessions.waiting_on_lock",
+      "mysql.wsrep.local_state",
+      "mysql.wsrep.desync_count",
     ]);
 
-    const config: string = fs.readFileSync(
+    const postgresConfig: string = fs.readFileSync(
       agentConfigPath("postgresql"),
       "utf8",
     );
-    const emitted: Array<string> = [...config.matchAll(METRIC_NAME_LINE)].map(
-      (match: RegExpMatchArray): string => {
-        return match[1]!;
-      },
-    );
+    const emitted: Array<string> = [
+      ...postgresConfig.matchAll(METRIC_NAME_LINE),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
     expect(emitted).toEqual(
-      agentQuery.map((metric: DatabaseAlertMetric): string => {
-        return metric.metricName;
-      }),
+      agentQuery
+        .filter((metric: DatabaseAlertMetric): boolean => {
+          return metric.engine === "postgresql";
+        })
+        .map((metric: DatabaseAlertMetric): string => {
+          return metric.metricName;
+        }),
     );
 
     for (const metric of agentQuery) {
-      expect(metric.engine).toBe("postgresql");
+      expect(["postgresql", "mysql"]).toContain(metric.engine);
       expect(metric.enabledByDefault).toBe(false);
+      expect(
+        fs.readFileSync(agentConfigPath(metric.receiver), "utf8"),
+      ).toContain(`- metric_name: ${metric.metricName}\n`);
       expect(
         ALL_TEMPLATES.some((template: DatabaseAlertTemplate): boolean => {
           return template.metricNames.includes(metric.metricName);

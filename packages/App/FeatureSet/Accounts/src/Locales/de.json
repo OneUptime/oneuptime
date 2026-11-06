@@ -67,6 +67,7 @@
     "forgotPassword": "Passwort vergessen?",
     "signInWithSso": "Mit SSO anmelden",
     "signInWithMicrosoft": "Mit Microsoft anmelden",
+    "emailSignInLink": "Anmeldelink per E-Mail senden",
     "noAccountPrompt": "Sie haben noch kein Konto?",
     "registerLink": "Registrieren.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Backup-Codes generieren",
       "skip": "Vorerst überspringen",
       "generateFailed": "Es wurden keine Backup-Codes zurückgegeben. Bitte versuchen Sie es erneut unter Benutzerprofil > Zwei-Faktor-Authentifizierung."
+    },
+    "magicLink": {
+      "title": "Anmeldung abschließen",
+      "subtitle": "Verwenden Sie die Schaltfläche unten, um die Anmeldung mit dem Link aus Ihrer E-Mail abzuschließen.",
+      "submit": "Anmelden",
+      "noLink": "Diese Seite benötigt den Anmeldelink aus Ihrer E-Mail. Öffnen Sie den Link erneut oder fordern Sie einen neuen an.",
+      "turnedOff": "Anmeldelinks sind auf diesem Server deaktiviert. Bitte melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
+      "requestNewLink": "Neuen Link per E-Mail senden",
+      "backToSignIn": "Zurück zur Anmeldung"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail gesendet. Vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
     "submitButton": "Link zum Zurücksetzen senden",
     "rememberPasswordPrompt": "Erinnern Sie sich an Ihr Passwort?",
+    "loginLink": "Anmelden."
+  },
+  "magicLink": {
+    "title": "Mit einem Link anmelden",
+    "subtitle": "Geben Sie Ihre E-Mail-Adresse ein, und wir senden Ihnen einen Link, mit dem Sie sich anmelden. Kein Passwort erforderlich.",
+    "submitButton": "Anmeldelink senden",
+    "sentTitle": "Prüfen Sie Ihre E-Mails",
+    "sent": "Wenn es für {{email}} ein Konto gibt, ist ein Anmeldelink unterwegs. Er funktioniert einmal und läuft in {{minutes}} Minuten ab.",
+    "notReceived": "Nicht in Ihrem Posteingang? Prüfen Sie Ihren Spam-Ordner oder vergewissern Sie sich, dass Sie die Adresse eingegeben haben, mit der Sie sich registriert haben.",
+    "sendAnother": "Weiteren Link senden",
+    "knowPasswordPrompt": "Kennen Sie Ihr Passwort?",
     "loginLink": "Anmelden."
   },
   "resetPassword": {

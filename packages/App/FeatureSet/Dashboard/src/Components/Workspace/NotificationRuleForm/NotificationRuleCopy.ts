@@ -383,6 +383,7 @@ export const NOTIFICATION_RULE_DESTINATION_TITLES: Readonly<
 > = {
   [WorkspaceType.Slack]: translationKey("Then, in Slack"),
   [WorkspaceType.MicrosoftTeams]: translationKey("Then, in Microsoft Teams"),
+  [WorkspaceType.Mattermost]: translationKey("Then, in Mattermost"),
 };
 
 export const NOTIFICATION_RULE_DESTINATION_DESCRIPTION: string = translationKey(
@@ -400,6 +401,7 @@ export const POSTS_ONLY_DESTINATION_DESCRIPTIONS: Readonly<
   [WorkspaceType.MicrosoftTeams]: translationKey(
     "The channels and chats the rule posts in.",
   ),
+  [WorkspaceType.Mattermost]: translationKey("The channels the rule posts in."),
 };
 
 export function getNotificationRuleDestinationDescription(data: {
@@ -581,6 +583,9 @@ export const EXISTING_CHANNEL_NAMES_DESCRIPTIONS: Readonly<
   ),
   [WorkspaceType.MicrosoftTeams]: translationKey(
     "Channel names in the team, separated by commas.",
+  ),
+  [WorkspaceType.Mattermost]: translationKey(
+    "Channel names, separated by commas. Add the OneUptime bot to a private channel first.",
   ),
 };
 
@@ -829,6 +834,9 @@ export const POSTS_ONLY_NOTHING_CHOSEN_SENTENCES: Readonly<
   ),
   [WorkspaceType.MicrosoftTeams]: translationKey(
     "Pick where this rule posts: existing channels, chats, or both.",
+  ),
+  [WorkspaceType.Mattermost]: translationKey(
+    "Name the channels this rule posts in.",
   ),
 };
 

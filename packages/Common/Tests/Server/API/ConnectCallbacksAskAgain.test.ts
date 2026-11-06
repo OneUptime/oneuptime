@@ -170,6 +170,18 @@ const CALLBACKS: Array<Callback> = [
     ],
   },
   {
+    file: "MattermostAPI.ts",
+    path: "/mattermost/auth/user",
+    provider: "ConnectProvider.Mattermost",
+    flows: ["WorkspaceOAuthFlow.MattermostUserSignIn"],
+    asksAgain: "WorkspaceOAuthCallbackAccess.assertStartedByIsMember(",
+    refusedAs: "ConnectCallbackError.NotAMember",
+    writes: [
+      "WorkspaceProjectAuthTokenService.findOneBy(",
+      "WorkspaceUserAuthTokenService.refreshAuthToken(",
+    ],
+  },
+  {
     file: "MicrosoftTeamsAPI.ts",
     path: "/microsoft-teams/admin-consent/callback",
     provider: "ConnectProvider.MicrosoftTeams",
@@ -262,6 +274,12 @@ const STARTS: Array<Start> = [
     path: "/microsoft-teams/admin-consent",
     flow: "WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent",
     asks: "CommonAPI.assertPermittedInProject(",
+  },
+  {
+    file: "MattermostAPI.ts",
+    path: "/mattermost/sign-in-link",
+    flow: "WorkspaceOAuthFlow.MattermostUserSignIn",
+    asks: "CommonAPI.assertAuthenticatedProjectMember(",
   },
   {
     file: "VideoCallOAuthAPI.ts",
@@ -497,6 +515,7 @@ describe("every connect callback answers through the one outer catch", () => {
     for (const file of [
       "SlackAPI.ts",
       "MicrosoftTeamsAPI.ts",
+      "MattermostAPI.ts",
       "GitHubAPI.ts",
     ]) {
       expect([file, ERROR_PARAM_WRITE.test(readCode(file))]).toEqual([

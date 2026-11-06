@@ -12,6 +12,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Service from "Common/Models/DatabaseModels/Service";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -31,6 +32,9 @@ import AffectedResourcesPicker, {
 import { hasPickedMonitors } from "../Incident/ChangeMonitorStatusField";
 import { getScheduledMaintenanceAffectedResourcesToSave } from "./ScheduledMaintenanceMonitorStatus";
 import StartedEventMonitorStatus from "./StartedEventMonitorStatus";
+import DataStoresMaintenancePicker, {
+  DataStoresUnderMaintenance,
+} from "../DataObservability/DataStoresMaintenancePicker";
 
 export interface ScheduledMaintenanceAffectedResourcesOptions {
   /*
@@ -40,6 +44,46 @@ export interface ScheduledMaintenanceAffectedResourcesOptions {
    */
   hasEventStarted: boolean;
 }
+
+/*
+ * The databases Data Observability watches that the event affects. On a field of
+ * its own: a store is Data Security's record, so it is picked by what Data
+ * Observability's own route lists, and kept by id.
+ */
+export const getDataStoresMaintenanceField: () => Field<ScheduledMaintenance> =
+  (): Field<ScheduledMaintenance> => {
+    return {
+      field: {
+        dataStoreIds: true,
+      },
+      title: "Data Observability Databases",
+      description:
+        "Their data alerts stay quiet while this maintenance is on, so a planned backfill or migration pages nobody.",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      required: false,
+      getCustomElement: (
+        values: FormValues<ScheduledMaintenance>,
+        elementProps: CustomElementProps,
+      ) => {
+        return (
+          <DataStoresMaintenancePicker
+            value={values.dataStoreIds as Array<string> | undefined}
+            ariaLabelledby={elementProps.ariaLabelledby}
+            onChange={(value: Array<string>) => {
+              elementProps.onChange?.(value);
+            }}
+          />
+        );
+      },
+      getSummaryElement: (values: FormValues<ScheduledMaintenance>) => {
+        return (
+          <DataStoresUnderMaintenance
+            ids={(values.dataStoreIds as Array<string> | undefined) || []}
+          />
+        );
+      },
+    };
+  };
 
 // Asked only while the form holds a monitor, as on Create.
 const hasMonitors: (values: FormValues<ScheduledMaintenance>) => boolean = (
@@ -193,6 +237,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
             dockerHosts={values.dockerHosts as Array<DockerHost>}
             podmanHosts={values.podmanHosts as Array<PodmanHost>}
             proxmoxClusters={values.proxmoxClusters as Array<ProxmoxCluster>}
+            openStackClouds={values.openStackClouds as Array<OpenStackCloud>}
             vmwareVCenters={values.vmwareVCenters as Array<VMwareVCenter>}
             cephClusters={values.cephClusters as Array<CephCluster>}
             storageArrays={values.storageArrays as Array<StorageArray>}
@@ -210,6 +255,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
               "DockerHost",
               "PodmanHost",
               "ProxmoxCluster",
+              "OpenStackCloud",
               "VMwareVCenter",
               "CephCluster",
               "StorageArray",
@@ -243,6 +289,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
               dockerHosts: payload.dockerHosts,
               podmanHosts: payload.podmanHosts,
               proxmoxClusters: payload.proxmoxClusters,
+              openStackClouds: payload.openStackClouds,
               vmwareVCenters: payload.vmwareVCenters,
               cephClusters: payload.cephClusters,
               storageArrays: payload.storageArrays,
@@ -257,6 +304,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
         }
       },
     },
+    getDataStoresMaintenanceField(),
     /*
      * Hidden registrations so ModelForm.getSelectFields includes every
      * other relation the second picker writes (clusters, container hosts,
@@ -292,6 +340,15 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
     },
     {
       field: { proxmoxClusters: true },
+      title: "",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      showIf: () => {
+        return false;
+      },
+    },
+    {
+      field: { openStackClouds: true },
       title: "",
       fieldType: FormFieldSchemaType.Text,
       required: false,

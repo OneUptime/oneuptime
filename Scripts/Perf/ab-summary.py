@@ -46,7 +46,7 @@ if not cpu:
     sys.exit(1)
 
 # The side compared against first: the baseline.
-sides.sort(key=lambda side: 0 if side in ("baseline", "master") else 1)
+sides.sort(key=lambda side: 0 if side in ("baseline", "main", "master") else 1)
 
 
 def ordered(processes):

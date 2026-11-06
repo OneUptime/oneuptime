@@ -912,7 +912,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
       }
     });
 
-    it("there is no {{#if}}, and a Database Health metric cannot be picked out of metrics", () => {
+    it("there is no {{#if}}, and a Database Health metric is picked out of metrics by its dotted name", () => {
       const database: (typeof TYPE_TABLES)[number] = TYPE_TABLES.find(
         (table: { heading: string }) => {
           return table.heading === "### Database Health Monitors";
@@ -925,7 +925,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
           "{{metrics.oneuptime.monitor.database.connections.used.percent}}",
           map,
         ),
-      ).toBe("{{metrics.oneuptime.monitor.database.connections.used.percent}}");
+      ).toBe("12");
       expect(JSON.parse(render("{{metrics}}", map))).toEqual({
         "oneuptime.monitor.database.connections.used.percent": 12,
       });
@@ -934,7 +934,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
       );
       expect(english).not.toContain("{{#if");
       expect(sectionOf("### Database Health Monitors")).toContain(
-        "so a template cannot pick one value out of `metrics`. Place `{{metrics}}` whole, as JSON, or use `{{collectionIssueSummary}}`.",
+        "and a template can still pick one out: write the whole name after `metrics.`, as in `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Place `{{metrics}}` whole, as JSON, or use `{{collectionIssueSummary}}`.",
       );
     });
 
@@ -1123,6 +1123,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         "Podman",
         "Docker Swarm",
         "Proxmox",
+        "OpenStack",
         "VMware",
         "Ceph",
         "Storage Array",
@@ -1134,7 +1135,7 @@ describe("Incident & Alert Templating, against the code that fills in templates"
         [...MonitorTypeHelper.getMetricBackedMonitorTypes()].sort(),
       );
       expect(section).toContain(
-        "Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array and IoT Device monitors have one variable of their own:",
+        "Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array and IoT Device monitors have one variable of their own:",
       );
       expect(
         documentedVariables("### Metric and Infrastructure Monitors"),

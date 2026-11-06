@@ -1,9 +1,11 @@
+import UserMattermostAPI from "../../../Server/API/UserMattermostAPI";
 import UserMicrosoftTeamsAPI from "../../../Server/API/UserMicrosoftTeamsAPI";
 import UserPushAPI from "../../../Server/API/UserPushAPI";
 import UserSlackAPI from "../../../Server/API/UserSlackAPI";
 import UserWebhookAPI from "../../../Server/API/UserWebhookAPI";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserSlackService from "../../../Server/Services/UserSlackService";
@@ -61,6 +63,7 @@ jest.mock("../../../Server/Utils/Logger");
  *
  *   POST /user-slack/test                     a direct message to their Slack account
  *   POST /user-microsoft-teams/test           a direct message to their Teams account
+ *   POST /user-mattermost/test                a direct message to their Mattermost account
  *   POST /user-webhook/test                   a request to their own webhook
  *   POST /user-push/:deviceId/test-notification   a push to their own device
  *
@@ -132,6 +135,29 @@ const ROUTES: Array<SelfTestRoute> = [
         userId: ownerId,
         projectId: PROJECT_ID,
         microsoftTeamsUserId: "29:0123456789",
+        isVerified: true,
+      } as never);
+    },
+    stubSend: () => {
+      return getJestSpyOn(
+        WorkspaceUserNotificationService,
+        "sendDirectMessageToUser",
+      ).mockResolvedValue(undefined as never);
+    },
+  },
+  {
+    name: "POST /user-mattermost/test",
+    uri: "/user-mattermost/test",
+    body: { itemId: ITEM_ID.toString() },
+    params: {},
+    stubRead: (ownerId: ObjectID) => {
+      return getJestSpyOn(
+        UserMattermostService,
+        "findOneById",
+      ).mockResolvedValue({
+        userId: ownerId,
+        projectId: PROJECT_ID,
+        mattermostUserId: "abcdefghijklmnopqrstuvwxyz",
         isVerified: true,
       } as never);
     },
@@ -279,6 +305,7 @@ beforeAll(() => {
   mockRouter.routes.length = 0;
   new UserSlackAPI();
   new UserMicrosoftTeamsAPI();
+  new UserMattermostAPI();
   new UserWebhookAPI();
   new UserPushAPI();
 });

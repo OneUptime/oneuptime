@@ -1,0 +1,70 @@
+$ openstack volume show 8089892e-d947-4853-ad64-ce517ff65bc1 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "id": "8089892e-d947-4853-ad64-ce517ff65bc1",
+  "status": "in-use",
+  "size": 1,
+  "availability_zone": "nova",
+  "created_at": "2026-11-05T05:28:56.000000",
+  "updated_at": "2026-11-05T05:29:08.000000",
+  "name": "ou-boot-volume",
+  "description": null,
+  "volume_type": "lvmdriver-1",
+  "snapshot_id": null,
+  "source_volid": null,
+  "metadata": {},
+  "links": [
+    {
+      "rel": "self",
+      "href": "http://10.1.0.196/volume/v3/volumes/8089892e-d947-4853-ad64-ce517ff65bc1"
+    },
+    {
+      "rel": "bookmark",
+      "href": "http://10.1.0.196/volume/volumes/8089892e-d947-4853-ad64-ce517ff65bc1"
+    }
+  ],
+  "user_id": "4a532d8e0b2c42aeb60370f0e764e42c",
+  "bootable": "true",
+  "encrypted": false,
+  "replication_status": null,
+  "consistencygroup_id": null,
+  "multiattach": false,
+  "attachments": [
+    {
+      "id": "8089892e-d947-4853-ad64-ce517ff65bc1",
+      "attachment_id": "e5709087-b6b4-4fd0-8066-9aa09746bc1b",
+      "volume_id": "8089892e-d947-4853-ad64-ce517ff65bc1",
+      "server_id": "8bf79fce-384f-4b97-b84a-ca6e460aeb01",
+      "host_name": "compute-01",
+      "device": "/dev/vda",
+      "attached_at": "2026-11-05T05:29:08.000000"
+    }
+  ],
+  "migration_status": null,
+  "group_id": null,
+  "provider_id": null,
+  "shared_targets": false,
+  "service_uuid": "af1715fa-a39c-429d-8c4b-faf24737fa08",
+  "os-vol-tenant-attr:tenant_id": "b9e66b583ae5401b8ec2edf04f41c61a",
+  "os-vol-mig-status-attr:migstat": null,
+  "os-vol-mig-status-attr:name_id": null,
+  "volume_image_metadata": {
+    "signature_verified": "False",
+    "hw_rng_model": "virtio",
+    "owner_specified.openstack.md5": "",
+    "owner_specified.openstack.object": "images/cirros-0.6.3-x86_64-disk",
+    "owner_specified.openstack.sha256": "",
+    "image_id": "26d0ad3c-ceda-4a56-a37f-97c592896bdf",
+    "image_name": "cirros-0.6.3-x86_64-disk",
+    "checksum": "87617e24a5e30cb3b87fda8c0764838f",
+    "container_format": "bare",
+    "disk_format": "qcow2",
+    "min_disk": "0",
+    "min_ram": "0",
+    "size": "21692416"
+  },
+  "os-vol-host-attr:host": "compute-01@lvmdriver-1#lvmdriver-1"
+}

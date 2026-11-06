@@ -9,7 +9,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 # Read-only: these jobs check out and test the code, nothing more.
 permissions:
@@ -330,7 +330,7 @@ jobs:
       # the development render, without building anything; the jest suite
       # above pins what the stages contain.
       - run: bash Tests/Ops/lint-app-dockerfile.sh
-      # The same for the image Anthropic's OSS Scanner builds from master
+      # The same for the image Anthropic's OSS Scanner builds from main
       # (.oss-scanner/Dockerfile): BuildKit's checks, without building it.
       # The image is about 10 GB, more than a standard runner has to spare,
       # and the scanner emails security@oneuptime.com when its build fails;

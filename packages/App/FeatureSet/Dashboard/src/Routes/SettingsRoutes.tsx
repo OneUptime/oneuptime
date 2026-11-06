@@ -42,6 +42,7 @@ import SettingsNotifications from "../Pages/Settings/NotificationSettings";
 import SettingsInvoices from "../Pages/Settings/Invoices";
 
 import SettingsMicrosoftTeamsIntegration from "../Pages/Settings/MicrosoftTeamsIntegration";
+import SettingsMattermostIntegration from "../Pages/Settings/MattermostIntegration";
 
 import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
@@ -370,6 +371,20 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_MATTERMOST_INTEGRATION,
+          )}
+          element={
+            <SettingsMattermostIntegration
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_MATTERMOST_INTEGRATION] as Route
               }
             />
           }

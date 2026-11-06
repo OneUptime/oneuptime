@@ -10,6 +10,9 @@ import {
   AiRemediationRollbackStatus,
   isRemovedSshCommand,
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationApprovalSource, {
+  readRemediationApprovalSource,
+} from "Common/Types/AutoRemediation/AutoRemediationApprovalSource";
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
@@ -395,6 +398,40 @@ function getReasoningPreview(markdown: string | undefined): string | null {
   return markdownToPlainText(markdown) || null;
 }
 
+// How an approval reads, by where it was made: who approved it, and alone.
+interface ApprovalWords {
+  byName: string;
+  alone: string;
+}
+
+/*
+ * An approval from the fix's Slack or Microsoft Teams message says so
+ * beside who made it, as the record's feed does; one on the card - or one
+ * made before where was kept - reads as it always has.
+ */
+function getApprovalWords(
+  source: AutoRemediationApprovalSource | undefined,
+): ApprovalWords {
+  if (source === AutoRemediationApprovalSource.Slack) {
+    return {
+      byName: REMEDIATION_FIX_STEP_COPY.approvedByInSlack,
+      alone: REMEDIATION_FIX_STEP_COPY.approvedInSlack,
+    };
+  }
+
+  if (source === AutoRemediationApprovalSource.MicrosoftTeams) {
+    return {
+      byName: REMEDIATION_FIX_STEP_COPY.approvedByInTeams,
+      alone: REMEDIATION_FIX_STEP_COPY.approvedInTeams,
+    };
+  }
+
+  return {
+    byName: REMEDIATION_FIX_STEP_COPY.approvedBy,
+    alone: REMEDIATION_FIX_STEP_COPY.approved,
+  };
+}
+
 export type RemediationFixStepSuggestion = Pick<
   AutoRemediationSuggestion,
   | "status"
@@ -408,6 +445,7 @@ export type RemediationFixStepSuggestion = Pick<
   | "verificationCompletedAt"
   | "approvedAt"
   | "approvedByUser"
+  | "approvedFrom"
   | "dismissedAt"
   | "dismissedByUser"
   | "createdAt"
@@ -583,17 +621,20 @@ export function getRemediationFixSteps(data: {
 
   if (status === AutoRemediationSuggestionStatus.Approved) {
     const name: string = getPersonName(suggestion.approvedByUser);
+    const words: ApprovalWords = getApprovalWords(
+      readRemediationApprovalSource(suggestion.approvedFrom),
+    );
 
     steps.push({
       kind: "approval",
       tone: "done",
       title: name
         ? translator.translateTemplate(
-            REMEDIATION_FIX_STEP_COPY.approvedBy,
+            words.byName,
             { name },
             { setsValuesApart: true },
           )
-        : text(REMEDIATION_FIX_STEP_COPY.approved),
+        : text(words.alone),
       summary: null,
       isSummaryWritten: false,
       at: readRemediationMoment(suggestion.approvedAt),

@@ -641,7 +641,7 @@ describe("no logo is fetched from another address", () => {
     // A script of OneUptime's own is not a picture.
     expect(
       isRemotePicture(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/x.sh",
+        "https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/x.sh",
       ),
     ).toBe(false);
     // An example domain's placeholder loads nothing.

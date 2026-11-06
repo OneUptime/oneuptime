@@ -221,7 +221,7 @@ Every page can be escalated from where it reached you:
 | --- | --- |
 | Email | The **Escalate** button, then **Escalate** on the page it opens |
 | SMS and WhatsApp | The link in the message opens the acknowledge page, which has **Escalate** too |
-| Telegram, Slack and Microsoft Teams | The "Can't take it? Escalate" link, then **Escalate** on the page it opens |
+| Telegram, Slack, Microsoft Teams and Mattermost | The "Can't take it? Escalate" link, then **Escalate** on the page it opens |
 | Phone call | Press 2. The call then says what happened |
 | Push notification | Tap it: the incident, alert or episode opens in the OneUptime On-Call app, with **Escalate** under it |
 | OneUptime | **Escalate** at the top of the incident, alert or episode, after its state buttons |

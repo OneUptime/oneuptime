@@ -9,7 +9,15 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import { loadAllFormFieldControls } from "../../../../UI/Components/Forms/Fields/FormFieldControls";
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -103,6 +111,10 @@ function lastValue(setFieldValue: SetFieldValueMock): unknown {
   const calls: Array<Array<unknown>> = setFieldValue.mock.calls;
   return calls[calls.length - 1]?.[1];
 }
+
+beforeAll(async () => {
+  await loadAllFormFieldControls();
+});
 
 afterEach(() => {
   cleanup();

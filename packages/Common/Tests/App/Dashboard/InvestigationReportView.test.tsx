@@ -590,18 +590,18 @@ describe("InvestigationReportView report section", () => {
       "",
       "**Most likely root cause** — A deploy.",
       "",
-      "**Blast radius**",
-      "Checkout and cart.",
+      "**Workaround**",
+      "Route checkout to the standby pool.",
     ].join("\n");
     renderView({ analysisMarkdown: markdown });
 
     expect(reportSectionHeadings()).toEqual([
       "Most likely root cause",
-      "Blast radius",
+      "Workaround",
     ]);
     expect(
-      screen.getByRole("region", { name: "Blast radius" }),
-    ).toHaveTextContent("Checkout and cart.");
+      screen.getByRole("region", { name: "Workaround" }),
+    ).toHaveTextContent("Route checkout to the standby pool.");
   });
 
   test("keeps a second Summary in the report", () => {

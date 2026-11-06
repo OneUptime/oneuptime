@@ -73,7 +73,7 @@ Work through this list to make your OneUptime installation production-ready.
   release owns. On a cluster with no KEDA, the first install needs one extra
   bootstrap pass, because the bundled operator's CRDs have to reach the cluster
   before the `ScaledObject`s can. Both paths are in
-  [KEDA Ops](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md).
+  [KEDA Ops](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md).
 
 - [ ] **Size ClickHouse insert concurrency when scaling telemetry ingest
   workers.** Every telemetry-ingesting pod runs a fan-in writer that batches

@@ -8,6 +8,7 @@ import {
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import Select from "../Types/Database/Select";
 import DeleteBy from "../Types/Database/DeleteBy";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
 import Attribution, { SignUpAttribution } from "../Utils/Attribution";
@@ -64,6 +65,7 @@ import UserAuthenticationStatus from "../../Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "../../Types/TwoFactorAuthStatus";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { IsNull, MoreThan, UpdateResult } from "typeorm";
 import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
@@ -564,6 +566,54 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: carryForward };
   }
 
+  /*
+   * A new password ends the links already sent for the account, however it is
+   * set: the reset link's page, the profile page, a master admin's Set Password
+   * or an invited person claiming their account at sign up. Each link is a bearer
+   * credential found by its token's hash alone, and neither can outlive the
+   * password it was sent under:
+   *
+   *   - a sign-in link (Types/Accounts/MagicLink) stands in for the password.
+   *     Somebody holding one when the owner changes it would still get past the
+   *     first step of signing in, with the wrong two factor codes onUpdateSuccess
+   *     forgets counted from nothing again;
+   *   - a reset link replaces the password. Somebody holding one when the owner
+   *     changes it could, for up to a day, set another and sign the owner out:
+   *     undoing the very change the owner made to keep them out.
+   *
+   * Written here, after every permission check, and never in onBeforeUpdate:
+   * the links' columns are OneUptime's (update: []), and DatabaseService holds
+   * what onBeforeUpdate leaves to the caller's column permissions - so written
+   * there, they would refuse everybody changing their own password.
+   *
+   * And in the password's own UPDATE, not in one ahead of it as a new email
+   * address does (expirePasswordResetTokensForEmailChange): there is no instant
+   * at which the new password is stored and a link still works, a link sent
+   * while the write is on its way is on the row for it to clear, and a write
+   * that fails leaves the password and the links as they were.
+   *
+   * A hook-free write skips this, as it skips what onUpdateSuccess does for a
+   * new password: any new caller that writes `password` with `ignoreHooks: true`
+   * has to clear these columns itself. The upgrade of a legacy hash
+   * (verifyHashedColumnValue) is hook-free and stays so: it stores the same
+   * password.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (!updateBy.data.password) {
+      return;
+    }
+
+    updateBy.data.resetPasswordToken = null!;
+    updateBy.data.resetPasswordExpires = null!;
+    updateBy.data.magicLinkToken = null!;
+    updateBy.data.magicLinkExpires = null!;
+  }
+
   /**
    * Kill any outstanding password-reset link for every account whose email
    * address this update is about to change.
@@ -605,10 +655,14 @@ export class Service extends DatabaseService<Model> {
    * A row with no `email` stored is treated as changed: on a credential the
    * safe assumption is the one that expires the token.
    *
+   * A sign-in link (Types/Accounts/MagicLink) goes with the reset link, for
+   * the same reason and more: it is found by its token's hash alone too, and
+   * signs the account in outright rather than resetting its password.
+   *
    * NOTE: this runs from `onBeforeUpdate`, so an email write made with
    * `ignoreHooks: true` would slip past it. Nothing does that today -- the
    * dashboard, the SCIM endpoints and the admin API all go through the hooks
-   * -- and any new caller that writes `email` hook-free has to clear these two
+   * -- and any new caller that writes `email` hook-free has to clear these
    * columns itself.
    */
   @CaptureSpan()
@@ -636,12 +690,14 @@ export class Service extends DatabaseService<Model> {
         data: {
           resetPasswordToken: null!,
           resetPasswordExpires: null!,
+          magicLinkToken: null!,
+          magicLinkExpires: null!,
         },
         /*
-         * Root because `resetPasswordToken` is declared with `update: []` --
-         * no permission can write it -- and hook-free because this IS the
-         * update hook; re-entering it would have this write go looking for an
-         * email change of its own.
+         * Root because `resetPasswordToken` and `magicLinkToken` are declared
+         * with `update: []` -- no permission can write them -- and hook-free
+         * because this IS the update hook; re-entering it would have this
+         * write go looking for an email change of its own.
          */
         props: {
           isRoot: true,
@@ -649,6 +705,100 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  /*
+   * The account whose latest sign-in link carries this token, while that
+   * link still works (Types/Accounts/MagicLink), read with `select` - or
+   * null: no such link, one that expired, or a newer link replaced it.
+   *
+   * It only reads. A sign-in spends the link with consumeMagicLinkToken
+   * once it has succeeded, so a link that starts a sign-in still works for
+   * the authenticator code, security key or backup code that finishes it,
+   * as a password does.
+   */
+  @CaptureSpan()
+  public async findByMagicLinkToken(data: {
+    token: string;
+    select: Select<Model>;
+  }): Promise<Model | null> {
+    // An empty value hashes to "" (HashedString), which no link is.
+    if (!data.token) {
+      return null;
+    }
+
+    const hashedToken: string = await HashedString.hashValue(
+      data.token,
+      EncryptionSecret,
+    );
+
+    const user: Model | null = await this.findOneBy({
+      query: {
+        magicLinkToken: hashedToken,
+      },
+      select: {
+        ...data.select,
+        _id: true,
+        magicLinkExpires: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !user?.id ||
+      !user.magicLinkExpires ||
+      OneUptimeDate.hasExpired(user.magicLinkExpires)
+    ) {
+      return null;
+    }
+
+    delete user.magicLinkExpires;
+
+    return user;
+  }
+
+  /*
+   * Spend this account's sign-in link (Types/Accounts/MagicLink): true when
+   * this request is the one that cleared it, false when there was nothing
+   * to clear - another request spent it first, it expired, a newer link
+   * replaced it, or the account was removed. The token's hash, the expiry
+   * and the account not being removed are all in the UPDATE's predicate, so
+   * of two requests that carry one link only one finds it there.
+   *
+   * Hook-free, as a single conditional write has to be. It touches only the
+   * two link columns, which no hook reacts to.
+   */
+  @CaptureSpan()
+  public async consumeMagicLinkToken(data: {
+    userId: ObjectID;
+    token: string;
+  }): Promise<boolean> {
+    // An empty value hashes to "" (HashedString), which no link is.
+    if (!data.token) {
+      return false;
+    }
+
+    const hashedToken: string = await HashedString.hashValue(
+      data.token,
+      EncryptionSecret,
+    );
+
+    const updateResult: UpdateResult = await this.getRepository().update(
+      {
+        _id: data.userId.toString(),
+        magicLinkToken: hashedToken,
+        magicLinkExpires: MoreThan(OneUptimeDate.getCurrentDate()),
+        deletedAt: IsNull(),
+      } as any,
+      {
+        magicLinkToken: null,
+        magicLinkExpires: null,
+      } as any,
+    );
+
+    return updateResult.affected === 1;
   }
 
   /*
@@ -804,10 +954,11 @@ export class Service extends DatabaseService<Model> {
 
         /*
          * A new password ends any wait for wrong two factor codes. Whoever
-         * entered them held the old password, which no longer signs anybody
-         * in; the owner, who just set the new one, signs in at once. Every
-         * way a password changes comes through here: the reset link, the
-         * profile page and a master admin's Set Password.
+         * entered them held the old password or a sign-in link, and neither
+         * signs anybody in now: the write that stored this password ended the
+         * link too (onUpdatePermitted). The owner, who just set the new one,
+         * signs in at once. Every way a password changes comes through here:
+         * the reset link, the profile page and a master admin's Set Password.
          */
         await TwoFactorWrongCodes.forget(user.id!);
 
@@ -1567,9 +1718,10 @@ export class Service extends DatabaseService<Model> {
    *    and run scrypt over it. Pre-hashing here, or passing a bare string,
    *    would be rejected by that same code (see DatabaseService's salted-column
    *    guard) precisely because it would strand the row's salt;
-   *  - any outstanding reset link is invalidated in the SAME statement. A link
-   *    mailed before the admin intervened must not still be able to change the
-   *    password afterwards;
+   *  - any outstanding reset link or sign-in link ends in the SAME statement, by
+   *    `onUpdatePermitted`, as it does for any update that carries a password. A
+   *    link mailed before the admin intervened must not still be able to change
+   *    the password afterwards;
    *  - session revocation and the "Password Changed." email are NOT done here.
    *    `onUpdateSuccess` already does both for any update that carries a
    *    password, and doing it again would send the user two identical emails.
@@ -1608,8 +1760,6 @@ export class Service extends DatabaseService<Model> {
       id: user.id!,
       data: {
         password: new HashedString(data.password),
-        resetPasswordToken: null!,
-        resetPasswordExpires: null!,
       },
       props: {
         isRoot: true,

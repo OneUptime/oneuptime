@@ -98,6 +98,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
@@ -449,6 +450,7 @@ describe("toItems", () => {
       dockerHosts: [],
       podmanHosts: [],
       proxmoxClusters: [],
+      openStackClouds: [],
       vmwareVCenters: [],
       cephClusters: [],
       storageArrays: [],
@@ -567,6 +569,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       DockerHost: DockerHost,
       PodmanHost: PodmanHost,
       ProxmoxCluster: ProxmoxCluster,
+      OpenStackCloud: OpenStackCloud,
       VMwareVCenter: VMwareVCenter,
       CephCluster: CephCluster,
       StorageArray: StorageArray,

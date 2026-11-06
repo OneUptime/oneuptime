@@ -6,7 +6,7 @@
 
 :::cards
 - [我們的敏感資料在哪裡？](/docs/data-security/data-types): 143 種資料類型，從卡號、國民身分證號碼到 API 金鑰，可在儲存貯體、資料表和遙測中找到。
-- [資料是否暴露在外？](/docs/data-security/checks-and-issues): 對每個資料儲存區進行 33 項檢查：公開存取、加密、備份、日誌記錄、祕密和複本。
+- [資料是否暴露在外？](/docs/data-security/checks-and-issues): 對每個資料儲存區進行 34 項檢查：公開存取、加密、備份、日誌記錄、祕密和複本。
 - [誰可以存取它，它又流向哪裡？](/docs/data-security/flows-access-residency): 可以存取每個資料儲存區的每個身分（風險最高的排在前面）、哪些服務使用它，以及它的資料會到達哪些 AI 供應商和主機。
 - [它符合我們的規定嗎？](/docs/data-security/compliance): 資料落地規則，以及根據掃描結果評分的九個合規框架。
 :::

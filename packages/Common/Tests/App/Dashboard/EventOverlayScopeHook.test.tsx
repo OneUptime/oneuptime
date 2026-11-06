@@ -443,7 +443,7 @@ describe("resource-scoped event overlay requests", (): void => {
           projectId: PROJECT_ID,
           time: WINDOW,
           attributes: {
-            "oneuptime.change.source": new IncludesNone(["cloud"]),
+            "oneuptime.change.source": new IncludesNone(["cloud", "openstack"]),
           },
         },
       }),
@@ -1094,7 +1094,7 @@ describe("event overlay for a chart filtered to no resource", (): void => {
           projectId: PROJECT_ID,
           time: WINDOW,
           attributes: {
-            "oneuptime.change.source": new IncludesNone(["cloud"]),
+            "oneuptime.change.source": new IncludesNone(["cloud", "openstack"]),
           },
         },
       }),
@@ -1224,7 +1224,7 @@ describe("the change events a marker fetch reads", () => {
   test("a project-wide chart leaves a cloud account's activity log out, and keeps its health events", () => {
     expect(getChangeEventFetchQuery({})).toEqual({
       attributes: {
-        "oneuptime.change.source": new IncludesNone(["cloud"]),
+        "oneuptime.change.source": new IncludesNone(["cloud", "openstack"]),
       },
     });
   });

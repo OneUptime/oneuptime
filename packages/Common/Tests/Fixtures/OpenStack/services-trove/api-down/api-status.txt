@@ -1,0 +1,4 @@
+000000 trove-instances
+000000 trove-mgmt-instances
+000000 trove-datastores
+000000 trove-flavors

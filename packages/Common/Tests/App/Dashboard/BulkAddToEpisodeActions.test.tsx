@@ -228,23 +228,8 @@ function actionProps(items: Array<Alert>): BulkActionOnClickProps<Alert> {
   };
 }
 
-/*
- * zone.js reschedules the microtask React's act() uses to check that its
- * thenable was awaited; hooking then() up synchronously answers that check
- * in time (as BulkIncidentLinkActions.test.tsx does).
- */
-function actAsync(body: () => Promise<void>): Promise<void> {
-  const scope: PromiseLike<void> = act(body) as unknown as PromiseLike<void>;
-
-  return new Promise<void>(
-    (resolve: () => void, reject: (reason: unknown) => void): void => {
-      scope.then(resolve, reject);
-    },
-  );
-}
-
 async function click(title: string, items: Array<Alert>): Promise<void> {
-  await actAsync(async () => {
+  await act(async () => {
     await visibleAction(title, items).onClick(actionProps(items));
   });
 }
@@ -252,7 +237,7 @@ async function click(title: string, items: Array<Alert>): Promise<void> {
 // Waits for the run the dialog started to end.
 async function settle(): Promise<void> {
   for (let i: number = 0; i < 20 && !outcome.ended; i++) {
-    await actAsync(async () => {
+    await act(async () => {
       await new Promise<void>((resolve: () => void) => {
         setTimeout(resolve, 0);
       });
@@ -419,7 +404,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(4);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();
@@ -454,7 +439,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(1);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();
@@ -496,7 +481,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(2);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();
@@ -519,7 +504,7 @@ describe("useBulkAddToEpisodeActions", () => {
         ) as never,
       );
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();
@@ -539,7 +524,7 @@ describe("useBulkAddToEpisodeActions", () => {
         ) as never,
       );
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();
@@ -564,7 +549,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(1);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();
@@ -597,7 +582,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(2);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();
@@ -615,7 +600,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(1);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onClose();
       });
 
@@ -628,7 +613,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(2);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onCreateNewEpisodeInstead!();
       });
 
@@ -666,7 +651,7 @@ describe("useBulkAddToEpisodeActions", () => {
       await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, items);
       expect(newDialog!.recordIds).toEqual([id(1), id(2), id(3)]);
 
-      await actAsync(async () => {
+      await act(async () => {
         newDialog!.onCreate({
           title: "Checkout outage",
           severityId: id(50),
@@ -714,7 +699,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(2);
 
       await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         newDialog!.onCreate({
           title: "Checkout outage",
           severityId: undefined,
@@ -755,7 +740,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(3);
 
       await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         newDialog!.onCreate({
           title: "Checkout outage",
           severityId: undefined,
@@ -784,7 +769,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(2);
 
       await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         newDialog!.onCreate({
           title: "Checkout outage",
           severityId: undefined,
@@ -809,7 +794,7 @@ describe("useBulkAddToEpisodeActions", () => {
       renderHarness();
 
       await click(ADD_TO_NEW_EPISODE_ACTION_TITLE, makeAlerts(2));
-      await actAsync(async () => {
+      await act(async () => {
         newDialog!.onCreate({
           title: "Checkout outage",
           severityId: undefined,
@@ -847,7 +832,7 @@ describe("useBulkAddToEpisodeActions", () => {
       const items: Array<Alert> = makeAlerts(2);
 
       await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
-      await actAsync(async () => {
+      await act(async () => {
         existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
       });
       await settle();

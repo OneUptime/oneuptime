@@ -725,6 +725,7 @@ describe("DiscoveredResourceIdCache", () => {
       ).toEqual({
         KubernetesCluster: "k8s-cluster-id",
         ProxmoxCluster: "proxmox-cluster-id",
+        OpenStackCloud: "openstack-cloud-id",
         VMwareVCenter: "vmware-vcenter-id",
         IoTFleet: "iot-fleet-id",
         DockerSwarmCluster: "docker-swarm-cluster-id",

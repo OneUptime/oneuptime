@@ -32,7 +32,7 @@ export type { ProjectNotificationChannelColumn };
  *   off, because they are verified by text.
  * - Resending a verification code is refused too, for SMS, calls and
  *   incoming call numbers (not for WhatsApp or Telegram).
- * - Email, push, Slack, Microsoft Teams and webhooks have no switch.
+ * - Email, push, Slack, Microsoft Teams, Mattermost and webhooks have no switch.
  *
  * Every place that shows these switches or depends on them reads this file:
  * the Notification Channels card on Project Settings -> Notification

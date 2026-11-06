@@ -242,6 +242,270 @@ describe("getComponentArguments — header dictionaries in both shapes", () => {
   });
 });
 
+/*
+ * A value with nothing in it (Types/Workflow/EmptyValues, issue 5761): which
+ * settings take one, and how it is written in each. The run as a whole is in
+ * RunWorkflowEmptyValues.test.ts.
+ */
+describe("getComponentArguments — a value with nothing in it", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const MODEL: string = "local.components.find-1.returnValues.model";
+
+  const storageWith: (model: JSONObject | null) => StorageMap = (
+    model: JSONObject | null,
+  ): StorageMap => {
+    return makeStorage({
+      components: {
+        "find-1": { returnValues: { model: model as JSONObject } },
+      },
+    });
+  };
+
+  const withNoMonitor: StorageMap = storageWith({
+    title: "From an SLO",
+    description: null,
+    monitor: null,
+  });
+
+  type ArgumentsOfFunction = (
+    type: ComponentInputType,
+    value: JSONObject[string],
+    storage?: StorageMap,
+  ) => { value: JSONObject[string]; logs: Array<string> };
+
+  const argumentOfType: ArgumentsOfFunction = (
+    type: ComponentInputType,
+    value: JSONObject[string],
+    storage: StorageMap = withNoMonitor,
+  ): { value: JSONObject[string]; logs: Array<string> } => {
+    const runner: RunWorkflow = new RunWorkflow();
+    const logs: Array<string> = logsOf(runner);
+
+    const args: JSONObject = runner.getComponentArguments(
+      storage,
+      makeNode([makeArgument("setting", type)], { setting: value }),
+    );
+
+    return { value: args["setting"], logs: logs };
+  };
+
+  describe.each([
+    ComponentInputType.Text,
+    ComponentInputType.LongText,
+    ComponentInputType.Markdown,
+    ComponentInputType.HTML,
+    ComponentInputType.AnyValue,
+  ])("a %s setting", (type: ComponentInputType) => {
+    test("a field of a related record the record does not have is nothing", () => {
+      expect(
+        argumentOfType(type, `Monitor: [{{${MODEL}.monitor.name}}]`).value,
+      ).toBe("Monitor: []");
+    });
+
+    test("a field holding null is nothing, never the word null", () => {
+      expect(
+        argumentOfType(type, `Details: [{{${MODEL}.description}}]`).value,
+      ).toBe("Details: []");
+    });
+
+    test("a whole setting with no value is null", () => {
+      expect(
+        argumentOfType(type, `{{${MODEL}.monitor.name}}`).value,
+      ).toBeNull();
+    });
+
+    test("a value that is there is written", () => {
+      expect(argumentOfType(type, `Title: {{${MODEL}.title}}`).value).toBe(
+        "Title: From an SLO",
+      );
+    });
+
+    test("a reference to nothing is left as written", () => {
+      const reference: string = "{{local.components.nope.returnValues.x}}";
+
+      expect(argumentOfType(type, `[${reference}]`).value).toBe(
+        `[${reference}]`,
+      );
+    });
+  });
+
+  test("a JSON setting: empty inside a string, null on its own", () => {
+    expect(
+      argumentOfType(
+        ComponentInputType.JSON,
+        `{"quoted": "{{${MODEL}.monitor.name}}", "own": {{${MODEL}.monitor.name}}, "kept": "{{${MODEL}.title}}"}`,
+      ).value,
+    ).toEqual({ quoted: "", own: null, kept: "From an SLO" });
+  });
+
+  test("a JSON setting that is one such reference is null", () => {
+    expect(
+      argumentOfType(ComponentInputType.JSON, `{{${MODEL}.monitor.name}}`)
+        .value,
+    ).toBeNull();
+  });
+
+  test("a dictionary kept as an object stays one", () => {
+    expect(
+      argumentOfType(ComponentInputType.StringDictionary, {
+        "X-Monitor": `{{${MODEL}.monitor.name}}`,
+        "X-Title": `{{${MODEL}.title}}`,
+      }).value,
+    ).toEqual({ "X-Monitor": "", "X-Title": "From an SLO" });
+  });
+
+  test("a dictionary kept as text has its value blanked in place", () => {
+    expect(
+      argumentOfType(
+        ComponentInputType.StringDictionary,
+        `{"X-Monitor": "{{${MODEL}.monitor.name}}"}`,
+      ).value,
+    ).toBe('{"X-Monitor": ""}');
+  });
+
+  test("the record of a Find One that found none is nothing", () => {
+    expect(
+      argumentOfType(
+        ComponentInputType.Text,
+        `Owner: [{{${MODEL}.name}}]`,
+        storageWith(null),
+      ).value,
+    ).toBe("Owner: []");
+  });
+
+  test("the log says so, with no warning: nothing is wrong", () => {
+    const logs: Array<string> = argumentOfType(
+      ComponentInputType.Text,
+      `{{${MODEL}.monitor.name}} {{${MODEL}.description}} {{${MODEL}.monitor.name}}`,
+    ).logs;
+
+    expect(logs).toEqual([
+      `{{${MODEL}.monitor.name}} in "setting" has no value in this run, so it came through empty.`,
+      `{{${MODEL}.description}} in "setting" has no value in this run, so it came through empty.`,
+    ]);
+  });
+
+  /*
+   * What keeps a reference as written: a setting where a blank is not harmless.
+   * JavaScript has `const x = {{...}};`, which must stay code; an address must
+   * not quietly become another; a date or a number must be one or nothing.
+   */
+  describe.each([
+    ComponentInputType.URL,
+    ComponentInputType.JavaScript,
+    ComponentInputType.Password,
+    ComponentInputType.Email,
+    ComponentInputType.CronTab,
+    ComponentInputType.Date,
+    ComponentInputType.DateTime,
+    ComponentInputType.Number,
+    ComponentInputType.Decimal,
+    ComponentInputType.Boolean,
+    ComponentInputType.Choice,
+    ComponentInputType.UserList,
+    ComponentInputType.TeamList,
+    ComponentInputType.OnCallScheduleList,
+    ComponentInputType.OnCallPolicyList,
+    ComponentInputType.WorkflowSelect,
+  ])("a %s setting", (type: ComponentInputType) => {
+    test("keeps a path through a null as written, and warns", () => {
+      const result: { value: JSONObject[string]; logs: Array<string> } =
+        argumentOfType(type, `x/{{${MODEL}.monitor.name}}`);
+
+      expect(result.value).toBe(`x/{{${MODEL}.monitor.name}}`);
+      expect(result.logs).toHaveLength(1);
+      expect(result.logs[0]).toMatch(/^Warning: .*literal text/);
+    });
+
+    test("writes a field holding null as it always did", () => {
+      expect(argumentOfType(type, `x/{{${MODEL}.description}}`).value).toBe(
+        "x/null",
+      );
+    });
+  });
+
+  test("JavaScript's null stays code that runs", () => {
+    expect(
+      argumentOfType(
+        ComponentInputType.JavaScript,
+        `const description = {{${MODEL}.description}};`,
+      ).value,
+    ).toBe("const description = null;");
+  });
+
+  /*
+   * A step that reads or writes records: every setting, whatever its type. A
+   * Query's {"monitorId": null} would match every alert with no monitor.
+   */
+  describe("a setting of a step that reads or writes records", () => {
+    const recordStepNode: (
+      type: ComponentInputType,
+      value: JSONObject[string],
+    ) => NodeDataProp = (
+      type: ComponentInputType,
+      value: JSONObject[string],
+    ): NodeDataProp => {
+      const node: NodeDataProp = makeNode([makeArgument("setting", type)], {
+        setting: value,
+      });
+
+      node.metadata = { ...node.metadata, tableName: "Alert" };
+
+      return node;
+    };
+
+    const argumentsOfRecordStep: (
+      type: ComponentInputType,
+      value: JSONObject[string],
+    ) => JSONObject[string] = (
+      type: ComponentInputType,
+      value: JSONObject[string],
+    ): JSONObject[string] => {
+      const runner: RunWorkflow = new RunWorkflow();
+      logsOf(runner);
+
+      return runner.getComponentArguments(
+        withNoMonitor,
+        recordStepNode(type, value),
+      )["setting"];
+    };
+
+    test.each([
+      ComponentInputType.Query,
+      ComponentInputType.JSON,
+      ComponentInputType.BaseModel,
+    ])(
+      "a %s keeps the reference in a string, for the step to stop on",
+      (type: ComponentInputType) => {
+        const query: JSONObject = { monitorId: `{{${MODEL}.monitor._id}}` };
+
+        expect(argumentsOfRecordStep(type, query)).toEqual(query);
+      },
+    );
+
+    test("a Query with the reference on its own never comes out as null", () => {
+      expect(() => {
+        return argumentsOfRecordStep(
+          ComponentInputType.Query,
+          `{"monitorId": {{${MODEL}.monitor._id}}}`,
+        );
+      }).toThrow(/Invalid JSON/);
+    });
+
+    test("a text setting keeps it too", () => {
+      expect(
+        argumentsOfRecordStep(
+          ComponentInputType.Text,
+          `{{${MODEL}.monitor._id}}`,
+        ),
+      ).toBe(`{{${MODEL}.monitor._id}}`);
+    });
+  });
+});
+
 describe("getComponentArguments — unresolved reference warnings", () => {
   afterEach(() => {
     jest.restoreAllMocks();

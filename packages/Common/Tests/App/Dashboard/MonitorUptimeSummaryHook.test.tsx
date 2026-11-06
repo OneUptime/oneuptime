@@ -96,16 +96,6 @@ function createDeferred<T>(): Deferred<T> {
   return { promise: promise, resolve: resolve };
 }
 
-/*
- * Rejections are made by an async function, so they are native promises.
- * The UI telemetry in the import graph loads zone.js, whose Promise reports
- * a rejection as unhandled when a native await subscribes to it a tick
- * later, which would fill the log with false alarms.
- */
-async function rejectWith(error: unknown): Promise<never> {
-  throw error;
-}
-
 function buildSummary(monitorId: ObjectID): MonitorUptimeSummary {
   const startDate: Date = new Date("2026-06-24T00:00:00.000Z");
 
@@ -377,9 +367,7 @@ describe("useMonitorUptimeSummary", () => {
   });
 
   test("a rejected request is an error section too", async () => {
-    apiGetSpy.mockImplementation(() => {
-      return rejectWith(new Error("Network error."));
-    });
+    apiGetSpy.mockRejectedValue(new Error("Network error."));
 
     const { result } = renderSummary();
     await flush();
@@ -443,9 +431,7 @@ describe("useMonitorUptimeSummary", () => {
     const { result, rerender } = renderSummary({ refreshKey: "a" });
     await flush();
 
-    apiGetSpy.mockImplementationOnce(() => {
-      return rejectWith(new Error("Network error."));
-    });
+    apiGetSpy.mockRejectedValueOnce(new Error("Network error."));
     rerender({ monitorId: MONITOR_ID, refreshKey: "b" });
     await flush();
 
@@ -458,9 +444,7 @@ describe("useMonitorUptimeSummary", () => {
   });
 
   test("retry reloads after an error, showing the skeleton meanwhile", async () => {
-    apiGetSpy.mockImplementationOnce(() => {
-      return rejectWith(new Error("Network error."));
-    });
+    apiGetSpy.mockRejectedValueOnce(new Error("Network error."));
 
     const { result } = renderSummary();
     await flush();
@@ -511,9 +495,7 @@ describe("useMonitorUptimeSummary", () => {
   });
 
   test("a failed incident overlay never takes the history down with it", async () => {
-    getListSpy.mockImplementation(() => {
-      return rejectWith(new Error("Incidents are unavailable."));
-    });
+    getListSpy.mockRejectedValue(new Error("Incidents are unavailable."));
 
     const { result } = renderSummary();
     await flush();
@@ -658,9 +640,7 @@ describe("useMonitorUptimeSummary: while the page hides the history", () => {
   });
 
   test("another monitor and Try again are still read while hidden", async () => {
-    apiGetSpy.mockImplementationOnce(() => {
-      return rejectWith(new Error("Network error."));
-    });
+    apiGetSpy.mockRejectedValueOnce(new Error("Network error."));
 
     const { result, rerender } = renderShown({
       monitorId: MONITOR_ID,
@@ -846,9 +826,7 @@ describe("useMonitorUptimeSummary: the server's clock", () => {
 
   test("a failed summary measures nothing", async () => {
     jest.setSystemTime(new Date(NOW.getTime() + 7 * 60 * 1000));
-    apiGetSpy.mockImplementation(() => {
-      return rejectWith(new Error("Network error."));
-    });
+    apiGetSpy.mockRejectedValue(new Error("Network error."));
 
     const reported: Array<number> = [];
     const { result } = renderHook((): UseMonitorUptimeSummaryResult => {
@@ -1061,7 +1039,7 @@ describe("useMonitorUptimeSummary - scheduled maintenance", () => {
 
       if (request.modelType === ScheduledMaintenance) {
         if (maintenanceFailure) {
-          return rejectWith(maintenanceFailure);
+          return Promise.reject(maintenanceFailure);
         }
 
         return Promise.resolve({
@@ -1205,9 +1183,7 @@ describe("useMonitorUptimeSummary - scheduled maintenance", () => {
   });
 
   test("without the history there is no window, so no maintenance either", async () => {
-    apiGetSpy.mockImplementation(() => {
-      return rejectWith(new Error("Network error."));
-    });
+    apiGetSpy.mockRejectedValue(new Error("Network error."));
 
     const { result } = renderSummary();
     await flush();

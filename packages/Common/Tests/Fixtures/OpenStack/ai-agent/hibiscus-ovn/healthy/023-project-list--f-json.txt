@@ -1,0 +1,63 @@
+$ openstack project list -f json
+success: true
+exit code: 0
+
+[stdout]
+[
+  {
+    "id": "35998d4e3ca145dcb5a06a286817ff77",
+    "name": "alt_demo",
+    "domain_id": "default",
+    "enabled": true,
+    "parent_id": "default",
+    "description": ""
+  },
+  {
+    "id": "66a4216256c64b76b86cb4b20dbe21cf",
+    "name": "service",
+    "domain_id": "default",
+    "enabled": true,
+    "parent_id": "default",
+    "description": ""
+  },
+  {
+    "id": "75d319b921a74985a5287e4173a1f288",
+    "name": "invisible_to_admin",
+    "domain_id": "default",
+    "enabled": true,
+    "parent_id": "default",
+    "description": ""
+  },
+  {
+    "id": "7d12d4f1273942508ecbab053dd52b4f",
+    "name": "admin",
+    "domain_id": "default",
+    "enabled": true,
+    "parent_id": "default",
+    "description": "Bootstrap project for initializing the cloud."
+  },
+  {
+    "id": "adbada83aeeb41cebd344c2f7cf44372",
+    "name": "ou-payments",
+    "domain_id": "default",
+    "enabled": true,
+    "parent_id": "default",
+    "description": "OneUptime test estate"
+  },
+  {
+    "id": "b9e66b583ae5401b8ec2edf04f41c61a",
+    "name": "ou-research",
+    "domain_id": "default",
+    "enabled": true,
+    "parent_id": "default",
+    "description": "OneUptime test estate"
+  },
+  {
+    "id": "e71c5446a4554b279a7bfa4c63d0b451",
+    "name": "demo",
+    "domain_id": "default",
+    "enabled": true,
+    "parent_id": "default",
+    "description": ""
+  }
+]

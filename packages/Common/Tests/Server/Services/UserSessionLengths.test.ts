@@ -5,7 +5,9 @@ import UserSessionService, {
   SessionMetadata,
   SessionRenewalDecision,
 } from "../../../Server/Services/UserSessionService";
+import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import OneUptimeDate from "../../../Types/Date";
+import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SessionEndReason,
@@ -23,6 +25,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
+import { FindOperator } from "typeorm";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -451,6 +455,28 @@ describe("UserSessionService.decideRenewal", () => {
 });
 
 describe("UserSessionService.renewSessionWithNewRefreshToken", () => {
+  type RenewalWrite = (
+    criteria: Record<string, unknown>,
+    values: Partial<UserSession>,
+  ) => Promise<{ affected: number }>;
+
+  // The renewal's one write, finding the row or finding it no longer live.
+  const stubRenewalWrite: (affected?: number) => Mock<RenewalWrite> = (
+    affected: number = 1,
+  ): Mock<RenewalWrite> => {
+    const update: Mock<RenewalWrite> = jest.fn(
+      async (): Promise<{ affected: number }> => {
+        return { affected: affected };
+      },
+    ) as unknown as Mock<RenewalWrite>;
+
+    jest
+      .spyOn(UserSessionService, "getRepository")
+      .mockReturnValue({ update: update } as never);
+
+    return update;
+  };
+
   test("writes the activity the renewal decided, and signs its token under the lengths it was decided with", async () => {
     fake.userSessionLengths = lengths({ length: 99999 });
     const session: UserSession = storedSession({
@@ -458,47 +484,29 @@ describe("UserSessionService.renewSessionWithNewRefreshToken", () => {
       lastActiveAgoMs: 10 * MINUTE,
     });
     const lastActiveAt: Date = new Date(NOW.getTime() - 2 * MINUTE);
+    const update: Mock<RenewalWrite> = stubRenewalWrite();
 
-    const update: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(UserSessionService, "updateOneByIdAndFetch")
-      .mockImplementation((async (data: { data: Partial<UserSession> }) => {
-        const updated: UserSession = storedSession({
-          signedInAgoMs: 50 * MINUTE,
-          lastActiveAgoMs: 2 * MINUTE,
-        });
-        Object.assign(updated, data.data);
-        return updated;
-      }) as never);
-
-    const metadata: SessionMetadata =
+    const metadata: SessionMetadata | null =
       await UserSessionService.renewSessionWithNewRefreshToken({
         session,
         lastActiveAt,
         lengths: lengths({ length: 60 }),
       });
 
-    expect(
-      (update.mock.calls[0]![0] as { data: Partial<UserSession> }).data
-        .lastActiveAt,
-    ).toEqual(lastActiveAt);
-    expect(metadata.signedInAt).toEqual(new Date(NOW.getTime() - 50 * MINUTE));
-    expect(metadata.lastActiveAt).toEqual(lastActiveAt);
+    expect(update.mock.calls[0]![1].lastActiveAt).toEqual(lastActiveAt);
+    expect(metadata!.signedInAt).toEqual(new Date(NOW.getTime() - 50 * MINUTE));
+    expect(metadata!.lastActiveAt).toEqual(lastActiveAt);
     // Ten minutes left of the hour the lengths it was decided with allow.
-    expect(metadata.accessTokenExpiresInSeconds).toBe(10 * 60);
+    expect(metadata!.accessTokenExpiresInSeconds).toBe(10 * 60);
     // The lengths were handed over: not read again.
     expect(fake.userSessionLengthsReads).toBe(0);
   });
 
   test("reads the lengths itself when they are not handed over", async () => {
     fake.userSessionLengths = lengths({ length: 60 });
-    jest.spyOn(UserSessionService, "updateOneByIdAndFetch").mockResolvedValue(
-      storedSession({
-        signedInAgoMs: 55 * MINUTE,
-        lastActiveAgoMs: 0,
-      }) as never,
-    );
+    stubRenewalWrite();
 
-    const metadata: SessionMetadata =
+    const metadata: SessionMetadata | null =
       await UserSessionService.renewSessionWithNewRefreshToken({
         session: storedSession({
           signedInAgoMs: 55 * MINUTE,
@@ -507,7 +515,70 @@ describe("UserSessionService.renewSessionWithNewRefreshToken", () => {
       });
 
     expect(fake.userSessionLengthsReads).toBe(1);
-    expect(metadata.accessTokenExpiresInSeconds).toBe(5 * 60);
+    expect(metadata!.accessTokenExpiresInSeconds).toBe(5 * 60);
+  });
+
+  test("writes only to a session still live, and never says one is not revoked", async () => {
+    const update: Mock<RenewalWrite> = stubRenewalWrite();
+
+    await UserSessionService.renewSessionWithNewRefreshToken({
+      session: storedSession({ signedInAgoMs: MINUTE, lastActiveAgoMs: 0 }),
+      lengths: null,
+    });
+
+    expect(update).toHaveBeenCalledTimes(1);
+
+    const [criteria, values]: [Record<string, unknown>, Partial<UserSession>] =
+      update.mock.calls[0]!;
+
+    expect(criteria["_id"]).toBe(SESSION_ID.toString());
+    expect(criteria["isRevoked"]).toBe(false);
+    expect((criteria["deletedAt"] as FindOperator<unknown>).type).toBe(
+      "isNull",
+    );
+    expect(values).not.toHaveProperty("isRevoked");
+    expect(values).not.toHaveProperty("revokedAt");
+    expect(values).not.toHaveProperty("revokedReason");
+  });
+
+  test("stores the new token hashed, and hands back the token itself", async () => {
+    const update: Mock<RenewalWrite> = stubRenewalWrite();
+
+    const metadata: SessionMetadata | null =
+      await UserSessionService.renewSessionWithNewRefreshToken({
+        session: storedSession({ signedInAgoMs: MINUTE, lastActiveAgoMs: 0 }),
+        lengths: null,
+      });
+
+    const stored: HashedString = update.mock.calls[0]![1]
+      .refreshToken as HashedString;
+
+    expect(stored.isValueHashed()).toBe(true);
+    expect(stored.toString()).toBe(
+      await HashedString.hashValue(metadata!.refreshToken, EncryptionSecret),
+    );
+    expect(stored.toString()).not.toBe(metadata!.refreshToken);
+  });
+
+  test("a session ended while the request was on its way is not renewed: null, and no token handed out", async () => {
+    stubRenewalWrite(0);
+
+    const session: UserSession = storedSession({
+      signedInAgoMs: MINUTE,
+      lastActiveAgoMs: 0,
+    });
+    const lastActiveAt: Date | undefined = session.lastActiveAt;
+
+    expect(
+      await UserSessionService.renewSessionWithNewRefreshToken({
+        session,
+        lengths: null,
+      }),
+    ).toBeNull();
+
+    // What the caller read is left as it read it.
+    expect(session.lastActiveAt).toBe(lastActiveAt);
+    expect(session.refreshToken).toBeUndefined();
   });
 });
 

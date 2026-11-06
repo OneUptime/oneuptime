@@ -123,7 +123,7 @@ JavaScript 表达式适用于 Website、API、Incoming Request、Incoming Email�
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-对于数据库健康监视器，通过对整个 `metrics` 对象做索引来读取某个指标——序列名称中包含点，因此不能放在花括号内：
+对于数据库健康监视器，可以把带点的序列名称直接写在花括号内，也可以通过对整个 `metrics` 对象做索引来读取某个指标——两种方式都可行：
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -261,7 +261,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 
 ## सेल्फ़-होस्टेड कॉन्फ़िगरेशन
 
-कुछ भी चालू करने की ज़रूरत नहीं: फ़ीड हर इंस्टॉलेशन पर काम करती हैं। चार एनवायरनमेंट वेरिएबल इन्हें नियंत्रित करते हैं, जो Docker Compose के लिए `config.env` में या Helm values में `onCallCalendarFeed` के नीचे सेट होते हैं (चार्ट का [कॉन्फ़िगरेशन संदर्भ](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) देखें):
+कुछ भी चालू करने की ज़रूरत नहीं: फ़ीड हर इंस्टॉलेशन पर काम करती हैं। चार एनवायरनमेंट वेरिएबल इन्हें नियंत्रित करते हैं, जो Docker Compose के लिए `config.env` में या Helm values में `onCallCalendarFeed` के नीचे सेट होते हैं (चार्ट का [कॉन्फ़िगरेशन संदर्भ](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) देखें):
 
 | वेरिएबल | Helm value | डिफ़ॉल्ट | प्रभाव |
 | --- | --- | --- | --- |
@@ -273,7 +273,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 यह भी ध्यान दें:
 
 - **`HOST` और `HTTP_PROTOCOL`** लिंक बनाते हैं। अगर `HOST` खाली है या `localhost` है, या `HTTP_PROTOCOL` `http` है, तो फ़ीड पेज चेतावनी दिखाता है और लिंक बाहर से काम नहीं करेंगे। अगर `HOST` कोई निजी पता है — `10.x`, `172.16–31.x`, `192.168.x`, बिना बिंदु वाला नाम जैसे कंटेनर का नाम, या `.internal`, `.local`, `.lan` और ऐसे ही डोमेन के नीचे का नाम — तो पेज बताता है कि Google कैलेंडर और वेब पर Outlook लिंक तक नहीं पहुँच सकते; उसी नेटवर्क के किसी कंप्यूटर के ऐप अब भी पहुँच सकते हैं।
-- **`TRUSTED_PROXY_HOPS`** तय करता है कि प्रति-पता सीमा किस पते को गिनती है। डिफ़ॉल्ट `1` मानक Docker Compose और Helm लेआउट के लिए सही है; अपनी हर उस प्रॉक्सी — CDN, WAF या लोड बैलेंसर — के लिए एक जोड़ें जो `X-Forwarded-For` में जोड़ती है, वरना हर कैलेंडर क्लाइंट एक ही पते जैसा दिखता है और एक ही बजट साझा करता है। चार्ट के दस्तावेज़ में [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) देखें।
+- **`TRUSTED_PROXY_HOPS`** तय करता है कि प्रति-पता सीमा किस पते को गिनती है। डिफ़ॉल्ट `1` मानक Docker Compose और Helm लेआउट के लिए सही है; अपनी हर उस प्रॉक्सी — CDN, WAF या लोड बैलेंसर — के लिए एक जोड़ें जो `X-Forwarded-For` में जोड़ती है, वरना हर कैलेंडर क्लाइंट एक ही पते जैसा दिखता है और एक ही बजट साझा करता है। चार्ट के दस्तावेज़ में [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) देखें।
 - **Redis** कैश और रेट लिमिटर को सहारा देता है। दोनों शालीनता से कम होते हैं: Redis के बिना भी फ़ीड बनती हैं, बस धीरे, और लिमिटर अनुरोधों को जाने देता है।
 - Helm चार्ट के स्प्लिट मोड (`worker.enabled: true`) में फ़ीड API टियर पर बनती हैं, इसलिए उस टियर का आकार हर घंटे की शुरुआत में पोल करने वाले कैलेंडर क्लाइंटों की भीड़ के हिसाब से रखें।
 - ऊपर दिखाई गई Nginx एक्सेस-लॉग छूट साथ आने वाले `packages/Nginx/default.conf.template` का हिस्सा है; अगर आप टेम्पलेट बदलते हैं तो इसे बनाए रखें।

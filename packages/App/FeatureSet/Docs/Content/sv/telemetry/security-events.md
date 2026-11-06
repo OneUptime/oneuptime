@@ -193,6 +193,7 @@ Varje typ når OneUptime som vanliga loggar:
 | AWS CloudTrail | Ett trail som levereras till CloudWatch Logs, läst av collectorns `awscloudwatch`-receiver, eller, för ett konto som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
 | Google Cloud-granskningsloggar | En logg-sink till Pub/Sub, läst av collectorns `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, för ett projekt som är anslutet under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
 | Azure-aktivitetsloggar och Entra ID-loggar | En diagnostikinställning som strömmar till en Event Hub, läst av collectorns `azureeventhub`-receiver med `format: raw`, eller, för aktivitetsloggen i en prenumeration som är ansluten under **Moln**, [Molngranskningsloggar](#läs-granskningsloggarna-för-dina-molnkonton) |
+| Granskningsspår för OpenStack | Ett moln notifieringar och granskningsfilter skickade till dess loggar med `driver = log`, lästa av agentens [loggprofil](/docs/telemetry/openstack#vem-gjorde-vad) |
 | CEF, LEEF | Produktens syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brandväggens egen syslog, vidarebefordrad av [rsyslog](/docs/telemetry/syslog) |
 | Kubernetes-granskningsloggar | API-serverns granskningsloggfil, läst av collectorns `filelog`-receiver |
@@ -339,7 +340,7 @@ Varje schemalagd körning sparas i 90 dagar. **Körningshistorik**, i slutet av 
 
 Aviseringen **En hunt hittade säkerhetshändelser** nämner hunten och dess sökning, hur många händelser körningen hittade och vilket fönster den läste, och länkar till huntens sida för de händelserna; inga av händelsernas egna ord finns i den. Alla får den via e-post och push och väljer dess kanaler under **Användarinställningar → Aviseringsinställningar**. Liksom andra rutinmejl kan den hållas tillbaka i en [mejlsammanställning](/docs/emails/notification-rollup).
 
-För att posta det hunts hittar i Slack eller Microsoft Teams lägger du till en regel i **Regler för hunts** under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**), under reglerna som postar [säkerhetsärenden](/docs/telemetry/security-cases#posta-i-kanaler-i-slack-och-microsoft-teams). En regel anger kanalerna att posta i (och i Microsoft Teams chattarna) och, om du vill, de hunts den gäller för, efter **Huntens namn**: ett namn som är din text, innehåller den, börjar eller slutar med den. Varje gång en schemalagd körning hittar händelser postar den hunten, dess sökning, hur många händelser och när, med en länk till dem, och inga av en händelses egna ord. En huntregel sätts upp av en roll som får sätta upp säkerhets-playbooks, som Project Owner, Project Admin eller Security Admin.
+För att posta det hunts hittar i Slack, Microsoft Teams eller Mattermost lägger du till en regel i **Regler för hunts** under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglerna som postar [säkerhetsärenden](/docs/telemetry/security-cases#posta-i-kanaler-i-slack-microsoft-teams-och-mattermost). En regel anger kanalerna att posta i (och i Microsoft Teams chattarna) och, om du vill, de hunts den gäller för, efter **Huntens namn**: ett namn som är din text, innehåller den, börjar eller slutar med den. Varje gång en schemalagd körning hittar händelser postar den hunten, dess sökning, hur många händelser och när, med en länk till dem, och inga av en händelses egna ord. En huntregel sätts upp av en roll som får sätta upp säkerhets-playbooks, som Project Owner, Project Admin eller Security Admin.
 
 ### Spara händelser i ett ärende
 
@@ -465,11 +466,11 @@ detection:
 
 | Fält | Vad det gör |
 | --- | --- |
-| **Utvärderingsintervall (minuter)** | Hur ofta regeln körs: hela minuter, 1 till 1440. Formuläret för en ny regel börjar på 5. |
+| **Utvärderingsintervall (minuter)** | Hur ofta regeln körs: hela minuter, 1 till 1440. Formuläret för en ny regel börjar på 5. I realtid längden på de fönster som en räknande regel läser. |
 | **Kör i realtid** | Av för en ny regel. När den är på kontrollerar regeln varje händelse när den kommer in i stället för vid varje intervall; se [Realtidsregler](#realtidsregler). |
 | **Grupperingsfält** | Valfritt. Träffar som delar det här fältets värde, till exempel `principalHost`, räknas, larmas och dedupliceras tillsammans: ett larm per värd i stället för hundratals. |
 | **Fält för unik räkning** | Valfritt. Räkna de olika värdena i det här fältet i stället för de träffande händelserna. Tomma värden räknas inte. |
-| **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom en körning: 1 till 1000000, och 1 löser ut vid varje träff. |
+| **Tröskel för antal träffar** | En grupp löser bara ut när dess räkning når det här talet inom en körning, eller inom ett fönster i realtid: 1 till 1000000, och 1 löser ut vid varje träff. |
 
 Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger tröskeln ”så här många, från samma sak, i en körning”, utan någon monitor ovanpå:
 
@@ -492,12 +493,14 @@ OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall
 
 ### Realtidsregler
 
-En regel som utlöses av en enda händelse kan köras i realtid i stället för enligt sitt intervall: slå på **Kör i realtid** under **Fler fält** i steget **Vid träff**. Varje händelse som OneUptime tar emot, från alla källor, kontrolleras då mot regeln när den kommer in, och en träff öppnar sitt ärende, sitt larm och sitt fynd inom några sekunder.
+Alla regler utom en med modifieraren `re` kan köras i realtid i stället för enligt sitt intervall: slå på **Kör i realtid** under **Fler fält** i steget **Vid träff**. Varje händelse som OneUptime tar emot, från alla källor, kontrolleras då mot regeln när den kommer in:
 
-- Det passar en regel med en **Tröskel för antal träffar** på 1, utan **Fält för unik räkning** och utan modifieraren `re`. En korrelation räknar händelser tillsammans och körs därför enligt sitt intervall. Formuläret anger vad som ska ändras när en regel inte passar.
+- En regel som utlöses av en enda händelse, med en **Tröskel för antal träffar** på 1 och utan **Fält för unik räkning**, öppnar sitt ärende, sitt larm och sitt fynd inom några sekunder vid varje träff, och har inget intervall.
+- En räknande regel och en korrelation räknar i de fönster som deras schema läser: efter varandra enligt klockan, vart och ett lika långt som **Utvärderingsintervall (minuter)**. En grupp löser ut i samma ögonblick som dess fönster når räkningen, även när händelsen som gör det kommer in sent, och högst en gång per fönster, så att en skur som fortsätter löser ut igen i nästa. En korrelations `timespan` rullar fortfarande över fönstren.
 - Ett projekt kör högst 50 regler i realtid, eftersom varje händelse kontrolleras mot var och en.
-- I **Detektionsregler** visar **Status** för en realtidsregel **Realtid**, och det gör även dess intervallkolumn. En kontroll som misslyckas visas under **Senaste fel**, precis som för en körning.
+- I **Detektionsregler** visar **Status** för en realtidsregel **Realtid**, och det gör även dess intervallkolumn, efter intervallet för en räknande regel. En kontroll som misslyckas visas under **Senaste fel**, precis som för en körning.
 - När den slås på läser regeln först det som kommit in sedan den senaste körningen, så att inget hamnar mellan schemat och realtid. När den slås av går den tillbaka till sitt intervall, från två minuter innan.
+- Inaktiverad och aktiverad igen läser en realtidsregel först tiden då den var avstängd, upp till de senaste 24 timmarna, som en schemalagd regel gör.
 - Undantag och bevakningslistor gäller för den som för alla regler, och **Kör på tidigare händelser** läser den som vilken annan regel som helst.
 
 ### Allvarlighetsgrad
@@ -625,11 +628,15 @@ Kontrollera nyckeln i `x-oneuptime-token` och sökvägen, `/security-events/v1/i
 :::
 
 :::details En regel träffar aldrig
-Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **Körningen misslyckades** visar **Visa fel** i dess rad varför. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
+Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **Körningen misslyckades** visar **Visa fel** i dess rad varför. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning, eller inom ett fönster för en regel i realtid.
 :::
 
 :::details Kör i realtid går inte att slå på
-Regeln räknar träffar, räknar unika värden, läser ett reguljärt uttryck eller är en korrelation, och formuläret anger vilket: sätt **Tröskel för antal träffar** till 1, töm **Fält för unik räkning**, eller använd `contains`, `startswith` eller `endswith` i stället för `re`. Ett projekt kör högst 50 regler i realtid: slå av det för en annan regel först.
+Regeln läser ett reguljärt uttryck, själv eller i en regel som dess korrelation läser, och formuläret anger det: använd `contains`, `startswith` eller `endswith` i stället för `re`. Ett projekt kör högst 50 regler i realtid: slå av det för en annan regel först.
+:::
+
+:::details En räknande realtidsregel löste bara ut en gång vid en lång skur
+Den löser ut i samma ögonblick som en grupp når sin räkning i ett fönster, och högst en gång per fönster: händelserna efter det i samma fönster ger ingen ny detektion. Fortsätter skuren löser nästa fönster ut igen. Enligt sitt schema skulle den också ha löst ut en gång för det fönstret, några minuter senare.
 :::
 
 :::details En regel träffade, men inget larm öppnades

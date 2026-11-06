@@ -37,6 +37,7 @@ const NOT_CONNECTED: Record<ConnectProvider, string> = {
   [ConnectProvider.MicrosoftTeams]: translationKey(
     "Microsoft Teams was not connected",
   ),
+  [ConnectProvider.Mattermost]: translationKey("Mattermost was not connected"),
   [ConnectProvider.GitHub]: translationKey("GitHub was not connected"),
   [ConnectProvider.Zoom]: translationKey("Zoom was not connected"),
   [ConnectProvider.GoogleMeet]: translationKey("Google Meet was not connected"),
@@ -66,6 +67,9 @@ const NO_PERMISSION: Record<ConnectProvider, string> = {
   [ConnectProvider.MicrosoftTeams]: translationKey(
     "You do not have permission to connect this project to Microsoft Teams.",
   ),
+  [ConnectProvider.Mattermost]: translationKey(
+    "You do not have permission to connect this project to Mattermost.",
+  ),
   [ConnectProvider.GitHub]: translationKey(
     "You do not have permission to add code repositories to this project.",
   ),
@@ -81,6 +85,8 @@ const NOT_CONFIGURED: Record<ConnectProvider, string> = {
   [ConnectProvider.MicrosoftTeams]: translationKey(
     "Microsoft Teams is not set up on this OneUptime server. Please ask your server admin to set it up.",
   ),
+  // Mattermost needs nothing set up on the server: a connection never answers with this.
+  [ConnectProvider.Mattermost]: CONNECT_COULD_NOT_FINISH,
   [ConnectProvider.GitHub]: translationKey(
     "The GitHub App is not set up on this OneUptime server. Please ask your server admin to set it up.",
   ),
@@ -113,6 +119,7 @@ const PROVIDERS_OF_CODE: Partial<
   [ConnectCallbackError.TeamsOtherTenant]: [ConnectProvider.MicrosoftTeams],
   [ConnectCallbackError.TeamsNoTeams]: [ConnectProvider.MicrosoftTeams],
   [ConnectCallbackError.TeamsOtherAccount]: [ConnectProvider.MicrosoftTeams],
+  [ConnectCallbackError.MattermostNotConnected]: [ConnectProvider.Mattermost],
   [ConnectCallbackError.GitHubNoInstallation]: [ConnectProvider.GitHub],
   [ConnectCallbackError.GitHubNoAuthorization]: [ConnectProvider.GitHub],
   [ConnectCallbackError.GitHubNotVerified]: [ConnectProvider.GitHub],
@@ -201,6 +208,10 @@ export const getConnectCallbackMessageKey: (
     case ConnectCallbackError.TeamsOtherAccount:
       return translationKey(
         "You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected. Please sign in with your own work account and press Connect again.",
+      );
+    case ConnectCallbackError.MattermostNotConnected:
+      return translationKey(
+        "This project is no longer connected to the Mattermost team the link was sent from. Please send yourself a new link and try again.",
       );
     case ConnectCallbackError.GitHubNoInstallation:
       return translationKey(

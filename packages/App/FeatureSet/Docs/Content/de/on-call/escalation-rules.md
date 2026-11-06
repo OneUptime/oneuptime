@@ -221,7 +221,7 @@ Jede Alarmierung lässt sich dort eskalieren, wo sie Sie erreicht hat:
 | --- | --- |
 | E-Mail | Die Schaltfläche **Escalate**, dann **Escalate** auf der Seite, die sie öffnet |
 | SMS und WhatsApp | Der Link in der Nachricht öffnet die Bestätigungsseite, auf der auch **Escalate** steht |
-| Telegram, Slack und Microsoft Teams | Der Link "Can't take it? Escalate", dann **Escalate** auf der Seite, die er öffnet |
+| Telegram, Slack, Microsoft Teams und Mattermost | Der Link "Can't take it? Escalate", dann **Escalate** auf der Seite, die er öffnet |
 | Anruf | Drücken Sie die 2. Der Anruf sagt danach, was geschehen ist |
 | Push-Benachrichtigung | Tippen Sie darauf: Der Vorfall, die Warnung oder die Episode öffnet sich in der OneUptime On-Call App, mit **Escalate** darunter |
 | OneUptime | **Eskalieren** oben im Vorfall, in der Warnung oder in der Episode, nach den Statusschaltflächen |

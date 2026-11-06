@@ -1,0 +1,877 @@
+{
+  "scenes": [
+    {
+      "endedAt": "2026-11-05T02:52:32Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "off-signed-list",
+      "seconds": 1.313,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:52:31Z",
+      "traceIds": [
+        "bdb8e8fe-2d54-4d9c-95e3-154fdbeff6ab"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "bdb8e8fe2d544d9c95e3154fdbeff6ab"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:53:40Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "no-libraries-signed-list",
+      "seconds": 1.42,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:53:39Z",
+      "traceIds": [
+        "ed21971b-ac9c-48f3-b757-fd7b958b3151"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "ed21971bac9c48f3b757fd7b958b3151"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:54:50Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "unsigned-list",
+      "seconds": 1.545,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:54:49Z",
+      "traceIds": [],
+      "traces": []
+    },
+    {
+      "endedAt": "2026-11-05T02:55:07Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "wrong-key-list",
+      "seconds": 1.587,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:55:06Z",
+      "traceIds": [
+        "e5585977-9b03-4d3d-8a0c-d0d7b2a2c4ea"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "e55859779b034d3d8a0cd0d7b2a2c4ea"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:55:24Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "signed-list",
+      "seconds": 1.394,
+      "spansMade": 6,
+      "startedAt": "2026-11-05T02:55:22Z",
+      "traceIds": [
+        "ecb797d7-dbf3-46ea-acc0-410d3c04b833"
+      ],
+      "traces": [
+        {
+          "agentBytes": 6515,
+          "driver": {
+            "bytes": 18191,
+            "seconds": 0.441,
+            "services": {
+              "glance-api": 1,
+              "keystone-public": 3,
+              "neutron-neutron-server": 2,
+              "nova-osapi_compute": 7
+            },
+            "spans": 13,
+            "spansWhoseParentIsNotInTheTrace": 5,
+            "spansWithNoParent": 0
+          },
+          "traceId": "ecb797d7dbf346eaacc0410d3c04b833"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:55:56Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "signed-boot",
+      "seconds": 17.635,
+      "spansMade": 99,
+      "startedAt": "2026-11-05T02:55:39Z",
+      "traceIds": [
+        "2b361f17-624e-4236-bbf1-5477a78d50eb"
+      ],
+      "traces": [
+        {
+          "agentBytes": 48787,
+          "driver": {
+            "bytes": 80813,
+            "seconds": 16.714,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 13,
+              "neutron-neutron-server": 30,
+              "nova-nova-compute": 20,
+              "nova-osapi_compute": 32
+            },
+            "spans": 100,
+            "spansWhoseParentIsNotInTheTrace": 19,
+            "spansWithNoParent": 0
+          },
+          "traceId": "2b361f17624e4236bbf15477a78d50eb"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:56:18Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-show",
+      "seconds": 1.308,
+      "spansMade": 6,
+      "startedAt": "2026-11-05T02:56:17Z",
+      "traceIds": [
+        "312b5294-9a26-48f3-835d-4bf1a6d0b327"
+      ],
+      "traces": [
+        {
+          "agentBytes": 6259,
+          "driver": {
+            "bytes": 7692,
+            "seconds": 0.4,
+            "services": {
+              "glance-api": 1,
+              "keystone-public": 3,
+              "neutron-neutron-server": 2,
+              "nova-osapi_compute": 6
+            },
+            "spans": 12,
+            "spansWhoseParentIsNotInTheTrace": 5,
+            "spansWithNoParent": 0
+          },
+          "traceId": "312b52949a2648f3835d4bf1a6d0b327"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:56:36Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-failed",
+      "seconds": 3.193,
+      "spansMade": 27,
+      "startedAt": "2026-11-05T02:56:33Z",
+      "traceIds": [
+        "b0b5888a-64ab-40fe-a566-aa6460f4c5dd"
+      ],
+      "traces": [
+        {
+          "agentBytes": 17458,
+          "driver": {
+            "bytes": 21309,
+            "seconds": 0.823,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 7,
+              "neutron-neutron-server": 9,
+              "nova-osapi_compute": 13
+            },
+            "spans": 34,
+            "spansWhoseParentIsNotInTheTrace": 11,
+            "spansWithNoParent": 0
+          },
+          "traceId": "b0b5888a64ab40fea566aa6460f4c5dd"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:57:26Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-volume",
+      "seconds": 29.949,
+      "spansMade": 62,
+      "startedAt": "2026-11-05T02:56:57Z",
+      "traceIds": [
+        "23ff6b51-b681-42ec-a1f8-8af6ac1cd590",
+        "95b4831c-bd52-468d-9775-47db689cf591",
+        "8df0a35b-dd47-41f6-a6ad-f2236cdecfdb",
+        "1564c140-e0d1-45bc-9971-da7ea59b3dba"
+      ],
+      "traces": [
+        {
+          "agentBytes": 4601,
+          "driver": {
+            "bytes": 6488,
+            "seconds": 0.496,
+            "services": {
+              "cinder-cinder-api": 3,
+              "cinder-cinder-scheduler": 1,
+              "keystone-public": 5
+            },
+            "spans": 9,
+            "spansWhoseParentIsNotInTheTrace": 5,
+            "spansWithNoParent": 0
+          },
+          "traceId": "23ff6b51b68142eca1f88af6ac1cd590"
+        },
+        {
+          "agentBytes": 14042,
+          "driver": {
+            "bytes": 30077,
+            "seconds": 12.907,
+            "services": {
+              "cinder-cinder-api": 9,
+              "keystone-public": 3,
+              "neutron-neutron-server": 2,
+              "nova-nova-compute": 3,
+              "nova-osapi_compute": 11
+            },
+            "spans": 28,
+            "spansWhoseParentIsNotInTheTrace": 9,
+            "spansWithNoParent": 0
+          },
+          "traceId": "95b4831cbd52468d977547db689cf591"
+        },
+        {
+          "agentBytes": 12835,
+          "driver": {
+            "bytes": 25348,
+            "seconds": 5.489,
+            "services": {
+              "cinder-cinder-api": 8,
+              "keystone-public": 3,
+              "neutron-neutron-server": 2,
+              "nova-nova-compute": 2,
+              "nova-osapi_compute": 10
+            },
+            "spans": 25,
+            "spansWhoseParentIsNotInTheTrace": 9,
+            "spansWithNoParent": 0
+          },
+          "traceId": "8df0a35bdd4741f6a6adf2236cdecfdb"
+        },
+        {
+          "agentBytes": 5162,
+          "driver": {
+            "bytes": 7403,
+            "seconds": 2.579,
+            "services": {
+              "cinder-cinder-api": 5,
+              "cinder-cinder-scheduler": 2,
+              "keystone-public": 3
+            },
+            "spans": 10,
+            "spansWhoseParentIsNotInTheTrace": 9,
+            "spansWithNoParent": 0
+          },
+          "traceId": "1564c140e0d145bc9971da7ea59b3dba"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:57:53Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-network",
+      "seconds": 11.206,
+      "spansMade": 49,
+      "startedAt": "2026-11-05T02:57:42Z",
+      "traceIds": [
+        "0ff399ec-4daa-494a-aa13-001d8dc65b65",
+        "ac307c41-35a2-4621-b163-c200e00a52b5",
+        "ad27bb19-506f-4951-841f-53e117108f3d",
+        "c485cbe6-d696-463c-9177-6dc366979f65",
+        "cd6a5d1a-4c55-4a93-8c69-4d39f0e25c36",
+        "78442950-49bc-4ae9-b8bd-0c09450dd097",
+        "cc6dec44-b8db-4fa3-b56f-4336fa321c7f",
+        "2b45036e-0bd8-4c63-88c9-32fea66d5b3f"
+      ],
+      "traces": [
+        {
+          "agentBytes": 2150,
+          "driver": {
+            "bytes": 2150,
+            "seconds": 0.767,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 1
+            },
+            "spans": 4,
+            "spansWhoseParentIsNotInTheTrace": 3,
+            "spansWithNoParent": 0
+          },
+          "traceId": "0ff399ec4daa494aaa13001d8dc65b65"
+        },
+        {
+          "agentBytes": 3281,
+          "driver": {
+            "bytes": 3281,
+            "seconds": 0.985,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 3
+            },
+            "spans": 6,
+            "spansWhoseParentIsNotInTheTrace": 5,
+            "spansWithNoParent": 0
+          },
+          "traceId": "ac307c4135a24621b163c200e00a52b5"
+        },
+        {
+          "agentBytes": 4437,
+          "driver": {
+            "bytes": 4437,
+            "seconds": 0.516,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 5
+            },
+            "spans": 8,
+            "spansWhoseParentIsNotInTheTrace": 7,
+            "spansWithNoParent": 0
+          },
+          "traceId": "ad27bb19506f4951841f53e117108f3d"
+        },
+        {
+          "agentBytes": 2148,
+          "driver": {
+            "bytes": 2148,
+            "seconds": 0.363,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 1
+            },
+            "spans": 4,
+            "spansWhoseParentIsNotInTheTrace": 3,
+            "spansWithNoParent": 0
+          },
+          "traceId": "c485cbe6d696463c91776dc366979f65"
+        },
+        {
+          "agentBytes": 3364,
+          "driver": {
+            "bytes": 3364,
+            "seconds": 0.457,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 3
+            },
+            "spans": 6,
+            "spansWhoseParentIsNotInTheTrace": 5,
+            "spansWithNoParent": 0
+          },
+          "traceId": "cd6a5d1a4c554a938c694d39f0e25c36"
+        },
+        {
+          "agentBytes": 3346,
+          "driver": {
+            "bytes": 3346,
+            "seconds": 0.457,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 3
+            },
+            "spans": 6,
+            "spansWhoseParentIsNotInTheTrace": 5,
+            "spansWithNoParent": 0
+          },
+          "traceId": "7844295049bc4ae9b8bd0c09450dd097"
+        },
+        {
+          "agentBytes": 3364,
+          "driver": {
+            "bytes": 3364,
+            "seconds": 0.338,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 3
+            },
+            "spans": 6,
+            "spansWhoseParentIsNotInTheTrace": 5,
+            "spansWithNoParent": 0
+          },
+          "traceId": "cc6dec44b8db4fa3b56f4336fa321c7f"
+        },
+        {
+          "agentBytes": 4964,
+          "driver": {
+            "bytes": 4964,
+            "seconds": 0.491,
+            "services": {
+              "keystone-public": 6,
+              "neutron-neutron-server": 3
+            },
+            "spans": 9,
+            "spansWhoseParentIsNotInTheTrace": 6,
+            "spansWithNoParent": 0
+          },
+          "traceId": "2b45036e0bd84c6388c932fea66d5b3f"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:58:09Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-image",
+      "seconds": 1.098,
+      "spansMade": 5,
+      "startedAt": "2026-11-05T02:58:08Z",
+      "traceIds": [
+        "e82c316c-a26b-4371-829e-fab123b5fd1a"
+      ],
+      "traces": [
+        {
+          "agentBytes": 2712,
+          "driver": {
+            "bytes": 2712,
+            "seconds": 0.254,
+            "services": {
+              "glance-api": 2,
+              "keystone-public": 3
+            },
+            "spans": 5,
+            "spansWhoseParentIsNotInTheTrace": 4,
+            "spansWithNoParent": 0
+          },
+          "traceId": "e82c316ca26b4371829efab123b5fd1a"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:58:25Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-token",
+      "seconds": 1.042,
+      "spansMade": 2,
+      "startedAt": "2026-11-05T02:58:24Z",
+      "traceIds": [
+        "51488f81-5e30-4b31-932d-1443e1d7418b"
+      ],
+      "traces": [
+        {
+          "agentBytes": 1060,
+          "driver": {
+            "bytes": 1060,
+            "seconds": 0.019,
+            "services": {
+              "keystone-public": 2
+            },
+            "spans": 2,
+            "spansWhoseParentIsNotInTheTrace": 2,
+            "spansWithNoParent": 0
+          },
+          "traceId": "51488f815e304b31932d1443e1d7418b"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:58:47Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-delete",
+      "seconds": 7.073,
+      "spansMade": 48,
+      "startedAt": "2026-11-05T02:58:40Z",
+      "traceIds": [
+        "e69b2724-438b-4861-afb4-09852383cfdd",
+        "20282c63-1d7f-4e11-8b38-799aa47fbae3"
+      ],
+      "traces": [
+        {
+          "agentBytes": 9860,
+          "driver": {
+            "bytes": 13987,
+            "seconds": 0.708,
+            "services": {
+              "keystone-public": 6,
+              "neutron-neutron-server": 2,
+              "nova-osapi_compute": 11
+            },
+            "spans": 19,
+            "spansWhoseParentIsNotInTheTrace": 7,
+            "spansWithNoParent": 0
+          },
+          "traceId": "e69b2724438b4861afb409852383cfdd"
+        },
+        {
+          "agentBytes": 14464,
+          "driver": {
+            "bytes": 28635,
+            "seconds": 7.123,
+            "services": {
+              "keystone-public": 3,
+              "neutron-neutron-server": 7,
+              "nova-nova-compute": 2,
+              "nova-osapi_compute": 18
+            },
+            "spans": 30,
+            "spansWhoseParentIsNotInTheTrace": 8,
+            "spansWithNoParent": 0
+          },
+          "traceId": "20282c631d7f4e118b38799aa47fbae3"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:59:05Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-by-header",
+      "seconds": 2.22,
+      "spansMade": 12,
+      "startedAt": "2026-11-05T02:59:02Z",
+      "traceIds": [
+        "87df433c-bde9-45c6-85e6-d93f46cedfd6"
+      ],
+      "traces": [
+        {
+          "agentBytes": 543,
+          "driver": {
+            "bytes": 543,
+            "seconds": 0.01,
+            "services": {
+              "keystone-public": 1
+            },
+            "spans": 1,
+            "spansWhoseParentIsNotInTheTrace": 1,
+            "spansWithNoParent": 0
+          },
+          "traceId": "87df433cbde945c685e6d93f46cedfd6"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:59:21Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "collector-down-signed-list",
+      "seconds": 1.315,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:59:20Z",
+      "traceIds": [
+        "dac31a62-c688-4d5e-a518-ab8e7afee5ad"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "dac31a62c6884d5ea518ab8e7afee5ad"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T02:59:59Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": true,
+      "scene": "collector-down-signed-boot",
+      "seconds": 22.397,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T02:59:36Z",
+      "traceIds": [
+        "f784d78a-3a56-4275-adda-a2ec56a2e06c"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "f784d78a3a564275addaa2ec56a2e06c"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:01:29Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-sql",
+      "seconds": 23.211,
+      "spansMade": 877,
+      "startedAt": "2026-11-05T03:01:06Z",
+      "traceIds": [
+        "85f4f755-d8b4-4eaa-8ab4-4372e71ae16e"
+      ],
+      "traces": [
+        {
+          "agentBytes": 945436,
+          "driver": {
+            "bytes": 1083984,
+            "seconds": 16.602,
+            "services": {
+              "glance-api": 11,
+              "keystone-public": 72,
+              "neutron-neutron-server": 712,
+              "nova-nova-compute": 20,
+              "nova-osapi_compute": 62
+            },
+            "spans": 877,
+            "spansWhoseParentIsNotInTheTrace": 18,
+            "spansWithNoParent": 0
+          },
+          "traceId": "85f4f755d8b44eaa8ab44372e71ae16e"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:03:00Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-requests",
+      "seconds": 23.223,
+      "spansMade": 144,
+      "startedAt": "2026-11-05T03:02:37Z",
+      "traceIds": [
+        "0989555a-79f1-47f4-bd75-059f68fb559d"
+      ],
+      "traces": [
+        {
+          "agentBytes": 81830,
+          "driver": {
+            "bytes": 113948,
+            "seconds": 16.62,
+            "services": {
+              "glance-api": 6,
+              "keystone-public": 11,
+              "neutron-neutron-server": 34,
+              "nova-nova-compute": 42,
+              "nova-osapi_compute": 51
+            },
+            "spans": 144,
+            "spansWhoseParentIsNotInTheTrace": 17,
+            "spansWithNoParent": 0
+          },
+          "traceId": "0989555a79f147f4bd75059f68fb559d"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:03:54Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-placement",
+      "seconds": 22.433,
+      "spansMade": 135,
+      "startedAt": "2026-11-05T03:03:32Z",
+      "traceIds": [
+        "40065438-20da-4bc4-9d0d-dc96341a6724"
+      ],
+      "traces": [
+        {
+          "agentBytes": 76663,
+          "driver": {
+            "bytes": 108273,
+            "seconds": 16.11,
+            "services": {
+              "glance-api": 8,
+              "keystone-public": 5,
+              "neutron-neutron-server": 29,
+              "nova-nova-compute": 37,
+              "nova-osapi_compute": 47,
+              "placement-placement": 9
+            },
+            "spans": 135,
+            "spansWhoseParentIsNotInTheTrace": 19,
+            "spansWithNoParent": 0
+          },
+          "traceId": "4006543820da4bc49d0ddc96341a6724"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:05:22Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-whole",
+      "seconds": 22.995,
+      "spansMade": 136,
+      "startedAt": "2026-11-05T03:04:59Z",
+      "traceIds": [
+        "55cddb58-fb77-43c0-a736-eb7bb00d4b96"
+      ],
+      "traces": [
+        {
+          "agentBytes": 64196,
+          "driver": {
+            "bytes": 136474,
+            "seconds": 16.446,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 11,
+              "neutron-neutron-server": 30,
+              "nova-nova-compute": 20,
+              "nova-nova-conductor": 28,
+              "nova-nova-scheduler": 1,
+              "nova-osapi_compute": 32,
+              "placement-placement": 9
+            },
+            "spans": 136,
+            "spansWhoseParentIsNotInTheTrace": 15,
+            "spansWithNoParent": 0
+          },
+          "traceId": "55cddb58fb7743c0a736eb7bb00d4b96"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:05:42Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-failed-whole",
+      "seconds": 4.361,
+      "spansMade": 25,
+      "startedAt": "2026-11-05T03:05:37Z",
+      "traceIds": [
+        "dea7dad3-bc20-47e7-b5f2-b15ec856ffeb"
+      ],
+      "traces": [
+        {
+          "agentBytes": 14737,
+          "driver": {
+            "bytes": 18935,
+            "seconds": 1.294,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 7,
+              "neutron-neutron-server": 9,
+              "nova-nova-conductor": 2,
+              "nova-nova-scheduler": 1,
+              "placement-placement": 1
+            },
+            "spans": 25,
+            "spansWhoseParentIsNotInTheTrace": 18,
+            "spansWithNoParent": 0
+          },
+          "traceId": "dea7dad3bc2047e7b5f2b15ec856ffeb"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:07:11Z",
+      "exitCode": 0,
+      "expectsNoSpans": false,
+      "mustSucceed": false,
+      "scene": "signed-boot-osprofiler-fix",
+      "seconds": 22.927,
+      "spansMade": 103,
+      "startedAt": "2026-11-05T03:06:49Z",
+      "traceIds": [
+        "9101bfc6-1438-4c14-8dcb-58ba572211d8"
+      ],
+      "traces": [
+        {
+          "agentBytes": 51645,
+          "driver": {
+            "bytes": 82794,
+            "seconds": 16.33,
+            "services": {
+              "glance-api": 5,
+              "keystone-public": 11,
+              "neutron-neutron-server": 30,
+              "nova-nova-compute": 20,
+              "nova-osapi_compute": 28,
+              "placement-placement": 9
+            },
+            "spans": 103,
+            "spansWhoseParentIsNotInTheTrace": 20,
+            "spansWithNoParent": 0
+          },
+          "traceId": "9101bfc614384c148dcb58ba572211d8"
+        }
+      ]
+    },
+    {
+      "endedAt": "2026-11-05T03:08:40Z",
+      "exitCode": 0,
+      "expectsNoSpans": true,
+      "mustSucceed": true,
+      "scene": "off-again-signed-boot",
+      "seconds": 22.551,
+      "spansMade": 0,
+      "startedAt": "2026-11-05T03:08:18Z",
+      "traceIds": [
+        "058d60e0-ca0e-4e64-bfc7-b23a2376d924"
+      ],
+      "traces": [
+        {
+          "agentBytes": 0,
+          "driver": {
+            "bytes": 0,
+            "seconds": 0,
+            "services": {},
+            "spans": 0,
+            "spansWhoseParentIsNotInTheTrace": 0,
+            "spansWithNoParent": 0
+          },
+          "traceId": "058d60e0ca0e4e64bfc7b23a2376d924"
+        }
+      ]
+    }
+  ],
+  "tracesNoSceneNamed": []
+}

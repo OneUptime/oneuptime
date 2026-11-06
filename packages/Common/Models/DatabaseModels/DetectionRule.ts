@@ -257,12 +257,13 @@ export default class DetectionRule extends BaseModel {
   public evaluationIntervalInMinutes?: number = undefined;
 
   /*
-   * A rule that fires on one event can be checked as each event arrives
-   * (Types/SecurityEvent/RealTimeDetection): within seconds instead of on
-   * its interval, which it then no longer runs on. Off by default, and on
-   * every rule saved before the column existed: a scheduled rule stays
-   * scheduled until somebody chooses otherwise. The evaluator gates on
-   * === true, so an unset column reads as off.
+   * A rule can be checked as events arrive (Types/SecurityEvent/
+   * RealTimeDetection): within seconds instead of on its interval, which it
+   * then no longer runs on - a rule that counts, and a correlation, count
+   * in windows of it instead. Off by default, and on every rule saved
+   * before the column existed: a scheduled rule stays scheduled until
+   * somebody chooses otherwise. The evaluator gates on === true, so an
+   * unset column reads as off.
    */
   @ColumnAccessControl({
     create: createPermissions,
@@ -275,7 +276,7 @@ export default class DetectionRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Run in Real Time",
     description:
-      "Whether each event is checked against this rule as it arrives, within seconds, instead of every evaluation interval. Only for a rule that fires on one event: not a correlation, a match count threshold of 1, no distinct count field and no regular expression.",
+      "Whether events are checked against this rule as they arrive, within seconds, instead of every evaluation interval. A rule that counts, and a correlation, count in windows as long as the evaluation interval and fire at most once in each. Not for a rule with a regular expression.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

@@ -122,6 +122,7 @@ export const SECURITY_CONNECTION_KIND_NOUNS: Readonly<
   [SecurityConnectionKind.DockerHost]: "Docker host",
   [SecurityConnectionKind.PodmanHost]: "Podman host",
   [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
+  [SecurityConnectionKind.OpenStackCloud]: "OpenStack cloud",
   [SecurityConnectionKind.NetworkDevice]: "Network device",
   [SecurityConnectionKind.CloudResource]: "Cloud resource",
   [SecurityConnectionKind.ServerlessFunction]: "Serverless function",
@@ -356,6 +357,20 @@ export function playbookFinishedMarkdown(data: {
   }
 
   return mdText`🏁 Playbook **${data.playbookName}** finished: ${FeedMarkdown.join(parts)}.`;
+}
+
+/*
+ * A run a Stop step ended, as done: where, and why in the playbook's own
+ * words when it says.
+ */
+export function playbookStoppedMarkdown(data: {
+  playbookName: string;
+  stepNumber: number;
+  reason?: string | undefined;
+}): MarkdownText {
+  return data.reason
+    ? mdText`🏁 Playbook **${data.playbookName}** stopped at step ${String(data.stepNumber)}: ${data.reason}`
+    : mdText`🏁 Playbook **${data.playbookName}** stopped at step ${String(data.stepNumber)}, as it says to.`;
 }
 
 export function playbookFailedMarkdown(data: {

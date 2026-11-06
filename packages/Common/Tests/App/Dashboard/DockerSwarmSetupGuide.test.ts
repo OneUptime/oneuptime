@@ -449,7 +449,7 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
 
     const treeUrls: Array<string> = Array.from(
       markdown.matchAll(
-        /https:\/\/github\.com\/OneUptime\/oneuptime\/tree\/master\/([^)\s]+)/g,
+        /https:\/\/github\.com\/OneUptime\/oneuptime\/tree\/main\/([^)\s]+)/g,
       ),
     ).map((match: RegExpMatchArray): string => {
       return match[1]!;

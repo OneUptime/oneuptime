@@ -303,7 +303,7 @@ service:
 - `delay` espera a que CloudWatch publique un período (tarda unos minutos), así que con esta configuración las métricas del broker de una cola llegan con 11 a 17 minutos de retraso: un monitor sobre ellas necesita una ventana más larga (consulta **Métricas tardías** en [Alertas](#alertas)).
 - Un receptor lee una región y un espacio de nombres: añade una instancia por región.
 
-**La transmisión** envía las métricas a medida que CloudWatch las publica. Crea un CloudWatch Metric Stream para los espacios de nombres `AWS/SQS` (y `AWS/SNS`) con el formato de salida **OpenTelemetry 1.0**, que entregue a un flujo de Amazon Data Firehose cuyo destino sea un endpoint HTTP: tu colector, con una clave de acceso. Firehose solo entrega a `https://` en el puerto 443, así que el colector necesita un certificado y un puerto 443 público (por ejemplo, detrás de un balanceador de carga):
+**Transmitiendo**: envía las métricas a medida que CloudWatch las publica. Crea un CloudWatch Metric Stream para los espacios de nombres `AWS/SQS` (y `AWS/SNS`) con el formato de salida **OpenTelemetry 1.0**, que entregue a un flujo de Amazon Data Firehose cuyo destino sea un endpoint HTTP: tu colector, con una clave de acceso. Firehose solo entrega a `https://` en el puerto 443, así que el colector necesita un certificado y un puerto 443 público (por ejemplo, detrás de un balanceador de carga):
 
 ```yaml
 extensions:

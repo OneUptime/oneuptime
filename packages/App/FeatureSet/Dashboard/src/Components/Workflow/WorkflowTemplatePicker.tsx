@@ -66,6 +66,8 @@ export interface ComponentProps {
   onStartFromScratch: () => void;
   /** An empty canvas is the start already chosen, as after Back from Name. */
   isStartFromScratchChosen: boolean;
+  // Another way to start, under Start from scratch: describing it to Ask AI.
+  afterStartFromScratch?: ReactElement | undefined;
 }
 
 // What every id and test id of the step starts with.
@@ -290,6 +292,7 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
       onUseTemplate={props.onUseTemplate}
       onStartFromScratch={props.onStartFromScratch}
       isStartFromScratchChosen={props.isStartFromScratchChosen}
+      afterStartFromScratch={props.afterStartFromScratch}
       startFromScratchDescription={tx(
         "Begin with an empty canvas and add your own trigger and steps.",
       )}

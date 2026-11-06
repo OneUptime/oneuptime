@@ -43,7 +43,7 @@ En Slack-arbetsyta kan vara ansluten till mer än ett projekt, till exempel prod
 :::steps
 ### Installera OneUptime i din Slack-arbetsyta
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Slack** och klicka på **Connect with Slack**. Välj arbetsytan och tillåt OneUptime. Slack skickar dig tillbaka till samma sida, som nu visar vilken arbetsyta projektet är anslutet till. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut Slack eller Teams**, som också leder hit.
+Gå till **Projektinställningar** > **Arbetsyta** > **Slack** och klicka på **Connect with Slack**. Välj arbetsytan och tillåt OneUptime. Slack skickar dig tillbaka till samma sida, som nu visar vilken arbetsyta projektet är anslutet till. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut en arbetsyta**, som också leder hit.
 
 ### Anslut ditt eget Slack-konto
 

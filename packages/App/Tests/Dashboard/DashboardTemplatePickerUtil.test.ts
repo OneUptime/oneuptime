@@ -142,7 +142,7 @@ describe("what the picker lists", () => {
     expect(types(getDashboardPickerTemplates())).not.toContain(
       DashboardTemplateType.Blank,
     );
-    expect(LISTED.length).toBe(15);
+    expect(LISTED.length).toBe(16);
   });
 
   test("a template's id is its type, which the server builds it by", () => {
@@ -344,6 +344,7 @@ describe("the search", () => {
     expect(searchTypes("servers")[0]).toBe(DashboardTemplateType.Host);
     expect(searchTypes("vsphere")).toEqual([DashboardTemplateType.VMware]);
     expect(searchTypes("pve")).toEqual([DashboardTemplateType.Proxmox]);
+    expect(searchTypes("nova")).toEqual([DashboardTemplateType.OpenStack]);
     expect(searchTypes("otel")).toEqual([DashboardTemplateType.Metrics]);
     // APM is the category's own name: its four templates, in the catalog's order.
     expect(searchTypes("apm")).toEqual([

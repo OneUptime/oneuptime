@@ -148,6 +148,7 @@ type NotificationMethodColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userMattermostId"
   | "userWebhookId"
   | "customNotificationChannelId";
 
@@ -160,6 +161,7 @@ const NOTIFICATION_METHOD_COLUMNS: Array<NotificationMethodColumn> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userMattermostId",
   "userWebhookId",
   "customNotificationChannelId",
 ];
@@ -501,6 +503,7 @@ const findRulesOfType: FindRulesOfTypeFunction = async (
       userTelegramId: true,
       userSlackId: true,
       userMicrosoftTeamsId: true,
+      userMattermostId: true,
       userWebhookId: true,
       customNotificationChannelId: true,
     },
@@ -860,6 +863,8 @@ const buildNotificationMethodQuery: BuildNotificationMethodQueryFunction = (
       return { userSlackId: methodId };
     case "userMicrosoftTeamsId":
       return { userMicrosoftTeamsId: methodId };
+    case "userMattermostId":
+      return { userMattermostId: methodId };
     case "userWebhookId":
       return { userWebhookId: methodId };
     case "customNotificationChannelId":
@@ -910,6 +915,9 @@ const applyNotificationMethod: ApplyNotificationMethodFunction = (
       break;
     case "userMicrosoftTeamsId":
       rule.userMicrosoftTeamsId = methodId;
+      break;
+    case "userMattermostId":
+      rule.userMattermostId = methodId;
       break;
     case "userWebhookId":
       rule.userWebhookId = methodId;

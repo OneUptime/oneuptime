@@ -102,7 +102,7 @@ vapid:
 | OneUptime → ブラウザーのプッシュサービス | ブラウザーのプッシュ購読に保存された HTTPS エンドポイント | HTTPS / 通常は TCP 443 | Web Push。 |
 | モバイルアプリまたはブラウザー → OneUptime | あなたの OneUptime のホスト名 | HTTPS / TCP 443 | サインイン、デバイスの登録、通知リンクを開く操作。 |
 
-`PUSH_NOTIFICATION_RELAY_URL` を変更する場合は、その宛先のホスト名と設定したポートを許可してください。独自のリレーは OneUptime のリレー API を実装する必要があります。これらの既定値と、リレーと直接配信の切り替えは、[OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) と [プッシュサービス](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) で定義されています。Expo への直接のリクエストは、[Expo の送信ガイド](https://docs.expo.dev/push-notifications/sending-notifications/) に記載されたエンドポイントを使います。OneUptime は、`/send` の代わりに `/receipts` を付けた同じアドレスで、リレーから配信の受領確認を読み取ります。このルートを持たないリレーでもプッシュは配信されますが、その場合、アプリが削除されたデバイスに気づくのは、以後そのデバイスへのプッシュが拒否されたときだけです。
+`PUSH_NOTIFICATION_RELAY_URL` を変更する場合は、その宛先のホスト名と設定したポートを許可してください。独自のリレーは OneUptime のリレー API を実装する必要があります。これらの既定値と、リレーと直接配信の切り替えは、[OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/main/config.example.env) と [プッシュサービス](https://github.com/OneUptime/oneuptime/blob/main/packages/Common/Server/Services/PushNotificationService.ts) で定義されています。Expo への直接のリクエストは、[Expo の送信ガイド](https://docs.expo.dev/push-notifications/sending-notifications/) に記載されたエンドポイントを使います。OneUptime は、`/send` の代わりに `/receipts` を付けた同じアドレスで、リレーから配信の受領確認を読み取ります。このルートを持たないリレーでもプッシュは配信されますが、その場合、アプリが削除されたデバイスに気づくのは、以後そのデバイスへのプッシュが拒否されたときだけです。
 
 セルフホストの OneUptime サーバーがほかのサーバーのプッシュをリレーするのは、`PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` と自身の `EXPO_ACCESS_TOKEN` がある場合だけです。この設定がなければ、そのアドレスに 404 で応答します。ほかの OneUptime サーバーが送信に使うサーバーでだけ有効にし、そのアドレスにはそれらのサーバーだけが届くようにしてください。
 

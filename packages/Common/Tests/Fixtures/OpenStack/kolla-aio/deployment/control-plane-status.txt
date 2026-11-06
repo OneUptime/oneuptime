@@ -1,0 +1,6 @@
+200 mysqld 192.168.100.10:9104 1264 series
+200 haproxy 192.168.100.10:9101 2500 series
+200 rabbitmq 192.168.100.10:15692 798 series
+200 memcached 192.168.100.10:9150 640 series
+200 libvirt_exporter 192.168.100.10:9177 248 series
+200 network_exporter 192.168.100.10:1981 290 series

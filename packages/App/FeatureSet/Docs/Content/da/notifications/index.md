@@ -27,7 +27,7 @@ flowchart TB
 
 | Side | Hvad den indeholder | Spørgsmålet, den besvarer |
 | --- | --- | --- |
-| **Notifikationsmetoder** | Dine e-mailadresser, telefonnumre, WhatsApp-numre, Telegram-, Slack- og Microsoft Teams-konti, push-enheder og webhooks | Hvor kan OneUptime nå mig? |
+| **Notifikationsmetoder** | Dine e-mailadresser, telefonnumre, WhatsApp-numre, Telegram-, Slack-, Microsoft Teams- og Mattermost-konti, push-enheder og webhooks | Hvor kan OneUptime nå mig? |
 | **Vagtregler** | For hver slags tilkald og hver alvorlighed: hvilken metode der prøves, og efter hvor lang tid | Hvordan bliver jeg tilkaldt, mens jeg har vagt? |
 | **Notifikationsindstillinger** | For hver begivenhed om noget, du ejer, eller om dine vagter: hvilke kanaler der bruges | Hvad hører jeg ellers om, og hvor? |
 
@@ -48,9 +48,9 @@ De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger
 | **Indgående opkaldspolitik** | **Indgående telefonnumre**: det nummer, en politik for indgående opkald ringer dig op på |
 | **Kalender** | **Kalenderfeed**: dine vagter i din kalenderapp, og påmindelser, før de starter |
 | **Profil** | **Brugerdefinerede felter**: oplysninger, dit projekt beder sine medlemmer om |
-| **Arbejdsområde** | **Slack** og **Microsoft Teams**: din egen konto, i hvert arbejdsområde, projektet har forbundet |
+| **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: din egen konto, i hvert arbejdsområde, projektet har forbundet |
 
-**Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack eller Microsoft Teams.
+**Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack, Microsoft Teams eller Mattermost.
 
 Projektejere og administratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Vagtregler**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
 
@@ -90,7 +90,7 @@ Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvor
 
 Et tilkald kan nå dig for en slags og en alvorlighed, du ikke har en regel for: for eksempel en alvorlighed, der er tilføjet, efter du blev medlem. OneUptime tilkalder dig alligevel, via det, du har bekræftet:
 
-1. Hver gratis metode, du har: push-enheder, e-mailadresser, Slack og Microsoft Teams.
+1. Hver gratis metode, du har: push-enheder, e-mailadresser, Slack, Microsoft Teams og Mattermost.
 2. Har du ingen af dem, én betalt metode, i denne rækkefølge: sms, et telefonopkald, WhatsApp, Telegram. Det er den første, du har bekræftet, på en kanal, projektet har slået til.
 3. Har du heller ingen af dem, en webhook.
 

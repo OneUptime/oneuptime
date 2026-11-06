@@ -27,8 +27,8 @@ import * as React from "react";
 import { FunctionComponent } from "react";
 
 /*
- * THE SLACK AND MICROSOFT TEAMS ACCOUNT CARDS SAY WHERE YOUR ACCOUNT IS
- * CONNECTED - AS THE MENU DRAWS IT, IN EVERY LANGUAGE.
+ * THE SLACK, MICROSOFT TEAMS AND MATTERMOST ACCOUNT CARDS SAY WHERE YOUR ACCOUNT
+ * IS CONNECTED - AS THE MENU DRAWS IT, IN EVERY LANGUAGE.
  *
  * User Settings > Notification Methods > Workspace Apps holds a card per
  * connected workspace. Adding your account there points at the account you
@@ -83,6 +83,7 @@ jest.mock("../../../UI/Utils/API/API", () => {
 
 import SlackAccountCard from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Slack";
 import MicrosoftTeamsAccountCard from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/MicrosoftTeams";
+import MattermostAccountCard from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Mattermost";
 import UserSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ConnectedWorkspaces, {
@@ -183,6 +184,18 @@ const CARDS: Array<AccountCard> = [
       "Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
     errorButton: "Open Microsoft Teams Settings",
   },
+  {
+    name: "Mattermost",
+    Card: MattermostAccountCard as FunctionComponent,
+    workspaceType: WorkspaceType.Mattermost,
+    entry: WorkspaceMenuEntry.Mattermost,
+    page: PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION,
+    addButton: "Add Mattermost Account",
+    emptyTitle: "No Mattermost account added",
+    emptyMessage:
+      "Connect yours under User Settings > Workspace > Mattermost, then click 'Add Mattermost Account'.",
+    errorButton: "Open Mattermost Settings",
+  },
 ];
 
 const CARD_CASES: Array<[string, AccountCard]> = CARDS.map(
@@ -229,6 +242,7 @@ beforeEach(() => {
   ConnectedWorkspaces.setConnected(PROJECT_ID, [
     WorkspaceType.Slack,
     WorkspaceType.MicrosoftTeams,
+    WorkspaceType.Mattermost,
   ]);
   setViewportWidth(DESKTOP_WIDTH);
   goTo(routeFor(PageMap.USER_SETTINGS_NOTIFICATION_METHODS));

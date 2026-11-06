@@ -525,7 +525,7 @@ const IncidentView: FunctionComponent<
     eventStartedAt: incidentStartedAt,
   });
 
-  // The incident's own Slack and Teams channels: Open in Slack / Teams.
+  // The incident's own chat channels: Open in Slack / Teams / Mattermost.
   const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
     recordType: WorkspaceChannelRecordType.Incident,
     recordId: modelId,
@@ -1588,6 +1588,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    openStackClouds: {
+                      name: true,
+                      _id: true,
+                    },
                     vmwareVCenters: {
                       name: true,
                       _id: true,
@@ -1646,6 +1650,7 @@ const IncidentView: FunctionComponent<
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        openStackClouds={item.openStackClouds || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         storageArrays={item.storageArrays || []}

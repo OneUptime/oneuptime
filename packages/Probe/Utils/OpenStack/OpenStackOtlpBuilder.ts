@@ -1,0 +1,2247 @@
+import {
+  OpenStackComputeInventory,
+  OpenStackContainerInfraInventory,
+  OpenStackIdentityInventory,
+  OpenStackBareMetalInventory,
+  OpenStackImageInventory,
+  OpenStackNetworkInventory,
+  OpenStackOrchestrationInventory,
+  OpenStackDatabaseInventory,
+  OpenStackKeyManagerInventory,
+  OpenStackObjectStoreInventory,
+  SwiftReconServerRecord,
+  OpenStackDnsInventory,
+  OpenStackMetricInventory,
+  OpenStackRatingInventory,
+  OpenStackPlacementInventory,
+  OpenStackLoadBalancerInventory,
+  OpenStackSharedFileSystemsInventory,
+  OpenStackVolumeInventory,
+  NovaFlavorRecord,
+  NovaHypervisorRecord,
+} from "./OpenStackInventory";
+import { OpenStackSendGate } from "./OpenStackRollingSend";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { toOpenStackResourcesQuery } from "Common/Types/OpenStack/OpenStackCapacity";
+import {
+  OpenStackRbdLocation,
+  isOpenStackRbdProtocol,
+  parseOpenStackRbdLocation,
+} from "Common/Types/OpenStack/OpenStackLinks";
+import { OpenStackServiceType } from "Common/Types/OpenStack/OpenStackResourceKind";
+import crypto from "crypto";
+
+/*
+ * What was read, as the series the agent sends.
+ *
+ * This is the one promise that matters here: pages, monitors and the AI read
+ * openstack_* series and cannot tell which collector sent them, so a cloud moves
+ * between the agent and a probe without its pages noticing. So each series below has
+ * the exporter's name, help text and labels, and its value means what the exporter's
+ * means, status codes and all (openstack_nova_server_status reads 4 for ERROR).
+ * OpenStackExporterParity.test.ts holds this to what the exporter really answered on
+ * the same recorded cloud, and to what the collector really exported.
+ *
+ * Three things from that recording, which are easy to get wrong:
+ *
+ *   - A label with an empty value is no label. Prometheus' data model says so, and the
+ *     collector's export has none: an unattached floating IP has no router_id at all.
+ *   - Every label is a string, numbers and booleans included.
+ *   - Region and service are datapoint labels (`openstack.region.name`,
+ *     `openstack_service`), and the cloud is a resource attribute the server stamps
+ *     itself (OpenStackProbeMetrics), so a probe never names another cloud.
+ *
+ * What only a native collector can add goes in labels the exporter does not have, on
+ * series it does, and is marked in OpenStackMetricCatalog (probeOnlyAttributes,
+ * onlyFromProbe). Extra labels add no datapoints, and a reader of the exporter's labels
+ * reads on undisturbed.
+ *
+ * The series the agent leaves off by default stay off here too, apart from what
+ * options ask for. Two are never sent: openstack_neutron_subnets_* (the agent leaves
+ * them off as saying what address pools already say) and
+ * openstack_nova_security_groups (a route Nova no longer has).
+ */
+
+const SCOPE_NAME: string = "oneuptime-probe-openstack";
+
+// A value longer than this is free text someone typed, and costs more than it tells.
+export const MAX_LABEL_VALUE_LENGTH: number = 1024;
+
+const BYTES_PER_MIB: number = 1024 * 1024;
+const BYTES_PER_GIB: number = 1024 * 1024 * 1024;
+
+const SERVICE_PREFIXES: Readonly<Record<OpenStackServiceType, string>> = {
+  [OpenStackServiceType.Identity]: "openstack_identity",
+  [OpenStackServiceType.Compute]: "openstack_nova",
+  [OpenStackServiceType.Placement]: "openstack_placement",
+  [OpenStackServiceType.Network]: "openstack_neutron",
+  [OpenStackServiceType.Volume]: "openstack_cinder",
+  [OpenStackServiceType.Image]: "openstack_glance",
+  [OpenStackServiceType.Orchestration]: "openstack_heat",
+  [OpenStackServiceType.ContainerInfra]: "openstack_container_infra",
+  [OpenStackServiceType.Rating]: "openstack_cloudkitty",
+  [OpenStackServiceType.BareMetal]: "openstack_ironic",
+  [OpenStackServiceType.SharedFileSystems]: "openstack_sharev2",
+  [OpenStackServiceType.Database]: "openstack_trove",
+  [OpenStackServiceType.LoadBalancer]: "openstack_loadbalancer",
+  [OpenStackServiceType.KeyManager]: "openstack_barbican",
+  [OpenStackServiceType.ObjectStore]: "openstack_object_store",
+  [OpenStackServiceType.Metric]: "openstack_gnocchi",
+  [OpenStackServiceType.Dns]: "openstack_designate",
+};
+
+// knownServerStatuses, the exporter's nova.go.
+const SERVER_STATUS_CODES: Readonly<Record<string, number>> = {
+  ACTIVE: 0,
+  BUILD: 1,
+  "BUILD(spawning)": 2,
+  DELETED: 3,
+  ERROR: 4,
+  HARD_REBOOT: 5,
+  PASSWORD: 6,
+  REBOOT: 7,
+  REBUILD: 8,
+  RESCUE: 9,
+  RESIZE: 10,
+  SHUTOFF: 11,
+  SUSPENDED: 12,
+  UNKNOWN: 13,
+  VERIFY_RESIZE: 14,
+  MIGRATING: 15,
+  PAUSED: 16,
+  REVERT_RESIZE: 17,
+  SHELVED: 18,
+  SHELVED_OFFLOADED: 19,
+  SOFT_DELETED: 20,
+};
+
+// knownNetworkStatuses, the exporter's neutron.go.
+const NETWORK_STATUS_CODES: Readonly<Record<string, number>> = {
+  ACTIVE: 0,
+  BUILD: 1,
+  DOWN: 2,
+  ERROR: 3,
+};
+
+// vpn_service_status and vpn_connection_status, the exporter's neutron.go.
+const VPN_STATUSES: ReadonlyArray<string> = [
+  "ACTIVE",
+  "DOWN",
+  "BUILD",
+  "ERROR",
+  "PENDING_CREATE",
+  "PENDING_UPDATE",
+  "PENDING_DELETE",
+];
+
+/*
+ * knownVolumeStatuses, the exporter's cinder.go, in the order of its codes. Each reads 0
+ * in the counter until a volume is in it.
+ */
+const VOLUME_STATUSES: ReadonlyArray<string> = [
+  "creating",
+  "available",
+  "reserved",
+  "attaching",
+  "detaching",
+  "in-use",
+  "maintenance",
+  "deleting",
+  "awaiting-transfer",
+  "error",
+  "error_deleting",
+  "backing-up",
+  "restoring-backup",
+  "error_backing-up",
+  "error_restoring",
+  "error_extending",
+  "downloading",
+  "uploading",
+  "retyping",
+  "extending",
+];
+
+/*
+ * knownStackStatuses, the exporter's heat.go, and knownClusterStatuses, its containerinfra.go. Each
+ * series' value is the word's code, recorded, and -1 for a word its source doesn't know.
+ */
+const STACK_STATUS_CODES: Readonly<Record<string, number>> = {
+  INIT_IN_PROGRESS: 0,
+  INIT_FAILED: 1,
+  INIT_COMPLETE: 2,
+  CREATE_IN_PROGRESS: 3,
+  CREATE_FAILED: 4,
+  CREATE_COMPLETE: 5,
+  DELETE_IN_PROGRESS: 6,
+  DELETE_FAILED: 7,
+  DELETE_COMPLETE: 8,
+  UPDATE_IN_PROGRESS: 9,
+  UPDATE_FAILED: 10,
+  UPDATE_COMPLETE: 11,
+  ROLLBACK_IN_PROGRESS: 12,
+  ROLLBACK_FAILED: 13,
+  ROLLBACK_COMPLETE: 14,
+  SUSPEND_IN_PROGRESS: 15,
+  SUSPEND_FAILED: 16,
+  SUSPEND_COMPLETE: 17,
+  RESUME_IN_PROGRESS: 18,
+  RESUME_FAILED: 19,
+  RESUME_COMPLETE: 20,
+  ADOPT_IN_PROGRESS: 21,
+  ADOPT_FAILED: 22,
+  ADOPT_COMPLETE: 23,
+  SNAPSHOT_IN_PROGRESS: 24,
+  SNAPSHOT_FAILED: 25,
+  SNAPSHOT_COMPLETE: 26,
+  CHECK_IN_PROGRESS: 27,
+  CHECK_FAILED: 28,
+  CHECK_COMPLETE: 29,
+};
+
+const CLUSTER_STATUS_CODES: Readonly<Record<string, number>> = {
+  CREATE_COMPLETE: 0,
+  CREATE_FAILED: 1,
+  CREATE_IN_PROGRESS: 2,
+  UPDATE_IN_PROGRESS: 3,
+  UPDATE_FAILED: 4,
+  UPDATE_COMPLETE: 5,
+  DELETE_IN_PROGRESS: 6,
+  DELETE_FAILED: 7,
+  DELETE_COMPLETE: 8,
+  RESUME_COMPLETE: 9,
+  RESUME_FAILED: 10,
+  RESTORE_COMPLETE: 11,
+  ROLLBACK_IN_PROGRESS: 12,
+  ROLLBACK_FAILED: 13,
+  ROLLBACK_COMPLETE: 14,
+  SNAPSHOT_COMPLETE: 15,
+  CHECK_COMPLETE: 16,
+  ADOPT_COMPLETE: 17,
+};
+
+// What the exporter's status series read for the words a real cloud has been recorded in. PENDING is 0.
+const DNS_STATUS_CODES: Readonly<Record<string, number>> = {
+  PENDING: 0,
+  ACTIVE: 1,
+  ERROR: 3,
+};
+
+/*
+ * What the exporter's instance_status series reads for the words a real cloud has been recorded in.
+ * Nothing reads this value: every rule and template reads the status label.
+ */
+const DATABASE_INSTANCE_STATUS_CODES: Readonly<Record<string, number>> = {
+  BUILD: 1,
+  ERROR: 12,
+};
+
+/*
+ * What the exporter's share_status series reads for the words a real cloud has been recorded in. Nothing
+ * reads this value: every rule and template reads the status label, because creating's code is 0.
+ */
+const SHARE_STATUS_CODES: Readonly<Record<string, number>> = {
+  creating: 0,
+  available: 1,
+  error: 9,
+};
+
+// The words the exporter's counter reports, each reading 0 until a share holds it, recorded.
+const SHARE_COUNTED_STATUSES: ReadonlyArray<string> = [
+  "available",
+  "creating",
+  "deleting",
+  "error",
+  "error_deleting",
+  "extending",
+  "inactive",
+  "managing",
+  "migrating",
+  "migration_error",
+  "restoring",
+  "reverting",
+  "reverting_error",
+  "reverting_to_snapshot",
+  "shrinking",
+  "shrinking_error",
+  "soft_deleting",
+  "unmanaging",
+  "updating",
+];
+
+type Labels = Record<string, string | number | boolean | null | undefined>;
+
+function labelText(
+  value: string | number | boolean | null | undefined,
+): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return typeof value === "string" ? value : String(value);
+}
+
+function toBound(text: string): string {
+  return text.length > MAX_LABEL_VALUE_LENGTH
+    ? `${text.substring(0, MAX_LABEL_VALUE_LENGTH - 1)}…`
+    : text;
+}
+
+/*
+ * The exporter makes this label up afresh on every scrape, so a series of it never
+ * lasts. A probe can do better by making the same one each time, from what names a
+ * Cinder service.
+ */
+export function stableCinderServiceUuid(data: {
+  host: string | null;
+  binary: string | null;
+}): string {
+  const hash: string = crypto
+    .createHash("sha256")
+    .update(`${data.host || ""}/${data.binary || ""}`)
+    .digest("hex");
+
+  return `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(
+    12,
+    16,
+  )}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`;
+}
+
+export interface OpenStackServiceReading {
+  service: OpenStackServiceType;
+  regionName: string;
+  // What was read. Absent for a service not read this time.
+  inventory?:
+    | OpenStackIdentityInventory
+    | OpenStackComputeInventory
+    | OpenStackPlacementInventory
+    | OpenStackNetworkInventory
+    | OpenStackVolumeInventory
+    | OpenStackImageInventory
+    | OpenStackBareMetalInventory
+    | OpenStackOrchestrationInventory
+    | OpenStackContainerInfraInventory
+    | OpenStackRatingInventory
+    | OpenStackSharedFileSystemsInventory
+    | OpenStackLoadBalancerInventory
+    | OpenStackDatabaseInventory
+    | OpenStackKeyManagerInventory
+    | OpenStackObjectStoreInventory
+    | OpenStackDnsInventory
+    | OpenStackMetricInventory
+    | undefined;
+  // What openstack_<service>_up reads, and null to send no such series at all.
+  apiUp: boolean | null;
+  // What `up` reads for this service's collection.
+  answered: boolean;
+  observedAt: number;
+  durationInMs: number;
+  /*
+   * On a cloud whose rows are sent in turns, how long one that did not change can go without
+   * being sent. openstack_<service>_up says so, because it is what vouches for those rows.
+   */
+  refreshCycleInMinutes?: number | undefined;
+  /*
+   * This read says nothing about the rows it did not send: they have not all come round yet, or
+   * did not fit. The stale-row rule goes on measuring from the last read that did.
+   */
+  doesNotVouchForRows?: boolean | undefined;
+}
+
+interface MetricBeingBuilt {
+  name: string;
+  description: string;
+  unit?: string | undefined;
+  dataPoints: Array<JSONObject>;
+}
+
+function attributeValue(attribute: JSONObject | undefined): string {
+  return ((attribute?.["value"] as JSONObject | undefined)?.["stringValue"] ??
+    "") as string;
+}
+
+/*
+ * The order the exporter writes a series' lines in: by their label values, taking the
+ * labels in name order, with a label that has no value empty. It says nothing to a chart.
+ * It matters where two lines make one row: DevStack runs two nova-conductors on a host,
+ * and the row keeps what the last one says, so the last has to be the same one whichever
+ * way the cloud is collected, and from one collection to the next. Exported for tests.
+ */
+export function compareDatapointsAsTheExporterDoes(
+  first: JSONObject,
+  second: JSONObject,
+): number {
+  const a: Array<JSONObject> = first["attributes"] as Array<JSONObject>;
+  const b: Array<JSONObject> = second["attributes"] as Array<JSONObject>;
+
+  let inA: number = 0;
+  let inB: number = 0;
+
+  while (inA < a.length || inB < b.length) {
+    const keyA: string | undefined = a[inA]?.["key"] as string | undefined;
+    const keyB: string | undefined = b[inB]?.["key"] as string | undefined;
+
+    const isInBoth: boolean = keyA === keyB;
+    const isFromA: boolean =
+      isInBoth || keyB === undefined || (keyA !== undefined && keyA < keyB);
+    const isFromB: boolean =
+      isInBoth || keyA === undefined || (keyB !== undefined && keyB < keyA);
+
+    const valueA: string = isFromA ? attributeValue(a[inA]) : "";
+    const valueB: string = isFromB ? attributeValue(b[inB]) : "";
+
+    if (isFromA) {
+      inA++;
+    }
+
+    if (isFromB) {
+      inB++;
+    }
+
+    if (valueA !== valueB) {
+      return valueA < valueB ? -1 : 1;
+    }
+  }
+
+  return 0;
+}
+
+// One service of one region: one resource, as one scrape is to the agent's collector.
+class SeriesWriter {
+  public datapointCount: number = 0;
+  // Read and said about, and held back for its turn: it still counts as a sample of the scrape.
+  public heldBackCount: number = 0;
+
+  private readonly metrics: Map<string, MetricBeingBuilt> = new Map();
+  private readonly regionName: string;
+  private readonly service: OpenStackServiceType;
+  private readonly timeUnixNano: string;
+  private readonly gate: OpenStackSendGate | undefined;
+
+  public constructor(
+    reading: OpenStackServiceReading,
+    gate?: OpenStackSendGate | undefined,
+  ) {
+    this.regionName = reading.regionName;
+    this.service = reading.service;
+    this.timeUnixNano = `${Math.round(reading.observedAt)}000000`;
+    this.gate = gate;
+  }
+
+  // openstack_<service>_<name>, whose help text is the exporter's: the name alone.
+  public add(name: string, labels: Labels, value: number | null): void {
+    const metricName: string = `${SERVICE_PREFIXES[this.service]}_${name}`;
+
+    if (this.gate && !this.gate.shouldSend(metricName, labels, value)) {
+      this.heldBackCount++;
+      return;
+    }
+
+    const isWritten: boolean = this.write({
+      name: metricName,
+      description: name,
+      labels: labels,
+      value: value,
+    });
+
+    if (isWritten) {
+      this.datapointCount++;
+    }
+  }
+
+  // The series the Prometheus receiver writes about a scrape, in its own words.
+  public addScrapeSeries(data: {
+    name: string;
+    description: string;
+    unit?: string | undefined;
+    value: number;
+  }): void {
+    this.write({ ...data, labels: {} });
+  }
+
+  public toMetrics(): JSONArray {
+    const metrics: JSONArray = [];
+
+    for (const metric of this.metrics.values()) {
+      const entry: JSONObject = {
+        name: metric.name,
+        description: metric.description,
+      };
+
+      if (metric.unit) {
+        entry["unit"] = metric.unit;
+      }
+
+      entry["gauge"] = {
+        dataPoints: metric.dataPoints.sort(compareDatapointsAsTheExporterDoes),
+      };
+      entry["metadata"] = [
+        { key: "prometheus.type", value: { stringValue: "gauge" } },
+      ];
+
+      metrics.push(entry);
+    }
+
+    return metrics;
+  }
+
+  private write(data: {
+    name: string;
+    description: string;
+    unit?: string | undefined;
+    labels: Labels;
+    value: number | null;
+  }): boolean {
+    // A non-finite number has no form in JSON, and a null one was not read.
+    if (data.value === null || !Number.isFinite(data.value)) {
+      return false;
+    }
+
+    let metric: MetricBeingBuilt | undefined = this.metrics.get(data.name);
+
+    if (!metric) {
+      metric = {
+        name: data.name,
+        description: data.description,
+        unit: data.unit,
+        dataPoints: [],
+      };
+      this.metrics.set(data.name, metric);
+    }
+
+    const keys: Array<string> = Object.keys(data.labels).filter(
+      (key: string): boolean => {
+        return labelText(data.labels[key]) !== "";
+      },
+    );
+
+    const attributes: Array<JSONObject> = keys.map(
+      (key: string): JSONObject => {
+        return {
+          key: key,
+          value: { stringValue: toBound(labelText(data.labels[key])) },
+        };
+      },
+    );
+
+    attributes.push(
+      {
+        key: "openstack.region.name",
+        value: { stringValue: this.regionName },
+      },
+      { key: "openstack_service", value: { stringValue: this.service } },
+    );
+
+    attributes.sort((first: JSONObject, second: JSONObject): number => {
+      const a: string = first["key"] as string;
+      const b: string = second["key"] as string;
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+
+    metric.dataPoints.push({
+      attributes: attributes,
+      timeUnixNano: this.timeUnixNano,
+      asDouble: data.value,
+    });
+
+    return true;
+  }
+}
+
+function writeIdentity(
+  writer: SeriesWriter,
+  inventory: OpenStackIdentityInventory,
+): void {
+  if (inventory.domains) {
+    writer.add("domains", {}, inventory.domains.length);
+
+    for (const domain of inventory.domains) {
+      writer.add(
+        "domain_info",
+        {
+          description: domain.description,
+          enabled: domain.enabled,
+          id: domain.id,
+          name: domain.name,
+        },
+        1,
+      );
+    }
+  }
+
+  if (inventory.projects) {
+    writer.add("projects", {}, inventory.projects.length);
+
+    for (const project of inventory.projects) {
+      writer.add(
+        "project_info",
+        {
+          is_domain: project.isDomain,
+          description: project.description,
+          domain_id: project.domainId,
+          enabled: project.enabled,
+          id: project.id,
+          name: project.name,
+          parent_id: project.parentId,
+          tags: project.tags.join(","),
+        },
+        1,
+      );
+    }
+  }
+
+  if (inventory.regionCount !== undefined) {
+    writer.add("regions", {}, inventory.regionCount);
+  }
+
+  if (inventory.userCount !== undefined) {
+    writer.add("users", {}, inventory.userCount);
+  }
+
+  if (inventory.groupCount !== undefined) {
+    writer.add("groups", {}, inventory.groupCount);
+  }
+}
+
+function writeHypervisors(
+  writer: SeriesWriter,
+  inventory: OpenStackComputeInventory,
+): void {
+  if (!inventory.hypervisors) {
+    return;
+  }
+
+  /*
+   * A host's zone and groups are in the aggregates, keyed by Nova's short host name. An
+   * aggregate that only exists to set a zone is not a group anyone made, so it gives
+   * its zone and not its name.
+   */
+  const zoneOfHost: Map<string, string> = new Map();
+  const aggregatesOfHost: Map<string, Array<string>> = new Map();
+
+  for (const aggregate of inventory.aggregates || []) {
+    for (const host of aggregate.hosts) {
+      if (aggregate.availabilityZone) {
+        zoneOfHost.set(host, aggregate.availabilityZone);
+      }
+
+      if (!aggregate.isZoneOnly && aggregate.name) {
+        const names: Array<string> = aggregatesOfHost.get(host) || [];
+        names.push(aggregate.name);
+        aggregatesOfHost.set(host, names);
+      }
+    }
+  }
+
+  const mib: (value: number | null) => number | null = (
+    value: number | null,
+  ): number | null => {
+    return value === null ? null : value * BYTES_PER_MIB;
+  };
+
+  const gib: (value: number | null) => number | null = (
+    value: number | null,
+  ): number | null => {
+    return value === null ? null : value * BYTES_PER_GIB;
+  };
+
+  for (const hypervisor of inventory.hypervisors as Array<NovaHypervisorRecord>) {
+    const serviceHost: string = hypervisor.serviceHost || "";
+
+    const labels: Labels = {
+      hostname: hypervisor.hostname,
+      availability_zone: zoneOfHost.get(serviceHost),
+      aggregates: [...(aggregatesOfHost.get(serviceHost) || [])]
+        .sort()
+        .join(","),
+    };
+
+    writer.add("running_vms", labels, hypervisor.runningVms);
+    writer.add("current_workload", labels, hypervisor.currentWorkload);
+    writer.add("vcpus_available", labels, hypervisor.vcpus);
+    writer.add("vcpus_used", labels, hypervisor.vcpusUsed);
+    writer.add("memory_available_bytes", labels, mib(hypervisor.memoryMb));
+    writer.add("memory_used_bytes", labels, mib(hypervisor.memoryMbUsed));
+    writer.add(
+      "local_storage_available_bytes",
+      labels,
+      gib(hypervisor.localGb),
+    );
+    writer.add("local_storage_used_bytes", labels, gib(hypervisor.localGbUsed));
+    writer.add("free_disk_bytes", labels, gib(hypervisor.freeDiskGb));
+  }
+}
+
+function writeCompute(
+  writer: SeriesWriter,
+  inventory: OpenStackComputeInventory,
+): void {
+  if (inventory.services) {
+    for (const service of inventory.services) {
+      writer.add(
+        "agent_state",
+        {
+          id: service.id,
+          hostname: service.host,
+          service: service.binary,
+          adminState: service.status,
+          zone: service.zone,
+          disabledReason: service.disabledReason,
+          forced_down: service.forcedDown,
+        },
+        service.state === "up" ? 1 : 0,
+      );
+    }
+  }
+
+  writeHypervisors(writer, inventory);
+
+  if (inventory.flavors) {
+    writer.add("flavors", {}, inventory.flavors.length);
+
+    for (const flavor of inventory.flavors) {
+      writer.add(
+        "flavor",
+        {
+          id: flavor.id,
+          name: flavor.name,
+          vcpus: flavor.vcpus,
+          ram: flavor.ram,
+          disk: flavor.disk,
+          is_public: flavor.isPublic,
+          /*
+           * What only a native collector reads, because the exporter leaves extra specs behind:
+           * what one of these would really ask for. An empty label is no label, so a flavor that
+           * asks for nothing unusual still says what it asks for, and only that.
+           */
+          placement_resources: toOpenStackResourcesQuery(
+            flavor.request.resources,
+          ),
+          placement_required: flavor.request.requiredTraits.join(","),
+          placement_forbidden: flavor.request.forbiddenTraits.join(","),
+          is_disabled: flavor.isDisabled ? true : null,
+        },
+        1,
+      );
+    }
+  }
+
+  if (inventory.availabilityZoneCount !== undefined) {
+    writer.add("availability_zones", {}, inventory.availabilityZoneCount);
+  }
+
+  if (inventory.servers) {
+    /*
+     * From microversion 2.47 a server carries its flavor's name and no id for it, so
+     * the id comes from the flavors, by that name.
+     */
+    const flavorIdByName: Map<string, string> = new Map();
+
+    for (const flavor of (inventory.flavors || []) as Array<NovaFlavorRecord>) {
+      if (flavor.name && flavor.id) {
+        flavorIdByName.set(flavor.name, flavor.id);
+      }
+    }
+
+    writer.add("total_vms", {}, inventory.servers.length);
+
+    for (const server of inventory.servers) {
+      writer.add(
+        "server_status",
+        {
+          id: server.id,
+          status: server.status,
+          name: server.name,
+          tenant_id: server.tenantId,
+          user_id: server.userId,
+          address_ipv4: server.addressIpv4,
+          address_ipv6: server.addressIpv6,
+          // As JSON, because a network's name can hold whatever a separator would be.
+          network_names: JSON.stringify(server.networkNames),
+          host_id: server.hostId,
+          hypervisor_hostname: server.hypervisorHostname,
+          uuid: server.id,
+          availability_zone: server.availabilityZone,
+          flavor_id:
+            server.flavorId ??
+            (server.flavorName ? flavorIdByName.get(server.flavorName) : null),
+          instance_libvirt: server.instanceName,
+          image_id: server.imageId,
+          task_state: server.taskState,
+          updated_at: server.updatedAt,
+          fault_message: server.faultMessage,
+        },
+        server.status ? SERVER_STATUS_CODES[server.status] ?? -1 : -1,
+      );
+    }
+  }
+
+  for (const project of inventory.quotas || []) {
+    for (const name of Object.keys(project.quotas)) {
+      const detail: { inUse: number; reserved: number; limit: number } =
+        project.quotas[name]!;
+
+      const labels: (type: string) => Labels = (type: string): Labels => {
+        return {
+          type: type,
+          tenant: project.projectName,
+          tenant_id: project.projectId,
+        };
+      };
+
+      writer.add(`quota_${name}`, labels("in_use"), detail.inUse);
+      writer.add(`quota_${name}`, labels("reserved"), detail.reserved);
+      writer.add(`quota_${name}`, labels("limit"), detail.limit);
+    }
+  }
+
+  for (const project of inventory.limits || []) {
+    const labels: Labels = {
+      tenant: project.projectName,
+      tenant_id: project.projectId,
+    };
+
+    writer.add("limits_vcpus_max", labels, project.maxTotalCores);
+    writer.add("limits_vcpus_used", labels, project.totalCoresUsed);
+    writer.add("limits_memory_max", labels, project.maxTotalRAMSize);
+    writer.add("limits_memory_used", labels, project.totalRAMUsed);
+    writer.add("limits_instances_max", labels, project.maxTotalInstances);
+    writer.add("limits_instances_used", labels, project.totalInstancesUsed);
+  }
+}
+
+function writePlacement(
+  writer: SeriesWriter,
+  inventory: OpenStackPlacementInventory,
+): void {
+  for (const provider of inventory.providers || []) {
+    for (const item of provider.inventories || []) {
+      const labels: Labels = {
+        hostname: provider.name,
+        resourcetype: item.resourceClass,
+      };
+
+      writer.add("resource_total", labels, item.total);
+      writer.add("resource_allocation_ratio", labels, item.allocationRatio);
+      writer.add("resource_generation", labels, provider.generation);
+      writer.add("resource_reserved", labels, item.reserved);
+    }
+
+    const usages: Record<string, number> = provider.usages || {};
+
+    for (const resourceClass of Object.keys(usages)) {
+      writer.add(
+        "resource_usage",
+        { hostname: provider.name, resourcetype: resourceClass },
+        usages[resourceClass]!,
+      );
+    }
+
+    for (const allocation of provider.allocations || []) {
+      writer.add(
+        "resource_provider_allocations",
+        {
+          hostname: provider.name,
+          uuid: allocation.consumerId,
+          resourcetype: allocation.resourceClass,
+        },
+        allocation.amount,
+      );
+    }
+  }
+
+  /*
+   * What Placement said of each flavor, as it last stood: one series for the region, which says
+   * when it was asked and how far to trust it, and one for each zone and aggregate.
+   */
+  for (const answer of inventory.flavorAnswers || []) {
+    const flavor: Labels = {
+      flavor_id: answer.flavorId,
+      flavor: answer.flavorName,
+    };
+
+    writer.add(
+      "flavor_fits",
+      {
+        ...flavor,
+        scope: "region",
+        asked_at: answer.askedAt,
+        hosts_with_room: answer.hostsWithRoom,
+        is_capped: answer.isCapped,
+      },
+      answer.fits,
+    );
+
+    for (const zone of Object.keys(answer.byZone).sort()) {
+      writer.add(
+        "flavor_fits",
+        { ...flavor, scope: "zone", scope_name: zone },
+        answer.byZone[zone]!,
+      );
+    }
+
+    for (const aggregate of Object.keys(answer.byAggregate).sort()) {
+      writer.add(
+        "flavor_fits",
+        { ...flavor, scope: "aggregate", scope_name: aggregate },
+        answer.byAggregate[aggregate]!,
+      );
+    }
+  }
+}
+
+function writeNetwork(
+  writer: SeriesWriter,
+  inventory: OpenStackNetworkInventory,
+): void {
+  /*
+   * Which DHCP agents serve each network, and how many each serves, on series that already exist:
+   * a large cloud pays for this in calls to Neutron and not again in datapoints.
+   */
+  const networksOfDhcpAgent: Map<string, number> = new Map();
+  const dhcpAgentsOfNetwork: Map<string, Array<string>> = new Map();
+
+  for (const record of inventory.dhcpAgentNetworks || []) {
+    networksOfDhcpAgent.set(record.agentId, record.networkIds.length);
+
+    for (const networkId of record.networkIds) {
+      const agentIds: Array<string> = dhcpAgentsOfNetwork.get(networkId) || [];
+      agentIds.push(record.agentId);
+      dhcpAgentsOfNetwork.set(networkId, agentIds);
+    }
+  }
+
+  for (const agent of inventory.agents || []) {
+    writer.add(
+      "agent_state",
+      {
+        id: agent.id,
+        hostname: agent.host,
+        service: agent.binary,
+        adminState: agent.isAdminUp ? "up" : "down",
+        availability_zone: agent.availabilityZone,
+        dhcp_network_count: agent.id
+          ? networksOfDhcpAgent.get(agent.id)
+          : undefined,
+      },
+      agent.isAlive ? 1 : 0,
+    );
+  }
+
+  if (inventory.networks) {
+    writer.add("networks", {}, inventory.networks.length);
+
+    for (const network of inventory.networks) {
+      writer.add(
+        "network",
+        {
+          id: network.id,
+          tenant_id: network.tenantId,
+          status: network.status,
+          name: network.name,
+          is_shared: network.isShared,
+          is_external: network.isExternal,
+          provider_network_type: network.networkType,
+          provider_physical_network: network.physicalNetwork,
+          provider_segmentation_id: network.segmentationId,
+          subnets: network.subnets.join(","),
+          tags: network.tags.join(","),
+          mtu: network.mtu,
+          dhcp_agent_ids: network.id
+            ? [...(dhcpAgentsOfNetwork.get(network.id) || [])].sort().join(",")
+            : undefined,
+        },
+        network.status ? NETWORK_STATUS_CODES[network.status] ?? -1 : -1,
+      );
+    }
+  }
+
+  if (inventory.subnets) {
+    writer.add("subnets", {}, inventory.subnets.length);
+
+    for (const subnet of inventory.subnets) {
+      writer.add(
+        "subnet",
+        {
+          id: subnet.id,
+          tenant_id: subnet.tenantId,
+          name: subnet.name,
+          network_id: subnet.networkId,
+          cidr: subnet.cidr,
+          gateway_ip: subnet.gatewayIp,
+          enable_dhcp: subnet.enableDhcp,
+          dns_nameservers: subnet.dnsNameservers.join(","),
+          tags: subnet.tags.join(","),
+        },
+        1,
+      );
+    }
+  }
+
+  if (inventory.routers) {
+    let notActive: number = 0;
+
+    for (const router of inventory.routers) {
+      if (router.status !== "ACTIVE") {
+        notActive++;
+      }
+
+      writer.add(
+        "router",
+        {
+          id: router.id,
+          name: router.name,
+          project_id: router.projectId,
+          admin_state_up: router.isAdminUp,
+          status: router.status,
+          external_network_id: router.externalNetworkId,
+        },
+        1,
+      );
+    }
+
+    writer.add("routers", {}, inventory.routers.length);
+    writer.add("routers_not_active", {}, notActive);
+  }
+
+  for (const agent of inventory.l3Agents || []) {
+    writer.add(
+      "l3_agent_of_router",
+      {
+        router_id: agent.routerId,
+        l3_agent_id: agent.agentId,
+        ha_state: agent.haState,
+        agent_alive: agent.isAlive,
+        agent_admin_up: agent.isAdminUp,
+        agent_host: agent.host,
+      },
+      agent.isAlive ? 1 : 0,
+    );
+  }
+
+  if (inventory.floatingIps) {
+    let associatedNotActive: number = 0;
+
+    for (const address of inventory.floatingIps) {
+      if (address.fixedIp && address.status !== "ACTIVE") {
+        associatedNotActive++;
+      }
+
+      writer.add(
+        "floating_ip",
+        {
+          id: address.id,
+          floating_network_id: address.networkId,
+          router_id: address.routerId,
+          status: address.status,
+          project_id: address.projectId,
+          floating_ip_address: address.address,
+          port_id: address.portId,
+        },
+        1,
+      );
+    }
+
+    writer.add("floating_ips", {}, inventory.floatingIps.length);
+    writer.add("floating_ips_associated_not_active", {}, associatedNotActive);
+  }
+
+  for (const subnet of inventory.ipAvailabilities || []) {
+    const labels: Labels = {
+      network_id: subnet.networkId,
+      network_name: subnet.networkName,
+      ip_version: subnet.ipVersion,
+      cidr: subnet.cidr,
+      subnet_name: subnet.subnetName,
+      project_id: subnet.projectId,
+    };
+
+    writer.add("network_ip_availabilities_total", labels, subnet.totalIps);
+    writer.add("network_ip_availabilities_used", labels, subnet.usedIps);
+  }
+
+  if (inventory.securityGroupCount !== undefined) {
+    writer.add("security_groups", {}, inventory.securityGroupCount);
+  }
+
+  if (inventory.ports) {
+    let withoutAddress: number = 0;
+    let loadBalancerNotActive: number = 0;
+
+    for (const port of inventory.ports) {
+      if (port.status === "ACTIVE" && port.fixedIps.length === 0) {
+        withoutAddress++;
+      }
+
+      if (
+        port.deviceOwner === "neutron:LOADBALANCERV2" &&
+        port.status !== "ACTIVE"
+      ) {
+        loadBalancerNotActive++;
+      }
+
+      writer.add(
+        "port",
+        {
+          uuid: port.id,
+          network_id: port.networkId,
+          mac_address: port.macAddress,
+          device_owner: port.deviceOwner,
+          device_id: port.deviceId,
+          status: port.status,
+          binding_vif_type: port.vifType,
+          admin_state_up: port.isAdminUp,
+          fixed_ips: port.fixedIps.join(","),
+        },
+        1,
+      );
+    }
+
+    writer.add("ports", {}, inventory.ports.length);
+    writer.add("ports_no_ips", {}, withoutAddress);
+    writer.add("ports_lb_not_active", {}, loadBalancerNotActive);
+  }
+
+  if (inventory.vpnEndpointGroupCount !== undefined) {
+    writer.add("vpn_endpoint_groups", {}, inventory.vpnEndpointGroupCount);
+  }
+
+  if (inventory.vpnIkePolicyCount !== undefined) {
+    writer.add("vpn_ike_policies", {}, inventory.vpnIkePolicyCount);
+  }
+
+  if (inventory.vpnIpsecPolicyCount !== undefined) {
+    writer.add("vpn_ipsec_policies", {}, inventory.vpnIpsecPolicyCount);
+  }
+
+  if (inventory.vpnServices) {
+    writer.add("vpn_services", {}, inventory.vpnServices.length);
+
+    for (const service of inventory.vpnServices) {
+      writer.add(
+        "vpn_service",
+        {
+          id: service.id,
+          project_id: service.projectId,
+          subnet_id: service.subnetId,
+          router_id: service.routerId,
+          admin_state_up: service.isAdminUp,
+          name: service.name,
+          external_ipv4: service.externalIpv4,
+          external_ipv6: service.externalIpv6,
+          flavor_id: service.flavorId,
+        },
+        service.status ? VPN_STATUSES.indexOf(service.status) : -1,
+      );
+    }
+  }
+
+  if (inventory.vpnConnections) {
+    writer.add("vpn_siteconnections", {}, inventory.vpnConnections.length);
+
+    for (const connection of inventory.vpnConnections) {
+      writer.add(
+        "vpn_siteconnection",
+        {
+          id: connection.id,
+          project_id: connection.projectId,
+          admin_state_up: connection.isAdminUp,
+          name: connection.name,
+          vpn_service_id: connection.vpnServiceId,
+          ike_policy_id: connection.ikePolicyId,
+          ipsec_policy_id: connection.ipsecPolicyId,
+          peer_id: connection.peerId,
+          peer_ep_group_id: connection.peerEndpointGroupId,
+          local_id: connection.localId,
+          local_ep_group_id: connection.localEndpointGroupId,
+        },
+        connection.status ? VPN_STATUSES.indexOf(connection.status) : -1,
+      );
+    }
+  }
+
+  for (const project of inventory.quotas || []) {
+    for (const name of Object.keys(project.quotas)) {
+      const detail: { used: number; reserved: number; limit: number } =
+        project.quotas[name]!;
+
+      const labels: (type: string) => Labels = (type: string): Labels => {
+        return {
+          type: type,
+          tenant: project.projectName,
+          tenant_id: project.projectId,
+        };
+      };
+
+      writer.add(`quota_${name}`, labels("used"), detail.used);
+      writer.add(`quota_${name}`, labels("reserved"), detail.reserved);
+      writer.add(`quota_${name}`, labels("limit"), detail.limit);
+    }
+  }
+}
+
+function writeVolume(
+  writer: SeriesWriter,
+  inventory: OpenStackVolumeInventory,
+): void {
+  for (const service of inventory.services || []) {
+    writer.add(
+      "agent_state",
+      {
+        uuid: stableCinderServiceUuid({
+          host: service.host,
+          binary: service.binary,
+        }),
+        hostname: service.host,
+        service: service.binary,
+        adminState: service.status,
+        zone: service.zone,
+        disabledReason: service.disabledReason,
+      },
+      service.state === "up" ? 1 : 0,
+    );
+  }
+
+  for (const pool of inventory.pools || []) {
+    const rbd: OpenStackRbdLocation | null = isOpenStackRbdProtocol(
+      pool.storageProtocol,
+    )
+      ? parseOpenStackRbdLocation(pool.locationInfo)
+      : null;
+    const labels: Labels = {
+      name: pool.name,
+      volume_backend_name: pool.backendName,
+      vendor_name: pool.vendorName,
+      /*
+       * Only a probe at the Full view level can read these, and they are what names the
+       * Ceph cluster behind a pool as a fact rather than a guess.
+       */
+      storage_protocol: pool.storageProtocol,
+      ceph_fsid: rbd?.fsid,
+      ceph_pool: rbd?.poolName,
+    };
+
+    writer.add("pool_capacity_free_gb", labels, pool.freeCapacityGb);
+    writer.add("pool_capacity_total_gb", labels, pool.totalCapacityGb);
+  }
+
+  if (inventory.volumes) {
+    const byStatus: Map<string, number> = new Map(
+      VOLUME_STATUSES.map((status: string): [string, number] => {
+        return [status, 0];
+      }),
+    );
+
+    writer.add("volumes", {}, inventory.volumes.length);
+
+    for (const volume of inventory.volumes) {
+      const status: string = volume.status || "";
+      byStatus.set(status, (byStatus.get(status) || 0) + 1);
+
+      writer.add(
+        "volume_gb",
+        {
+          id: volume.id,
+          name: volume.name,
+          status: volume.status,
+          availability_zone: volume.availabilityZone,
+          bootable: volume.bootable,
+          tenant_id: volume.tenantId,
+          user_id: volume.userId,
+          volume_type: volume.volumeType,
+          server_id: volume.serverId,
+          pool: volume.poolName,
+          image_id: volume.imageId,
+          updated_at: volume.updatedAt,
+        },
+        volume.sizeGb,
+      );
+
+      writer.add(
+        "volume_status",
+        {
+          id: volume.id,
+          name: volume.name,
+          status: volume.status,
+          bootable: volume.bootable,
+          tenant_id: volume.tenantId,
+          size: volume.sizeGb,
+          volume_type: volume.volumeType,
+          server_id: volume.serverId,
+        },
+        volume.status ? VOLUME_STATUSES.indexOf(volume.status) : -1,
+      );
+    }
+
+    for (const [status, count] of byStatus) {
+      writer.add("volume_status_counter", { status: status }, count);
+    }
+  }
+
+  if (inventory.snapshots) {
+    writer.add("snapshots", {}, inventory.snapshots.length);
+
+    for (const snapshot of inventory.snapshots) {
+      writer.add(
+        "snapshot_gb",
+        {
+          id: snapshot.id,
+          name: snapshot.name,
+          status: snapshot.status,
+          tenant_id: snapshot.tenantId,
+          volume_id: snapshot.volumeId,
+          created_at: snapshot.createdAt,
+          updated_at: snapshot.updatedAt,
+        },
+        snapshot.sizeGb,
+      );
+    }
+  }
+
+  for (const backup of inventory.backups || []) {
+    writer.add(
+      "backup_gb",
+      {
+        id: backup.id,
+        name: backup.name,
+        status: backup.status,
+        tenant_id: backup.tenantId,
+        volume_id: backup.volumeId,
+        availability_zone: backup.availabilityZone,
+        is_incremental: backup.isIncremental,
+        updated_at: backup.updatedAt,
+      },
+      backup.sizeGb,
+    );
+  }
+
+  for (const project of inventory.limits || []) {
+    const labels: Labels = {
+      tenant: project.projectName,
+      tenant_id: project.projectId,
+    };
+
+    writer.add("limits_volume_max_gb", labels, project.volumeMaxGb);
+    writer.add("limits_volume_used_gb", labels, project.volumeUsedGb);
+    writer.add("limits_backup_max_gb", labels, project.backupMaxGb);
+    writer.add("limits_backup_used_gb", labels, project.backupUsedGb);
+
+    for (const volumeType of Object.keys(project.typeQuotaGb)) {
+      writer.add(
+        "volume_type_quota_gigabytes",
+        { ...labels, volume_type: volumeType },
+        project.typeQuotaGb[volumeType]!,
+      );
+    }
+  }
+}
+
+function writeImage(
+  writer: SeriesWriter,
+  inventory: OpenStackImageInventory,
+): void {
+  if (!inventory.images) {
+    return;
+  }
+
+  writer.add("images", {}, inventory.images.length);
+
+  for (const image of inventory.images) {
+    writer.add(
+      "image_bytes",
+      {
+        id: image.id,
+        name: image.name,
+        tenant_id: image.owner,
+        image_type: image.imageType,
+        updated_at: image.updatedAt,
+      },
+      image.sizeBytes,
+    );
+
+    const createdAt: number = image.createdAt
+      ? Date.parse(image.createdAt)
+      : Number.NaN;
+
+    if (!Number.isNaN(createdAt)) {
+      writer.add(
+        "image_created_at",
+        {
+          id: image.id,
+          name: image.name,
+          tenant_id: image.owner,
+          visibility: image.visibility,
+          hidden: image.isHidden,
+          protected: image.isProtected,
+          status: image.status,
+        },
+        Math.floor(createdAt / 1000),
+      );
+    }
+  }
+}
+
+function toUnixSeconds(value: string | null): number | null {
+  const at: number = value ? Date.parse(value) : Number.NaN;
+  return Number.isNaN(at) ? null : Math.floor(at / 1000);
+}
+
+/*
+ * What the exporter sends for a node, the same way, with what only Ironic's API says beside it, marked
+ * in OpenStackMetricCatalog. The exporter leaves two labels empty for every node of the cloud it was
+ * recorded on (deploy_kernel and deploy_ramdisk): they are in a node's driver_info, which is not read.
+ */
+function writeBareMetal(
+  writer: SeriesWriter,
+  inventory: OpenStackBareMetalInventory,
+): void {
+  for (const node of inventory.nodes || []) {
+    writer.add(
+      "node",
+      {
+        id: node.uuid,
+        name: node.name,
+        provision_state: node.provisionState,
+        power_state: node.powerState,
+        maintenance: node.isInMaintenance,
+        maintenance_reason: node.maintenanceReason,
+        resource_class: node.resourceClass,
+        retired: node.isRetired,
+        retired_reason: node.retiredReason,
+        console_enabled: node.isConsoleEnabled,
+        driver: node.driver,
+        owner: node.owner,
+        lessee: node.lessee,
+        instance_uuid: node.instanceUuid,
+        conductor: node.conductor,
+        conductor_group: node.conductorGroup,
+        fault: node.fault,
+        target_provision_state: node.targetProvisionState,
+        target_power_state: node.targetPowerState,
+        last_error: node.lastError,
+      },
+      1,
+    );
+
+    const times: Labels = {
+      id: node.uuid,
+      name: node.name,
+      provision_state: node.provisionState,
+    };
+
+    writer.add(
+      "node_provision_updated_at",
+      times,
+      toUnixSeconds(node.provisionUpdatedAt),
+    );
+    writer.add("node_updated_at", times, toUnixSeconds(node.updatedAt));
+  }
+
+  for (const conductor of inventory.conductors || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: conductor.hostname,
+        service: "ironic-conductor",
+        conductor_group: conductor.conductorGroup,
+      },
+      conductor.isAlive ? 1 : 0,
+    );
+  }
+}
+
+/*
+ * Nothing but an admin's read of Heat says whose a stack is, and a label with an empty value is no
+ * label, so anything less sends none: the exporter's series read the same. What it never asks for,
+ * its status reason and parent, are marked in the catalogue.
+ */
+// What CloudKitty rated, only when it was read: the figures stay on each project's row between reads.
+function writeRating(
+  writer: SeriesWriter,
+  inventory: OpenStackRatingInventory,
+): void {
+  for (const rated of inventory.rated || []) {
+    writer.add(
+      "rated",
+      { project_id: rated.projectId, period: rated.period },
+      rated.rate,
+    );
+  }
+}
+
+function writeOrchestration(
+  writer: SeriesWriter,
+  inventory: OpenStackOrchestrationInventory,
+): void {
+  if (inventory.stacks) {
+    const counts: Record<string, number> = {};
+    for (const status of Object.keys(STACK_STATUS_CODES)) {
+      counts[status] = 0;
+    }
+
+    for (const stack of inventory.stacks) {
+      const status: string = stack.status || "";
+      counts[status] = (counts[status] || 0) + 1;
+      writer.add(
+        "stack_status",
+        {
+          id: stack.id,
+          name: stack.name,
+          project_id: stack.projectId,
+          status: stack.status,
+          status_reason: toBound(stack.statusReason || ""),
+          parent_id: stack.parentId,
+          ...(stack.resources
+            ? {
+                resources_read: "true",
+                owned_instance_ids: stack.resources.instanceIds.join(","),
+                owned_instance_count: stack.resources.instanceIds.length,
+                owned_volume_ids: stack.resources.volumeIds.join(","),
+                owned_volume_count: stack.resources.volumeIds.length,
+              }
+            : {}),
+        },
+        STACK_STATUS_CODES[status] ?? -1,
+      );
+    }
+
+    for (const status of Object.keys(counts).sort()) {
+      writer.add("stack_status_counter", { status }, counts[status] as number);
+    }
+  }
+
+  // The exporter has no series for these, so these are a native read's own.
+  for (const engine of inventory.engines || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: engine.host,
+        service: engine.binary,
+        id: engine.id,
+      },
+      engine.isUp ? 1 : 0,
+    );
+  }
+}
+
+/*
+ * Magnum's project, why a cluster failed and the rest of what its own read says only reach the series
+ * on a cluster that has been read. The exporter sends an empty project_id, which is no label.
+ */
+function writeContainerInfra(
+  writer: SeriesWriter,
+  inventory: OpenStackContainerInfraInventory,
+): void {
+  if (inventory.clusters) {
+    writer.add("total_clusters", {}, inventory.clusters.length);
+
+    for (const cluster of inventory.clusters) {
+      const shared: Labels = {
+        uuid: cluster.uuid,
+        name: cluster.name,
+        stack_id: cluster.stackId,
+        status: cluster.status,
+        project_id: cluster.projectId,
+      };
+      writer.add(
+        "cluster_masters",
+        { ...shared, node_count: cluster.nodeCount },
+        cluster.masterCount,
+      );
+      writer.add(
+        "cluster_nodes",
+        { ...shared, master_count: cluster.masterCount },
+        cluster.nodeCount,
+      );
+      writer.add(
+        "cluster_status",
+        {
+          ...shared,
+          node_count: cluster.nodeCount,
+          master_count: cluster.masterCount,
+          status_reason: toBound(cluster.statusReason || ""),
+          health_status: cluster.healthStatus,
+          cluster_template_id: cluster.clusterTemplateId,
+          cluster_template_name: cluster.clusterTemplateName,
+          coe_version: cluster.coeVersion,
+          api_address: cluster.apiAddress,
+        },
+        CLUSTER_STATUS_CODES[cluster.status || ""] ?? -1,
+      );
+    }
+  }
+
+  for (const conductor of inventory.conductors || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: conductor.host,
+        service: conductor.binary,
+        adminState: conductor.isDisabled ? "disabled" : "enabled",
+        disabledReason: conductor.disabledReason,
+      },
+      conductor.isUp ? 1 : 0,
+    );
+  }
+}
+
+/*
+ * The exporter's codes for Octavia's statuses, as a real cloud's answered them (services-octavia): a load
+ * balancer's series is its OPERATING status, ONLINE 0, OFFLINE 2 and ERROR 3, and DEGRADED reads -1, so it is
+ * the words that are read. A pool's is its provisioning status, which every pool recorded had at ACTIVE 0.
+ * An amphora's follow Octavia's own order, ALLOCATED 1 and ERROR 6 recorded.
+ */
+const LOAD_BALANCER_OPERATING_CODES: Readonly<Record<string, number>> = {
+  ONLINE: 0,
+  DRAINING: 1,
+  OFFLINE: 2,
+  ERROR: 3,
+};
+
+const AMPHORA_STATUS_CODES: Readonly<Record<string, number>> = {
+  BOOTING: 0,
+  ALLOCATED: 1,
+  READY: 2,
+  PENDING_CREATE: 3,
+  PENDING_DELETE: 4,
+  DELETED: 5,
+  ERROR: 6,
+};
+
+/*
+ * The exporter's three series about what Octavia holds, label for label, and what only a native read says:
+ * a listener and a member, which are one series each with the value 1 (what they say is in their labels),
+ * and the rates of the counters Octavia keeps for a load balancer and a listener, which the exporter has
+ * no series for. A rate with no earlier reading to compare with is not written, rather than written as 0.
+ */
+function writeLoadBalancer(
+  writer: SeriesWriter,
+  inventory: OpenStackLoadBalancerInventory,
+): void {
+  if (inventory.loadBalancers) {
+    writer.add("total_loadbalancers", {}, inventory.loadBalancers.length);
+
+    for (const balancer of inventory.loadBalancers) {
+      writer.add(
+        "loadbalancer_status",
+        {
+          id: balancer.id,
+          name: balancer.name,
+          operating_status: balancer.operatingStatus,
+          project_id: balancer.projectId,
+          provider: balancer.provider,
+          provisioning_status: balancer.provisioningStatus,
+          vip_address: balancer.vipAddress,
+        },
+        LOAD_BALANCER_OPERATING_CODES[balancer.operatingStatus || ""] ?? -1,
+      );
+    }
+  }
+
+  if (inventory.pools) {
+    writer.add("total_pools", {}, inventory.pools.length);
+
+    for (const pool of inventory.pools) {
+      writer.add(
+        "pool_status",
+        {
+          id: pool.id,
+          lb_algorithm: pool.algorithm,
+          loadbalancers: pool.loadBalancerIds,
+          name: pool.name,
+          operating_status: pool.operatingStatus,
+          project_id: pool.projectId,
+          protocol: pool.protocol,
+          provisioning_status: pool.provisioningStatus,
+        },
+        pool.provisioningStatus === "ACTIVE" ? 0 : -1,
+      );
+    }
+  }
+
+  if (inventory.amphorae) {
+    writer.add("total_amphorae", {}, inventory.amphorae.length);
+
+    for (const amphora of inventory.amphorae) {
+      writer.add(
+        "amphora_status",
+        {
+          cert_expiration: amphora.certExpiration,
+          compute_id: amphora.computeId,
+          ha_ip: amphora.haIp,
+          id: amphora.id,
+          lb_network_ip: amphora.managementIp,
+          loadbalancer_id: amphora.loadBalancerId,
+          role: amphora.role,
+          status: amphora.status,
+        },
+        AMPHORA_STATUS_CODES[amphora.status || ""] ?? -1,
+      );
+    }
+  }
+
+  for (const listener of inventory.listeners || []) {
+    writer.add(
+      "listener_status",
+      {
+        id: listener.id,
+        name: listener.name,
+        project_id: listener.projectId,
+        loadbalancer_id: listener.loadBalancerId,
+        default_pool_id: listener.defaultPoolId,
+        protocol: listener.protocol,
+        protocol_port: listener.protocolPort,
+        provisioning_status: listener.provisioningStatus,
+        operating_status: listener.operatingStatus,
+      },
+      1,
+    );
+  }
+
+  for (const member of inventory.members || []) {
+    writer.add(
+      "member_status",
+      {
+        id: member.id,
+        name: member.name,
+        pool_id: member.poolId,
+        project_id: member.projectId,
+        address: member.address,
+        protocol_port: member.protocolPort,
+        weight: member.weight,
+        backup: member.isBackup,
+        provisioning_status: member.provisioningStatus,
+        operating_status: member.operatingStatus,
+      },
+      1,
+    );
+  }
+
+  for (const rates of inventory.rates || []) {
+    const prefix: string =
+      rates.scope === "listener" ? "listener_stats" : "stats";
+    const labels: Labels =
+      rates.scope === "listener"
+        ? {
+            id: rates.id,
+            name: rates.name,
+            loadbalancer_id: rates.loadBalancerId,
+          }
+        : { id: rates.id, name: rates.name };
+    const series: Array<[string, number | null]> = [
+      ["active_connections", rates.activeConnections],
+      ["connections_per_second", rates.connectionsPerSecond],
+      ["bytes_in_per_second", rates.bytesInPerSecond],
+      ["bytes_out_per_second", rates.bytesOutPerSecond],
+      ["request_errors_per_second", rates.requestErrorsPerSecond],
+    ];
+    for (const [name, value] of series) {
+      if (value !== null) {
+        writer.add(`${prefix}_${name}`, labels, value);
+      }
+    }
+  }
+}
+
+/*
+ * A share's type goes by its name in the label the exporter fills with that, and its own read's
+ * share_type_name stays out, because the exporter's is empty and an empty label is no label.
+ */
+function writeSharedFileSystems(
+  writer: SeriesWriter,
+  inventory: OpenStackSharedFileSystemsInventory,
+): void {
+  if (inventory.shares) {
+    writer.add("shares_counter", {}, inventory.shares.length);
+
+    const counts: Record<string, number> = {};
+    for (const status of SHARE_COUNTED_STATUSES) {
+      counts[status] = 0;
+    }
+
+    for (const share of inventory.shares) {
+      const status: string = share.status || "";
+      counts[status] = (counts[status] || 0) + 1;
+      const shared: Labels = {
+        id: share.id,
+        name: share.name,
+        project_id: share.projectId,
+        share_proto: share.protocol,
+        share_type: share.shareTypeName,
+        status: share.status,
+        access_rules_status: share.accessRulesStatus,
+        host: share.host,
+      };
+      writer.add(
+        "share_gb",
+        { ...shared, availability_zone: share.availabilityZone },
+        share.sizeGb,
+      );
+      writer.add(
+        "share_status",
+        { ...shared, size: share.sizeGb },
+        SHARE_STATUS_CODES[status] ?? -1,
+      );
+    }
+
+    for (const status of Object.keys(counts).sort()) {
+      writer.add("share_status_counter", { status }, counts[status] as number);
+    }
+  }
+
+  // The exporter has no series for these, so these are a native read's own.
+  for (const service of inventory.services || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: service.host,
+        service: service.binary,
+        zone: service.zone,
+        state: service.state,
+        adminState: service.isDisabled ? "disabled" : "enabled",
+      },
+      service.state === "up" ? 1 : 0,
+    );
+  }
+}
+
+/*
+ * The labels the exporter sends. Where it says how many recordsets each zone holds and each one's status, on
+ * every zone, this says them only of a zone that isn't ACTIVE: see DnsCollector.
+ */
+function writeDns(
+  writer: SeriesWriter,
+  inventory: OpenStackDnsInventory,
+): void {
+  if (inventory.zones) {
+    writer.add("zones", {}, inventory.zones.length);
+
+    for (const zone of inventory.zones) {
+      writer.add(
+        "zone_status",
+        {
+          id: zone.id,
+          name: zone.name,
+          status: zone.status,
+          tenant_id: zone.projectId,
+          type: zone.type,
+          action: zone.action,
+        },
+        DNS_STATUS_CODES[zone.status || ""] ?? -1,
+      );
+    }
+  }
+
+  const heldBy: Map<
+    string,
+    { zoneName: string | null; projectId: string | null; count: number }
+  > = new Map();
+
+  for (const recordset of inventory.recordsets || []) {
+    const zoneId: string = recordset.zoneId || "";
+    const held: {
+      zoneName: string | null;
+      projectId: string | null;
+      count: number;
+    } = heldBy.get(zoneId) || {
+      zoneName: recordset.zoneName,
+      projectId: recordset.projectId,
+      count: 0,
+    };
+    held.count++;
+    heldBy.set(zoneId, held);
+
+    writer.add(
+      "recordsets_status",
+      {
+        id: recordset.id,
+        name: recordset.name,
+        status: recordset.status,
+        type: recordset.type,
+        zone_id: recordset.zoneId,
+        zone_name: recordset.zoneName,
+      },
+      DNS_STATUS_CODES[recordset.status || ""] ?? -1,
+    );
+  }
+
+  for (const [zoneId, held] of heldBy) {
+    writer.add(
+      "recordsets",
+      {
+        tenant_id: held.projectId,
+        zone_id: zoneId,
+        zone_name: held.zoneName,
+      },
+      held.count,
+    );
+  }
+
+  // The exporter has no series for these, so these are a native read's own.
+  for (const service of inventory.services || []) {
+    writer.add(
+      "agent_state",
+      {
+        hostname: service.host,
+        service: service.name,
+        state: service.status,
+        adminState: "enabled",
+      },
+      service.status === "UP" ? 1 : 0,
+    );
+  }
+}
+
+// The exporter's two series, plus whose they are, which it leaves out.
+/*
+ * What Swift's storage servers said through /recon, where someone named them. Each server's, for an alert to
+ * name it, and what they add up to, which goes on the API's row. Always the count, so that taking them out of
+ * the settings takes back what they last said.
+ */
+function writeSwiftRecon(
+  writer: SeriesWriter,
+  servers: ReadonlyArray<SwiftReconServerRecord>,
+): void {
+  writer.add("recon_servers", {}, servers.length);
+
+  if (servers.length === 0) {
+    return;
+  }
+
+  const answering: ReadonlyArray<SwiftReconServerRecord> = servers.filter(
+    (server: SwiftReconServerRecord): boolean => {
+      return server.isAnswering;
+    },
+  );
+  let oldest: number | null = null;
+
+  for (const server of servers) {
+    const address: string = server.address;
+    writer.add("recon_up", { address }, server.isAnswering ? 1 : 0);
+
+    for (const replication of server.replication) {
+      const labels: Labels = { address, ring: replication.ring };
+      writer.add(
+        "recon_replication_age_seconds",
+        labels,
+        replication.ageSeconds,
+      );
+      writer.add("recon_replication_failures", labels, replication.failures);
+      if (replication.ageSeconds !== null) {
+        oldest = Math.max(oldest ?? 0, replication.ageSeconds);
+      }
+    }
+
+    writer.add("recon_unmounted_drives", { address }, server.unmountedDrives);
+  }
+
+  const checksums: Map<string, Set<string>> = new Map();
+
+  for (const server of answering) {
+    for (const ring of Object.keys(server.ringChecksums)) {
+      const seen: Set<string> = checksums.get(ring) || new Set<string>();
+      seen.add(server.ringChecksums[ring] as string);
+      checksums.set(ring, seen);
+    }
+  }
+
+  let differing: number = 0;
+
+  for (const ring of Array.from(checksums.keys()).sort()) {
+    const differs: boolean = (checksums.get(ring) as Set<string>).size > 1;
+    differing += differs ? 1 : 0;
+    writer.add("recon_rings_differ", { ring }, differs ? 1 : 0);
+  }
+
+  writer.add(
+    "recon_servers_not_answering",
+    {},
+    servers.length - answering.length,
+  );
+  writer.add("recon_rings_differing", {}, differing);
+  writer.add("recon_oldest_replication_seconds", {}, oldest);
+}
+
+function writeObjectStore(
+  writer: SeriesWriter,
+  inventory: OpenStackObjectStoreInventory,
+): void {
+  writeSwiftRecon(writer, inventory.reconServers || []);
+
+  for (const container of inventory.containers || []) {
+    const labels: Labels = {
+      container_name: container.name,
+      tenant_id: container.projectId,
+    };
+    writer.add("bytes", labels, container.bytes);
+    writer.add("objects", labels, container.objects);
+  }
+}
+
+/*
+ * The labels the exporter sends, on each of its three series, and what only Trove's own read says on
+ * the first. An instance with no `used` to report reads 0, as the exporter's does, recorded: a page
+ * reads that as nothing.
+ */
+function writeMetric(
+  writer: SeriesWriter,
+  inventory: OpenStackMetricInventory,
+): void {
+  if (!inventory.status) {
+    return;
+  }
+
+  writer.add(
+    "status_measures_to_process",
+    {},
+    inventory.status.measuresToProcess,
+  );
+  writer.add(
+    "status_metric_having_measures_to_process",
+    {},
+    inventory.status.metricsWithMeasures,
+  );
+  writer.add("status_metricd_processors", {}, inventory.status.processors);
+}
+
+// Barbican's own counts. A count it refused to say is left out, rather than read as none.
+function writeKeyManager(
+  writer: SeriesWriter,
+  inventory: OpenStackKeyManagerInventory,
+): void {
+  writer.add("secrets", {}, inventory.secretCount ?? null);
+  writer.add("orders", {}, inventory.orderCount ?? null);
+  writer.add("containers", {}, inventory.containerCount ?? null);
+}
+
+function writeDatabase(
+  writer: SeriesWriter,
+  inventory: OpenStackDatabaseInventory,
+): void {
+  if (!inventory.instances) {
+    return;
+  }
+
+  writer.add("total_instances", {}, inventory.instances.length);
+
+  for (const instance of inventory.instances) {
+    const shared: Labels = {
+      id: instance.id,
+      name: instance.name,
+      tenant_id: instance.projectId,
+      status: instance.status,
+      region: instance.regionName,
+      datastore_type: instance.datastoreType,
+      datastore_version: instance.datastoreVersion,
+      health_status: instance.healthStatus,
+    };
+    writer.add(
+      "instance_status",
+      {
+        ...shared,
+        fault_message: toBound(instance.faultMessage || ""),
+        task_description: toBound(instance.taskDescription || ""),
+      },
+      DATABASE_INSTANCE_STATUS_CODES[instance.status || ""] ?? -1,
+    );
+    writer.add("instance_volume_size_gb", shared, instance.volumeSizeGb);
+    writer.add("instance_volume_used_gb", shared, instance.volumeUsedGb ?? 0);
+  }
+}
+
+function writeInventory(
+  writer: SeriesWriter,
+  reading: OpenStackServiceReading,
+): void {
+  if (!reading.inventory) {
+    return;
+  }
+
+  switch (reading.service) {
+    case OpenStackServiceType.Identity:
+      writeIdentity(writer, reading.inventory as OpenStackIdentityInventory);
+      return;
+    case OpenStackServiceType.Compute:
+      writeCompute(writer, reading.inventory as OpenStackComputeInventory);
+      return;
+    case OpenStackServiceType.Placement:
+      writePlacement(writer, reading.inventory as OpenStackPlacementInventory);
+      return;
+    case OpenStackServiceType.Network:
+      writeNetwork(writer, reading.inventory as OpenStackNetworkInventory);
+      return;
+    case OpenStackServiceType.Volume:
+      writeVolume(writer, reading.inventory as OpenStackVolumeInventory);
+      return;
+    case OpenStackServiceType.Image:
+      writeImage(writer, reading.inventory as OpenStackImageInventory);
+      return;
+    case OpenStackServiceType.BareMetal:
+      writeBareMetal(writer, reading.inventory as OpenStackBareMetalInventory);
+      return;
+    case OpenStackServiceType.Orchestration:
+      writeOrchestration(
+        writer,
+        reading.inventory as OpenStackOrchestrationInventory,
+      );
+      return;
+    case OpenStackServiceType.ContainerInfra:
+      writeContainerInfra(
+        writer,
+        reading.inventory as OpenStackContainerInfraInventory,
+      );
+      return;
+    case OpenStackServiceType.Database:
+      writeDatabase(writer, reading.inventory as OpenStackDatabaseInventory);
+      return;
+    case OpenStackServiceType.KeyManager:
+      writeKeyManager(
+        writer,
+        reading.inventory as OpenStackKeyManagerInventory,
+      );
+      return;
+    case OpenStackServiceType.ObjectStore:
+      writeObjectStore(
+        writer,
+        reading.inventory as OpenStackObjectStoreInventory,
+      );
+      return;
+    case OpenStackServiceType.Dns:
+      writeDns(writer, reading.inventory as OpenStackDnsInventory);
+      return;
+    case OpenStackServiceType.Metric:
+      writeMetric(writer, reading.inventory as OpenStackMetricInventory);
+      return;
+    case OpenStackServiceType.Rating:
+      writeRating(writer, reading.inventory as OpenStackRatingInventory);
+      return;
+    case OpenStackServiceType.LoadBalancer:
+      writeLoadBalancer(
+        writer,
+        reading.inventory as OpenStackLoadBalancerInventory,
+      );
+      return;
+    case OpenStackServiceType.SharedFileSystems:
+      writeSharedFileSystems(
+        writer,
+        reading.inventory as OpenStackSharedFileSystemsInventory,
+      );
+      return;
+    default:
+      return;
+  }
+}
+
+export interface OpenStackOtlpBuildResult {
+  resourceMetrics: JSONArray;
+  resourceCount: number;
+  datapointCount: number;
+}
+
+export default class OpenStackOtlpBuilder {
+  public static build(
+    readings: ReadonlyArray<OpenStackServiceReading>,
+    scopeVersion: string,
+    gate?: OpenStackSendGate | undefined,
+  ): OpenStackOtlpBuildResult {
+    const resourceMetrics: JSONArray = [];
+    let datapointCount: number = 0;
+
+    for (const reading of readings) {
+      const writer: SeriesWriter = new SeriesWriter(reading, gate);
+
+      writeInventory(writer, reading);
+
+      if (reading.apiUp !== null) {
+        writer.add(
+          "up",
+          {
+            refresh_cycle_minutes: reading.refreshCycleInMinutes,
+            vouches_for_rows: reading.doesNotVouchForRows ? "false" : undefined,
+          },
+          reading.apiUp ? 1 : 0,
+        );
+      }
+
+      /*
+       * What the Prometheus receiver says about each scrape, which monitors read too:
+       * `up` is how a page tells a service nothing could be asked, and a count of 0 is
+       * how the agent's own series say Keystone could not be logged in to.
+       */
+      const samples: number = writer.datapointCount + writer.heldBackCount;
+
+      writer.addScrapeSeries({
+        name: "up",
+        description: "The scraping was successful",
+        value: reading.answered ? 1 : 0,
+      });
+      writer.addScrapeSeries({
+        name: "scrape_samples_scraped",
+        description: "The number of samples the target exposed",
+        value: samples,
+      });
+      writer.addScrapeSeries({
+        name: "scrape_duration_seconds",
+        description: "Duration of the scrape",
+        unit: "s",
+        value: reading.durationInMs / 1000,
+      });
+
+      resourceMetrics.push({
+        resource: { attributes: [] },
+        scopeMetrics: [
+          {
+            scope: { name: SCOPE_NAME, version: scopeVersion },
+            metrics: writer.toMetrics(),
+          },
+        ],
+      });
+
+      datapointCount += writer.datapointCount + 3;
+    }
+
+    return {
+      resourceMetrics: resourceMetrics,
+      resourceCount: resourceMetrics.length,
+      datapointCount: datapointCount,
+    };
+  }
+
+  /*
+   * Only what says whether the cloud is answering. A collection too large to upload
+   * still sends this, because monitors read these series as an anchor: without them an
+   * open incident can neither fire nor recover, and silence reads as the cloud having
+   * stopped reporting when it has not.
+   */
+  public static toAvailabilityOnly(resourceMetrics: JSONArray): JSONArray {
+    const isAvailability: (name: string) => boolean = (
+      name: string,
+    ): boolean => {
+      return (
+        name === "up" ||
+        name === "scrape_samples_scraped" ||
+        name === "scrape_duration_seconds" ||
+        (name.startsWith("openstack_") && name.endsWith("_up"))
+      );
+    };
+
+    return (resourceMetrics as Array<JSONObject>).map(
+      (resource: JSONObject): JSONObject => {
+        return {
+          resource: resource["resource"],
+          scopeMetrics: (resource["scopeMetrics"] as Array<JSONObject>).map(
+            (scope: JSONObject): JSONObject => {
+              return {
+                scope: scope["scope"],
+                metrics: (scope["metrics"] as Array<JSONObject>).filter(
+                  (metric: JSONObject): boolean => {
+                    return isAvailability(metric["name"] as string);
+                  },
+                ),
+              };
+            },
+          ),
+        };
+      },
+    );
+  }
+}

@@ -143,7 +143,11 @@ describe("SlackMonitorMessages.getMonitorCreateMessageBlocks", () => {
       byType.map((entry: MessageBlocksByWorkspaceType) => {
         return entry.workspaceType;
       }),
-    ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
+    ).toEqual([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ]);
 
     const card: JSONObject =
       MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({

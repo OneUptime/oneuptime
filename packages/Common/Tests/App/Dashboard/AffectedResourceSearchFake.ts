@@ -12,6 +12,7 @@ import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
@@ -41,6 +42,7 @@ export const KIND_MODELS: Record<AffectedResourceKind, { new (): BaseModel }> =
     [AffectedResourceKind.DockerHost]: DockerHost,
     [AffectedResourceKind.PodmanHost]: PodmanHost,
     [AffectedResourceKind.ProxmoxCluster]: ProxmoxCluster,
+    [AffectedResourceKind.OpenStackCloud]: OpenStackCloud,
     [AffectedResourceKind.VMwareVCenter]: VMwareVCenter,
     [AffectedResourceKind.CephCluster]: CephCluster,
     [AffectedResourceKind.StorageArray]: StorageArray,

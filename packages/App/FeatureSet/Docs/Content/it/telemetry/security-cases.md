@@ -144,7 +144,7 @@ Un caso aperto da avvisi di Google SecOps li chiude anche in Google SecOps, con 
 
 ## Priorità e stati dei casi
 
-Ogni progetto ha le sue priorità e i suoi stati dei casi, in **Prodotti → Eventi di sicurezza → Impostazioni → Priorità dei casi** e **Stati dei casi**. Rinominali, cambiane il colore, trascinali in un altro ordine e aggiungi i tuoi, come uno stato «Triage» o una priorità «Emergenza» sopra **Critico**. Un nuovo nome compare ovunque subito: nella coda, nelle pagine dei casi e nella panoramica, nelle notifiche, in Slack e Microsoft Teams e nei messaggi dei playbook.
+Ogni progetto ha le sue priorità e i suoi stati dei casi, in **Prodotti → Eventi di sicurezza → Impostazioni → Priorità dei casi** e **Stati dei casi**. Rinominali, cambiane il colore, trascinali in un altro ordine e aggiungi i tuoi, come uno stato «Triage» o una priorità «Emergenza» sopra **Critico**. Un nuovo nome compare ovunque subito: nella coda, nelle pagine dei casi e nella panoramica, nelle notifiche, in Slack, Microsoft Teams e Mattermost e nei messaggi dei playbook.
 
 Alcuni sono predefiniti, perché OneUptime legge cosa significano. Si possono rinominare e ricolorare, ma non eliminare né archiviare, e mantengono il loro ordine:
 
@@ -157,7 +157,7 @@ Alcuni sono predefiniti, perché OneUptime legge cosa significano. Si possono ri
 | Le priorità Critico, High, Medium, Low e Informativi | Un rilevamento apre il suo caso alla priorità della sua gravità, e un caso aperto da qualcuno parte da Medium |
 
 - La posizione di uno stato decide come conta un caso che vi si trova, come mostra la colonna **Conta come**: dallo stato preso in carico in giù, preso in carico; dallo stato contenuto in giù, contenuto; dallo stato chiuso in giù, chiuso. Uno stato che aggiungi va subito sopra lo stato chiuso, e spostare un caso in uno stato che lo chiude chiede prima un verdetto.
-- Il rango di una priorità è la sua urgenza, la più urgente prima: **Per casi di almeno**, le scelte delle notifiche e le regole di Slack e Microsoft Teams leggono questo ordine. Una priorità che aggiungi va in fondo, e la colonna **Gravità del rilevamento** mostra quali rilevamenti aprono i loro casi a ciascuna priorità predefinita.
+- Il rango di una priorità è la sua urgenza, la più urgente prima: **Per casi di almeno**, le scelte delle notifiche e le regole di Slack, Microsoft Teams e Mattermost leggono questo ordine. Una priorità che aggiungi va in fondo, e la colonna **Gravità del rilevamento** mostra quali rilevamenti aprono i loro casi a ciascuna priorità predefinita.
 
 Per smettere di usare uno stato o una priorità tuoi, usa **Archivia** sulla sua riga. Nessuno può più sceglierlo, e l'API, Terraform e MCP lo rifiutano, ma i casi che lo hanno lo mantengono, e puoi ancora filtrare in base a esso. I valori archiviati sono elencati nella sezione chiusa **Stati dei casi archiviati** o **Priorità dei casi archiviate** sotto la tabella, dove **Annulla archiviazione** ne ripristina uno. **Elimina** viene rifiutato finché dei casi hanno il valore o un playbook parte dalla priorità.
 
@@ -218,7 +218,7 @@ OneUptime avvisa le persone di cinque cose su un caso. Nessuno deve configurare 
 
 ### Scegliere di cosa essere avvisati
 
-Ognuno sceglie per sé, in **Impostazioni utente → Impostazioni notifiche → Sicurezza**: i canali di ogni notifica (email, SMS, chiamata, push, Telegram, Slack, Microsoft Teams o webhook) e, sotto **Nuovo caso di sicurezza**, la priorità a partire dalla quale viene avvisato:
+Ognuno sceglie per sé, in **Impostazioni utente → Impostazioni notifiche → Sicurezza**: i canali di ogni notifica (email, SMS, chiamata, push, Telegram, Slack, Microsoft Teams, Mattermost o webhook) e, sotto **Nuovo caso di sicurezza**, la priorità a partire dalla quale viene avvisato:
 
 | Scelta | Avvisa dei casi con priorità |
 | --- | --- |
@@ -232,9 +232,9 @@ Le scelte seguono le priorità dei casi del progetto, con i loro nomi: queste so
 
 Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push apre il caso nell'app OneUptime On-Call (1.7.0 o successiva), dove puoi approvare o rifiutare un passo di playbook in attesa, prendere in carico il caso e chiuderlo. Il suo link apre il caso nel browser.
 
-### Pubblicare nei canali di Slack e Microsoft Teams
+### Pubblicare nei canali di Slack, Microsoft Teams e Mattermost
 
-Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams**). Se nessuno dei due è collegato, l'unica voce della sezione è **Collega Slack o Teams**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
+Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams** o **Mattermost**). Se nessuno è collegato, l'unica voce della sezione è **Collega un'area di lavoro**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
 
 | Condizione | Corrisponde a |
 | --- | --- |
@@ -306,11 +306,12 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Automazione | Run a workflow | Avvia un flusso di lavoro di OneUptime con il caso come input |
 | Automazione | Run a runbook | Avvia uno dei tuoi runbook di OneUptime con il caso come input |
 | Automazione | Fix the code with AI | Chiede a OneUptime AI una pull request che corregga le eccezioni sollevate dalle richieste del caso |
+| Controllo del flusso | Ferma l'esecuzione | Termina l'esecuzione lì, come completata: i passaggi successivi non vengono eseguiti |
 
 Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando il precedente è terminato. Ogni passo può anche:
 
 - **Richiede approvazione**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. Gli otto passi che tagliano fuori qualcuno si fermano sempre, a meno che un Security Admin non lo disattivi. **Run a runbook**, **Post a status page announcement** e i due passi degli archivi dati partono con l'approvazione attiva, perché eseguono comandi sui tuoi sistemi, parlano ai tuoi clienti o cambiano le impostazioni di un cloud; chi aggiunge il passo può disattivarla.
-- **Esegui questo passaggio**: **Sempre**, o solo dopo un risultato di un passo precedente, come **Controlla le entità nella threat intel** che trova un'entità nota come dannosa; vedi [Diramare in base al risultato di un passo](#diramare-in-base-al-risultato-di-un-passo).
+- **Esegui questo passaggio**: **Sempre**, o solo dopo risultati di passi precedenti, come **Controlla le entità nella threat intel** che trova un'entità nota come dannosa; vedi [Diramare in base al risultato di un passo](#diramare-in-base-al-risultato-di-un-passo).
 - **Continua se fallisce**: eseguire il passo successivo anche se questo non riesce. Se è disattivato, un passo non riuscito ferma l'esecuzione. Si trova in **Altri campi**, insieme a **Esegui questo passaggio**.
 
 ### Diramare in base al risultato di un passo
@@ -324,6 +325,12 @@ Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando 
 | Qualsiasi altro passo | È riuscito, e non è riuscito quando ha **Continua se fallisce** attivo |
 
 Due passi che attendono risultati opposti dello stesso passo sono un se e un altrimenti: sospendere un utente solo quando la threat intel lo conosce, e altrimenti aggiungere un'attività per confermare con lui l'accesso. Quando il passo atteso finisce in un altro modo, il passo che attende viene saltato, e l'esecuzione dice il perché sotto di esso; lo stesso vale per un passo che attende uno che è stato saltato. La scheda di un passo dice cosa attende, e un passo atteso da un altro non può essere spostato sotto di esso né eliminato finché quell'altro non viene eseguito in un altro modo. Il modello **Escala gli indicatori noti come dannosi** alza la priorità e lo stato di un caso solo quando la threat intel ha trovato corrispondenze, e un passo salvato con il vecchio interruttore della threat intel lo mantiene come **Solo se un controllo precedente della threat intel ha trovato un'entità nota come dannosa**.
+
+Un passo può attendere fino a cinque risultati: scegli ciascuno in **Esegui questo passaggio**, e **Esegui quando** chiede come leggerli, **Quando sono avvenuti tutti** o **Quando ne è avvenuto uno qualsiasi**. Sospendere un utente solo quando la threat intel lo conosce e la sua attività è stata trovata, o chiamare la reperibilità quando una delle due ricerche ha trovato qualcosa. Un passo che attende tutti i suoi risultati non può attendere due risultati dello stesso passo, come trovato e non trovato nulla, perché nessuna esecuzione li ha entrambi.
+
+### Fermare l'esecuzione
+
+**Ferma l'esecuzione**, in **Controllo del flusso**, termina l'esecuzione dove si trova, come completata: i passi successivi vengono saltati, ciascuno dicendo dove l'esecuzione si è fermata, e l'esecuzione riesce. Con **Esegui questo passaggio**, si ferma solo dopo un risultato: fermarsi quando la threat intel non ha trovato nulla di noto come dannoso, e altrimenti lasciare che vengano eseguiti i passi di contenimento sotto di esso. Ciò che scrivi in **Motivo dell'arresto** viene indicato nella cronologia del caso quando l'esecuzione si ferma lì. Non ha nulla da approvare e non fallisce mai, quindi non ha né **Richiede approvazione** né **Continua se fallisce**, e nessun passo può attenderlo. Uno che viene sempre eseguito termina ogni esecuzione, quindi può essere solo l'ultimo passo.
 
 ### Rispondere con OneUptime
 
@@ -394,7 +401,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Eventi di sicurezza
 | Queued | In attesa di un worker |
 | In esecuzione | Sta eseguendo i suoi passi |
 | Waiting for Approval | Ferma prima di un passo che richiede approvazione |
-| Riuscito | Ogni passo è stato eseguito, o saltato |
+| Riuscito | Ogni passo è stato eseguito, o saltato, oppure un passo **Ferma l'esecuzione** l'ha terminata |
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
@@ -454,6 +461,10 @@ Il caso non riguarda nessun utente né host, per esempio solo un indirizzo, oppu
 
 :::details È stato saltato un passo che gira solo dopo un altro
 Il passo che attende è finito in un altro modo, o è stato saltato a sua volta: per esempio non ha trovato nulla di noto come dannoso, mentre il passo attende un'entità nota come dannosa. Apri l'esecuzione sul caso: il passo saltato dice quale passo attendeva, e quale risultato. Per cambiarlo, modifica il passo e apri **Altri campi**.
+:::
+
+:::details Un'esecuzione è finita prima dei suoi ultimi passi
+È stato eseguito un passo **Ferma l'esecuzione**: il risultato che attende è arrivato, oppure viene sempre eseguito. Apri l'esecuzione sul caso: i passi successivi dicono dove l'esecuzione si è fermata, e il passo di arresto dice perché se gli hai dato un motivo. Per cambiare quando si ferma, modifica il passo e apri **Altri campi**.
 :::
 
 :::details Uno stato o una priorità non si può eliminare né archiviare

@@ -6,7 +6,7 @@
 - [全域選項](#全域選項): 每個命令都接受的選項。
 - [登入與情境](#登入與情境): login 和 context 命令。
 - [資源命令](#資源命令): 每個資源的操作、欄位和動作。
-- [其他命令](#其他命令): deploy、dbt upload、whoami、resources、version 和 help。
+- [其他命令](#其他命令): deploy、dbt upload、data-checks apply、whoami、resources、version 和 help。
 :::
 
 ## 命令總覽
@@ -322,6 +322,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--run-results <file>` | 否 | 要傳送的執行結果 | 目標資料夾中的 `run_results.json` |
 | `--project <name>` | 否 | dbt 專案的名稱，僅在不傳送清單時需要 | 清單中的專案 |
 | `--ingestion-key <key>` | 否 | 專案的遙測擷取金鑰 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+讓專案的資料檢查與一個 YAML 檔案一致，因此檢查可以保存在儲存庫中，並像程式碼一樣接受審查。檔案中任何一處有錯誤，就不會套用任何內容，並以錯誤結束。檔案的格式請參閱 [檢查與對帳](/docs/data-observability/checks)。
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| 選項 | 必要 | 說明 | 預設值 |
+| --- | --- | --- | --- |
+| `--dry-run` | 否 | 說明會有哪些變更，但不做任何變更 | 關閉 |
+| `--prune` | 否 | 刪除先前的 apply 所建立、但檔案中已不再提到的檢查 | 關閉 |
 
 ### `oneuptime whoami`
 

@@ -59,7 +59,7 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 | **Larm**     | **Alla larm** och **Aktiva larm**, där det röda märket räknar larmen som inte är lösta ännu.                     |
 | **Episoder** | **Alla episoder** och **Aktiva episoder**: relaterade larm samlade i ett problem att arbeta med. |
 | **AI**            | **Insikter**, **Loggar** och **Inställningar**: vad OneUptime AI har lärt sig av dina larm, allt den har gjort och vad den får göra. |
-| **Arbetsyta**     | **Slack** och **Microsoft Teams**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har någon av dem. |
+| **Arbetsyta**     | **Slack**, **Microsoft Teams** och **Mattermost**, beroende på vad projektet har anslutit, eller **Anslut en arbetsyta** när det inte har någon av dem. |
 | **Regler**        | **Grupperingsregler**, **Jourregler**, **Incidentregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **Påminnelseregler**. |
 | **Inställningar** | **Larmstatus**, **Larmallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**.         |
 

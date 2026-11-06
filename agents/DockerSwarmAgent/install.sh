@@ -136,7 +136,7 @@ DOCKER_SWARM_NODE_NAME="$(printf '%s' "${DOCKER_SWARM_NODE_NAME}" | tr -cd 'A-Za
 # stops the install, and every file must arrive as plain text, wherever it
 # comes from. Every agent's install.sh has this same block.
 AGENT_FILES_PATH="install/docker-swarm-agent"
-AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent"
+AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/DockerSwarmAgent"
 AGENT_FILES_URL=""
 AGENT_FILE_ANSWER=""
 

@@ -1,0 +1,1 @@
+{"replication_time": 4.050334294637044e-05, "replication_stats": {"attempted": 4, "failure": 0, "hashmatch": 0, "remove": 0, "rsync": 0, "success": 0, "suffix_count": 4, "suffix_hash": 0, "suffix_sync": 0}, "replication_last": 1793853620.7787452, "object_replication_time": 4.050334294637044e-05, "object_replication_last": 1793853620.7787452}

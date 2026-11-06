@@ -1,0 +1,29 @@
+restart-1/devstack@neutron-api.service.txt
+83199 is
+Process 83199: neutron-apiuWSGI worker 2
+Python v3.12.3 (/usr/bin/uwsgi-core)
+
+Thread 83199 (idle): "uWSGIWorker2Core0"
+    ThreadPoolExecutor.submit (concurrent/futures/thread.py:165)
+    get_aggregated_resources (resources/__init__.py:636)
+    _get_process_dependent_resource (resources/__init__.py:611)
+    TracerProvider._handle_fork (trace/__init__.py:1365)
+    TracerProvider.__init__.<locals>._after_in_child (trace/__init__.py:1359)
+    Popen._execute_child (subprocess.py:1885)
+    Popen.__init__ (subprocess.py:1026)
+    execute (oslo_concurrency/processutils.py:446)
+    OvsdbClientCommand.run (neutron/common/ovn/utils.py:155)
+    create_neutron_pg_drop (neutron/common/ovn/utils.py:1137)
+    OVNMechanismDriver.pre_fork_initialize (neutron/plugins/ml2/drivers/ovn/mech_driver/mech_driver.py:348)
+    CallbacksManager._notify_loop (neutron_lib/callbacks/manager.py:189)
+    CallbacksManager.publish (neutron_lib/callbacks/manager.py:157)
+    reraise_as_retryrequest.<locals>._wrapped (neutron_lib/db/utils.py:110)
+    publish (neutron_lib/callbacks/registry.py:56)
+    api_server (neutron/server/api.py:30)
+    boot_server (neutron/server/__init__.py:78)
+    <module> (neutron/wsgi/api.py:23)
+    _call_with_frames_removed (<frozen importlib._bootstrap>:488)
+    _LoaderBasics.exec_module (<frozen importlib._bootstrap_external>:995)
+    _load_unlocked (<frozen importlib._bootstrap>:935)
+    _find_and_load_unlocked (<frozen importlib._bootstrap>:1331)
+    _find_and_load (<frozen importlib._bootstrap>:1360)

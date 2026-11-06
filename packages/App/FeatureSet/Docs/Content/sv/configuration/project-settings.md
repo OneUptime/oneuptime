@@ -31,7 +31,7 @@ flowchart LR
 | Avsnitt | Sidor | Läs mer |
 | --- | --- | --- |
 | **Grundläggande** | **Projekt**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Etiketter](#etiketter) |
-| **Arbetsyta** | **Slack**, **Microsoft Teams**, **Videosamtal** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videosamtal](/docs/workspace-connections/video-calls) |
+| **Arbetsyta** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtal** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtal](/docs/workspace-connections/video-calls) |
 | **Telemetri och APM** | **Intagningsnycklar**, **Datalagring** | [Intagningsnycklar](/docs/telemetry/ingestion-keys), [Datalagring](/docs/telemetry/data-retention) |
 | **Aviseringar** | **Aviseringsinställningar**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
 | **AI** | **AI-funktioner**, **LLM-leverantörer**, **Externa MCP-servrar**, **AI-krediter**, **AI-loggar**, **MCP-server** | [LLM-leverantörer](/docs/ai/llm-provider), [Externa MCP-servrar](/docs/ai/external-mcp-servers), [MCP-server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostnadskontroll) |

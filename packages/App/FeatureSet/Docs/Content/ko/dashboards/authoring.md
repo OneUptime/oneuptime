@@ -39,7 +39,7 @@
 | --- | --- |
 | 모니터링 및 APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | 인시던트 대응 | Incident Dashboard, Alert Dashboard |
-| 인프라 | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| 인프라 | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **추천**에는 Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard, Metrics Dashboard가 있습니다. 템플릿은 출발점일 뿐 연결이 아닙니다. 대시보드를 만든 뒤에는 원하는 대로 바꾸세요. 나중에 템플릿이 대시보드를 업데이트하는 일은 없습니다.
 

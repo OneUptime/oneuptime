@@ -70,7 +70,7 @@ flowchart TB
 | 狀態頁面訂閱者 | 你的狀態頁面寄給你自己的訂閱者的每一封郵件 |
 | SLA 違約 | 您擁有的事件錯過了 SLA 回應或解決期限 |
 
-只有郵件受影響。簡訊、電話、推播通知、WhatsApp、Telegram、Slack、Microsoft Teams 與 Webhook 都會立即送達，和以往完全相同，即使是郵件被暫緩的那些通知也一樣。
+只有郵件受影響。簡訊、電話、推播通知、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 與 Webhook 都會立即送達，和以往完全相同，即使是郵件被暫緩的那些通知也一樣。
 
 ## 限制
 
@@ -105,7 +105,7 @@ flowchart TB
 
 - **你會收到哪些通知。** 這由 **使用者設定 → 通知設定** 中依事件類型與管道的設定決定，就在隔壁頁面。彙總和這個開關只會改變這些通知被裝進幾封郵件。
 - **待命呼叫與班次郵件**、**帳號安全性郵件**、**帳務郵件**、執行個體健康狀態警告，以及狀態頁面訂閱者郵件。這些本來就不會被彙總，所以關閉彙總對它們沒有任何影響，請參閱[永遠不會被彙總的內容](#永遠不會被彙總的內容)。
-- **其他任何管道。** 簡訊、電話、推播、WhatsApp、Telegram、Slack、Microsoft Teams 與 Webhook 本來就是即時的。
+- **其他任何管道。** 簡訊、電話、推播、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 與 Webhook 本來就是即時的。
 
 ## 進一步減少郵件
 

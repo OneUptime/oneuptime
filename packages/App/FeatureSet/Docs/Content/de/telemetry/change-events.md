@@ -35,6 +35,7 @@ Dafür müssen Sie nichts senden. OneUptime zeichnet diese Änderungen anhand de
 | Ein Runbook | Ein Runbook, das OneUptime ausgeführt hat, wird abgeschlossen, schlägt fehl oder wird nach seinem Start abgebrochen | `runbook` |
 | Eine Cloud-Änderung | Das Aktivitätsprotokoll eines verbundenen Cloud-Kontos zeichnet eine Änderung auf: AWS CloudTrail, das Azure-Aktivitätsprotokoll oder das Audit-Log Admin Activity von Google Cloud | `cloud` |
 | Ein Ereignis des Anbieters | Der Cloud-Anbieter veröffentlicht ein Integritätsereignis zum Konto: AWS Health, Azure Service Health oder Resource Health oder Google Cloud Service Health | `cloud-health` |
+| Eine OpenStack-Änderung | Die eigenen Benachrichtigungen einer OpenStack-Cloud sagen, was mit einem ihrer Teile geschah, oder die Abfrage von Nova durch eine Probe: siehe [Lebenszyklus-Ereignisse](/docs/telemetry/openstack#lebenszyklusereignisse) | `openstack` |
 
 - **Die erste Version, die ein Dienst meldet, ist seine Ausgangsbasis, kein Deploy.** Ein Dienst, der seit Monaten läuft, wird nicht in dem Moment deployt, in dem OneUptime seine Telemetrie zu empfangen beginnt.
 - **Ein Rollback auf eine Version, die in den letzten 30 Tagen gesehen wurde, wird nicht aufgezeichnet,** weil diese Version nicht neu ist. Ein Rollback, den OneUptime AI ausführt, wird als Korrektur aufgezeichnet.
@@ -50,7 +51,7 @@ Für einen Rollout braucht es den [Kubernetes-Agenten](/docs/telemetry/kubernete
 
 Ein App-Deployment braucht eine App, die auf einer [verwalteten App-Plattform](/docs/telemetry/cloud-environments#apps-und-deployments) läuft. Es wird unter der Umgebung der App aufgezeichnet und in die Diagramme der Umgebung und der App eingezeichnet, und dort wird auch ein Rollback auf eine Revision aufgezeichnet, die die App früher ausgeführt hat.
 
-Eine Cloud-Änderung oder ein Ereignis des Anbieters braucht ein [verbundenes Cloud-Konto](/docs/telemetry/cloud-accounts). Jeder solche Eintrag ist mit der Cloud-Ressource verknüpft, die er nennt, sofern OneUptime diese Ressource auflistet, und wird in deren Diagramme eingezeichnet. Sein Typ ergibt sich aus der Operation: `deployment`, `scaling` oder `rollback`, wenn der Name der Operation das sagt, sonst `config-change`, und `provider-event` für ein Integritätsereignis. Diagramme, die auf keine Ressource gefiltert sind, lassen das Aktivitätsprotokoll eines Cloud-Kontos weg, damit ein geschäftiges Konto Ihre Deploys nicht verdrängt; die Integritätsereignisse des Anbieters bleiben darin.
+Eine Cloud-Änderung oder ein Ereignis des Anbieters braucht ein [verbundenes Cloud-Konto](/docs/telemetry/cloud-accounts). Jeder solche Eintrag ist mit der Cloud-Ressource verknüpft, die er nennt, sofern OneUptime diese Ressource auflistet, und wird in deren Diagramme eingezeichnet. Sein Typ ergibt sich aus der Operation: `deployment`, `scaling` oder `rollback`, wenn der Name der Operation das sagt, sonst `config-change`, und `provider-event` für ein Integritätsereignis. Diagramme, die auf keine Ressource gefiltert sind, lassen das Aktivitätsprotokoll eines Cloud-Kontos und die Änderungen einer OpenStack-Cloud weg, damit ein geschäftiges Konto Ihre Deploys nicht verdrängt; die Integritätsereignisse des Anbieters bleiben darin.
 
 ## Einen Deploy aus einer Pipeline aufzeichnen
 

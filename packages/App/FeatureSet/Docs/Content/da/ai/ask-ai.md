@@ -33,9 +33,9 @@ I tilstanden **Skrivebeskyttet** tilbydes modellen aldrig handlingerne, så samt
 | Enhver side | Klik på **Spørg AI** i topbjælken, eller tryk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en editor, forbliver tasterne editorens genvej til kursiv. |
 | Kommandopaletten | Tryk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og vælg **Spørg AI**. |
 | Et fejlmønster i logs eller et diagrams fund | Klik på **Forklar med AI**: Spørg AI åbner med beviserne som et spørgsmål, du kan redigere, før du sender det. |
-| Produktmenuen | Åbn **Produkter → AI → Chat**. Spørg AI åbner over den side, du var på. Hver samtale har sin egen adresse, så du kan bogmærke den og vende tilbage til den. |
+| Produktmenuen | Åbn **Produkter → AI → Chat**. Spørg AI åbner ved siden af den side, du var på. Hver samtale har sin egen adresse, så du kan bogmærke den og vende tilbage til den. |
 
-Spørg AI åbner midt på skærmen, over den side, du var på, og på en telefon fylder den hele skærmen. Tryk på `Esc`, eller klik ved siden af, for at gå tilbage til siden. Samtalen bliver, hvor du forlod den: åbn Spørg AI igen for at fortsætte. Lukker du den, mens den stadig svarer, siger en påmindelse i hjørnet, hvornår svaret er klar, og åbner det.
+Spørg AI åbner i siden af vinduet, og siden gør plads til den: intet er skjult bag den, så du kan arbejde videre på siden, gå til andre sider og spørge igen. Træk i kanten for at gøre den bredere eller smallere. Tryk på `Esc` i den, eller klik på **Spørg AI** igen, for at give siden hele vinduet tilbage. Mens den er åben, går `Ctrl` + `I` (`Cmd` + `I` på en Mac) fra siden til feltet, du skriver i, og lukker den derfra. Samtalen bliver, hvor du forlod den: åbn Spørg AI igen for at fortsætte. Lukker du den, mens den stadig svarer, siger en påmindelse i hjørnet, hvornår svaret er klar, og åbner det. På en tablet eller en telefon, hvor der ikke er plads til begge, åbner den over siden, og på en telefon fylder den hele skærmen.
 
 På en hændelse eller en advarsel har kortet **OneUptime AI** sin egen samtale, **Spørg OneUptime AI**, som deles af alle, der kan se hændelsen eller advarslen: se [Tal med OneUptime AI om hændelsen](/docs/ai/ai-sre#tal-med-oneuptime-ai-om-hændelsen).
 

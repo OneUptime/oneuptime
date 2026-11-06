@@ -170,6 +170,7 @@ describe("Your logs", () => {
       "AWS CloudTrail",
       "Google Cloud audit logs",
       "Azure activity and Entra ID logs",
+      "OpenStack audit trail",
       "CEF",
       "LEEF",
       "Palo Alto Networks",

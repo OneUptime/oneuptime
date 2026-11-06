@@ -130,7 +130,9 @@ describe("the queries the ingest works out", () => {
     for (const heartbeat of heartbeats) {
       expect(
         queries.some((query: DatabaseEngineReadingQuery): boolean => {
-          return query.key === getDatabaseEngineReadingKey(heartbeat.queries[0]!);
+          return (
+            query.key === getDatabaseEngineReadingKey(heartbeat.queries[0]!)
+          );
         }),
       ).toBe(true);
     }

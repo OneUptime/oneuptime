@@ -33,10 +33,10 @@ export interface ExecuteWorkflowType {
    */
   runOnlyComponentId?: string | undefined;
   /**
-   * The person who started this run by hand from the Builder - Run Workflow
-   * or Run just this step - set by those two routes only, from the signed-in
-   * caller they have already checked (App/FeatureSet/Workflow/API/Manual.ts
-   * and RunStep.ts). Recorded on the run as WorkflowLog.startedByUserId.
+   * The person who started this run by hand - Run Workflow, Run just this step
+   * or Run again - set by those routes only, from the signed-in caller they
+   * have already checked (App/FeatureSet/Workflow/API/Manual.ts and RunStep.ts).
+   * Recorded on the run as WorkflowLog.startedByUserId.
    *
    * It is also what lets a run start while the workflow is turned off: a
    * person testing a workflow from its Builder may run it whether it is on or

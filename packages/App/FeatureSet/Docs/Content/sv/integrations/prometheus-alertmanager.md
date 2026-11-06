@@ -86,6 +86,8 @@ En egenvärdad installation har sin egen värd i stället för `oneuptime.com`.
 > [!WARNING]
 > Gruppera efter ett värde som skiljer sig från larm till larm inom en avisering. Alertmanagers `fingerprint` är en hash av ett larms hela etikettuppsättning, så den skiljer sig alltid. En etikett i din routes `group_by` skiljer sig aldrig: det är den som samlar larmen i en avisering. Att gruppera efter `requestBody.alerts[*].labels.alertname` med routen nedan slår ihop varje larm i en avisering till en incident, som får det första larmets status.
 
+I ett OpenStack-moln länkar du även monitorn till molnet. En monitor av typen Inkommande begäran har inga egna inställningar som namnger något moln, så dess incidenter skulle hamna under **Incidenter** och inte hos molnet. Öppna monitorns **Översikt → Länkade resurser** och lägg till OpenStack-molnet: varje incident finns då också på molnets sida **Incidenter**. [OpenStack per driftsättningsverktyg](/docs/telemetry/openstack-deployment-tools) har mottagaren för varje verktyg som kör en Alertmanager, på det ställe där verktyget läser den.
+
 ## Namnge incidenterna
 
 Titeln ovan läser etiketter som alla larm i aviseringen delar: `commonLabels` innehåller de etiketterna, och `commonAnnotations` de anteckningar som de delar. Med routen nedan, som grupperar efter `alertname` och `instance`, finns båda där. Ge incidenten en **Incidentbeskrivning** under **Beskrivning**, till exempel:
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-Två incidenter öppnas, en per `fingerprint`, var och en med titeln `DiskFull on web-1`. Skicka samma begäran med varje `status` satt till `resolved`, så löses båda.
+Två incidenter öppnas, en per `fingerprint`, var och en med titeln `DiskFull on web-1` och sedan det som skiljer dem åt, som i `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Skicka samma begäran med varje `status` satt till `resolved`, så löses båda.
 
 För att testa hela vägen från Alertmanager utlöser du ett larm med `amtool`. Alertmanager skickar det efter `group_wait` och skickar sedan dess återhämtning när larmet går ut några minuter senare:
 

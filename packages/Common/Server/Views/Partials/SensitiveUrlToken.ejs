@@ -2,8 +2,9 @@
     Takes single-use bearer tokens out of the address bar before any
     third-party tag can read them.
 
-    Password reset and email verification links carry their token in the URL
-    *path* — /accounts/reset-password/<token>, /accounts/verify-email/<token>,
+    Password reset, email verification and sign-in links carry their token in
+    the URL *path* — /accounts/reset-password/<token>,
+    /accounts/verify-email/<token>, /accounts/magic-link-login/<token>,
     /reset-password/<token> on a status page — and so do the unsubscribe
     link in every status page notification, /unsubscribe/<subscriberId>-<token>,
     and a subscriber's manage link, /update-subscription/<subscriberId>-<token>. Every analytics and advertising
@@ -74,8 +75,10 @@
          * status page subscriber's unsubscribe link and "update-subscription"
          * its manage link; the last segment of both is <subscriberId>-<token>
          * (Common/Types/StatusPage/StatusPageSubscriberUnsubscribe).
-         * "magic-link-login" is a status page private user's sign-in link
-         * (Common/Types/StatusPage/StatusPageMagicLink).
+         * "magic-link-login" is a sign-in link: a status page private
+         * user's (Common/Types/StatusPage/StatusPageMagicLink), and an
+         * account's, /accounts/magic-link-login/<token>
+         * (Common/Types/Accounts/MagicLink).
          */
         var TOKEN_ROUTES = [
             "reset-password",

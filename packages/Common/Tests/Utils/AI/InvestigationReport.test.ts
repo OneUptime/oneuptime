@@ -439,12 +439,12 @@ describe("parseInvestigationReport — section label styles", () => {
 
   test("a plain 'Label:' line only counts for known labels", () => {
     const parsed: ParsedInvestigationReport = parseInvestigationReport(
-      "**Summary** — ok.\n\nImpact: checkout is down.\nNote: none.",
+      "**Summary** — ok.\n\nCustomers: checkout is down.\nNote: none.",
     );
 
     expect(kindsOf(parsed)).toEqual([InvestigationReportSectionKind.Summary]);
     expect(parsed.summary).toBe(
-      "ok.\n\nImpact: checkout is down.\nNote: none.",
+      "ok.\n\nCustomers: checkout is down.\nNote: none.",
     );
   });
 
@@ -650,13 +650,13 @@ describe("parseInvestigationReport — section label styles", () => {
 
   test("a bold phrase, a qualifier and then prose is still not a label", () => {
     const parsed: ParsedInvestigationReport = parseInvestigationReport(
-      "**Summary** — A.\n\n**Root cause** (low confidence) is unclear.\n**Impact:** (high) users could not pay.",
+      "**Summary** — A.\n\n**Root cause** (low confidence) is unclear.\n**Customers:** (high) users could not pay.",
     );
 
     expect(kindsOf(parsed)).toEqual([InvestigationReportSectionKind.Summary]);
     expect(parsed.rootCause).toBeUndefined();
     expect(parsed.summary).toBe(
-      "A.\n\n**Root cause** (low confidence) is unclear.\n**Impact:** (high) users could not pay.",
+      "A.\n\n**Root cause** (low confidence) is unclear.\n**Customers:** (high) users could not pay.",
     );
   });
 
@@ -963,7 +963,7 @@ describe("parseInvestigationReport — missing, empty and unknown sections", () 
 
   test("an unknown label with no body groups the label under it", () => {
     const parsed: ParsedInvestigationReport = parseInvestigationReport(
-      "**Summary** — A.\n\n**Impact**\n**Customers**\n- EU checkout down\n\n## Timeline\n### Before\n- 18:01 deploy",
+      "**Summary** — A.\n\n**Scope**\n**Customers**\n- EU checkout down\n\n## Timeline\n### Before\n- 18:01 deploy",
     );
 
     expect(parsed.sections).toEqual([
@@ -974,7 +974,7 @@ describe("parseInvestigationReport — missing, empty and unknown sections", () 
       },
       {
         kind: InvestigationReportSectionKind.Other,
-        title: "Impact",
+        title: "Scope",
         markdown: "**Customers**\n- EU checkout down",
       },
       {
@@ -1001,14 +1001,14 @@ describe("parseInvestigationReport — missing, empty and unknown sections", () 
 
   test("a heading at the same level is a peer, never a sub-label", () => {
     const parsed: ParsedInvestigationReport = parseInvestigationReport(
-      "## Summary\nA.\n## Impact\n## Timeline\n- 18:01\n## Most likely root cause\n## Open questions\n- Why?",
+      "## Summary\nA.\n## Scope\n## Timeline\n- 18:01\n## Most likely root cause\n## Open questions\n- Why?",
     );
 
     expect(parsed.sections).toEqual([
       {
         kind: InvestigationReportSectionKind.Summary,
         title: "Summary",
-        markdown: "A.\n## Impact",
+        markdown: "A.\n## Scope",
       },
       {
         kind: InvestigationReportSectionKind.Other,
@@ -1030,7 +1030,7 @@ describe("parseInvestigationReport — missing, empty and unknown sections", () 
       [
         "**Summary** — A.",
         "",
-        "**Impact**",
+        "**Scope**",
         "Checkout is down for EU users.",
         "",
         "## Timeline:",
@@ -1052,7 +1052,7 @@ describe("parseInvestigationReport — missing, empty and unknown sections", () 
       },
       {
         kind: InvestigationReportSectionKind.Other,
-        title: "Impact",
+        title: "Scope",
         markdown: "Checkout is down for EU users.",
       },
       {
@@ -1093,7 +1093,7 @@ describe("parseInvestigationReport — missing, empty and unknown sections", () 
         "**Wait time spiked [C2]**",
         longBold,
         "**Root cause: pool exhaustion** is likely",
-        "**Impact:** users could not pay",
+        "**Customers:** users could not pay",
       ].join("\n"),
     );
 
@@ -1101,7 +1101,7 @@ describe("parseInvestigationReport — missing, empty and unknown sections", () 
     expect(parsed.evidence).toContain("**The pool was exhausted at 18:01.**");
     expect(parsed.evidence).toContain("[C2]");
     expect(parsed.evidence).toContain(longBold);
-    expect(parsed.evidence).toContain("**Impact:** users could not pay");
+    expect(parsed.evidence).toContain("**Customers:** users could not pay");
   });
 
   test("a heading named like an Object prototype member is just an Other section", () => {

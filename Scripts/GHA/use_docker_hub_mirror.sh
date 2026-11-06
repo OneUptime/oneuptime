@@ -18,7 +18,7 @@
 # account. What it does serve, the daemon takes as the image of that tag
 # without asking Docker Hub, so this is only for jobs whose Docker Hub images
 # are other people's: never for one that pulls OneUptime's own images under
-# tags pushed again on every master push or release (the e2e jobs).
+# tags pushed again on every main push or release (the e2e jobs).
 #
 # The daemon picks up registry-mirrors on a reload (SIGHUP), so this never
 # restarts it: a restart would stop the job's service containers, which the

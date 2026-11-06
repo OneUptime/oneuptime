@@ -283,8 +283,8 @@ const MICROSOFT_PERMISSIONS: Record<string, Array<string>> = {
 };
 
 /*
- * The Admin Dashboard's words: its top bar, side menu, the sign-up switch
- * and a probe's status, by the key each is drawn with.
+ * The Admin Dashboard's words: its top bar, side menu, the sign-up and
+ * sign-in link switches and a probe's status, by the key each is drawn with.
  */
 const ADMIN_KEYS: Record<string, string> = {
   Settings: "navbar.settings",
@@ -295,6 +295,8 @@ const ADMIN_KEYS: Record<string, string> = {
   Monitoring: "sideMenu.settingsMonitoring",
   "Global Probes": "sideMenu.settingsGlobalProbes",
   "Let people sign up": "pages.settings.authentication.signUpSwitchTitle",
+  "Let people sign in with an emailed link":
+    "pages.settings.authentication.magicLinkSwitchTitle",
   Disconnected: "common.disconnected",
   // The Health page, which says when several people sign in from one address.
   "OneUptime Health": "OneUptime Health",
@@ -305,6 +307,7 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
   [COMPOSE]: [
     "Settings > Authentication",
     "Let people sign up",
+    "Let people sign in with an emailed link",
     "Settings > Notifications > Emails",
     "Settings > Monitoring > Global Probes",
     "OneUptime Health",
@@ -427,6 +430,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Status pages on custom domains",
     "HTTPS",
     "Sign-ups",
+    "Sign-in links",
     "Firewall",
     "Visitor addresses",
     "Updates",

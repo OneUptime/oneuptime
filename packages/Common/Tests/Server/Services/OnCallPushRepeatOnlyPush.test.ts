@@ -4,6 +4,7 @@ import logger from "../../../Server/Utils/Logger";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
@@ -84,6 +85,7 @@ function ruleWithEveryMethod(
     ["userTelegram", new UserTelegram()],
     ["userSlack", new UserSlack()],
     ["userMicrosoftTeams", new UserMicrosoftTeams()],
+    ["userMattermost", new UserMattermost()],
     ["userWebhook", new UserWebhook()],
   ];
 
@@ -107,6 +109,7 @@ const NON_PUSH_RELATIONS: Array<string> = [
   "userTelegram",
   "userSlack",
   "userMicrosoftTeams",
+  "userMattermost",
   "userWebhook",
 ];
 

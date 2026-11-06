@@ -1,0 +1,10 @@
+designate-baseline recorded
+designate-pending recorded
+designate-error recorded
+designate-api-down recorded
+barbican-baseline recorded
+barbican-api-down recorded
+swift-baseline recorded
+swift-reseller-admin recorded
+swift-api-down recorded
+swift-object-down recorded

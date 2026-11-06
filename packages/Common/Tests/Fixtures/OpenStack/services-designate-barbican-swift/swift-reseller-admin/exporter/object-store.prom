@@ -1,0 +1,9 @@
+# HELP openstack_object_store_bytes bytes
+# TYPE openstack_object_store_bytes gauge
+openstack_object_store_bytes{container_name="ou-container-admin"} 0
+# HELP openstack_object_store_objects objects
+# TYPE openstack_object_store_objects gauge
+openstack_object_store_objects{container_name="ou-container-admin"} 0
+# HELP openstack_object_store_up up
+# TYPE openstack_object_store_up gauge
+openstack_object_store_up 1

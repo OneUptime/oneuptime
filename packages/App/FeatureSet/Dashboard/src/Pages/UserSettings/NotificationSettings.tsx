@@ -73,6 +73,7 @@ export type ChannelKey =
   | "alertByTelegram"
   | "alertBySlack"
   | "alertByMicrosoftTeams"
+  | "alertByMattermost"
   | "alertByWebhook"
   | "alertByCustomChannel";
 
@@ -82,9 +83,9 @@ interface ChannelDef {
   icon: IconProp;
   color: Color;
   /*
-   * Set on the two chat workspaces: their column is shown only when the
-   * project has connected that workspace, since nothing can reach anybody
-   * through a workspace the project never connected.
+   * Set on the chat workspaces: their column is shown only when the project
+   * has connected that workspace, since nothing can reach anybody through a
+   * workspace the project never connected.
    */
   workspaceType?: WorkspaceType | undefined;
   /*
@@ -136,6 +137,13 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     icon: IconProp.MicrosoftTeams,
     color: Blue500,
     workspaceType: WorkspaceType.MicrosoftTeams,
+  },
+  {
+    key: "alertByMattermost",
+    label: "Mattermost",
+    icon: IconProp.Mattermost,
+    color: Blue500,
+    workspaceType: WorkspaceType.Mattermost,
   },
   {
     key: "alertByWebhook",
@@ -684,8 +692,8 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
 
   /*
    * Null on a first visit until the project's workspaces are known: the
-   * matrix keeps its loader until then rather than drawing nine columns and
-   * dropping two.
+   * matrix keeps its loader until then rather than drawing every workspace's
+   * column and dropping the ones the project has not connected.
    */
   const offeredWorkspaces: ReadonlyArray<WorkspaceType> | null =
     getOfferedWorkspaces(useWorkspaceConnections());
@@ -736,6 +744,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
               alertByTelegram: true,
               alertBySlack: true,
               alertByMicrosoftTeams: true,
+              alertByMattermost: true,
               alertByWebhook: true,
               alertByCustomChannel: true,
               minimumSecurityCasePriorityId: true,

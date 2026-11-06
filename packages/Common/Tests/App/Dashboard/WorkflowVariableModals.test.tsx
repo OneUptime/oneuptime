@@ -195,18 +195,6 @@ function deferred(): Deferred {
   return { promise, resolve, reject };
 }
 
-/*
- * A failing request, rejected from a native async function. A plain
- * mockRejectedValue builds its rejection with the zone.js Promise the UI code
- * loads, and zone reports it as unhandled before the component's native
- * await gets to it - noise, not a failure, but it buries real warnings.
- */
-function rejectWith(error: unknown): () => Promise<unknown> {
-  return async (): Promise<unknown> => {
-    throw error;
-  };
-}
-
 function staticVariable(data?: {
   id?: ObjectID | null | undefined;
   name?: string | null | undefined;
@@ -499,7 +487,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
      * that is the difference between a rotation and a silent non-rotation.
      */
     test("stays open and says why", async () => {
-      updateById.mockImplementation(rejectWith(new Error("Not authorized.")));
+      updateById.mockRejectedValue(new Error("Not authorized."));
 
       const handles: ContentHandles = renderContentModal();
 
@@ -512,7 +500,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
     });
 
     test("uses the friendly message for an error that is not an Error", async () => {
-      updateById.mockImplementation(rejectWith("socket hang up"));
+      updateById.mockRejectedValue("socket hang up");
 
       renderContentModal();
 
@@ -528,7 +516,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
      * find it again.
      */
     test("keeps what the user typed", async () => {
-      updateById.mockImplementation(rejectWith(new Error("Not authorized.")));
+      updateById.mockRejectedValue(new Error("Not authorized."));
 
       renderContentModal();
 
@@ -546,7 +534,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
      * no field to retry in, and nothing the user typed.
      */
     test("stops loading", async () => {
-      updateById.mockImplementation(rejectWith(new Error("Not authorized.")));
+      updateById.mockRejectedValue(new Error("Not authorized."));
 
       renderContentModal();
 
@@ -556,9 +544,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
     });
 
     test("a retry that works clears the error and the draft", async () => {
-      updateById.mockImplementationOnce(
-        rejectWith(new Error("Not authorized.")),
-      );
+      updateById.mockRejectedValueOnce(new Error("Not authorized."));
 
       const handles: ContentHandles = renderContentModal();
 
@@ -578,7 +564,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
 
   describe("closing", () => {
     test("clears the error and the draft, then tells the caller", async () => {
-      updateById.mockImplementation(rejectWith(new Error("Not authorized.")));
+      updateById.mockRejectedValue(new Error("Not authorized."));
 
       const handles: ContentHandles = renderContentModal();
 
@@ -602,7 +588,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
 
     // A draft typed for one variable must never be offered for the next one.
     test("does not carry a draft into the next variable", async () => {
-      updateById.mockImplementation(rejectWith(new Error("Not authorized.")));
+      updateById.mockRejectedValue(new Error("Not authorized."));
 
       const handles: ContentHandles = renderContentModal(
         staticVariable({ id: VARIABLE_ID, name: "First" }),
@@ -686,7 +672,7 @@ describe("UpdateWorkflowVariableContentModal", () => {
     });
 
     test("stays open on failure", async () => {
-      updateById.mockImplementation(rejectWith(new Error("Not authorized.")));
+      updateById.mockRejectedValue(new Error("Not authorized."));
 
       render(<Host />);
 
@@ -995,9 +981,7 @@ describe("UpdateWorkflowVariableCredentialsModal", () => {
      * save would fetch with the old credentials and report success.
      */
     test("stays open with the reason, stops loading and does not report a save", async () => {
-      updateById.mockImplementation(
-        rejectWith(new Error("You do not have permission.")),
-      );
+      updateById.mockRejectedValue(new Error("You do not have permission."));
 
       const handles: CredentialsHandles = renderCredentialsModal();
 
@@ -1011,8 +995,8 @@ describe("UpdateWorkflowVariableCredentialsModal", () => {
     });
 
     test("a retry that works clears the error and reports the save", async () => {
-      updateById.mockImplementationOnce(
-        rejectWith(new Error("You do not have permission.")),
+      updateById.mockRejectedValueOnce(
+        new Error("You do not have permission."),
       );
 
       const handles: CredentialsHandles = renderCredentialsModal();
@@ -1040,9 +1024,7 @@ describe("UpdateWorkflowVariableCredentialsModal", () => {
   });
 
   test("closing clears the error and tells the caller", async () => {
-    updateById.mockImplementation(
-      rejectWith(new Error("You do not have permission.")),
-    );
+    updateById.mockRejectedValue(new Error("You do not have permission."));
 
     const handles: CredentialsHandles = renderCredentialsModal();
 
@@ -1388,7 +1370,7 @@ describe("WorkflowVariableTokenRefreshModal", () => {
     });
 
     test("a secret the provider then refused is reported as saved and refused", async () => {
-      apiPost.mockImplementation(rejectWith(new Error("invalid_client")));
+      apiPost.mockRejectedValue(new Error("invalid_client"));
 
       const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
         variable: oauthVariable(),
@@ -1559,9 +1541,7 @@ describe("WorkflowVariableTokenRefreshModal", () => {
         {
           label: "a network error",
           arrange: (): void => {
-            apiPost.mockImplementation(
-              rejectWith(new Error("Network request failed.")),
-            );
+            apiPost.mockRejectedValue(new Error("Network request failed."));
           },
           variable: (): WorkflowVariable => {
             return oauthVariable();

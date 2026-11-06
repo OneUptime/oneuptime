@@ -27,6 +27,7 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -54,6 +55,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
@@ -214,6 +216,7 @@ const RAW_WHATSAPP_PHONE: string = "+61293744000";
 const RAW_TELEGRAM_HANDLE: string = "@ada_night_pager";
 const RAW_SLACK_USERNAME: string = "ada.pager.slack";
 const RAW_MICROSOFT_TEAMS_USERNAME: string = "Ada Lovelace [Overnight]";
+const RAW_MATTERMOST_USERNAME: string = "ada.lovelace.mattermost";
 /*
  * The addressable targets behind the two workspace channels - the Slack member
  * id the bot DMs and the Entra object id the Teams bot resolves. They sit on
@@ -224,6 +227,7 @@ const RAW_MICROSOFT_TEAMS_USERNAME: string = "Ada Lovelace [Overnight]";
  */
 const RAW_SLACK_USER_ID: string = "U0SLACKMEMBERLEAK";
 const RAW_MICROSOFT_TEAMS_USER_ID: string = "aad-ENTRAIDLEAK-4242";
+const RAW_MATTERMOST_USER_ID: string = "mattermostaccountidleak42x";
 const RAW_WEBHOOK_NAME: string = "Payments Incident Bridge";
 const RAW_WEBHOOK_URL: string =
   "https://hooks.example.com/T0LEAK/B0LEAK/xoxbSUPERSECRETTOKEN";
@@ -291,6 +295,7 @@ let whatsAppFindBy: jest.SpyInstance;
 let telegramFindBy: jest.SpyInstance;
 let slackFindBy: jest.SpyInstance;
 let microsoftTeamsFindBy: jest.SpyInstance;
+let mattermostFindBy: jest.SpyInstance;
 let webhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -598,6 +603,26 @@ function microsoftTeamsMethod(data: {
   return model;
 }
 
+function mattermostMethod(data: {
+  userId: ObjectID;
+  userName: string;
+  mattermostUserId?: string | undefined;
+  isVerified: boolean;
+  id?: ObjectID | undefined;
+}): UserMattermost {
+  const model: UserMattermost = new UserMattermost();
+  model.id = data.id || ObjectID.generate();
+  model.userId = data.userId;
+  model.mattermostUserName = data.userName;
+  model.isVerified = data.isVerified;
+
+  if (data.mattermostUserId !== undefined) {
+    model.mattermostUserId = data.mattermostUserId;
+  }
+
+  return model;
+}
+
 /*
  * A webhook fixture that deliberately CARRIES its bearer url, even though the
  * production select must never ask for it. If the select ever widens, the
@@ -684,6 +709,7 @@ function everySpy(): Array<jest.SpyInstance> {
     telegramFindBy,
     slackFindBy,
     microsoftTeamsFindBy,
+    mattermostFindBy,
     webhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -934,6 +960,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   microsoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([] as never);
+  mattermostFindBy = jest
+    .spyOn(UserMattermostService, "findBy")
     .mockResolvedValue([] as never);
   webhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -2255,6 +2284,18 @@ describe("status", () => {
         },
       ],
       [
+        "Mattermost",
+        (): void => {
+          mattermostFindBy.mockResolvedValue([
+            mattermostMethod({
+              userId: USER_A_ID,
+              userName: RAW_MATTERMOST_USERNAME,
+              isVerified: true,
+            }),
+          ] as never);
+        },
+      ],
+      [
         "Webhook",
         (): void => {
           webhookFindBy.mockResolvedValue([
@@ -3094,6 +3135,27 @@ describe("notification channels", () => {
       );
     });
 
+    test("a verified MATTERMOST account alone is a zero-cost fallback, pre-empting a paid channel", async () => {
+      mattermostFindBy.mockResolvedValue([
+        mattermostMethod({
+          userId: USER_A_ID,
+          userName: RAW_MATTERMOST_USERNAME,
+          isVerified: true,
+        }),
+      ] as never);
+      smsFindBy.mockResolvedValue([
+        smsMethod({
+          userId: USER_A_ID,
+          phone: RAW_SMS_PHONE,
+          isVerified: true,
+        }),
+      ] as never);
+
+      expect((await onlyUser()).reasons[0]).toBe(
+        "No rules for Sev1 incidents - pages fall back to Mattermost",
+      );
+    });
+
     test("a paid channel is named only while the project still has it switched on", async () => {
       smsFindBy.mockResolvedValue([
         smsMethod({
@@ -3716,6 +3778,43 @@ describe("identifier exposure", () => {
     expect(select["microsoftTeamsUserName"]).toBe(true);
   });
 
+  test("the mattermost read never asks for the account id, which is the addressable target", async () => {
+    await policySummary();
+
+    const select: Record<string, unknown> = firstCall(mattermostFindBy).select!;
+
+    expect(Object.keys(select)).not.toContain("mattermostUserId");
+    expect(select["mattermostUserName"]).toBe(true);
+  });
+
+  test("a Mattermost account is listed by its own row's id, its username masked and its account id nowhere", async () => {
+    const methodId: ObjectID = new ObjectID(
+      "c0000000-0000-4000-8000-00000000000b",
+    );
+
+    mattermostFindBy.mockResolvedValue([
+      mattermostMethod({
+        userId: USER_A_ID,
+        userName: RAW_MATTERMOST_USERNAME,
+        mattermostUserId: RAW_MATTERMOST_USER_ID,
+        isVerified: true,
+        id: methodId,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+    const method: ReadinessMethod = methodOfType(
+      readiness,
+      ReadinessMethodType.Mattermost,
+    );
+
+    expect(method.methodId.toString()).toBe(methodId.toString());
+    expect(method.isVerified).toBe(true);
+    expect(method.maskedIdentifier).toBe(`ad${IDENTIFIER_MASK}`);
+    expect(JSON.stringify(readiness)).not.toContain(RAW_MATTERMOST_USERNAME);
+    expect(JSON.stringify(readiness)).not.toContain(RAW_MATTERMOST_USER_ID);
+  });
+
   test("a method with no identifier at all still reports the bare mask, not an empty cell", async () => {
     pushFindBy.mockResolvedValue([
       pushMethod({ userId: USER_A_ID, isVerified: true }),
@@ -3871,6 +3970,7 @@ describe("batching and paging", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      mattermostFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -3888,6 +3988,7 @@ describe("batching and paging", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      mattermostFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -4023,6 +4124,7 @@ describe("batching and paging", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      mattermostFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -4457,6 +4559,7 @@ describe("getReadinessForUsers", () => {
       telegramFindBy,
       slackFindBy,
       microsoftTeamsFindBy,
+      mattermostFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {

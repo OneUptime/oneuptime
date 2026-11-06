@@ -1,0 +1,362 @@
+{
+"flavors": [
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 1,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "1",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/1",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/1",
+"rel": "bookmark"
+}
+],
+"name": "m1.tiny",
+"os-flavor-access:is_public": true,
+"ram": 512,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 20,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "2",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/2",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/2",
+"rel": "bookmark"
+}
+],
+"name": "m1.small",
+"os-flavor-access:is_public": true,
+"ram": 2048,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 40,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "3",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/3",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/3",
+"rel": "bookmark"
+}
+],
+"name": "m1.medium",
+"os-flavor-access:is_public": true,
+"ram": 4096,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 2
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 80,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "4",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/4",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/4",
+"rel": "bookmark"
+}
+],
+"name": "m1.large",
+"os-flavor-access:is_public": true,
+"ram": 8192,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 4
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 1,
+"extra_specs": {},
+"id": "4ec9a561-e1db-4e92-9df2-ece0256544da",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/4ec9a561-e1db-4e92-9df2-ece0256544da",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/4ec9a561-e1db-4e92-9df2-ece0256544da",
+"rel": "bookmark"
+}
+],
+"name": "ou.impossible",
+"os-flavor-access:is_public": true,
+"ram": 1048576,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 160,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "5",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/5",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/5",
+"rel": "bookmark"
+}
+],
+"name": "m1.xlarge",
+"os-flavor-access:is_public": true,
+"ram": 16384,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 8
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 1,
+"extra_specs": {
+"trait:CUSTOM_OU_GOLD": "required"
+},
+"id": "a303abe2-efe5-4f25-800d-724936f5e30e",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/a303abe2-efe5-4f25-800d-724936f5e30e",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/a303abe2-efe5-4f25-800d-724936f5e30e",
+"rel": "bookmark"
+}
+],
+"name": "ou.gold",
+"os-flavor-access:is_public": true,
+"ram": 512,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 1,
+"extra_specs": {},
+"id": "b894a680-2df7-46ff-a99d-0aacd6cf0412",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/b894a680-2df7-46ff-a99d-0aacd6cf0412",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/b894a680-2df7-46ff-a99d-0aacd6cf0412",
+"rel": "bookmark"
+}
+],
+"name": "ou.tiny",
+"os-flavor-access:is_public": true,
+"ram": 128,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 1,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "c1",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/c1",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/c1",
+"rel": "bookmark"
+}
+],
+"name": "cirros256",
+"os-flavor-access:is_public": true,
+"ram": 256,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 1,
+"extra_specs": {},
+"id": "ce098d80-373b-495d-8741-be52bdc4beee",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/ce098d80-373b-495d-8741-be52bdc4beee",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/ce098d80-373b-495d-8741-be52bdc4beee",
+"rel": "bookmark"
+}
+],
+"name": "ou.fragmented",
+"os-flavor-access:is_public": true,
+"ram": 6912,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 5,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "d1",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/d1",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/d1",
+"rel": "bookmark"
+}
+],
+"name": "ds512M",
+"os-flavor-access:is_public": true,
+"ram": 512,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 10,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "d2",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/d2",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/d2",
+"rel": "bookmark"
+}
+],
+"name": "ds1G",
+"os-flavor-access:is_public": true,
+"ram": 1024,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 1
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 10,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "d3",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/d3",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/d3",
+"rel": "bookmark"
+}
+],
+"name": "ds2G",
+"os-flavor-access:is_public": true,
+"ram": 2048,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 2
+},
+{
+"OS-FLV-DISABLED:disabled": false,
+"OS-FLV-EXT-DATA:ephemeral": 0,
+"description": null,
+"disk": 20,
+"extra_specs": {
+"hw_rng:allowed": "True"
+},
+"id": "d4",
+"links": [
+{
+"href": "http://10.1.0.175/compute/v2.1/flavors/d4",
+"rel": "self"
+},
+{
+"href": "http://10.1.0.175/compute/flavors/d4",
+"rel": "bookmark"
+}
+],
+"name": "ds4G",
+"os-flavor-access:is_public": true,
+"ram": 4096,
+"rxtx_factor": 1.0,
+"swap": 0,
+"vcpus": 4
+}
+]
+}

@@ -74,8 +74,8 @@ describe("Run Rules on Existing Resources docs page", () => {
       }
     }
 
-    // Data Security's data stores, the 32nd.
-    expect(resources.size).toBe(32);
+    // Data Observability's tables and OpenStack clouds, the 33rd and the 34th.
+    expect(resources.size).toBe(34);
 
     for (const resource of resources) {
       expect(page).toContain(resource.toLowerCase());

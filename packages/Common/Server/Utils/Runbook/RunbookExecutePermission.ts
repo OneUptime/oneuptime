@@ -3,6 +3,7 @@ import ObjectID from "../../../Types/ObjectID";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import Permission from "../../../Types/Permission";
 import {
+  FIX_DISMISS_REFUSED_MESSAGE,
   RUNBOOK_ADVANCE_PERMISSIONS as ADVANCE_PERMISSIONS,
   RUNBOOK_ADVANCE_REFUSED_MESSAGE,
   RUNBOOK_RUN_PERMISSIONS,
@@ -67,6 +68,24 @@ export function assertCanExecuteRunbooks(
   });
 }
 
+/*
+ * Dismissing a fix OneUptime AI proposed asks what approving it asks -
+ * starting runbook executions - and says so in its own words: the card's
+ * Dismiss fix did not ask it at all, while the same fix's Dismiss in Slack
+ * and Microsoft Teams did (WorkspaceRemediationActions.authorize).
+ */
+export function assertCanDismissFixes(
+  props: DatabaseCommonInteractionProps,
+  projectId: ObjectID,
+): void {
+  assertHoldsAny({
+    props,
+    projectId,
+    allowed: RUNBOOK_EXECUTE_PERMISSIONS,
+    deniedMessage: FIX_DISMISS_REFUSED_MESSAGE,
+  });
+}
+
 export function assertCanAdvanceRunbookExecutions(
   props: DatabaseCommonInteractionProps,
   projectId: ObjectID,
@@ -83,5 +102,6 @@ export default {
   RUNBOOK_EXECUTE_PERMISSIONS,
   RUNBOOK_ADVANCE_PERMISSIONS,
   assertCanExecuteRunbooks,
+  assertCanDismissFixes,
   assertCanAdvanceRunbookExecutions,
 };

@@ -77,6 +77,7 @@ interface CapturedFormField {
   required?: boolean;
   collapsibleSection?: unknown;
   customValidation?: (values: Record<string, unknown>) => string | null;
+  defaultValue?: unknown;
 }
 
 const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
@@ -493,6 +494,7 @@ describe("Cloud > Budgets", () => {
         currency: "EUR",
         alertThresholds: "80,100",
         alertOnProjection: true,
+        alertOnAnomaly: true,
         isEnabled: true,
       },
     });
@@ -529,9 +531,17 @@ describe("Cloud > Budgets", () => {
     expect(byStep("alerts")).toEqual([
       "Alert At",
       "Alert When On Course To Pass",
+      "Alert On Unusual Days",
       "Alert Severity",
       "On-Call Policies",
     ]);
+    // A day that cost far more than usual alerts unless turned off.
+    const unusualDays: CapturedFormField | undefined = fields.find(
+      (field: CapturedFormField): boolean => {
+        return field.title === "Alert On Unusual Days";
+      },
+    );
+    expect(unusualDays?.defaultValue).toBe(true);
     // The currency and a description wait under More fields.
     expect(
       fields

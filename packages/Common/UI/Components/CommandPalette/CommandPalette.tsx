@@ -484,7 +484,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
    * (page shortcuts, scrolling) can see the key was consumed. Escape goes
    * one step further and also stops propagating: the topmost dialog consumes
    * its dismiss key outright, so document/window Escape listeners underneath
-   * (the Ask AI slide-over, page-level shortcuts) never see it at all.
+   * (the Ask AI panel, page-level shortcuts) never see it at all.
    */
   const handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = (
     event: React.KeyboardEvent<HTMLDivElement>,

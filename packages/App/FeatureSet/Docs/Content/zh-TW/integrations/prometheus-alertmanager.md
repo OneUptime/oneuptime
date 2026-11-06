@@ -86,6 +86,8 @@ https://oneuptime.com/heartbeat/<secret key>
 > [!WARNING]
 > 請按同一個通知內各警示之間互不相同的值分組。Alertmanager 的 `fingerprint` 是警示整個標籤集的雜湊，所以總是不同。路由 `group_by` 中的標籤則永遠相同：正是它們把警示放進了同一個通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分組，會把通知中的所有警示合併成一個事件，而該事件會跟隨第一個警示的狀態。
 
+在 OpenStack 雲端上，也要把監測器連結到該雲端。傳入請求監測器自己的設定不會指定任何雲端，所以它的事件只會出現在 **事件** 中，而不會出現在雲端上。開啟監測器的 **概覽 → 已連結的資源** 並加入該 OpenStack 雲端：之後每個事件也會出現在該雲端的 **事件** 頁面上。[依部署工具的 OpenStack](/docs/telemetry/openstack-deployment-tools) 為每個執行 Alertmanager 的工具提供了接收器，放在該工具讀取它的位置。
+
 ## 為事件命名
 
 上面的標題讀取通知中所有警示共有的標籤：`commonLabels` 包含這些標籤，`commonAnnotations` 包含它們共有的註解。下面的路由按 `alertname` 和 `instance` 分組，因此兩者都有。在 **描述** 下，為事件設定一個 **事件描述**，例如：
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-會開啟兩個事件，每個 `fingerprint` 一個，標題都是 `DiskFull on web-1`。把每個 `status` 都設為 `resolved` 後傳送同樣的請求，兩個事件都會被解決。
+會開啟兩個事件，每個 `fingerprint` 一個，標題都是 `DiskFull on web-1`，後面再接上能區分它們的內容，例如 `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`。把每個 `status` 都設為 `resolved` 後傳送同樣的請求，兩個事件都會被解決。
 
 要測試從 Alertmanager 開始的完整路徑，請用 `amtool` 觸發一個警示。Alertmanager 會在 `group_wait` 之後傳送它，並在幾分鐘後警示過期時傳送它的恢復：
 

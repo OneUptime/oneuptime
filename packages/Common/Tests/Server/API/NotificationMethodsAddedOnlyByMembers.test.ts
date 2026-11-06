@@ -37,6 +37,7 @@ import BaseAPI from "../../../Server/API/BaseAPI";
 import UserCallAPI from "../../../Server/API/UserCallAPI";
 import UserEmailAPI from "../../../Server/API/UserEmailAPI";
 import UserIncomingCallNumberAPI from "../../../Server/API/UserIncomingCallNumberAPI";
+import UserMattermostAPI from "../../../Server/API/UserMattermostAPI";
 import UserMicrosoftTeamsAPI from "../../../Server/API/UserMicrosoftTeamsAPI";
 import UserNotificationSettingAPI from "../../../Server/API/UserNotificationSettingAPI";
 import UserPushAPI from "../../../Server/API/UserPushAPI";
@@ -61,6 +62,7 @@ import TeamPermissionService from "../../../Server/Services/TeamPermissionServic
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserIncomingCallNumberService from "../../../Server/Services/UserIncomingCallNumberService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationEmailRollupSettingService from "../../../Server/Services/UserNotificationEmailRollupSettingService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -426,6 +428,12 @@ const OTHER_OWN_ROWS: Array<OwnRowModel> = [
     data: {},
   },
   {
+    name: "a Mattermost account",
+    path: "/user-mattermost",
+    service: UserMattermostService as unknown as DatabaseService<BaseModel>,
+    data: {},
+  },
+  {
     name: "a project user profile",
     path: "/project-user-profile",
     service: ProjectUserProfileService as unknown as DatabaseService<BaseModel>,
@@ -538,6 +546,7 @@ beforeAll(async () => {
   app.use("/api", new UserTelegramAPI().getRouter());
   app.use("/api", new UserSlackAPI().getRouter());
   app.use("/api", new UserMicrosoftTeamsAPI().getRouter());
+  app.use("/api", new UserMattermostAPI().getRouter());
   app.use("/api", new UserWebhookAPI().getRouter());
   app.use("/api", new UserPushAPI().getRouter());
   app.use("/api", new UserNotificationSettingAPI().getRouter());

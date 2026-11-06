@@ -31,7 +31,7 @@ flowchart LR
 | Abschnitt | Seiten | Wo Sie mehr lesen |
 | --- | --- | --- |
 | **Grundlegend** | **Projekt**, **Beschriftungen** | [Die Details des Projekts](#die-details-des-projekts), [Beschriftungen](#beschriftungen) |
-| **Arbeitsbereich** | **Slack**, **Microsoft Teams**, **Videoanrufe** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Videoanrufe](/docs/workspace-connections/video-calls) |
+| **Arbeitsbereich** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoanrufe** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoanrufe](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestion-Schlüssel**, **Datenaufbewahrung** | [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys), [Datenaufbewahrung](/docs/telemetry/data-retention) |
 | **Benachrichtigungen** | **Benachrichtigungseinstellungen**, **Benachrichtigungsprotokolle**, **Mobile Apps** | [Benachrichtigungen](#benachrichtigungen) |
 | **KI** | **KI-Funktionen**, **LLM-Anbieter**, **Externe MCP-Server**, **KI-Guthaben**, **KI-Protokolle**, **MCP-Server** | [LLM-Anbieter](/docs/ai/llm-provider), [Externe MCP-Server](/docs/ai/external-mcp-servers), [MCP-Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#kostenkontrollen) |

@@ -8,12 +8,12 @@
  * download at /install/<agent> (packages/Common/Types/InstallScripts lists
  * them; packages/App/FeatureSet/Install serves them), so an install command
  * names the reader's own OneUptime and gets the files of the release it
- * runs. GitHub's master branch is newer than most OneUptimes, and its
+ * runs. GitHub's main branch is newer than most OneUptimes, and its
  * address names neither a self-hosted install's host nor its version.
  *
- * This reads every tracked text file for an address that downloads from
- * the repository on GitHub (raw.githubusercontent.com/OneUptime/oneuptime/
- * or github.com/OneUptime/oneuptime/raw/) and allows one only where it is
+ * This reads every text file git tracks, or would add, for an address that
+ * downloads from the repository on GitHub (raw.githubusercontent.com/OneUptime/
+ * oneuptime/ or github.com/OneUptime/oneuptime/raw/) and allows one only where it is
  * written on purpose, below, each with its reason and the number of times
  * it is written. Tests may name such an address to refuse it, or to stand
  * in for GitHub. A file that no longer names GitHub leaves the list, so the
@@ -73,21 +73,23 @@ function agentsWithTheFallback() {
   const allowed = {};
 
   for (const entry of INSTALL_SCRIPTS) {
-    const script = path.join(
-      REPO_ROOT,
-      entry.sourceDirectory,
-      entry.script || "",
-    );
+    // An agent's optional profile can have an installer of its own, served beside install.sh.
+    const scripts = (entry.files || []).filter((file) => {
+      return file === entry.script || file.endsWith(".sh");
+    });
 
-    if (
-      entry.script &&
-      entry.sourceDirectory.startsWith("agents/") &&
-      fs.readFileSync(script, "utf8").includes("fetch_agent_file()")
-    ) {
-      allowed[`${entry.sourceDirectory}/${entry.script}`] = {
-        times: 1,
-        reason: OLDER_ONEUPTIME_FALLBACK,
-      };
+    for (const file of scripts) {
+      if (
+        entry.sourceDirectory.startsWith("agents/") &&
+        fs
+          .readFileSync(path.join(REPO_ROOT, entry.sourceDirectory, file), "utf8")
+          .includes("fetch_agent_file()")
+      ) {
+        allowed[`${entry.sourceDirectory}/${file}`] = {
+          times: 1,
+          reason: OLDER_ONEUPTIME_FALLBACK,
+        };
+      }
     }
   }
 
@@ -103,12 +105,20 @@ const ALLOWED = {
   },
 };
 
-function trackedTextFiles() {
-  const result = spawnSync("git", ["ls-files", "-z"], {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-  });
+/*
+ * What git tracks, and what it would add: an agent's new install.sh is held to
+ * this before its first commit, the same as after.
+ */
+function textFiles() {
+  const result = spawnSync(
+    "git",
+    ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    },
+  );
 
   if (result.status !== 0) {
     throw new Error(`git ls-files failed: ${result.stderr}`);
@@ -137,7 +147,7 @@ function timesNamed(text) {
 }
 
 describe("downloads from GitHub's copy of the repository", () => {
-  const files = trackedTextFiles();
+  const files = textFiles();
   const named = {};
 
   for (const file of files) {
@@ -162,7 +172,7 @@ describe("downloads from GitHub's copy of the repository", () => {
     expect(files.length).toBeGreaterThan(1000);
     expect(
       timesNamed(
-        "curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh",
+        "curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/ProxmoxAgent/install.sh",
       ),
     ).toBe(1);
     expect(
@@ -171,12 +181,12 @@ describe("downloads from GitHub's copy of the repository", () => {
       ),
     ).toBe(1);
     expect(
-      timesNamed("https://github.com/OneUptime/oneuptime/raw/master/x.sh"),
+      timesNamed("https://github.com/OneUptime/oneuptime/raw/main/x.sh"),
     ).toBe(1);
     // Reading the source on GitHub, another repository, or OneUptime itself are not downloads.
     expect(
       timesNamed(
-        "https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent",
+        "https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent",
       ),
     ).toBe(0);
     expect(
@@ -223,6 +233,9 @@ describe("downloads from GitHub's copy of the repository", () => {
       "agents/DatabaseAgent/install.sh",
       "agents/DockerSwarmAgent/install.sh",
       "agents/HostAIAgent/install.sh",
+      "agents/OpenStackAgent/install-logs.sh",
+      "agents/OpenStackAgent/install-traces.sh",
+      "agents/OpenStackAgent/install.sh",
       "agents/ProxmoxAgent/install.sh",
       "agents/StorageArrayAgent/install.sh",
       "agents/VMwareAgent/install.sh",

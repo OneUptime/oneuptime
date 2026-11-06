@@ -17,9 +17,7 @@ import ProjectUtil, {
  *
  * It is read on the way of every request (the API client sends that
  * project's permission hash), so it stays light: importing the API client
- * brings neither the Project model nor telemetry, whose zone.js patches the
- * page's promises - the sign-in pages' tests saw React's act warnings when
- * it did.
+ * brings neither the Project model nor telemetry.
  */
 
 const URL_PROJECT_ID: string = "7a000000-0000-4000-8000-000000000001";
@@ -164,9 +162,9 @@ describe("what reading it brings with it", () => {
     const loaded: Array<string> = [];
 
     jest.isolateModules(() => {
-      jest.doMock("@opentelemetry/context-zone", () => {
-        loaded.push("@opentelemetry/context-zone");
-        return { ZoneContextManager: class {} };
+      jest.doMock("@opentelemetry/sdk-trace-web", () => {
+        loaded.push("@opentelemetry/sdk-trace-web");
+        return { WebTracerProvider: class {} };
       });
       jest.doMock("../../../UI/Utils/Telemetry/Telemetry", () => {
         loaded.push("UI/Utils/Telemetry/Telemetry");

@@ -363,17 +363,18 @@ More details stay here.
      * the postmortem rules form (Match, then Draft), nor have Data
      * Security's label and owner rules for data stores, nor the cloud
      * owner and label rules - Cloud's and, since the two products split,
-     * App Platforms' (77, with the alert incident rules: Match, then
+     * App Platforms' (81, with the alert incident rules: Match, then
      * Incident, and a help panel whose Match Criteria section is the
-     * shared one).
+     * shared one, and OpenStack's and Data Observability's label and owner
+     * rules).
      */
-    expect(staticRuleFormFiles).toHaveLength(77);
-    expect(helpFormFiles).toHaveLength(63);
+    expect(staticRuleFormFiles).toHaveLength(81);
+    expect(helpFormFiles).toHaveLength(65);
     /*
      * 68, the five episode rule help texts that now have the heading too,
-     * and the alert incident rules'.
+     * the alert incident rules', and two for Data Observability's data assets.
      */
-    expect(helpMarkdown).toHaveLength(74);
+    expect(helpMarkdown).toHaveLength(76);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

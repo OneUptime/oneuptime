@@ -1,0 +1,21 @@
+$ openstack network agent show 2aba5fc2-5f63-430b-910e-9e78935552e7 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "binary": "ovn-controller",
+  "host": "compute-01",
+  "heartbeat_timestamp": "2026-11-05 05:29:21",
+  "availability_zone": "",
+  "topic": "n/a",
+  "description": "",
+  "configurations": {
+    "chassis_name": "2aba5fc2-5f63-430b-910e-9e78935552e7",
+    "bridge-mappings": "public:br-ex"
+  },
+  "agent_type": "OVN Controller Gateway agent",
+  "id": "2aba5fc2-5f63-430b-910e-9e78935552e7",
+  "alive": true,
+  "admin_state_up": true
+}

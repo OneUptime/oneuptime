@@ -5,9 +5,11 @@ import {
   DISCONNECT_MANY_OTHERS,
   DISCONNECT_TEXT,
   getMention,
+  isUserGroupWorkspaceType,
   USER_GROUP_LABELS,
   USER_GROUPS_COPY,
   UserGroupsWorkspaceCopy,
+  UserGroupWorkspaceType,
 } from "./UserGroupsCopy";
 import { FEED_PANEL_BUTTON_CLASS_NAME } from "../CalendarFeed/CalendarFeedLayout";
 import FeedEmptyState from "../CalendarFeed/FeedEmptyState";
@@ -64,7 +66,7 @@ export interface ComponentProps {
 }
 
 interface WorkspaceCardProps {
-  workspaceType: WorkspaceType;
+  workspaceType: UserGroupWorkspaceType;
   scheduleId: string;
   scheduleName: string;
   views: Array<WorkspaceUserGroupView>;
@@ -363,8 +365,12 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
 const ScheduleUserGroupsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const connected: ReadonlyArray<WorkspaceType> | null =
+  // Of the connected workspaces, those with user groups OneUptime keeps.
+  const connections: ReadonlyArray<WorkspaceType> | null =
     useWorkspaceConnections().connected;
+  const connected: ReadonlyArray<UserGroupWorkspaceType> | null = connections
+    ? connections.filter(isUserGroupWorkspaceType)
+    : null;
 
   const [views, setViews] = useState<Array<WorkspaceUserGroupView>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -431,7 +437,7 @@ const ScheduleUserGroupsCard: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      {connected.map((workspaceType: WorkspaceType) => {
+      {connected.map((workspaceType: UserGroupWorkspaceType) => {
         return (
           <WorkspaceUserGroupsCard
             key={workspaceType}

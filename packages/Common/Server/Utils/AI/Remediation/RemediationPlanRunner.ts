@@ -58,6 +58,14 @@ import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
 import RemediationChatMessage from "../../AutoRemediation/RemediationChatMessage";
+import RemediationTrackRecordReader, {
+  describeRunbookTrackRecordForPlanner,
+  RUNBOOK_TRACK_RECORD_PLANNER_NOTE,
+} from "./RemediationTrackRecordReader";
+import {
+  RemediationTrackRecord,
+  serializeRemediationTrackRecord,
+} from "../../../../Types/AutoRemediation/RemediationTrackRecord";
 import { MessageBlocksByWorkspaceType } from "../../../Services/WorkspaceNotificationRuleService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
@@ -483,6 +491,15 @@ export default class RemediationPlanRunner {
 
     let proposalNote: string | null = null;
 
+    /*
+     * How the picked runbook went the last times OneUptime AI ran it as a
+     * fix here: kept on the suggestion and in its message, for the person
+     * approving it (a change of a plan carries its own the same way).
+     */
+    const trackRecord: RemediationTrackRecord | undefined = runbook
+      ? await this.readRunbookTrackRecord({ suggestion, runbook })
+      : undefined;
+
     if (
       runbook &&
       suggestion.executionMode === AutoRemediationExecutionMode.FullAuto
@@ -491,6 +508,7 @@ export default class RemediationPlanRunner {
         suggestion,
         runbook,
         rationaleMarkdown: data.rationaleMarkdown,
+        trackRecord,
       });
 
       if (start.isSettled) {
@@ -513,6 +531,12 @@ export default class RemediationPlanRunner {
               rationaleMarkdown: proposalNote
                 ? withProposalNote(proposalNote, data.rationaleMarkdown)
                 : data.rationaleMarkdown,
+              ...(trackRecord
+                ? {
+                    runbookTrackRecord:
+                      serializeRemediationTrackRecord(trackRecord),
+                  }
+                : {}),
             }
           : {
               status: AutoRemediationSuggestionStatus.NoneApplicable,
@@ -541,7 +565,11 @@ export default class RemediationPlanRunner {
       ...(runbook
         ? {
             appendMessageBlocks: await RemediationChatMessage.getProposalBlocks(
-              { suggestion, runbook: { id: runbook.id, name: runbook.name } },
+              {
+                suggestion,
+                runbook: { id: runbook.id, name: runbook.name },
+                runbookTrackRecord: trackRecord,
+              },
             ),
           }
         : {}),
@@ -615,6 +643,8 @@ export default class RemediationPlanRunner {
     suggestion: AutoRemediationSuggestion;
     runbook: Runbook;
     rationaleMarkdown: string;
+    // How the runbook went before: kept when it is proposed instead.
+    trackRecord?: RemediationTrackRecord | undefined;
   }): Promise<PickedRunbookStart> {
     const { suggestion, runbook } = data;
     const ruleId: ObjectID | undefined = suggestion.autoRemediationRuleId;
@@ -754,6 +784,13 @@ export default class RemediationPlanRunner {
               NOT_STARTED_NOTE,
               data.rationaleMarkdown,
             ),
+            ...(data.trackRecord
+              ? {
+                  runbookTrackRecord: serializeRemediationTrackRecord(
+                    data.trackRecord,
+                  ),
+                }
+              : {}),
           },
         });
 
@@ -770,6 +807,7 @@ export default class RemediationPlanRunner {
           appendMessageBlocks: await RemediationChatMessage.getProposalBlocks({
             suggestion,
             runbook: { id: runbook.id, name: runbook.name },
+            runbookTrackRecord: data.trackRecord,
           }),
         });
       }
@@ -805,6 +843,33 @@ export default class RemediationPlanRunner {
     });
 
     return { isSettled: true, proposalNote: null };
+  }
+
+  /*
+   * How `runbook` went the last times OneUptime AI ran it as a fix for
+   * other incidents and alerts of the project (RemediationTrackRecordReader):
+   * none when it never did, or when that cannot be read.
+   */
+  private static async readRunbookTrackRecord(data: {
+    suggestion: AutoRemediationSuggestion;
+    runbook: Runbook;
+  }): Promise<RemediationTrackRecord | undefined> {
+    if (!data.suggestion.projectId || !data.runbook.id) {
+      return undefined;
+    }
+
+    const records: Map<string, RemediationTrackRecord> =
+      await RemediationTrackRecordReader.readRunbookTrackRecords({
+        projectId: data.suggestion.projectId,
+        runbookIds: [data.runbook.id],
+        excludeSuggestionId: data.suggestion.id,
+        excludeSubject: {
+          incidentId: data.suggestion.incidentId,
+          alertId: data.suggestion.alertId,
+        },
+      });
+
+    return records.get(data.runbook.id.toString().toLowerCase());
   }
 
   /*
@@ -1018,15 +1083,48 @@ export default class RemediationPlanRunner {
         : "No AI rule is set up: OneUptime AI fixes every new signal, with any of the project's runbooks.",
     );
 
+    /*
+     * How each candidate went the last times OneUptime AI ran it as a fix
+     * here, as verification judged it: the planner prefers the one that
+     * worked, and does not pick one that did not without a reason.
+     */
+    const trackRecords: Map<string, RemediationTrackRecord> = data.suggestion
+      .projectId
+      ? await RemediationTrackRecordReader.readRunbookTrackRecords({
+          projectId: data.suggestion.projectId,
+          runbookIds: data.candidates
+            .map((runbook: Runbook): ObjectID | null => {
+              return runbook.id;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return Boolean(id);
+            }),
+          excludeSuggestionId: data.suggestion.id,
+          excludeSubject: {
+            incidentId: data.suggestion.incidentId,
+            alertId: data.suggestion.alertId,
+          },
+        })
+      : new Map<string, RemediationTrackRecord>();
+
     lines.push("");
     lines.push("# Candidate runbooks");
+
+    if (trackRecords.size > 0) {
+      lines.push(RUNBOOK_TRACK_RECORD_PLANNER_NOTE);
+    }
+
     for (const runbook of data.candidates) {
+      const record: string | null = describeRunbookTrackRecordForPlanner(
+        trackRecords.get(runbook.id?.toString().toLowerCase() || ""),
+      );
+
       lines.push(
         `- id: ${runbook.id?.toString()} — "${runbook.name || "Unnamed"}"${
           runbook.description
             ? `: ${PromptText.field(runbook.description)}`
             : ""
-        }`,
+        }${record ? ` (${record})` : ""}`,
       );
     }
 

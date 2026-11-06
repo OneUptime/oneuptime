@@ -27,11 +27,6 @@ import { getJestSpyOn } from "../../Spy";
  * the real ones.
  */
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the card catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
@@ -280,9 +275,9 @@ describe("flipping the switch", () => {
   });
 
   test("a refused save moves the switch back, and says why", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error("You do not have permission to edit this form.");
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("You do not have permission to edit this form."),
+    );
 
     await renderCard();
     await loaded();

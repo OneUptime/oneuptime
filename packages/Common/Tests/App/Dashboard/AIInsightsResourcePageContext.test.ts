@@ -15,6 +15,7 @@ import Host from "../../../Models/DatabaseModels/Host";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
@@ -81,6 +82,12 @@ const RESOURCES: Array<ResourceCase> = [
     path: "proxmox",
     modelType: ProxmoxCluster,
     chip: "This Proxmox cluster",
+  },
+  {
+    type: AIResourceType.OpenStackCloud,
+    path: "openstack",
+    modelType: OpenStackCloud,
+    chip: "This OpenStack cloud",
   },
   {
     type: AIResourceType.VMwareVCenter,
@@ -639,6 +646,36 @@ describe("AI Insights infrastructure routes", () => {
       resourceType: AIResourceType.DatabaseServer,
       entityId: ENTITY_ID,
     });
+  });
+
+  /*
+   * Ask AI's page context is what links an incident declared there (#5293):
+   * a cloud's page has to reach the server naming the cloud, and a part's
+   * page reads as the cloud it belongs to.
+   */
+  test("every page of an OpenStack cloud is the cloud - and reaches the server as it", () => {
+    for (const tab of ["hypervisors", "instances", "services", "volumes"]) {
+      const context: DashboardPageContext = requireContext(
+        `openstack/${ENTITY_ID}/${tab}`,
+      );
+
+      expect(context).toMatchObject({
+        type: AIChatPageContextType.Resource,
+        resourceType: AIResourceType.OpenStackCloud,
+        entityId: ENTITY_ID,
+        noun: "OpenStack cloud",
+        chipLabel: "This OpenStack cloud",
+        isEntity: true,
+      });
+      expect(context.subresource).toBeUndefined();
+      expect(
+        AIChatPageContextHelper.sanitize(context as unknown as JSONObject),
+      ).toEqual({
+        type: AIChatPageContextType.Resource,
+        resourceType: AIResourceType.OpenStackCloud,
+        entityId: ENTITY_ID,
+      });
+    }
   });
 
   test("does not invent a namespace or confuse a Kubernetes pod name with a UUID", () => {

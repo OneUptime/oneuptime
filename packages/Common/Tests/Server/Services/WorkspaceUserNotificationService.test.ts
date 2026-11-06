@@ -4,6 +4,7 @@ import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceN
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MattermostUtil from "../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import logger from "../../../Server/Utils/Logger";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -20,8 +21,8 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
  * WorkspaceUserNotificationService.sendDirectMessageToUser is the send half of
- * the Slack / Microsoft Teams notification methods: everything the on-call
- * pipeline and the settings-based notifications know about delivering a
+ * the Slack / Microsoft Teams / Mattermost notification methods: everything the
+ * on-call pipeline and the settings-based notifications know about delivering a
  * workspace DM funnels through this one method. Four things about it are
  * load-bearing and pinned here:
  *
@@ -31,7 +32,8 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
  *
  *   2. DISPATCH. Slack sends through SlackUtil with the bot token; Teams
  *      sends through the Bot Framework helper with the projectId (Teams
- *      resolves its own credentials). Crossing those up would page nobody.
+ *      resolves its own credentials); Mattermost sends through MattermostUtil
+ *      with the project's connection. Crossing those up would page nobody.
  *
  *   3. THE TIMELINE CONTRACT. When a userOnCallLogTimelineId is supplied the
  *      row is flipped to Sent on success and Error (with the send error's own
@@ -57,6 +59,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 
 const SLACK_USER_ID: string = "U0123ABCD";
 const TEAMS_USER_ID: string = "aad-object-id-1";
+const MATTERMOST_USER_ID: string = "abcdefghijklmnopqrstuvwxyz";
 const BOT_TOKEN: string = "xoxb-project-bot-token";
 
 function markdownBlocks(): Array<WorkspaceMessageBlock> {
@@ -79,6 +82,7 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
   let getProjectAuth: jest.SpyInstance;
   let slackSend: jest.SpyInstance;
   let teamsSend: jest.SpyInstance;
+  let mattermostSend: jest.SpyInstance;
   let createLog: jest.SpyInstance;
   let updateTimeline: jest.SpyInstance;
 
@@ -97,6 +101,10 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
 
     teamsSend = jest
       .spyOn(MicrosoftTeamsUtil, "sendDirectMessageToUserAsBot")
+      .mockResolvedValue(undefined as never);
+
+    mattermostSend = jest
+      .spyOn(MattermostUtil, "sendDirectMessageToUser")
       .mockResolvedValue(undefined as never);
 
     createLog = jest
@@ -251,6 +259,100 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
       expect(arg.messageBlocks).toBe(blocks);
 
       expect(slackSend).not.toHaveBeenCalled();
+    });
+
+    test("Mattermost goes through MattermostUtil with the project's connection and the account id", async () => {
+      const blocks: Array<WorkspaceMessageBlock> = markdownBlocks();
+
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Mattermost,
+        workspaceUserId: MATTERMOST_USER_ID,
+        messageBlocks: blocks,
+        notificationText: "🚨 New incident assigned to you: INC-8",
+      });
+
+      expect(mattermostSend).toHaveBeenCalledTimes(1);
+      const arg: {
+        authToken: string;
+        workspaceUserId: string;
+        messageBlocks: Array<WorkspaceMessageBlock>;
+      } = mattermostSend.mock.calls[0][0] as {
+        authToken: string;
+        workspaceUserId: string;
+        messageBlocks: Array<WorkspaceMessageBlock>;
+      };
+      expect(arg.authToken).toBe(BOT_TOKEN);
+      expect(arg.workspaceUserId).toBe(MATTERMOST_USER_ID);
+      expect(arg.messageBlocks).toBe(blocks);
+
+      expect(slackSend).not.toHaveBeenCalled();
+      expect(teamsSend).not.toHaveBeenCalled();
+
+      const projectAuthArg: { workspaceType: WorkspaceType } = getProjectAuth
+        .mock.calls[0][0] as { workspaceType: WorkspaceType };
+      expect(projectAuthArg.workspaceType).toBe(WorkspaceType.Mattermost);
+    });
+
+    test("a project not connected to Mattermost throws the actionable message and sends nothing", async () => {
+      getProjectAuth.mockResolvedValue(null as never);
+
+      await expect(
+        WorkspaceUserNotificationService.sendDirectMessageToUser({
+          projectId: PROJECT_ID,
+          workspaceType: WorkspaceType.Mattermost,
+          workspaceUserId: MATTERMOST_USER_ID,
+          messageBlocks: markdownBlocks(),
+        }),
+      ).rejects.toThrow(
+        "This project is not connected to Mattermost. Please go to Project Settings and connect the account.",
+      );
+
+      expect(mattermostSend).not.toHaveBeenCalled();
+    });
+
+    test("a Mattermost page flips its timeline row to Sent, in Mattermost's name", async () => {
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Mattermost,
+        workspaceUserId: MATTERMOST_USER_ID,
+        messageBlocks: markdownBlocks(),
+        userOnCallLogTimelineId: TIMELINE_ID,
+      });
+
+      const arg: {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      } = updateTimeline.mock.calls[0][0] as {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      };
+      expect(arg.data.status).toBe(UserNotificationStatus.Sent);
+      expect(arg.data.statusMessage).toBe("Message sent on Mattermost.");
+    });
+
+    test("a refusal from Mattermost lands on the timeline row and is thrown to the caller", async () => {
+      mattermostSend.mockRejectedValue(
+        new Error("Mattermost refused the direct message.") as never,
+      );
+
+      await expect(
+        WorkspaceUserNotificationService.sendDirectMessageToUser({
+          projectId: PROJECT_ID,
+          workspaceType: WorkspaceType.Mattermost,
+          workspaceUserId: MATTERMOST_USER_ID,
+          messageBlocks: markdownBlocks(),
+          userOnCallLogTimelineId: TIMELINE_ID,
+        }),
+      ).rejects.toThrow("Mattermost refused the direct message.");
+
+      const arg: {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      } = updateTimeline.mock.calls[0][0] as {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      };
+      expect(arg.data.status).toBe(UserNotificationStatus.Error);
+      expect(arg.data.statusMessage).toBe(
+        "Mattermost refused the direct message.",
+      );
     });
   });
 

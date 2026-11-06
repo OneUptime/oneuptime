@@ -31,7 +31,7 @@ flowchart LR
 | सेक्शन | पेज | कहाँ और पढ़ें |
 | --- | --- | --- |
 | **बेसिक** | **प्रोजेक्ट**, **लेबल** | [प्रोजेक्ट का विवरण](#प्रोजेक्ट-का-विवरण), [लेबल](#लेबल) |
-| **वर्कस्पेस** | **Slack**, **Microsoft Teams**, **वीडियो कॉल** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [वीडियो कॉल](/docs/workspace-connections/video-calls) |
+| **वर्कस्पेस** | **Slack**, **Microsoft Teams**, **Mattermost**, **वीडियो कॉल** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [वीडियो कॉल](/docs/workspace-connections/video-calls) |
 | **टेलीमेट्री और APM** | **इंजेशन कुंजियाँ**, **डेटा प्रतिधारण** | [इंजेशन कुंजियाँ](/docs/telemetry/ingestion-keys), [डेटा प्रतिधारण](/docs/telemetry/data-retention) |
 | **सूचनाएं** | **सूचना सेटिंग्स**, **सूचना लॉग**, **मोबाइल ऐप्स** | [सूचनाएं](#सूचनाएं) |
 | **एआई** | **AI सुविधाएं**, **LLM प्रदाता**, **बाहरी MCP सर्वर**, **AI क्रेडिट**, **AI लॉग**, **MCP सर्वर** | [LLM प्रदाता](/docs/ai/llm-provider), [बाहरी MCP सर्वर](/docs/ai/external-mcp-servers), [MCP सर्वर](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#लागत-नियंत्रण) |

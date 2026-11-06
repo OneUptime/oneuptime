@@ -28,7 +28,7 @@ Eine Zwei-Wege-Integration wie Jira oder Dynamics 365 nutzt beide Richtungen: Ei
 | Weg | Am besten für | Beispiele |
 | --- | --- | --- |
 | Eine eingebaute Verbindung | Werkzeuge, mit denen sich OneUptime selbst verbindet. Sie füllen ein Formular aus, und es gibt nichts zu bauen. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), die Verbindungen der [Sicherheitsereignisse](/docs/telemetry/security-events) |
-| Eine Workflow-Vorlage | Ticketwerkzeuge, in beide Richtungen abgeglichen, Monitoring-Probleme, Sicherheitsvorfallsmeldungen und Chatnachrichten. Sie wählen eine Vorlage und füllen ein paar Einstellungen aus. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
+| Eine Workflow-Vorlage | Ticketwerkzeuge, in beide Richtungen abgeglichen, Monitoring-Probleme, Sicherheitsvorfallsmeldungen und Chatnachrichten. Sie wählen eine Vorlage und füllen ein paar Einstellungen aus. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
 | Ein Monitor für eingehende Anfragen | Alarmierungswerkzeuge, die einen Webhook senden. Sie bekommen einen Vorfall pro Alarm, an die Bereitschaft gemeldet und behoben, wenn sich der Alarm erholt, ganz ohne Workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Ein Workflow, den Sie bauen | Jedes Werkzeug mit einem Webhook oder einer REST-API, und jede eigene Logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | [Zabbix](/docs/integrations/zabbix) | Beide | Macht aus Zabbix-Problemen Vorfälle oder Warnungen, behebt sie bei der Erholung und bestätigt oder schließt die Probleme aus OneUptime heraus. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend | Macht aus Alertmanager-Benachrichtigungen Vorfälle. |
 | [Grafana](/docs/integrations/grafana) | Eingehend | Macht aus Grafana-Alarmen Vorfälle. |
-| [Datadog](/docs/integrations/datadog) | Eingehend | Macht aus Datadog-Monitoralarmen Vorfälle. |
+| [Datadog](/docs/integrations/datadog) | Eingehend | Macht aus Datadog-Monitoralarmen Vorfälle oder Warnungen und behebt sie bei der Erholung. |
+| [New Relic](/docs/integrations/new-relic) | Eingehend | Macht aus New-Relic-Issues Vorfälle oder Warnungen und behebt sie, wenn das Issue geschlossen wird. |
 
 ### Sicherheitswerkzeuge
 
@@ -133,7 +134,7 @@ Die URL ist der einzige Berechtigungsnachweis, behandeln Sie sie also wie ein Pa
 5. Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Vorfall aus und führen Sie ihn aus. Ein Testlauf sendet die Anfrage wirklich. Schalten Sie danach **Aktiviert** ein.
 :::
 
-Braucht das Werkzeug die Daten zuerst umgeformt, fügen Sie dazwischen einen [Run Custom JavaScript](/docs/workflows/components#custom-code)-Baustein ein. Das Rezept ist dasselbe für Zendesk, New Relic, AWS (über SNS), StatusCake und alle weiteren: Nur die URL und der Body ändern sich.
+Braucht das Werkzeug die Daten zuerst umgeformt, fügen Sie dazwischen einen [Run Custom JavaScript](/docs/workflows/components#custom-code)-Baustein ein. Das Rezept ist dasselbe für Zendesk, AWS (über SNS), StatusCake und alle weiteren: Nur die URL und der Body ändern sich.
 
 ## Zugangsdaten sicher aufbewahren
 

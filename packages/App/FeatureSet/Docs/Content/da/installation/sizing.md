@@ -100,7 +100,7 @@ Ud over datalagrene dimensionerer du de tilstandsløse workloads. Hver kører **
 | Ingress-gateway | `nginx` | Mængden af forespørgsler |
 | Telemetry writer, når den er slået til | `telemetryWriter` | Ikke med belastningen: Den samler hver telemetri-indsættelse i ClickHouse, så den dimensioneres efter, hvad ClickHouse kan klare |
 
-Chartet indeholder **KEDA**, så appen, workers, probes og den globale Runner kan skalere efter deres køefterslæb. Slå `keda.enabled` til sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster, der endnu ikke har KEDA, kræver den første installation en ekstra omgang: Se chartets [KEDA-vejledning](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Tjenester, som KEDA ikke styrer, kan i stedet bruge en autoscaler baseret på CPU eller hukommelse (`autoscaling`).
+Chartet indeholder **KEDA**, så appen, workers, probes og den globale Runner kan skalere efter deres køefterslæb. Slå `keda.enabled` til sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster, der endnu ikke har KEDA, kræver den første installation en ekstra omgang: Se chartets [KEDA-vejledning](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Tjenester, som KEDA ikke styrer, kan i stedet bruge en autoscaler baseret på CPU eller hukommelse (`autoscaling`).
 
 ## Startniveauer
 
@@ -130,7 +130,7 @@ Chartets indbyggede datalagre kører som standard som **enkeltinstanser**. Til h
 | **Valkey** | Chartet replikerer det ikke. Peg OneUptime på et eksternt administreret Redis eller Valkey med automatisk failover (`externalValkey`). OneUptime forbinder til én enkelt vært og port, så brug tjenestens primære endpoint, ikke et i cluster-tilstand. |
 
 > [!WARNING]
-> Slår du en af operatorerne til for en eksisterende installation, starter en ny, tom database: Ingen af dem kopierer dataene fra den enkeltinstansdatabase, den erstatter. Migrér dine data, som chartets vejledninger beskriver – for [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) og for [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
+> Slår du en af operatorerne til for en eksisterende installation, starter en ny, tom database: Ingen af dem kopierer dataene fra den enkeltinstansdatabase, den erstatter. Migrér dine data, som chartets vejledninger beskriver – for [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) og for [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
 
 ## Opbevaring, og hvordan den påvirker lageret
 

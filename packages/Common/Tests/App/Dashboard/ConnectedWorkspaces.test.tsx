@@ -95,11 +95,18 @@ afterEach(() => {
 });
 
 describe("reading the answer", () => {
-  test("WORKSPACE_TYPES is Slack, then Microsoft Teams: the order every list uses", () => {
+  test("WORKSPACE_TYPES is Slack, then Microsoft Teams, then Mattermost: the order every list uses", () => {
     expect(WORKSPACE_TYPES).toEqual([
       WorkspaceType.Slack,
       WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
     ]);
+  });
+
+  test("a Mattermost connection is read as one, in its place in the order", () => {
+    expect(
+      toConnectedWorkspaces([WorkspaceType.Mattermost, WorkspaceType.Slack]),
+    ).toEqual([WorkspaceType.Slack, WorkspaceType.Mattermost]);
   });
 
   test.each([
@@ -159,7 +166,11 @@ describe("reading the answer", () => {
         isFresh: false,
         error: "Request failed",
       }),
-    ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
+    ).toEqual([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ]);
     expect(
       getOfferedWorkspaces({ connected: null, isFresh: false, error: null }),
     ).toBeNull();

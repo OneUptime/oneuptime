@@ -83,7 +83,7 @@ Everything else reaches out only when you turn it on, and each has a page that n
 
 Connections the other way - SendGrid delivering inbound email, Slack and Microsoft Teams calling back - need the ingress to be reachable from the internet. Which private addresses the app and the probes may reach is up to you: see [Private Network Access](/docs/self-hosted/private-network-access).
 
-OneUptime's logo travels inside every email it sends, so it shows even on a network without internet access, and opening an email asks no other host for it. A logo you upload yourself, such as your own or a status page's, travels inside the email too when it is a PNG, JPEG or GIF of up to 512 KB. Any other image you upload is shown from your OneUptime URL, which the people who read those emails need to be able to reach.
+OneUptime's logo travels inside every email it sends, so it shows even on a network without internet access, and opening an email asks no other host for it. A logo you upload yourself travels inside the email too: your own logo when it is a PNG, JPEG or GIF, and a status page's logo when it is a PNG, JPEG, GIF, WebP or SVG, which OneUptime makes into an image sized for the email's header. Any other image you upload is shown from your OneUptime URL, which the people who read those emails need to be able to reach, and so is a status page's SVG logo whose words are text rather than shapes.
 
 ## Next steps
 

@@ -216,17 +216,26 @@ async function openUsers(
   await page.goto(
     `${USERS}${query}${language === "en" ? "" : `&lang=${language}`}`,
   );
-  await expect(
-    page.getByRole("checkbox", { name: /Ada Lovelace$/ }).first(),
-  ).toBeVisible();
+  await expect(userCheckbox(page, "Ada Lovelace", language)).toBeVisible();
 }
 
-async function selectUsers(page: Page, names: Array<string>): Promise<void> {
+// A row's checkbox, as this language words it: German says "{{name}} auswählen".
+function userCheckbox(page: Page, name: string, language: string): Locator {
+  const label: string = adminWords(language, "Select {{name}}").replace(
+    "{{name}}",
+    `.*: ${name}`,
+  );
+
+  return page.getByRole("checkbox", { name: new RegExp(`^${label}$`) }).first();
+}
+
+async function selectUsers(
+  page: Page,
+  names: Array<string>,
+  language: string = "en",
+): Promise<void> {
   for (const name of names) {
-    await page
-      .getByRole("checkbox", { name: new RegExp(`: ${name}$`) })
-      .first()
-      .check();
+    await userCheckbox(page, name, language).check();
   }
 }
 
@@ -453,7 +462,7 @@ test.describe("the Admin Dashboard's Users list", () => {
     }) => {
       await page.setViewportSize(PHONE);
       await openUsers(page, `&hold=1${variant.theme}`, variant.language);
-      await selectUsers(page, EVERYONE.slice(0, 5));
+      await selectUsers(page, EVERYONE.slice(0, 5), variant.language);
       await chooseBulkAction(
         page,
         adminWords(variant.language, "pages.users.bulkRequireTwoFactorAuth"),

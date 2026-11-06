@@ -105,6 +105,11 @@ describe("every infrastructure monitor form shows its step's bound resource", ()
       field: "clusterIdentifier",
     },
     {
+      file: "OpenStackMonitor/OpenStackMonitorStepForm.tsx",
+      step: "monitorStepOpenStackMonitor",
+      field: "cloudIdentifier",
+    },
+    {
       file: "VMwareMonitor/VMwareMonitorStepForm.tsx",
       step: "monitorStepVMwareMonitor",
       field: "vcenterIdentifier",

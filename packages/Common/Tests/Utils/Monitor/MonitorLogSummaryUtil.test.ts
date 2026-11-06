@@ -131,6 +131,7 @@ const EXPECTED_SLOT: Record<MonitorType, Slot> = {
   [MonitorType.Podman]: Slot.Telemetry,
   [MonitorType.DockerSwarm]: Slot.Telemetry,
   [MonitorType.Proxmox]: Slot.Telemetry,
+  [MonitorType.OpenStack]: Slot.Telemetry,
   [MonitorType.VMware]: Slot.Telemetry,
   [MonitorType.Ceph]: Slot.Telemetry,
   [MonitorType.StorageArray]: Slot.Telemetry,

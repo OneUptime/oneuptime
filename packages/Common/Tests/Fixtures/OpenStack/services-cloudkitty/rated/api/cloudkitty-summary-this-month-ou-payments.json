@@ -1,0 +1,1 @@
+{"total": 1, "columns": ["begin", "end", "qty", "rate", "project_id"], "results": [["2026-11-01T00:00:00+00:00", "2026-12-01T00:00:00+00:00", 3.0, 0.5, "8c3413dee28c4da890948b17f234333d"]], "format": "table"}

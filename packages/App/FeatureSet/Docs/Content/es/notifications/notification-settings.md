@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"todo desactivado"| nothing["No se envía nada"]
 ```
 
-- Cada fila es un evento, y cada columna un canal: Correo electrónico, SMS, Llamada, Push, WhatsApp, Telegram, Slack y Microsoft Teams, y Webhook. Slack y Microsoft Teams solo son columnas cuando el proyecto los ha conectado.
+- Cada fila es un evento, y cada columna un canal: Correo electrónico, SMS, Llamada, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost y Webhook. Slack, Microsoft Teams y Mattermost solo son columnas cuando el proyecto los ha conectado.
 - Un canal activado envía a cada método verificado que tengas en él en este proyecto, no solo a uno.
 - Un canal activado sin un método verificado detrás no envía nada. **Tu lista de configuración** lo indica en **Mantenerse informado**.
 - Una novedad va a los propietarios del registro: las personas nombradas como propietarias y los miembros de sus equipos propietarios. Cuando un registro no tiene propietarios, va en cambio a los propietarios del proyecto. Un evento sobre haber sido añadido como propietario solo va a la persona añadida.

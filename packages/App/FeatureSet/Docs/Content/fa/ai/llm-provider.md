@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 با صورت‌حساب روشن، یا با `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` در مقادیر Helm)، ارائه‌دهنده خود یک پروژه نمی‌تواند به این نشانی درون خوشه برسد، که به یک IP خصوصی خوشه ترجمه می‌شود. به جای آن، ارائه‌دهنده را در Admin Dashboard زیر **تنظیمات** > **ارائه‌دهندگان LLM سراسری** با همان فیلدها بسازید: یک ارائه‌دهنده LLM سراسری می‌تواند به آن نشانی برسد.
 
-برای زمان‌بندی GPU، مدل‌های دارای محدودیت دسترسی و گزینه‌های تنظیم، [راهنمای vLLM چارت Helm](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) را ببینید.
+برای زمان‌بندی GPU، مدل‌های دارای محدودیت دسترسی و گزینه‌های تنظیم، [راهنمای vLLM چارت Helm](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md) را ببینید.
 
 ## روش‌های خوب
 

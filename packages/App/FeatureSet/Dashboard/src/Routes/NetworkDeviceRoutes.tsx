@@ -17,6 +17,7 @@ import NetworkEndpoints from "../Pages/NetworkDevice/Endpoints";
 import NetworkDeviceLinks from "../Pages/NetworkDevice/Links";
 import NetworkDeviceTopology from "../Pages/NetworkDevice/Topology";
 import NetworkDeviceLatencyMatrix from "../Pages/NetworkDevice/LatencyMatrix";
+import NetworkSnmpWalk from "../Pages/NetworkDevice/SnmpWalk";
 import NetworkDeviceOverview from "../Pages/NetworkDevice/View/Index";
 import NetworkDeviceInterfaces from "../Pages/NetworkDevice/View/Interfaces";
 import NetworkDeviceTables from "../Pages/NetworkDevice/View/Tables";
@@ -313,6 +314,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_LATENCY_MATRIX] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_SNMP_WALK] || ""}
+          element={
+            <NetworkSnmpWalk
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_SNMP_WALK] as Route}
             />
           }
         />

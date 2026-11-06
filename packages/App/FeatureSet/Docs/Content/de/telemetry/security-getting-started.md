@@ -62,6 +62,7 @@ Die Karte **Ihre Protokolle** oben auf **Verbindungen** braucht keine Installati
 | AWS CloudTrail | Anmeldungen an der Konsole, Änderungen in Ihren AWS-Konten und Aufrufe, die AWS abgelehnt hat |
 | Google Cloud-Audit-Logs | Änderungen in Ihren Google Cloud-Projekten, von Google abgelehnte Aufrufe und mit Google Cloud geteilte Anmeldungen in Google Workspace |
 | Azure-Aktivitäts- und Entra-ID-Logs | Änderungen in Ihren Azure-Abonnements, Warnungen von Defender for Cloud sowie Anmeldungen und Verzeichnisänderungen in Microsoft Entra ID |
+| OpenStack-Audit-Trail | Fehlgeschlagene Anmeldungen, Rollenzuweisungen und Änderungen in Keystone, was der Audit-Filter von jeder API gesehen hat, für die ganze Welt geöffnete Sicherheitsgruppen und öffentlich gemachte Images |
 | CEF | Bedrohungen, blockierte Verbindungen und Anmeldungen von Firewalls, IDS, WAFs und anderen Sicherheitsprodukten, die Common Event Format senden |
 | LEEF | Dasselbe von Produkten, die Log Event Extended Format senden, wie viele es für IBM QRadar tun |
 | Palo Alto Networks | Bedrohungen, blockierte Verbindungen, GlobalProtect- und Administratoranmeldungen sowie Konfigurationsänderungen aus dem eigenen Syslog von PAN-OS |

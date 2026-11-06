@@ -498,7 +498,7 @@ describe("the incident's card as Microsoft Teams draws it: the buttons, then the
     ]);
   });
 
-  test("Slack and Microsoft Teams get the same blocks: one menu, one set of action ids", async () => {
+  test("Slack, Microsoft Teams and Mattermost get the same blocks: one menu, one set of action ids", async () => {
     const byType: Array<MessageBlocksByWorkspaceType> =
       await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
         incidentId,
@@ -509,7 +509,12 @@ describe("the incident's card as Microsoft Teams draws it: the buttons, then the
       byType.map((entry: MessageBlocksByWorkspaceType) => {
         return entry.workspaceType;
       }),
-    ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
+    ).toEqual([
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ]);
     expect(byType[0]!.messageBlocks).toEqual(byType[1]!.messageBlocks);
+    expect(byType[2]!.messageBlocks).toEqual(byType[0]!.messageBlocks);
   });
 });

@@ -123,7 +123,7 @@ Per un monitor delle query SQL la cui query restituisce un conteggio, avvisare s
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-Per un monitor dello stato dei database, leggete una metrica indicizzando l'intero oggetto `metrics` — i nomi delle serie contengono punti, quindi non possono stare dentro le parentesi graffe:
+Per un monitor dello stato dei database, leggete una metrica scrivendo il nome della serie, con i suoi punti, dentro le parentesi graffe, oppure indicizzando l'intero oggetto `metrics` — funzionano entrambi i modi:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

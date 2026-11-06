@@ -205,6 +205,37 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
   }
 
   /*
+   * The ids of the project's states an event is over in: ended, completed,
+   * and every state of the project's own placed after Ended, such as
+   * "Reviewing" (ScheduledMaintenanceStartUtil.hasEnded). Over comes before
+   * complete: an event is over the moment it ends, and complete only when
+   * someone marks it so. What a read of the events that have run their course
+   * asks for - whether a project told of planned work is told it has ended.
+   * One read of the project's states.
+   */
+  @CaptureSpan()
+  public async getOverScheduledMaintenanceStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    const states: Array<ScheduledMaintenanceState> =
+      await this.getProjectStatesAsRoot(projectId);
+
+    return states
+      .filter((state: ScheduledMaintenanceState): boolean => {
+        return (
+          Boolean(state.id) &&
+          ScheduledMaintenanceStartUtil.hasEnded({
+            states: states,
+            state: state,
+          })
+        );
+      })
+      .map((state: ScheduledMaintenanceState): ObjectID => {
+        return state.id!;
+      });
+  }
+
+  /*
    * A query on an event's state for the states it may be in progress in:
    * all but the built-in scheduled, ended and completed states, where it
    * never is. The ongoing state is in progress; a state of a project's own,

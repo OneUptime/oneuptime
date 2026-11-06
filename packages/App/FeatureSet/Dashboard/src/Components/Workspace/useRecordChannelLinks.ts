@@ -7,7 +7,6 @@ import WorkspaceChannelLinkUtil, {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
-import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import IconProp from "Common/Types/Icon/IconProp";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -59,8 +58,8 @@ interface LoadedLinks {
 }
 
 /*
- * The links to a record's own Slack and Microsoft Teams channels (see
- * ChannelLinks). Empty until they load, when there are none, and when they
+ * The links to a record's own Slack, Microsoft Teams and Mattermost channels
+ * (see ChannelLinks). Empty until they load, when there are none, and when they
  * cannot be read - the button is a shortcut, so a failure hides it rather
  * than putting an error in the page's header.
  */
@@ -144,12 +143,13 @@ const openInNewTab: (url: string) => void = (url: string): void => {
 };
 
 /*
- * The header's Open in Slack / Open in Microsoft Teams button. A button
- * opens its channel in a new tab, so the page stays where the responder left
- * it; a workspace with several channels lists them in a menu under its
- * button. Channels in both workspaces share one Open channel menu, Slack's
- * first: beside two state buttons and a call, two more buttons as wide as
- * "Open in Microsoft Teams" left the record's title a few letters.
+ * The header's Open in Slack / Open in Microsoft Teams / Open in Mattermost
+ * button. A button opens its channel in a new tab, so the page stays where
+ * the responder left it; a workspace with several channels lists them in a
+ * menu under its button. Channels in more than one workspace share one Open
+ * channel menu, Slack's first: beside two state buttons and a call, two more
+ * buttons as wide as "Open in Microsoft Teams" left the record's title a few
+ * letters.
  */
 export function getOpenInChatActions(
   links: Array<WorkspaceChannelLink>,
@@ -189,10 +189,7 @@ export function getOpenInChatActions(
       group.links.length === 1 ? group.links[0] : undefined;
 
     return {
-      id:
-        group.workspaceType === WorkspaceType.Slack
-          ? "open-in-slack"
-          : "open-in-microsoft-teams",
+      id: group.actionId,
       label: group.label,
       icon: group.icon,
       href: onlyLink?.url,

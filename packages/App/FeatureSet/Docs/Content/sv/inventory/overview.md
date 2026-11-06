@@ -96,7 +96,7 @@ Gå till **Produkter → Resurser → Inventarie** och sedan till **Alla objekt*
 
 ### Lägg till objektet
 
-Klicka på **Lägg till Item**. Välj dess **Typ**, ge det ett **Namn** och eventuellt en **Beskrivning**. Namnet och typen utgör tillsammans objektets identitet, så två objekt av samma typ kan inte ha samma namn.
+Klicka på **Lägg till Objekt**. Välj dess **Typ**, ge det ett **Namn** och eventuellt en **Beskrivning**. Namnet och typen utgör tillsammans objektets identitet, så två objekt av samma typ kan inte ha samma namn.
 
 ### Fyll i dess anpassade fält
 

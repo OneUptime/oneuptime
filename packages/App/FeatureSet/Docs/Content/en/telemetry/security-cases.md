@@ -144,7 +144,7 @@ A case opened from Google SecOps alerts closes them in Google SecOps too, with t
 
 ## Case priorities and statuses
 
-Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**. Rename them, recolor them, drag them into another order, and add your own, such as a "Triage" status or an "Emergency" priority above **Critical**. A new name shows everywhere at once: in the queue, on the case pages and the overview, in notifications, in Slack and Microsoft Teams, and in playbook messages.
+Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**. Rename them, recolor them, drag them into another order, and add your own, such as a "Triage" status or an "Emergency" priority above **Critical**. A new name shows everywhere at once: in the queue, on the case pages and the overview, in notifications, in Slack, Microsoft Teams and Mattermost, and in playbook messages.
 
 Some are built in, because OneUptime reads what they mean. They can be renamed and recolored, but not deleted or archived, and they keep their order:
 
@@ -157,7 +157,7 @@ Some are built in, because OneUptime reads what they mean. They can be renamed a
 | The Critical, High, Medium, Low and Informational priorities | A detection opens its case at the one of its severity, and a case someone opens starts at Medium |
 
 - Where a status sits decides what a case in it counts as, as the **Counts as** column shows: from the acknowledged status down, acknowledged; from the contained status down, contained; from the closed status down, closed. A status you add goes just above the closed status, and moving a case into a status that closes it asks for a verdict first.
-- A priority's rank is how urgent it is, the most urgent first: **For Cases At Least**, the notification choices and the Slack and Microsoft Teams rules read this order. A priority you add goes to the end, and the **Detection severity** column shows which detections open their cases at each built-in priority.
+- A priority's rank is how urgent it is, the most urgent first: **For Cases At Least**, the notification choices and the Slack, Microsoft Teams and Mattermost rules read this order. A priority you add goes to the end, and the **Detection severity** column shows which detections open their cases at each built-in priority.
 
 To stop using a status or priority of your own, use **Archive** on its row. Nobody can pick it again, and the API, Terraform and MCP refuse it, but the cases that have it keep it, and you can still filter by it. Archived values are listed in the folded **Archived Case Statuses** or **Archived Case Priorities** section under the table, where **Unarchive** puts one back. **Delete** is refused while cases have the value or a playbook runs from the priority.
 
@@ -218,7 +218,7 @@ OneUptime tells people about five things on a case. Nobody has to set anything u
 
 ### Choose what you are told
 
-Each person chooses for themselves, under **User Settings → Notification Settings → Security**: the channels for each notification (email, SMS, call, push, Telegram, Slack, Microsoft Teams or webhook), and under **New security case**, the priority that notifies them:
+Each person chooses for themselves, under **User Settings → Notification Settings → Security**: the channels for each notification (email, SMS, call, push, Telegram, Slack, Microsoft Teams, Mattermost or webhook), and under **New security case**, the priority that notifies them:
 
 | Choice | Notifies about cases at |
 | --- | --- |
@@ -232,9 +232,9 @@ The choices follow the project's case priorities, under their own names: these a
 
 WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.
 
-### Post to Slack and Microsoft Teams channels
+### Post to Slack, Microsoft Teams and Mattermost channels
 
-To post to a channel, add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**). With neither connected, the section's one entry is **Connect Slack or Teams**. A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
+To post to a channel, add a rule under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**, or **Mattermost**). With none connected, the section's one entry is **Connect a workspace**. A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the cases it is for:
 
 | Condition | Matches on |
 | --- | --- |
@@ -306,11 +306,12 @@ A disabled playbook runs neither by itself nor by hand.
 | Automate | Run a workflow | Starts a OneUptime workflow with the case as its input |
 | Automate | Run a runbook | Starts one of your OneUptime runbooks with the case as its inputs |
 | Automate | Fix the code with AI | Asks OneUptime AI for a pull request that fixes the exceptions the case's requests threw |
+| Flow control | Stop the run | Ends the run there, as done: the steps after it do not run |
 
 A playbook has at most 25 steps. They run in order, each once the one before it is done. Every step can also:
 
 - **Needs Approval**: stop the run before the step until someone approves it on the case. The eight steps that cut someone off always do, unless a Security Admin turns it off. **Run a runbook**, **Post a status page announcement** and the two data store steps start with it on, since they run commands on your systems, speak to your customers or change a cloud's settings; whoever adds the step can turn it off.
-- **Run This Step**: **Always**, or only after a result of a step before it, such as **Check entities against threat intel** finding a known-bad entity; see [Branch on a step's result](#branch-on-a-steps-result).
+- **Run This Step**: **Always**, or only after results of steps before it, such as **Check entities against threat intel** finding a known-bad entity; see [Branch on a step's result](#branch-on-a-steps-result).
 - **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run. It waits under **More fields**, with **Run This Step**.
 
 ### Branch on a step's result
@@ -324,6 +325,12 @@ A playbook has at most 25 steps. They run in order, each once the one before it 
 | Any other step | Succeeded, and failed when it has **Carry On If It Fails** on |
 
 Two steps that wait on opposite results of one step are an if and an else: suspend a user only when threat intel knows them, and otherwise add a task to confirm the sign-in with them. When the step waited on ends another way, the step that waits is skipped, and the run says why under it; so is a step that waits on one that was skipped. A step's card says what it waits on, and a step that another waits on can't be moved below it or deleted until that one runs another way. The **Escalate Known-Bad Indicators** template raises a case's priority and status only when threat intel matched, and a step saved with the old threat intel switch keeps it as **Only if an earlier threat intel check found a known-bad entity**.
+
+A step can wait on up to five results: pick each in **Run This Step**, and **Run When** asks how they are read, **When all of them happened** or **When any one of them happened**. Suspend a user only when threat intel knows them and their activity was found, or page on-call when either lookup found something. A step that waits on all of its results can't wait on two results of one step, such as found and found nothing, since no run has both.
+
+### Stop the run
+
+**Stop the run**, under **Flow control**, ends the run where it is, as done: the steps after it are skipped, each saying where the run stopped, and the run succeeds. With **Run This Step**, it stops only after a result: stop when threat intel found nothing known-bad, and let the containment steps below it run otherwise. What you write in **Why It Stops** is said on the case's timeline when the run stops there. It has nothing to approve and never fails, so it has neither **Needs Approval** nor **Carry On If It Fails**, and no step can wait on it. One that always runs ends every run, so it can only be the last step.
 
 ### Responding through OneUptime
 
@@ -394,7 +401,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Queued | Waiting for a worker |
 | Running | Running its steps |
 | Waiting for Approval | Held before a step that needs approval |
-| Succeeded | Every step ran, or was skipped |
+| Succeeded | Every step ran or was skipped, or a **Stop the run** step ended it |
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
@@ -454,6 +461,10 @@ The case is about no user or host, only an address for example, or every user or
 
 :::details A step that runs only after another was skipped
 The step it waits on ended another way, or was skipped itself: it found nothing known-bad, say, where the step waits for a known-bad entity. Open the run on the case: the skipped step says which step it waited on, and for what. To change it, edit the step and open **More fields**.
+:::
+
+:::details A run ended before its last steps
+A **Stop the run** step ran: the result it waits on came, or it runs always. Open the run on the case: the steps after it say where the run stopped, and the Stop step says why when you gave it a reason. To change when it stops, edit the step and open **More fields**.
 :::
 
 :::details A status or priority can't be deleted or archived
