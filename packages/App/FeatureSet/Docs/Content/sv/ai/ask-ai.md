@@ -50,7 +50,7 @@ Fråga AI läser ditt projekt med dina egna behörigheter, så den ser det du f�
 | Incidenthantering | Incidenter och larm, med tillståndsfilter ("vad är aktivt just nu?"), deras aktivitetstidslinjer (tillståndsändringar, interna och offentliga anteckningar, flödet) och ägare, och en sökning i tidigare incidenter för att återanvända hur de löstes. |
 | Jour | Vem som har jour nu, policyer och eskaleringskedjor, och om de senaste utlarmningarna levererades och kvitterades. |
 | AI:ns eget arbete | Resultaten av AI SRE-undersökningar och AI Insights, så att "vad hittade AI:n?" besvaras utifrån den publicerade analysen i stället för att tas fram på nytt. |
-| Plattform | Monitorer (med statusfilter), schemalagt underhåll, statussidor och deras meddelanden, SLO:er, runbooks, körningar av arbetsflöden, sondernas hälsa, team och koden i anslutna repositorier. |
+| Plattform | Monitorer (med statusfilter), schemalagt underhåll, statussidor och deras meddelanden, SLO:er, runbooks, körningar av arbetsflöden, sondernas hälsa, team och koden i anslutna repositorier på GitHub, GitLab, Forgejo och Gitea (se [Vad AI läser i ett Git-repositorium](/docs/ai/ai-agent#vad-ai-läser-i-ett-git-repositorium)). |
 
 ## Sidkontext
 

@@ -191,6 +191,7 @@
   "oneuptime@vsphere.local",
   "openai",
   "openid email profile",
+  "resource.type=\"cloud_run_revision\" AND severity>=ERROR",
   "sk-admin-...",
   "sk-ant-admin01-...",
   "sk-ant-api01-...",

@@ -11,6 +11,7 @@ import fs from "fs";
 import path from "path";
 import {
   AI_INSIGHTS_EMPTY_TITLE,
+  AI_INSIGHTS_FACT_SEPARATOR,
   AI_INSIGHTS_FINDING_LABEL,
   AI_INSIGHTS_FROM_REPORT_NOTE,
   AI_INSIGHTS_NEXT_STEP_LABEL,
@@ -51,6 +52,7 @@ import {
   hasAiActivity,
   isGettingWorse,
   isNewProblem,
+  joinFacts,
   parseAiActivityInsights,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsData";
 import {
@@ -1217,6 +1219,56 @@ describe("each insight's headline: one thing worth knowing, in one line", () => 
     );
   });
 
+  /*
+   * As the AI card's Remediation step says it (RemediationFixActGate): a
+   * fix waits for approval - not the reader's - to someone the server would
+   * refuse. Left out, or true, the reader's.
+   */
+  test.each([
+    [false, 1, "A fix is waiting for approval"],
+    [false, 4, "4 fixes are waiting for approval"],
+    [true, 1, "A fix is waiting for your approval"],
+    [true, 4, "4 fixes are waiting for your approval"],
+    [undefined, 1, "A fix is waiting for your approval"],
+    [undefined, 4, "4 fixes are waiting for your approval"],
+  ])(
+    "waiting fixes, to a reader who may approve them: %p, %p of them",
+    (mayApproveFixes: boolean | undefined, count: number, words: string) => {
+      expect(
+        describeInsightHeadline(
+          insight(AiActivityInsightKind.FixesAwaitingApproval, { count }),
+          mayApproveFixes === undefined
+            ? INCIDENTS
+            : { ...INCIDENTS, mayApproveFixes },
+        ),
+      ).toBe(words);
+    },
+  );
+
+  test("whom a fix waits for changes only the waiting fixes' heading", () => {
+    const refused: AiInsightWordingContext = {
+      ...CLUSTER,
+      mayApproveFixes: false,
+    };
+
+    for (const kind of Object.values(AiActivityInsightKind)) {
+      if (kind === AiActivityInsightKind.FixesAwaitingApproval) {
+        continue;
+      }
+
+      const subject: AiActivityInsight = insight(kind, { count: 2 });
+
+      expect({
+        kind,
+        words: describeInsightHeadline(subject, refused),
+      }).toEqual({ kind, words: describeInsightHeadline(subject, CLUSTER) });
+      expect({ kind, facts: describeInsightFacts(subject, refused) }).toEqual({
+        kind,
+        facts: describeInsightFacts(subject, CLUSTER),
+      });
+    }
+  });
+
   test("what AI did not look into is said in the product's own noun", () => {
     expect(
       describeInsightHeadline(
@@ -1614,6 +1666,50 @@ describe("when a problem tends to happen, in the reader's own time", () => {
   });
 });
 
+/*
+ * A line of facts - "3 fixes proposed · 2 applied" - is joined with a
+ * middle dot, and in Persian with the Persian comma: Persian writes zero as
+ * a dot ("۰"), and a middle dot beside a count read as one more digit of
+ * it ("۴ · ۲" as "۴۰ ۲").
+ */
+describe("facts joined like a list", () => {
+  test("English, German, Japanese and Chinese: a middle dot between them", () => {
+    expect(AI_INSIGHTS_FACT_SEPARATOR).toBe(" · ");
+    expect(joinFacts(["3 fixes proposed", "2 applied"])).toBe(
+      "3 fixes proposed · 2 applied",
+    );
+    expect(joinFacts(["3 Korrekturen vorgeschlagen", "2 angewendet"])).toBe(
+      "3 Korrekturen vorgeschlagen · 2 angewendet",
+    );
+    expect(
+      joinFacts(["\u{4FEE}\u{6B63} 3 \u{4EF6}", "\u{9069}\u{7528} 2 \u{4EF6}"]),
+    ).toBe("\u{4FEE}\u{6B63} 3 \u{4EF6} · \u{9069}\u{7528} 2 \u{4EF6}");
+  });
+
+  test("Persian: the Persian comma, never a dot beside a Persian digit", () => {
+    const persian: Array<string> = [
+      "\u{6F6} \u{627}\u{635}\u{644}\u{627}\u{62D} \u{67E}\u{6CC}\u{634}\u{646}\u{647}\u{627}\u{62F} \u{634}\u{62F}",
+      "\u{6F4} \u{627}\u{639}\u{645}\u{627}\u{644}\u{200C}\u{634}\u{62F}\u{647}",
+      "\u{6F2} \u{631}\u{627}\u{633}\u{62A}\u{6CC}\u{200C}\u{622}\u{632}\u{645}\u{627}\u{6CC}\u{6CC}\u{200C}\u{634}\u{62F}\u{647}",
+    ];
+    const line: string = joinFacts(persian);
+
+    expect(line).toBe(persian.join("\u{60C} "));
+    expect(line).not.toContain("\u{B7}");
+  });
+
+  test("a line one of whose facts is Persian is a Persian line", () => {
+    expect(
+      joinFacts(["Checkout API", "\u{6F2} \u{645}\u{634}\u{6A9}\u{644}"]),
+    ).toBe("Checkout API\u{60C} \u{6F2} \u{645}\u{634}\u{6A9}\u{644}");
+  });
+
+  test("one fact, or none, is joined with nothing", () => {
+    expect(joinFacts(["3 times"])).toBe("3 times");
+    expect(joinFacts([])).toBe("");
+  });
+});
+
 describe("a problem's lines", () => {
   test("how often, how much of it this week, how often investigated, and when last", () => {
     expect(describeProblemCount(recurringProblem())).toBe(
@@ -1814,11 +1910,12 @@ describe("the trend", () => {
   test("each day says what happened on it, without the fixes for a reader who may not see them", () => {
     const day: AiActivityTrendDay = makeTrend()[29]!;
 
+    // The day as the reader's calendar writes it, not the server's key.
     expect(describeTrendDay(day)).toBe(
-      "2026-09-30: 2 investigations, 1 failed, 1 fixes",
+      "30 Sep: 2 investigations, 1 failed, 1 fixes",
     );
     expect(describeTrendDay(day, { fixesHidden: true })).toBe(
-      "2026-09-30: 2 investigations, 1 failed",
+      "30 Sep: 2 investigations, 1 failed",
     );
   });
 });
@@ -1923,6 +2020,7 @@ describe("the words are in every Dashboard locale", () => {
     "OneUptime AI applied {{count}} fixes on its own",
     "{{count}} fixes did not solve the problems they were for",
     "{{count}} fixes are waiting for your approval",
+    "{{count}} fixes are waiting for approval",
     "Your team approved every fix OneUptime AI proposed here",
     "Spotted before anything paged: {{title}}",
     "It happened {{count}} times in the last {{days}} days.",
@@ -1961,6 +2059,7 @@ describe("the words are in every Dashboard locale", () => {
     "OneUptime AI applied {{count}} fixes on its own",
     "{{count}} fixes did not solve the problems they were for",
     "{{count}} fixes are waiting for your approval",
+    "{{count}} fixes are waiting for approval",
     "It happened {{count}} times in the last {{days}} days.",
     "That is {{shown}} of the {{count}} incidents and alerts on this {{noun}} in the last {{days}} days.",
     "{{count}} times",

@@ -9,6 +9,8 @@ Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt frå
 - [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar, hälsohändelser och kostnader, hur ofta och vad det kostar att läsa dem.
 - [Molnkostnader och besparingar](/docs/telemetry/cloud-costs): Vad varje konto kostar, sätten att spendera mindre och budgetar som larmar.
 - [Strömma CloudWatch-mätvärden och -loggar](/docs/telemetry/cloud-streaming): Varje mätvärde inom några minuter, och CloudWatch Logs, via Amazon Data Firehose.
+- [Strömma Azure Monitor-mätvärden och -loggar](/docs/telemetry/cloud-streaming-azure): Nyckelmätvärden inom några minuter och resursloggar, lästa från händelsehubbar i din prenumeration.
+- [Strömma Google Cloud-loggar](/docs/telemetry/cloud-streaming-google-cloud): Varje logg så snart den skrivs, pushad via Pub/Sub.
 - [Datasäkerhet](#datasäkerhet): Vad anslutningen låter Datasäkerhet läsa, och vad varje nivå lägger till i kommandot.
 - [Låt AI åtgärda problem](#låt-ai-åtgärda-problem): Ett kommando till, så kan OneUptime AI åtgärda det den hittar.
 :::
