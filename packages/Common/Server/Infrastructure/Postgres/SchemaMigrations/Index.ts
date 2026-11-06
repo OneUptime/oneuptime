@@ -911,6 +911,7 @@ import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./
 import { AddCloudAccountAiAgentKeys1808994400000 } from "./1808994400000-AddCloudAccountAiAgentKeys";
 import { AddProjectDefaultTableColumns1808994500000 } from "./1808994500000-AddProjectDefaultTableColumns";
 import { AddEmailProviderSettings1808994600000 } from "./1808994600000-AddEmailProviderSettings";
+import { WidenGitBranchNameColumns1808994780000 } from "./1808994780000-WidenGitBranchNameColumns";
 
 export default [
   InitialMigration,
@@ -1826,4 +1827,5 @@ export default [
   AddScheduledMaintenanceCloudResources1808994417000,
   AddProjectDefaultTableColumns1808994500000,
   AddEmailProviderSettings1808994600000,
+  WidenGitBranchNameColumns1808994780000,
 ];

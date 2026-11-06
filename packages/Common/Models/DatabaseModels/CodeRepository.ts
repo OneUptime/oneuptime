@@ -405,6 +405,15 @@ export default class CodeRepository extends BaseModel {
   })
   public repositoryName?: string = undefined;
 
+  /*
+   * The branch AI's work starts from: the default branch the host reported
+   * when the repository was connected, or the one a person typed. A branch
+   * name is an identifier, so it is stored whole: a name cut to fit is
+   * another branch. LongText, 500 characters, holds any branch GitHub takes
+   * (255 bytes for the whole ref, and a name never has more characters than
+   * bytes); at ShortText's 100 a repository whose default branch is longer
+   * could not be connected.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -435,7 +444,7 @@ export default class CodeRepository extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Main Branch Name",
     description: "The name of the main/default branch",
@@ -443,8 +452,8 @@ export default class CodeRepository extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     default: "main",
   })
   public mainBranchName?: string = undefined;
