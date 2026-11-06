@@ -1,9 +1,7 @@
 import zlib from "zlib";
 import { promisify } from "util";
-import {
-  CloudLogGroupResource,
-  getAwsLogGroupResource,
-} from "Common/Types/Cloud/CloudLogGroups";
+import { getAwsLogGroupAttributes } from "Common/Types/Cloud/CloudLogGroups";
+import { CLOUD_CONNECTION_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudConnectionTelemetry";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import { FIREHOSE_SCOPE_NAME, OtlpAttribute } from "./CloudWatchMetricStream";
 
@@ -33,7 +31,10 @@ import { FIREHOSE_SCOPE_NAME, OtlpAttribute } from "./CloudWatchMetricStream";
  * (cloud.account.id, cloud.region - the Firehose stream's, which a
  * subscription shares with its log group) and the group's name
  * (aws.log.group.name); when the group's name says the resource it is the
- * log of, that resource's id too (cloud.resource_id, CloudLogGroups). Each
+ * log of, that resource's id too (cloud.resource_id, CloudLogGroups), and
+ * when it is an App Platforms platform's - an App Runner service, an
+ * Elastic Beanstalk environment, an ECS cluster or task - cloud.platform,
+ * which puts its logs on the platform's environment. Each
  * event is one log record: its time, its message as the body, its stream
  * and id as attributes, and the severity its message says when it says one
  * the way Lambda writes it (inferCloudWatchLogSeverity).
@@ -395,7 +396,7 @@ export function buildResourceLogs(data: {
       | undefined = groups.get(key);
 
     if (!group) {
-      const filed: CloudLogGroupResource | null = getAwsLogGroupResource({
+      const filed: Record<string, string> = getAwsLogGroupAttributes({
         logGroup: message.logGroup,
         accountId: message.owner,
         region: data.region,
@@ -404,7 +405,7 @@ export function buildResourceLogs(data: {
       const attributes: Array<OtlpAttribute> = [
         stringAttribute("service.name", data.serviceName),
         stringAttribute("cloud.provider", "aws"),
-        stringAttribute("oneuptime.cloud.connection.id", data.connectionId),
+        stringAttribute(CLOUD_CONNECTION_ID_ATTRIBUTE, data.connectionId),
         ...(message.owner
           ? [stringAttribute("cloud.account.id", message.owner)]
           : []),
@@ -412,14 +413,9 @@ export function buildResourceLogs(data: {
         ...(message.logGroup
           ? [stringAttribute(AWS_LOG_GROUP_NAME_ATTRIBUTE, message.logGroup)]
           : []),
-        ...Object.keys(filed?.attributes || {}).map(
-          (attributeKey: string): OtlpAttribute => {
-            return stringAttribute(
-              attributeKey,
-              filed!.attributes[attributeKey]!,
-            );
-          },
-        ),
+        ...Object.keys(filed).map((attributeKey: string): OtlpAttribute => {
+          return stringAttribute(attributeKey, filed[attributeKey]!);
+        }),
       ];
 
       group = {
