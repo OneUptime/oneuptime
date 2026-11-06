@@ -29,9 +29,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 import RemediationStep from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
-import {
-  REMEDIATION_TWO_APPROVALS_COPY,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
+import { REMEDIATION_TWO_APPROVALS_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
 import { TWO_APPROVALS_COLUMN } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/FixApprovalsCopy";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
@@ -125,7 +123,10 @@ function waitingFix(
   });
 }
 
-function firstApprovedBy(userId: ObjectID, name: string): Record<string, unknown> {
+function firstApprovedBy(
+  userId: ObjectID,
+  name: string,
+): Record<string, unknown> {
   const user: User = new User();
   user.name = new Name(name);
 
@@ -193,19 +194,17 @@ beforeEach(() => {
   served = [waitingFix()];
   isRuleOn = true;
 
-  jest
-    .spyOn(ModelAPI, "getList")
-    .mockImplementation((async (data: {
-      modelType: { new (): unknown };
-    }): Promise<
-      ListResult<AutoRemediationDecision | AutoRemediationSuggestion>
-    > => {
-      if (data.modelType === AutoRemediationDecision) {
-        return { data: [], count: 0, skip: 0, limit: 5 };
-      }
+  jest.spyOn(ModelAPI, "getList").mockImplementation((async (data: {
+    modelType: { new (): unknown };
+  }): Promise<
+    ListResult<AutoRemediationDecision | AutoRemediationSuggestion>
+  > => {
+    if (data.modelType === AutoRemediationDecision) {
+      return { data: [], count: 0, skip: 0, limit: 5 };
+    }
 
-      return { data: served, count: served.length, skip: 0, limit: 10 };
-    }) as never);
+    return { data: served, count: served.length, skip: 0, limit: 10 };
+  }) as never);
   getItemSpy = jest
     .spyOn(ModelAPI, "getItem")
     .mockImplementation((async (): Promise<Project> => {

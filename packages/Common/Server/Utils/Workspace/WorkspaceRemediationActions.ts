@@ -202,8 +202,7 @@ export default class WorkspaceRemediationActions {
       needed,
       hasFirstApproval: true,
       firstApproverName:
-        (await this.getUserName(suggestion.firstApprovedByUserId)) ||
-        undefined,
+        (await this.getUserName(suggestion.firstApprovedByUserId)) || undefined,
     };
   }
 

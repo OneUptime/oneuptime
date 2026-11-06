@@ -99,8 +99,7 @@ export default class MicrosoftTeamsRemediationActions {
      * would be refused.
      */
     if (
-      data.actionType !==
-      MicrosoftTeamsRemediationActionType.DismissRemediation
+      data.actionType !== MicrosoftTeamsRemediationActionType.DismissRemediation
     ) {
       const alreadyApproved: WorkspaceAnswer | null =
         await WorkspaceRemediationActions.getAlreadyApprovedAnswer({

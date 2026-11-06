@@ -54,13 +54,13 @@ function mockUpdateQueryBuilder(affected: number = 1): RecordedUpdate {
     },
   };
 
-  jest.spyOn(AutoRemediationSuggestionService, "getRepository").mockReturnValue(
-    {
+  jest
+    .spyOn(AutoRemediationSuggestionService, "getRepository")
+    .mockReturnValue({
       createQueryBuilder: () => {
         return builder;
       },
-    } as never,
-  );
+    } as never);
 
   return recorded;
 }
@@ -72,11 +72,9 @@ const MAYA: string = "9b000000-0000-4000-8000-0000000000aa";
 const SAM: string = "9b000000-0000-4000-8000-0000000000bb";
 
 function clauses(recorded: RecordedUpdate): Array<string> {
-  return recorded.wheres.map(
-    (where: { clause: string }): string => {
-      return where.clause;
-    },
-  );
+  return recorded.wheres.map((where: { clause: string }): string => {
+    return where.clause;
+  });
 }
 
 function approvalSet(approver: string): SuggestionTransitionSet {

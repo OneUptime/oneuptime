@@ -765,10 +765,9 @@ describe("the pages draw switches first, and fold the limits", () => {
     );
 
     // Off for every project, set by owners and admins only.
-    const metadata: TableColumnMetadata =
-      new Project().getTableColumnMetadata(
-        "requireTwoApprovalsForRiskierFixes",
-      );
+    const metadata: TableColumnMetadata = new Project().getTableColumnMetadata(
+      "requireTwoApprovalsForRiskierFixes",
+    );
     expect(metadata.type).toBe(TableColumnType.Boolean);
     expect(metadata.defaultValue).toBe(false);
     expect(

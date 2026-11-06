@@ -179,7 +179,9 @@ describe("before anyone approves a riskier fix two people must approve", () => {
       "approval",
     );
 
-    expect(step.title).toBe(REMEDIATION_FIX_STEP_COPY.waitingForSomeonesApproval);
+    expect(step.title).toBe(
+      REMEDIATION_FIX_STEP_COPY.waitingForSomeonesApproval,
+    );
     expect(step.summary).toBe("Two people must approve this riskier fix.");
   });
 
@@ -361,9 +363,11 @@ describe("once a fix two people approved is decided", () => {
       }),
     });
 
-    expect(kinds(steps).filter((kind: string): boolean => {
-      return kind === "firstApproval";
-    })).toEqual([]);
+    expect(
+      kinds(steps).filter((kind: string): boolean => {
+        return kind === "firstApproval";
+      }),
+    ).toEqual([]);
   });
 
   test("dismissed after a first approval: the first approval stays in its story", () => {
@@ -513,9 +517,9 @@ describe("the pill and the fact beside the fix", () => {
   });
 
   test("another fix that waits for the reader still needs their approval", () => {
-    expect(
-      pill([facts(approvedFirstByMaya(), MAYA), facts(fix(), MAYA)]),
-    ).toBe(REMEDIATION_STEP_STATUS_TEXT.needsApproval);
+    expect(pill([facts(approvedFirstByMaya(), MAYA), facts(fix(), MAYA)])).toBe(
+      REMEDIATION_STEP_STATUS_TEXT.needsApproval,
+    );
   });
 });
 
@@ -625,6 +629,8 @@ describe("in the reader's language", () => {
       "این اصلاح پرخطرتر را باید دو نفر تأیید کنند. تأیید شما آن را اجرا می‌کند.",
     );
     // Maya's name keeps its own direction in a right-to-left sentence.
-    expect(stepOf(persian, "firstApproval").title).toContain("\u{2068}Maya Chen\u{2069}");
+    expect(stepOf(persian, "firstApproval").title).toContain(
+      "\u{2068}Maya Chen\u{2069}",
+    );
   });
 });

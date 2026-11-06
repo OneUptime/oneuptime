@@ -101,9 +101,7 @@ describe("what a riskier change is", () => {
         resourceCommand(ResourceCommandTier.SafeWrite),
       ),
     ).toBe(false);
-    expect(isRiskierRemediationCommand(resourceCommand(undefined))).toBe(
-      false,
-    );
+    expect(isRiskierRemediationCommand(resourceCommand(undefined))).toBe(false);
   });
 
   test("a tier is read for its own kind of step only", () => {
@@ -212,9 +210,10 @@ describe("how many approvals a fix needs", () => {
     ];
 
     for (const each of cases) {
-      expect({ ...each, needed: getRemediationApprovalsNeeded(each) }).toEqual(
-        { ...each, needed: 1 },
-      );
+      expect({ ...each, needed: getRemediationApprovalsNeeded(each) }).toEqual({
+        ...each,
+        needed: 1,
+      });
     }
   });
 });

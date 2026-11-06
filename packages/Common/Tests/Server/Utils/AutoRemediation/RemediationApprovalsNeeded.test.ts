@@ -114,7 +114,9 @@ describe("the commands this suite tiers, as the policies tier them", () => {
 describe("isRiskierChangeNow", () => {
   test("a stored RiskyWrite tier counts, whatever the command", () => {
     expect(
-      isRiskierChangeNow(kubectl(KUBECTL_RESTART, KubectlCommandTier.RiskyWrite)),
+      isRiskierChangeNow(
+        kubectl(KUBECTL_RESTART, KubectlCommandTier.RiskyWrite),
+      ),
     ).toBe(true);
     expect(
       isRiskierChangeNow(cloud(SCALE_OUT, ResourceCommandTier.RiskyWrite)),
@@ -138,7 +140,9 @@ describe("isRiskierChangeNow", () => {
 
   test("a safe change stored and tiered safe now is not one", () => {
     expect(
-      isRiskierChangeNow(kubectl(KUBECTL_RESTART, KubectlCommandTier.SafeWrite)),
+      isRiskierChangeNow(
+        kubectl(KUBECTL_RESTART, KubectlCommandTier.SafeWrite),
+      ),
     ).toBe(false);
     expect(
       isRiskierChangeNow(cloud(SCALE_OUT, ResourceCommandTier.SafeWrite)),

@@ -445,7 +445,9 @@ describe("the person who approved a riskier fix first", () => {
 
   test("someone else's press answers with the approval card, as the second approval", async () => {
     readFix.mockResolvedValue(
-      approvedFirstBy(new ObjectID("90000000-0000-4000-8000-000000000009")) as never,
+      approvedFirstBy(
+        new ObjectID("90000000-0000-4000-8000-000000000009"),
+      ) as never,
     );
     const turn: FakeTurn = createTurn();
 

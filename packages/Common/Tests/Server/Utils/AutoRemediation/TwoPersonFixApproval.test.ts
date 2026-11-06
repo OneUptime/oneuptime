@@ -186,7 +186,9 @@ function planOf(
 // The suggestion, as one row the conditional writes act on.
 type Row = Record<string, unknown>;
 
-function suggestionRow(plan: JSONObject = planOf(STOP_INSTANCE, ResourceCommandTier.RiskyWrite)): Row {
+function suggestionRow(
+  plan: JSONObject = planOf(STOP_INSTANCE, ResourceCommandTier.RiskyWrite),
+): Row {
   return {
     id: SUGGESTION_ID,
     _id: SUGGESTION_ID.toString(),
@@ -384,14 +386,14 @@ beforeEach(() => {
 
       return null as never;
     });
-  jest.spyOn(IncidentService, "findOneById").mockImplementation(
-    async (): Promise<never> => {
+  jest
+    .spyOn(IncidentService, "findOneById")
+    .mockImplementation(async (): Promise<never> => {
       const incident: Incident = new Incident();
       incident.title = "Checkout instance wedged";
       incident.incidentNumberWithPrefix = "INC-42";
       return incident as never;
-    },
-  );
+    });
 });
 
 afterEach(() => {
@@ -511,9 +513,7 @@ describe("a riskier fix where the project asks two people to approve one", () =>
       ).toBe(true);
       if (where !== "Dashboard") {
         expect(String(item["feedInfoInMarkdown"])).toContain(
-          where === WorkspaceType.Slack
-            ? "from Slack"
-            : "from Microsoft Teams",
+          where === WorkspaceType.Slack ? "from Slack" : "from Microsoft Teams",
         );
       }
     },
@@ -739,9 +739,7 @@ describe("one approval runs a fix, as before", () => {
       expect(row["status"]).toBe(AutoRemediationSuggestionStatus.Approved);
       expect(String(row["approvedByUserId"])).toBe(MAYA_ID.toString());
       expect(execute).toHaveBeenCalledTimes(1);
-      expect(feedMarkdowns()[0]).toContain(
-        "Approved the **AI command plan**",
-      );
+      expect(feedMarkdowns()[0]).toContain("Approved the **AI command plan**");
       expect(feedMarkdowns()[0]).not.toContain("someone else");
     },
   );

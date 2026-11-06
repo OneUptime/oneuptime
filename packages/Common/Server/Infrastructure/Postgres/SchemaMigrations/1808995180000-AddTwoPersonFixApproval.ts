@@ -20,7 +20,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * No index or foreign key is added here, so nothing scans, locks or
  * rewrites either table.
  */
-export class AddTwoPersonFixApproval1808995180000 implements MigrationInterface {
+export class AddTwoPersonFixApproval1808995180000
+  implements MigrationInterface
+{
   public name: string = "AddTwoPersonFixApproval1808995180000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
