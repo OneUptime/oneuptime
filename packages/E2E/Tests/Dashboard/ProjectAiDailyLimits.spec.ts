@@ -32,7 +32,9 @@ import { boxesInOneFrame } from "../../SuiteHelpers/Frames";
  *    and said in dollars; elsewhere the card has no such field and the API
  *    refuses one;
  *  - the server refuses a limit of 0 and points at Enable AI;
- *  - a cleared field is no limit again.
+ *  - a cleared field is no limit again;
+ *  - Fix approvals' switch is off for a new project, and turned on by its
+ *    owner it is stored and named as set in the folded header.
  *
  * No LLM provider is needed: nothing here calls a model. Enforcement - a
  * call past a limit refused, logged and explained - is covered by the
@@ -361,5 +363,55 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     await expect(summary()).toContainText(
       "Nothing limits how much OneUptime AI uses each day.",
     );
+  });
+
+  // Whether the project asks two people to approve a riskier fix, as stored.
+  const storedTwoApprovalsRule: () => Promise<unknown> =
+    async (): Promise<unknown> => {
+      const response: APIResponse = await page.request.post(
+        urlFor(`/api/project/${projectId}/get-item`),
+        {
+          headers: { tenantid: projectId },
+          data: { select: { requireTwoApprovalsForRiskierFixes: true } },
+        },
+      );
+      expect(response.ok(), await response.text()).toBe(true);
+
+      return ((await response.json()) as Record<string, unknown>)[
+        "requireTwoApprovalsForRiskierFixes"
+      ];
+    };
+
+  /*
+   * Fix approvals (#6148's follow-up): one switch, off for a new project,
+   * that the project's owner turns on from its card. It is stored the moment
+   * it is flipped, and the folded header names it as set after a reload.
+   */
+  test("Fix approvals: off for a new project; turned on, it is stored and the folded header says two people approve", async () => {
+    await openAiFeatures();
+
+    const fixApprovals: Locator = section().locator(
+      '[data-testid="folded-section-item"][data-item-key="FixApprovals"]',
+    );
+    await expect(fixApprovals).toHaveText("Fix approvals");
+    await expect(fixApprovals).toHaveAttribute("data-item-set", "false");
+    expect(await storedTwoApprovalsRule()).toBe(false);
+
+    await foldHeader().click();
+    await expect(foldHeader()).toHaveAttribute("aria-expanded", "true");
+    const control: Locator = section().getByRole("switch", {
+      name: "Two people approve riskier fixes",
+    });
+    await expect(control).toHaveAttribute("aria-checked", "false");
+
+    await control.click();
+
+    await expect(control).toHaveAttribute("aria-checked", "true");
+    await expect.poll(storedTwoApprovalsRule).toBe(true);
+
+    await openAiFeatures();
+    await expect(foldHeader()).toHaveAttribute("aria-expanded", "false");
+    await expect(fixApprovals).toHaveText("Fix approvals: Two people");
+    await expect(fixApprovals).toHaveAttribute("data-item-set", "true");
   });
 });
