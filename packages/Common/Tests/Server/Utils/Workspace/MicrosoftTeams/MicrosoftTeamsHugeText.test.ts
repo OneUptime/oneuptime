@@ -240,9 +240,11 @@ describe("Microsoft Teams incoming webhook card - text of any size", () => {
   /*
    * The line of only a link is its button, and not text as well
    * (isOnlyLinks): "Open incident" was the last line of the text, right
-   * above the button with the same words.
+   * above the button with the same words. The severity is drawn first, as
+   * the message names it: one section of text and facts drew the text above
+   * it (toMessageCardSections).
    */
-  test("a text that fits makes the card it always made", async () => {
+  test("a text that fits makes its card: the severity, then the text written under it", async () => {
     const card: JSONObject = await cardFor(
       "## Incident created\n\n**Severity:** High\n\nThe API is down.\n\n[Open incident](https://oneuptime.example.com/i/1)",
     );
@@ -255,8 +257,11 @@ describe("Microsoft Teams incoming webhook card - text of any size", () => {
       sections: [
         {
           markdown: true,
-          text: "The API is down.",
           facts: [{ name: "Severity", value: "High" }],
+        },
+        {
+          markdown: true,
+          text: "The API is down.",
         },
       ],
       potentialAction: [

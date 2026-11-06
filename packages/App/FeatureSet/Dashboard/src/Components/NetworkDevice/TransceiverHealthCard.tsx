@@ -61,6 +61,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   networkDeviceId: ObjectID;
@@ -577,7 +578,7 @@ const TransceiverListItem: FunctionComponent<RowProps> = (
         {optic || "—"}
         {transceiver.serialNumber ? (
           <span className="text-xs text-gray-500">
-            {" · "}
+            <InlineSeparator />
             {translator.translateTemplate("S/N {{serial}}", {
               serial: transceiver.serialNumber,
             })}

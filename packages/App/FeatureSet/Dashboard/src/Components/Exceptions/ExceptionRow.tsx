@@ -25,6 +25,7 @@ import ExceptionTrendSparkline, {
   SPARKLINE_HEIGHT,
   SPARKLINE_WIDTH,
 } from "./ExceptionTrendSparkline";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ExceptionRowProps {
   exception: TelemetryException;
@@ -274,7 +275,9 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               )}
               {lastSeen && (
                 <>
-                  <span className="text-gray-300">·</span>
+                  <span className="text-gray-300">
+                    <InlineSeparator markOnly />
+                  </span>
                   <span>
                     <TranslatedSentence
                       template="last {{time}}"
@@ -289,7 +292,9 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
                   </span>
                 </>
               )}
-              <span className="text-gray-300">·</span>
+              <span className="text-gray-300">
+                <InlineSeparator markOnly />
+              </span>
               <span>
                 <TranslatedSentence
                   template={{
@@ -308,7 +313,9 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               </span>
               {affectedUsers > 0 && (
                 <>
-                  <span className="text-gray-300">·</span>
+                  <span className="text-gray-300">
+                    <InlineSeparator markOnly />
+                  </span>
                   <span
                     title={translator.translateText(
                       "Distinct users this exception happened to in this time range",

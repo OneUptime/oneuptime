@@ -12,7 +12,16 @@ import {
   parseWaitingInvestigation,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationWaitingState";
 import OneUptimeDate from "../../../Types/Date";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 import Timezone from "../../../Types/Timezone";
+
+const LATIN_DIGIT: RegExp = /[0-9]/;
+
+// A space, a no-break space or a narrow one: the same to a reader.
+const ANY_SPACE: RegExp = /\s/g;
+
+// "23. Okt., 12:00" or "23. Okt., 12:00 PM": German's day, its comma, the time.
+const GERMAN_DAY_AND_TIME: RegExp = /^23\. Okt\., 12:00( PM)?$/;
 
 /*
  * The AI Investigation card while an investigation rule makes OneUptime AI
@@ -158,6 +167,39 @@ describe("getWaitEndKind and formatWaitUntil", () => {
     expect(formatWaitUntil(later, now)).toBe(
       `${OneUptimeDate.getDateAsLocalDayMonthString(later)}, ${clockTime(later)}`,
     );
+  });
+
+  /*
+   * The day and the time are joined as the reader's language joins them:
+   * a Persian card read "۲۳ اکتبر, ۱۲:۰۰" - English's Latin comma between
+   * two Persian halves.
+   */
+  test("further off, in Persian and German: the day and the time joined as each language joins them", () => {
+    const now: Date = new Date("2026-10-20T12:00:00.000Z");
+    const later: Date = new Date("2026-10-23T11:00:00.000Z");
+
+    try {
+      setDateDisplayLanguage("fa");
+
+      const persian: string = formatWaitUntil(later, now);
+
+      expect(persian).toContain("،");
+      expect(persian).not.toContain(",");
+      expect(persian).not.toMatch(LATIN_DIGIT);
+      expect(persian).toBe(
+        OneUptimeDate.getDateAsLocalDayMonthTimeString(later, {
+          use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+        }),
+      );
+
+      setDateDisplayLanguage("de");
+
+      expect(formatWaitUntil(later, now).replace(ANY_SPACE, " ")).toMatch(
+        GERMAN_DAY_AND_TIME,
+      );
+    } finally {
+      setDateDisplayLanguage(null);
+    }
   });
 
   test("the same date a year apart is not today", () => {

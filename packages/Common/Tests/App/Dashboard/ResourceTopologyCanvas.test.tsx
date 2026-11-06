@@ -1047,7 +1047,12 @@ describe("level of detail", () => {
 });
 
 describe("the zoom buttons", () => {
-  test("sit where a line starts: bottom left, or bottom right read right to left", () => {
+  /*
+   * Where a line starts: the bottom left, which Theme.css mirrors to the
+   * bottom right on a page read right to left, as it does every canvas's
+   * panels. Named the same way in both, so the map never turns them twice.
+   */
+  test("sit where a line starts: bottom left, mirrored by the page read right to left", () => {
     renderMap();
     expect(mockControls?.["position"]).toBe("bottom-left");
     expect(mockControls?.["showInteractive"]).toBe(false);
@@ -1057,7 +1062,7 @@ describe("the zoom buttons", () => {
     cleanup();
     document.documentElement.setAttribute("dir", "rtl");
     renderMap();
-    expect(mockControls?.["position"]).toBe("bottom-right");
+    expect(mockControls?.["position"]).toBe("bottom-left");
   });
 });
 

@@ -44,6 +44,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * "Can this policy actually page the people on it?", answered on the page an
@@ -398,11 +399,11 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
         {user.reachedVia.length > 0 ? (
           <p className="mt-2 text-xs text-gray-500">
             {translator.translateTemplate("On this policy via {{sources}}.", {
-              sources: user.reachedVia
-                .map((source: ResponderSourceValue): string => {
+              sources: joinList(
+                user.reachedVia.map((source: ResponderSourceValue): string => {
                   return getResponderSourceLabel(source);
-                })
-                .join(", "),
+                }),
+              ),
             })}
           </p>
         ) : (

@@ -17,6 +17,7 @@ import React, {
 } from "react";
 import RelativeTime from "../EpisodeView/RelativeTime";
 import { EpisodePickerPill } from "./EpisodeMembersApi";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The list the episode dialogs pick from: incidents or alerts to add to an
@@ -320,7 +321,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
                     {item.meta && item.date && (
                       // A count and a time are two facts, not one phrase.
                       <span aria-hidden="true" className="text-gray-400">
-                        ·
+                        <InlineSeparator markOnly />
                       </span>
                     )}
                     {item.date && (

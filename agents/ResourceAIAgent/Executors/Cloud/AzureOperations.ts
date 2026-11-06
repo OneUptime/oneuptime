@@ -73,6 +73,7 @@ export const ARM_API_VERSIONS: Readonly<Record<string, string>> = {
   "app-service": "2023-12-01",
   "app-service-plan": "2023-12-01",
   "container-app": "2024-03-01",
+  "container-group": "2023-05-01",
   "virtual-machine": "2024-07-01",
   "vm-scale-set": "2024-07-01",
   "postgresql-flexible-server": "2022-12-01",
@@ -140,6 +141,21 @@ export function readVmPowerState(vm: Record<string, unknown> | null): string {
   }
 
   return "";
+}
+
+/*
+ * A container group's state from its instance view ("running", "stopped",
+ * "pending", ...), lowercased as a replaced value is.
+ */
+export function readContainerGroupState(
+  group: Record<string, unknown> | null,
+): string {
+  const view: Record<string, unknown> | null = readObject(
+    readObject(group, "properties"),
+    "instanceView",
+  );
+
+  return (readString(view, "state") || "").toLowerCase();
 }
 
 export class ArmClient {
@@ -613,6 +629,10 @@ export default class AzureCloud {
         return change.restartAppService();
       case "restart-service/container-app":
         return change.restartContainerApp();
+      case "restart-service/container-group":
+      case "start-instance/container-group":
+      case "stop-instance/container-group":
+        return change.changeContainerGroup();
       case "start-instance/virtual-machine":
       case "stop-instance/virtual-machine":
       case "reboot-instance/virtual-machine":
@@ -1071,6 +1091,65 @@ class AzureChange {
       lines: [
         `Container App ${this.name} (resource group ${this.group}): traffic ${arrow(current.name, targetName)} (100%).`,
         this.apiCall(`traffic ${targetName}=100`),
+        await this.follow(answer),
+      ],
+    };
+  }
+
+  // ---- Container Instances -----------------------------------------------------------------
+
+  /*
+   * A container group's containers, restarted in place, started or
+   * stopped: its own POST restart, start or stop (Azure pulls an image
+   * whose tag moved when it restarts or starts the group). A stopped group
+   * releases its compute and is no longer billed; starting it again is how
+   * stopping is undone, and the other way round.
+   */
+  public async changeContainerGroup(): Promise<CloudChangeOutcome> {
+    const operation: string = this.command.operation.name;
+    const group: ArmAnswer = await this.get(
+      `about the container group ${this.name} (Microsoft.ContainerInstance/containerGroups/read)`,
+      "Microsoft.ContainerInstance/containerGroups/read",
+    );
+
+    this.run.checkRequiredTag(readArmTags(group.json));
+
+    const state: string = readContainerGroupState(group.json);
+    const needs: string =
+      operation === "start-instance" ? "stopped" : "running";
+
+    if (state !== needs) {
+      this.run.refuse(
+        `the container group ${this.name} is ${state || "in an unknown state"}, and cloud ${operation} needs it ${needs}, so nothing was changed`,
+      );
+    }
+
+    const action: string =
+      operation === "start-instance"
+        ? "start"
+        : operation === "stop-instance"
+          ? "stop"
+          : "restart";
+    const answer: ArmAnswer = await this.change(
+      operation === "restart-service" ? {} : { state },
+      "POST",
+      `/${action}`,
+      `Microsoft.ContainerInstance/containerGroups/${action}/action`,
+    );
+
+    return {
+      lines: [
+        operation === "restart-service"
+          ? `Container group ${this.name} (resource group ${this.group}): restarting its containers in place. If the tag of an image it runs now points to a newer image, Azure pulls that one.`
+          : `Container group ${this.name} (resource group ${this.group}): ${arrow(
+              state,
+              operation === "start-instance" ? "running" : "stopped",
+            )}${
+              operation === "stop-instance"
+                ? " (stopped: its compute is released and no longer billed)"
+                : ""
+            }.`,
+        this.apiCall(`POST ${action}`),
         await this.follow(answer),
       ],
     };

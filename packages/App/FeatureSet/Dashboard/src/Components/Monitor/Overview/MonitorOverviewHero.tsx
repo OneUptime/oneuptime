@@ -61,6 +61,7 @@ import {
   TURN_MONITORING_ON_ERROR_TEST_ID,
 } from "../MonitoringSwitchCopy";
 import useTurnMonitoringOn, { TurnMonitoringOn } from "../useTurnMonitoringOn";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -313,7 +314,9 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
         <span>{typeTitle}</span>
         {target ? (
           <>
-            <span aria-hidden="true">·</span>
+            <span aria-hidden="true">
+              <InlineSeparator markOnly />
+            </span>
             <span
               data-testid="monitor-overview-target-value"
               className={

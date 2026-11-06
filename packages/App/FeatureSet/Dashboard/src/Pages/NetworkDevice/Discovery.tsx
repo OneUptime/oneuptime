@@ -101,6 +101,7 @@ import {
   translateTemplate,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * More fields on the new-scan form: the name, how hosts are named, and the
@@ -980,7 +981,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                   <p className="text-xs text-gray-500">
                     {item.probe?.name ||
                       translator.translateText("Probe not available")}
-                    {" · "}
+                    <InlineSeparator />
                     {item.isRecurring
                       ? item.rescanIntervalInMinutes
                         ? translator.translateTemplate(

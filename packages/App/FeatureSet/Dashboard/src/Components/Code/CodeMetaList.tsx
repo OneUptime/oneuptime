@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   // Each fact, keyed: "#12", "Asked by Ada Lovelace", "2 hours ago".
@@ -49,7 +50,7 @@ const CodeMetaList: FunctionComponent<ComponentProps> = (
                   data-testid="code-meta-dot"
                   className="absolute -left-2 text-gray-300"
                 >
-                  ·
+                  <InlineSeparator markOnly />
                 </span>
               ) : (
                 <></>

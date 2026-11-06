@@ -16,6 +16,7 @@ import {
   getGlobalTranslator,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -62,9 +63,9 @@ export const getMonitorTemplateSyncFieldSummary: (
         steps.length > 1
           ? translator.translateTemplate("Step {{number}}: {{fields}}", {
               number: index + 1,
-              fields: labels.join(", "),
+              fields: joinList(labels),
             })
-          : labels.join(", "),
+          : joinList(labels),
       );
     }
   });

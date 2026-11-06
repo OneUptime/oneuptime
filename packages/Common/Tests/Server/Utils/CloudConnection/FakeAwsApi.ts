@@ -74,6 +74,12 @@ export interface FakeRegion {
     | undefined;
   // Cloud Control: type -> the error ListResources answers with instead.
   resourceErrors?: Record<string, FakeResponse> | undefined;
+  /*
+   * Elastic Beanstalk: the environments DescribeEnvironments lists (as XML
+   * fields), in pages of MaxRecords, or the error it answers with instead.
+   */
+  beanstalkEnvironments?: Array<JSONObject> | undefined;
+  beanstalkError?: FakeResponse | undefined;
   // CloudTrail: the Region's write events, as LookupEvents describes them.
   trailEvents?: Array<JSONObject> | undefined;
   // Events per LookupEvents page (50 when not set).
@@ -312,6 +318,12 @@ export interface FakeAws extends FakeProviderApi {
     typeName: string;
     resourceModel: string;
     account: string;
+  }>;
+  // Elastic Beanstalk calls (the Query protocol): the Region, the account, the form.
+  beanstalkCalls: Array<{
+    region: string;
+    account: string;
+    params: Record<string, string>;
   }>;
   // The Regions Organizations was asked in, one entry a call.
   organizationsCalls: Array<string>;
@@ -1386,6 +1398,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const stsCalls: FakeAws["stsCalls"] = [];
   const taggingCalls: FakeAws["taggingCalls"] = [];
   const cloudControlCalls: FakeAws["cloudControlCalls"] = [];
+  const beanstalkCalls: FakeAws["beanstalkCalls"] = [];
   const assumedRoles: Array<string> = [];
   const organizationsCalls: Array<string> = [];
   const cloudTrailCalls: FakeAws["cloudTrailCalls"] = [];
@@ -1705,6 +1718,42 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
 
       if (fakeRegion.error) {
         return fakeRegion.error;
+      }
+
+      // Elastic Beanstalk's environments, over the Query protocol.
+      if (service === "elasticbeanstalk") {
+        const form: URLSearchParams = new URLSearchParams(
+          String(request.body || ""),
+        );
+
+        beanstalkCalls.push({
+          region,
+          account: accountOfKey(request) || account,
+          params: formFieldsOf(form),
+        });
+
+        if (fakeRegion.beanstalkError) {
+          return fakeRegion.beanstalkError;
+        }
+
+        const offset: number = Number(form.get("NextToken") || "0") || 0;
+        const size: number = Number(form.get("MaxRecords") || "100") || 100;
+        const environments: Array<JSONObject> =
+          fakeRegion.beanstalkEnvironments || [];
+        const next: string =
+          offset + size < environments.length ? String(offset + size) : "";
+
+        return {
+          status: 200,
+          body: `<DescribeEnvironmentsResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/"><DescribeEnvironmentsResult><Environments>${environments
+            .slice(offset, offset + size)
+            .map((environment: JSONObject): string => {
+              return `<member>${xmlOf(environment)}</member>`;
+            })
+            .join(
+              "",
+            )}</Environments>${next ? `<NextToken>${next}</NextToken>` : ""}</DescribeEnvironmentsResult></DescribeEnvironmentsResponse>`,
+        };
       }
 
       // Data stores over the Query protocol: a form body, read before any JSON is.
@@ -2231,6 +2280,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     stsCalls,
     taggingCalls,
     cloudControlCalls,
+    beanstalkCalls,
     organizationsCalls,
     assumedRoles,
     cloudTrailCalls,

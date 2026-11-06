@@ -462,6 +462,14 @@ export default class OneUptimeDate {
     });
   }
 
+  /*
+   * A day and its month, as a chart's axis names a day: "02 Mar" in English.
+   *
+   * In another language, as that language writes them (Intl): "2. Okt.",
+   * "2 oct.", "10月2日", "۲ اکتبر" - the day without English's leading zero,
+   * which no other language writes, and which a Persian page drew as a
+   * dot before the day ("۰۲"), Persian's zero being a dot.
+   */
   public static getDateAsLocalDayMonthString(date: Date | string): string {
     const instant: Date = this.fromString(date);
 
@@ -475,41 +483,91 @@ export default class OneUptimeDate {
         return `${day} ${month}`;
       },
       (language: string, locale: string): string | null => {
-        // "02. Okt.", "02 oct.", "10月02日".
+        // "2. Okt.", "2 oct.", "10月2日", "۲ اکتبر".
         return this.getLocalizedDateText({
           date: instant,
           language,
           locale,
-          shape: { onlyShowDate: true, hideYear: true, twoDigitDay: true },
+          shape: { onlyShowDate: true, hideYear: true },
         });
       },
     );
   }
 
+  /*
+   * The hour a chart's bucket starts at, with its day: "02 Mar, 14:00" in
+   * English.
+   *
+   * In another language the day and the time are written, and joined, as
+   * that language writes a date with its time (Intl): "2. März, 14:00",
+   * "2 mars, 14:00", "3月2日 14:00", "۲ مارس، ۱۴:۰۰". Joined by hand, every
+   * language got English's Latin comma - "۰۲ مارس, ۱۴:۰۰" on a Persian
+   * axis, where Persian writes its own comma ("،"), and "3月02日, 14:00"
+   * where Japanese and Chinese write none - and the day's leading zero.
+   */
   public static getDateAsLocalDayMonthHourString(date: Date | string): string {
     const instant: Date = this.fromString(date);
 
-    // The minutes it adds itself in the reader's digits too.
-    return this.inReaderDigits((): string => {
-      return `${this.getDateAsLocalDayMonthString(instant)}, ${this.getLocalTimeString(instant, { includeMinutes: false })}:00`;
-    });
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return `${this.getDateAsLocalDayMonthString(instant)}, ${this.getLocalTimeString(instant, { includeMinutes: false })}:00`;
+      },
+      (language: string, locale: string): string | null => {
+        return this.getLocalizedDateText({
+          // The hour's start in the current timezone: its minutes are ":00".
+          date: this.inCurrentTimezone(instant).startOf("hour").toDate(),
+          language,
+          locale,
+          shape: { hideYear: true, use12HourFormat: false },
+        });
+      },
+    );
   }
 
   /**
    * "02 Mar, 14:30" — a day-qualified wall clock, for chart axes whose
    * buckets are finer than an hour but whose window is long enough that a
    * bare "14:30" would name more than one instant.
+   *
+   * In another language, the day and the time as that language writes and
+   * joins them (Intl, see getDateAsLocalDayMonthHourString): "2. März,
+   * 14:30", "3月2日 14:30", "۲ مارس، ۱۴:۳۰".
+   *
+   * A 24-hour clock unless the caller asks for a 12-hour one (a time shown
+   * to a person, in their clock: "02 Mar, 2:30 PM"); an axis keeps the
+   * clock it is laid out for (see getLocalTimeString).
    */
   public static getDateAsLocalDayMonthTimeString(
     date: Date | string,
-    options?: { includeSeconds?: boolean | undefined },
+    options?: {
+      includeSeconds?: boolean | undefined;
+      use12HourFormat?: boolean | undefined;
+    },
   ): string {
-    date = this.fromString(date);
+    const instant: Date = this.fromString(date);
+    const includeSeconds: boolean = options?.includeSeconds ?? false;
+    const use12HourFormat: boolean = options?.use12HourFormat ?? false;
 
-    return `${this.getDateAsLocalDayMonthString(date)}, ${this.getLocalTimeString(
-      date,
-      { includeSeconds: options?.includeSeconds ?? false },
-    )}`;
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return `${this.getDateAsLocalDayMonthString(instant)}, ${this.getLocalTimeString(
+          instant,
+          { includeSeconds, use12HourFormat },
+        )}`;
+      },
+      (language: string, locale: string): string | null => {
+        return this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: {
+            hideYear: true,
+            use12HourFormat,
+            showSeconds: includeSeconds,
+          },
+        });
+      },
+    );
   }
 
   /**

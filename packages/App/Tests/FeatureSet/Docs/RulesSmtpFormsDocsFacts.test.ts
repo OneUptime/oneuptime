@@ -1202,7 +1202,7 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
       'placeholder: "https://graph.microsoft.com/.default",',
     );
     expect(readSource("smtpFormFields")).toContain(
-      "For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+      "Microsoft 365 SMTP: https://outlook.office365.com/.default. Google: https://mail.google.com/",
     );
 
     expect(page).toContain("**Mail.Send** application permission");
