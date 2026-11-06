@@ -62,7 +62,9 @@ import {
 } from "../../../../Utils/Telemetry/ChangeEventFields";
 import {
   CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
   readCloudChangeTitleFacts,
+  readCloudHealthTitleFacts,
 } from "../../../../Utils/Telemetry/CloudChangeTitle";
 import ChangeEventService from "../../../Services/ChangeEventService";
 import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
@@ -740,7 +742,8 @@ export default class SecurityCaseImpact {
         const record: Dictionary<unknown> = row as Dictionary<unknown>;
         const recordId: string = readId(record[tables.column]);
         const team: Dictionary<unknown> | undefined = record["team"] as
-          Dictionary<unknown> | undefined;
+          | Dictionary<unknown>
+          | undefined;
         const teamId: string = readId(team);
         const list: SecurityCaseImpactOwnersJson = ownersOf(recordId);
 
@@ -759,7 +762,8 @@ export default class SecurityCaseImpact {
         const record: Dictionary<unknown> = row as Dictionary<unknown>;
         const recordId: string = readId(record[tables.column]);
         const user: Dictionary<unknown> | undefined = record["user"] as
-          Dictionary<unknown> | undefined;
+          | Dictionary<unknown>
+          | undefined;
         const userId: string = readId(user);
         const list: SecurityCaseImpactOwnersJson = ownersOf(recordId);
 
@@ -895,11 +899,17 @@ export default class SecurityCaseImpact {
         (row.attributes as Dictionary<unknown>) || {},
       ) as Dictionary<string | undefined>;
       const keys: Set<string> = new Set();
+      const stored: {
+        title: string | undefined;
+        attributes: Dictionary<unknown>;
+      } = {
+        title: row.title,
+        attributes: (row.attributes as Dictionary<unknown>) || {},
+      };
       const cloudChange: CloudChangeTitleFacts | null =
-        readCloudChangeTitleFacts({
-          title: row.title,
-          attributes: (row.attributes as Dictionary<unknown>) || {},
-        });
+        readCloudChangeTitleFacts(stored);
+      const cloudHealth: CloudHealthTitleFacts | null =
+        readCloudHealthTitleFacts(stored);
 
       for (const id of [
         row.primaryEntityId?.toString(),
@@ -922,8 +932,9 @@ export default class SecurityCaseImpact {
           title: row.title || "",
           eventType: row.eventType || "change",
           ...(fields["version"] ? { version: fields["version"] } : {}),
-          // A cloud change's title is worded from these on the page.
+          // A cloud change's title, or a health event's, is worded from these on the page.
           ...(cloudChange ? { cloudChange } : {}),
+          ...(cloudHealth ? { cloudHealth } : {}),
         });
         changes.set(key, list);
       }

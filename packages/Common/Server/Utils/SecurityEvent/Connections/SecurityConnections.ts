@@ -50,7 +50,9 @@ import {
 } from "../../../../Utils/Telemetry/ChangeEventFields";
 import {
   CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
   readCloudChangeTitleFacts,
+  readCloudHealthTitleFacts,
 } from "../../../../Utils/Telemetry/CloudChangeTitle";
 import {
   keyForHost,
@@ -1360,12 +1362,18 @@ export default class SecurityConnections {
         }
       }
 
-      // A cloud change's title is worded from these on the page.
+      // A cloud change's title, or a health event's, is worded from these on the page.
+      const stored: {
+        title: string | undefined;
+        attributes: Dictionary<unknown>;
+      } = {
+        title: row.title,
+        attributes: (row.attributes as Dictionary<unknown>) || {},
+      };
       const cloudChange: CloudChangeTitleFacts | null =
-        readCloudChangeTitleFacts({
-          title: row.title,
-          attributes: (row.attributes as Dictionary<unknown>) || {},
-        });
+        readCloudChangeTitleFacts(stored);
+      const cloudHealth: CloudHealthTitleFacts | null =
+        readCloudHealthTitleFacts(stored);
 
       for (const key of Array.from(keys)) {
         const list: Array<SecurityConnectionChangeJson> =
@@ -1378,6 +1386,7 @@ export default class SecurityConnections {
             title: row.title || "",
             eventType: row.eventType || "change",
             ...(cloudChange ? { cloudChange } : {}),
+            ...(cloudHealth ? { cloudHealth } : {}),
           });
         }
 

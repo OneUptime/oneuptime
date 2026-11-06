@@ -73,7 +73,10 @@ import TableEmptyState, {
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getCloudChangeTitle } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  getCloudChangeTitle,
+  getCloudHealthTitle,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -163,6 +166,13 @@ function useItemTitle(item: SecurityCaseStoryItemJson): string {
   // An operation a cloud account recorded, in the reader's language.
   if (item.kind === SecurityCaseStoryItemKind.Change && item.cloudChange) {
     return getCloudChangeTitle(item.cloudChange, translator, {
+      setsValuesApart: true,
+    });
+  }
+
+  // What a cloud published about its health, its frame and state in the reader's language.
+  if (item.kind === SecurityCaseStoryItemKind.Change && item.cloudHealth) {
+    return getCloudHealthTitle(item.cloudHealth, translator, {
       setsValuesApart: true,
     });
   }

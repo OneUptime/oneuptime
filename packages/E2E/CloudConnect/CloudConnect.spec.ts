@@ -3029,6 +3029,19 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       );
       expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      /*
+       * What AWS Health published: its frame, its state and its kind of
+       * event in the reader's words, the service as AWS names it - from the
+       * title and the type the row keeps, as every health event was kept.
+       */
+      expect(titles).toContain(
+        wordIn(reader.locale, "AWS Health: {{event}} (open)", {
+          event: wordIn(reader.locale, "{{service}} operational issue", {
+            service: "EC2",
+          }),
+        }),
+      );
+      expect(titles).not.toContain("AWS Health: EC2 operational issue (open)");
       await expectTitleValuesWhole(page);
       /*
        * Each line in its own direction: a change worded in Persian reads
@@ -3233,7 +3246,10 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
     /*
      * A rollback is titled as the recorder titles any change - the same
      * operation on the same resource as its fix - and only its line says it
-     * undid the fix: no word is added to its title.
+     * undid the fix: no word is added to its title. Both rows are as the
+     * recorder writes them: CloudTrail's operation with its service, the
+     * resource by the name the inventory holds, and the kind of change
+     * classifyCloudChange gives an ECS UpdateService - a deploy.
      */
     if (isDesktop()) {
       const aiRows: Locator = page
@@ -3243,9 +3259,17 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
       await expect(aiRows).toHaveCount(2);
 
       for (const index of [0, 1]) {
-        await expect(
-          aiRows.nth(index).getByTestId("cloud-change-title-value"),
-        ).toHaveText(["UpdateService", "checkout"]);
+        const row: Locator = aiRows.nth(index);
+
+        await expect(row.getByTestId("cloud-change-title-value")).toHaveText([
+          "ecs:UpdateService",
+          "checkout",
+        ]);
+        await expect(row.getByTestId("cloud-change-title")).toHaveText(
+          "ecs:UpdateService on checkout",
+        );
+        await expect(row.getByText("Deploy", { exact: true })).toBeVisible();
+        await expect(row).not.toContainText("rolled back");
       }
     }
 

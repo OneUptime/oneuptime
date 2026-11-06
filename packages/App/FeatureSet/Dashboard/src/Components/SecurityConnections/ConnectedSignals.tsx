@@ -672,6 +672,7 @@ const ConnectedRecord: FunctionComponent<{
                                     title: change.title,
                                     eventType: change.eventType,
                                     facts: change.cloudChange,
+                                    health: change.cloudHealth,
                                     translator,
                                   })}
                                 </bdi>

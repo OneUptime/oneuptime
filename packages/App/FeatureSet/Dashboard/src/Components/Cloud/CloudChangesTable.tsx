@@ -189,7 +189,8 @@ export const CloudChangeTitle: FunctionComponent<{
 
 function readAttribute(change: ChangeEvent, key: string): string {
   const attributes: JSONObject | undefined = change.attributes as
-    JSONObject | undefined;
+    | JSONObject
+    | undefined;
   const value: unknown = attributes ? attributes[key] : undefined;
 
   return typeof value === "string" ? value.trim() : "";

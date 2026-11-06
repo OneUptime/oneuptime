@@ -4,7 +4,10 @@ import {
   SecurityConnectionKind,
   SecurityConnectionRecordListJson,
 } from "./SecurityConnection";
-import type { CloudChangeTitleFacts } from "../../Utils/Telemetry/CloudChangeTitle";
+import type {
+  CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
+} from "../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * A SECURITY CASE AS THE REST OF ONEUPTIME TELLS IT: its Story and its
@@ -181,6 +184,8 @@ export interface SecurityCaseStoryItemJson {
    * language (Utils/Telemetry/CloudChangeTitle).
    */
   cloudChange?: CloudChangeTitleFacts | undefined;
+  // A cloud's health event's facts: its title is worded from them likewise.
+  cloudHealth?: CloudHealthTitleFacts | undefined;
   links: SecurityCaseStoryLinksJson;
 }
 

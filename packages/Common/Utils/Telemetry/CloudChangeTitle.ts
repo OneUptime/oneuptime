@@ -237,11 +237,15 @@ export function readCloudChangeTitleFactsJson(
  * What a cloud published about its health - AWS Health, Azure Service and
  * Resource Health, Google Cloud's Service Health - is stored with the
  * English title its connector writes: "AWS Health: EC2 operational issue
- * (open)", "Azure Resource Health: Available → Unavailable". The event is
- * the provider's own words and is drawn as written; the frame and the
- * state the provider reports it in are worded in the reader's language. A
- * state no rule here knows is left in the event, drawn as written, so a
- * title is never cut wrongly.
+ * (open)", "Azure Resource Health: Available → Unavailable". The frame and
+ * the state the provider reports the event in are worded in the reader's
+ * language; so are OneUptime's own words in the event - AWS's event type
+ * said in words ("EC2 operational issue", from AWS_EC2_OPERATIONAL_ISSUE,
+ * kept beside the title as the operation), and what a connector writes
+ * when the provider names nothing ("an event"). The provider's own words -
+ * an Azure or Google Cloud incident's title - are drawn as written. A state
+ * or a type no rule here knows is left as written, so a title is never cut
+ * wrongly.
  */
 
 export enum CloudHealthSource {
@@ -258,39 +262,169 @@ export interface CloudHealthTitleFacts {
   event: string;
   // The state the provider reports the event in ("open"), or a resource's state before: "" when none.
   status: string;
+  /*
+   * AWS Health's event type code (AWS_EC2_OPERATIONAL_ISSUE), when the
+   * event is the connector's words for it: the kind of event is then
+   * worded in the reader's language, the service as AWS names it.
+   */
+  awsEventTypeCode?: string | undefined;
 }
+
+/*
+ * AWS Health names an event by its type code - AWS_<SERVICE>_<KIND>, as
+ * AWS_EC2_OPERATIONAL_ISSUE - and its connector (AwsChanges) titles it in
+ * words: the service as AWS writes it, then the kind in lower case ("EC2
+ * operational issue"). The code without its words falls back to itself.
+ */
+export function describeAwsHealthEventType(code: string): string {
+  const words: Array<string> = code
+    .split("_")
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+
+  if (words[0] === "AWS") {
+    words.shift();
+  }
+
+  if (words.length === 0) {
+    return code;
+  }
+
+  const service: string = words.shift()!;
+
+  return [
+    service,
+    ...words.map((word: string): string => {
+      return word.toLowerCase();
+    }),
+  ].join(" ");
+}
+
+// An AWS Health event type code's service and kind ("EC2", "OPERATIONAL_ISSUE"), or null.
+export function parseAwsHealthEventType(
+  code: string,
+): { service: string; kind: string } | null {
+  const words: Array<string> = code
+    .split("_")
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+
+  if (words[0] === "AWS") {
+    words.shift();
+  }
+
+  if (words.length < 2) {
+    return null;
+  }
+
+  return { service: words[0]!, kind: words.slice(1).join("_") };
+}
+
+/*
+ * The kinds of event AWS Health names most, every service alike - the
+ * issue it posts during an outage, the scheduled changes and maintenance -
+ * and the words they are said in, around the service as AWS names it (keys
+ * of the Dashboard's locale files). In English each reads word for word as
+ * the connector titles it (describeAwsHealthEventType). Any other kind is
+ * drawn as the connector wrote it.
+ */
+export const AWS_HEALTH_EVENT_KIND_WORDS: Readonly<Record<string, string>> = {
+  OPERATIONAL_ISSUE: translationKey("{{service}} operational issue"),
+  OPERATIONAL_NOTIFICATION: translationKey(
+    "{{service}} operational notification",
+  ),
+  PLANNED_LIFECYCLE_EVENT: translationKey(
+    "{{service}} planned lifecycle event",
+  ),
+  MAINTENANCE_SCHEDULED: translationKey("{{service}} maintenance scheduled"),
+  INSTANCE_RETIREMENT_SCHEDULED: translationKey(
+    "{{service}} instance retirement scheduled",
+  ),
+  INSTANCE_STOP_SCHEDULED: translationKey(
+    "{{service}} instance stop scheduled",
+  ),
+  INSTANCE_REBOOT_MAINTENANCE_SCHEDULED: translationKey(
+    "{{service}} instance reboot maintenance scheduled",
+  ),
+  SYSTEM_REBOOT_MAINTENANCE_SCHEDULED: translationKey(
+    "{{service}} system reboot maintenance scheduled",
+  ),
+};
+
+/*
+ * What a connector titles an event its provider names nothing for (Azure's
+ * stage without a title, a resource whose state is not said, a Google
+ * Cloud incident with no title or product): OneUptime's words, said in the
+ * reader's language.
+ */
+export const CLOUD_HEALTH_UNNAMED_EVENTS: Readonly<
+  Partial<Record<CloudHealthSource, string>>
+> = {
+  [CloudHealthSource.AzureService]: translationKey("an event"),
+  [CloudHealthSource.AzureResource]: translationKey("changed"),
+  [CloudHealthSource.GoogleCloud]: translationKey("an incident"),
+};
 
 /*
  * The sentences a health title is worded in: the provider's name is its
  * own, never translated. Keys of the Dashboard's locale files.
  */
-export const CLOUD_HEALTH_TITLE_SENTENCES: Record<
-  CloudHealthSource,
-  { event: string; eventWithStatus: string }
+export const CLOUD_HEALTH_TITLE_SENTENCES: Record<CloudHealthSource, string> = {
+  [CloudHealthSource.Aws]: translationKey("AWS Health: {{event}}"),
+  [CloudHealthSource.AzureService]: translationKey(
+    "Azure Service Health: {{event}}",
+  ),
+  [CloudHealthSource.AzureResource]: translationKey(
+    "Azure Resource Health: {{event}}",
+  ),
+  [CloudHealthSource.GoogleCloud]: translationKey(
+    "Google Cloud Service Health: {{event}}",
+  ),
+};
+
+/*
+ * The states AWS Health, Azure Service Health and Google Cloud's Service
+ * Health report an event in, as each connector writes them - AWS's
+ * statusCode, Azure's stage, Google Cloud's incident state (lower-cased by
+ * its connector) - each with the whole sentence it is said in: a state is
+ * worded where it stands, so no language says it as a word out of context
+ * (an issue that is open is not a file opened).
+ */
+export const CLOUD_HEALTH_STATUS_SENTENCES: Readonly<
+  Partial<Record<CloudHealthSource, Readonly<Record<string, string>>>>
 > = {
   [CloudHealthSource.Aws]: {
-    event: translationKey("AWS Health: {{event}}"),
-    eventWithStatus: translationKey("AWS Health: {{event}} ({{status}})"),
+    open: translationKey("AWS Health: {{event}} (open)"),
+    closed: translationKey("AWS Health: {{event}} (closed)"),
+    upcoming: translationKey("AWS Health: {{event}} (upcoming)"),
   },
   [CloudHealthSource.AzureService]: {
-    event: translationKey("Azure Service Health: {{event}}"),
-    eventWithStatus: translationKey(
-      "Azure Service Health: {{event}} ({{status}})",
-    ),
-  },
-  [CloudHealthSource.AzureResource]: {
-    event: translationKey("Azure Resource Health: {{event}}"),
-    // A resource's state before and now.
-    eventWithStatus: translationKey(
-      "Azure Resource Health: {{status}} → {{event}}",
-    ),
+    Active: translationKey("Azure Service Health: {{event}} (Active)"),
+    Resolved: translationKey("Azure Service Health: {{event}} (Resolved)"),
   },
   [CloudHealthSource.GoogleCloud]: {
-    event: translationKey("Google Cloud Service Health: {{event}}"),
-    eventWithStatus: translationKey(
-      "Google Cloud Service Health: {{event}} ({{status}})",
-    ),
+    active: translationKey("Google Cloud Service Health: {{event}} (active)"),
+    closed: translationKey("Google Cloud Service Health: {{event}} (closed)"),
   },
+};
+
+// A resource's state before and now, in Azure Resource Health's title.
+export const AZURE_RESOURCE_HEALTH_CHANGE_SENTENCE: string = translationKey(
+  "Azure Resource Health: {{status}} → {{event}}",
+);
+
+/*
+ * The availability Azure Resource Health reports a resource in, and the
+ * word it is said in, before and after the arrow (keys of the Dashboard's
+ * locale files).
+ */
+export const AZURE_RESOURCE_HEALTH_STATES: Readonly<Record<string, string>> = {
+  Available: translationKey("Available"),
+  Unavailable: translationKey("Unavailable"),
+  Degraded: translationKey("Degraded"),
+  Unknown: translationKey("Unknown"),
 };
 
 // How each connector's title starts (AwsChanges, AzureChanges, GcpChanges).
@@ -313,43 +447,23 @@ const HEALTH_TITLE_PREFIXES: ReadonlyArray<{
 // What sits between a resource's state before and now in Azure Resource Health's title.
 const STATE_ARROW: string = " → ";
 
-/*
- * The states each provider reports, as its connector writes them, and the
- * words they are said in (keys of the Dashboard's locale files). AWS
- * Health's statusCode, Azure Service Health's stage, Google Cloud's
- * incident state (lower-cased by its connector), Azure Resource Health's
- * availability.
- */
-export const CLOUD_HEALTH_STATE_WORDS: Record<
-  CloudHealthSource,
-  Readonly<Record<string, string>>
-> = {
-  [CloudHealthSource.Aws]: {
-    open: translationKey("open"),
-    closed: translationKey("closed"),
-    upcoming: translationKey("upcoming"),
-  },
-  [CloudHealthSource.AzureService]: {
-    Active: translationKey("Active"),
-    Resolved: translationKey("Resolved"),
-  },
-  [CloudHealthSource.AzureResource]: {
-    Available: translationKey("Available"),
-    Unavailable: translationKey("Unavailable"),
-    Degraded: translationKey("Degraded"),
-    Unknown: translationKey("Unknown"),
-  },
-  [CloudHealthSource.GoogleCloud]: {
-    active: translationKey("active"),
-    closed: translationKey("closed"),
-  },
-};
+function hasOwn(
+  record: Readonly<Record<string, unknown>>,
+  key: string,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
 
+// Whether a provider reports such a state: a word read off a title is a state only then.
 function knownState(source: CloudHealthSource, state: string): boolean {
-  return Object.prototype.hasOwnProperty.call(
-    CLOUD_HEALTH_STATE_WORDS[source],
-    state,
-  );
+  if (source === CloudHealthSource.AzureResource) {
+    return hasOwn(AZURE_RESOURCE_HEALTH_STATES, state);
+  }
+
+  const sentences: Readonly<Record<string, string>> | undefined =
+    CLOUD_HEALTH_STATUS_SENTENCES[source];
+
+  return Boolean(sentences) && hasOwn(sentences!, state);
 }
 
 /*
@@ -400,6 +514,9 @@ export function readCloudHealthTitleFacts(change: {
     return { source: shape.source, event: rest, status: "" };
   }
 
+  let event: string = rest;
+  let status: string = "";
+
   // "<event> (<state>)": the state only when the provider reports such a state.
   if (rest.endsWith(")")) {
     const open: number = rest.lastIndexOf(" (");
@@ -408,47 +525,152 @@ export function readCloudHealthTitleFacts(change: {
       const state: string = rest.slice(open + 2, -1);
 
       if (knownState(shape.source, state)) {
-        return {
-          source: shape.source,
-          event: rest.slice(0, open).trim(),
-          status: state,
-        };
+        event = rest.slice(0, open).trim();
+        status = state;
       }
     }
   }
 
-  return { source: shape.source, event: rest, status: "" };
+  /*
+   * AWS's event in the connector's words for its type, kept beside it as
+   * the operation - a row written before this was read too - so its kind
+   * is worded. A title cut short, or a type the words do not match, is the
+   * event as written.
+   */
+  const code: string = (fields.cloudOperation || "").trim();
+
+  if (
+    shape.source === CloudHealthSource.Aws &&
+    code &&
+    describeAwsHealthEventType(code) === event
+  ) {
+    return { source: shape.source, event, status, awsEventTypeCode: code };
+  }
+
+  return { source: shape.source, event, status };
+}
+
+/*
+ * The event as a page draws it: AWS's type in words, with a kind the
+ * Dashboard words in the reader's language; a resource's state, or what a
+ * connector writes when the provider names nothing, in the reader's words;
+ * the provider's own words as written.
+ */
+function getCloudHealthEvent(
+  facts: CloudHealthTitleFacts,
+  translator: Translator,
+  options?: SentenceOptions | undefined,
+): string {
+  if (facts.source === CloudHealthSource.Aws && facts.awsEventTypeCode) {
+    const type: { service: string; kind: string } | null =
+      parseAwsHealthEventType(facts.awsEventTypeCode);
+    const sentence: string | undefined =
+      type && hasOwn(AWS_HEALTH_EVENT_KIND_WORDS, type.kind)
+        ? AWS_HEALTH_EVENT_KIND_WORDS[type.kind]
+        : undefined;
+
+    return type && sentence
+      ? translator.translateTemplate(
+          sentence,
+          { service: type.service },
+          options,
+        )
+      : facts.event;
+  }
+
+  if (
+    facts.source === CloudHealthSource.AzureResource &&
+    hasOwn(AZURE_RESOURCE_HEALTH_STATES, facts.event)
+  ) {
+    return translator.translateTerm(AZURE_RESOURCE_HEALTH_STATES[facts.event]!);
+  }
+
+  const unnamed: string | undefined = CLOUD_HEALTH_UNNAMED_EVENTS[facts.source];
+
+  if (unnamed && facts.event === unnamed) {
+    return translator.translateText(unnamed) || unnamed;
+  }
+
+  return facts.event;
 }
 
 /*
  * A health event's title in the translator's language - English without
- * one, word for word what its connector stores.
+ * one, word for word what its connector stores. The state is worded inside
+ * its own sentence; a resource's states before and now are said in the
+ * reader's words.
  */
 export function getCloudHealthTitle(
   facts: CloudHealthTitleFacts,
   translator: Translator = ENGLISH,
   options?: SentenceOptions | undefined,
 ): string {
-  const sentences: { event: string; eventWithStatus: string } =
-    CLOUD_HEALTH_TITLE_SENTENCES[facts.source];
-  const words: Readonly<Record<string, string>> =
-    CLOUD_HEALTH_STATE_WORDS[facts.source];
-  // A resource's state is said in the reader's words; any other event as written.
-  const event: string =
-    facts.source === CloudHealthSource.AzureResource &&
-    knownState(facts.source, facts.event)
-      ? translator.translateTerm(words[facts.event]!)
-      : facts.event;
+  const event: string = getCloudHealthEvent(facts, translator, options);
 
-  if (!facts.status || !knownState(facts.source, facts.status)) {
-    return translator.translateTemplate(sentences.event, { event }, options);
+  if (facts.status && knownState(facts.source, facts.status)) {
+    if (facts.source === CloudHealthSource.AzureResource) {
+      return translator.translateTemplate(
+        AZURE_RESOURCE_HEALTH_CHANGE_SENTENCE,
+        {
+          status: translator.translateTerm(
+            AZURE_RESOURCE_HEALTH_STATES[facts.status]!,
+          ),
+          event,
+        },
+        options,
+      );
+    }
+
+    return translator.translateTemplate(
+      CLOUD_HEALTH_STATUS_SENTENCES[facts.source]![facts.status]!,
+      { event },
+      options,
+    );
   }
 
   return translator.translateTemplate(
-    sentences.eventWithStatus,
-    { event, status: translator.translateTerm(words[facts.status]!) },
+    CLOUD_HEALTH_TITLE_SENTENCES[facts.source],
+    { event },
     options,
   );
+}
+
+/*
+ * Health facts as an API answer carries them (a security case's story and
+ * impact, a record's connections): the shape checked, so a value from the
+ * wire is used only when it is one. Null otherwise.
+ */
+export function readCloudHealthTitleFactsJson(
+  value: unknown,
+): CloudHealthTitleFacts | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const record: Dictionary<unknown> = value as Dictionary<unknown>;
+  const source: unknown = record["source"];
+  const event: unknown = record["event"];
+  const status: unknown = record["status"];
+  const code: unknown = record["awsEventTypeCode"];
+
+  if (
+    !(Object.values(CloudHealthSource) as Array<unknown>).includes(source) ||
+    typeof event !== "string" ||
+    !event.trim() ||
+    typeof status !== "string" ||
+    (code !== undefined && typeof code !== "string")
+  ) {
+    return null;
+  }
+
+  return {
+    source: source as CloudHealthSource,
+    event,
+    status,
+    ...(typeof code === "string" && code.trim()
+      ? { awsEventTypeCode: code }
+      : {}),
+  };
 }
 
 /*

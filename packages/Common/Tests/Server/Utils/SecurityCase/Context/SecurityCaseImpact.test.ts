@@ -28,6 +28,7 @@ import ModelPermission from "../../../../../Server/Types/Database/Permissions/In
 import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityCaseImpact, {
+  IMPACT_CHANGE_LOOKBACK_IN_DAYS,
   IMPACT_MAX_CLOUD_RESOURCES_READ,
   buildFlowPeersStatement,
   buildReachedRequestsStatement,
@@ -649,6 +650,62 @@ describe("SecurityCaseImpact.build", () => {
     expect(byAttribute.props).toBe(CALLER);
   });
 
+  test("a cloud resource's health event is its last change, with the facts its title is worded from", async () => {
+    const CLOUD_ID: string = "efefefef-efef-4fef-8fef-efefefefefef";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue(
+      connections({
+        resources: [
+          connectedResource(
+            SecurityConnectionKind.CloudResource,
+            CLOUD_ID,
+            "checkout-vm",
+          ),
+        ],
+      }),
+    );
+    jest.spyOn(CloudResourceOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(CloudResourceOwnerUserService, "findBy").mockResolvedValue([]);
+
+    // As the recorder writes Azure Resource Health's: the resource by its attribute.
+    const health: ChangeEvent = new ChangeEvent();
+    health._id = new ObjectID("abababab-abab-4bab-8bab-abababababae");
+    health.time = at(-30);
+    health.title = "Azure Resource Health: Available → Degraded";
+    health.eventType = "provider-event";
+    health.attributes = {
+      "oneuptime.change.source": "cloud-health",
+      "oneuptime.cloud.operation": "ResourceHealth Degraded",
+      "oneuptime.resource.type": "CloudResource",
+      "oneuptime.resource.id": CLOUD_ID,
+    } as never;
+
+    jest
+      .spyOn(ChangeEventService, "findBy")
+      .mockImplementation(
+        async (data: unknown): Promise<Array<ChangeEvent>> => {
+          const query: JSONObject = (data as { query: JSONObject }).query;
+
+          return query["attributes"] ? [health] : [];
+        },
+      );
+
+    expect(
+      recordOf(await impact(), SecurityConnectionKind.CloudResource).lastChange,
+    ).toEqual({
+      id: "abababab-abab-4bab-8bab-abababababae",
+      time: at(-30).toISOString(),
+      title: "Azure Resource Health: Available → Degraded",
+      eventType: "provider-event",
+      cloudHealth: {
+        source: "azure-resource",
+        event: "Degraded",
+        status: "Available",
+      },
+      isBeforeFirstDetection: true,
+    });
+  });
+
   test("a change both reads find is listed once, and the latest of all is the last change", async () => {
     const CLOUD_ID: string = "efefefef-efef-4fef-8fef-efefefefefef";
 
@@ -701,6 +758,96 @@ describe("SecurityCaseImpact.build", () => {
     expect(
       recordOf(json, SecurityConnectionKind.CloudResource).lastChange?.id,
     ).toBe("abababab-abab-4bab-8bab-ababababab02");
+  });
+
+  /*
+   * Only what the case's reader may read, from a week before the case's
+   * window to its end: the read by the attribute asks with the reader's own
+   * permissions and the very window the records' own read asks for, so a
+   * change outside it is never found, and a reader who may not read changes
+   * is told so rather than shown none.
+   */
+  test("a cloud resource's changes are read in the case's own window, as the records' are", async () => {
+    const CLOUD_ID: string = "efefefef-efef-4fef-8fef-efefefefefef";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue(
+      connections({
+        resources: [
+          connectedResource(
+            SecurityConnectionKind.CloudResource,
+            CLOUD_ID,
+            "checkout-alb",
+          ),
+        ],
+      }),
+    );
+    jest.spyOn(CloudResourceOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(CloudResourceOwnerUserService, "findBy").mockResolvedValue([]);
+
+    const reads: jest.SpyInstance = jest
+      .spyOn(ChangeEventService, "findBy")
+      .mockResolvedValue([]);
+
+    const json: SecurityCaseImpactJson = await impact();
+    const queries: Array<JSONObject> = reads.mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return (call[0] as { query: JSONObject }).query;
+      },
+    );
+    const byRecord: JSONObject = queries.find((query: JSONObject) => {
+      return !query["attributes"];
+    })!;
+    const byAttribute: JSONObject = queries.find((query: JSONObject) => {
+      return Boolean(query["attributes"]);
+    })!;
+    const window: InBetween<Date> = byAttribute[
+      "time"
+    ] as unknown as InBetween<Date>;
+
+    expect(window).toEqual(byRecord["time"]);
+    expect(new Date(window.startValue).toISOString()).toBe(
+      new Date(
+        new Date(json.windowStart).getTime() -
+          IMPACT_CHANGE_LOOKBACK_IN_DAYS * 24 * 60 * 60 * 1000,
+      ).toISOString(),
+    );
+    expect(new Date(window.endValue).toISOString()).toBe(json.windowEnd);
+    // Every read asks as the case's reader, in the case's project.
+    for (const call of reads.mock.calls) {
+      expect((call[0] as { props: unknown }).props).toBe(CALLER);
+      expect((call[0] as { query: JSONObject }).query["projectId"]).toBe(
+        PROJECT_ID,
+      );
+    }
+  });
+
+  test("a reader who may not read changes is told so, and no cloud change is shown", async () => {
+    const CLOUD_ID: string = "efefefef-efef-4fef-8fef-efefefefefef";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue(
+      connections({
+        resources: [
+          connectedResource(
+            SecurityConnectionKind.CloudResource,
+            CLOUD_ID,
+            "checkout-alb",
+          ),
+        ],
+      }),
+    );
+    jest.spyOn(CloudResourceOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(CloudResourceOwnerUserService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(ChangeEventService, "findBy")
+      .mockRejectedValue(new NotAuthorizedException("no"));
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(json.unreadableSources).toContain(SecurityCaseImpactSource.Changes);
+    expect(
+      recordOf(json, SecurityConnectionKind.CloudResource).lastChange,
+    ).toBeNull();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   test(`at most ${IMPACT_MAX_CLOUD_RESOURCES_READ} cloud resources' changes are read`, async () => {
