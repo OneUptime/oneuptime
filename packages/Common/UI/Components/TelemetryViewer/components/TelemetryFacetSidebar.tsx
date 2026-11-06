@@ -34,6 +34,14 @@ import {
   TelemetryLoadError,
   TelemetryLoadErrorKind,
 } from "../../../Utils/Telemetry/TelemetryLoadError";
+import LocalStorage from "../../../Utils/LocalStorage";
+import TelemetryFacetSidebarResizeHandle from "./TelemetryFacetSidebarResizeHandle";
+
+export const DEFAULT_FACET_SIDEBAR_WIDTH_IN_PX: number = 224; // 14rem = w-56
+export const MIN_FACET_SIDEBAR_WIDTH_IN_PX: number = 180;
+export const MAX_FACET_SIDEBAR_WIDTH_IN_PX: number = 500;
+export const FACET_SIDEBAR_WIDTH_STORAGE_KEY: string =
+  "telemetry_facet_sidebar_width";
 
 // The sidebar's loader, shown while there is nothing to list yet.
 export const TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID: string =
@@ -139,6 +147,25 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
   const [showHidden, setShowHidden] = useState<boolean>(false);
   const facetListId: string = useId();
 
+  const [sidebarWidth, setSidebarWidth] = useState<number>((): number => {
+    try {
+      const stored: unknown = LocalStorage.getItem(
+        FACET_SIDEBAR_WIDTH_STORAGE_KEY,
+      );
+      if (typeof stored === "number" && !isNaN(stored)) {
+        return Math.round(
+          Math.min(
+            MAX_FACET_SIDEBAR_WIDTH_IN_PX,
+            Math.max(MIN_FACET_SIDEBAR_WIDTH_IN_PX, stored),
+          ),
+        );
+      }
+    } catch {
+      // Ignore storage read error
+    }
+    return DEFAULT_FACET_SIDEBAR_WIDTH_IN_PX;
+  });
+
   const facetSearch: FacetSearchExemptions = useFacetSearchExemptions({
     facetData: props.facetData,
     onFacetSearchChange: props.onFacetSearchChange,
@@ -232,118 +259,150 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
 
   return (
     <div
-      id={props.id}
       className={`${
         props.isCollapsedOnSmallScreens ? "max-md:hidden md:flex" : "flex"
-      } max-h-80 w-full flex-none flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white md:h-full md:max-h-none md:w-56`}
+      } relative w-full flex-none flex-col md:h-full md:w-[var(--sidebar-width)]`}
+      style={
+        {
+          "--sidebar-width": `${sidebarWidth}px`,
+        } as React.CSSProperties
+      }
     >
-      <div className="border-b border-gray-100 px-3 py-2.5">
-        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-          {translator.translateText(props.headerLabel || "Filters")}
-        </h3>
+      <div
+        id={props.id}
+        className="flex max-h-80 w-full flex-1 flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white md:h-full md:max-h-none"
+      >
+        <div className="border-b border-gray-100 px-3 py-2.5">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+            {translator.translateText(props.headerLabel || "Filters")}
+          </h3>
+        </div>
+
+        {isReadingFirstAnswer && (
+          <div
+            className="flex items-center justify-center py-8"
+            data-testid={TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID}
+          >
+            <ComponentLoader />
+          </div>
+        )}
+
+        {!props.isLoading &&
+          countsNotice &&
+          props.showCountsNotice !== false && (
+            <TelemetryLoadErrorMessage
+              error={countsNotice}
+              subject="counts"
+              variant="note"
+              onRetry={props.onRetryFacets}
+            />
+          )}
+
+        {!hasNothingToListYet && (
+          <div id={facetListId} className="flex-1 overflow-y-auto">
+            {visibleConfigs.map((config: FacetConfig) => {
+              /*
+               * A choice of one (see FacetConfig.chosenValue) lists every
+               * value it answered with, a locked scope or not: an option
+               * counting 0 is still one to choose.
+               */
+              const isSingleChoice: boolean = config.chosenValue !== undefined;
+
+              /*
+               * A value that is filtering keeps its row even when the answer
+               * left it out (an excluded value counts nothing), so it can
+               * always be clicked off where it was clicked on.
+               */
+              const values: Array<FacetValue> = withSelectedFacetValues(
+                (isSingleChoice ? props.facetData : facetData)[config.key] ||
+                  [],
+                selections.get(config.key),
+              );
+              const sectionSelection: FacetSectionSelection =
+                getFacetSectionSelection(selections, config.key);
+
+              const onSearchChange: ((text: string) => void) | undefined =
+                config.serverSearchable
+                  ? facetSearch.getSearchChangeHandler(config.key)
+                  : undefined;
+
+              return (
+                <TelemetryFacetSection
+                  key={config.key}
+                  facetKey={config.key}
+                  title={config.title}
+                  values={values}
+                  onIncludeValue={props.onIncludeFilter}
+                  onExcludeValue={
+                    isSingleChoice ? undefined : props.onExcludeFilter
+                  }
+                  chosenValue={config.chosenValue}
+                  description={config.description}
+                  valueDescriptionMap={config.valueDescriptionMap}
+                  onClearValue={(facetKey: string, value: string) => {
+                    for (const chip of getFacetChipsToClear(
+                      selections,
+                      facetKey,
+                      value,
+                    )) {
+                      props.onRemoveFilter(chip.facetKey, chip.value);
+                    }
+                  }}
+                  valueDisplayMap={config.valueDisplayMap}
+                  valueColorMap={config.valueColorMap}
+                  activeValues={sectionSelection.includedValues}
+                  excludedValues={sectionSelection.excludedValues}
+                  lockedValues={sectionSelection.lockedValues}
+                  onSearchChange={onSearchChange}
+                  icon={config.icon}
+                  searchText={facetSearch.searchTextByKey[config.key] ?? ""}
+                  onSearchTextChange={(text: string) => {
+                    facetSearch.setSearchText(config.key, text);
+                  }}
+                  emptyStateText={getSidebarFacetEmptyStateText({
+                    isHideable: config.hideWhenEmpty === true,
+                    emptyStateNoun: config.emptyStateNoun,
+                    searchedAtArrivalText:
+                      facetSearch.searchedAtArrivalByKey[config.key],
+                    isScoped: props.onlyShowValuesInScope,
+                  })}
+                  isCountStopped={timedOutFacetKeys.has(config.key)}
+                />
+              );
+            })}
+
+            <HiddenFacetsFooter
+              hiddenCount={visibility.hiddenCount}
+              hiddenTitles={visibility.hiddenTitles}
+              isShowingHidden={showHidden}
+              controlsId={facetListId}
+              onToggle={() => {
+                setShowHidden(!showHidden);
+              }}
+            />
+          </div>
+        )}
       </div>
 
-      {isReadingFirstAnswer && (
-        <div
-          className="flex items-center justify-center py-8"
-          data-testid={TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID}
-        >
-          <ComponentLoader />
-        </div>
-      )}
-
-      {!props.isLoading && countsNotice && props.showCountsNotice !== false && (
-        <TelemetryLoadErrorMessage
-          error={countsNotice}
-          subject="counts"
-          variant="note"
-          onRetry={props.onRetryFacets}
-        />
-      )}
-
-      {!hasNothingToListYet && (
-        <div id={facetListId} className="flex-1 overflow-y-auto">
-          {visibleConfigs.map((config: FacetConfig) => {
-            /*
-             * A choice of one (see FacetConfig.chosenValue) lists every
-             * value it answered with, a locked scope or not: an option
-             * counting 0 is still one to choose.
-             */
-            const isSingleChoice: boolean = config.chosenValue !== undefined;
-
-            /*
-             * A value that is filtering keeps its row even when the answer
-             * left it out (an excluded value counts nothing), so it can
-             * always be clicked off where it was clicked on.
-             */
-            const values: Array<FacetValue> = withSelectedFacetValues(
-              (isSingleChoice ? props.facetData : facetData)[config.key] || [],
-              selections.get(config.key),
-            );
-            const sectionSelection: FacetSectionSelection =
-              getFacetSectionSelection(selections, config.key);
-
-            const onSearchChange: ((text: string) => void) | undefined =
-              config.serverSearchable
-                ? facetSearch.getSearchChangeHandler(config.key)
-                : undefined;
-
-            return (
-              <TelemetryFacetSection
-                key={config.key}
-                facetKey={config.key}
-                title={config.title}
-                values={values}
-                onIncludeValue={props.onIncludeFilter}
-                onExcludeValue={
-                  isSingleChoice ? undefined : props.onExcludeFilter
-                }
-                chosenValue={config.chosenValue}
-                description={config.description}
-                valueDescriptionMap={config.valueDescriptionMap}
-                onClearValue={(facetKey: string, value: string) => {
-                  for (const chip of getFacetChipsToClear(
-                    selections,
-                    facetKey,
-                    value,
-                  )) {
-                    props.onRemoveFilter(chip.facetKey, chip.value);
-                  }
-                }}
-                valueDisplayMap={config.valueDisplayMap}
-                valueColorMap={config.valueColorMap}
-                activeValues={sectionSelection.includedValues}
-                excludedValues={sectionSelection.excludedValues}
-                lockedValues={sectionSelection.lockedValues}
-                onSearchChange={onSearchChange}
-                icon={config.icon}
-                searchText={facetSearch.searchTextByKey[config.key] ?? ""}
-                onSearchTextChange={(text: string) => {
-                  facetSearch.setSearchText(config.key, text);
-                }}
-                emptyStateText={getSidebarFacetEmptyStateText({
-                  isHideable: config.hideWhenEmpty === true,
-                  emptyStateNoun: config.emptyStateNoun,
-                  searchedAtArrivalText:
-                    facetSearch.searchedAtArrivalByKey[config.key],
-                  isScoped: props.onlyShowValuesInScope,
-                })}
-                isCountStopped={timedOutFacetKeys.has(config.key)}
-              />
-            );
-          })}
-
-          <HiddenFacetsFooter
-            hiddenCount={visibility.hiddenCount}
-            hiddenTitles={visibility.hiddenTitles}
-            isShowingHidden={showHidden}
-            controlsId={facetListId}
-            onToggle={() => {
-              setShowHidden(!showHidden);
-            }}
-          />
-        </div>
-      )}
+      <TelemetryFacetSidebarResizeHandle
+        width={sidebarWidth}
+        minWidth={MIN_FACET_SIDEBAR_WIDTH_IN_PX}
+        maxWidth={MAX_FACET_SIDEBAR_WIDTH_IN_PX}
+        onResize={(width: number) => {
+          setSidebarWidth(width);
+        }}
+        onResizeEnd={(width: number) => {
+          setSidebarWidth(width);
+          LocalStorage.setItem(FACET_SIDEBAR_WIDTH_STORAGE_KEY, width);
+        }}
+        onReset={() => {
+          setSidebarWidth(DEFAULT_FACET_SIDEBAR_WIDTH_IN_PX);
+          LocalStorage.setItem(
+            FACET_SIDEBAR_WIDTH_STORAGE_KEY,
+            DEFAULT_FACET_SIDEBAR_WIDTH_IN_PX,
+          );
+        }}
+      />
     </div>
   );
 };
