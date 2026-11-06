@@ -5,6 +5,7 @@ import {
   getCloudAccountColumnQueryValue,
   getCloudAccountFacetOptions,
   getCloudAccountIdsInEveryCase,
+  getAppsCloudAccountFacet,
   getEnvironmentIdsForAccounts,
   getResourcesCloudAccountFacet,
   CLOUD_ACCOUNT_FACET_KEY,
@@ -286,6 +287,53 @@ describe("an account's rows, whichever way its id is written", () => {
         operator: "is_not",
       }),
     ).toEqual(["71000000-0000-4000-8000-000000000003"]);
+  });
+});
+
+describe("All Apps' chip", () => {
+  const environments: Map<string, CloudAccountEnvironment> = new Map<
+    string,
+    CloudAccountEnvironment
+  >([
+    ["71000000-0000-4000-8000-000000000001", environment("aws", AWS_ACCOUNT)],
+    ["71000000-0000-4000-8000-000000000002", environment("gcp", GCP_PROJECT)],
+  ]);
+
+  test("offers the accounts of the environments it has read, named once the names are read", async () => {
+    let asked: number = 0;
+    const facet: ResourceFacet = getAppsCloudAccountFacet(
+      environments,
+      async (): Promise<Array<CloudAccountName>> => {
+        asked++;
+        return [name("aws", AWS_ACCOUNT, "Production")];
+      },
+    );
+
+    // Read once, as the list opens - not offered before.
+    expect(facet.options).toBeUndefined();
+    expect(asked).toBe(0);
+    expect(shapes(await facet.fetchOptions!(undefined as never))).toEqual([
+      [AWS_ACCOUNT, "Production", AWS_ACCOUNT, "AWS"],
+      [GCP_PROJECT, GCP_PROJECT, undefined, "Google Cloud"],
+    ]);
+    expect(asked).toBe(1);
+  });
+
+  test("names that cannot be read leave the ids, as the chip offered them before", async () => {
+    const refused: ResourceFacet = getAppsCloudAccountFacet(
+      environments,
+      async (): Promise<Array<CloudAccountName>> => {
+        throw new Error("You do not have permissions to read Cloud Account.");
+      },
+    );
+    const unnamed: ResourceFacet = getAppsCloudAccountFacet(environments);
+
+    for (const facet of [refused, unnamed]) {
+      expect(shapes(await facet.fetchOptions!(undefined as never))).toEqual([
+        [AWS_ACCOUNT, AWS_ACCOUNT, undefined, "AWS"],
+        [GCP_PROJECT, GCP_PROJECT, undefined, "Google Cloud"],
+      ]);
+    }
   });
 });
 

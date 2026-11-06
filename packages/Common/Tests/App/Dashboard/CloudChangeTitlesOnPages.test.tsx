@@ -74,9 +74,11 @@ import {
 } from "../../../Utils/Telemetry/ChangeEventFields";
 import {
   CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME,
+  CLOUD_OPERATION_BREAK_AFTER,
   CloudChangeTitle,
   getCloudChangeTitleDirection,
   getCloudChangeTitleText,
+  getCloudOperationPieces,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
 import { SECURITY_CASE_CONTEXT_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Context/SecurityCaseContextCopy";
 import {
@@ -361,6 +363,92 @@ describe("a change's title as the Changes list draws it", () => {
      * and the table narrowed the column until an operation broke inside.
      */
     expect(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME).not.toContain("anywhere");
+  });
+
+  /*
+   * #6149's follow-up: production titles an AWS operation by its service
+   * and action, one word ("elasticloadbalancing:ModifyLoadBalancerAttributes"),
+   * as it titles an Azure operation and a Google Cloud method. Held whole,
+   * the longest held the Changes table past its card at 1280 in German and
+   * broke inside a word on a phone (the Cloud Connect fixture's rows, made
+   * as the recorder makes them). Such a word breaks only between its pieces;
+   * each piece, and the resource, stays whole.
+   */
+  test("an operation the cloud writes as one long word breaks only between its pieces: after its service's colon, a slash or a dot", () => {
+    for (const [operation, pieces] of [
+      [
+        "elasticloadbalancing:ModifyLoadBalancerAttributes",
+        ["elasticloadbalancing:", "ModifyLoadBalancerAttributes"],
+      ],
+      ["ecs:UpdateService", ["ecs:", "UpdateService"]],
+      [
+        "Microsoft.Network/networkSecurityGroups/write",
+        ["Microsoft.", "Network/", "networkSecurityGroups/", "write"],
+      ],
+      ["v1.compute.instances.stop", ["v1.", "compute.", "instances.", "stop"]],
+      ["CreateBucket", ["CreateBucket"]],
+      ["ecs:", ["ecs:"]],
+      ["", []],
+    ] as Array<[string, Array<string>]>) {
+      expect({ operation, pieces: getCloudOperationPieces(operation) }).toEqual(
+        { operation, pieces },
+      );
+      // Nothing is lost or added: the pieces are the word.
+      expect(getCloudOperationPieces(operation).join("")).toBe(operation);
+    }
+
+    expect(CLOUD_OPERATION_BREAK_AFTER).toEqual([":", "/", "."]);
+    // A hyphen is never a place to break: "nightly-" / "export".
+    expect(CLOUD_OPERATION_BREAK_AFTER).not.toContain("-");
+  });
+
+  test("drawn, the operation's box may break between its pieces only, and the resource's box not at all", async () => {
+    const row: ChangeEvent = changeRow({
+      title:
+        "Failed: elasticloadbalancing:DeleteLoadBalancer on orders-db.c9akciq32xyz.eu-west-1",
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.Cloud,
+        [ChangeEventAttribute.CloudOperation]:
+          "elasticloadbalancing:DeleteLoadBalancer",
+        [ChangeEventAttribute.Status]: ChangeEventStatus.Failed,
+        [ChangeEventAttribute.CloudResourceName]:
+          "orders-db.c9akciq32xyz.eu-west-1",
+      },
+    });
+
+    for (const language of ["en", "de", "fa"]) {
+      const title: HTMLElement = await drawTitle(language, row);
+      const operation: HTMLElement = values(title).find(
+        (box: HTMLElement): boolean => {
+          return (box.textContent || "").startsWith("elasticloadbalancing:");
+        },
+      )!;
+      const resource: HTMLElement = values(title).find(
+        (box: HTMLElement): boolean => {
+          return (box.textContent || "").startsWith("orders-db");
+        },
+      )!;
+
+      // One place to break, between the service and the action, and the word whole.
+      expect(operation.textContent).toBe(
+        "elasticloadbalancing:DeleteLoadBalancer",
+      );
+      expect(
+        Array.from(operation.childNodes).map((node: ChildNode): string => {
+          return node.nodeName === "WBR" ? "<wbr>" : node.textContent || "";
+        }),
+      ).toEqual(["elasticloadbalancing:", "<wbr>", "DeleteLoadBalancer"]);
+      // A resource's name keeps its dots and hyphens unbroken.
+      expect(resource.querySelectorAll("wbr")).toHaveLength(0);
+      expect(resource.textContent).toBe("orders-db.c9akciq32xyz.eu-west-1");
+      // The sentence says what getCloudChangeTitleText says.
+      expect(withoutIsolateMarks(title.textContent || "")).toBe(
+        withoutIsolateMarks(
+          getCloudChangeTitleText(row, dashboardTranslator(language)),
+        ),
+      );
+      cleanup();
+    }
   });
 
   test("an operation alone, or one that failed on nothing named, is one box", async () => {
