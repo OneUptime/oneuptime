@@ -40,6 +40,7 @@ import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
   getCloudMonitoredResourceNameCandidates,
+  isCloudProviderOwnResourceId,
 } from "../../Types/Cloud/CloudMonitoredResource";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import { CloudResourceRelationship } from "../../Types/Cloud/CloudInventory";
@@ -657,6 +658,21 @@ export class Service extends ProjectReferencesService<Model> {
     const metadata: PartialEntity<Model> = this.getMonitoredResourceColumns(
       data.resource,
     );
+
+    /*
+     * A datapoint that does not name its resource completely (an App Runner
+     * metric without its service's id) leaves the row's id as it is: a
+     * listing's ARN never goes back to the stand-in, so the resource stays
+     * one a change can name.
+     */
+    if (
+      !isCloudProviderOwnResourceId(
+        data.resource.provider,
+        data.resource.providerResourceId,
+      )
+    ) {
+      delete metadata.providerResourceId;
+    }
 
     return await ResourceHeartbeat.write({
       service: this,

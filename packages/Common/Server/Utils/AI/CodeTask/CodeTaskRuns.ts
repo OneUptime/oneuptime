@@ -1,4 +1,5 @@
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
+import { DeclaredCodeChangeTaskContext } from "../../../../Utils/AiRemediation/DeclaredCodeChange";
 import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
@@ -97,6 +98,12 @@ export default class CodeTaskRuns {
      * found, whose rule asks before fixing - its pull request says why.
      */
     triggeredByAiInsightId?: ObjectID | undefined;
+    /*
+     * The fix of OneUptime AI's the person asked from, when they asked for
+     * the code that declares a cloud resource to make the fix's change
+     * (Utils/AiRemediation/DeclaredCodeChange): the fix, and its step.
+     */
+    declaredCodeChange?: DeclaredCodeChangeTaskContext | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
@@ -120,6 +127,16 @@ export default class CodeTaskRuns {
 
     if (data.triggeredByAiInsightId) {
       run.triggeredByAiInsightId = data.triggeredByAiInsightId;
+    }
+
+    if (data.declaredCodeChange) {
+      run.triggeredByAutoRemediationSuggestionId = new ObjectID(
+        data.declaredCodeChange.suggestionId,
+      );
+      run.taskContext = {
+        ...(run.taskContext || {}),
+        declaredCodeChange: data.declaredCodeChange,
+      };
     }
 
     return await AIRunService.create({

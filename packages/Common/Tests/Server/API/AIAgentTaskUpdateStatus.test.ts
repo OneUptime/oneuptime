@@ -463,6 +463,12 @@ describe("POST /ai-agent-task/update-task-status", () => {
               createBy as { data: AIAgentTaskPullRequest }
             ).data;
 
+            /*
+             * The width check DatabaseService.create runs: a value longer
+             * than its column holds fails here as it fails there.
+             */
+            AIAgentTaskPullRequestService["checkMaxLengthOfFields"](row);
+
             row.id = ObjectID.generate();
             rows.push(row);
 
@@ -667,6 +673,51 @@ describe("POST /ai-agent-task/update-task-status", () => {
       });
 
       expect(rows[0]!.aiRunId?.toString()).toBe(runId.toString());
+    });
+
+    /*
+     * A base branch a person picked may run to 255 characters, and a
+     * failure here is only logged: a branch its column could not hold left
+     * the pull request unrecorded, uncounted by the open-PR cap and
+     * untracked by the PR state sync, while the run still completed.
+     */
+    test("records a 200-character branch whole", async () => {
+      const baseRefName: string = `release/${"r".repeat(192)}`;
+      const headRefName: string = `oneuptime/${"h".repeat(190)}`;
+
+      expect(baseRefName).toHaveLength(200);
+      expect(headRefName).toHaveLength(200);
+
+      await report({
+        status: AIAgentTaskStatus.Completed,
+        unrecordedPullRequests: [unrecorded({ baseRefName, headRefName })],
+      });
+
+      expect(succeeded()).toBe(true);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.baseRefName).toBe(baseRefName);
+      expect(rows[0]!.headRefName).toBe(headRefName);
+
+      const decision: OpenPullRequestCapDecision =
+        await OpenPullRequestCap.checkForRepository({
+          codeRepositoryId: checkoutRepositoryId,
+          configuredLimit: 1,
+        });
+
+      expect(decision.openCount).toBe(1);
+    });
+
+    // The check above is real: past what its column holds, nothing is stored.
+    test("a branch longer than any host takes is not recorded cut, and the run still completes", async () => {
+      await report({
+        status: AIAgentTaskStatus.Completed,
+        unrecordedPullRequests: [unrecorded({ baseRefName: "x".repeat(501) })],
+      });
+
+      expect(succeeded()).toBe(true);
+      expect(transition().set.status).toBe(AIRunStatus.Completed);
+      expect(createPullRequestSpy).toHaveBeenCalledTimes(1);
+      expect(rows).toHaveLength(0);
     });
 
     test("a pull request that cannot be recorded does not keep the run from completing", async () => {

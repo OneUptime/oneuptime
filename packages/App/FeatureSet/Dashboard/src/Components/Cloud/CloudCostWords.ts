@@ -97,6 +97,59 @@ export const SAVINGS_SETUP_DOCS_PATHS: Readonly<Record<CloudProvider, string>> =
   COST_SETUP_DOCS_PATHS;
 
 /*
+ * What to do so an account's commitments are read, by cloud, beside its
+ * cloud's own words: AWS reads them with four Cost Explorer actions of
+ * their own, so an older connection runs its setup command again; Azure's
+ * come from Cost Management and Google Cloud's from the billing export,
+ * as the costs do, so their steps are the costs' own. Each links to its
+ * cloud's section of the guide (COST_SETUP_DOCS_PATHS).
+ */
+export const COMMITMENT_SETUP_STEPS: Readonly<Record<CloudProvider, string>> = {
+  [CloudProvider.AWS]: translationKey(
+    "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.",
+  ),
+  [CloudProvider.Azure]: COST_SETUP_STEPS[CloudProvider.Azure],
+  [CloudProvider.GCP]: COST_SETUP_STEPS[CloudProvider.GCP],
+};
+
+/*
+ * The step for an account whose commitments are not read, when one fits
+ * why: a refusal, on every cloud; or, on Google Cloud, no billing export
+ * named yet. Not set up on AWS (a GovCloud account, billed through another)
+ * and on Azure (an offer type Cost Management does not answer for) has no
+ * step to take, and a failed read is tried again the next day: their own
+ * words say so.
+ */
+export function getCloudCommitmentSetupStep(data: {
+  provider: string;
+  state: string;
+}): string | undefined {
+  const provider: CloudProvider = data.provider as CloudProvider;
+
+  if (!COMMITMENT_SETUP_STEPS[provider]) {
+    return undefined;
+  }
+
+  if (
+    data.state === CloudCostState.NotAllowed ||
+    (data.state === CloudCostState.NotSetUp && provider === CloudProvider.GCP)
+  ) {
+    return COMMITMENT_SETUP_STEPS[provider];
+  }
+
+  return undefined;
+}
+
+/*
+ * Where turning on AWS's costs per resource is explained: resource-level
+ * data in the account's Cost Management preferences, then the connection's
+ * Costs per resource setting. Costs' breakdown by resource and by tag link
+ * to it while an AWS account reads none.
+ */
+export const RESOURCE_COSTS_DOCS_PATH: string =
+  "/docs/telemetry/cloud-costs#costs-per-resource";
+
+/*
  * An amount of money as the reader writes money: whole from a thousand
  * ("$4,120"), two decimals below it ("$12.40"), and under a cent as "<$0.01"
  * would mislead - a cent and more is what any bill says.

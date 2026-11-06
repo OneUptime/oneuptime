@@ -43,6 +43,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import { getLastingCloudChange } from "../../../Utils/AiRemediation/DeclaredCodeChange";
 import {
   OpenStackChangeReach,
   OpenStackReachInstance,
@@ -569,6 +570,26 @@ export default class RemediationChatMessage {
     // What it touches: the numbers always, for whoever is about to press Approve.
     if (command.reach) {
       lines.push(RemediationChatMessage.describeReach(command.reach));
+    }
+
+    /*
+     * A change the code declares - a scale, a concurrency, a roll back - is
+     * put back by the next apply, and can be a pull request to that code
+     * too, asked for from the fix in OneUptime (DeclaredCodeChanges). A
+     * restart, a reboot, a start or a fail over sets nothing the code
+     * declares, so the next apply undoes none of them: the message says
+     * nothing of the code there.
+     */
+    if (
+      command.managedAsCode &&
+      getLastingCloudChange({
+        resourceType: command.resourceType,
+        command: command.command,
+      })
+    ) {
+      lines.push(
+        mdText`Declared as code by ${command.managedAsCode}: the next apply may put the old value back. Open the fix in ${ProductBrandingText.getProductName()} to ask for a pull request to that code with the same change.`,
+      );
     }
 
     const record: RemediationTrackRecord | undefined = command.trackRecord;

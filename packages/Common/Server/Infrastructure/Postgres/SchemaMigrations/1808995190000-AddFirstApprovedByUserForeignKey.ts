@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddTwoPersonFixApproval1808995180000, and moved into a migration of its
+ * AddTwoPersonFixApproval1808995185000, and moved into a migration of its
  * own: the foreign key of AutoRemediationSuggestion.firstApprovedByUserId
  * checks every suggestion, so it goes through OnlineDdl.addForeignKey -
  * added NOT VALID, then validated without blocking the table's writers.

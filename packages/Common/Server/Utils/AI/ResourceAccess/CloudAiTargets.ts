@@ -8,10 +8,12 @@ import {
   CLOUD_CATALOG_PROVIDER_NAMES,
   CloudCatalogProvider,
   CloudCommandParse,
+  CloudResourceParse,
   CloudUndoResult,
   getCloudCatalogProvider,
   getCloudUndoCommand,
   parseCloudCommand,
+  parseCloudResourceId,
   readCloudReplacedValue,
 } from "../../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import {
@@ -88,6 +90,14 @@ const IAC_TOOLS: ReadonlyArray<{ word: string; name: string }> = [
 ];
 
 const MAX_SHOWN_NAME_LENGTH: number = 128;
+
+/*
+ * Why an Elastic Beanstalk environment can be missing from an account's
+ * inventory: a connection set up before the inventory listed them may not
+ * read them yet (elasticbeanstalk:DescribeEnvironments).
+ */
+export const BEANSTALK_LISTING_NOTE: string =
+  "OneUptime lists an account's Elastic Beanstalk environments once its cloud connection may read them (elasticbeanstalk:DescribeEnvironments): run the connection's setup command again to allow it.";
 
 /*
  * The command that undoes a cloud change that ran, from the catalog's
@@ -185,6 +195,19 @@ export default class CloudAiTargets {
     }
 
     return found;
+  }
+
+  // Whether an id names an Elastic Beanstalk environment.
+  public static isBeanstalkEnvironmentId(
+    provider: CloudCatalogProvider,
+    resourceId: string,
+  ): boolean {
+    const parsed: CloudResourceParse = parseCloudResourceId(
+      provider,
+      resourceId,
+    );
+
+    return parsed.ok && parsed.resource.kind === "beanstalk-environment";
   }
 
   // The resource id a cloud command names (its canonical second word), or null.
@@ -347,7 +370,11 @@ export default class CloudAiTargets {
 
     if (!target) {
       return {
-        refusal: `${resourceId.slice(0, 256)} is not in this ${CLOUD_CATALOG_PROVIDER_NAMES[provider]} account's inventory, so OneUptime AI may not change it. Name the resource by its id exactly as query_cloud_resource lists it; a resource created since the last listing is listed within 30 minutes.`,
+        refusal: `${resourceId.slice(0, 256)} is not in this ${CLOUD_CATALOG_PROVIDER_NAMES[provider]} account's inventory, so OneUptime AI may not change it. Name the resource by its id exactly as query_cloud_resource lists it; a resource created since the last listing is listed within 30 minutes.${
+          CloudAiTargets.isBeanstalkEnvironmentId(provider, resourceId)
+            ? ` ${BEANSTALK_LISTING_NOTE}`
+            : ""
+        }`,
         target: null,
       };
     }

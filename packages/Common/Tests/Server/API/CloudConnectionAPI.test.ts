@@ -279,6 +279,8 @@ describe("POST /cloud-connection/test", () => {
         config: {
           accessKeyId: ACCESS_KEY_ID,
           readIntervalInMinutes: "10",
+          // Costs per resource are read once someone turns them on.
+          resourceCosts: "off",
           // Data Security reads nothing until it is chosen.
           dataSecurity: "off",
           dataSecurityResponse: "off",
