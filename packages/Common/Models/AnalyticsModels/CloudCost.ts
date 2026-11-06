@@ -31,6 +31,13 @@ import Permission from "../../Types/Permission";
  * of every daily partition of the metrics alive for as long (SloHistory
  * says why). Monthly partitions, kept CLOUD_COST_HISTORY_DAYS.
  *
+ * Each cost keeps its tags (tags): a Google Cloud billing export's labels,
+ * else the tags OneUptime holds for the resource it is billed to - so the
+ * spend breaks down by any of them (CloudCostService sums by a tag's value,
+ * groupByAttributeKeys). Nothing filters by a tag, so no index is kept on
+ * them: a breakdown reads an account's window, as every read of the table
+ * does.
+ *
  * Read through the account the cost belongs to: a caller whose grants are
  * limited to labels reads the costs of the accounts those reach.
  */
@@ -197,6 +204,21 @@ export default class CloudCost extends AnalyticsBaseModel {
           description: "When the cloud connection read the figure.",
           type: TableColumnType.Date,
         }),
+        new AnalyticsTableColumn({
+          key: "tags",
+          codec: { codec: "ZSTD", level: 3 },
+          title: "Tags",
+          description:
+            "The cost's tags (labels on Google Cloud): the billing export's, else the tags of the resource it is billed to, when it was read.",
+          required: true,
+          defaultValue: {},
+          type: TableColumnType.MapStringString,
+          accessControl: {
+            read: readPermissions,
+            create: createPermissions,
+            update: [],
+          },
+        }),
       ],
       projections: [],
       sortKeys: ["projectId", "cloudAccountId", "day", "service"],
@@ -310,5 +332,13 @@ export default class CloudCost extends AnalyticsBaseModel {
 
   public set readAt(v: Date | undefined) {
     this.setColumnValue("readAt", v);
+  }
+
+  public get tags(): Record<string, string> | undefined {
+    return this.getColumnValue("tags") as Record<string, string> | undefined;
+  }
+
+  public set tags(v: Record<string, string> | undefined) {
+    this.setColumnValue("tags", v);
   }
 }

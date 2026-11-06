@@ -159,6 +159,7 @@ import AddUserIdToExceptionInstance from "./AddUserIdToExceptionInstance";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddTagsColumnToCloudCost from "./AddTagsColumnToCloudCost";
 import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
@@ -837,6 +838,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * for itself.
    */
   new AddProcessColumnsToSecurityEvent(),
+  /*
+   * Cloud costs keep their tags (CloudCostV1.tags): a Google Cloud billing
+   * export's labels, else the tags of the resource a cost is billed to, so
+   * Cloud > Costs breaks the spend down by a tag. Metadata-only and
+   * idempotent; rows written before it read no tags. No ordering
+   * requirement, so it sits above the runbook moves, which keep their
+   * places before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new AddTagsColumnToCloudCost(),
   /*
    * Postmortem statuses (Incidents > Postmortems): every project from before
    * them gets the four a new project starts with, then every incident the
