@@ -1,6 +1,9 @@
 import { CloudStreamProblem } from "Common/Types/CloudConnection/CloudStream";
 import {
   AzureCloudStreamNames,
+  STREAM_NOT_A_SUBSCRIPTION,
+  STREAM_NO_SUBSCRIPTION,
+  STREAM_TOO_MANY_SUBSCRIPTIONS,
   getAzureCloudStreamCommand,
   getAzureCloudStreamDeleteCommand,
   getAzureCloudStreamNames,
@@ -172,6 +175,25 @@ export function getAzureStreamSetup(data: {
         }),
     problem,
   };
+}
+
+/*
+ * Whether what stops the command is the subscriptions - none listed, one
+ * that is no ID, more than one command sets up - which only the person in
+ * the dialog can put right (an app the connection does not name is its
+ * form's to fix).
+ */
+export function isAzureStreamSubscriptionsProblem(
+  problem: CloudStreamProblem | null,
+): boolean {
+  return (
+    problem !== null &&
+    [
+      STREAM_NO_SUBSCRIPTION,
+      STREAM_NOT_A_SUBSCRIPTION,
+      STREAM_TOO_MANY_SUBSCRIPTIONS,
+    ].includes(problem.text)
+  );
 }
 
 /*

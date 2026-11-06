@@ -35,6 +35,7 @@ import {
   getAzureStreamSetup,
   getAzureStreamStartSubscriptions,
   getDefaultAzureStreamChoices,
+  isAzureStreamSubscriptionsProblem,
 } from "./CloudStreamAzureSetup";
 import {
   CLOUD_STREAM_COMMAND_MAX_HEIGHT,
@@ -79,10 +80,11 @@ import {
  * Azure Monitor sends only to an event hub, a storage account or a Log
  * Analytics workspace: an event hub OneUptime reads is the way that needs
  * nothing of yours to run. The subscriptions, and the names for setting it
- * up another way, are folded under More fields - unless the connection has
- * read no subscription yet: then nothing can be turned on or run without
- * them, and the dialog asks for them under its question instead. Stopping
- * is the connections list's own action.
+ * up another way, are folded under More fields - unless the subscriptions
+ * stop the command as the dialog opens (the connection has read none yet,
+ * or more than one command sets up): then nothing can be turned on or run
+ * without them, and the dialog asks for them under its question instead.
+ * Stopping is the connections list's own action.
  */
 
 export interface ComponentProps {
@@ -131,13 +133,20 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
     );
   });
   /*
-   * A connection that has read no subscription yet - just connected, or
-   * its reads fail - gives the dialog none to start on, and nothing can be
-   * turned on or run without one: the field is asked for under the
-   * question, not folded away under More fields. Decided as the dialog
-   * opens, so the field stays where it is while it is typed in.
+   * Nothing can be turned on or run while the subscriptions stop the
+   * command: a connection that has read none yet (just connected, or its
+   * reads fail), or more than one command sets up (a tenant's every
+   * subscription). The dialog then asks for them under its question, not
+   * folded away under More fields. Decided as the dialog opens, so the
+   * field stays where it is while it is typed in.
    */
   const [isSubscriptionsAsked] = useState<boolean>(() => {
+    return isAzureStreamSubscriptionsProblem(
+      getAzureStreamSetup({ choices, connectionId, appId }).problem,
+    );
+  });
+  // Asked for because there were none: the field's line says so.
+  const [hadNoSubscriptions] = useState<boolean>(() => {
     return choices.subscriptionsText.trim() === "";
   });
   const [isStarting, setIsStarting] = useState<boolean>(false);
@@ -389,7 +398,7 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
         }}
       />
       <p id={`${fieldId}-subscriptions-help`} className="text-xs text-gray-500">
-        {isSubscriptionsAsked
+        {isSubscriptionsAsked && hadNoSubscriptions
           ? say(
               translationKey(
                 "Subscription IDs, separated by commas: this connection has read none yet. The first holds the event hubs, and OneUptime reads them there.",

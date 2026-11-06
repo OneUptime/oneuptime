@@ -76,6 +76,7 @@ import {
   getAzureStreamStartSubscriptions,
   getAzureStreamStopCommand,
   getDefaultAzureStreamChoices,
+  isAzureStreamSubscriptionsProblem,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamAzureSetup";
 import { CloudStreamWhat } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamSetup";
 import {
@@ -94,9 +95,11 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudStreamRefusalReason } from "../../../Types/CloudConnection/CloudStream";
 import {
   AZURE_EVENT_HUBS_DATA_RECEIVER_ROLE,
+  AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS,
   STREAM_NOT_A_SUBSCRIPTION,
   STREAM_NO_APP,
   STREAM_NO_SUBSCRIPTION,
+  STREAM_TOO_MANY_SUBSCRIPTIONS,
 } from "../../../Types/CloudConnection/CloudStreamAzure";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
@@ -772,6 +775,67 @@ describe("the dialog", () => {
     expect(queryPart("subscriptions-asked")).not.toBeInTheDocument();
     expect(part("more-fields")).toContainElement(part("subscriptions"));
     expect(part("more-fields")).toHaveTextContent("Subscriptions: 2");
+  });
+
+  test("a tenant's every subscription, more than one command sets up, is asked for under the question too", async () => {
+    const many: Array<string> = Array.from(
+      { length: AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS + 1 },
+      (_value: unknown, index: number): string => {
+        return `${String(index).padStart(8, "0")}-aaaa-4aaa-8aaa-111111111111`;
+      },
+    );
+    openDialog(
+      connection({ lastPullResult: { status: "success", accounts: many } }),
+    );
+
+    expect(part("problem")).toHaveTextContent(
+      `List at most ${AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS} subscriptions.`,
+    );
+    // Its line is the one that says where the list came from, not that there is none.
+    expect(part("subscriptions-asked")).toHaveTextContent(
+      "Subscription IDs, separated by commas: at first, the ones this connection reads.",
+    );
+    expect(part("subscriptions")).toHaveValue(many.join(", "));
+
+    await act(async () => {
+      fireEvent.change(part("subscriptions"), {
+        target: { value: many.slice(0, 3).join(", ") },
+      });
+    });
+
+    expect(queryPart("problem")).not.toBeInTheDocument();
+    expect(command()).toContain(`local HOST='${many[0]}'`);
+  });
+
+  test("only the subscriptions' own problems are the person's to put right in the dialog", () => {
+    for (const text of [
+      STREAM_NO_SUBSCRIPTION,
+      STREAM_NOT_A_SUBSCRIPTION,
+      STREAM_TOO_MANY_SUBSCRIPTIONS,
+    ]) {
+      expect(isAzureStreamSubscriptionsProblem({ text, values: {} })).toBe(
+        true,
+      );
+    }
+
+    expect(
+      isAzureStreamSubscriptionsProblem({ text: STREAM_NO_APP, values: {} }),
+    ).toBe(false);
+    expect(isAzureStreamSubscriptionsProblem(null)).toBe(false);
+  });
+
+  test("a connection that names no app keeps its subscriptions folded: its form is what to fix", () => {
+    openDialog(
+      connection({
+        config: { authMethod: "azure-client-secret" },
+        lastPullResult: { status: "success", accounts: [] },
+      }),
+    );
+
+    expect(part("problem")).toHaveTextContent(
+      "This connection does not say which app registration it reads with.",
+    );
+    expect(queryPart("subscriptions-asked")).not.toBeInTheDocument();
   });
 
   test("while reading is on, a listed subscription that is no ID keeps saying where it reads - never a question mark", async () => {
