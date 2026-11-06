@@ -844,7 +844,7 @@ test.describe("large and unusual traces", () => {
       [500, 1],
     ]);
 
-    // Whether it is a trace from an OpenStack cloud takes one look, and this one is not.
+    // Whether it is a trace from an OpenStack cloud takes a look per scope that writes them, and this one is not.
     expect(
       state.analyticsListRequests.filter((request: RecordedListRequest) => {
         return (
@@ -853,7 +853,7 @@ test.describe("large and unusual traces", () => {
           Boolean(request.query["attributes"])
         );
       }),
-    ).toHaveLength(1);
+    ).toHaveLength(3);
     await expect(page.getByTestId("openstack-trace-context")).toHaveCount(0);
   });
 
