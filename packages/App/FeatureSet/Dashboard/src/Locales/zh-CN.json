@@ -45656,5 +45656,8 @@
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "已登录到该项目并已启用 Secret Manager API（`gcloud services enable secretmanager.googleapis.com`）的 `gcloud`",
   "OTLP Endpoint": "OTLP 端点",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "带有此环境的 cloud.platform、cloud.account.id 和 cloud.region 资源属性的日志会显示在这里；其 AWS 账户流式传输 CloudWatch Logs 后，这些日志也会显示在这里：请在 云 > 连接 中，在该账户所在行选择“流式传输指标和日志”。",
-  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "在此时间范围内，此资源的日志组没有传来任何内容。请选择更长的时间范围，或检查其账户是否流式传输此日志组：请在 云 > 连接 中，在该账户所在行打开“流式传输指标和日志”。"
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "在此时间范围内，此资源的日志组没有传来任何内容。请选择更长的时间范围，或检查其账户是否流式传输此日志组：请在 云 > 连接 中，在该账户所在行打开“流式传输指标和日志”。",
+  "Page default ({{language}})": "页面默认 ({{language}})",
+  "The language their notifications are written in.": "通知所用的语言。",
+  "{{language}} (default)": "{{language}} (默认)"
 }

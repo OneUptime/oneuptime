@@ -45656,5 +45656,8 @@
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud` с входом в проект и включённым Secret Manager API (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "Эндпоинт OTLP",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Логи появятся здесь, если у них есть атрибуты ресурса cloud.platform, cloud.account.id и cloud.region этой среды, или когда её аккаунт AWS начнёт передавать CloudWatch Logs: в разделе Облако > Подключить выберите «Передавать метрики и журналы» в строке аккаунта.",
-  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "За этот период из группы журналов этого ресурса ничего не пришло. Выберите период подлиннее или проверьте, что его аккаунт передаёт эту группу журналов: в разделе Облако > Подключить откройте «Передавать метрики и журналы» в строке аккаунта."
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "За этот период из группы журналов этого ресурса ничего не пришло. Выберите период подлиннее или проверьте, что его аккаунт передаёт эту группу журналов: в разделе Облако > Подключить откройте «Передавать метрики и журналы» в строке аккаунта.",
+  "Page default ({{language}})": "По умолчанию для страницы ({{language}})",
+  "The language their notifications are written in.": "Язык, на котором им приходят уведомления.",
+  "{{language}} (default)": "{{language}} (по умолчанию)"
 }

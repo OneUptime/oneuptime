@@ -10,6 +10,7 @@ import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseMode
 import URL from "Common/Types/API/URL";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -2319,5 +2320,70 @@ describe("ScheduledMaintenanceStateTimeline notifications of a blocked project",
 
     expect(MailService.sendMail).toHaveBeenCalled();
     expect(ProjectService.isProjectBlocked).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE: OneUptime's default
+ * state names and the event's date are in the page's default language
+ * (SubscriberTemplateValues), a project's own state as written, English
+ * for a page with no default language.
+ */
+describe("ScheduledMaintenanceStateTimeline custom templates, in the page's language", () => {
+  const VALUES: string =
+    "{{scheduledMaintenanceState}}|{{scheduledAt}}|{{scheduledMaintenanceTitle}}";
+
+  const usePageIn: (language: string) => void = (language: string): void => {
+    useCustomTemplates({ body: VALUES });
+
+    const page: StatusPage = statusPage({ withCustomDelivery: true });
+    page.defaultLanguage = language;
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+  };
+
+  test("a default state name, and the date, are the page's language's", async () => {
+    pendingTimelines[0]!.scheduledMaintenanceState!.name = "Ongoing";
+    usePageIn("de");
+
+    await runJob();
+
+    const germanDate: string = writeInLanguage("de", (): string => {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(STARTS_AT);
+    });
+
+    expect(germanDate).not.toBe(STARTS_AT_STRING);
+
+    const calls: Array<CompileTemplateCall> = compileTemplateCalls();
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.variables["scheduledMaintenanceState"]).toBe("Laufend");
+      expect(call.variables["scheduledAt"]).toBe(germanDate);
+      expect(call.variables["scheduledMaintenanceTitle"]).toBe(EVENT_TITLE);
+    }
+  });
+
+  test("a project's own state name reads as written", async () => {
+    usePageIn("de");
+
+    await runJob();
+
+    for (const call of compileTemplateCalls()) {
+      expect(call.variables["scheduledMaintenanceState"]).toBe(STATE_NAME);
+    }
+  });
+
+  test("a page without a default language fills them in English", async () => {
+    pendingTimelines[0]!.scheduledMaintenanceState!.name = "Ongoing";
+    useCustomTemplates({ body: VALUES });
+
+    await runJob();
+
+    for (const call of compileTemplateCalls()) {
+      expect(call.variables["scheduledMaintenanceState"]).toBe("Ongoing");
+      expect(call.variables["scheduledAt"]).toBe(STARTS_AT_STRING);
+    }
   });
 });

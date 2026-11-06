@@ -45656,5 +45656,8 @@
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, प्रोजेक्ट में साइन इन किया हुआ, Secret Manager API सक्षम के साथ (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "OTLP एंडपॉइंट",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "जिन लॉग में इस परिवेश की cloud.platform, cloud.account.id और cloud.region संसाधन विशेषताएँ होती हैं, वे यहाँ दिखते हैं; इसका AWS खाता CloudWatch Logs स्ट्रीम करने लगे, तो वे लॉग भी यहाँ दिखते हैं: क्लाउड > कनेक्ट करें में खाते की पंक्ति में मेट्रिक्स और लॉग स्ट्रीम करें चुनें।",
-  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "इस समय सीमा में इस संसाधन के लॉग समूह से कुछ नहीं आया। लंबी समय सीमा चुनें, या जाँचें कि इसका खाता यह लॉग समूह स्ट्रीम करता है: क्लाउड > कनेक्ट करें में खाते की पंक्ति में मेट्रिक्स और लॉग स्ट्रीम करें खोलें।"
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "इस समय सीमा में इस संसाधन के लॉग समूह से कुछ नहीं आया। लंबी समय सीमा चुनें, या जाँचें कि इसका खाता यह लॉग समूह स्ट्रीम करता है: क्लाउड > कनेक्ट करें में खाते की पंक्ति में मेट्रिक्स और लॉग स्ट्रीम करें खोलें।",
+  "Page default ({{language}})": "पेज का डिफ़ॉल्ट ({{language}})",
+  "The language their notifications are written in.": "वह भाषा जिसमें उनकी सूचनाएं लिखी जाती हैं।",
+  "{{language}} (default)": "{{language}} (डिफ़ॉल्ट)"
 }
