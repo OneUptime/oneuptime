@@ -97,6 +97,8 @@ import {
 } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
 import { COLUMN_SELECTOR_PANEL_TEST_ID } from "../../../UI/Components/LogsViewer/components/ColumnSelector";
 import { KEYBOARD_SHORTCUTS_HELP_TEST_ID } from "../../../UI/Components/LogsViewer/components/KeyboardShortcutsHelp";
+import { FACET_SIDEBAR_RESIZE_HANDLE_TEST_ID } from "../../../UI/Components/TelemetryViewer/components/FacetSidebarResizeHandle";
+import { FACET_SIDEBAR_WIDTH_CLASS_NAME } from "../../../UI/Components/TelemetryViewer/FacetSidebarWidth";
 
 const FACET_DATA: FacetData = {
   severityText: [
@@ -165,6 +167,11 @@ function sidebar(): HTMLElement {
   return first;
 }
 
+// The sidebar's edge, which sizes it from md up.
+function resizeHandle(): HTMLElement {
+  return screen.getByTestId(FACET_SIDEBAR_RESIZE_HANDLE_TEST_ID);
+}
+
 function classTokens(element: Element): Array<string> {
   return (element.getAttribute("class") || "").split(/\s+/).filter(Boolean);
 }
@@ -185,9 +192,29 @@ describe("the facets + list area below md", () => {
     // A bare flex-row would put the side-by-side layout back on phones.
     expect(classTokens(mainArea())).not.toContain("flex-row");
 
-    // The sidebar comes first, so it stacks above the list rather than under it.
+    /*
+     * The sidebar comes first, so it stacks above the list rather than under
+     * it, and its edge stands between the two (FacetSidebarPanel).
+     */
     const children: Array<Element> = Array.from(mainArea().children);
-    expect(children).toEqual([sidebar(), listCard()]);
+    expect(children).toEqual([sidebar(), resizeHandle(), listCard()]);
+  });
+
+  test("the sidebar's edge is drawn only where the sidebar stands beside the list", async () => {
+    await renderViewer();
+
+    expect(describeVisibility(resizeHandle(), PHONE_WIDTH_IN_PX)).not.toBe(
+      `visible at ${PHONE_WIDTH_IN_PX}px`,
+    );
+
+    for (const width of [TABLET_WIDTH_IN_PX, LAPTOP_WIDTH_IN_PX]) {
+      expect(describeVisibility(resizeHandle(), width)).toBe(
+        `visible at ${width}px`,
+      );
+    }
+
+    // It sizes the very card the Filters toggle opens.
+    expect(resizeHandle()).toHaveAttribute("aria-controls", sidebar().id);
   });
 
   test("the stacked sidebar spans the width and is capped so it cannot bury the list", async () => {
@@ -197,9 +224,19 @@ describe("the facets + list area below md", () => {
       "w-full",
       "max-h-80",
       "overflow-y-auto",
-      "md:w-56",
       "md:h-full",
       "md:max-h-none",
+    );
+
+    /*
+     * From md up it is as wide as the person made it - 14rem until they do -
+     * and never more than half the area, so the list keeps the rest.
+     */
+    expect(FACET_SIDEBAR_WIDTH_CLASS_NAME).toBe(
+      "md:w-[var(--ou-facet-sidebar-width,14rem)] md:max-w-[50%]",
+    );
+    expect(sidebar()).toHaveClass(
+      ...FACET_SIDEBAR_WIDTH_CLASS_NAME.split(" "),
     );
 
     /*
@@ -207,6 +244,9 @@ describe("the facets + list area below md", () => {
      * and a full-height one once it is stacked.
      */
     expect(classTokens(sidebar())).not.toContain("w-56");
+    expect(classTokens(sidebar())).not.toContain(
+      "w-[var(--ou-facet-sidebar-width,14rem)]",
+    );
     expect(classTokens(sidebar())).not.toContain("h-full");
 
     expect(listCard()).toHaveClass("min-w-0", "flex-1");
