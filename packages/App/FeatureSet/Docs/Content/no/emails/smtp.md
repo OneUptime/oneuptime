@@ -6,6 +6,8 @@ Send e-posten fra OneUptime gjennom din egen e-postserver. Et prosjekt legger ti
 - **OAuth 2.0**: for Microsoft 365 og Google Workspace, der grunnleggende autentisering ofte er slått av.
 - **Ingen**: for relé-servere som ikke krever autentisering.
 
+Vil du sende gjennom Amazon SES, SendGrid, Mailgun, Postmark eller Resend i stedet for en e-postserver, se [E-postleverandører](/docs/emails/email-providers).
+
 ```mermaid title="Hvilken e-postserver sender hva"
 flowchart TB
     SP["E-post fra en statusside"] --> Q{"Egendefinert SMTP-konfigurasjon<br/>valgt for siden?"}
@@ -17,7 +19,7 @@ flowchart TB
 I en selvdriftet installasjon er OneUptimes egen e-postserver den som er angitt i Admin Dashboard. En statusside velger SMTP-konfigurasjonen sin på siden **Abonnentsinnstillinger**, i kortet **Egendefinert SMTP**.
 
 :::cards
-- [Legg til en e-postserver](#legg-til-en-smtp-server): To trinn, alt annet slått sammen.
+- [Legg til en e-postserver](#legg-til-en-smtp-server): Noen få trinn, alt annet slått sammen.
 - [Microsoft 365](#konfigurasjon-for-microsoft-365): OAuth med en appregistrering i Entra.
 - [Google Workspace](#konfigurasjon-for-google-workspace): OAuth med en tjenestekonto.
 - [Feilsøking](#feilsøking): Vanlige feil og hva de betyr.
@@ -25,7 +27,7 @@ I en selvdriftet installasjon er OneUptimes egen e-postserver den som er angitt 
 
 ## Legg til en SMTP-server
 
-Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, i kortet **Egendefinerte SMTP-konfigurasjoner** under **Flere innstillinger**. I en selvdriftet installasjon angis serveren som OneUptime selv sender fra, under **Admin Dashboard > Innstillinger > Varsler > E-poster**, i kortet **Egendefinerte e-post- og SMTP-innstillinger**. Begge skjemaene spør om det samme, i to trinn.
+Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, i kortet **Egendefinerte SMTP-konfigurasjoner** under **Flere innstillinger**. I en selvdriftet installasjon angis serveren som OneUptime selv sender fra, under **Admin Dashboard > Innstillinger > Varsler > E-poster**, i kortet **Egendefinerte e-post- og SMTP-innstillinger**. Begge skjemaene spør om serveren og avsenderen; et prosjekts skjema spør først om en **Leverandør**.
 
 :::steps
 ### Åpne skjemaet
@@ -37,13 +39,17 @@ Legg til et prosjekts e-postserver under **Prosjektinnstillinger > Varsler > Var
 Åpne **Innstillinger** i Admin Dashboard, og deretter **Varsler > E-poster** i sidemenyen (**Varsler** er slått sammen fra start). Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og sett **E-posttjenertype** til `Custom SMTP`. Klikk deretter på **Rediger SMTP-konfig** i kortet **Egendefinerte e-post- og SMTP-innstillinger**, som vises under.
 :::
 
+### Velg leverandøren
+
+Et prosjekts skjema åpner på trinnet **Leverandør**: fyll inn **Navn**, og la **SMTP-server** være valgt for å sende gjennom en e-postserver. Vil du heller sende gjennom Microsoft Graph eller en [e-postleverandør](/docs/emails/email-providers), velger du den her. **Beskrivelse**, et notat til teamet ditt, er slått sammen under **Flere felt**. Instansens skjema har ikke trinnet **Leverandør**.
+
 ### Fyll ut trinnet Server
 
-I trinnet **Server** fyller du inn **Navn** (bare prosjektkonfigurasjoner), **Vertsnavn**, **Port** (en ny prosjektkonfigurasjon starter på `587`), **Brukernavn** og **Passord**.
+I trinnet **Server** fyller du inn **Vertsnavn**, **Port** (en ny prosjektkonfigurasjon starter på `587`), **Brukernavn** og **Passord**.
 
 ### Sjekk Flere felt
 
-Alt annet er slått sammen under **Flere felt** på slutten av trinnet **Server**. Mens det er slått sammen, sier overskriften hvordan e-post sendes, for eksempel «E-post sendes via SMTP, med pålogging med brukernavn og passord. TLS er påkrevd.» Åpne det bare hvis du må endre en av innstillingene i tabellen nedenfor.
+Serverens øvrige innstillinger er slått sammen under **Flere felt** på slutten av trinnet **Server**. Mens det er slått sammen, sier overskriften hvordan e-post sendes, for eksempel «E-post sendes via SMTP, med pålogging med brukernavn og passord. TLS er påkrevd.» Åpne det bare hvis du må endre en av innstillingene i tabellen nedenfor. I et prosjekts skjema har OAuth-feltene et eget trinn, **OAuth**, etter **Server**.
 
 ### Fyll ut trinnet Avsender
 
@@ -60,13 +66,13 @@ Dette er innstillingene under **Flere felt**:
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Transport** | `SMTP` (standard), eller `Microsoft Graph` for en Microsoft 365-leietaker der SMTP AUTH er slått av. Når du velger Microsoft Graph, skjules vertsnavn, port, brukernavn og passord, og OAuth-feltene vises. |
+| **Transport** | `SMTP` (standard), eller `Microsoft Graph` for en Microsoft 365-leietaker der SMTP AUTH er slått av. Når du velger Microsoft Graph, skjules vertsnavn, port, brukernavn og passord, og OAuth-feltene vises. Bare i instansens skjema: et prosjekt velger i stedet sin **Leverandør**. |
 | **Krev TLS** | På for en ny prosjektkonfigurasjon. Send e-post bare over en kryptert tilkobling med et gyldig sertifikat. Når dette er av, kontrolleres ikke sertifikatet. Port 465 er alltid kryptert. Når dette er av, krypteres e-post på andre porter bare hvis serveren tilbyr det. |
 | **Autentiseringstype** | `Username and Password` (standard), `OAuth`, eller `None` for et relé som ikke krever pålogging. |
-| **OAuth-felt** | **OAuth-leverandørtype**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** og **OAuth-omfang**, som vises når OAuth eller Microsoft Graph er valgt. |
-| **Beskrivelse** | Et notat til teamet ditt (bare prosjektkonfigurasjoner). |
+| **OAuth-felt** | **OAuth-leverandørtype**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth-token-URL** og **OAuth-omfang**, som vises når OAuth eller Microsoft Graph er valgt. Et prosjekts skjema spør om dem i trinnet **OAuth**. |
+| **Beskrivelse** | Et notat til teamet ditt (bare prosjektkonfigurasjoner), i trinnet **Leverandør**. |
 
-**Microsoft Graph.** Åpne **Flere felt**, sett **Transport** til `Microsoft Graph`, og fyll inn en Azure-app som har programtillatelsen **Mail.Send**: klient-ID-en og klienthemmeligheten, token-URL-en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. E-post sendes fra postboksen til **E-post fra**, som må være en lisensiert postboks i leietakeren din.
+**Microsoft Graph.** I et prosjekts skjema velger du `Microsoft Graph` som **Leverandør**; i instansens skjema åpner du **Flere felt** og setter **Transport** til `Microsoft Graph`. Fyll deretter inn en Azure-app som har programtillatelsen **Mail.Send**: klient-ID-en og klienthemmeligheten, token-URL-en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. E-post sendes fra postboksen til **E-post fra**, som må være en lisensiert postboks i leietakeren din.
 
 > [!NOTE]
 > På OneUptime Cloud må et prosjekts e-postserver kunne nås over internett: en vert som slås opp til en privat eller intern adresse, avvises. I en selvdriftet installasjon er private adresser tillatt, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`; loopback- og link-local-adresser avvises alltid. Instansens egen e-postserver kontrolleres ikke på denne måten.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Sender e-posten
 ```
 
-**Autentiseringstype** og OAuth-feltene ligger under **Flere felt** i skjemaets trinn Server. For å logge på med OAuth fyller du ut:
+**Autentiseringstype** ligger under **Flere felt** i skjemaets trinn Server. I instansens skjema ligger OAuth-feltene også der, og i et prosjekts skjema i trinnet **OAuth**. For å logge på med OAuth fyller du ut:
 
 | Felt | Beskrivelse |
 | --- | --- |
@@ -309,6 +315,7 @@ Kontroller **E-post fra**: serveren din må tillate sending fra den. Se deretter
 ## Neste steg
 
 :::cards
+- [E-postleverandører](/docs/emails/email-providers): Send i stedet gjennom Amazon SES, SendGrid, Mailgun, Postmark eller Resend.
 - [Varseloppsummering](/docs/emails/notification-rollup): Hvordan OneUptime samler bølger av e-post til eiere.
 - [Abonnenter og kunngjøringer](/docs/status-pages/subscribers): Send e-posten til abonnentene på en statusside via en SMTP-konfigurasjon i prosjektet.
 :::

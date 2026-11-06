@@ -6,6 +6,8 @@ Send OneUptime's email through your own mail server. A project adds SMTP configs
 - **OAuth 2.0**: for Microsoft 365 and Google Workspace, where basic authentication is often turned off.
 - **None**: for relay servers that don't require authentication.
 
+To send through Amazon SES, SendGrid, Mailgun, Postmark or Resend instead of a mail server, see [Email Providers](/docs/emails/email-providers).
+
 ```mermaid title="Which mail server sends what"
 flowchart TB
     SP["A status page's email"] --> Q{"Custom SMTP Config<br/>picked for the page?"}
@@ -17,7 +19,7 @@ flowchart TB
 On a self-hosted installation, OneUptime's own mail server is the one set in the Admin Dashboard. A status page picks its SMTP config on its **Subscriber Settings** page, in the **Custom SMTP** card.
 
 :::cards
-- [Add a mail server](#adding-an-smtp-server): Two steps, with everything else folded away.
+- [Add a mail server](#adding-an-smtp-server): A few steps, with everything else folded away.
 - [Microsoft 365](#microsoft-365-configuration): OAuth with an Entra app registration.
 - [Google Workspace](#google-workspace-configuration): OAuth with a service account.
 - [Troubleshooting](#troubleshooting): Common errors and what they mean.
@@ -25,7 +27,7 @@ On a self-hosted installation, OneUptime's own mail server is the one set in the
 
 ## Adding an SMTP Server
 
-Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card under **More settings**. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Notifications > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps.
+Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card under **More settings**. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Notifications > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the server and the sender; a project's form first asks for its **Provider**.
 
 :::steps
 ### Open the form
@@ -37,13 +39,17 @@ On **Project Settings > Notifications > Notification Settings**, open **More set
 In the Admin Dashboard, open **Settings**, then **Notifications > Emails** in the side menu (**Notifications** starts folded). In the **Email Server Settings** card, click **Edit Server** and set **Email Server Type** to `Custom SMTP`. Then click **Edit SMTP Config** in the **Custom Email and SMTP Settings** card, which appears below it.
 :::
 
+### Pick the provider
+
+A project's form opens on the **Provider** step: enter the **Name**, and keep **SMTP Server** picked to send through a mail server. To send through Microsoft Graph or an [email provider](/docs/emails/email-providers) instead, pick it here. The **Description**, a note for your team, is folded under **More fields**. The instance's form has no **Provider** step.
+
 ### Fill in the Server step
 
-On the **Server** step, enter the **Name** (project configs only), **Hostname**, **Port** (a new project config starts on `587`), **Username** and **Password**.
+On the **Server** step, enter the **Hostname**, **Port** (a new project config starts on `587`), **Username** and **Password**.
 
 ### Check More fields
 
-Everything else is folded under **More fields** at the end of the **Server** step. While it is folded, its header says how mail is sent, for example "Mail is sent over SMTP, signing in with the username and password. TLS is required." Open it only if you need to change one of the settings in the table below.
+The server's other settings are folded under **More fields** at the end of the **Server** step. While it is folded, its header says how mail is sent, for example "Mail is sent over SMTP, signing in with the username and password. TLS is required." Open it only if you need to change one of the settings in the table below. On a project's form, the OAuth fields have an **OAuth** step of their own, after **Server**.
 
 ### Fill in the Sender step
 
@@ -60,13 +66,13 @@ These are the settings under **More fields**:
 
 | Field                   | What it does                                                                                                                                                                                                                              |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Transport**           | `SMTP` (the default), or `Microsoft Graph` for a Microsoft 365 tenant that has SMTP AUTH turned off. Picking Microsoft Graph hides the hostname, port, username and password, and shows the OAuth fields.                                 |
+| **Transport**           | `SMTP` (the default), or `Microsoft Graph` for a Microsoft 365 tenant that has SMTP AUTH turned off. Picking Microsoft Graph hides the hostname, port, username and password, and shows the OAuth fields. On the instance's form only: a project picks its **Provider** instead.                                |
 | **Require TLS**         | On for a new project config. Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted. When it is off, mail on other ports is encrypted only if the server offers it. |
 | **Authentication Type** | `Username and Password` (the default), `OAuth`, or `None` for a relay that needs no sign-in.                                                                                                                                              |
-| **OAuth fields**        | **OAuth Provider Type**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth Token URL** and **OAuth Scope**, shown once OAuth or Microsoft Graph is picked.                                                                            |
-| **Description**         | A note for your team (project configs only).                                                                                                                                                                                              |
+| **OAuth fields**        | **OAuth Provider Type**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth Token URL** and **OAuth Scope**, shown once OAuth or Microsoft Graph is picked. A project's form asks for them on its **OAuth** step.                                                                           |
+| **Description**         | A note for your team (project configs only), on the **Provider** step.                                                                                                                                                                                              |
 
-**Microsoft Graph.** Open **More fields**, set **Transport** to `Microsoft Graph`, and fill in an Azure app that has the **Mail.Send** application permission: its client ID and client secret, the token URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` and the scope `https://graph.microsoft.com/.default`. Mail is sent from the **From Email** mailbox, which must be a licensed mailbox in your tenant.
+**Microsoft Graph.** On a project's form, pick `Microsoft Graph` as the **Provider**; on the instance's form, open **More fields** and set **Transport** to `Microsoft Graph`. Then fill in an Azure app that has the **Mail.Send** application permission: its client ID and client secret, the token URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` and the scope `https://graph.microsoft.com/.default`. Mail is sent from the **From Email** mailbox, which must be a licensed mailbox in your tenant.
 
 > [!NOTE]
 > On OneUptime Cloud, a project's mail server must be reachable over the internet: a host that resolves to a private or internal address is refused. On a self-hosted installation, private addresses are allowed unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`; loopback and link-local addresses are always refused. The instance's own mail server is not checked this way.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Send the email
 ```
 
-**Authentication Type** and the OAuth fields are under **More fields** on the form's Server step. To sign in with OAuth, fill in:
+**Authentication Type** is under **More fields** on the form's Server step. The OAuth fields are there too on the instance's form, and on the **OAuth** step on a project's. To sign in with OAuth, fill in:
 
 | Field                     | Description                                                                         |
 | ------------------------- | ----------------------------------------------------------------------------------- |
@@ -309,6 +315,7 @@ Check the **From Email**: your server must allow sending from it. Then look in t
 ## Next steps
 
 :::cards
+- [Email Providers](/docs/emails/email-providers): Send through Amazon SES, SendGrid, Mailgun, Postmark or Resend instead.
 - [Notification Email Rollup](/docs/emails/notification-rollup): How OneUptime batches bursts of owner email.
 - [Subscribers & Announcements](/docs/status-pages/subscribers): Send a status page's subscriber email through a project's SMTP config.
 :::
