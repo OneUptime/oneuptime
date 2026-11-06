@@ -20,12 +20,15 @@ flowchart TB
     open -->|Oui| join["Le rejoint"]
     open -->|Non| reopen(["Un résolu dans la<br/>fenêtre de réouverture ?"])
     reopen -->|Oui| reopened["Le rouvre"]
-    reopen -->|Non| created["Ouvre un<br/>nouvel épisode"]
+    reopen -->|Non| enough(["Assez d'alertes en cours<br/>qui correspondent ?"])
+    enough -->|Oui| created["Ouvre un nouvel épisode<br/>avec toutes ces alertes"]
+    enough -->|Pas encore| waits["Attend seule"]
 ```
 
 - **Les conditions de la règle** décident à quelles alertes elle s'applique. Une règle sans condition s'applique à chaque nouvelle alerte.
 - **La clé de regroupement** décide quelles alertes partagent un épisode : celles qui ont le même moniteur, la même gravité, le même titre, ou toute combinaison selon laquelle la règle regroupe. Une règle qui ne regroupe selon rien met dans un seul épisode chaque alerte qui lui correspond.
 - **La fenêtre de temps** décide combien de temps un épisode continue d'accepter des alertes. Activée, une alerte ne le rejoint que si elle arrive dans la fenêtre suivant la dernière alerte de l'épisode. Désactivée, les alertes correspondantes continuent de le rejoindre jusqu'à ce que l'épisode soit résolu.
+- **Attendre d'autres alertes** décide quand un nouvel épisode s'ouvre. Désactivé, comme dans une nouvelle règle, la première alerte correspondante en ouvre un. Activé, une alerte attend seule jusqu'à ce que son groupe compte en cours le nombre d'alertes correspondantes que vous avez fixé, puis un seul épisode s'ouvre avec toutes ces alertes. Voir [Ouvrir un épisode seulement pour plusieurs alertes](#ouvrir-un-épisode-seulement-pour-plusieurs-alertes).
 
 Le regroupement a lieu à la création d'une alerte. Une règle que vous ajoutez aujourd'hui regroupe les alertes créées après elle ; elle ne regroupe pas à nouveau celles qui existent déjà.
 
@@ -72,10 +75,21 @@ Tout ce qu'une règle peut faire d'autre est replié sous **Plus de champs**, à
 | Groupe                          | Paramètres                                                                                                 |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **Astreinte et propriété**      | Les **Politiques d'astreinte** à exécuter quand la règle ouvre un épisode, et les **Propriétaires de l'épisode**. |
-| **Cycle de vie de l'épisode**   | **Rouvrir les épisodes résolus récemment**, **Attendre avant de résoudre un épisode** et **Résoudre les épisodes inactifs**, chacun un interrupteur avec ses minutes. |
+| **Cycle de vie de l'épisode**   | **Attendre d'autres alertes**, un interrupteur avec un nombre, puis **Rouvrir les épisodes résolus récemment**, **Attendre avant de résoudre un épisode** et **Résoudre les épisodes inactifs**, chacun un interrupteur avec ses minutes. |
 | **Détails**                     | La **Description** de la règle, le **Modèle de titre de l'épisode**, le **Modèle de description de l'épisode** et les **Étiquettes de l'épisode**. |
 
 Les règles sont vérifiées de haut en bas de la liste, et la première correspondance l'emporte : faites glisser une règle pour changer sa place. Placez les règles précises au-dessus des règles larges. La colonne **Regroupement** de la liste dit en une phrase ce que fait chaque règle, par exemple « Un épisode par moniteur ».
+
+### Ouvrir un épisode seulement pour plusieurs alertes
+
+**Attendre d'autres alertes**, sous **Cycle de vie de l'épisode**, garde une alerte isolée hors de tout épisode. Activez-le et indiquez combien : **Ouvrir un épisode dès que 3 alertes correspondantes sont en cours**, de 2 à 100.
+
+- **Jusque-là, chaque alerte attend seule.** Une alerte qui ne trouve ni épisode ouvert de son groupe à rejoindre, ni épisode résolu à rouvrir, n'ouvre rien et n'exécute que ses propres politiques d'astreinte, comme une alerte à laquelle aucune règle ne correspond.
+- **Puis un seul épisode s'ouvre avec toutes ces alertes.** L'alerte qui atteint le nombre ouvre l'épisode avec chaque alerte qui attendait. L'épisode prend le titre, le moniteur et la gravité de la première d'entre elles, sa gravité monte jusqu'à la plus grave, et les alertes suivantes le rejoignent comme d'habitude.
+- **Seules les alertes en cours comptent.** Une alerte résolue entre-temps est terminée, si bien qu'un moniteur qui ne cesse de tomber et de se rétablir n'ouvre jamais d'épisode à lui seul. Tant que **Ne regrouper que les alertes qui arrivent rapprochées** est activé, les alertes doivent aussi être arrivées dans sa fenêtre les unes par rapport aux autres.
+- **Le compte se fait par groupe.** Avec **Tout ensemble**, toutes les alertes correspondantes comptent, si bien qu'un épisode ne s'ouvre que pour une panne qui déclenche plusieurs moniteurs à la fois. Avec **Moniteur**, l'épisode d'un moniteur s'ouvre dès que ce moniteur a plusieurs alertes en cours.
+
+La colonne **Regroupement** de la liste dit « Ouvre un épisode dès que 3 alertes correspondantes sont en cours ». Dans l'API et dans Terraform, ce sont `enableMinimumAlertCount` et `minimumAlertCount`.
 
 ## Titres des épisodes
 
@@ -117,6 +131,7 @@ flowchart TB
 
 - **Un nouvel épisode** exécute les **Politiques d'astreinte** de la règle, plus celles de toute règle correspondante de l'onglet **Règles d'épisode** de **Alertes → Règles → Règles d'astreinte**.
 - **Une alerte qui rejoint un épisode ouvert** n'exécute que ses propres politiques. Celles de l'épisode ne s'exécutent pas à nouveau.
+- **Une alerte qui attend d'autres alertes** n'exécute elle aussi que ses propres politiques. Quand **Attendre d'autres alertes** est activé et que les politiques de la règle sont les seules à alerter, une alerte isolée n'alerte personne tant qu'il n'y en a pas assez en cours.
 - **Répondre à l'appel d'un épisode** prend en compte l'épisode, et avec lui chaque alerte qu'il contient.
 
 > [!TIP]
