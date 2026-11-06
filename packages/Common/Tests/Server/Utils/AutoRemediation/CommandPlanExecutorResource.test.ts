@@ -715,3 +715,160 @@ describe("CommandPlanExecutor.executeRollback — resource commands", () => {
     );
   });
 });
+
+/*
+ * The incident's timeline says what an approved plan ran and what its
+ * rollback undid: every command, where it ran and how it ended, as the
+ * feed item's More information. The line the chat channels get stays the
+ * short one: the list is the timeline's.
+ */
+describe("the timeline's record of every command and every undo", () => {
+  function lastFeedItem(): Record<string, unknown> {
+    return feed.mock.calls[feed.mock.calls.length - 1]![0] as Record<
+      string,
+      unknown
+    >;
+  }
+
+  it("lists each command of an approved plan, in its order, where it ran and how it ended", async () => {
+    poll
+      .mockResolvedValueOnce({
+        id: JOB_ID,
+        status: RunnerJobStatus.Succeeded,
+        exitCode: 0,
+        output: "web",
+      } as unknown as RunnerJob)
+      .mockResolvedValueOnce({
+        id: JOB_ID,
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "Exit code 1: No such container: api",
+      } as unknown as RunnerJob);
+
+    await executeApproved([
+      resourceCommand(),
+      resourceCommand({ sequence: 2, command: "docker restart api" }),
+      resourceCommand({ sequence: 3, command: "docker restart db" }),
+    ]);
+
+    const item: Record<string, unknown> = lastFeedItem();
+
+    expect(item["moreInformationInMarkdown"]).toBe(
+      [
+        "**Commands, in the order they ran**",
+        "",
+        '1. `docker restart web` on Docker host "web-1": succeeded (exit code 0)',
+        '2. `docker restart api` on Docker host "web-1": failed: Exit code 1: No such container: api',
+        '3. `docker restart db` on Docker host "web-1": skipped: Skipped because an earlier command failed.',
+      ].join("\n"),
+    );
+    // The chat's line names no command.
+    expect(String(item["feedInfoInMarkdown"])).not.toContain(
+      "docker restart web",
+    );
+  });
+
+  it("names a cloud account's change and the account it ran on", async () => {
+    const change: string =
+      "cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4";
+
+    liveStatus.mockResolvedValue(
+      resource(
+        { resourceType: AiResourceType.AwsAccount, resourceName: "prod" },
+        {
+          resourceType: AiResourceType.AwsAccount,
+          resourceIdentifier: "123456789012",
+        },
+      ),
+    );
+
+    await executeApproved([
+      resourceCommand({
+        resourceType: AiResourceType.AwsAccount,
+        resourceNameSnapshot: "prod",
+        runnerNameSnapshot: "Cloud AI agent",
+        command: change,
+        rollbackCommand: undefined,
+      }),
+    ]);
+
+    expect(lastFeedItem()["moreInformationInMarkdown"]).toContain(
+      `1. \`${change}\` on AWS account "prod": succeeded (exit code 0)`,
+    );
+  });
+
+  it("lists each undo of a rollback in the order it was tried, with the command it undid", async () => {
+    poll
+      .mockResolvedValueOnce({
+        id: JOB_ID,
+        status: RunnerJobStatus.Succeeded,
+        exitCode: 0,
+      } as unknown as RunnerJob)
+      .mockResolvedValueOnce({
+        id: JOB_ID,
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "Exit code 1: No such container: web",
+      } as unknown as RunnerJob);
+
+    await CommandPlanExecutor.executeRollback({
+      suggestion: failedSuggestion([
+        resourceCommand({
+          wasAutoExecuted: true,
+          policyVerdict: "AutoApproved",
+          command: "docker stop web",
+          rollbackCommand: "docker start web",
+          execution: { status: "Succeeded", exitCode: 0 },
+        }),
+        resourceCommand({
+          sequence: 2,
+          wasAutoExecuted: true,
+          policyVerdict: "AutoApproved",
+          command: "docker pause api",
+          rollbackCommand: "docker unpause api",
+          execution: { status: "Succeeded", exitCode: 0 },
+        }),
+      ]),
+    });
+
+    expect(lastFeedItem()["moreInformationInMarkdown"]).toBe(
+      [
+        "**Rollback commands, in the order they were tried**",
+        "",
+        '1. `docker unpause api`, undoing command 2, on Docker host "web-1": succeeded (exit code 0)',
+        '2. `docker start web`, undoing command 1, on Docker host "web-1": failed: Exit code 1: No such container: web',
+      ].join("\n"),
+    );
+  });
+
+  it("names an undo left for a person, and why", async () => {
+    // The plan ran under Bypass approval; the operator has since moved to Automatic.
+    liveStatus.mockResolvedValue(
+      resource({ aiRemediationMode: ResourceAiRemediationMode.Automatic }),
+    );
+
+    await CommandPlanExecutor.executeRollback({
+      suggestion: failedSuggestion([
+        resourceCommand({
+          wasAutoExecuted: true,
+          policyVerdict: "AutoApproved",
+          command: "docker start web",
+          rollbackCommand: "docker stop web",
+          execution: { status: "Succeeded", exitCode: 0 },
+        }),
+      ]),
+    });
+
+    expect(resourceEnqueue).not.toHaveBeenCalled();
+
+    const record: string = String(
+      lastFeedItem()["moreInformationInMarkdown"],
+    );
+
+    expect(record).toContain(
+      '1. `docker stop web`, undoing command 1, on Docker host "web-1": skipped: Rollback not run: Docker host "web-1" no longer allows this change unattended',
+    );
+    // What the person has to run, on the timeline.
+    expect(record).toContain("Undo it manually: docker stop web");
+  });
+});
