@@ -91,7 +91,10 @@ describe("a cloud resource's menu", () => {
   test("a resource a connection lists: its recommended monitors after its Overview; its incidents, alerts, maintenance and changes under Activity", async () => {
     goTo(RESOURCE_PATH);
     await renderMenu(
-      <CloudResourceViewSideMenu modelId={new ObjectID(RESOURCE_ID)} />,
+      <CloudResourceViewSideMenu
+        modelId={new ObjectID(RESOURCE_ID)}
+        hasRecommendations={true}
+      />,
     );
 
     expect(sectionTitlesInOrder()).toEqual([
@@ -163,6 +166,27 @@ describe("a cloud resource's menu", () => {
     expect(linksIn("Observability")).toEqual([
       { title: "Metrics", href: `${RESOURCE_PATH}/metrics` },
       { title: "Logs", href: `${RESOURCE_PATH}/logs` },
+      { title: "Feed", href: `${RESOURCE_PATH}/feed` },
+    ]);
+  });
+
+  /*
+   * A VPC, a bucket, a role: no recommended monitor is for its type, so
+   * its menu has no Recommendations - an entry that could only ever say
+   * there are none. Its Metrics stay, where one of its own is made.
+   */
+  test("a resource of a type no recommended monitor is for has no Recommendations", async () => {
+    goTo(RESOURCE_PATH);
+    await renderMenu(
+      <CloudResourceViewSideMenu modelId={new ObjectID(RESOURCE_ID)} />,
+    );
+
+    expect(linksIn("Basic")).toEqual([
+      { title: "Overview", href: RESOURCE_PATH },
+      { title: "Documentation", href: `${RESOURCE_PATH}/documentation` },
+    ]);
+    expect(linksIn("Observability")).toEqual([
+      { title: "Metrics", href: `${RESOURCE_PATH}/metrics` },
       { title: "Feed", href: `${RESOURCE_PATH}/feed` },
     ]);
   });

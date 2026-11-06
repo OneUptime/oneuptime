@@ -61,6 +61,7 @@ import RecommendationFilterUtil, {
 } from "./RecommendationFilterUtil";
 import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
 import {
+  CREATE_MONITORS_LOCKED_SENTENCE,
   loadMonitorRecommendationProjectSetup,
   MonitorRecommendationProjectDefaults,
   MonitorRecommendationProjectSetup,
@@ -146,6 +147,13 @@ export interface ComponentProps {
 }
 
 type ProjectDefaults = MonitorRecommendationProjectDefaults;
+
+/*
+ * An empty list's padding inside the card, as a cloud account's
+ * Recommendations has it: EmptyState's own 13rem is a whole page's, and
+ * under a note or the tiles it pushed its words off a laptop's screen.
+ */
+export const EMPTY_LIST_PADDING_CLASS_NAME: string = "py-12";
 
 const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -824,11 +832,13 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
    * says why it is locked, as every Create of a monitor does
    * (PermissionGate); nothing is sent that the server would refuse. While
    * the permission snapshot is still loading there is nothing honest to
-   * say, so the buttons stay as they are.
+   * say, so the buttons stay as they are. Said of monitors, as the buttons
+   * it locks make them, not "this Monitor".
    */
   const monitorCreateGate: PermissionGateResult = PermissionGate.check(
     new Monitor(),
     ModelAction.Create,
+    { sentence: CREATE_MONITORS_LOCKED_SENTENCE },
   );
   const createLockReason: string | undefined =
     !monitorCreateGate.isAllowed && monitorCreateGate.disabledReason
@@ -864,12 +874,20 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     onClick: openCreatePanel,
   };
 
+  /*
+   * No Create at all while nothing is recommended: a button that can never
+   * be pressed beside a list that says why it is empty is one more thing
+   * to read.
+   */
   const gatedCreateButton: CardButtonSchema | null =
-    PermissionGate.gateCardButton(
-      createButton,
-      new Monitor(),
-      ModelAction.Create,
-    );
+    counts.total > 0
+      ? PermissionGate.gateCardButton(
+          createButton,
+          new Monitor(),
+          ModelAction.Create,
+          { sentence: CREATE_MONITORS_LOCKED_SENTENCE },
+        )
+      : null;
 
   type GetMonitorRouteFunction = (monitorId: ObjectID) => Route;
 
@@ -902,6 +920,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               { resourceName: resourceName },
             )}
             description="The note above explains why. You can still create monitors by hand."
+            paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
           />
         );
       }
@@ -912,6 +931,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
           title="No recommendations for this resource type yet"
           description="OneUptime does not ship a recommended monitor library for this resource type. You can still create monitors by hand."
+          paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
         />
       );
     }
@@ -936,6 +956,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             counts.total,
             { resourceName: resourceName },
           )}
+          paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
         />
       );
     }
@@ -946,6 +967,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         icon={IconProp.Search}
         title="No recommendations match these filters"
         description="Try a different search term, or switch the severity and status filters back to show everything."
+        paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
       />
     );
   };
@@ -1001,12 +1023,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <RecommendationToolbar
-            counts={counts}
-            filterState={filterState}
-            isDisabled={isCreating}
-            onFilterStateChange={setFilterState}
-          />
+          {/*
+           * Tiles, search and filters only once there is something to count
+           * and narrow: four zeros and a search box above "No
+           * recommendations ... yet" said the same thing five more times.
+           */}
+          {counts.total > 0 ? (
+            <RecommendationToolbar
+              counts={counts}
+              filterState={filterState}
+              isDisabled={isCreating}
+              onFilterStateChange={setFilterState}
+            />
+          ) : (
+            <></>
+          )}
 
           {groups.length === 0 ? (
             getEmptyState()

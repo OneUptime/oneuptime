@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
@@ -52,6 +53,7 @@ const EVERY_FIVE_MINUTES: string = "*/5 * * * *";
 
 const LAPTOP: { width: number; height: number } = { width: 1280, height: 900 };
 const PHONE: { width: number; height: number } = { width: 390, height: 844 };
+const TABLET: { width: number; height: number } = { width: 768, height: 900 };
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -199,6 +201,13 @@ function notListed(page: Page, reason: string): Locator {
   return page.getByTestId(`cloud-account-recommendations-not-listed-${reason}`);
 }
 
+// A row's Show resources, beside how many have it.
+function toggle(page: Page, recommendationId: string): Locator {
+  return page.getByTestId(
+    `cloud-account-recommendation-toggle-${recommendationId}`,
+  );
+}
+
 /*
  * The list opens on what is not set up yet; the Recommended tile shows
  * every one, the ones set up and dismissed too.
@@ -230,9 +239,23 @@ test.describe("an account's Recommendations", () => {
       "Not in this list",
     ]);
 
+    /*
+     * Each type says how many resources it recommends monitors for: two of
+     * the account's three instances, as web-3's metrics have not arrived.
+     */
+    await expect(
+      page.getByTestId(`cloud-account-recommendation-group-${EC2_GROUP}`),
+    ).toContainText("Recommended for 2 resources");
+
     // Each one says how many of the resources it is for already have it.
     await expect(coverage(page, STATUS_CHECKS)).toHaveText(
       "Set up on 0 of 2 resources",
+    );
+    // Which ones, a click away on the same line.
+    await expect(toggle(page, STATUS_CHECKS)).toHaveText("Show resources");
+    await expect(toggle(page, STATUS_CHECKS)).toHaveAttribute(
+      "aria-expanded",
+      "false",
     );
     await expect(coverage(page, RDS_LOW_STORAGE)).toHaveText(
       "Set up on 0 of 1 resource",
@@ -251,8 +274,8 @@ test.describe("an account's Recommendations", () => {
 
     /*
      * The ones left out, by why, at the end: web-3, whose metrics have not
-     * arrived, and the ones no recommended monitor is for yet. Each opens
-     * the resource's own Recommendations tab, which says the rest.
+     * arrived, and the ones no recommended monitor is for yet. One waiting
+     * opens the resource's own Recommendations tab, which says the rest.
      */
     await expect(notListed(page, "NoMetrics")).toContainText(
       "Waiting for their first metrics",
@@ -268,6 +291,13 @@ test.describe("an account's Recommendations", () => {
       "prod-vpcVPC",
       "storefront-assetsS3 Bucket",
     ]);
+    /*
+     * No recommended monitor is for them: each opens its Metrics tab, where
+     * the reason's sentence says to make one.
+     */
+    await expect(
+      notListed(page, "Unsupported").getByRole("link", { name: /prod-vpc/ }),
+    ).toHaveAttribute("href", resourcePage(PROD_VPC, "metrics"));
     await expect(notListed(page, "NextRead")).toHaveCount(0);
     await screenshot(page, "cloud-account-recommendations-1280");
 
@@ -356,23 +386,29 @@ test.describe("an account's Recommendations", () => {
     );
     await expect(row(page, RDS_LOW_STORAGE)).toContainText("Nothing to add");
 
-    await page
-      .getByTestId(`cloud-account-recommendation-toggle-${STATUS_CHECKS}`)
-      .click();
+    await toggle(page, STATUS_CHECKS).click();
+    await expect(toggle(page, STATUS_CHECKS)).toHaveText("Hide resources");
+    await expect(toggle(page, STATUS_CHECKS)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     const web1: Locator = page.getByTestId(
       `cloud-account-recommendation-target-${STATUS_CHECKS}-${WEB_1}`,
+    );
+    const web2: Locator = page.getByTestId(
+      `cloud-account-recommendation-target-${STATUS_CHECKS}-${WEB_2}`,
     );
     await expect(web1).toContainText("Created");
     await expect(
       web1.getByRole("link", { name: "View monitor" }),
     ).toBeVisible();
     await expect(
-      page
-        .getByTestId(
-          `cloud-account-recommendation-target-${STATUS_CHECKS}-${WEB_2}`,
-        )
-        .getByRole("button", { name: "Add Status Checks Failing to web-2" }),
+      web2.getByRole("button", { name: "Add Status Checks Failing to web-2" }),
     ).toBeEnabled();
+
+    // A made one and an unmade one keep one row height.
+    const [made, unmade]: Array<FrameBox> = await boxesInOneFrame([web1, web2]);
+    expect(Math.abs(made!.height - unmade!.height)).toBeLessThanOrEqual(1);
     await screenshot(page, "cloud-account-recommendations-some-1280");
   });
 
@@ -402,9 +438,10 @@ test.describe("an account's Recommendations", () => {
     await page.setViewportSize(LAPTOP);
     await openAccount(page, "?role=viewer");
 
+    // Of monitors, as the page makes them by the dozen: never "this Monitor".
     await expect(
       page.getByTestId("cloud-account-recommendations-locked"),
-    ).toBeVisible();
+    ).toContainText("You do not have permission to create monitors.");
     await expect(
       page.getByTestId(`cloud-account-recommendation-add-${STATUS_CHECKS}`),
     ).toBeDisabled();
@@ -415,6 +452,39 @@ test.describe("an account's Recommendations", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "cloud-account-recommendations-viewer-390");
+  });
+
+  /*
+   * A read that fails keeps the page's frame - its title and what it is for
+   * - and says why inside it, with Refresh to read it again.
+   */
+  test("a read that fails is said inside the page's card, with Refresh", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${ACCOUNT}?fail=monitors`);
+
+    const failed: Locator = page.getByTestId(
+      "cloud-account-recommendations-error",
+    );
+    await expect(failed).toBeVisible({ timeout: 60000 });
+    await expect(
+      page.getByText("Recommended Monitors", { exact: true }),
+    ).toBeVisible();
+    await expect(failed.getByTestId("refresh-button")).toBeVisible();
+    await screenshot(page, "cloud-account-recommendations-failed-1280");
+
+    // Refresh reads again, and is told again: the fixture fails every time.
+    const readsBefore: number = (await recorded(page)).listRequests.length;
+    await failed.getByTestId("refresh-button").click();
+    await expect(failed.getByTestId("refresh-button")).toBeVisible();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await recorded(page)).listRequests.length;
+      })
+      .toBeGreaterThan(readsBefore);
   });
 
   test("a create the server refuses is reported monitor by monitor, in its words", async ({
@@ -490,6 +560,8 @@ test.describe("a cloud resource's Recommendations", () => {
     await expect(
       page.getByText("0 of 2 recommended monitors created"),
     ).toBeVisible();
+    // An instance has recommended monitors: its menu counts the two.
+    await expect(recommendationsEntry(page)).toHaveText("Recommendations2");
 
     await page
       .getByRole("button", { name: "Select Status Checks Failing" })
@@ -516,6 +588,31 @@ test.describe("a cloud resource's Recommendations", () => {
     ).toEqual([["web-1 - Status Checks Failing", EVERY_FIVE_MINUTES, [WEB_1]]]);
     await screenshot(page, "cloud-resource-recommendations-1280");
 
+    /*
+     * Beside the side menu at a tablet's width the card is some 430px wide:
+     * the search box takes the row and the severity filter goes under it,
+     * rather than the two squeezing the box to a few letters.
+     */
+    await page.setViewportSize(TABLET);
+    const search: Locator = page.getByTestId("recommendation-search");
+    // The severity filter is a radio group: its first choice.
+    const allSeverities: Locator = page.getByRole("radio", {
+      name: "All severities",
+      exact: true,
+    });
+    await expect(search).toBeVisible();
+    await expect
+      .poll(async (): Promise<boolean> => {
+        const [box, filter]: Array<FrameBox> = await boxesInOneFrame([
+          search,
+          allSeverities,
+        ]);
+        return box!.width >= 300 && filter!.y >= box!.y + box!.height;
+      })
+      .toBe(true);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cloud-resource-recommendations-768");
+
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "cloud-resource-recommendations-390");
@@ -537,6 +634,16 @@ test.describe("a cloud resource's Recommendations", () => {
     await expect(
       desktopMenu(page).getByRole("link", { name: "Metrics", exact: true }),
     ).toHaveAttribute("href", resourcePage(PROD_VPC, "metrics"));
+    /*
+     * Nothing to count and nothing to filter: no tiles, no search, no
+     * Create - the note and the empty list say it.
+     */
+    await expect(page.getByTestId("recommendation-stat-All")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Create Monitors" }),
+    ).toHaveCount(0);
+    // And its menu has no Recommendations: there will never be any.
+    await expect(recommendationsEntry(page)).toHaveCount(0);
   });
 });
 

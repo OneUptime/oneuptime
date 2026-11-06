@@ -11,7 +11,19 @@ import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * Why a member whose role may not create monitors cannot add the
+ * recommended ones: the first sentence of the lock on every Create and Add
+ * of a Recommendations page (PermissionGate's sentence option), before the
+ * permission that would allow it. PermissionGate's own ("You do not have
+ * permission to create this Monitor.") speaks of one monitor, on pages
+ * that make them by the batch.
+ */
+export const CREATE_MONITORS_LOCKED_SENTENCE: string = translationKey(
+  "You do not have permission to create monitors.",
+);
 
 /*
  * What a project must have before a recommended monitor can be created in

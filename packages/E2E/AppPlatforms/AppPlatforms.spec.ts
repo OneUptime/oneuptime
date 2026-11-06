@@ -1237,6 +1237,15 @@ test.describe("apps and their deploys", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-app-recommendations-390");
+
+    /*
+     * Beside the side menu at a tablet's width the six tabs wrap rather
+     * than run past the page: the row scrolled it sideways from 768px.
+     */
+    await page.setViewportSize(TABLET);
+    await expectNoSidewaysScroll(page);
+    await expect(recommendationsTab).toBeVisible();
+    await screenshot(page, "app-platforms-app-recommendations-768");
     await page.setViewportSize(LAPTOP);
 
     // Every section's Select all - errors, throughput, latency - then one Create.

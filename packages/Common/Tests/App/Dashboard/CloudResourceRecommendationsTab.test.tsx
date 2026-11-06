@@ -329,6 +329,41 @@ describe("a cloud resource's Recommendations tab", () => {
     expect(
       await screen.findByText(/OneUptime has no recommended monitors for VPC/),
     ).toBeInTheDocument();
+
+    /*
+     * The note and the empty list say it: no four zero tiles, search box
+     * or severity filter above them, and no Create that could never be
+     * pressed.
+     */
+    expect(
+      screen.getByText("No recommendations for this cloud resource yet"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("recommendation-coverage")).toBeNull();
+    expect(screen.queryByTestId("recommendation-stat-All")).toBeNull();
+    expect(
+      screen.queryByPlaceholderText("Search recommendations..."),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Create Monitors" }),
+    ).toBeNull();
+  });
+
+  /*
+   * The catalog's words are English on every page: the card reads each in
+   * an isolate of its own, so a Persian page keeps a sentence's full stop
+   * at its end.
+   */
+  test("a recommendation's name and sentence read as written on a right-to-left page", async () => {
+    renderTab();
+
+    for (const text of [
+      "Status Checks Failing",
+      "The instance or the host it runs on fails a status check.",
+    ]) {
+      const isolate: HTMLElement = await screen.findByText(text);
+      expect(isolate.tagName).toBe("BDI");
+      expect(isolate).toHaveAttribute("dir", "ltr");
+    }
   });
 
   test("an RDS instance whose storage the inventory has not listed says when Low Free Storage comes", async () => {

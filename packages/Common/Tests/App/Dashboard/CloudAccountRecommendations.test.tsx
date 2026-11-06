@@ -79,7 +79,11 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/ProjectUser", () => {
   };
 });
 
-import CloudAccountMonitorRecommendations from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/CloudAccountMonitorRecommendations";
+import CloudAccountMonitorRecommendations, {
+  NOT_LISTED_RESOURCE_PAGES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/CloudAccountMonitorRecommendations";
+import { CloudAccountRecommendationGapReason } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/CloudAccountRecommendationPlan";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { RECOMMENDATIONS_CHANGED_EVENT } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsChanged";
 import { readCloudResourceRecommendationContext } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -105,6 +109,16 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const AWS_ACCOUNT: string = "123456789012";
+
+// A button that fills a phone's width (Button's NORMAL style).
+const WIDE_ON_A_PHONE: RegExp = /(?:^|\s)w-full(?:\s|$)/;
+
+// The lock's first sentence on a page that makes monitors by the batch.
+const MONITORS_LOCK_FIRST_SENTENCE: RegExp =
+  /^You do not have permission to create monitors\./;
+
+// PermissionGate's own sentence, which speaks of one monitor.
+const ONE_MONITOR_LOCK_SENTENCE: RegExp = /create this monitor/i;
 
 function uuid(number: number): string {
   return `40000000-0000-4000-8000-${String(number).padStart(12, "0")}`;
@@ -394,9 +408,15 @@ describe("what the account is offered", () => {
 
     const ec2: HTMLElement = group("aws|aws::ec2::instance");
     expect(within(ec2).getByText("EC2 Instance")).toBeInTheDocument();
+    /*
+     * The two it recommends monitors for - never "in this account": the
+     * account holds a third, web-3, named at the end while its metrics
+     * have not arrived.
+     */
     expect(
-      within(ec2).getByText("2 resources in this account"),
+      within(ec2).getByText("Recommended for 2 resources"),
     ).toBeInTheDocument();
+    expect(within(ec2).queryByText(/in this account/)).toBeNull();
 
     // The most important first: a broken state before a level.
     const rows: Array<string> = within(ec2)
@@ -479,7 +499,137 @@ describe("what the account is offered", () => {
     expect(within(section).queryByText("web-1")).toBeNull();
   });
 
-  test("a read that fails says so", async () => {
+  /*
+   * No recommended monitor is for them, and the reason's sentence says to
+   * make one from a resource's Metrics tab: each name opens that tab, not
+   * a Recommendations tab that could only say there are none.
+   */
+  test("a resource no recommended monitor is for opens its Metrics tab; one waiting for metrics, its Recommendations", async () => {
+    await renderPage();
+
+    const none: HTMLElement = screen.getByTestId(
+      "cloud-account-recommendations-not-listed-Unsupported",
+    );
+
+    expect(none).toHaveTextContent(
+      "No recommended monitors for them yet. You can still create one from a resource's Metrics tab.",
+    );
+
+    for (const [name, id] of [
+      ["prod-vpc", IDS["prodVpc"]],
+      ["edge-nlb", IDS["edgeNlb"]],
+    ] as Array<[string, string]>) {
+      expect(
+        within(none).getByText(name).closest("a")?.getAttribute("href"),
+      ).toBe(`/dashboard/${PROJECT_ID}/cloud/${id}/metrics`);
+    }
+
+    expect(
+      NOT_LISTED_RESOURCE_PAGES[CloudAccountRecommendationGapReason.NoMetrics],
+    ).toBe(PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS);
+    expect(
+      NOT_LISTED_RESOURCE_PAGES[CloudAccountRecommendationGapReason.NextRead],
+    ).toBe(PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS);
+    expect(
+      NOT_LISTED_RESOURCE_PAGES[
+        CloudAccountRecommendationGapReason.Unsupported
+      ],
+    ).toBe(PageMap.CLOUD_RESOURCE_VIEW_METRICS);
+  });
+
+  /*
+   * How many have it and the way to which ones, on one line: the count is
+   * the line's words, the button beside it says what it does, and the
+   * list it opens is the one it controls.
+   */
+  test("a row's count and its Show resources share one line, and the button opens and closes its list", async () => {
+    await renderPage();
+
+    const coverage: HTMLElement = screen.getByTestId(
+      "cloud-account-recommendation-coverage-CloudResource:cloud-aws-ec2-status-check-failed",
+    );
+    const toggle: HTMLElement = screen.getByTestId(
+      "cloud-account-recommendation-toggle-CloudResource:cloud-aws-ec2-status-check-failed",
+    );
+
+    expect(coverage).toHaveTextContent("Set up on 0 of 2 resources");
+    expect(toggle.parentElement).toBe(coverage.parentElement);
+    expect(toggle).toHaveTextContent("Show resources");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // Never "Show the 1 resource": the count is the line's own words.
+    expect(screen.queryByText(/^Show the \d+ resources?$/)).toBeNull();
+
+    const listId: string = toggle.getAttribute("aria-controls") || "";
+    expect(document.getElementById(listId)).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveTextContent("Hide resources");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    const list: HTMLElement | null = document.getElementById(listId);
+    expect(list).not.toBeNull();
+    expect(within(list!).getByText("web-1")).toBeInTheDocument();
+    expect(within(list!).getByText("web-2")).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveTextContent("Show resources");
+    expect(document.getElementById(listId)).toBeNull();
+  });
+
+  /*
+   * Every Add sized to its words, at every width: a plain button fills a
+   * phone's width, and the one wide Add among its rows' outlined ones read
+   * as a different kind of thing.
+   */
+  test("Add all is outlined like each row's Add, never as wide as a phone", async () => {
+    await renderPage();
+
+    const addAll: HTMLElement = screen.getByTestId(
+      "cloud-account-recommendation-add-all-aws|aws::ec2::instance",
+    );
+    const addRow: HTMLElement = screen.getByTestId(
+      "cloud-account-recommendation-add-CloudResource:cloud-aws-ec2-status-check-failed",
+    );
+
+    expect(addAll.className).not.toMatch(WIDE_ON_A_PHONE);
+    expect(addRow.className).not.toMatch(WIDE_ON_A_PHONE);
+    expect(addAll.className).toBe(addRow.className);
+  });
+
+  /*
+   * The catalog's words are English on every page: each in an isolate that
+   * reads left to right, so a Persian page keeps a sentence's full stop
+   * at its end and "5% or more" in its place.
+   */
+  test("the catalog's names and sentences, and the type names, read as written on a right-to-left page", async () => {
+    await renderPage();
+
+    const statusChecks: HTMLElement = rowOf(
+      "cloud-aws-ec2-status-check-failed",
+    );
+
+    for (const text of [
+      "Status Checks Failing",
+      "The instance or the host it runs on fails a status check.",
+    ]) {
+      const isolate: HTMLElement = within(statusChecks).getByText(text);
+      expect(isolate.tagName).toBe("BDI");
+      expect(isolate).toHaveAttribute("dir", "ltr");
+    }
+
+    const label: HTMLElement = within(
+      group("aws|aws::ec2::instance"),
+    ).getByText("EC2 Instance");
+    expect(label.tagName).toBe("BDI");
+  });
+
+  /*
+   * A read that fails keeps the page's frame - its title and what it is for
+   * - says why inside it, and reads again on Refresh, without reloading the
+   * page.
+   */
+  test("a read that fails says so inside the page's card, and Refresh reads it again", async () => {
     failResourcesRead = true;
 
     render(
@@ -491,9 +641,31 @@ describe("what the account is offered", () => {
       </MemoryRouter>,
     );
 
+    const failed: HTMLElement = await screen.findByTestId(
+      "cloud-account-recommendations-error",
+    );
+    expect(failed).toHaveTextContent("The resources could not be read.");
+    expect(screen.getByText("Recommended Monitors")).toBeInTheDocument();
     expect(
-      await screen.findByText("The resources could not be read."),
+      screen.getByText(
+        "Monitors OneUptime recommends for this account's resources, from the metrics Amazon CloudWatch reports. Add one to a resource, or to every resource of its type at once.",
+      ),
     ).toBeInTheDocument();
+
+    failResourcesRead = false;
+    const readsBefore: number = listCallsOf(CloudResource).length;
+
+    await act(async () => {
+      fireEvent.click(within(failed).getByTestId("refresh-button"));
+    });
+
+    expect(
+      await screen.findByTestId("cloud-account-recommendations"),
+    ).toBeInTheDocument();
+    expect(listCallsOf(CloudResource).length).toBe(readsBefore + 1);
+    expect(
+      screen.queryByTestId("cloud-account-recommendations-error"),
+    ).toBeNull();
   });
 });
 
@@ -801,7 +973,12 @@ describe("a member who may not create monitors", () => {
     const locked: HTMLElement = screen.getByTestId(
       "cloud-account-recommendations-locked",
     );
-    expect(locked.textContent).toMatch(/permission/i);
+    /*
+     * Of monitors, as the page makes them by the dozen - then what would
+     * allow it - never "create this Monitor".
+     */
+    expect(locked.textContent).toMatch(MONITORS_LOCK_FIRST_SENTENCE);
+    expect(locked.textContent).not.toMatch(ONE_MONITOR_LOCK_SENTENCE);
 
     const adds: Array<HTMLElement> = screen
       .getAllByRole("button")

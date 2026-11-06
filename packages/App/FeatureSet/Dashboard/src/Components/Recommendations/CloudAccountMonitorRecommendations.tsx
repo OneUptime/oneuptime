@@ -33,6 +33,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import UILink from "Common/UI/Components/Link/Link";
 import StatusBadge, {
   StatusBadgeType,
@@ -73,6 +74,7 @@ import {
 } from "./CloudAccountRecommendationData";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
 import {
+  CREATE_MONITORS_LOCKED_SENTENCE,
   loadMonitorRecommendationProjectSetup,
   MonitorRecommendationProjectSetup,
 } from "./MonitorRecommendationProjectSetup";
@@ -137,6 +139,23 @@ const NOT_LISTED_REASONS: ReadonlyArray<CloudAccountRecommendationGapReason> = [
   CloudAccountRecommendationGapReason.NextRead,
   CloudAccountRecommendationGapReason.Unsupported,
 ];
+
+/*
+ * Where a left-out resource's name leads: its Recommendations tab, which
+ * says when it will be offered some, while it waits for metrics or a read;
+ * its Metrics tab when no recommended monitor is for it - the tab the
+ * reason's sentence sends people to, to make one of their own.
+ */
+export const NOT_LISTED_RESOURCE_PAGES: Readonly<
+  Record<CloudAccountRecommendationGapReason, PageMap>
+> = {
+  [CloudAccountRecommendationGapReason.NoMetrics]:
+    PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
+  [CloudAccountRecommendationGapReason.NextRead]:
+    PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
+  [CloudAccountRecommendationGapReason.Unsupported]:
+    PageMap.CLOUD_RESOURCE_VIEW_METRICS,
+};
 
 /*
  * A CLOUD ACCOUNT'S RECOMMENDED MONITORS: the monitors OneUptime recommends
@@ -273,11 +292,14 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
    * not still sees what is recommended and what is set up, and every Add
    * says why it is locked, as every Create of a monitor does
    * (PermissionGate). While the permission snapshot is still loading there
-   * is nothing honest to say, so the buttons stay as they are.
+   * is nothing honest to say, so the buttons stay as they are. Said of
+   * monitors, not "this Monitor": the line stands at the top of a page that
+   * adds them by the dozen.
    */
   const monitorCreateGate: PermissionGateResult = PermissionGate.check(
     new Monitor(),
     ModelAction.Create,
+    { sentence: CREATE_MONITORS_LOCKED_SENTENCE },
   );
   const createLockReason: string | undefined =
     !monitorCreateGate.isAllowed && monitorCreateGate.disabledReason
@@ -433,19 +455,42 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
     setExpandedRowKeys(next);
   };
 
-  if (isLoading) {
-    return <ComponentLoader />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   // The service the numbers come from, by its own name, in every language.
   const source: string =
     getCloudMonitoringServiceName(props.provider) ||
     translator.translateText("its cloud") ||
     "its cloud";
+
+  const cardDescription: string = translator.translateTemplate(
+    "Monitors OneUptime recommends for this account's resources, from the metrics {{source}} reports. Add one to a resource, or to every resource of its type at once.",
+    { source: source },
+  );
+
+  if (isLoading) {
+    return <ComponentLoader />;
+  }
+
+  /*
+   * A read that failed keeps the page's frame - its title and what it is
+   * for - and says why inside it, with a way to read it again that is not
+   * reloading the whole page, as the account's Costs do.
+   */
+  if (error) {
+    return (
+      <Card title="Recommended Monitors" description={cardDescription}>
+        <div data-testid="cloud-account-recommendations-error">
+          <ErrorMessage
+            message={error}
+            onRefreshClick={() => {
+              load().catch((err: Error) => {
+                setError(API.getFriendlyMessage(err));
+              });
+            }}
+          />
+        </div>
+      </Card>
+    );
+  }
 
   const counts: RecommendationCounts =
     CloudAccountRecommendationPlan.getToolbarCounts(groups);
@@ -462,11 +507,12 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       groups: groups,
     });
 
-  const getResourceRoute: (resourceId: string) => Route = (
+  const getResourceRoute: (
     resourceId: string,
-  ): Route => {
+    page?: PageMap | undefined,
+  ) => Route = (resourceId: string, page?: PageMap | undefined): Route => {
     return RouteUtil.populateRouteParams(
-      RouteMap[PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS] as Route,
+      RouteMap[page || PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS] as Route,
       { modelId: new ObjectID(resourceId) },
     );
   };
@@ -533,9 +579,13 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
           to={getResourceRoute(target.resource.resourceId)}
           className="min-w-0 break-words text-sm text-gray-900 hover:underline"
         >
-          {target.resource.resourceName}
+          <IsolatedText text={target.resource.resourceName} />
         </UILink>
-        <div className="flex flex-none items-center gap-2">
+        {/*
+         * As tall as the Add a resource still without it has, so a list of
+         * made and unmade ones keeps one row height.
+         */}
+        <div className="flex min-h-[2rem] flex-none items-center gap-2">
           {target.status === RecommendationStatus.Created ? (
             <Fragment>
               <StatusBadge text="Created" type={StatusBadgeType.Success} />
@@ -614,9 +664,14 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
         />
         <div className={`flex flex-col gap-3 ${WIDE_ROW}`}>
           <div className="min-w-0 [@container(min-width:36rem)]:flex-1">
+            {/*
+             * The catalog's name and sentence are English on every page,
+             * so each reads as written - its full stop at its end - on a
+             * Persian one too (IsolatedText).
+             */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-gray-900">
-                {row.name}
+                <IsolatedText text={row.name} />
               </span>
               <StatusBadge
                 text={row.severity}
@@ -626,50 +681,53 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
               />
             </div>
             <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              {row.summary || row.description}
+              <IsolatedText text={row.summary || row.description} />
             </p>
-            <p
-              className="mt-1 text-xs text-gray-600"
-              data-testid={`cloud-account-recommendation-coverage-${row.recommendationId}`}
-            >
-              {translator.translatePlural(
-                {
-                  one: "Set up on {{created}} of {{count}} resource",
-                  other: "Set up on {{created}} of {{count}} resources",
-                },
-                row.counts.total,
-                { created: translator.formatNumber(row.counts.created) },
-              )}
-              {row.counts.dismissed > 0
-                ? ` · ${translator.translatePlural(
-                    {
-                      one: "{{count}} dismissed",
-                      other: "{{count}} dismissed",
-                    },
-                    row.counts.dismissed,
-                  )}`
-                : ""}
-            </p>
-            <button
-              type="button"
-              className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              aria-expanded={isExpanded}
-              aria-controls={listId}
-              data-testid={`cloud-account-recommendation-toggle-${row.recommendationId}`}
-              onClick={() => {
-                toggleRow(rowKey);
-              }}
-            >
-              {isExpanded
-                ? translator.translateText("Hide resources")
-                : translator.translatePlural(
-                    {
-                      one: "Show the {{count}} resource",
-                      other: "Show the {{count}} resources",
-                    },
-                    row.counts.total,
-                  )}
-            </button>
+            {/*
+             * How many of its resources have it, and the way to them, on
+             * one line: which ones is a click away, never a line of its own.
+             */}
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs">
+              <span
+                className="text-gray-600"
+                data-testid={`cloud-account-recommendation-coverage-${row.recommendationId}`}
+              >
+                {translator.translatePlural(
+                  {
+                    one: "Set up on {{created}} of {{count}} resource",
+                    other: "Set up on {{created}} of {{count}} resources",
+                  },
+                  row.counts.total,
+                  { created: translator.formatNumber(row.counts.created) },
+                )}
+                {row.counts.dismissed > 0
+                  ? ` · ${translator.translatePlural(
+                      {
+                        one: "{{count}} dismissed",
+                        other: "{{count}} dismissed",
+                      },
+                      row.counts.dismissed,
+                    )}`
+                  : ""}
+              </span>
+              <span className="text-gray-300" aria-hidden="true">
+                ·
+              </span>
+              <button
+                type="button"
+                className="rounded-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                aria-expanded={isExpanded}
+                aria-controls={listId}
+                data-testid={`cloud-account-recommendation-toggle-${row.recommendationId}`}
+                onClick={() => {
+                  toggleRow(rowKey);
+                }}
+              >
+                {translator.translateText(
+                  isExpanded ? "Hide resources" : "Show resources",
+                )}
+              </button>
+            </div>
           </div>
           {available.length > 0 ? (
             renderAddButton({
@@ -761,13 +819,19 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
         >
           <div className="min-w-0">
             <h3 className="break-words text-sm font-semibold text-gray-900">
-              {group.label}
+              <IsolatedText text={group.label} />
             </h3>
+            {/*
+             * The resources of the type it recommends monitors for: one
+             * whose metrics have not arrived, or that no recommended
+             * monitor is for, is named at the end instead - so this is
+             * never the type's count in the account.
+             */}
             <p className="mt-0.5 text-xs text-gray-500">
               {translator.translatePlural(
                 {
-                  one: "{{count}} resource in this account",
-                  other: "{{count}} resources in this account",
+                  one: "Recommended for {{count}} resource",
+                  other: "Recommended for {{count}} resources",
                 },
                 whole.resources.length,
               )}
@@ -793,7 +857,12 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
                 { type: group.label },
               ),
               dataTestId: `cloud-account-recommendation-add-all-${group.key}`,
-              buttonStyle: ButtonStyleType.NORMAL,
+              /*
+               * Outlined, as each row's Add: sized to its words at every
+               * width. A plain button fills a phone's width, and the one
+               * wide Add among its rows' read as a different kind of thing.
+               */
+              buttonStyle: ButtonStyleType.OUTLINE,
             })
           ) : (
             <></>
@@ -858,14 +927,17 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
                     return (
                       <UILink
                         key={gap.resource.resourceId}
-                        to={getResourceRoute(gap.resource.resourceId)}
+                        to={getResourceRoute(
+                          gap.resource.resourceId,
+                          NOT_LISTED_RESOURCE_PAGES[reason],
+                        )}
                         className="inline-flex max-w-full flex-wrap items-baseline gap-x-1.5 rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-200 hover:text-gray-900"
                       >
                         <bdi className="min-w-0 break-words font-medium">
                           {gap.resource.resourceName}
                         </bdi>
                         <span className="min-w-0 text-gray-500">
-                          {gap.typeLabel}
+                          <IsolatedText text={gap.typeLabel} />
                         </span>
                       </UILink>
                     );
@@ -989,13 +1061,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
        * and acknowledges it in the panel before the run starts.
        */}
       <MonitorPayAsYouGoCard />
-      <Card
-        title="Recommended Monitors"
-        description={translator.translateTemplate(
-          "Monitors OneUptime recommends for this account's resources, from the metrics {{source}} reports. Add one to a resource, or to every resource of its type at once.",
-          { source: source },
-        )}
-      >
+      <Card title="Recommended Monitors" description={cardDescription}>
         <div
           className="space-y-6 [container-type:inline-size]"
           data-testid="cloud-account-recommendations"

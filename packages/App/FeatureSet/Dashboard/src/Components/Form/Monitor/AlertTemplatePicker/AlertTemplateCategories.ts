@@ -426,6 +426,30 @@ export const CLOUD_RESOURCE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> =
     },
   ];
 
+/*
+ * An App Platforms app's Recommendations (CloudAppAlertTemplates): what
+ * fails first, then traffic that stops, then how slow it is. Named here so
+ * each heading reads in the reader's language - without, the catalog's
+ * category ("Errors") was drawn as it is, in English in every language.
+ */
+export const CLOUD_APP_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
+  {
+    category: "Errors",
+    label: "Errors",
+    icon: IconProp.ExclaimationCircle,
+  },
+  {
+    category: "Throughput",
+    label: "Throughput",
+    icon: IconProp.Activity,
+  },
+  {
+    category: "Latency",
+    label: "Latency",
+    icon: IconProp.Clock,
+  },
+];
+
 export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   Record<MonitorRecommendationResourceType, Array<AlertTemplateCategory>>
 > = {
@@ -444,6 +468,7 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.IoTDevice]: IOT_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.CloudResource]:
     CLOUD_RESOURCE_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.CloudApp]: CLOUD_APP_TEMPLATE_CATEGORIES,
 };
 
 /*

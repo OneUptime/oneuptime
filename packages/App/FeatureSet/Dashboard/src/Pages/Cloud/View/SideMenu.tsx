@@ -40,6 +40,12 @@ export interface ComponentProps {
    * Logs, after Metrics.
    */
   hasStreamedLogs?: boolean | undefined;
+  /*
+   * A type OneUptime recommends monitors for (CloudAlertTemplates): its
+   * menu has Recommendations, after its Overview. A VPC's, a bucket's or a
+   * role's would only ever say there are none.
+   */
+  hasRecommendations?: boolean | undefined;
 }
 
 /*
@@ -120,21 +126,26 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         {/*
          * The monitors OneUptime recommends for this resource, from the
-         * metrics its connection reads. The badge counts what is still to set
-         * up for its type (see RecommendationsSideMenuItem); what they open
-         * lands on its Incidents and Alerts, as each is linked to it.
+         * metrics its connection reads, for a type it recommends some for.
+         * The badge counts what is still to set up for its type (see
+         * RecommendationsSideMenuItem); what they open lands on its
+         * Incidents and Alerts, as each is linked to it.
          */}
-        <RecommendationsSideMenuItem
-          link={{
-            title: "Recommendations",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          resourceType={MonitorRecommendationResourceType.CloudResource}
-          resourceId={props.modelId}
-        />
+        {props.hasRecommendations ? (
+          <RecommendationsSideMenuItem
+            link={{
+              title: "Recommendations",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            resourceType={MonitorRecommendationResourceType.CloudResource}
+            resourceId={props.modelId}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Documentation",

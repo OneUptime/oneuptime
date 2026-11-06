@@ -499,11 +499,17 @@ const AppPlatformApp: FunctionComponent<
             />
           }
         />
+        {/*
+         * Six tabs wrap onto a second line where the column is narrow, as a
+         * Proxmox node's or a vSphere host's do: from a tablet's width, beside
+         * the side menu, the row ran past the page and scrolled it sideways.
+         */}
         <Tabs
           key={
             tabRequest ? `${tabRequest.name}-${tabRequest.count}` : "address"
           }
           tabs={tabs}
+          wrap={true}
           initialTabName={tabRequest?.name || requestedTab || undefined}
           onTabChange={() => {}}
         />

@@ -217,6 +217,10 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
   const warningCount: number =
     props.selectedRecommendations.length - criticalCount;
 
+  /*
+   * Looked up here: BasicRadioButtons draws an option's words as it is
+   * handed them, so every language read these three in English.
+   */
   const modeOptions: Array<BasicRadioButtonOption> = [
     {
       title: "Create an alert",
@@ -236,7 +240,15 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
         "One breach opens an alert and an incident. Two records to resolve — pick this only if your workflow needs both.",
       value: MonitorRecommendationNotificationMode.Both,
     },
-  ];
+  ].map((option: BasicRadioButtonOption): BasicRadioButtonOption => {
+    return {
+      ...option,
+      title: translator.translateText(option.title) || option.title,
+      description: option.description
+        ? translator.translateText(option.description) || option.description
+        : undefined,
+    };
+  });
 
   type RenderSeverityRowFunction = (data: {
     severity: MonitorRecommendationSeverity;
