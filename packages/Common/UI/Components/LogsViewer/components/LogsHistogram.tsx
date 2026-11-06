@@ -25,6 +25,10 @@ import useHistogramRangeSelection, {
 import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
 import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
 
+// The chart's header (its title and hints) and its severity legend.
+export const LOGS_HISTOGRAM_HEADER_TEST_ID: string = "logs-histogram-header";
+export const LOGS_HISTOGRAM_LEGEND_TEST_ID: string = "logs-histogram-legend";
+
 export interface LogsHistogramProps {
   buckets: Array<HistogramBucket>;
   isLoading: boolean;
@@ -197,9 +201,17 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
-      {/* Header with legend */}
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
-        <div className="flex items-center gap-2">
+      {/*
+       * Header with legend. Both wrap: a phone with every severity in the
+       * window - a database's log has Fatal, Error, Warning, Info and
+       * Unspecified lines - drew the legend past the card and the page
+       * scrolled sideways.
+       */}
+      <div
+        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-gray-100 px-4 py-2"
+        data-testid={LOGS_HISTOGRAM_HEADER_TEST_ID}
+      >
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-xs font-medium text-gray-500">
             {translator.translateText("Log Volume")}
           </span>
@@ -218,7 +230,10 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-1"
+          data-testid={LOGS_HISTOGRAM_LEGEND_TEST_ID}
+        >
           {activeSeverities.map((severity: string) => {
             const color: SeverityColor = getSeverityColor(severity);
             return (

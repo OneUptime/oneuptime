@@ -32,6 +32,7 @@ flowchart TB
 - **O ambiente agrupa tudo.** Toda carga de trabalho com a mesma plataforma, a mesma conta e a mesma região cai em um único ambiente. Os serviços mantêm suas próprias linhas em **Serviços**.
 - **Cada tarefa em execução é uma instância.** A aba **Instâncias** do ambiente lista suas tarefas, instâncias ou réplicas em execução, com CPU e memória ao vivo quando a plataforma consegue fornecê-las.
 - **Cada serviço é um app.** Um serviço do ECS, um serviço do Cloud Run ou um Container App é um app do seu ambiente, e o OneUptime guarda as revisões que ele executa: veja [Apps e implantações](#apps-e-implantações).
+- **Os logs do CloudWatch transmitidos também contam.** Uma conta AWS que [transmite os logs do CloudWatch](/docs/telemetry/cloud-streaming) coloca os logs dos seus serviços do App Runner, ambientes do Elastic Beanstalk, e tarefas e clusters do ECS na aba **Registros** do ambiente deles, e o ambiente aparece com eles se nenhum app tiver enviado dados para ele ainda. Eles não criam nenhum app: um app recebe o nome da própria telemetria.
 
 ## Antes de começar
 

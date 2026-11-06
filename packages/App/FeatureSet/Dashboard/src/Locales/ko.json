@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "리전은 us-east-1이나 eu-central-1 같은 코드로 입력하세요.",
   "List at most {{count}} Regions.": "리전은 최대 {{count}}개까지 입력하세요.",
   "Log groups": "로그 그룹",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "계정의 연결이 CloudWatch Logs를 스트리밍하면 여기에 로그가 표시됩니다. Cloud > 연결에서 해당 연결의 메트릭 및 로그 스트리밍을 선택하고 이 리소스의 로그 그룹을 지정하세요.",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "이 리소스의 AWS 계정이 로그 그룹을 스트리밍하면 여기에 로그가 표시됩니다. 클라우드 > 연결에서 계정 행의 메트릭 및 로그 스트리밍을 선택하세요.",
   "Logs endpoint": "로그 엔드포인트",
   "Logs of {{count}} log groups from {{region}}": "{{region}}의 로그 그룹 {{count}}개에서 온 로그",
   "Logs of {{count}} log groups from {{region}}_one": "{{region}}의 로그 그룹 {{count}}개에서 온 로그",
@@ -45619,5 +45619,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`\"valid\": true`가 포함된 `200`은 토큰이 이 프로젝트의 것이라는 뜻이고, `401`은 토큰을 알 수 없거나, 취소되었거나, 잘못 입력되었다는 뜻입니다. 가능하면 워크로드 안에서 실행해, 익스포터가 실행되는 곳에서 아웃바운드가 되는지 확인하세요.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS`는 Node.js에서 {{detector}} 리소스 감지기를 켭니다. 다른 언어에서는 다음으로 켭니다: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "프로젝트에 로그인하고 Secret Manager API를 사용 설정한 `gcloud`(`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP 엔드포인트"
+  "OTLP Endpoint": "OTLP 엔드포인트",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "이 환경의 cloud.platform, cloud.account.id, cloud.region 리소스 속성이 있는 로그가 여기에 표시됩니다. AWS 계정이 CloudWatch Logs를 스트리밍하면 그 로그도 표시됩니다. 클라우드 > 연결에서 계정 행의 메트릭 및 로그 스트리밍을 선택하세요.",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "이 기간에는 이 리소스의 로그 그룹에서 아무것도 도착하지 않았습니다. 더 긴 기간을 선택하거나, 계정이 이 로그 그룹을 스트리밍하는지 확인하세요. 클라우드 > 연결에서 계정 행의 메트릭 및 로그 스트리밍을 열면 확인할 수 있습니다."
 }

@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "Indiquez les régions par leur code, comme us-east-1 ou eu-central-1.",
   "List at most {{count}} Regions.": "Indiquez au plus {{count}} régions.",
   "Log groups": "Groupes de journaux",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "Les journaux apparaissent ici dès que la connexion de son compte diffuse CloudWatch Logs : choisissez Diffuser les métriques et les journaux sur la connexion dans Cloud > Connecter, avec le groupe de journaux de cette ressource.",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Les journaux apparaissent ici dès que le compte AWS de cette ressource diffuse son groupe de journaux : dans Cloud > Connecter, choisissez Diffuser les métriques et les journaux sur la ligne du compte.",
   "Logs endpoint": "Point de terminaison des journaux",
   "Logs of {{count}} log groups from {{region}}": "Journaux de {{count}} groupes de journaux depuis {{region}}",
   "Logs of {{count}} log groups from {{region}}_one": "Journaux de {{count}} groupe de journaux depuis {{region}}",
@@ -45619,5 +45619,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` avec `\"valid\": true` signifie que le jeton appartient à ce projet ; `401` signifie qu'il est inconnu, révoqué ou mal saisi. Exécutez-la depuis la charge de travail quand vous le pouvez, afin qu'elle prouve le trafic sortant depuis l'endroit où tourne l'exportateur.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` active le détecteur de ressources {{detector}} dans Node.js. Les autres langages l'activent avec : {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, connecté au projet, avec l'API Secret Manager activée (`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "Point de terminaison OTLP"
+  "OTLP Endpoint": "Point de terminaison OTLP",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Les journaux apparaissent ici lorsqu'ils portent les attributs de ressource cloud.platform, cloud.account.id et cloud.region de cet environnement, ou dès que son compte AWS diffuse CloudWatch Logs : dans Cloud > Connecter, choisissez Diffuser les métriques et les journaux sur la ligne du compte.",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "Rien n'est arrivé du groupe de journaux de cette ressource sur cette période. Choisissez une période plus longue, ou vérifiez que son compte diffuse ce groupe de journaux : dans Cloud > Connecter, ouvrez Diffuser les métriques et les journaux sur la ligne du compte."
 }

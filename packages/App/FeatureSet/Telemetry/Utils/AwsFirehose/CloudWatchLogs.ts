@@ -1,9 +1,11 @@
 import zlib from "zlib";
 import { promisify } from "util";
+import { getAwsLogGroupAttributes } from "Common/Types/Cloud/CloudLogGroups";
 import {
-  CloudLogGroupResource,
-  getAwsLogGroupResource,
-} from "Common/Types/Cloud/CloudLogGroups";
+  CloudWatchLogSeverity,
+  inferCloudWatchLogSeverity,
+} from "Common/Types/Cloud/CloudWatchLogSeverity";
+import { CLOUD_CONNECTION_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudConnectionTelemetry";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import { FIREHOSE_SCOPE_NAME, OtlpAttribute } from "./CloudWatchMetricStream";
 
@@ -33,10 +35,13 @@ import { FIREHOSE_SCOPE_NAME, OtlpAttribute } from "./CloudWatchMetricStream";
  * (cloud.account.id, cloud.region - the Firehose stream's, which a
  * subscription shares with its log group) and the group's name
  * (aws.log.group.name); when the group's name says the resource it is the
- * log of, that resource's id too (cloud.resource_id, CloudLogGroups). Each
+ * log of, that resource's id too (cloud.resource_id, CloudLogGroups), and
+ * when it is an App Platforms platform's - an App Runner service, an
+ * Elastic Beanstalk environment, an ECS cluster or task - cloud.platform,
+ * which puts its logs on the platform's environment. Each
  * event is one log record: its time, its message as the body, its stream
  * and id as attributes, and the severity its message says when it says one
- * the way Lambda writes it (inferCloudWatchLogSeverity).
+ * the way Lambda or a database engine writes it (inferCloudWatchLogSeverity).
  *
  * Read in one pass, without a regular expression; every record's gzip is
  * held to the budget its request was given.
@@ -243,106 +248,11 @@ export function readCloudWatchLogsMessage(
 }
 
 /*
- * The severity a message says the way Lambda's runtimes and loggers write
- * it - or null. Only the start of a message is read:
- *
- *   - a JSON message's "level" (Lambda's JSON log format, most loggers);
- *   - Node.js: "<time>\t<request id>\tERROR\t<message>";
- *   - Python: "[ERROR]\t<time>\t<request id>\t<message>";
- *   - a first word that is a level: "ERROR ...", "WARN: ...".
+ * The severity a line says, as Lambda's runtimes, the loggers and RDS's
+ * database engines write it - or null (CloudWatchLogSeverity, which the
+ * offline fixtures that show these rows read too).
  */
-const SEVERITIES: ReadonlyMap<string, { number: number; text: string }> =
-  new Map<string, { number: number; text: string }>([
-    ["trace", { number: 1, text: "TRACE" }],
-    ["debug", { number: 5, text: "DEBUG" }],
-    ["info", { number: 9, text: "INFO" }],
-    ["notice", { number: 10, text: "INFO" }],
-    ["warn", { number: 13, text: "WARN" }],
-    ["warning", { number: 13, text: "WARN" }],
-    ["error", { number: 17, text: "ERROR" }],
-    ["err", { number: 17, text: "ERROR" }],
-    ["fatal", { number: 21, text: "FATAL" }],
-    ["critical", { number: 21, text: "FATAL" }],
-  ]);
-
-// The longest JSON message whose level is read: a longer one is not parsed.
-const MAX_JSON_MESSAGE_FOR_LEVEL: number = 64 * 1024;
-const HEAD_LENGTH: number = 200;
-
-function severityOfWord(word: string): { number: number; text: string } | null {
-  let text: string = word.trim();
-
-  if (text.startsWith("[") && text.endsWith("]")) {
-    text = text.slice(1, -1);
-  }
-
-  if (text.endsWith(":")) {
-    text = text.slice(0, -1);
-  }
-
-  return SEVERITIES.get(text.toLowerCase()) || null;
-}
-
-export function inferCloudWatchLogSeverity(
-  message: string,
-): { number: number; text: string } | null {
-  const trimmed: string = message.trimStart();
-
-  if (trimmed.startsWith("{") && trimmed.length <= MAX_JSON_MESSAGE_FOR_LEVEL) {
-    try {
-      const document: JSONObject = readObject(JSON.parse(trimmed));
-
-      for (const key of ["level", "severity", "levelname", "log.level"]) {
-        const value: unknown = document[key];
-
-        if (typeof value === "string") {
-          const severity: { number: number; text: string } | null =
-            severityOfWord(value);
-
-          if (severity) {
-            return severity;
-          }
-        }
-      }
-    } catch {
-      // Not JSON after all: read as text below.
-    }
-  }
-
-  const head: string = trimmed.slice(0, HEAD_LENGTH);
-  const fields: Array<string> = head.split("\t");
-
-  // Python: "[LEVEL]\t...".
-  if (fields.length > 1) {
-    const first: { number: number; text: string } | null = severityOfWord(
-      fields[0]!,
-    );
-
-    if (first && fields[0]!.trim().startsWith("[")) {
-      return first;
-    }
-
-    // Node.js: "<time>\t<request id>\t<LEVEL>\t...".
-    if (fields.length > 3) {
-      const third: { number: number; text: string } | null = severityOfWord(
-        fields[2]!,
-      );
-
-      if (third) {
-        return third;
-      }
-    }
-  }
-
-  const space: number = head.indexOf(" ");
-  const firstWord: string = space > 0 ? head.slice(0, space) : head;
-
-  if (firstWord.length <= 10) {
-    return severityOfWord(firstWord);
-  }
-
-  return null;
-}
+export { inferCloudWatchLogSeverity };
 
 function stringAttribute(key: string, value: string): OtlpAttribute {
   return { key, value: { stringValue: value } };
@@ -395,7 +305,7 @@ export function buildResourceLogs(data: {
       | undefined = groups.get(key);
 
     if (!group) {
-      const filed: CloudLogGroupResource | null = getAwsLogGroupResource({
+      const filed: Record<string, string> = getAwsLogGroupAttributes({
         logGroup: message.logGroup,
         accountId: message.owner,
         region: data.region,
@@ -404,7 +314,7 @@ export function buildResourceLogs(data: {
       const attributes: Array<OtlpAttribute> = [
         stringAttribute("service.name", data.serviceName),
         stringAttribute("cloud.provider", "aws"),
-        stringAttribute("oneuptime.cloud.connection.id", data.connectionId),
+        stringAttribute(CLOUD_CONNECTION_ID_ATTRIBUTE, data.connectionId),
         ...(message.owner
           ? [stringAttribute("cloud.account.id", message.owner)]
           : []),
@@ -412,14 +322,9 @@ export function buildResourceLogs(data: {
         ...(message.logGroup
           ? [stringAttribute(AWS_LOG_GROUP_NAME_ATTRIBUTE, message.logGroup)]
           : []),
-        ...Object.keys(filed?.attributes || {}).map(
-          (attributeKey: string): OtlpAttribute => {
-            return stringAttribute(
-              attributeKey,
-              filed!.attributes[attributeKey]!,
-            );
-          },
-        ),
+        ...Object.keys(filed).map((attributeKey: string): OtlpAttribute => {
+          return stringAttribute(attributeKey, filed[attributeKey]!);
+        }),
       ];
 
       group = {
@@ -436,8 +341,9 @@ export function buildResourceLogs(data: {
     }
 
     for (const event of message.logEvents) {
-      const severity: { number: number; text: string } | null =
-        inferCloudWatchLogSeverity(event.message);
+      const severity: CloudWatchLogSeverity | null = inferCloudWatchLogSeverity(
+        event.message,
+      );
       const attributes: Array<OtlpAttribute> = [
         ...(message.logStream
           ? [stringAttribute(AWS_LOG_STREAM_NAME_ATTRIBUTE, message.logStream)]

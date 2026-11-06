@@ -1,6 +1,9 @@
 /** @timezone UTC */
 
-import LogsHistogram from "../../../UI/Components/LogsViewer/components/LogsHistogram";
+import LogsHistogram, {
+  LOGS_HISTOGRAM_HEADER_TEST_ID,
+  LOGS_HISTOGRAM_LEGEND_TEST_ID,
+} from "../../../UI/Components/LogsViewer/components/LogsHistogram";
 import { HistogramBucket } from "../../../UI/Components/LogsViewer/types";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import OneUptimeDate from "../../../Types/Date";
@@ -310,6 +313,61 @@ describe("LogsHistogram", () => {
       render(<LogsHistogram buckets={ONE_SEVERITY} isLoading={false} />);
 
       expect(screen.queryByText("Drag to zoom")).toBeNull();
+    });
+  });
+
+  /*
+   * A database's log holds every severity in one window: five legend
+   * entries beside the title ran past a phone's card, and the page scrolled
+   * sideways. The header and the legend wrap instead.
+   */
+  describe("the header on a narrow card", () => {
+    const EVERY_SEVERITY: Array<HistogramBucket> = [
+      LogSeverity.Fatal,
+      LogSeverity.Error,
+      LogSeverity.Warning,
+      LogSeverity.Information,
+      LogSeverity.Unspecified,
+    ].map((severity: string) => {
+      return bucket("2026-08-05T12:00:00Z", severity, 2);
+    });
+
+    test("every severity in the window has its legend entry", () => {
+      render(<LogsHistogram buckets={EVERY_SEVERITY} isLoading={false} />);
+
+      const legend: HTMLElement = screen.getByTestId(
+        LOGS_HISTOGRAM_LEGEND_TEST_ID,
+      );
+
+      expect(legend.children).toHaveLength(5);
+      for (const label of ["Fatal", "Error", "Warning", "Info"]) {
+        expect(legend.textContent).toContain(label);
+      }
+    });
+
+    test("the header and its legend wrap rather than run past the card", () => {
+      render(
+        <LogsHistogram
+          buckets={EVERY_SEVERITY}
+          isLoading={false}
+          onTimeRangeSelect={() => {}}
+        />,
+      );
+
+      const header: HTMLElement = screen.getByTestId(
+        LOGS_HISTOGRAM_HEADER_TEST_ID,
+      );
+      const legend: HTMLElement = screen.getByTestId(
+        LOGS_HISTOGRAM_LEGEND_TEST_ID,
+      );
+
+      expect(header.className.split(" ")).toContain("flex-wrap");
+      expect(legend.className.split(" ")).toContain("flex-wrap");
+      // The title and its hint wrap too, beside or above the legend.
+      expect(
+        (header.firstElementChild as HTMLElement).className.split(" "),
+      ).toContain("flex-wrap");
+      expect(header.contains(legend)).toBe(true);
     });
   });
 });

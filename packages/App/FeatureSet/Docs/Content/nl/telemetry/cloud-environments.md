@@ -32,6 +32,7 @@ flowchart TB
 - **De omgeving bundelt alles.** Elke workload met hetzelfde platform, hetzelfde account en dezelfde regio komt in één omgeving terecht. De services houden hun eigen rijen onder **Services**.
 - **Elke draaiende taak is een instantie.** Het tabblad **Instanties** van de omgeving toont de draaiende taken, instanties of replica's, met live CPU en geheugen waar het platform die kan leveren.
 - **Elke service is een app.** Een ECS-service, een Cloud Run-service of een Container App is een app van zijn omgeving, en OneUptime bewaart de revisies die hij draait: zie [Apps en implementaties](#apps-en-implementaties).
+- **Gestreamde CloudWatch-logboeken tellen ook mee.** Een AWS-account dat [zijn CloudWatch-logboeken streamt](/docs/telemetry/cloud-streaming), zet de logboeken van zijn App Runner-services, Elastic Beanstalk-omgevingen, en ECS-taken en -clusters op het tabblad **Logboeken** van hun omgeving, en de omgeving verschijnt met ze als nog geen app ernaar heeft gerapporteerd. Ze maken geen app: een app wordt genoemd naar zijn eigen telemetrie.
 
 ## Voordat je begint
 

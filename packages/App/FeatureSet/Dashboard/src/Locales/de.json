@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "Geben Sie Regionen mit ihren Codes an, etwa us-east-1 oder eu-central-1.",
   "List at most {{count}} Regions.": "Geben Sie höchstens {{count}} Regionen an.",
   "Log groups": "Protokollgruppen",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "Protokolle erscheinen hier, sobald die Verbindung ihres Kontos CloudWatch Logs streamt: Wählen Sie unter Cloud > Verbinden bei der Verbindung „Metriken und Protokolle streamen“, mit der Protokollgruppe dieser Ressource.",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Protokolle erscheinen hier, sobald das AWS-Konto dieser Ressource ihre Protokollgruppe streamt: Wählen Sie unter Cloud > Verbinden in der Zeile des Kontos „Metriken und Protokolle streamen“.",
   "Logs endpoint": "Protokoll-Endpunkt",
   "Logs of {{count}} log groups from {{region}}": "Protokolle von {{count}} Protokollgruppen aus {{region}}",
   "Logs of {{count}} log groups from {{region}}_one": "Protokolle von {{count}} Protokollgruppe aus {{region}}",
@@ -45619,5 +45619,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` mit `\"valid\": true` bedeutet, dass das Token zu diesem Projekt gehört; `401` bedeutet, dass es unbekannt, widerrufen oder falsch geschrieben ist. Führen Sie es nach Möglichkeit aus dem Workload heraus aus, damit es den ausgehenden Verkehr von dort prüft, wo der Exporter läuft.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` aktiviert in Node.js den Ressourcendetektor {{detector}}. Andere Sprachen aktivieren ihn mit: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, am Projekt angemeldet, mit aktivierter Secret Manager API (`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP-Endpunkt"
+  "OTLP Endpoint": "OTLP-Endpunkt",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Protokolle erscheinen hier, wenn sie die Ressourcenattribute cloud.platform, cloud.account.id und cloud.region dieser Umgebung tragen, oder sobald ihr AWS-Konto CloudWatch Logs streamt: Wählen Sie unter Cloud > Verbinden in der Zeile des Kontos „Metriken und Protokolle streamen“.",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "In diesem Zeitraum kam nichts aus der Protokollgruppe dieser Ressource an. Wählen Sie einen längeren Zeitraum, oder prüfen Sie, ob ihr Konto diese Protokollgruppe streamt: Öffnen Sie unter Cloud > Verbinden in der Zeile des Kontos „Metriken und Protokolle streamen“."
 }

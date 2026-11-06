@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "Ange regioner med deras koder, till exempel us-east-1 eller eu-central-1.",
   "List at most {{count}} Regions.": "Ange högst {{count}} regioner.",
   "Log groups": "Logggrupper",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "Loggar visas här när anslutningen för dess konto strömmar CloudWatch Logs: välj Strömma mätvärden och loggar på anslutningen under Cloud > Anslut, med den här resursens logggrupp.",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Loggar visas här när resursens AWS-konto strömmar dess logggrupp: välj Strömma mätvärden och loggar på kontots rad under Moln > Anslut.",
   "Logs endpoint": "Slutpunkt för loggar",
   "Logs of {{count}} log groups from {{region}}": "Loggar från {{count}} logggrupper i {{region}}",
   "Logs of {{count}} log groups from {{region}}_one": "Loggar från {{count}} logggrupp i {{region}}",
@@ -45619,5 +45619,7 @@
   "`200` with `\"valid\": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.": "`200` med `\"valid\": true` betyder att token hör till det här projektet; `401` betyder att den är okänd, återkallad eller felstavad. Kör den inifrån arbetsbelastningen när du kan, så att den bevisar utgående trafik därifrån exporteraren körs.",
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` aktiverar resursdetektorn {{detector}} i Node.js. Andra språk aktiverar den med: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, inloggad på projektet, med Secret Manager API aktiverat (`gcloud services enable secretmanager.googleapis.com`)",
-  "OTLP Endpoint": "OTLP-endpoint"
+  "OTLP Endpoint": "OTLP-endpoint",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Loggar visas här när de har den här miljöns resursattribut cloud.platform, cloud.account.id och cloud.region, eller när dess AWS-konto strömmar CloudWatch Logs: välj Strömma mätvärden och loggar på kontots rad under Moln > Anslut.",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "Inget kom från den här resursens logggrupp under den här tiden. Välj en längre tid, eller kontrollera att dess konto strömmar den här logggruppen: öppna Strömma mätvärden och loggar på kontots rad under Moln > Anslut."
 }

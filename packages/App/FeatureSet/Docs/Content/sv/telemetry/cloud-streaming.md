@@ -79,6 +79,7 @@ Dialogen frågar med några sekunders mellanrum vad som har kommit. Firehose lev
 | Mätvärden | På molnresurserna de mäter, med de namn och attribut som anslutningens läsningar ger dem |
 | Loggar | I loggutforskaren, under anslutningens telemetritjänst, med konto, region och logggrupp som attribut |
 | Loggar från en logggrupp som AWS namnger efter en resurs | Även på den resursen: dess sida i Moln får en flik **Loggar** |
+| Loggar från en App Runner-tjänst, en Elastic Beanstalk-miljö eller en ECS-uppgift eller ett ECS-kluster | Även på dess miljö i Appplattformar: fliken **Loggar** |
 
 En logggrupp arkiveras under en resurs när AWS har namngett den efter en:
 
@@ -97,7 +98,9 @@ En logggrupp arkiveras under en resurs när AWS har namngett den efter en:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Varje logg bär resursens ID som `cloud.resource_id`, och en Lambda-funktions loggar bär också `faas.name`, så de visas även på funktionen under Serverless. En logggrupp med ett annat namn strömmas ändå, under sitt konto och sin region. En loggs allvarlighetsgrad är den som dess meddelande anger, så som Lambda skriver den.
+Varje logg bär resursens ID som `cloud.resource_id`, och en Lambda-funktions loggar bär också `faas.name`, så de visas även på funktionen under Serverless. En logggrupp med ett annat namn strömmas ändå, under sitt konto och sin region. En loggs allvarlighetsgrad är den som dess meddelande anger, så som Lambda, PostgreSQL eller MySQL skriver den.
+
+Loggar från en App Runner-tjänst, en Elastic Beanstalk-miljö och ett ECS-kluster bär också `cloud.platform`, och det gör även loggarna från en ECS-uppgift, från den logggrupp som ECS-konsolen kallar `/ecs/<task-definition-family>`, med `aws.ecs.task.family`. Med kontot och regionen hamnar de då på sin miljö i Appplattformar, som dyker upp med dem om ingen app har rapporterat till den ännu. De skapar ingen app: en app namnges efter sin egen telemetri, som [Molnmiljöer](/docs/telemetry/cloud-environments) förklarar.
 
 ## Vad stacken skapar
 
