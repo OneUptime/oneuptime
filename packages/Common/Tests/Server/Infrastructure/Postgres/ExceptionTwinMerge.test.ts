@@ -49,7 +49,9 @@ function day(n: number): Date {
   return new Date(Date.UTC(2026, 9, n));
 }
 
-function copy(overrides: Partial<ExceptionCopyTriage> = {}): ExceptionCopyTriage {
+function copy(
+  overrides: Partial<ExceptionCopyTriage> = {},
+): ExceptionCopyTriage {
   return {
     isResolved: false,
     markedAsResolvedAt: null,
@@ -85,9 +87,7 @@ const OPEN: ExceptionTriage = {
 
 describe("the triage of two copies of one exception", () => {
   test("neither resolved: open, as the kept copy is", () => {
-    expect(
-      foldTwinTriage(copy(), copy({ lastSeenAt: day(20) })),
-    ).toEqual(OPEN);
+    expect(foldTwinTriage(copy(), copy({ lastSeenAt: day(20) }))).toEqual(OPEN);
   });
 
   test("neither resolved, and one came back once: open and Regressed, from the later time", () => {
@@ -105,10 +105,7 @@ describe("the triage of two copies of one exception", () => {
 
   test("the kept copy resolved after the twin was last seen: resolved, as the kept copy was", () => {
     expect(
-      foldTwinTriage(
-        resolved(day(12), ALICE),
-        copy({ lastSeenAt: day(11) }),
-      ),
+      foldTwinTriage(resolved(day(12), ALICE), copy({ lastSeenAt: day(11) })),
     ).toEqual({
       isResolved: true,
       markedAsResolvedAt: day(12),
@@ -120,10 +117,7 @@ describe("the triage of two copies of one exception", () => {
 
   test("the kept copy resolved, the twin seen after it: open again, the resolution cleared, Regressed when the twin was last seen", () => {
     expect(
-      foldTwinTriage(
-        resolved(day(12), ALICE),
-        copy({ lastSeenAt: day(15) }),
-      ),
+      foldTwinTriage(resolved(day(12), ALICE), copy({ lastSeenAt: day(15) })),
     ).toEqual({ ...OPEN, regressedAt: day(15) });
   });
 
@@ -192,7 +186,10 @@ describe("the triage of two copies of one exception", () => {
     ).toMatchObject({ isResolved: true, resolvedInReleaseAfter: "2.0.0" });
 
     expect(
-      foldTwinTriage(kept, copy({ lastSeenAt: day(15), lastSeenInRelease: "" })),
+      foldTwinTriage(
+        kept,
+        copy({ lastSeenAt: day(15), lastSeenInRelease: "" }),
+      ),
     ).toMatchObject({ isResolved: true, resolvedInReleaseAfter: "2.0.0" });
 
     expect(
@@ -219,14 +216,18 @@ describe("the triage of two copies of one exception", () => {
     expect(
       foldTwinTriage(unknownTime, copy({ lastSeenAt: day(8) })).isResolved,
     ).toBe(true);
-    expect(
-      foldTwinTriage(unknownTime, copy({ lastSeenAt: day(12) })),
-    ).toEqual({ ...OPEN, regressedAt: day(12) });
+    expect(foldTwinTriage(unknownTime, copy({ lastSeenAt: day(12) }))).toEqual({
+      ...OPEN,
+      regressedAt: day(12),
+    });
 
     // A known time wins over an unknown one, however late that copy was seen.
     expect(
       foldTwinTriage(
-        resolved(day(1), ALICE, { markedAsResolvedAt: null, lastSeenAt: day(20) }),
+        resolved(day(1), ALICE, {
+          markedAsResolvedAt: null,
+          lastSeenAt: day(20),
+        }),
         resolved(day(25), BOB, { lastSeenAt: day(5) }),
       ),
     ).toMatchObject({ isResolved: true, markedAsResolvedByUserId: BOB });
@@ -382,14 +383,34 @@ describe("the triage of the exception the kept copy was merged into", () => {
 describe("the error class of two copies of one exception", () => {
   test.each([
     ["neither classified: the kept copy's", "default", "default", "kept"],
-    ["the twin's declared by its code wins over the kept copy's AI verdict", "ai", "declared", "twin"],
+    [
+      "the twin's declared by its code wins over the kept copy's AI verdict",
+      "ai",
+      "declared",
+      "twin",
+    ],
     ["a person's wins over OneUptime AI's", "ai", "manual", "twin"],
-    ["the kept copy's person's verdict stays over the twin's AI one", "manual", "ai", "kept"],
-    ["the kept copy's declared class stays over a person's", "declared", "manual", "kept"],
+    [
+      "the kept copy's person's verdict stays over the twin's AI one",
+      "manual",
+      "ai",
+      "kept",
+    ],
+    [
+      "the kept copy's declared class stays over a person's",
+      "declared",
+      "manual",
+      "kept",
+    ],
     ["AI's over nobody's", "default", "ai", "twin"],
     ["a tie: the kept copy's", "manual", "manual", "kept"],
     ["a source nobody writes counts as none", "default", "legacy", "kept"],
-    ["no source at all (a schema before error classes): the kept copy's", null, null, "kept"],
+    [
+      "no source at all (a schema before error classes): the kept copy's",
+      null,
+      null,
+      "kept",
+    ],
   ])(
     "%s",
     (
@@ -425,10 +446,34 @@ describe("what reopens a resolution: ingest's rule", () => {
     ["seen at the resolve", at12, day(12), "1.0.0", false],
     ["seen after the resolve", at12, day(13), "1.0.0", true],
     ["seen after, with no release", at12, day(13), null, true],
-    ["next release, seen after in the release waited out", at12InNext, day(13), "2.0.0", false],
-    ["next release, seen after with no release", at12InNext, day(13), "", false],
-    ["next release, seen after in another release", at12InNext, day(13), "2.0.1", true],
-    ["next release, seen before in another release", at12InNext, day(11), "2.0.1", false],
+    [
+      "next release, seen after in the release waited out",
+      at12InNext,
+      day(13),
+      "2.0.0",
+      false,
+    ],
+    [
+      "next release, seen after with no release",
+      at12InNext,
+      day(13),
+      "",
+      false,
+    ],
+    [
+      "next release, seen after in another release",
+      at12InNext,
+      day(13),
+      "2.0.1",
+      true,
+    ],
+    [
+      "next release, seen before in another release",
+      at12InNext,
+      day(11),
+      "2.0.1",
+      false,
+    ],
     ["never seen", at12, null, "1.0.0", false],
   ])(
     "%s",
@@ -562,8 +607,9 @@ function takeInOn(
 ): Statement | undefined {
   return updates(statements).find((statement: Statement): boolean => {
     return (
-      statement.sql.includes('"occuranceCount" = COALESCE("occuranceCount", 0) +') &&
-      statement.params[6] === id
+      statement.sql.includes(
+        '"occuranceCount" = COALESCE("occuranceCount", 0) +',
+      ) && statement.params[6] === id
     );
   });
 }
@@ -575,7 +621,9 @@ describe("the statements that take a twin in", () => {
     });
 
     const lock: string = statements[0]!.sql;
-    expect(lock).toContain('ORDER BY "projectId", "primaryEntityId", "fingerprint"');
+    expect(lock).toContain(
+      'ORDER BY "projectId", "primaryEntityId", "fingerprint"',
+    );
     expect(lock).toContain("FOR UPDATE");
     expect(lock).toContain('"_id" = ANY($1::uuid[])');
     // The exceptions the two were merged into, and those merged into the twin.
@@ -649,7 +697,7 @@ describe("the statements that take a twin in", () => {
     expect(triage.params).toEqual([false, null, null, KEPT]);
     expect(
       statements.some((statement: Statement): boolean => {
-        return statement.sql.includes("mergedIntoTelemetryExceptionId\" =");
+        return statement.sql.includes('mergedIntoTelemetryExceptionId" =');
       }),
     ).toBe(false);
   });
@@ -731,9 +779,7 @@ describe("the statements that take a twin in", () => {
     expect(writes[detach]!.params).toEqual([TWIN]);
     expect(takeInOn(statements, KEPT)!.params[0]).toBe(4);
     // Taken back before the kept one takes it in.
-    expect(takeBack).toBeLessThan(
-      writes.indexOf(takeInOn(statements, KEPT)!),
-    );
+    expect(takeBack).toBeLessThan(writes.indexOf(takeInOn(statements, KEPT)!));
   });
 
   test("the kept one merged into the twin: it takes the twin's place, and the twin's count no longer holds it", async () => {

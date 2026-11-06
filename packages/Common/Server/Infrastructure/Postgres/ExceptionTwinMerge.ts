@@ -100,7 +100,9 @@ export interface ExceptionErrorClass {
 
 // One row as the merge reads it.
 interface ExceptionRow
-  extends ExceptionCounts, ExceptionCopyTriage, ExceptionErrorClass {
+  extends ExceptionCounts,
+    ExceptionCopyTriage,
+    ExceptionErrorClass {
   id: string;
   mergedIntoId: string | null;
 }
@@ -111,14 +113,17 @@ interface ExceptionRow
  * person's, then OneUptime AI's; 'default' - nobody classified it - and
  * anything else, none.
  */
-const ERROR_CLASS_SOURCE_RANK: Record<string, number> = {
-  declared: 3,
-  manual: 2,
-  ai: 1,
-};
+const ERROR_CLASS_SOURCE_RANK: ReadonlyMap<string, number> = new Map<
+  string,
+  number
+>([
+  ["declared", 3],
+  ["manual", 2],
+  ["ai", 1],
+]);
 
 function rankOfErrorClassSource(source: string | null): number {
-  return ERROR_CLASS_SOURCE_RANK[source || ""] || 0;
+  return ERROR_CLASS_SOURCE_RANK.get(source || "") || 0;
 }
 
 /*
@@ -367,11 +372,7 @@ function selectListFor(columns: ReadonlySet<string>): string {
     read("lastSeenAt", `"lastSeenAt"`, "NULL::timestamptz"),
     read("firstSeenInRelease", `"firstSeenInRelease"`, "NULL::text"),
     read("lastSeenInRelease", `"lastSeenInRelease"`, "NULL::text"),
-    read(
-      "unhandled",
-      `COALESCE("unhandled", false) AS "unhandled"`,
-      "false",
-    ),
+    read("unhandled", `COALESCE("unhandled", false) AS "unhandled"`, "false"),
     read(
       "isResolved",
       `COALESCE("isResolved", false) AS "isResolved"`,
