@@ -29,6 +29,12 @@ export const AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME: string = "OneUptimeAiAgentTask";
 export const AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME: string =
   "OneUptimeAiAgentWrite";
 export const AWS_CLOUD_AI_AGENT_LOG_GROUP_NAME: string = `/oneuptime/${CLOUD_AI_AGENT_NAME}`;
+/*
+ * Every account of an AWS Organization at once: a StackSet of the same
+ * template, whose stack in each member account StackSets names
+ * StackSet-<this>-<a uuid of its own>.
+ */
+export const AWS_CLOUD_AI_AGENT_STACK_SET_NAME: string = "OneUptimeAiAgent";
 
 /*
  * Azure: a resource group holding one Container App with a system-assigned
@@ -102,6 +108,7 @@ export function getCloudAiAgentOwnTargets(data: {
         `arn:aws*:iam::${account}:role/${AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME}`,
         `arn:aws*:iam::${account}:role/${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}`,
         `arn:aws*:cloudformation:*:${account}:stack/${AWS_CLOUD_AI_AGENT_STACK_NAME}/*`,
+        `arn:aws*:cloudformation:*:${account}:stack/StackSet-${AWS_CLOUD_AI_AGENT_STACK_SET_NAME}-*`,
       ];
     case "azure":
       return [
