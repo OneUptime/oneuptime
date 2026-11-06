@@ -811,7 +811,10 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
       content: (
         <div className="space-y-3">
           {organizationView ? (
-            <CloudAiAgentOrganizationAccounts view={organizationView} />
+            <CloudAiAgentOrganizationAccounts
+              view={organizationView}
+              currentCloudAccountId={props.cloudAccountId.toString()}
+            />
           ) : (
             <></>
           )}

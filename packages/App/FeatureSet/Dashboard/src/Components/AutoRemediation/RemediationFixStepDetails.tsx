@@ -9,6 +9,10 @@ import RemediationFixFact, {
 import RemediationTrackRecordLine from "./RemediationTrackRecordLine";
 import CloudDryRunNote from "./CloudDryRunNote";
 import DeclaredCodeChangeLine from "./DeclaredCodeChangeLine";
+import {
+  DECLARED_CODE_LASTING_NOTE,
+  DECLARED_CODE_NOT_LASTING_NOTE,
+} from "./DeclaredCodeChangeWords";
 import OpenStackReachNote from "./OpenStackReachNote";
 import {
   AiRemediationCommand,
@@ -26,6 +30,7 @@ import {
   CloudChangeWords,
   describeCloudChange,
 } from "Common/Utils/AiRemediation/CloudChangeWords";
+import { getLastingCloudChange } from "Common/Utils/AiRemediation/DeclaredCodeChange";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -457,10 +462,13 @@ function CloudChangeWordsLine(props: {
 
 /*
  * A cloud change's notes: the code that declares its resource (such a
- * change is only ever proposed: the next apply would put the old value
- * back), and, before it ran, its dry run (CloudDryRunNote) - or, before
- * any, that its undo is written from the value it replaces: the agent
- * reads that value first and reports it.
+ * change is only ever proposed) - for a change that sets a value the code
+ * declares, that the next apply may put the old value back, and the pull
+ * request to the code under it; for any other (a restart, a reboot, a start
+ * or a fail over), that the next apply does not undo it - and, before it
+ * ran, its dry run (CloudDryRunNote) - or, before any, that its undo is
+ * written from the value it replaces: the agent reads that value first and
+ * reports it.
  */
 function CloudCommandNote(props: {
   command: AiRemediationCommand;
@@ -486,22 +494,43 @@ function CloudCommandNote(props: {
     return <></>;
   }
 
+  // Whether the next apply would put this change back: it sets a value the code declares.
+  const isLasting: boolean = Boolean(
+    getLastingCloudChange({
+      resourceType: command.resourceType,
+      command: command.command,
+    }),
+  );
+
   return (
     <div className="mt-2 space-y-1" data-testid="remediation-command-cloud">
       {command.managedAsCode ? (
-        <div className="text-xs leading-5 text-amber-700">
+        <div
+          className={`text-xs leading-5 ${
+            isLasting ? "text-amber-700" : "text-gray-500"
+          }`}
+          data-testid="remediation-command-declared"
+          data-lasting={isLasting ? "true" : "false"}
+        >
           {translator.translateTemplate(
-            "Declared as code by {{owner}}: the next apply may put the old value back, so change the code too.",
+            isLasting ? DECLARED_CODE_LASTING_NOTE : DECLARED_CODE_NOT_LASTING_NOTE,
             { owner: command.managedAsCode },
+            // A Latin owner keeps its place in a Persian sentence.
+            { setsValuesApart: true },
           )}
         </div>
       ) : (
         <></>
       )}
+      {/*
+       * The pull request to the code, right under the note that says why:
+       * the button needs no hint of its own here.
+       */}
       {command.managedAsCode && props.suggestionId ? (
         <DeclaredCodeChangeLine
           suggestionId={props.suggestionId}
           command={command}
+          showsWhy={false}
         />
       ) : (
         <></>

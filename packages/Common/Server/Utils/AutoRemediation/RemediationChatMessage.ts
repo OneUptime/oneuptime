@@ -552,18 +552,22 @@ export default class RemediationChatMessage {
     }
 
     /*
-     * A resource declared as code: the next apply puts the old value back,
-     * and a change the code declares can be a pull request to that code too,
-     * asked for from the fix in OneUptime (DeclaredCodeChanges).
+     * A change the code declares - a scale, a concurrency, a roll back - is
+     * put back by the next apply, and can be a pull request to that code
+     * too, asked for from the fix in OneUptime (DeclaredCodeChanges). A
+     * restart, a reboot, a start or a fail over sets nothing the code
+     * declares, so the next apply undoes none of them: the message says
+     * nothing of the code there.
      */
-    if (command.managedAsCode) {
+    if (
+      command.managedAsCode &&
+      getLastingCloudChange({
+        resourceType: command.resourceType,
+        command: command.command,
+      })
+    ) {
       lines.push(
-        getLastingCloudChange({
-          resourceType: command.resourceType,
-          command: command.command,
-        })
-          ? mdText`Declared as code by ${command.managedAsCode}: the next apply may put the old value back. Open the fix in ${ProductBrandingText.getProductName()} to ask for a pull request to that code with the same change.`
-          : mdText`Declared as code by ${command.managedAsCode}: the next apply may put the old value back.`,
+        mdText`Declared as code by ${command.managedAsCode}: the next apply may put the old value back. Open the fix in ${ProductBrandingText.getProductName()} to ask for a pull request to that code with the same change.`,
       );
     }
 

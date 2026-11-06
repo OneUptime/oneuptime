@@ -611,26 +611,30 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                       className="space-y-2"
                       data-testid="cloud-connection-stop-streaming"
                     >
-                      <p className="text-sm text-gray-700">
-                        {translator.translateText(
-                          translationKey(
-                            "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
-                          ),
-                        )}
-                      </p>
+                      {/*
+                       * One paragraph that ends at the command: for an
+                       * organization, where to run it and that it deletes
+                       * the member accounts' stacks too.
+                       */}
                       {managementAccountId ? (
                         <p
                           className="text-sm text-gray-700"
                           data-testid="cloud-connection-stop-streaming-organization"
                         >
                           {translator.translateTemplate(
-                            "Run it in the management account {{account}}: it also deletes every member account's stacks, when the organization was streamed.",
+                            "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, the member accounts' too, run this in AWS CloudShell in the management account {{account}}:",
                             { account: managementAccountId },
                             { setsValuesApart: true },
                           )}
                         </p>
                       ) : (
-                        <></>
+                        <p className="text-sm text-gray-700">
+                          {translator.translateText(
+                            translationKey(
+                              "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
+                            ),
+                          )}
+                        </p>
                       )}
                       <CodeBlock
                         code={

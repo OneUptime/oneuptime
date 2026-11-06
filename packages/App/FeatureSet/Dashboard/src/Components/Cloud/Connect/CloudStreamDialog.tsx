@@ -690,12 +690,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
           },
         ]
       : []),
-    {
-      key: "regions",
-      title: "Regions",
-      isSet: setup.regions.length > 0,
-      value: translator.formatNumber(setup.regions.length),
-    },
+    // Named where the fold draws it: after Every metric, before Regions.
     ...(managementAccountId
       ? [
           {
@@ -708,6 +703,12 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
         ]
       : []),
     {
+      key: "regions",
+      title: "Regions",
+      isSet: setup.regions.length > 0,
+      value: translator.formatNumber(setup.regions.length),
+    },
+    {
       key: "elsewhere",
       title: "Set it up another way",
       isSet: false,
@@ -717,7 +718,14 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Stream metrics and logs"
-      description="Run one command, and Amazon Data Firehose delivers this account's CloudWatch metrics and logs to OneUptime within minutes, between reads."
+      /* The dialog translates its description: both are its keys. */
+      description={
+        isEveryAccount
+          ? translationKey(
+              "Run one command, and Amazon Data Firehose delivers the CloudWatch metrics and logs of every account of the organization to OneUptime within minutes, between reads.",
+            )
+          : "Run one command, and Amazon Data Firehose delivers this account's CloudWatch metrics and logs to OneUptime within minutes, between reads."
+      }
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText={live?.state === "receiving" ? "Done" : "Close"}
@@ -897,7 +905,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
               <CheckRow
                 label={say(translationKey("Every account of the organization"))}
                 description={translator.translateTemplate(
-                  "From the management account {{account}}: a StackSet makes the same stacks in every member account, and in accounts that join the organization later. Every log group or none: named log groups are one account's.",
+                  "From the management account {{account}}, a StackSet makes the same stacks in every member account, and in accounts that join later. It streams every log group or no logs, since a named log group belongs to one account.",
                   { account: managementAccountId },
                   { setsValuesApart: true },
                 )}

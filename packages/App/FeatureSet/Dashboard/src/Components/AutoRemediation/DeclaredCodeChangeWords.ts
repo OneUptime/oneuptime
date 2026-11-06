@@ -13,6 +13,8 @@ import {
   readDeclaredCode,
 } from "Common/Utils/AiRemediation/DeclaredCodeChange";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+// A type alone: the step marks' tones, whose colours the line's mark takes.
+import type { RemediationFixStepTone } from "./RemediationFixSteps";
 
 /*
  * A FIX THAT LASTS, ON THE FIX'S CARD: THE WORDS AND THE CHOICES.
@@ -121,18 +123,43 @@ export function readDeclaredCodeChanges(
 // How often the card asks again while a pull request is being written.
 export const DECLARED_CODE_CHANGE_POLL_MS: number = 15000;
 
+// ---- The step's notes ------------------------------------------------------------
+
+/*
+ * Above a declared resource's step, which change the code declares: one
+ * that sets a value - the next apply would put it back, so the code is to
+ * change too - or one that sets nothing the code declares (a restart, a
+ * reboot, a start or a fail over), which the next apply leaves alone.
+ */
+export const DECLARED_CODE_LASTING_NOTE: string = translationKey(
+  "Declared as code by {{owner}}: the next apply may put the old value back, so change the code too.",
+);
+export const DECLARED_CODE_NOT_LASTING_NOTE: string = translationKey(
+  "Declared as code by {{owner}}: this change sets nothing the code declares, so the next apply does not undo it.",
+);
+
 // ---- The line under the step ---------------------------------------------------
 
 export const DECLARED_CODE_ASK_TITLE: string = translationKey(
   "Open a pull request to the code",
 );
+// Beside the button where no note above says why (the run step's list).
 export const DECLARED_CODE_ASK_HINT: string = translationKey(
   "The same change in the {{code}} code, so the next apply keeps it.",
 );
-export const DECLARED_CODE_VIEW_TASK: string = translationKey("View the task");
+
+/*
+ * The links under the line, in the words of the fix in the code beside it
+ * on the same card (RemediationCodeFix): View progress while it is written,
+ * Answer in Code while it waits, View task and View pull request after.
+ */
+export const DECLARED_CODE_VIEW_PROGRESS: string =
+  translationKey("View progress");
+export const DECLARED_CODE_VIEW_TASK: string = translationKey("View task");
+export const DECLARED_CODE_ANSWER: string = translationKey("Answer in Code");
 export const DECLARED_CODE_VIEW_PULL_REQUEST: string =
   translationKey("View pull request");
-export const DECLARED_CODE_ASK_AGAIN: string = translationKey("Ask again");
+export const DECLARED_CODE_TRY_AGAIN: string = translationKey("Try again");
 
 // What the line says of a pull request asked for, by where it stands.
 export const DECLARED_CODE_STATE_WORDS: Readonly<
@@ -144,12 +171,32 @@ export const DECLARED_CODE_STATE_WORDS: Readonly<
   [DeclaredCodeChangeState.Opened]: translationKey(
     "A pull request to the code is open in {{repository}}: merge it, and the next apply keeps the fix.",
   ),
+  [DeclaredCodeChangeState.WaitingForYou]: translationKey(
+    "The pull request to the code in {{repository}} waits for your answer.",
+  ),
   [DeclaredCodeChangeState.Ended]: translationKey(
-    "AI opened no pull request in {{repository}}: it found nothing to change, or it waits for your answer.",
+    "OneUptime AI read the code in {{repository}} and found nothing to change.",
   ),
   [DeclaredCodeChangeState.Failed]: translationKey(
     "The pull request to the code could not be written in {{repository}}.",
   ),
+};
+
+/*
+ * Each state's mark, in the AI card's colours (RemediationFixStepList):
+ * indigo while it moves, emerald once it is done, amber while it waits for
+ * the reader, grey when it did nothing, red when it failed.
+ */
+export type DeclaredCodeChangeTone = RemediationFixStepTone;
+
+export const DECLARED_CODE_STATE_TONES: Readonly<
+  Record<DeclaredCodeChangeState, DeclaredCodeChangeTone>
+> = {
+  [DeclaredCodeChangeState.Writing]: "live",
+  [DeclaredCodeChangeState.Opened]: "done",
+  [DeclaredCodeChangeState.WaitingForYou]: "attention",
+  [DeclaredCodeChangeState.Ended]: "idle",
+  [DeclaredCodeChangeState.Failed]: "failed",
 };
 
 // A repository the reader may not read is still a repository.
@@ -176,6 +223,23 @@ export const DECLARED_CODE_DIALOG_SUBMIT: string =
 export const DECLARED_CODE_DIALOG_LOADING: string = translationKey(
   "Looking for the code in your repositories…",
 );
+export const DECLARED_CODE_DIALOG_TRY_AGAIN: string =
+  translationKey("Try again");
+
+/*
+ * Whether reading the repositories again may answer otherwise: no answer at
+ * all (-1 or 0), a server or gateway error, a timeout or too many requests
+ * may pass; a refusal (a step that is not declared as code, a fix the
+ * reader may not read) says the same every time, so it has no Try again -
+ * the rule the Cloud AI agent's key uses (isCloudAiAgentKeyFailureRetryable).
+ */
+export function isDeclaredCodeReadRetryable(statusCode: number): boolean {
+  if (statusCode === 408 || statusCode === 429) {
+    return true;
+  }
+
+  return !(statusCode >= 400 && statusCode < 500);
+}
 export const DECLARED_CODE_DIALOG_NO_REPOSITORY: string = translationKey(
   "No repository connected to Code can take this pull request yet.",
 );

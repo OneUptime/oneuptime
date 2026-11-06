@@ -551,7 +551,12 @@ export enum DeclaredCodeChangeState {
   Writing = "writing",
   // It opened a pull request.
   Opened = "opened",
-  // It ended without one: nothing to change, or it needs a person's answer.
+  /*
+   * It stopped to ask the person something before it opens one: nothing
+   * moves until they answer in Code (the code fix line's "Answer in Code").
+   */
+  WaitingForYou = "waiting",
+  // It ended without one: it read the code and found nothing to change.
   Ended = "ended",
   // It failed or was stopped.
   Failed = "failed",

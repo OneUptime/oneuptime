@@ -53,9 +53,13 @@ export const CLOUD_AI_AGENT_SCOPE_ACCOUNT_DESCRIPTION: string = translationKey(
 export const CLOUD_AI_AGENT_SCOPE_ORGANIZATION_TITLE: string = translationKey(
   "Every account of the organization",
 );
+/*
+ * Two lines, as This account's answer is one: what each agent is given is
+ * the command step's to say.
+ */
 export const CLOUD_AI_AGENT_SCOPE_ORGANIZATION_DESCRIPTION: string =
   translationKey(
-    "An agent in each of its {{count}} accounts, from one command in the management account: each with the same least-privilege role, and a key of its own.",
+    "An agent in each of its {{count}} accounts, from one command in the management account.",
   );
 
 // The command's step, for the organization.
@@ -64,7 +68,7 @@ export const CLOUD_AI_AGENT_ORGANIZATION_STEP_TITLE: string = translationKey(
 );
 export const CLOUD_AI_AGENT_ORGANIZATION_STEP_DESCRIPTION: string =
   translationKey(
-    "Run it as someone who may create StackSets and roles in the management account. A StackSet sets each member account's agent up; the management account gets a stack of its own.",
+    "Run it as someone who may create StackSets and roles in the management account. Each account's agent gets the same least-privilege role and a key of its own.",
   );
 export const CLOUD_AI_AGENT_ORGANIZATION_MAKING_KEYS_TEXT: string =
   translationKey("Making a key for each account's agent…");
@@ -97,10 +101,16 @@ export const CLOUD_AI_AGENT_ORGANIZATION_TRUNCATED: string = translationKey(
 );
 export const CLOUD_AI_AGENT_ORGANIZATION_INSTANCES_TEXT: string =
   translationKey(
-    "Each member account's stack, when one does not connect (in the management account):",
+    "When an account does not connect, its stack says why. Run this in the management account:",
   );
 export const CLOUD_AI_AGENT_ORGANIZATION_MANAGEMENT_LABEL: string =
   translationKey("Management account");
+// The account the dialog was opened on, in the list: where the reader came from.
+export const CLOUD_AI_AGENT_ORGANIZATION_THIS_ACCOUNT_LABEL: string =
+  CLOUD_AI_AGENT_SCOPE_ACCOUNT_TITLE;
+
+// Past this many accounts the list scrolls inside its frame; fewer show whole.
+export const CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM: number = 8;
 
 // Each account's agent, in words.
 export const CLOUD_AI_AGENT_ORGANIZATION_STATE_WORDS: Readonly<

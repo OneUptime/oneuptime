@@ -69,6 +69,7 @@ import CloudAiTargets, {
   CloudChangeTarget,
 } from "../AI/ResourceAccess/CloudAiTargets";
 import logger from "../Logger";
+import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
@@ -511,15 +512,19 @@ export default class DeclaredCodeChanges {
       },
     });
 
+    /*
+     * "Maya Chen asked OneUptime AI for a pull request to the Terraform code
+     * in acme/infra: Scale the ECS service web out to 4 tasks." - the change
+     * names its resource, so the note does not name it twice. The product's
+     * name is the installation's: the note reaches Slack and Teams as written.
+     */
     await DeclaredCodeChanges.postFeedNote({
       suggestion: step.suggestion,
       userId: data.props.userId!,
       leadWithAuthor: true,
-      markdown: mdText`asked OneUptime AI for a pull request to the ${
+      markdown: mdText`asked ${ProductBrandingText.getProductName()} AI for a pull request to the ${
         step.declaredCode.name
-      } code that declares the ${step.change.kindName} ${
-        step.resource.name
-      }, in ${getRepositoryFullName({
+      } code in ${getRepositoryFullName({
         name: repository.name || "",
         organizationName: repository.organizationName || "",
         repositoryName: repository.repositoryName || "",
@@ -645,6 +650,9 @@ export default class DeclaredCodeChanges {
         state = DeclaredCodeChangeState.Opened;
       } else if (taskState === CodeTaskState.Working) {
         state = DeclaredCodeChangeState.Writing;
+      } else if (taskState === CodeTaskState.WaitingForYou) {
+        // Nothing moves until the person answers: said apart from "nothing to change".
+        state = DeclaredCodeChangeState.WaitingForYou;
       } else if (
         taskState === CodeTaskState.Failed ||
         taskState === CodeTaskState.Stopped
@@ -792,13 +800,14 @@ export default class DeclaredCodeChanges {
       const isWebAddress: boolean =
         data.pullRequestUrl.startsWith("https://") ||
         data.pullRequestUrl.startsWith("http://");
+      const product: string = ProductBrandingText.getProductName();
 
       await DeclaredCodeChanges.postFeedNote({
         suggestion,
         leadWithAuthor: false,
         markdown: (isWebAddress
-          ? mdText`OneUptime AI opened a pull request to the ${what}, so the next apply keeps the fix: [${data.title}](${data.pullRequestUrl})`
-          : mdText`OneUptime AI opened a pull request to the ${what}, so the next apply keeps the fix: ${data.title}`
+          ? mdText`${product} AI opened a pull request to the ${what}, so the next apply keeps the fix: [${data.title}](${data.pullRequestUrl})`
+          : mdText`${product} AI opened a pull request to the ${what}, so the next apply keeps the fix: ${data.title}`
         ).toString(),
       });
     } catch (error) {

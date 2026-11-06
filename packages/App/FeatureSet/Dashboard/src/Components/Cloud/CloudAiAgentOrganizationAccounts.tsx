@@ -1,8 +1,10 @@
 import {
   CLOUD_AI_AGENT_ORGANIZATION_ALL_CONNECTED,
   CLOUD_AI_AGENT_ORGANIZATION_CONNECTED_COUNT,
+  CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM,
   CLOUD_AI_AGENT_ORGANIZATION_MANAGEMENT_LABEL,
   CLOUD_AI_AGENT_ORGANIZATION_STATE_WORDS,
+  CLOUD_AI_AGENT_ORGANIZATION_THIS_ACCOUNT_LABEL,
   CLOUD_AI_AGENT_ORGANIZATION_TRUNCATED,
   isEveryCloudOrganizationAgentConnected,
 } from "./CloudAiAgentOrganization";
@@ -25,7 +27,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * connected, then each account the reader may see - its name, its AWS
  * account id, and its agent: Connected, Offline (it connected once and has
  * been silent since) or Waiting (none yet). The management account is
- * first and marked; a long list scrolls inside the step.
+ * first and marked, and so is the account the dialog was opened on. A
+ * short list shows whole - the dialog scrolls, and a frame that scrolls
+ * inside it cut a phone's last row in half - and a long one scrolls inside
+ * its frame.
  */
 
 export const CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_TEST_ID: string =
@@ -33,6 +38,8 @@ export const CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_TEST_ID: string =
 
 export interface ComponentProps {
   view: CloudOrganizationView;
+  // OneUptime's id of the account the dialog was opened on: marked This account.
+  currentCloudAccountId?: string | undefined;
 }
 
 // Each state's pill: its colours, and its dot.
@@ -58,6 +65,9 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
   const isEveryoneConnected: boolean = isEveryCloudOrganizationAgentConnected(
     props.view,
   );
+  const isLong: boolean =
+    total > CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM;
+  const current: string = (props.currentCloudAccountId || "").toLowerCase();
 
   return (
     <div
@@ -114,8 +124,11 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
       </div>
 
       <ul
-        className="max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200"
+        className={`divide-y divide-gray-100 rounded-lg border border-gray-200 ${
+          isLong ? "max-h-96 overflow-y-auto" : ""
+        }`}
         data-testid={`${CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_TEST_ID}-list`}
+        data-scrolls={isLong ? "true" : "false"}
       >
         {props.view.accounts.map(
           (account: CloudOrganizationAccountView): ReactElement => {
@@ -155,6 +168,19 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
                       >
                         {translator.translateText(
                           CLOUD_AI_AGENT_ORGANIZATION_MANAGEMENT_LABEL,
+                        )}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                    {current &&
+                    account.cloudAccountId.toLowerCase() === current ? (
+                      <span
+                        className="font-medium text-indigo-700"
+                        data-testid={`${CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_TEST_ID}-this-account`}
+                      >
+                        {translator.translateText(
+                          CLOUD_AI_AGENT_ORGANIZATION_THIS_ACCOUNT_LABEL,
                         )}
                       </span>
                     ) : (
