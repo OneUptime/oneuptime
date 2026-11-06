@@ -28,6 +28,7 @@ import {
   CLOUD_STREAM_PUBSUB_REQUESTS_PER_MINUTE,
   CLOUD_STREAM_PUBSUB_RETENTION_SECONDS,
   CLOUD_STREAM_URL_PREFIX,
+  getCloudStreamPushServiceAccountId,
 } from "Common/Types/CloudConnection/CloudStream";
 import {
   AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS,
@@ -50,7 +51,6 @@ import {
   getGcpCloudStreamDeleteCommand,
   getGcpCloudStreamNames,
 } from "Common/Types/CloudConnection/CloudStreamGcp";
-import { getCloudStreamPushServiceAccountId } from "Common/Types/CloudConnection/CloudStream";
 import { LOG_RESOURCE_TYPE_ALIASES } from "../../../FeatureSet/Telemetry/Utils/GcpPubSub/CloudLoggingEntries";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -112,10 +112,7 @@ function prose(page: string): string {
   return readPage("en", page).replace(/```[\s\S]*?```/g, "");
 }
 
-function tableWithHeader(
-  page: string,
-  header: string,
-): Array<Array<string>> {
+function tableWithHeader(page: string, header: string): Array<Array<string>> {
   const found: Array<Array<string>> | undefined = tables(
     readPage("en", page),
   ).find((table: Array<Array<string>>): boolean => {
@@ -288,7 +285,9 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
       }),
     );
     expect(source("table")).toContain("getAzureStreamStopCommand({");
-    expect(source("azureSetup")).toContain("getAzureCloudStreamDeleteCommand({");
+    expect(source("azureSetup")).toContain(
+      "getAzureCloudStreamDeleteCommand({",
+    );
   });
 
   it("names the kinds of resource with no Logs tab, every kind CloudLogGroups names", () => {
@@ -304,7 +303,8 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
       "microsoft.network/natgateways": "nat gateways",
       "microsoft.network/dnszones": "dns zones",
       "microsoft.web/serverfarms": "app service plans",
-      "microsoft.storage/storageaccounts": "a storage account's logs are its services'",
+      "microsoft.storage/storageaccounts":
+        "a storage account's logs are its services'",
       "microsoft.app/containerapps": "a container app's are its environment's",
     };
 
@@ -381,7 +381,9 @@ describe("Stream Google Cloud Logs", () => {
   it("names the two roles the command grants, each on one thing alone", () => {
     const labels: Array<string> = boldLabels(readPage("en", page));
 
-    expect(GCP_PUSH_TOKEN_ROLE).toBe("roles/iam.serviceAccountOpenIdTokenCreator");
+    expect(GCP_PUSH_TOKEN_ROLE).toBe(
+      "roles/iam.serviceAccountOpenIdTokenCreator",
+    );
     expect(labels).toContain(
       "Service Account OpenID Connect Identity Token Creator",
     );
@@ -479,9 +481,11 @@ describe("Stream Google Cloud Logs", () => {
       }).toEqual({ status, answered: true });
     }
 
-    expect(CLOUD_STREAM_PUBSUB_MAX_REQUEST_BYTES).toBe(1 * MIB);
+    expect(CLOUD_STREAM_PUBSUB_MAX_REQUEST_BYTES).toBe(MIB);
     expect(CLOUD_STREAM_PUBSUB_MAX_MESSAGE_BYTES).toBe(512 * KIB);
-    expect(text).toContain("larger than 1 MiB, or its entry larger than 512 KiB");
+    expect(text).toContain(
+      "larger than 1 MiB, or its entry larger than 512 KiB",
+    );
     expect(CLOUD_STREAM_PUBSUB_REQUESTS_PER_MINUTE).toBe(12_000);
     expect(text).toContain("more than 12,000 entries in a minute");
   });
