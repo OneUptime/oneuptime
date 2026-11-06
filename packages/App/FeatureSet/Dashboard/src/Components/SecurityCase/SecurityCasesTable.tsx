@@ -555,11 +555,20 @@ const SecurityCasesList: FunctionComponent<{
         );
       },
     },
+    /*
+     * Where the queue does not fit its card, the status is drawn under the
+     * priority, as an incident's severity is under its state (TableFit):
+     * in Russian at 1280px beside the side menu the queue was 69px too
+     * wide, and the person each case was assigned to ran under the row's
+     * buttons ("Maya" of "Maya Chen").
+     */
     status: {
       id: "status",
       field: { securityCaseStatus: { name: true, color: true } },
       title: "Status",
       type: FieldType.Element,
+      hideBelowLargeScreen: true,
+      foldInto: "priority",
       getElement: (item: SecurityCase): ReactElement => {
         return <SecurityCaseStatusPill value={item.securityCaseStatus} />;
       },

@@ -206,8 +206,9 @@ async function recordFramesAfterNext(
     (options: { event: string; columnId: string; count: number }): void => {
       const frames: Array<DrawnFrame> = [];
 
-      (window as unknown as { __drawnFrames: Array<DrawnFrame> }).__drawnFrames =
-        frames;
+      (
+        window as unknown as { __drawnFrames: Array<DrawnFrame> }
+      ).__drawnFrames = frames;
 
       const read: () => void = (): void => {
         const header: HTMLTableCellElement | null = document.querySelector(

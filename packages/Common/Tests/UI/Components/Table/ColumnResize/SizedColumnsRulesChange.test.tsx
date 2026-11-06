@@ -15,7 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import React from "react";
 import SizedColumnsStyle, {
   SIZED_COLUMNS_STYLE_ATTRIBUTE,
   SizedColumn,
