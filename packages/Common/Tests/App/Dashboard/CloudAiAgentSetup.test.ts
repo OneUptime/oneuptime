@@ -30,6 +30,7 @@ import {
   getCloudAiAgentOwnTargets,
 } from "../../../Types/ResourceAiAgent/CloudAiAgentNames";
 import { estimateCloudAiAgentMonthlyCost } from "../../../Types/CloudConnection/CloudAiAgentCost";
+import { buildCloudAiAgentKey } from "../../../Types/CloudConnection/CloudAiAgentKey";
 import {
   CLOUD_AI_DEFAULT_REQUIRED_TAG,
   ResourceAiAgentPosture,
@@ -46,6 +47,11 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 const ACCOUNT_ROW_ID: string = "22222222-2222-4222-8222-222222222222";
+// The key the account's "Let AI fix problems" made for its agent.
+const AGENT_KEY: string = buildCloudAiAgentKey({
+  cloudAccountId: ACCOUNT_ROW_ID,
+  secret: "fedcba9876543210".repeat(4),
+});
 
 function options(
   provider: CloudProvider,
@@ -55,7 +61,7 @@ function options(
     provider,
     choices,
     oneuptimeUrl: "https://oneuptime.example.com",
-    ingestionKey: "0f3c2b1a-1111-4111-8111-111111111111",
+    agentKey: AGENT_KEY,
     cloudAccountId: ACCOUNT_ROW_ID,
     accountId:
       provider === CloudProvider.AWS

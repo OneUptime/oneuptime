@@ -12,9 +12,11 @@ import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
   RESOURCE_AI_AGENT_IMAGE_REPOSITORY,
   RESOURCE_AI_AGENT_INGEST_PATH,
+  RESOURCE_AI_AGENT_KEY_ENV,
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
   ResourceAiAgentPosture,
   ResourceAiAgentRegistrationRefusalReason,
@@ -180,11 +182,17 @@ describe("pinned wire and deployment constants", () => {
     );
     expect(RESOURCE_AI_ALLOW_WRITES_ENV).toBe("ONEUPTIME_AI_ALLOW_WRITES");
     expect(RESOURCE_AI_WRITE_TARGETS_ENV).toBe("ONEUPTIME_AI_WRITE_TARGETS");
+    // A Cloud AI agent's own key first: its setup command sets it, and no collector does.
     expect(RESOURCE_AI_AGENT_API_KEY_ENVS).toEqual([
+      "ONEUPTIME_AI_AGENT_KEY",
       "ONEUPTIME_API_KEY",
       "ONEUPTIME_TELEMETRY_INGESTION_KEY",
       "ONEUPTIME_SERVICE_TOKEN",
     ]);
+    expect(RESOURCE_AI_AGENT_KEY_ENV).toBe("ONEUPTIME_AI_AGENT_KEY");
+    expect(RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV).toBe(
+      "ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT",
+    );
   });
 
   test("the caps", () => {

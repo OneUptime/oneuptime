@@ -29,6 +29,7 @@ import {
   getAzureCloudAiAgentSetupCommand,
   getGcpCloudAiAgentSetupCommand,
 } from "../../../Types/CloudConnection/CloudAiAgentSetupCommands";
+import { buildCloudAiAgentKey } from "../../../Types/CloudConnection/CloudAiAgentKey";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -40,7 +41,10 @@ import { describe, expect, test } from "@jest/globals";
 
 const BASE: Omit<CloudAiAgentSetupOptions, "provider" | "accountId"> = {
   oneuptimeUrl: "https://oneuptime.com",
-  ingestionKey: "0b5f2c1e-1111-4111-8111-222233334444",
+  agentKey: buildCloudAiAgentKey({
+    cloudAccountId: "33333333-3333-4333-8333-333333333333",
+    secret: "0123456789abcdef".repeat(4),
+  }),
   cloudAccountId: "33333333-3333-4333-8333-333333333333",
   fixesMode: "RequireApproval",
 };

@@ -295,6 +295,8 @@ OneUptime AI læser alle forbundne konti, mens den undersøger, med den skrivebe
 
 Dialogen stiller ét spørgsmål, **Hvor langt må AI gå?**: **Spørg mig først**, standarden, hvor OneUptime AI foreslår hver rettelse, og en person godkender den med ét klik, eller **Ret sikre problemer på egen hånd**, hvor sikre ændringer kører automatisk, og mere risikable stadig venter på godkendelse. Alt andet har en sikker standard under **Flere felter**. Derefter viser den én kommando, skrevet til denne konto: kør den i AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell, logget ind som en, der må oprette roller i kontoen. Kommandoen opretter en rolle, der kun må foretage de ændringer, der er slået til, og starter Cloud-AI-agenten med den i din konto. Agenten opretter selv forbindelse inden for få minutter, og dialogen siger det: der er intet at indsætte tilbage.
 
+Kommandoen indeholder en nøgle, der kun er lavet til denne kontos agent, og som virker i en dag, indtil agenten forbinder med den: Åbn dialogen igen for at få en ny. Kun den, der må nulstille agenten og redigere kontoen, får en.
+
 Agenten kører hele måneden i din konto, faktureret af din cloud til dens listepriser. I Google Cloud kører den på sin egen lille VM i et netværk, der ikke lukker noget ind; til et projekt, hvis organisation ikke giver nogen VM en ekstern IP-adresse, skal du vælge **Cloud Run** under **Hvor agenten kører** i **Flere felter**:
 
 | Cloud | Hvad der kører | Cirka |

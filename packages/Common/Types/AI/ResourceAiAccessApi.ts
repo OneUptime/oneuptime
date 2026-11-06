@@ -19,6 +19,12 @@ export const RESOURCE_AI_ACCESS_LOGS_PATH: string = "/resource-ai-access/logs";
 // Answers AiActivityInsights (Common/Types/AI/AiActivityInsights.ts).
 export const RESOURCE_AI_ACCESS_INSIGHTS_PATH: string =
   "/resource-ai-access/insights";
+/*
+ * A cloud account only: a new key for its Cloud AI agent, shown once
+ * (CloudAiAgentKeyResponse in Types/CloudConnection/CloudAiAgentKey).
+ */
+export const RESOURCE_AI_ACCESS_AGENT_KEY_PATH: string =
+  "/resource-ai-access/agent-key";
 
 export interface ResourceAiAccessRequest {
   // An AiResourceType value (an agent alias such as "docker" is accepted too).

@@ -8,8 +8,8 @@ import {
  * The agent's only way to talk to OneUptime: JSON POSTs to
  * `${ONEUPTIME_URL}/resource-ai-agent-ingest/*` (the server's
  * ResourceAiAgentIngress). Registration presents the collector's ingestion key
- * in `x-oneuptime-token`; every other call carries the agent id and key the
- * server issued, in the body.
+ * - or a Cloud AI agent's own key - in `x-oneuptime-token`; every other call
+ * carries the agent id and key the server issued, in the body.
  *
  * Every answer is classified once, here, so the loops above decide what to
  * do from a kind rather than from status codes:
