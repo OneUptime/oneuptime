@@ -465,6 +465,66 @@ describe("Dashboard Variables modal", () => {
     });
   });
 
+  /*
+   * A variable always has a source - another is picked in its place, never
+   * none - so its dropdown offers no clear button, as a required pick's
+   * does not. Its clear did nothing: the dialog ignores an empty pick, so
+   * the source stayed as it was.
+   */
+  describe("a variable's source", () => {
+    // The plain dropdown's clear button (react-select's clear indicator).
+    const CLEAR_INDICATOR: string = ".ou-select__clear-indicator";
+
+    // The control of each variable's Source dropdown.
+    const sourceControls: () => Array<Element> = (): Array<Element> => {
+      return screen
+        .getAllByRole("combobox", { name: "Variable source" })
+        .map((source: HTMLElement): Element => {
+          const control: Element | null = source.closest(".ou-select__control");
+
+          expect(control).not.toBeNull();
+          return control as Element;
+        });
+    };
+
+    test("has no clear button: one is always picked", () => {
+      renderModal();
+
+      addVariableRow();
+
+      const controls: Array<Element> = sourceControls();
+
+      expect(controls).toHaveLength(1);
+      expect(controls[0]!.textContent).toContain("Telemetry Attribute");
+      expect(controls[0]!.querySelector(CLEAR_INDICATOR)).toBeNull();
+    });
+
+    test("an existing variable's source has none either, whatever it is", () => {
+      renderModal([
+        {
+          id: "v-team",
+          name: "team",
+          type: DashboardVariableType.ProjectLabel,
+          labelOptions: [],
+        },
+        {
+          id: "v-region",
+          name: "region",
+          type: DashboardVariableType.CustomList,
+          customListValues: "eu,us",
+        },
+      ]);
+
+      const controls: Array<Element> = sourceControls();
+
+      expect(controls).toHaveLength(2);
+
+      for (const control of controls) {
+        expect(control.querySelector(CLEAR_INDICATOR)).toBeNull();
+      }
+    });
+  });
+
   describe("name validation is unaffected by the fix", () => {
     test("a row with an invalid name blocks saving but not the attribute pick", () => {
       renderModal();

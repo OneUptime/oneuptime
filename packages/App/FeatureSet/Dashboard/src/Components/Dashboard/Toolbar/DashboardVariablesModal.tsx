@@ -327,6 +327,12 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
           </label>
           <Dropdown
             ariaLabel="Variable source"
+            /*
+             * A variable always has a source: another is picked in its
+             * place, never none. Its clear button did nothing - the empty
+             * pick is ignored below - as a required pick's has none.
+             */
+            isClearable={false}
             options={[
               DashboardVariableType.TelemetryAttribute,
               DashboardVariableType.ProjectLabel,
