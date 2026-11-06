@@ -23,6 +23,15 @@ enum AIRunEventType {
    * for it.
    */
   InvestigationStalled = "InvestigationStalled",
+  /*
+   * An incident's or alert's investigation measured who and what it hurts,
+   * in numbers (Utils/AI/InvestigationImpactNumbers): the users, sessions
+   * or requests, the services and the SLOs are in
+   * resultSummary.impactNumbers, and an English line in
+   * resultSummary.message. The AI card's folded Investigation step draws
+   * them under the summary; the activity feed draws no step for it.
+   */
+  InvestigationImpact = "InvestigationImpact",
   RunCompleted = "RunCompleted",
   RunFailed = "RunFailed",
 }

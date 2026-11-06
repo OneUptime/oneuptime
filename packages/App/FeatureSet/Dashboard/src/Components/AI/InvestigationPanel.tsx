@@ -44,6 +44,9 @@ import ClusterAccessNotice, {
 import { EvidenceFocusRequest } from "./InvestigationReport/InvestigationEvidenceList";
 import InvestigationLogStallNotice from "./InvestigationLogStallNotice";
 import { getInvestigationLogStall } from "./InvestigationLogStallCopy";
+import { getInvestigationImpactNumbers } from "./InvestigationImpactCopy";
+import InvestigationFoldedImpact from "./InvestigationFoldedImpact";
+import { InvestigationImpactNumbers } from "Common/Utils/AI/InvestigationImpactNumbers";
 import InvestigationRunDetails, {
   InvestigationRunUsage,
   InvestigationUsageLine,
@@ -1453,6 +1456,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const logStall: ReturnType<typeof getInvestigationLogStall> =
     analysisMarkdown && parsedReport ? getInvestigationLogStall(events) : null;
 
+  /*
+   * Who and what it hurts, in numbers, as the run recorded them
+   * (InvestigationImpact): drawn under the folded step's summary. Only
+   * next to the report they measured, as the TL;DR is.
+   */
+  const impactNumbers: InvestigationImpactNumbers | null =
+    analysisMarkdown && parsedReport
+      ? getInvestigationImpactNumbers(events)
+      : null;
+
   const investigationStage: AIInvestigationStage = getAIInvestigationStage({
     isChecking: isCheckingStatus,
     runStatus,
@@ -1714,18 +1727,30 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             markdown, like the event header's, in its own reading direction
             (dir="auto"): the AI's words are in whatever language it wrote.
           */}
+          {/*
+            Under it, who and what it hurts, in short numbers: the users
+            (or sessions, or requests), the services and the SLOs - the full
+            report's Impact section, folded to what it counted.
+          */}
           {isFoldedToSummary && reportSummary ? (
-            <p
-              data-testid="investigation-report-summary"
-              dir="auto"
-              className={
-                analysisTldr
-                  ? "break-words text-base font-semibold leading-7 text-gray-900"
-                  : "break-words text-sm leading-6 text-gray-700"
-              }
-            >
-              {reportSummary}
-            </p>
+            <div className="space-y-2">
+              <p
+                data-testid="investigation-report-summary"
+                dir="auto"
+                className={
+                  analysisTldr
+                    ? "break-words text-base font-semibold leading-7 text-gray-900"
+                    : "break-words text-sm leading-6 text-gray-700"
+                }
+              >
+                {reportSummary}
+              </p>
+              {impactNumbers ? (
+                <InvestigationFoldedImpact numbers={impactNumbers} />
+              ) : (
+                <></>
+              )}
+            </div>
           ) : (
             <></>
           )}

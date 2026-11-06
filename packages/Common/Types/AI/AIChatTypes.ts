@@ -315,6 +315,13 @@ export interface AIRunEventResultSummary {
    */
   logStall?: JSONObject | undefined;
   /*
+   * InvestigationImpact events: who and what the incident or alert hurts,
+   * in numbers - the users, sessions or requests, the services and the SLOs
+   * (Utils/AI/InvestigationImpactNumbers, read with
+   * parseInvestigationImpactNumbers).
+   */
+  impactNumbers?: JSONObject | undefined;
+  /*
    * The server-minted citation label and deep-link target of the tool call
    * that completed (ToolCallCompleted events of autonomous investigations).
    * Persisted so the investigation panel can show exactly what each [C#]
