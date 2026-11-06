@@ -4436,7 +4436,7 @@ test.describe("streaming an Azure subscription and a Google Cloud project", () =
     await shoot(page, "stream-clouds-list");
   });
 
-  test("Azure: one question, three steps; the subscriptions under More fields, and reading turned on where the command makes the event hubs", async ({
+  test("Azure: one question, three steps; a connection that has read no subscription asks for them under the question, and reading turns on where the command makes the event hubs", async ({
     page,
   }: {
     page: Page;
@@ -4479,12 +4479,29 @@ test.describe("streaming an Azure subscription and a Google Cloud project", () =
     await expect(streamCommand(page)).toHaveCount(0);
     await expect(streamPart(page, "start-reading")).toBeDisabled();
 
+    // So the dialog asks for them under its question, not under More fields.
+    const asked: Locator = streamPart(page, "subscriptions-asked");
+    await expect(asked).toBeVisible();
+    await expect(asked).toContainText(
+      "Subscription IDs, separated by commas: this connection has read none yet.",
+    );
+    await expect(streamPart(page, "more-fields")).not.toContainText(
+      "Subscriptions",
+    );
+    await asked
+      .getByLabel("Subscriptions")
+      .fill(`${AZURE_SUBSCRIPTION}, ${AZURE_OTHER_SUBSCRIPTION}`);
+
+    // Turn on reading starts where its step's words start.
+    const [words, button]: Array<FrameBox> = await boxesInOneFrame([
+      streamPart(page, "start").locator("p").first(),
+      streamPart(page, "start-reading"),
+    ]);
+    expect(Math.abs(button!.x - words!.x)).toBeLessThanOrEqual(1);
+
     await streamPart(page, "more-fields")
       .getByRole("button", { name: "More fields" })
       .click();
-    await streamPart(page, "subscriptions").fill(
-      `${AZURE_SUBSCRIPTION}, ${AZURE_OTHER_SUBSCRIPTION}`,
-    );
 
     // The connection's own app; the first subscription holds the event hubs.
     await expect(streamPart(page, "problem")).toHaveCount(0);
@@ -4644,6 +4661,12 @@ test.describe("streaming an Azure subscription and a Google Cloud project", () =
     await expect(command).toContainText(
       'az group delete --subscription "$SUB" --name oneuptime-stream-20000000 --yes --no-wait',
     );
+    // Twenty lines, drawn 240px tall at most: the question and its buttons stay in view.
+    const [codeBox]: Array<FrameBox> = await boxesInOneFrame([
+      command.locator("pre").locator(".."),
+    ]);
+    expect(codeBox!.height).toBeLessThanOrEqual(241);
+    await expect(submit(page)).toBeInViewport();
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "stream-azure-stop");
 
