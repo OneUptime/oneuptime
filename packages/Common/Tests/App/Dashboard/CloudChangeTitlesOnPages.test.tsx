@@ -73,7 +73,7 @@ import {
   ChangeEventType,
 } from "../../../Utils/Telemetry/ChangeEventFields";
 import {
-  CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME,
+  CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME,
   CLOUD_OPERATION_BREAK_AFTER,
   CloudChangeTitle,
   getCloudChangeTitleDirection,
@@ -312,6 +312,11 @@ describe("a change's title as the Changes list draws it", () => {
     return within(title).queryAllByTestId("cloud-change-title-value");
   }
 
+  // A value's pieces, each the box it moves to the next line in.
+  function pieces(value: HTMLElement): Array<HTMLElement> {
+    return within(value).queryAllByTestId("cloud-change-title-piece");
+  }
+
   test("says what getCloudChangeTitleText says, in every language", async () => {
     for (const language of ["en", "de", "fa"]) {
       for (const row of [NEW_ROW, OLD_ROW, HEALTH_ROW, DEPLOY_ROW]) {
@@ -348,21 +353,32 @@ describe("a change's title as the Changes list draws it", () => {
       expect(boxes).toHaveLength(2);
 
       for (const box of boxes) {
-        // Set apart, a box no wider than its line, broken only when longer.
+        /*
+         * Set apart, and flowing with the sentence: the value itself is no
+         * box. Its one piece is - no wider than its line, broken only when
+         * longer.
+         */
         expect(box.tagName).toBe("BDI");
-        expect(box.className).toBe(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME);
+        expect(box.className).toBe("");
+        expect(
+          pieces(box).map((piece: HTMLElement): Array<string> => {
+            return [piece.tagName, piece.className, piece.textContent || ""];
+          }),
+        ).toEqual([
+          ["SPAN", CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME, box.textContent || ""],
+        ]);
       }
       cleanup();
     }
 
-    expect(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME.split(" ")).toEqual(
+    expect(CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME.split(" ")).toEqual(
       expect.arrayContaining(["inline-block", "max-w-full", "break-words"]),
     );
     /*
      * Never anywhere: it lowers the least the table's column must hold,
      * and the table narrowed the column until an operation broke inside.
      */
-    expect(CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME).not.toContain("anywhere");
+    expect(CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME).not.toContain("anywhere");
   });
 
   /*
@@ -438,9 +454,31 @@ describe("a change's title as the Changes list draws it", () => {
           return node.nodeName === "WBR" ? "<wbr>" : node.textContent || "";
         }),
       ).toEqual(["elasticloadbalancing:", "<wbr>", "DeleteLoadBalancer"]);
-      // A resource's name keeps its dots and hyphens unbroken.
+      /*
+       * Each piece a box of its own, and the operation none: an operation
+       * held in one box that broke inside it took the column's whole width,
+       * so the words after it ("on web-alb") went to a line of their own,
+       * and on a Persian page its first line stood at the left, away from
+       * its sentence. The pieces flow with the sentence's words.
+       */
+      expect(operation.tagName).toBe("BDI");
+      expect(operation.className).toBe("");
+      expect(
+        pieces(operation).map((piece: HTMLElement): Array<string> => {
+          return [piece.tagName, piece.className, piece.textContent || ""];
+        }),
+      ).toEqual([
+        ["SPAN", CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME, "elasticloadbalancing:"],
+        ["SPAN", CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME, "DeleteLoadBalancer"],
+      ]);
+      // A resource's name keeps its dots and hyphens unbroken: one piece.
       expect(resource.querySelectorAll("wbr")).toHaveLength(0);
       expect(resource.textContent).toBe("orders-db.c9akciq32xyz.eu-west-1");
+      expect(
+        pieces(resource).map((piece: HTMLElement): string => {
+          return piece.textContent || "";
+        }),
+      ).toEqual(["orders-db.c9akciq32xyz.eu-west-1"]);
       // The sentence says what getCloudChangeTitleText says.
       expect(withoutIsolateMarks(title.textContent || "")).toBe(
         withoutIsolateMarks(

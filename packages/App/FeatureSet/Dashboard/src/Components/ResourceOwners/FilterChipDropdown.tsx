@@ -15,9 +15,13 @@ import {
 } from "./FilterChipDropdownTypes";
 import {
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
+  FILTER_CHIP_OPTION_LABEL_CLASS_NAME,
+  FILTER_CHIP_OPTION_SUBLABEL_CLASS_NAME,
   FILTER_CHIP_PLACE_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
   FILTER_CHIP_TEXT_CLASSES,
+  FilterChipOptionLine,
+  getFilterChipOptionLine,
 } from "./FilterChipStyles";
 import { showFullValueWhenCutShort } from "Common/UI/Components/Table/FullValueTitle";
 import { COULD_NOT_LOAD_THIS_LIST } from "Common/UI/Components/Table/EmptyTableMessage";
@@ -787,6 +791,18 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                       const optionValue: string = option.value;
                       const isSelected: boolean =
                         selectedValues.includes(optionValue);
+                      const labelLine: FilterChipOptionLine =
+                        getFilterChipOptionLine({
+                          text: option.label,
+                          language: translator.language,
+                          className: FILTER_CHIP_OPTION_LABEL_CLASS_NAME,
+                        });
+                      const sublabelLine: FilterChipOptionLine =
+                        getFilterChipOptionLine({
+                          text: option.sublabel,
+                          language: translator.language,
+                          className: FILTER_CHIP_OPTION_SUBLABEL_CLASS_NAME,
+                        });
                       return (
                         <button
                           key={optionValue}
@@ -807,18 +823,23 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                             {/*
                              * A name wider than the list - "oneuptime-test -
                              * Pod CPU Satu..." - ends in "...", the whole of
-                             * it under the pointer.
+                             * it under the pointer: at its own end, in the
+                             * direction it is written (getFilterChipOptionLine).
                              */}
                             <span className="min-w-0">
                               <span
-                                className="block truncate font-medium"
+                                className={labelLine.className}
+                                dir={labelLine.dir}
+                                data-testid="filter-chip-option-label"
                                 onMouseEnter={showFullValueWhenCutShort}
                               >
                                 {option.label}
                               </span>
                               {option.sublabel && (
                                 <span
-                                  className="block truncate text-xs text-gray-400"
+                                  className={sublabelLine.className}
+                                  dir={sublabelLine.dir}
+                                  data-testid="filter-chip-option-sublabel"
                                   onMouseEnter={showFullValueWhenCutShort}
                                 >
                                   {option.sublabel}

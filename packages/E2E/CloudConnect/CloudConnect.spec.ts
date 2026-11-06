@@ -3383,53 +3383,146 @@ async function expectIdentifierInMonospace(page: Page): Promise<void> {
  * long word breaks only between its pieces - after its service's colon
  * ("elasticloadbalancing:" / "ModifyLoadBalancerAttributes"), a slash or a
  * dot - and each piece is one line: read from each piece's own letters, in
- * one frame.
+ * one frame. The value itself is no box, so the sentence's words go on
+ * beside its last piece: held in one box that broke inside it, an operation
+ * took the column's whole width and "on web-alb" went to a line of its own.
  */
 async function expectTitleValuesWhole(page: Page): Promise<void> {
-  const pieces: Array<{ text: string; lines: number }> = await page
-    .getByTestId("cloud-change-title-value")
+  const drawn: {
+    values: Array<string>;
+    pieces: Array<{ text: string; lines: number }>;
+  } = await page.evaluate(
+    (): {
+      values: Array<string>;
+      pieces: Array<{ text: string; lines: number }>;
+    } => {
+      const pieces: Array<{ text: string; lines: number }> = [];
+
+      for (const piece of Array.from(
+        document.querySelectorAll('[data-testid="cloud-change-title-piece"]'),
+      )) {
+        const text: string = piece.textContent || "";
+        const range: Range = document.createRange();
+        range.selectNodeContents(piece);
+        // Where each line its letters are on starts, top to bottom.
+        const tops: Array<number> = Array.from(range.getClientRects())
+          .filter((rect: DOMRect): boolean => {
+            return rect.width > 0;
+          })
+          .map((rect: DOMRect): number => {
+            return rect.top;
+          })
+          .sort((first: number, second: number): number => {
+            return first - second;
+          });
+        const lines: number = tops.filter(
+          (top: number, index: number): boolean => {
+            return index === 0 || top - tops[index - 1]! > 4;
+          },
+        ).length;
+
+        pieces.push({ text, lines });
+      }
+
+      return {
+        values: Array.from(
+          document.querySelectorAll('[data-testid="cloud-change-title-value"]'),
+        ).map((value: Element): string => {
+          return getComputedStyle(value).display;
+        }),
+        pieces,
+      };
+    },
+  );
+
+  expect(drawn.pieces.length).toBeGreaterThan(0);
+  for (const piece of drawn.pieces) {
+    expect(piece).toEqual({ text: piece.text, lines: 1 });
+  }
+  expect(drawn.values.length).toBeGreaterThan(0);
+  expect(new Set(drawn.values)).toEqual(new Set(["inline"]));
+}
+
+/*
+ * Every line of every change's title starts where its line does - at the
+ * left, or at the right on a page read right to left - read from the
+ * letters on it. On a Persian page an operation held in one box that broke
+ * inside it started its first line at the left, away from the sentence it
+ * is part of ("elasticloadbalancing:" on the far side of the column, "روی
+ * web-alb" under it at the right).
+ */
+async function expectTitleLinesFromTheirStart(page: Page): Promise<void> {
+  const offsets: Array<{ title: string; offsets: Array<number> }> = await page
+    .getByTestId("cloud-change-title")
     .evaluateAll(
-      (values: Array<Element>): Array<{ text: string; lines: number }> => {
-        const found: Array<{ text: string; lines: number }> = [];
+      (
+        titles: Array<Element>,
+      ): Array<{ title: string; offsets: Array<number> }> => {
+        return titles.map((title: Element) => {
+          const isRightToLeft: boolean =
+            getComputedStyle(title).direction === "rtl";
+          const box: DOMRect = title.getBoundingClientRect();
+          const range: Range = document.createRange();
+          range.selectNodeContents(title);
+          // Each line's letters, by where the line is.
+          const lines: Map<number, Array<DOMRect>> = new Map();
 
-        for (const value of values) {
-          for (const node of Array.from(value.childNodes)) {
-            const text: string = node.textContent || "";
-
-            if (node.nodeType !== Node.TEXT_NODE || !text.trim()) {
+          for (const rect of Array.from(range.getClientRects())) {
+            if (rect.width <= 0) {
               continue;
             }
-
-            const range: Range = document.createRange();
-            range.selectNodeContents(node);
-            // Where each line its letters are on starts, top to bottom.
-            const tops: Array<number> = Array.from(range.getClientRects())
-              .filter((rect: DOMRect): boolean => {
-                return rect.width > 0;
-              })
-              .map((rect: DOMRect): number => {
-                return rect.top;
-              })
-              .sort((first: number, second: number): number => {
-                return first - second;
-              });
-            const lines: number = tops.filter(
-              (top: number, index: number): boolean => {
-                return index === 0 || top - tops[index - 1]! > 4;
+            const line: number | undefined = Array.from(lines.keys()).find(
+              (top: number): boolean => {
+                return Math.abs(top - rect.top) <= 4;
               },
-            ).length;
-
-            found.push({ text, lines });
+            );
+            lines.set(line === undefined ? rect.top : line, [
+              ...(line === undefined ? [] : lines.get(line) || []),
+              rect,
+            ]);
           }
-        }
 
-        return found;
+          // How far each line's first letter is from where the line starts.
+          return {
+            title: (title.textContent || "").trim(),
+            offsets: Array.from(lines.values()).map(
+              (rects: Array<DOMRect>): number => {
+                return Math.round(
+                  isRightToLeft
+                    ? box.right -
+                        Math.max(
+                          ...rects.map((rect: DOMRect): number => {
+                            return rect.right;
+                          }),
+                        )
+                    : Math.min(
+                        ...rects.map((rect: DOMRect): number => {
+                          return rect.left;
+                        }),
+                      ) - box.left,
+                );
+              },
+            ),
+          };
+        });
       },
     );
 
-  expect(pieces.length).toBeGreaterThan(0);
-  for (const piece of pieces) {
-    expect(piece).toEqual({ text: piece.text, lines: 1 });
+  expect(offsets.length).toBeGreaterThan(0);
+  for (const title of offsets) {
+    expect(title.offsets.length).toBeGreaterThan(0);
+    // Within a pixel of the line's start: a letter's box is rounded.
+    expect({
+      title: title.title,
+      offsets: title.offsets.map((offset: number): number => {
+        return Math.abs(offset) <= 1 ? 0 : offset;
+      }),
+    }).toEqual({
+      title: title.title,
+      offsets: title.offsets.map((): number => {
+        return 0;
+      }),
+    });
   }
 }
 
@@ -3503,6 +3596,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       );
       expect(titles).not.toContain("AWS Health: EC2 operational issue (open)");
       await expectTitleValuesWhole(page);
+      await expectTitleLinesFromTheirStart(page);
       /*
        * Each line the way its words read: every title here is worded in
        * the reader's language, so in Persian every one reads right to left
@@ -6322,6 +6416,35 @@ test.describe("Cloud's All Resources, by cloud account", () => {
       await expect(
         popover.getByRole("listbox").getByRole("option").first(),
       ).toContainText("Production");
+
+      /*
+       * The Azure subscription's id under its name reads its own way, left
+       * to right, and is cut short at its own end: on a Persian page it was
+       * cut at its start ("...f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b"), the part
+       * that tells two subscriptions apart left out. Read from its first
+       * letter, in sight inside its line.
+       */
+      const azureId: Locator = popover
+        .getByRole("option", { name: /Contoso production/ })
+        .getByTestId("filter-chip-option-sublabel");
+      await expect(azureId).toHaveText(AZURE_SUBSCRIPTION_ID);
+      expect(
+        await azureId.evaluate(
+          (line: Element): { direction: string; isStartInSight: boolean } => {
+            const range: Range = document.createRange();
+            range.setStart(line.firstChild as Node, 0);
+            range.setEnd(line.firstChild as Node, 1);
+            const first: DOMRect = range.getBoundingClientRect();
+            const box: DOMRect = line.getBoundingClientRect();
+
+            return {
+              direction: getComputedStyle(line).direction,
+              isStartInSight:
+                first.left >= box.left - 0.5 && first.right <= box.right + 0.5,
+            };
+          },
+        ),
+      ).toEqual({ direction: "ltr", isStartInSight: true });
 
       // The popover keeps the page's 16px margin, and nothing scrolls sideways.
       const [box] = await boxesInOneFrame([popover]);

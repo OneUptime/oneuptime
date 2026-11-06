@@ -151,19 +151,29 @@ export function getCloudChangeTitleDirection(
 }
 
 /*
- * A value of a change's title - its operation, its resource - as a box of
- * its own: it moves to the next line whole rather than breaking at its
- * hyphen ("nightly-" / "export", "sg-" / "0f1e2d3c..." on a phone), and only
- * a value longer than the line is broken, inside its box - an operation
- * between its pieces first ("elasticloadbalancing:" /
- * "ModifyLoadBalancerAttributes", getCloudOperationPieces). Set apart (bdi),
- * so a Latin name keeps its place in a Persian sentence.
+ * A value of a change's title - its operation, its resource - is set apart
+ * (bdi), so a Latin name keeps its place in a Persian sentence, and flows
+ * with the sentence's words. Each of its pieces is a box of its own
+ * (CloudChangeTitlePiece): it moves to the next line whole rather than
+ * breaking at its hyphen ("nightly-" / "export", "sg-" / "0f1e2d3c..." on
+ * a phone), and only a piece longer than the line is broken, inside its
+ * box. A resource is one piece; an operation is as many as its name has
+ * (getCloudOperationPieces), so it breaks between them -
+ * "elasticloadbalancing:" / "ModifyLoadBalancerAttributes" - where the line
+ * runs out, and the words after it go on beside its last piece.
+ *
+ * The pieces, not the whole value, are the boxes: an operation held in one
+ * box that broke inside it took the column's whole width, so "on web-alb"
+ * went to a line of its own, a failed one stood four lines tall in German
+ * ("Fehlgeschlagen:" / "elasticloadbalancing:" / "DeleteLoadBalancer" /
+ * "für web-alb"), and on a Persian page the box's first line stood at the
+ * left, away from the sentence it is part of.
  *
  * break-words, never overflow-wrap:anywhere: anywhere lowers what the
  * table's column must hold, and the table then narrowed "What changed"
  * until an operation broke inside ("UpdateFunctionCode20150331v" / "2").
  */
-export const CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME: string =
+export const CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME: string =
   "inline-block max-w-full break-words";
 
 // Where an operation's name may move to the next line: after one of these.
@@ -216,15 +226,17 @@ const TitleValue: FunctionComponent<{
     : [props.text];
 
   return (
-    <bdi
-      className={CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME}
-      data-testid="cloud-change-title-value"
-    >
+    <bdi data-testid="cloud-change-title-value">
       {pieces.map((piece: string, index: number): ReactElement => {
         return (
           <React.Fragment key={index}>
             {index > 0 ? <wbr /> : <></>}
-            {piece}
+            <span
+              className={CLOUD_CHANGE_TITLE_PIECE_CLASS_NAME}
+              data-testid="cloud-change-title-piece"
+            >
+              {piece}
+            </span>
           </React.Fragment>
         );
       })}
