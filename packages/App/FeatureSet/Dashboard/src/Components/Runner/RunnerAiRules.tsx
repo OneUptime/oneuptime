@@ -12,6 +12,7 @@ import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * On a Runner's own page, in its Runner Details after the code repositories
@@ -193,7 +194,7 @@ const RunnerAiRuleList: FunctionComponent<ComponentProps> = (
             {lane ? (
               <>
                 <span aria-hidden="true" className="mx-1.5 text-gray-400">
-                  ·
+                  <InlineSeparator markOnly />
                 </span>
                 <span
                   className="text-gray-500"

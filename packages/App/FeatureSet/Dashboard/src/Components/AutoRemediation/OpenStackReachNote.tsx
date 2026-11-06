@@ -10,6 +10,7 @@ import {
   OpenStackReachProject,
 } from "Common/Utils/AiRemediation/Resource/OpenStackChangeReach";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * What an OpenStack change touches, under the change on the AI card's Remediation
@@ -40,7 +41,7 @@ function instanceLine(
       <bdi>{instance.name || instance.id}</bdi>
       {instance.projectName || instance.projectId ? (
         <span className="text-gray-500">
-          {" · "}
+          <InlineSeparator />
           <bdi>{instance.projectName || instance.projectId}</bdi>
         </span>
       ) : (
@@ -48,7 +49,7 @@ function instanceLine(
       )}
       {instance.host ? (
         <span className="text-gray-500">
-          {" · "}
+          <InlineSeparator />
           {translator.translateTemplate("on {{host}}", {
             host: instance.host,
           })}

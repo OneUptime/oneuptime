@@ -45,6 +45,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * Who is sending flow records (the last hour): each device by name, and each
@@ -325,7 +326,7 @@ const TrafficSourcesCard: FunctionComponent<ComponentProps> = (
                       </div>
                       <div className="mt-0.5 text-xs text-gray-500">
                         {details.join(" · ")}
-                        {" · "}
+                        <InlineSeparator />
                         {translator.translateTemplate(
                           "{{bytes}} in the last hour, last flow {{time}}",
                           {

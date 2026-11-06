@@ -62,6 +62,7 @@ import PermissionGate, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   hunt: SecurityHunt;
@@ -195,7 +196,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
             <React.Fragment key={link.key || index}>
               {index > 0 ? (
                 <span aria-hidden="true" className="text-gray-400">
-                  ·
+                  <InlineSeparator markOnly />
                 </span>
               ) : (
                 <></>
@@ -384,7 +385,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                         aria-hidden="true"
                         className={HUNT_FACT_DOT_CLASS_NAME}
                       >
-                        ·
+                        <InlineSeparator markOnly />
                       </span>
                       <TranslatedSentence
                         template={NEXT_RUN}

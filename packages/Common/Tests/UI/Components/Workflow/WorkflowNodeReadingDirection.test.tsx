@@ -177,4 +177,19 @@ describe("Theme.css", () => {
       ".react-flow__panel:dir(rtl) { direction: rtl; }",
     );
   });
+
+  /*
+   * React Flow's zoom buttons stayed at a Persian canvas's bottom left, the
+   * far end of its lines. Every panel is mirrored on a page read right to
+   * left - the zoom buttons to the bottom right, a workflow's minimap to the
+   * bottom left - by one rule for every canvas.
+   */
+  test("on a page read right to left each panel sits on the other side", () => {
+    expect(THEME_CSS).toContain(
+      ".react-flow__panel.left:dir(rtl) { left: auto; right: 0; }",
+    );
+    expect(THEME_CSS).toContain(
+      ".react-flow__panel.right:dir(rtl) { right: auto; left: 0; }",
+    );
+  });
 });

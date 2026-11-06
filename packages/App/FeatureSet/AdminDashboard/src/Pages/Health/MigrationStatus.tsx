@@ -18,6 +18,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 // Maximum number of pending migration names to list before collapsing the rest.
 const MAX_PENDING_TO_SHOW: number = 10;
@@ -95,7 +96,13 @@ const renderFailureDetail: (failure: JSONObject) => ReactElement = (
       {hostName || appVersion ? (
         <div className="mt-1 text-xs text-red-500">
           {hostName ? <span>on {hostName}</span> : <></>}
-          {hostName && appVersion ? <span> · </span> : <></>}
+          {hostName && appVersion ? (
+            <span>
+              <InlineSeparator />
+            </span>
+          ) : (
+            <></>
+          )}
           {appVersion ? <span>build {appVersion}</span> : <></>}
         </div>
       ) : (

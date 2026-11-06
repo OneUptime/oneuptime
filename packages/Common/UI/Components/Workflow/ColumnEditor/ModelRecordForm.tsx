@@ -27,6 +27,7 @@ import React, {
 } from "react";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import { joinList } from "../../../Utils/ListSeparator";
 
 export interface ComponentProps {
   rows: Array<ModelColumnRow>;
@@ -105,12 +106,11 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
   });
 
   // The first three by name, in the reader's language; the rest are counted.
-  const shownUnofferableTitles: string = unofferableColumnTitles
-    .slice(0, 3)
-    .map((title: string) => {
+  const shownUnofferableTitles: string = joinList(
+    unofferableColumnTitles.slice(0, 3).map((title: string) => {
       return translator.translateText(title) ?? title;
-    })
-    .join(", ");
+    }),
+  );
 
   const knownColumnIds: Array<string> = props.columns.map(
     (column: ModelSchemaColumn) => {

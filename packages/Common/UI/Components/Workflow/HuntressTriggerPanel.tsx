@@ -59,6 +59,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   workflowId?: ObjectID | undefined;
@@ -390,7 +391,7 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
           {translate(HuntressTriggerPanelCopy.lastRefused)}
           {facts.lastWebhookErrorAt ? (
             <>
-              {" · "}
+              <InlineSeparator />
               <When date={facts.lastWebhookErrorAt} />
             </>
           ) : null}
