@@ -5974,8 +5974,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <div data-testid={`${props.id}-no-access`}>
           <TableEmptyState
             {...buildNoAccessState({
+              // What reads a list of its kind: Read Probe, not 22 pickers'.
               neededPermissions: PermissionGate.getNeededPermissionsSentence(
-                model.getReadPermissions(),
+                PermissionGate.getReadPermissionsOfItsKind(model),
                 translator,
               ),
               translate: tx,

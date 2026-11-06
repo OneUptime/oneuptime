@@ -1033,6 +1033,60 @@ export default class PermissionGate {
   }
 
   /*
+   * What a list of a model's records names to someone who may read none of
+   * it (the table's no-access state): of the model's read list, the
+   * permissions of its own kind - in the groups its create, edit and delete
+   * permissions are in. Probe's read list holds 22 permissions a team can
+   * be given, 21 of them a monitor's, a network device's, a discovery
+   * scan's, a network site's or a vCenter's, which let a picker show the
+   * project's probes; the one to ask for to read the Probes list is Read
+   * Probe. Project User - held by every member - leaves the lists of teams
+   * and labels the same way. The whole read list, as before, where the
+   * model writes nothing of its own or none of its readers is of its kind.
+   */
+  public static getReadPermissionsOfItsKind(
+    model: PermissionCheckableModel,
+  ): Array<Permission> {
+    const props: Dictionary<PermissionProps> = getPermissionProps();
+    const read: Array<Permission> = model.getReadPermissions() || [];
+
+    const isOwn: (permission: Permission) => boolean = (
+      permission: Permission,
+    ): boolean => {
+      const permissionProps: PermissionProps | undefined = props[permission];
+
+      return Boolean(
+        permissionProps &&
+          !permissionProps.isRolePermission &&
+          permissionProps.isAssignableToTenant,
+      );
+    };
+
+    const kinds: Set<PermissionProps["group"]> = new Set(
+      [
+        ...(model.getCreatePermissions() || []),
+        ...(model.getUpdatePermissions() || []),
+        ...(model.getDeletePermissions() || []),
+      ]
+        .filter(isOwn)
+        .map((permission: Permission): PermissionProps["group"] => {
+          return (props[permission] as PermissionProps).group;
+        }),
+    );
+
+    const ofItsKind: Array<Permission> = read.filter(
+      (permission: Permission): boolean => {
+        return (
+          isOwn(permission) &&
+          kinds.has((props[permission] as PermissionProps).group)
+        );
+      },
+    );
+
+    return ofItsKind.length > 0 ? ofItsKind : read;
+  }
+
+  /*
    * The sentence after a refusal's first that says what would allow it, in
    * the reader's language: "You need this permission: Create Incident Team
    * Owner.", "You need one of these permissions: Manage Billing, Edit
