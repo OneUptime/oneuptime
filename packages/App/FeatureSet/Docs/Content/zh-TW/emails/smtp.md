@@ -6,6 +6,8 @@
 - **OAuth 2.0**：適用於通常已關閉基本驗證的 Microsoft 365 與 Google Workspace。
 - **無**：適用於不需要驗證的轉送伺服器。
 
+若要透過 Amazon SES、SendGrid、Mailgun、Postmark 或 Resend 而非郵件伺服器寄送，請參閱 [電子郵件提供者](/docs/emails/email-providers)。
+
 ```mermaid title="哪個郵件伺服器寄送什麼"
 flowchart TB
     SP["狀態頁面的郵件"] --> Q{"頁面是否選擇了<br/>自訂 SMTP 設定？"}
@@ -17,7 +19,7 @@ flowchart TB
 在自行託管的安裝中，OneUptime 自己的郵件伺服器就是您在 Admin Dashboard 中設定的伺服器。狀態頁面會在其 **訂閱者設定** 頁面的 **自訂 SMTP** 卡片中選擇 SMTP 設定。
 
 :::cards
-- [新增郵件伺服器](#新增-smtp-伺服器): 兩個步驟，其餘內容都已摺疊。
+- [新增郵件伺服器](#新增-smtp-伺服器): 幾個步驟，其餘內容都已摺疊。
 - [Microsoft 365](#microsoft-365-設定): 使用 Entra 應用程式註冊的 OAuth。
 - [Google Workspace](#google-workspace-設定): 使用服務帳戶的 OAuth。
 - [疑難排解](#疑難排解): 常見錯誤及其含義。
@@ -25,7 +27,7 @@ flowchart TB
 
 ## 新增 SMTP 伺服器
 
-在 **專案設定 > 通知 > 通知設定** 頁面 **更多設定** 中的 **自訂 SMTP 設定** 卡片裡新增專案的郵件伺服器。在自行託管的安裝中，OneUptime 本身用來寄信的伺服器在 **Admin Dashboard > 設定 > 通知 > 電子郵件** 的 **自訂電子郵件和 SMTP 設定** 卡片中設定。兩個表單都分兩個步驟詢問相同的內容。
+在 **專案設定 > 通知 > 通知設定** 頁面 **更多設定** 中的 **自訂 SMTP 設定** 卡片裡新增專案的郵件伺服器。在自行託管的安裝中，OneUptime 本身用來寄信的伺服器在 **Admin Dashboard > 設定 > 通知 > 電子郵件** 的 **自訂電子郵件和 SMTP 設定** 卡片中設定。兩個表單都會詢問伺服器和寄件者；專案的表單會先詢問其 **提供者**。
 
 :::steps
 ### 開啟表單
@@ -37,13 +39,17 @@ flowchart TB
 在 Admin Dashboard 中開啟 **設定**，然後開啟側邊選單中的 **通知 > 電子郵件**（**通知** 預設為摺疊）。在 **電子郵件伺服器設定** 卡片中點選 **編輯伺服器**，並將 **電子郵件伺服器類型** 設為 `Custom SMTP`。接著在其下方出現的 **自訂電子郵件和 SMTP 設定** 卡片中點選 **編輯 SMTP 設定**。
 :::
 
+### 選擇提供者
+
+專案的表單從 **提供者** 步驟開始：輸入 **名稱**，如果要透過郵件伺服器寄送，請保持選取 **SMTP 伺服器**。若要改為透過 Microsoft Graph 或 [電子郵件提供者](/docs/emails/email-providers) 寄送，請在這裡選擇。**描述**（給團隊的備註）摺疊在 **更多欄位** 中。執行個體的表單沒有 **提供者** 步驟。
+
 ### 填寫伺服器步驟
 
-在 **伺服器** 步驟中，輸入 **名稱**（僅限專案設定）、**主機名稱**、**連接埠**（新的專案設定從 `587` 開始）、**使用者名稱** 和 **密碼**。
+在 **伺服器** 步驟中，輸入 **主機名稱**、**連接埠**（新的專案設定從 `587` 開始）、**使用者名稱** 和 **密碼**。
 
 ### 檢查更多欄位
 
-其餘所有選項都摺疊在 **伺服器** 步驟最後的 **更多欄位** 中。摺疊時，其標題會說明郵件的傳送方式，例如：「透過 SMTP 傳送郵件，使用使用者名稱和密碼登入。需要 TLS。」只有在需要變更下表中的某項設定時才展開它。
+伺服器的其他設定都摺疊在 **伺服器** 步驟最後的 **更多欄位** 中。摺疊時，其標題會說明郵件的傳送方式，例如：「透過 SMTP 傳送郵件，使用使用者名稱和密碼登入。需要 TLS。」只有在需要變更下表中的某項設定時才展開它。在專案的表單中，OAuth 欄位位於 **伺服器** 之後獨立的 **OAuth** 步驟中。
 
 ### 填寫寄件者步驟
 
@@ -60,13 +66,13 @@ flowchart TB
 
 | 欄位 | 作用 |
 | --- | --- |
-| **傳輸** | `SMTP`（預設），或適用於已關閉 SMTP AUTH 之 Microsoft 365 租用戶的 `Microsoft Graph`。選擇 Microsoft Graph 會隱藏主機名稱、連接埠、使用者名稱和密碼，並顯示 OAuth 欄位。 |
+| **傳輸** | `SMTP`（預設），或適用於已關閉 SMTP AUTH 之 Microsoft 365 租用戶的 `Microsoft Graph`。選擇 Microsoft Graph 會隱藏主機名稱、連接埠、使用者名稱和密碼，並顯示 OAuth 欄位。僅限執行個體的表單：專案改為選擇其 **提供者**。 |
 | **要求 TLS** | 在新的專案設定中預設開啟。僅透過具有效憑證的加密連線傳送郵件。關閉時不會檢查憑證。465 連接埠一律加密。關閉時，其他連接埠只有在伺服器支援時才會加密郵件。 |
 | **驗證類型** | `Username and Password`（預設）、`OAuth`，或用於不需登入之轉送伺服器的 `None`。 |
-| **OAuth 欄位** | **OAuth 提供者類型**、**OAuth Client ID**、**OAuth Client Secret**、**OAuth 權杖 URL** 和 **OAuth Scope**，在選擇 OAuth 或 Microsoft Graph 後顯示。 |
-| **描述** | 給團隊的備註（僅限專案設定）。 |
+| **OAuth 欄位** | **OAuth 提供者類型**、**OAuth Client ID**、**OAuth Client Secret**、**OAuth 權杖 URL** 和 **OAuth Scope**，在選擇 OAuth 或 Microsoft Graph 後顯示。專案的表單會在其 **OAuth** 步驟中詢問這些欄位。 |
+| **描述** | 給團隊的備註（僅限專案設定），位於 **提供者** 步驟中。 |
 
-**Microsoft Graph.** 開啟 **更多欄位**，將 **傳輸** 設為 `Microsoft Graph`，然後填入具有 **Mail.Send** 應用程式權限的 Azure 應用程式資訊：其用戶端 ID 和用戶端密碼、權杖 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及範圍 `https://graph.microsoft.com/.default`。郵件會從 **寄件者電子郵件** 的信箱寄出，該信箱必須是您租用戶中已取得授權的信箱。
+**Microsoft Graph.** 在專案的表單中，選擇 `Microsoft Graph` 作為 **提供者**；在執行個體的表單中，開啟 **更多欄位**，並將 **傳輸** 設為 `Microsoft Graph`。然後填入具有 **Mail.Send** 應用程式權限的 Azure 應用程式資訊：其用戶端 ID 和用戶端密碼、權杖 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及範圍 `https://graph.microsoft.com/.default`。郵件會從 **寄件者電子郵件** 的信箱寄出，該信箱必須是您租用戶中已取得授權的信箱。
 
 > [!NOTE]
 > 在 OneUptime Cloud 上，專案的郵件伺服器必須能透過網際網路連線：解析為私人位址或內部位址的主機會被拒絕。在自行託管的安裝中，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 為 `true`，否則允許私人位址，但迴路位址和鏈路本機位址一律會被拒絕。執行個體自己的郵件伺服器不會經過這種檢查。
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: 寄送電子郵件
 ```
 
-**驗證類型** 和 OAuth 欄位位於表單伺服器步驟的 **更多欄位** 中。若要透過 OAuth 登入，請填寫：
+**驗證類型** 位於表單伺服器步驟的 **更多欄位** 中。在執行個體的表單中，OAuth 欄位也在那裡；在專案的表單中，它們則位於 **OAuth** 步驟。若要透過 OAuth 登入，請填寫：
 
 | 欄位 | 描述 |
 | --- | --- |
@@ -309,6 +315,7 @@ OneUptime 拒絕連線到專案的郵件伺服器。在 OneUptime Cloud 上，�
 ## 後續步驟
 
 :::cards
+- [電子郵件提供者](/docs/emails/email-providers): 改為透過 Amazon SES、SendGrid、Mailgun、Postmark 或 Resend 寄送。
 - [通知彙總](/docs/emails/notification-rollup): OneUptime 如何合併一連串寄給擁有者的郵件。
 - [訂閱者與公告](/docs/status-pages/subscribers): 使用專案的 SMTP 設定寄送郵件給狀態頁面訂閱者。
 :::
