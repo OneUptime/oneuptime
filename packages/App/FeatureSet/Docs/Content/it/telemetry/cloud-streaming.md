@@ -68,7 +68,7 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Firehose consegna entro 
 | --- | --- |
 | **Tutte le metriche, non solo quelle chiave** | Trasmette tutte le metriche che CloudWatch ha per l'account, comprese le tue. AWS addebita ogni aggiornamento di metrica che un flusso invia, quindi può costare molte volte di più |
 | **Regioni** | Da dove trasmettere: all'inizio, le regioni in cui la connessione ha trovato risorse. Se lasciato vuoto, il comando trasmette dalla regione di AWS CloudShell. Al massimo 30 |
-| **Ogni account dell'organizzazione** | Per una connessione che legge una AWS Organization: il comando, eseguito nel suo account di gestione, crea gli stessi stack anche in ogni account membro tramite uno StackSet, e negli account che entrano in seguito. Tutti i gruppi di log o nessuno: i gruppi con nome appartengono a un solo account |
+| **Tutti gli account dell'organizzazione** | Per una connessione che legge una AWS Organization: il comando, eseguito nel suo account di gestione, crea gli stessi stack anche in ogni account membro tramite uno StackSet, e negli account che entrano in seguito. Tutti i gruppi di log o nessuno: i gruppi con nome appartengono a un solo account |
 | **Configuralo in un altro modo** | Gli endpoint delle metriche e dei log e la chiave, per configurare i flussi con Terraform o la console |
 
 **Scarica il modello** salva il modello che il comando distribuisce, per distribuirlo a modo tuo.

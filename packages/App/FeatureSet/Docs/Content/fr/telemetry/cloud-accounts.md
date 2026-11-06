@@ -301,7 +301,7 @@ La boîte de dialogue pose une seule question, **Jusqu'où l'IA peut-elle aller 
 
 La commande contient une clé créée pour le seul agent de ce compte, valable un jour jusqu'à ce que l'agent se connecte avec elle : rouvrez la boîte de dialogue pour en obtenir une nouvelle. Seule une personne autorisée à réinitialiser l'agent et à modifier le compte en obtient une.
 
-Sur un compte AWS trouvé par une connexion qui lit une AWS Organization, la boîte de dialogue demande aussi **Quels comptes ?** : **Chaque compte de l'organisation** installe un agent dans chacun de ses comptes avec une seule commande dans l'AWS CloudShell du compte de gestion, chaque agent avec sa propre clé et le même rôle aux droits minimaux, et indique quels agents se sont connectés.
+Sur un compte AWS trouvé par une connexion qui lit une AWS Organization, la boîte de dialogue demande aussi **Quels comptes ?** : l'option **Tous les comptes de l'organisation** installe un agent dans chacun de ses comptes avec une seule commande dans l'AWS CloudShell du compte de gestion, chaque agent avec sa propre clé et le même rôle aux droits minimaux, et indique quels agents se sont connectés.
 
 L'agent s'exécute tout le mois dans votre compte, facturé par votre cloud à ses prix catalogue. Sur Google Cloud, il s'exécute sur une petite VM à lui, dans un réseau qui ne laisse rien entrer ; pour un projet dont l'organisation n'autorise aucune VM à avoir une adresse IP externe, choisissez **Cloud Run** dans **Où l'agent s'exécute**, sous **Plus de champs** :
 

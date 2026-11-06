@@ -68,7 +68,7 @@ Dialogen spør med noen sekunders mellomrom hva som har kommet. Firehose leverer
 | --- | --- |
 | **Alle målinger, ikke bare nøkkelmålingene** | Strømmer alle målinger CloudWatch har for kontoen, også dine egne. AWS fakturerer hver måleoppdatering en strøm sender, så det kan koste mange ganger mer |
 | **Regioner** | Hvor det strømmes fra: først regionene der tilkoblingen fant ressurser. Står feltet tomt, strømmer kommandoen fra AWS CloudShells egen region. Høyst 30 |
-| **Hver konto i organisasjonen** | For en tilkobling som leser en AWS Organization: kommandoen, kjørt i administrasjonskontoen, lager også de samme stakkene i hver medlemskonto gjennom et StackSet, og i kontoer som blir med senere. Alle logggrupper eller ingen: navngitte logggrupper tilhører én konto |
+| **Alle kontoer i organisasjonen** | For en tilkobling som leser en AWS Organization: kommandoen, kjørt i administrasjonskontoen, lager også de samme stakkene i hver medlemskonto gjennom et StackSet, og i kontoer som blir med senere. Alle logggrupper eller ingen: navngitte logggrupper tilhører én konto |
 | **Sett det opp på en annen måte** | Endepunktene for målinger og logger og nøkkelen, for å sette opp strømmene med Terraform eller konsollen |
 
 **Last ned malen** lagrer malen kommandoen ruller ut, så du kan rulle den ut på din egen måte.
