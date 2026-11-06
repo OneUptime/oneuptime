@@ -33,6 +33,11 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import { syncIsPublicForMarkdownImages } from "../InlineImageAccessTokenSync";
 import StatusPageResourceUtil from "../StatusPageResource";
 import SubscriberMarkdownTemplateValues from "./SubscriberMarkdownTemplateValues";
+import SubscriberMessageText from "./SubscriberMessageText";
+import SubscriberTemplateValues, {
+  SubscriberTemplateValueMap,
+} from "./SubscriberTemplateValues";
+import { Translator } from "../../../Types/Translator";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -68,6 +73,12 @@ import FeedMarkdown, {
  * The older name of the same value, {{customFields.<key>}}, is filled too, so
  * templates saved with it keep working. A field the incident holds no value
  * for is an empty string, never a placeholder left as written.
+ *
+ * A custom template is the team's own text, written once: the values of
+ * OneUptime's own words it is filled with - the default names of the
+ * severity and the state, "None" for no resources, a Yes / No field's
+ * answer, the dates - are written in the page's default language
+ * (SubscriberTemplateValues). Every other value reads as written.
  *
  * The default templates cannot name a project's fields, so they get the
  * fields marked "Include in Subscriber Notifications" as a list, in the
@@ -162,7 +173,7 @@ const LINE_BREAK_PATTERN: RegExp = /\r\n|\r|\n/g;
 export class IncidentTemplateVariables {
   private readonly incident: Incident;
   private readonly customFields: Array<PreparedCustomField>;
-  private readonly textVariables: Record<string, string>;
+  private readonly textVariables: SubscriberTemplateValueMap;
   private readonly markdownVariables: Record<
     string,
     { source: string; html: string; plainText: string }
@@ -190,7 +201,7 @@ export class IncidentTemplateVariables {
   public constructor(data: {
     incident: Incident;
     customFields: Array<PreparedCustomField>;
-    textVariables: Record<string, string>;
+    textVariables: SubscriberTemplateValueMap;
     markdownVariables: Record<
       string,
       { source: string; html: string; plainText: string }
@@ -224,7 +235,6 @@ export class IncidentTemplateVariables {
     noResourcesText?: string | undefined;
   }): IncidentStatusPageTemplateVariables {
     const statusPage: StatusPage = data.statusPage;
-    const noResourcesText: string = data.noResourcesText || "";
 
     // Empty when the page lists none: the default messages test for that.
     const resourcesAffectedHtml: string =
@@ -236,18 +246,57 @@ export class IncidentTemplateVariables {
 
     const timezones: Array<Timezone> = statusPage.subscriberTimezones || [];
 
-    // The values that read the same on every channel.
-    const shared: Record<string, string> = {
-      statusPageName:
-        IncidentTemplateVariableBuilder.getStatusPageName(statusPage),
-      statusPageUrl: data.statusPageUrl,
-      detailsUrl: data.detailsUrl,
-      incidentTitle: this.incident.title || "",
-      incidentSeverity: this.incident.incidentSeverity?.name || " - ",
-      incidentLabels: this.incidentLabels,
-      affectedStatusPages: this.affectedStatusPages,
-      ...this.textVariables,
-    };
+    /*
+     * What the page's custom templates are filled with that is OneUptime's
+     * own words - the default severity and state names, "None", a Yes / No
+     * answer, the dates - in the page's default language
+     * (SubscriberTemplateValues), each custom field's value with them.
+     */
+    const pageWritten: {
+      shared: Record<string, string>;
+      noResourcesText: string;
+      customFieldValues: Array<FormattedCustomFieldValue>;
+    } = SubscriberTemplateValues.workInPageLanguage(
+      statusPage,
+      (
+        translator: Translator,
+      ): {
+        shared: Record<string, string>;
+        noResourcesText: string;
+        customFieldValues: Array<FormattedCustomFieldValue>;
+      } => {
+        return {
+          // The values that read the same on every channel.
+          shared: {
+            statusPageName:
+              IncidentTemplateVariableBuilder.getStatusPageName(statusPage),
+            statusPageUrl: data.statusPageUrl,
+            detailsUrl: data.detailsUrl,
+            incidentTitle: this.incident.title || "",
+            incidentSeverity: this.incident.incidentSeverity?.name
+              ? SubscriberMessageText.nameInLanguage(
+                  translator,
+                  this.incident.incidentSeverity.name,
+                )
+              : " - ",
+            incidentLabels: this.incidentLabels,
+            affectedStatusPages: this.affectedStatusPages,
+            ...SubscriberTemplateValues.write(this.textVariables, translator),
+          },
+          noResourcesText: data.noResourcesText
+            ? SubscriberMessageText.text(translator, data.noResourcesText)
+            : "",
+          customFieldValues: this.customFields.map(
+            (field: PreparedCustomField): FormattedCustomFieldValue => {
+              return this.formatValue(field, timezones, translator);
+            },
+          ),
+        };
+      },
+    );
+
+    const shared: Record<string, string> = pageWritten.shared;
+    const noResourcesText: string = pageWritten.noResourcesText;
 
     const emailBody: SubscriberNotificationEmailBodyTemplateVariables = {
       ...shared,
@@ -275,25 +324,35 @@ export class IncidentTemplateVariables {
     const customFieldRows: Array<IncidentCustomFieldEmailRow> = [];
     const customFieldsMarkdownLines: Array<MarkdownText> = [];
 
-    for (const field of this.customFields) {
-      const formatted: FormattedCustomFieldValue = this.formatValue(
-        field,
-        timezones,
-      );
+    this.customFields.forEach((field: PreparedCustomField, index: number) => {
+      // In the page's language, for the page's custom templates.
+      const inPageLanguage: FormattedCustomFieldValue =
+        pageWritten.customFieldValues[index]!;
 
       if (field.variableKey) {
         // The documented name and the older one, with the same value.
         for (const variableName of getCustomFieldTemplateVariableNames(
           field.variableKey,
         )) {
-          emailBody[variableName] = formatted.html || formatted.plainText;
-          plainText[variableName] = formatted.plainText;
-          markdown[variableName] = formatted.markdown;
+          emailBody[variableName] =
+            inPageLanguage.html || inPageLanguage.plainText;
+          plainText[variableName] = inPageLanguage.plainText;
+          markdown[variableName] = inPageLanguage.markdown;
         }
       }
 
+      /*
+       * The default messages' rows, as they have always been written: a
+       * subscriber's default message is in their own language, and these
+       * values are not written in it yet.
+       */
+      const formatted: FormattedCustomFieldValue = this.formatValue(
+        field,
+        timezones,
+      );
+
       if (!field.isIncludedInSubscriberNotifications || !field.hasValue) {
-        continue;
+        return;
       }
 
       customFieldRows.push(
@@ -316,7 +375,7 @@ export class IncidentTemplateVariables {
           ? mdText`**${field.name}:**\n${valueMarkdown}`
           : mdText`**${field.name}:** ${valueMarkdown}`,
       );
-    }
+    });
 
     return {
       emailBody: emailBody,
@@ -494,9 +553,15 @@ export class IncidentTemplateVariables {
     await published;
   }
 
+  /*
+   * A field's value in each format. With a translator - for a page's
+   * custom templates - a Yes / No answer is in its language; its dates are
+   * in the language writeInLanguage writes them in.
+   */
   private formatValue(
     field: PreparedCustomField,
     timezones: Array<Timezone>,
+    translator?: Translator | undefined,
   ): FormattedCustomFieldValue {
     if (!field.hasValue) {
       return { plainText: "", markdown: "", html: null };
@@ -530,7 +595,10 @@ export class IncidentTemplateVariables {
       }
 
       case CustomFieldType.Boolean: {
-        const text: string = formatCustomFieldBoolean(value);
+        const answer: string = formatCustomFieldBoolean(value);
+        const text: string = translator
+          ? SubscriberTemplateValues.yesOrNo(answer, translator)
+          : answer;
         return {
           plainText: text,
           markdown: FeedMarkdown.templateText(text),
@@ -635,7 +703,9 @@ export default class IncidentTemplateVariableBuilder {
    * (IncidentStatusPageScope), and name {{affectedStatusPages}}.
    * markdownVariables are the event's Markdown values - the description, a
    * note, the postmortem - rendered here once for every page;
-   * textVariables are its plain ones, such as incidentState and postedAt.
+   * textVariables are its plain ones, such as incidentState and postedAt:
+   * each a text as it is, or OneUptime's words written in each page's
+   * language (SubscriberTemplateValues.stateName, .date).
    *
    * customFieldDefinitions skips reading the project's incident custom
    * fields, for a caller that has them already.
@@ -644,7 +714,7 @@ export default class IncidentTemplateVariableBuilder {
     incident: Incident;
     statusPages: Array<StatusPage>;
     markdownVariables?: Record<string, string | null | undefined> | undefined;
-    textVariables?: Record<string, string> | undefined;
+    textVariables?: SubscriberTemplateValueMap | undefined;
     customFieldDefinitions?:
       | Array<IncidentTemplateCustomFieldDefinition>
       | undefined;

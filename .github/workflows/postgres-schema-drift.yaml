@@ -309,6 +309,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeGroupingKeyPostgres.test.ts --forceExit
 
+      # A grouping rule that waits for more incidents (or alerts) marks each
+      # one it holds back, and reads the group's still-ongoing waiting
+      # records - in no episode, newest first, close together while the time
+      # window is on - through the partial index on the mark.
+      - name: Test records waiting for an episode on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_GROUPING_WAIT_TESTS: "true"
+          GROUPING_WAIT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GROUPING_WAIT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GROUPING_WAIT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/GroupingWaitPostgres.test.ts --forceExit
+
       # A record's live update reaches the people its own read lets read it:
       # labels, owners, blocks with labels (and the labelled records a
       # label-less row names), private incidents, a person's own AI

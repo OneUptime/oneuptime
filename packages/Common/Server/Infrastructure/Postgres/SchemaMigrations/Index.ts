@@ -911,6 +911,8 @@ import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./
 import { AddCloudAccountAiAgentKeys1808994400000 } from "./1808994400000-AddCloudAccountAiAgentKeys";
 import { AddProjectDefaultTableColumns1808994500000 } from "./1808994500000-AddProjectDefaultTableColumns";
 import { AddEmailProviderSettings1808994600000 } from "./1808994600000-AddEmailProviderSettings";
+import { AddGroupingRuleMinimumCount1808994700000 } from "./1808994700000-AddGroupingRuleMinimumCount";
+import { AddGroupingWaitKeyIndexes1808994710000 } from "./1808994710000-AddGroupingWaitKeyIndexes";
 
 export default [
   InitialMigration,
@@ -1826,4 +1828,6 @@ export default [
   AddScheduledMaintenanceCloudResources1808994417000,
   AddProjectDefaultTableColumns1808994500000,
   AddEmailProviderSettings1808994600000,
+  AddGroupingRuleMinimumCount1808994700000,
+  AddGroupingWaitKeyIndexes1808994710000,
 ];

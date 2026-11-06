@@ -1,17 +1,9 @@
-import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import {
-  GroupingRuleTranslateFunction,
   getMinutesSettingValues,
   parseMinutes,
 } from "../../Utils/GroupingRule/GroupingRuleSetup";
-import useGroupingRuleTranslate from "./GroupingRuleTranslate";
-import Input, { InputType } from "Common/UI/Components/Input/Input";
-import Toggle from "Common/UI/Components/Toggle/Toggle";
-import {
-  TemplateAround,
-  translateTemplateAround,
-} from "Common/UI/Utils/TranslateTemplate";
-import React, { FunctionComponent, ReactElement, useId } from "react";
+import NumberSettingField from "./NumberSettingField";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface MinutesSettingValue {
   enabled: boolean;
@@ -51,93 +43,34 @@ export interface ComponentProps {
 const MinutesSettingField: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translate: GroupingRuleTranslateFunction = useGroupingRuleTranslate();
-  const minutesId: string = `minutes-setting-${useId()}`;
-  const errorId: string = `${minutesId}-error`;
-
-  const minutesText: string =
-    props.minutes === undefined || props.minutes === null
-      ? ""
-      : String(props.minutes);
-
-  /*
-   * The words before the box and after it are items of the row, each a box
-   * of its own: the box is not set apart from them in a language read right
-   * to left (TemplateAroundOptions), or an empty half holding the isolate's
-   * mark alone would be one more item, a gap before the box.
-   */
-  const around: TemplateAround = translateTemplateAround(
-    props.sentence,
-    "minutes",
-    {},
-    { setsSlotApart: false },
-  );
-
-  const error: string | undefined = props.error
-    ? translate(props.error)
-    : undefined;
-
   return (
-    <div data-testid={props.dataTestId}>
-      <Toggle
-        title={translate(props.title)}
-        description={translate(props.description)}
-        value={props.enabled}
-        dataTestId={`${props.dataTestId}-toggle`}
-        onChange={(enabled: boolean): void => {
-          props.onChange(
-            getMinutesSettingValues({
-              enabled: enabled,
-              minutes: props.minutes,
-              defaultMinutes: props.defaultMinutes,
-            }),
-          );
-        }}
-        onBlur={(): void => {
-          props.onBlur?.();
-        }}
-      />
-
-      {props.enabled ? (
-        <div
-          className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 pl-14 text-sm text-gray-700"
-          data-testid={`${props.dataTestId}-minutes-row`}
-        >
-          {around.before ? <span>{around.before.trim()}</span> : <></>}
-          <Input
-            id={minutesId}
-            type={InputType.NUMBER}
-            value={minutesText}
-            ariaLabel={translate(props.minutesLabel)}
-            ariaInvalid={Boolean(error)}
-            ariaDescribedby={error ? errorId : undefined}
-            dataTestId={`${props.dataTestId}-minutes`}
-            outerDivClassName="relative w-24 rounded-md shadow-sm"
-            onChange={(value: string): void => {
-              props.onChange({
-                enabled: true,
-                minutes: parseMinutes(value) ?? value,
-              });
-            }}
-            onBlur={props.onBlur}
-          />
-          {around.after ? <span>{around.after.trim()}</span> : <></>}
-        </div>
-      ) : (
-        <></>
-      )}
-
-      {props.enabled && error ? (
-        <FieldError
-          id={errorId}
-          message={error}
-          className="mt-1 pl-14 text-sm"
-          dataTestId={`${props.dataTestId}-error`}
-        />
-      ) : (
-        <></>
-      )}
-    </div>
+    <NumberSettingField
+      title={props.title}
+      description={props.description}
+      sentence={props.sentence}
+      slot="minutes"
+      valueLabel={props.minutesLabel}
+      enabled={props.enabled}
+      value={props.minutes}
+      error={props.error}
+      dataTestId={props.dataTestId}
+      onBlur={props.onBlur}
+      onToggle={(enabled: boolean): void => {
+        props.onChange(
+          getMinutesSettingValues({
+            enabled: enabled,
+            minutes: props.minutes,
+            defaultMinutes: props.defaultMinutes,
+          }),
+        );
+      }}
+      onValueChange={(text: string): void => {
+        props.onChange({
+          enabled: true,
+          minutes: parseMinutes(text) ?? text,
+        });
+      }}
+    />
   );
 };
 

@@ -72,6 +72,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import SafeHtml from "../../../../Types/SafeHtml";
 import SubscriberNotificationTemplateCompiler from "../../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import Timezone from "../../../../Types/Timezone";
+import OneUptimeDate from "../../../../Types/Date";
+import { writeInLanguage } from "../../../../Server/Utils/ServerTranslation";
+import SubscriberTemplateValues from "../../../../Server/Utils/StatusPage/SubscriberTemplateValues";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import { htmlAsText } from "../../../Helpers/HtmlText";
@@ -1910,6 +1913,256 @@ describe("IncidentTemplateVariableBuilder plain text for custom SMS and email su
 
     expect(site.plainText["incidentDescription"]).toBe(
       "Card payments fail for <region> and p99 > 2 s",
+    );
+  });
+});
+
+/*
+ * A PAGE'S CUSTOM TEMPLATES, IN ITS LANGUAGE.
+ *
+ * A custom template is the team's own text, written once: the values of
+ * OneUptime's own words it is filled with - the default severity and state
+ * names, "None", a Yes / No answer, the dates - are written in the page's
+ * default language (SubscriberTemplateValues). The default messages' rows
+ * of custom fields read as they always have. A page with no default
+ * language reads in English, as every test above has it.
+ */
+describe("IncidentTemplateVariableBuilder in the page's language", () => {
+  const POSTED_AT: Date = new Date("2026-09-27T14:05:00.000Z");
+
+  const germanPage: () => StatusPage = (): StatusPage => {
+    const statusPage: StatusPage = page({
+      name: "site-03",
+      pageTitle: "Site 03 Status",
+      subscriberTimezones: [Timezone.UTC],
+    });
+    statusPage.defaultLanguage = "de";
+    return statusPage;
+  };
+
+  const incidentWithSeverity: (name: string) => Incident = (
+    name: string,
+  ): Incident => {
+    const row: Incident = incident();
+    row.incidentSeverity!.name = name;
+    return row;
+  };
+
+  const forPage: (
+    variables: IncidentTemplateVariables,
+    statusPage: StatusPage,
+  ) => IncidentStatusPageTemplateVariables = (
+    variables: IncidentTemplateVariables,
+    statusPage: StatusPage,
+  ): IncidentStatusPageTemplateVariables => {
+    return variables.forStatusPage({
+      statusPage: statusPage,
+      statusPageUrl: STATUS_PAGE_URL,
+      detailsUrl: DETAILS_URL,
+      resources: [],
+      noResourcesText: "None",
+    });
+  };
+
+  test("OneUptime's default names, 'None' and the date are the page's language's, on every channel", async () => {
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incidentWithSeverity("Major Incident"),
+        statusPages: [germanPage()],
+        textVariables: {
+          incidentState: SubscriberTemplateValues.stateName("Resolved"),
+          postedAt: SubscriberTemplateValues.date(POSTED_AT),
+        },
+        customFieldDefinitions: [],
+      });
+
+    const site: IncidentStatusPageTemplateVariables = forPage(
+      variables,
+      germanPage(),
+    );
+
+    const germanPostedAt: string = writeInLanguage("de", (): string => {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT);
+    });
+
+    for (const bag of [site.plainText, site.markdown]) {
+      expect(bag["incidentSeverity"]).toBe("Schwerwiegender Vorfall");
+      expect(bag["incidentState"]).toBe("Behoben");
+      expect(bag["postedAt"]).toBe(germanPostedAt);
+      expect(bag["resourcesAffected"]).toBe("Keine");
+    }
+
+    expect(site.emailBody["incidentSeverity"]).toBe("Schwerwiegender Vorfall");
+    expect(site.emailBody["incidentState"]).toBe("Behoben");
+    expect(htmlOf(site.emailBody["resourcesAffected"])).toBe("Keine");
+    // What the team wrote reads as written.
+    expect(site.plainText["incidentTitle"]).toBe("Checkout requests failing");
+    expect(site.plainText["statusPageName"]).toBe("Site 03 Status");
+  });
+
+  test("the same values read in English on a page without a default language", async () => {
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incidentWithSeverity("Major Incident"),
+        statusPages: [SITE_03],
+        textVariables: {
+          incidentState: SubscriberTemplateValues.stateName("Resolved"),
+          postedAt: SubscriberTemplateValues.date(POSTED_AT),
+        },
+        customFieldDefinitions: [],
+      });
+
+    const site: IncidentStatusPageTemplateVariables = forPage(
+      variables,
+      SITE_03,
+    );
+
+    expect(site.plainText["incidentSeverity"]).toBe("Major Incident");
+    expect(site.plainText["incidentState"]).toBe("Resolved");
+    expect(site.plainText["postedAt"]).toBe(
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT),
+    );
+    expect(site.plainText["resourcesAffected"]).toBe("None");
+  });
+
+  test("a project's own severity and state names read as written", async () => {
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incidentWithSeverity("Sev 2"),
+        statusPages: [germanPage()],
+        textVariables: {
+          incidentState: SubscriberTemplateValues.stateName("Monitoring fix"),
+          // A value given as text is placed as it is.
+          extra: "As given",
+        },
+        customFieldDefinitions: [],
+      });
+
+    const site: IncidentStatusPageTemplateVariables = forPage(
+      variables,
+      germanPage(),
+    );
+
+    expect(site.plainText["incidentSeverity"]).toBe("Sev 2");
+    expect(site.plainText["incidentState"]).toBe("Monitoring fix");
+    expect(site.plainText["extra"]).toBe("As given");
+  });
+
+  test("a Yes / No field reads in the page's language in its templates, and as always in the default messages", async () => {
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incident({ Acknowledged: true, "Customer facing": false }),
+        statusPages: [germanPage()],
+        customFieldDefinitions: [
+          field({
+            name: "Acknowledged",
+            variableKey: "acknowledged",
+            customFieldType: CustomFieldType.Boolean,
+            includeInSubscriberNotifications: true,
+          }),
+          field({
+            name: "Customer facing",
+            variableKey: "customer_facing",
+            customFieldType: CustomFieldType.Boolean,
+            includeInSubscriberNotifications: true,
+          }),
+        ],
+      });
+
+    const site: IncidentStatusPageTemplateVariables = forPage(
+      variables,
+      germanPage(),
+    );
+
+    for (const bag of [site.plainText, site.markdown, site.emailBody]) {
+      expect(bag["incident.customFields.acknowledged"]).toBe("Ja");
+      expect(bag["customFields.acknowledged"]).toBe("Ja");
+      expect(bag["incident.customFields.customer_facing"]).toBe("Nein");
+    }
+
+    // A subscriber's default message: as it has always read.
+    expect(site.customFieldRows).toEqual([
+      { title: "Acknowledged", plainText: "Yes" },
+      { title: "Customer facing", plainText: "No" },
+    ]);
+    expect(textOf(site.customFieldsMarkdownLines)).toEqual([
+      "**Acknowledged:** Yes",
+      "**Customer facing:** No",
+    ]);
+  });
+
+  test("a Yes / No field's other answers read as stored", async () => {
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incident({ Acknowledged: "Maybe" }),
+        statusPages: [germanPage()],
+        customFieldDefinitions: [
+          field({
+            name: "Acknowledged",
+            variableKey: "acknowledged",
+            customFieldType: CustomFieldType.Boolean,
+          }),
+        ],
+      });
+
+    expect(
+      forPage(variables, germanPage()).plainText[
+        "incident.customFields.acknowledged"
+      ],
+    ).toBe("Maybe");
+  });
+
+  test("a Date and time field reads in the page's language in its templates", async () => {
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incident({ Started: "2026-09-27T14:05:00.000Z" }),
+        statusPages: [germanPage()],
+        customFieldDefinitions: [
+          field({
+            name: "Started",
+            variableKey: "started",
+            customFieldType: CustomFieldType.DateTime,
+            includeInSubscriberNotifications: true,
+          }),
+        ],
+      });
+
+    const site: IncidentStatusPageTemplateVariables = forPage(
+      variables,
+      germanPage(),
+    );
+
+    const germanStarted: string = writeInLanguage("de", (): string => {
+      return OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+        date: new Date("2026-09-27T14:05:00.000Z"),
+        timezones: [Timezone.UTC],
+        use12HourFormat: true,
+      }).join(", ");
+    });
+
+    expect(germanStarted).not.toBe("Sep 27 2026, 02:05 PM UTC");
+    expect(site.plainText["incident.customFields.started"]).toBe(germanStarted);
+    // The default email's row reads as it always has.
+    expect(site.customFieldRows).toEqual([
+      { title: "Started", renderedHtml: "Sep 27 2026, 02:05 PM UTC" },
+    ]);
+  });
+
+  test("leaves the dates it writes after to English", async () => {
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: incident(),
+        statusPages: [germanPage()],
+        textVariables: {
+          postedAt: SubscriberTemplateValues.date(POSTED_AT),
+        },
+        customFieldDefinitions: [],
+      });
+
+    forPage(variables, germanPage());
+
+    expect(OneUptimeDate.convertMinutesToDaysHoursAndMinutes(5)).toBe(
+      "5 minutes",
     );
   });
 });
