@@ -135,20 +135,18 @@ beforeEach(() => {
       Object.assign(stored, (data as { data: Record<string, unknown> }).data);
       return {} as never;
     });
-  jest
-    .spyOn(API, "post")
-    .mockImplementation(async (): Promise<never> => {
-      return new HTTPResponse<JSONObject>(
-        200,
-        {
-          usedTokensToday: 0,
-          spentTodayInUSDCents: 0,
-          defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
-          providers: [],
-        },
-        {},
-      ) as unknown as never;
-    });
+  jest.spyOn(API, "post").mockImplementation(async (): Promise<never> => {
+    return new HTTPResponse<JSONObject>(
+      200,
+      {
+        usedTokensToday: 0,
+        spentTodayInUSDCents: 0,
+        defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+        providers: [],
+      },
+      {},
+    ) as unknown as never;
+  });
 });
 
 afterEach(() => {
@@ -214,10 +212,12 @@ describe("Fix approvals, folded under More settings", () => {
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(setChips(moreSettingsHeader())).toEqual([]);
     // It is folded: Enable AI comes first, the fold after it.
-    expect(within(section()).getByRole("switch", {
-      hidden: true,
-      name: FixApprovalsCopy.switchTitle,
-    })).toBeTruthy();
+    expect(
+      within(section()).getByRole("switch", {
+        hidden: true,
+        name: FixApprovalsCopy.switchTitle,
+      }),
+    ).toBeTruthy();
   });
 
   test("on, the folded header draws it as a chip that says two people approve", async () => {
@@ -267,6 +267,17 @@ describe("the switch", () => {
     expect(card).toHaveTextContent(FixApprovalsCopy.cardDescription);
     expect(card).toHaveTextContent(FixApprovalsCopy.switchDescription);
     expect(control).toBeEnabled();
+
+    // A section of More settings' one card, after Daily limits.
+    expect(card).toHaveAttribute("data-card-surface", "section");
+    const sections: Array<string> = Array.from(
+      section().querySelectorAll<HTMLElement>(
+        '[data-testid="card"][data-card-surface="section"]',
+      ),
+    ).map((element: HTMLElement): string => {
+      return element === card ? FixApprovalsCopy.cardTitle : "other";
+    });
+    expect(sections).toEqual(["other", FixApprovalsCopy.cardTitle]);
   });
 
   test("a project owner turns it on: it saves that column alone, at once, and the folded header follows", async () => {

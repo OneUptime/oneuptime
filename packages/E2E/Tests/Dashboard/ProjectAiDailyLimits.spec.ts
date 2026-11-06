@@ -18,8 +18,9 @@ import { boxesInOneFrame } from "../../SuiteHelpers/Frames";
  * More settings, against a real stack: the fold, the Daily limits card,
  * the server's rules and today's usage.
  *
- *  - More settings starts folded under Enable AI, names its one card -
- *    Daily limits - and says what applies and what AI used today:
+ *  - More settings starts folded under Enable AI, names its cards - Daily
+ *    limits, and Fix approvals (#6148's follow-up: two people approve a
+ *    riskier fix) - and says what applies and what AI used today:
  *    "Nothing limits how much OneUptime AI uses each day. Used today: 0
  *    tokens." (with the AI credits spent too, where AI is billed);
  *  - open, it is one card: Daily limits is its section, a divider above
@@ -150,6 +151,7 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     await expect(foldHeader()).toHaveAttribute("aria-expanded", "false");
     await expect(section().getByTestId("folded-section-item")).toHaveText([
       "Daily limits",
+      "Fix approvals",
     ]);
     await expect(summary()).toHaveText(
       IS_BILLING_ENABLED
@@ -170,10 +172,13 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     await expect(foldHeader()).toHaveAttribute("aria-expanded", "true");
 
     const fold: Locator = section().getByTestId("folded-section");
-    const daily: Locator = section().locator(
+    const sections: Locator = section().locator(
       '[data-testid="card"][data-card-surface="section"]',
     );
+    // Daily limits, then Fix approvals: each a section of the one card.
+    const daily: Locator = sections.filter({ hasText: "Daily limits" });
 
+    await expect(sections).toHaveCount(2);
     await expect(daily).toHaveCount(1);
     await expect(daily.getByTestId("card-details-heading")).toHaveText(
       "Daily limits",
@@ -272,10 +277,11 @@ test.describe("Project Settings → AI → AI Features: daily AI limits", () => 
     await foldHeader().click();
     await expect(foldHeader()).toHaveAttribute("aria-expanded", "false");
     await expect(summary()).toContainText("At most 200,000 tokens a day.");
-    await expect(section().getByTestId("folded-section-item")).toHaveAttribute(
-      "data-item-set",
-      "true",
-    );
+    await expect(
+      section()
+        .getByTestId("folded-section-item")
+        .filter({ hasText: "Daily limits" }),
+    ).toHaveAttribute("data-item-set", "true");
   });
 
   test("the form refuses 0 before anything is sent", async () => {
