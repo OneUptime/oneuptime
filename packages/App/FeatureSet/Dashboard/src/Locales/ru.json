@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "Только если {{first}} и {{second}}",
   "Only if {{first}} or {{second}}": "Только если {{first}} или {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Только если {{first}}, {{second}} и {{third}}",
+  "Only if {{first}}, {{second}} or {{third}}": "Только если {{first}}, {{second}} или {{third}}",
   "Add All {{count}} Monitors": "Добавить все мониторы ({{count}})",
   "Add All {{count}} Monitors_one": "Добавить {{count}} монитор",
   "Add the {{count}} monitors still to set up on {{type}}": "Добавить мониторы, которые ещё не настроены для {{type}} ({{count}})",

@@ -1,7 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { MigrationInterface, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -69,7 +73,9 @@ describe("AddScheduledMaintenanceCloudResources1808994417000", () => {
   test("touches no table but its own", async () => {
     for (const statement of await statementsOf("up")) {
       expect(statement).toContain(`"${JOIN_TABLE}"`);
-      expect(statement).not.toMatch(/^(ALTER TABLE|UPDATE|DELETE)\s+"(ScheduledMaintenance|CloudResource)"\s/);
+      expect(statement).not.toMatch(
+        /^(ALTER TABLE|UPDATE|DELETE)\s+"(ScheduledMaintenance|CloudResource)"\s/,
+      );
     }
   });
 
@@ -133,8 +139,13 @@ describe("AddScheduledMaintenanceCloudResources1808994417000", () => {
   test("whoever may set, read or change an event's databases may do the same with its cloud resources", () => {
     const access: Record<
       string,
-      { create?: Array<Permission>; read?: Array<Permission>; update?: Array<Permission> }
-    > = new ScheduledMaintenance().getColumnAccessControlForAllColumns() as never;
+      {
+        create?: Array<Permission>;
+        read?: Array<Permission>;
+        update?: Array<Permission>;
+      }
+    > =
+      new ScheduledMaintenance().getColumnAccessControlForAllColumns() as never;
 
     for (const operation of ["create", "read", "update"] as const) {
       expect([...(access["cloudResources"]?.[operation] || [])].sort()).toEqual(

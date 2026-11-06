@@ -72,7 +72,8 @@ interface ReadCall {
   endTimestamp: Date;
 }
 
-const aggregateBy: jest.Mock = MetricService.aggregateBy as unknown as jest.Mock;
+const aggregateBy: jest.Mock =
+  MetricService.aggregateBy as unknown as jest.Mock;
 
 function stepFor(
   templateId: string,
@@ -196,9 +197,11 @@ describe("a Metrics monitor that reads its whole window", () => {
     expect(targetErrors!.data).toEqual([{ timestamp: windowEnd, value: 30 }]);
     expect(balancerErrors!.data).toEqual([{ timestamp: windowEnd, value: 0 }]);
     expect(requests!.data).toEqual([{ timestamp: windowEnd, value: 300 }]);
-    expect(share!.data.map((row: AggregatedModel): number => {
-      return row.value;
-    })).toEqual([10]);
+    expect(
+      share!.data.map((row: AggregatedModel): number => {
+        return row.value;
+      }),
+    ).toEqual([10]);
   });
 
   test("every other Metrics monitor is read a minute at a time, as before", async () => {

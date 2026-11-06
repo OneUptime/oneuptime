@@ -132,12 +132,11 @@ const NOT_LISTED_REASON_TEXT: Readonly<
 };
 
 // The reasons, in the order the section says them.
-const NOT_LISTED_REASONS: ReadonlyArray<CloudAccountRecommendationGapReason> =
-  [
-    CloudAccountRecommendationGapReason.NoMetrics,
-    CloudAccountRecommendationGapReason.NextRead,
-    CloudAccountRecommendationGapReason.Unsupported,
-  ];
+const NOT_LISTED_REASONS: ReadonlyArray<CloudAccountRecommendationGapReason> = [
+  CloudAccountRecommendationGapReason.NoMetrics,
+  CloudAccountRecommendationGapReason.NextRead,
+  CloudAccountRecommendationGapReason.Unsupported,
+];
 
 /*
  * A CLOUD ACCOUNT'S RECOMMENDED MONITORS: the monitors OneUptime recommends
@@ -390,7 +389,9 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
           resultLabels: CLOUD_ACCOUNT_CREATE_RESULT_LABELS,
         }),
         concurrency: 1,
-        step: async (item: CloudAccountRecommendationPlanItem): Promise<void> => {
+        step: async (
+          item: CloudAccountRecommendationPlanItem,
+        ): Promise<void> => {
           try {
             await ModelAPI.createOrUpdate({
               model: item.monitor,
@@ -590,9 +591,10 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
     const isCritical: boolean = row.severity === "Critical";
     const available: Array<CloudAccountRecommendationTarget> =
       CloudAccountRecommendationPlan.getAvailableTargets(row);
-    const listId: string = `cloud-account-recommendation-resources-${group.key}-${row.recommendationId}`
-      .replace(/[^a-zA-Z0-9_-]/g, "-")
-      .toLowerCase();
+    const listId: string =
+      `cloud-account-recommendation-resources-${group.key}-${row.recommendationId}`
+        .replace(/[^a-zA-Z0-9_-]/g, "-")
+        .toLowerCase();
 
     return (
       <li
@@ -871,7 +873,10 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
                   {listed.length > shown.length ? (
                     <span className="px-1 py-0.5 text-xs text-gray-500">
                       {translator.translatePlural(
-                        { one: "and {{count}} more", other: "and {{count}} more" },
+                        {
+                          one: "and {{count}} more",
+                          other: "and {{count}} more",
+                        },
                         listed.length - shown.length,
                       )}
                     </span>

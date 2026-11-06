@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "Bara om {{first}} och {{second}}",
   "Only if {{first}} or {{second}}": "Bara om {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bara om {{first}}, {{second}} och {{third}}",
+  "Only if {{first}}, {{second}} or {{third}}": "Bara om {{first}}, {{second}} eller {{third}}",
   "Add All {{count}} Monitors": "Lägg till alla {{count}} monitorer",
   "Add All {{count}} Monitors_one": "Lägg till {{count}} monitor",
   "Add the {{count}} monitors still to set up on {{type}}": "Lägg till de {{count}} monitorer som återstår att konfigurera på {{type}}",

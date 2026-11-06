@@ -172,7 +172,9 @@ function templateMonitor(data: {
  * whose query names the resource in its event scope, and possibly others
  * beside it.
  */
-function metricsTabMonitor(eventScopes: Array<JSONObject | undefined>): Monitor {
+function metricsTabMonitor(
+  eventScopes: Array<JSONObject | undefined>,
+): Monitor {
   const step: MonitorStep = new MonitorStep();
   step.data = {
     ...step.data,
@@ -282,9 +284,7 @@ describe("a monitor names the cloud resource its queries are scoped to", () => {
       ).toEqual([]);
     }
 
-    expect(refsOf(metricsTabMonitor([undefined])).cloudResourceIds).toEqual(
-      [],
-    );
+    expect(refsOf(metricsTabMonitor([undefined])).cloudResourceIds).toEqual([]);
   });
 
   test("a chart of two resources names both", () => {
@@ -440,9 +440,7 @@ describe("MonitorMaintenanceSuppression.getMaintenanceSuppression, for a cloud r
 
   beforeEach(() => {
     events = [];
-    inProgressStateIds = [
-      new ObjectID("44444444-4444-4444-8444-444444444441"),
-    ];
+    inProgressStateIds = [new ObjectID("44444444-4444-4444-8444-444444444441")];
     cloudResourceRows = [];
 
     jest
@@ -695,9 +693,9 @@ describe("MonitorMaintenanceSuppression.getMaintenanceSuppression, for a cloud r
       }),
     });
 
-    const select: JSONObject = (
-      maintenanceSpy.mock.calls[0][0] as JSONObject
-    )["select"] as JSONObject;
+    const select: JSONObject = (maintenanceSpy.mock.calls[0][0] as JSONObject)[
+      "select"
+    ] as JSONObject;
 
     expect(select["cloudResources"]).toEqual({ _id: true });
     expect(select["databaseServers"]).toEqual({ _id: true });

@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "Alleen als {{first}} en {{second}}",
   "Only if {{first}} or {{second}}": "Alleen als {{first}} of {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Alleen als {{first}}, {{second}} en {{third}}",
+  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}",
   "Add All {{count}} Monitors": "Alle {{count}} monitors toevoegen",
   "Add All {{count}} Monitors_one": "{{count}} monitor toevoegen",
   "Add the {{count}} monitors still to set up on {{type}}": "De {{count}} monitors toevoegen die voor {{type}} nog moeten worden ingesteld",

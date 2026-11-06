@@ -252,7 +252,9 @@ describe("a cloud resource's Recommendations tab", () => {
   test("offers its type's monitors, and says its numbers come from its cloud's monitoring", async () => {
     renderTab();
 
-    expect(await screen.findByText("Status Checks Failing")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Status Checks Failing"),
+    ).toBeInTheDocument();
     expect(screen.getByText("High CPU")).toBeInTheDocument();
     expect(
       screen.getByText(/from the metrics Amazon CloudWatch reports about it/),
@@ -263,10 +265,8 @@ describe("a cloud resource's Recommendations tab", () => {
     renderTab();
     await screen.findByText("Status Checks Failing");
 
-    const read: Record<string, unknown> = getItemMock.mock.calls[0]![0] as Record<
-      string,
-      unknown
-    >;
+    const read: Record<string, unknown> = getItemMock.mock
+      .calls[0]![0] as Record<string, unknown>;
 
     expect(read["modelType"]).toBe(CloudResource);
     expect(read["select"]).toEqual({
@@ -355,7 +355,9 @@ describe("a cloud resource's Recommendations tab", () => {
 
     renderTab();
 
-    expect(await screen.findByText("Status Checks Failing")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Status Checks Failing"),
+    ).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Select Status Checks Failing" }),

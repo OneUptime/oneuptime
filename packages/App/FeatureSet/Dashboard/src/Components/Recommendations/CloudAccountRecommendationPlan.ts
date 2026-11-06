@@ -272,8 +272,10 @@ export default class CloudAccountRecommendationPlan {
         data.existingMonitors,
       );
 
-    const dismissalsByResource: Map<string, Array<RecommendationDismissal>> =
-      new Map<string, Array<RecommendationDismissal>>();
+    const dismissalsByResource: Map<
+      string,
+      Array<RecommendationDismissal>
+    > = new Map<string, Array<RecommendationDismissal>>();
 
     for (const dismissal of data.dismissals) {
       const resourceId: string = dismissal.resourceId?.toString() || "";
@@ -520,8 +522,9 @@ export default class CloudAccountRecommendationPlan {
     }
 
     if (
-      Object.keys(readCloudTelemetryAttributes(context.cloudTelemetryAttributes))
-        .length === 0
+      Object.keys(
+        readCloudTelemetryAttributes(context.cloudTelemetryAttributes),
+      ).length === 0
     ) {
       return CloudAccountRecommendationGapReason.NoMetrics;
     }

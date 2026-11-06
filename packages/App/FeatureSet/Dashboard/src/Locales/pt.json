@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "Somente se {{first}} e {{second}}",
   "Only if {{first}} or {{second}}": "Somente se {{first}} ou {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Somente se {{first}}, {{second}} e {{third}}",
+  "Only if {{first}}, {{second}} or {{third}}": "Somente se {{first}}, {{second}} ou {{third}}",
   "Add All {{count}} Monitors": "Adicionar todos os {{count}} monitores",
   "Add All {{count}} Monitors_one": "Adicionar {{count}} monitor",
   "Add the {{count}} monitors still to set up on {{type}}": "Adicionar os {{count}} monitores ainda por configurar em {{type}}",

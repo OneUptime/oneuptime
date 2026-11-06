@@ -185,7 +185,9 @@ export function buildResources(now) {
         cloudRegion: "eu-west-1",
         telemetryAttributes: attributes(
           "AWS/Lambda",
-          { FunctionName: "storefront-production-image-resizer-eu-west-1-arm64" },
+          {
+            FunctionName: "storefront-production-image-resizer-eu-west-1-arm64",
+          },
           "eu-west-1",
         ),
         cloudProperties: { Runtime: "nodejs20.x", MemorySize: 2048 },

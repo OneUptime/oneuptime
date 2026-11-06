@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "فقط اگر {{first}} و {{second}}",
   "Only if {{first}} or {{second}}": "فقط اگر {{first}} یا {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "فقط اگر {{first}}، {{second}} و {{third}}",
+  "Only if {{first}}, {{second}} or {{third}}": "فقط اگر {{first}}، {{second}} یا {{third}}",
   "Add All {{count}} Monitors": "افزودن همه {{count}} مانیتور",
   "Add All {{count}} Monitors_one": "افزودن {{count}} مانیتور",
   "Add the {{count}} monitors still to set up on {{type}}": "افزودن {{count}} مانیتوری که هنوز باید روی {{type}} تنظیم شوند",

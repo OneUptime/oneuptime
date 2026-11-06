@@ -511,7 +511,9 @@ describe("adding monitors", () => {
     expect(
       await screen.findByText("web-1 - Status Checks Failing"),
     ).toBeInTheDocument();
-    expect(screen.getByText("web-2 - Status Checks Failing")).toBeInTheDocument();
+    expect(
+      screen.getByText("web-2 - Status Checks Failing"),
+    ).toBeInTheDocument();
 
     await createFromPanel();
 
@@ -520,9 +522,11 @@ describe("adding monitors", () => {
     });
 
     const made: Array<Monitor> = createdMonitors();
-    expect(made.map((monitor: Monitor) => {
-      return monitor.name;
-    })).toEqual([
+    expect(
+      made.map((monitor: Monitor) => {
+        return monitor.name;
+      }),
+    ).toEqual([
       "web-1 - Status Checks Failing",
       "web-2 - Status Checks Failing",
     ]);
@@ -774,9 +778,7 @@ describe("what is set up or dismissed already", () => {
 
     await renderPage();
 
-    expect(
-      screen.getByText("Nothing left to set up here"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Nothing left to set up here")).toBeInTheDocument();
   });
 
   test("an account with no resources yet says what brings them", async () => {
@@ -816,7 +818,9 @@ describe("a member who may not create monitors", () => {
     }
 
     fireEvent.click(adds[0]!);
-    expect(screen.queryByRole("button", { name: "Create Monitors" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Create Monitors" }),
+    ).toBeNull();
   });
 
   test("an owner reads no such line", async () => {

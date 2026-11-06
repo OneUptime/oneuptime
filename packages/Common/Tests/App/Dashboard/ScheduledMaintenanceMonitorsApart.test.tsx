@@ -640,7 +640,7 @@ describe("Resources Affected: the monitors apart, and the status they change to 
     ).toBeVisible();
     expect(
       within(fieldOf(others)).getByText(
-        "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
+        "Hosts, clusters, databases, cloud resources, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
       ),
     ).toBeVisible();
 

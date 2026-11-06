@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -28,7 +28,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -866,7 +865,11 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   };
 
   const gatedCreateButton: CardButtonSchema | null =
-    PermissionGate.gateCardButton(createButton, new Monitor(), ModelAction.Create);
+    PermissionGate.gateCardButton(
+      createButton,
+      new Monitor(),
+      ModelAction.Create,
+    );
 
   type GetMonitorRouteFunction = (monitorId: ObjectID) => Route;
 

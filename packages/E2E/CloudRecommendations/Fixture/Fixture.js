@@ -206,7 +206,10 @@ function initialMonitors() {
         "cloud-aws-ec2-status-check-failed",
       ),
       monitorFor(resourceNamed(RESOURCE_IDS.web1), "cloud-aws-ec2-high-cpu"),
-      monitorFor(resourceNamed(RESOURCE_IDS.ordersDb), "cloud-aws-rds-high-cpu"),
+      monitorFor(
+        resourceNamed(RESOURCE_IDS.ordersDb),
+        "cloud-aws-rds-high-cpu",
+      ),
     ].filter(Boolean);
   }
 
@@ -958,4 +961,3 @@ createRoot(document.getElementById("root")).render(
     <FixtureApp />
   </BrowserRouter>,
 );
-

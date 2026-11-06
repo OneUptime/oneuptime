@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "Only if {{first}} and {{second}}",
   "Only if {{first}} or {{second}}": "Only if {{first}} or {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Only if {{first}}, {{second}} and {{third}}",
+  "Only if {{first}}, {{second}} or {{third}}": "Only if {{first}}, {{second}} or {{third}}",
   "Add All {{count}} Monitors": "Add All {{count}} Monitors",
   "Add All {{count}} Monitors_one": "Add {{count}} Monitor",
   "Add the {{count}} monitors still to set up on {{type}}": "Add the {{count}} monitors still to set up on {{type}}",

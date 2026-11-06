@@ -1031,7 +1031,9 @@ export default class MonitorMaintenanceSuppression {
          */
         this.addKey(
           maintained.cloudResources,
-          cloudResource._id ? String(cloudResource._id).toLowerCase() : undefined,
+          cloudResource._id
+            ? String(cloudResource._id).toLowerCase()
+            : undefined,
           undefined,
         );
       }

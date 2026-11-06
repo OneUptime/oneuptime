@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}} or {{second}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
+  "Only if {{first}}, {{second}} or {{third}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
   "Add All {{count}} Monitors": "{{count}} 件のモニターをすべて追加",
   "Add All {{count}} Monitors_one": "{{count}} 件のモニターを追加",
   "Add the {{count}} monitors still to set up on {{type}}": "{{type}} でまだセットアップされていない {{count}} 件のモニターを追加",

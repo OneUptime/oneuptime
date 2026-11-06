@@ -4,8 +4,9 @@ import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricWholeWindow from "../../../Utils/Metrics/MetricWholeWindow";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
-import { MonitorStepMetricMonitorUtil } from "../../../Types/Monitor/MonitorStepMetricMonitor";
-import MonitorStepMetricMonitor from "../../../Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 
 /*
@@ -87,16 +88,19 @@ describe("MetricWholeWindow.toWholeWindowResult", () => {
     AggregationType.Max,
     AggregationType.Min,
     AggregationType.P95,
-  ])("a %s that read nothing is no reading", (aggregationType: AggregationType) => {
-    expect(
-      MetricWholeWindow.toWholeWindowResult({
-        result: { data: [] },
-        windowEnd: WINDOW_END,
-        aggregationType: aggregationType,
-        isGrouped: false,
-      }).data,
-    ).toEqual([]);
-  });
+  ])(
+    "a %s that read nothing is no reading",
+    (aggregationType: AggregationType) => {
+      expect(
+        MetricWholeWindow.toWholeWindowResult({
+          result: { data: [] },
+          windowEnd: WINDOW_END,
+          aggregationType: aggregationType,
+          isGrouped: false,
+        }).data,
+      ).toEqual([]);
+    },
+  );
 
   test("a grouped count that read nothing names no series: none is made up", () => {
     expect(

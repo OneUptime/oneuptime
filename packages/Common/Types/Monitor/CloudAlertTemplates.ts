@@ -321,9 +321,7 @@ export interface CloudAlertTemplate {
   // "at or above 90%": the comparison in words.
   thresholdLabel: string;
   // A second comparison the breach needs too (a share's request floor).
-  minimumRequests?:
-    | { alias: string; value: number; label: string }
-    | undefined;
+  minimumRequests?: { alias: string; value: number; label: string } | undefined;
   // What it needs to know of the resource besides its attributes.
   requiresAllocatedStorage?: boolean | undefined;
   /*
@@ -625,7 +623,8 @@ function buildCriteria(
     metricAlias: template.comparedAlias,
     filterType: getRecoveryFilterType(template.filterType),
     value: threshold,
-    recoveryValue: isWhole || template.measure === "breakage" ? threshold : undefined,
+    recoveryValue:
+      isWhole || template.measure === "breakage" ? threshold : undefined,
     isBinaryMetric: template.measure === "breakage",
     metricAggregationType: isWhole
       ? EvaluateOverTimeType.AnyValue
@@ -871,7 +870,9 @@ function failedShare(data: {
   incidentDescription: string;
 }): CloudAlertTemplate {
   const [first, second] = data.failed;
-  const failed: string = second ? `($${FAILED} + $${SECOND_FAILED})` : `$${FAILED}`;
+  const failed: string = second
+    ? `($${FAILED} + $${SECOND_FAILED})`
+    : `$${FAILED}`;
 
   return define({
     id: data.id,
@@ -1015,16 +1016,19 @@ function ageAtOrAbove(data: {
 const AWS: CloudProvider = CloudProvider.AWS;
 const AZURE: CloudProvider = CloudProvider.Azure;
 
-// Where each AWS template's numbers come from, for its description.
+/*
+ * Where each AWS template's numbers come from, for its description, and that
+ * it works better streamed (isBetterStreamed): a read-only account's points
+ * are 15 to 30 minutes old when CloudWatch publishes them.
+ */
 const READ_FROM_CLOUDWATCH: string =
-  "Read from Amazon CloudWatch by the account's connection, or streamed through Amazon Data Firehose.";
+  "Read from Amazon CloudWatch by the account's connection, or streamed through Amazon Data Firehose: works better streamed, whose metrics arrive within minutes, so it fires sooner.";
 const READ_FROM_AZURE_MONITOR: string =
   "Read from Azure Monitor by the subscription's connection.";
 const READ_FROM_CLOUD_MONITORING: string =
   "Read from Google Cloud Monitoring by the project's connection.";
 
-const ON_PAGE_TOO: string =
-  "The resource's page says it too, as its health.";
+const ON_PAGE_TOO: string = "The resource's page says it too, as its health.";
 
 function awsShareDescription(metrics: string): string {
   return `Fires when 5% or more of the requests of the past 30 minutes failed, of at least 20 requests: ${metrics}, each totalled over the window, so a read-only and a streamed account read the same share. ${READ_FROM_CLOUDWATCH}`;
@@ -1064,19 +1068,20 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
       "The instance's CPU stayed at 90% or more for 30 minutes. Look for a process that runs away or for traffic that grew, then scale out behind its load balancer, or move it to a larger instance type. A burstable instance (T family) that ran out of CPU credits is held at its baseline.",
   }),
   sustainedAtOrAbove({
-      id: "cloud-aws-elb-unhealthy-hosts",
-      name: "Unhealthy Hosts",
-      summary: "A host behind the load balancer fails its health check for 30 minutes.",
-      description: `Fires when every reading of UnHealthyHostCount (Maximum) in the past 30 minutes is 1 or more: an instance behind the classic load balancer keeps failing its health check, and gets no traffic. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
-      category: "Availability",
-      provider: AWS,
-      resourceTypes: ["AWS::ElasticLoadBalancing::LoadBalancer"],
-      metric: awsMetric("AWS/ELB", "UnHealthyHostCount"),
-      threshold: 1,
-      thresholdLabel: "1 or more",
-      incidentDescription:
-        "A host behind the load balancer failed its health check for 30 minutes and gets no traffic. Open the load balancer's instances in the AWS console to see which one and why, and check the instance, its security group and the health check's path.",
-    }),
+    id: "cloud-aws-elb-unhealthy-hosts",
+    name: "Unhealthy Hosts",
+    summary:
+      "A host behind the load balancer fails its health check for 30 minutes.",
+    description: `Fires when every reading of UnHealthyHostCount (Maximum) in the past 30 minutes is 1 or more: an instance behind the classic load balancer keeps failing its health check, and gets no traffic. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
+    category: "Availability",
+    provider: AWS,
+    resourceTypes: ["AWS::ElasticLoadBalancing::LoadBalancer"],
+    metric: awsMetric("AWS/ELB", "UnHealthyHostCount"),
+    threshold: 1,
+    thresholdLabel: "1 or more",
+    incidentDescription:
+      "A host behind the load balancer failed its health check for 30 minutes and gets no traffic. Open the load balancer's instances in the AWS console to see which one and why, and check the instance, its security group and the health check's path.",
+  }),
   failedShare({
     id: "cloud-aws-elb-server-errors",
     name: "Server Errors",
@@ -1285,27 +1290,28 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
       "The database's CPU stayed at 95% or more for 30 minutes, so its queries queue. Performance Insights names the queries that use it; add an index, move reads to a replica, or scale the instance class up.",
   }),
   define({
-      id: "cloud-aws-rds-low-storage",
-      name: "Low Free Storage",
-      summary: "Free storage stays under 10% of what is allocated for 30 minutes.",
-      description: `Fires when every reading of FreeStorageSpace (Average) in the past 30 minutes is under 10% of the instance's allocated storage, as its inventory lists it - the health rules' 90% full. Offered once the account's inventory has listed the instance. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
-      category: "Storage",
-      severity: "Warning",
-      provider: AWS,
-      resourceTypes: ["AWS::RDS::DBInstance"],
-      measure: "sustained",
-      queries: [
-        { alias: VALUE, metric: awsMetric("AWS/RDS", "FreeStorageSpace") },
-      ],
-      comparedAlias: VALUE,
-      filterType: FilterType.LessThan,
-      // Replaced by 10% of the instance's own storage (getThreshold).
-      threshold: 0,
-      thresholdLabel: `under ${CLOUD_RDS_FREE_STORAGE_LOW_PERCENT}% of its allocated storage`,
-      requiresAllocatedStorage: true,
-      incidentDescription:
-        "The database has less than 10% of its allocated storage free; a database that runs out goes read-only. Turn on storage autoscaling or raise its allocated storage, and look for what grew: tables, indexes, logs or temporary files.",
-    }),
+    id: "cloud-aws-rds-low-storage",
+    name: "Low Free Storage",
+    summary:
+      "Free storage stays under 10% of what is allocated for 30 minutes.",
+    description: `Fires when every reading of FreeStorageSpace (Average) in the past 30 minutes is under 10% of the instance's allocated storage, as its inventory lists it - the health rules' 90% full. Offered once the account's inventory has listed the instance. ${READ_FROM_CLOUDWATCH} ${ON_PAGE_TOO}`,
+    category: "Storage",
+    severity: "Warning",
+    provider: AWS,
+    resourceTypes: ["AWS::RDS::DBInstance"],
+    measure: "sustained",
+    queries: [
+      { alias: VALUE, metric: awsMetric("AWS/RDS", "FreeStorageSpace") },
+    ],
+    comparedAlias: VALUE,
+    filterType: FilterType.LessThan,
+    // Replaced by 10% of the instance's own storage (getThreshold).
+    threshold: 0,
+    thresholdLabel: `under ${CLOUD_RDS_FREE_STORAGE_LOW_PERCENT}% of its allocated storage`,
+    requiresAllocatedStorage: true,
+    incidentDescription:
+      "The database has less than 10% of its allocated storage free; a database that runs out goes read-only. Turn on storage autoscaling or raise its allocated storage, and look for what grew: tables, indexes, logs or temporary files.",
+  }),
   sustainedAtOrAbove({
     id: "cloud-aws-docdb-high-cpu",
     name: "High CPU",
@@ -1741,7 +1747,9 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
     provider: AZURE,
     resourceTypes: ["Microsoft.Sql/servers/databases"],
     measure: "sustained",
-    queries: [{ alias: VALUE, metric: azurePercent("dtu_consumption_percent") }],
+    queries: [
+      { alias: VALUE, metric: azurePercent("dtu_consumption_percent") },
+    ],
     comparedAlias: VALUE,
     filterType: FilterType.GreaterThanOrEqualTo,
     threshold: 95,
@@ -1884,24 +1892,24 @@ const AZURE_TEMPLATES: Array<CloudAlertTemplate> = [
       "Requests failed for 15 minutes for reasons of Azure's own. Its Resource Health and Service Health in the Azure portal say whether Azure is working on it.",
   }),
   anyInWindow({
-      id: "cloud-azure-messaging-dead-lettered",
-      name: "Messages Dead-Lettered",
-      summary: "A message is moved to a dead-letter queue.",
-      description: `Fires when DeadletteredMessages (Average) is 1 or more at any reading in the past 15 minutes: a message could not be processed, or expired, and waits in a dead-letter queue until someone looks at it. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
-      category: "Backlog",
-      provider: AZURE,
-      resourceTypes: ["Microsoft.ServiceBus/namespaces"],
-      metrics: [
-        azureMetric({
-          metricName: "DeadletteredMessages",
-          aggregation: "average",
-          aggregationType: MetricsAggregationType.Max,
-        }),
-      ],
-      thresholdLabel: "1 dead-lettered message or more",
-      incidentDescription:
-        "Messages of the namespace sit in a dead-letter queue: a consumer could not process them, or they expired. Read the dead-letter reason on the messages, fix the cause, then resubmit or remove them.",
-    }),
+    id: "cloud-azure-messaging-dead-lettered",
+    name: "Messages Dead-Lettered",
+    summary: "A message is moved to a dead-letter queue.",
+    description: `Fires when DeadletteredMessages (Average) is 1 or more at any reading in the past 15 minutes: a message could not be processed, or expired, and waits in a dead-letter queue until someone looks at it. ${READ_FROM_AZURE_MONITOR} ${ON_PAGE_TOO}`,
+    category: "Backlog",
+    provider: AZURE,
+    resourceTypes: ["Microsoft.ServiceBus/namespaces"],
+    metrics: [
+      azureMetric({
+        metricName: "DeadletteredMessages",
+        aggregation: "average",
+        aggregationType: MetricsAggregationType.Max,
+      }),
+    ],
+    thresholdLabel: "1 dead-lettered message or more",
+    incidentDescription:
+      "Messages of the namespace sit in a dead-letter queue: a consumer could not process them, or they expired. Read the dead-letter reason on the messages, fix the cause, then resubmit or remove them.",
+  }),
   anyInWindow({
     id: "cloud-azure-messaging-server-errors",
     name: "Server Errors",
@@ -2273,10 +2281,13 @@ export function getCloudAlertTemplate(
   });
 }
 
-function isTypeOf(template: CloudAlertTemplate, data: {
-  provider: string;
-  resourceType: string;
-}): boolean {
+function isTypeOf(
+  template: CloudAlertTemplate,
+  data: {
+    provider: string;
+    resourceType: string;
+  },
+): boolean {
   if (template.provider !== data.provider) {
     return false;
   }

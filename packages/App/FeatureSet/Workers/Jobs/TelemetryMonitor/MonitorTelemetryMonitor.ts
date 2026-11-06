@@ -1793,14 +1793,14 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
       groupBy: queryConfig.metricQueryData.groupBy,
       groupByAttributeKeys:
         groupByAttributeKeys.length > 0 ? groupByAttributeKeys : undefined,
-        /*
-         * Alerting must fail loud on a query timeout: the default
-         * 'break' overflow mode returns silently-partial buckets, which
-         * a no-data policy would score as missing data (false "no data"
-         * incident) and threshold checks would score against wrong
-         * numbers. 'throw' fails the queue job and leaves monitor state
-         * unchanged — same abort semantics the uncapped query had.
-         */
+      /*
+       * Alerting must fail loud on a query timeout: the default
+       * 'break' overflow mode returns silently-partial buckets, which
+       * a no-data policy would score as missing data (false "no data"
+       * incident) and threshold checks would score against wrong
+       * numbers. 'throw' fails the queue job and leaves monitor state
+       * unchanged — same abort semantics the uncapped query had.
+       */
       timeoutOverflowMode: "throw",
       props: {
         isRoot: true,

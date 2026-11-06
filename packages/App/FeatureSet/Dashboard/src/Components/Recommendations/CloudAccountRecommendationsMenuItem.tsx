@@ -35,9 +35,9 @@ export interface ComponentProps {
  * Every failure is swallowed and the entry renders with no badge, as
  * RecommendationsSideMenuItem's does: the page behind it works either way.
  */
-const CloudAccountRecommendationsMenuItem: FunctionComponent<
-  ComponentProps
-> = (props: ComponentProps): ReactElement => {
+const CloudAccountRecommendationsMenuItem: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [count, setCount] = useState<number | undefined>(undefined);
   // Counted again when the page beside it sets some up.
   const changes: number = useRecommendationsChangedCount();

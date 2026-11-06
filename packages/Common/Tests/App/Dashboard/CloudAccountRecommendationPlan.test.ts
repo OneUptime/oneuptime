@@ -198,10 +198,12 @@ function dismissalOf(
   return dismissal;
 }
 
-function groupsOf(data: {
-  monitors?: Array<{ monitorId: ObjectID; monitorSteps: Array<MonitorStep> }>;
-  dismissals?: Array<RecommendationDismissal>;
-} = {}): Array<CloudAccountRecommendationGroup> {
+function groupsOf(
+  data: {
+    monitors?: Array<{ monitorId: ObjectID; monitorSteps: Array<MonitorStep> }>;
+    dismissals?: Array<RecommendationDismissal>;
+  } = {},
+): Array<CloudAccountRecommendationGroup> {
   return CloudAccountRecommendationPlan.buildGroups({
     resources: ALL,
     existingMonitors: data.monitors || [],
@@ -227,7 +229,9 @@ function rowOf(
   })!;
 }
 
-function namesOf(targets: Array<CloudAccountRecommendationTarget>): Array<string> {
+function namesOf(
+  targets: Array<CloudAccountRecommendationTarget>,
+): Array<string> {
   return targets.map((target: CloudAccountRecommendationTarget): string => {
     return target.resource.resourceName;
   });
@@ -392,9 +396,14 @@ describe("getGaps", () => {
       CloudAccountRecommendationPlan.getGaps({ resources: ALL, groups });
 
     expect(
-      gaps.gaps.map((gap: { resource: CloudAccountRecommendationResource; reason: string }) => {
-        return [gap.resource.resourceName, gap.reason];
-      }),
+      gaps.gaps.map(
+        (gap: {
+          resource: CloudAccountRecommendationResource;
+          reason: string;
+        }) => {
+          return [gap.resource.resourceName, gap.reason];
+        },
+      ),
     ).toEqual([
       ["edge-nlb", CloudAccountRecommendationGapReason.Unsupported],
       ["orders-sql", CloudAccountRecommendationGapReason.NextRead],
@@ -428,18 +437,18 @@ describe("getGaps", () => {
   });
 
   test("why: a type with none, metrics not arrived, an Azure read to come, metrics no template reads", () => {
-    expect(
-      CloudAccountRecommendationPlan.getGapReason(PROD_VPC.context),
-    ).toBe(CloudAccountRecommendationGapReason.Unsupported);
+    expect(CloudAccountRecommendationPlan.getGapReason(PROD_VPC.context)).toBe(
+      CloudAccountRecommendationGapReason.Unsupported,
+    );
     expect(CloudAccountRecommendationPlan.getGapReason(WEB_3.context)).toBe(
       CloudAccountRecommendationGapReason.NoMetrics,
     );
-    expect(
-      CloudAccountRecommendationPlan.getGapReason(AZURE_SQL.context),
-    ).toBe(CloudAccountRecommendationGapReason.NextRead);
-    expect(
-      CloudAccountRecommendationPlan.getGapReason(EDGE_NLB.context),
-    ).toBe(CloudAccountRecommendationGapReason.Unsupported);
+    expect(CloudAccountRecommendationPlan.getGapReason(AZURE_SQL.context)).toBe(
+      CloudAccountRecommendationGapReason.NextRead,
+    );
+    expect(CloudAccountRecommendationPlan.getGapReason(EDGE_NLB.context)).toBe(
+      CloudAccountRecommendationGapReason.Unsupported,
+    );
   });
 });
 
@@ -500,7 +509,10 @@ describe("what one Add creates", () => {
       plan.map((item: CloudAccountRecommendationPlanItem): string => {
         return CloudAccountRecommendationPlan.getPlanItemName(item);
       }),
-    ).toEqual(["web-1 - Status Checks Failing", "web-2 - Status Checks Failing"]);
+    ).toEqual([
+      "web-1 - Status Checks Failing",
+      "web-2 - Status Checks Failing",
+    ]);
 
     for (const item of plan) {
       const monitor: Monitor = item.monitor;

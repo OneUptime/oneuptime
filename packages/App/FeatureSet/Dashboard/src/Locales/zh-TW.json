@@ -45351,6 +45351,7 @@
   "Only if {{first}} and {{second}}": "僅當{{first}}且{{second}}時",
   "Only if {{first}} or {{second}}": "僅當{{first}}或{{second}}時",
   "Only if {{first}}, {{second}} and {{third}}": "僅當{{first}}、{{second}}且{{third}}時",
+  "Only if {{first}}, {{second}} or {{third}}": "僅當{{first}}、{{second}}或{{third}}時",
   "Add All {{count}} Monitors": "新增全部 {{count}} 個監測器",
   "Add All {{count}} Monitors_one": "新增 {{count}} 個監測器",
   "Add the {{count}} monitors still to set up on {{type}}": "新增 {{type}} 上仍待設定的 {{count}} 個監測器",

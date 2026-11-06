@@ -135,13 +135,6 @@ const RDS_ATTRIBUTES: Dictionary<string> = {
   "resource.cloud.region": "eu-west-1",
 };
 
-const SQS_ATTRIBUTES: Dictionary<string> = {
-  [AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE]: "AWS/SQS",
-  "Dimensions.QueueName": "orders",
-  "resource.cloud.account.id": "123456789012",
-  "resource.cloud.region": "eu-west-1",
-};
-
 const AZURE_SQL_ID: string =
   "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Sql/servers/sql-prod/databases/orders";
 
@@ -227,9 +220,11 @@ function stepOf(cloudTemplate: CloudAlertTemplate): MonitorStep {
   );
 }
 
-// ---------------------------------------------------------------------------
-// The library
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The library
+ * ---------------------------------------------------------------------------
+ */
 
 const ALL: Array<CloudAlertTemplate> = getAllCloudAlertTemplates();
 
@@ -264,9 +259,13 @@ describe("the cloud alert template library", () => {
     expect(getCloudAlertTemplate("cloud-aws-no-such-template")).toBeUndefined();
   });
 
-  test.each(ALL.map((cloudTemplate: CloudAlertTemplate) => {
-    return [cloudTemplate.id, cloudTemplate];
-  }))(
+  test.each(
+    ALL.map(
+      (cloudTemplate: CloudAlertTemplate): [string, CloudAlertTemplate] => {
+        return [cloudTemplate.id, cloudTemplate];
+      },
+    ),
+  )(
     "%s is a Metrics monitor on its cloud's window, every five minutes",
     (_id: string, cloudTemplate: CloudAlertTemplate) => {
       expect(cloudTemplate.monitorType).toBe(MonitorType.Metrics);
@@ -304,8 +303,9 @@ describe("the cloud alert template library", () => {
 
   test("every description says where its numbers come from", () => {
     const sources: Record<CloudProvider, string> = {
+      // Every AWS template says it works better streamed (isBetterStreamed).
       [CloudProvider.AWS]:
-        "Read from Amazon CloudWatch by the account's connection, or streamed through Amazon Data Firehose.",
+        "Read from Amazon CloudWatch by the account's connection, or streamed through Amazon Data Firehose: works better streamed, whose metrics arrive within minutes, so it fires sooner.",
       [CloudProvider.Azure]:
         "Read from Azure Monitor by the subscription's connection.",
       [CloudProvider.GCP]:
@@ -316,6 +316,10 @@ describe("the cloud alert template library", () => {
       expect(cloudTemplate.description).toContain(
         sources[cloudTemplate.provider],
       );
+      // Only a template that works better streamed says so.
+      expect(
+        `${cloudTemplate.id}: ${cloudTemplate.description.includes("works better streamed")}`,
+      ).toBe(`${cloudTemplate.id}: ${cloudTemplate.isBetterStreamed}`);
     }
 
     expect(getCloudMonitoringServiceName("aws")).toBe("Amazon CloudWatch");
@@ -351,7 +355,9 @@ describe("the cloud alert template library", () => {
         );
 
         // A connection reads it: the monitor costs no call to the cloud.
-        expect(`${cloudTemplate.id} ${namespace} ${query.metric.metricName}: ${Boolean(keyMetric)}`).toBe(
+        expect(
+          `${cloudTemplate.id} ${namespace} ${query.metric.metricName}: ${Boolean(keyMetric)}`,
+        ).toBe(
           `${cloudTemplate.id} ${namespace} ${query.metric.metricName}: true`,
         );
 
@@ -368,13 +374,14 @@ describe("the cloud alert template library", () => {
 
         // Each of its resource types is discovered from that namespace.
         for (const type of cloudTemplate.resourceTypes) {
-          const namespaces: Array<string> = AWS_CLOUDWATCH_RESOURCE_RULES.filter(
-            (rule: AwsCloudWatchResourceRule): boolean => {
-              return rule.type === type;
-            },
-          ).map((rule: AwsCloudWatchResourceRule): string => {
-            return rule.namespace;
-          });
+          const namespaces: Array<string> =
+            AWS_CLOUDWATCH_RESOURCE_RULES.filter(
+              (rule: AwsCloudWatchResourceRule): boolean => {
+                return rule.type === type;
+              },
+            ).map((rule: AwsCloudWatchResourceRule): string => {
+              return rule.namespace;
+            });
 
           expect(namespaces).toContain(namespace);
         }
@@ -391,9 +398,9 @@ describe("the cloud alert template library", () => {
           const metrics: Array<string> =
             getAzureKeyMetrics(type)?.metrics || [];
 
-          expect(`${cloudTemplate.id} ${type}: ${metrics.includes(query.metric.metricName)}`).toBe(
-            `${cloudTemplate.id} ${type}: true`,
-          );
+          expect(
+            `${cloudTemplate.id} ${type}: ${metrics.includes(query.metric.metricName)}`,
+          ).toBe(`${cloudTemplate.id} ${type}: true`);
         }
 
         expect(query.metric.azureAggregation).toBeTruthy();
@@ -548,18 +555,30 @@ describe("the cloud alert template library", () => {
     ["an RDS instance's storage", "cloud-aws-rds-low-storage"],
     ["an Azure SQL database's storage", "cloud-azure-sql-storage-full"],
     ["an Azure SQL database's sessions", "cloud-azure-sql-sessions-high"],
-    ["an Azure SQL database's failed connections", "cloud-azure-sql-failed-connections"],
-    ["a PostgreSQL flexible server's failed connections", "cloud-azure-postgresql-failed-connections"],
+    [
+      "an Azure SQL database's failed connections",
+      "cloud-azure-sql-failed-connections",
+    ],
+    [
+      "a PostgreSQL flexible server's failed connections",
+      "cloud-azure-postgresql-failed-connections",
+    ],
     ["a Cloud SQL instance's disk", "cloud-gcp-cloudsql-disk-full"],
     ["a classic load balancer's 5xx", "cloud-aws-elb-server-errors"],
     ["an application load balancer's 5xx", "cloud-aws-alb-server-errors"],
     ["an application load balancer's latency", "cloud-aws-alb-slow-responses"],
-    ["an application gateway's failed requests", "cloud-azure-appgateway-failed-requests"],
+    [
+      "an application gateway's failed requests",
+      "cloud-azure-appgateway-failed-requests",
+    ],
     ["a Google Cloud load balancer's latency", "cloud-gcp-lb-slow-responses"],
     ["a Lambda function's errors", "cloud-aws-lambda-errors"],
     ["a Lambda function's throttles", "cloud-aws-lambda-throttles"],
     ["an SQS queue's oldest message", "cloud-aws-sqs-oldest-message"],
-    ["a Pub/Sub subscription's oldest message", "cloud-gcp-pubsub-oldest-message"],
+    [
+      "a Pub/Sub subscription's oldest message",
+      "cloud-gcp-pubsub-oldest-message",
+    ],
   ])("watches %s", (_what: string, id: string) => {
     expect(getCloudAlertTemplate(id)).toBeDefined();
   });
@@ -578,9 +597,11 @@ describe("the cloud alert template library", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Which templates one resource is offered
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * Which templates one resource is offered
+ * ---------------------------------------------------------------------------
+ */
 
 function idsOf(templates: Array<CloudAlertTemplate>): Array<string> {
   return templates.map((cloudTemplate: CloudAlertTemplate): string => {
@@ -770,9 +791,11 @@ describe("reading what a resource's row says", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// The monitor a template builds
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The monitor a template builds
+ * ---------------------------------------------------------------------------
+ */
 
 describe("the monitor a template builds", () => {
   test("every query reads the resource's own metric, by its stored name and attributes, and names the resource", () => {
@@ -803,9 +826,9 @@ describe("the monitor a template builds", () => {
         );
       });
 
-      expect(
-        (viewConfigOf(step).formulaConfigs || []).length,
-      ).toBe(cloudTemplate.formula ? 1 : 0);
+      expect((viewConfigOf(step).formulaConfigs || []).length).toBe(
+        cloudTemplate.formula ? 1 : 0,
+      );
     }
   });
 
@@ -838,7 +861,9 @@ describe("the monitor a template builds", () => {
       .queries[0]!.metric;
     const key: string = getCloudAlertMetricReadingKey(metric)!;
 
-    expect(key).toBe(getCloudReadingKey(CloudProvider.Azure, "azure_storage_percent_average"));
+    expect(key).toBe(
+      getCloudReadingKey(CloudProvider.Azure, "azure_storage_percent_average"),
+    );
 
     const readings: CloudResourceReadings = {
       [key]: {
@@ -855,9 +880,9 @@ describe("the monitor a template builds", () => {
       "azure_storage_percent_average",
     );
 
-    const step: MonitorStep = template("cloud-azure-sql-storage-full").getMonitorStep(
-      argsFor(AZURE_SQL_ATTRIBUTES, { readings: readings }),
-    );
+    const step: MonitorStep = template(
+      "cloud-azure-sql-storage-full",
+    ).getMonitorStep(argsFor(AZURE_SQL_ATTRIBUTES, { readings: readings }));
 
     expect(
       viewConfigOf(step).queryConfigs[0]!.metricQueryData.filterData.metricName,
@@ -883,9 +908,9 @@ describe("the monitor a template builds", () => {
   });
 
   test("Low Free Storage compares with 10% of the instance's own allocated storage, in bytes", () => {
-    const step: MonitorStep = template("cloud-aws-rds-low-storage").getMonitorStep(
-      argsFor(RDS_ATTRIBUTES, { allocatedStorageGiB: 200 }),
-    );
+    const step: MonitorStep = template(
+      "cloud-aws-rds-low-storage",
+    ).getMonitorStep(argsFor(RDS_ATTRIBUTES, { allocatedStorageGiB: 200 }));
     const [unhealthy, healthy] = instancesOf(step);
     const fires: CriteriaFilter = unhealthy!.data!.filters[0]!;
 
@@ -898,7 +923,9 @@ describe("the monitor a template builds", () => {
   });
 
   test("incident and alert titles name the resource once", () => {
-    const step: MonitorStep = template("cloud-aws-lambda-errors").getMonitorStep(
+    const step: MonitorStep = template(
+      "cloud-aws-lambda-errors",
+    ).getMonitorStep(
       argsFor(LAMBDA_ATTRIBUTES, { monitorName: "checkout-worker" }),
     );
     const [unhealthy] = instancesOf(step);
@@ -931,15 +958,17 @@ describe("the monitor a template builds", () => {
     const step: MonitorStep = stepOf(template("cloud-aws-lambda-throttles"));
     const [, healthy] = instancesOf(step);
 
-    expect(healthy!.data!.filters[0]!.metricMonitorOptions?.onNoDataPolicy).toBe(
-      NoDataPolicy.TreatAsZero,
-    );
+    expect(
+      healthy!.data!.filters[0]!.metricMonitorOptions?.onNoDataPolicy,
+    ).toBe(NoDataPolicy.TreatAsZero);
   });
 });
 
-// ---------------------------------------------------------------------------
-// What each kind of template decides
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * What each kind of template decides
+ * ---------------------------------------------------------------------------
+ */
 
 // The check that is evaluated: 12:30:30 UTC.
 const NOW: Date = new Date(Date.UTC(2026, 10, 2, 12, 30, 30));
@@ -982,8 +1011,7 @@ function everyMinute(data: {
   for (let minute: number = data.from; minute <= data.to; minute++) {
     points.push({
       minute: minute,
-      value:
-        typeof data.value === "function" ? data.value(minute) : data.value,
+      value: typeof data.value === "function" ? data.value(minute) : data.value,
     });
   }
 
@@ -1023,9 +1051,10 @@ function responseFor(data: {
   pointsByAlias: Record<string, Array<Point>>;
 }): MetricMonitorResponse {
   const viewConfig: MetricsViewConfig = viewConfigOf(data.step);
-  const wholeWindow: boolean = MonitorStepMetricMonitorUtil.aggregatesWholeWindow(
-    data.step.data!.metricMonitor,
-  );
+  const wholeWindow: boolean =
+    MonitorStepMetricMonitorUtil.aggregatesWholeWindow(
+      data.step.data!.metricMonitor,
+    );
   const startMs: number = (data.window.startValue as Date).getTime();
   const endMs: number = (data.window.endValue as Date).getTime();
 
@@ -1487,7 +1516,10 @@ describe("a count totalled over the window (Function Throttled)", () => {
       (
         await evaluate({
           id: "cloud-aws-dynamodb-throttled",
-          pointsByAlias: { failed: [], failed_second: [{ minute: 12, value: 3 }] },
+          pointsByAlias: {
+            failed: [],
+            failed_second: [{ minute: 12, value: 3 }],
+          },
         })
       ).breached,
     ).toBe(true);
@@ -1557,7 +1589,9 @@ describe("Azure and Google Cloud, a minute at a time", () => {
     expect(
       await evaluate({
         id: "cloud-gcp-compute-high-cpu",
-        pointsByAlias: { value: everyMinute({ from: 16, to: 26, value: 0.95 }) },
+        pointsByAlias: {
+          value: everyMinute({ from: 16, to: 26, value: 0.95 }),
+        },
       }),
     ).toEqual({ breached: true, healthy: false });
     expect(
@@ -1596,9 +1630,11 @@ describe("a resource's own threshold (Low Free Storage)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// An Azure resource a connection reads: the names its metrics are stored under
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * An Azure resource a connection reads: the names its metrics are stored under
+ * ---------------------------------------------------------------------------
+ */
 
 /*
  * A connection stores each Azure metric under the aggregation its definition
@@ -1699,8 +1735,7 @@ describe("an Azure resource a connection reads", () => {
     ).getMonitorStep(argsFor(AZURE_SQL_ATTRIBUTES, { readings }));
 
     expect(
-      viewConfigOf(step).queryConfigs[0]!.metricQueryData.filterData
-        .metricName,
+      viewConfigOf(step).queryConfigs[0]!.metricQueryData.filterData.metricName,
     ).toBe("azure_storage_percent_maximum");
   });
 
@@ -1849,9 +1884,11 @@ describe("getCloudAlertTemplateReadingKeys", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Every Sum template, read-only and streamed
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * Every Sum template, read-only and streamed
+ * ---------------------------------------------------------------------------
+ */
 
 /*
  * A streamed AWS connection writes a Sum metric once a minute, a read-only
@@ -1882,11 +1919,10 @@ const SHAPES: Array<Shape> = ["read-only", "streamed"];
  * five-minute periods (12:05, 12:10, 12:15), the failures in one of them; a
  * streamed account's a minute at a time, the failures spread over minutes.
  */
-function countsAs(data: {
-  shape: Shape;
-  failed: number;
-  requests: number;
-}): { failed: Array<Point>; requests: Array<Point> } {
+function countsAs(data: { shape: Shape; failed: number; requests: number }): {
+  failed: Array<Point>;
+  requests: Array<Point>;
+} {
   if (data.shape === "read-only") {
     const third: number = data.requests / 3;
 
@@ -1939,9 +1975,11 @@ function pointsFor(data: {
 }
 
 describe.each(
-  AWS_SUM_TEMPLATES.map((cloudTemplate: CloudAlertTemplate) => {
-    return [cloudTemplate.id, cloudTemplate];
-  }),
+  AWS_SUM_TEMPLATES.map(
+    (cloudTemplate: CloudAlertTemplate): [string, CloudAlertTemplate] => {
+      return [cloudTemplate.id, cloudTemplate];
+    },
+  ),
 )(
   "%s, read-only and streamed",
   (_id: string, cloudTemplate: CloudAlertTemplate) => {
@@ -2002,9 +2040,9 @@ describe.each(
         [25, 500],
         [0, 60],
       ] as Array<[number, number]>) {
-        expect(await outcomeOf({ shape: "read-only", failed, requests })).toEqual(
-          await outcomeOf({ shape: "streamed", failed, requests }),
-        );
+        expect(
+          await outcomeOf({ shape: "read-only", failed, requests }),
+        ).toEqual(await outcomeOf({ shape: "streamed", failed, requests }));
       }
     });
   },

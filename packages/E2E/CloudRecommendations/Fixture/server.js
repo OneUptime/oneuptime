@@ -10,7 +10,10 @@ const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../../..");
-const output = path.join(repository, "output/playwright/cloud-recommendations-ui/fixture");
+const output = path.join(
+  repository,
+  "output/playwright/cloud-recommendations-ui/fixture",
+);
 const port = Number(process.env.CLOUD_RECOMMENDATIONS_FIXTURE_PORT || 4749);
 const config = createConfig({
   serviceName: "cloud-recommendations-fixture",
