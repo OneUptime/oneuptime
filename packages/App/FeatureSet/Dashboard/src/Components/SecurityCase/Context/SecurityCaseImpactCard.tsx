@@ -722,6 +722,7 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                                 title: leading.change.title,
                                 eventType: leading.change.eventType,
                                 facts: leading.change.cloudChange,
+                                health: leading.change.cloudHealth,
                                 translator: sentence,
                               });
                             },

@@ -329,6 +329,26 @@ function amountOf(text: string): number {
   return Number(text.replace(NOT_AN_AMOUNT, ""));
 }
 
+/*
+ * Where a link into one of App Platforms' lists goes, and the chips it
+ * sets there: the list's facet state, under the URL parameter its facet
+ * bar reads (`<table id>-facets`).
+ */
+async function chipLinkOf(
+  link: Locator,
+  tableId: string,
+): Promise<{ path: string; facets: unknown }> {
+  const href: string | null = await link.getAttribute("href");
+  expect(href).toBeTruthy();
+  const url: URL = new URL(href!, "http://127.0.0.1");
+  const facets: string | null = url.searchParams.get(`${tableId}-facets`);
+
+  return {
+    path: url.pathname,
+    facets: facets === null ? null : JSON.parse(facets),
+  };
+}
+
 // The rows of "Where the money goes", as [name, amount] in their order.
 async function breakdownRows(page: Page): Promise<Array<[string, string]>> {
   const card: Locator = page.getByTestId("cloud-cost-breakdown");
@@ -619,27 +639,44 @@ test.describe("the Overview", () => {
     /*
      * App Platforms: the environments in these accounts - not the one of
      * an account no connection here reads - and their apps, where they
-     * live now.
+     * live now. Each count opens its list with the Cloud Account chip set
+     * to the account it counted (#6060), so the list holds what the card
+     * counts and nothing needs saying about the rest.
      */
     const appPlatforms: Locator = page.getByTestId("cloud-app-platforms-card");
     await expect(
       appPlatforms.getByTestId("cloud-app-platforms-environments"),
     ).toHaveText("2 environments");
-    await expect(
-      appPlatforms.getByTestId("cloud-app-platforms-environments"),
-    ).toHaveAttribute("href", `${DASHBOARD}/app-platforms/environments`);
+    expect(
+      await chipLinkOf(
+        appPlatforms.getByTestId("cloud-app-platforms-environments"),
+        "cloud-resources-table",
+      ),
+    ).toEqual({
+      path: `${DASHBOARD}/app-platforms/environments`,
+      facets: {
+        facetSelections: { cloudAccountId: ["123456789012"] },
+        facetOperators: { cloudAccountId: "is" },
+      },
+    });
     await expect(
       appPlatforms.getByTestId("cloud-app-platforms-apps"),
     ).toHaveText("4 apps");
-    await expect(
-      appPlatforms.getByTestId("cloud-app-platforms-apps"),
-    ).toHaveAttribute("href", `${DASHBOARD}/app-platforms/apps`);
-    // Those lists hold every environment: the one Cloud does not read is said.
+    expect(
+      await chipLinkOf(
+        appPlatforms.getByTestId("cloud-app-platforms-apps"),
+        "app-platforms-apps-table",
+      ),
+    ).toEqual({
+      path: `${DASHBOARD}/app-platforms/apps`,
+      facets: {
+        facetSelections: { cloudAccountId: ["123456789012"] },
+        facetOperators: { cloudAccountId: "is" },
+      },
+    });
     await expect(
       appPlatforms.getByTestId("cloud-app-platforms-other-environments"),
-    ).toHaveText(
-      "App Platforms also lists 1 environment, with its apps, from an account not connected to Cloud.",
-    );
+    ).toHaveCount(0);
 
     /*
      * Needs attention reads only the resources a read found something

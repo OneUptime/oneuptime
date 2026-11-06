@@ -20,6 +20,8 @@
  * accident.
  */
 
+import { translationKey } from "../Translator";
+
 export enum CloudProvider {
   AWS = "aws",
   GCP = "gcp",
@@ -61,7 +63,10 @@ export interface ManagedCloudPlatformDescriptor {
   label: string;
   /* Longer, human-facing product name used by docs and pickers. */
   productName: string;
-  /* One line for pickers and the docs hub. */
+  /*
+   * One line for pickers and the docs hub: a key of the Dashboard's locale
+   * files, which the picker draws in the reader's language.
+   */
   description: string;
   /* Docs page with the end-to-end setup walkthrough for this platform. */
   docsUrl: string;
@@ -120,8 +125,9 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.AWS,
       label: "AWS ECS",
       productName: "AWS ECS / Fargate",
-      description:
+      description: translationKey(
         "Tasks on Amazon Elastic Container Service, on Fargate or EC2 launch types.",
+      ),
       docsUrl: "/docs/telemetry/cloud-aws-ecs",
       detection: "detector",
       instanceAttribute: "aws.ecs.task.arn",
@@ -139,7 +145,9 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.AWS,
       label: "AWS Elastic Beanstalk",
       productName: "AWS Elastic Beanstalk",
-      description: "Environments managed by AWS Elastic Beanstalk.",
+      description: translationKey(
+        "Environments managed by AWS Elastic Beanstalk.",
+      ),
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "detector",
       instanceAttribute: "host.id",
@@ -154,7 +162,7 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.AWS,
       label: "AWS App Runner",
       productName: "AWS App Runner",
-      description: "Services running on AWS App Runner.",
+      description: translationKey("Services running on AWS App Runner."),
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "manual",
       instanceAttribute: "host.name",
@@ -167,7 +175,7 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.GCP,
       label: "GCP Cloud Run",
       productName: "Google Cloud Run",
-      description: "Cloud Run services and jobs.",
+      description: translationKey("Cloud Run services and jobs."),
       docsUrl: "/docs/telemetry/cloud-gcp-cloud-run",
       detection: "detector",
       instanceAttribute: "faas.instance",
@@ -181,7 +189,9 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.GCP,
       label: "GCP App Engine",
       productName: "Google App Engine",
-      description: "App Engine standard and flexible environments.",
+      description: translationKey(
+        "App Engine standard and flexible environments.",
+      ),
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "detector",
       instanceAttribute: "faas.instance",
@@ -195,7 +205,9 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.Azure,
       label: "Azure Container Apps",
       productName: "Azure Container Apps",
-      description: "Container Apps replicas in a Container Apps environment.",
+      description: translationKey(
+        "Container Apps replicas in a Container Apps environment.",
+      ),
       docsUrl: "/docs/telemetry/cloud-azure-container-apps",
       /*
        * The Collector's `azurecontainerapps` detector and the Node / .NET
@@ -218,7 +230,9 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.Azure,
       label: "Azure Container Instances",
       productName: "Azure Container Instances",
-      description: "Container groups on Azure Container Instances.",
+      description: translationKey(
+        "Container groups on Azure Container Instances.",
+      ),
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "manual",
       instanceAttribute: "host.name",
@@ -231,7 +245,7 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       provider: CloudProvider.Azure,
       label: "Azure App Service",
       productName: "Azure App Service",
-      description: "Web apps on Azure App Service.",
+      description: translationKey("Web apps on Azure App Service."),
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "detector",
       instanceAttribute: "host.id",

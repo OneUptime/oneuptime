@@ -294,6 +294,72 @@ describe("an open chip's popover stays on the screen", () => {
   });
 });
 
+/*
+ * On a page read right to left (Persian) a popover hangs from its chip's
+ * right edge and opens towards the left. On a 390px phone App Platforms'
+ * Cloud Account chip ends 280px from the screen's left, and its 288px
+ * popover reached past the screen's left edge: the page scrolled
+ * sideways. A `left` there is ignored beside the `right` the popover's
+ * class sets, so it moves right by its own `right` (the UI review of
+ * #6149).
+ */
+describe("an open chip's popover on a page read right to left", () => {
+  const realGetComputedStyle: typeof window.getComputedStyle =
+    window.getComputedStyle;
+
+  beforeEach(() => {
+    // jsdom does not lay out a direction: the popover's is given here.
+    window.getComputedStyle = ((element: Element): CSSStyleDeclaration => {
+      const style: CSSStyleDeclaration = realGetComputedStyle(element);
+
+      if (element.getAttribute("role") !== "dialog") {
+        return style;
+      }
+
+      return new Proxy(style, {
+        get: (target: CSSStyleDeclaration, key: string | symbol): unknown => {
+          return key === "direction"
+            ? "rtl"
+            : (target as unknown as Record<string | symbol, unknown>)[key];
+        },
+      });
+    }) as typeof window.getComputedStyle;
+  });
+
+  afterEach(() => {
+    window.getComputedStyle = realGetComputedStyle;
+  });
+
+  test.each(CHIPS)(
+    "$name, ending 280px from the left on a 390px phone, moves right to keep the 16px margin",
+    ({ label, element }: { label: string; element: ReactElement }) => {
+      // The chip spans 180 to 280.
+      chipLeft = 180;
+      render(element);
+
+      const popover: HTMLElement = openChip(label);
+
+      // 280 - 288 would start at -8: it starts at 16, 24px further right.
+      expect(popover.style.right).toBe("-24px");
+      expect(popover.style.left).toBe("");
+    },
+  );
+
+  test.each(CHIPS)(
+    "$name that fits stays under its chip",
+    ({ label, element }: { label: string; element: ReactElement }) => {
+      // The chip spans 250 to 350: its popover starts at 62.
+      chipLeft = 250;
+      render(element);
+
+      const popover: HTMLElement = openChip(label);
+
+      expect(popover.style.right).toBe("");
+      expect(popover.style.left).toBe("");
+    },
+  );
+});
+
 function openChipToggle(label: string): void {
   fireEvent.click(
     screen.getByRole("button", {

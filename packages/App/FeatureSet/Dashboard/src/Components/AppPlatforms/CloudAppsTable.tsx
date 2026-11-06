@@ -47,6 +47,10 @@ import {
   CloudAppStateCell,
 } from "./CloudAppCells";
 import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
+import { getAppsCloudAccountFacet } from "./AppPlatformsAccountFacet";
+import useResourceOwners, {
+  UseResourceOwnersResult,
+} from "../ResourceOwners/useResourceOwners";
 
 /*
  * A list of App Platforms apps: every app on every platform (All Apps), or
@@ -59,6 +63,10 @@ import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
  * The rows are CloudApp's; the instances and the numbers are read beside
  * them for the rows on the page (fetchCloudAppInstances, and one grouped
  * read per environment for the numbers: fetchCloudAppSignals).
+ *
+ * All Apps has a Cloud Account chip above the rows: an app is in the
+ * account its environment is in (AppPlatformsAccountFacet). Cloud's
+ * Overview links here with it set to the accounts Cloud reads.
  */
 
 export const APPS_TABLE_TITLE: string = translationKey("Apps");
@@ -136,7 +144,21 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
       );
     }, [environmentId, props.environment, props.environments]);
 
-  const query: Query<CloudApp> = useMemo((): Query<CloudApp> => {
+  /*
+   * All Apps' chips: the account an app's environment is in. An
+   * environment's own Apps tab has one environment, and no chip.
+   */
+  const accountChips: UseResourceOwnersResult<CloudApp> =
+    useResourceOwners<CloudApp>({
+      persistKey: environmentId ? undefined : props.id,
+      showOwnerFacet: false,
+      extraFacets:
+        environmentId || !props.environments
+          ? []
+          : [getAppsCloudAccountFacet(props.environments)],
+    });
+
+  const baseQuery: Query<CloudApp> = useMemo((): Query<CloudApp> => {
     if (environmentId) {
       return { cloudResourceId: new ObjectID(environmentId) };
     }
@@ -151,6 +173,11 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
       ),
     } as Query<CloudApp>;
   }, [environmentId, props.environments]);
+
+  // The list's own environments, narrowed by the chip when it is set.
+  const query: Query<CloudApp> = environmentId
+    ? baseQuery
+    : accountChips.mergeFiltersIntoQuery(baseQuery);
 
   const onRowsFetched: (apps: Array<CloudApp>) => void = (
     apps: Array<CloudApp>,
@@ -203,7 +230,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setSignals(new Map<string, CloudAppSignals>());
     setLiveInstances(new Map<string, number>());
-  }, [query]);
+  }, [baseQuery]);
 
   const getAppRoute: (app: CloudApp) => Route = (app: CloudApp): Route => {
     return RouteUtil.populateRouteParams(
@@ -285,6 +312,14 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
       sortBy="name"
       sortOrder={SortOrder.Ascending}
       noItemsMessage={NO_APPS_MESSAGE}
+      {...(environmentId
+        ? {}
+        : {
+            topContent: accountChips.filterBar,
+            emptyState: accountChips.emptyState,
+            currentFacetState: accountChips.facetSaveState,
+            onFacetStateRestored: accountChips.restoreFacetState,
+          })}
       onFetchSuccess={(data: Array<CloudApp>): void => {
         onRowsFetched(data);
       }}

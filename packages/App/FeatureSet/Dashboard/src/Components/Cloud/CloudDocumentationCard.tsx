@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import SetupGuideCard, {
   SetupGuideFrameProps,
   SetupGuideRenderContext,
@@ -24,7 +25,8 @@ import {
  *     moves the picker without ever overriding a choice with an unknown one.
  *   - The guide below the picker is that platform's alone: storing the token
  *     as a secret, the service or task settings, and how to verify, with
- *     networking and troubleshooting folded away.
+ *     networking and troubleshooting folded away - every sentence in the
+ *     reader's language (the guide is built with their translator).
  *
  * The picker's options come from the shared platform registry, so it can
  * only ever offer a platform ingest accepts.
@@ -38,6 +40,8 @@ export interface ComponentProps extends SetupGuideFrameProps {
 const CloudDocumentationCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <SetupGuideCard
       title={props.title}
@@ -52,6 +56,7 @@ const CloudDocumentationCard: FunctionComponent<ComponentProps> = (
           oneuptimeUrl: context.oneuptimeUrl,
           apiKey: context.apiKey,
           platform: resolveCloudPlatform(context.option),
+          translator,
         });
       }}
       isBare={props.isBare}

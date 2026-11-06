@@ -1,5 +1,8 @@
 import { SecurityEntity } from "./SecurityEntity";
-import type { CloudChangeTitleFacts } from "../../Utils/Telemetry/CloudChangeTitle";
+import type {
+  CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
+} from "../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * SECURITY CONNECTIONS: where the users, hosts and addresses Security Events
@@ -247,6 +250,12 @@ export interface SecurityConnectionChangeJson {
    * change.
    */
   cloudChange?: CloudChangeTitleFacts | undefined;
+  /*
+   * What a cloud's health event's title is worded from - its source, the
+   * event and the state its provider reports - likewise. Left out for any
+   * other change.
+   */
+  cloudHealth?: CloudHealthTitleFacts | undefined;
 }
 
 // One on-call schedule a member is on, and whether they are on call for it now.
