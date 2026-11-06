@@ -39,6 +39,10 @@ import {
   ProxmoxAlertTemplateArgs,
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
 import {
+  getAllOpenStackAlertTemplates,
+  OpenStackAlertTemplateArgs,
+} from "Common/Types/Monitor/OpenStackAlertTemplates";
+import {
   getAllVMwareAlertTemplates,
   VMwareAlertTemplateArgs,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
@@ -101,6 +105,20 @@ jest.mock("Common/Server/Utils/VM/VMRunner", () => {
   return { __esModule: true, default: {} };
 });
 
+// A step that reads only the machines something was seen on asks the inventory which.
+jest.mock("Common/Server/Utils/OpenStack/OpenStackMachinesSeen", () => {
+  return {
+    __esModule: true,
+    default: {
+      keepMachinesSeenWith: async (data: {
+        series: Array<unknown>;
+      }): Promise<Array<unknown>> => {
+        return data.series;
+      },
+    },
+  };
+});
+
 jest.mock("Common/Server/Services/MetricService", () => {
   return {
     __esModule: true,
@@ -141,6 +159,7 @@ import {
   monitorIoT,
   monitorKubernetes,
   monitorPodman,
+  monitorOpenStack,
   monitorProxmox,
   monitorStorageArray,
   monitorVMware,
@@ -167,6 +186,7 @@ type TemplateArgs = KubernetesAlertTemplateArgs &
   HostAlertTemplateArgs &
   PodmanAlertTemplateArgs &
   ProxmoxAlertTemplateArgs &
+  OpenStackAlertTemplateArgs &
   VMwareAlertTemplateArgs &
   DockerSwarmAlertTemplateArgs &
   CephAlertTemplateArgs &
@@ -192,6 +212,7 @@ interface PlatformCase {
 
 const templateArgs: TemplateArgs = {
   clusterIdentifier: "prod",
+  cloudIdentifier: "prod",
   hostIdentifier: "host-1",
   vcenterIdentifier: "vcsa-prod",
   fleetIdentifier: "fleet-1",
@@ -228,6 +249,11 @@ const platformCases: Array<PlatformCase> = [
     monitorType: MonitorType.Proxmox,
     monitor: monitorProxmox,
     templates: getAllProxmoxAlertTemplates(),
+  },
+  {
+    monitorType: MonitorType.OpenStack,
+    monitor: monitorOpenStack,
+    templates: getAllOpenStackAlertTemplates(),
   },
   {
     monitorType: MonitorType.VMware,

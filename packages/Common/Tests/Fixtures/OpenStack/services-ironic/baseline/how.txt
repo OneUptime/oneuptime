@@ -1,0 +1,3 @@
+Nodes on fake hardware, available and active, owned by a project, another project and nobody, with Nova's Ironic driver reading them.
+On their own, on fake hardware: Ironic's state machine took each node through it. ou-node-available was created by a project's admin, so that project owns it. ou-node-active is owned by another project, and ou-node-unowned by nobody, both created with system scope. Which of them each answer holds is what this shows.
+Nova's Ironic driver lists all three as hypervisors.

@@ -238,6 +238,12 @@ describe("MonitorStepResourceIdentity — declared infra identifiers", () => {
       "proxmoxClusterNames",
     ],
     [
+      MonitorType.OpenStack,
+      "openstackMonitor",
+      "cloudIdentifier",
+      "openStackCloudNames",
+    ],
+    [
       MonitorType.VMware,
       "vmwareMonitor",
       "vcenterIdentifier",

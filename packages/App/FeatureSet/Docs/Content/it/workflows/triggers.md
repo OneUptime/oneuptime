@@ -185,7 +185,7 @@ flowchart TB
     field -->|"No"| nothing
 ```
 
-**On Create**, **On Update** e **On Create or Update** passano il record al blocco successivo, con i campi che scegli in **Fields to pass on** del trigger. Ad esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggere il suo titolo, la descrizione, la gravità o qualsiasi altro campo selezionato, come `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo che non hai selezionato arriva vuoto.
+**On Create**, **On Update** e **On Create or Update** passano il record al blocco successivo, con i campi che scegli in **Fields to pass on** del trigger. Ad esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggere il suo titolo, la descrizione, la gravità o qualsiasi altro campo selezionato, come `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo che non hai selezionato arriva vuoto. Lo stesso vale per un campo in cui il record non ha nulla, come il monitor di un avviso che nessun monitor ha generato.
 
 **On Create or Update** passa anche **What Happened**: `created` quando l'esecuzione è partita da un nuovo record, e `updated` quando è partita da una modifica, come in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Per trattare i due casi in modo diverso, confrontalo in un blocco **If / Else**, oppure prendi un percorso per ciascuno con **Switch / Case**.
 

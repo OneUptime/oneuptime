@@ -1,10 +1,10 @@
 # Contrôles et problèmes de Sécurité des données
 
-Sécurité des données exécute 33 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie.
+Sécurité des données exécute 34 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie.
 
 :::cards
 - [Comment un contrôle décide](#comment-un-contrôle-décide): Réussit, échoue ou ne peut pas trancher, et la gravité d'un échec.
-- [Chaque contrôle](#chaque-contrôle): Les 33, avec ce que chacun contrôle et comment corriger.
+- [Chaque contrôle](#chaque-contrôle): Les 34, avec ce que chacun contrôle et comment corriger.
 - [Score de risque](#score-de-risque): Comment les problèmes sont ordonnés au sein d'une même gravité.
 - [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème.
 - [Corriger d'ici](#corriger-dici): Fermer une exposition, ou activer une protection manquante, en un clic.
@@ -87,6 +87,7 @@ La gravité est donnée pour les données de niveau Restreint, Confidentiel, Int
 | Les mots de passe sont stockés en clair (`plaintext-passwords`) | Tous les magasins de données sauf la télémétrie | Un champ de mot de passe contient des valeurs qui ne sont pas des hachages de mot de passe (bcrypt, argon2, scrypt ou PBKDF2). | Critique / Critique / Critique / Critique | Hachez les mots de passe avec bcrypt, scrypt ou argon2, migrez ceux qui sont stockés, et faites réinitialiser son mot de passe à chaque compte. |
 | Des données de production ont été copiées dans un magasin de données hors production (`production-data-in-non-production`) | Tous les magasins de données sauf la télémétrie | Des valeurs trouvées dans un magasin de données de production ont aussi été trouvées ici, dans un magasin de données de développement, de test ou de préproduction. | Élevé / Moyen / — / — | Remplacez la copie par des données masquées ou synthétiques, et supprimez les données réelles du magasin de données hors production. |
 | Des données sensibles que personne n'a utilisées depuis 90 jours (`stale-sensitive-data`) | Tous les magasins de données sauf la télémétrie | Le magasin de données contient des données sensibles et n'a eu aucune lecture ni écriture depuis 90 jours. | Moyen / Faible / — / — | Confirmez que les données ne sont plus nécessaires, puis archivez-les avec une date de conservation, ou supprimez-les. |
+| Une nouvelle colonne contient des données personnelles (`new-personal-data-column`) | Tous les magasins de données sauf la télémétrie | Une colonne ajoutée au cours des 14 derniers jours a un nom qui indique qu'elle contient des données personnelles. | Élevé / Élevé / Moyen / Moyen | Confirmez que la colonne doit contenir ces données, et consignez pourquoi. Si ce n'est pas le cas, supprimez-la ou cessez d'y écrire. |
 | Ce magasin de données sensible n'a pas de propriétaire (`no-owner`) | Tous les magasins de données | Le magasin de données contient des données sensibles et n'a pas de propriétaire. | Moyen / Faible / — / — | Ajoutez un propriétaire sur la page **Propriétaires** du magasin de données, ou une règle de propriétaire qui correspond à ses étiquettes. |
 
 ### Télémétrie

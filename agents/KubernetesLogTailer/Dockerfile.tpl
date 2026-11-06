@@ -1,9 +1,12 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime Kubernetes Log Tailer Dockerfile
 #
 # Streams pod logs via the Kubernetes API (GKE Autopilot compatible — no
 # hostPath volumes, no host access) and forwards them to OneUptime via OTLP.
+#
+# Syntax 1.19 is the first whose stable channel has COPY --exclude, which keeps
+# the agent's tests out of the image (see the copy of the agent below).
 #
 
 # Alpine, like the App, Home and TestServer images. This agent is plain
@@ -66,7 +69,10 @@ ENTRYPOINT ["/sbin/tini", "--"]
 USER node
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-COPY --chown=node:node ./agents/KubernetesLogTailer /usr/src/app
+# Without its tests, which no image runs (see packages/Probe/Dockerfile.tpl):
+# they stay out of this layer and of what the compile below writes to
+# build/dist. `npm test` compiles and runs them on a checkout.
+COPY --chown=node:node --exclude=Tests ./agents/KubernetesLogTailer /usr/src/app
 RUN npm run compile
 USER node
 # Per-build metadata last so the npm ci / compile layers above stay cacheable

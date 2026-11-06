@@ -6,6 +6,8 @@ import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import RunForm, { RUN_WORKFLOW_SUBMIT_TITLE, RunFormHandle } from "./RunForm";
 import { getRunRecordLabel } from "./RunRecordField";
 import { LoadRunRecordsFunction } from "./RunRecordSource";
+import RunAgainFromLastRun from "./RunAgain/RunAgainFromLastRun";
+import { LoadLastRunToRunAgainFunction } from "./RunAgain/RunAgainSource";
 import { getRunValues } from "./RunValues";
 import { WORKFLOW_ADD_TRIGGER_TITLE } from "./WorkflowAddButton";
 import { WorkflowRunPanelTestRunNote } from "./WorkflowTestRun";
@@ -205,6 +207,14 @@ export interface ComponentProps {
    * who adds the trigger, and offers nothing.
    */
   onAddTrigger?: (() => void) | undefined;
+  /*
+   * Starts a new run with what an earlier run started with: the panel offers
+   * its last run's values, when it has a run to start from. A rejection is the
+   * API's refusal, said where it was asked for.
+   */
+  onRunAgain?: ((runId: string) => Promise<void>) | undefined;
+  // Where the last run comes from; the server unless a test says otherwise.
+  loadLastRun?: LoadLastRunToRunAgainFunction | undefined;
 }
 
 const RunModal: FunctionComponent<ComponentProps> = (
@@ -292,6 +302,17 @@ const RunModal: FunctionComponent<ComponentProps> = (
           <div className="mt-3">
             <WorkflowRunPanelTestRunNote />
           </div>
+        )}
+
+        {props.onRunAgain && props.workflowId && !hasNoTrigger && (
+          <RunAgainFromLastRun
+            workflowId={props.workflowId}
+            loadLastRun={props.loadLastRun}
+            onRunAgain={async (runId: string): Promise<void> => {
+              await props.onRunAgain?.(runId);
+              props.onClose();
+            }}
+          />
         )}
 
         {showRunConfirmation && (

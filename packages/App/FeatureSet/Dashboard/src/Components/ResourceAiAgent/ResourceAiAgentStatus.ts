@@ -162,7 +162,9 @@ export function getResourceAiAgentInstallInvestigationText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
   return translateTemplate(
-    "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.",
+    descriptor.isReadOnly
+      ? "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. It has no command that changes one."
+      : "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.",
     {
       agent: translatableTerm(descriptor.agentName),
       commands: translatableTerm(descriptor.readOnlyCommandsPhrase),
@@ -246,6 +248,24 @@ export const RESOURCE_AI_SETTINGS_SET_BY_TEXT: Readonly<
   ),
   oneuptime: translationKey(
     "Chosen on this page. You can set them where the {{agent}} runs instead (ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES), so they follow the agent.",
+  ),
+};
+
+/*
+ * The same line for a resource AI only reads: investigation is the one setting
+ * it has, and naming the other would offer what is not there.
+ */
+export const RESOURCE_AI_READ_ONLY_SETTINGS_SET_BY_TEXT: Readonly<
+  Record<AgentAiSettingsSource, string>
+> = {
+  agent_configuration: translationKey(
+    "Set by the {{agent}}'s configuration: ONEUPTIME_AI_INVESTIGATION where it runs. Change it there; this page follows.",
+  ),
+  agent_defaults: translationKey(
+    "Set by the {{agent}}'s defaults: ONEUPTIME_AI_INVESTIGATION is not set where it runs. Set it to choose; this page follows.",
+  ),
+  oneuptime: translationKey(
+    "Chosen on this page. You can set it where the {{agent}} runs instead (ONEUPTIME_AI_INVESTIGATION), so it follows the agent.",
   ),
 };
 
@@ -910,6 +930,18 @@ export function getResourceAiAttentionStepText(
         values,
       );
     case "remediation_write_access_missing":
+      /*
+       * An OpenStack agent with the write switch on can still have nothing to write with.
+       * "Give it write access" would send whoever already did round in a circle, so the
+       * server's own words say what is wrong.
+       */
+      if (
+        status.agent?.posture?.allowWrites === true ||
+        status.agent?.posture?.writesOffReason
+      ) {
+        return `${gap.title}. ${gap.nextStep}`;
+      }
+
       return translateTemplate(
         "Give the {{agent}} write access with the steps below.",
         values,

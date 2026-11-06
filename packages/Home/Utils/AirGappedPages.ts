@@ -2411,12 +2411,12 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
     name: "Infrastructure",
     title: "Air-gapped infrastructure monitoring",
     summary:
-      "Hosts, VMware, Proxmox, Ceph, storage arrays and containers, each read from a machine on your own network.",
+      "Hosts, VMware, Proxmox, Ceph, OpenStack, storage arrays and containers, each read from a machine on your own network.",
     icon: "serverStack",
     seo: {
       title: "Air-Gapped Infrastructure Monitoring | OneUptime",
       description:
-        "Monitor hosts, VMware, Proxmox, Ceph and storage arrays with no internet. A collector or probe on your network reports to your own install.",
+        "Monitor hosts, VMware, Proxmox, Ceph, OpenStack and storage arrays with no internet. A collector or probe on your network reports to your own install.",
     },
     headline: "Hosts, hypervisors and storage,",
     headlineContinued: "watched from inside your network.",
@@ -2515,18 +2515,18 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           link: { label: "Proxmox agent", href: "/docs/telemetry/proxmox" },
         },
         {
-          key: "ceph",
-          title: "Ceph",
+          key: "openstack",
+          title: "OpenStack",
           description:
-            "An agent on a machine that can reach your mgr daemons on port 9283 reads cluster health, OSDs, pools and placement groups.",
-          icon: "database",
-          link: { label: "Ceph agent", href: "/docs/telemetry/ceph" },
+            "An agent on a machine that can reach Keystone and each service's endpoint, or a probe with nothing to install, reads the cloud with a credential you choose.",
+          icon: "serverStack",
+          link: { label: "OpenStack agent", href: "/docs/telemetry/openstack" },
         },
         {
           key: "storage",
-          title: "Storage arrays",
+          title: "Ceph and storage arrays",
           description:
-            "An agent on a machine that can reach the array's management interface over HTTPS reads capacity, latency, volumes and hardware health.",
+            "An agent on a machine that can reach your mgr daemons on port 9283, or the array's management interface over HTTPS, reads cluster health, capacity, latency and hardware health.",
           icon: "database",
           link: {
             label: "Storage array agent",
@@ -2561,9 +2561,9 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
         {
           key: "agent-images",
           name: "Agent images",
-          usually: "Docker Hub and `quay.io`",
+          usually: "Docker Hub, `ghcr.io` and `quay.io`",
           inside:
-            "The Proxmox, Ceph and storage array agents run stock images named in their `docker-compose.yml`. Their files come from your install: mirror each image, and change its name there.",
+            "The Proxmox, Ceph, OpenStack and storage array agents run stock images named in their `docker-compose.yml`. Their files come from your install: mirror each image, and change its name there.",
           status: "use-your-own",
         },
         {
@@ -2639,9 +2639,10 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           "Server / VM monitors you already have keep working, but its downloads come from GitHub, with no mirror option, and Create Monitor no longer offers it. Use a Host monitor and the host collector for new hosts.",
       },
       {
-        question: "What do the Proxmox, Ceph and storage array agents need?",
+        question:
+          "What do the Proxmox, Ceph, OpenStack and storage array agents need?",
         answer:
-          "A machine on your network that can reach what they read, with Docker to run them. Mirror the images their `docker-compose.yml` names, because those are not on your install.",
+          "A machine on your network that can reach what they read, with Docker to run them. Mirror the images their `docker-compose.yml` names, because those are not on your install. The OpenStack agent's installer has no option to download from a mirror, so behind a gap run it with Docker.",
       },
     ],
     relatedSlugs: ["monitoring", "kubernetes", "network-monitoring"],
@@ -2654,6 +2655,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
       "/product/vmware",
       "/product/proxmox",
       "/product/ceph",
+      "/product/openstack",
       "/product/docker",
       "/product/podman",
     ],

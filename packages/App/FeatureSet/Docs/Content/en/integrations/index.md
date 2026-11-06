@@ -28,7 +28,7 @@ A two-way integration, like Jira or Dynamics 365, uses both directions: one work
 | Way | Best for | Examples |
 | --- | --- | --- |
 | A built-in connection | Tools OneUptime connects to itself. You fill in a form, and there is nothing to build. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), the [Security Events](/docs/telemetry/security-events) connections |
-| A workflow template | Ticketing tools, kept in step both ways, monitoring problems, security incident reports and chat messages. You pick a template and fill in a few settings. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
+| A workflow template | Ticketing tools, kept in step both ways, monitoring problems, security incident reports and chat messages. You pick a template and fill in a few settings. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
 | An Incoming Request monitor | Alerting tools that send a webhook. You get one incident per alert, paged to on-call and resolved when the alert recovers, with no workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | A workflow you build | Any tool with a webhook or a REST API, and any logic of your own. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | [Zabbix](/docs/integrations/zabbix) | Both | Turn Zabbix problems into incidents or alerts, resolve them on recovery, and acknowledge or close the problems from OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inbound | Turn Alertmanager notifications into incidents. |
 | [Grafana](/docs/integrations/grafana) | Inbound | Turn Grafana alerts into incidents. |
-| [Datadog](/docs/integrations/datadog) | Inbound | Turn Datadog monitor alerts into incidents. |
+| [Datadog](/docs/integrations/datadog) | Inbound | Turn Datadog monitor alerts into incidents or alerts, and resolve them on recovery. |
+| [New Relic](/docs/integrations/new-relic) | Inbound | Turn New Relic issues into incidents or alerts, and resolve them when the issue closes. |
 
 ### Security tools
 
@@ -133,7 +134,7 @@ The URL is the only credential, so treat it like a password. See [Webhook](/docs
 5. Click **Run Workflow**, pick an incident under **Incident**, and run it. A test run really sends the request. Then switch **Enabled** on.
 :::
 
-When the tool needs data reshaped first, add a [Run Custom JavaScript](/docs/workflows/components#custom-code) block between the two. The recipe is the same for Zendesk, New Relic, AWS (through SNS), StatusCake and the long tail: only the URL and the body change.
+When the tool needs data reshaped first, add a [Run Custom JavaScript](/docs/workflows/components#custom-code) block between the two. The recipe is the same for Zendesk, AWS (through SNS), StatusCake and the long tail: only the URL and the body change.
 
 ## Keep credentials safe
 

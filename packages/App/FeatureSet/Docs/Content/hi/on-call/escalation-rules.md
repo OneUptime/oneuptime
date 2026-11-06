@@ -221,7 +221,7 @@ flowchart TB
 | --- | --- |
 | ईमेल | **Escalate** बटन, फिर उसके खोले पेज पर **Escalate** |
 | SMS और WhatsApp | संदेश का लिंक स्वीकार करने वाला पेज खोलता है, जिस पर **Escalate** भी है |
-| Telegram, Slack और Microsoft Teams | "Can't take it? Escalate" लिंक, फिर उसके खोले पेज पर **Escalate** |
+| Telegram, Slack, Microsoft Teams और Mattermost | "Can't take it? Escalate" लिंक, फिर उसके खोले पेज पर **Escalate** |
 | फ़ोन कॉल | 2 दबाएँ। फिर कॉल बताती है कि क्या हुआ |
 | पुश सूचना | उस पर टैप करें: घटना, अलर्ट या एपिसोड OneUptime On-Call ऐप में खुलता है, जिसके नीचे **Escalate** होता है |
 | OneUptime | घटना, अलर्ट या एपिसोड के ऊपर, उसके स्थिति बटनों के बाद **एस्केलेट करें** |

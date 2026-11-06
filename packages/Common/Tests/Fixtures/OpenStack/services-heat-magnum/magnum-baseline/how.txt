@@ -1,0 +1,2 @@
+A cluster template, and what Magnum says with no cluster yet.
+On its own: a template, and Magnum's services, with no cluster yet.

@@ -123,7 +123,7 @@ Voor een SQL-querymonitor waarvan de query een aantal teruggeeft, waarschuwen bi
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-Lees voor een databasegezondheidsmonitor één metriek door het hele object `metrics` te indexeren — de namen van de reeksen bevatten punten, dus ze kunnen niet tussen de accolades:
+Lees voor een databasegezondheidsmonitor één metriek door de reeksnaam met zijn punten tussen de accolades te zetten of het hele object `metrics` te indexeren — beide werken:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -242,7 +242,7 @@ describe("route table wiring", () => {
     );
     // The image puts the Home package at /usr/src/app, so the script ships there.
     expect(dockerfileTemplate).toMatch(
-      /^COPY\s+(?:--chown=\S+\s+)?\.\/(?:\S+\/)?Home \/usr\/src\/app$/m,
+      /^COPY\s+(?:--\S+\s+)*\.\/(?:\S+\/)?Home \/usr\/src\/app$/m,
     );
     expect(
       fs.existsSync(path.join(__dirname, "..", "Scripts", "Install.sh")),

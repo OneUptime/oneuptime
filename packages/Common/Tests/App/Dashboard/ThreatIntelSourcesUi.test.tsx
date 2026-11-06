@@ -599,10 +599,9 @@ describe("Free Lists", () => {
   });
 
   test("a list that could not be added says why, and stays to add", async () => {
-    // Thrown as the call is made: a rejected promise built ahead trips zone.js's unhandled-rejection check.
-    createSpy.mockImplementation((() => {
-      throw new BadDataException("Threat intel list host is not allowed.");
-    }) as never);
+    createSpy.mockRejectedValue(
+      new BadDataException("Threat intel list host is not allowed.") as never,
+    );
 
     await renderLists();
 
@@ -731,9 +730,9 @@ describe("Free Lists", () => {
   });
 
   test("a read that fails still offers the lists, and says why", async () => {
-    getListSpy.mockImplementation((() => {
-      throw new BadDataException("The feeds could not be read.");
-    }) as never);
+    getListSpy.mockRejectedValue(
+      new BadDataException("The feeds could not be read.") as never,
+    );
 
     await renderLists();
 

@@ -272,8 +272,9 @@ function headingName(page: Page): Locator {
   return page.getByTestId("page-record-name");
 }
 
+// Its label is the reader's: this suite reads the page in English, German and Persian.
 function trail(page: Page): Locator {
-  return page.getByRole("navigation", { name: "Breadcrumb" });
+  return page.getByRole("navigation", { name: /^(?:Breadcrumb|مسیر صفحه)$/ });
 }
 
 function crumbNumber(page: Page): Locator {

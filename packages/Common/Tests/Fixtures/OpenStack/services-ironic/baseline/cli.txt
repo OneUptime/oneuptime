@@ -1,0 +1,18 @@
+$ openstack hypervisor list
++--------------------------------------+--------------------------------------+-----------------+------------+-------+
+| ID                                   | Hypervisor Hostname                  | Hypervisor Type | Host IP    | State |
++--------------------------------------+--------------------------------------+-----------------+------------+-------+
+| 0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d | 0fa2c1b5-0a80-4b59-9f14-a98f8e919d1d | ironic          | 203.0.113.10 | up    |
+| 21fdc1eb-471d-40dd-b0b9-cf9735477d53 | 21fdc1eb-471d-40dd-b0b9-cf9735477d53 | ironic          | 203.0.113.10 | up    |
+| 8ae7c63a-814e-4429-8ee4-8912fd1eeee1 | 8ae7c63a-814e-4429-8ee4-8912fd1eeee1 | ironic          | 203.0.113.10 | up    |
++--------------------------------------+--------------------------------------+-----------------+------------+-------+
+$ openstack baremetal node list --fields name provision_state power_state maintenance maintenance_reason resource_class last_error
++-------------------+-----------------+-------------+-------------+--------------------+----------------+------------+
+| name              | provision_state | power_state | maintenance | maintenance_reason | resource_class | last_error |
++-------------------+-----------------+-------------+-------------+--------------------+----------------+------------+
+| ou-node-available | available       | None        | False       | None               | baremetal      | None       |
++-------------------+-----------------+-------------+-------------+--------------------+----------------+------------+
+$ openstack baremetal conductor list
+Access was denied to the following resource: baremetal:conductor:get (HTTP 403) (Request-ID: req-d814a3db-45b0-415a-8004-2fa11075584d)
+$ openstack baremetal driver list
+"baremetal:driver:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role" requires a scope of ['system'], request was made with project scope. (HTTP 500) (Request-ID: req-49d2f301-aec3-4e1b-ac75-743b9e71e9a6)

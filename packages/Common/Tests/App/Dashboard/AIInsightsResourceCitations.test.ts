@@ -25,6 +25,7 @@ const RESOURCE_ROUTES: Array<[AIResourceType, string]> = [
   [AIResourceType.KubernetesCluster, "kubernetes"],
   [AIResourceType.DockerSwarmCluster, "docker-swarm"],
   [AIResourceType.ProxmoxCluster, "proxmox"],
+  [AIResourceType.OpenStackCloud, "openstack"],
   [AIResourceType.VMwareVCenter, "vmware"],
   [AIResourceType.CephCluster, "ceph"],
   [AIResourceType.StorageArray, "storage-arrays"],

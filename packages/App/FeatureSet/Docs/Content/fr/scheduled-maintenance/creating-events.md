@@ -35,7 +35,7 @@ Allez dans **Maintenance planifiée → Tous les événements** et cliquez sur *
 
 ### Dire ce qui se passe et quand
 
-Saisissez un **Titre** et ajoutez une **Description** si elle aide : elle est en Markdown et s'affiche sur vos pages de statut. **Commence le** est déjà réglé sur la prochaine heure pleine de votre horloge, et **Se termine le** une heure plus tard ; ne les changez que s'ils sont faux. Déplacer **Commence le** déplace **Se termine le** avec lui, pour que la fenêtre garde sa durée. **Propriétaires** et **Étiquettes** attendent sous **Plus de champs**, repliés.
+Saisissez un **Titre** et ajoutez une **Description** si elle aide : elle est en Markdown et s'affiche sur vos pages de statut. **Commence le** est déjà réglé sur la prochaine heure pleine de votre horloge, et **Se termine le** une heure plus tard ; ne les changez que s'ils sont faux. Déplacer **Commence le** déplace **Se termine le** avec lui, pour que la fenêtre garde sa durée. **Propriétaires**, **Étiquettes** et **Bases de données Data Observability** attendent sous **Plus de champs**, repliés.
 
 ### Choisir ce qu'il affecte
 
@@ -75,7 +75,7 @@ Deux choses remplissent le formulaire pour vous en cours de route :
 
 ## Partir d'une ressource ou d'un modèle
 
-Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, d'un hôte Docker ou Podman, d'un vCenter, d'une baie de stockage, d'une flotte IoT, d'une base de données, d'un service ou d'un site réseau, **Créer un événement de maintenance planifiée** ouvre le même formulaire avec cette ressource déjà choisie sous **Autres ressources affectées**, et l'onglet liste les événements qui l'affectent. L'onglet d'un élément d'inventaire choisit l'hôte, le service ou le cluster Kubernetes vers lequel pointe l'élément.
+Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, d'un hôte Docker ou Podman, d'un vCenter, d'un cloud OpenStack, d'une baie de stockage, d'une flotte IoT, d'une base de données, d'un service ou d'un site réseau, **Créer un événement de maintenance planifiée** ouvre le même formulaire avec cette ressource déjà choisie sous **Autres ressources affectées**, et l'onglet liste les événements qui l'affectent. L'onglet d'un élément d'inventaire choisit l'hôte, le service ou le cluster Kubernetes vers lequel pointe l'élément.
 
 **Créer à partir d'un modèle**, à côté du bouton de création, vous demande de **Sélectionner le modèle de maintenance planifiée**, puis ouvre le formulaire rempli à partir du modèle. Voir [Modèles et événements récurrents](/docs/scheduled-maintenance/templates).
 

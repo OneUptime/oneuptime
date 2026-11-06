@@ -27,6 +27,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import { readAttributeFilter } from "./MetricAttributeQuery";
 
 // Keep pivoted histogram rows under the serializer's 50-row cap.
 const MAX_HISTOGRAM_BUCKETS: number = 48;
@@ -45,7 +46,7 @@ const LOG_READ_PERMISSIONS: Array<Permission> = [
 export const SearchLogsTool: ObservabilityTool = {
   name: "search_logs",
   description:
-    "Search raw log lines. Filter by time range, severity, body text, trace ID or service. Returns the most recent matching lines. Always pass an explicit time range when investigating a specific window.",
+    "Search raw log lines. Filter by time range, severity, body text, trace ID, service or attribute. Returns the most recent matching lines. Always pass an explicit time range when investigating a specific window.",
   inputSchema: {
     type: "object",
     properties: {
@@ -67,6 +68,12 @@ export const SearchLogsTool: ObservabilityTool = {
         type: "string",
         description:
           "Only logs from this telemetry service (resolve names via lookup_context first).",
+      },
+      attributes: {
+        type: "object",
+        additionalProperties: { type: "string" },
+        description:
+          'Only logs whose attributes equal these values, e.g. {"openstack.request_root_id": "req-5a1d..."}. The context names the attributes a linked resource\'s logs carry.',
       },
       limit: {
         type: "number",
@@ -120,6 +127,12 @@ export const SearchLogsTool: ObservabilityTool = {
     );
     if (serviceId) {
       query["primaryEntityId"] = serviceId;
+    }
+
+    const attributes: Record<string, string> | undefined =
+      readAttributeFilter(args);
+    if (attributes) {
+      query["attributes"] = attributes;
     }
 
     const logs: Array<Log> = await LogService.findBy({

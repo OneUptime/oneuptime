@@ -37,6 +37,8 @@ export enum AIChatCitationTargetType {
   RunbookView = "RunbookView",
   Workflows = "Workflows",
   WorkflowView = "WorkflowView",
+  // A workflow's Builder: where one Ask AI built or changed is read.
+  WorkflowBuilder = "WorkflowBuilder",
   Probes = "Probes",
   Teams = "Teams",
   SecurityEvents = "SecurityEvents",

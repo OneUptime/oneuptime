@@ -9,6 +9,7 @@ import Validation from "../../../../../UI/Components/Forms/Validation";
 import FormFieldSchemaType from "../../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Field from "../../../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../../../UI/Components/Forms/Types/FormValues";
+import { loadYamlSyntaxCheck } from "../../../../../UI/Components/CodeEditor/YamlSyntaxLoader";
 
 /*
  * Forms/Utils/FormValidationMessages: every message a form field's own
@@ -101,7 +102,10 @@ describe("the form validation messages", () => {
     }
   });
 
-  test("each check says its message", () => {
+  test("each check says its message", async () => {
+    // A YAML field's form loads its syntax check with its editor: see YamlSyntaxLoader.
+    await loadYamlSyntaxCheck();
+
     expect(errorFor(field({ required: true }), "")).toBe("Value is required.");
     expect(errorFor(field({ validation: { minLength: 3 } }), "ab")).toBe(
       "Value cannot be less than 3 characters.",

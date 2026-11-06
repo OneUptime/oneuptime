@@ -90,7 +90,7 @@ Open **On-Call Duty** from the **Products** menu in the top bar. It opens on **O
 | **Settings** | **Custom Fields**, **Label Rules** and **Owner Rules** |
 | **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: on-call set up from code |
 
-**Policies**, **Schedules** and **Incoming Calls** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** lists the chat tools the project has connected, or **Connect Slack or Teams** when it has none.
+**Policies**, **Schedules** and **Incoming Calls** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** lists the chat tools the project has connected, or **Connect a workspace** when it has none.
 
 When you are on duty for a policy, the bell at the top right says so. Click it to open **My On-Call Policies**: every policy you are on call for, in all your projects, and whether you are named on it, in a team or on a schedule.
 

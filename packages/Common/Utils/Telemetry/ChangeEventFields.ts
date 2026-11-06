@@ -37,6 +37,12 @@ export enum ChangeEventType {
    * the provider's side.
    */
   ProviderEvent = "provider-event",
+  /*
+   * What an OpenStack cloud's own notifications said happened to one of its
+   * parts: an instance created or failed, a compute service disabled, a volume
+   * attached (OpenStackEventEntries).
+   */
+  OpenStackEvent = "openstack-event",
   Custom = "custom",
 }
 
@@ -65,6 +71,8 @@ export enum ChangeEventSource {
   Cloud = "cloud",
   // A health event the cloud provider published about the account.
   CloudHealth = "cloud-health",
+  // What an OpenStack cloud's notifications, or a probe's read of Nova, said happened.
+  OpenStack = "openstack",
 }
 
 // The attribute keys OneUptime writes on the change events it records.
@@ -102,6 +110,9 @@ export const ChangeEventAttribute: {
   readonly CloudEventId: string;
   readonly CloudAccountRecordId: string;
   readonly MadeBy: string;
+  readonly ApprovedBy: string;
+  readonly ApprovedByUserId: string;
+  readonly ApprovedFrom: string;
   readonly RunnerJobId: string;
   readonly AutoRemediationSuggestionId: string;
   readonly AiStep: string;
@@ -160,6 +171,13 @@ export const ChangeEventAttribute: {
    * fix or rolled it back (CloudAiChangeStep).
    */
   MadeBy: "oneuptime.change.made_by",
+  /*
+   * Who said yes to a change a person approved, and where. Absent from one nobody
+   * was asked about.
+   */
+  ApprovedBy: "oneuptime.change.approved_by",
+  ApprovedByUserId: "oneuptime.change.approved_by_user_id",
+  ApprovedFrom: "oneuptime.change.approved_from",
   RunnerJobId: "oneuptime.runner_job.id",
   AutoRemediationSuggestionId: "oneuptime.auto_remediation_suggestion.id",
   AiStep: "oneuptime.ai.step",
@@ -501,6 +519,8 @@ export function describeChangeEventSource(source: string): string {
       return "the cloud account's activity log";
     case ChangeEventSource.CloudHealth:
       return "the cloud provider's health events";
+    case ChangeEventSource.OpenStack:
+      return "the OpenStack cloud's own notifications";
     default:
       return source;
   }

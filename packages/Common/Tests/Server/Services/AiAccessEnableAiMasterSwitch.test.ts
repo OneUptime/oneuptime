@@ -34,6 +34,7 @@ import {
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -65,6 +66,12 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - end to end, from the project row to the status: a row that still
  *   carries the retired columns, both false, changes nothing.
  */
+
+// Only these can be ready for fixes: an OpenStack cloud is only ever read.
+const TYPES_WITH_FIXES: ReadonlyArray<AiResourceType> =
+  ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+    return !isReadOnlyAiResourceType(type);
+  });
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "12121212-1212-4212-8212-121212121212",
@@ -529,7 +536,7 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
   });
 
   it("every kind of resource is ready for both in every fixing mode with Enable AI on", () => {
-    for (const resourceType of ALL_AI_RESOURCE_TYPES) {
+    for (const resourceType of TYPES_WITH_FIXES) {
       for (const mode of FIXING_RESOURCE_MODES) {
         const status: ResourceAiAccessStatus = resourceStatus({
           resourceType,
@@ -549,7 +556,7 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
   });
 
   it("with Enable AI on, Fixes off is the resource's own choice — never a project switch gap", () => {
-    for (const resourceType of ALL_AI_RESOURCE_TYPES) {
+    for (const resourceType of TYPES_WITH_FIXES) {
       const status: ResourceAiAccessStatus = resourceStatus({
         resourceType,
         mode: ResourceAiRemediationMode.Disabled,
@@ -564,7 +571,7 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
   });
 
   it("with Enable AI off, every kind of resource and every mode has exactly one project switch gap: ai_disabled_for_project, blocking both", () => {
-    for (const resourceType of ALL_AI_RESOURCE_TYPES) {
+    for (const resourceType of TYPES_WITH_FIXES) {
       for (const mode of [
         ...FIXING_RESOURCE_MODES,
         ResourceAiRemediationMode.Disabled,
@@ -606,7 +613,7 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
   });
 
   it("with Enable AI off, a ready resource's only gap is ai_disabled_for_project", () => {
-    for (const resourceType of ALL_AI_RESOURCE_TYPES) {
+    for (const resourceType of TYPES_WITH_FIXES) {
       const status: ResourceAiAccessStatus = resourceStatus({
         resourceType,
         mode: ResourceAiRemediationMode.BypassApproval,
@@ -625,7 +632,7 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
     const retired: ResourceAiAccessGapCode =
       "auto_remediation_disabled_for_project";
 
-    for (const resourceType of ALL_AI_RESOURCE_TYPES) {
+    for (const resourceType of TYPES_WITH_FIXES) {
       for (const gates of [AI_ON, AI_OFF]) {
         expect(
           resourceGapCodes(
@@ -673,7 +680,7 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
       automaticRemediation: { incidents: false, alerts: false },
     });
 
-    for (const resourceType of ALL_AI_RESOURCE_TYPES) {
+    for (const resourceType of TYPES_WITH_FIXES) {
       const status: ResourceAiAccessStatus = resourceStatus({
         resourceType,
         mode: ResourceAiRemediationMode.Automatic,

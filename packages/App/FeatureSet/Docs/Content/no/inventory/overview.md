@@ -96,7 +96,7 @@ Gå til **Produkter → Ressurser → Inventar**, og deretter **Alle elementer**
 
 ### Legg til elementet
 
-Klikk på **Legg til Item**. Velg **Type**, gi det et **Navn** og eventuelt en **Beskrivelse**. Navn og type utgjør sammen elementets identitet, så to elementer av samme type kan ikke ha samme navn.
+Klikk på **Legg til Element**. Velg **Type**, gi det et **Navn** og eventuelt en **Beskrivelse**. Navn og type utgjør sammen elementets identitet, så to elementer av samme type kan ikke ha samme navn.
 
 ### Fyll ut de egendefinerte feltene
 

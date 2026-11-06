@@ -86,6 +86,8 @@ Eine selbst gehostete Installation hat ihren eigenen Host anstelle von `oneuptim
 > [!WARNING]
 > Gruppieren Sie nach einem Wert, der sich innerhalb einer Benachrichtigung von Warnung zu Warnung unterscheidet. Der `fingerprint` von Alertmanager ist ein Hash über alle Labels einer Warnung, er tut das also immer. Ein Label im `group_by` Ihrer Route tut es nie: Es ist das, was die Warnungen in eine Benachrichtigung bringt. Gruppieren nach `requestBody.alerts[*].labels.alertname` mit der Route unten fasst alle Warnungen einer Benachrichtigung zu einem Vorfall zusammen, der den Status der ersten Warnung übernimmt.
 
+Verknüpfen Sie den Monitor bei einer OpenStack-Cloud auch mit der Cloud. Die eigenen Einstellungen eines Incoming-Request-Monitors nennen keine Cloud, daher landeten seine Vorfälle unter **Vorfälle**, aber nicht bei der Cloud. Öffnen Sie **Übersicht → Verknüpfte Ressourcen** des Monitors und fügen Sie die OpenStack-Cloud hinzu: Jeder Vorfall steht dann auch auf der Seite **Vorfälle** dieser Cloud. [OpenStack nach Bereitstellungswerkzeug](/docs/telemetry/openstack-deployment-tools) hat den Receiver für jedes Werkzeug, das einen Alertmanager betreibt, an der Stelle, von der dieses Werkzeug ihn liest.
+
 ## Die Vorfälle benennen
 
 Der Titel oben liest Labels, die alle Warnungen der Benachrichtigung teilen: `commonLabels` enthält diese Labels und `commonAnnotations` die gemeinsamen Annotationen. Mit der Route unten, die nach `alertname` und `instance` gruppiert, sind beide vorhanden. Geben Sie dem Vorfall unter **Beschreibung** eine **Vorfallbeschreibung** wie diese:
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-Zwei Vorfälle werden eröffnet, einer pro `fingerprint`, beide mit dem Titel `DiskFull on web-1`. Senden Sie dieselbe Anfrage mit jedem `status` auf `resolved`, und beide werden behoben.
+Zwei Vorfälle werden eröffnet, einer pro `fingerprint`, beide mit dem Titel `DiskFull on web-1` und dann dem, was sie unterscheidet, wie in `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Senden Sie dieselbe Anfrage mit jedem `status` auf `resolved`, und beide werden behoben.
 
 Um den ganzen Weg ab Alertmanager zu testen, lösen Sie mit `amtool` eine Warnung aus. Alertmanager sendet sie nach `group_wait` und ihre Erholung, wenn die Warnung einige Minuten später abläuft:
 

@@ -28,12 +28,16 @@ import ServerlessFunctionOwnerTeamService from "../../../Services/ServerlessFunc
 import ServerlessFunctionOwnerUserService from "../../../Services/ServerlessFunctionOwnerUserService";
 import CloudResourceOwnerTeamService from "../../../Services/CloudResourceOwnerTeamService";
 import CloudResourceOwnerUserService from "../../../Services/CloudResourceOwnerUserService";
+import DataAssetOwnerTeamService from "../../../Services/DataAssetOwnerTeamService";
+import DataAssetOwnerUserService from "../../../Services/DataAssetOwnerUserService";
 import DataStoreOwnerTeamService from "../../../Services/DataStoreOwnerTeamService";
 import DataStoreOwnerUserService from "../../../Services/DataStoreOwnerUserService";
 import RumApplicationOwnerTeamService from "../../../Services/RumApplicationOwnerTeamService";
 import RumApplicationOwnerUserService from "../../../Services/RumApplicationOwnerUserService";
 import ProxmoxClusterOwnerTeamService from "../../../Services/ProxmoxClusterOwnerTeamService";
+import OpenStackCloudOwnerTeamService from "../../../Services/OpenStackCloudOwnerTeamService";
 import ProxmoxClusterOwnerUserService from "../../../Services/ProxmoxClusterOwnerUserService";
+import OpenStackCloudOwnerUserService from "../../../Services/OpenStackCloudOwnerUserService";
 import CephClusterOwnerTeamService from "../../../Services/CephClusterOwnerTeamService";
 import CephClusterOwnerUserService from "../../../Services/CephClusterOwnerUserService";
 import StorageArrayOwnerTeamService from "../../../Services/StorageArrayOwnerTeamService";
@@ -91,6 +95,7 @@ import CloudResourceService from "../../../Services/CloudResourceService";
 import DataStoreService from "../../../Services/DataStoreService";
 import RumApplicationService from "../../../Services/RumApplicationService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import CephClusterService from "../../../Services/CephClusterService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterService";
@@ -326,6 +331,16 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
     },
   ],
   [
+    "DataAsset",
+    {
+      ownerUserService: DataAssetOwnerUserService,
+      ownerTeamService: DataAssetOwnerTeamService,
+      fkColumn: "dataAssetId",
+      // A table is read through its store: telemetry rows name the store, not it.
+      canOwnTelemetry: false,
+    },
+  ],
+  [
     "RumApplication",
     {
       ownerUserService: RumApplicationOwnerUserService,
@@ -343,6 +358,16 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "proxmoxClusterId",
       canOwnTelemetry: true,
       modelService: ProxmoxClusterService,
+    },
+  ],
+  [
+    "OpenStackCloud",
+    {
+      ownerUserService: OpenStackCloudOwnerUserService,
+      ownerTeamService: OpenStackCloudOwnerTeamService,
+      fkColumn: "openStackCloudId",
+      canOwnTelemetry: true,
+      modelService: OpenStackCloudService,
     },
   ],
   [

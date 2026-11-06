@@ -93,7 +93,11 @@ import {
   ResourceCommandTier,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceCommandPolicy from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
-import { ResourceCommandPolicyResult } from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import {
+  ResourceCommandPolicyResult,
+  tokenizeResourceCommand,
+} from "../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import { readOpenStackChange } from "../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
 import logger from "../Logger";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
@@ -688,6 +692,22 @@ async function assertResourceCommandsStillRunnable(data: {
     if (!status.agent || status.agent.agentId !== command.runnerId) {
       throw new BadDataException(
         `${capitalizedLabel} (command ${command.sequence}) is no longer reached through the ${agentName} this plan was composed for (the agent was reset or replaced). Dismiss the suggestion and let a new plan be composed for the current agent.`,
+      );
+    }
+
+    /*
+     * A person approves an evacuation knowing which instances it touches and whose
+     * they are. A plan without that was not proposed by this build, and is never
+     * approved blind.
+     */
+    if (
+      status.resourceType === AiResourceType.OpenStackCloud &&
+      readOpenStackChange(tokenizeResourceCommand(command.command).argv)
+        ?.requiresHuman === true &&
+      !command.reach
+    ) {
+      throw new BadDataException(
+        `Command ${command.sequence} evacuates instances of ${label}, and this plan does not say which, or whose they are. Nothing ran. Dismiss the suggestion and let a new plan be composed.`,
       );
     }
 

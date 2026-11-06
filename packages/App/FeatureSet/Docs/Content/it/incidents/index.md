@@ -67,7 +67,7 @@ Anche i workflow aprono incidenti: il workflow di [Huntress](/docs/integrations/
 
 Alla creazione, OneUptime esegue l'automazione che avete configurato: regole di privacy, regole del proprietario, regole delle etichette, regole di reperibilità e regole di runbook. Tutte le policy di reperibilità collegate all'incidente — a mano, da un modello o aggiunte da una regola di reperibilità che corrisponde — vengono eseguite in parallelo.
 
-I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui proprietari del progetto invece di andare persa.
+I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui proprietari del progetto invece di andare persa.
 
 Se l'incidente è visibile su una pagina di stato e le notifiche agli iscritti sono attive, vengono informati anche gli iscritti: quelli di ogni pagina di stato che elenca uno dei suoi monitor, oppure solo quelli delle pagine a cui lo avete limitato. Vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience) per dare a ogni pubblico la propria pagina di stato.
 
@@ -160,7 +160,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore. Il suo menu la
 | **Panoramica**       | **Tutti gli incidenti**, **Incidenti attivi** e **Post-mortem** — il secondo porta un badge rosso con il numero di incidenti in uno stato sopra lo stato risolto, e il terzo elenca il post-mortem di ogni incidente, da filtrare per proprietario, gravità o stato. |
 | **Episodi**          | Gli episodi degli incidenti, una funzione di raggruppamento separata con le proprie pagine.                                                                                |
 | **IA**               | **Informazioni**, **Registri**, **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, e che cosa può fare da sola — con le regole su quali incidenti esamina e corregge. Vedete [AI SRE](/docs/ai/ai-sre). |
-| **Area di lavoro**   | Gli spazi di chat che questo progetto ha collegato: **Slack**, **Microsoft Teams** e **Mattermost**, ciascuno con le sue regole di notifica per gli incidenti. Se nessuno è collegato, contiene **Collega Slack o Teams**, una pagina che mostra tutti e tre e come collegarli. |
+| **Area di lavoro**   | Gli spazi di chat che questo progetto ha collegato: **Slack**, **Microsoft Teams** e **Mattermost**, ciascuno con le sue regole di notifica per gli incidenti. Se nessuno è collegato, contiene **Collega un'area di lavoro**, una pagina che mostra tutti e tre e come collegarli. |
 | **Regole**           | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Regole dei promemoria**. |
 | **Impostazioni**     | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Stati del post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Misurazioni**, **Avvisi collegati**, **Appartenenza agli episodi**, **Numerazione**. |
 

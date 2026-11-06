@@ -6,7 +6,7 @@ Risponde a quattro domande:
 
 :::cards
 - [Dove sono i nostri dati sensibili?](/docs/data-security/data-types): 143 tipi di dati, dai numeri di carta e dai codici identificativi nazionali alle chiavi API, trovati in bucket, tabelle e telemetria.
-- [Sono esposti?](/docs/data-security/checks-and-issues): 33 controlli su ogni archivio: accesso pubblico, cifratura, backup, logging, segreti e copie.
+- [Sono esposti?](/docs/data-security/checks-and-issues): 34 controlli su ogni archivio: accesso pubblico, cifratura, backup, logging, segreti e copie.
 - [Chi può raggiungerli, e dove vanno?](/docs/data-security/flows-access-residency): Ogni identità che può raggiungere ciascun archivio, la più rischiosa per prima, quali servizi lo usano e quali provider di IA e host raggiungono i suoi dati.
 - [Rispettano le nostre regole?](/docs/data-security/compliance): Regole di residenza, e nove framework valutati in base a ciò che hanno trovato le scansioni.
 :::

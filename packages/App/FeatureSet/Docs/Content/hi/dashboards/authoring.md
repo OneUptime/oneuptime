@@ -39,7 +39,7 @@
 | --- | --- |
 | निगरानी और APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | घटना प्रतिक्रिया | Incident Dashboard, Alert Dashboard |
-| बुनियादी ढांचा | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| बुनियादी ढांचा | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **सुझाए गए** में Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard और Metrics Dashboard हैं। टेम्पलेट एक शुरुआती बिंदु है, कोई जुड़ाव नहीं: डैशबोर्ड बन जाने के बाद उसे अपनी मर्ज़ी से बदलें। बाद में टेम्पलेट उसे अपडेट नहीं करता।
 

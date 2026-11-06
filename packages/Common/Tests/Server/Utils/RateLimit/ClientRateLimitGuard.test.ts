@@ -49,6 +49,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "test emails per signed-in user",
   "packages/Common/Server/Middleware/SubscriberNotificationPreviewRateLimit.ts":
     "previews per signed-in user",
+  "packages/Common/Server/Utils/OpenStack/OpenStackEventRecorder.ts":
+    "feed lines per OpenStack cloud per hour",
   "packages/Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter.ts":
     "telemetry per ingestion key",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterShedMetrics.ts":

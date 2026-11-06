@@ -12,8 +12,8 @@ import { EncryptionSecret } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Exception from "../../Types/Exception/Exception";
-import BadDataException from "../../Types/Exception/BadDataException";
 import {
   capRefreshTokenExpiry,
   MAX_PRIVATE_USER_SESSION_LENGTH_IN_HOURS,
@@ -358,9 +358,25 @@ export class Service extends DatabaseService<Model> {
     return session;
   }
 
+  /*
+   * Gives a session a new refresh token, or answers null when it was ended
+   * while this request was on its way.
+   *
+   * POST /status-page-api/refresh-token reads the session, decides, and only then
+   * writes, several statements later. A reader's new password or a sign-out can
+   * land in between, and a renewal that wrote over it would hand whoever is
+   * refreshing a working session the reader has just ended - and somebody
+   * refreshing in a loop is inside that window most of the time. So the write's
+   * own predicate asks that the session is still live, as exchanging a login code
+   * does below, and it never writes isRevoked. A write that finds nothing leaves
+   * the row exactly as whatever ended it left it.
+   *
+   * Hook-free, as a single conditional write has to be: this service has no hook
+   * that reacts to these columns, and so it hashes the token itself.
+   */
   public async renewSessionWithNewRefreshToken(
     options: RenewSessionOptions,
-  ): Promise<SessionMetadata> {
+  ): Promise<SessionMetadata | null> {
     const refreshToken: string = Service.generateRefreshToken();
     const refreshTokenExpiresAt: Date =
       options.refreshTokenExpiresAt ||
@@ -369,26 +385,29 @@ export class Service extends DatabaseService<Model> {
         startedAt: options.session.createdAt,
       }));
 
-    const updatePayload: Partial<Model> = this.buildRenewalUpdatePayload({
+    const updatePayload: Partial<Model> = await this.buildRenewalUpdatePayload({
       options,
       refreshToken,
       refreshTokenExpiresAt,
     });
 
-    const updatedSession: Model | null = await this.updateOneByIdAndFetch({
-      id: options.session.id!,
-      data: updatePayload as any,
-      props: {
-        isRoot: true,
-      },
-    });
+    const updateResult: UpdateResult = await this.getRepository().update(
+      {
+        _id: options.session.id!.toString(),
+        isRevoked: false,
+        deletedAt: IsNull(),
+      } as any,
+      updatePayload as any,
+    );
 
-    if (!updatedSession) {
-      throw new BadDataException("Unable to renew status page user session");
+    if (updateResult.affected !== 1) {
+      return null;
     }
 
+    Object.assign(options.session, updatePayload);
+
     return {
-      session: updatedSession,
+      session: options.session,
       refreshToken,
       refreshTokenExpiresAt,
     };
@@ -440,16 +459,11 @@ export class Service extends DatabaseService<Model> {
       deviceBrowser: options.deviceBrowser,
       additionalInfo: options.additionalInfo,
     };
-    const updatePayload: Partial<Model> = this.buildRenewalUpdatePayload({
+    const updatePayload: Partial<Model> = await this.buildRenewalUpdatePayload({
       options: renewalOptions,
       refreshToken,
       refreshTokenExpiresAt,
     });
-    const refreshTokenHash: string = await HashedString.hashValue(
-      refreshToken,
-      EncryptionSecret,
-    );
-    updatePayload.refreshToken = new HashedString(refreshTokenHash, true);
     const additionalInfo: JSONObject = {
       ...(updatePayload.additionalInfo || {}),
     } as JSONObject;
@@ -560,6 +574,33 @@ export class Service extends DatabaseService<Model> {
     await this.revokeSessionById(session.id, options);
   }
 
+  /*
+   * Ends every session of this private user, and any SSO login code of theirs
+   * not yet exchanged (a login code is a session until it is). One that already
+   * ended keeps when and why it did.
+   */
+  public async revokeAllSessionsByPrivateUserId(
+    statusPagePrivateUserId: ObjectID,
+    options?: RevokeSessionOptions,
+  ): Promise<void> {
+    await this.updateBy({
+      query: {
+        statusPagePrivateUserId: statusPagePrivateUserId,
+        isRevoked: false,
+      },
+      data: {
+        isRevoked: true,
+        revokedAt: OneUptimeDate.getCurrentDate(),
+        revokedReason: options?.reason ?? null,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
   private async recordSuccessfulSignIn(
     options: Pick<
       CreateSessionOptions,
@@ -662,16 +703,22 @@ export class Service extends DatabaseService<Model> {
     return session;
   }
 
-  private buildRenewalUpdatePayload(data: {
+  /*
+   * What a renewal or a login code's exchange writes, in a conditional write: so
+   * the token is hashed here, and isRevoked is left to the write's own predicate.
+   */
+  private async buildRenewalUpdatePayload(data: {
     options: RenewSessionOptions;
     refreshToken: string;
     refreshTokenExpiresAt: Date;
-  }): Partial<Model> {
+  }): Promise<Partial<Model>> {
     const updatePayload: Partial<Model> = {
-      refreshToken: HashedString.fromString(data.refreshToken),
+      refreshToken: new HashedString(
+        await HashedString.hashValue(data.refreshToken, EncryptionSecret),
+        true,
+      ),
       refreshTokenExpiresAt: data.refreshTokenExpiresAt,
       lastActiveAt: OneUptimeDate.getCurrentDate(),
-      isRevoked: false,
     };
 
     const ipAddress: string | undefined = Text.truncate(

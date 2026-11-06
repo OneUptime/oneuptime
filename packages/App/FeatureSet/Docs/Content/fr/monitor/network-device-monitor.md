@@ -69,7 +69,7 @@ Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensembl
 | **Topologie** | **Topologie de l'équipement**, **Points de terminaison**, **Matrice de latence**, **Liens du site**, **Liens d'équipements** |
 | **Règles** | **Règles d'import automatique**, **Règles d'attribution des sites**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens** |
 | **Paramètres** | **Politiques d'alerte**, **Identifiants SNMP**, **Rôles d'équipement**, **Types de site**, **Noms d'adresse**, **Modèles de collecte d'OID** |
-| **Avancé** | **Appareils archivés** |
+| **Avancé** | **Parcours SNMP**, **Appareils archivés** |
 
 ## Ajouter un équipement réseau
 
@@ -154,7 +154,7 @@ Chaque action est une boîte de dialogue et un enregistrement pour toute la sél
 
 Quand une action se termine, elle indique combien d'équipements ont changé, lesquels ont échoué et pourquoi — un équipement que votre rôle ne peut pas modifier, une liste au-delà de sa limite — et lesquels elle n'a pas changés et pourquoi : un équipement déjà dans ce site ou ce rôle, ou un que le modèle constructeur laisse inchangé.
 
-Les autres actions groupées sont décrites là où elles ont leur place : **Set OID Collection Template** sous [Modèles de collecte d'OID](#modèles-de-collecte-doid), **Set SNMP Credential Profile**, **Switch to Probe Polling** et **Créer des moniteurs Ping** sous [En masse](#en-masse), et **Shorten Names to Hostname** sous [Comment les équipements découverts sont nommés](#comment-les-équipements-découverts-sont-nommés).
+Les autres actions groupées sont décrites là où elles ont leur place : **Set OID Collection Template** sous [Modèles de collecte d'OID](#modèles-de-collecte-doid), **Parcours SNMP** sous [Parcourir de nombreux équipements à la fois](#parcourir-de-nombreux-équipements-à-la-fois), **Set SNMP Credential Profile**, **Switch to Probe Polling** et **Créer des moniteurs Ping** sous [En masse](#en-masse), et **Shorten Names to Hostname** sous [Comment les équipements découverts sont nommés](#comment-les-équipements-découverts-sont-nommés).
 
 ## Ce que fait réellement une interrogation
 
@@ -397,6 +397,21 @@ Chaque ligne indique où son OID est connu : une valeur que collecte un modèle 
 **Télécharger**, à côté du résumé du parcours, enregistre ce que le parcours a lu dans un fichier : **Texte snmpwalk (.txt)**, un OID par ligne tel que `snmpwalk -On` l'affiche, que lisent tous les outils SNMP et le support de tous les fabricants, ou **Feuille de calcul CSV (.csv)**, avec le nom, la MIB, le type et la valeur de chaque OID. Le fichier contient chaque OID lu par le parcours, parcours poursuivis compris, quel que soit ce que montre le filtre, et porte le nom de l'équipement, du sous-arbre et de l'heure de l'enregistrement. Toute personne qui peut lire le dernier parcours de l'équipement peut le télécharger.
 
 Un parcours qui échoue dit pourquoi, et quoi vérifier : un équipement qui ne répond pas (SNMP désactivé, UDP 161 bloqué ou, en v1 et v2c, une chaîne de communauté erronée, qu'un agent ignore sans rien dire), un utilisateur, un mot de passe ou un protocole SNMPv3 que l'équipement a refusé, ou une partie de l'arbre que la vue SNMP des identifiants exclut. Un parcours qui s'arrête en route garde ce qu'il a lu. Parcourir demande l'autorisation **Create Network Device Diagnostic** et une sonde assez récente pour parcourir SNMP : avec une sonde plus ancienne, la page vous demande de la mettre à jour.
+
+### Parcourir de nombreux équipements à la fois
+
+Quand une valeur compte sur toute une flotte, comme le CPU de chaque routeur ou la température de chaque commutateur d'un site, parcourez les équipements ensemble plutôt qu'une page d'équipement après l'autre. Sélectionnez-les dans la liste **Appareils**, en cochant des lignes ou en sélectionnant tous les équipements qui correspondent aux filtres, et utilisez **Parcours SNMP** dans **Actions groupées**. Ou cliquez sur **Comparer avec d'autres équipements** dans le menu d'un OID sur la page **Parcours SNMP** d'un équipement : la page s'ouvre avec cet équipement choisi et cet OID comme point de départ, et vous ajoutez les autres. La page se trouve aussi sous **Réseau → Avancé → Parcours SNMP**, où vous choisissez les équipements un par un ou tous ceux qui portent une étiquette.
+
+Chaque équipement est parcouru comme le parcourt sa propre page : par sa propre sonde, avec les identifiants SNMP que conserve OneUptime pour lui (v1, v2c ou v3, issus de l'équipement, de son profil d'identifiants ou de son site), au plus 1 000 OID par équipement. Jusqu'à 50 équipements sont parcourus à la fois. Partez d'un seul OID pour vérifier cette valeur sur chaque équipement, ou d'un sous-arbre pour comparer ce que les équipements exposent en dessous. La réponse de chaque équipement s'affiche dès qu'elle arrive, et la page attend jusqu'à cinq minutes la sonde la plus lente.
+
+Les résultats listent chaque OID auquel au moins un équipement a répondu, un OID par ligne :
+
+- **Réponses** indique combien des équipements dont le parcours a atteint l'OID y répondent, et s'ouvre sur la valeur propre à chaque équipement. Un équipement dont le parcours s'est arrêté à sa limite avant l'OID n'est jamais compté comme un équipement qui ne l'a pas.
+- Une valeur identique sur tous les équipements s'affiche une seule fois ; des nombres qui diffèrent s'affichent sous la forme du plus bas et du plus haut, et un texte qui diffère sous la forme du nombre de valeurs différentes.
+- **Seulement les OID auxquels certains équipements ne répondent pas**, à côté du filtre, ne garde que les OID qu'une partie de la flotte n'a pas.
+- **Collecter sur 12 équipements** ajoute l'OID à chaque équipement qui y répond et ne le collecte pas encore, comme **Collecter** le fait sur un seul équipement : une fois par équipement, jamais deux, et un équipement qui refuse, parce que sa liste est pleine par exemple, est nommé avec la raison tandis que les autres continuent. Quand ces équipements sont liés à un modèle de collecte d'OID, le menu de la ligne peut plutôt ajouter l'OID au modèle, pour chaque équipement qui l'utilise.
+
+Au-dessus des résultats, chaque équipement qui n'a pas été entièrement parcouru est listé avec la raison et ce qu'il faut corriger : pas de sonde, pas d'identifiants SNMP, identifiants refusés, pas de réponse, ou pas de compte rendu de sa sonde. Le nom d'un équipement ouvre sa propre page **Parcours SNMP** sur ce parcours, où **Poursuivre le parcours** lit la suite et **Créer une alerte** ouvre un nouveau moniteur. **Télécharger le CSV** enregistre chaque OID de chaque équipement dans un seul fichier, avec le nom de l'équipement dans la première colonne. L'adresse de la page conserve les équipements et l'OID, si bien qu'un rechargement ou un lien partagé ouvre le même parcours, et les parcours sont conservés deux jours.
 
 ### Tables SNMP
 

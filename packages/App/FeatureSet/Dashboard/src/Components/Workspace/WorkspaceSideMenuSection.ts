@@ -20,10 +20,11 @@ import Navigation from "Common/UI/Utils/Navigation";
  *
  * - Slack connected: Slack. Microsoft Teams connected: Microsoft Teams.
  *   Mattermost connected: Mattermost. Several: each, in that order.
- * - Neither: one entry, "Connect Slack or Teams", to a page that shows the
- *   two side by side, says what each would do here and connects them. A menu
- *   without such a page (User Settings, whose pages link your own account to
- *   a workspace the project already has) has no Workspace section at all.
+ * - None: one entry, "Connect a workspace", to a page that shows them side by
+ *   side, says what each would do here and connects them. Its title names no
+ *   workspace, so a new one does not rename it. A menu without such a page
+ *   (User Settings, whose pages link your own account to a workspace the
+ *   project already has) has no Workspace section at all.
  * - The page you are on is always listed, so the menu never hides where you
  *   are: open the Microsoft Teams page of a Slack-only project from a
  *   bookmark and its entry is there, marked, while you are on it.
@@ -57,7 +58,7 @@ export const WORKSPACE_MENU_ENTRY_TITLES: Readonly<
   [WorkspaceMenuEntry.Slack]: "Slack",
   [WorkspaceMenuEntry.MicrosoftTeams]: "Microsoft Teams",
   [WorkspaceMenuEntry.Mattermost]: "Mattermost",
-  [WorkspaceMenuEntry.Connect]: "Connect Slack or Teams",
+  [WorkspaceMenuEntry.Connect]: "Connect a workspace",
 };
 
 export const WORKSPACE_MENU_ENTRY_ICONS: Readonly<

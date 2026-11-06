@@ -101,6 +101,7 @@ Die Liste zeigt jede Art von Datensatz, mit der Sie arbeiten können, und ihren 
 | `oneuptime context list`, `use`, `current`, `delete` | Listet, wechselt, zeigt und löscht gespeicherte Kontexte | [Authentifizierung](/docs/cli/authentication#kontexte) |
 | `oneuptime whoami` | Zeigt die URL und den API-Schlüssel, die der nächste Befehl verwendet, und mit `--check`, ob OneUptime den Schlüssel annimmt | [Authentifizierung](/docs/cli/authentication#prüfen-was-die-cli-verwenden-wird) |
 | `oneuptime deploy` | Zeichnet einen Deploy oder eine andere Änderung für die Diagramme und OneUptime AI auf | [Deploys und Änderungen](/docs/telemetry/change-events) |
+| `oneuptime data-checks apply` | Bringt die Datenprüfungen des Projekts mit einer Datei in Ihrem Repository in Übereinstimmung | [Befehlsreferenz](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Sendet die Artefakte eines dbt-Projekts nach einem Build an Data Observability | [Befehlsreferenz](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbeitet mit einer Art von Datensatz | [Ressourcenoperationen](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Listet die Felder einer Ressource auf und die Flags, die sie setzen | [Ressourcenoperationen](/docs/cli/resource-operations#die-felder-einer-ressource-sehen) |

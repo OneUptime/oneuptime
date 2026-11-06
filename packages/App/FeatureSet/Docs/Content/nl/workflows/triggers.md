@@ -185,7 +185,7 @@ flowchart TB
     field -->|"Nee"| nothing
 ```
 
-**On Create**, **On Update** en **On Create or Update** geven het record door aan het volgende blok, met de velden die je in **Fields to pass on** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan.
+**On Create**, **On Update** en **On Create or Update** geven het record door aan het volgende blok, met de velden die je in **Fields to pass on** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan. Dat geldt ook voor een veld waarin het record niets heeft, zoals de monitor van een waarschuwing die geen monitor heeft gegeven.
 
 **On Create or Update** geeft ook **What Happened** door: `created` als een nieuw record de uitvoering startte, en `updated` als een wijziging dat deed, zoals in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Om die twee verschillend te behandelen, vergelijk je het in een **If / Else**-blok, of neem je met **Switch / Case** voor elk een eigen pad.
 

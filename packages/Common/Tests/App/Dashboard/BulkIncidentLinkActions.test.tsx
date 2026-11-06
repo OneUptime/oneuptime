@@ -260,46 +260,13 @@ const makeActionProps: MakeActionPropsFunction = (
   };
 };
 
-type ActAsyncFunction = (body: () => Promise<void>) => Promise<void>;
-
-/*
- * zone.js reschedules the microtask React's act() uses to check that its
- * thenable was awaited, so a plain `await act(...)` is reported as
- * un-awaited. Hooking then() up synchronously answers that check in time (as
- * BulkLabelActions.test.tsx does).
- */
-const actAsync: ActAsyncFunction = (
-  body: () => Promise<void>,
-): Promise<void> => {
-  const scope: PromiseLike<void> = act(body) as unknown as PromiseLike<void>;
-
-  return new Promise<void>(
-    (resolve: () => void, reject: (reason: unknown) => void): void => {
-      scope.then(resolve, reject);
-    },
-  );
-};
-
-/*
- * A call that throws from inside rather than a promise that is already
- * rejected: zone.js sees an eagerly rejected promise before the hook's catch
- * is attached and prints its stack on every run.
- */
-type FailWithFunction = (message: string) => () => Promise<never>;
-
-const failWith: FailWithFunction = (message: string) => {
-  return async (): Promise<never> => {
-    throw new Error(message);
-  };
-};
-
 type ClickFunction = (title: string, items: Array<Alert>) => Promise<void>;
 
 const click: ClickFunction = async (
   title: string,
   items: Array<Alert>,
 ): Promise<void> => {
-  await actAsync(async () => {
+  await act(async () => {
     await visibleAction(title, items).onClick(makeActionProps(items));
   });
 };
@@ -315,7 +282,7 @@ const submitLink: SubmitLinkFunction = async (
 
   const onSubmit: CapturedModalProps["onSubmit"] = capturedModal.onSubmit;
 
-  await actAsync(async () => {
+  await act(async () => {
     await onSubmit({ linkedRecordId: incidentId });
   });
 };
@@ -590,7 +557,7 @@ describe("useBulkIncidentLinkActions", () => {
       expect(working).toHaveLength(2);
 
       for (const action of working) {
-        await actAsync(async () => {
+        await act(async () => {
           await action.onClick(makeActionProps(items));
         });
       }
@@ -668,7 +635,7 @@ describe("useBulkIncidentLinkActions", () => {
     });
 
     test("still opens the dialog when the incident list cannot be read", async () => {
-      getListMock.mockImplementation(failWith("Forbidden"));
+      getListMock.mockRejectedValue(new Error("Forbidden"));
       renderHarness();
 
       await click(LINK_TO_INCIDENT_ACTION_TITLE, makeAlerts(1));
@@ -740,8 +707,8 @@ describe("useBulkIncidentLinkActions", () => {
 
     test("counts an alert that is already linked as done and isolates other failures", async () => {
       createMock
-        .mockImplementationOnce(failWith(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE))
-        .mockImplementationOnce(failWith("You cannot read this alert."))
+        .mockRejectedValueOnce(new Error(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE))
+        .mockRejectedValueOnce(new Error("You cannot read this alert."))
         .mockResolvedValueOnce({});
       renderHarness();
 
@@ -766,8 +733,8 @@ describe("useBulkIncidentLinkActions", () => {
      */
     test("counts a duplicate caught by the unique index as done too", async () => {
       createMock
-        .mockImplementationOnce(
-          failWith(
+        .mockRejectedValueOnce(
+          new Error(
             "A Incident Alert with the same Incident Id, Alert Id, Project Id already exists. Please use different values and try again.",
           ),
         )

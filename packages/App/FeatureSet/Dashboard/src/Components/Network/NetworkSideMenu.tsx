@@ -314,13 +314,25 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     /*
-     * The way back to archived devices, which the device lists leave out. Few
-     * visits need it, so it waits in Advanced: folded away until opened, and
-     * open by itself on the Archived Devices page.
+     * Tools few visits need, so they wait in Advanced: folded away until
+     * opened, and open by themselves on their own pages. The SNMP walk of
+     * many devices at once (issue #5548) is mostly reached from where the
+     * devices are picked - the Devices list's Bulk Actions, and an OID's
+     * menu on a device's own SNMP Walk page - and the way back to archived
+     * devices, which the device lists leave out.
      */
     {
       title: "Advanced",
       items: [
+        {
+          link: {
+            title: "SNMP Walk",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_SNMP_WALK] as Route,
+            ),
+          },
+          icon: IconProp.Search,
+        },
         {
           link: {
             title: "Archived Devices",

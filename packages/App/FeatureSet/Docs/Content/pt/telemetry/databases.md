@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -378,6 +379,7 @@ Depois da primeira coleta, o banco de dados aparece em **Bancos de dados** ou, s
 | `DATABASE_TLS_INSECURE` | Não | `true` (padrão) conecta sem TLS; `false` ativa o TLS |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | Não | `true` aceita um certificado em que a imagem do coletor não confia (autoassinado, CA privada). O padrão é `false` |
 | `DATABASE_TLS_SSLMODE` | Não | PostgreSQL: as duas configurações acima expressas como o `sslmode` do libpq, para as verificações SQL próprias da configuração: `disable` enquanto `DATABASE_TLS_INSECURE` for `true`, `require` quando `DATABASE_TLS_INSECURE_SKIP_VERIFY` for `true`, `verify-full` caso contrário. O `install.sh` a grava. O padrão é `disable` |
+| `DATABASE_TLS_MYSQL` | Não | MySQL e MariaDB: as mesmas duas configurações do `tls` do driver, para as leituras do Galera feitas pela configuração: `false` enquanto `DATABASE_TLS_INSECURE` for `true`, `skip-verify` quando `DATABASE_TLS_INSECURE_SKIP_VERIFY` for `true`, `true` caso contrário. O `install.sh` calcula o valor; defina-o você mesmo em um manifesto. O padrão é `false` |
 | `DATABASE_COLLECTION_INTERVAL` | Não | Com que frequência as estatísticas do mecanismo são lidas. O padrão é `30s` |
 | `DATABASE_QUERY_EVENTS` | Não | `true` envia amostras de consultas e principais consultas como logs (PostgreSQL, MySQL, MongoDB, SQL Server e Oracle). Elas contêm o texto das consultas. O padrão é `false` |
 | `DATABASE_SERVER_ID` | Não | O id de um banco de dados que o OneUptime já mostra (a guia **Documentação** dele o tem, já preenchido). Os dados então se juntam diretamente a esse banco de dados e aparecem nas páginas dele, seja qual for o endereço que informem (ou nenhum); é o caminho para o Kubernetes e para IPs privados. Precisa ser um banco de dados do projeto ao qual a chave de ingestão pertence |
@@ -398,6 +400,8 @@ Depois da primeira coleta, o banco de dados aparece em **Bancos de dados** ou, s
 A feature gate `postgresqlreceiver.preciselagmetrics` do receptor do PostgreSQL, ativada por padrão, registra o atraso de replicação em tempo como `postgresql.wal.delay` em vez de `postgresql.wal.lag`, e essa métrica é desativada no upstream; é por isso que o agente a ativa. Cada configuração lista outras métricas opcionais em um comentário; ative qualquer uma delas da mesma forma. A seção **Engine metrics** da visão geral de um banco de dados mostra um conjunto selecionado para cada mecanismo desta tabela (para Elasticsearch / OpenSearch, saúde do cluster, nós, shards não atribuídos, tarefas pendentes, heap da JVM, disco livre, buscas e indexação; para Memcached, conexões, memória, itens, acertos e falhas de get, comandos e remoções), e a guia **Métricas** tem tudo. Ali, uma métrica que a visão geral mostra exibe o valor da visão geral (as séries dela combinadas da mesma forma, um contador como taxa por segundo) com uma legenda que diz como (_total das séries_, _por segundo, todas as séries_); qualquer outra linha mostra a média das séries dela, e o mesmo faz cada linha enquanto você filtra a lista por um atributo. O MariaDB informa `mysql.buffer_pool.limit` como a contagem de páginas do buffer pool em vez dos bytes que o receptor declara, então em um banco de dados MariaDB essa linha e o gráfico dela são lidos em páginas. O MariaDB não tem contadores de status `Innodb_rows_*`, então o receptor não envia `mysql.row_operations` para ele, e a visão geral de um MariaDB não tem o gráfico **Operações de linhas**; **Operações de handler** mostra as leituras e gravações de linhas dele.
 
 A configuração do PostgreSQL também faz ao servidor quatro perguntas próprias, com o receptor `sqlquery` do coletor no mesmo intervalo: há quanto tempo ele está no ar (`postgresql.uptime`, a partir de `pg_postmaster_start_time()`), a idade do seu ID de transação mais antigo (`postgresql.xid.oldest_age`, o maior `age(datfrozenxid)` em `pg_database`), há quanto tempo a sua transação aberta mais antiga está aberta (`postgresql.transaction.longest_duration`) e quantas sessões esperam por um bloqueio (`postgresql.sessions.waiting_on_lock`), as duas últimas a partir de `pg_stat_activity`. O receptor `postgresql` não informa nenhuma delas, e são elas que mostram uma reinicialização, uma transação deixada aberta, uma fila de esperas por bloqueio e a aproximação do wraparound dos IDs de transação: o PostgreSQL deixa de aceitar gravações perto de uma idade de 2,1 bilhões, então a sua integridade merece atenção a partir de 1 bilhão e é crítica a partir de 1,5 bilhão. O `pg_monitor` as cobre. A consulta se conecta com `DATABASE_TLS_SSLMODE` e não consegue entrar com uma senha que contenha um espaço (ela a envia como `+`), algo de que o `install.sh` avisa. Com um coletor próprio, copie o receptor `sqlquery/oneuptime` de `configs/postgresql.yaml` para o pipeline `metrics` dele.
+
+A configuração do MySQL também lê em que ponto um servidor está em um cluster Galera, com o mesmo receptor `sqlquery` no mesmo intervalo, porque o receptor `mysql` não informa nada disso: quantos nós o cluster tem (`mysql.wsrep.cluster_size`), o estado deste nó (`mysql.wsrep.local_state`, onde 4 é Synced), quantas vezes ele foi instruído a sair de sincronia de propósito (`mysql.wsrep.desync_count`), quanto a replicação foi pausada por causa dele (`mysql.wsrep.flow_control_paused`) e quantos writesets esperam para ser aplicados (`mysql.wsrep.local_recv_queue`). Não precisa de nada além do login acima, porque lê `SHOW GLOBAL STATUS`, e conecta do jeito que `DATABASE_TLS_MYSQL` diz. Um servidor fora de qualquer cluster não envia nenhuma delas, e nada indica que ele esteja com problemas. **Galera Node Out of Sync** lê essas métricas, e um nó que alguém retirou para um backup com `wsrep_desync` não a dispara.
 
 A **Versão** do banco de dados vem do receptor quando ele informa uma: `db.system.version` (MySQL / MariaDB, MongoDB), `redis.version` (Redis, KeyDB), `oracle.db.version` (Oracle) e `elasticsearch.node.version` (Elasticsearch / OpenSearch). Os receptores do PostgreSQL, do SQL Server e do Memcached não informam nenhuma, então só com o agente esses bancos de dados não mostram versão; um que também roda no Kubernetes, no Docker ou no Podman mostra a da imagem de contêiner dele.
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ Os limites são os dos próprios [monitores recomendados](#monitores-recomendado
 | Mecanismo | Não íntegro | Degradado |
 | --- | --- | --- |
 | PostgreSQL | Conexões em 95% de `max_connections`; IDs de transação perto do wraparound | Conexões em 80% de `max_connections`; IDs de transação envelhecendo rumo ao wraparound; uma réplica 30 segundos atrasada no replay; uma réplica 1 GB de WAL atrasada; uma reinicialização; uma transação aberta há uma hora; uma sessão esperando um bloqueio; um banco de dados de 500 GB ou mais |
-| MySQL / MariaDB | — | 136 conexões; 50 threads em execução; 75% do buffer pool sujo; uma réplica 30 segundos atrasada; uma reinicialização |
+| MySQL / MariaDB | — | 136 conexões; 50 threads em execução; 75% do buffer pool sujo; uma réplica 30 segundos atrasada; uma reinicialização; um nó Galera fora de sincronia sem que ninguém tenha pedido |
 | SQL Server | — | Uma taxa de acerto do cache de buffer abaixo de 90%; uma expectativa de vida de página abaixo de 300 segundos; uma sessão bloqueada; uma consulta esperando memória |
 | Oracle | Um tablespace 90% cheio | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | Memória em 90% de `maxmemory`; uma razão de fragmentação de 1,5 com 256 MB usados; 9.000 clientes; uma reinicialização |

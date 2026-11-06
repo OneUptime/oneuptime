@@ -94,18 +94,27 @@ export interface UseSetupChecklistOptions {
 }
 
 /*
- * Notification Settings' seven channel columns, paired with the readiness
- * method type that makes each one deliverable.
+ * Notification Settings' channel columns, paired with the readiness method type
+ * that makes each one deliverable, in the page's column order.
  *
  * This pairing is the entire "your settings point at channels that work" check.
  * The settings page will happily turn a switch green for a channel the reader
  * has no address on, and nothing on that page ever says the resulting mail goes
  * nowhere.
+ *
+ * The page's Custom Channels column is not here: a custom channel is the
+ * server's, with no method of the reader's behind it.
  */
 export interface SettingChannel {
   column: keyof UserNotificationSetting;
   methodType: string;
   label: string;
+  /*
+   * Set on the chat workspaces. The page shows their column only while the
+   * project has that workspace connected, and a hidden column's switches keep
+   * their saved value: nothing the reader can see or change there.
+   */
+  workspaceType?: WorkspaceType | undefined;
 }
 
 export const SETTING_CHANNELS: Array<SettingChannel> = [
@@ -115,6 +124,24 @@ export const SETTING_CHANNELS: Array<SettingChannel> = [
   { column: "alertByPush", methodType: "Push", label: "Push" },
   { column: "alertByWhatsApp", methodType: "WhatsApp", label: "WhatsApp" },
   { column: "alertByTelegram", methodType: "Telegram", label: "Telegram" },
+  {
+    column: "alertBySlack",
+    methodType: "Slack",
+    label: "Slack",
+    workspaceType: WorkspaceType.Slack,
+  },
+  {
+    column: "alertByMicrosoftTeams",
+    methodType: "Microsoft Teams",
+    label: "Microsoft Teams",
+    workspaceType: WorkspaceType.MicrosoftTeams,
+  },
+  {
+    column: "alertByMattermost",
+    methodType: "Mattermost",
+    label: "Mattermost",
+    workspaceType: WorkspaceType.Mattermost,
+  },
   { column: "alertByWebhook", methodType: "Webhook", label: "Webhook" },
 ];
 
@@ -139,14 +166,17 @@ export const CHANNELS_NAMED_ONLY_WHEN_ALONE: ReadonlyArray<string> = ["Push"];
  * there": those the reader switched on for some update (any row) while no
  * usable method of theirs is on that channel, in the settings page's column
  * order. A channel in CHANNELS_NAMED_ONLY_WHEN_ALONE counts only on a row
- * that no other switched-on, usable channel carries.
+ * that no other switched-on, usable channel carries. `channels` narrows the
+ * channels that can be named; it is every channel when left out.
  */
 export const getUndeliverableSettingChannels: (data: {
   rows: Array<UserNotificationSetting>;
   usableMethodTypes: ReadonlySet<string>;
+  channels?: ReadonlyArray<SettingChannel> | undefined;
 }) => Array<string> = (data: {
   rows: Array<UserNotificationSetting>;
   usableMethodTypes: ReadonlySet<string>;
+  channels?: ReadonlyArray<SettingChannel> | undefined;
 }): Array<string> => {
   const isCarriedByAnother: (
     row: UserNotificationSetting,
@@ -164,25 +194,135 @@ export const getUndeliverableSettingChannels: (data: {
     });
   };
 
-  return SETTING_CHANNELS.filter((channel: SettingChannel): boolean => {
-    if (data.usableMethodTypes.has(channel.methodType)) {
-      return false;
-    }
-
-    return data.rows.some((row: UserNotificationSetting): boolean => {
-      if (!row[channel.column]) {
+  return (data.channels || SETTING_CHANNELS)
+    .filter((channel: SettingChannel): boolean => {
+      if (data.usableMethodTypes.has(channel.methodType)) {
         return false;
       }
 
-      if (CHANNELS_NAMED_ONLY_WHEN_ALONE.includes(channel.methodType)) {
-        return !isCarriedByAnother(row, channel);
-      }
+      return data.rows.some((row: UserNotificationSetting): boolean => {
+        if (!row[channel.column]) {
+          return false;
+        }
 
-      return true;
+        if (CHANNELS_NAMED_ONLY_WHEN_ALONE.includes(channel.methodType)) {
+          return !isCarriedByAnother(row, channel);
+        }
+
+        return true;
+      });
+    })
+    .map((channel: SettingChannel): string => {
+      return channel.label;
     });
-  }).map((channel: SettingChannel): string => {
-    return channel.label;
+};
+
+export interface NotificationSettingProbes {
+  onCallShiftAlerts: OnCallShiftAlertProbe;
+  deliverableSettings: DeliverableSettingsProbe;
+}
+
+// What the project's chat workspaces answered, by workspace.
+export type WorkspaceProbes = Partial<Record<WorkspaceType, WorkspaceProbe>>;
+
+type IsChannelOfferedFunction = (
+  channel: SettingChannel,
+  workspaces: WorkspaceProbes,
+) => boolean | null;
+
+/*
+ * Whether Notification Settings shows this channel's column here, or null when
+ * the workspace's probe could not say.
+ */
+const isChannelOffered: IsChannelOfferedFunction = (
+  channel: SettingChannel,
+  workspaces: WorkspaceProbes,
+): boolean | null => {
+  if (!channel.workspaceType) {
+    return true;
+  }
+
+  const probe: WorkspaceProbe | undefined = workspaces[channel.workspaceType];
+
+  return probe?.isKnown ? probe.isConnectedForProject : null;
+};
+
+/*
+ * The two answers Notification Settings gives the checklist, both held to the
+ * columns the page shows. A switch left on in a workspace's hidden column
+ * reaches nobody and is nothing the reader can see, so it neither counts as
+ * hearing about a shift nor gets named as undeliverable.
+ *
+ * A workspace whose probe failed could be either. When an answer turns on such
+ * a column it is reported as unknown, which leaves its step out: "your shift
+ * will start without telling you" and a green tick are both claims nobody
+ * checked (ChecklistModel). A channel already known to be undeliverable is still
+ * named, because that much is true either way.
+ */
+export const getNotificationSettingProbes: (data: {
+  rows: Array<UserNotificationSetting>;
+  usableMethodTypes: ReadonlySet<string>;
+  workspaces: WorkspaceProbes;
+}) => NotificationSettingProbes = (data: {
+  rows: Array<UserNotificationSetting>;
+  usableMethodTypes: ReadonlySet<string>;
+  workspaces: WorkspaceProbes;
+}): NotificationSettingProbes => {
+  const offered: Array<SettingChannel> = SETTING_CHANNELS.filter(
+    (channel: SettingChannel): boolean => {
+      return isChannelOffered(channel, data.workspaces) === true;
+    },
+  );
+  const couldNotAsk: Array<SettingChannel> = SETTING_CHANNELS.filter(
+    (channel: SettingChannel): boolean => {
+      return isChannelOffered(channel, data.workspaces) === null;
+    },
+  );
+
+  const rosterRow: UserNotificationSetting | undefined = data.rows.find(
+    (row: UserNotificationSetting): boolean => {
+      return (
+        row.eventType ===
+        NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER
+      );
+    },
+  );
+
+  const isOnForRoster: (channel: SettingChannel) => boolean = (
+    channel: SettingChannel,
+  ): boolean => {
+    return Boolean(rosterRow?.[channel.column]);
+  };
+
+  const hasAnyChannelEnabled: boolean = offered.some(isOnForRoster);
+
+  const undeliverableChannels: Array<string> = getUndeliverableSettingChannels({
+    rows: data.rows,
+    usableMethodTypes: data.usableMethodTypes,
+    channels: offered,
   });
+
+  const hasSwitchItCouldNotJudge: boolean = couldNotAsk.some(
+    (channel: SettingChannel): boolean => {
+      return (
+        !data.usableMethodTypes.has(channel.methodType) &&
+        data.rows.some((row: UserNotificationSetting): boolean => {
+          return Boolean(row[channel.column]);
+        })
+      );
+    },
+  );
+
+  return {
+    onCallShiftAlerts: {
+      isKnown: hasAnyChannelEnabled || !couldNotAsk.some(isOnForRoster),
+      hasAnyChannelEnabled: hasAnyChannelEnabled,
+    },
+    deliverableSettings: {
+      isKnown: undeliverableChannels.length > 0 || !hasSwitchItCouldNotJudge,
+      undeliverableChannels: undeliverableChannels,
+    },
+  };
 };
 
 /*
@@ -245,17 +385,11 @@ const loadCalendarFeedProbe: LoadCalendarFeedFunction =
     };
   };
 
-interface NotificationSettingProbes {
-  onCallShiftAlerts: OnCallShiftAlertProbe;
-  deliverableSettings: DeliverableSettingsProbe;
-}
-
 /**
- * Which of the seven channels this project has switched OFF, as readiness
- * method types.
+ * Which channels this project has switched OFF, as readiness method types.
  *
- * Only the four paid channels can be switched off; Push, Email and Webhook are
- * never gated. `isKnown: false` means the project row could not be read, and
+ * Only the four paid channels can be switched off; Push, Email, the chat
+ * workspaces and Webhook are never gated. `isKnown: false` means the project row could not be read, and
  * the deliverability check then falls back to verified-only rather than
  * inventing a switch state - it will under-warn rather than warn about a
  * channel that is actually fine.
@@ -335,26 +469,22 @@ const loadProjectSettings: LoadProjectSettingsFunction = async (
   }
 };
 
-type LoadNotificationSettingsFunction = (params: {
+type LoadNotificationSettingRowsFunction = (params: {
   projectId: ObjectID;
   userId: ObjectID;
-  readiness: UserReadinessWire;
-  enabledChannels: EnabledChannelsProbe;
-}) => Promise<NotificationSettingProbes>;
+}) => Promise<Array<UserNotificationSetting>>;
 
 /*
  * One read serving two steps. The rows are small, there are at most a few dozen
- * of them, and both questions are answered by looking at the same seven columns
- * - so splitting this into two requests would double the cost to ask the same
- * table the same thing twice.
+ * of them, and both questions are answered by looking at the same columns - so
+ * splitting this into two requests would double the cost to ask the same table
+ * the same thing twice.
  */
-const loadNotificationSettingProbes: LoadNotificationSettingsFunction =
+const loadNotificationSettingRows: LoadNotificationSettingRowsFunction =
   async (params: {
     projectId: ObjectID;
     userId: ObjectID;
-    readiness: UserReadinessWire;
-    enabledChannels: EnabledChannelsProbe;
-  }): Promise<NotificationSettingProbes> => {
+  }): Promise<Array<UserNotificationSetting>> => {
     const result: ListResult<UserNotificationSetting> =
       await ModelAPI.getList<UserNotificationSetting>({
         modelType: UserNotificationSetting,
@@ -372,74 +502,54 @@ const loadNotificationSettingProbes: LoadNotificationSettingsFunction =
           alertByPush: true,
           alertByWhatsApp: true,
           alertByTelegram: true,
+          alertBySlack: true,
+          alertByMicrosoftTeams: true,
+          alertByMattermost: true,
           alertByWebhook: true,
         },
         sort: {},
       });
 
-    const rows: Array<UserNotificationSetting> = result.data;
-
-    const rosterRow: UserNotificationSetting | undefined = rows.find(
-      (row: UserNotificationSetting): boolean => {
-        return (
-          row.eventType ===
-          NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER
-        );
-      },
-    );
-
-    const hasAnyChannelEnabled: boolean = Boolean(
-      rosterRow &&
-        SETTING_CHANNELS.some((channel: SettingChannel): boolean => {
-          return Boolean(rosterRow[channel.column]);
-        }),
-    );
-
-    /*
-     * A channel counts as deliverable only when the reader has a method on it
-     * that is BOTH verified AND on a channel this project has switched on -
-     * which is exactly the server's own definition of a usable method
-     * (OnCallReadinessService.buildUserReadiness).
-     *
-     * Both halves matter, and each was a way to get this wrong. An address the
-     * reader typed but never confirmed is the case this step exists to surface,
-     * so an unverified row must not satisfy it. And readiness deliberately
-     * reports a method on a project-disabled channel as `isVerified: true` -
-     * the verification really did happen - so filtering on verified alone would
-     * score a switched-off channel as working and print a false all-clear to
-     * the one person who most needs the warning.
-     */
-    const usableMethodTypes: Set<string> = new Set<string>(
-      getVerifiedMethods(params.readiness)
-        .filter((method: ReadinessMethodWire): boolean => {
-          return params.enabledChannels.isKnown
-            ? !params.enabledChannels.disabledMethodTypes.includes(
-                method.methodType,
-              )
-            : true;
-        })
-        .map((method: ReadinessMethodWire): string => {
-          return method.methodType;
-        }),
-    );
-
-    const undeliverableChannels: Array<string> =
-      getUndeliverableSettingChannels({
-        rows: rows,
-        usableMethodTypes: usableMethodTypes,
-      });
-
-    return {
-      onCallShiftAlerts: {
-        isKnown: true,
-        hasAnyChannelEnabled: hasAnyChannelEnabled,
-      },
-      deliverableSettings: {
-        isKnown: true,
-        undeliverableChannels: undeliverableChannels,
-      },
-    };
+    return result.data;
   };
+
+type GetUsableMethodTypesFunction = (params: {
+  readiness: UserReadinessWire;
+  enabledChannels: EnabledChannelsProbe;
+}) => Set<string>;
+
+/*
+ * A channel counts as deliverable only when the reader has a method on it
+ * that is BOTH verified AND on a channel this project has switched on -
+ * which is exactly the server's own definition of a usable method
+ * (OnCallReadinessService.buildUserReadiness).
+ *
+ * Both halves matter, and each was a way to get this wrong. An address the
+ * reader typed but never confirmed is the case this step exists to surface,
+ * so an unverified row must not satisfy it. And readiness deliberately
+ * reports a method on a project-disabled channel as `isVerified: true` -
+ * the verification really did happen - so filtering on verified alone would
+ * score a switched-off channel as working and print a false all-clear to
+ * the one person who most needs the warning.
+ */
+const getUsableMethodTypes: GetUsableMethodTypesFunction = (params: {
+  readiness: UserReadinessWire;
+  enabledChannels: EnabledChannelsProbe;
+}): Set<string> => {
+  return new Set<string>(
+    getVerifiedMethods(params.readiness)
+      .filter((method: ReadinessMethodWire): boolean => {
+        return params.enabledChannels.isKnown
+          ? !params.enabledChannels.disabledMethodTypes.includes(
+              method.methodType,
+            )
+          : true;
+      })
+      .map((method: ReadinessMethodWire): string => {
+        return method.methodType;
+      }),
+  );
+};
 
 type LoadIncomingCallFunction = (params: {
   projectId: ObjectID;
@@ -704,7 +814,7 @@ const useSetupChecklist: (
        * carry anything.
        *
        * It is awaited BEFORE the probe fan-out rather than inside it because the
-       * notification-settings probe genuinely depends on the channel flags - a
+       * notification-settings answer genuinely depends on the channel flags - a
        * deliverability answer computed without them scores a switched-off
        * channel as working. The remaining probes do not depend on it and run
        * concurrently below.
@@ -722,33 +832,27 @@ const useSetupChecklist: (
        * request cannot suppress the others.
        */
       const [
-        notificationSettings,
+        notificationSettingRows,
         incomingCall,
         slack,
         microsoftTeams,
+        mattermost,
         customFields,
         calendarFeed,
       ]: [
-        NotificationSettingProbes,
+        Array<UserNotificationSetting> | null,
         IncomingCallProbe,
+        WorkspaceProbe,
         WorkspaceProbe,
         WorkspaceProbe,
         CustomFieldProbe,
         CalendarFeedProbe,
       ] = await Promise.all([
-        loadNotificationSettingProbes({
+        loadNotificationSettingRows({
           projectId: projectId,
           userId: userId,
-          readiness: readiness,
-          enabledChannels: {
-            isKnown: projectSettings.isKnown,
-            disabledMethodTypes: projectSettings.disabledMethodTypes,
-          },
-        }).catch((): NotificationSettingProbes => {
-          return {
-            onCallShiftAlerts: UNKNOWN_ON_CALL_SHIFT_ALERTS,
-            deliverableSettings: UNKNOWN_DELIVERABLE_SETTINGS,
-          };
+        }).catch((): null => {
+          return null;
         }),
         loadIncomingCallProbe({
           projectId: projectId,
@@ -770,6 +874,13 @@ const useSetupChecklist: (
         }).catch((): WorkspaceProbe => {
           return UNKNOWN_WORKSPACE;
         }),
+        loadWorkspaceProbe({
+          projectId: projectId,
+          userId: userId,
+          workspaceType: WorkspaceType.Mattermost,
+        }).catch((): WorkspaceProbe => {
+          return UNKNOWN_WORKSPACE;
+        }),
         loadCustomFieldProbe({
           projectId: projectId,
           userId: userId,
@@ -780,6 +891,29 @@ const useSetupChecklist: (
           return UNKNOWN_CALENDAR_FEED;
         }),
       ]);
+
+      // Worked out here because it needs the workspaces' answers as well.
+      const notificationSettings: NotificationSettingProbes =
+        notificationSettingRows
+          ? getNotificationSettingProbes({
+              rows: notificationSettingRows,
+              usableMethodTypes: getUsableMethodTypes({
+                readiness: readiness,
+                enabledChannels: {
+                  isKnown: projectSettings.isKnown,
+                  disabledMethodTypes: projectSettings.disabledMethodTypes,
+                },
+              }),
+              workspaces: {
+                [WorkspaceType.Slack]: slack,
+                [WorkspaceType.MicrosoftTeams]: microsoftTeams,
+                [WorkspaceType.Mattermost]: mattermost,
+              },
+            })
+          : {
+              onCallShiftAlerts: UNKNOWN_ON_CALL_SHIFT_ALERTS,
+              deliverableSettings: UNKNOWN_DELIVERABLE_SETTINGS,
+            };
 
       setChecklist(
         buildSetupChecklist({

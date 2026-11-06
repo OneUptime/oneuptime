@@ -247,7 +247,7 @@ describe("Run Workflow on a workflow with no trigger", () => {
 });
 
 describe("Run Workflow on a workflow with a trigger", () => {
-  test("shows the run form and the Run Workflow button, never the no-trigger words", () => {
+  test("shows the run form and the Run Workflow button, never the no-trigger words", async () => {
     renderPanel({
       trigger: manualTrigger(),
       onAddTrigger: getJestMockFunction(),
@@ -260,7 +260,8 @@ describe("Run Workflow on a workflow with a trigger", () => {
       screen.queryByRole("button", { name: WORKFLOW_ADD_TRIGGER_TITLE }),
     ).not.toBeInTheDocument();
     expect(footerButtons()).toEqual(["Close", RUN_WORKFLOW_SUBMIT_TITLE]);
-    expect(screen.getByRole("textbox")).toBeInTheDocument();
+    // The form's code editor is a file of its own, which arrives a moment later.
+    expect(await screen.findByRole("textbox")).toBeInTheDocument();
     // With a trigger the header says what a run is, as before.
     expect(screen.getByTestId("side-over-description")).toHaveTextContent(
       RunModalCopy.description,

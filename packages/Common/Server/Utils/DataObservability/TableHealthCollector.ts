@@ -9,6 +9,7 @@ import oracledb from "oracledb";
 import { Collection, Db, MongoClient } from "mongodb";
 import DataAssetKind from "../../../Types/DataObservability/DataAssetKind";
 import DataAssetLineageSource from "../../../Types/DataObservability/DataAssetLineageSource";
+import { DataColumnMapping } from "../../../Types/DataObservability/DataColumnLineage";
 import {
   DataAssetColumn,
   MAX_COLUMN_NAME_LENGTH,
@@ -39,7 +40,10 @@ import ClickHouseHttpApi, {
   readClickHouseConnection,
 } from "./ClickHouseHttpApi";
 import DatabricksApi, { readDatabricksConnection } from "./DatabricksApi";
-import AthenaApi, { readAthenaConnection } from "./AthenaApi";
+import AthenaApi, {
+  describeScanLimit,
+  readAthenaConnection,
+} from "./AthenaApi";
 import { MongoCheckStatement, readMongoCheckStatement } from "./MongoDbChecks";
 import { isMongoSystemDatabase, readMongoUri } from "./MongoUri";
 import { MAX_SEGMENTS_PER_CHECK } from "../../../Types/DataObservability/DataCheckType";
@@ -49,11 +53,20 @@ import {
 } from "./OracleConnection";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  DataCheckLimits,
   DataCheckRunResult,
+  DataCheckSegmentValue,
   MAX_CHECK_ERROR_LENGTH,
   PlannedDataCheck,
+  PlannedFreshnessRead,
   readCheckRows,
+  readFreshnessAge,
 } from "./DataCheckResults";
+import {
+  FailingRow,
+  maskFailingRows,
+} from "../../../Types/DataObservability/DataCheckFailingRows";
+import { getDataTableKey } from "../../../Types/DataObservability/DataObservabilityMetric";
 import {
   CollectedJobSpend,
   MAX_SPEND_JOBS,
@@ -135,6 +148,13 @@ export const MAX_IDENTIFIER_LENGTH: number = 240;
 export const MAX_COLUMNS_PER_COLLECTION: number = 200_000;
 // Most warnings one collection keeps.
 export const MAX_COLLECTION_WARNINGS: number = 20;
+
+// What a read replica cannot say, as its database's warning.
+const READ_REPLICA_WARNING: string =
+  "This is a read replica. It does not count the writes it replays, or the reads on its primary, so a table's last change comes from its rows and size, and its reads are left out. Connect the primary to count both.";
+
+// BigQuery's words when a query would bill more than it was allowed.
+const BYTES_BILLED_LIMIT_PATTERN: RegExp = /bytes ?billed/i;
 /*
  * The newest documents of a MongoDB collection whose fields are read when
  * no validator names them: the same documents read the same, so a field
@@ -213,6 +233,18 @@ export interface CollectedTable {
   secondsSinceRead?: number | null | undefined;
   // Null when the collection could not read all of them (the column list was cut).
   columns: Array<DataAssetColumn> | null;
+  /*
+   * True when the columns were worked out from its data, not read from a
+   * schema (MongoDB's newest documents): one coming or going says what the
+   * documents hold, not that anything broke.
+   */
+  columnsAreInferred?: boolean | undefined;
+  /*
+   * True when secondsSinceChange came from the table's freshness column, and
+   * so says when its data last changed, whatever its write counter did. Null
+   * then means "not read this time", and the last known time stands.
+   */
+  isChangeTimeFromData?: boolean | undefined;
 }
 
 // Where the database itself shows one table feeding another.
@@ -238,10 +270,13 @@ export interface CollectedLineageEdge {
   secondsSinceSeen: number | null;
   // A login or service account whose queries moved it; null for a view.
   seenBy: string | null;
+  // Which columns feed which, when the database says (Snowflake's access history).
+  columnMappings?: Array<DataColumnMapping> | undefined;
 }
 
 export interface TableHealthSnapshot {
-  engine: DatabaseEngine;
+  // "storage" for a bucket's watched paths (StoragePathCollector): no database, and no probe.
+  engine: DatabaseEngine | "storage";
   collectedAt: string;
   tables: Array<CollectedTable>;
   // False when the table list was cut at its limit, so absence proves nothing.
@@ -274,6 +309,10 @@ export interface TableHealthCollectOptions {
   exclusions: Array<string>;
   // The store's data checks that are due, run after the catalog in the same session.
   checks?: Array<PlannedDataCheck> | undefined;
+  // Tables whose change time comes from a column of their own.
+  freshnessReads?: Array<PlannedFreshnessRead> | undefined;
+  // Leave the checks for the next collection when the database is busy.
+  waitWhenBusy?: boolean | undefined;
   /*
    * How far back to read the query history (getQueryHistoryLookbackInSeconds);
    * 0, or not given (an older server, which keeps no lineage from a
@@ -298,6 +337,7 @@ interface RawTable {
   secondsSinceChange: number | null;
   readCount: number | null;
   secondsSinceRead: number | null;
+  columnsAreInferred?: boolean | undefined;
 }
 
 interface RawColumn {
@@ -348,7 +388,14 @@ interface CatalogSession {
   readAggregate(
     sql: string,
     params: Array<string>,
+    limits?: DataCheckLimits | undefined,
   ): Promise<Array<Record<string, unknown>>>;
+  /*
+   * How loaded the database looks, for a project that would rather have its
+   * checks wait. Only where a check competes with the application for the same
+   * server; one that cannot say is not busy.
+   */
+  isBusy?(): Promise<boolean>;
   close(): Promise<void>;
 }
 
@@ -636,6 +683,18 @@ class PostgresCatalog implements CatalogSession {
     return await this.rows(sql, params);
   }
 
+  // Half of its connections working at once is a server a check should leave alone.
+  public async isBusy(): Promise<boolean> {
+    const [row] = await this.rows(
+      `SELECT COUNT(*) FILTER (WHERE state = 'active' AND pid <> pg_catalog.pg_backend_pid()) AS active,
+        pg_catalog.current_setting('max_connections')::int AS max_connections
+       FROM pg_catalog.pg_stat_activity`,
+      [],
+    );
+
+    return isBusyAtShare(row?.["active"], row?.["max_connections"]);
+  }
+
   private static readonly RELATION_FILTER: string = `c.relkind IN ('r', 'v', 'm', 'p', 'f')
       AND NOT c.relispartition
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
@@ -724,6 +783,16 @@ class PostgresCatalog implements CatalogSession {
       tableRows = await this.rows(this.tablesSql(false), [options.maxTables]);
     }
 
+    const [recovery] = await this.rows(
+      "SELECT pg_catalog.pg_is_in_recovery() AS in_recovery",
+      [],
+    );
+    const isReplica: boolean = recovery?.["in_recovery"] === true;
+
+    if (isReplica) {
+      warnings.push(READ_REPLICA_WARNING);
+    }
+
     const tables: Array<RawTable> = [];
 
     for (const row of tableRows) {
@@ -740,9 +809,9 @@ class PostgresCatalog implements CatalogSession {
         kind,
         estimatedRows: readCount(row["estimated_rows"]),
         sizeInBytes: readCount(row["size_bytes"]),
-        writeCount: readCount(row["write_count"]),
+        writeCount: isReplica ? null : readCount(row["write_count"]),
         secondsSinceChange: null,
-        readCount: readCount(row["read_count"]),
+        readCount: isReplica ? null : readCount(row["read_count"]),
         secondsSinceRead: null,
       });
     }
@@ -904,6 +973,21 @@ class MySqlCatalog implements CatalogSession {
     params: Array<string>,
   ): Promise<Array<Record<string, unknown>>> {
     return await this.inReadOnlyTransaction(sql, params);
+  }
+
+  // Half of its connections working at once is a server a check should leave alone.
+  public async isBusy(): Promise<boolean> {
+    const [running] = await this.run(
+      "SHOW GLOBAL STATUS LIKE 'Threads_running'",
+    );
+    const [limit] = await this.run(
+      "SELECT @@max_connections AS max_connections",
+    );
+
+    return isBusyAtShare(
+      running?.["Value"] ?? running?.["value"],
+      limit?.["max_connections"],
+    );
   }
 
   private static readonly SCHEMA_FILTER: string = `NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')`;
@@ -1142,6 +1226,22 @@ class SqlServerCatalog implements CatalogSession {
     return await this.run(sql, params);
   }
 
+  /*
+   * More work waiting for a processor than it has processors. This needs VIEW
+   * SERVER STATE: a login without it cannot tell, and is told nothing is busy.
+   */
+  public async isBusy(): Promise<boolean> {
+    const [row] = await this.run(
+      `SELECT SUM(runnable_tasks_count) AS waiting, COUNT(*) AS schedulers
+        FROM sys.dm_os_schedulers WHERE status = 'VISIBLE ONLINE'`,
+      [],
+    );
+    const waiting: number | null = readCount(row?.["waiting"]);
+    const schedulers: number | null = readCount(row?.["schedulers"]);
+
+    return waiting !== null && schedulers !== null && waiting > schedulers;
+  }
+
   // Each view's tables and views, from its expression dependencies.
   public async readLineage(
     options: TableHealthCollectOptions,
@@ -1195,6 +1295,17 @@ class SqlServerCatalog implements CatalogSession {
     > = new Map();
     let secondsSinceStatsReset: number | null = null;
 
+    // A readable secondary replays writes without counting them, and sees its own reads only.
+    const [role] = await this.run(
+      "SELECT CAST(DATABASEPROPERTYEX(DB_NAME(), 'Updateability') AS nvarchar(20)) AS updateability",
+      [],
+    );
+    const isReplica: boolean = role?.["updateability"] === "READ_ONLY";
+
+    if (isReplica) {
+      warnings.push(READ_REPLICA_WARNING);
+    }
+
     try {
       const statisticRows: Array<Record<string, unknown>> = await this.run(
         `SELECT TOP (@p0) s.name AS table_schema, o.name AS table_name,
@@ -1225,10 +1336,14 @@ class SqlServerCatalog implements CatalogSession {
           ),
           {
             sizeInBytes: readCount(row["size_bytes"]),
-            secondsSinceChange: readCount(row["seconds_since_change"]),
-            writeCount: readCount(row["write_count"]),
-            readCount: readCount(row["read_count"]),
-            secondsSinceRead: readCount(row["seconds_since_read"]),
+            secondsSinceChange: isReplica
+              ? null
+              : readCount(row["seconds_since_change"]),
+            writeCount: isReplica ? null : readCount(row["write_count"]),
+            readCount: isReplica ? null : readCount(row["read_count"]),
+            secondsSinceRead: isReplica
+              ? null
+              : readCount(row["seconds_since_read"]),
           },
         );
       }
@@ -1742,6 +1857,137 @@ class SnowflakeCatalog implements CatalogSession {
     });
   }
 
+  /*
+   * Views from OBJECT_DEPENDENCIES and queries from ACCESS_HISTORY, down to
+   * which column feeds which. Both are ACCOUNT_USAGE, read on the warehouse
+   * once an hour with spend. ACCESS_HISTORY is Snowflake Enterprise's:
+   * without it, views still say their lineage.
+   */
+  public async readLineage(
+    options: TableHealthCollectOptions,
+  ): Promise<LineageRead> {
+    const lookback: number = readLookback(options);
+
+    if (lookback <= 0) {
+      return NO_LINEAGE;
+    }
+
+    const window: number = Math.max(
+      lookback,
+      SNOWFLAKE_ACCOUNT_USAGE_LATENCY_IN_SECONDS,
+    );
+    const warnings: Array<string> = [];
+    const edges: Array<CollectedLineageEdge> = [];
+    let isViewLineageComplete: boolean = false;
+
+    try {
+      const rows: Array<Record<string, unknown>> = await this.api.query({
+        statement: SNOWFLAKE_VIEW_LINEAGE_QUERY,
+        bindings: [this.database],
+        useWarehouse: true,
+      });
+
+      for (const row of rows) {
+        const isHere: boolean =
+          String(row["upstream_database"] ?? "").toUpperCase() ===
+          this.database.toUpperCase();
+        const edge: CollectedLineageEdge | null = readLineageRow(
+          { ...row, upstream_database: isHere ? "" : row["upstream_database"] },
+          DataAssetLineageSource.ViewDefinition,
+        );
+
+        if (edge) {
+          edges.push(edge);
+        }
+      }
+
+      isViewLineageComplete = rows.length < MAX_LINEAGE_EDGES_PER_COLLECTION;
+    } catch (error) {
+      warnings.push(
+        `View lineage was left out (SNOWFLAKE.ACCOUNT_USAGE needs IMPORTED PRIVILEGES): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    try {
+      const queryEdges: Map<string, CollectedLineageEdge> = new Map();
+
+      for (const row of await this.api.query({
+        statement: buildSnowflakeQueryLineageQuery(window),
+        bindings: [this.database],
+        useWarehouse: true,
+      })) {
+        const upstream: ReturnType<typeof readSnowflakeObjectParts> =
+          readSnowflakeObjectParts(row["upstream_object"], this.database);
+        const downstream: ReturnType<typeof readSnowflakeObjectParts> =
+          readSnowflakeObjectParts(row["downstream_object"], this.database);
+
+        if (!upstream || !downstream || downstream.database) {
+          continue;
+        }
+
+        const edge: CollectedLineageEdge | null = readLineageRow(
+          {
+            upstream_database: upstream.database,
+            upstream_schema: upstream.schema,
+            upstream_table: upstream.table,
+            downstream_schema: downstream.schema,
+            downstream_table: downstream.table,
+            seconds_since_seen: row["seconds_since_seen"],
+            seen_by: row["seen_by"],
+          },
+          DataAssetLineageSource.QueryHistory,
+        );
+
+        if (edge) {
+          queryEdges.set(
+            `${row["upstream_object"]}\u0000${row["downstream_object"]}`.toUpperCase(),
+            edge,
+          );
+        }
+      }
+
+      // Column lineage is extra: the tables' edge stands without it.
+      try {
+        for (const row of await this.api.query({
+          statement: buildSnowflakeColumnLineageQuery(window),
+          bindings: [this.database],
+          useWarehouse: true,
+        })) {
+          const edge: CollectedLineageEdge | undefined = queryEdges.get(
+            `${row["upstream_object"]}\u0000${row["downstream_object"]}`.toUpperCase(),
+          );
+          const upstreamColumn: string = readText(
+            row["upstream_column"],
+            MAX_COLUMN_NAME_LENGTH,
+          );
+          const downstreamColumn: string = readText(
+            row["downstream_column"],
+            MAX_COLUMN_NAME_LENGTH,
+          );
+
+          if (edge && upstreamColumn && downstreamColumn) {
+            edge.columnMappings = [
+              ...(edge.columnMappings || []),
+              { upstreamColumn, downstreamColumn },
+            ];
+          }
+        }
+      } catch (error) {
+        warnings.push(
+          `Column lineage was left out: ${describeError(error).slice(0, 200)}`,
+        );
+      }
+
+      edges.push(...queryEdges.values());
+    } catch (error) {
+      warnings.push(
+        `Query lineage was left out (ACCESS_HISTORY is Snowflake Enterprise's): ${describeError(error).slice(0, 200)}`,
+      );
+    }
+
+    return { edges, isViewLineageComplete, warnings };
+  }
+
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
     const warnings: Array<string> = [];
     const database: string = snowflakeIdentifier(this.database);
@@ -2026,6 +2272,81 @@ export function buildSnowflakeSpendQuery(withAttribution: boolean): string {
     LIMIT ${MAX_SPEND_JOBS}`;
 }
 
+// ACCOUNT_USAGE runs up to three hours behind: a shorter look back would miss what it has not said yet.
+const SNOWFLAKE_ACCOUNT_USAGE_LATENCY_IN_SECONDS: number = 6 * 60 * 60;
+
+// A view and what it is defined on, across the account's databases.
+export const SNOWFLAKE_VIEW_LINEAGE_QUERY: string = `SELECT d.referenced_database AS upstream_database,
+    d.referenced_schema AS upstream_schema, d.referenced_object_name AS upstream_table,
+    d.referencing_schema AS downstream_schema, d.referencing_object_name AS downstream_table
+  FROM SNOWFLAKE.ACCOUNT_USAGE.OBJECT_DEPENDENCIES d
+  WHERE UPPER(d.referencing_database) = UPPER(?)
+    AND d.referencing_object_domain IN ('VIEW', 'MATERIALIZED VIEW')
+    AND d.referenced_object_domain IN ('TABLE', 'VIEW', 'MATERIALIZED VIEW')
+  LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`;
+
+// A query that read one table and wrote another, by the base tables behind any view it read.
+export function buildSnowflakeQueryLineageQuery(
+  lookbackInSeconds: number,
+): string {
+  return `SELECT base.value:"objectName"::string AS upstream_object,
+    written.value:"objectName"::string AS downstream_object,
+    DATEDIFF('second', MAX(h.query_start_time), CURRENT_TIMESTAMP()) AS seconds_since_seen,
+    MAX(h.user_name) AS seen_by
+  FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,
+    LATERAL FLATTEN(input => h.base_objects_accessed) base,
+    LATERAL FLATTEN(input => h.objects_modified) written
+  WHERE h.query_start_time > DATEADD('second', -${Math.floor(lookbackInSeconds)}, CURRENT_TIMESTAMP())
+    AND base.value:"objectDomain"::string IN ('Table', 'Materialized view')
+    AND written.value:"objectDomain"::string = 'Table'
+    AND STARTSWITH(UPPER(written.value:"objectName"::string), UPPER(?) || '.')
+  GROUP BY 1, 2
+  LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`;
+}
+
+// The same history, a column at a time: each written column and the base columns behind it.
+export function buildSnowflakeColumnLineageQuery(
+  lookbackInSeconds: number,
+): string {
+  return `SELECT source.value:"objectName"::string AS upstream_object,
+    source.value:"columnName"::string AS upstream_column,
+    written.value:"objectName"::string AS downstream_object,
+    col.value:"columnName"::string AS downstream_column
+  FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY h,
+    LATERAL FLATTEN(input => h.objects_modified) written,
+    LATERAL FLATTEN(input => written.value:"columns") col,
+    LATERAL FLATTEN(input => col.value:"baseSources") source
+  WHERE h.query_start_time > DATEADD('second', -${Math.floor(lookbackInSeconds)}, CURRENT_TIMESTAMP())
+    AND written.value:"objectDomain"::string = 'Table'
+    AND STARTSWITH(UPPER(written.value:"objectName"::string), UPPER(?) || '.')
+  GROUP BY 1, 2, 3, 4
+  LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`;
+}
+
+// An object's three-part name as a lineage row names it: its database only when it is another's.
+export function readSnowflakeObjectParts(
+  value: unknown,
+  storeDatabase: string,
+): { database: string; schema: string; table: string } | null {
+  const parts: Array<string> = String(value ?? "").split(".");
+
+  if (
+    parts.length !== 3 ||
+    parts.some((part: string) => {
+      return !part;
+    })
+  ) {
+    return null;
+  }
+
+  return {
+    database:
+      parts[0]!.toUpperCase() === storeDatabase.toUpperCase() ? "" : parts[0]!,
+    schema: parts[1]!,
+    table: parts[2]!,
+  };
+}
+
 // The tables each job wrote, from ACCESS_HISTORY (Snowflake Enterprise).
 export const SNOWFLAKE_WRITTEN_TABLES_QUERY: string = `SELECT q.query_parameterized_hash AS job_key,
     f.value:"objectName"::string AS object_name
@@ -2225,8 +2546,24 @@ class BigQueryCatalog implements CatalogSession {
   public async readAggregate(
     sql: string,
     params: Array<string>,
+    limits?: DataCheckLimits | undefined,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    try {
+      return await this.api.query({
+        statement: sql,
+        params,
+        maximumBytesBilled: limits?.maxBytesScanned,
+      });
+    } catch (error) {
+      if (
+        limits?.maxBytesScanned &&
+        BYTES_BILLED_LIMIT_PATTERN.test(describeError(error))
+      ) {
+        throw new Error(describeScanLimit(limits.maxBytesScanned));
+      }
+
+      throw error;
+    }
   }
 
   private datasetReference(): string {
@@ -3484,8 +3821,13 @@ class AthenaCatalog implements CatalogSession {
   public async readAggregate(
     sql: string,
     params: Array<string>,
+    limits?: DataCheckLimits | undefined,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    return await this.api.query({
+      statement: sql,
+      params,
+      maxBytesScanned: limits?.maxBytesScanned,
+    });
   }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -4297,6 +4639,9 @@ class MongoCatalog implements CatalogSession {
       this.readSample(collection),
     ]);
     const newestAt: Date | null = readObjectIdTime(sample?.newestId);
+    const declared: Array<DataAssetColumn> | null = readMongoSchemaFields(
+      info.options["validator"],
+    );
 
     return {
       table: {
@@ -4304,14 +4649,12 @@ class MongoCatalog implements CatalogSession {
         estimatedRows: stats.rows,
         sizeInBytes: stats.size,
         writeCount: stats.writes,
+        columnsAreInferred: declared === null,
         secondsSinceChange: newestAt
           ? Math.max(0, Math.floor((now.getTime() - newestAt.getTime()) / 1000))
           : null,
       },
-      columns:
-        readMongoSchemaFields(info.options["validator"]) ??
-        sample?.fields ??
-        null,
+      columns: declared ?? sample?.fields ?? null,
       viewOn: null,
     };
   }
@@ -4626,6 +4969,171 @@ export function assembleSnapshot(data: {
   return snapshot;
 }
 
+// The share of its connections at work that makes a database busy.
+const BUSY_SHARE_OF_CONNECTIONS: number = 0.5;
+
+export function isBusyAtShare(active: unknown, limit: unknown): boolean {
+  const activeCount: number | null = readCount(active);
+  const limitCount: number | null = readCount(limit);
+
+  return (
+    activeCount !== null &&
+    limitCount !== null &&
+    limitCount > 0 &&
+    activeCount / limitCount >= BUSY_SHARE_OF_CONNECTIONS
+  );
+}
+
+const BUSY_DATABASE_WARNING: string =
+  "The database looked busy, so the checks that were due wait for the next collection.";
+
+async function isCatalogBusy(catalog: CatalogSession): Promise<boolean> {
+  try {
+    return catalog.isBusy ? await catalog.isBusy() : false;
+  } catch {
+    // A login that may not see how busy the database is has nothing to wait for.
+    return false;
+  }
+}
+
+// A few of a check's failing rows, when the project keeps them and the check found any.
+async function readFailingRowsOf(
+  catalog: CatalogSession,
+  check: PlannedDataCheck,
+  values: Array<DataCheckSegmentValue>,
+): Promise<{ failingRows?: Array<FailingRow> }> {
+  if (!check.sample) {
+    return {};
+  }
+
+  const found: boolean = values.some((value: DataCheckSegmentValue) => {
+    return value.value > 0;
+  });
+
+  if (!found) {
+    return { failingRows: [] };
+  }
+
+  try {
+    return {
+      failingRows: maskFailingRows(
+        await catalog.readAggregate(
+          check.sample.sql,
+          check.sample.params,
+          check.limits,
+        ),
+        check.sample.maskedColumns,
+      ),
+    };
+  } catch {
+    // Extra to the number the check read: it stands without them.
+    return {};
+  }
+}
+
+interface FreshnessRead {
+  // How long ago each table's data changed; null for "not known this time".
+  ages: Map<string, number | null>;
+  warnings: Array<string>;
+}
+
+async function readFreshnessColumns(
+  catalog: CatalogSession,
+  options: TableHealthCollectOptions,
+  now: Date,
+): Promise<FreshnessRead> {
+  const read: FreshnessRead = { ages: new Map(), warnings: [] };
+
+  for (const item of options.freshnessReads || []) {
+    if (!item.sql) {
+      read.ages.set(item.tableKey, null);
+      continue;
+    }
+
+    try {
+      const rows: Array<Record<string, unknown>> = await catalog.readAggregate(
+        item.sql,
+        item.params,
+        item.limits,
+      );
+
+      read.ages.set(item.tableKey, readFreshnessAge(rows[0]?.["value"], now));
+    } catch (error) {
+      read.warnings.push(
+        `The freshness column of ${item.tableKey} could not be read: ${describeError(error).slice(0, 200)}`,
+      );
+    }
+  }
+
+  return read;
+}
+
+// How loaded a database looks, asked directly: nothing is caught, so a wrong query shows.
+export async function isDatabaseBusy(
+  connection: DatabaseConnection,
+): Promise<boolean> {
+  const catalog: CatalogSession = await openCatalog(connection);
+
+  try {
+    return catalog.isBusy ? await catalog.isBusy() : false;
+  } finally {
+    await catalog.close();
+  }
+}
+
+/*
+ * Reads checks on a connection and nothing else: for a table's copy on staging,
+ * when a pull request changes it (StagingTableComparison). Each check on its own,
+ * as at a collection.
+ */
+export async function readCheckValues(
+  connection: DatabaseConnection,
+  checks: Array<PlannedDataCheck>,
+): Promise<Array<DataCheckRunResult>> {
+  if (checks.length === 0) {
+    return [];
+  }
+
+  const secrets: Array<string> = getConnectionSecrets(
+    connection.connectionString,
+  );
+  const catalog: CatalogSession = await openCatalog(connection);
+  const results: Array<DataCheckRunResult> = [];
+
+  try {
+    for (const check of checks) {
+      try {
+        results.push({
+          checkId: check.checkId,
+          values: readCheckRows({
+            type: check.type,
+            isSegmented: check.isSegmented,
+            rows: await catalog.readAggregate(
+              check.sql,
+              check.params,
+              check.limits,
+            ),
+          }),
+          error: null,
+        });
+      } catch (error) {
+        results.push({
+          checkId: check.checkId,
+          values: [],
+          error: sanitizeErrorMessage(error, secrets).slice(
+            0,
+            MAX_CHECK_ERROR_LENGTH,
+          ),
+        });
+      }
+    }
+  } finally {
+    await catalog.close();
+  }
+
+  return results;
+}
+
 export async function collectTableHealth(
   connection: DatabaseConnection,
   options: TableHealthCollectOptions = DEFAULT_COLLECT_OPTIONS,
@@ -4671,18 +5179,33 @@ export async function collectTableHealth(
     }
 
     const checkResults: Array<DataCheckRunResult> = [];
+    const hasReads: boolean =
+      (options.checks || []).length > 0 ||
+      (options.freshnessReads || []).length > 0;
+    const waits: boolean =
+      hasReads &&
+      options.waitWhenBusy === true &&
+      (await isCatalogBusy(catalog));
+    const waitWarnings: Array<string> = waits ? [BUSY_DATABASE_WARNING] : [];
 
     // Each check on its own: one that cannot run never stops the others.
-    for (const check of options.checks || []) {
+    for (const check of waits ? [] : options.checks || []) {
       try {
+        const values: Array<DataCheckSegmentValue> = readCheckRows({
+          type: check.type,
+          isSegmented: check.isSegmented,
+          rows: await catalog.readAggregate(
+            check.sql,
+            check.params,
+            check.limits,
+          ),
+        });
+
         checkResults.push({
           checkId: check.checkId,
-          values: readCheckRows({
-            type: check.type,
-            isSegmented: check.isSegmented,
-            rows: await catalog.readAggregate(check.sql, check.params),
-          }),
+          values,
           error: null,
+          ...(await readFailingRowsOf(catalog, check, values)),
         });
       } catch (error) {
         checkResults.push({
@@ -4696,26 +5219,46 @@ export async function collectTableHealth(
       }
     }
 
+    const freshness: FreshnessRead = waits
+      ? { ages: new Map(), warnings: [] }
+      : await readFreshnessColumns(catalog, options, collectedAt);
+    const assembled: TableHealthSnapshot = assembleSnapshot({
+      engine: connection.engine,
+      read: {
+        ...read,
+        warnings: [
+          ...read.warnings,
+          ...lineage.warnings,
+          ...spend.warnings,
+          ...waitWarnings,
+          ...freshness.warnings,
+        ].map((warning: string) => {
+          return sanitizeErrorMessage(new Error(warning), secrets);
+        }),
+      },
+      options,
+      collectedAt,
+      lineage,
+    });
+
     return {
-      ...assembleSnapshot({
-        engine: connection.engine,
-        read: {
-          ...read,
-          warnings: [
-            ...read.warnings,
-            ...lineage.warnings,
-            ...spend.warnings,
-          ].map((warning: string) => {
-            return sanitizeErrorMessage(new Error(warning), secrets);
-          }),
-        },
-        options,
-        collectedAt,
-        lineage,
+      ...assembled,
+      tables: assembled.tables.map((table: CollectedTable): CollectedTable => {
+        const key: string = getDataTableKey(table.schema, table.name);
+
+        return freshness.ages.has(key)
+          ? {
+              ...table,
+              secondsSinceChange: freshness.ages.get(key) ?? null,
+              isChangeTimeFromData: true,
+            }
+          : table;
       }),
       target: readConnectionTarget(connection),
       ...(spend.isRead ? { spend: spend.jobs.slice(0, MAX_SPEND_JOBS) } : {}),
-      ...(options.checks && options.checks.length > 0 ? { checkResults } : {}),
+      ...(options.checks && options.checks.length > 0 && !waits
+        ? { checkResults }
+        : {}),
     };
   } catch (error) {
     throw new Error(sanitizeErrorMessage(error, secrets));

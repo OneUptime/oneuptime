@@ -103,7 +103,7 @@ Várias séries trazem o seu estado em um **rótulo**, com um valor que é sempr
 | `purefa_host_connectivity_info` | `status`, com `details` | Host |
 | `purefa_drive_capacity_bytes` | `component_status` (o valor é a capacidade do disco) | Disco |
 
-Uma série filtrada para um estado ruim só existe enquanto algo está nesse estado, então nenhuma série significa que está tudo bem. É por isso que **Max acima de 0 dispara e 0 recupera** é a forma certa para elas, e é assim que os modelos são montados: os seus critérios de recuperação contam uma série ausente como zero.
+Uma série filtrada para um estado ruim só existe enquanto algo está nesse estado, então nenhuma série significa que está tudo bem. É por isso que **Max acima de 0 dispara e 0 recupera** é a forma certa para elas, e é assim que os modelos são montados: os seus critérios de recuperação contam uma série ausente como zero. Quando não resta nenhuma série, um modelo assim só recupera se `purefa_info` ou `purefb_info` tiver chegado na mesma janela, então um array que parou de reportar não fecha nada.
 
 Nos filtros do monitor e nas chaves de agrupamento, os atributos do agente começam com `resource.` (`resource.storage.array.name`, `resource.storage.system`), enquanto os rótulos da própria Pure não (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

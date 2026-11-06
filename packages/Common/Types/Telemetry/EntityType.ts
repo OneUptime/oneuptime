@@ -35,8 +35,11 @@ enum EntityType {
    * collector configs — see Internal/Roadmap/ProxmoxCephProducts.md §1.
    */
   ProxmoxCluster = "proxmox.cluster",
+  OpenStackCloud = "openstack.cloud",
   ProxmoxNode = "proxmox.node",
+  OpenStackHypervisor = "openstack.hypervisor",
   ProxmoxGuest = "proxmox.guest",
+  OpenStackInstance = "openstack.instance",
   CephCluster = "ceph.cluster",
   /*
    * Storage arrays (Pure Storage FlashArray / FlashBlade today) are
@@ -135,6 +138,17 @@ enum EntityType {
    * `server.address`, never by destination).
    */
   MessageQueue = "message.queue",
+  /*
+   * One part of an OpenStack cloud a span says it touched: an instance, a
+   * volume, a network and so on, by the id OpenStack calls it (the
+   * OpenStackResource table is its row). OneUptime-defined and MEMBERSHIP-ONLY,
+   * like the two above: ingest appends its key (`EntityKey.keyForOpenStackResource`)
+   * to the `entityKeys` of a span from OSProfiler's driver whose request names
+   * the part, so a part's page can find the traces that touched it without
+   * scanning every span's attributes. No resolver ever emits it, and it is never
+   * promoted to an InventoryItem row.
+   */
+  OpenStackResource = "openstack.resource",
   /*
    * Inventory-mirrored types. Unlike everything above, these are never
    * derived from an OTLP resource — the estate they describe is collected

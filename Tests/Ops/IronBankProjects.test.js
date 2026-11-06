@@ -12,8 +12,10 @@
  *     workflow's matrix name the same projects, the same release images, and
  *     the same two that run as root;
  *   - its files are in git; its base image is the one its manifest's args
- *     name; it pins one release everywhere, as PinRelease.js moves it; its
- *     manifest's labels are ones Iron Bank's schema allows; its other
+ *     name; it pins one release everywhere, as PinRelease.js moves it, and the
+ *     Helm values (IronBank/values.yaml) run that release under the name Iron
+ *     Bank will publish it; its manifest's labels are ones Iron Bank's schema
+ *     allows; its other
  *     resources (the probe's ODBC driver) are pinned by checksum and copied
  *     by the Dockerfile, which copies nothing else from its build context; its
  *     RUN instructions fetch nothing but Alpine or Debian packages; and its
@@ -58,6 +60,8 @@ const ROOT = ["Ingress", "Probe"];
 // Their new high and critical findings warn for now; the others' fail the job.
 const REPORT_ONLY = ["Runner", "Probe"];
 
+const helmValuesText = read("IronBank/values.yaml");
+
 /*
  * The Dockerfile each image's release is built from, its shipped stages (by
  * name, null for the unnamed last one), and where the Iron Bank image differs
@@ -84,6 +88,10 @@ const RELEASES = {
     template: "packages/Probe/Dockerfile.tpl",
     stages: [null],
     fromBase: [],
+    // The release downloads with curl and this build does not, nothing in the
+    // probe runs it, and with libcurl4 it is 50 of the high and critical
+    // findings in Iron Bank's scans.
+    leftOut: ["curl"],
     // Node.js, which the release's base image (Node's) has and Iron Bank's
     // Debian image does not; the browsers Playwright downloaded; and the
     // synthetic monitors' helpers it compiled.
@@ -255,6 +263,7 @@ describe.each(NAMES)("IronBank/%s follows Iron Bank's rules", (name) => {
     const current = {
       manifest: project.manifestText,
       dockerfile: project.dockerfileText,
+      values: helmValuesText,
     };
     const next = {
       version: "99.1.2",
@@ -293,6 +302,15 @@ describe.each(NAMES)("IronBank/%s follows Iron Bank's rules", (name) => {
       expect.objectContaining({
         "org.opencontainers.image.revision": next.gitSha,
       }),
+    );
+    expect(yaml.load(pinned.values).image.overrides[release.helmKey]).toBe(
+      `registry1.dso.mil/ironbank/${manifest.name}:99.1.2`,
+    );
+  });
+
+  test("the Helm values run it as Iron Bank will publish it", () => {
+    expect(yaml.load(helmValuesText).image.overrides[release.helmKey]).toBe(
+      `registry1.dso.mil/ironbank/${manifest.name}:${version}`,
     );
   });
 
@@ -549,11 +567,21 @@ describe.each(Object.keys(RELEASES))(
     test("the packages the release keeps, and none it removes", () => {
       const release = packages(commands(theirs));
       const copy = packages(commands(ours));
+      const leftOut = spec.leftOut || [];
       const kept = [...release.installed].filter((pkg) => {
-        return !release.removed.has(pkg) && !spec.fromBase.includes(pkg);
+        return (
+          !release.removed.has(pkg) &&
+          !spec.fromBase.includes(pkg) &&
+          !leftOut.includes(pkg)
+        );
       });
 
       expect(kept.length).toBeGreaterThan(0);
+      expect(
+        leftOut.filter((pkg) => {
+          return copy.installed.has(pkg) || !release.installed.has(pkg);
+        }),
+      ).toEqual([]);
       expect(
         kept.filter((pkg) => {
           return !copy.installed.has(pkg);
@@ -564,6 +592,16 @@ describe.each(Object.keys(RELEASES))(
           return release.removed.has(pkg);
         }),
       ).toEqual([]);
+    });
+
+    test("what the release removes from Playwright's list of its browsers' packages, it removes too", () => {
+      const browserPurge = (list) => {
+        return commands(list).filter((command) => {
+          return /^apt-get purge /.test(command) && /libavcodec/.test(command);
+        });
+      };
+
+      expect(browserPurge(ours)).toEqual(browserPurge(theirs));
     });
 
     test("npm's settings and links, its cache directory and the CA bundle, as the release makes them", () => {

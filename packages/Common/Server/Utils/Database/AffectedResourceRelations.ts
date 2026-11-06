@@ -14,6 +14,7 @@ import NetworkSiteService from "../../Services/NetworkSiteService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import PodmanResourceService from "../../Services/PodmanResourceService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
@@ -108,6 +109,11 @@ function getAllAffectedResourceRelations(): Array<ProjectScopedRelation> {
       column: "proxmoxClusters",
       modelName: "Proxmox Cluster",
       service: ProxmoxClusterService,
+    },
+    {
+      column: "openStackClouds",
+      modelName: "OpenStack Cloud",
+      service: OpenStackCloudService,
     },
     {
       column: "vmwareVCenters",

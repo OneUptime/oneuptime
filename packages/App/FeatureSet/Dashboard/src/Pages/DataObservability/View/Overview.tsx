@@ -12,6 +12,7 @@ import { DataObservabilityCollector } from "Common/Types/DataObservability/DataO
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -30,6 +31,8 @@ const StoreOverviewPage: FunctionComponent<
   const { dataStoreId, store, refresh }: StoreViewOutletContext =
     useStoreView();
   const [isCollecting, setIsCollecting] = useState<boolean>(false);
+  const [isConfirmingStop, setIsConfirmingStop] = useState<boolean>(false);
+  const [isChangingWatch, setIsChangingWatch] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
 
   if (!store) {
@@ -48,6 +51,23 @@ const StoreOverviewPage: FunctionComponent<
     }
 
     setIsCollecting(false);
+  };
+
+  const setWatched: (isWatched: boolean) => Promise<void> = async (
+    isWatched: boolean,
+  ): Promise<void> => {
+    setActionError("");
+    setIsChangingWatch(true);
+
+    try {
+      await DataObservabilityApi.setStoreWatched(dataStoreId, isWatched);
+      refresh();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
+
+    setIsChangingWatch(false);
+    setIsConfirmingStop(false);
   };
 
   return (
@@ -93,6 +113,24 @@ const StoreOverviewPage: FunctionComponent<
               void collectNow();
             },
           },
+          store.isTableHealthEnabled
+            ? {
+                title: "Stop Watching",
+                buttonStyle: ButtonStyleType.NORMAL,
+                icon: IconProp.Close,
+                onClick: () => {
+                  setIsConfirmingStop(true);
+                },
+              }
+            : {
+                title: "Watch Again",
+                buttonStyle: ButtonStyleType.NORMAL,
+                icon: IconProp.Play,
+                isLoading: isChangingWatch,
+                onClick: () => {
+                  void setWatched(true);
+                },
+              },
         ]}
       >
         <div className="space-y-2 px-6 pb-6 text-sm text-gray-700">
@@ -149,6 +187,23 @@ const StoreOverviewPage: FunctionComponent<
           )}
         </p>
       </Card>
+
+      {isConfirmingStop ? (
+        <ConfirmModal
+          title="Stop watching this database?"
+          description="Its tables stop being read and stop counting toward the bill. Their history stays, and so do its monitors, which you can delete."
+          submitButtonText="Stop Watching"
+          isLoading={isChangingWatch}
+          onSubmit={() => {
+            void setWatched(false);
+          }}
+          onClose={() => {
+            setIsConfirmingStop(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

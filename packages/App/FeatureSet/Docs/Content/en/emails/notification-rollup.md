@@ -70,7 +70,7 @@ Never delayed, and never counted:
 | Status page subscribers                   | Every email your status page sends to your own subscribers                                           |
 | SLA breaches                              | An incident you own missing its SLA response or resolution deadline                                  |
 
-Only email is affected. SMS, phone calls, push notifications, WhatsApp, Telegram, Slack, Microsoft Teams and webhooks are delivered immediately, exactly as before, including for the notifications whose email was held back.
+Only email is affected. SMS, phone calls, push notifications, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and webhooks are delivered immediately, exactly as before, including for the notifications whose email was held back.
 
 ## Limits
 
@@ -105,7 +105,7 @@ What it does **not** touch:
 
 - **Which notifications you get.** That is the per-event-type, per-channel setting under **User Settings → Notification Settings**, one page over. Rollup and this switch only ever change how many emails those notifications are packed into.
 - **On-call paging and shift email**, **account security email**, **billing email**, instance health warnings and status page subscriber email. None of those are ever rolled up in the first place, so turning rollup off changes nothing about them — see [What is never rolled up](#what-is-never-rolled-up).
-- **Any other channel.** SMS, phone calls, push, WhatsApp, Telegram, Slack, Microsoft Teams and webhooks are already immediate.
+- **Any other channel.** SMS, phone calls, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and webhooks are already immediate.
 
 ## Turning it down further
 

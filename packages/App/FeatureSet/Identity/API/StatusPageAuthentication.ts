@@ -509,7 +509,7 @@ router.post(
         });
       }
 
-      const renewedSession: StatusPageSessionMetadata =
+      const renewedSession: StatusPageSessionMetadata | null =
         await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken(
           {
             session,
@@ -518,6 +518,16 @@ router.post(
             ...extractDeviceInfo(req),
           },
         );
+
+      // Ended while this request was on its way: it stays ended.
+      if (!renewedSession) {
+        return await endRefresh({
+          req,
+          res,
+          statusPageId,
+          message: "Session expired. Please login again.",
+        });
+      }
 
       const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
         expressResponse: res,
@@ -852,6 +862,13 @@ router.post(
         statusPage.id!,
       );
 
+      /*
+       * The write's own hooks end a sign-in link sent before the reset, in this
+       * same statement, and every session of this user, as they do for every
+       * new password: somebody resetting their password may be locking out
+       * whoever read their mail (StatusPagePrivateUserService.onUpdatePermitted,
+       * onUpdateSuccess).
+       */
       await StatusPagePrivateUserService.updateOneById({
         id: alreadySavedUser.id!,
         data: {

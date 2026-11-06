@@ -387,6 +387,7 @@ function costSummaryOf(accountRow) {
     dailyTotals,
     monthServices,
     currency: BILLED[accountRow].currency,
+    // Read a while ago, and today, whatever the hour: COST_ROWS reach today's part.
     now: COSTS_READ_AT,
   });
   const anomalies = findCloudCostAnomalies({

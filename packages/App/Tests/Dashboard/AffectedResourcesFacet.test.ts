@@ -79,6 +79,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     ["dockerHost", "dockerHosts"],
     ["podmanHost", "podmanHosts"],
     ["proxmoxCluster", "proxmoxClusters"],
+    ["openStackCloud", "openStackClouds"],
     ["vmwareVCenter", "vmwareVCenters"],
     ["cephCluster", "cephClusters"],
     ["storageArray", "storageArrays"],
@@ -177,7 +178,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
      * One lookup per offered type. Monitors are excluded here because the
      * alerts table carries a dedicated Monitor chip.
      */
-    expect(getListMock.mock.calls).toHaveLength(12);
+    expect(getListMock.mock.calls).toHaveLength(13);
   });
 
   test("offers Databases in the dropdown, grouped under their own label", async () => {
@@ -372,7 +373,7 @@ describe("network devices in the Affected Resources filter", () => {
     expect(device!.label).toBe("WAN-RTR-01");
     expect(device!.group).toBe("Network Devices");
     // One lookup per offered type: the twelve, and devices.
-    expect(getListMock.mock.calls).toHaveLength(13);
+    expect(getListMock.mock.calls).toHaveLength(14);
   });
 
   test("is not offered, nor read, where it was not asked for", async () => {

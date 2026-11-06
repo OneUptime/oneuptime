@@ -1,0 +1,24 @@
+[
+  {
+    "runId": "20261105064121-e87562",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:41:21.719Z",
+    "finishedAt": "2026-11-05T06:41:21.742Z",
+    "status": "Refused",
+    "message": "This application credential was created --unrestricted: it can make more credentials. Nothing was written. Replace it with one that is not.",
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 22
+      }
+    ],
+    "phases": {
+      "credential": "Passed"
+    },
+    "leftoverCount": 0,
+    "requestCount": 1,
+    "writeCount": 0,
+    "warnings": []
+  }
+]

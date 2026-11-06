@@ -396,7 +396,7 @@ För en Database Health-monitor har uttrycket åtkomst till:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-För att läsa ett mätvärde i ett uttryck indexerar du hela `metrics`-objektet — serienamnen innehåller punkter och kan därför inte stå inom klammerparenteserna:
+För att läsa ett mätvärde i ett uttryck skriver du serienamnet med punkter inom klammerparenteserna eller indexerar hela `metrics`-objektet — båda sätten fungerar:
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

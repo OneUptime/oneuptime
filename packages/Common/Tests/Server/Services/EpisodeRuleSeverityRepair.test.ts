@@ -160,7 +160,7 @@ const TELEGRAM_METHOD_ID: ObjectID = new ObjectID(
   "ccccccc2-cccc-4ccc-8ccc-cccccccccccc",
 );
 
-/* The nine FK columns a rule can name a notification method through. */
+/* The ten FK columns a rule can name a notification method through. */
 type MethodColumn =
   | "userEmailId"
   | "userSmsId"
@@ -169,6 +169,7 @@ type MethodColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
+  | "userMattermostId"
   | "userWebhookId"
   | "userPushId";
 
@@ -180,6 +181,7 @@ const ALL_METHOD_COLUMNS: Array<MethodColumn> = [
   "userTelegramId",
   "userSlackId",
   "userMicrosoftTeamsId",
+  "userMattermostId",
   "userWebhookId",
   "userPushId",
 ];

@@ -85,7 +85,7 @@ O arquivo contém o nome do workflow, a descrição, o estado de ativação e o 
 - **As variáveis globais.** Um bloco que lê `{{global.variables.MY_SECRET}}` mantém essa referência, mas o valor não está no arquivo. Crie as variáveis no projeto de destino antes de rodar o workflow importado.
 - **Os proprietários e os rótulos.** As regras de rótulos e de proprietários do seu projeto são aplicadas ao workflow importado, como se você o tivesse criado manualmente.
 
-Um workflow importado é sempre criado **desabilitado**, mesmo que estivesse habilitado de onde foi exportado — o grafo dele pode apontar para monitores, políticas de plantão ou outros workflows que não existem no projeto de destino. Revise-o, teste-o com **Executar fluxo de trabalho** e depois ligue-o. Duplicar um workflow funciona do mesmo jeito, então uma cópia nunca começa a disparar junto com o original antes de você editá-la.
+Um workflow importado é sempre criado **disabled**, mesmo que estivesse habilitado de onde foi exportado — o grafo dele pode apontar para monitores, políticas de plantão ou outros workflows que não existem no projeto de destino. Revise-o, teste-o com **Executar fluxo de trabalho** e depois ligue-o. Duplicar um workflow funciona do mesmo jeito, então uma cópia nunca começa a disparar junto com o original antes de você editá-la.
 
 Como o grafo viaja como está, qualquer coisa digitada direto em um bloco viaja junto. Esse é o motivo prático para guardar credenciais em variáveis secretas: exportar um workflow com um token fixo no código entrega esse token a quem receber o arquivo.
 

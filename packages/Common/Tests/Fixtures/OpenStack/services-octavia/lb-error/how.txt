@@ -1,0 +1,2 @@
+ou-lb-failed in ERROR, because Nova would not boot its amphora.
+On its own: Nova refused the amphora, because the project amphorae boot in has no instance quota, and the worker gave up.

@@ -123,7 +123,7 @@ Pour un moniteur de requêtes SQL dont la requête renvoie un nombre, alerter su
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-Pour un moniteur de santé de base de données, lisez une métrique en indexant tout l'objet `metrics` — les noms des séries contiennent des points, ils ne peuvent donc pas aller entre les accolades :
+Pour un moniteur de santé de base de données, lisez une métrique en écrivant le nom de la série, points compris, entre les accolades, ou en indexant tout l'objet `metrics` — les deux fonctionnent :
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

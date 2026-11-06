@@ -56,13 +56,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-/*
- * A refused request is written as an async function that throws, not as
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * the card's awaits adopt a microtask late, so a rejected one is reported as
- * unhandled although the card catches it. An async function's promise is a
- * native one.
- */
 const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
@@ -531,9 +524,7 @@ describe("an incident template's Custom Fields on Create card", () => {
   });
 
   test("shows nothing when the template cannot be read, or is gone", async () => {
-    getItemMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("Forbidden");
-    });
+    getItemMock.mockRejectedValue(new Error("Forbidden"));
 
     const failed: RenderResult = await renderTemplateCard();
 
@@ -799,9 +790,9 @@ describe("editing a template's Custom Fields on Create", () => {
   });
 
   test("a refused save keeps the modal open, with the reason and the choices just made", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("Custom Field Settings must be an object.");
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("Custom Field Settings must be an object."),
+    );
 
     await renderTemplateCard();
 
@@ -825,9 +816,7 @@ describe("editing a template's Custom Fields on Create", () => {
   });
 
   test("a retry after a refused save goes through", async () => {
-    updateByIdMock.mockImplementationOnce(async (): Promise<never> => {
-      throw new Error("Try again.");
-    });
+    updateByIdMock.mockRejectedValueOnce(new Error("Try again."));
 
     await renderTemplateCard();
 
@@ -1077,9 +1066,9 @@ describe("editing from what is stored now, not what the page loaded", () => {
 
     await screen.findByText("Custom Fields on Create");
 
-    getItemMock.mockImplementationOnce(async (): Promise<never> => {
-      throw new Error("The server could not be reached.");
-    });
+    getItemMock.mockRejectedValueOnce(
+      new Error("The server could not be reached."),
+    );
 
     const dialog: HTMLElement = await openEditor(
       "Edit Custom Fields on Create",
@@ -1146,9 +1135,9 @@ describe("editing from what is stored now, not what the page loaded", () => {
 
     choose("Impact", "Hidden");
 
-    getItemMock.mockImplementationOnce(async (): Promise<never> => {
-      throw new Error("The server could not be reached.");
-    });
+    getItemMock.mockRejectedValueOnce(
+      new Error("The server could not be reached."),
+    );
 
     await save();
 

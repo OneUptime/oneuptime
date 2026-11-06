@@ -5,6 +5,7 @@ import DataAsset from "../../Models/DatabaseModels/DataAsset";
 import Model from "../../Models/DatabaseModels/DataCheck";
 import DataStore from "../../Models/DatabaseModels/DataStore";
 import CreateBy from "../Types/Database/CreateBy";
+import QueryHelper from "../Types/Database/QueryHelper";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -12,13 +13,16 @@ import {
   DataAssetColumn,
   readDataAssetColumns,
 } from "../../Types/DataObservability/DataAssetColumn";
+import { getFormatPattern } from "../../Types/DataObservability/DataCheckFormats";
 import { getDataTableKey } from "../../Types/DataObservability/DataObservabilityMetric";
 import { DataCheckType } from "../../Types/DataObservability/DataCheckType";
 import OneUptimeDate from "../../Types/Date";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { getCollectorEngineOfKind } from "../Utils/DataObservability/DataObservabilityEngines";
 import {
   DataCheckDraft,
@@ -62,6 +66,8 @@ const RUN_FIELDS: ReadonlyArray<string> = [
   "referenceTableKey",
   "referenceColumnName",
   "customSql",
+  "formatPreset",
+  "samplePercent",
   "intervalInMinutes",
   "alertCondition",
   "alertThreshold",
@@ -78,6 +84,30 @@ export class Service extends ProjectReferencesService<Model> {
 
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Deletes what a project's checks kept of its tables, when it stops keeping
+   * it. Written the way a run writes them, so no workflow takes this for an
+   * edit of the check. The setting's own change is what the audit log records.
+   */
+  @CaptureSpan()
+  public async clearFailingRowsOfProject(projectId: ObjectID): Promise<void> {
+    const checks: Array<Model> = await this.findBy({
+      query: { projectId, failingRowsSample: QueryHelper.notNull() },
+      select: { _id: true },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    for (const check of checks) {
+      await this.updateColumnsByIdWithoutHooks({
+        id: check.id!,
+        data: { failingRowsSample: null } as never,
+        skipUpdateDateColumn: true,
+      });
+    }
   }
 
   protected override async onBeforeCreate(
@@ -108,6 +138,8 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.props.tenantId || createBy.data.projectId,
     );
 
+    this.applyFormatPreset(createBy.data as unknown as JSONObject);
+
     await this.validate(createBy.data as unknown as DataCheckDraft, asset);
 
     createBy.data.dataStoreId = asset.dataStoreId!;
@@ -124,6 +156,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const data: JSONObject = updateBy.data as unknown as JSONObject;
     const isPerson: boolean = !updateBy.props.isRoot;
+
+    this.applyFormatPreset(data);
 
     // A person sets only whether a dbt test is recorded, and its alert.
     if (isPerson && data["checkType"] === DataCheckType.DbtTest) {
@@ -170,6 +204,7 @@ export class Service extends ProjectReferencesService<Model> {
         referenceTableKey: true,
         referenceColumnName: true,
         customSql: true,
+        samplePercent: true,
         intervalInMinutes: true,
         alertCondition: true,
         alertThreshold: true,
@@ -254,6 +289,17 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { deleteBy, carryForward: undefined };
+  }
+
+  // A format picked by name brings its pattern; Custom keeps the one the person wrote.
+  private applyFormatPreset(data: JSONObject): void {
+    const pattern: string | null = getFormatPattern(
+      data["formatPreset"] as string | null | undefined,
+    );
+
+    if (pattern) {
+      data["pattern"] = pattern;
+    }
   }
 
   // A reconciliation's checks are changed and deleted only through it.

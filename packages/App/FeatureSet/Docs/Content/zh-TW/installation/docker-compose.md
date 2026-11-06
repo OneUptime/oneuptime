@@ -372,6 +372,7 @@ Docker Compose 在一台伺服器上為每個服務只執行一份，適合小�
 | **密鑰** | `config.env` 中沒有任何值仍是 `please-change-this-to-random-value` 預留位置。請參閱 [產生隨機密鑰](#產生隨機密鑰)。對於以預留位置 `DATABASE_PASSWORD` 啟動過的安裝，請參閱 [變更資料庫密碼](#變更資料庫密碼)。 |
 | **HTTPS** | 大家透過 HTTPS 連到 OneUptime，且已設定 `HTTP_PROTOCOL=https`。請參閱 [設定 HTTPS](#設定-https)。 |
 | **註冊** | 團隊成員都有帳號後，在 Admin Dashboard 的 **設定 > 驗證** 下關閉 **允許註冊**。 |
+| **登入連結** | 登入頁面可以透過電子郵件傳送登入連結，這需要郵件伺服器。如果不需要，請在 Admin Dashboard 的 **設定 > 驗證** 下關閉 **允許使用電子郵件連結登入**。請參閱 [使用電子郵件連結登入](/docs/introduction/your-account#使用電子郵件連結登入)。 |
 | **防火牆** | 只有連接埠 80 和 443（以及 SSH）對網際網路開放。OneUptime 只在 `127.0.0.1` 上發布 PostgreSQL 的連接埠 5400。你自己發布的其他連接埠，請用雲端供應商的防火牆關閉：`ufw` 規則不適用於 Docker 發布的連接埠。 |
 | **訪客位址** | Admin Dashboard 的 **OneUptime 健康狀態** 頁面沒有提示多人從同一個位址登入。請參閱[訪客位址](#訪客位址)。 |
 | **備份** | 每天備份 PostgreSQL，並把副本移出伺服器。請參閱 [備份與還原](#備份與還原)。 |

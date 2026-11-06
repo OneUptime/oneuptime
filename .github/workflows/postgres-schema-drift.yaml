@@ -13,6 +13,7 @@ on:
   push:
     branches:
       - master
+      - main
 
 jobs:
   # Migrates an empty database with every migration registered in
@@ -66,7 +67,7 @@ jobs:
         ports:
           - 5400:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d oneuptimedb"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -1017,6 +1018,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Types/Workflow/Components/UpdateMergesCustomFieldsPostgres.test.ts --forceExit
 
+      # Clones the migrated Alert, Monitor and SLO tables into an isolated
+      # schema and reads them through the workflow triggers and Find steps with
+      # the production AlertService (#5761). A related record an alert does not
+      # have must come back null, and only when it was asked for: that is what
+      # tells "this alert has no monitor" from "the step does not pass the
+      # monitor on". An alert raised by an SLO must read as a Slack message
+      # with nothing where the monitor's name goes, not the reference itself.
+      - name: Test what workflows read of a record with nothing there, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_EMPTY_FIELDS_TESTS: "true"
+          WORKFLOW_EMPTY_FIELDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_EMPTY_FIELDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_EMPTY_FIELDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Types/Workflow/Components/RecordFieldsWithNoValuePostgres.test.ts --forceExit
+
       # Clones the migrated WorkspaceProjectAuthToken table into an isolated
       # schema and runs the Microsoft Teams chat store against it with only
       # Graph and the Bot Framework faked (#4106). A group chat's Teams name,
@@ -1097,6 +1117,140 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProxmoxResourcePostgres.test.ts --forceExit
+
+      # Clones the migrated OpenStackResource table into an isolated schema and runs
+      # OpenStackResourceService's hand-written SQL against it: the upsert that keeps
+      # how long a part has been in its state, the rule that a failing service never
+      # empties its parts, and 500,000 rows of one cloud.
+      - name: Test the OpenStack inventory SQL on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackResourcePostgres.test.ts --forceExit
+
+      # Clones the migrated tables behind who a cloud's failure tells: from a series' labels to the
+      # part's real blast radius, several projects on and off, 500 projects on one host, and the
+      # statements that make a notice unique and take it for one worker alone.
+      - name: Test who an OpenStack failure tells on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackProjectNoticePostgres.test.ts --forceExit
+
+      # Clones what a status page reads: two projects' private pages and an incident that names both,
+      # through the real endpoints and the real sign-in check, for what each can read of the other's.
+      - name: Test what an OpenStack project's private status page shows on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/OpenStackProjectPagePostgres.test.ts --forceExit
+
+      # Clones the migrated tables behind a cloud's links into an isolated schema: what is one
+      # machine from both ends, a Kubernetes node's provider ID out of its jsonb, services through
+      # the entity graph, and a pool's Ceph cluster. Every estate that must link to neither runs
+      # through real SQL here, so a LIMIT or a LIKE can't quietly make two into one.
+      - name: Test the joins between an OpenStack cloud and other products on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackAcrossProductsPostgres.test.ts --forceExit
+
+      # Clones the migrated OpenStackResource table into an isolated schema and runs the worker's
+      # capacity reads against it: only this cloud's rows of the four kinds a sum needs, instances
+      # counted per host and flavor, a host's capacity worked out once a split scrape's numbers
+      # are all on its row, and all of it within budget at 5,000 hosts and 200,000 instances.
+      - name: Test what the OpenStack capacity refresh reads on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackCapacityPostgres.test.ts --forceExit
+
+      # A reading of usage, on a real database: its grouped reads, a time counted once however
+      # many workers read it, and a whole cloud within budget at the largest size tested.
+      - name: Check OpenStack usage against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackUsagePostgres.test.ts --forceExit
+
+      # How a service a cloud may not run comes and goes, in the SQL that does it, on a real cloud's
+      # OTLP: an empty scrape can't give a cloud a row for it, a failed scrape reads down, and its
+      # rows go only once the rest of the cloud has gone on answering without it.
+      - name: Test how an optional OpenStack service comes and goes on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackOptionalServicesPostgres.test.ts --forceExit
+
+      # The hand-written SQL over the facts column that the Projects, Domains and Topology pages stand
+      # on: who is at a quota, a page of projects, a blast radius through a pool's volumes.
+      - name: Test what the OpenStack projects and topology pages read on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackProjectsAndTopologyPostgres.test.ts --forceExit
+
+      # What keeps the inventory table standing up at OpenStack's largest clouds: writes that only
+      # write what changed, deletes and statements of a stated size, reads that don't slow down.
+      - name: Test the OpenStack inventory at scale on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
+          OPENSTACK_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackScalePostgres.test.ts --forceExit
 
       # Clones the migrated KubernetesResource table (with its unique identity
       # index and the partial index of what needs attention) into an isolated
@@ -1751,12 +1905,13 @@ jobs:
           Tests/Server/Services/StatusPagePrivateUserSessionLengthPostgres.test.ts
           --forceExit
 
-      # Clones the migrated status page and private user tables into an
-      # isolated schema: a private user's sign-in link signs in once, and
+      # Clones the migrated status page, private user and session tables into
+      # an isolated schema: a private user's sign-in link signs in once, and
       # exactly one of many requests racing with it; an expired link, another
       # page's, a removed user's and a token that is not the link sign nobody
       # in; a newer link replaces the older; every page takes links unless its
-      # team turns them off (AddStatusPageMagicLinkLogin).
+      # team turns them off (AddStatusPageMagicLinkLogin); and a new password
+      # ends the reader's links and sessions, and no other reader's.
       - name: Test status page sign-in links on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -2226,6 +2381,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/VMwareProbeCollectionSqlPostgres.test.ts --forceExit
+
+      # Clones the migrated Project, Probe, OpenStackCloud and
+      # OpenStackCloudConnectionTest tables into an isolated schema and runs
+      # OpenStack probe collection's hand-written SQL: a probe claims only its
+      # own due clouds of live projects (FOR UPDATE SKIP LOCKED, the tenancy
+      # backstop, the subscription rule) and two claims never share one; a
+      # report writes only the current settings' status; a settings change
+      # bumps the settings version in one statement; and a connection test is
+      # claimed once, its secret wiped as it is handed out, answered only by
+      # its probe, and expired with the reason.
+      - name: Test OpenStack probe collection's SQL on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OPENSTACK_PROBE_COLLECTION_TESTS: "true"
+          OPENSTACK_PROBE_COLLECTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OPENSTACK_PROBE_COLLECTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OPENSTACK_PROBE_COLLECTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OpenStackProbeCollectionSqlPostgres.test.ts
+          Tests/Server/Services/OpenStackCheckSqlPostgres.test.ts --forceExit
 
       # Clones the migrated InstanceReceivingPeriod table into an isolated
       # schema and runs the receiving ledger's SQL (issue #2825): heartbeats
@@ -2822,11 +2999,18 @@ jobs:
       # pg_restore on this job's server - a database dumped while in use,
       # streamed into a storage, read back, restored beside the live one
       # byte for byte, switched in with the connections to it ended, and
-      # dropped - in databases of its own. The runner image carries the
-      # PostgreSQL client tools; they are installed if it ever does not.
-      - name: Make sure pg_dump and pg_restore are here
+      # dropped - in databases of its own. With the tools the Enterprise image
+      # picks for this job's PostgreSQL 15: 16, the oldest it carries
+      # (packages/App/Dockerfile.tpl). The runner image's own follow its
+      # Ubuntu, and pg_restore 17 and newer sets transaction_timeout, which a
+      # server older than 17 refuses. With both here, PostgresTools picks 16.
+      - name: Install pg_dump and pg_restore 16
         if: matrix.shard == 3
-        run: command -v pg_dump || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-16
       - name: Test backing up and restoring PostgreSQL on a real server (Enterprise)
         if: matrix.shard == 3
         working-directory: ee

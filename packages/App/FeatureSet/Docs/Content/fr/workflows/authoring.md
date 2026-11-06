@@ -13,6 +13,8 @@ Cliquez sur un modèle pour voir ce qu'il fait : son déclencheur, les blocs qui
 
 Les workflows sont créés désactivés, si bien que leur déclencheur ne les lance pas avant que vous les activiez. Un nouveau workflow s'ouvre dans le **Constructeur**, le canevas sur lequel vous le concevez.
 
+Vous pouvez aussi décrire un workflow à Ask AI et le laisser le créer pour vous. Il trouve le déclencheur et les étapes, les configure et les relie, puis vous demande d'approuver le workflow avant de l'enregistrer. Un nouveau workflow démarre désactivé : lisez-le dans le Builder, renseignez les mots de passe, jetons ou URL de webhook qu'il vous a laissés, car Ask AI ne les demande jamais dans la conversation, puis activez-le vous-même. Ask AI peut modifier un workflow de la même façon. Depuis la page d'un workflow, « ce workflow » désigne celui-là. Il enregistre en votre nom : il ne peut donc faire que ce que vous pouvez faire dans le Builder, et le Builder affiche ses modifications dès qu'elles sont enregistrées.
+
 ## Le canevas
 
 Un workflow parti de zéro s'ouvre avec un unique bloc en pointillés qui affiche **Choisissez ce qui démarre ce flux de travail**. Ce bloc est le point de départ : cliquez dessus pour choisir un déclencheur. Un workflow créé à partir d'un modèle s'ouvre avec ses blocs déjà en place.

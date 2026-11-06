@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import DataAlertExplanationCard from "./DataAlertExplanationCard";
 import TableDashboards from "./TableDashboards";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -410,6 +411,11 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             )}
           </dl>
         </Card>
+      ) : (
+        <Fragment />
+      )}
+      {own ? (
+        <DataAlertExplanationCard alertId={props.alertId} />
       ) : (
         <Fragment />
       )}

@@ -1,0 +1,1 @@
+{"error_message": "{\"faultcode\": \"Server\", \"faultstring\": \"\\\"baremetal:driver:get\\\": \\\"(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role\\\" requires a scope of ['system'], request was made with project scope.\", \"debuginfo\": null}"}

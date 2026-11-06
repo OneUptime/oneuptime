@@ -21,7 +21,15 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import { loadAllFormFieldControls } from "../../../../UI/Components/Forms/Fields/FormFieldControls";
 import { CodeEditorActions } from "../../../../UI/Components/CodeEditor/CodeEditor";
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../../UI/Components/Forms/Types/Field";
@@ -100,6 +108,10 @@ const getInput: () => HTMLTextAreaElement = (): HTMLTextAreaElement => {
 };
 
 let writeText: MockFunction;
+
+beforeAll(async () => {
+  await loadAllFormFieldControls();
+});
 
 beforeEach(() => {
   writeText = getJestMockFunction();

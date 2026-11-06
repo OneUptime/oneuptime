@@ -313,6 +313,8 @@ export const friendlyToolNames: { [key: string]: string } = {
   query_slos: translationKey("Checking SLOs"),
   query_runbooks: translationKey("Checking runbooks"),
   query_workflows: translationKey("Checking workflows"),
+  find_workflow_components: translationKey("Looking up workflow steps"),
+  check_workflow_draft: translationKey("Checking the workflow"),
   query_probes: translationKey("Checking probes"),
   query_teams: translationKey("Checking teams"),
   // OneUptime AI's own earlier work.
@@ -362,6 +364,8 @@ export const friendlyToolNames: { [key: string]: string } = {
   get_trace: translationKey("Reading trace"),
   lookup_context: translationKey("Resolving names"),
   create_incident: translationKey("Creating incident"),
+  create_workflow: translationKey("Creating workflow"),
+  update_workflow: translationKey("Updating workflow"),
   acknowledge_incident: translationKey("Acknowledging incident"),
   resolve_incident: translationKey("Resolving incident"),
   // An alert raised from the conversation (#5301), as an incident is declared.
@@ -559,6 +563,7 @@ export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   KubernetesCluster: translationKey("Kubernetes cluster"),
   DockerSwarmCluster: translationKey("Docker Swarm cluster"),
   ProxmoxCluster: translationKey("Proxmox cluster"),
+  OpenStackCloud: translationKey("OpenStack cloud"),
   VMwareVCenter: translationKey("VMware vCenter"),
   CephCluster: translationKey("Ceph cluster"),
   StorageArray: translationKey("Storage array"),

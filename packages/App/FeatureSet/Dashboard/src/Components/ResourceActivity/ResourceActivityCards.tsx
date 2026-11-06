@@ -49,6 +49,7 @@ export type ResourceQueryKey =
   | "podmanHosts"
   | "dockerSwarmClusters"
   | "proxmoxClusters"
+  | "openStackClouds"
   | "vmwareVCenters"
   | "cephClusters"
   | "storageArrays"

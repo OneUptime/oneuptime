@@ -2648,8 +2648,8 @@ describe("InvestigationConversation — the composer in the card", () => {
      * The picker is at the composer's left end: lined up on its right edge
      * the menu (wider than the button) would open out of the card.
      */
-    expect(menu).toHaveClass("left-0");
-    expect(menu).not.toHaveClass("right-0");
+    expect(menu).toHaveClass("left-2");
+    expect(menu).not.toHaveClass("right-2");
     expect(picker).toHaveAttribute("aria-expanded", "true");
   });
 

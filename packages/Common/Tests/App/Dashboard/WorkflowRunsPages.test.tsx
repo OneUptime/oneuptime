@@ -17,6 +17,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * The two run pages - every run in the project (Workflows → Logs → Runs) and
@@ -36,6 +37,9 @@ import {
  * off ("Why do I have to enable a workflow in order to test run it?") - is
  * marked beside its status, can be filtered on, and says so when it is
  * opened and in its downloads.
+ *
+ * A run that kept what it started with can be run again, from its row's ⋯ menu
+ * and from the run's own modal, which then follows the new run (issue #5944).
  */
 
 interface RecordedListCall {
@@ -60,6 +64,33 @@ jest.mock("../../../UI/Utils/DownloadFile", () => {
     __esModule: true,
     default: (data: DownloadCall): void => {
       mockDownloads.push(data);
+    },
+  };
+});
+
+const mockSendRunAgain: Mock<(runId: string) => Promise<void>> = jest.fn(
+  async (): Promise<void> => {
+    return undefined;
+  },
+);
+
+let mockLatestRun: { runId: string; logs: string } | null = null;
+
+jest.mock("../../../UI/Components/Workflow/RunAgain/RunAgainSource", () => {
+  return {
+    __esModule: true,
+    sendRunAgain: (runId: string): Promise<void> => {
+      return mockSendRunAgain(runId);
+    },
+    fetchLatestWorkflowRun: async (): Promise<unknown> => {
+      return mockLatestRun
+        ? {
+            ...mockLatestRun,
+            status: "Running",
+            stepTrace: { steps: [] },
+            canRunAgain: true,
+          }
+        : null;
     },
   };
 });
@@ -596,6 +627,180 @@ describe.each(RUN_PAGES)("$name", (page: RunPage) => {
     expect(mockDownloads[0]!.content).toContain(
       "Status: Executed\nTest run: Yes\nStarted by: Ada Lovelace\n",
     );
+  });
+});
+
+describe.each(RUN_PAGES)("Run again, on $name", (page: RunPage) => {
+  const CAN: string = "0193c0de-5555-4aaa-8bbb-000000000005";
+  const CANNOT: string = "0193c0de-6666-4aaa-8bbb-000000000006";
+
+  beforeEach(() => {
+    const can: WorkflowLog = run(CAN, WorkflowStatus.Error);
+    can.canRunAgain = true;
+
+    const cannot: WorkflowLog = run(CANNOT, WorkflowStatus.Error);
+    cannot.canRunAgain = false;
+
+    runsForTest = [can, cannot];
+    mockSendRunAgain.mockClear();
+    mockLatestRun = { runId: "new-run", logs: "The new run's log line" };
+    goTo(page.path);
+  });
+
+  type RowOfFunction = (index: number) => Promise<HTMLElement>;
+
+  const rowOf: RowOfFunction = async (index: number): Promise<HTMLElement> => {
+    const views: Array<HTMLElement> = await screen.findAllByRole("button", {
+      name: "View Logs",
+    });
+
+    return views[index]!.closest("[data-testid='row-actions']") as HTMLElement;
+  };
+
+  type OpenMenuFunction = (index: number) => Promise<Array<string>>;
+
+  const openMenuOf: OpenMenuFunction = async (
+    index: number,
+  ): Promise<Array<string>> => {
+    fireEvent.click(
+      within(await rowOf(index)).getByTestId("row-actions-more-button"),
+    );
+
+    return screen.getAllByRole("menuitem").map((item: HTMLElement) => {
+      return item.textContent || "";
+    });
+  };
+
+  type DrawFunction = () => void;
+
+  const draw: DrawFunction = (): void => {
+    render(<MemoryRouter>{page.render()}</MemoryRouter>);
+  };
+
+  test("the list asks which runs can be, and never what they started with", async () => {
+    draw();
+    await rowOf(0);
+
+    const select: Record<string, unknown> = runListCalls()[0]!.select;
+
+    expect(select["canRunAgain"]).toBe(true);
+    expect(select["triggerValues"]).toBeUndefined();
+  });
+
+  test("a run that can be has it in its ⋯ menu, ahead of the downloads", async () => {
+    draw();
+
+    expect(await openMenuOf(0)).toEqual([
+      "Run again",
+      "Download log",
+      "Download run as JSON",
+    ]);
+  });
+
+  test("a run that cannot be does not", async () => {
+    draw();
+
+    expect(await openMenuOf(1)).toEqual([
+      "Download log",
+      "Download run as JSON",
+    ]);
+  });
+
+  test("from the row: asks first, starts that run again and opens the new one", async () => {
+    draw();
+    await openMenuOf(0);
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Run again" }));
+
+    expect(
+      await screen.findByText("Run this workflow again?"),
+    ).toBeInTheDocument();
+    expect(mockSendRunAgain).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockSendRunAgain).toHaveBeenCalledWith(CAN);
+    });
+
+    expect(
+      await screen.findByText("This is the run you just started."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Run this workflow again?")).toBeNull();
+  });
+
+  test("from the row: a refusal is said in the dialog, and nothing opens", async () => {
+    mockSendRunAgain.mockRejectedValueOnce(new Error("Refused by the server"));
+
+    draw();
+    await openMenuOf(0);
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Run again" }));
+    fireEvent.click(await screen.findByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockSendRunAgain).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.queryByText("This is the run you just started.")).toBeNull();
+    expect(screen.getByText("Run this workflow again?")).toBeInTheDocument();
+  });
+
+  test("from the run's window: offered on a run that can be", async () => {
+    draw();
+
+    fireEvent.click(
+      within(await rowOf(0)).getByRole("button", { name: "View Logs" }),
+    );
+
+    expect(await screen.findByTestId("workflow-run-again")).toBeInTheDocument();
+  });
+
+  test("from the run's window: not on a run that cannot be", async () => {
+    draw();
+
+    fireEvent.click(
+      within(await rowOf(1)).getByRole("button", { name: "View Logs" }),
+    );
+
+    await screen.findByText("Workflow Run");
+
+    expect(screen.queryByTestId("workflow-run-again")).toBeNull();
+  });
+
+  test("from the run's window: starts it, then shows the new run", async () => {
+    draw();
+
+    fireEvent.click(
+      within(await rowOf(0)).getByRole("button", { name: "View Logs" }),
+    );
+    fireEvent.click(await screen.findByTestId("workflow-run-again"));
+    fireEvent.click(await screen.findByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockSendRunAgain).toHaveBeenCalledWith(CAN);
+    });
+
+    expect(
+      await screen.findByText("This is the run you just started."),
+    ).toBeInTheDocument();
+  });
+
+  test("from the run's window: the list reads its rows again, to show the new run", async () => {
+    draw();
+
+    fireEvent.click(
+      within(await rowOf(0)).getByRole("button", { name: "View Logs" }),
+    );
+
+    const readsBefore: number = runListCalls().length;
+
+    fireEvent.click(await screen.findByTestId("workflow-run-again"));
+    fireEvent.click(await screen.findByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(runListCalls().length).toBeGreaterThan(readsBefore);
+    });
   });
 });
 

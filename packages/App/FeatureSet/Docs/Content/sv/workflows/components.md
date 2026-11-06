@@ -29,6 +29,7 @@ Du behöver sällan ha den öppen medan du bygger. Varje blocks inställningar s
 | Läsa eller ändra incidenter, monitorer och andra poster       | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Öppna, bekräfta och lösa incidenter eller larm för ett annat verktygs problem | [Incidenter och larm från andra verktyg](#incidenter-och-larm-från-andra-verktyg) |
 | Bekräfta eller stänga ett Zabbix-problem                      | [Zabbix](#zabbix)                                                 |
+| Be en person godkänna en åtgärd i ett OpenStack-moln          | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
 Ett dedikerat block slår ett generiskt: Slack-blocket känner till Slacks gränser och ett postblock känner till postens fält, så du får tydligare fel och loggar än från ett **API**-block som gör samma jobb.
 
@@ -428,6 +429,28 @@ För att bekräfta eller stänga läser blocket problemet först. Ett problem so
 
 **Updated** aktiveras när Zabbix tog emot uppdateringen, och **Error** när Zabbix inte gick att nå eller avvisade den, med Zabbix motivering: Zabbix svarar på en avvisad förfrågan med en lyckad status, så blocket läser vad Zabbix svarade i stället för statusen. Det returnerar **Summary**, det det gjorde, i en mening.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Ber en person godkänna en ändring i det OpenStack-moln som ett larm eller en incident gäller. Blocket gör aldrig ändringen själv. Åtgärden väntar på larmet eller incidenten, och i de kanaler den postar i, som en OneUptime AI föreslår, oavsett molnets åtgärdsläge. Ett arbetsflöde kan inte godkänna det det föreslår.
+
+Det behöver ingen AI-modell, och det följer samma regler som en åtgärd som OneUptime AI föreslår: kommandopolicyn, agentens skrivmål och skyddade mål, och agentens läsning av vad ändringen rör vid. En evakuering av en värd som fortfarande är uppe, eller en som agenten inte kan läsa i sin helhet, föreslås inte.
+
+| Inställning | Vad den gör |
+| ----------- | ----------- |
+| **Alert ID** | Larmet som åtgärden gäller, oftast det ID som din trigger returnerade. Fyll i antingen det här eller **Incident ID**, så hämtas molnet från det som posten är länkad till. |
+| **Incident ID** | Incidenten som åtgärden gäller, oftast det ID som din trigger returnerade. Fyll i antingen det här eller **Alert ID**. |
+| **Kommando** | Ändringen som ska föreslås, i den enda stavning som OneUptime tar emot. Se [ändringarna en åtgärd kan göra](/docs/telemetry/openstack#åtgärder). Den kan använda värden från tidigare block, och läses efter att de har fyllts i. |
+| **Varför** | Det som personen som godkänner den läser först. Om den lämnas tom anges vilket arbetsflöde som bad om den. |
+| **OpenStack Cloud ID** | Under **Fler fält**. Bara för en post som är länkad till fler än ett moln, eller till inget. |
+
+Det returnerar **Suggestion ID** (åtgärden som väntar på godkännande), **Tier** (Safe eller Riskier, så som OneUptime läser kommandot) och **Already Waiting** (sant när samma ändring i det molnet redan väntade, så ingen andra lades till).
+
+**Success** aktiveras när en person har blivit tillfrågad, utan att vänta på svaret. **Error** aktiveras när inget föreslogs, med orsaken i **Error**: kommandot nekas, åtgärder är inte tillåtna i det molnet ännu, eller ett projekts arbetsflöden har föreslagit 20 åtgärder den senaste timmen.
+
+Mallen [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) är ett ställe att börja på.
+
 ## OneUptime-datakomponenter
 
 För varje typ av post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Lägg till komponent** de här komponenterna: under **OneUptime-resurser** klickar du på posttypen (**Bläddra bland alla resurser** har de som inte visas), eller så söker du efter typens namn. Varje titel genereras utifrån posttypen, så uppsättningen för Monitor lyder:
@@ -485,7 +508,7 @@ En fråga är alltid begränsad till projektet som arbetsflödet körs i. Du kan
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nyckel som inte är en kolumn ignoreras i stället för att avvisas — körningens logg nämner de som släpptes, så titta där när ett fält inte landar. **Fields to pass on**, på Find-komponenterna och utlösarna, väljs från en lista; dess **Redigera som JSON** visar samma kolumnnycklar med värdet `true`: `{"_id": true, "name": true}`.
+En nyckel som inte är en kolumn ignoreras i stället för att avvisas — körningens logg nämner de som släpptes, så titta där när ett fält inte landar. **Fields to pass on**, på Find-komponenterna och utlösarna, väljs från en lista; dess **Redigera som JSON** visar samma kolumnnycklar med värdet `true`: `{"_id": true, "name": true}`. Fälten i en relaterad post står under dess nyckel, som i `{"monitor": {"name": true}}`: `{"monitor": true}` skickar bara vidare dess id.
 
 **Anpassade fält** är en kolumn, `customFields`, som rymmer varje anpassat fälts värde under fältets namn. Update-komponenterna ändrar bara de anpassade fält du nämner, och alla andra behåller sitt värde:
 
@@ -495,7 +518,11 @@ En nyckel som inte är en kolumn ignoreras i stället för att avvisas — körn
 
 sätter **Notification Count** och låter postens övriga anpassade fält vara som de var. Sätt ett anpassat fält till `null` för att tömma det, eller sätt själva `customFields` till `null` för att tömma alla. Två arbetsflöden som uppdaterar olika anpassade fält på samma post i samma ögonblick landar båda. Det gäller bara Update-komponenterna: OneUptime-API:t skriver `customFields` i sin helhet, så en förfrågan till det måste ha med varje anpassat fält du vill behålla.
 
+Varje anpassat fält i projektet visas som ett eget fält där en komponent nämner en posts fält: i de fält en komponent skriver, med typens egen inmatning och en listrutas egna alternativ; i villkoren för en fråga; i de värden ett senare steg kan använda; och i de fält en utlösare bevakar, så att ett arbetsflöde kan köras när ett enda anpassat fält ändras. Ett anpassat filfält laddas upp till en post, så det är den enda typen som stannar i JSON.
+
 Du skriver sällan de här nycklarna själv. I komponentens inställningar visar **Add a field** (eller **Add a condition** på en fråga) modellens kolumner efter namn, med den typ av värde var och en tar. Sök efter namn, efter kolumnnyckel eller efter vad fältet gör, och tryck på **Enter** för att lägga till den bästa träffen. När du skapar kommer de fält som posten inte kan skapas utan först, sedan modellens huvudfält (de den fyller i själv om du utelämnar dem) och sedan resten.
+
+Ett fält som pekar på en annan post, till exempel en incidents allvarlighetsgrad, visar projektets poster efter namn: välj en, så skrivs dess ID åt dig. En lista med poster, till exempel en incidents etiketter, fungerar på samma sätt. Klicka på `{ }` bredvid listan om du i stället vill använda ett värde från ett tidigare steg.
 
 Fält som OneUptime fyller i själv erbjuds inte när du skriver en post: postens `_id`, **Skapad den**, **Uppdaterad den**, **Skapad av användare**, slugs, postnummer och aviseringsstatusar. Vem som skapade, arkiverade eller löste en post, och när, är aldrig något ett arbetsflöde sätter: en post som ett arbetsflöde skapar är skapad av ingen, ett värde som ett arbetsflöde skickar för något av de fälten bredvid andra fält ignoreras, och en Update som inte skickar något annat misslyckas med ett meddelande som nämner dem. En uppdatering erbjuder bara fält som kan ändras efter att en post finns. En fråga erbjuder fortfarande ID:t, tidsstämplarna och **Skapad av användare**, eftersom de är användbara att filtrera på. **Deleted At** erbjuds ingenstans: poster tas bort helt, så det är alltid tomt.
 

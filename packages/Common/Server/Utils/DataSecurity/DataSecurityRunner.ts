@@ -31,7 +31,8 @@ import {
   ObjectStoreReader,
 } from "./Cloud/DataSecurityCloudTypes";
 import { sampleObjectStore } from "./Content/ObjectStoreSampler";
-import { sampleDatabase } from "./Content/DatabaseSampler";
+import { DatabaseConnection, sampleDatabase } from "./Content/DatabaseSampler";
+import { assertDatabaseConnectionAllowed } from "../DataObservability/DatabaseConnectionGuard";
 import DataSecurityDiscovery from "./DataSecurityDiscovery";
 import DataSecurityFindingWriter, {
   CustomDataTypeSummary,
@@ -677,18 +678,19 @@ export default class DataSecurityRunner {
         return null;
       }
 
-      return sampleDatabase(
-        {
-          engine:
-            store.kind === DataStoreKind.MySql
-              ? "mysql"
-              : store.kind === DataStoreKind.SqlServer
-                ? "sqlserver"
-                : "postgresql",
-          connectionString: store.connectionString,
-        },
-        options,
-      );
+      const connection: DatabaseConnection = {
+        engine:
+          store.kind === DataStoreKind.MySql
+            ? "mysql"
+            : store.kind === DataStoreKind.SqlServer
+              ? "sqlserver"
+              : "postgresql",
+        connectionString: store.connectionString,
+      };
+
+      await assertDatabaseConnectionAllowed(connection);
+
+      return sampleDatabase(connection, options);
     }
 
     if (!store.cloudConnectionId) {

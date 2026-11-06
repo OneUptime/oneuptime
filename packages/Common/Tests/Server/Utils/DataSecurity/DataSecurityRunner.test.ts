@@ -12,6 +12,7 @@ import {
   ObjectStoreReader,
 } from "../../../../Server/Utils/DataSecurity/Cloud/DataSecurityCloudTypes";
 import * as DatabaseSampler from "../../../../Server/Utils/DataSecurity/Content/DatabaseSampler";
+import * as DatabaseConnectionGuard from "../../../../Server/Utils/DataObservability/DatabaseConnectionGuard";
 import * as ObjectStoreSampler from "../../../../Server/Utils/DataSecurity/Content/ObjectStoreSampler";
 import DataSecurityDiscovery from "../../../../Server/Utils/DataSecurity/DataSecurityDiscovery";
 import DataSecurityFindingWriter, {
@@ -195,6 +196,10 @@ beforeEach(() => {
     .mockImplementation(async () => {
       return emptyContentScanResult();
     });
+  // It resolves the host, which these made-up addresses do not.
+  jest
+    .spyOn(DatabaseConnectionGuard, "assertDatabaseConnectionAllowed")
+    .mockResolvedValue(undefined);
   sampleDatabaseSpy = jest
     .spyOn(DatabaseSampler, "sampleDatabase")
     .mockImplementation(async () => {

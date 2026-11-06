@@ -2,11 +2,12 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 /*
- * Ask AI on the main stage, in real Chromium: the dialog over the blurred
- * page from every way in, its start, an answer written step by step, its
- * sources and cards, an approval, the history, and the way back to an
- * answer still being written - at 1280, 768 and 390 pixels, light and
- * dark, in German and Persian, and with reduced motion.
+ * Ask AI beside the page, in real Chromium: the panel docked beside the page
+ * from every way in, the page still all there and working, its edge dragged,
+ * its start, an answer written step by step, its sources and cards, an
+ * approval, the history, and the way back to an answer still being written -
+ * at 1920, 1280, 1024, 768 and 390 pixels, light and dark, in German and
+ * Persian, and with reduced motion.
  *
  * The fixture server's port. Another checkout's run on the default port is
  * reused outside CI, so a second run picks a port of its own:

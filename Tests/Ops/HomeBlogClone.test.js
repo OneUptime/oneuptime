@@ -859,15 +859,15 @@ describe("the Home image clones the blog with the script", () => {
     const run = lines.indexOf(
       "RUN bash /usr/src/app/Scripts/CloneBlog.sh /usr/src/blog",
     );
+    const sources = lines.indexOf(
+      "COPY --chown=1000:1000 --exclude=Tests ./packages/Home /usr/src/app",
+    );
 
     expect(run).toBeGreaterThan(0);
-    expect(
-      lines.indexOf("COPY --chown=1000:1000 ./packages/Home /usr/src/app"),
-    ).toBeLessThan(run);
+    expect(sources).toBeGreaterThanOrEqual(0);
+    expect(sources).toBeLessThan(run);
     expect(lines.indexOf("USER node")).toBeLessThan(run);
-    expect(lines.indexOf("USER node")).toBeGreaterThan(
-      lines.indexOf("COPY --chown=1000:1000 ./packages/Home /usr/src/app"),
-    );
+    expect(lines.indexOf("USER node")).toBeGreaterThan(sources);
     // The stylesheet reads the posts, so it is built after the clone.
     expect(
       lines.indexOf("RUN npm run build:css -- --require-blog"),

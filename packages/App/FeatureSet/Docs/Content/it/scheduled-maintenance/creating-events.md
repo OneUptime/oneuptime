@@ -35,7 +35,7 @@ Andate in **Manutenzione programmata → Tutti gli eventi** e fate clic su **Cre
 
 ### Dire cosa succede e quando
 
-Scrivete un **Titolo** e aggiungete una **Descrizione** se serve: è in Markdown e viene mostrata sulle vostre pagine di stato. **Inizia il** è già impostato sulla prossima ora piena del vostro orologio, e **Termina il** un'ora dopo; cambiateli solo se sono sbagliati. Spostando **Inizia il** si sposta anche **Termina il**, così la finestra mantiene la sua durata. **Proprietari** ed **Etichette** attendono chiusi in **Altri campi**.
+Scrivete un **Titolo** e aggiungete una **Descrizione** se serve: è in Markdown e viene mostrata sulle vostre pagine di stato. **Inizia il** è già impostato sulla prossima ora piena del vostro orologio, e **Termina il** un'ora dopo; cambiateli solo se sono sbagliati. Spostando **Inizia il** si sposta anche **Termina il**, così la finestra mantiene la sua durata. **Proprietari**, **Etichette** e **Data Observability Database** attendono chiusi in **Altri campi**.
 
 ### Scegliere cosa interessa
 
@@ -75,7 +75,7 @@ Due cose compilano il modulo per voi strada facendo:
 
 ## Partire da una risorsa o da un modello
 
-Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, uno storage array, una flotta IoT, un database, un servizio o un sito di rete, **Crea evento di manutenzione programmata** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
+Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, un servizio o un sito di rete, **Crea evento di manutenzione programmata** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
 
 **Crea da modello**, accanto al pulsante di creazione, vi chiede di **Seleziona modello di manutenzione programmata**, poi apre il modulo compilato dal modello. Vedere [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates).
 

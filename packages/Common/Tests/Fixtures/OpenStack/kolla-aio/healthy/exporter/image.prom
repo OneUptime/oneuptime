@@ -1,0 +1,14 @@
+# HELP openstack_glance_image_bytes image_bytes
+# TYPE openstack_glance_image_bytes gauge
+openstack_glance_image_bytes{id="bf5779f5-30e3-44b4-95aa-564a1403e8d0",name="cirros",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 2.1692416e+07
+openstack_glance_image_bytes{id="c49d6372-1d3b-4eaa-8ac1-af20ad0f5bfe",name="ou-image-stuck",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 0
+# HELP openstack_glance_image_created_at image_created_at
+# TYPE openstack_glance_image_created_at gauge
+openstack_glance_image_created_at{hidden="false",id="bf5779f5-30e3-44b4-95aa-564a1403e8d0",name="cirros",status="active",tenant_id="cd40fcbf2bc04f68ab58867520434085",visibility="public"} 1.793883519e+09
+openstack_glance_image_created_at{hidden="false",id="c49d6372-1d3b-4eaa-8ac1-af20ad0f5bfe",name="ou-image-stuck",status="queued",tenant_id="cd40fcbf2bc04f68ab58867520434085",visibility="public"} 1.793883537e+09
+# HELP openstack_glance_images images
+# TYPE openstack_glance_images gauge
+openstack_glance_images 2
+# HELP openstack_glance_up up
+# TYPE openstack_glance_up gauge
+openstack_glance_up 1

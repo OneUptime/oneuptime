@@ -45,6 +45,8 @@ export enum SecurityConnectionKind {
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",
   KubernetesCluster = "KubernetesCluster",
+  // An OpenStack cloud: by its openstack.cloud.name, and the audit events read from its logs.
+  OpenStackCloud = "OpenStackCloud",
   NetworkDevice = "NetworkDevice",
   /*
    * A cloud resource a cloud connection lists or telemetry reports: by its
@@ -77,6 +79,7 @@ export const SECURITY_CONNECTION_KINDS: ReadonlyArray<SecurityConnectionKind> =
     SecurityConnectionKind.DockerHost,
     SecurityConnectionKind.PodmanHost,
     SecurityConnectionKind.KubernetesCluster,
+    SecurityConnectionKind.OpenStackCloud,
     SecurityConnectionKind.NetworkDevice,
     SecurityConnectionKind.CloudResource,
     SecurityConnectionKind.ServerlessFunction,
@@ -107,6 +110,8 @@ export enum SecurityConnectionReason {
   UntypedValue = "UntypedValue",
   // The Kubernetes cluster of this k8s.cluster.name.
   ClusterName = "ClusterName",
+  // The OpenStack cloud of this openstack.cloud.name.
+  CloudName = "CloudName",
   // The network device of this name, hostname or DNS name.
   DeviceName = "DeviceName",
   // The only resource holding this public address.
@@ -141,6 +146,7 @@ export const EXACT_SECURITY_CONNECTION_REASONS: ReadonlyArray<SecurityConnection
     SecurityConnectionReason.LogSource,
     SecurityConnectionReason.HostName,
     SecurityConnectionReason.ClusterName,
+    SecurityConnectionReason.CloudName,
     SecurityConnectionReason.DeviceName,
     SecurityConnectionReason.ResourceId,
     SecurityConnectionReason.CloudEndpoint,

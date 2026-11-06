@@ -250,7 +250,9 @@ function pageHeading(page: Page): Locator {
 
 // The trail: its label is the same in every language.
 function trail(page: Page): Locator {
-  return page.getByRole("navigation", { name: "Breadcrumb" });
+  return page.getByRole("navigation", {
+    name: new RegExp(`^(?:Breadcrumb|${persian("Breadcrumb")})$`),
+  });
 }
 
 async function trailOf(page: Page): Promise<Array<string>> {
@@ -1344,6 +1346,8 @@ test.describe("Costs", () => {
     await daily.getByTestId("refresh-button").click();
     expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await breakdown.getByTestId("refresh-button").click();
+    // The read has only just begun when the click returns, and the failure stands until it answers.
+    await expect(breakdown.locator("ul > li").first()).toBeVisible();
     expect((await breakdownRows(page)).length).toBeGreaterThan(0);
   });
 

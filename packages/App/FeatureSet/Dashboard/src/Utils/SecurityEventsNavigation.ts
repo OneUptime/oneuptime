@@ -387,10 +387,10 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
  * (and Teams chats), one page per workspace, and the page that connects one.
  * The section is drawn as every product's Workspace section is
  * (useWorkspaceSideMenuSection): an entry for each workspace the project has
- * connected - "Slack", "Microsoft Teams" - or, with neither, one entry to
- * the page that connects them, "Connect Slack or Teams"; folded, as every
- * Workspace section is, and open by itself on its own pages. It is not in
- * SECURITY_EVENTS_MENU, whose entries every project has: which of these it
+ * connected - "Slack", "Microsoft Teams", "Mattermost" - or, with none, one
+ * entry to the page that connects them, "Connect a workspace"; folded, as
+ * every Workspace section is, and open by itself on its own pages. It is not
+ * in SECURITY_EVENTS_MENU, whose entries every project has: which of these it
  * lists is known only once the project's connections are.
  *
  * It sits before Connections: the sections set up once close the menu, as

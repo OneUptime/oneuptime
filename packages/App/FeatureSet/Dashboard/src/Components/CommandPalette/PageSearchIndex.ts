@@ -2610,6 +2610,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Database,
             keywords: ["connect a database", "collect now"],
           },
+          {
+            page: PageMap.DATA_OBSERVABILITY_STORAGE_PATHS,
+            title: "Storage Paths",
+            icon: IconProp.Folder,
+            keywords: ["s3", "gcs", "azure blob", "bucket", "partition"],
+          },
         ],
       },
       {
@@ -2638,6 +2644,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Archive,
             keywords: ["deleted tables", "gone tables"],
           },
+          {
+            page: PageMap.DATA_OBSERVABILITY_SETTINGS,
+            title: "Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "keep failing rows",
+              "most a check may read",
+              "wait when a database is busy",
+            ],
+          },
+          ownerRules(PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES),
         ],
       },
     ],
@@ -3221,6 +3239,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    id: "openstack",
+    title: "OpenStack",
+    productPage: PageMap.OPENSTACK_CLOUDS,
+    icon: IconProp.Cloud,
+    iconColor: "blue",
+    sections: [
+      {
+        title: "OpenStack",
+        pages: [
+          allListPage(PageMap.OPENSTACK_CLOUDS, "All Clouds"),
+          documentation(PageMap.OPENSTACK_DOCUMENTATION),
+        ],
+      },
+      ...resourceSettingsSections({
+        ownerRules: PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
+        labelRules: PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
+        archived: PageMap.OPENSTACK_ARCHIVED,
+      }),
+    ],
+  },
+  {
     id: "vmware",
     title: "VMware",
     productPage: PageMap.VMWARE_VCENTERS,
@@ -3476,6 +3515,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Advanced",
         pages: [
+          {
+            page: PageMap.NETWORK_SNMP_WALK,
+            title: "SNMP Walk",
+            icon: IconProp.Search,
+            keywords: [
+              "snmpwalk",
+              "walk many devices",
+              "oid",
+              "compare devices",
+              "collect oid",
+            ],
+          },
           {
             page: PageMap.NETWORK_DEVICE_ARCHIVED,
             title: "Archived Devices",

@@ -169,12 +169,13 @@
  *            case that declared it, the open cases naming a host and the
  *            cluster it affects, or both. Left out, Security Events has
  *            nothing to say about any incident here, and no card is drawn.
- *   ?channels= the record's own Slack / Microsoft Teams channels, as
- *            GET /workspace-channel-link answers them (the header's Open in
- *            Slack / Open in Microsoft Teams): a comma list of slack (one
- *            Slack channel), slack2 (a second one), teams (one Teams
- *            channel). None by default: no button, and no channel card.
- *   ?members= who is in those Slack channels, as
+ *   ?channels= the record's own Slack / Microsoft Teams / Mattermost channels,
+ *            as GET /workspace-channel-link answers them (the header's Open in
+ *            Slack / Open in Microsoft Teams / Open in Mattermost): a comma
+ *            list of slack (one Slack channel), slack2 (a second one), teams
+ *            (one Teams channel), mattermost (one Mattermost channel). None by
+ *            default: no button, and no channel card.
+ *   ?members= who is in those Slack and Mattermost channels, as
  *            GET /workspace-channel-members answers it for the channel card:
  *            some (default: Sam, Jordan and Priya, who is in Slack only;
  *            the viewer is not in it), in (the viewer is), empty (everybody
@@ -767,7 +768,8 @@ const threadMode = THREAD_MODES.includes(params.get("thread"))
   : "empty";
 /*
  * The record's own chat channels (?channels=), each link built by the real
- * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give.
+ * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give and
+ * the names of the shape Mattermost gives.
  */
 const channelModes = new Set(
   (params.get("channels") || "").split(",").filter((value) => value.length > 0),
@@ -7321,6 +7323,8 @@ function cancelThreadRun(body) {
 const SLACK_TEAM_ID = "T0ACMECOM";
 const TEAMS_TEAM_ID = "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
 const TEAMS_TENANT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const MATTERMOST_SERVER_URL = "https://chat.acme-commerce.example";
+const MATTERMOST_TEAM_NAME = "acme";
 
 function channelLinks(url) {
   const [recordType] = url.split("/workspace-channel-link/")[1].split("/");
@@ -7364,6 +7368,18 @@ function channelLinks(url) {
         tenantId: TEAMS_TENANT_ID,
         teamId: TEAMS_TEAM_ID,
         channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        channelName: name,
+      }),
+    });
+  }
+
+  if (channelModes.has("mattermost")) {
+    links.push({
+      workspaceType: WorkspaceType.Mattermost,
+      channelName: name,
+      url: WorkspaceChannelLinkUtil.getMattermostChannelUrl({
+        serverUrl: MATTERMOST_SERVER_URL,
+        teamName: MATTERMOST_TEAM_NAME,
         channelName: name,
       }),
     });
@@ -7426,10 +7442,14 @@ function initialChannelPeople() {
   }
 }
 
-// The people in each Slack channel, as the card's adds change them.
+// A Mattermost id: 26 lowercase letters and digits.
+const MATTERMOST_CHANNEL_ID = "c0acme0mattermost000000001";
+
+// The people in each Slack and Mattermost channel, as the card's adds change them.
 const channelPeopleById = {
   C0ACME0001: initialChannelPeople(),
   C0ACME0002: initialChannelPeople(),
+  [MATTERMOST_CHANNEL_ID]: initialChannelPeople(),
 };
 
 const SLACK_CHANNEL_IDS_BY_NAME = {
@@ -7469,7 +7489,9 @@ function channelMembers(url) {
     }
 
     const channelId =
-      SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
+      link.workspaceType === WorkspaceType.Mattermost
+        ? MATTERMOST_CHANNEL_ID
+        : SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
     const listed = state === "members" || state === "archived";
     const inChannel = listed ? channelPeopleById[channelId] : [];
     const viewerId = people.maya.id.toString();
@@ -7479,7 +7501,7 @@ function channelMembers(url) {
 
     return {
       channelId,
-      workspaceType: WorkspaceType.Slack,
+      workspaceType: link.workspaceType,
       name: link.channelName,
       url: link.url,
       isPrivate: listed ? membersMode !== "readonly-public" : null,
@@ -7546,7 +7568,7 @@ function addToChannel(body) {
     });
     const name = member ? member.name.toString() : "Someone";
 
-    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    // Nobody in the workspace has their email address (?unknown=, Alex by default).
     const memberKey = Object.keys(people).find((key) => {
       return people[key] === member;
     });
@@ -8208,6 +8230,18 @@ async function handleApi(method, options) {
 
   if (url.includes("/incident/subscriber-audience")) {
     return ok(subscriberAudience(body));
+  }
+
+  /*
+   * Why a data alert happened (DataAlertExplanationCard), asked only for an
+   * alert a data monitor raised: nothing found, so the card draws nothing.
+   */
+  if (
+    method === "POST" &&
+    url.includes("/data-observability/alerts/") &&
+    url.endsWith("/explanation")
+  ) {
+    return ok({ explanation: null });
   }
 
   if (

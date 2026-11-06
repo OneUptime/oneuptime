@@ -1,0 +1,14 @@
+NAME                                       STATE   AUTOSTART GROUPS            IPV4                                           IPV6 UNPRIVILEGED 
+compute-01-cinder-api-container-62e89049         RUNNING 1         onboot, openstack 10.255.255.215, 172.29.239.135, 172.29.246.79  -    false        
+compute-01-galera-container-c6928b68             RUNNING 1         onboot, openstack 10.255.255.56, 172.29.239.202                  -    false        
+compute-01-glance-container-481d2095             RUNNING 1         onboot, openstack 10.255.255.147, 172.29.236.143, 172.29.247.139 -    false        
+compute-01-horizon-container-2e33fb24            RUNNING 1         onboot, openstack 10.255.255.91, 172.29.236.247                  -    false        
+compute-01-keystone-container-2e7b6a81           RUNNING 1         onboot, openstack 10.255.255.160, 172.29.236.157                 -    false        
+compute-01-memcached-container-6b600b89          RUNNING 1         onboot, openstack 10.255.255.247, 172.29.236.211                 -    false        
+compute-01-neutron-ovn-northd-container-c35ecfa7 RUNNING 1         onboot, openstack 10.255.255.59, 172.29.236.51                   -    false        
+compute-01-neutron-server-container-420ed8c0     RUNNING 1         onboot, openstack 10.255.255.92, 172.29.238.171                  -    false        
+compute-01-nova-api-container-7628248a           RUNNING 1         onboot, openstack 10.255.255.148, 172.29.239.87                  -    false        
+compute-01-placement-container-b2566b69          RUNNING 1         onboot, openstack 10.255.255.223, 172.29.239.79                  -    false        
+compute-01-rabbit-mq-container-5a2915ea          RUNNING 1         onboot, openstack 10.255.255.209, 172.29.239.144                 -    false        
+compute-01-repo-container-90e0cdb1               RUNNING 1         onboot, openstack 10.255.255.136, 172.29.237.15                  -    false        
+compute-01-utility-container-d403c9bc            RUNNING 1         onboot, openstack 10.255.255.158, 172.29.239.154                 -    false        

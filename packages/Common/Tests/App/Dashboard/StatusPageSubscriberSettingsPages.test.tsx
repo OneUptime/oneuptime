@@ -170,11 +170,6 @@ jest.mock(
   },
 );
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: zone.js reports a rejected promise as unhandled even
- * when the page catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 
@@ -789,9 +784,7 @@ describe("Subscriber Settings", () => {
 
     test("a list that fails to load warns about nothing", async () => {
       linkedMethods = [StatusPageSubscriberNotificationMethod.Email];
-      getListMock.mockImplementation(async (): Promise<unknown> => {
-        throw new Error("Request failed");
-      });
+      getListMock.mockRejectedValue(new Error("Request failed"));
 
       await openTemplates();
 

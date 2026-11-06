@@ -1,0 +1,18 @@
+# HELP openstack_container_infra_cluster_masters cluster_masters
+# TYPE openstack_container_infra_cluster_masters gauge
+openstack_container_infra_cluster_masters{name="ou-cluster-long",node_count="1",project_id="",stack_id="8ff88764-ef47-484e-8804-2b4c3d22d558",status="CREATE_IN_PROGRESS",uuid="1836d7d8-990a-42aa-a318-4de151184de9"} 1
+openstack_container_infra_cluster_masters{name="ou-cluster-times-out",node_count="1",project_id="",stack_id="417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",status="CREATE_FAILED",uuid="df9f1548-93b9-444f-9001-605d49feda4e"} 1
+# HELP openstack_container_infra_cluster_nodes cluster_nodes
+# TYPE openstack_container_infra_cluster_nodes gauge
+openstack_container_infra_cluster_nodes{master_count="1",name="ou-cluster-long",project_id="",stack_id="8ff88764-ef47-484e-8804-2b4c3d22d558",status="CREATE_IN_PROGRESS",uuid="1836d7d8-990a-42aa-a318-4de151184de9"} 1
+openstack_container_infra_cluster_nodes{master_count="1",name="ou-cluster-times-out",project_id="",stack_id="417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",status="CREATE_FAILED",uuid="df9f1548-93b9-444f-9001-605d49feda4e"} 1
+# HELP openstack_container_infra_cluster_status cluster_status
+# TYPE openstack_container_infra_cluster_status gauge
+openstack_container_infra_cluster_status{master_count="1",name="ou-cluster-long",node_count="1",project_id="",stack_id="8ff88764-ef47-484e-8804-2b4c3d22d558",status="CREATE_IN_PROGRESS",uuid="1836d7d8-990a-42aa-a318-4de151184de9"} 2
+openstack_container_infra_cluster_status{master_count="1",name="ou-cluster-times-out",node_count="1",project_id="",stack_id="417c7b6f-4f5a-40f0-a9b6-5f9c0891ede5",status="CREATE_FAILED",uuid="df9f1548-93b9-444f-9001-605d49feda4e"} 1
+# HELP openstack_container_infra_total_clusters total_clusters
+# TYPE openstack_container_infra_total_clusters gauge
+openstack_container_infra_total_clusters 2
+# HELP openstack_container_infra_up up
+# TYPE openstack_container_infra_up gauge
+openstack_container_infra_up 1

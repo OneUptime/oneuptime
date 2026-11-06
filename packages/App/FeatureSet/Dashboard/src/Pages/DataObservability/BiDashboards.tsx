@@ -105,7 +105,7 @@ const BiDashboardsPage: FunctionComponent<
         cardProps={{
           title: "BI Tools",
           description:
-            "Metabase, Superset, Tableau, Looker and Power BI: their dashboards, and the tables behind them, read every hour, so a table's alerts list the dashboards built on it.",
+            "Metabase, Superset, Tableau, Looker and Power BI dashboards, and Hightouch and Census syncs, read every hour, so a table's alerts list what is built on it.",
         }}
         noItemsMessage="No BI tool yet. Add one, with credentials that may read its dashboards, and a late table's alert names the dashboards people open on it."
         /*

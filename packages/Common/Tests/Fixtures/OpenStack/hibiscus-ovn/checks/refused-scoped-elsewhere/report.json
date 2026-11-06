@@ -1,0 +1,24 @@
+[
+  {
+    "runId": "20261105063954-c74330",
+    "regionName": "RegionOne",
+    "startedAt": "2026-11-05T06:39:54.774Z",
+    "finishedAt": "2026-11-05T06:39:54.811Z",
+    "status": "Refused",
+    "message": "This credential is scoped to project ou-check-victim, and this check was given project oneuptime-checks. Nothing was written. Give it a credential on oneuptime-checks, or say which project it has to itself.",
+    "steps": [
+      {
+        "step": "token",
+        "status": "Passed",
+        "durationInMs": 37
+      }
+    ],
+    "phases": {
+      "credential": "Passed"
+    },
+    "leftoverCount": 0,
+    "requestCount": 1,
+    "writeCount": 0,
+    "warnings": []
+  }
+]

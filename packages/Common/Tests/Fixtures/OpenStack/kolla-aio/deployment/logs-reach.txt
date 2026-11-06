@@ -1,0 +1,15 @@
+network: oneuptime-openstack-logs_default
+{
+    "bridge": "none",
+    "ip-forward": false,
+    "iptables": false,
+    "log-opts": {
+        "max-file": "5",
+        "max-size": "50m"
+    }
+}
+subnet: 172.17.0.0/16
+-P POSTROUTING ACCEPT
+-A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+oneuptime.com answers 200
+this OneUptime answers 200

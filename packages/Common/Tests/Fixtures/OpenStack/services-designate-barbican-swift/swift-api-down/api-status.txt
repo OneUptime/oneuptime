@@ -1,0 +1,7 @@
+000000 swift-account
+000000 swift-info
+000000 swift-account-own
+000000 swift-account-ou-payments-as-admin
+000000 swift-account-ou-payments-as-admin
+000000 swift-account-ou-payments
+000000 swift-account-ou-payments

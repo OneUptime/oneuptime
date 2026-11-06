@@ -8,6 +8,7 @@ import { getIoTMetricByMetricName } from "../../Types/Monitor/IotMetricCatalog";
 import { getKubernetesMetricByMetricName } from "../../Types/Monitor/KubernetesMetricCatalog";
 import { getPodmanMetricByMetricName } from "../../Types/Monitor/PodmanMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../Types/Monitor/ProxmoxMetricCatalog";
+import { getOpenStackMetricByMetricName } from "../../Types/Monitor/OpenStackMetricCatalog";
 import { getStorageArrayMetric } from "../../Types/Monitor/StorageArrayMetricCatalog";
 import { getVMwareMetricByMetricName } from "../../Types/Monitor/VMwareMetricCatalog";
 
@@ -18,6 +19,7 @@ import { getVMwareMetricByMetricName } from "../../Types/Monitor/VMwareMetricCat
 export type MetricCatalogPlatform =
   | "kubernetes"
   | "proxmox"
+  | "openstack"
   | "vmware"
   | "dockerSwarm"
   | "ceph"
@@ -66,6 +68,8 @@ export default class PlatformMetricUnitUtil {
         return "kubernetes";
       case MonitorType.Proxmox:
         return "proxmox";
+      case MonitorType.OpenStack:
+        return "openstack";
       case MonitorType.VMware:
         return "vmware";
       case MonitorType.DockerSwarm:
@@ -219,6 +223,8 @@ export default class PlatformMetricUnitUtil {
         return getKubernetesMetricByMetricName(metricName)?.unit;
       case "proxmox":
         return getProxmoxMetricByMetricName(metricName)?.unit;
+      case "openstack":
+        return getOpenStackMetricByMetricName(metricName)?.unit;
       case "vmware":
         return getVMwareMetricByMetricName(metricName)?.unit;
       case "dockerSwarm":

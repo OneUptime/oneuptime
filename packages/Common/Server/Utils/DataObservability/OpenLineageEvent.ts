@@ -1,3 +1,4 @@
+import { MAX_COLUMN_MAPPINGS_PER_EDGE } from "../../../Types/DataObservability/DataColumnLineage";
 import { JSONObject } from "../../../Types/JSON";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 
@@ -56,6 +57,15 @@ const OPENLINEAGE_EVENT_TYPES: ReadonlyArray<string> = [
 export interface OpenLineageDataset {
   namespace: string;
   name: string;
+  // From an output's columnLineage facet: which input columns feed each of its columns.
+  columnLineage?: Array<OpenLineageColumnLineage> | undefined;
+}
+
+export interface OpenLineageColumnLineage {
+  downstreamColumn: string;
+  inputNamespace: string;
+  inputName: string;
+  inputColumn: string;
 }
 
 export interface OpenLineageRunEvent {
@@ -76,6 +86,12 @@ export interface OpenLineageRunEvent {
    * from an OpenLineage event.
    */
   outputDataAssetIds?: Array<string> | undefined;
+  // The same for what it read: a job found in traces names tables, not datasets.
+  inputDataAssetIds?: Array<string> | undefined;
+  // Which try of its task this run is, when its scheduler says (Airflow's try_number).
+  attemptNumber?: number | null | undefined;
+  // The trace of a run found in traces, so its run links to its spans and logs.
+  traceId?: string | null | undefined;
 }
 
 export const MAX_EVENTS_PER_REQUEST: number = 500;
@@ -93,6 +109,56 @@ function readText(value: unknown, maxLength: number): string | null {
   const text: string = value.trim();
 
   return text && text.length <= maxLength ? text : null;
+}
+
+// The spec's columnLineage facet: fields, each with the inputFields that feed it.
+function readColumnLineage(facets: unknown): Array<OpenLineageColumnLineage> {
+  const facet: unknown =
+    facets && typeof facets === "object"
+      ? (facets as JSONObject)["columnLineage"]
+      : null;
+  const fields: unknown =
+    facet && typeof facet === "object" ? (facet as JSONObject)["fields"] : null;
+
+  if (!fields || typeof fields !== "object") {
+    return [];
+  }
+
+  const lineage: Array<OpenLineageColumnLineage> = [];
+
+  for (const [downstreamColumn, field] of Object.entries(
+    fields as JSONObject,
+  )) {
+    const inputs: unknown =
+      field && typeof field === "object"
+        ? (field as JSONObject)["inputFields"]
+        : null;
+
+    for (const raw of Array.isArray(inputs) ? inputs : []) {
+      const input: JSONObject =
+        raw && typeof raw === "object" ? (raw as JSONObject) : {};
+      const inputNamespace: string | null = readText(
+        input["namespace"],
+        MAX_NAME_LENGTH,
+      );
+      const inputName: string | null = readText(input["name"], MAX_NAME_LENGTH);
+      const inputColumn: string | null = readText(
+        input["field"],
+        MAX_NAME_LENGTH,
+      );
+
+      if (inputNamespace && inputName && inputColumn) {
+        lineage.push({
+          downstreamColumn: downstreamColumn.slice(0, MAX_NAME_LENGTH),
+          inputNamespace,
+          inputName,
+          inputColumn,
+        });
+      }
+    }
+  }
+
+  return lineage.slice(0, MAX_COLUMN_MAPPINGS_PER_EDGE);
 }
 
 function readDatasets(value: unknown): Array<OpenLineageDataset> {
@@ -125,11 +191,37 @@ function readDatasets(value: unknown): Array<OpenLineageDataset> {
 
     if (!seen.has(key)) {
       seen.add(key);
-      datasets.push({ namespace, name });
+
+      const columnLineage: Array<OpenLineageColumnLineage> = readColumnLineage(
+        (raw as JSONObject)["facets"],
+      );
+
+      datasets.push({
+        namespace,
+        name,
+        ...(columnLineage.length > 0 ? { columnLineage } : {}),
+      });
     }
   }
 
   return datasets;
+}
+
+// Which try this run is, from the airflow facet Airflow's OpenLineage provider sends.
+export function readAttemptNumber(facets: JSONObject | null): number | null {
+  const airflow: JSONObject | null =
+    facets?.["airflow"] && typeof facets["airflow"] === "object"
+      ? (facets["airflow"] as JSONObject)
+      : null;
+  const taskInstance: JSONObject | null =
+    airflow?.["taskInstance"] && typeof airflow["taskInstance"] === "object"
+      ? (airflow["taskInstance"] as JSONObject)
+      : null;
+  const attempt: number = Number(taskInstance?.["try_number"]);
+
+  return Number.isInteger(attempt) && attempt > 0 && attempt < 1000
+    ? attempt
+    : null;
 }
 
 export function readOpenLineageEvent(
@@ -192,6 +284,7 @@ export function readOpenLineageEvent(
   const parsedScheduledTime: number = Date.parse(
     String(nominalTimeFacet?.["nominalStartTime"] || ""),
   );
+  const attemptNumber: number | null = readAttemptNumber(facets);
 
   return {
     eventType,
@@ -213,6 +306,7 @@ export function readOpenLineageEvent(
         : null,
     inputs: readDatasets(item["inputs"]),
     outputs: readDatasets(item["outputs"]),
+    ...(attemptNumber ? { attemptNumber } : {}),
   };
 }
 

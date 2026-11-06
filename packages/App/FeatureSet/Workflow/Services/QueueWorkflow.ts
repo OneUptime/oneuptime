@@ -14,6 +14,10 @@ import WorkflowPlan, {
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
 import {
+  RunAgainColumns,
+  getRunAgainColumns,
+} from "Common/Types/Workflow/WorkflowRunAgain";
+import {
   WORKFLOW_TURNED_OFF_MESSAGE,
   getWorkflowTestRunLogLine,
   getWorkflowTestRunStarter,
@@ -235,11 +239,11 @@ export default class QueueWorkflow {
      * webhook sender's delivery log or a script may be the only place the
      * refusal is read.
      *
-     * A person testing the workflow from its Builder - Run Workflow or Run
-     * just this step, the only two routes that pass startedByUserId - may
-     * run it whether it is on or off: "Why do I have to enable a workflow in
-     * order to test run it?" Their run goes ahead as a test run, marked as
-     * one with who started it. A schedule is never a person.
+     * A person testing the workflow - Run Workflow, Run just this step or Run
+     * again, the only routes that pass startedByUserId - may run it whether it
+     * is on or off: "Why do I have to enable a workflow in order to test run
+     * it?" Their run goes ahead as a test run, marked as one with who started
+     * it. A schedule is never a person.
      */
     const startedByUserId: ObjectID | undefined = scheduleAt
       ? undefined
@@ -282,6 +286,9 @@ export default class QueueWorkflow {
     /*
      * A row of this run's log, whatever becomes of the run: it says who
      * started it, and a test run's opens with the line that says it is one.
+     * It keeps what the run started with, so a person can run it again: a run
+     * refused for the plan's limit too, whose delivery would otherwise be lost
+     * (Types/Workflow/WorkflowRunAgain).
      */
     const newRunLog: NewRunLogFunction = (
       lines: Array<string>,
@@ -290,10 +297,20 @@ export default class QueueWorkflow {
         showSeconds: true,
       });
 
+      const runAgain: RunAgainColumns = getRunAgainColumns({
+        returnValues: executeWorkflow.returnValues,
+        runOnlyComponentId: executeWorkflow.runOnlyComponentId,
+      });
+
       const runLog: WorkflowLog = new WorkflowLog();
       runLog.workflowId = workflowId;
       runLog.projectId = projectId;
       runLog.isTestRun = isTestRun;
+      runLog.canRunAgain = runAgain.canRunAgain;
+
+      if (runAgain.triggerValues) {
+        runLog.triggerValues = runAgain.triggerValues;
+      }
 
       if (startedByUserId) {
         runLog.startedByUserId = startedByUserId;

@@ -184,6 +184,38 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "find_workflow_components",
+    {
+      description: "Looked up workflow steps",
+      icon: IconProp.Workflow,
+      category: "Workflows",
+    },
+  ],
+  [
+    "check_workflow_draft",
+    {
+      description: "Checked the workflow",
+      icon: IconProp.Workflow,
+      category: "Workflows",
+    },
+  ],
+  [
+    "create_workflow",
+    {
+      description: "Created a workflow",
+      icon: IconProp.Workflow,
+      category: "Workflows",
+    },
+  ],
+  [
+    "update_workflow",
+    {
+      description: "Updated a workflow",
+      icon: IconProp.Workflow,
+      category: "Workflows",
+    },
+  ],
+  [
     "query_probes",
     {
       description: "Checked probes",
@@ -873,6 +905,7 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.RunbookView]: translationKey("Runbook"),
   [AIChatCitationTargetType.Workflows]: translationKey("Workflows"),
   [AIChatCitationTargetType.WorkflowView]: translationKey("Workflow"),
+  [AIChatCitationTargetType.WorkflowBuilder]: translationKey("Workflow"),
   [AIChatCitationTargetType.Probes]: translationKey("Probes"),
   [AIChatCitationTargetType.Teams]: translationKey("Teams"),
   [AIChatCitationTargetType.SecurityEvents]: translationKey("Security events"),

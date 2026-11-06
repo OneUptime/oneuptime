@@ -52,6 +52,8 @@ interface ResourceInventoryPageCase {
    * ResourceShowcaseCard is handed), or - Cloud Resources - a guide card.
    */
   readonly showcase?: string | undefined;
+  // How the card header's Add button is drawn, NORMAL when not said.
+  readonly addButtonStyle?: string | undefined;
   readonly documentationCard?: string | undefined;
   /*
    * The infrastructure lists count through the shared useFirstRecordWatch:
@@ -153,6 +155,17 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     countSetter: "setCount",
     showcase: "RUM_APPLICATION_SHOWCASE",
     isAddedByForm: true,
+  },
+  {
+    ...addedByGuide({
+      label: "OpenStack clouds",
+      relativePath: "OpenStack/Clouds.tsx",
+      modelType: "OpenStackCloud",
+      onboarding: "OPENSTACK_CLOUD_ONBOARDING",
+      showcase: "OPENSTACK_CLOUD_SHOWCASE",
+    }),
+    // Second beside Connect Cloud, the way in with nothing to install.
+    addButtonStyle: "OUTLINE",
   },
   addedByGuide({
     label: "Kubernetes clusters",
@@ -349,7 +362,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(16);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(17);
     expect(discoveredPages).toEqual(testedPages);
   });
 
@@ -372,7 +385,7 @@ describe("empty resource inventory page catalog", () => {
       return showcase.length > 0;
     });
 
-    expect(showcases).toHaveLength(15);
+    expect(showcases).toHaveLength(16);
     expect(new Set(showcases).size).toBe(showcases.length);
   });
 });
@@ -426,10 +439,13 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       const table: string = source.slice(tableStart, tableEnd);
       const button: RegExpMatchArray | null = table.match(
         new RegExp(
-          // On a phone the button says its verb alone (phoneTitle).
-          `buttons: \\[ \\{ title: ${escapeRegExp(
+          /*
+           * On a phone the button says its verb alone (phoneTitle). A cloud a probe can read
+           * has another way in, Connect Cloud, beside it.
+           */
+          `buttons: \\[ (?:\\.\\.\\.\\(canConnectCloud \\? \\[.*?\\] : \\[\\]\\), )?\\{ title: ${escapeRegExp(
             resourceCase.addButtonTitle as string,
-          )}, (?:phoneTitle: "[A-Za-z]+", )?icon: IconProp\\.Add, buttonStyle: ButtonStyleType\\.NORMAL, onClick: \\(\\) => \\{ set([A-Z][A-Za-z]*)\\(true\\); \\}, \\}, \\],`,
+          )}, (?:phoneTitle: "[A-Za-z]+", )?icon: IconProp\\.Add, buttonStyle: ButtonStyleType\\.${resourceCase.addButtonStyle || "NORMAL"}, onClick: \\(\\) => \\{ set([A-Z][A-Za-z]*)\\(true\\); \\}, \\}, \\],`,
         ),
       );
 

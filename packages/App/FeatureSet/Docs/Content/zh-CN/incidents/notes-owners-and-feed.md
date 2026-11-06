@@ -270,7 +270,7 @@ flowchart TB
 
 - **事件本身** —— `IncidentCreated`、`IncidentUpdated`、`IncidentStateChanged`。`IncidentUpdated` 条目记录一次编辑改变了什么：标题、描述、根本原因、补救备注、标签、严重性、监视器及为其设置的状态，以及加入或移出事件范围的状态页。每个改变了的值都有一行，按原样保存的值则没有，所以保存一张什么都没改的卡片，或者 API 客户端或工作流把事件按原样写回，根本不会添加条目。读起来相同的文本就视为相同（行尾和前后空格除外），标签只要是同一组就视为相同，与顺序无关；被清空的值显示为已移除，移除所有标签显示为“All labels removed.”。告警的 **Alert updated** 条目也是同样的工作方式。
 - **备注和文档** —— `PublicNote`、`PrivateNote`、`RootCause`、`RemediationNotes`、`PostmortemNote`。`PostmortemNote` 条目在事后分析的备注发生变化时写入，而不是每次保存事后分析时都写入。
-- **人员** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`，以及 `ChannelMemberAdded`，显示为 **已添加频道成员**，表示有人从事件页面被添加到事件的 Slack 频道。参见 [记录频道中的成员](/docs/workspace-connections/slack#记录频道中的成员)。
+- **人员** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`，以及 `ChannelMemberAdded`，显示为 **已添加频道成员**，表示有人从事件页面被添加到事件的 Slack 或 Mattermost 频道。参见 [记录频道中的成员](/docs/workspace-connections/slack#记录频道中的成员)。
 - **关联的告警** —— `AlertLinked` 和 `AlertUnlinked`，显示为 **警报已关联** 和 **警报已取消关联**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自动化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
@@ -306,7 +306,7 @@ flowchart TB
 - **来自事件模板** —— 模板带有 **所有者** 字段：拥有该事件、并会在事件创建或更新时收到通知的人员和团队，从与 **添加所有者** 相同的列表中选择。从模板创建事件时会预先填好他们，并在事件的 Slack 和 Microsoft Teams 频道存在之后添加，因此邀请事件所有者加入新频道的通知规则也会邀请他们。仪表板，以及选择了 **Incident Template** 的工作流 **Create One Incident** 步骤，添加他们时不会发出“你已被添加”的通知；带模板的 [表单](/docs/forms/on-submit) 会通知他们，并把事件的 **事件已创建** 通知推迟到他们被添加之后。参见 [声明事件](/docs/incidents/declaring-incidents)。
 - **来自事件所有者规则** —— 匹配的规则在创建时自动添加所有者。
 - **通过 API 创建时** —— 随创建调用传入的所有者用户和团队，会以同样的方式、在频道存在之后添加，并且不会发出“你已被添加”的通知。
-- **手动** —— 在事件进行中的任何时候，使用 **所有者** 页面上的 **添加所有者** 控件；事件未关闭时，也可以使用 **概览** 页眉中所有者下方的 **添加**。
+- **By hand** —— 在事件进行中的任何时候，使用 **所有者** 页面上的 **添加所有者** 控件；事件未关闭时，也可以使用 **概览** 页眉中所有者下方的 **添加**。
 
 重复添加同一个人是安全的；已经指派的所有者不会重复。
 
@@ -337,7 +337,7 @@ flowchart TB
 | **你已被添加**             | 你被添加为所有者时。                                         | `You have been added as the owner of Incident {number} - {title}` |
 | **仍未解决**               | 一条提醒，由事件的下一次提醒时间驱动。                       | `[Reminder] Incident {number} is still {state} - {title}`      |
 
-每条通知都会通过此人在 **用户设置 → 通知设置** 中开启的渠道发出——电子邮件、短信、语音电话、推送、WhatsApp、Telegram、Slack、Microsoft Teams 或 webhook——实际发送什么由这些设置决定。每个接收者都可以单独关闭其中每一项——每个用户的设置分别表述为向你发送事件已创建、备注已发布、状态已改变、所有者已添加、成员已指派以及仍未关闭提醒的通知。只想在状态变化时接到电话的人，可以恰好只设置这一项。状态变化意味着什么，参见 [事件状态与严重级别](/docs/incidents/states-and-severities)。
+每条通知都会通过此人在 **用户设置 → 通知设置** 中开启的渠道发出——电子邮件、短信、语音电话、推送、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 或 webhook——实际发送什么由这些设置决定。每个接收者都可以单独关闭其中每一项——每个用户的设置分别表述为向你发送事件已创建、备注已发布、状态已改变、所有者已添加、成员已指派以及仍未关闭提醒的通知。只想在状态变化时接到电话的人，可以恰好只设置这一项。状态变化意味着什么，参见 [事件状态与严重级别](/docs/incidents/states-and-severities)。
 
 **没有所有者的事件也不会悄无声息。** 如果事件完全没有所有者，通知任务会转而通知项目的所有者，所以不会有任何遗漏。通过表单报告、且其模板带有所有者的事件，其 **事件已创建** 通知则会等待这些所有者。每个被通知的人还会被追加到相应的信息流条目中，所以事后你可以准确地看到告诉了谁、发到了哪个地址。
 

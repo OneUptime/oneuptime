@@ -185,7 +185,7 @@ flowchart TB
     field -->|"خیر"| nothing
 ```
 
-**On Create**، **On Update** و **On Create or Update** رکورد را همراه با فیلدهایی که در **Fields to pass on** تریگر انتخاب کرده‌اید به بلوک بعدی می‌فرستند. برای نمونه، تریگر **Incident → On Create** حادثه تازه را به جلو می‌فرستد، تا بلوک بعدی بتواند عنوان، توضیحات، شدت یا هر فیلد دیگری را که انتخاب کرده‌اید بخواند، مانند `{{local.components.incident-on-create-1.returnValues.model.title}}`. فیلدی که انتخاب نکرده‌اید خالی می‌رسد.
+**On Create**، **On Update** و **On Create or Update** رکورد را همراه با فیلدهایی که در **Fields to pass on** تریگر انتخاب کرده‌اید به بلوک بعدی می‌فرستند. برای نمونه، تریگر **Incident → On Create** حادثه تازه را به جلو می‌فرستد، تا بلوک بعدی بتواند عنوان، توضیحات، شدت یا هر فیلد دیگری را که انتخاب کرده‌اید بخواند، مانند `{{local.components.incident-on-create-1.returnValues.model.title}}`. فیلدی که انتخاب نکرده‌اید خالی می‌رسد. همین درباره فیلدی که رکورد چیزی در آن ندارد هم صدق می‌کند، مانند مانیتور هشداری که هیچ مانیتوری آن را ایجاد نکرده است.
 
 **On Create or Update** همچنین **What Happened** را می‌فرستد: `created` وقتی رکوردی تازه اجرا را شروع کرده، و `updated` وقتی تغییری آن را شروع کرده، مانند `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. برای اینکه این دو را جدا پردازش کنید، آن را در یک بلوک **If / Else** مقایسه کنید، یا با **Switch / Case** برای هر کدام مسیری جدا بروید.
 

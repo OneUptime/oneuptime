@@ -279,9 +279,7 @@ describe("what the card says", () => {
 
     expect(items[1]).toHaveTextContent("orders-db");
     expect(items[1]).toHaveTextContent("PostgreSQL");
-    expect(items[1]).toHaveTextContent(
-      "Connections at 97% of max_connections",
-    );
+    expect(items[1]).toHaveTextContent("Connections at 97% of max_connections");
     expect(items[1]).toHaveAttribute("data-severity", "critical");
 
     expect(items[2]).toHaveTextContent("sessions-cache");
@@ -315,7 +313,11 @@ describe("what the card says", () => {
 
   test("a read that came back full says the card may not show every database", async () => {
     const many: Array<DatabaseServer> = [];
-    for (let index: number = 0; index < DATABASE_FLEET_ATTENTION_LIMIT; index++) {
+    for (
+      let index: number = 0;
+      index < DATABASE_FLEET_ATTENTION_LIMIT;
+      index++
+    ) {
       const row: DatabaseServer = database({
         id: `${String(index).padStart(8, "0")}-1111-4111-8111-111111111111`,
         name: `db-${index}`,

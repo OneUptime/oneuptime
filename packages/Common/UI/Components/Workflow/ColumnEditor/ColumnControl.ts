@@ -8,7 +8,10 @@
  * the builder could only agree with the schema or be wrong.
  */
 
+import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
+import { CUSTOM_FIELDS_COLUMN } from "../../../../Types/Workflow/CustomFieldsColumn";
+import { readLinkedRecordList } from "../../../../Types/Workflow/LinkedRecordValue";
 import { ModelSchemaColumn } from "../ModelSchema";
 import { ModelColumnControl } from "./ColumnRow";
 import { ColumnUse, canUseColumnFor, isSystemColumn } from "./ColumnUse";
@@ -82,6 +85,29 @@ const UNSUPPORTED_COLUMN_TYPES: Array<string> = [
   TableColumnType.MonitorSteps,
 ];
 
+// What a field picked from a list of records is called in a word.
+const RECORD_LABEL: string = translationKey("Record");
+
+/*
+ * What each kind of custom field is filled in with. A Record rather than a
+ * list, so a new kind that is not said here fails to compile rather than
+ * quietly landing in a text box.
+ */
+const CUSTOM_FIELD_CONTROLS: Record<CustomFieldType, ModelColumnControl> = {
+  [CustomFieldType.Text]: ModelColumnControl.Text,
+  [CustomFieldType.LongText]: ModelColumnControl.LongText,
+  [CustomFieldType.Markdown]: ModelColumnControl.LongText,
+  [CustomFieldType.Number]: ModelColumnControl.Number,
+  [CustomFieldType.Boolean]: ModelColumnControl.Boolean,
+  [CustomFieldType.Date]: ModelColumnControl.DateOnly,
+  [CustomFieldType.DateTime]: ModelColumnControl.Date,
+  [CustomFieldType.Dropdown]: ModelColumnControl.Choice,
+  [CustomFieldType.MultiSelectDropdown]: ModelColumnControl.ChoiceList,
+  // A file is uploaded to a record, and held as a reference to it: JSON only.
+  [CustomFieldType.File]: ModelColumnControl.Unsupported,
+  [CustomFieldType.MultipleFiles]: ModelColumnControl.Unsupported,
+};
+
 export type ControlForColumnFunction = (
   column: ModelSchemaColumn | undefined,
 ) => ModelColumnControl;
@@ -101,8 +127,22 @@ export const controlForColumn: ControlForColumnFunction = (
     return ModelColumnControl.Text;
   }
 
+  // A field with no type of its own is text, as the record's own page shows it.
+  if (column.customField) {
+    return column.customField.customFieldType
+      ? CUSTOM_FIELD_CONTROLS[column.customField.customFieldType]
+      : ModelColumnControl.Text;
+  }
+
+  /*
+   * A list of related records whose records can be listed is picked by name.
+   * A relation to one record stays out of rows: the column holding its ID is
+   * offered instead, and is picked by name itself.
+   */
   if (column.isRelation) {
-    return ModelColumnControl.Unsupported;
+    return column.type === TableColumnType.EntityArray && column.linkedTableName
+      ? ModelColumnControl.RecordList
+      : ModelColumnControl.Unsupported;
   }
 
   if (UNSUPPORTED_COLUMN_TYPES.includes(column.type)) {
@@ -118,7 +158,9 @@ export const controlForColumn: ControlForColumnFunction = (
   }
 
   if (column.type === TableColumnType.ObjectID) {
-    return ModelColumnControl.ObjectId;
+    return column.linkedTableName
+      ? ModelColumnControl.Record
+      : ModelColumnControl.ObjectId;
   }
 
   if (column.type === TableColumnType.Color) {
@@ -140,6 +182,22 @@ export const controlForColumn: ControlForColumnFunction = (
   return ModelColumnControl.Text;
 };
 
+/**
+ * The control a column's condition is filled in with. A query asks about one
+ * option at a time, or lists them with "is any of", whichever kind of custom
+ * field it is about: a value matches whether it is stored alone or in a list
+ * (JSONColumnQuery).
+ */
+export const controlForFilter: ControlForColumnFunction = (
+  column: ModelSchemaColumn | undefined,
+): ModelColumnControl => {
+  const control: ModelColumnControl = controlForColumn(column);
+
+  return control === ModelColumnControl.ChoiceList
+    ? ModelColumnControl.Choice
+    : control;
+};
+
 export type ColumnTypeLabelFunction = (
   column: ModelSchemaColumn | undefined,
 ) => string;
@@ -152,17 +210,30 @@ const englishColumnTypeLabel: ColumnTypeLabelFunction = (
     return translationKey("Unknown");
   }
 
+  const control: ModelColumnControl = controlForColumn(column);
+
+  if (control === ModelColumnControl.RecordList) {
+    return translationKey("Records");
+  }
+
   if (column.isRelation) {
     return translationKey("Relation");
   }
 
-  switch (controlForColumn(column)) {
+  switch (control) {
     case ModelColumnControl.Number:
       return translationKey("Number");
     case ModelColumnControl.Boolean:
       return translationKey("True or false");
     case ModelColumnControl.Date:
       return translationKey("Date and time");
+    case ModelColumnControl.DateOnly:
+      return translationKey("Date");
+    case ModelColumnControl.Choice:
+      return translationKey("Choice");
+    case ModelColumnControl.ChoiceList:
+      return translationKey("Choices");
+    case ModelColumnControl.Record:
     case ModelColumnControl.ObjectId:
       return translationKey("ID");
     case ModelColumnControl.Color:
@@ -191,6 +262,34 @@ export const columnTypeLabel: ColumnTypeLabelFunction = (
   const label: string = englishColumnTypeLabel(column);
 
   return translateText(label) ?? label;
+};
+
+/**
+ * The same, where the field is being filled in: a column whose records are
+ * listed is a record to pick there, though what it holds, and what a later step
+ * reads from it (columnTypeLabel), is that record's ID.
+ */
+export const columnPickLabel: ColumnTypeLabelFunction = (
+  column: ModelSchemaColumn | undefined,
+): string => {
+  return controlForColumn(column) === ModelColumnControl.Record
+    ? translateText(RECORD_LABEL) ?? RECORD_LABEL
+    : columnTypeLabel(column);
+};
+
+export type GetColumnTitleFunction = (
+  column: ModelSchemaColumn | undefined,
+) => string | undefined;
+
+/**
+ * What a setting is called where a person fills it in: Incident Severity for a
+ * column that is picked from the incident severities, though the model calls
+ * the column Incident Severity ID. As the model calls it otherwise.
+ */
+export const getColumnTitle: GetColumnTitleFunction = (
+  column: ModelSchemaColumn | undefined,
+): string | undefined => {
+  return column?.linkedTitle || column?.title;
 };
 
 export type LiteralFitsControlFunction = (
@@ -226,11 +325,21 @@ export const literalFitsControl: LiteralFitsControlFunction = (
   }
 
   switch (control) {
+    case ModelColumnControl.RecordList:
+      return readLinkedRecordList(value) !== null;
+    case ModelColumnControl.ChoiceList:
+      return (
+        Array.isArray(value) &&
+        value.every((entry: unknown): boolean => {
+          return typeof entry === "string" && entry !== "";
+        })
+      );
     case ModelColumnControl.Number:
       return typeof value === "number" && !isNaN(value);
     case ModelColumnControl.Boolean:
       return typeof value === "boolean";
     case ModelColumnControl.Date:
+    case ModelColumnControl.DateOnly:
       /*
        * Dates travel as ISO strings. Anything else - a number of milliseconds,
        * an operator wrapper - is shown raw rather than reinterpreted.
@@ -258,7 +367,15 @@ export const isOfferableColumn: IsOfferableColumnFunction = (
   column: ModelSchemaColumn,
   use: ColumnUse,
 ): boolean => {
-  if (column.isRelation) {
+  /*
+   * A list of related records is written, never filtered on: a query's
+   * relation sub-object stays with the JSON editor.
+   */
+  if (
+    column.isRelation &&
+    (use === ColumnUse.Filter ||
+      controlForColumn(column) !== ModelColumnControl.RecordList)
+  ) {
     return false;
   }
 
@@ -285,8 +402,8 @@ export type JsonOnlyColumnsFunction = (
 ) => Array<ModelSchemaColumn>;
 
 /**
- * Fields that belong in this list but cannot be a row: lists of related
- * records, JSON blobs, monitor steps.
+ * Fields that belong in this list but cannot be a row: JSON blobs, monitor
+ * steps, lists of records that cannot be listed.
  *
  * The record form names them under itself so the builder is not left
  * wondering where a column went. Left out are the fields that are not missing
@@ -301,6 +418,11 @@ export const jsonOnlyColumns: JsonOnlyColumnsFunction = (
 ): Array<ModelSchemaColumn> => {
   return columns.filter((column: ModelSchemaColumn) => {
     if (isOfferableColumn(column, use)) {
+      return false;
+    }
+
+    // Its custom fields are listed one by one; those that cannot be, by name.
+    if (column.id === CUSTOM_FIELDS_COLUMN) {
       return false;
     }
 

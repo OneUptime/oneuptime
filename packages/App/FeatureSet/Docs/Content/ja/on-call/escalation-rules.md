@@ -221,7 +221,7 @@ flowchart TB
 | --- | --- |
 | メール | **Escalate** ボタンを押し、開いたページで **Escalate** を押します |
 | SMS と WhatsApp | メッセージのリンクで確認ページが開き、そこにも **Escalate** があります |
-| Telegram、Slack、Microsoft Teams | "Can't take it? Escalate" のリンクを開き、開いたページで **Escalate** を押します |
+| Telegram、Slack、Microsoft Teams、Mattermost | "Can't take it? Escalate" のリンクを開き、開いたページで **Escalate** を押します |
 | 電話 | 2 を押します。その後、何が起きたかが電話で伝えられます |
 | プッシュ通知 | タップすると、インシデント、アラート、またはエピソードが OneUptime On-Call アプリで開き、その下に **Escalate** があります |
 | OneUptime | インシデント、アラート、またはエピソードの上部、状態ボタンの後にある **エスカレーションする** |

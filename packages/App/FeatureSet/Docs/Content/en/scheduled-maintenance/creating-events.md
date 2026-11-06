@@ -35,7 +35,7 @@ Go to **Scheduled Maintenance → All Events** and click **Create Scheduled Main
 
 ### Say what is happening and when
 
-Type a **Title**, and add a **Description** if it helps: it is Markdown, and it is shown on your status pages. **Starts At** is already the next full hour on your clock, and **Ends At** an hour later; change them only when they are wrong. Moving **Starts At** moves **Ends At** with it, so the window keeps its length. **Owners** and **Labels** wait under **More fields**, folded.
+Type a **Title**, and add a **Description** if it helps: it is Markdown, and it is shown on your status pages. **Starts At** is already the next full hour on your clock, and **Ends At** an hour later; change them only when they are wrong. Moving **Starts At** moves **Ends At** with it, so the window keeps its length. **Owners**, **Labels** and **Data Observability Databases** wait under **More fields**, folded.
 
 ### Pick what it affects
 
@@ -75,7 +75,7 @@ Two things fill the form in for you as you go:
 
 ## Start from a resource or a template
 
-On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
+On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
 
 **Create from Template**, beside the create button, asks you to **Select Scheduled Maintenance Template**, then opens the form filled in from the template. See [Templates & Recurring Events](/docs/scheduled-maintenance/templates).
 

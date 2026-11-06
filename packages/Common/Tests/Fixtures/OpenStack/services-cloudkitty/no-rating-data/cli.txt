@@ -1,0 +1,18 @@
+$ openstack rating module list
++-----------+---------+----------+
+| Module    | Enabled | Priority |
++-----------+---------+----------+
+| hashmap   | False   |        1 |
+| noop      | True    |        1 |
+| pyscripts | False   |        1 |
++-----------+---------+----------+
+$ openstack rating info metric list
++----------+----------+---------------------------------------+
+| Metric   | Unit     | Metadata                              |
++----------+----------+---------------------------------------+
+| instance | instance | ['flavor_id', 'flavor_name', 'vcpus'] |
++----------+----------+---------------------------------------+
+$ openstack rating hashmap service list
+
+$ openstack rating summary get
+

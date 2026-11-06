@@ -99,6 +99,8 @@ const CHANGE_EVENT_TYPE_LABELS: Record<string, string> = {
   runbook: translationKey("Runbook"),
   // What a cloud provider published about an account's health.
   "provider-event": translationKey("Cloud health"),
+  // What an OpenStack cloud's notifications said happened to one of its parts.
+  "openstack-event": translationKey("OpenStack"),
 };
 
 /*
@@ -157,8 +159,9 @@ export function getChangeEventMarkerLabel(
  * draws the project's changes - but not every operation a cloud account's
  * activity log recorded: a busy account records hundreds an hour, and the
  * newest fifty of them would be all the chart could draw, its deploys
- * pushed out. Those are on the charts of the resources they changed; the
- * provider's own health events stay on every chart.
+ * pushed out. Those are on the charts of the resources they changed, and so are
+ * an OpenStack cloud's lifecycle events; the provider's own health events stay on
+ * every chart.
  */
 export function getChangeEventFetchQuery(
   query: Query<ChangeEvent>,
@@ -171,6 +174,7 @@ export function getChangeEventFetchQuery(
     attributes: {
       [ChangeEventAttribute.Source]: new IncludesNone([
         ChangeEventSource.Cloud,
+        ChangeEventSource.OpenStack,
       ]),
     },
   } as unknown as Query<ChangeEvent>;

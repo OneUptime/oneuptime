@@ -80,7 +80,9 @@ describe("the Databases list", () => {
     expect(status).toContain("<ResourceStatusCell");
     expect(status).toContain("getDatabaseStatusCell({");
     expect(status).toContain("assessDatabase(item, { now: now })");
-    expect(status).toContain("headerTooltip: DATABASE_STATUS_COLUMN_DESCRIPTION");
+    expect(status).toContain(
+      "headerTooltip: DATABASE_STATUS_COLUMN_DESCRIPTION",
+    );
     expect(status).toContain("disableSort: true");
     // The CSV says the same word.
     expect(status).toContain("getExportValue:");

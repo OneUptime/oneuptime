@@ -4,9 +4,13 @@ import {
   formatRowCount,
   formatSize,
 } from "../../Components/DataObservability/DataObservabilityFormat";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam";
+import DataAssetOwnerUser from "Common/Models/DatabaseModels/DataAssetOwnerUser";
 import Route from "Common/Types/API/Route";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -38,6 +42,22 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
   const cutoff: Date = useMemo((): Date => {
     return getUnusedCutoff(OneUptimeDate.getCurrentDate());
   }, []);
+  const {
+    onResourcesFetched,
+    getOwnersForResource,
+    isLoadingOwners,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<DataAsset>({
+    persistKey: "data-observability-unused-tables",
+    ownerUserModelType: DataAssetOwnerUser,
+    ownerTeamModelType: DataAssetOwnerTeam,
+    resourceIdField: "dataAssetId",
+    showLabelsFacet: true,
+  });
 
   return (
     <ModelTable<DataAsset>
@@ -45,10 +65,17 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
       id="data-observability-unused-tables"
       name="Data Observability > Unused Tables"
       userPreferencesKey="data-observability-unused-tables"
-      query={{
+      topContent={filterBar}
+      emptyState={facetEmptyState}
+      currentFacetState={facetSaveState}
+      onFacetStateRestored={restoreFacetState}
+      query={mergeFiltersIntoQuery({
         ...(projectId ? { projectId: projectId } : {}),
         isDropped: false,
         unreadSince: new LessThanOrEqual<Date>(cutoff),
+      })}
+      onFetchSuccess={(data: Array<DataAsset>) => {
+        onResourcesFetched(data);
       }}
       isDeleteable={false}
       isEditable={false}
@@ -201,6 +228,20 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
                   <></>
                 )}
               </div>
+            );
+          },
+        },
+        {
+          field: { _id: true },
+          title: "Owners",
+          type: FieldType.Element,
+          hideOnMobile: true,
+          getElement: (item: DataAsset): ReactElement => {
+            return (
+              <OwnersCell
+                owners={getOwnersForResource(item)}
+                isLoading={isLoadingOwners}
+              />
             );
           },
         },

@@ -90,7 +90,7 @@ Ouvrez **Astreinte** depuis le menu **Produits** de la barre supérieure. Il s'o
 | **Paramètres** | **Champs personnalisés**, **Règles d'étiquettes** et **Règles de propriétaire** |
 | **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** : l'astreinte configurée par le code |
 
-**Politiques**, **Plannings** et **Appels entrants** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** liste les outils de chat que le projet a connectés, ou **Connecter Slack ou Teams** s'il n'en a aucun.
+**Politiques**, **Plannings** et **Appels entrants** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** liste les outils de chat que le projet a connectés, ou **Connecter un espace de travail** s'il n'en a aucun.
 
 Quand vous êtes d'astreinte pour une politique, la cloche en haut à droite l'indique. Cliquez dessus pour ouvrir **Mes politiques d'astreinte** : chaque politique pour laquelle vous êtes d'astreinte, dans tous vos projets, et si vous y êtes nommé, dans une équipe ou dans un planning.
 

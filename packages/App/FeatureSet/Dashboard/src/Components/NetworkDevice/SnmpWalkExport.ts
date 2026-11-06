@@ -269,6 +269,64 @@ export function getSnmpWalkExportFilename(data: {
  */
 export const CSV_BYTE_ORDER_MARK: string = String.fromCharCode(0xfeff);
 
+/*
+ * A walk of many devices as one CSV (issue #5548): the device's name before
+ * the columns a single walk has, a row for every OID every device read, the
+ * devices in the order they were picked and each device's OIDs in walk
+ * order - what each device answered, grouped by device, for a spreadsheet.
+ */
+export const MULTI_DEVICE_SNMP_WALK_CSV_COLUMNS: ReadonlyArray<string> = [
+  "Device",
+  ...SNMP_WALK_CSV_COLUMNS,
+];
+
+export interface MultiDeviceSnmpWalkExportDevice {
+  deviceName: string;
+  rows: ReadonlyArray<SnmpWalkRow>;
+}
+
+export function buildMultiDeviceSnmpWalkCsv(
+  devices: ReadonlyArray<MultiDeviceSnmpWalkExportDevice>,
+): string {
+  const lines: Array<string> = [
+    MULTI_DEVICE_SNMP_WALK_CSV_COLUMNS.map(toCsvField).join(","),
+  ];
+
+  for (const device of devices) {
+    for (const row of device.rows) {
+      lines.push(
+        [device.deviceName, ...toSnmpWalkCsvRow(row)].map(toCsvField).join(","),
+      );
+    }
+  }
+
+  return `${lines.join("\r\n")}\r\n`;
+}
+
+/*
+ * What the Network's SNMP Walk page hands the browser to save: a CSV named
+ * after how many devices it holds, the subtree and the time -
+ * "12-devices-snmp-walk-1.3.6.1.4.1-2026-11-03-12-00-00.csv".
+ */
+export function buildMultiDeviceSnmpWalkExport(data: {
+  devices: ReadonlyArray<MultiDeviceSnmpWalkExportDevice>;
+  rootOid: string;
+  exportedAt: Date;
+}): SnmpWalkExportFile {
+  return {
+    content: `${CSV_BYTE_ORDER_MARK}${buildMultiDeviceSnmpWalkCsv(data.devices)}`,
+    filename: getSnmpWalkExportFilename({
+      deviceName: `${data.devices.length} ${
+        data.devices.length === 1 ? "device" : "devices"
+      }`,
+      rootOid: data.rootOid,
+      format: SnmpWalkExportFormat.Csv,
+      exportedAt: data.exportedAt,
+    }),
+    mimeType: MIME_TYPES[SnmpWalkExportFormat.Csv],
+  };
+}
+
 // What the card hands the browser to save, in either format.
 export function buildSnmpWalkExport(data: {
   rows: ReadonlyArray<SnmpWalkRow>;

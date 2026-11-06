@@ -31,7 +31,7 @@ import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
 import Icon from "../../Icon/Icon";
 import Input from "../../Input/Input";
 import { ModelSchemaColumn } from "../ModelSchema";
-import { columnTypeLabel } from "./ColumnControl";
+import { columnPickLabel, getColumnTitle } from "./ColumnControl";
 import {
   ColumnPickerGroup,
   groupPickerColumns,
@@ -501,7 +501,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
               {section.columns.map((column: ModelSchemaColumn) => {
                 const index: number = visibleColumns.indexOf(column);
                 const isActive: boolean = column === activeColumn;
-                const typeLabel: string = columnTypeLabel(column);
+                const typeLabel: string = columnPickLabel(column);
 
                 return (
                   <div
@@ -529,7 +529,8 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-baseline gap-2">
                         <span className="truncate text-sm font-medium text-gray-900">
-                          {translator.translateText(column.title) || column.id}
+                          {translator.translateText(getColumnTitle(column)) ||
+                            column.id}
                         </span>
                         {/*
                           flex-1 from a zero basis: the key only gets the room

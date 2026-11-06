@@ -185,7 +185,7 @@ flowchart TB
     field -->|"否"| nothing
 ```
 
-**On Create**、**On Update** 和 **On Create or Update** 会把记录传给下一个块，带上你在触发器的 **Fields to pass on** 中选择的字段。例如，**Incident → On Create** 触发器会传下新事件，下一个块就能读取它的标题、描述、严重程度或你选择的任何其他字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你没有选择的字段到达时为空。
+**On Create**、**On Update** 和 **On Create or Update** 会把记录传给下一个块，带上你在触发器的 **Fields to pass on** 中选择的字段。例如，**Incident → On Create** 触发器会传下新事件，下一个块就能读取它的标题、描述、严重程度或你选择的任何其他字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你没有选择的字段到达时为空。记录中没有内容的字段也是如此，例如不是由监视器产生的警报的监视器。
 
 **On Create or Update** 还会传下 **What Happened**：由新记录启动运行时为 `created`，由更改启动时为 `updated`，例如 `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`。要区别处理这两种情况，可以在 **If / Else** 块中比较它，或用 **Switch / Case** 为每种情况走一条路径。
 

@@ -595,7 +595,7 @@ describe("the Security Events page on hunts", () => {
     expect(text).toContain("Whoever can open a hunt can read its runs.");
   });
 
-  it("posts what hunts find to Slack and Teams through the Hunt Rules card, by the hunt's name, set up by the playbook roles", () => {
+  it("posts what hunts find to Slack, Microsoft Teams and Mattermost through the Hunt Rules card, by the hunt's name, set up by the playbook roles", () => {
     expect(
       NOTIFICATION_RULES_CARD_TITLES[NotificationRuleEventType.SecurityHunt],
     ).toBe("Hunt Rules");
@@ -632,7 +632,7 @@ describe("the Security Events page on hunts", () => {
     const text: string = hunts();
 
     expect(text).toContain(
-      `To post what hunts find to Slack or Microsoft Teams, add a rule to **${NOTIFICATION_RULES_CARD_TITLES[NotificationRuleEventType.SecurityHunt]}** under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**),`,
+      `To post what hunts find to Slack, Microsoft Teams or Mattermost, add a rule to **${NOTIFICATION_RULES_CARD_TITLES[NotificationRuleEventType.SecurityHunt]}** under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**, or **Mattermost**),`,
     );
     expect(text).toContain(
       `the hunts it is for by **${NotificationRuleConditionCheckOn.SecurityHuntName}**: a name that is, contains, starts with or ends with your text.`,

@@ -312,8 +312,10 @@ describe("Create One Incident, from the real model", () => {
     expect(jsonOnly).not.toContain("currentIncidentState");
     expect(jsonOnly).not.toContain("incidentSeverity");
     expect(jsonOnly).not.toContain("project");
-    // What it does name are the lists of related records and the JSON blobs.
-    expect(jsonOnly).toEqual(expect.arrayContaining(["monitors", "labels"]));
+    // A list of related records is picked by name now; JSON blobs stay JSON.
+    expect(jsonOnly).not.toContain("monitors");
+    expect(jsonOnly).not.toContain("labels");
+    expect(jsonOnly).toEqual(expect.arrayContaining(["telemetryQuery"]));
   });
 });
 

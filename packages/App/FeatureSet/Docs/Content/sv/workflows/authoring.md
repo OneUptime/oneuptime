@@ -13,6 +13,8 @@ Klicka på en mall för att se vad den gör: dess utlösare, blocken den består
 
 Arbetsflöden skapas avstängda, så deras utlösare startar dem inte förrän du slår på dem. Ett nytt arbetsflöde öppnas i **Byggare**, arbetsytan där du utformar det.
 
+Du kan också beskriva ett arbetsflöde för Ask AI och låta det bygga det åt dig. Det hittar utlösaren och stegen, ställer in dem och kopplar ihop dem, och ber dig godkänna arbetsflödet innan det sparas. Ett nytt arbetsflöde börjar avstängt: läs det i Builder, fyll i lösenord, tokens eller webhook-URL:er som lämnats åt dig, eftersom Ask AI aldrig frågar efter dem i samtalet, och slå sedan på det själv. Ask AI kan ändra ett arbetsflöde på samma sätt. På ett arbetsflödes sida betyder "det här arbetsflödet" just det. Det sparar som du, så det kan bara göra det du kan göra i Builder, och Builder visar ändringarna så snart de har sparats.
+
 ## Arbetsytan
 
 Ett arbetsflöde från grunden öppnas med ett enda streckat block med texten **Välj vad som startar det här arbetsflödet**. Det blocket är utgångspunkten — klicka på det för att välja en utlösare. Ett arbetsflöde som skapats från en mall öppnas med sina block redan på plats.

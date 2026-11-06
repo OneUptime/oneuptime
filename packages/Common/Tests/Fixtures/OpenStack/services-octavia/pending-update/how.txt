@@ -1,0 +1,2 @@
+ou-lb stuck in PENDING_UPDATE, because the worker that would finish its listener's change is stopped.
+On its own: the worker is stopped, so the API's change is accepted and nothing finishes it.

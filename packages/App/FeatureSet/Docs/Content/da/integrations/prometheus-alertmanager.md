@@ -86,6 +86,8 @@ En selvhostet installation har sin egen vært i stedet for `oneuptime.com`.
 > [!WARNING]
 > Gruppér efter en værdi, der er forskellig fra advarsel til advarsel inden for én notifikation. Alertmanagers `fingerprint` er en hash af en advarsels samlede etiketsæt, så den er altid forskellig. En etiket i din rutes `group_by` er aldrig forskellig: det er netop den, der samler advarslerne i én notifikation. Gruppering efter `requestBody.alerts[*].labels.alertname` med ruten nedenfor folder hver advarsel i en notifikation sammen til én hændelse, som får den første advarsels status.
 
+På en OpenStack-cloud knytter du også monitoren til cloudens side. En Incoming Request-monitors egne indstillinger nævner ingen cloud, så dens hændelser ville nå **Hændelser** og ikke clouden. Åbn monitorens **Oversigt → Tilknyttede ressourcer** og tilføj OpenStack-clouden: hver hændelse er så også på cloudens **Hændelser**-side. [OpenStack efter udrulningsværktøj](/docs/telemetry/openstack-deployment-tools) har modtageren for hvert værktøj, der kører en Alertmanager, det sted, værktøjet læser den fra.
+
 ## Navngiv hændelserne
 
 Titlen ovenfor læser etiketter, som alle advarsler i notifikationen deler: `commonLabels` indeholder de etiketter, og `commonAnnotations` de annotationer, de deler. Med ruten nedenfor, som grupperer efter `alertname` og `instance`, er begge til stede. Giv under **Beskrivelse** hændelsen en **Hændelsesbeskrivelse** som denne:
@@ -166,7 +168,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   }'
 ```
 
-To hændelser åbnes, én pr. `fingerprint`, hver med titlen `DiskFull on web-1`. Send den samme anmodning med hver `status` sat til `resolved`, og begge løses.
+To hændelser åbnes, én pr. `fingerprint`, hver med titlen `DiskFull on web-1` og derefter det, der adskiller dem, som i `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`. Send den samme anmodning med hver `status` sat til `resolved`, og begge løses.
 
 For at teste hele vejen fra Alertmanager udløser du en advarsel med `amtool`. Alertmanager sender den efter `group_wait` og sender derefter dens genopretning, når advarslen udløber nogle minutter senere:
 

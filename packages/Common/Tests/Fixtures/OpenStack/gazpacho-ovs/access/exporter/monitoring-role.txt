@@ -1,0 +1,6 @@
+identity 200 13 series
+compute 200 33 series
+placement 200 25 series
+network 200 26 series
+volume 200 23 series
+image 200 4 series

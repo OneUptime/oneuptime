@@ -1,3 +1,4 @@
+import { OpenStackMaintenancePart } from "Common/Types/OpenStack/OpenStackMaintenancePart";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
@@ -21,6 +22,7 @@ import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import { DataStoresUnderMaintenance } from "../../../Components/DataObservability/DataStoresMaintenancePicker";
 import {
   getScheduledMaintenanceAffectedResourcesFormFields,
   getScheduledMaintenanceAffectedResourcesOnBeforeUpdate,
@@ -529,7 +531,7 @@ const ScheduledMaintenanceView: FunctionComponent<
     resourceId: modelId,
   });
 
-  // The event's own Slack and Teams channels: Open in Slack / Teams.
+  // The event's own chat channels: Open in Slack / Teams / Mattermost.
   const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
     recordType: WorkspaceChannelRecordType.ScheduledMaintenance,
     recordId: modelId,
@@ -1194,6 +1196,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    openStackClouds: {
+                      name: true,
+                      _id: true,
+                    },
                     vmwareVCenters: {
                       name: true,
                       _id: true,
@@ -1239,6 +1245,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        openStackClouds={item.openStackClouds || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         storageArrays={item.storageArrays || []}
@@ -1274,6 +1281,51 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <ChangeMonitorStatusToElement
                         monitorStatus={item.changeMonitorStatusTo}
                       />
+                    );
+                  },
+                },
+                {
+                  field: { dataStoreIds: true },
+                  title: "Data Observability Databases",
+                  fieldType: FieldType.Element,
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <DataStoresUnderMaintenance
+                        ids={item.dataStoreIds || []}
+                      />
+                    );
+                  },
+                },
+                /*
+                 * What it is on when that isn't the whole of an OpenStack cloud: only these stay
+                 * quiet. An event on none of them says nothing here.
+                 */
+                {
+                  field: { openStackParts: true },
+                  title: "OpenStack Hosts and Zones",
+                  fieldType: FieldType.Element,
+                  showIf: (item: ScheduledMaintenance): boolean => {
+                    return (item.openStackParts || []).length > 0;
+                  },
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <ul data-testid="scheduled-maintenance-openstack-parts">
+                        {(item.openStackParts || []).map(
+                          (part: OpenStackMaintenancePart) => {
+                            return (
+                              <li
+                                key={`${part.kind}-${part.regionName}-${part.name}`}
+                              >
+                                <bdi>
+                                  {part.regionName
+                                    ? `${part.name} (${part.regionName})`
+                                    : part.name}
+                                </bdi>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
                     );
                   },
                 },

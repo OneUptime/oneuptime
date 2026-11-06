@@ -1,5 +1,5 @@
 # The findings in the Iron Bank image of the App (IronBank/App) that OneUptime
-# has justified in VAT (vat.dso.mil), with the text it gave there.
+# justifies, with the text to give for each in VAT (vat.dso.mil).
 #
 # The Iron Bank Preflight workflow scans the image it builds and lists every
 # finding that is neither in Iron Bank's base image nor here as new: it needs a
@@ -15,4 +15,43 @@
 #     justification: >-
 #       The App never uses undici's ProxyAgent, the only code the advisory
 #       concerns; undici is a dependency of ... and is not reachable from ...
-[]
+- id: CVE-2026-118764
+  package: minimatch
+  justification: >-
+    Not exploitable here. GHSA-g3hv-75wg-m249 is a denial of service that needs
+    an attacker-supplied glob pattern and optimizationLevel 2 or higher, which
+    runs firstPhasePreProcess. The App takes no glob pattern from a user or the
+    network, and OneUptime's code does not import minimatch. Copies at 3.1.5 and
+    5.1.9 are flagged by version range only: they contain neither
+    firstPhasePreProcess nor optimizationLevel. Copies at 9.x and 10.x default
+    to optimizationLevel 1; glob raises it to 2, and OneUptime reaches no glob
+    call that would use them: its TypeORM data source passes classes, not the
+    path strings TypeORM would glob, and its only use of archiver appends
+    in-memory data to a zip. Any other copy is never loaded by the server: a
+    development dependency's (nodemon, jest), a front-end build's (under
+    FeatureSet/*/node_modules), or npm's own, used only to start the server and
+    run its migrations. The first patched release, 11.0.1, is a major-version
+    change for every copy here.
+- id: CVE-2026-118773
+  package: glob
+  justification: >-
+    Not exploitable here. GHSA-3g3m-2fjr-6pw4 affects callers that rely on the
+    signal option (an AbortSignal) to bound a glob walk: after the abort, the
+    walk carries on in the background. TypeORM's directory loader and
+    archiver-utils' file helpers, the only copies the App's server could reach,
+    call glob.sync with no signal, and OneUptime reaches neither: its TypeORM
+    data source passes classes, not path strings, and its only use of archiver
+    appends in-memory data to a zip. Any other copy is never loaded by the
+    server: a development dependency's (test-exclude), a front-end build's, or
+    npm's own, used only to start the server and run its migrations.
+- id: CVE-2026-93753
+  package: deepmerge
+  justification: >-
+    Not exploitable here. GHSA-gcqx-w48m-w2h4 needs attacker-supplied objects as
+    the source of a merge. OneUptime's code does not import deepmerge. The
+    server's only path to it is @sendgrid/helpers, which merges only for a
+    message that sets a dynamic template; OneUptime's SendGrid provider sends
+    to, from, subject, text, html and attachments, and never a template ID or
+    dynamic template data. Any other copy is never loaded by the server: a
+    development dependency's (jest-config) or a front-end build's. No patched
+    release exists.

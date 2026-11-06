@@ -19,6 +19,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import type AuditLogServiceType from "./AuditLogService";
@@ -46,6 +47,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../Models/DatabaseModels/UserMattermost";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
@@ -70,7 +72,7 @@ import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
  * filters, sort columns appended after the guard had run. The models are still
  * CurrentUser-only. Nothing in this file changes that, and an administrator's
  * every direct read or write of UserEmail, UserSMS, UserCall, UserWhatsApp,
- * UserTelegram, UserSlack, UserMicrosoftTeams, UserPush and UserWebhook is
+ * UserTelegram, UserSlack, UserMicrosoftTeams, UserMattermost, UserPush and UserWebhook is
  * still refused.
  *
  * What this file does instead is a NARROW, SERVER-SIDE, AUDITED capability
@@ -914,6 +916,85 @@ export class UserNotificationMethodAdminService extends BaseService {
         },
       },
       {
+        methodType: ReadinessMethodType.Mattermost,
+        isAdminAddable: false,
+        modelType: UserMattermost,
+        list: async (data: {
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<Array<AdminNotificationMethodView>> => {
+          const rows: Array<UserMattermost> =
+            await UserMattermostService.findBy({
+              query: { projectId: data.projectId, userId: data.userId },
+              /*
+               * The username only — never mattermostUserId, which is the
+               * addressable target the bot sends to. Same rule
+               * OnCallReadinessService follows.
+               */
+              select: {
+                _id: true,
+                mattermostUserName: true,
+                isVerified: true,
+                createdAt: true,
+              },
+              sort: { createdAt: SortOrder.Ascending },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: { isRoot: true },
+            });
+
+          return rows.map(
+            (row: UserMattermost): AdminNotificationMethodView => {
+              return this.toView({
+                row: row,
+                methodType: ReadinessMethodType.Mattermost,
+                isAdminAddable: false,
+                identifier: row.mattermostUserName,
+                kind: MaskedIdentifierKind.Handle,
+                isVerified: row.isVerified,
+              });
+            },
+          );
+        },
+        findOwnedRow: async (data: {
+          methodId: ObjectID;
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<AdminNotificationMethodView | null> => {
+          const row: UserMattermost | null =
+            await UserMattermostService.findOneBy({
+              query: {
+                _id: data.methodId,
+                projectId: data.projectId,
+                userId: data.userId,
+              },
+              select: {
+                _id: true,
+                mattermostUserName: true,
+                isVerified: true,
+              },
+              props: { isRoot: true },
+            });
+
+          return row
+            ? this.toView({
+                row: row,
+                methodType: ReadinessMethodType.Mattermost,
+                isAdminAddable: false,
+                identifier: row.mattermostUserName,
+                kind: MaskedIdentifierKind.Handle,
+                isVerified: row.isVerified,
+              })
+            : null;
+        },
+        deleteRow: async (data: { methodId: ObjectID }): Promise<void> => {
+          await UserMattermostService.deleteOneById({
+            id: data.methodId,
+            props: { isRoot: true },
+          });
+        },
+      },
+      {
         methodType: ReadinessMethodType.Webhook,
         isAdminAddable: false,
         modelType: UserWebhook,
@@ -1128,7 +1209,7 @@ export class UserNotificationMethodAdminService extends BaseService {
        * the feature to somebody probing it.
        */
       throw new BadDataException(
-        `A project administrator can only add Email, SMS, Call and WhatsApp notification methods for another user. Push, Telegram, Slack, Microsoft Teams and webhook methods have to be added by the person who owns the device or account.`,
+        `A project administrator can only add Email, SMS, Call and WhatsApp notification methods for another user. Push, Telegram, Slack, Microsoft Teams, Mattermost and webhook methods have to be added by the person who owns the device or account.`,
       );
     }
 

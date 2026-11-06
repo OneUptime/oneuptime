@@ -6,7 +6,7 @@ Elle répond à quatre questions :
 
 :::cards
 - [Où sont nos données sensibles ?](/docs/data-security/data-types): 143 types de données, des numéros de carte et identifiants nationaux aux clés API, trouvés dans des buckets, des tables et la télémétrie.
-- [Sont-elles exposées ?](/docs/data-security/checks-and-issues): 33 contrôles de chaque magasin de données : accès public, chiffrement, sauvegardes, journalisation, secrets et copies.
+- [Sont-elles exposées ?](/docs/data-security/checks-and-issues): 34 contrôles de chaque magasin de données : accès public, chiffrement, sauvegardes, journalisation, secrets et copies.
 - [Qui peut y accéder, et où vont-elles ?](/docs/data-security/flows-access-residency): Chaque identité qui peut accéder à chaque magasin de données, la plus risquée en premier, quels services l'utilisent, et quels fournisseurs d'IA et hôtes ses données atteignent.
 - [Respectent-elles nos règles ?](/docs/data-security/compliance): Des règles de résidence, et neuf référentiels de conformité notés d'après ce que les analyses ont trouvé.
 :::

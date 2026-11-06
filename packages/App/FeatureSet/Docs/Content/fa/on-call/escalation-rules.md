@@ -221,7 +221,7 @@ flowchart TB
 | --- | --- |
 | ایمیل | دکمه **Escalate**، سپس **Escalate** در صفحه‌ای که باز می‌کند |
 | پیامک و WhatsApp | پیوند پیام صفحه تأیید را باز می‌کند که **Escalate** هم دارد |
-| Telegram، Slack و Microsoft Teams | پیوند "Can't take it? Escalate"، سپس **Escalate** در صفحه‌ای که باز می‌کند |
+| Telegram، Slack، Microsoft Teams و Mattermost | پیوند "Can't take it? Escalate"، سپس **Escalate** در صفحه‌ای که باز می‌کند |
 | تماس تلفنی | ۲ را فشار دهید. سپس تماس می‌گوید چه شد |
 | اعلان پوش | روی آن بزنید: رخداد، هشدار یا اپیزود در برنامه OneUptime On-Call باز می‌شود، با **Escalate** زیر آن |
 | OneUptime | **تشدید کن** در بالای رخداد، هشدار یا اپیزود، پس از دکمه‌های وضعیت آن |

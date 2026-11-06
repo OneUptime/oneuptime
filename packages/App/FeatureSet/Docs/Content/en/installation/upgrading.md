@@ -360,7 +360,8 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 These change how OneUptime behaves after the upgrade, and most need no
 action. Read them if you use custom roles or API keys built from single
 permissions, custom incident, alert or maintenance states, Terraform or the
-API, SSO, or the Slack and Microsoft Teams apps.
+API, SSO, or the Slack and Microsoft Teams apps, or if your server has no
+working mail server.
 
 :::details Read the other changes in 14
 - **OTLP ingest acknowledges a batch only after the queue accepts it.** 13
@@ -787,6 +788,14 @@ API, SSO, or the Slack and Microsoft Teams apps.
   else it changes: turn a provider on, or turn the setting off, first.
   Turning it off and clearing the required provider are never refused. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project).
+- **The sign-in page offers an emailed sign-in link, even with no working mail
+  server.** After the upgrade, a self-hosted server's sign-in page shows
+  **Email me a sign-in link**, so people can sign in with an emailed link
+  instead of their password. A server with no working mail server still offers
+  it, and the email never arrives. To take it off the page, turn off
+  **Let people sign in with an emailed link** on
+  **Admin Dashboard > Settings > Authentication**. See
+  [Sign in with an emailed link](/docs/introduction/your-account#sign-in-with-an-emailed-link).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now

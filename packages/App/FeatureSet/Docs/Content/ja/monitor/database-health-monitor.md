@@ -396,7 +396,7 @@ PostgreSQL が I/O の読み取り時間と書き込み時間を測るのは、`
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-式で 1 つのメトリクスを読むには、`metrics` オブジェクト全体にインデックスでアクセスします。系列名にはドットが含まれるので、波かっこの中には書けません。
+式で 1 つのメトリクスを読むには、系列名をドットごと波かっこの中に書くか、`metrics` オブジェクト全体にインデックスでアクセスします。どちらでも動作します。
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

@@ -6,6 +6,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -29,6 +30,7 @@ import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
 import IoTFleetElement from "../IoT/IoTFleetElement";
 import ProxmoxClusterElement from "../Proxmox/ProxmoxClusterElement";
+import OpenStackCloudElement from "../OpenStack/OpenStackCloudElement";
 import VMwareVCenterElement from "../VMware/VMwareVCenterElement";
 import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
@@ -47,6 +49,7 @@ export interface ComponentProps {
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
@@ -76,6 +79,7 @@ export interface ComponentProps {
   hideDockerHosts?: boolean | undefined;
   hidePodmanHosts?: boolean | undefined;
   hideProxmoxClusters?: boolean | undefined;
+  hideOpenStackClouds?: boolean | undefined;
   hideVMwareVCenters?: boolean | undefined;
   hideCephClusters?: boolean | undefined;
   hideStorageArrays?: boolean | undefined;
@@ -325,6 +329,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const dockerHosts: Array<DockerHost> = props.dockerHosts || [];
   const podmanHosts: Array<PodmanHost> = props.podmanHosts || [];
   const proxmoxClusters: Array<ProxmoxCluster> = props.proxmoxClusters || [];
+  const openStackClouds: Array<OpenStackCloud> = props.openStackClouds || [];
   const vmwareVCenters: Array<VMwareVCenter> = props.vmwareVCenters || [];
   const cephClusters: Array<CephCluster> = props.cephClusters || [];
   const storageArrays: Array<StorageArray> = props.storageArrays || [];
@@ -348,6 +353,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showPodman: boolean = !props.hidePodmanHosts && podmanHosts.length > 0;
   const showProxmox: boolean =
     !props.hideProxmoxClusters && proxmoxClusters.length > 0;
+  const showOpenStack: boolean =
+    !props.hideOpenStackClouds && openStackClouds.length > 0;
   const showVMware: boolean =
     !props.hideVMwareVCenters && vmwareVCenters.length > 0;
   const showCeph: boolean = !props.hideCephClusters && cephClusters.length > 0;
@@ -374,6 +381,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showDocker &&
     !showPodman &&
     !showProxmox &&
+    !showOpenStack &&
     !showVMware &&
     !showCeph &&
     !showStorageArrays &&
@@ -435,6 +443,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showDocker ? dockerHosts.length : 0) +
     (showPodman ? podmanHosts.length : 0) +
     (showProxmox ? proxmoxClusters.length : 0) +
+    (showOpenStack ? openStackClouds.length : 0) +
     (showVMware ? vmwareVCenters.length : 0) +
     (showCeph ? cephClusters.length : 0) +
     (showStorageArrays ? storageArrays.length : 0) +
@@ -453,6 +462,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showDocker ? 1 : 0) +
     (showPodman ? 1 : 0) +
     (showProxmox ? 1 : 0) +
+    (showOpenStack ? 1 : 0) +
     (showVMware ? 1 : 0) +
     (showCeph ? 1 : 0) +
     (showStorageArrays ? 1 : 0) +
@@ -596,6 +606,19 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={proxmoxClusters}
             renderItem={(cluster: ProxmoxCluster) => {
               return <ProxmoxClusterElement proxmoxCluster={cluster} />;
+            }}
+          />
+        )}
+        {showOpenStack && (
+          <CategorySection<OpenStackCloud>
+            className={sectionClassName}
+            icon={IconProp.Cloud}
+            label="OpenStack Clouds"
+            iconBgClass="bg-red-50"
+            iconColorClass="text-red-600"
+            items={openStackClouds}
+            renderItem={(cloud: OpenStackCloud) => {
+              return <OpenStackCloudElement openStackCloud={cloud} />;
             }}
           />
         )}

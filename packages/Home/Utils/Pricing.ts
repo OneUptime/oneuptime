@@ -3,6 +3,24 @@
  * pricing surfaces (/data/pricing.json, /pricing.md, /llms-full.txt).
  */
 
+import { WatchedTablePricingConfig } from "Common/Server/EnvironmentConfig";
+import {
+  describeWatchedTablePricing,
+  WatchedTablePricing,
+} from "Common/Types/Billing/PayAsYouGoPricing";
+
+// What the page says about watched tables, from the rates the install bills at.
+export interface WatchedTablePricingContent {
+  rates: WatchedTablePricing;
+  description: string;
+}
+
+export function getWatchedTablePricingContent(
+  rates: WatchedTablePricing = WatchedTablePricingConfig,
+): WatchedTablePricingContent {
+  return { rates, description: describeWatchedTablePricing(rates) };
+}
+
 export interface PricingPlan {
   key: string;
   name: string;
@@ -498,6 +516,56 @@ const Pricing: Array<PricingCategory> = [
         name: "Advanced Team Permissions",
         plans: {
           free: false,
+          growth: true,
+          scale: true,
+          enterprise: true,
+        },
+      },
+    ],
+  },
+  {
+    name: "Data Observability",
+    data: [
+      {
+        name: "Watched Tables",
+        plans: {
+          free: describeWatchedTablePricing(WatchedTablePricingConfig),
+          growth: describeWatchedTablePricing(WatchedTablePricingConfig),
+          scale: describeWatchedTablePricing(WatchedTablePricingConfig),
+          enterprise: "Custom",
+        },
+      },
+      {
+        name: "Views",
+        plans: {
+          free: "Free",
+          growth: "Free",
+          scale: "Free",
+          enterprise: "Free",
+        },
+      },
+      {
+        name: "Checks with an Alert",
+        plans: {
+          free: "Billed as active monitors",
+          growth: "Billed as active monitors",
+          scale: "Billed as active monitors",
+          enterprise: "Custom",
+        },
+      },
+      {
+        name: "Freshness, Row Count and Schema Watch",
+        plans: {
+          free: true,
+          growth: true,
+          scale: true,
+          enterprise: true,
+        },
+      },
+      {
+        name: "Lineage from Pipelines, dbt, BI Tools and Services",
+        plans: {
+          free: true,
           growth: true,
           scale: true,
           enterprise: true,

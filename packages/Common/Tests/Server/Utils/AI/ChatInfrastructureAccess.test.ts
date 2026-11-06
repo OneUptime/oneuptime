@@ -364,6 +364,7 @@ describe("ChatInfrastructureAccess.getAiResourceType", () => {
           ChatInfrastructureAccess.getAiResourceType(type) !== null ||
           [
             AIResourceType.KubernetesCluster,
+            AIResourceType.OpenStackCloud,
             AIResourceType.StorageArray,
             AIResourceType.ServerlessFunction,
             AIResourceType.CloudResource,

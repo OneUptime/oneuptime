@@ -81,15 +81,21 @@ function systemToolsWithoutImageTools() {
   systemTools = path.join(scratch(), "system-bin");
   fs.mkdirSync(systemTools);
 
+  /*
+   * Kept by name, not by asking the folder: on a merged /usr, /bin and /usr/bin hold the same
+   * entries, and fs.existsSync says no for a link whose target is gone (Ubuntu 26.04 ships
+   * /usr/bin/grub-ntldr-img that way), so a second look would try to make it again.
+   */
+  const linked = new Set(IMAGE_TOOLS);
+
   for (const directory of ["/usr/bin", "/bin"]) {
     for (const name of fs.readdirSync(directory)) {
-      const link = path.join(systemTools, name);
-
-      if (IMAGE_TOOLS.includes(name) || fs.existsSync(link)) {
+      if (linked.has(name)) {
         continue;
       }
 
-      fs.symlinkSync(path.join(directory, name), link);
+      linked.add(name);
+      fs.symlinkSync(path.join(directory, name), path.join(systemTools, name));
     }
   }
 

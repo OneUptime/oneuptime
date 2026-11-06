@@ -152,6 +152,11 @@ function textbox(dialog: Locator, name: string): Locator {
   return dialog.getByRole("textbox", { name: new RegExp(`^${name}`) });
 }
 
+// A setting that names a record lists them by name; a value from an earlier step is a textbox.
+function recordPicker(dialog: Locator, name: string): Locator {
+  return dialog.getByRole("combobox", { name: new RegExp(`^${name}`) });
+}
+
 async function typeInto(page: Page, box: Locator, text: string): Promise<void> {
   await box.click();
   await page.keyboard.type(text);
@@ -494,28 +499,33 @@ test.describe("Workflow builder: the Page steps", () => {
     await expect(
       dialog.getByRole("button", { name: /^More fields/ }),
     ).toHaveCount(0);
-    await expect(textbox(dialog, "Incident ID")).toBeVisible();
+    await expect(recordPicker(dialog, "Incident ID")).toBeVisible();
     // Required, and empty: nothing to save yet.
     await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
 
     await dialog.getByRole("radio", { name: "An alert" }).check();
-    await expect(textbox(dialog, "Incident ID")).toHaveCount(0);
-    await expect(textbox(dialog, "Alert ID")).toBeVisible();
+    await expect(recordPicker(dialog, "Incident ID")).toHaveCount(0);
+    await expect(recordPicker(dialog, "Alert ID")).toBeVisible();
 
     await dialog.getByRole("radio", { name: "A new alert" }).check();
     await expect(textbox(dialog, "Title")).toContainText(
       "Payments are failing",
     );
-    await expect(textbox(dialog, "Alert ID")).toHaveCount(0);
+    await expect(recordPicker(dialog, "Alert ID")).toHaveCount(0);
     await expect(dialog.getByRole("button", { name: "Save" })).toBeEnabled();
 
     // An alert's ID pasted in, and saved with the choice.
     await dialog.getByRole("radio", { name: "An alert" }).check();
     await typeInto(
       page,
-      textbox(dialog, "Alert ID"),
+      recordPicker(dialog, "Alert ID"),
       "a1e70000-0000-4000-8000-000000000001",
     );
+    await page
+      .getByRole("option", {
+        name: "Use “a1e70000-0000-4000-8000-000000000001”",
+      })
+      .click();
     await save(page, dialog);
 
     const saved: SavedArguments = await savedArguments(page, "page-users-1");

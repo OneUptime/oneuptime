@@ -159,6 +159,7 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 - **As séries de PG e de pool são por pool**: não existe uma medida do cluster inteiro, então esses modelos agrupam por `pool_id` e abrem um incidente por pool.
 - **As razões de capacidade** usam a **Soma** dos dois lados. Os dois vêm da mesma coleta do mgr, então o resultado é uma porcentagem real. **Inactive Placement Groups** usa **Máximo** por pool, porque uma soma acumularia coletas numa subtração.
 - **Os modelos de health checks** recuperam quando o check desaparece: seus critérios de recuperação contam uma série ausente como 0.
+- **Daemon Slow Operations** tem uma série por daemon, então, quando nenhum daemon tem mais uma série, não resta nada para ler. Ele só recupera se `ceph_health_status` tiver chegado na mesma janela, então um agente parado não fecha nada.
 
 Alguns alertas não têm modelo. O desequilíbrio de PGs exige estatísticas entre séries que os critérios não conseguem calcular. A previsão de capacidade exige um ajuste de crescimento, que o painel do cluster desenha no lugar. A previsão de falha de disco e o scrubbing atrasado não têm métrica do mgr, e NVMe-oF, o espelhamento RBD e o cephadm precisam de outros exportadores.
 

@@ -70,7 +70,7 @@ Aldrig forsinket og aldrig talt med:
 | Abonnenter på statussider | Hver e-mail, din statusside sender til dine egne abonnenter |
 | SLA-brud | En hændelse, du ejer, der overskrider sin SLA-frist for svar eller løsning |
 
-Kun e-mail er berørt. SMS, opkald, pushnotifikationer, WhatsApp, Telegram, Slack, Microsoft Teams og webhooks leveres med det samme, præcis som før — også for de notifikationer, hvis e-mail blev holdt tilbage.
+Kun e-mail er berørt. SMS, opkald, pushnotifikationer, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og webhooks leveres med det samme, præcis som før — også for de notifikationer, hvis e-mail blev holdt tilbage.
 
 ## Grænser
 
@@ -105,7 +105,7 @@ Hvad den **ikke** berører:
 
 - **Hvilke notifikationer du får.** Det er indstillingen pr. hændelsestype og pr. kanal under **Brugerindstillinger → Notifikationsindstillinger**, en side længere henne. Oversigten og denne kontakt ændrer kun, hvor mange e-mails notifikationerne pakkes i.
 - **Vagtkald og vagt-e-mails**, **e-mails om kontosikkerhed**, **fakturerings-e-mails**, advarsler om instansens tilstand og e-mails til statusside-abonnenter. Intet af det samles nogensinde, så det ændrer intet for dem at slå oversigten fra — se [Det, der aldrig samles](#det-der-aldrig-samles).
-- **Alle andre kanaler.** SMS, opkald, push, WhatsApp, Telegram, Slack, Microsoft Teams og webhooks er allerede øjeblikkelige.
+- **Alle andre kanaler.** SMS, opkald, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og webhooks er allerede øjeblikkelige.
 
 ## Skru yderligere ned
 

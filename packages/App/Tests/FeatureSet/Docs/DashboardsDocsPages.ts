@@ -233,6 +233,7 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "Proxmox Dashboard",
   "VMware Dashboard",
   "Ceph Dashboard",
+  "OpenStack Dashboard",
   "Storage Array Dashboard",
   "Docker Swarm Dashboard",
   "Network Dashboard",

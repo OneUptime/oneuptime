@@ -37,6 +37,11 @@ enum AIInsightType {
    */
   MetricDrift = "MetricDrift",
   /*
+   * A table's rows, or a data check's value, moved week over week by more than
+   * a slow change should, too slowly for any alert to fire (DataDriftDetector).
+   */
+  DataDrift = "DataDrift",
+  /*
    * A service that got measurably worse in the 30 minutes after a recorded
    * deploy (or another recorded change of it) than in the 30 minutes
    * before: more failing spans, a slower p99, more exceptions, or exception

@@ -13,6 +13,8 @@ Haz clic en una plantilla para ver lo que hace: su disparador, los bloques que l
 
 Los flujos de trabajo se crean desactivados, así que su disparador no los inicia hasta que los actives. Un flujo de trabajo nuevo se abre en el **Constructor**, el lienzo donde lo diseñas.
 
+También puedes describirle un flujo de trabajo a Ask AI y dejar que lo cree por ti. Encuentra el disparador y los pasos, los configura y los conecta, y te pide que apruebes el flujo de trabajo antes de guardarlo. Un flujo de trabajo nuevo empieza desactivado: léelo en el Builder, completa las contraseñas, tokens o URL de webhook que te haya dejado, porque Ask AI nunca los pide en la conversación, y luego actívalo tú. Ask AI puede cambiar un flujo de trabajo de la misma manera. Desde la página de un flujo de trabajo, "este flujo de trabajo" significa ese. Guarda en tu nombre, así que solo puede hacer lo que tú puedes hacer en el Builder, y el Builder muestra sus cambios en cuanto se guardan.
+
 ## El lienzo
 
 Un flujo de trabajo creado desde cero se abre con un único bloque discontinuo que dice **Elige qué inicia este flujo de trabajo**. Ese bloque es el punto de partida: haz clic en él para elegir un disparador. Un flujo de trabajo creado a partir de una plantilla se abre con sus bloques ya colocados.

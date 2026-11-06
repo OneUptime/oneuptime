@@ -17,6 +17,8 @@ enum RecommendationType {
   Monitor = "Monitor",
   // A check a table's columns call for (Types/DataObservability/DataCheckSuggestions).
   DataCheck = "DataCheck",
+  // A database the project knows of with no connection (Server/Utils/DataObservability/DataSourceSuggestions).
+  DataSource = "DataSource",
 }
 
 export default RecommendationType;

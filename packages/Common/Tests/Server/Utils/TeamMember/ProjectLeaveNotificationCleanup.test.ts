@@ -179,6 +179,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
         "UserWebhook",
         "UserSlack",
         "UserMicrosoftTeams",
+        "UserMattermost",
         "UserNotificationSetting",
         "UserNotificationEmailRollupSetting",
         "UserNotificationEmailRollupItem",
@@ -469,6 +470,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
         [
           "UserOnCallLogTimeline.userCallId -> UserCall",
           "UserOnCallLogTimeline.userEmailId -> UserEmail",
+          "UserOnCallLogTimeline.userMattermostId -> UserMattermost",
           "UserOnCallLogTimeline.userMicrosoftTeamsId -> UserMicrosoftTeams",
           "UserOnCallLogTimeline.userNotificationRuleId -> UserNotificationRule",
           "UserOnCallLogTimeline.userPushId -> UserPush",

@@ -39,6 +39,8 @@ export interface WatchedRunDetail extends WatchedRun {
    */
   isTestRun?: boolean | null | undefined;
   startedBy?: string | null | undefined;
+  // What it started with was kept, so it can be run again (WorkflowRunAgain).
+  canRunAgain?: boolean | null | undefined;
 }
 
 export type FetchLatestRunFunction = () => Promise<WatchedRunDetail | null>;

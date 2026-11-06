@@ -70,7 +70,7 @@ import { DataSource, Logger } from "Common/node_modules/typeorm";
  * is never computed.
  *
  * Everything runs in a uniquely named schema holding structure-only clones
- * (LIKE ... INCLUDING ALL) of the tables involved - all nine notification
+ * (LIKE ... INCLUDING ALL) of the tables involved - all ten notification
  * method tables among them, because the rule read joins the owner of every
  * method a rule names; the severity join tables get their migrated foreign
  * keys back, so a severity delete cascades as it does in production. No row
@@ -102,6 +102,7 @@ const TABLES: Array<string> = [
   "UserTelegram",
   "UserSlack",
   "UserMicrosoftTeams",
+  "UserMattermost",
   "UserWebhook",
 ];
 

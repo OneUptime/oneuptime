@@ -21,6 +21,7 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
@@ -29,6 +30,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
+import EventName from "../../Utils/EventName";
+import WorkflowChangesSeen from "./WorkflowChangedByAi";
 import AIChatUnavailableReason, {
   getAIChatUnavailableReason,
 } from "./AIChatAvailability";
@@ -134,13 +137,13 @@ export interface UseAiChat {
 }
 
 /*
- * The whole Ask AI experience as a headless hook, behind the Ask AI dialog
- * (AskAiDialog): optimistic sends, and change-detected polling accelerated
+ * The whole Ask AI experience as a headless hook, behind the Ask AI panel
+ * (AskAiPanel): optimistic sends, and change-detected polling accelerated
  * by AIRunEvent realtime pings.
  *
  * `enabled` gates every fetch: nothing is read until Ask AI is first
  * opened. It stays on after that, so an answer still being written arrives
- * while the dialog is closed. `isVisible` - the dialog is on screen - gates
+ * while the panel is closed. `isVisible` - the panel is on screen - gates
  * what only matters to someone looking at it: which page they are on, and
  * that record's title.
  */
@@ -196,6 +199,8 @@ export function useAiChat(options: {
 
   const activeConversationIdRef: React.MutableRefObject<string | undefined> =
     useRef<string | undefined>(undefined);
+  const workflowChangesSeen: React.MutableRefObject<WorkflowChangesSeen> =
+    useRef<WorkflowChangesSeen>(new WorkflowChangesSeen());
   activeConversationIdRef.current = activeConversationId;
 
   const selectedProviderIdRef: React.MutableRefObject<string | undefined> =
@@ -437,6 +442,16 @@ export function useAiChat(options: {
         if (signature !== messagesSignatureRef.current) {
           messagesSignatureRef.current = signature;
           setMessages(ordered);
+        }
+
+        // A workflow's Builder behind the panel reads what was just done to it.
+        for (const workflowId of workflowChangesSeen.current.read({
+          conversationId: conversationId.toString(),
+          messages: ordered,
+        })) {
+          GlobalEvents.dispatchEvent(EventName.WORKFLOW_CHANGED_BY_AI, {
+            workflowId: workflowId,
+          });
         }
 
         const workingMessage: AIConversationMessage | undefined =

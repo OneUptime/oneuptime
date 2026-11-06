@@ -1,0 +1,57 @@
+{
+  "command": "openstack server evacuate 33e415fa-e1ae-4a8f-a67e-323f5e484179 7bc0fdc4-2434-4aa8-a949-8017c3ce9c2a",
+  "tier": "RiskyWrite",
+  "requiresHuman": true,
+  "reach": {
+    "route": "server evacuate",
+    "kind": "changes",
+    "instanceCount": 2,
+    "projectCount": 2,
+    "instances": [
+      {
+        "id": "33e415fa-e1ae-4a8f-a67e-323f5e484179",
+        "projectId": "9e84df37cdbd438ca580c365c569f013",
+        "host": "ou-fake-compute",
+        "status": "ACTIVE",
+        "projectName": "ou-payments",
+        "name": "ou-evacuate-payments"
+      },
+      {
+        "id": "7bc0fdc4-2434-4aa8-a949-8017c3ce9c2a",
+        "projectId": "3bc88e740a7e48958de4224670889fe5",
+        "host": "ou-fake-compute",
+        "status": "ACTIVE",
+        "projectName": "ou-research",
+        "name": "ou-evacuate-research"
+      }
+    ],
+    "projects": [
+      {
+        "id": "3bc88e740a7e48958de4224670889fe5",
+        "instanceCount": 1,
+        "name": "ou-research"
+      },
+      {
+        "id": "9e84df37cdbd438ca580c365c569f013",
+        "instanceCount": 1,
+        "name": "ou-payments"
+      }
+    ],
+    "hosts": [
+      {
+        "name": "ou-fake-compute",
+        "state": "down",
+        "status": "enabled",
+        "forcedDown": false,
+        "disabledReason": null
+      }
+    ],
+    "agent": null,
+    "leftBehindCount": 0,
+    "leftBehind": [],
+    "isComplete": true,
+    "problems": [],
+    "wouldBeRefused": null
+  },
+  "output": "[stdout]\nNothing was changed. This changes 2 instances in 2 projects.\noneuptime-openstack-reach route server evacuate\noneuptime-openstack-reach kind changes\noneuptime-openstack-reach complete yes\noneuptime-openstack-reach instances 2\noneuptime-openstack-reach projects 2\noneuptime-openstack-reach left-behind 0\noneuptime-openstack-reach instance 33e415fa-e1ae-4a8f-a67e-323f5e484179 9e84df37cdbd438ca580c365c569f013 ou-fake-compute ACTIVE ou-payments ou-evacuate-payments\noneuptime-openstack-reach instance 7bc0fdc4-2434-4aa8-a949-8017c3ce9c2a 3bc88e740a7e48958de4224670889fe5 ou-fake-compute ACTIVE ou-research ou-evacuate-research\noneuptime-openstack-reach project 3bc88e740a7e48958de4224670889fe5 1 ou-research\noneuptime-openstack-reach project 9e84df37cdbd438ca580c365c569f013 1 ou-payments\noneuptime-openstack-reach host ou-fake-compute down enabled no -"
+}

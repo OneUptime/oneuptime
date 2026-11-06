@@ -1,8 +1,10 @@
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
+import OpenStackCloudFeedService from "../../../Server/Services/OpenStackCloudFeedService";
 import CephClusterFeedService from "../../../Server/Services/CephClusterFeedService";
 import CloudAccountService from "../../../Server/Services/CloudAccountService";
 import CloudAccountFeedService from "../../../Server/Services/CloudAccountFeedService";
 import { CloudAccountFeedEventType } from "../../../Models/DatabaseModels/CloudAccountFeed";
+import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
@@ -224,6 +226,17 @@ const TYPE_FIXTURES: Array<TypeFixture> = [
     feedIdKey: "hostId",
     feedEventKey: "hostFeedEventType",
     feedEvent: "HostUpdated",
+  },
+  {
+    resourceType: AiResourceType.OpenStackCloud,
+    service: OpenStackCloudService as unknown as AnyObject,
+    findOrCreateMethod: "findOrCreateByName",
+    findOrCreateIdentityKey: "name",
+    feedService: OpenStackCloudFeedService as unknown as AnyObject,
+    feedMethod: "createOpenStackCloudFeedItem",
+    feedIdKey: "openStackCloudId",
+    feedEventKey: "openStackCloudFeedEventType",
+    feedEvent: "OpenStackCloudUpdated",
   },
 ];
 

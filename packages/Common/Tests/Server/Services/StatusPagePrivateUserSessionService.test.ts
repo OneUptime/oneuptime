@@ -485,13 +485,134 @@ describe("StatusPagePrivateUserSessionService sign-in and login-code exchange", 
       loginCode: ObjectID.generate().toString(),
       purpose: "",
     });
-    getJestSpyOn(service, "updateOneByIdAndFetch").mockResolvedValue(session);
+    getJestSpyOn(service, "getRepository").mockReturnValue({
+      update: async (): Promise<UpdateResult> => {
+        return makeUpdateResult(1);
+      },
+    } as unknown as Repository<StatusPagePrivateUserSession>);
     getJestSpyOn(service, "updateOneById").mockResolvedValue(1);
 
     await service.renewSessionWithNewRefreshToken({ session });
     await service.touchSession(ids.sessionId, {});
 
     expect(privateUserUpdate).not.toHaveBeenCalled();
+  });
+
+  describe("renewing a session", () => {
+    interface RenewalWrite {
+      criteria: Record<string, unknown>;
+      values: Partial<StatusPagePrivateUserSession>;
+    }
+
+    const stubRenewalWrite: (
+      service: Service,
+      affected: number,
+    ) => Array<RenewalWrite> = (
+      service: Service,
+      affected: number,
+    ): Array<RenewalWrite> => {
+      const writes: Array<RenewalWrite> = [];
+
+      getJestSpyOn(service, "getRepository").mockReturnValue({
+        update: async (
+          criteria: Record<string, unknown>,
+          values: Partial<StatusPagePrivateUserSession>,
+        ): Promise<UpdateResult> => {
+          writes.push({ criteria, values });
+          return makeUpdateResult(affected);
+        },
+      } as unknown as Repository<StatusPagePrivateUserSession>);
+
+      return writes;
+    };
+
+    const liveSession: () => Promise<{
+      ids: SessionIds;
+      session: StatusPagePrivateUserSession;
+    }> = async (): Promise<{
+      ids: SessionIds;
+      session: StatusPagePrivateUserSession;
+    }> => {
+      const ids: SessionIds = buildIds();
+
+      return {
+        ids,
+        session: await buildLoginSession({
+          ids,
+          loginCode: ObjectID.generate().toString(),
+          purpose: "",
+        }),
+      };
+    };
+
+    test("writes only to a session still live, and never says one is not revoked", async () => {
+      const service: Service = new Service();
+      const writes: Array<RenewalWrite> = stubRenewalWrite(service, 1);
+      const { ids, session } = await liveSession();
+
+      await service.renewSessionWithNewRefreshToken({ session });
+
+      expect(writes).toHaveLength(1);
+      expect(writes[0]!.criteria["_id"]).toBe(ids.sessionId.toString());
+      expect(writes[0]!.criteria["isRevoked"]).toBe(false);
+      expect(
+        (writes[0]!.criteria["deletedAt"] as FindOperator<unknown>).type,
+      ).toBe("isNull");
+      expect(writes[0]!.values).not.toHaveProperty("isRevoked");
+      expect(writes[0]!.values).not.toHaveProperty("revokedAt");
+      expect(writes[0]!.values).not.toHaveProperty("revokedReason");
+    });
+
+    test("stores the new token hashed, and hands back the token itself", async () => {
+      const service: Service = new Service();
+      const writes: Array<RenewalWrite> = stubRenewalWrite(service, 1);
+      const { session } = await liveSession();
+
+      const renewed: SessionMetadata | null =
+        await service.renewSessionWithNewRefreshToken({ session });
+
+      const stored: HashedString = writes[0]!.values
+        .refreshToken as HashedString;
+
+      expect(stored.isValueHashed()).toBe(true);
+      expect(stored.toString()).toBe(
+        await HashedString.hashValue(renewed!.refreshToken, EncryptionSecret),
+      );
+      expect(stored.toString()).not.toBe(renewed!.refreshToken);
+    });
+
+    test("a session ended while the request was on its way is not renewed: null, and what the caller read stays as it read it", async () => {
+      const service: Service = new Service();
+      stubRenewalWrite(service, 0);
+      const { session } = await liveSession();
+      const tokenBefore: unknown = session.refreshToken;
+
+      expect(
+        await service.renewSessionWithNewRefreshToken({ session }),
+      ).toBeNull();
+      expect(session.refreshToken).toBe(tokenBefore);
+    });
+
+    test("exchanging a login code says nothing of revocation either: only its predicate does", async () => {
+      const service: Service = new Service();
+      const loginCode: string = ObjectID.generate().toString();
+      const ids: SessionIds = buildIds();
+      const row: StatusPagePrivateUserSession = await buildLoginSession({
+        ids,
+        loginCode,
+        purpose: PURPOSE_VALUE,
+      });
+      const boundary: InMemoryBoundary = installInMemoryBoundary(service, row);
+
+      expect(
+        await service.exchangeLoginCode(loginCode, {
+          statusPageId: ids.statusPageId,
+        }),
+      ).not.toBeNull();
+
+      expect(boundary.casCalls[0]!.where.isRevoked).toBe(false);
+      expect(boundary.casCalls[0]!.data).not.toHaveProperty("isRevoked");
+    });
   });
 
   test("creates a purpose-marked login code that expires after five minutes", async () => {

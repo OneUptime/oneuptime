@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 #
 # OneUptime Resource AI Agent Dockerfile
 #
@@ -10,6 +10,9 @@
 # resource's collector (the "ai-agent" service of its docker-compose.yml), or
 # for a cloud account in the customer's cloud by its setup command, and
 # selected with ONEUPTIME_AI_AGENT_RESOURCE_TYPE.
+#
+# Syntax 1.19 is the first whose stable channel has COPY --exclude, which keeps
+# the agent's tests out of the image (see the copy of the agent below).
 #
 
 # Alpine, like the other agents. The agent itself is plain JavaScript (no
@@ -90,7 +93,10 @@ ENTRYPOINT ["/sbin/tini", "--"]
 USER node
 CMD [ "npm", "run", "dev" ]
 {{ else }}
-COPY --chown=node:node ./agents/ResourceAIAgent /usr/src/app
+# Without its tests, which no image runs (see packages/Probe/Dockerfile.tpl):
+# they stay out of this layer and of what the compile below writes to
+# build/dist. `npm test` compiles and runs them on a checkout.
+COPY --chown=node:node --exclude=Tests ./agents/ResourceAIAgent /usr/src/app
 RUN npm run compile
 USER node
 # Per-build metadata last so the npm ci / compile layers above stay cacheable

@@ -278,6 +278,11 @@ export interface ComponentProps {
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
   /*
+   * Starts a new run with what an earlier run started with, which the Run
+   * Workflow panel offers for its last run (RunAgain/RunAgainFromLastRun).
+   */
+  onRunAgain?: ((runId: string) => Promise<void>) | undefined;
+  /*
    * A run started from the Run Workflow panel will be a test run: the
    * workflow is turned off (and not archived, which no run gets past). The
    * panel says so before anything runs (RunModal).
@@ -1437,6 +1442,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           onRun={(trigger: NodeDataProp) => {
             props.onRun(trigger);
           }}
+          onRunAgain={props.onRunAgain}
         />
       )}
     </div>

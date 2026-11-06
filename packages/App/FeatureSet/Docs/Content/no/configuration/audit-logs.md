@@ -99,6 +99,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | Inventarelementer | `Inventory Item` |
 | Innsamlerkonfigurasjoner | `Collector Config` |
 | vCenter-servere | `vCenter` |
+| OpenStack-skyer og kontrollene som kjører mot dem | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | Pakkeopptak og nedlastingene av dem | `Packet Capture` |
 | Sikkerhetssaker og prioritetene og statusene deres, playbooks og kjøringene deres, beskyttede enheter, entitetskritikalitet, og risikoen for en entitet når noen tilbakestiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | Regelunntak | `Rule Exception` |
@@ -107,6 +108,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | Hunts | `Hunt` |
 | Oppgaver og bevis i sikkerhetssaker | `Security Case Task`, `Security Case Evidence` |
 | Datalagre og funnene deres, og problemene, innstillingene, kontrollinnstillingene, de egendefinerte datatypene og residensreglene i Datasikkerhet | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| Innstillinger for Dataobserverbarhet | `Data Observability Setting` |
 | Eksporter av revisjonsloggen | `Audit Log Export` |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.

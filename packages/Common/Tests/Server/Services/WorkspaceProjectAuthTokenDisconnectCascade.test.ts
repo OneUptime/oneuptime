@@ -31,7 +31,8 @@ import {
  * notification methods and their rules — one chain, tested per link:
  * project token -> user tokens (here), user token -> method rows
  * (WorkspaceUserAuthTokenNotificationMethodCascade.test.ts), method row ->
- * rules (UserSlackService.test.ts / UserMicrosoftTeamsService.test.ts).
+ * rules (UserSlackService.test.ts / UserMicrosoftTeamsService.test.ts /
+ * UserMattermostService.test.ts).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -139,6 +140,34 @@ describe("WorkspaceProjectAuthTokenService.onBeforeDelete - workspace disconnect
     const arg: { query: { workspaceType: WorkspaceType } } = deleteUserTokens
       .mock.calls[0][0] as { query: { workspaceType: WorkspaceType } };
     expect(arg.query.workspaceType).toBe(WorkspaceType.MicrosoftTeams);
+  });
+
+  /*
+   * The docs promise this: disconnecting Mattermost disconnects every member's
+   * own account, which takes their Mattermost notification methods and the
+   * on-call rules that use them down with it.
+   */
+  test("deleting the Mattermost project token deletes every Mattermost user token in the project, through the service", async () => {
+    findTokens.mockResolvedValue([
+      projectTokenRow(WorkspaceType.Mattermost),
+    ] as never);
+
+    await callOnBeforeDelete({
+      query: { _id: TOKEN_ID },
+      props: { isRoot: false },
+    });
+
+    expect(deleteUserTokens).toHaveBeenCalledTimes(1);
+    const arg: {
+      query: { projectId: ObjectID; workspaceType: WorkspaceType };
+      props: { isRoot: boolean };
+    } = deleteUserTokens.mock.calls[0][0] as {
+      query: { projectId: ObjectID; workspaceType: WorkspaceType };
+      props: { isRoot: boolean };
+    };
+    expect(arg.query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(arg.query.workspaceType).toBe(WorkspaceType.Mattermost);
+    expect(arg.props.isRoot).toBe(true);
   });
 
   test("a bulk delete spanning both workspace types cascades each token to its own workspace", async () => {

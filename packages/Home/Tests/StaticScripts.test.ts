@@ -379,7 +379,7 @@ describe("how Home answers a request under /js/", () => {
       jest.requireActual("../Utils/Config");
 
     expect(dockerfile).toContain(
-      "COPY --chown=1000:1000 ./packages/Home /usr/src/app\n",
+      "COPY --chown=1000:1000 --exclude=Tests ./packages/Home /usr/src/app\n",
     );
     expect(config.StaticPath).toBe("/usr/src/app/Static");
   });

@@ -1,0 +1,21 @@
+$ openstack stack list --all-projects
+ERROR: You are not authorized to use stacks:global_index.
+$ openstack stack list
++--------------------------------------+-----------------------+----------------------------------+--------------------+----------------------+----------------------+
+| ID                                   | Stack Name            | Project                          | Stack Status       | Creation Time        | Updated Time         |
++--------------------------------------+-----------------------+----------------------------------+--------------------+----------------------+----------------------+
+| ba6ebd0a-d443-48ee-850c-08b873a37588 | ou-stack-update-fails | ae798f87fdb743ddb30bc5a46ac15507 | UPDATE_FAILED      | 2026-11-05T08:01:21Z | 2026-11-05T08:01:26Z |
+| bbc6a819-0a37-48d6-9941-748cfbb6b059 | ou-stack-updating     | ae798f87fdb743ddb30bc5a46ac15507 | UPDATE_IN_PROGRESS | 2026-11-05T08:00:15Z | 2026-11-05T08:00:20Z |
+| 8990cc07-d723-4b71-9df3-be7ec38994e3 | ou-stack-creating     | ae798f87fdb743ddb30bc5a46ac15507 | CREATE_IN_PROGRESS | 2026-11-05T08:00:09Z | None                 |
+| 91e62a8f-d033-49f5-8131-9bcced77fca9 | ou-stack-admin-failed | ae798f87fdb743ddb30bc5a46ac15507 | CREATE_FAILED      | 2026-11-05T07:57:54Z | None                 |
+| 48821a1c-11cb-4873-b30b-5be49574a124 | ou-stack-admin-ok     | ae798f87fdb743ddb30bc5a46ac15507 | CREATE_COMPLETE    | 2026-11-05T07:57:49Z | None                 |
+| 8fb1dcc5-0685-434b-8e1a-bf0618776952 | ou-stack-failed       | a01a07259d8441afa457d94ba7e4425f | CREATE_FAILED      | 2026-11-05T07:57:44Z | None                 |
+| abee8b5f-0082-402b-ad87-e47e73da53d0 | ou-stack-ok           | a01a07259d8441afa457d94ba7e4425f | CREATE_COMPLETE    | 2026-11-05T07:57:39Z | None                 |
++--------------------------------------+-----------------------+----------------------------------+--------------------+----------------------+----------------------+
+$ openstack orchestration service list
++---------------+-------------+--------------------------------------+---------------+--------+----------------------------+--------+
+| Hostname      | Binary      | Engine ID                            | Host          | Topic  | Updated At                 | Status |
++---------------+-------------+--------------------------------------+---------------+--------+----------------------------+--------+
+| compute-01 | heat-engine | d865a3c6-7e3f-41da-9bb9-47900f3cf2b9 | compute-01 | engine | 2026-11-05T08:01:28.000000 | up     |
+| compute-01 | heat-engine | ef6830cc-1d37-4865-ae52-ddb07faf52cc | compute-01 | engine | 2026-11-05T08:01:28.000000 | up     |
++---------------+-------------+--------------------------------------+---------------+--------+----------------------------+--------+

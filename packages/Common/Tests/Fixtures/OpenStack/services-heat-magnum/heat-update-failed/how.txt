@@ -1,0 +1,2 @@
+A stack whose update failed.
+On its own: Heat's test resource was told to fail its update.

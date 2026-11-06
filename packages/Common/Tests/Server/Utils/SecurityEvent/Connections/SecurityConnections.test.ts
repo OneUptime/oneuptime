@@ -1412,6 +1412,8 @@ describe("what an incident or alert a case or a detection opens is linked to", (
       [SecurityConnectionKind.PodmanHost]: AiAffectedResourceKind.PodmanHost,
       [SecurityConnectionKind.KubernetesCluster]:
         AiAffectedResourceKind.KubernetesCluster,
+      [SecurityConnectionKind.OpenStackCloud]:
+        AiAffectedResourceKind.OpenStackCloud,
       [SecurityConnectionKind.NetworkDevice]:
         AiAffectedResourceKind.NetworkDevice,
       [SecurityConnectionKind.CloudResource]:

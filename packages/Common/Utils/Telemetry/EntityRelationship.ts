@@ -46,6 +46,15 @@ const RULES: Record<string, EntityRelationshipType> = {
   [`${EntityType.ServiceInstance}|${EntityType.Service}`]:
     EntityRelationshipType.InstanceOf,
   [`${EntityType.Service}|${EntityType.Host}`]: EntityRelationshipType.HostedOn,
+  /*
+   * Only ever said on purpose: nothing a service sends carries these two, so a service
+   * can't claim them by co-occurring. It takes a host linked to its part of a cloud
+   * (OpenStackAcrossProducts.reconcilePlacementInTopology).
+   */
+  [`${EntityType.Service}|${EntityType.OpenStackInstance}`]:
+    EntityRelationshipType.HostedOn,
+  [`${EntityType.Service}|${EntityType.OpenStackHypervisor}`]:
+    EntityRelationshipType.HostedOn,
   [`${EntityType.Service}|${EntityType.KubernetesPod}`]:
     EntityRelationshipType.RunsOn,
   [`${EntityType.Container}|${EntityType.KubernetesPod}`]:
@@ -78,9 +87,15 @@ const RULES: Record<string, EntityRelationshipType> = {
     EntityRelationshipType.MemberOf,
   [`${EntityType.ProxmoxNode}|${EntityType.ProxmoxCluster}`]:
     EntityRelationshipType.MemberOf,
+  [`${EntityType.OpenStackHypervisor}|${EntityType.OpenStackCloud}`]:
+    EntityRelationshipType.MemberOf,
   [`${EntityType.ProxmoxGuest}|${EntityType.ProxmoxNode}`]:
     EntityRelationshipType.RunsOn,
+  [`${EntityType.OpenStackInstance}|${EntityType.OpenStackHypervisor}`]:
+    EntityRelationshipType.RunsOn,
   [`${EntityType.ProxmoxGuest}|${EntityType.ProxmoxCluster}`]:
+    EntityRelationshipType.MemberOf,
+  [`${EntityType.OpenStackInstance}|${EntityType.OpenStackCloud}`]:
     EntityRelationshipType.MemberOf,
   /*
    * VMware vSphere topology. Only the six child → parent pairs below are

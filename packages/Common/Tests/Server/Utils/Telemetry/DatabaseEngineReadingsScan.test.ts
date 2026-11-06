@@ -32,7 +32,10 @@ function stringAttribute(key: string, value: string): JSONObject {
   return { key: key, value: { stringValue: value } };
 }
 
-function intPoint(attributes: Record<string, string>, value: number): JSONObject {
+function intPoint(
+  attributes: Record<string, string>,
+  value: number,
+): JSONObject {
   return {
     attributes: Object.keys(attributes).map((key: string): JSONObject => {
       return stringAttribute(key, attributes[key]!);
@@ -97,7 +100,10 @@ describe("PostgreSQL: per-database resources beside the server's own", () => {
       gauge("postgresql.wal.delay", [
         doublePoint({ operation: "write", replication_client: "10.0.0.7" }, 50),
         doublePoint({ operation: "flush", replication_client: "10.0.0.7" }, 49),
-        doublePoint({ operation: "replay", replication_client: "10.0.0.7" }, 41),
+        doublePoint(
+          { operation: "replay", replication_client: "10.0.0.7" },
+          41,
+        ),
         doublePoint({ operation: "replay", replication_client: "10.0.0.8" }, 3),
       ]),
       gauge("postgresql.replication.data_delay", [

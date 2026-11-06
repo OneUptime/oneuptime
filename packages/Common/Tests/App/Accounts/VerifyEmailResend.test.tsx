@@ -83,17 +83,11 @@ const LINK_INVALID: string =
 
 /*
  * Console noise that has nothing to do with this page, and is ignored for
- * that reason; every other console error fails the test.
- *
- * - Testing Library 13 on React 18.3 prints the first one once per run.
- * - ModelAPI pulls in UI/Utils/Telemetry, whose zone.js swaps the global
- *   Promise. React's "was this act() awaited?" check runs on that Promise
- *   while `await` uses the native one, so the first properly awaited
- *   act(async) in the file is reported as not awaited.
+ * that reason; every other console error fails the test. Testing Library 13
+ * on React 18.3 prints this once per run.
  */
 const KNOWN_CONSOLE_NOISE: Array<string> = [
   "`ReactDOMTestUtils.act` is deprecated",
-  "You called act(async () => ...) without await",
 ];
 
 type VerifyAnswer = () => Promise<ModelAPIHttpResponse<EmailVerificationToken>>;

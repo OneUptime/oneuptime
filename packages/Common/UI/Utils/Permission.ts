@@ -183,12 +183,58 @@ function toHash(hash: string | null | undefined): string | null {
 }
 
 /*
+ * Who wants to know when a kept snapshot changes (usePermissionSnapshot). A
+ * snapshot lands on an API response's header, after the page that asked has
+ * drawn, and a gate is read as its page draws. On a project this browser has
+ * no snapshot of yet, a page's gates read the person's global permissions
+ * alone, and without being told, what they said then stood until something
+ * else drew the page: a Project Owner's Import JSON stayed locked, saying
+ * they may not.
+ */
+const snapshotListeners: Set<() => void> = new Set();
+let snapshotVersion: number = 0;
+
+// Makes a change to a snapshot, and says so when `key` then reads differently.
+function tellingListeners(key: string | null, change: () => void): void {
+  const read: () => string = (): string => {
+    return JSON.stringify(key ? readStored(key) : null) || "";
+  };
+  const before: string = read();
+
+  change();
+
+  if (read() === before) {
+    return;
+  }
+
+  snapshotVersion++;
+
+  for (const listener of Array.from(snapshotListeners)) {
+    listener();
+  }
+}
+
+/*
  * Whether the user may do something is decided by PermissionGate
  * (holdsAnyOf, check, canReadColumn), which reads this snapshot by the rule
  * the server follows (Types/HeldPermissions). Nothing else decides from the
  * raw rows (Tests/UI/Utils/PermissionGateGuard).
  */
 export default class PermissionUtil {
+  // Tells `listener` whenever a kept snapshot changes, until the function it returns is called.
+  public static subscribeToSnapshots(listener: () => void): () => void {
+    snapshotListeners.add(listener);
+
+    return (): void => {
+      snapshotListeners.delete(listener);
+    };
+  }
+
+  // A number that moves whenever a kept snapshot changes.
+  public static getSnapshotVersion(): number {
+    return snapshotVersion;
+  }
+
   public static getGlobalPermissions(): UserGlobalAccessPermission | null {
     const globalPermissions: JSONObject | null = readStored(
       GLOBAL_PERMISSIONS_STORAGE_KEY,
@@ -351,24 +397,26 @@ export default class PermissionUtil {
     permissions: UserGlobalAccessPermission,
     options?: { hash?: string | null | undefined } | undefined,
   ): void {
-    const keepIds: Array<string | null> = [this.getTabProjectId()];
+    tellingListeners(GLOBAL_PERMISSIONS_STORAGE_KEY, () => {
+      const keepIds: Array<string | null> = [this.getTabProjectId()];
 
-    if (
-      !writeMakingRoom(GLOBAL_PERMISSIONS_STORAGE_KEY, permissions, keepIds)
-    ) {
-      removeStored(GLOBAL_PERMISSIONS_STORAGE_KEY);
-      removeStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY);
-      return;
-    }
+      if (
+        !writeMakingRoom(GLOBAL_PERMISSIONS_STORAGE_KEY, permissions, keepIds)
+      ) {
+        removeStored(GLOBAL_PERMISSIONS_STORAGE_KEY);
+        removeStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY);
+        return;
+      }
 
-    const hash: string | null = toHash(options?.hash);
+      const hash: string | null = toHash(options?.hash);
 
-    if (
-      !hash ||
-      !writeMakingRoom(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY, hash, keepIds)
-    ) {
-      removeStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY);
-    }
+      if (
+        !hash ||
+        !writeMakingRoom(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY, hash, keepIds)
+      ) {
+        removeStored(GLOBAL_PERMISSIONS_HASH_STORAGE_KEY);
+      }
+    });
   }
 
   /*
@@ -396,19 +444,21 @@ export default class PermissionUtil {
       return;
     }
 
-    const keepIds: Array<string | null> = [id, this.getTabProjectId()];
+    tellingListeners(key, () => {
+      const keepIds: Array<string | null> = [id, this.getTabProjectId()];
 
-    if (!writeMakingRoom(key, permissions, keepIds)) {
-      // Not kept: nothing stale stays in its place, and the server sends it again.
-      this.clearProjectPermissions(id);
-      return;
-    }
+      if (!writeMakingRoom(key, permissions, keepIds)) {
+        // Not kept: nothing stale stays in its place, and the server sends it again.
+        this.clearProjectPermissions(id);
+        return;
+      }
 
-    const hash: string | null = toHash(options?.hash);
+      const hash: string | null = toHash(options?.hash);
 
-    if (!hash || !writeMakingRoom(hashKey, hash, keepIds)) {
-      removeStored(hashKey);
-    }
+      if (!hash || !writeMakingRoom(hashKey, hash, keepIds)) {
+        removeStored(hashKey);
+      }
+    });
   }
 
   /*
@@ -426,12 +476,14 @@ export default class PermissionUtil {
     const key: string | null = getProjectPermissionsStorageKey(id);
     const hashKey: string | null = getProjectPermissionsHashStorageKey(id);
 
-    if (key) {
-      removeStored(key);
-    }
+    tellingListeners(key, () => {
+      if (key) {
+        removeStored(key);
+      }
 
-    if (hashKey) {
-      removeStored(hashKey);
-    }
+      if (hashKey) {
+        removeStored(hashKey);
+      }
+    });
   }
 }
