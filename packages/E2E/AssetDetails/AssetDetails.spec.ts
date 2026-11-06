@@ -1744,16 +1744,18 @@ test.describe("the device's Security Events page", () => {
     await expect(rows.first()).toContainText(
       "Apache.Log4j.Error.Log.Remote.Code.Execution dropped",
     );
-    await expect(page.getByText("Denied connection from 203.0.113.99")).toBeVisible();
-    await expect(page.getByText("Failed sign-in for admin from 203.0.113.7")).toBeVisible();
+    await expect(
+      page.getByText("Denied connection from 203.0.113.99"),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Failed sign-in for admin from 203.0.113.7"),
+    ).toBeVisible();
 
     const chip: Locator = page.getByTestId("locked-filter-chip");
     await expect(chip).toContainText("Network Device");
     await expect(chip).toContainText("core-fw-01");
 
-    await expect(
-      page.getByTestId("security-events-hunts-menu"),
-    ).toHaveCount(0);
+    await expect(page.getByTestId("security-events-hunts-menu")).toHaveCount(0);
 
     await expectNoSidewaysScroll(page);
     await shoot(page, "device-security-events-1280-light");
@@ -1776,7 +1778,9 @@ test.describe("the device's Security Events page", () => {
     await expect(page.getByText("Target IP", { exact: true })).toBeVisible();
     await expect(page.getByText("Target Port", { exact: true })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Connected" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add to Case" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add to Case" }),
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: "Open Case" })).toBeVisible();
     await shoot(page, "device-security-events-panel-1280-light");
   });
@@ -1789,7 +1793,9 @@ test.describe("the device's Security Events page", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openSecurityEvents(page, "&security=quiet");
 
-    const empty: Locator = page.getByTestId("device-security-events-empty-state");
+    const empty: Locator = page.getByTestId(
+      "device-security-events-empty-state",
+    );
     await expect(empty).toBeVisible({ timeout: 30000 });
     await expect(empty).toContainText("No security events for this device yet");
 
