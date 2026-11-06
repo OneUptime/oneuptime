@@ -371,9 +371,17 @@ describe("cloud.ejs: Recommended Monitors", () => {
 
     expect(seo.softwareApplication?.features).toEqual(
       expect.arrayContaining([
-        "Recommended monitors for every kind of cloud resource",
+        "Recommended monitors, added to a resource or a whole type at once",
       ]),
     );
+    /*
+     * Never "for every kind of cloud resource": a VPC, a bucket and a
+     * network load balancer have none yet (an account's Recommendations
+     * lists them under Not in this list).
+     */
+    for (const feature of seo.softwareApplication?.features || []) {
+      expect(feature).not.toContain("every kind");
+    }
     expect(seo.description.length).toBeLessThanOrEqual(230);
   });
 });
