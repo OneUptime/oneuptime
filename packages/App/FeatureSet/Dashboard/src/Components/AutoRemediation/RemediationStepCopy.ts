@@ -277,6 +277,67 @@ export const REMEDIATION_FIX_DISMISS_REFUSED: string = translationKey(
 );
 
 /*
+ * TWO PEOPLE APPROVE A RISKIER FIX (#6148's follow-up): where the project
+ * asks two people to approve a fix that holds a riskier change
+ * (Project.requireTwoApprovalsForRiskierFixes), the fix waits after its
+ * first approval for a second from someone else, which runs it
+ * (Common/Types/AutoRemediation/RemediationApprovals). The step says who
+ * approved it first - a step of its own, in the order it happened - and that
+ * a second person is needed; the person who approved first reads why
+ * approving again does nothing, and is offered no Approve.
+ */
+export const REMEDIATION_TWO_APPROVALS_COPY: {
+  // The approval step's title once a first approval is in, and the pill's.
+  needsSecondApproval: string;
+  // Where the fix stands, beside its name.
+  waitingForSecondApproval: string;
+  // Under the approval step, to a reader who may approve: theirs is first.
+  yoursIsTheFirst: string;
+  // ... after someone else approved it first: theirs runs it.
+  yoursRunsIt: string;
+  // ... to the reader who approved it first.
+  youApprovedFirst: string;
+  // ... to a reader who may not approve it.
+  twoPeopleMustApprove: string;
+  // Over the press of a first approval, which runs nothing.
+  firstApprovalNote: string;
+  // The headline of a first approver's press the server refused.
+  alreadyApprovedTitle: string;
+} = {
+  needsSecondApproval: translationKey("Needs a second approval"),
+  waitingForSecondApproval: translationKey("Waiting for a second approval"),
+  yoursIsTheFirst: translationKey(
+    "Two people must approve this riskier fix. Yours is the first.",
+  ),
+  yoursRunsIt: translationKey(
+    "Two people must approve this riskier fix. Your approval runs it.",
+  ),
+  youApprovedFirst: translationKey(
+    "You approved it first. It runs once someone else approves it too.",
+  ),
+  twoPeopleMustApprove: translationKey(
+    "Two people must approve this riskier fix.",
+  ),
+  firstApprovalNote: translationKey(
+    "Your approval is recorded, and nothing runs until someone else approves it too.",
+  ),
+  alreadyApprovedTitle: translationKey(
+    "Your approval was already recorded: this fix runs once someone else approves it too",
+  ),
+};
+
+/*
+ * The server's refusal of the first approver's second press, word for word
+ * (Common/Types/AutoRemediation/RemediationApprovals'
+ * ALREADY_APPROVED_FIRST_MESSAGE), so it reads in the reader's language
+ * under the buttons, as REMEDIATION_FIX_DISMISS_REFUSED does.
+ */
+export const REMEDIATION_ALREADY_APPROVED_FIRST_REFUSED: string =
+  translationKey(
+    "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
+  );
+
+/*
  * A FIX, STEP BY STEP (issue #5598): "Ideally it should be in steps where
  * you have step by step sections on what AI did and why, and when I expand
  * the step - it shows me more context into why, commands ran, outputs."

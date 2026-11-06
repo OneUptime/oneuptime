@@ -13,12 +13,23 @@ import AlertService from "../../Services/AlertService";
 import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
 import IncidentService from "../../Services/IncidentService";
 import UserService from "../../Services/UserService";
-import RemediationApproval from "../AutoRemediation/RemediationApproval";
+import RemediationApproval, {
+  getAlreadyApprovedFirstMessage,
+  RemediationApprovalResult,
+} from "../AutoRemediation/RemediationApproval";
 import RemediationChatMessage, {
   RemediationActionValue,
+  RemediationChatApprovals,
   RemediationChatFix,
   TrackRecordRunLinks,
 } from "../AutoRemediation/RemediationChatMessage";
+import {
+  getFixApprovalsNeeded,
+  readTwoApprovalsRule,
+} from "../AutoRemediation/RemediationApprovalsNeeded";
+import { AiRemediationCommandPlanUtil } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import { isSameApprover } from "../../../Types/AutoRemediation/RemediationApprovals";
 import { REMEDIATION_CHAT_WORDS } from "../AutoRemediation/RemediationChatWords";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -50,6 +61,12 @@ import ProductBrandingText from "../ProductBrandingText";
  *     the one the message showed (its plan fingerprint).
  *   - a press that comes too late is told who got there first, and when,
  *     as news (getLatePressAnswer).
+ *   - a riskier fix in a project that asks two people to approve one
+ *     (Project.requireTwoApprovalsForRiskierFixes) runs on its second
+ *     approval: the dialog says whether the press is the first or the
+ *     second, and whose came first; the first approval is answered as
+ *     such; and the person who gave it is told, before anything else,
+ *     why pressing again does nothing (getAlreadyApprovedAnswer).
  *
  * Approving, dismissing and refusals are worded once, here, in English, as
  * the chats' other answers are.
@@ -137,6 +154,10 @@ export default class WorkspaceRemediationActions {
           verificationWindowMinutes: true,
           approvedByUserId: true,
           approvedAt: true,
+          // The first of two approvals, where a riskier fix needs two.
+          firstApprovedByUserId: true,
+          firstApprovedAt: true,
+          firstApprovedFrom: true,
           dismissedByUserId: true,
           dismissedAt: true,
         },
@@ -144,6 +165,80 @@ export default class WorkspaceRemediationActions {
       });
 
     return suggestion && suggestion.id ? suggestion : null;
+  }
+
+  /*
+   * Where a fix stands with the approvals it needs, as the project's rule
+   * reads now: two for a riskier command plan where the project asks two
+   * people to approve one (a rule that cannot be read counts as off here -
+   * the approval itself decides), and the first approval when there is
+   * one, with its approver's name.
+   */
+  @CaptureSpan()
+  public static async getFixApprovals(
+    suggestion: AutoRemediationSuggestion,
+  ): Promise<RemediationChatApprovals> {
+    if (
+      suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan ||
+      !suggestion.projectId
+    ) {
+      return { needed: 1, hasFirstApproval: false };
+    }
+
+    const needed: number = getFixApprovalsNeeded({
+      project: {
+        requireTwoApprovalsForRiskierFixes:
+          (await readTwoApprovalsRule(suggestion.projectId)) === true,
+      },
+      suggestionType: suggestion.suggestionType,
+      plan: AiRemediationCommandPlanUtil.parse(suggestion.commandPlan),
+    });
+
+    if (needed < 2 || !suggestion.firstApprovedByUserId) {
+      return { needed, hasFirstApproval: false };
+    }
+
+    return {
+      needed,
+      hasFirstApproval: true,
+      firstApproverName:
+        (await this.getUserName(suggestion.firstApprovedByUserId)) ||
+        undefined,
+    };
+  }
+
+  /*
+   * What a press of Review and approve or Approve and run answers the
+   * person who already gave a riskier fix its first approval: why pressing
+   * again does nothing - it runs once someone else approves it too. Null
+   * for everyone else, and when one approval runs the fix now (the project
+   * no longer asks for two): their press then runs it.
+   */
+  @CaptureSpan()
+  public static async getAlreadyApprovedAnswer(data: {
+    suggestion: AutoRemediationSuggestion;
+    userId: ObjectID;
+  }): Promise<WorkspaceAnswer | null> {
+    if (
+      data.suggestion.status !== AutoRemediationSuggestionStatus.Suggested ||
+      !isSameApprover(data.suggestion.firstApprovedByUserId, data.userId)
+    ) {
+      return null;
+    }
+
+    const approvals: RemediationChatApprovals =
+      await WorkspaceRemediationActions.getFixApprovals(data.suggestion);
+
+    if (approvals.needed < 2) {
+      return null;
+    }
+
+    const message: string = getAlreadyApprovedFirstMessage();
+
+    return {
+      markdown: mdText`${message}`.toString(),
+      text: "You already approved this fix",
+    };
   }
 
   /*
@@ -279,6 +374,9 @@ export default class WorkspaceRemediationActions {
     // Each incident and alert a track record names, linked to its page.
     const runLinks: TrackRecordRunLinks =
       await RemediationChatMessage.getTrackRecordRunLinks(fix);
+    // Whether this press is a riskier fix's first approval, or its second.
+    const approvals: RemediationChatApprovals =
+      await WorkspaceRemediationActions.getFixApprovals(suggestion);
 
     return {
       title: REMEDIATION_CHAT_WORDS.dialogTitle,
@@ -287,6 +385,7 @@ export default class WorkspaceRemediationActions {
         subjectName: subject.name,
         subjectTitle: subject.title,
         runLinks,
+        approvals,
       }).toString(),
       teamsParts: RemediationChatMessage.describeApprovalParts({
         fix,
@@ -294,10 +393,15 @@ export default class WorkspaceRemediationActions {
         subjectTitle: subject.title,
         workspaceType: WorkspaceType.MicrosoftTeams,
         runLinks,
+        approvals,
       }).map((part: MarkdownText): string => {
         return part.toString();
       }),
-      submitTitle: REMEDIATION_CHAT_WORDS.approveAndRun,
+      // The first of two approvals runs nothing, so it never says "and run".
+      submitTitle:
+        approvals.needed > 1 && !approvals.hasFirstApproval
+          ? REMEDIATION_CHAT_WORDS.approve
+          : REMEDIATION_CHAT_WORDS.approveAndRun,
       cancelTitle: REMEDIATION_CHAT_WORDS.cancel,
       value: RemediationChatMessage.encodeActionValue({
         suggestionId: fix.suggestionId,
@@ -319,14 +423,41 @@ export default class WorkspaceRemediationActions {
     // The fix as the press read it: what the answer names it for.
     suggestion?: AutoRemediationSuggestion | undefined;
   }): Promise<WorkspaceAnswer> {
-    await RemediationApproval.approve({
-      props: data.props,
-      suggestionId: data.value.suggestionId.toString(),
-      expectedPlanFingerprint: data.value.fingerprint,
-      from: data.from,
-    });
+    const result: RemediationApprovalResult = await RemediationApproval.approve(
+      {
+        props: data.props,
+        suggestionId: data.value.suggestionId.toString(),
+        expectedPlanFingerprint: data.value.fingerprint,
+        from: data.from,
+      },
+    );
+
+    // The first of two approvals: recorded, and nothing runs yet.
+    if (result["isWaitingForSecondApproval"] === true) {
+      return WorkspaceRemediationActions.getFirstOfTwoApprovedAnswer(
+        data.suggestion,
+      );
+    }
 
     return WorkspaceRemediationActions.getApprovedAnswer(data.suggestion);
+  }
+
+  /*
+   * What the person who gave a riskier fix its first approval is told where
+   * they pressed: it is recorded, and the fix runs once someone else
+   * approves it too - which the record's feed tells its channels.
+   */
+  public static getFirstOfTwoApprovedAnswer(
+    suggestion?: Pick<AutoRemediationSuggestion, "incidentId" | "alertId">,
+  ): WorkspaceAnswer {
+    const product: string = ProductBrandingText.getProductName();
+    const subject: string = getFixSubjectWords(suggestion || {});
+
+    return {
+      markdown:
+        mdText`✅ You approved this fix. It holds a riskier change, so it runs once someone else approves it too, and ${subject} in ${product} shows when it does.`.toString(),
+      text: "You approved this fix. It runs once someone else approves it too",
+    };
   }
 
   /*

@@ -914,6 +914,8 @@ import { AddEmailProviderSettings1808994600000 } from "./1808994600000-AddEmailP
 import { AddGroupingRuleMinimumCount1808994700000 } from "./1808994700000-AddGroupingRuleMinimumCount";
 import { AddGroupingWaitKeyIndexes1808994710000 } from "./1808994710000-AddGroupingWaitKeyIndexes";
 import { AddCloudConnectionStreamState1808995100000 } from "./1808995100000-AddCloudConnectionStreamState";
+import { AddTwoPersonFixApproval1808995180000 } from "./1808995180000-AddTwoPersonFixApproval";
+import { AddFirstApprovedByUserForeignKey1808995190000 } from "./1808995190000-AddFirstApprovedByUserForeignKey";
 
 export default [
   InitialMigration,
@@ -1832,4 +1834,6 @@ export default [
   AddGroupingRuleMinimumCount1808994700000,
   AddGroupingWaitKeyIndexes1808994710000,
   AddCloudConnectionStreamState1808995100000,
+  AddTwoPersonFixApproval1808995180000,
+  AddFirstApprovedByUserForeignKey1808995190000,
 ];
