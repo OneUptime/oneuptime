@@ -17,7 +17,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
  * one is in progress, the monitors that read the resource's metrics - its
  * recommended monitors, and those made from its Metrics tab - open no
  * incident or alert (MonitorMaintenanceSuppression). Create Scheduled
- * Maintenance Event keeps the resource picked.
+ * Maintenance Event keeps the resource picked. Every event here holds the
+ * resource, so the list leaves out the Affected Resources column, which
+ * would only say it again - cut short beside the side menu.
  */
 const CloudResourceScheduledMaintenance: FunctionComponent<
   PageComponentProps
@@ -39,6 +41,7 @@ const CloudResourceScheduledMaintenance: FunctionComponent<
         createFrom={{ kind: CreateFromRecordKind.CloudResource, id: modelId }}
         viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
         noItemsMessage="No scheduled maintenance events for this resource."
+        leaveOutAffectedResources={true}
       />
     </Fragment>
   );

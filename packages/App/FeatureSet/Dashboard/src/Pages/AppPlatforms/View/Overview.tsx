@@ -59,6 +59,9 @@ import {
   TimePoint,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import CloudResourceConnectBanner from "../../../Components/Cloud/CloudResourceConnectBanner";
+import CloudEnvironmentMaintenanceNotice, {
+  CloudEnvironmentMaintenanceNoticeScope,
+} from "../../../Components/AppPlatforms/CloudEnvironmentMaintenanceNotice";
 import EnvironmentAppsCard, {
   useEnvironmentDeployMarkers,
 } from "../../../Components/AppPlatforms/EnvironmentAppsCard";
@@ -559,6 +562,15 @@ const CloudEnvironmentOverview: FunctionComponent<
       ) : (
         <></>
       )}
+
+      {/*
+       * Planned work that holds the environment holds its apps' monitors:
+       * said at the top while an event does.
+       */}
+      <CloudEnvironmentMaintenanceNotice
+        environmentId={modelId}
+        scope={CloudEnvironmentMaintenanceNoticeScope.Environment}
+      />
 
       <ResourceOverview
         icon={IconProp.Cloud}

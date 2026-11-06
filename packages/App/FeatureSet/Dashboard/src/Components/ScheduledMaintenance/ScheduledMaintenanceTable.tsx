@@ -11,6 +11,7 @@ import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Columns from "Common/UI/Components/ModelTable/Columns";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
@@ -105,6 +106,13 @@ export interface ComponentProps {
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   /*
+   * A resource's own Scheduled Maintenance tab, where every event the list
+   * shows holds that resource: its Affected Resources column would only say
+   * the resource again, cut short beside the side menu, so the tab leaves
+   * it out. Every other list keeps it.
+   */
+  leaveOutAffectedResources?: boolean | undefined;
+  /*
    * The events as a list - the default: All Events, Ongoing Events, and a
    * monitor's or a host's Scheduled Maintenance tab - or as a calendar: the
    * Maintenance Calendar page, with Subscribe to calendar (the team's
@@ -114,9 +122,41 @@ export interface ComponentProps {
   view?: ScheduledMaintenanceView | undefined;
 }
 
+// The column a resource's own tab leaves out (leaveOutAffectedResources).
+export const AFFECTED_RESOURCES_COLUMN_TITLE: string = "Affected Resources";
+
+/*
+ * The list's columns as this list draws them: without Affected Resources on
+ * a resource's own tab, every column otherwise.
+ */
+export function getScheduledMaintenanceColumns(
+  leaveOutAffectedResources: boolean | undefined,
+  columns: Columns<ScheduledMaintenance>,
+): Columns<ScheduledMaintenance> {
+  if (!leaveOutAffectedResources) {
+    return columns;
+  }
+
+  return columns.filter((column: Columns<ScheduledMaintenance>[number]) => {
+    return column.title !== AFFECTED_RESOURCES_COLUMN_TITLE;
+  });
+}
+
 const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Its columns, without Affected Resources on a resource's own tab.
+  const columnsOfThisList: (
+    columns: Columns<ScheduledMaintenance>,
+  ) => Columns<ScheduledMaintenance> = (
+    columns: Columns<ScheduledMaintenance>,
+  ): Columns<ScheduledMaintenance> => {
+    return getScheduledMaintenanceColumns(
+      props.leaveOutAffectedResources,
+      columns,
+    );
+  };
+
   const [scheduledMaintenanceTemplates, setScheduledMaintenanceTemplates] =
     useState<Array<ScheduledMaintenanceTemplate>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -790,7 +830,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               serviceColor: true,
             },
           }}
-          columns={[
+          columns={columnsOfThisList([
             {
               field: {
                 scheduledMaintenanceNumber: true,
@@ -1064,7 +1104,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 );
               },
             },
-          ]}
+          ])}
         />
       )}
 

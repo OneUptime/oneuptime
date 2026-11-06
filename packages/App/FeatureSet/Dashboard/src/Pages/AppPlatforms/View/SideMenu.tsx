@@ -2,6 +2,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import IncidentStateUtil from "../../../Utils/IncidentState";
 import AlertStateUtil from "../../../Utils/AlertState";
+import ScheduledMaintenanceStateUtil from "../../../Utils/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -17,6 +18,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,6 +29,7 @@ import React, {
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import CloudEnvironmentRecommendationsMenuItem from "../../../Components/Recommendations/CloudEnvironmentRecommendationsMenuItem";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -34,7 +38,8 @@ export interface ComponentProps {
 /*
  * An environment's menu in App Platforms: what runs in it - its apps and
  * the instances running them, as a Kubernetes cluster's menu leads with its
- * workloads - the telemetry they send, its incidents and alerts, and its
+ * workloads - the monitors OneUptime recommends for its apps, the telemetry
+ * they send, its incidents, alerts and scheduled maintenance, and its
  * settings. A resource in a cloud account has a menu of its own, in Cloud
  * (Pages/Cloud/View/SideMenu).
  */
@@ -49,6 +54,10 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
   const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
     Array<AlertState>
   >([]);
+  const [
+    activeScheduledMaintenanceStates,
+    setActiveScheduledMaintenanceStates,
+  ] = useState<Array<ScheduledMaintenanceState>>([]);
 
   const fetchStates: PromiseVoidFunction = async (): Promise<void> => {
     if (!projectId) {
@@ -66,6 +75,16 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
     try {
       setUnresolvedAlertStates(
         await AlertStateUtil.getUnresolvedAlertStates(projectId),
+      );
+    } catch {
+      // ignore — the badge simply shows no count
+    }
+
+    try {
+      setActiveScheduledMaintenanceStates(
+        await ScheduledMaintenanceStateUtil.getActiveScheduledMaintenanceStates(
+          projectId,
+        ),
       );
     } catch {
       // ignore — the badge simply shows no count
@@ -90,6 +109,24 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Info}
+        />
+        {/*
+         * The monitors OneUptime recommends for its apps, to add to one app
+         * or to every app at once, as a cloud resource's menu has them after
+         * its Overview. The badge counts what is still to set up
+         * (CloudEnvironmentRecommendationsMenuItem).
+         */}
+        <CloudEnvironmentRecommendationsMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          environmentId={props.modelId}
         />
         <SideMenuItem
           link={{
@@ -223,6 +260,36 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
               unresolvedAlertStates.map((state: AlertState) => {
                 return state.id!;
               }),
+            ),
+          }}
+        />
+        {/*
+         * The maintenance events that hold it: while one is in progress the
+         * monitors of its apps open nothing. The badge counts the ones not
+         * over yet, as a cloud resource's does.
+         */}
+        <CountModelSideMenuItem<ScheduledMaintenance>
+          link={{
+            title: "Scheduled Maintenance",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Clock}
+          badgeType={BadgeType.WARNING}
+          modelType={ScheduledMaintenance}
+          countQuery={{
+            projectId: projectId!,
+            cloudResources: new Includes([props.modelId]),
+            currentScheduledMaintenanceStateId: new Includes(
+              activeScheduledMaintenanceStates.map(
+                (state: ScheduledMaintenanceState) => {
+                  return state.id!;
+                },
+              ),
             ),
           }}
         />

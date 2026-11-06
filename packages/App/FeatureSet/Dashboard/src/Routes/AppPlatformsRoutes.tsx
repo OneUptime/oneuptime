@@ -23,6 +23,8 @@ import AppPlatformEnvironmentInstances from "../Pages/AppPlatforms/View/Instance
 import AppPlatformEnvironmentFeed from "../Pages/AppPlatforms/View/Feed";
 import AppPlatformEnvironmentIncidents from "../Pages/AppPlatforms/View/Incidents";
 import AppPlatformEnvironmentAlerts from "../Pages/AppPlatforms/View/Alerts";
+import AppPlatformEnvironmentScheduledMaintenance from "../Pages/AppPlatforms/View/ScheduledMaintenance";
+import AppPlatformEnvironmentRecommendations from "../Pages/AppPlatforms/View/Recommendations";
 import AppPlatformEnvironmentDocumentation from "../Pages/AppPlatforms/View/Documentation";
 import AppPlatformEnvironmentSettings from "../Pages/AppPlatforms/View/Settings";
 import AppPlatformEnvironmentOwners from "../Pages/AppPlatforms/View/Owners";
@@ -299,6 +301,36 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <AppPlatformEnvironmentScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <AppPlatformEnvironmentRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS
+                ] as Route
               }
             />
           }

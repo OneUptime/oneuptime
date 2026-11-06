@@ -13,7 +13,12 @@ import {
 } from "Common/Utils/Telemetry/SavedViewScope";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
 import RecommendationsPage from "../../../Components/Recommendations/RecommendationsPage";
+import { useRecommendationsToSetUpCount } from "../../../Components/Recommendations/RecommendationsCount";
+import CloudEnvironmentMaintenanceNotice, {
+  CloudEnvironmentMaintenanceNoticeScope,
+} from "../../../Components/AppPlatforms/CloudEnvironmentMaintenanceNotice";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import { CloudAppTabName } from "./AppTabs";
 import { CloudInstancesTable } from "./Instances";
 import {
   countLiveInstancesByApp,
@@ -74,10 +79,17 @@ import React, {
  *   - Instances, Logs and Traces: its own, not its environment's;
  *   - Recommendations: the monitors OneUptime recommends for it - its
  *     requests failing, slowing or stopping, read from its own telemetry
- *     (CloudAppAlertTemplates) - which the header's Set up alerts opens.
+ *     (CloudAppAlertTemplates) - which the header's Set up alerts opens,
+ *     with a count of the ones still to set up, as a resource's menu
+ *     counts its own.
+ *
+ * While a scheduled maintenance event holds its environment, a notice under
+ * the header says so: its monitors open no incidents or alerts until the
+ * event ends (CloudEnvironmentMaintenanceNotice).
  *
  * A tab can be opened from its address (?tab=Revisions), which the
- * environment's feed lines and the Overview's deploys link to.
+ * environment's feed lines, the Overview's deploys and the environment's
+ * Recommendations link to.
  */
 
 export const APP_NOT_FOUND: string = translationKey("App not found.");
@@ -89,14 +101,8 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
 
-export enum CloudAppTabName {
-  Overview = "Overview",
-  Revisions = "Revisions",
-  Instances = "Instances",
-  Logs = "Logs",
-  Traces = "Traces",
-  Recommendations = "Recommendations",
-}
+// The tabs, by the name an address opens one by (AppTabs).
+export { CloudAppTabName };
 
 interface LoadedApp {
   app: CloudApp;
@@ -235,6 +241,19 @@ const AppPlatformApp: FunctionComponent<
   } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+
+  /*
+   * How many of the app's recommended monitors are still to set up, beside
+   * its Recommendations tab's name - read as its own tab reads them, and
+   * again when the tab sets some up. An app whose telemetry cannot be told
+   * apart is offered none: nothing is read for it.
+   */
+  const recommendationsToSetUp: number | undefined =
+    useRecommendationsToSetUpCount({
+      resourceType: MonitorRecommendationResourceType.CloudApp,
+      resourceId: appId,
+      isEnabled: Boolean(loaded && isCloudAppScoped(loaded.app)),
+    });
 
   const load: (showLoader: boolean) => void = (showLoader: boolean): void => {
     if (showLoader) {
@@ -449,6 +468,8 @@ const AppPlatformApp: FunctionComponent<
     },
     {
       name: CloudAppTabName.Recommendations,
+      // Zero is no count: a cleared list should look cleared.
+      countBadge: recommendationsToSetUp || undefined,
       children: (
         <RecommendationsPage
           resourceType={MonitorRecommendationResourceType.CloudApp}
@@ -498,6 +519,14 @@ const AppPlatformApp: FunctionComponent<
               }
             />
           }
+        />
+        {/*
+         * Planned work on its environment holds its monitors: said before
+         * its tabs, while an event holds it.
+         */}
+        <CloudEnvironmentMaintenanceNotice
+          environmentId={environmentId}
+          scope={CloudEnvironmentMaintenanceNoticeScope.App}
         />
         {/*
          * Six tabs wrap onto a second line where the column is narrow, as a

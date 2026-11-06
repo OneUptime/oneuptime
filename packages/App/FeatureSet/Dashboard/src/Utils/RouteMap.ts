@@ -671,6 +671,8 @@ export const AppPlatformsRoutePath: Dictionary<string> = {
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
@@ -6468,6 +6470,22 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/app-platforms/${
       AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[
+        PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE
+      ]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[
+        PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS
+      ]
     }`,
   ),
 
