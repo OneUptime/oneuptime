@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45254,
-    "untranslated": 11314
+    "keys": 45208,
+    "untranslated": 11362
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -51,7 +51,6 @@
     "HAProxy",
     "HEC URL",
     "HH",
-    "Heartbeat URL",
     "Hello world",
     "INP 120 ms",
     "INP 168 ms",
@@ -89,7 +88,6 @@
     "PV",
     "PVC",
     "Passthrough",
-    "Ping",
     "Pod · data",
     "Pod · production",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",

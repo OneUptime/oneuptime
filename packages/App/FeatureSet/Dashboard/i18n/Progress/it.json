@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45254,
-    "untranslated": 11619
+    "keys": 45208,
+    "untranslated": 11661
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -258,7 +258,6 @@
     "Script",
     "Server",
     "Serverless",
-    "Service Level Objective",
     "Service Mesh",
     "Singapore (+65)",
     "Slot",

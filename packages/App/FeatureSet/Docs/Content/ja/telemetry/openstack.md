@@ -1420,7 +1420,7 @@ sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "o
 | `GET /servers`、半数が応答した時間 | 48 ms | 32 ms |
 | `GET /v2.0/networks`、半数が応答した時間 | 16 ms | 18 ms |
 | `GET /v2/images`、半数が応答した時間 | 5 ms | 8 ms |
-| 静かな 2 分間の CPU、全サービスの合計 | 3.0 s | 3.9 s |
+| 静かな二分間の CPU、全サービスの合計 | 3.0 s | 3.9 s |
 
 1 回の起動で約 220 のスパンができ、Collector はそのうち約 110、約 75 KB を転送します。アイドル状態の 1 分間では約 33 のスパンができ、転送するのは約 2 です。`nova-compute` がコンダクターにオブジェクトの読み取りや保存を頼むスパンは、失敗したものでない限り捨てるからです。これらは、起動の RPC スパンの大半と、アイドル状態のクラウドのほぼすべてを占めます。残したい場合は、Collector のパイプラインから `filter/nova-object-calls` を外してください。
 

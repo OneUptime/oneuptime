@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45254,
-    "untranslated": 11613
+    "keys": 45208,
+    "untranslated": 11661
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -321,7 +321,6 @@
     "message",
     "min",
     "mm",
-    "monitor",
     "ms",
     "name",
     "nova-compute",
