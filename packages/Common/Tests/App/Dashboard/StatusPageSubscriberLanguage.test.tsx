@@ -414,9 +414,7 @@ describe("the Language column of the subscriber lists", () => {
     expect(column.getExportValue!(subscriberWith("ja"))).toBe(
       "日本語 (Japanese)",
     );
-    expect(column.getExportValue!(subscriberWith())).toBe(
-      "Deutsch (default)",
-    );
+    expect(column.getExportValue!(subscriberWith())).toBe("Deutsch (default)");
     expect(
       getSubscriberLanguageText({
         translator: ENGLISH,
