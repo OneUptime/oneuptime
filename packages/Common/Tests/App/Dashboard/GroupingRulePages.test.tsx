@@ -160,6 +160,8 @@ import {
   GroupingRuleKind,
   LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
   LegacyDefaultAssigneeAction,
+  MINIMUM_COUNT_FIELD_NAMES,
+  MINIMUM_COUNT_SETTING_FIELD_KEY,
   getGroupingRuleSummarySelect,
   getNewGroupingRuleValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
@@ -756,6 +758,7 @@ describe.each(PAGES)(
               EPISODE_OWNERS_FIELD_KEY,
               LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
               "episodeMemberRoleAssignments",
+              MINIMUM_COUNT_SETTING_FIELD_KEY,
               "reopenWindowSetting",
               "resolveDelaySetting",
               "inactivityTimeoutSetting",
@@ -769,6 +772,7 @@ describe.each(PAGES)(
               "onCallDutyPolicies",
               EPISODE_OWNERS_FIELD_KEY,
               LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+              MINIMUM_COUNT_SETTING_FIELD_KEY,
               "reopenWindowSetting",
               "resolveDelaySetting",
               "inactivityTimeoutSetting",
@@ -793,7 +797,7 @@ describe.each(PAGES)(
 
       expect(headed).toEqual([
         ["onCallDutyPolicies", "On-Call & Ownership"],
-        ["reopenWindowSetting", "Episode Lifecycle"],
+        [MINIMUM_COUNT_SETTING_FIELD_KEY, "Episode Lifecycle"],
         ["description", "Details"],
       ]);
 
@@ -818,6 +822,58 @@ describe.each(PAGES)(
       expect(findByFormKey("onCallDutyPolicies").description).toBe(
         "On-call policies to fire when an episode is created by this rule.",
       );
+    });
+
+    test("Wait for more incidents' chip says the count while it is on, and nothing while it is off", () => {
+      renderPage(pageCase);
+
+      const names: { enabled: string; count: string } =
+        MINIMUM_COUNT_FIELD_NAMES[pageCase.kind];
+      const noun: string =
+        pageCase.kind === GroupingRuleKind.Incident ? "incidents" : "alerts";
+      const field: ModelField<any> = findByFormKey(
+        MINIMUM_COUNT_SETTING_FIELD_KEY,
+      );
+
+      expect(field.title).toBe(
+        GROUPING_RULE_COPY.minimumCountTitle[pageCase.kind],
+      );
+      expect(field.formOnly).toBe(true);
+      expect(field.customElementDrawsOwnLabel).toBe(true);
+      expect(field.getFoldedValue).toBeDefined();
+      expect(
+        field.getFoldedValue!({ [names.enabled]: true, [names.count]: 3 }),
+      ).toBe(`3 ${noun}`);
+      expect(
+        field.getFoldedValue!({ [names.enabled]: false, [names.count]: 3 }),
+      ).toBeNull();
+      expect(
+        field.getFoldedValue!({ [names.enabled]: true, [names.count]: 1 }),
+      ).toBeNull();
+
+      // It checks the count only while it is on.
+      expect(
+        field.customValidation!({ [names.enabled]: true, [names.count]: "1" }),
+      ).toBe("Enter a whole number between 2 and 100.");
+      expect(
+        field.customValidation!({
+          [names.enabled]: false,
+          [names.count]: "1",
+        }),
+      ).toBeNull();
+
+      // Its two columns are registered, never drawn, so the form loads and saves them.
+      for (const column of [names.enabled, names.count]) {
+        const registered: ModelField<any> | undefined =
+          latestTable().formFields.find(
+            (candidate: ModelField<any>): boolean => {
+              return fieldKey(candidate) === column;
+            },
+          );
+
+        expect(registered).toBeDefined();
+        expect(registered!.showIf?.({})).toBe(false);
+      }
     });
 
     test("a lifecycle setting's chip says its minutes while it is on, and nothing while it is off", () => {

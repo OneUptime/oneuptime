@@ -157,6 +157,7 @@ export const SubscriberEmailText: {
   readonly confirmSubscriptionSubject: string;
   readonly subscribedSubject: string;
   readonly manageSubscriptionSubject: string;
+  readonly reportSubject: string;
 } = {
   incidentSubject: translationKey("[Incident] {{title}}"),
   // The heading of a state change email, with and without its resources.
@@ -175,6 +176,8 @@ export const SubscriberEmailText: {
   manageSubscriptionSubject: translationKey(
     "Manage your Subscription for {{statusPageName}}",
   ),
+  // The uptime report's (StatusPageService.sendEmailReport).
+  reportSubject: translationKey("[Report] {{statusPageName}}"),
 };
 
 export default class SubscriberMessageText {

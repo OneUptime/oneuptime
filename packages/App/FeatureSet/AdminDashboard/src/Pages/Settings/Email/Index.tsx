@@ -583,23 +583,26 @@ const Settings: FunctionComponent = (): ReactElement => {
         <></>
       )}
 
-      {GLOBAL_EMAIL_PROVIDERS.map(
-        (provider: {
-          serverType: EmailServerType;
-          transport: GlobalEmailProviderTransport;
-        }): ReactElement => {
-          if (emailServerType !== provider.serverType) {
-            return <React.Fragment key={provider.transport}></React.Fragment>;
-          }
+      {/* One element: Page's children are elements, not an array among them. */}
+      <>
+        {GLOBAL_EMAIL_PROVIDERS.map(
+          (provider: {
+            serverType: EmailServerType;
+            transport: GlobalEmailProviderTransport;
+          }): ReactElement => {
+            if (emailServerType !== provider.serverType) {
+              return <React.Fragment key={provider.transport}></React.Fragment>;
+            }
 
-          return (
-            <EmailProviderSettingsCard
-              key={provider.transport}
-              transport={provider.transport}
-            />
-          );
-        },
-      )}
+            return (
+              <EmailProviderSettingsCard
+                key={provider.transport}
+                transport={provider.transport}
+              />
+            );
+          },
+        )}
+      </>
     </Page>
   );
 };
