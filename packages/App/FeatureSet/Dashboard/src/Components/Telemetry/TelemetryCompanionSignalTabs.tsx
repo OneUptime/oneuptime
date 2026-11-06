@@ -76,6 +76,13 @@ export interface ComponentProps {
    * window was empty.
    */
   isSnapshotZoomed?: boolean | undefined;
+  /*
+   * What the tabs' copy calls the window they show, when the host picks it
+   * rather than the monitor: an incident's metric investigation hands the
+   * tabs the time range picked on it ("the selected time range"). Left out,
+   * the snapshot window, or its zoomed part.
+   */
+  windowName?: string | undefined;
   // Shared with the page's own preview cards (may be undefined — no window).
   snapshotWindowAlert?: ReactElement | undefined;
   /*
@@ -568,7 +575,8 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
     companions.exceptions,
   );
   const primaryType: TelemetryType | null = companions.primaryType;
-  const windowName: string = getWindowName(props.isSnapshotZoomed);
+  const windowName: string =
+    props.windowName || getWindowName(props.isSnapshotZoomed);
 
   const handleTabChange: (tab: Tab) => void = useCallback((_tab: Tab): void => {
     // Selection is transient; Tabs owns which panel is mounted.

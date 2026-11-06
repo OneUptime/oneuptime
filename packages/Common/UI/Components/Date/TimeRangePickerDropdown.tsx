@@ -30,6 +30,33 @@ export interface TimeRangePickerPresetOption {
 }
 
 /*
+ * A time range anchored on what the page is about rather than on now, such
+ * as "Around the start" of an incident. The page works its window out; the
+ * picker lists it and says when it is the one picked.
+ */
+export interface TimeRangePickerMomentOption {
+  id: string;
+  // English. Looked up in the reader's language.
+  label: string;
+  // The window it covers, already written ("Nov 5, 05:14 – 06:14").
+  detail?: string | undefined;
+}
+
+export interface TimeRangePickerMoments {
+  // English heading above them ("Around this incident").
+  heading: string;
+  // English heading above the presets relative to now that follow them.
+  presetsHeading: string;
+  options: Array<TimeRangePickerMomentOption>;
+  /*
+   * The one the picker's value came from, named on the button and marked in
+   * the list in place of a preset or Custom Range; null for none.
+   */
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}
+
+/*
  * How big the picker's button is drawn.
  *
  * Compact is the small chip an explorer's toolbar and an overview page's
@@ -54,6 +81,14 @@ export interface ComponentProps {
   dropdownWidthInPx: number;
   // Compact unless said otherwise.
   size?: TimeRangePickerSize | undefined;
+  /*
+   * Ranges anchored on what the page is about, listed first under their
+   * own heading, with the presets relative to now under another. Left out,
+   * the picker lists the presets alone, as it always did.
+   */
+  moments?: TimeRangePickerMoments | undefined;
+  // The presets relative to now to list; all of them when left out.
+  presetOptions?: Array<TimeRangePickerPresetOption> | undefined;
 }
 
 // The button's box at each size; its colours follow whether it is open.
@@ -221,8 +256,33 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
     setIsOpen(false);
   }, [props.value]);
 
-  const buttonLabel: string = getTimeRangeButtonLabel(props.value);
+  const moments: TimeRangePickerMoments | undefined =
+    props.moments && props.moments.options.length > 0
+      ? props.moments
+      : undefined;
+  const selectedMoment: TimeRangePickerMomentOption | undefined =
+    moments && moments.selectedId
+      ? moments.options.find((option: TimeRangePickerMomentOption) => {
+          return option.id === moments.selectedId;
+        })
+      : undefined;
+  const presetOptions: Array<TimeRangePickerPresetOption> =
+    props.presetOptions || TIME_RANGE_PRESET_OPTIONS;
+
+  /*
+   * A range anchored on the page is named on the button ("Around the
+   * start"), with the window it covers as the tooltip; anything else as it
+   * always was.
+   */
+  const rangeLabel: string = getTimeRangeButtonLabel(props.value);
+  const buttonLabel: string = selectedMoment ? selectedMoment.label : rangeLabel;
   const size: TimeRangePickerSize = props.size || TimeRangePickerSize.Compact;
+
+  const activeOptionClassName: string =
+    "bg-indigo-50 font-medium text-indigo-700";
+  const idleOptionClassName: string = "text-gray-700 hover:bg-gray-50";
+  const headingClassName: string =
+    "px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400";
 
   /*
    * In a row too narrow for a custom range's two dates (a phone), the
@@ -239,7 +299,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
         aria-expanded={isOpen}
         title={
           props.value.range === TimeRange.CUSTOM
-            ? translator.translateText(buttonLabel)
+            ? selectedMoment?.detail || translator.translateText(rangeLabel)
             : undefined
         }
         data-size={size}
@@ -275,38 +335,82 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
           )} top-full z-50 mt-1 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg`}
         >
           {/* Preset options */}
-          <div className="max-h-64 overflow-y-auto py-1">
-            {TIME_RANGE_PRESET_OPTIONS.map(
-              (option: TimeRangePickerPresetOption) => {
-                const isActive: boolean = props.value.range === option.range;
+          <div
+            className={`${moments ? "max-h-80" : "max-h-64"} overflow-y-auto py-1`}
+          >
+            {moments ? (
+              <>
+                {/*
+                 * The ranges anchored on the page first, each with the
+                 * window it covers, then the presets relative to now.
+                 */}
+                <p className={headingClassName}>
+                  {translator.translateText(moments.heading)}
+                </p>
+                {moments.options.map((option: TimeRangePickerMomentOption) => {
+                  const isActive: boolean = selectedMoment?.id === option.id;
 
-                return (
-                  <button
-                    key={option.range}
-                    type="button"
-                    className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
-                      isActive
-                        ? "bg-indigo-50 font-medium text-indigo-700"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                    onClick={() => {
-                      handlePresetSelect(option.range);
-                    }}
-                  >
-                    {translator.translateText(option.label)}
-                  </button>
-                );
-              },
-            )}
+                  return (
+                    <button
+                      key={`moment-${option.id}`}
+                      type="button"
+                      data-testid={`${props.dataTestIdPrefix}-moment-${option.id}`}
+                      className={`flex w-full flex-col items-start px-3 py-1.5 text-left text-sm transition-colors ${
+                        isActive ? activeOptionClassName : idleOptionClassName
+                      }`}
+                      onClick={() => {
+                        moments.onSelect(option.id);
+                        setIsOpen(false);
+                      }}
+                    >
+                      <span>{translator.translateText(option.label)}</span>
+                      {option.detail ? (
+                        <span
+                          className={`text-xs font-normal ${
+                            isActive ? "text-indigo-600" : "text-gray-500"
+                          }`}
+                        >
+                          {option.detail}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+                <p
+                  className={`${headingClassName} mt-1 border-t border-gray-100`}
+                >
+                  {translator.translateText(moments.presetsHeading)}
+                </p>
+              </>
+            ) : null}
+            {presetOptions.map((option: TimeRangePickerPresetOption) => {
+              const isActive: boolean =
+                !selectedMoment && props.value.range === option.range;
+
+              return (
+                <button
+                  key={option.range}
+                  type="button"
+                  className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
+                    isActive ? activeOptionClassName : idleOptionClassName
+                  }`}
+                  onClick={() => {
+                    handlePresetSelect(option.range);
+                  }}
+                >
+                  {translator.translateText(option.label)}
+                </button>
+              );
+            })}
 
             {/* Custom option — opens the editor in a modal */}
             <button
               type="button"
               data-testid={`${props.dataTestIdPrefix}-custom-option`}
               className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
-                props.value.range === TimeRange.CUSTOM
-                  ? "bg-indigo-50 font-medium text-indigo-700"
-                  : "text-gray-700 hover:bg-gray-50"
+                !selectedMoment && props.value.range === TimeRange.CUSTOM
+                  ? activeOptionClassName
+                  : idleOptionClassName
               }`}
               onClick={openCustomModal}
             >
