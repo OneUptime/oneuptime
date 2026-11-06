@@ -34,6 +34,8 @@ const NetworkDeviceMonitorStepForm: FunctionComponent<ComponentProps> = (
           labelField="name"
           valueField="_id"
           placeholder="Select a network device"
+          // Required: another device is picked in its place, never none.
+          isClearable={false}
           value={props.monitorStepNetworkDeviceMonitor.networkDeviceId}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             props.onChange({

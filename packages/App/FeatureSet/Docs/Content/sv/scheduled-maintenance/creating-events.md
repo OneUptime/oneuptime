@@ -70,12 +70,12 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 
 Två saker fyller i formuläret åt dig medan du arbetar:
 
-- **Länkade resurser.** När du väljer en monitor läggs de värdar, kluster, tjänster och andra resurser den är länkad till under **Andra påverkade resurser**, och en rad under fältet nämner dem. Ta bort dem du inte vill ha. Molnresurser läggs inte till: en underhållshändelse innehåller inga.
+- **Länkade resurser.** När du väljer en monitor läggs de värdar, kluster, tjänster och andra resurser den är länkad till under **Andra påverkade resurser**, och en rad under fältet nämner dem. Ta bort dem du inte vill ha. Molnresurser läggs också till: medan händelsen pågår öppnar deras monitorer ingen incident och inget larm.
 - **Föreslagna statussidor.** Under **Visa händelse på dessa statussidor** föreslås de sidor som visar dina monitorer: klicka på en sidas namn för att lägga till den, eller på **Lägg till alla**. Ingenting väljs åt dig. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser).
 
 ## Börja från en resurs eller en mall
 
-På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en tjänst eller en nätverksplats öppnar **Skapa schemalagt underhållsevenemang** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
+På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en molnresurs, en tjänst eller en nätverksplats öppnar **Skapa schemalagt underhållsevenemang** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
 
 **Skapa från mall**, bredvid knappen för att skapa, ber dig att **Välj mall för schemalagt underhåll** och öppnar sedan formuläret ifyllt från mallen. Se [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates).
 

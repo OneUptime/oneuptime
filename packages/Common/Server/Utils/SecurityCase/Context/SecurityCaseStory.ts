@@ -51,7 +51,9 @@ import {
 import { readChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
 import {
   CloudChangeTitleFacts,
+  CloudHealthTitleFacts,
   readCloudChangeTitleFacts,
+  readCloudHealthTitleFacts,
 } from "../../../../Utils/Telemetry/CloudChangeTitle";
 import AlertService from "../../../Services/AlertService";
 import ChangeEventService from "../../../Services/ChangeEventService";
@@ -617,12 +619,18 @@ export default class SecurityCaseStory {
 
       const version: string | undefined = fields["version"];
 
-      // A cloud change's title is worded from these on the page.
+      // A cloud change's title, or a health event's, is worded from these on the page.
+      const stored: {
+        title: string | undefined;
+        attributes: Dictionary<unknown>;
+      } = {
+        title: row.title,
+        attributes: (row.attributes as Dictionary<unknown>) || {},
+      };
       const cloudChange: CloudChangeTitleFacts | null =
-        readCloudChangeTitleFacts({
-          title: row.title,
-          attributes: (row.attributes as Dictionary<unknown>) || {},
-        });
+        readCloudChangeTitleFacts(stored);
+      const cloudHealth: CloudHealthTitleFacts | null =
+        readCloudHealthTitleFacts(stored);
 
       items.push({
         key: `change:${row._id?.toString() || time}`,
@@ -631,6 +639,7 @@ export default class SecurityCaseStory {
         title: cutStoryText(row.title || row.eventType || "Change"),
         ...(version ? { detail: cutStoryText(version) } : {}),
         ...(cloudChange ? { cloudChange } : {}),
+        ...(cloudHealth ? { cloudHealth } : {}),
         stateName: row.eventType || "change",
         links: {
           resource: {

@@ -13,6 +13,8 @@ import {
   buildCloudMonitoredResourceIdentifier,
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import { getCloudAlertTemplateReadingKeys } from "../../../Types/Monitor/CloudAlertTemplates";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -220,12 +222,24 @@ export function collectCloudResourceReadings(
             const provider: string = target.resource.provider;
             const key: string | null = getCloudReadingKey(provider, metricName);
 
+            /*
+             * What the health rules judge and the page leads with, and every
+             * metric a recommended monitor of the type reads whose stored
+             * name the read decides (an Azure metric's aggregation): the
+             * monitor reads it under the name its reading keeps.
+             */
             if (
               !key ||
-              !getCloudReadingKeysForType(
-                provider,
-                target.resource.resourceType,
-              ).has(key)
+              !(
+                getCloudReadingKeysForType(
+                  provider,
+                  target.resource.resourceType,
+                ).has(key) ||
+                getCloudAlertTemplateReadingKeys({
+                  provider,
+                  resourceType: target.resource.resourceType,
+                }).has(key)
+              )
             ) {
               continue;
             }
@@ -251,6 +265,14 @@ export function collectCloudResourceReadings(
               entry.readings[key] = {
                 value,
                 time: new Date(timeMs).toISOString(),
+                /*
+                 * An Azure metric's stored name says the aggregation its key
+                 * leaves out, which a monitor of it must read
+                 * (CloudResourceReading.metric).
+                 */
+                ...(provider === CloudProvider.Azure
+                  ? { metric: metricName }
+                  : {}),
               };
             }
           }

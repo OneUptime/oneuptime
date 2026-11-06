@@ -3,6 +3,7 @@ import {
   ManagedCloudPlatformDescriptor,
   getManagedCloudPlatformDescriptor,
 } from "../../../Types/Cloud/CloudPlatform";
+import { isCloudConnectionDeliveredResource } from "../../../Types/Cloud/CloudConnectionTelemetry";
 import { isTrackableVersion } from "./ChangeDetection/TelemetryChangeSignals";
 import { shortenEcsClusterArn } from "../../../Utils/Telemetry/CloudInstanceIdentity";
 
@@ -32,6 +33,18 @@ export { shortenEcsClusterArn };
  * Each platform's attributes are in its descriptor (MANAGED_CLOUD_PLATFORMS),
  * which the docs pages are held to. The first attribute present wins, so a
  * resource with no detector still has an app - its service.name.
+ *
+ * What a cloud connection delivers itself names no app
+ * (isCloudConnectionDeliveredResource): its service.name is the
+ * connection's telemetry service, and the rest names an AWS resource the
+ * way CloudWatch does - an App Runner service, an Elastic Beanstalk
+ * environment, an ECS task definition family without the cluster that
+ * keeps two apps of one family apart - never an app the way its own
+ * telemetry names it. An app made from it would be one named after the
+ * connection, or a second row beside the app its own telemetry makes. So
+ * a stream's App Runner, Beanstalk and ECS logs are their environment's
+ * (OtelIngestBaseService still discovers it from their platform, account
+ * and Region), and each resource's own page in Cloud has them too.
  *
  * Pure, apart from hashing the key: the ingest path (OtelIngestBaseService)
  * and the tests call it with a getter over the resource's attributes.
@@ -161,7 +174,8 @@ function readImage(getAttribute: CloudAppAttributeGetter): string | null {
 
 /*
  * The app (and revision) a resource on `platform` belongs to, or null when
- * the platform is not a managed one or the resource names no app.
+ * the platform is not a managed one, the resource names no app, or a cloud
+ * connection delivered it (see the top of this file).
  */
 export function resolveCloudAppIdentity(data: {
   platform: string;
@@ -170,7 +184,7 @@ export function resolveCloudAppIdentity(data: {
   const descriptor: ManagedCloudPlatformDescriptor | null =
     getManagedCloudPlatformDescriptor(data.platform);
 
-  if (!descriptor) {
+  if (!descriptor || isCloudConnectionDeliveredResource(data.getAttribute)) {
     return null;
   }
 

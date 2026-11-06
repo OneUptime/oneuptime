@@ -400,7 +400,7 @@ const LogRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
       {props.error && (
         <FieldError
           message={props.error}
-          className="text-sm text-red-600"
+          className="text-sm"
           dataTestId="log-recording-rule-definition-error"
         />
       )}

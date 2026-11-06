@@ -80,6 +80,7 @@ Der Dialog fragt alle paar Sekunden, was angekommen ist. Firehose stellt innerha
 | Metriken | An den Cloud-Ressourcen, die sie messen, mit den Namen und Attributen, die ihnen die Lesevorgänge der Verbindung geben |
 | Protokolle | Im Protokoll-Explorer, unter dem Telemetriedienst der Verbindung, mit Konto, Region und Protokollgruppe als Attributen |
 | Protokolle einer Protokollgruppe, die AWS nach einer Ressource benennt | Auch an dieser Ressource: Ihre Seite in Cloud erhält einen Tab **Protokolle** |
+| Protokolle eines App-Runner-Dienstes, einer Elastic-Beanstalk-Umgebung oder eines ECS-Tasks oder -Clusters | Auch an ihrer Umgebung in App-Plattformen: auf deren Tab **Protokolle** |
 
 Eine Protokollgruppe wird unter einer Ressource abgelegt, wenn AWS sie nach einer benannt hat:
 
@@ -98,7 +99,9 @@ Eine Protokollgruppe wird unter einer Ressource abgelegt, wenn AWS sie nach eine
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Jedes Protokoll trägt die ID der Ressource als `cloud.resource_id`, und die Protokolle einer Lambda-Funktion tragen zusätzlich `faas.name`, sodass sie auch an der Funktion unter Serverless erscheinen. Eine Protokollgruppe mit einem anderen Namen wird trotzdem gestreamt, unter ihrem Konto und ihrer Region. Der Schweregrad eines Protokolls ist der, den seine Nachricht nennt, so wie Lambda ihn schreibt.
+Jedes Protokoll trägt die ID der Ressource als `cloud.resource_id`, und die Protokolle einer Lambda-Funktion tragen zusätzlich `faas.name`, sodass sie auch an der Funktion unter Serverless erscheinen. Eine Protokollgruppe mit einem anderen Namen wird trotzdem gestreamt, unter ihrem Konto und ihrer Region. Der Schweregrad eines Protokolls ist der, den seine Nachricht nennt, so wie Lambda, PostgreSQL oder MySQL ihn schreibt.
+
+Die Protokolle eines App-Runner-Dienstes, einer Elastic-Beanstalk-Umgebung und eines ECS-Clusters tragen außerdem `cloud.platform`, ebenso die eines ECS-Tasks aus der Protokollgruppe, die die ECS-Konsole `/ecs/<task-definition-family>` nennt, mit `aws.ecs.task.family`. Mit Konto und Region landen sie damit an ihrer Umgebung in App-Plattformen, die mit ihnen erscheint, falls noch keine App an sie gemeldet hat. Eine App entsteht daraus nicht: Eine App wird nach ihrer eigenen Telemetrie benannt, wie [Cloud-Umgebungen](/docs/telemetry/cloud-environments) beschreibt.
 
 ## Was der Stack anlegt
 

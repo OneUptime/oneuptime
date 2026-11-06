@@ -577,14 +577,25 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                * read "Monitor · ..." aloud and under the pointer too.
                */}
               <span className="text-indigo-300">{" · "}</span>
+              {/*
+               * What is picked, set apart from the chip's name: an account
+               * id after a Persian name ("4109-2277-8841") kept its digit
+               * groups in the wrong order, and a Latin name its words.
+               */}
               <span className="font-semibold">
-                {isEmptyOperator
-                  ? translator.translateText(FILTER_OPERATOR_LABELS[operator])
-                  : operator === "is_not"
-                    ? translator.translateTemplate("not {{value}}", {
-                        value: displayValue,
-                      })
-                    : displayValue}
+                {isEmptyOperator ? (
+                  translator.translateText(FILTER_OPERATOR_LABELS[operator])
+                ) : operator === "is_not" ? (
+                  translator.translateTemplate(
+                    "not {{value}}",
+                    {
+                      value: displayValue,
+                    },
+                    { setsValuesApart: true },
+                  )
+                ) : (
+                  <bdi data-testid="filter-chip-value">{displayValue}</bdi>
+                )}
               </span>
             </span>
           </>

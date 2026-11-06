@@ -35,6 +35,10 @@ import SetupGuideSteps, {
 } from "./SetupGuideSteps";
 import SetupGuideTopics, { SetupGuideTopicView } from "./SetupGuideTopics";
 import SetupGuideMarkdown from "./SetupGuideMarkdown";
+import {
+  getReadingDirection,
+  ReadingDirection,
+} from "Common/Types/ReadingDirection";
 
 /*
  * Every in-app "connect this resource" guide: Kubernetes, Docker, Podman,
@@ -249,6 +253,13 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
 
   const keyStep: SetupGuideKeyStep = content.keyStep || {};
   const wrapLongLines: boolean = Boolean(content.wrapLongLines);
+  /*
+   * A guide in the reader's language reads their way, every block of it
+   * (SetupGuideContent.language); any other, each block its own way.
+   */
+  const direction: ReadingDirection | undefined = content.language
+    ? getReadingDirection(content.language)
+    : undefined;
 
   const steps: Array<SetupGuideStepView> = [
     ...(content.needsNoKey
@@ -287,6 +298,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
               <SetupGuideMarkdown
                 text={step.markdown}
                 wrapLongLines={wrapLongLines}
+                direction={direction}
               />
             )}
             {step.variants && step.variants.length > 0 && (
@@ -303,6 +315,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
                         <SetupGuideMarkdown
                           text={variant.markdown}
                           wrapLongLines={wrapLongLines}
+                          direction={direction}
                         />
                       ),
                     };
@@ -312,7 +325,10 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
             )}
             {step.note && (
               <div data-testid="setup-guide-step-note">
-                <SetupGuideMarkdown text={translate(step.note)} />
+                <SetupGuideMarkdown
+                  text={translate(step.note)}
+                  direction={direction}
+                />
               </div>
             )}
             {/*
@@ -324,6 +340,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
                 <SetupGuideMarkdown
                   text={step.details}
                   wrapLongLines={wrapLongLines}
+                  direction={direction}
                 />
               </div>
             )}
@@ -344,6 +361,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
         <SetupGuideMarkdown
           text={topic.markdown}
           wrapLongLines={wrapLongLines}
+          direction={direction}
         />
       ),
     };
@@ -388,7 +406,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
 
       {content.intro && (
         <div className="mb-6">
-          <SetupGuideMarkdown text={content.intro} />
+          <SetupGuideMarkdown text={content.intro} direction={direction} />
         </div>
       )}
 
@@ -407,11 +425,12 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
                 return `- ${line}`;
               })
               .join("\n")}
+            direction={direction}
           />
         </div>
       )}
 
-      <SetupGuideSteps steps={steps} />
+      <SetupGuideSteps steps={steps} direction={direction} />
 
       {(advanced.length > 0 || troubleshooting.length > 0) && (
         <div className="mt-8 space-y-3">

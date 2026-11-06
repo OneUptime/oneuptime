@@ -30,6 +30,7 @@ import {
   PageAbout,
 } from "../../../../../Types/Workflow/Components/OnCallPageSettings";
 import getJestMockFunction, { MockFunction } from "../../../../MockType";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../../../UI/Components/Forms/Fields/FieldError";
 import "@testing-library/jest-dom";
 import {
   cleanup,
@@ -282,6 +283,31 @@ describe("a stored value that is none of the answers", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       `This is set to “${said}”`,
+    );
+  });
+
+  /*
+   * The note is the setting's error, drawn as every field's is (FieldError):
+   * the error's own red, which reads at 6.5:1 - the light red it had was
+   * 2.8:1 - said at once, under the rows.
+   */
+  test("is drawn as every field's error is, in its red", () => {
+    renderField({ value: "postmortem" });
+
+    const note: HTMLElement = screen.getByTestId(
+      "workflow-argument-about-unknown",
+    );
+
+    expect(note).toHaveAttribute("role", "alert");
+    expect(note).toHaveClass("mt-1", "text-sm", FIELD_ERROR_COLOR_CLASS_NAME);
+    expect(note.className).not.toContain("text-red-400");
+  });
+
+  test("a value written as a template is said as it is written, its braces and all", () => {
+    renderField({ value: "{{local.components.trigger.about}}" });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This is set to “{{local.components.trigger.about}}”, which is not one of the choices. Pick one.",
     );
   });
 

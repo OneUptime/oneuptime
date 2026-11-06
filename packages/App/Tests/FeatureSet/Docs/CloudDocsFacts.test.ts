@@ -544,10 +544,20 @@ describe("a cloud account's own pages", () => {
 
     expect(sections).toContainEqual({
       title: "Basic",
-      items: ["Overview", "Resources", "Topology", "Costs"],
+      items: ["Overview", "Resources", "Topology", "Recommendations", "Costs"],
     });
     expect(accounts).toContain(
       "with their resources by type and Region, their **Costs**, their **Changes**, and a **Topology**",
+    );
+    /*
+     * The account's recommended monitors, by type of resource, and the
+     * count its menu entry shows; a resource's own tab offers its own.
+     */
+    expect(accounts).toContain(
+      "- **Recommended monitors.** An account's **Recommendations** lists the monitors OneUptime recommends for its resources, by type of resource,",
+    );
+    expect(accounts).toContain(
+      "and the side menu counts the ones still to set up. A resource's own **Recommendations** tab offers its own.",
     );
     // What AI did first, its agent last, as every resource's AI section.
     expect(sections).toContainEqual({
@@ -1157,10 +1167,13 @@ describe("the in-app guide's tabs", () => {
     const guide: string = readSource(CLOUD_SETUP_GUIDE);
 
     expect(SHAPE_TABS).toEqual(["Sidecar collector", "SDK direct"]);
+    // Keys of the locale files: the card words each tab in the reader's language.
     expect(guide).toContain(
-      'const SIDECAR_COLLECTOR: string = "Sidecar collector";',
+      'const SIDECAR_COLLECTOR: string = translationKey("Sidecar collector");',
     );
-    expect(guide).toContain('const SDK_DIRECT: string = "SDK direct";');
+    expect(guide).toContain(
+      'const SDK_DIRECT: string = translationKey("SDK direct");',
+    );
 
     for (const page of [HUB, ...PLATFORM_PAGES]) {
       const labels: Array<string> = tabLabels(englishPage(page));

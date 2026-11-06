@@ -80,6 +80,7 @@ Dialogen spørger med få sekunders mellemrum, hvad der er ankommet. Firehose le
 | Metrikker | På de cloudressourcer, de måler, med de navne og attributter, forbindelsens læsninger giver dem |
 | Logge | I protokoludforskeren, under forbindelsens telemetritjeneste, med konto, region og loggruppe som attributter |
 | Logge fra en loggruppe, som AWS navngiver efter en ressource | Også på den ressource: dens side i Cloud får en fane **Protokoller** |
+| Logge fra en App Runner-tjeneste, et Elastic Beanstalk-miljø eller en ECS-opgave eller -klynge | Også på dens miljø i App-platforme: fanen **Protokoller** |
 
 En loggruppe arkiveres under en ressource, når AWS har navngivet den efter en:
 
@@ -98,7 +99,9 @@ En loggruppe arkiveres under en ressource, når AWS har navngivet den efter en:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Hver log bærer ressourcens ID som `cloud.resource_id`, og en Lambda-funktions logge bærer også `faas.name`, så de også vises på funktionen under Serverless. En loggruppe med et andet navn streames alligevel, under sin konto og region. En logs alvorsgrad er den, dens besked angiver, sådan som Lambda skriver den.
+Hver log bærer ressourcens ID som `cloud.resource_id`, og en Lambda-funktions logge bærer også `faas.name`, så de også vises på funktionen under Serverless. En loggruppe med et andet navn streames alligevel, under sin konto og region. En logs alvorsgrad er den, dens besked angiver, sådan som Lambda, PostgreSQL eller MySQL skriver den.
+
+Logge fra en App Runner-tjeneste, et Elastic Beanstalk-miljø og en ECS-klynge bærer også `cloud.platform`, og det gør en ECS-opgaves logge også, fra den loggruppe, ECS-konsollen kalder `/ecs/<task-definition-family>`, med `aws.ecs.task.family`. Med kontoen og regionen havner de dermed på deres miljø i App-platforme, som dukker op med dem, hvis ingen app har rapporteret til det endnu. De laver ingen app: en app navngives efter sin egen telemetri, som [Cloud-miljøer](/docs/telemetry/cloud-environments) forklarer.
 
 ## Hvad stakken opretter
 

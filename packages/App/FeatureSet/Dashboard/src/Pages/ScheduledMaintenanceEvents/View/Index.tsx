@@ -1224,6 +1224,12 @@ const ScheduledMaintenanceView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    cloudResources: {
+                      name: true,
+                      _id: true,
+                      // Opens an environment in App Platforms, a resource in Cloud.
+                      cloudResourceKind: true,
+                    },
                     networkSites: {
                       name: true,
                       _id: true,
@@ -1252,6 +1258,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}
+                        cloudResources={item.cloudResources || []}
                         networkSites={item.networkSites || []}
                         services={item.services || []}
                         columns={1}

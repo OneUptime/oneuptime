@@ -7,6 +7,7 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import Route from "Common/Types/API/Route";
 import UILink from "Common/UI/Components/Link/Link";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -214,7 +215,11 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
                 isDismissed ? "text-gray-500" : "text-gray-900"
               }`}
             >
-              {props.viewModel.recommendation.name}
+              {/*
+               * The catalog's words are English on every page: each reads
+               * as written, its full stop at its end, on a Persian one too.
+               */}
+              <IsolatedText text={props.viewModel.recommendation.name} />
             </span>
             <StatusBadge
               text={props.viewModel.recommendation.severity}
@@ -241,7 +246,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
               }`}
               data-testid={`recommendation-summary-${props.viewModel.recommendation.recommendationId}`}
             >
-              {summary}
+              <IsolatedText text={summary} />
             </p>
           ) : (
             <></>
@@ -259,7 +264,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
               }`}
               data-testid={`recommendation-description-${props.viewModel.recommendation.recommendationId}`}
             >
-              {description}
+              <IsolatedText text={description} />
             </p>
           ) : (
             <></>
@@ -294,7 +299,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
 
           {isDismissed && props.viewModel.dismissalReason ? (
             <p className="mt-2 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs italic text-gray-500">
-              {props.viewModel.dismissalReason}
+              <IsolatedText text={props.viewModel.dismissalReason} />
             </p>
           ) : (
             <></>

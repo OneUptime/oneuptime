@@ -43,12 +43,34 @@ jest.mock(
   },
 );
 
+/*
+ * An App Platforms app's context is finished by reading its environment
+ * (loadCloudAppRecommendationContext), with the real client, which needs a
+ * browser `window`. What each answer does to the context is pinned below.
+ */
+const mockModelApiGetItem: jest.Mock = jest.fn();
+
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getItem: (data: unknown): Promise<unknown> => {
+        return mockModelApiGetItem(data);
+      },
+    },
+  };
+});
+
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
+import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ObjectID from "Common/Types/ObjectID";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -134,6 +156,13 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.DatabaseServer]: "_id",
   [MonitorRecommendationResourceType.DataStore]: "_id",
   [MonitorRecommendationResourceType.DataPipeline]: "_id",
+  // Every template names the CloudResource row in its queries' event scope.
+  [MonitorRecommendationResourceType.CloudResource]: "_id",
+  /*
+   * An app's monitors are scoped by its telemetry filter (its spans carry no
+   * row id); `_id` names the app the tab is for, as a cloud resource's does.
+   */
+  [MonitorRecommendationResourceType.CloudApp]: "_id",
 };
 
 function getDefinitionOrFail(
@@ -1903,6 +1932,543 @@ describe("RecommendationResourceRegistry", () => {
       expect(definition.readContext).toBeDefined();
       expect(definition.describeContext).toBeDefined();
       expect(definition.loadContext).toBeUndefined();
+    });
+  });
+
+  /*
+   * A cloud resource's recommended monitors depend on what its own row says:
+   * its cloud and its type pick its templates, the attributes its metrics are
+   * stored with filter each query, its readings name the stored names of its
+   * Azure metrics, its inventory gives an RDS instance's allocated storage,
+   * and whether a connection reads it says whether its Azure templates wait
+   * for readings. Each monitor made from one is linked to the resource.
+   */
+  describe("cloud resource context", () => {
+    const CLOUD_RESOURCE_ID: string = "6f1c4f2a-0c1e-4a43-9a3b-2c1d6c1a7b10";
+
+    const EC2_ATTRIBUTES: Record<string, string> = {
+      Namespace: "AWS/EC2",
+      "Dimensions.InstanceId": "i-0abc123def",
+      "resource.cloud.account.id": "123456789012",
+      "resource.cloud.region": "eu-west-1",
+    };
+
+    function readCloudContext(
+      values: Record<string, unknown>,
+    ): MonitorRecommendationContext {
+      const model: CloudResource = new CloudResource();
+
+      for (const [key, value] of Object.entries(values)) {
+        (model as unknown as Record<string, unknown>)[key] = value;
+      }
+
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.CloudResource,
+        model: model,
+      });
+    }
+
+    function describeCloud(
+      context: MonitorRecommendationContext,
+    ): string | undefined {
+      return RecommendationResourceRegistry.describeContext({
+        resourceType: MonitorRecommendationResourceType.CloudResource,
+        context: context,
+      });
+    }
+
+    function templateIdsFor(
+      context: MonitorRecommendationContext,
+    ): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.CloudResource,
+        context,
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId;
+      });
+    }
+
+    test("selects every column its recommendations depend on, beside its name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.CloudResource,
+        ),
+      ).toEqual({
+        _id: true,
+        name: true,
+        cloudProvider: true,
+        cloudResourceType: true,
+        telemetryAttributes: true,
+        cloudReadings: true,
+        cloudProperties: true,
+        cloudConnectionId: true,
+      });
+    });
+
+    test("reads its cloud, type, attributes, readings, storage and connection off the row", () => {
+      expect(
+        readCloudContext({
+          cloudProvider: "aws",
+          cloudResourceType: "AWS::RDS::DBInstance",
+          telemetryAttributes: { ...EC2_ATTRIBUTES, count: 3 },
+          cloudReadings: {
+            "aws/rds/cpuutilization": {
+              value: 12,
+              time: "2026-11-02T12:00:00.000Z",
+            },
+          },
+          cloudProperties: { AllocatedStorage: "200" },
+          cloudConnectionId: new ObjectID(
+            "70000000-0000-4000-8000-000000000001",
+          ),
+        }),
+      ).toEqual({
+        cloudProvider: "aws",
+        cloudResourceType: "AWS::RDS::DBInstance",
+        cloudTelemetryAttributes: EC2_ATTRIBUTES,
+        cloudReadings: {
+          "aws/rds/cpuutilization": {
+            value: 12,
+            time: "2026-11-02T12:00:00.000Z",
+          },
+        },
+        cloudAllocatedStorageGiB: 200,
+        cloudReadByConnection: true,
+      });
+    });
+
+    test("a row with nothing recorded yet reads as nothing known", () => {
+      expect(readCloudContext({})).toEqual({
+        cloudProvider: null,
+        cloudResourceType: null,
+        cloudTelemetryAttributes: {},
+        cloudReadings: {},
+        cloudAllocatedStorageGiB: null,
+        cloudReadByConnection: false,
+      });
+    });
+
+    test("the context offers the resource its cloud's and its type's templates", () => {
+      expect(
+        templateIdsFor(
+          readCloudContext({
+            cloudProvider: "aws",
+            cloudResourceType: "AWS::EC2::Instance",
+            telemetryAttributes: EC2_ATTRIBUTES,
+          }),
+        ),
+      ).toEqual([
+        "cloud-aws-ec2-status-check-failed",
+        "cloud-aws-ec2-high-cpu",
+      ]);
+      expect(templateIdsFor(readCloudContext({}))).toEqual([]);
+    });
+
+    test("says why a resource is offered nothing, or less than its type has", () => {
+      // A type OneUptime has no recommended monitors for.
+      expect(
+        describeCloud(
+          readCloudContext({
+            cloudProvider: "aws",
+            cloudResourceType: "AWS::S3::Bucket",
+            telemetryAttributes: { Namespace: "AWS/S3" },
+          }),
+        ),
+      ).toContain("no recommended monitors");
+
+      // Its metrics have not arrived.
+      expect(
+        describeCloud(
+          readCloudContext({
+            cloudProvider: "aws",
+            cloudResourceType: "AWS::EC2::Instance",
+          }),
+        ),
+      ).toContain("metrics have not arrived");
+
+      // A network load balancer: its namespace has no template.
+      expect(
+        describeCloud(
+          readCloudContext({
+            cloudProvider: "aws",
+            cloudResourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            telemetryAttributes: { Namespace: "AWS/NetworkELB" },
+          }),
+        ),
+      ).toContain("AWS/NetworkELB");
+
+      // Metrics in the JSON stream shape, which no template reads.
+      expect(
+        describeCloud(
+          readCloudContext({
+            cloudProvider: "aws",
+            cloudResourceType: "AWS::EC2::Instance",
+            telemetryAttributes: { "resource.service.name": "EC2" },
+          }),
+        ),
+      ).toContain("JSON stream");
+
+      // An RDS instance whose allocated storage the inventory has not listed.
+      expect(
+        describeCloud(
+          readCloudContext({
+            cloudProvider: "aws",
+            cloudResourceType: "AWS::RDS::DBInstance",
+            telemetryAttributes: { Namespace: "AWS/RDS" },
+          }),
+        ),
+      ).toContain("Low Free Storage");
+
+      // An Azure resource its connection read before readings kept names.
+      expect(
+        describeCloud(
+          readCloudContext({
+            cloudProvider: "azure",
+            cloudResourceType: "Microsoft.Sql/servers/databases",
+            telemetryAttributes: {
+              "azuremonitor.resource_id": "/subscriptions/x/databases/orders",
+            },
+            cloudReadings: {
+              storage_percent: { value: 10, time: "2026-11-02T12:00:00.000Z" },
+            },
+            cloudConnectionId: "70000000-0000-4000-8000-000000000001",
+          }),
+        ),
+      ).toContain("reads its metrics again");
+    });
+
+    test("says nothing when the resource is offered all its type has", () => {
+      expect(
+        describeCloud(
+          readCloudContext({
+            cloudProvider: "aws",
+            cloudResourceType: "AWS::EC2::Instance",
+            telemetryAttributes: EC2_ATTRIBUTES,
+          }),
+        ),
+      ).toBeUndefined();
+    });
+
+    test("the card names the service its numbers come from", () => {
+      const card: (provider: string) => string | undefined = (
+        provider: string,
+      ): string | undefined => {
+        return RecommendationResourceRegistry.getCardDescription({
+          resourceType: MonitorRecommendationResourceType.CloudResource,
+          context: { cloudProvider: provider },
+        });
+      };
+
+      expect(card("aws")).toContain("Amazon CloudWatch");
+      expect(card("azure")).toContain("Azure Monitor");
+      expect(card("gcp")).toContain("Google Cloud Monitoring");
+      // A cloud OneUptime does not read: the card's own words.
+      expect(card("oracle")).toBeUndefined();
+      // Every other resource type keeps the card's own words.
+      expect(
+        RecommendationResourceRegistry.getCardDescription({
+          resourceType: MonitorRecommendationResourceType.Host,
+          context: {},
+        }),
+      ).toBeUndefined();
+    });
+
+    test("a monitor made from one of its recommendations is linked to it", () => {
+      const link: ((monitor: Monitor) => void) | undefined =
+        RecommendationResourceRegistry.getMonitorLinker({
+          resourceType: MonitorRecommendationResourceType.CloudResource,
+          resourceId: new ObjectID(CLOUD_RESOURCE_ID),
+        });
+
+      expect(link).toBeDefined();
+
+      const monitor: Monitor = new Monitor();
+      link!(monitor);
+
+      expect(
+        (monitor.cloudResources || []).map((resource: CloudResource) => {
+          return resource.id?.toString();
+        }),
+      ).toEqual([CLOUD_RESOURCE_ID]);
+    });
+
+    test("no other resource type links its monitors to anything", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        if (
+          resourceType === MonitorRecommendationResourceType.CloudResource ||
+          // An app's monitors are linked to its environment (below).
+          resourceType === MonitorRecommendationResourceType.CloudApp
+        ) {
+          continue;
+        }
+
+        expect(
+          RecommendationResourceRegistry.getMonitorLinker({
+            resourceType: resourceType,
+            resourceId: new ObjectID(CLOUD_RESOURCE_ID),
+          }),
+        ).toBeUndefined();
+      }
+    });
+  });
+
+  describe("App Platforms app context", () => {
+    const APP_ID: string = "0a000000-0000-4000-8000-000000000001";
+    const ENVIRONMENT_ID: string = "0b000000-0000-4000-8000-000000000002";
+
+    // What ingest stored for checkout, an ECS service of cluster production.
+    const CHECKOUT_ATTRIBUTES: Record<string, string> = {
+      "aws.ecs.task.family": "checkout",
+      "aws.ecs.cluster.arn":
+        "arn:aws:ecs:us-east-1:123456789012:cluster/production",
+    };
+
+    function appRow(values: Record<string, unknown>): CloudApp {
+      const model: CloudApp = new CloudApp();
+
+      model.id = new ObjectID(APP_ID);
+
+      for (const [key, value] of Object.entries(values)) {
+        (model as unknown as Record<string, unknown>)[key] = value;
+      }
+
+      return model;
+    }
+
+    function environmentRow(values: Record<string, unknown>): CloudResource {
+      const model: CloudResource = new CloudResource();
+
+      for (const [key, value] of Object.entries(values)) {
+        (model as unknown as Record<string, unknown>)[key] = value;
+      }
+
+      return model;
+    }
+
+    function describeApp(
+      context: MonitorRecommendationContext,
+    ): string | undefined {
+      return RecommendationResourceRegistry.describeContext({
+        resourceType: MonitorRecommendationResourceType.CloudApp,
+        context: context,
+      });
+    }
+
+    function templateIdsFor(
+      context: MonitorRecommendationContext,
+    ): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.CloudApp,
+        context,
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId;
+      });
+    }
+
+    beforeEach(() => {
+      mockModelApiGetItem.mockReset();
+    });
+
+    test("selects its name, its own attributes and its environment", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.CloudApp,
+        ),
+      ).toEqual({
+        _id: true,
+        name: true,
+        telemetryAttributes: true,
+        cloudResourceId: true,
+      });
+    });
+
+    test("reads its own attributes, under resource., and its environment off the row", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.CloudApp,
+          model: appRow({
+            telemetryAttributes: { ...CHECKOUT_ATTRIBUTES, count: 3 },
+            cloudResourceId: new ObjectID(ENVIRONMENT_ID),
+          }),
+        }),
+      ).toEqual({
+        cloudAppEnvironmentId: ENVIRONMENT_ID,
+        cloudAppTelemetryFilters: {
+          "resource.aws.ecs.cluster.arn":
+            "arn:aws:ecs:us-east-1:123456789012:cluster/production",
+          "resource.aws.ecs.task.family": "checkout",
+        },
+      });
+    });
+
+    test("read alone, an app is offered nothing: its environment's platform is not known", () => {
+      const context: MonitorRecommendationContext =
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.CloudApp,
+          model: appRow({
+            telemetryAttributes: CHECKOUT_ATTRIBUTES,
+            cloudResourceId: new ObjectID(ENVIRONMENT_ID),
+          }),
+        });
+
+      expect(templateIdsFor(context)).toEqual([]);
+      expect(describeApp(context)).toContain("platform is not known yet");
+    });
+
+    test("loaded, it reads its environment and is offered every app template", async () => {
+      mockModelApiGetItem.mockResolvedValue(
+        environmentRow({
+          cloudPlatform: "aws_ecs",
+          cloudAccountId: "123456789012",
+          cloudRegion: "us-east-1",
+        }),
+      );
+
+      const context: MonitorRecommendationContext =
+        await RecommendationResourceRegistry.loadContext({
+          resourceType: MonitorRecommendationResourceType.CloudApp,
+          model: appRow({
+            telemetryAttributes: CHECKOUT_ATTRIBUTES,
+            cloudResourceId: new ObjectID(ENVIRONMENT_ID),
+          }),
+        });
+
+      expect(mockModelApiGetItem).toHaveBeenCalledTimes(1);
+
+      const read: {
+        modelType: unknown;
+        id: ObjectID;
+        select: Record<string, boolean>;
+      } = mockModelApiGetItem.mock.calls[0]![0] as {
+        modelType: unknown;
+        id: ObjectID;
+        select: Record<string, boolean>;
+      };
+
+      expect(read.modelType).toBe(CloudResource);
+      expect(read.id.toString()).toBe(ENVIRONMENT_ID);
+      expect(read.select).toEqual({
+        cloudPlatform: true,
+        cloudAccountId: true,
+        cloudRegion: true,
+      });
+
+      // The filter its Traces tab reads its spans by.
+      expect(context.cloudAppTelemetryFilters).toEqual({
+        "resource.cloud.platform": "aws_ecs",
+        "resource.cloud.account.id": "123456789012",
+        "resource.cloud.region": "us-east-1",
+        "resource.aws.ecs.cluster.arn":
+          "arn:aws:ecs:us-east-1:123456789012:cluster/production",
+        "resource.aws.ecs.task.family": "checkout",
+      });
+      expect(templateIdsFor(context)).toEqual([
+        "cloud-app-failed-operations",
+        "cloud-app-error-burst",
+        "cloud-app-traffic-stopped",
+        "cloud-app-latency-p95",
+        "cloud-app-latency-p99",
+      ]);
+      expect(describeApp(context)).toBeUndefined();
+    });
+
+    test("an environment that cannot be read, or is gone, leaves the app offered nothing", async () => {
+      for (const answer of [
+        (): Promise<unknown> => {
+          return Promise.reject(new Error("Permission denied"));
+        },
+        (): Promise<unknown> => {
+          return Promise.resolve(null);
+        },
+      ]) {
+        mockModelApiGetItem.mockReset();
+        mockModelApiGetItem.mockImplementation(answer);
+
+        const context: MonitorRecommendationContext =
+          await RecommendationResourceRegistry.loadContext({
+            resourceType: MonitorRecommendationResourceType.CloudApp,
+            model: appRow({
+              telemetryAttributes: CHECKOUT_ATTRIBUTES,
+              cloudResourceId: new ObjectID(ENVIRONMENT_ID),
+            }),
+          });
+
+        expect(templateIdsFor(context)).toEqual([]);
+        expect(describeApp(context)).toContain("platform is not known yet");
+      }
+    });
+
+    test("an app with no environment on its row reads nothing more", async () => {
+      const context: MonitorRecommendationContext =
+        await RecommendationResourceRegistry.loadContext({
+          resourceType: MonitorRecommendationResourceType.CloudApp,
+          model: appRow({ telemetryAttributes: CHECKOUT_ATTRIBUTES }),
+        });
+
+      expect(mockModelApiGetItem).not.toHaveBeenCalled();
+      expect(context.cloudAppEnvironmentId).toBeNull();
+      expect(templateIdsFor(context)).toEqual([]);
+    });
+
+    test("an app whose name was too long to filter by is told why, whatever its environment", async () => {
+      mockModelApiGetItem.mockResolvedValue(
+        environmentRow({ cloudPlatform: "aws_ecs" }),
+      );
+
+      const context: MonitorRecommendationContext =
+        await RecommendationResourceRegistry.loadContext({
+          resourceType: MonitorRecommendationResourceType.CloudApp,
+          model: appRow({
+            telemetryAttributes: {},
+            cloudResourceId: new ObjectID(ENVIRONMENT_ID),
+          }),
+        });
+
+      // The environment's platform alone: every app of it.
+      expect(context.cloudAppTelemetryFilters).toEqual({
+        "resource.cloud.platform": "aws_ecs",
+      });
+      expect(templateIdsFor(context)).toEqual([]);
+      expect(describeApp(context)).toContain("too long to filter");
+    });
+
+    test("the card says its monitors read what the app's OpenTelemetry reports", () => {
+      expect(
+        RecommendationResourceRegistry.getCardDescription({
+          resourceType: MonitorRecommendationResourceType.CloudApp,
+          context: {},
+        }),
+      ).toContain("OpenTelemetry");
+    });
+
+    test("a monitor made for an app is linked to its environment, where its incidents list", () => {
+      const link: ((monitor: Monitor) => void) | undefined =
+        RecommendationResourceRegistry.getMonitorLinker({
+          resourceType: MonitorRecommendationResourceType.CloudApp,
+          resourceId: new ObjectID(APP_ID),
+          context: { cloudAppEnvironmentId: ENVIRONMENT_ID },
+        });
+
+      expect(link).toBeDefined();
+
+      const monitor: Monitor = new Monitor();
+      link!(monitor);
+
+      expect(
+        (monitor.cloudResources || []).map((resource: CloudResource) => {
+          return resource.id?.toString();
+        }),
+      ).toEqual([ENVIRONMENT_ID]);
+
+      // Without an environment there is nothing to link it to.
+      const unlinked: Monitor = new Monitor();
+
+      RecommendationResourceRegistry.getMonitorLinker({
+        resourceType: MonitorRecommendationResourceType.CloudApp,
+        resourceId: new ObjectID(APP_ID),
+      })!(unlinked);
+
+      expect(unlinked.cloudResources).toBeUndefined();
     });
   });
 });
