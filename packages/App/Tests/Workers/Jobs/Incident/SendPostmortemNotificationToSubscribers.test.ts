@@ -2024,3 +2024,38 @@ describe("Incident:SendPostmortemNotificationToSubscribers subscribers who picke
     expect(emailsSentTo()).toEqual(page.told);
   });
 });
+
+/*
+ * A CUSTOM TEMPLATE'S VALUES, IN ITS PAGE'S LANGUAGE: OneUptime's default
+ * severity names are in the page's default language
+ * (IncidentTemplateVariableBuilder, through SubscriberTemplateValues).
+ */
+describe("Incident:SendPostmortemNotificationToSubscribers custom templates, in the page's language", () => {
+  test("a default severity name is the page's language's, on every channel", async () => {
+    const majorIncident: Incident = incident();
+    majorIncident.incidentSeverity!.name = "Major Incident";
+    pendingIncidents = [majorIncident];
+    useCustomTemplatesOnEveryChannel();
+
+    const page: StatusPage = statusPage();
+    (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+    (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+    page.defaultLanguage = "ko";
+
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob();
+
+    const calls: Array<RecordedCompile> = recordedCompiles(
+      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate,
+      StatusPageSubscriberNotificationTemplateServiceClass.compileEmailBodyTemplate,
+    );
+
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call.variables["incidentSeverity"]).toBe("주요 인시던트");
+    }
+  });
+});

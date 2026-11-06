@@ -175,6 +175,41 @@ async function addInstallationIds(
 }
 
 /*
+ * What the code tools may say of the project's repositories: the ones whose
+ * code OneUptime reads now, and the plain Git repositories this caller may
+ * see. A Git repository is connected for Code's tasks - a Runner clones it -
+ * but a Git server has no API for its files, so OneUptime reads only its
+ * branches. Named so the model says why it cannot read one (issue #6144:
+ * an Azure DevOps Server repository connected as Git read as though nothing
+ * were connected) - never as readable.
+ */
+export interface CodeToolRepositories {
+  readable: Array<CodeRepository>;
+  plainGit: Array<CodeRepository>;
+}
+
+// A repository as the code tools name it: its name and where it is.
+function nameRepository(repository: CodeRepository): string {
+  return `${repository.name} (${repository.organizationName}/${repository.repositoryName})`;
+}
+
+/*
+ * The plain Git repositories, named, and why the code tools cannot open
+ * them - a sentence for the model to pass on.
+ */
+export function describePlainGitRepositories(
+  repositories: Array<CodeRepository>,
+): string {
+  const isOne: boolean = repositories.length === 1;
+  const it: string = isOne ? "it" : "them";
+  const its: string = isOne ? "its" : "their";
+
+  return `${repositories.map(nameRepository).join(", ")} ${
+    isOne ? "is a plain Git repository" : "are plain Git repositories"
+  }: OneUptime reads ${its} branches, not ${its} files, so search_code and read_code_file cannot open ${it}. A task in Code still works in ${it} - a Runner clones ${it} - and AI pushes its change on a branch.`;
+}
+
+/*
  * The repositories this user can see, already filtered to the ones that are
  * actually readable. A repository row can exist without a way in (a GitHub
  * one imported then uninstalled, a GitLab one whose token was refused) or on
@@ -187,6 +222,19 @@ export async function findReadableRepositories(
   ctx: ToolContext,
   codeRepositoryId?: ObjectID | undefined,
 ): Promise<Array<CodeRepository>> {
+  return (await findCodeToolRepositories(ctx, codeRepositoryId)).readable;
+}
+
+/*
+ * The readable repositories (findReadableRepositories), and beside them the
+ * plain Git repositories the same read found - in the project, readable by
+ * this caller, within the run's allowance - so the tools can say why those
+ * are not read.
+ */
+export async function findCodeToolRepositories(
+  ctx: ToolContext,
+  codeRepositoryId?: ObjectID | undefined,
+): Promise<CodeToolRepositories> {
   const query: JSONObject = {
     projectId: ctx.projectId,
   };
@@ -243,6 +291,19 @@ export async function findReadableRepositories(
   );
 
   /*
+   * Plain Git repositories are never read, whatever their connection: there
+   * is no API to read their files through. They are said apart.
+   */
+  const plainGit: Array<CodeRepository> = repositories.filter(
+    (repository: CodeRepository) => {
+      return (
+        CodeHost.readType(repository.repositoryHostedAt) ===
+        CodeRepositoryType.Git
+      );
+    },
+  );
+
+  /*
    * Repositories on other hosts are read through their connections: only
    * those connected now, on a host whose files OneUptime reads, whose server
    * OneUptime may reach.
@@ -251,9 +312,12 @@ export async function findReadableRepositories(
     await keepRepositoriesWithReadableCode(
       ctx,
       repositories.filter((repository: CodeRepository) => {
+        const type: CodeRepositoryType = CodeHost.readType(
+          repository.repositoryHostedAt,
+        );
+
         return (
-          CodeHost.readType(repository.repositoryHostedAt) !==
-          CodeRepositoryType.GitHub
+          type !== CodeRepositoryType.GitHub && type !== CodeRepositoryType.Git
         );
       }),
     );
@@ -273,30 +337,33 @@ export async function findReadableRepositories(
    * being wrong here is another tenant's source code.
    */
   if (gitHubRepositories.length === 0) {
-    return otherRepositories;
+    return { readable: otherRepositories, plainGit };
   }
 
   // Every row here is in ctx.projectId, so one lookup answers for all of them.
   const boundInstallationId: string | null =
     await GitHubInstallationBinding.getBoundInstallationId(ctx.projectId);
 
-  return [
-    ...gitHubRepositories.filter((repository: CodeRepository) => {
-      if (
-        boundInstallationId &&
-        repository.gitHubAppInstallationId === boundInstallationId
-      ) {
-        return true;
-      }
+  return {
+    readable: [
+      ...gitHubRepositories.filter((repository: CodeRepository) => {
+        if (
+          boundInstallationId &&
+          repository.gitHubAppInstallationId === boundInstallationId
+        ) {
+          return true;
+        }
 
-      logger.error(
-        `Excluding code repository ${repository.id?.toString()} from AI code tools: its GitHub App installation is not bound to project ${ctx.projectId.toString()}.`,
-      );
+        logger.error(
+          `Excluding code repository ${repository.id?.toString()} from AI code tools: its GitHub App installation is not bound to project ${ctx.projectId.toString()}.`,
+        );
 
-      return false;
-    }),
-    ...otherRepositories,
-  ];
+        return false;
+      }),
+      ...otherRepositories,
+    ],
+    plainGit,
+  };
 }
 
 /*
@@ -425,17 +492,31 @@ export async function resolveTargetRepository(
     "repositoryId",
   );
 
-  const repositories: Array<CodeRepository> = await findReadableRepositories(
+  const found: CodeToolRepositories = await findCodeToolRepositories(
     ctx,
     requestedId,
   );
+  const repositories: Array<CodeRepository> = found.readable;
 
   if (repositories.length === 0) {
     if (requestedId) {
+      if (found.plainGit.length > 0) {
+        throw new BadDataException(
+          `OneUptime cannot read the code of this repository. ${describePlainGitRepositories(found.plainGit)}`,
+        );
+      }
+
       throw new BadDataException(
         `No readable repository with id ${requestedId.toString()} in this project. Call list_code_repositories to see which repositories are connected.`,
       );
     }
+
+    if (found.plainGit.length > 0) {
+      throw new BadDataException(
+        `This project has no connected code repository whose source OneUptime can read: GitHub, GitLab, Forgejo and Gitea repositories are read. ${describePlainGitRepositories(found.plainGit)}`,
+      );
+    }
+
     throw new BadDataException(
       "This project has no connected code repository whose source OneUptime can read. Connect one in Code: GitHub, GitLab, Forgejo and Gitea repositories are read (a plain Git repository's files are not).",
     );
@@ -637,8 +718,8 @@ export const ListCodeRepositoriesTool: ObservabilityTool = {
     _args: JSONObject,
     ctx: ToolContext,
   ): Promise<ToolExecutionResult> => {
-    const repositories: Array<CodeRepository> =
-      await findReadableRepositories(ctx);
+    const found: CodeToolRepositories = await findCodeToolRepositories(ctx);
+    const repositories: Array<CodeRepository> = found.readable;
 
     const rows: Array<JSONObject> = repositories.map(
       (repository: CodeRepository) => {
@@ -655,14 +736,26 @@ export const ListCodeRepositoriesTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    /*
+     * The plain Git repositories are said after the readable ones, as
+     * repositories whose code cannot be opened - never as rows the model
+     * could pass to search_code or read_code_file.
+     */
+    const plainGitNote: { text: string; count: number } =
+      found.plainGit.length > 0
+        ? ToolResultSerializer.redact(
+            `\n\n${describePlainGitRepositories(found.plainGit)}`,
+          )
+        : { text: "", count: 0 };
+
     return {
       dataForLlm:
         rows.length === 0
-          ? "(no GitHub-connected code repositories in this project — source code cannot be read)"
-          : serialized.text,
+          ? `(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)${plainGitNote.text}`
+          : `${serialized.text}${plainGitNote.text}`,
       rowCount: serialized.rowCount,
       citationLabel: `Connected code repositories (${serialized.rowCount})`,
-      redactionCount: serialized.redactionCount,
+      redactionCount: serialized.redactionCount + plainGitNote.count,
       isTruncated: serialized.isTruncated,
     };
   },

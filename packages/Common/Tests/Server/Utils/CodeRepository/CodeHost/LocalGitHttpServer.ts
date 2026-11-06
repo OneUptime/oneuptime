@@ -21,6 +21,34 @@ import path from "path";
  * with the guard stubbed - never the production one.
  */
 
+// One request the server answered, with the headers a test asks about.
+export interface LocalGitHttpRequest {
+  method: string;
+  // "<path>?<query>"
+  path: string;
+  /*
+   * The scheme of the Authorization header the request carried - "Basic",
+   * "Negotiate", "NTLM" - or null for a request that carried none.
+   */
+  authorizationScheme: string | null;
+  // Whether it carried exactly the server's username and password, as Basic.
+  isSignedIn: boolean;
+  userAgent: string;
+}
+
+/*
+ * What a server behind Windows authentication offers before Basic: Azure
+ * DevOps Server (TFS) on IIS takes a personal access token over Basic, but
+ * its 401 offers these first, and left to itself git (libcurl) answers the
+ * strongest one it supports - never Basic.
+ */
+export const WINDOWS_AUTHENTICATION_CHALLENGES: Array<string> = [
+  "Bearer",
+  "Negotiate",
+  "NTLM",
+  'Basic realm="tfs.example.com"',
+];
+
 export interface LocalGitHttpServer {
   // http://127.0.0.1:<port>
   origin: string;
@@ -32,6 +60,8 @@ export interface LocalGitHttpServer {
   barePath: string;
   // Every request the server answered, as "<METHOD> <path>?<query>".
   requests: Array<string>;
+  // Every request the server answered, with its sign-in and user agent.
+  requestLog: Array<LocalGitHttpRequest>;
   // The refs the bare repository holds now: "refs/heads/main" -> sha.
   readRefs: () => Record<string, string>;
   close: () => Promise<void>;
@@ -73,9 +103,20 @@ export function canRunLocalGitHttpServer(): boolean {
 export async function startLocalGitHttpServer(options?: {
   username?: string | undefined;
   password?: string | undefined;
+  /*
+   * The WWW-Authenticate challenges a request that is not signed in is
+   * answered with, in order: Basic alone by default, as most Git servers
+   * answer; WINDOWS_AUTHENTICATION_CHALLENGES as Azure DevOps Server does.
+   * Only Basic with the username and password signs in, either way.
+   */
+  challenges?: Array<string> | undefined;
 }): Promise<LocalGitHttpServer> {
   const username: string = options?.username || "deploy";
   const password: string = options?.password || "s3cret-token-0001";
+  const challenges: Array<string> =
+    options?.challenges && options.challenges.length > 0
+      ? options.challenges
+      : ['Basic realm="git"'];
   const root: string = fs.mkdtempSync(
     path.join(os.tmpdir(), "oneuptime-git-server-"),
   );
@@ -106,15 +147,32 @@ export async function startLocalGitHttpServer(options?: {
   const backend: string = getGitHttpBackendPath();
   const expected: string = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
   const requests: Array<string> = [];
+  const requestLog: Array<LocalGitHttpRequest> = [];
 
   const server: http.Server = http.createServer(
     (request: http.IncomingMessage, response: http.ServerResponse): void => {
       const url: URL = new URL(request.url || "/", "http://127.0.0.1");
-      requests.push(`${request.method} ${url.pathname}${url.search}`);
+      const authorization: string = String(
+        request.headers["authorization"] || "",
+      );
+      const space: number = authorization.indexOf(" ");
 
-      if (request.headers["authorization"] !== expected) {
+      requests.push(`${request.method} ${url.pathname}${url.search}`);
+      requestLog.push({
+        method: request.method || "GET",
+        path: `${url.pathname}${url.search}`,
+        authorizationScheme: authorization
+          ? space > 0
+            ? authorization.substring(0, space)
+            : authorization
+          : null,
+        isSignedIn: authorization === expected,
+        userAgent: String(request.headers["user-agent"] || ""),
+      });
+
+      if (authorization !== expected) {
+        response.setHeader("WWW-Authenticate", challenges);
         response.writeHead(401, {
-          "WWW-Authenticate": 'Basic realm="git"',
           "Content-Type": "text/plain",
         });
         response.end("Authentication required\n");
@@ -212,6 +270,7 @@ export async function startLocalGitHttpServer(options?: {
     password,
     barePath,
     requests,
+    requestLog,
     readRefs: (): Record<string, string> => {
       const refs: Record<string, string> = {};
 

@@ -501,6 +501,7 @@ const PROSE: Record<string, Array<string>> = {
     "An old but still-active announcement can vanish from the list.",
     "Images follow the announcement.",
     "A visitor who switches the status page to another language",
+    "Your team can set a subscriber's language",
     "Everyone else",
   ],
   [AUDIENCE]: [

@@ -128,6 +128,7 @@ import FeedMarkdown, {
 import { isSendingSubscriberNotifications } from "../../Types/StatusPage/SubscriberNotificationsSwitch";
 import ScheduledMaintenancePublication from "../../Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import SubscriberLanguage from "../Utils/StatusPage/SubscriberLanguage";
+import SubscriberTemplateValues from "../Utils/StatusPage/SubscriberTemplateValues";
 import SubscriberMessageText, {
   SubscriberChatText,
 } from "../Utils/StatusPage/SubscriberMessageText";
@@ -497,6 +498,51 @@ export class Service extends ProjectReferencesService<Model> {
             ),
           ]);
 
+        /*
+         * The dates the page's custom templates are filled with, in the
+         * page's default language (SubscriberTemplateValues): when the event
+         * starts and ends, and its start in the page's time zones, for an
+         * email's body and its subject.
+         */
+        const pageDates: {
+          scheduledStartTime: string;
+          scheduledEndTime: string;
+          scheduledAtHtml: string;
+          scheduledAtText: string;
+        } = SubscriberTemplateValues.workInPageLanguage(
+          statuspage,
+          (): {
+            scheduledStartTime: string;
+            scheduledEndTime: string;
+            scheduledAtHtml: string;
+            scheduledAtText: string;
+          } => {
+            return {
+              scheduledStartTime:
+                OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                  event.startsAt!,
+                ),
+              scheduledEndTime: event.endsAt
+                ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                    event.endsAt,
+                  )
+                : "",
+              scheduledAtHtml:
+                OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                  date: event.startsAt!,
+                  timezones: statuspage.subscriberTimezones || [],
+                  use12HourFormat: true,
+                }),
+              scheduledAtText:
+                OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+                  date: event.startsAt!,
+                  timezones: statuspage.subscriberTimezones || [],
+                  use12HourFormat: true,
+                }).join(", "),
+            };
+          },
+        );
+
         for (const subscriber of subscribers) {
           if (!subscriber._id) {
             continue;
@@ -540,20 +586,18 @@ export class Service extends ProjectReferencesService<Model> {
             },
           );
 
-          // The values every channel's custom template gets, as written.
+          /*
+           * The values every channel's custom template gets: as written, and
+           * the dates in the page's language (pageDates).
+           */
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
             detailsUrl: scheduledEventDetailsUrl,
             scheduledMaintenanceTitle: event.title || "",
             scheduledMaintenanceDescription: event.description || "",
-            scheduledStartTime:
-              OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                event.startsAt!,
-              ),
-            scheduledEndTime: event.endsAt
-              ? OneUptimeDate.getDateAsUserFriendlyFormattedString(event.endsAt)
-              : "",
+            scheduledStartTime: pageDates.scheduledStartTime,
+            scheduledEndTime: pageDates.scheduledEndTime,
             resourcesAffected: resourcesAffected,
             unsubscribeUrl: unsubscribeUrl,
           };
@@ -777,7 +821,9 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
                     resourcesAffected: SafeHtml.fromTrustedHtml(
                       resourcesAffectedHtml,
                     ),
-                    scheduledAt: SafeHtml.fromTrustedHtml(scheduledAtHtml),
+                    scheduledAt: SafeHtml.fromTrustedHtml(
+                      pageDates.scheduledAtHtml,
+                    ),
                     eventDescription:
                       SafeHtml.fromTrustedHtml(eventDescriptionHtml),
                     scheduledMaintenanceDescription:
@@ -795,14 +841,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
                       ...emailVars,
                       ...plainTextTemplateVariables,
                       eventDescription: eventDescriptionPlainText,
-                      scheduledAt:
-                        OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones(
-                          {
-                            date: event.startsAt!,
-                            timezones: statuspage.subscriberTimezones || [],
-                            use12HourFormat: true,
-                          },
-                        ).join(", "),
+                      scheduledAt: pageDates.scheduledAtText,
                     },
                   )
                 : eventSubject;
