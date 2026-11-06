@@ -292,8 +292,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     /*
      * The address, then one question each way: on Add, "When you add them"
      * (subscribe them now, and tell them or not, or ask them to confirm
-     * first); on Edit, their Status (SubscriberFormChoices.ts). The internal
-     * note is folded under More fields.
+     * first); on Edit, their Status (SubscriberFormChoices.ts). The language
+     * and the internal note are folded under More fields.
      */
     const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
       getAdvancedFormSection<StatusPageSubscriber>();

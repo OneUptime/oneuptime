@@ -278,7 +278,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
     /*
      * The number, its Status on Edit, and under More fields the welcome
-     * text and the internal note (SubscriberFormFields.tsx).
+     * text, the language and the internal note (SubscriberFormFields.tsx).
      */
     const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
       getAdvancedFormSection<StatusPageSubscriber>();

@@ -260,7 +260,8 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
 
     /*
      * The channel's own fields, its Status on Edit, and under More fields
-     * the welcome message and the internal note (SubscriberFormFields.tsx).
+     * the welcome message, the language and the internal note
+     * (SubscriberFormFields.tsx).
      */
     const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
       getAdvancedFormSection<StatusPageSubscriber>();
