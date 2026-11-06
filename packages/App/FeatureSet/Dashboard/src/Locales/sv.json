@@ -45357,5 +45357,19 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime skickade ingen nyckel för den här agenten. Försök igen.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandot innehåller en nyckel som bara har skapats för den här agenten. Kör det inom ett dygn, eller öppna den här dialogrutan igen för att få en ny.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} återställdes, och dess nyckel fungerar inte längre. Kör dess konfigurationskommando igen för att ansluta den: Ändra visar det.",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Detta återkallar nyckeln för {{agentName}} direkt. Agenten förblir frånkopplad tills du kör dess konfigurationskommando igen: Ändra visar det, med en ny nyckel."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Detta återkallar nyckeln för {{agentName}} direkt. Agenten förblir frånkopplad tills du kör dess konfigurationskommando igen: Ändra visar det, med en ny nyckel.",
+  "Enter a whole number between {{min}} and {{max}}.": "Ange ett heltal mellan {{min}} och {{max}}.",
+  "Minimum Alert Count": "Minsta antal larm",
+  "Minimum Incident Count": "Minsta antal incidenter",
+  "Open an episode once {{count}} matching alerts are ongoing": "Öppna en episod när {{count}} matchande larm pågår",
+  "Open an episode once {{count}} matching incidents are ongoing": "Öppna en episod när {{count}} matchande incidenter pågår",
+  "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.": "Öppna en episod först när flera matchande larm pågår samtidigt, till exempel vid ett avbrott som utlöser många övervakare, och lägg in alla i den. Fram till dess står varje larm för sig och kör bara sina egna jourpolicyer.",
+  "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.": "Öppna en episod först när flera matchande incidenter pågår samtidigt, till exempel vid ett avbrott som utlöser många övervakare, och lägg in alla i den. Fram till dess står varje incident för sig och kör bara sina egna jourpolicyer.",
+  "Opens an episode once {{count}} matching alerts are ongoing": "Öppnar en episod när {{count}} matchande larm pågår",
+  "Opens an episode once {{count}} matching incidents are ongoing": "Öppnar en episod när {{count}} matchande incidenter pågår",
+  "Wait for more alerts": "Vänta på fler larm",
+  "Wait for more incidents": "Vänta på fler incidenter",
+  "Enable Minimum Alert Count": "Aktivera minsta antal larm",
+  "Enable Minimum Incident Count": "Aktivera minsta antal incidenter",
+  "Grouping Wait Key": "Väntenyckel för gruppering"
 }

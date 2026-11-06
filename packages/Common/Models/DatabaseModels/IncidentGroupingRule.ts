@@ -968,6 +968,89 @@ export default class IncidentGroupingRule extends RuleBaseModel {
   })
   public timeWindowMinutes?: number = undefined;
 
+  /*
+   * Wait for more incidents before opening an episode (issue #5374): with
+   * this on, the rule opens an episode only once minimumIncidentCount
+   * matching incidents of the same group are ongoing, and puts all of them
+   * in it. Read by IncidentGroupingEngineService through
+   * Common/Utils/Episode/EpisodeOpeningThreshold.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Enable Minimum Incident Count",
+    description:
+      "Wait for more incidents before opening an episode. When enabled, a matching incident with no open episode to join stays on its own until Minimum Incident Count matching incidents of the same group are ongoing - and, with the time window enabled, arrived within it of each other. The episode then opens with all of them. Until then, each incident runs only its own on-call policies. When disabled, the first matching incident opens an episode.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public enableMinimumIncidentCount?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentGroupingRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentGroupingRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentGroupingRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Minimum Incident Count",
+    description:
+      "How many matching incidents of the same group must be ongoing before the rule opens an episode for them, while Enable Minimum Incident Count is on. A whole number from 1 to 100; 1 opens an episode for the first matching incident.",
+    defaultValue: 3,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 3,
+  })
+  public minimumIncidentCount?: number = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

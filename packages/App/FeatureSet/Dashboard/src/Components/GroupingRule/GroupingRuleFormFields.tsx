@@ -15,11 +15,17 @@ import {
   LEGACY_DEFAULT_ASSIGNEE_USER_COLUMN,
   LegacyDefaultAssignee,
   LegacyDefaultAssigneeChange,
+  MINIMUM_COUNT_FIELD_NAMES,
+  MINIMUM_COUNT_SETTING_FIELD_KEY,
+  MinimumCountFieldNames,
   REOPEN_WINDOW_SETTING_FIELD_KEY,
   RESOLVE_DELAY_SETTING_FIELD_KEY,
   TIME_WINDOW_SETTING_FIELD_KEY,
   getGroupingMode,
   getLegacyDefaultAssignee,
+  getMinimumCountDisplay,
+  getMinimumCountFoldedValue,
+  getMinimumCountValidationError,
   getMinutesSettingDisplay,
   getMinutesSettingFoldedValue,
   getMinutesValidationError,
@@ -32,6 +38,9 @@ import {
 import GroupingModeField from "./GroupingModeField";
 import { translateGroupingRuleText } from "./GroupingRuleTranslate";
 import LegacyDefaultAssigneeNote from "./LegacyDefaultAssigneeNote";
+import MinimumCountSettingField, {
+  MinimumCountSettingValue,
+} from "./MinimumCountSettingField";
 import MinutesSettingField, {
   MinutesSettingValue,
 } from "./MinutesSettingField";
@@ -511,6 +520,93 @@ export const getInactivityTimeoutFormField: <TModel extends BaseModel>(
   };
 };
 
+/*
+ * Wait for more incidents before opening an episode (issue #5374), first of
+ * the Episode Lifecycle settings in the rule's More fields: a switch with
+ * its count, drawn as one control, and a chip with the count on the folded
+ * header while it is on ("Wait for more incidents: 3 incidents").
+ */
+export const getMinimumCountFormField: <TModel extends BaseModel>(
+  options: FoldedMinutesSettingFieldOptions<TModel>,
+) => ModelField<TModel> = <TModel extends BaseModel>(
+  options: FoldedMinutesSettingFieldOptions<TModel>,
+): ModelField<TModel> => {
+  const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[options.kind];
+
+  return {
+    overrideField: {
+      [names.count]: true,
+    } as SelectFormFields<TModel>,
+    overrideFieldKey: MINIMUM_COUNT_SETTING_FIELD_KEY,
+    formOnly: true,
+    title: GROUPING_RULE_COPY.minimumCountTitle[options.kind],
+    stepId: "grouping",
+    collapsibleSection: options.collapsibleSection,
+    sectionTitle: options.sectionTitle,
+    fieldType: FormFieldSchemaType.CustomComponent,
+    customElementDrawsOwnLabel: true,
+    required: false,
+    spanFullRow: true,
+    getDefaultValue: carrierDefaultValue,
+    getFoldedValue: (values: FormValues<TModel>): string | null => {
+      return getMinimumCountFoldedValue({
+        enabled: asValues(values)[names.enabled],
+        count: asValues(values)[names.count],
+        kind: options.kind,
+        translate: translateGroupingRuleText,
+      });
+    },
+    customValidation: (values: FormValues<TModel>): string | null => {
+      return getMinimumCountValidationError({
+        enabled: asValues(values)[names.enabled],
+        count: asValues(values)[names.count],
+        translate: translateGroupingRuleText,
+      });
+    },
+    onChange: (
+      value: unknown,
+      currentValues: FormValues<TModel>,
+      setNewFormValues: (values: FormValues<TModel>) => void,
+    ): void => {
+      const setting: MinimumCountSettingValue =
+        value as MinimumCountSettingValue;
+
+      setNewFormValues({
+        ...currentValues,
+        [names.enabled]: setting.enabled,
+        [names.count]: setting.count,
+      } as FormValues<TModel>);
+    },
+    getCustomElement: (
+      values: FormValues<TModel>,
+      props: CustomElementProps,
+    ): ReactElement => {
+      const display: { enabled: boolean; count: unknown } =
+        getMinimumCountDisplay({
+          enabled: asValues(values)[names.enabled],
+          count: asValues(values)[names.count],
+        });
+
+      return (
+        <MinimumCountSettingField
+          title={GROUPING_RULE_COPY.minimumCountTitle[options.kind]}
+          description={GROUPING_RULE_COPY.minimumCountDescription[options.kind]}
+          sentence={GROUPING_RULE_COPY.minimumCountSentence[options.kind]}
+          countLabel={GROUPING_RULE_COPY.minimumCountLabel[options.kind]}
+          enabled={display.enabled}
+          count={display.count}
+          error={props.error}
+          dataTestId="minimum-count-setting"
+          onBlur={props.onBlur}
+          onChange={(setting: MinimumCountSettingValue): void => {
+            props.onChange?.(setting);
+          }}
+        />
+      );
+    },
+  };
+};
+
 type SelectColumnFunction = <TModel extends BaseModel>(
   column: string,
 ) => SelectFormFields<TModel>;
@@ -605,6 +701,42 @@ export const getGroupingRuleColumnFormFields: <
     {
       field: selectColumn<TModel>("inactivityTimeoutMinutes"),
       title: "Inactivity Timeout (minutes)",
+      stepId: "grouping",
+      fieldType: FormFieldSchemaType.Number,
+      required: false,
+      showIf: (): boolean => {
+        return false;
+      },
+    },
+  ];
+};
+
+/*
+ * The rule's own columns behind Wait for more incidents (getMinimumCountFormField),
+ * named after what the rule counts. Never drawn, but registered, so the form
+ * reads them when it opens a rule and sends them when it saves one.
+ */
+export const getMinimumCountColumnFormFields: <TModel extends BaseModel>(
+  kind: GroupingRuleKind,
+) => Array<ModelField<TModel>> = <TModel extends BaseModel>(
+  kind: GroupingRuleKind,
+): Array<ModelField<TModel>> => {
+  const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+
+  return [
+    {
+      field: selectColumn<TModel>(names.enabled),
+      title: GROUPING_RULE_COPY.minimumCountTitle[kind],
+      stepId: "grouping",
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      showIf: (): boolean => {
+        return false;
+      },
+    },
+    {
+      field: selectColumn<TModel>(names.count),
+      title: GROUPING_RULE_COPY.minimumCountLabel[kind],
       stepId: "grouping",
       fieldType: FormFieldSchemaType.Number,
       required: false,

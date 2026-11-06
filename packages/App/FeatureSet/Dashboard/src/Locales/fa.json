@@ -45357,5 +45357,19 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime کلیدی برای این عامل نفرستاد. دوباره تلاش کنید.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "این فرمان کلیدی دارد که فقط برای این عامل ساخته شده است. آن را ظرف یک روز اجرا کنید، یا برای کلید تازه این پنجره را دوباره باز کنید.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} بازنشانی شد و کلیدش دیگر کار نمی‌کند. برای وصل کردنش فرمان راه‌اندازی‌اش را دوباره اجرا کنید: «تغییر» آن را نشان می‌دهد.",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "این کار کلید {{agentName}} را بی‌درنگ باطل می‌کند. تا وقتی فرمان راه‌اندازی‌اش را دوباره اجرا نکنید قطع می‌ماند: «تغییر» آن را با کلیدی تازه نشان می‌دهد."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "این کار کلید {{agentName}} را بی‌درنگ باطل می‌کند. تا وقتی فرمان راه‌اندازی‌اش را دوباره اجرا نکنید قطع می‌ماند: «تغییر» آن را با کلیدی تازه نشان می‌دهد.",
+  "Enter a whole number between {{min}} and {{max}}.": "یک عدد صحیح بین {{min}} و {{max}} وارد کنید.",
+  "Minimum Alert Count": "حداقل تعداد هشدار",
+  "Minimum Incident Count": "حداقل تعداد حادثه",
+  "Open an episode once {{count}} matching alerts are ongoing": "وقتی {{count}} هشدار منطبق در جریان باشند اپیزود را باز کن",
+  "Open an episode once {{count}} matching incidents are ongoing": "وقتی {{count}} حادثه منطبق در جریان باشند اپیزود را باز کن",
+  "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.": "اپیزود را فقط وقتی باز کن که چند هشدار منطبق هم‌زمان در جریان باشند، مثلاً قطعی‌ای که چندین مانیتور را فعال می‌کند، و همه آن‌ها را در آن بگذار. تا آن زمان هر هشدار جداگانه می‌ماند و فقط سیاست‌های آنکال خودش را اجرا می‌کند.",
+  "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.": "اپیزود را فقط وقتی باز کن که چند حادثه منطبق هم‌زمان در جریان باشند، مثلاً قطعی‌ای که چندین مانیتور را فعال می‌کند، و همه آن‌ها را در آن بگذار. تا آن زمان هر حادثه جداگانه می‌ماند و فقط سیاست‌های آنکال خودش را اجرا می‌کند.",
+  "Opens an episode once {{count}} matching alerts are ongoing": "وقتی {{count}} هشدار منطبق در جریان باشند اپیزود باز می‌کند",
+  "Opens an episode once {{count}} matching incidents are ongoing": "وقتی {{count}} حادثه منطبق در جریان باشند اپیزود باز می‌کند",
+  "Wait for more alerts": "منتظر هشدارهای بیشتر بمان",
+  "Wait for more incidents": "منتظر حادثه‌های بیشتر بمان",
+  "Enable Minimum Alert Count": "فعال کردن حداقل تعداد هشدار",
+  "Enable Minimum Incident Count": "فعال کردن حداقل تعداد حادثه",
+  "Grouping Wait Key": "کلید انتظار گروه‌بندی"
 }

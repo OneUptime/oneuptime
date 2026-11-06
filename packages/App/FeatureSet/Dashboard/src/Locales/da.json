@@ -45357,5 +45357,19 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime sendte ingen nøgle til denne agent. Prøv igen.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandoen indeholder en nøgle, der kun er lavet til denne agent. Kør den inden for en dag, eller åbn denne dialog igen for at få en ny.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} blev nulstillet, og dens nøgle virker ikke længere. Kør dens opsætningskommando igen for at forbinde den: Skift viser den.",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbagekalder straks nøglen til {{agentName}}. Agenten forbliver afbrudt, indtil du kører dens opsætningskommando igen: Skift viser den med en ny nøgle."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbagekalder straks nøglen til {{agentName}}. Agenten forbliver afbrudt, indtil du kører dens opsætningskommando igen: Skift viser den med en ny nøgle.",
+  "Enter a whole number between {{min}} and {{max}}.": "Angiv et helt tal mellem {{min}} og {{max}}.",
+  "Minimum Alert Count": "Mindste antal advarsler",
+  "Minimum Incident Count": "Mindste antal hændelser",
+  "Open an episode once {{count}} matching alerts are ongoing": "Åbn en episode, når {{count}} matchende advarsler er i gang",
+  "Open an episode once {{count}} matching incidents are ongoing": "Åbn en episode, når {{count}} matchende hændelser er i gang",
+  "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.": "Åbn først en episode, når flere matchende advarsler er i gang på samme tid, for eksempel ved et nedbrud, der udløser mange overvågninger, og læg dem alle i den. Indtil da står hver advarsel for sig selv og kører kun sine egne vagtpolitikker.",
+  "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.": "Åbn først en episode, når flere matchende hændelser er i gang på samme tid, for eksempel ved et nedbrud, der udløser mange overvågninger, og læg dem alle i den. Indtil da står hver hændelse for sig selv og kører kun sine egne vagtpolitikker.",
+  "Opens an episode once {{count}} matching alerts are ongoing": "Åbner en episode, når {{count}} matchende advarsler er i gang",
+  "Opens an episode once {{count}} matching incidents are ongoing": "Åbner en episode, når {{count}} matchende hændelser er i gang",
+  "Wait for more alerts": "Vent på flere advarsler",
+  "Wait for more incidents": "Vent på flere hændelser",
+  "Enable Minimum Alert Count": "Aktivér mindste antal advarsler",
+  "Enable Minimum Incident Count": "Aktivér mindste antal hændelser",
+  "Grouping Wait Key": "Venteøgle for gruppering"
 }

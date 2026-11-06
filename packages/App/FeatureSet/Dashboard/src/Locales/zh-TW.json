@@ -45357,5 +45357,19 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime 沒有傳送此代理程式的金鑰。請再試一次。",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "此指令包含僅為此代理程式建立的金鑰。請在一天內執行，或重新開啟此對話方塊取得新金鑰。",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} 已重設，其金鑰已失效。請再次執行其設定指令以連線：點擊「變更」即可查看。",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "這會立即撤銷 {{agentName}} 的金鑰。在你再次執行其設定指令之前，代理程式會保持中斷：點擊「變更」可查看含有新金鑰的指令。"
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "這會立即撤銷 {{agentName}} 的金鑰。在你再次執行其設定指令之前，代理程式會保持中斷：點擊「變更」可查看含有新金鑰的指令。",
+  "Enter a whole number between {{min}} and {{max}}.": "請輸入 {{min}} 到 {{max}} 之間的整數。",
+  "Minimum Alert Count": "最少警示數",
+  "Minimum Incident Count": "最少事件數",
+  "Open an episode once {{count}} matching alerts are ongoing": "當 {{count}} 個符合的警示正在進行時開啟片段",
+  "Open an episode once {{count}} matching incidents are ongoing": "當 {{count}} 個符合的事件正在進行時開啟片段",
+  "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.": "僅在多個符合的警示同時進行時（例如觸發多個監測器的故障）才開啟片段，並將它們全部放入其中。在此之前，每個警示保持獨立，只執行其本身的待命策略。",
+  "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.": "僅在多個符合的事件同時進行時（例如觸發多個監測器的故障）才開啟片段，並將它們全部放入其中。在此之前，每個事件保持獨立，只執行其本身的待命策略。",
+  "Opens an episode once {{count}} matching alerts are ongoing": "{{count}} 個符合的警示正在進行時即開啟片段",
+  "Opens an episode once {{count}} matching incidents are ongoing": "{{count}} 個符合的事件正在進行時即開啟片段",
+  "Wait for more alerts": "等待更多警示",
+  "Wait for more incidents": "等待更多事件",
+  "Enable Minimum Alert Count": "啟用最少警示數",
+  "Enable Minimum Incident Count": "啟用最少事件數",
+  "Grouping Wait Key": "分組等待鍵"
 }

@@ -43,13 +43,33 @@ import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import AlertStateService from "./AlertStateService";
+import {
+  MAX_RECORDS_TO_OPEN_EPISODE,
+  getRecordsToOpenEpisode,
+} from "../../Utils/Episode/EpisodeOpeningThreshold";
+import {
+  getGroupingWaitKey,
+  getRecordsArrivedTogether,
+} from "../Utils/Rules/GroupingRuleEpisodeWait";
 
 export interface GroupingResult {
   grouped: boolean;
   episodeId?: ObjectID;
   isNewEpisode?: boolean;
   wasReopened?: boolean;
+  /*
+   * Not grouped yet: the rule waits for more matching alerts before it opens
+   * an episode, and this one waits with them (GroupingRuleEpisodeWait).
+   */
+  isWaitingForMore?: boolean;
 }
+
+/*
+ * The minutes the engine groups with when a rule's time window is switched
+ * on with none saved.
+ */
+const FALLBACK_TIME_WINDOW_MINUTES: number = 60;
 
 /*
  * What an episode's {{alertTitle}} and {{alertDescription}} read when the
@@ -140,6 +160,9 @@ class AlertGroupingEngineServiceClass {
             // Time settings
             enableTimeWindow: true,
             timeWindowMinutes: true,
+            // How many matching alerts it waits for
+            enableMinimumAlertCount: true,
+            minimumAlertCount: true,
             episodeTitleTemplate: true,
             episodeDescriptionTemplate: true,
             enableResolveDelay: true,
@@ -533,11 +556,13 @@ class AlertGroupingEngineServiceClass {
       }
 
       // Calculate time window cutoff (only if time window is enabled)
-      let timeWindowCutoff: Date | null = null;
-      if (rule.enableTimeWindow) {
-        const timeWindowMinutes: number = rule.timeWindowMinutes || 60;
-        timeWindowCutoff = OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
-      }
+      const timeWindowMinutes: number | null = rule.enableTimeWindow
+        ? rule.timeWindowMinutes || FALLBACK_TIME_WINDOW_MINUTES
+        : null;
+      const timeWindowCutoff: Date | null =
+        timeWindowMinutes === null
+          ? null
+          : OneUptimeDate.getSomeMinutesAgo(timeWindowMinutes);
 
       // Find existing active episode that matches
       const existingEpisode: AlertEpisode | null =
@@ -574,11 +599,34 @@ class AlertGroupingEngineServiceClass {
       }
 
       /*
+       * How many matching alerts of the group must be ongoing before the
+       * rule opens an episode for them (EpisodeOpeningThreshold): 1 - this
+       * one - unless the rule waits for more. The group they wait in is the
+       * rule and the key as built, whether the alert is private or not.
+       */
+      const alertsToOpenEpisode: number = getRecordsToOpenEpisode({
+        enabled: rule.enableMinimumAlertCount,
+        count: rule.minimumAlertCount,
+      });
+
+      const groupingWaitKey: string = getGroupingWaitKey({
+        ruleId: rule.id!,
+        groupingKey: groupingKey,
+      });
+
+      /*
        * No open episode to join, and the alert may not open or reopen one
        * (GroupingOptions): a new episode would page its own on-call policies
-       * for an alert that pages nobody. It stays on its own.
+       * for an alert that pages nobody. It stays on its own. A rule that
+       * waits for more alerts counts it all the same: it waits with the
+       * others, and joins the episode a live alert of the group opens.
        */
       if (options.mayOpenEpisode === false) {
+        if (alertsToOpenEpisode > 1) {
+          await this.waitForEpisode(alert, groupingWaitKey);
+          return { grouped: false, isWaitingForMore: true };
+        }
+
         return { grouped: false };
       }
 
@@ -627,21 +675,60 @@ class AlertGroupingEngineServiceClass {
         }
       }
 
+      /*
+       * A rule that waits for more alerts opens the episode only once enough
+       * of the group's are ongoing, this one among them
+       * (GroupingRuleEpisodeWait). Until then this one waits too, on its
+       * own, paging only its own on-call policies.
+       */
+      let alertsWaiting: Array<Alert> = [];
+
+      if (alertsToOpenEpisode > 1) {
+        alertsWaiting = await this.findAlertsWaitingForEpisode({
+          alert: alert,
+          groupingWaitKey: groupingWaitKey,
+          timeWindowMinutes: timeWindowMinutes,
+        });
+
+        if (alertsWaiting.length + 1 < alertsToOpenEpisode) {
+          await this.waitForEpisode(alert, groupingWaitKey);
+          return { grouped: false, isWaitingForMore: true };
+        }
+      }
+
+      /*
+       * An episode opens with its group's first alert: the oldest one that
+       * waited - its title, monitor and severity are the episode's - or this
+       * one, when none did.
+       */
+      const openingAlert: Alert =
+        alertsWaiting[alertsWaiting.length - 1] || alert;
+
       // Create new episode
       const newEpisode: AlertEpisode | null = await this.createNewEpisode(
-        alert,
+        openingAlert,
         rule,
         groupingKey,
       );
 
       if (newEpisode && newEpisode.id) {
-        // Add alert to new episode
-        await this.addAlertToEpisode(
-          alert,
-          newEpisode.id,
-          AlertEpisodeMemberAddedBy.Rule,
-          rule.id!,
-        );
+        if (alertsWaiting.length > 0) {
+          // Every alert that waited, then this one.
+          await this.addWaitingAlertsToNewEpisode({
+            alert: alert,
+            alertsWaiting: alertsWaiting,
+            episodeId: newEpisode.id,
+            rule: rule,
+          });
+        } else {
+          // Add alert to new episode
+          await this.addAlertToEpisode(
+            alert,
+            newEpisode.id,
+            AlertEpisodeMemberAddedBy.Rule,
+            rule.id!,
+          );
+        }
 
         return { grouped: true, episodeId: newEpisode.id, isNewEpisode: true };
       }
@@ -855,6 +942,145 @@ class AlertGroupingEngineServiceClass {
     return episode;
   }
 
+  /*
+   * The alerts waiting in the alert's group for the rule to open its
+   * episode (GroupingRuleEpisodeWait), newest first: marked with the group,
+   * in no episode, still ongoing - in a state that does not count as
+   * resolved (Common/Utils/ResolvedState) - and, with the rule's time window
+   * on, the run of them that arrived close together. At most as many as an
+   * episode can open with, besides the alert itself. Read as root, with what
+   * the episode is opened with when the oldest of them opens it.
+   */
+  @CaptureSpan()
+  private async findAlertsWaitingForEpisode(data: {
+    alert: Alert;
+    groupingWaitKey: string;
+    timeWindowMinutes: number | null;
+  }): Promise<Array<Alert>> {
+    const projectId: ObjectID = data.alert.projectId!;
+
+    const unresolvedStateIds: Array<ObjectID> =
+      await AlertStateService.getUnresolvedAlertStateIds(projectId);
+
+    if (unresolvedStateIds.length === 0) {
+      return [];
+    }
+
+    const alertsWaiting: Array<Alert> = await AlertService.findBy({
+      query: {
+        projectId: projectId,
+        groupingWaitKey: data.groupingWaitKey,
+        alertEpisodeId: QueryHelper.isNull(),
+        currentAlertStateId: QueryHelper.any(unresolvedStateIds),
+        _id: QueryHelper.notEquals(data.alert.id!),
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        createdAt: true,
+        title: true,
+        description: true,
+        isPrivate: true,
+        alertSeverityId: true,
+        alertSeverity: {
+          name: true,
+        },
+        monitorId: true,
+        monitor: {
+          _id: true,
+          name: true,
+        },
+      },
+      limit: MAX_RECORDS_TO_OPEN_EPISODE - 1,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return getRecordsArrivedTogether({
+      waiting: alertsWaiting,
+      timeWindowMinutes: data.timeWindowMinutes,
+      now: OneUptimeDate.getCurrentDate(),
+    });
+  }
+
+  /*
+   * The alert waits in its group for more (GroupingRuleEpisodeWait), or
+   * stops waiting (null): the mark the next alert of the group finds it by.
+   * Bookkeeping, not an edit of the alert: no hooks, no updatedAt.
+   */
+  @CaptureSpan()
+  private async waitForEpisode(
+    alert: Alert,
+    groupingWaitKey: string | null,
+  ): Promise<void> {
+    await AlertService.updateColumnsByIdWithoutHooks({
+      id: alert.id!,
+      data: {
+        groupingWaitKey: groupingWaitKey,
+      },
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
+   * The episode a rule opened once enough alerts of the group were ongoing:
+   * every one that waited, oldest first, then the alert that arrived last -
+   * added together, so the episode is counted, raised to its most severe
+   * alert and told what joined it once
+   * (AlertEpisodeMemberService.addAlertsGroupedByRule). The ones added wait
+   * no more.
+   */
+  @CaptureSpan()
+  private async addWaitingAlertsToNewEpisode(data: {
+    alert: Alert;
+    alertsWaiting: Array<Alert>;
+    episodeId: ObjectID;
+    rule: AlertGroupingRule;
+  }): Promise<void> {
+    const alertsWaitingOldestFirst: Array<Alert> = [
+      ...data.alertsWaiting,
+    ].reverse();
+
+    const addedAlertIds: Array<ObjectID> =
+      await AlertEpisodeMemberService.addAlertsGroupedByRule({
+        projectId: data.alert.projectId!,
+        alertEpisodeId: data.episodeId,
+        alertIds: [
+          ...alertsWaitingOldestFirst.map((waiting: Alert): ObjectID => {
+            return waiting.id!;
+          }),
+          data.alert.id!,
+        ],
+        matchedRuleId: data.rule.id!,
+      });
+
+    const added: Set<string> = new Set<string>(
+      addedAlertIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const waiting of alertsWaitingOldestFirst) {
+      if (!waiting.id || !added.has(waiting.id.toString())) {
+        continue;
+      }
+
+      try {
+        await this.waitForEpisode(waiting, null);
+      } catch (error) {
+        logger.error(
+          `Error clearing the grouping wait of alert ${waiting.id.toString()}, now in episode ${data.episodeId.toString()}: ${error}`,
+          { projectId: data.alert.projectId?.toString() } as LogAttributes,
+        );
+      }
+    }
+  }
+
   @CaptureSpan()
   private async createNewEpisode(
     alert: Alert,
@@ -1049,6 +1275,15 @@ class AlertGroupingEngineServiceClass {
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
           moreInfo += mdText`\n\n**Time Window:** ${rule.timeWindowMinutes} minutes`;
+        }
+
+        const alertsToOpenEpisode: number = getRecordsToOpenEpisode({
+          enabled: rule.enableMinimumAlertCount,
+          count: rule.minimumAlertCount,
+        });
+
+        if (alertsToOpenEpisode > 1) {
+          moreInfo += mdText`\n\n**Opened once:** ${alertsToOpenEpisode} matching alerts were ongoing`;
         }
 
         try {

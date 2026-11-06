@@ -45357,5 +45357,19 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime에서 이 에이전트의 키를 보내지 않았습니다. 다시 시도하세요.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "이 명령에는 이 에이전트 전용으로 만든 키가 들어 있습니다. 하루 안에 실행하거나, 이 대화 상자를 다시 열어 새 키를 받으세요.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}}가 재설정되어 키가 더 이상 작동하지 않습니다. 연결하려면 설정 명령을 다시 실행하세요. 변경을 누르면 명령이 표시됩니다.",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}}의 키를 즉시 무효화합니다. 설정 명령을 다시 실행할 때까지 에이전트는 연결이 끊긴 상태로 남습니다. 변경을 누르면 새 키가 담긴 명령이 표시됩니다."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}}의 키를 즉시 무효화합니다. 설정 명령을 다시 실행할 때까지 에이전트는 연결이 끊긴 상태로 남습니다. 변경을 누르면 새 키가 담긴 명령이 표시됩니다.",
+  "Enter a whole number between {{min}} and {{max}}.": "{{min}}에서 {{max}} 사이의 정수를 입력하세요.",
+  "Minimum Alert Count": "최소 경고 수",
+  "Minimum Incident Count": "최소 인시던트 수",
+  "Open an episode once {{count}} matching alerts are ongoing": "일치하는 경고 {{count}}개가 진행 중이면 에피소드 열기",
+  "Open an episode once {{count}} matching incidents are ongoing": "일치하는 인시던트 {{count}}개가 진행 중이면 에피소드 열기",
+  "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.": "일치하는 경고가 동시에 여러 개 진행 중일 때만(예: 여러 모니터를 울리는 장애) 에피소드를 열고 모두 넣습니다. 그 전까지는 각 경고가 따로 남아 자체 온콜 정책만 실행합니다.",
+  "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.": "일치하는 인시던트가 동시에 여러 개 진행 중일 때만(예: 여러 모니터를 울리는 장애) 에피소드를 열고 모두 넣습니다. 그 전까지는 각 인시던트가 따로 남아 자체 온콜 정책만 실행합니다.",
+  "Opens an episode once {{count}} matching alerts are ongoing": "일치하는 경고 {{count}}개가 진행 중이면 에피소드를 엽니다",
+  "Opens an episode once {{count}} matching incidents are ongoing": "일치하는 인시던트 {{count}}개가 진행 중이면 에피소드를 엽니다",
+  "Wait for more alerts": "더 많은 경고 기다리기",
+  "Wait for more incidents": "더 많은 인시던트 기다리기",
+  "Enable Minimum Alert Count": "최소 경고 수 활성화",
+  "Enable Minimum Incident Count": "최소 인시던트 수 활성화",
+  "Grouping Wait Key": "그룹화 대기 키"
 }

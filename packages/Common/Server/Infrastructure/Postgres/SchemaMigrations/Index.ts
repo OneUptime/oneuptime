@@ -908,6 +908,8 @@ import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpen
 import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
 import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
 import { AddCloudAccountAiAgentKeys1808994400000 } from "./1808994400000-AddCloudAccountAiAgentKeys";
+import { AddGroupingRuleMinimumCount1808994560000 } from "./1808994560000-AddGroupingRuleMinimumCount";
+import { AddGroupingWaitKeyIndexes1808994570000 } from "./1808994570000-AddGroupingWaitKeyIndexes";
 
 export default [
   InitialMigration,
@@ -1820,4 +1822,6 @@ export default [
   AddWorkflowLogRunAgain1808994200000,
   AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
   AddCloudAccountAiAgentKeys1808994400000,
+  AddGroupingRuleMinimumCount1808994560000,
+  AddGroupingWaitKeyIndexes1808994570000,
 ];

@@ -45357,5 +45357,19 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime non ha inviato una chiave per questo agente. Riprova.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Il comando contiene una chiave creata solo per questo agente. Eseguilo entro un giorno, oppure riapri questa finestra per averne una nuova.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "L'{{agent}} è stato reimpostato e la sua chiave non funziona più. Esegui di nuovo il suo comando di configurazione per connetterlo: «Cambia» lo mostra.",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Revoca subito la chiave dell'{{agentName}}. Resta disconnesso finché non esegui di nuovo il suo comando di configurazione: «Cambia» lo mostra, con una nuova chiave."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Revoca subito la chiave dell'{{agentName}}. Resta disconnesso finché non esegui di nuovo il suo comando di configurazione: «Cambia» lo mostra, con una nuova chiave.",
+  "Enter a whole number between {{min}} and {{max}}.": "Inserisci un numero intero tra {{min}} e {{max}}.",
+  "Minimum Alert Count": "Numero minimo di avvisi",
+  "Minimum Incident Count": "Numero minimo di incidenti",
+  "Open an episode once {{count}} matching alerts are ongoing": "Apri un episodio quando {{count}} avvisi corrispondenti sono in corso",
+  "Open an episode once {{count}} matching incidents are ongoing": "Apri un episodio quando {{count}} incidenti corrispondenti sono in corso",
+  "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.": "Apri un episodio solo quando più avvisi corrispondenti sono in corso contemporaneamente, come in un disservizio che fa scattare molti monitor, e inseriscili tutti. Fino ad allora, ogni avviso resta a sé ed esegue solo le proprie policy di reperibilità.",
+  "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.": "Apri un episodio solo quando più incidenti corrispondenti sono in corso contemporaneamente, come in un disservizio che fa scattare molti monitor, e inseriscili tutti. Fino ad allora, ogni incidente resta a sé ed esegue solo le proprie policy di reperibilità.",
+  "Opens an episode once {{count}} matching alerts are ongoing": "Apre un episodio quando {{count}} avvisi corrispondenti sono in corso",
+  "Opens an episode once {{count}} matching incidents are ongoing": "Apre un episodio quando {{count}} incidenti corrispondenti sono in corso",
+  "Wait for more alerts": "Attendi altri avvisi",
+  "Wait for more incidents": "Attendi altri incidenti",
+  "Enable Minimum Alert Count": "Abilita numero minimo di avvisi",
+  "Enable Minimum Incident Count": "Abilita numero minimo di incidenti",
+  "Grouping Wait Key": "Chiave di attesa del raggruppamento"
 }

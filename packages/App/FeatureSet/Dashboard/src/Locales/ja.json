@@ -45357,5 +45357,19 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime からこのエージェントのキーが届きませんでした。もう一度お試しください。",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "このコマンドには、このエージェント専用に作成されたキーが含まれています。1 日以内に実行するか、このダイアログをもう一度開いて新しいキーを取得してください。",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} はリセットされ、そのキーは使えなくなりました。接続するにはセットアップ コマンドをもう一度実行してください。コマンドは「変更」で表示されます。",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}} のキーをすぐに無効にします。セットアップ コマンドをもう一度実行するまで、エージェントは切断されたままになります。コマンドは新しいキーとともに「変更」で表示されます。"
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}} のキーをすぐに無効にします。セットアップ コマンドをもう一度実行するまで、エージェントは切断されたままになります。コマンドは新しいキーとともに「変更」で表示されます。",
+  "Enter a whole number between {{min}} and {{max}}.": "{{min}} から {{max}} までの整数を入力してください。",
+  "Minimum Alert Count": "最小アラート数",
+  "Minimum Incident Count": "最小インシデント数",
+  "Open an episode once {{count}} matching alerts are ongoing": "一致するアラートが {{count}} 件進行中になったらエピソードを開く",
+  "Open an episode once {{count}} matching incidents are ongoing": "一致するインシデントが {{count}} 件進行中になったらエピソードを開く",
+  "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.": "一致するアラートが同時に複数進行しているとき (多数のモニターが反応する障害など) にだけエピソードを開き、そのすべてを入れます。それまでは各アラートは単独のままで、自身のオンコールポリシーのみを実行します。",
+  "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.": "一致するインシデントが同時に複数進行しているとき (多数のモニターが反応する障害など) にだけエピソードを開き、そのすべてを入れます。それまでは各インシデントは単独のままで、自身のオンコールポリシーのみを実行します。",
+  "Opens an episode once {{count}} matching alerts are ongoing": "一致するアラートが {{count}} 件進行中になるとエピソードを開きます",
+  "Opens an episode once {{count}} matching incidents are ongoing": "一致するインシデントが {{count}} 件進行中になるとエピソードを開きます",
+  "Wait for more alerts": "さらにアラートを待つ",
+  "Wait for more incidents": "さらにインシデントを待つ",
+  "Enable Minimum Alert Count": "最小アラート数を有効化",
+  "Enable Minimum Incident Count": "最小インシデント数を有効化",
+  "Grouping Wait Key": "グループ化の待機キー"
 }
