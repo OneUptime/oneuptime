@@ -83,6 +83,14 @@ export enum MonitorRecommendationResourceType {
    * MonitorRecommendationContext.
    */
   CloudResource = "CloudResource",
+  /*
+   * One App Platforms app (a CloudApp row): an ECS service, a Cloud Run
+   * service, a Container App. Its recommendations watch its own requests -
+   * failing, slowing, stopping - read from its spans and its HTTP duration
+   * histogram, scoped by its environment's and its own attributes as its
+   * Traces tab is (CloudAppAlertTemplates); see MonitorRecommendationContext.
+   */
+  CloudApp = "CloudApp",
 }
 
 /*
@@ -227,6 +235,18 @@ export interface MonitorRecommendationContext {
    * share of it, and waits for it.
    */
   cloudAllocatedStorageGiB?: number | null | undefined;
+  /*
+   * An App Platforms app's telemetry filter: its environment's
+   * resource.cloud.* attributes and its own resource.* attributes, as its
+   * Traces tab reads its spans. Without its own attributes nothing is
+   * offered: a monitor of the environment alone would read every app in it.
+   */
+  cloudAppTelemetryFilters?: Dictionary<string> | null | undefined;
+  /*
+   * The CloudResource row of the app's environment: what each monitor made
+   * for the app is linked to, so its incidents and alerts list there.
+   */
+  cloudAppEnvironmentId?: string | null | undefined;
 }
 
 /*
@@ -251,6 +271,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   serviceId         -> APM service
  *   databaseServerId  -> Database server
  *   cloudResourceId   -> Cloud resource
+ *   cloudAppId        -> App Platforms app
  *
  * The registry normalizes that single difference into `resourceIdentifier`
  * and each catalog adapter renames it back on the way into the module's own

@@ -16,7 +16,10 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import { getCloudAppTelemetryFilters } from "../../Pages/AppPlatforms/Utils/CloudApps";
+import { isCloudAppTelemetryScoped } from "Common/Types/Monitor/CloudAppAlertTemplates";
 import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
 import {
   CloudAlertTemplate,
@@ -167,8 +170,116 @@ export interface RecommendationResourceDefinition {
    * step alone.
    */
   linkCreatedMonitor?:
-    | ((data: { monitor: Monitor; resourceId: ObjectID }) => void)
+    | ((data: {
+        monitor: Monitor;
+        resourceId: ObjectID;
+        context: MonitorRecommendationContext;
+      }) => void)
     | undefined;
+}
+
+/*
+ * What an App Platforms app's row says that decides its recommendations:
+ * its own attributes and the environment it runs in. Its environment's
+ * cloud.* attributes complete its telemetry filter
+ * (loadCloudAppRecommendationContext); read alone, an app is offered
+ * nothing yet.
+ */
+export function readCloudAppRecommendationContext(
+  record: Record<string, unknown>,
+): MonitorRecommendationContext {
+  const environmentId: unknown = record["cloudResourceId"];
+
+  return {
+    cloudAppEnvironmentId:
+      environmentId && String(environmentId).trim()
+        ? String(environmentId).trim()
+        : null,
+    // The app's own attributes; its environment's are added on load.
+    cloudAppTelemetryFilters: getCloudAppTelemetryFilters({
+      environment: null,
+      app: {
+        telemetryAttributes: record["telemetryAttributes"] as
+          | Record<string, unknown>
+          | undefined,
+      },
+    }),
+  };
+}
+
+/*
+ * The app's telemetry filter, completed with its environment's platform,
+ * account and Region, as its Traces tab filters its spans. The environment
+ * is read with the person's own rights; a read that fails keeps the row's
+ * context (RecommendationResourceRegistry.loadContext), which has no
+ * platform, so the app is offered nothing - never an unscoped monitor.
+ */
+export async function loadCloudAppRecommendationContext(data: {
+  model: BaseModel;
+  context: MonitorRecommendationContext;
+}): Promise<MonitorRecommendationContext> {
+  if (!data.context.cloudAppEnvironmentId) {
+    return data.context;
+  }
+
+  // Imported here: its client reads the browser's config as it loads.
+  const modelApi: typeof import("Common/UI/Utils/ModelAPI/ModelAPI") =
+    await import("Common/UI/Utils/ModelAPI/ModelAPI");
+
+  const environment: CloudResource | null = await modelApi.default.getItem({
+    modelType: CloudResource,
+    id: new ObjectID(data.context.cloudAppEnvironmentId),
+    select: { cloudPlatform: true, cloudAccountId: true, cloudRegion: true },
+  });
+
+  if (!environment) {
+    return data.context;
+  }
+
+  const record: Record<string, unknown> = data.model as unknown as Record<
+    string,
+    unknown
+  >;
+
+  return {
+    ...data.context,
+    cloudAppTelemetryFilters: getCloudAppTelemetryFilters({
+      environment: {
+        cloudPlatform: environment.cloudPlatform as string | undefined,
+        cloudAccountId: environment.cloudAccountId as string | undefined,
+        cloudRegion: environment.cloudRegion as string | undefined,
+      },
+      app: {
+        telemetryAttributes: record["telemetryAttributes"] as
+          | Record<string, unknown>
+          | undefined,
+      },
+    }),
+  };
+}
+
+// Why an app is offered nothing, or undefined when it is offered them all.
+export function describeCloudAppRecommendationContext(
+  context: MonitorRecommendationContext,
+): string | undefined {
+  if (isCloudAppTelemetryScoped(context.cloudAppTelemetryFilters)) {
+    return undefined;
+  }
+
+  // The app's own attributes: every key but its environment's cloud.* ones.
+  const hasOwnAttributes: boolean = Object.keys(
+    context.cloudAppTelemetryFilters || {},
+  ).some((key: string): boolean => {
+    return !key.startsWith("resource.cloud.");
+  });
+
+  return hasOwnAttributes
+    ? translateTemplate(
+        "Its environment's platform is not known yet, and every recommended monitor reads the app's telemetry by it, so none is offered until it is.",
+      )
+    : translateTemplate(
+        "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.",
+      );
 }
 
 /*
@@ -197,9 +308,7 @@ export function readCloudResourceRecommendationContext(
       record["cloudProperties"],
     ),
     // An ObjectID on a read row, a string in a plain record.
-    cloudReadByConnection: Boolean(
-      connectionId && String(connectionId).trim(),
-    ),
+    cloudReadByConnection: Boolean(connectionId && String(connectionId).trim()),
   };
 }
 
@@ -939,10 +1048,51 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     linkCreatedMonitor: (data: {
       monitor: Monitor;
       resourceId: ObjectID;
+      context: MonitorRecommendationContext;
     }): void => {
       MonitorRecommendationCreateUtil.linkToCloudResource({
         monitor: data.monitor,
         cloudResourceId: data.resourceId,
+      });
+    },
+  },
+  /*
+   * An App Platforms app: every template reads its own spans and request
+   * durations, filtered as its Traces tab filters them - its environment's
+   * cloud.* attributes and its own - so `_id` names it, as a cloud
+   * resource's does. Each monitor is linked to its environment, where an
+   * app's incidents and alerts are listed (CloudApp keeps none of its own).
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.CloudApp,
+    modelType: CloudApp,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    contextFieldNames: ["telemetryAttributes", "cloudResourceId"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return readCloudAppRecommendationContext(
+        model as unknown as Record<string, unknown>,
+      );
+    },
+    loadContext: loadCloudAppRecommendationContext,
+    describeContext: describeCloudAppRecommendationContext,
+    getCardDescription: (): string | undefined => {
+      return translateTemplate(
+        "Monitors OneUptime recommends for this app, from the requests its OpenTelemetry reports. Pick the ones you want and create them in one step.",
+      );
+    },
+    linkCreatedMonitor: (data: {
+      monitor: Monitor;
+      resourceId: ObjectID;
+      context: MonitorRecommendationContext;
+    }): void => {
+      if (!data.context.cloudAppEnvironmentId) {
+        return;
+      }
+
+      MonitorRecommendationCreateUtil.linkToCloudResource({
+        monitor: data.monitor,
+        cloudResourceId: new ObjectID(data.context.cloudAppEnvironmentId),
       });
     },
   },
@@ -1085,9 +1235,15 @@ export default class RecommendationResourceRegistry {
   public static getMonitorLinker(data: {
     resourceType: MonitorRecommendationResourceType;
     resourceId: ObjectID;
+    // What the page read about the resource: an app's environment, say.
+    context?: MonitorRecommendationContext | undefined;
   }): ((monitor: Monitor) => void) | undefined {
     const link:
-      | ((link: { monitor: Monitor; resourceId: ObjectID }) => void)
+      | ((link: {
+          monitor: Monitor;
+          resourceId: ObjectID;
+          context: MonitorRecommendationContext;
+        }) => void)
       | undefined = this.getDefinition(data.resourceType)?.linkCreatedMonitor;
 
     if (!link) {
@@ -1095,7 +1251,11 @@ export default class RecommendationResourceRegistry {
     }
 
     return (monitor: Monitor): void => {
-      link({ monitor: monitor, resourceId: data.resourceId });
+      link({
+        monitor: monitor,
+        resourceId: data.resourceId,
+        context: data.context || {},
+      });
     };
   }
 

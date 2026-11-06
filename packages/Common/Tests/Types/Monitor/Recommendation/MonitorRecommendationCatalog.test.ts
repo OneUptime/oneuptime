@@ -55,6 +55,7 @@ import {
 import { getAllDataObservabilityAlertTemplates } from "../../../../Types/Monitor/DataObservabilityAlertTemplates";
 import { getAllDataPipelineAlertTemplates } from "../../../../Types/Monitor/DataPipelineAlertTemplates";
 import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertTemplates";
+import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -75,6 +76,13 @@ const RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET: Array<MonitorRecommendationRes
      * there is no resource to read (getCloudAlertTemplatesFor).
      */
     MonitorRecommendationResourceType.CloudResource,
+    /*
+     * An App Platforms app's templates read its own telemetry by the filter
+     * its row and its environment's make: with no context there is no filter,
+     * and a monitor filtered on nothing would read the whole project
+     * (getCloudAppAlertTemplatesFor).
+     */
+    MonitorRecommendationResourceType.CloudApp,
   ];
 
 /*
@@ -304,6 +312,15 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
      */
     contextFreeTemplateCount: 0,
     identifierFieldName: "cloudResourceId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.CloudApp,
+    // A count of its spans is a Traces monitor; a latency percentile, Metrics.
+    monitorTypes: [MonitorType.Traces, MonitorType.Metrics],
+    templateCount: getAllCloudAppAlertTemplates().length,
+    // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
+    contextFreeTemplateCount: 0,
+    identifierFieldName: "cloudAppId",
   },
 ];
 

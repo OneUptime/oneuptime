@@ -12,6 +12,8 @@ import {
   SavedViewScopeKind,
 } from "Common/Utils/Telemetry/SavedViewScope";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
+import RecommendationsPage from "../../../Components/Recommendations/RecommendationsPage";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { CloudInstancesTable } from "./Instances";
 import {
   countLiveInstancesByApp,
@@ -69,7 +71,10 @@ import React, {
  *     its instances' CPU and memory, and which revisions run right now;
  *   - Revisions: its deploy history, each revision's numbers beside the
  *     last's;
- *   - Instances, Logs and Traces: its own, not its environment's.
+ *   - Instances, Logs and Traces: its own, not its environment's;
+ *   - Recommendations: the monitors OneUptime recommends for it - its
+ *     requests failing, slowing or stopping, read from its own telemetry
+ *     (CloudAppAlertTemplates) - which the header's Set up alerts opens.
  *
  * A tab can be opened from its address (?tab=Revisions), which the
  * environment's feed lines and the Overview's deploys link to.
@@ -90,6 +95,7 @@ export enum CloudAppTabName {
   Instances = "Instances",
   Logs = "Logs",
   Traces = "Traces",
+  Recommendations = "Recommendations",
 }
 
 interface LoadedApp {
@@ -219,6 +225,14 @@ const AppPlatformApp: FunctionComponent<
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
   const [refreshToken, setRefreshToken] = useState<number>(0);
+  /*
+   * A tab the header asked for (Set up alerts): the tabs are drawn again on
+   * it, however often it is asked.
+   */
+  const [tabRequest, setTabRequest] = useState<{
+    name: CloudAppTabName;
+    count: number;
+  } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
@@ -256,6 +270,17 @@ const AppPlatformApp: FunctionComponent<
   useEffect(() => {
     load(true);
   }, [appId.toString(), environmentId.toString()]);
+
+  /*
+   * The tab Set up alerts opened, focused as a click on it leaves it: in
+   * view on a phone, where the header fills the screen, and where a
+   * keyboard continues from.
+   */
+  useEffect(() => {
+    if (tabRequest) {
+      document.getElementById(`tab-${tabRequest.name}`)?.focus();
+    }
+  }, [tabRequest]);
 
   const refresh: () => void = (): void => {
     load(false);
@@ -337,12 +362,17 @@ const AppPlatformApp: FunctionComponent<
         modelId: loaded.serviceId,
       })
     : undefined;
-  const alertsRoute: Route | undefined = loaded.serviceId
-    ? RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVICE_VIEW_RECOMMENDATIONS] as Route,
-        { modelId: loaded.serviceId },
-      )
-    : undefined;
+  /*
+   * An app whose own telemetry can be told apart has recommended monitors
+   * of its own; one that cannot is offered its service's, when it has one.
+   */
+  const alertsRoute: Route | undefined =
+    !isScoped && loaded.serviceId
+      ? RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICE_VIEW_RECOMMENDATIONS] as Route,
+          { modelId: loaded.serviceId },
+        )
+      : undefined;
 
   const notScoped: ReactElement = <ErrorMessage message={APP_NOT_SCOPED} />;
 
@@ -417,6 +447,15 @@ const AppPlatformApp: FunctionComponent<
         notScoped
       ),
     },
+    {
+      name: CloudAppTabName.Recommendations,
+      children: (
+        <RecommendationsPage
+          resourceType={MonitorRecommendationResourceType.CloudApp}
+          resourceId={appId}
+        />
+      ),
+    },
   ];
 
   const requestedTab: string | null = Navigation.getQueryStringByName("tab");
@@ -431,6 +470,16 @@ const AppPlatformApp: FunctionComponent<
           revisions={loaded.revisions}
           serviceRoute={serviceRoute}
           alertsRoute={alertsRoute}
+          onSetUpAlerts={
+            isScoped
+              ? (): void => {
+                  setTabRequest({
+                    name: CloudAppTabName.Recommendations,
+                    count: (tabRequest?.count || 0) + 1,
+                  });
+                }
+              : undefined
+          }
           environmentRoute={environmentRoute}
           controls={
             <AutoRefreshControl
@@ -451,8 +500,11 @@ const AppPlatformApp: FunctionComponent<
           }
         />
         <Tabs
+          key={
+            tabRequest ? `${tabRequest.name}-${tabRequest.count}` : "address"
+          }
           tabs={tabs}
-          initialTabName={requestedTab || undefined}
+          initialTabName={tabRequest?.name || requestedTab || undefined}
           onTabChange={() => {}}
         />
       </Fragment>

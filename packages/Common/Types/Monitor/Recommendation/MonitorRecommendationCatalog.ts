@@ -103,6 +103,11 @@ import {
   getAllCloudAlertTemplates,
   getCloudAlertTemplatesFor,
 } from "../CloudAlertTemplates";
+import {
+  CloudAppAlertTemplate,
+  getAllCloudAppAlertTemplates,
+  getCloudAppAlertTemplatesFor,
+} from "../CloudAppAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -135,7 +140,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "databaseServerId"
     | "dataStoreId"
     | "dataPipelineId"
-    | "cloudResourceId";
+    | "cloudResourceId"
+    | "cloudAppId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -920,6 +926,52 @@ function getAllCloudResourceRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+/*
+ * The App Platforms app adapter, for the same reason as the cloud
+ * resource's: each monitor is scoped by the app's own telemetry filter,
+ * captured from the context, and an app whose telemetry cannot be told
+ * apart from its environment's is offered nothing.
+ */
+function normalizeCloudAppTemplate(
+  template: CloudAppAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.CloudApp,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        cloudAppId: args.resourceIdentifier,
+        telemetryFilters: context?.cloudAppTelemetryFilters || {},
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getCloudAppRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getCloudAppAlertTemplatesFor({
+    telemetryFilters: context?.cloudAppTelemetryFilters,
+  }).map((template: CloudAppAlertTemplate) => {
+    return normalizeCloudAppTemplate(template, context);
+  });
+}
+
+function getAllCloudAppRecommendations(): Array<MonitorRecommendation> {
+  return getAllCloudAppAlertTemplates().map(
+    (template: CloudAppAlertTemplate) => {
+      return normalizeCloudAppTemplate(template);
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -1075,6 +1127,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.Cloud,
       getRecommendations: getCloudResourceRecommendations,
       getAllPossibleRecommendations: getAllCloudResourceRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.CloudApp,
+      monitorTypes: [MonitorType.Traces, MonitorType.Metrics],
+      resourceLabel: "App",
+      identifierFieldName: "cloudAppId",
+      icon: IconProp.Cube,
+      getRecommendations: getCloudAppRecommendations,
+      getAllPossibleRecommendations: getAllCloudAppRecommendations,
     },
   ];
 

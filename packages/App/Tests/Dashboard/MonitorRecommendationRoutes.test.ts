@@ -33,10 +33,41 @@ let RouteParams: RouteParamsModule["default"];
  * the one thing that cannot be derived: the keys follow each resource's own
  * naming (HOST_VIEW vs DOCKER_HOST_VIEW vs IOT_FLEET_VIEW), not the enum's.
  */
-let recommendationPageKey: Record<MonitorRecommendationResourceType, string>;
+let recommendationPageKey: Record<
+  Exclude<MonitorRecommendationResourceType, TabHostedResourceType>,
+  string
+>;
+
+/*
+ * The resource types whose Recommendations are a TAB of the record's own
+ * page rather than a route of their own: an App Platforms app's page is one
+ * route with tabs (Overview, Revisions, Instances, Logs, Traces), as a
+ * Kubernetes Deployment's is, and its header's Set up alerts opens the tab.
+ */
+type TabHostedResourceType = MonitorRecommendationResourceType.CloudApp;
+
+const TAB_HOSTED_RESOURCE_TYPES: Array<TabHostedResourceType> = [
+  MonitorRecommendationResourceType.CloudApp,
+];
+
+let recommendationTabPageKey: Record<TabHostedResourceType, string>;
 
 const ALL_RESOURCE_TYPES: Array<MonitorRecommendationResourceType> =
   Object.values(MonitorRecommendationResourceType);
+
+// Every resource type with a Recommendations route of its own.
+const ROUTED_RESOURCE_TYPES: Array<
+  Exclude<MonitorRecommendationResourceType, TabHostedResourceType>
+> = ALL_RESOURCE_TYPES.filter(
+  (
+    resourceType: MonitorRecommendationResourceType,
+  ): resourceType is Exclude<
+    MonitorRecommendationResourceType,
+    TabHostedResourceType
+  > => {
+    return !(TAB_HOSTED_RESOURCE_TYPES as Array<string>).includes(resourceType);
+  },
+);
 
 /*
  * Common/UI/Config reads `window` the moment it loads, and RouteMap pulls it in
@@ -122,6 +153,11 @@ beforeAll(async () => {
     [MonitorRecommendationResourceType.CloudResource]:
       PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
   };
+
+  recommendationTabPageKey = {
+    [MonitorRecommendationResourceType.CloudApp]:
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL,
+  };
 });
 
 describe("Monitor recommendation page wiring", () => {
@@ -148,13 +184,35 @@ describe("Monitor recommendation page wiring", () => {
   });
 
   test("every resource type has a recommendations page key", () => {
-    for (const resourceType of ALL_RESOURCE_TYPES) {
+    expect(
+      ROUTED_RESOURCE_TYPES.length + TAB_HOSTED_RESOURCE_TYPES.length,
+    ).toBe(ALL_RESOURCE_TYPES.length);
+
+    for (const resourceType of ROUTED_RESOURCE_TYPES) {
       expect(recommendationPageKey[resourceType]).toBeTruthy();
+    }
+
+    for (const resourceType of TAB_HOSTED_RESOURCE_TYPES) {
+      expect(recommendationTabPageKey[resourceType]).toBeTruthy();
+    }
+  });
+
+  test("an app's Recommendations tab is on its own page, which names it last", () => {
+    /*
+     * The tab reads its app by the id the page reads
+     * (Navigation.getLastParamAsObjectID(0)) and passes it on, so the page's
+     * route must end with the app's id.
+     */
+    for (const resourceType of TAB_HOSTED_RESOURCE_TYPES) {
+      const segments: Array<string> =
+        RouteMap[recommendationTabPageKey[resourceType]]!.toString().split("/");
+
+      expect(segments[segments.length - 1]).toBe(RouteParams.SubModelID);
     }
   });
 
   test("every recommendations page key resolves to a route", () => {
-    for (const resourceType of ALL_RESOURCE_TYPES) {
+    for (const resourceType of ROUTED_RESOURCE_TYPES) {
       const route: Route | undefined =
         RouteMap[recommendationPageKey[resourceType]];
 
@@ -164,7 +222,7 @@ describe("Monitor recommendation page wiring", () => {
   });
 
   test("every recommendations route ends with /recommendations", () => {
-    for (const resourceType of ALL_RESOURCE_TYPES) {
+    for (const resourceType of ROUTED_RESOURCE_TYPES) {
       const path: string =
         RouteMap[recommendationPageKey[resourceType]]!.toString();
 
@@ -179,7 +237,7 @@ describe("Monitor recommendation page wiring", () => {
      * the last segment. A route shaped any other way loads the wrong record —
      * or none — without erroring.
      */
-    for (const resourceType of ALL_RESOURCE_TYPES) {
+    for (const resourceType of ROUTED_RESOURCE_TYPES) {
       const segments: Array<string> =
         RouteMap[recommendationPageKey[resourceType]]!.toString().split("/");
 
@@ -188,21 +246,38 @@ describe("Monitor recommendation page wiring", () => {
   });
 
   test("no two resource types share a recommendations route", () => {
-    const paths: Array<string> = ALL_RESOURCE_TYPES.map(
-      (resourceType: MonitorRecommendationResourceType) => {
+    const paths: Array<string> = ROUTED_RESOURCE_TYPES.map(
+      (
+        resourceType: Exclude<
+          MonitorRecommendationResourceType,
+          TabHostedResourceType
+        >,
+      ) => {
         return RouteMap[recommendationPageKey[resourceType]]!.toString();
       },
     );
 
-    expect(new Set<string>(paths).size).toBe(ALL_RESOURCE_TYPES.length);
+    expect(new Set<string>(paths).size).toBe(ROUTED_RESOURCE_TYPES.length);
   });
 
   test("no two resource types share a page key", () => {
-    const keys: Array<string> = ALL_RESOURCE_TYPES.map(
-      (resourceType: MonitorRecommendationResourceType) => {
-        return recommendationPageKey[resourceType];
-      },
-    );
+    const keys: Array<string> = [
+      ...ROUTED_RESOURCE_TYPES.map(
+        (
+          resourceType: Exclude<
+            MonitorRecommendationResourceType,
+            TabHostedResourceType
+          >,
+        ) => {
+          return recommendationPageKey[resourceType];
+        },
+      ),
+      ...TAB_HOSTED_RESOURCE_TYPES.map(
+        (resourceType: TabHostedResourceType) => {
+          return recommendationTabPageKey[resourceType];
+        },
+      ),
+    ];
 
     expect(new Set<string>(keys).size).toBe(ALL_RESOURCE_TYPES.length);
   });
