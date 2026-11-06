@@ -87,7 +87,7 @@ AI エージェントのページでエージェントの状態の隣にある *
 
 Docker Swarm のワーカーでは `docker node ls` が失敗します。Docker Swarm AI エージェントはマネージャーノードで実行する必要があります。ワーカーで起動したエージェントは、そのノードがマネージャーになるまでクラスターに登録されず、Docker Swarm のインストーラーはマネージャーでないノードにはエージェントを含めません。
 
-クラウド アカウントでは、`cloud whoami` が、クラウド AI エージェントが動作するアカウントとサインインしている ID、何かを変更してよいかどうか、行える変更、必要なタグ(ある場合)を表示します。
+クラウド アカウントでは、`cloud whoami` が、クラウド AI エージェントが動作するアカウントとサインインしている ID、何かを変更してよいかどうか、行える変更、必要なタグ(ある場合)を表示します。Azure と Google Cloud では、変更を実行する ID と、エージェントがその ID でサインインできるかどうかも表示します。
 
 ## AI エージェントのインストール
 
@@ -154,8 +154,14 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 | クラウド | 実行する場所 | コマンドが作成するもの |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AWS アカウント | AWS CloudShell | ECS Fargate タスクを一つ実行する CloudFormation スタック `oneuptime-ai-agent`。そのタスク ロールが引き受けられるのは書き込みロール `OneUptimeAiAgentWrite` だけで、このロールが有効にした変更の権限を持ちます。接続に使うキーは Secrets Manager に保管され、それを読むのは ECS だけです。 |
-| Azure サブスクリプション | Azure Cloud Shell | リソース グループ `oneuptime-ai-agent` 内の Container App `oneuptime-ai-agent`。そのマネージド ID は、有効にした変更の権限を持つカスタム ロールをサブスクリプションに対して持ちます。接続に使うキーは Container Apps のシークレットとして保管されます。 |
+| Azure サブスクリプション | Azure Cloud Shell | リソース グループ `oneuptime-ai-agent` 内の Container App `oneuptime-ai-agent`。その独自のマネージド ID は読み取りしかできません。変更はそれぞれ、もう一つのユーザー割り当てマネージド ID `oneuptime-ai-agent-write` として実行されます。この ID は有効にした変更の権限を持つカスタム ロールをサブスクリプションに対して持ち、エージェントの Container App だけに割り当てられます。エージェントは変更のたびにそのトークンを要求します。接続に使うキーは Container Apps のシークレットとして保管されます。 |
 | Google Cloud プロジェクト | Google Cloud Shell | Container-Optimized OS 上で動く `e2-micro` タイプの Compute Engine VM `oneuptime-ai-agent`。ファイアウォール ルールのない専用ネットワーク内にあるため、外部から接続できるものはありません。サービス アカウント `oneuptime-ai-agent` として動作し、このサービス アカウントは読み取りしかできません。変更はそれぞれ二つ目のサービス アカウント `oneuptime-ai-agent-write` として実行されます。このアカウントは有効にした変更の権限を持つカスタム ロールをプロジェクトに対して持ち、エージェントはその変更一つのためだけに、15 分間有効なトークンを要求します。接続に使うキーは Secret Manager に保管され、それを読めるのはエージェント自身のサービス アカウントだけで、コマンドを再実行するとキーの古いバージョンは破棄されます。VM は起動のたびにキーを読み取り、ディスクやメタデータに保存することはありません。**その他の項目** の **エージェントの実行場所** では、代わりに CPU を常に割り当てた Cloud Run サービスを選べます。VM に外部 IP アドレスを持たせられないプロジェクト向けです。 |
+
+エージェントを別の場所で実行するには、**その他の項目** に表示される変数を使ってそのイメージをデプロイし、コマンドが与えるものと同じものを与えます:
+
+- **AWS:** 書き込みロール `OneUptimeAiAgentWrite` を引き受けることだけができるロール。書き込みロールはそのロールを信頼し、有効にした変更の権限を持ちます。
+- **Azure:** 読み取りだけを行う独自のマネージド ID と、実行場所に割り当てた書き込み ID `oneuptime-ai-agent-write`。
+- **Google Cloud:** 読み取りだけを行うサービス アカウントと、書き込み用サービス アカウント `oneuptime-ai-agent-write` に対する Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) ロール。
 
 コマンドは、書き出された対象のアカウントでのみ機能します。AWS では別のアカウントにサインインしたシェルでは何も作成せず、Azure と Google Cloud のコマンドは呼び出しのたびにサブスクリプションまたはプロジェクトを指定します。コマンドは `ONEUPTIME_AI_INVESTIGATION=true`、回答に応じた `ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_ALLOW_WRITES=true`、そして書き出された対象のアカウントを示す `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` を設定します。エージェントは、クラウドが示す所属アカウントとして登録し、OneUptime にアカウントを追加することは決してありません。コマンドとは別のアカウントで起動すると拒否され、コマンドの対象のアカウントのページにその理由が表示されます。プロジェクトのどの接続も読み取っていないアカウントで起動した場合も拒否され、そのことがログに記録されます。
 
@@ -507,7 +513,7 @@ AI エージェントのページが何を示していても、エージェン�
 - **ホスト:** OneUptime のすべてのユニット(ホスト AI エージェント自身のものを含む `oneuptime-*`)、OpenTelemetry コレクター(`otelcol-contrib.service`、`otelcol.service`)、エージェントが動作する Docker エンジン(`docker.service`、`docker.socket`、`containerd.service`)、そしてエージェント自身のプロセスとその上位のプロセス。
 - **Proxmox:** エージェントは自分がどのゲストで動作しているかを判別できません。同じクラスターの VM やコンテナで動作している場合は、その VMID を `ONEUPTIME_AI_PROTECTED_TARGETS` に追加してください。VMware 上のエージェントの VM についても同様です。
 - **OpenStack クラウド:** エージェントは自分がどのインスタンスで動いているかを判別できません。同じクラウド上で動かす場合は、そのインスタンスを `instance:<id>` として `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。クラウドでは、このリストはあなた自身のもので、人の承認も含め、ほかのどの設定よりも優先されます。
-- **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウント `oneuptime-ai-agent` と `oneuptime-ai-agent-write` です。
+- **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent` とその中の書き込み ID `oneuptime-ai-agent-write`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウント `oneuptime-ai-agent` と `oneuptime-ai-agent-write` です。
 
 ## 認証情報と最小権限
 
@@ -521,7 +527,7 @@ AI エージェントのページが何を示していても、エージェン�
 | Ceph クラスター | エージェント専用クライアント `client.oneuptime-ai` のキーリングと最小限の `ceph.conf` を `/etc/ceph` にマウント(`CEPH_CLIENT_ID`、`CEPH_CONF`、`CEPH_KEYRING`) | `mon 'allow r' mgr 'allow r' osd 'allow r'` — 管理者のキーリングは決して使わない | 読み取りの caps に加え、必要な修正だけの `allow command` エントリ(Ceph エージェントの README に一覧があります) |
 | データベースサーバー | `DATABASE_USERNAME` / `DATABASE_PASSWORD`(コレクターのログイン)、または設定されていれば `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`。`DATABASE_ENDPOINT` と TLS の設定 | コレクターの監視用ログイン(PostgreSQL では `pg_monitor`) | ほかのセッションにシグナルを送れるエージェント専用のログイン: `pg_signal_backend`(PostgreSQL)、`CONNECTION_ADMIN`(MySQL 8)、`+client\|kill`(Redis ACL)、`killop` アクション(MongoDB) |
 | ホスト | なし。ホストの名前空間で root として特権実行される | `ONEUPTIME_AI_ALLOW_WRITES` は未設定のままにする | `ONEUPTIME_AI_WRITE_TARGETS` に AI が変更してよいユニットを指定 |
-| クラウド アカウント | 動作する場所の ID。AWS では ECS タスクのロールで、`ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` の書き込みロールしか引き受けられない。Azure では Container App のマネージド ID、Google Cloud では VM または Cloud Run サービスが動作するサービス アカウント。このサービス アカウントは読み取りと、`ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT` の書き込み用サービス アカウントのトークンの要求しかできない | なし。OneUptime は読み取り専用の接続を通じてアカウントを読み取る | セットアップコマンドが書き出すロール: 有効にした変更の権限と、それに必要な読み取りだけ。AWS では、変更のたびに、その一つのリソースに対するその一つの変更だけを許すセッション ポリシー付きで `OneUptimeAiAgentWrite` を引き受ける。Google Cloud では、変更のたびに、その変更だけに使える 15 分間有効なトークンで `oneuptime-ai-agent-write` として実行する。Azure ではマネージド ID 自体がロールを持つ。Azure はマネージド ID に、そのロールより狭い、または有効期間の短いトークンを発行しないため |
+| クラウド アカウント | 動作する場所の ID。AWS では ECS タスクのロールで、`ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` の書き込みロールしか引き受けられない。Azure では Container App 独自のマネージド ID で、読み取りしかできない。加えて、同じ Container App に割り当てられた `ONEUPTIME_AI_AZURE_WRITE_IDENTITY` の書き込み ID。Google Cloud では VM または Cloud Run サービスが動作するサービス アカウント。このサービス アカウントは読み取りと、`ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT` の書き込み用サービス アカウントのトークンの要求しかできない | なし。OneUptime は読み取り専用の接続を通じてアカウントを読み取る | セットアップコマンドが書き出すロール: 有効にした変更の権限と、それに必要な読み取りだけ。AWS では、変更のたびに、その一つのリソースに対するその一つの変更だけを許すセッション ポリシー付きで `OneUptimeAiAgentWrite` を引き受ける。Google Cloud では、変更のたびに、その変更だけに使える 15 分間有効なトークンで `oneuptime-ai-agent-write` として実行する。Azure では、変更のたびに、エージェントがその変更のためにサインインする `oneuptime-ai-agent-write` として実行する。Azure はマネージド ID に、そのロールより狭い、または有効期間の短いトークンを発行せず、Privileged Identity Management による期限付きのアクセスには Microsoft Entra ID P2 が必要なため、変更のための常時のアクセスは、エージェントが変更にだけ使う ID に置き、読み取りに使う ID には決して置かない |
 | OpenStack クラウド | 変更用には、専用のアプリケーション認証情報である `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` と `_SECRET`。作り方は[ガイド](/docs/telemetry/openstack#変更用の認証情報)にあります。読み取り用には、コレクターのエクスポーターが読む `clouds.yaml` のアプリケーション認証情報(`OS_CLIENT_CONFIG_FILE`、`OPENSTACK_EXPORTER_CLOUDS`、別のエントリを使う場合は `ONEUPTIME_AI_OPENSTACK_CLOUD`)、または設定されていれば `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` と `OPENSTACK_AUTH_URL`。ほかに `ONEUPTIME_AI_OPENSTACK_REGION`、`ONEUPTIME_AI_OPENSTACK_INTERFACE`、`ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
 各コレクターの README には正確なコマンドが載っています。Proxmox の修正用トークンを作る `pveum` コマンド([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent))、vSphere の修正用ロール([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent))、Ceph の読み取り用と修正用の caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent))、エンジンごとのデータベースの権限([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent))です。クラウド AI エージェントのロールはセットアップコマンドが書き出します。変更をオフにしてコマンドをもう一度実行すると、その権限はロールから外れます。
@@ -598,6 +604,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `Killed (timeout …)` | リソースが時間内に応答しませんでした。出力がまったくない場合、エージェントはリソースに到達できていません。両者の間のネットワークを確認します。 |
 | 権限、ロール、cap が不足していることを示す Proxmox、vCenter、Ceph、データベースのエラー | 認証情報が絶対的な上限です。メッセージが示すものを付与する([認証情報と最小権限](#認証情報と最小権限) を参照)か、その変更を人に任せます。 |
 | `The Cloud AI agent could not check its cloud: …` | ロール、マネージド ID、またはサービス アカウントが削除されたか権限が不足している、あるいはクラウドの API に到達できません。アカウントのページからセットアップコマンドをもう一度実行してください。 |
+| `The agent could not ask … to sign in as the write …` | Azure では、書き込み ID `oneuptime-ai-agent-write` がエージェントの実行場所に割り当てられていないか、削除されています。Google Cloud では、エージェント自身のサービス アカウントが `oneuptime-ai-agent-write` のトークンをまだ要求できない (新しい付与が有効になるまで数分かかることがあります) か、アカウントが削除されています。アカウントの **AI エージェント** ページの **変更** から、セットアップコマンドをもう一度実行してください。 |
 | `cloud … is not one of the changes this agent may make` | **AI に問題を修正させる** の **その他の項目** でその変更をオンにして、コマンドをもう一度実行します。これでエージェントのロールにもその変更の権限が与えられます。 |
 | `the agent only changes resources that carry the …` | リソースに `oneuptime-ai=allow` のタグ(Google Cloud ではラベル)を付けるか、タグなしでエージェントをもう一度設定します。 |
 

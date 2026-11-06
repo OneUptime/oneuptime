@@ -2,6 +2,10 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { SettingsAction, getSettingsAction } from "../InvestigationNotStarted";
 import {
+  getRemediationFixActGate,
+  getRemediationFixWhoMayAct,
+} from "../../AutoRemediation/RemediationFixActGate";
+import {
   AI_INSIGHTS_FINDING_LABEL,
   AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE,
   AI_INSIGHTS_FIXES_HIDDEN_NOTE,
@@ -14,6 +18,7 @@ import {
   AiInsightWordingContext,
   AiInsightsFixApprovalPlace,
   AiInsightsFixSegment,
+  countsInReaderDigits,
   describeCoverage,
   describeFindingsTrust,
   describeFixVerification,
@@ -29,6 +34,7 @@ import {
   describeResourceHotspot,
   describeSubjectShort,
   describeTimeOfDay,
+  describeTrendDate,
   describeTrendDay,
   describeTrendWeeks,
   getActivityHealthNotes,
@@ -395,8 +401,15 @@ function InvestigationWords(props: {
           <dt className="text-xs font-medium text-gray-500">
             {translator.translateText(AI_INSIGHTS_FINDING_LABEL)}
           </dt>
+          {/*
+            The investigation's own words read their own way (bdi): an
+            English finding on a Persian page kept its full stop at its end,
+            not at the start of its line.
+          */}
           <dd className="mt-0.5 break-words text-sm text-gray-800">
-            {props.finding.text}
+            <bdi data-testid="ai-insights-finding-text">
+              {props.finding.text}
+            </bdi>
             {props.finding.source === "report" ? (
               <span className="ml-1 text-xs text-gray-400">
                 {translator.translateText(AI_INSIGHTS_FROM_REPORT_NOTE)}
@@ -415,7 +428,7 @@ function InvestigationWords(props: {
             {translator.translateText(AI_INSIGHTS_NEXT_STEP_LABEL)}
           </dt>
           <dd className="mt-0.5 break-words text-sm text-gray-800">
-            {props.nextStep}
+            <bdi data-testid="ai-insights-next-step-text">{props.nextStep}</bdi>
           </dd>
         </div>
       ) : (
@@ -431,11 +444,15 @@ function ObjectChip(props: {
   count?: number | undefined;
   getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const route: Route | null = props.getObjectRoute
     ? props.getObjectRoute(props.object)
     : null;
+  // How many times it came up, in the reader's digits.
   const text: string = `${describeObject(props.object)}${
-    props.count && props.count > 1 ? ` ×${props.count}` : ""
+    props.count && props.count > 1
+      ? ` ×${translator.formatNumber(props.count)}`
+      : ""
   }`;
 
   return route ? (
@@ -467,7 +484,7 @@ function MonitorChips(props: {
             to={getMonitorRoute(monitor.id)}
             className={LINKED_CHIP_CLASS_NAME}
           >
-            <span className="truncate">{monitor.name}</span>
+            <bdi className="truncate">{monitor.name}</bdi>
           </Link>
         );
       })}
@@ -788,7 +805,8 @@ function ProblemRow(props: {
           to={getSubjectRoute(problem.latestSubject)}
           className="min-w-0 break-words text-sm font-semibold text-gray-900 hover:text-indigo-700 hover:underline"
         >
-          {getProblemTitle(problem)}
+          {/* A title as the system wrote it reads its own way. */}
+          <bdi>{getProblemTitle(problem)}</bdi>
         </Link>
         {badge ? <Badge badge={badge} /> : <></>}
       </div>
@@ -1019,7 +1037,7 @@ function ResourceHotspotsCard(props: {
                     to={props.getRoute(hotspot.id)}
                     className="min-w-0 break-words text-sm font-medium text-gray-900 hover:text-indigo-700 hover:underline"
                   >
-                    {hotspot.name}
+                    <bdi>{hotspot.name}</bdi>
                   </Link>
                   <span className="text-xs text-gray-500">
                     {describeResourceHotspot(hotspot, props.subjectKind)}
@@ -1153,7 +1171,7 @@ function PreventiveInsightsCard(props: {
                     to={getPreventiveInsightRoute(insight.id)}
                     className="break-words text-sm text-gray-900 hover:text-indigo-700 hover:underline"
                   >
-                    {insight.title}
+                    <bdi>{insight.title}</bdi>
                   </Link>
                 </div>
                 <span className="text-xs text-gray-500">
@@ -1255,9 +1273,18 @@ function Trend(props: {
           );
         })}
       </div>
-      <div className="mt-1 flex justify-between text-xs text-gray-400">
-        <span>{props.trend[0]!.date}</span>
-        <span>{props.trend[props.trend.length - 1]!.date}</span>
+      {/*
+        The chart's first and last day, as the reader's calendar writes
+        them: a Persian page read "2026-10-07".
+      */}
+      <div
+        className="mt-1 flex justify-between text-xs text-gray-400"
+        data-testid="ai-insights-trend-ends"
+      >
+        <span>{describeTrendDate(props.trend[0]!.date)}</span>
+        <span>
+          {describeTrendDate(props.trend[props.trend.length - 1]!.date)}
+        </span>
       </div>
       <p
         className="mt-1 text-xs text-gray-500"
@@ -1504,7 +1531,10 @@ function ActivityCard(props: {
                 totals.failedInvestigations > 0
                   ? translator.translateTemplate(
                       "{{count}} failed or timed out",
-                      { count: totals.failedInvestigations },
+                      countsInReaderDigits(
+                        { count: totals.failedInvestigations },
+                        translator,
+                      ),
                     )
                   : undefined
               }
@@ -1517,10 +1547,16 @@ function ActivityCard(props: {
                     ? "Incidents investigated"
                     : "Alerts investigated"
                 }
-                value={translator.translateTemplate("{{count}} of {{total}}", {
-                  count: coverage.investigatedSubjects,
-                  total: coverage.subjects,
-                })}
+                value={translator.translateTemplate(
+                  "{{count}} of {{total}}",
+                  countsInReaderDigits(
+                    {
+                      count: coverage.investigatedSubjects,
+                      total: coverage.subjects,
+                    },
+                    translator,
+                  ),
+                )}
                 detail={translator.translateText("Created in the last 30 days")}
                 testId="ai-insights-stat-coverage"
               />
@@ -1540,9 +1576,13 @@ function ActivityCard(props: {
                 value={totals.fixes}
                 detail={
                   insights.fixOutcomes.verified > 0
-                    ? translator.translateTemplate("{{count}} verified", {
-                        count: insights.fixOutcomes.verified,
-                      })
+                    ? translator.translateTemplate(
+                        "{{count}} verified",
+                        countsInReaderDigits(
+                          { count: insights.fixOutcomes.verified },
+                          translator,
+                        ),
+                      )
                     : undefined
                 }
                 testId="ai-insights-stat-fixes"
@@ -1555,10 +1595,13 @@ function ActivityCard(props: {
                 totals.failedCommands + totals.timedOutCommands > 0
                   ? translator.translateTemplate(
                       "{{failed}} failed, {{timedOut}} never ran",
-                      {
-                        failed: totals.failedCommands,
-                        timedOut: totals.timedOutCommands,
-                      },
+                      countsInReaderDigits(
+                        {
+                          failed: totals.failedCommands,
+                          timedOut: totals.timedOutCommands,
+                        },
+                        translator,
+                      ),
                     )
                   : undefined
               }
@@ -1721,6 +1764,15 @@ const AiActivityInsightsView: FunctionComponent<ComponentProps> = (
     subjectKind,
     noun: props.noun,
     generatedAt: props.insights.generatedAt || undefined,
+    /*
+     * Whom the fixes that wait are waiting for: someone the server would
+     * refuse reads they wait for approval, never theirs - as the AI card's
+     * Remediation step says it (RemediationFixActGate). Until the
+     * permission snapshot lands, theirs.
+     */
+    mayApproveFixes: !getRemediationFixWhoMayAct(
+      getRemediationFixActGate("approveOrDismiss"),
+    ),
   };
 
   const routes: AiInsightsRoutes = {

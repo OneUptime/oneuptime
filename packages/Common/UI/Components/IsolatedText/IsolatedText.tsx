@@ -23,6 +23,11 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   // A size worked out as it is drawn (a dashboard Value widget's title).
   style?: React.CSSProperties | undefined;
+  /*
+   * Data attributes the page reads it by (`data-*` names): a facet value's
+   * name, which the filters sidebar fits itself to (FacetSidebarMeasure).
+   */
+  dataAttributes?: Record<string, string> | undefined;
 }
 
 /*
@@ -51,6 +56,7 @@ const IsolatedText: FunctionComponent<ComponentProps> = (
       style={props.style}
       title={props.title}
       data-testid={props.dataTestId}
+      {...(props.dataAttributes || {})}
     >
       {props.breaksLikeAName ? <BreakableName text={props.text} /> : props.text}
     </bdi>
