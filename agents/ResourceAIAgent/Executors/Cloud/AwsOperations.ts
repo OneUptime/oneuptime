@@ -13,6 +13,7 @@ import {
   AWS_ACCOUNT_PATTERN,
   AwsClient,
   EC2_API_VERSION,
+  ELASTIC_BEANSTALK_API_VERSION,
   RDS_API_VERSION,
   awsDnsSuffix,
   partitionOfArn,
@@ -73,14 +74,17 @@ import {
  *   - The Region is the ARN's.
  *
  * Where a change reads tags that the catalog's permissions do not cover
- * (Lambda's ListTags, SQS's ListQueueTags), the session policy adds that
- * read only while ONEUPTIME_AI_CLOUD_REQUIRED_TAG is set.
+ * (Lambda's ListTags, SQS's ListQueueTags, App Runner's and Elastic
+ * Beanstalk's ListTagsForResource), the session policy adds that read only
+ * while ONEUPTIME_AI_CLOUD_REQUIRED_TAG is set.
  */
 
 export const ECS_TARGET_PREFIX: string = "AmazonEC2ContainerServiceV20141113";
 export const APPLICATION_AUTOSCALING_TARGET_PREFIX: string =
   "AnyScaleFrontendService";
 export const SQS_TARGET_PREFIX: string = "AmazonSQS";
+// App Runner's AWS JSON 1.0 target prefix.
+export const APP_RUNNER_TARGET_PREFIX: string = "AppRunner";
 
 // Pages of a list read before the agent gives up looking.
 export const MAX_AWS_LIST_PAGES: number = 20;
@@ -501,6 +505,10 @@ export default class AwsCloud {
         return change.rollBackLambdaAlias();
       case "redrive-queue/sqs-queue":
         return change.redriveQueue();
+      case "restart-service/apprunner-service":
+        return change.restartAppRunnerService();
+      case "restart-service/beanstalk-environment":
+        return change.restartBeanstalkEnvironment();
       default:
         return data.run.refuse(
           `the AWS Cloud AI agent has no implementation of cloud ${data.run.command.operation.name} for ${withArticle(data.run.kindName)}`,
@@ -565,6 +573,14 @@ class AwsChange {
 
       if (kind === "sqs-queue") {
         permissions.push("sqs:ListQueueTags");
+      }
+
+      if (kind === "apprunner-service") {
+        permissions.push("apprunner:ListTagsForResource");
+      }
+
+      if (kind === "beanstalk-environment") {
+        permissions.push("elasticbeanstalk:ListTagsForResource");
       }
     }
 
@@ -1943,6 +1959,241 @@ class AwsChange {
             : `SourceArn=${this.run.resourceId}`,
         ),
         ...(handle ? [`Move task: ${handle}`] : []),
+      ],
+    };
+  }
+
+  // ---- App Runner --------------------------------------------------------------------
+
+  private appRunner(
+    client: AwsClient,
+    operation: string,
+    body: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return client.json({
+      endpointPrefix: "apprunner",
+      signingName: "apprunner",
+      region: this.region,
+      target: `${APP_RUNNER_TARGET_PREFIX}.${operation}`,
+      jsonVersion: "1.0",
+      body,
+      permission: `apprunner:${operation}`,
+    });
+  }
+
+  // The service's tags, when a tag is required (apprunner:ListTagsForResource).
+  private async checkAppRunnerTag(client: AwsClient): Promise<void> {
+    if (!this.settings.requiredTag) {
+      this.run.checkRequiredTag({});
+      return;
+    }
+
+    const answer: Record<string, unknown> = await this.run.read(
+      `for the tags of the App Runner service (apprunner:ListTagsForResource)`,
+      (): Promise<Record<string, unknown>> => {
+        return this.appRunner(client, "ListTagsForResource", {
+          ResourceArn: this.run.resourceId,
+        });
+      },
+    );
+
+    this.run.checkRequiredTag(readAwsTagList(answer["Tags"]));
+  }
+
+  /*
+   * App Runner has no restart: StartDeployment deploys the latest version
+   * of the service's source - the image its tag points to, or the latest
+   * commit of its branch. That is the version it runs only while the
+   * service deploys every new version on its own (automatic deployments),
+   * so the agent redeploys only such a service. App Runner replaces its
+   * instances one by one and keeps the running version when the new
+   * deployment fails its health check.
+   */
+  public async restartAppRunnerService(): Promise<CloudChangeOutcome> {
+    const name: string = this.run.part("name");
+    const client: AwsClient = await this.client([this.run.resourceId]);
+    const answer: Record<string, unknown> = await this.run.read(
+      `about the App Runner service ${name} (apprunner:DescribeService)`,
+      (): Promise<Record<string, unknown>> => {
+        return this.appRunner(client, "DescribeService", {
+          ServiceArn: this.run.resourceId,
+        });
+      },
+    );
+    const service: Record<string, unknown> | null = readObject(
+      answer,
+      "Service",
+    );
+
+    if (!service || readString(service, "ServiceArn") !== this.run.resourceId) {
+      return this.run.refuse(
+        `App Runner has no service ${this.run.resourceId}, so nothing was changed`,
+      );
+    }
+
+    await this.checkAppRunnerTag(client);
+
+    const status: string = readString(service, "Status") || "";
+
+    if (status !== "RUNNING") {
+      this.run.refuse(
+        `the App Runner service ${name} is ${status || "in an unknown state"}, and a redeploy needs it RUNNING, so nothing was changed`,
+      );
+    }
+
+    const source: Record<string, unknown> | null = readObject(
+      service,
+      "SourceConfiguration",
+    );
+
+    if (!source || source["AutoDeploymentsEnabled"] !== true) {
+      this.run.refuse(
+        `the App Runner service ${name} deploys a new version of its source only when someone asks (automatic deployments are off), so a redeploy could start a version newer than the one it runs: a person redeploys it, and nothing was changed`,
+      );
+    }
+
+    const image: string | null = readString(
+      readObject(source, "ImageRepository"),
+      "ImageIdentifier",
+    );
+    const code: Record<string, unknown> | null = readObject(
+      source,
+      "CodeRepository",
+    );
+    const branch: string | null = readString(
+      readObject(code, "SourceCodeVersion"),
+      "Value",
+    );
+    const what: string = image
+      ? `the image ${image}`
+      : code
+        ? `the latest commit of ${readString(code, "RepositoryUrl") || "its repository"}${
+            branch ? ` (${branch})` : ""
+          }`
+        : "its source";
+    const started: Record<string, unknown> = await this.run.change(
+      {},
+      (): Promise<Record<string, unknown>> => {
+        return this.appRunner(client, "StartDeployment", {
+          ServiceArn: this.run.resourceId,
+        });
+      },
+    );
+    const operationId: string | null = readString(started, "OperationId");
+
+    return {
+      lines: [
+        `App Runner service ${name}: redeploying ${what}, the version it runs now (automatic deployments are on, so the latest version of its source is the one running). App Runner replaces its instances one by one, and keeps the version it runs if the new deployment fails.`,
+        this.apiCall(`ServiceArn=${this.run.resourceId}`),
+        ...(operationId ? [`Operation: ${operationId}.`] : []),
+      ],
+    };
+  }
+
+  // ---- Elastic Beanstalk -----------------------------------------------------------------
+
+  private beanstalk(
+    client: AwsClient,
+    action: string,
+    params: Array<[string, string]>,
+  ): Promise<XmlElement> {
+    return client.query({
+      endpointPrefix: "elasticbeanstalk",
+      signingName: "elasticbeanstalk",
+      region: this.region,
+      action,
+      version: ELASTIC_BEANSTALK_API_VERSION,
+      params,
+      permission: `elasticbeanstalk:${action}`,
+    });
+  }
+
+  // The environment's tags, when a tag is required (elasticbeanstalk:ListTagsForResource).
+  private async checkBeanstalkTag(client: AwsClient): Promise<void> {
+    if (!this.settings.requiredTag) {
+      this.run.checkRequiredTag({});
+      return;
+    }
+
+    const root: XmlElement = await this.run.read(
+      `for the tags of the Elastic Beanstalk environment (elasticbeanstalk:ListTagsForResource)`,
+      (): Promise<XmlElement> => {
+        return this.beanstalk(client, "ListTagsForResource", [
+          ["ResourceArn", this.run.resourceId],
+        ]);
+      },
+    );
+
+    this.run.checkRequiredTag(readAwsXmlTags(xmlFind(root, "ResourceTags")));
+  }
+
+  /*
+   * Restarts the app server on each of the environment's instances, on the
+   * version it runs (RestartAppServer): nothing it runs or is set to
+   * changes, so there is nothing to undo.
+   */
+  public async restartBeanstalkEnvironment(): Promise<CloudChangeOutcome> {
+    const application: string = this.run.part("application");
+    const name: string = this.run.part("name");
+    const client: AwsClient = await this.client([this.run.resourceId]);
+    const root: XmlElement = await this.run.read(
+      `about the Elastic Beanstalk environment ${name} (elasticbeanstalk:DescribeEnvironments)`,
+      (): Promise<XmlElement> => {
+        return this.beanstalk(client, "DescribeEnvironments", [
+          ["ApplicationName", application],
+          ["EnvironmentNames.member.1", name],
+          ["IncludeDeleted", "false"],
+        ]);
+      },
+    );
+    const environment: XmlElement | undefined = xmlChildren(
+      xmlFind(root, "Environments"),
+      "member",
+    ).find((member: XmlElement): boolean => {
+      return (
+        xmlText(member, "EnvironmentName") === name &&
+        xmlText(member, "ApplicationName") === application
+      );
+    });
+
+    if (!environment) {
+      return this.run.refuse(
+        `there is no Elastic Beanstalk environment ${name} of the application ${application} in ${this.region}, so nothing was changed`,
+      );
+    }
+
+    const arn: string | null = xmlText(environment, "EnvironmentArn");
+
+    if (arn && arn !== this.run.resourceId) {
+      return this.run.refuse(
+        `the Elastic Beanstalk environment named ${name} is not the one ${this.run.resourceId} names, so nothing was changed`,
+      );
+    }
+
+    await this.checkBeanstalkTag(client);
+
+    const status: string = xmlText(environment, "Status") || "";
+
+    if (status !== "Ready") {
+      this.run.refuse(
+        `the Elastic Beanstalk environment ${name} is ${status || "in an unknown state"}, and a restart needs it Ready, so nothing was changed`,
+      );
+    }
+
+    const version: string | null = xmlText(environment, "VersionLabel");
+
+    await this.run.change({}, (): Promise<XmlElement> => {
+      return this.beanstalk(client, "RestartAppServer", [
+        ["EnvironmentName", name],
+      ]);
+    });
+
+    return {
+      lines: [
+        `Elastic Beanstalk environment ${name} (application ${application}): restarting the app server on each of its instances, on the version it runs now${
+          version ? `, ${version}` : ""
+        }. Requests may fail while the app servers restart.`,
+        this.apiCall(`EnvironmentName=${name}`),
       ],
     };
   }

@@ -1502,7 +1502,7 @@ describe("AWS: RDS", () => {
     assert.strictEqual(lines[1], "RDS instance orders: stopped → starting.");
     assert.match(
       lines[lines.length - 1] || "",
-      /^Nothing to undo: cloud stop-instance does not work on a RDS instance/,
+      /^Nothing to undo: cloud stop-instance does not work on an RDS instance/,
     );
     assert.deepStrictEqual(h.aws.callsTo("rds:StartDBInstance")[0]?.form, {
       Action: "StartDBInstance",

@@ -1026,6 +1026,7 @@ export function getCloudAiAgentRolePermissions(
 const GCP_OPERATION_READS: ReadonlyArray<[string, Array<string>]> = [
   ["compute", ["compute.zoneOperations.get", "compute.regionOperations.get"]],
   ["run", ["run.operations.get"]],
+  ["appengine", ["appengine.operations.get"]],
 ];
 
 // The verbs of a Google Cloud permission (service.resource.verb) that only read.
@@ -1058,6 +1059,8 @@ export function getGcpCloudAiAgentReaderPermissions(
 const AWS_TAG_READ_ACTIONS: Array<string> = [
   "lambda:ListTags",
   "sqs:ListQueueTags",
+  "apprunner:ListTagsForResource",
+  "elasticbeanstalk:ListTagsForResource",
 ];
 
 // ---- AWS ------------------------------------------------------------------------
@@ -1588,6 +1591,7 @@ const GCP_PERMISSION_APIS: Readonly<Record<string, string>> = {
   run: "run.googleapis.com",
   compute: "compute.googleapis.com",
   cloudsql: "sqladmin.googleapis.com",
+  appengine: "appengine.googleapis.com",
 };
 
 /*

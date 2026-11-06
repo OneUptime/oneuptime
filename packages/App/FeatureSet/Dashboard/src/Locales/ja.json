@@ -45357,5 +45357,9 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime からこのエージェントのキーが届きませんでした。もう一度お試しください。",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "このコマンドには、このエージェント専用に作成されたキーが含まれています。1 日以内に実行するか、このダイアログをもう一度開いて新しいキーを取得してください。",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} はリセットされ、そのキーは使えなくなりました。接続するにはセットアップ コマンドをもう一度実行してください。コマンドは「変更」で表示されます。",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}} のキーをすぐに無効にします。セットアップ コマンドをもう一度実行するまで、エージェントは切断されたままになります。コマンドは新しいキーとともに「変更」で表示されます。"
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}} のキーをすぐに無効にします。セットアップ コマンドをもう一度実行するまで、エージェントは切断されたままになります。コマンドは新しいキーとともに「変更」で表示されます。",
+  "App Engine service": "App Engine サービス",
+  "App Runner service": "App Runner サービス",
+  "Elastic Beanstalk environment": "Elastic Beanstalk 環境",
+  "container group": "コンテナー グループ"
 }

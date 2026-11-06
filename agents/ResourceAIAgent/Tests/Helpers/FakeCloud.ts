@@ -265,6 +265,7 @@ const TARGET_SERVICES: Readonly<Record<string, string>> = {
   AmazonEC2ContainerServiceV20141113: "ecs",
   AnyScaleFrontendService: "application-autoscaling",
   AmazonSQS: "sqs",
+  AppRunner: "apprunner",
 };
 
 // Whether a session policy lets this action through.

@@ -149,6 +149,8 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
       "es:DescribeDomains",
       "apprunner:ListServices",
       "apprunner:DescribeService",
+      // Elastic Beanstalk's own list, which names each environment's ARN.
+      "elasticbeanstalk:DescribeEnvironments",
       "apigateway:GET",
     ],
   },

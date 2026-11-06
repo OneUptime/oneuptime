@@ -224,6 +224,13 @@ function catalogPermissions(
   ) {
     permissions.add("run.operations.get");
   }
+  if (
+    named.some((permission: string): boolean => {
+      return permission.startsWith("appengine.");
+    })
+  ) {
+    permissions.add("appengine.operations.get");
+  }
 
   return Array.from(permissions).sort();
 }
@@ -767,9 +774,17 @@ describe("the role's permissions", () => {
   );
 
   test("one change's role holds that change's calls and the read of what it replaces, and nothing else", () => {
+    // ECS, App Runner and Elastic Beanstalk restart; each its own call and read.
     expect(
       getCloudAiAgentRolePermissions(CloudProvider.AWS, ["restart-service"]),
-    ).toEqual(["ecs:DescribeServices", "ecs:UpdateService"]);
+    ).toEqual([
+      "apprunner:DescribeService",
+      "apprunner:StartDeployment",
+      "ecs:DescribeServices",
+      "ecs:UpdateService",
+      "elasticbeanstalk:DescribeEnvironments",
+      "elasticbeanstalk:RestartAppServer",
+    ]);
     expect(
       getCloudAiAgentRolePermissions(CloudProvider.AWS, ["redrive-queue"]),
     ).toEqual([
@@ -786,6 +801,8 @@ describe("the role's permissions", () => {
     ).toEqual([
       "Microsoft.Compute/virtualMachines/read",
       "Microsoft.Compute/virtualMachines/start/action",
+      "Microsoft.ContainerInstance/containerGroups/read",
+      "Microsoft.ContainerInstance/containerGroups/start/action",
       "Microsoft.Resources/subscriptions/read",
     ]);
     // With the read of the operation the start returns, to see how it ended.
@@ -2031,9 +2048,11 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
       "sqladmin.googleapis.com",
       "compute.googleapis.com",
     ]);
+    // Cloud Run's roll back, and App Engine's, whose Admin API it turns on.
     expect(
       getGcpCloudAiAgentServices(["roll-back-service"], "cloud-run"),
     ).toEqual([
@@ -2042,6 +2061,7 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
     ]);
     expect(getGcpCloudAiAgentServices(["start-instance"], "cloud-run")).toEqual(
       [
@@ -2073,6 +2093,7 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
       "sqladmin.googleapis.com",
       "run.googleapis.com",
     ]);
@@ -2084,6 +2105,7 @@ describe("Google Cloud: the APIs", () => {
       "iamcredentials.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "secretmanager.googleapis.com",
+      "appengine.googleapis.com",
       "run.googleapis.com",
     ]);
     // Compute Engine is the VM's already.

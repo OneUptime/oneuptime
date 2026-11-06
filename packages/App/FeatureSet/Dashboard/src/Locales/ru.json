@@ -45357,5 +45357,9 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime не прислал ключ для этого агента. Повторите попытку.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Команда содержит ключ, созданный только для этого агента. Выполните её в течение суток или откройте это окно снова, чтобы получить новый.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} сброшен, и его ключ больше не работает. Выполните его команду настройки ещё раз, чтобы подключить его: её показывает «Изменить».",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Ключ, который использует {{agentName}}, будет сразу отозван. Агент останется отключённым, пока вы снова не выполните его команду настройки: её показывает «Изменить», с новым ключом."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Ключ, который использует {{agentName}}, будет сразу отозван. Агент останется отключённым, пока вы снова не выполните его команду настройки: её показывает «Изменить», с новым ключом.",
+  "App Engine service": "Сервис App Engine",
+  "App Runner service": "Сервис App Runner",
+  "Elastic Beanstalk environment": "Среда Elastic Beanstalk",
+  "container group": "Группа контейнеров"
 }

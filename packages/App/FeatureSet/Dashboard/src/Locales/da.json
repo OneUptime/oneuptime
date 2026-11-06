@@ -45357,5 +45357,9 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime sendte ingen nøgle til denne agent. Prøv igen.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandoen indeholder en nøgle, der kun er lavet til denne agent. Kør den inden for en dag, eller åbn denne dialog igen for at få en ny.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} blev nulstillet, og dens nøgle virker ikke længere. Kør dens opsætningskommando igen for at forbinde den: Skift viser den.",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbagekalder straks nøglen til {{agentName}}. Agenten forbliver afbrudt, indtil du kører dens opsætningskommando igen: Skift viser den med en ny nøgle."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbagekalder straks nøglen til {{agentName}}. Agenten forbliver afbrudt, indtil du kører dens opsætningskommando igen: Skift viser den med en ny nøgle.",
+  "App Engine service": "App Engine-tjeneste",
+  "App Runner service": "App Runner-tjeneste",
+  "Elastic Beanstalk environment": "Elastic Beanstalk-miljø",
+  "container group": "Containergruppe"
 }
