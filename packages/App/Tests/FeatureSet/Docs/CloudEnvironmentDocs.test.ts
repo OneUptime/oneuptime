@@ -226,6 +226,8 @@ describe("Cloud Environments docs", (): void => {
         "/docs/telemetry/cloud-resources",
         "/docs/telemetry/cloud-costs",
         "/docs/telemetry/cloud-streaming",
+        "/docs/telemetry/cloud-streaming-azure",
+        "/docs/telemetry/cloud-streaming-google-cloud",
       ]);
     });
 

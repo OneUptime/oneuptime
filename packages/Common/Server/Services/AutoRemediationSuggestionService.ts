@@ -180,10 +180,25 @@ export class Service extends DatabaseService<Model> {
     fromVerificationStatus: AutoRemediationVerificationStatus;
     set: VerificationTransitionSet;
   }): Promise<number> {
+    /*
+     * Held to what each column takes, as every raw write path must
+     * (truncateStringColumnsToMaxLength): this UPDATE skips the checks a
+     * service write makes, and verificationNote (varchar(500)) quotes the
+     * command and the values a GitOps controller put back, which can run
+     * longer. Unheld, Postgres refused the UPDATE, and each sweep refused it
+     * again: the verification stayed Pending, with no post, no auto-resolve
+     * and no rollback.
+     */
+    const set: VerificationTransitionSet =
+      this.truncateStringColumnsToMaxLength({ ...data.set } as Record<
+        string,
+        unknown
+      >) as unknown as VerificationTransitionSet;
+
     const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
       .createQueryBuilder()
       .update(Model)
-      .set(data.set as QueryDeepPartialEntity<Model>)
+      .set(set as QueryDeepPartialEntity<Model>)
       .where('"_id" = :id', { id: data.suggestionId.toString() })
       .andWhere('"verificationStatus" = :fromVerificationStatus', {
         fromVerificationStatus: data.fromVerificationStatus,

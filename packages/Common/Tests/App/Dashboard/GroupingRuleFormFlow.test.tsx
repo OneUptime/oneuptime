@@ -485,6 +485,7 @@ const FORM_ONLY_KEYS: Array<string> = [
   "reopenWindowSetting",
   "resolveDelaySetting",
   "inactivityTimeoutSetting",
+  "minimumCountSetting",
 ];
 
 describe("creating a grouping rule", () => {
@@ -524,9 +525,9 @@ describe("creating a grouping rule", () => {
       "On-Call Duty Policies",
       "Episode Owners",
       "Episode Role Assignments",
-      "Reopen recently resolved episodes",
+      "Wait for more incidents",
     ]);
-    expect(foldedMore()).toBe("7 more");
+    expect(foldedMore()).toBe("8 more");
     expect(foldedChips()).toEqual([]);
     // No switch that adds steps any more, and nothing to settle.
     expect(
@@ -777,6 +778,7 @@ describe("creating a grouping rule", () => {
       within(dialog()).getByRole("button", { name: "Add owner" }),
     ).toBeVisible();
     for (const name of [
+      "Wait for more incidents",
       "Reopen recently resolved episodes",
       "Wait before resolving an episode",
       "Resolve quiet episodes",
@@ -927,6 +929,147 @@ describe("creating a grouping rule", () => {
     }
   });
 
+  /*
+   * Wait for more incidents before opening an episode (issue #5374): the
+   * first Episode Lifecycle setting under More fields - "configurable
+   * directly when selecting the Everything Together strategy", without a
+   * question more on the Grouping step.
+   */
+  test("Everything Together can wait for more incidents: on under More fields, it starts at 3, says so folded, and saves the switch and count", async () => {
+    await openIncidentCreateForm();
+
+    await pickMode("everything");
+    await waitFor(() => {
+      expect(nameInput()).toHaveValue("Group incidents that happen together");
+    });
+
+    await openMoreFields();
+
+    expect(switchNamed("Wait for more incidents")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(
+      screen.queryByTestId("minimum-count-setting-count-row"),
+    ).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait for more incidents"));
+    });
+    expect(minutesInput("minimum-count-setting")).toHaveValue(3);
+    expect(
+      screen.getByTestId("minimum-count-setting-count-row"),
+    ).toHaveTextContent("Open an episode once");
+
+    fireEvent.change(minutesInput("minimum-count-setting"), {
+      target: { value: "5" },
+    });
+
+    // Folded again, the header says it waits, and for how many.
+    await foldMoreFields();
+    expect(foldedChips()).toEqual(["Wait for more incidents: 5 incidents"]);
+
+    // Still two questions: Create is one Next away.
+    expect(stepTitles()).toEqual(["Grouping", "Which Incidents"]);
+
+    await goToStep("Which Incidents");
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        name: "Group incidents that happen together",
+        groupByMonitor: false,
+        groupBySeverity: false,
+        groupByIncidentTitle: false,
+        enableTimeWindow: true,
+        timeWindowMinutes: 10,
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 5,
+      }),
+    );
+  });
+
+  test("a count the box does not take opens the fold and stops the form on Grouping", async () => {
+    await openIncidentCreateForm();
+
+    await openMoreFields();
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait for more incidents"));
+    });
+
+    // 1 waits for nothing: the box takes 2 to 100.
+    fireEvent.change(minutesInput("minimum-count-setting"), {
+      target: { value: "1" },
+    });
+
+    await foldMoreFields();
+    expect(foldedChips()).toEqual(["Wait for more incidents"]);
+
+    await clickNext();
+
+    await waitFor(() => {
+      expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "true");
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("minimum-count-setting-error"),
+      ).toHaveTextContent("Enter a whole number between 2 and 100.");
+    });
+    expect(activeStep()).toBe("Grouping");
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+    fireEvent.change(minutesInput("minimum-count-setting"), {
+      target: { value: "4" },
+    });
+
+    await goToStep("Which Incidents");
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 4,
+      }),
+    );
+  });
+
+  test("switched back off, it is saved off and keeps its count for next time", async () => {
+    await openIncidentCreateForm();
+
+    await openMoreFields();
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait for more incidents"));
+    });
+    fireEvent.change(minutesInput("minimum-count-setting"), {
+      target: { value: "6" },
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait for more incidents"));
+    });
+
+    await foldMoreFields();
+    expect(foldedChips()).toEqual([]);
+
+    await goToStep("Which Incidents");
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()["enableMinimumIncidentCount"]).toBe(false);
+    expect(submitted()["minimumIncidentCount"]).toBe(6);
+  });
+
+  test("left alone, a new rule waits for nothing", async () => {
+    await openIncidentCreateForm();
+
+    await goToStep("Which Incidents");
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()["enableMinimumIncidentCount"]).not.toBe(true);
+  });
+
   test("the alert form asks about alerts and saves the alert switches", async () => {
     await openForm<AlertGroupingRule>({
       page: AlertGroupingRulesPage,
@@ -947,10 +1090,10 @@ describe("creating a grouping rule", () => {
     expect(foldedItems()).toEqual([
       "On-Call Duty Policies",
       "Episode Owners",
+      "Wait for more alerts",
       "Reopen recently resolved episodes",
-      "Wait before resolving an episode",
     ]);
-    expect(foldedMore()).toBe("5 more");
+    expect(foldedMore()).toBe("6 more");
 
     await openMoreFields();
     expect(moreFieldsHeadings()).toEqual([
@@ -994,6 +1137,40 @@ describe("creating a grouping rule", () => {
       }),
     );
     expect(submitted()["groupByIncidentTitle"]).toBeUndefined();
+  });
+
+  test("the alert form waits for more alerts, and saves the alert rule's columns", async () => {
+    await openForm<AlertGroupingRule>({
+      page: AlertGroupingRulesPage,
+      modelType: AlertGroupingRule,
+      singularName: "Alert Grouping Rule",
+      formType: FormType.Create,
+    });
+
+    await openMoreFields();
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait for more alerts"));
+    });
+    expect(minutesInput("minimum-count-setting")).toHaveValue(3);
+    expect(
+      screen.getByTestId("minimum-count-setting-count-row"),
+    ).toHaveTextContent("matching alerts are ongoing");
+
+    await foldMoreFields();
+    expect(foldedChips()).toEqual(["Wait for more alerts: 3 alerts"]);
+
+    await goToStep("Which Alerts");
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableMinimumAlertCount: true,
+        minimumAlertCount: 3,
+      }),
+    );
+    expect(submitted()["enableMinimumIncidentCount"]).toBeUndefined();
+    expect(submitted()["minimumIncidentCount"]).toBeUndefined();
   });
 });
 
@@ -1118,7 +1295,7 @@ describe("editing an existing grouping rule", () => {
       "Episode Role Assignments",
       "Reopen recently resolved episodes: 45 minutes",
     ]);
-    expect(foldedMore()).toBe("7 more");
+    expect(foldedMore()).toBe("8 more");
 
     // Opened, the settings are there as the rule has them.
     await openMoreFields();
@@ -1142,6 +1319,8 @@ describe("editing an existing grouping rule", () => {
         resolveDelayMinutes: 1,
         enableInactivityTimeout: true,
         inactivityTimeoutMinutes: 120,
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 5,
         description: "Production payments",
         episodeTitleTemplate: "{{monitorName}} storm",
         episodeDescriptionTemplate: "Started by {{incidentTitle}}",
@@ -1160,6 +1339,7 @@ describe("editing an existing grouping rule", () => {
       expect(foldedChips()).toEqual([
         "On-Call Duty Policies: 1",
         "Episode Role Assignments: 1",
+        "Wait for more incidents: 5 incidents",
         "Reopen recently resolved episodes: 1 day",
         "Wait before resolving an episode: 1 minute",
         "Resolve quiet episodes: 2 hours",
@@ -1176,6 +1356,7 @@ describe("editing an existing grouping rule", () => {
     expect(foldedItems()).toEqual([
       "On-Call Duty Policies: 1",
       "Episode Role Assignments: 1",
+      "Wait for more incidents: 5 incidents",
       "Reopen recently resolved episodes: 1 day",
       "Wait before resolving an episode: 1 minute",
       "Resolve quiet episodes: 2 hours",
@@ -1393,6 +1574,92 @@ describe("editing an existing grouping rule", () => {
       expect.objectContaining({
         enableReopenWindow: true,
         reopenWindowMinutes: 30,
+      }),
+    );
+  });
+
+  test("a rule that waits opens folded, with a chip that says for how many, and saves untouched", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        groupByMonitor: false,
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 4,
+      }),
+    );
+
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(foldedChips()).toEqual(["Wait for more incidents: 4 incidents"]);
+
+    await openMoreFields();
+    expect(switchNamed("Wait for more incidents")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(minutesInput("minimum-count-setting")).toHaveValue(4);
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 4,
+      }),
+    );
+  });
+
+  test("a rule saved through the API waiting for 1 opens as the engines read it - off - and saves untouched", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        groupByMonitor: true,
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 1,
+      }),
+    );
+
+    expect(foldedChips()).toEqual([]);
+
+    await openMoreFields();
+    expect(switchNamed("Wait for more incidents")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 1,
+      }),
+    );
+  });
+
+  test("turning it off for a rule that waited saves it off, keeping the count", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        groupByMonitor: true,
+        enableMinimumIncidentCount: true,
+        minimumIncidentCount: 6,
+      }),
+    );
+
+    await openMoreFields();
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait for more incidents"));
+    });
+
+    await foldMoreFields();
+    expect(foldedChips()).toEqual([]);
+
+    await saveFromTheLastStep();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableMinimumIncidentCount: false,
+        minimumIncidentCount: 6,
       }),
     );
   });

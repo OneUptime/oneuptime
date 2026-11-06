@@ -1,10 +1,21 @@
-import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import GlobalConfig, {
+  EmailServerType,
+} from "../../../Models/DatabaseModels/GlobalConfig";
 import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig";
-import MailTransportType from "../../../Types/Email/MailTransportType";
+import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
+import { isMailgunDomain } from "../../../Types/Email/MailgunDomain";
+import MailgunRegion, {
+  DEFAULT_MAILGUN_REGION,
+} from "../../../Types/Email/MailgunRegion";
+import MailTransportType, {
+  toMailTransportType,
+} from "../../../Types/Email/MailTransportType";
+import IconProp from "../../../Types/Icon/IconProp";
 import OAuthProviderType from "../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
 import SelectFormFields from "../../Types/SelectEntityField";
 import { translationKey } from "../../Utils/TranslateTemplate";
+import type { CardSelectOption } from "../CardSelect/CardSelect";
 import type { RadioButton } from "../RadioButtons/GroupRadioButtons";
 import Field, { FormFieldCollapsibleSection } from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -63,6 +74,35 @@ import {
  * Tests/Helpers/FormStepsScan places each field on its step, and the
  * Advanced section is built once per form and handed to every folded field,
  * so the scan counts it as one row.
+ *
+ * A PROJECT'S CONFIG ASKS FOR ITS PROVIDER FIRST.
+ *
+ * A project can send through a mail server, or through a provider's HTTPS
+ * API with a key of the provider's own: Amazon SES, SendGrid, Mailgun,
+ * Postmark or Resend - or Microsoft Graph, for a Microsoft 365 tenant with
+ * SMTP AUTH turned off. Which one is the first thing to know, and nobody
+ * looks for it under Advanced, so a project's form opens on it:
+ *
+ *   Provider     Name, the provider (one card each, SMTP Server first),
+ *                and the Description folded under More fields;
+ *   Server       SMTP only: Hostname, Port, Username, Password, and the
+ *                folded TLS, sign-in type and OAuth grant;
+ *   OAuth        Microsoft Graph, or SMTP signing in with OAuth: the OAuth
+ *                app's Client ID, Client Secret, Token URL and Scope;
+ *   Amazon SES   its Access Key ID, Secret Access Key and Region;
+ *   SendGrid     its API Key;
+ *   Mailgun      its API Key, sending Domain and Region (US or EU);
+ *   Postmark     its Server API Token;
+ *   Resend       its API Key;
+ *   Sender       From Email, From Name.
+ *
+ * Each provider's step is shown only for that provider (FormStep.showIf),
+ * so a form asks only what the provider it sends through needs - never a
+ * hostname for SendGrid, never an API key for an SMTP server - and no step
+ * holds more than five rows. The instance's mail server (the Admin
+ * Dashboard's Custom SMTP card) keeps Server, then Sender: there, the
+ * providers with an HTTP API of their own are Email Server Types, each with
+ * a card of its own (getGlobalEmailProviderFormFields).
  */
 
 /*
@@ -268,6 +308,13 @@ export const SMTP_REQUIRE_TLS_DESCRIPTION: string = translationKey(
   "Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted.",
 );
 
+/*
+ * The scope each OAuth app takes, on both forms: Graph's, Microsoft 365 SMTP's, Google's. Each scope is written
+ * whole, so the labels stay short to keep it within ShortDescriptionsGuard's 150 characters.
+ */
+export const SMTP_OAUTH_SCOPE_DESCRIPTION: string =
+  "Microsoft Graph: https://graph.microsoft.com/.default. Microsoft 365 SMTP: https://outlook.office365.com/.default. Google: https://mail.google.com/";
+
 export const SMTP_FROM_EMAIL_DESCRIPTION: string = translationKey(
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.",
 );
@@ -359,8 +406,8 @@ const isFilled: IsFilledFunction = (value: unknown): boolean => {
 };
 
 /*
- * How mail is sent. Anything but Microsoft Graph - an empty value included -
- * is SMTP, as the mail service reads it.
+ * How mail is sent: the transport picked, or SMTP for anything else - an
+ * empty value included - as the mail service reads it.
  */
 export const getSmtpTransport: <TEntity>(
   values: unknown,
@@ -369,10 +416,7 @@ export const getSmtpTransport: <TEntity>(
   values: unknown,
   columns: SmtpConfigFormColumns<TEntity>,
 ): MailTransportType => {
-  return readSmtpFormValue(values, columns.transportType) ===
-    MailTransportType.MicrosoftGraph
-    ? MailTransportType.MicrosoftGraph
-    : MailTransportType.SMTP;
+  return toMailTransportType(readSmtpFormValue(values, columns.transportType));
 };
 
 /*
@@ -452,14 +496,20 @@ export const showsSmtpOAuthProviderType: ShowsFunction = <TEntity>(
   );
 };
 
-// The OAuth app: Microsoft Graph, or SMTP with OAuth.
+/*
+ * The OAuth app: Microsoft Graph, or SMTP with OAuth. A sign-in type left
+ * on OAuth from before another provider was picked asks for nothing.
+ */
 export const showsSmtpOAuthCredentials: ShowsFunction = <TEntity>(
   values: unknown,
   columns: SmtpConfigFormColumns<TEntity>,
 ): boolean => {
+  const transport: MailTransportType = getSmtpTransport(values, columns);
+
   return (
-    getSmtpTransport(values, columns) === MailTransportType.MicrosoftGraph ||
-    getSmtpAuthType(values, columns) === SMTPAuthenticationType.OAuth
+    transport === MailTransportType.MicrosoftGraph ||
+    (transport === MailTransportType.SMTP &&
+      getSmtpAuthType(values, columns) === SMTPAuthenticationType.OAuth)
   );
 };
 
@@ -756,8 +806,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "https://graph.microsoft.com/.default",
-      description:
-        "For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+      description: SMTP_OAUTH_SCOPE_DESCRIPTION,
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);
@@ -802,18 +851,494 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
   ];
 };
 
+/*
+ * THE PROVIDERS A PROJECT'S CONFIG CAN SEND THROUGH, AND THEIR STEPS.
+ *
+ * The step ids are written out as strings on every field (FormStepsScan
+ * places a field by them), and each provider's step is the same on a
+ * project's form and on the instance's card for that provider.
+ */
+export const EMAIL_PROVIDER_STEP_ID: string = "provider";
+
+export const SMTP_OAUTH_STEP_ID: string = "oauth";
+
+export const AMAZON_SES_STEP_ID: string = "amazon-ses";
+
+export const SENDGRID_STEP_ID: string = "sendgrid";
+
+export const MAILGUN_STEP_ID: string = "mailgun";
+
+export const POSTMARK_STEP_ID: string = "postmark";
+
+export const RESEND_STEP_ID: string = "resend";
+
+export const EMAIL_PROVIDER_DESCRIPTION: string = translationKey(
+  "How OneUptime sends this project's email.",
+);
+
+/*
+ * One card a provider: what it is, in a line, with an icon of OneUptime's
+ * own (no provider's logo: Amazon asks to be named in plain text, and the
+ * others' marks are not ones OneUptime may draw). The SMTP server first,
+ * the default; Microsoft Graph last, for the one case it is for. The values
+ * are the transports the API, Terraform and the guides use. A provider's
+ * name is its own in every language (isTitleProductName): "Resend" is
+ * also interface text, which reads "Erneut senden" in German.
+ */
+export const EMAIL_PROVIDER_CHOICES: Array<CardSelectOption> = [
+  {
+    value: MailTransportType.SMTP,
+    title: translationKey("SMTP Server"),
+    description: translationKey("Works with most mail servers."),
+    icon: IconProp.Server,
+  },
+  {
+    value: MailTransportType.AmazonSES,
+    title: "Amazon SES",
+    isTitleProductName: true,
+    description: translationKey(
+      "Send through Amazon Simple Email Service with an IAM access key.",
+    ),
+    icon: IconProp.Cloud,
+  },
+  {
+    value: MailTransportType.SendGrid,
+    title: "SendGrid",
+    isTitleProductName: true,
+    description: translationKey("Send through SendGrid's API with an API key."),
+    icon: IconProp.PaperAirplane,
+  },
+  {
+    value: MailTransportType.Mailgun,
+    title: "Mailgun",
+    isTitleProductName: true,
+    description: translationKey(
+      "Send through Mailgun's API with an API key and a sending domain.",
+    ),
+    icon: IconProp.Envelope,
+  },
+  {
+    value: MailTransportType.Postmark,
+    title: "Postmark",
+    isTitleProductName: true,
+    description: translationKey(
+      "Send through Postmark's API with a server API token.",
+    ),
+    icon: IconProp.InboxArrowDown,
+  },
+  {
+    value: MailTransportType.Resend,
+    title: "Resend",
+    isTitleProductName: true,
+    description: translationKey("Send through Resend's API with an API key."),
+    icon: IconProp.SendMessage,
+  },
+  {
+    value: MailTransportType.MicrosoftGraph,
+    title: translationKey("Microsoft Graph"),
+    description: translationKey(
+      "For a Microsoft 365 tenant with SMTP AUTH turned off.",
+    ),
+    icon: IconProp.Email,
+  },
+];
+
+/*
+ * A provider's name as people know it - the card's title, which the API's
+ * own value is ("Amazon SES") - or "SMTP Server" for a mail server.
+ */
+export const getEmailProviderTitle: (transport: unknown) => string = (
+  transport: unknown,
+): string => {
+  const value: MailTransportType = toMailTransportType(transport);
+  const choice: CardSelectOption | undefined = EMAIL_PROVIDER_CHOICES.find(
+    (candidate: CardSelectOption): boolean => {
+      return candidate.value === value;
+    },
+  );
+
+  return choice ? choice.title : value;
+};
+
+// The columns each provider with an HTTP API of its own keeps its key in.
+export const EMAIL_PROVIDER_KEY_COLUMNS: Readonly<
+  Partial<Record<MailTransportType, ReadonlyArray<string>>>
+> = {
+  [MailTransportType.AmazonSES]: [
+    "amazonSesAccessKeyId",
+    "amazonSesSecretAccessKey",
+    "amazonSesRegion",
+  ],
+  [MailTransportType.SendGrid]: ["sendgridApiKey"],
+  [MailTransportType.Mailgun]: [
+    "mailgunApiKey",
+    "mailgunDomain",
+    "mailgunRegion",
+  ],
+  [MailTransportType.Postmark]: ["postmarkServerToken"],
+  [MailTransportType.Resend]: ["resendApiKey"],
+};
+
+export const AMAZON_SES_ACCESS_KEY_ID_DESCRIPTION: string = translationKey(
+  "The access key ID of an IAM user allowed to send with Amazon SES (ses:SendEmail).",
+);
+
+export const AMAZON_SES_SECRET_ACCESS_KEY_DESCRIPTION: string = translationKey(
+  "The secret that goes with the access key ID. It is stored encrypted.",
+);
+
+export const AMAZON_SES_REGION_DESCRIPTION: string = translationKey(
+  "The AWS Region your sender's identity is verified in, such as us-east-1 or eu-west-1.",
+);
+
+export const AMAZON_SES_REGION_INVALID: string = translationKey(
+  "Enter an AWS Region code, such as us-east-1.",
+);
+
+export const SENDGRID_API_KEY_DESCRIPTION: string = translationKey(
+  "A SendGrid API key with the Mail Send permission, from Settings > API Keys in SendGrid. It is stored encrypted.",
+);
+
+export const MAILGUN_API_KEY_DESCRIPTION: string = translationKey(
+  "An API key from your Mailgun account, or a sending key made for this domain. It is stored encrypted.",
+);
+
+export const MAILGUN_DOMAIN_DESCRIPTION: string = translationKey(
+  "The sending domain, as Mailgun lists it under Sending > Domains.",
+);
+
+export const MAILGUN_DOMAIN_INVALID: string = translationKey(
+  "Enter a domain, such as mg.example.com.",
+);
+
+export const MAILGUN_REGION_DESCRIPTION: string = translationKey(
+  "The region the domain was created in.",
+);
+
+export const MAILGUN_REGION_CHOICES: Array<RadioButton> = [
+  {
+    value: MailgunRegion.US,
+    title: translationKey("US"),
+    description: translationKey("Sent through api.mailgun.net."),
+  },
+  {
+    value: MailgunRegion.EU,
+    title: translationKey("EU"),
+    description: translationKey("Sent through api.eu.mailgun.net."),
+  },
+];
+
+export const POSTMARK_SERVER_TOKEN_DESCRIPTION: string = translationKey(
+  "The API token of the Postmark server that sends, from the server's API Tokens tab. It is stored encrypted.",
+);
+
+export const RESEND_API_KEY_DESCRIPTION: string = translationKey(
+  "A Resend API key with sending access, from API Keys in Resend. It is stored encrypted.",
+);
+
+export const PROVIDER_FROM_EMAIL_DESCRIPTION: string = translationKey(
+  "The address your emails come from. Your mail server or provider must allow sending from it, such as an address or domain verified there.",
+);
+
+export const FROM_NAME_DESCRIPTION: string = translationKey(
+  "The name people see your emails come from.",
+);
+
+type IsTransportFunction = (values: unknown) => boolean;
+
+// Whether a project's form has a provider picked.
+const isProjectTransport: (
+  transport: MailTransportType,
+) => IsTransportFunction = (
+  transport: MailTransportType,
+): IsTransportFunction => {
+  return (values: unknown): boolean => {
+    return (
+      getSmtpTransport(values, PROJECT_SMTP_CONFIG_FORM_COLUMNS) === transport
+    );
+  };
+};
+
+/*
+ * A project's steps: the provider, then the one step of the provider
+ * picked (two for SMTP signing in with OAuth), then the sender.
+ */
+export const getProjectSmtpConfigFormSteps: () => Array<
+  FormStep<ProjectSmtpConfig>
+> = (): Array<FormStep<ProjectSmtpConfig>> => {
+  return [
+    { title: "Provider", id: "provider" },
+    {
+      title: "Server",
+      id: "server",
+      showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+        return showsSmtpServerFields(values, PROJECT_SMTP_CONFIG_FORM_COLUMNS);
+      },
+    },
+    {
+      title: "OAuth",
+      id: "oauth",
+      showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+        return showsSmtpOAuthCredentials(
+          values,
+          PROJECT_SMTP_CONFIG_FORM_COLUMNS,
+        );
+      },
+    },
+    {
+      title: "Amazon SES",
+      id: "amazon-ses",
+      isTitleProductName: true,
+      showIf: isProjectTransport(MailTransportType.AmazonSES),
+    },
+    {
+      title: "SendGrid",
+      id: "sendgrid",
+      isTitleProductName: true,
+      showIf: isProjectTransport(MailTransportType.SendGrid),
+    },
+    {
+      title: "Mailgun",
+      id: "mailgun",
+      isTitleProductName: true,
+      showIf: isProjectTransport(MailTransportType.Mailgun),
+    },
+    {
+      title: "Postmark",
+      id: "postmark",
+      isTitleProductName: true,
+      showIf: isProjectTransport(MailTransportType.Postmark),
+    },
+    {
+      title: "Resend",
+      id: "resend",
+      isTitleProductName: true,
+      showIf: isProjectTransport(MailTransportType.Resend),
+    },
+    { title: "Sender", id: "sender" },
+  ];
+};
+
+/*
+ * The Server step's folded fields on a project's form - TLS and the sign-in
+ * type - under a header that says how mail is sent and signed in with.
+ */
+export const getProjectSmtpServerSection: () => FormFieldCollapsibleSection<ProjectSmtpConfig> =
+  (): FormFieldCollapsibleSection<ProjectSmtpConfig> => {
+    return getAdvancedFormSection<ProjectSmtpConfig>({
+      getSummary: (values: FormValues<ProjectSmtpConfig>): Array<string> => {
+        return getSmtpAdvancedSummary(values, PROJECT_SMTP_CONFIG_FORM_COLUMNS);
+      },
+    });
+  };
+
+/*
+ * An Amazon SES config: the IAM access key and the Region. Its own step,
+ * on a project's form and on the instance's Amazon SES card alike.
+ */
+export const getAmazonSesFormFields: <TEntity>() => Array<Field<TEntity>> = <
+  TEntity,
+>(): Array<Field<TEntity>> => {
+  return [
+    {
+      field: { amazonSesAccessKeyId: true } as SelectFormFields<TEntity>,
+      title: "Access Key ID",
+      stepId: "amazon-ses",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "AKIAIOSFODNN7EXAMPLE",
+      description: AMAZON_SES_ACCESS_KEY_ID_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+    {
+      field: { amazonSesSecretAccessKey: true } as SelectFormFields<TEntity>,
+      title: "Secret Access Key",
+      stepId: "amazon-ses",
+      fieldType: FormFieldSchemaType.EncryptedText,
+      required: true,
+      placeholder: "Secret access key",
+      description: AMAZON_SES_SECRET_ACCESS_KEY_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+    {
+      field: { amazonSesRegion: true } as SelectFormFields<TEntity>,
+      title: "Region",
+      stepId: "amazon-ses",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "us-east-1",
+      description: AMAZON_SES_REGION_DESCRIPTION,
+      disableSpellCheck: true,
+      customValidation: (values: FormValues<TEntity>): string | null => {
+        const region: unknown = readSmtpFormValue(values, "amazonSesRegion");
+
+        if (!region || isAwsRegion(String(region))) {
+          return null;
+        }
+
+        return AMAZON_SES_REGION_INVALID;
+      },
+    },
+  ];
+};
+
+// A SendGrid config: its API key.
+export const getSendGridFormFields: <TEntity>() => Array<Field<TEntity>> = <
+  TEntity,
+>(): Array<Field<TEntity>> => {
+  return [
+    {
+      field: { sendgridApiKey: true } as SelectFormFields<TEntity>,
+      title: "API Key",
+      stepId: "sendgrid",
+      fieldType: FormFieldSchemaType.EncryptedText,
+      required: true,
+      placeholder: "SG.xxxxxxxxxxxxxxxx",
+      description: SENDGRID_API_KEY_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+  ];
+};
+
+// A Mailgun config: its API key, sending domain and region.
+export const getMailgunFormFields: <TEntity>() => Array<Field<TEntity>> = <
+  TEntity,
+>(): Array<Field<TEntity>> => {
+  return [
+    {
+      field: { mailgunApiKey: true } as SelectFormFields<TEntity>,
+      title: "API Key",
+      stepId: "mailgun",
+      fieldType: FormFieldSchemaType.EncryptedText,
+      required: true,
+      placeholder: "Mailgun API key",
+      description: MAILGUN_API_KEY_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+    {
+      field: { mailgunDomain: true } as SelectFormFields<TEntity>,
+      title: "Domain",
+      stepId: "mailgun",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "mg.example.com",
+      description: MAILGUN_DOMAIN_DESCRIPTION,
+      disableSpellCheck: true,
+      customValidation: (values: FormValues<TEntity>): string | null => {
+        const domain: unknown = readSmtpFormValue(values, "mailgunDomain");
+
+        if (!domain || isMailgunDomain(domain)) {
+          return null;
+        }
+
+        return MAILGUN_DOMAIN_INVALID;
+      },
+    },
+    {
+      field: { mailgunRegion: true } as SelectFormFields<TEntity>,
+      title: "Region",
+      stepId: "mailgun",
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: MAILGUN_REGION_CHOICES,
+      required: true,
+      defaultValue: DEFAULT_MAILGUN_REGION,
+      description: MAILGUN_REGION_DESCRIPTION,
+      dataTestId: "mailgun-region",
+    },
+  ];
+};
+
+// A Postmark config: its server's API token.
+export const getPostmarkFormFields: <TEntity>() => Array<Field<TEntity>> = <
+  TEntity,
+>(): Array<Field<TEntity>> => {
+  return [
+    {
+      field: { postmarkServerToken: true } as SelectFormFields<TEntity>,
+      title: "Server API Token",
+      stepId: "postmark",
+      fieldType: FormFieldSchemaType.EncryptedText,
+      required: true,
+      placeholder: "00000000-0000-0000-0000-000000000000",
+      description: POSTMARK_SERVER_TOKEN_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+  ];
+};
+
+// A Resend config: its API key.
+export const getResendFormFields: <TEntity>() => Array<Field<TEntity>> = <
+  TEntity,
+>(): Array<Field<TEntity>> => {
+  return [
+    {
+      field: { resendApiKey: true } as SelectFormFields<TEntity>,
+      title: "API Key",
+      stepId: "resend",
+      fieldType: FormFieldSchemaType.EncryptedText,
+      required: true,
+      placeholder: "re_xxxxxxxxxxxxxxxx",
+      description: RESEND_API_KEY_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+  ];
+};
+
+/*
+ * Who an email through a provider comes from: the Sender step, given the
+ * columns the surface keeps it in - a project's config's own, or each
+ * provider's on the instance (amazonSesFromEmail ...).
+ */
+export const getProviderSenderFormFields: <TEntity>(columns: {
+  fromEmail: Extract<keyof TEntity, string>;
+  fromName: Extract<keyof TEntity, string>;
+}) => Array<Field<TEntity>> = <TEntity>(columns: {
+  fromEmail: Extract<keyof TEntity, string>;
+  fromName: Extract<keyof TEntity, string>;
+}): Array<Field<TEntity>> => {
+  return [
+    {
+      field: { [columns.fromEmail]: true } as SelectFormFields<TEntity>,
+      title: "From Email",
+      stepId: "sender",
+      fieldType: FormFieldSchemaType.Email,
+      required: true,
+      placeholder: "email@company.com",
+      description: PROVIDER_FROM_EMAIL_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+    {
+      field: { [columns.fromName]: true } as SelectFormFields<TEntity>,
+      title: "From Name",
+      stepId: "sender",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "Company, Inc.",
+      description: FROM_NAME_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+  ];
+};
+
 /**
- * A project's Custom SMTP config: its Name first, on the Server step, then
- * the shared fields. The Description is folded under Advanced.
+ * A project's Custom SMTP config: the provider first, its Name beside it,
+ * then the step of the provider picked, then who the mail comes from.
  */
 export const getProjectSmtpConfigFormFields: () => Array<
   Field<ProjectSmtpConfig>
 > = (): Array<Field<ProjectSmtpConfig>> => {
+  const columns: SmtpConfigFormColumns<ProjectSmtpConfig> =
+    PROJECT_SMTP_CONFIG_FORM_COLUMNS;
+  const providerSection: FormFieldCollapsibleSection<ProjectSmtpConfig> =
+    getAdvancedFormSection<ProjectSmtpConfig>();
+  const serverSection: FormFieldCollapsibleSection<ProjectSmtpConfig> =
+    getProjectSmtpServerSection();
+
   return [
     {
       field: { name: true },
       title: "Name",
-      stepId: "server",
+      stepId: "provider",
       fieldType: FormFieldSchemaType.Text,
       required: true,
       // The placeholder shows one; "Friendly name for this config ..." said nothing more.
@@ -823,8 +1348,388 @@ export const getProjectSmtpConfigFormFields: () => Array<
         minLength: 2,
       },
     },
-    ...getSmtpConfigFormFields<ProjectSmtpConfig>(
-      PROJECT_SMTP_CONFIG_FORM_COLUMNS,
+    {
+      field: { transportType: true },
+      title: "Provider",
+      stepId: "provider",
+      fieldType: FormFieldSchemaType.CardSelect,
+      cardSelectOptions: EMAIL_PROVIDER_CHOICES,
+      // Two to a row: each card carries a line, which three columns squeeze.
+      cardSelectMaxColumns: 2,
+      required: true,
+      defaultValue: MailTransportType.SMTP,
+      description: EMAIL_PROVIDER_DESCRIPTION,
+      dataTestId: "email-provider",
+    },
+    {
+      field: { description: true },
+      title: "Description",
+      stepId: "provider",
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      // A note for your team: nothing to explain, the placeholder shows one.
+      hideColumnDescription: true,
+      placeholder: "Company SMTP server hosted on AWS",
+      collapsibleSection: providerSection,
+    },
+    {
+      field: { hostname: true },
+      title: "Hostname",
+      stepId: "server",
+      fieldType: FormFieldSchemaType.Hostname,
+      required: true,
+      placeholder: "smtp.server.com",
+      description:
+        "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)",
+      disableSpellCheck: true,
+    },
+    {
+      field: { port: true },
+      title: "Port",
+      stepId: "server",
+      fieldType: FormFieldSchemaType.Port,
+      required: true,
+      placeholder: "587",
+      description: SMTP_PORT_DESCRIPTION,
+    },
+    {
+      field: { username: true },
+      title: "Username",
+      stepId: "server",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      placeholder: "emailuser@company.com",
+      description: SMTP_USERNAME_DESCRIPTION,
+      disableSpellCheck: true,
+      showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+        return showsSmtpUsername(values, columns);
+      },
+    },
+    {
+      field: { password: true },
+      title: "Password",
+      stepId: "server",
+      fieldType: FormFieldSchemaType.EncryptedText,
+      required: false,
+      placeholder: "Password",
+      description: SMTP_PASSWORD_DESCRIPTION,
+      disableSpellCheck: true,
+      showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+        return showsSmtpPassword(values, columns);
+      },
+    },
+    {
+      field: { secure: true },
+      title: "Require TLS",
+      stepId: "server",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      description: SMTP_REQUIRE_TLS_DESCRIPTION,
+      collapsibleSection: serverSection,
+    },
+    {
+      field: { authType: true },
+      title: "Authentication Type",
+      stepId: "server",
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SMTP_AUTH_TYPE_CHOICES,
+      required: true,
+      defaultValue: SMTPAuthenticationType.UsernamePassword,
+      description: SMTP_AUTH_TYPE_DESCRIPTION,
+      dataTestId: "smtp-auth-type",
+      collapsibleSection: serverSection,
+    },
+    {
+      field: { oauthProviderType: true },
+      title: "OAuth Provider Type",
+      stepId: "oauth",
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SMTP_OAUTH_PROVIDER_TYPE_CHOICES,
+      required: true,
+      defaultValue: OAuthProviderType.ClientCredentials,
+      description: SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION,
+      dataTestId: "smtp-oauth-provider-type",
+      // Microsoft Graph always uses Client Credentials: not asked there.
+      showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+        return showsSmtpOAuthProviderType(values, columns);
+      },
+    },
+    {
+      field: { clientId: true },
+      title: "OAuth Client ID",
+      stepId: "oauth",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "12345678-1234-1234-1234-123456789012",
+      description:
+        "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).",
+      disableSpellCheck: true,
+    },
+    {
+      field: { clientSecret: true },
+      title: "OAuth Client Secret",
+      stepId: "oauth",
+      fieldType: FormFieldSchemaType.LongText,
+      required: true,
+      placeholder: "Client secret value",
+      description:
+        "Your OAuth app's client secret. For Google (JWT Bearer), the whole private_key from the service account's JSON file.",
+      disableSpellCheck: true,
+    },
+    {
+      field: { tokenUrl: true },
+      title: "OAuth Token URL",
+      stepId: "oauth",
+      fieldType: FormFieldSchemaType.URL,
+      required: true,
+      placeholder:
+        "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+      description:
+        "Your provider's OAuth token endpoint. For Google: https://oauth2.googleapis.com/token",
+      disableSpellCheck: true,
+    },
+    {
+      field: { scope: true },
+      title: "OAuth Scope",
+      stepId: "oauth",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "https://graph.microsoft.com/.default",
+      description: SMTP_OAUTH_SCOPE_DESCRIPTION,
+      disableSpellCheck: true,
+    },
+    ...getAmazonSesFormFields<ProjectSmtpConfig>(),
+    ...getSendGridFormFields<ProjectSmtpConfig>(),
+    ...getMailgunFormFields<ProjectSmtpConfig>(),
+    ...getPostmarkFormFields<ProjectSmtpConfig>(),
+    ...getResendFormFields<ProjectSmtpConfig>(),
+    ...getProviderSenderFormFields<ProjectSmtpConfig>({
+      fromEmail: "fromEmail",
+      fromName: "fromName",
+    }),
+  ];
+};
+
+/*
+ * THE INSTANCE'S OWN PROVIDERS (Admin Dashboard > Settings > Email): one
+ * card each for the Email Server Types that send through an HTTP API -
+ * Amazon SES, Mailgun, Postmark, Resend - each with its key and its sender
+ * in columns of its own, so switching the Email Server Type keeps every
+ * provider's settings as they were.
+ */
+export type GlobalEmailProviderTransport =
+  | MailTransportType.AmazonSES
+  | MailTransportType.Mailgun
+  | MailTransportType.Postmark
+  | MailTransportType.Resend;
+
+export const GLOBAL_EMAIL_PROVIDER_TRANSPORTS: ReadonlyArray<GlobalEmailProviderTransport> =
+  [
+    MailTransportType.AmazonSES,
+    MailTransportType.Mailgun,
+    MailTransportType.Postmark,
+    MailTransportType.Resend,
+  ];
+
+/*
+ * The Email Server Type each of them is (Admin Dashboard > Settings >
+ * Email > Email Server Settings).
+ */
+export const GLOBAL_EMAIL_PROVIDERS: ReadonlyArray<{
+  serverType: EmailServerType;
+  transport: GlobalEmailProviderTransport;
+}> = [
+  {
+    serverType: EmailServerType.AmazonSES,
+    transport: MailTransportType.AmazonSES,
+  },
+  { serverType: EmailServerType.Mailgun, transport: MailTransportType.Mailgun },
+  {
+    serverType: EmailServerType.Postmark,
+    transport: MailTransportType.Postmark,
+  },
+  { serverType: EmailServerType.Resend, transport: MailTransportType.Resend },
+];
+
+/*
+ * An Email Server Type's card in the Email Server Settings dialog: the card
+ * its provider has in a project's form - the same icon and line - for the
+ * Email Server Type's own value. Undefined for a type with no provider of
+ * its own (Custom SMTP, SendGrid).
+ */
+export const getGlobalEmailProviderCard: (
+  serverType: EmailServerType,
+) => CardSelectOption | undefined = (
+  serverType: EmailServerType,
+): CardSelectOption | undefined => {
+  const provider:
+    | { serverType: EmailServerType; transport: GlobalEmailProviderTransport }
+    | undefined = GLOBAL_EMAIL_PROVIDERS.find(
+    (candidate: {
+      serverType: EmailServerType;
+      transport: GlobalEmailProviderTransport;
+    }): boolean => {
+      return candidate.serverType === serverType;
+    },
+  );
+
+  const choice: CardSelectOption | undefined = provider
+    ? EMAIL_PROVIDER_CHOICES.find((candidate: CardSelectOption): boolean => {
+        return candidate.value === provider.transport;
+      })
+    : undefined;
+
+  return choice ? { ...choice, value: serverType } : undefined;
+};
+
+export const GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS: Readonly<
+  Record<
+    GlobalEmailProviderTransport,
+    {
+      fromEmail: Extract<keyof GlobalConfig, string>;
+      fromName: Extract<keyof GlobalConfig, string>;
+    }
+  >
+> = {
+  [MailTransportType.AmazonSES]: {
+    fromEmail: "amazonSesFromEmail",
+    fromName: "amazonSesFromName",
+  },
+  [MailTransportType.Mailgun]: {
+    fromEmail: "mailgunFromEmail",
+    fromName: "mailgunFromName",
+  },
+  [MailTransportType.Postmark]: {
+    fromEmail: "postmarkFromEmail",
+    fromName: "postmarkFromName",
+  },
+  [MailTransportType.Resend]: {
+    fromEmail: "resendFromEmail",
+    fromName: "resendFromName",
+  },
+};
+
+/*
+ * What a provider's card still needs before the server sends through it,
+ * in the order the dialog asks: the key, then where it sends from, then the
+ * address. Null once everything is set: the card says Enabled. (A From Name
+ * left blank is the product's name, as the mail service sends it.)
+ */
+export enum GlobalEmailProviderMissingSetting {
+  AccessKey = "accessKey",
+  Region = "region",
+  ApiKey = "apiKey",
+  Domain = "domain",
+  ServerToken = "serverToken",
+  FromEmail = "fromEmail",
+}
+
+export const getGlobalEmailProviderMissingSetting: (
+  transport: GlobalEmailProviderTransport,
+  values: unknown,
+) => GlobalEmailProviderMissingSetting | null = (
+  transport: GlobalEmailProviderTransport,
+  values: unknown,
+): GlobalEmailProviderMissingSetting | null => {
+  const isSet: (column: string) => boolean = (column: string): boolean => {
+    const value: unknown = readSmtpFormValue(values, column);
+
+    return value !== undefined && value !== null && String(value).trim() !== "";
+  };
+
+  if (transport === MailTransportType.AmazonSES) {
+    if (!isSet("amazonSesAccessKeyId") || !isSet("amazonSesSecretAccessKey")) {
+      return GlobalEmailProviderMissingSetting.AccessKey;
+    }
+
+    if (
+      !isSet("amazonSesRegion") ||
+      !isAwsRegion(String(readSmtpFormValue(values, "amazonSesRegion")))
+    ) {
+      return GlobalEmailProviderMissingSetting.Region;
+    }
+  } else if (transport === MailTransportType.Mailgun) {
+    if (!isSet("mailgunApiKey")) {
+      return GlobalEmailProviderMissingSetting.ApiKey;
+    }
+
+    if (!isMailgunDomain(readSmtpFormValue(values, "mailgunDomain"))) {
+      return GlobalEmailProviderMissingSetting.Domain;
+    }
+  } else if (transport === MailTransportType.Postmark) {
+    if (!isSet("postmarkServerToken")) {
+      return GlobalEmailProviderMissingSetting.ServerToken;
+    }
+  } else if (!isSet("resendApiKey")) {
+    return GlobalEmailProviderMissingSetting.ApiKey;
+  }
+
+  const sender: {
+    fromEmail: Extract<keyof GlobalConfig, string>;
+    fromName: Extract<keyof GlobalConfig, string>;
+  } = GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport];
+
+  if (!isSet(sender.fromEmail)) {
+    return GlobalEmailProviderMissingSetting.FromEmail;
+  }
+
+  return null;
+};
+
+// A provider's card: its own step, then the sender.
+export const getGlobalEmailProviderFormSteps: (
+  transport: GlobalEmailProviderTransport,
+) => Array<FormStep<GlobalConfig>> = (
+  transport: GlobalEmailProviderTransport,
+): Array<FormStep<GlobalConfig>> => {
+  const providerStep: Record<
+    GlobalEmailProviderTransport,
+    FormStep<GlobalConfig>
+  > = {
+    [MailTransportType.AmazonSES]: {
+      title: "Amazon SES",
+      id: "amazon-ses",
+      isTitleProductName: true,
+    },
+    [MailTransportType.Mailgun]: {
+      title: "Mailgun",
+      id: "mailgun",
+      isTitleProductName: true,
+    },
+    [MailTransportType.Postmark]: {
+      title: "Postmark",
+      id: "postmark",
+      isTitleProductName: true,
+    },
+    [MailTransportType.Resend]: {
+      title: "Resend",
+      id: "resend",
+      isTitleProductName: true,
+    },
+  };
+
+  return [providerStep[transport], { title: "Sender", id: "sender" }];
+};
+
+export const getGlobalEmailProviderFormFields: (
+  transport: GlobalEmailProviderTransport,
+) => Array<Field<GlobalConfig>> = (
+  transport: GlobalEmailProviderTransport,
+): Array<Field<GlobalConfig>> => {
+  const providerFields: Record<
+    GlobalEmailProviderTransport,
+    () => Array<Field<GlobalConfig>>
+  > = {
+    [MailTransportType.AmazonSES]: getAmazonSesFormFields<GlobalConfig>,
+    [MailTransportType.Mailgun]: getMailgunFormFields<GlobalConfig>,
+    [MailTransportType.Postmark]: getPostmarkFormFields<GlobalConfig>,
+    [MailTransportType.Resend]: getResendFormFields<GlobalConfig>,
+  };
+
+  return [
+    ...providerFields[transport](),
+    ...getProviderSenderFormFields<GlobalConfig>(
+      GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport],
     ),
   ];
 };
@@ -857,26 +1762,72 @@ export const getSmtpServerColumnsGraphIgnores: <TEntity>(
   return [columns.hostname, columns.port, columns.username, columns.password];
 };
 
-/**
- * What a new config keeps of the values its form held. Once Microsoft Graph
- * is picked the form hides the hostname, port, username and password, but
- * still holds them - the port it starts on, or what was typed before Graph
- * was picked - so they are left out of what is created, as the form left
- * them out of what it showed. Any other config is created as it is. For a
- * create form's onBeforeCreate: an edited config keeps what it holds.
+/*
+ * The columns a transport has no use for: a mail server's and the OAuth
+ * app's for a provider with an HTTP API of its own, and every other
+ * provider's key for each of them.
  */
-export const withoutValuesGraphIgnores: <TEntity>(
+export const getColumnsTransportIgnores: <TEntity>(
+  transport: MailTransportType,
+  columns: SmtpConfigFormColumns<TEntity>,
+) => Array<string> = <TEntity>(
+  transport: MailTransportType,
+  columns: SmtpConfigFormColumns<TEntity>,
+): Array<string> => {
+  const otherProvidersKeys: Array<string> = Object.entries(
+    EMAIL_PROVIDER_KEY_COLUMNS,
+  )
+    .filter(([provider]: [string, ReadonlyArray<string> | undefined]) => {
+      return provider !== transport;
+    })
+    .flatMap(([, keyColumns]: [string, ReadonlyArray<string> | undefined]) => {
+      return [...(keyColumns || [])];
+    });
+
+  if (transport === MailTransportType.SMTP) {
+    return otherProvidersKeys;
+  }
+
+  if (transport === MailTransportType.MicrosoftGraph) {
+    return [
+      ...getSmtpServerColumnsGraphIgnores(columns),
+      ...otherProvidersKeys,
+    ];
+  }
+
+  return [
+    ...getSmtpServerColumnsGraphIgnores(columns),
+    columns.clientId,
+    columns.clientSecret,
+    columns.tokenUrl,
+    columns.scope,
+    columns.oauthProviderType,
+    ...otherProvidersKeys,
+  ];
+};
+
+/**
+ * What a new config keeps of the values its form held. A provider picked
+ * hides the steps of every other - Microsoft Graph and the API providers
+ * the hostname, port, username and password; an API provider the OAuth
+ * app; each provider every other's key - but the form still holds them:
+ * the port it starts on, or what was typed before another provider was
+ * picked. So they are left out of what is created, as the form left them
+ * out of what it showed, and a key typed in for one provider is never
+ * stored on a config of another. For a create form's onBeforeCreate: an
+ * edited config keeps what it holds.
+ */
+export const withoutValuesTransportIgnores: <TEntity>(
   item: TEntity,
   columns: SmtpConfigFormColumns<TEntity>,
 ) => TEntity = <TEntity>(
   item: TEntity,
   columns: SmtpConfigFormColumns<TEntity>,
 ): TEntity => {
-  if (getSmtpTransport(item, columns) !== MailTransportType.MicrosoftGraph) {
-    return item;
-  }
-
-  for (const column of getSmtpServerColumnsGraphIgnores(columns)) {
+  for (const column of getColumnsTransportIgnores(
+    getSmtpTransport(item, columns),
+    columns,
+  )) {
     delete (item as unknown as Record<string, unknown>)[column];
   }
 

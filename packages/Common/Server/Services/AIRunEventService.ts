@@ -16,10 +16,37 @@ import AIRunTranscript from "../Utils/AI/AIRunTranscript";
 import CodeTaskLive from "../Utils/AI/CodeTask/CodeTaskLive";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * 0 is a sequence: a run's first event. Every writer counts from 0 - the
+   * chat turn, the investigation engine, and appendEventToRun, which takes
+   * the run's event count - and the required-column check reads 0 as
+   * missing, so a run's first event was refused as "sequence is required".
+   * For a code-fix run that was every event: appendEventToRun counts the
+   * run's events, the count stayed 0, and each of the Runner's progress
+   * lines was refused the same way (issue #6144). Any whole number from 0
+   * up is a value of it; anything else is still read as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      column === "sequence" &&
+      typeof value === "number" &&
+      Number.isSafeInteger(value) &&
+      value >= 0
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
   }
 
   /*
@@ -57,8 +84,12 @@ export class Service extends DatabaseService<Model> {
       event.sequence = sequence;
       event.eventType = data.eventType;
 
+      /*
+       * A Runner's tool name, held to its column (varchar(100)): a longer
+       * one refused the whole event, and the step it said was lost.
+       */
       if (data.toolName) {
-        event.toolName = data.toolName;
+        event.toolName = truncateShortText(data.toolName);
       }
       if (data.toolArguments) {
         event.toolArguments = data.toolArguments;

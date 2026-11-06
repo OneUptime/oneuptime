@@ -15,6 +15,8 @@ import {
   CLOUD_STREAM_KEY_PREFIX,
   CLOUD_STREAM_KEY_SECRET_LENGTH,
   CLOUD_STREAM_RETRY_DURATION_SECONDS,
+  CloudStreamProblem,
+  getCloudStreamSuffix,
 } from "./CloudStream";
 
 /*
@@ -104,24 +106,7 @@ export interface CloudStreamTemplateOptions {
 }
 
 // The first 8 hex characters of the connection: what its AWS names end in.
-export function getCloudStreamSuffix(connectionId: string): string {
-  let suffix: string = "";
-
-  for (const character of connectionId.toLowerCase()) {
-    if (
-      (character >= "0" && character <= "9") ||
-      (character >= "a" && character <= "f")
-    ) {
-      suffix += character;
-    }
-
-    if (suffix.length === 8) {
-      break;
-    }
-  }
-
-  return suffix;
-}
+export { getCloudStreamSuffix };
 
 /*
  * What the stack and the things in it are called: one stack per
@@ -254,12 +239,9 @@ export function getCloudStreamLogGroupRegions(
 
 /*
  * What stops a command being written from the choices: a sentence of the
- * dialog (a translation key) and its values.
+ * dialog (a translation key) and its values (CloudStream).
  */
-export interface CloudStreamProblem {
-  text: string;
-  values: Record<string, string>;
-}
+export type { CloudStreamProblem };
 
 export const STREAM_NOTHING_CHOSEN: string = translationKey(
   "Choose metrics, logs or both to stream.",

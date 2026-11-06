@@ -66,6 +66,7 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
 import SubscriberMessageText, {
   SubscriberChatText,
   SubscriberEmailText,
@@ -547,13 +548,18 @@ RunCron(
                * is whose. Each member incident's own notifications carry its
                * fields (IncidentTemplateVariableBuilder).
                */
-              const templateVariables: Record<string, string> = {
-                statusPageName: statusPageName,
-                statusPageUrl: statusPageURL,
-                detailsUrl: episodeDetailsUrl,
-                episodeSeverity: episode.incidentSeverity?.name || " - ",
-                episodeTitle: episode.title || "",
-              };
+              const templateVariables: Record<string, string> =
+                SubscriberTemplateValues.inPageLanguage(statuspage, {
+                  statusPageName: statusPageName,
+                  statusPageUrl: statusPageURL,
+                  detailsUrl: episodeDetailsUrl,
+                  // A default severity name in the page's language.
+                  episodeSeverity: SubscriberTemplateValues.stateName(
+                    episode.incidentSeverity?.name,
+                    " - ",
+                  ),
+                  episodeTitle: episode.title || "",
+                });
 
               const emailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
                 {
