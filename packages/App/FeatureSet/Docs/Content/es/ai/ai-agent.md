@@ -233,7 +233,7 @@ OneUptime inicia sesión en un repositorio de cualquier servidor Git con el nomb
 
 ### Qué lee la IA en un repositorio Git
 
-Un servidor Git no tiene una API con la que leer los archivos de un repositorio, así que OneUptime solo lee las ramas de un repositorio alojado en uno, para el selector de ramas. [Preguntar a la IA](/docs/ai/ask-ai) y las [investigaciones de IA](/docs/ai/ai-sre) leen el código de los repositorios de GitHub, GitLab, Forgejo y Gitea; si les preguntas por el código de un repositorio Git, dicen que no pueden abrirlo. Una tarea en Código sigue funcionando en un repositorio Git: el Runner lo clona, la IA lee y cambia el código en el clon, y sube el cambio a una rama nueva.
+Un servidor Git no tiene una API con la que leer los archivos de un repositorio, así que OneUptime solo lee las ramas de un repositorio alojado en uno, para el selector de ramas. Azure DevOps es la excepción: en Azure DevOps Services, y en Azure DevOps Server 2019 y posteriores, OneUptime también lee el código de un repositorio, a través de la propia API de Azure DevOps y con las mismas credenciales. [Preguntar a la IA](/docs/ai/ask-ai) y las [investigaciones de IA](/docs/ai/ai-sre) leen el código de los repositorios de GitHub, GitLab, Forgejo, Gitea y Azure DevOps; si les preguntas por el código de otro repositorio Git, dicen que no pueden abrirlo. Una tarea en Código sigue funcionando en un repositorio Git: el Runner lo clona, la IA lee y cambia el código en el clon, y sube el cambio a una rama nueva.
 
 ### Un servidor Git en una red privada
 

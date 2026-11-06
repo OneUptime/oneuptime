@@ -233,7 +233,7 @@ OneUptime se connecte à un dépôt hébergé sur tout serveur Git avec le nom d
 
 ### Ce que l'IA lit dans un dépôt Git
 
-Un serveur Git n'a pas d'API par laquelle lire les fichiers d'un dépôt : OneUptime ne lit donc que les branches d'un dépôt hébergé sur un tel serveur, pour le choix de la branche. [Demander à l'IA](/docs/ai/ask-ai) et les [investigations IA](/docs/ai/ai-sre) lisent le code des dépôts GitHub, GitLab, Forgejo et Gitea ; interrogées sur le code d'un dépôt Git, elles répondent qu'elles ne peuvent pas l'ouvrir. Une tâche dans Code fonctionne quand même dans un dépôt Git : le Runner le clone, l'IA lit et modifie le code dans le clone, puis pousse la modification sur une nouvelle branche.
+Un serveur Git n'a pas d'API par laquelle lire les fichiers d'un dépôt : OneUptime ne lit donc que les branches d'un dépôt hébergé sur un tel serveur, pour le choix de la branche. Azure DevOps fait exception : sur Azure DevOps Services, et sur Azure DevOps Server 2019 et versions ultérieures, OneUptime lit aussi le code d'un dépôt, par l'API d'Azure DevOps elle-même et avec les mêmes identifiants. [Demander à l'IA](/docs/ai/ask-ai) et les [investigations IA](/docs/ai/ai-sre) lisent le code des dépôts GitHub, GitLab, Forgejo, Gitea et Azure DevOps ; interrogées sur le code d'un autre dépôt Git, elles répondent qu'elles ne peuvent pas l'ouvrir. Une tâche dans Code fonctionne quand même dans un dépôt Git : le Runner le clone, l'IA lit et modifie le code dans le clone, puis pousse la modification sur une nouvelle branche.
 
 ### Un serveur Git sur un réseau privé
 

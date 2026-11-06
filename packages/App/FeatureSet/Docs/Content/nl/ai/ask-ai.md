@@ -50,7 +50,7 @@ AI vragen leest je project met je eigen machtigingen, dus hij ziet wat jij mag z
 | Incidentrespons | Incidenten en waarschuwingen, met statusfilters ("wat is er nu actief?"), hun activiteitentijdlijnen (statuswijzigingen, interne en openbare notities, de feed) en eigenaren, en een zoekfunctie in eerdere incidenten om te hergebruiken hoe ze zijn opgelost. |
 | Bereikbaarheid | Wie nu dienst heeft, beleid en escalatieketens, en of recente oproepen zijn afgeleverd en bevestigd. |
 | Het eigen werk van de AI | De resultaten van AI SRE-onderzoeken en AI Insights, zodat "wat heeft de AI gevonden?" wordt beantwoord vanuit de gepubliceerde analyse in plaats van opnieuw te worden uitgezocht. |
-| Platform | Monitoren (met statusfilters), gepland onderhoud, statuspagina's en hun aankondigingen, SLO's, runbooks, workflowruns, de gezondheid van probes, teams en de code van gekoppelde repository's op GitHub, GitLab, Forgejo en Gitea (zie [Wat AI leest in een Git-repository](/docs/ai/ai-agent#wat-ai-leest-in-een-git-repository)). |
+| Platform | Monitoren (met statusfilters), gepland onderhoud, statuspagina's en hun aankondigingen, SLO's, runbooks, workflowruns, de gezondheid van probes, teams en de code van gekoppelde repository's op GitHub, GitLab, Forgejo, Gitea en Azure DevOps (zie [Wat AI leest in een Git-repository](/docs/ai/ai-agent#wat-ai-leest-in-een-git-repository)). |
 
 ## Paginacontext
 

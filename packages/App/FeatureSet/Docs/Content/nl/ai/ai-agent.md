@@ -233,7 +233,7 @@ OneUptime meldt zich bij een repository op elke Git-server aan met de gebruikers
 
 ### Wat AI leest in een Git-repository
 
-Een Git-server heeft geen API waarmee de bestanden van een repository te lezen zijn, dus leest OneUptime van een repository op zo'n server alleen de branches, voor de branchkiezer. [AI vragen](/docs/ai/ask-ai) en [AI-onderzoeken](/docs/ai/ai-sre) lezen de code van GitHub-, GitLab-, Forgejo- en Gitea-repository's; gevraagd naar de code van een Git-repository, zeggen ze dat ze die niet kunnen openen. Een taak in Code werkt wel gewoon in een Git-repository: de Runner kloont hem, AI leest en wijzigt de code in de kloon en pusht de wijziging naar een nieuwe branch.
+Een Git-server heeft geen API waarmee de bestanden van een repository te lezen zijn, dus leest OneUptime van een repository op zo'n server alleen de branches, voor de branchkiezer. Azure DevOps is de uitzondering: op Azure DevOps Services, en op Azure DevOps Server 2019 en later, leest OneUptime ook de code van een repository, via de eigen API van Azure DevOps en met dezelfde inloggegevens. [AI vragen](/docs/ai/ask-ai) en [AI-onderzoeken](/docs/ai/ai-sre) lezen de code van GitHub-, GitLab-, Forgejo-, Gitea- en Azure DevOps-repository's; gevraagd naar de code van een andere Git-repository, zeggen ze dat ze die niet kunnen openen. Een taak in Code werkt wel gewoon in een Git-repository: de Runner kloont hem, AI leest en wijzigt de code in de kloon en pusht de wijziging naar een nieuwe branch.
 
 ### Een Git-server op een privénetwerk
 

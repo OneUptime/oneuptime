@@ -233,7 +233,7 @@ OneUptime signs in to a repository on any Git server with the username and the p
 
 ### What AI reads in a Git repository
 
-A Git server has no API to read a repository's files through, so OneUptime reads only the branches of a repository on one, for the branch picker. [Ask AI](/docs/ai/ask-ai) and [AI investigations](/docs/ai/ai-sre) read the code of GitHub, GitLab, Forgejo and Gitea repositories; asked about a Git repository's code, they say they cannot open it. A task in Code still works in a Git repository: the Runner clones it, AI reads and changes the code in the clone, and pushes the change to a new branch.
+A Git server has no API to read a repository's files through, so OneUptime reads only the branches of a repository on one, for the branch picker. Azure DevOps is the exception: on Azure DevOps Services, and on Azure DevOps Server 2019 and later, OneUptime reads a repository's code too, through Azure DevOps' own API and with the same credentials. [Ask AI](/docs/ai/ask-ai) and [AI investigations](/docs/ai/ai-sre) read the code of GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories; asked about another Git repository's code, they say they cannot open it. A task in Code still works in a Git repository: the Runner clones it, AI reads and changes the code in the clone, and pushes the change to a new branch.
 
 ### A Git server on a private network
 

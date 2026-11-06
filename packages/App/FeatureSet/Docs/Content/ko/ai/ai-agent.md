@@ -233,7 +233,7 @@ OneUptime은 모든 Git 서버의 저장소에, 그 저장소를 연결할 때 �
 
 ### Git 저장소에서 AI가 읽는 것
 
-Git 서버에는 저장소의 파일을 읽을 API가 없으므로, OneUptime은 그런 서버의 저장소에서는 브랜치 선택에 쓸 브랜치만 읽습니다. [AI에게 질문](/docs/ai/ask-ai)과 [AI 조사](/docs/ai/ai-sre)는 GitHub, GitLab, Forgejo, Gitea 저장소의 코드를 읽습니다. Git 저장소의 코드에 대해 물으면 열 수 없다고 알려 줍니다. 코드의 작업은 Git 저장소에서도 동작합니다. Runner가 저장소를 복제하고, AI가 복제본의 코드를 읽고 바꾼 뒤, 변경을 새 브랜치에 푸시합니다.
+Git 서버에는 저장소의 파일을 읽을 API가 없으므로, OneUptime은 그런 서버의 저장소에서는 브랜치 선택에 쓸 브랜치만 읽습니다. 예외는 Azure DevOps입니다. Azure DevOps Services와 Azure DevOps Server 2019 이상에서는 OneUptime이 Azure DevOps 자체의 API를 통해 같은 자격 증명으로 저장소의 코드도 읽습니다. [AI에게 질문](/docs/ai/ask-ai)과 [AI 조사](/docs/ai/ai-sre)는 GitHub, GitLab, Forgejo, Gitea, Azure DevOps 저장소의 코드를 읽습니다. 그 밖의 Git 저장소의 코드에 대해 물으면 열 수 없다고 알려 줍니다. 코드의 작업은 Git 저장소에서도 동작합니다. Runner가 저장소를 복제하고, AI가 복제본의 코드를 읽고 바꾼 뒤, 변경을 새 브랜치에 푸시합니다.
 
 ### 사설 네트워크의 Git 서버
 

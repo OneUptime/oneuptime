@@ -233,7 +233,7 @@ OneUptime 使用儲存庫連接時所用的使用者名稱和密碼或存取權�
 
 ### AI 在 Git 儲存庫中讀取什麼
 
-Git 伺服器沒有可用來讀取儲存庫檔案的 API，因此對於此類伺服器上的儲存庫，OneUptime 只讀取其分支，供分支選擇使用。[詢問 AI](/docs/ai/ask-ai) 和 [AI 調查](/docs/ai/ai-sre) 讀取的是 GitHub、GitLab、Forgejo 和 Gitea 儲存庫的程式碼；被問到 Git 儲存庫的程式碼時，它們會說明無法開啟。程式碼中的任務在 Git 儲存庫中仍然可用：Runner 複製儲存庫，AI 在複本中讀取並修改程式碼，然後把變更推送到新分支。
+Git 伺服器沒有可用來讀取儲存庫檔案的 API，因此對於此類伺服器上的儲存庫，OneUptime 只讀取其分支，供分支選擇使用。Azure DevOps 是例外：在 Azure DevOps Services 以及 Azure DevOps Server 2019 及更新版本上，OneUptime 會透過 Azure DevOps 自己的 API、用相同的憑證讀取儲存庫的程式碼。[詢問 AI](/docs/ai/ask-ai) 和 [AI 調查](/docs/ai/ai-sre) 讀取的是 GitHub、GitLab、Forgejo、Gitea 和 Azure DevOps 儲存庫的程式碼；被問到其他 Git 儲存庫的程式碼時，它們會說明無法開啟。程式碼中的任務在 Git 儲存庫中仍然可用：Runner 複製儲存庫，AI 在複本中讀取並修改程式碼，然後把變更推送到新分支。
 
 ### 私有網路中的 Git 伺服器
 

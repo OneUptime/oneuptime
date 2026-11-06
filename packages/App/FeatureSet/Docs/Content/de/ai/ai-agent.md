@@ -233,7 +233,7 @@ OneUptime meldet sich an einem Repository auf einem beliebigen Git-Server mit de
 
 ### Was die KI in einem Git-Repository liest
 
-Ein Git-Server hat keine API, über die sich die Dateien eines Repositorys lesen lassen, daher liest OneUptime von einem Repository auf einem solchen Server nur die Branches, für die Branch-Auswahl. [KI fragen](/docs/ai/ask-ai) und [KI-Untersuchungen](/docs/ai/ai-sre) lesen den Code von GitHub-, GitLab-, Forgejo- und Gitea-Repositorys; nach dem Code eines Git-Repositorys gefragt, sagen sie, dass sie ihn nicht öffnen können. Eine Aufgabe in Code funktioniert in einem Git-Repository trotzdem: Der Runner klont es, die KI liest und ändert den Code im Klon und pusht die Änderung in einen neuen Branch.
+Ein Git-Server hat keine API, über die sich die Dateien eines Repositorys lesen lassen, daher liest OneUptime von einem Repository auf einem solchen Server nur die Branches, für die Branch-Auswahl. Azure DevOps ist die Ausnahme: Auf Azure DevOps Services und auf Azure DevOps Server 2019 und neuer liest OneUptime auch den Code eines Repositorys, über die eigene API von Azure DevOps und mit denselben Anmeldedaten. [KI fragen](/docs/ai/ask-ai) und [KI-Untersuchungen](/docs/ai/ai-sre) lesen den Code von GitHub-, GitLab-, Forgejo-, Gitea- und Azure-DevOps-Repositorys; nach dem Code eines anderen Git-Repositorys gefragt, sagen sie, dass sie ihn nicht öffnen können. Eine Aufgabe in Code funktioniert in einem Git-Repository trotzdem: Der Runner klont es, die KI liest und ändert den Code im Klon und pusht die Änderung in einen neuen Branch.
 
 ### Ein Git-Server in einem privaten Netzwerk
 

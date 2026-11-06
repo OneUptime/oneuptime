@@ -353,7 +353,9 @@ describe("Code: signing in to a Git server, and what AI reads in one", () => {
      */
     expect(credentials).toContain("GIT_CONFIG_VALUE_");
     expect(credentials).toContain("/.extraHeader`");
-    expect(credentials).toContain("`Authorization: ${GitCredentials.getBasicAuthorization(");
+    expect(credentials).toContain(
+      "`Authorization: ${GitCredentials.getBasicAuthorization(",
+    );
     expect(credentials).toContain("return `Basic ${Buffer.from(");
     // The clone and the push both sign in so.
     expect(
@@ -370,7 +372,7 @@ describe("Code: signing in to a Git server, and what AI reads in one", () => {
     );
   });
 
-  it("says OneUptime reads a Git repository's branches and not its files, as the hosts' capabilities and the code tools have it", () => {
+  it("says OneUptime reads a Git repository's branches and not its files - but on Azure DevOps its code too - as the hosts' capabilities and the code tools have it", () => {
     const tools: string = flat(
       readRepoFile("Common/Server/Utils/AI/Toolbox/CodeTools.ts"),
     );
@@ -390,18 +392,38 @@ describe("Code: signing in to a Git server, and what AI reads in one", () => {
       expect(CodeHost.can(type, CodeHostCapability.ReadCode)).toBe(true);
     }
 
+    // A Git repository on Azure DevOps has its code read; any other does not.
+    expect(
+      CodeHost.canReadRepositoryCode({
+        type: CodeRepositoryType.Git,
+        repositoryUrl:
+          "https://tfs.example.com/tfs/DefaultCollection/Shop/_git/checkout",
+      }),
+    ).toBe(true);
+    expect(
+      CodeHost.canReadRepositoryCode({
+        type: CodeRepositoryType.Git,
+        repositoryUrl: "https://git.example.com/team/checkout.git",
+      }),
+    ).toBe(false);
+
     // What the code tools tell the model, for it to pass on.
     expect(tools).toContain(
       "files, so search_code and read_code_file cannot open",
     );
     expect(tools).toContain("A task in Code still works in");
-    expect(tools).toContain("GitHub, GitLab, Forgejo and Gitea repositories are read.");
+    expect(tools).toContain(
+      "GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read",
+    );
 
     expect(reads()).toContain(
       "A Git server has no API to read a repository's files through, so OneUptime reads only the branches of a repository on one, for the branch picker.",
     );
     expect(reads()).toContain(
-      "read the code of GitHub, GitLab, Forgejo and Gitea repositories; asked about a Git repository's code, they say they cannot open it.",
+      "Azure DevOps is the exception: on Azure DevOps Services, and on Azure DevOps Server 2019 and later, OneUptime reads a repository's code too, through Azure DevOps' own API and with the same credentials.",
+    );
+    expect(reads()).toContain(
+      "read the code of GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories; asked about another Git repository's code, they say they cannot open it.",
     );
     expect(reads()).toContain(
       "A task in Code still works in a Git repository: the Runner clones it",
@@ -409,7 +431,7 @@ describe("Code: signing in to a Git server, and what AI reads in one", () => {
 
     // Ask AI's own page names the same hosts, and links here.
     expect(flat(englishSection(ASK_AI, "## What it can see"))).toContain(
-      "the code of connected repositories on GitHub, GitLab, Forgejo and Gitea (see [What AI reads in a Git repository](/docs/ai/ai-agent#what-ai-reads-in-a-git-repository)).",
+      "the code of connected repositories on GitHub, GitLab, Forgejo, Gitea and Azure DevOps (see [What AI reads in a Git repository](/docs/ai/ai-agent#what-ai-reads-in-a-git-repository)).",
     );
   });
 

@@ -233,7 +233,7 @@ OneUptime logger ind på et repositorie på en hvilken som helst Git-server med 
 
 ### Hvad AI læser i et Git-repositorie
 
-En Git-server har intet API, som et repositories filer kan læses igennem, så OneUptime læser kun grenene i et repositorie på sådan en server, til grenvælgeren. [Spørg AI](/docs/ai/ask-ai) og [AI-undersøgelser](/docs/ai/ai-sre) læser koden i GitHub-, GitLab-, Forgejo- og Gitea-repositorier; spurgt om koden i et Git-repositorie siger de, at de ikke kan åbne den. En opgave i Kode virker stadig i et Git-repositorie: Runneren kloner det, AI læser og ændrer koden i klonen og pusher ændringen til en ny gren.
+En Git-server har intet API, som et repositories filer kan læses igennem, så OneUptime læser kun grenene i et repositorie på sådan en server, til grenvælgeren. Azure DevOps er undtagelsen: på Azure DevOps Services og på Azure DevOps Server 2019 og nyere læser OneUptime også et repositories kode, gennem Azure DevOps' eget API og med de samme loginoplysninger. [Spørg AI](/docs/ai/ask-ai) og [AI-undersøgelser](/docs/ai/ai-sre) læser koden i GitHub-, GitLab-, Forgejo-, Gitea- og Azure DevOps-repositorier; spurgt om koden i et andet Git-repositorie siger de, at de ikke kan åbne den. En opgave i Kode virker stadig i et Git-repositorie: Runneren kloner det, AI læser og ændrer koden i klonen og pusher ændringen til en ny gren.
 
 ### En Git-server på et privat netværk
 

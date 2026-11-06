@@ -233,7 +233,7 @@ OneUptime は、任意の Git サーバー上のリポジトリに、そのリ�
 
 ### Git リポジトリで AI が読むもの
 
-Git サーバーにはリポジトリのファイルを読むための API がないため、OneUptime はそうしたサーバー上のリポジトリについては、ブランチの選択に使うブランチだけを読み取ります。[AI に質問](/docs/ai/ask-ai) と [AI 調査](/docs/ai/ai-sre) が読むのは GitHub、GitLab、Forgejo、Gitea のリポジトリのコードです。Git リポジトリのコードについて聞かれると、開けないと伝えます。コードのタスクは Git リポジトリでも動作します。Runner がリポジトリをクローンし、AI がクローン内のコードを読んで変更し、その変更を新しいブランチにプッシュします。
+Git サーバーにはリポジトリのファイルを読むための API がないため、OneUptime はそうしたサーバー上のリポジトリについては、ブランチの選択に使うブランチだけを読み取ります。例外は Azure DevOps です。Azure DevOps Services と Azure DevOps Server 2019 以降では、OneUptime は Azure DevOps 自体の API を通じて、同じ認証情報でリポジトリのコードも読み取ります。[AI に質問](/docs/ai/ask-ai) と [AI 調査](/docs/ai/ai-sre) が読むのは GitHub、GitLab、Forgejo、Gitea、Azure DevOps のリポジトリのコードです。それ以外の Git リポジトリのコードについて聞かれると、開けないと伝えます。コードのタスクは Git リポジトリでも動作します。Runner がリポジトリをクローンし、AI がクローン内のコードを読んで変更し、その変更を新しいブランチにプッシュします。
 
 ### プライベートネットワーク上の Git サーバー
 
