@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Alleen als {{first}} en {{second}}",
   "Only if {{first}} or {{second}}": "Alleen als {{first}} of {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Alleen als {{first}}, {{second}} en {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}",
+  "No exceptions match these filters right now.": "Deze filters vinden op dit moment geen uitzonderingen."
 }

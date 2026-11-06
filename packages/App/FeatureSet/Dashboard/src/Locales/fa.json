@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "فقط اگر {{first}} و {{second}}",
   "Only if {{first}} or {{second}}": "فقط اگر {{first}} یا {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "فقط اگر {{first}}، {{second}} و {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "فقط اگر {{first}}، {{second}} یا {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "فقط اگر {{first}}، {{second}} یا {{third}}",
+  "No exceptions match these filters right now.": "در حال حاضر هیچ استثنایی با این فیلترها منطبق نیست."
 }

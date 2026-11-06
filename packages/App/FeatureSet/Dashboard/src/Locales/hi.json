@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "सिर्फ़ तब, जब {{first}} और {{second}}",
   "Only if {{first}} or {{second}}": "सिर्फ़ तब, जब {{first}} या {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} और {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} या {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} या {{third}}",
+  "No exceptions match these filters right now.": "ये फ़िल्टर अभी किसी अपवाद से मेल नहीं खाते।"
 }

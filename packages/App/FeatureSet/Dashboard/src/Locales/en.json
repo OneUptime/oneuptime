@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Only if {{first}} and {{second}}",
   "Only if {{first}} or {{second}}": "Only if {{first}} or {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Only if {{first}}, {{second}} and {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Only if {{first}}, {{second}} or {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Only if {{first}}, {{second}} or {{third}}",
+  "No exceptions match these filters right now.": "No exceptions match these filters right now."
 }

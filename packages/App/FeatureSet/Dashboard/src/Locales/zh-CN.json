@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "仅当{{first}}且{{second}}时",
   "Only if {{first}} or {{second}}": "仅当{{first}}或{{second}}时",
   "Only if {{first}}, {{second}} and {{third}}": "仅当{{first}}、{{second}}且{{third}}时",
-  "Only if {{first}}, {{second}} or {{third}}": "仅当{{first}}、{{second}}或{{third}}时"
+  "Only if {{first}}, {{second}} or {{third}}": "仅当{{first}}、{{second}}或{{third}}时",
+  "No exceptions match these filters right now.": "目前没有与这些筛选条件匹配的异常。"
 }

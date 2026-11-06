@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Bare hvis {{first}} og {{second}}",
   "Only if {{first}} or {{second}}": "Bare hvis {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bare hvis {{first}}, {{second}} og {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}",
+  "No exceptions match these filters right now.": "Ingen unntak samsvarer med disse filtrene akkurat nå."
 }

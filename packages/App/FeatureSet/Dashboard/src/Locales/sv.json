@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "Bara om {{first}} och {{second}}",
   "Only if {{first}} or {{second}}": "Bara om {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bara om {{first}}, {{second}} och {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Bara om {{first}}, {{second}} eller {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Bara om {{first}}, {{second}} eller {{third}}",
+  "No exceptions match these filters right now.": "Inga undantag matchar filtren just nu."
 }

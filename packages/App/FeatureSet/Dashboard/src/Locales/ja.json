@@ -45351,5 +45351,6 @@
   "Only if {{first}} and {{second}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}} or {{second}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}、{{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
+  "No exceptions match these filters right now.": "現在、これらのフィルターに一致する例外はありません。"
 }
