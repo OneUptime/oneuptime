@@ -1286,6 +1286,8 @@ test.describe("Costs", () => {
     await daily.getByTestId("refresh-button").click();
     expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await breakdown.getByTestId("refresh-button").click();
+    // The read has only just begun when the click returns, and the failure stands until it answers.
+    await expect(breakdown.locator("ul > li").first()).toBeVisible();
     expect((await breakdownRows(page)).length).toBeGreaterThan(0);
   });
 
