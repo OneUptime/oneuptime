@@ -2242,6 +2242,10 @@ test.describe("OneUptime AI on a cloud account", () => {
     // A phone: the dialog fits its width, long lines scroll in their box.
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "account-ai-setup");
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-elsewhere")
+      .scrollIntoViewIfNeeded();
+    await shoot(page, "account-ai-setup-elsewhere");
   });
 
   test("the agent connects on its own: the dialog that waits for it says Connected", async ({
@@ -3822,6 +3826,10 @@ test.describe("where Google Cloud's agent runs", () => {
       }),
     );
     await shoot(page, "account-ai-setup-gcp-host");
+    await setupDialog(page)
+      .getByTestId("cloud-ai-agent-setup-elsewhere")
+      .scrollIntoViewIfNeeded();
+    await shoot(page, "account-ai-setup-gcp-elsewhere");
 
     // Cloud Run: its command, its price and its logs.
     await setupDialog(page)
@@ -3904,8 +3912,69 @@ test.describe("where Google Cloud's agent runs", () => {
       );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `account-ai-setup-gcp-${language}`);
+      await setupDialog(page)
+        .getByTestId("cloud-ai-agent-setup-elsewhere")
+        .scrollIntoViewIfNeeded();
+      await shoot(page, `account-ai-setup-gcp-elsewhere-${language}`);
     });
   }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Azure's agent runs as two identities: its Container App's own, which
+ * only reads, and the write identity oneuptime-ai-agent-write, which its
+ * changes run as. The command makes both, and running the agent somewhere
+ * else says what it needs, as the command makes it (#6156).
+ * ---------------------------------------------------------------------------
+ */
+test.describe("Azure's agent: an identity that reads, and one for changes", () => {
+  test("the command makes the write identity, and running it somewhere else needs both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it says: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}?state=connected`,
+    );
+    await openSetup(page);
+
+    // The write identity, attached to the agent's Container App with its own.
+    const command: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-command",
+    );
+    await expect(command).toContainText(
+      'az identity create --subscription "$SUBSCRIPTION" --name oneuptime-ai-agent-write',
+    );
+    await expect(command).toContainText(
+      "--system-assigned --user-assigned /subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write",
+    );
+
+    await setupDialog(page)
+      .getByRole("button", { name: "More fields" })
+      .click();
+    // The variables name it, by resource ID, as the agent asks for its token.
+    await expect(setupDialog(page)).toContainText(
+      "ONEUPTIME_AI_AZURE_WRITE_IDENTITY=/subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/oneuptime-ai-agent/providers/Microsoft.ManagedIdentity/userAssignedIdentities/oneuptime-ai-agent-write",
+    );
+    const elsewhere: Locator = setupDialog(page).getByTestId(
+      "cloud-ai-agent-setup-elsewhere",
+    );
+    await expect(elsewhere).toHaveText(
+      `Deploy the image ${AGENT_IMAGE} your own way in Azure, with these variables. Give it a managed identity of its own that only reads, and attach the write identity oneuptime-ai-agent-write, which holds the enabled changes' permissions, as the setup command makes them.`,
+    );
+    await expect(elsewhere.locator("code")).toHaveText([
+      AGENT_IMAGE,
+      "oneuptime-ai-agent-write",
+    ]);
+
+    await elsewhere.scrollIntoViewIfNeeded();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "account-ai-setup-azure-elsewhere");
+  });
 });
 
 /*
