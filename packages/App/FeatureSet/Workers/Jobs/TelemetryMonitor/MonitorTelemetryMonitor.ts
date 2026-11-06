@@ -88,7 +88,11 @@ import MetricMonitorResponse, {
 } from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import PlatformResourceIdentity from "Common/Utils/Monitor/PlatformResourceIdentity";
 import PlatformMetricUnitUtil from "Common/Utils/Monitor/PlatformMetricUnitUtil";
-import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import MetricWholeWindow from "Common/Utils/Metrics/MetricWholeWindow";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -1617,6 +1621,15 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     metricMonitorConfig.metricViewConfig.queryConfigs,
   );
 
+  /*
+   * A monitor that reads its whole window as one value (a cloud resource's
+   * failed share, a count's total): each query is one row per series for
+   * the window, stamped at its end so its formulas join
+   * (MonitorStepMetricMonitor.aggregatesWholeWindow, MetricWholeWindow).
+   */
+  const aggregatesWholeWindow: boolean =
+    MonitorStepMetricMonitorUtil.aggregatesWholeWindow(metricMonitorConfig);
+
   for (const queryConfig of metricMonitorConfig.metricViewConfig.queryConfigs) {
     const query: Query<Metric> = {
       projectId: data.projectId,
@@ -1668,23 +1681,26 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
         ? GROUPED_READ_ROW_LIMIT
         : LIMIT_PER_PROJECT;
 
-    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
-      {
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        // A row per series and bucket when grouped (GROUPED_READ_ROW_LIMIT).
-        limit: readRowLimit,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        groupByAttributeKeys:
-          groupByAttributeKeys.length > 0 ? groupByAttributeKeys : undefined,
+    const windowEnd: Date =
+      (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate();
+
+    const readResults: AggregatedResult = await MetricService.aggregateBy({
+      query: query,
+      aggregationType,
+      aggregateColumnName: "value",
+      aggregationTimestampColumnName: "time",
+      startTimestamp:
+        (startAndEndDate?.startValue as Date) || OneUptimeDate.getCurrentDate(),
+      endTimestamp: windowEnd,
+      ...(aggregatesWholeWindow
+        ? { aggregationInterval: AggregationInterval.Total }
+        : {}),
+      // A row per series and bucket when grouped (GROUPED_READ_ROW_LIMIT).
+      limit: readRowLimit,
+      skip: 0,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      groupByAttributeKeys:
+        groupByAttributeKeys.length > 0 ? groupByAttributeKeys : undefined,
         /*
          * Alerting must fail loud on a query timeout: the default
          * 'break' overflow mode returns silently-partial buckets, which
@@ -1693,12 +1709,20 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
          * numbers. 'throw' fails the queue job and leaves monitor state
          * unchanged — same abort semantics the uncapped query had.
          */
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
+      timeoutOverflowMode: "throw",
+      props: {
+        isRoot: true,
       },
-    );
+    });
+
+    const aggregatedResults: AggregatedResult = aggregatesWholeWindow
+      ? MetricWholeWindow.toWholeWindowResult({
+          result: readResults,
+          windowEnd: windowEnd,
+          aggregationType: aggregationType,
+          isGrouped: groupByAttributeKeys.length > 0,
+        })
+      : readResults;
 
     dataCompleteFrom = getLaterDate(
       dataCompleteFrom,

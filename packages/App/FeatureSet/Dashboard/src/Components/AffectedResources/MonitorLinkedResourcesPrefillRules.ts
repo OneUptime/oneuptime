@@ -98,19 +98,13 @@ export const ALERT_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> = [
   "networkDevices",
 ];
 /*
- * Scheduled maintenance holds no cloud resources: a maintenance window does
- * not silence a cloud resource's monitors (they are silenced by their own
- * monitors), so a picked monitor's cloud resources are not added there.
+ * A maintenance event holds every kind of resource a monitor is linked to,
+ * cloud resources too - holding one silences the monitors that read its
+ * metrics while the event is in progress (MonitorMaintenanceSuppression) -
+ * and network sites besides, which no monitor is linked to by hand.
  */
 export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =
-  [
-    ...MONITOR_LINKED_RESOURCE_KEYS.filter(
-      (key: MonitorLinkedResourceKey): boolean => {
-        return key !== "cloudResources";
-      },
-    ),
-    "networkSites",
-  ];
+  [...MONITOR_LINKED_RESOURCE_KEYS, "networkSites"];
 
 // Read for each picked monitor: its linked resources, named.
 export const MONITOR_LINKED_RESOURCES_SELECT: Record<

@@ -1,4 +1,7 @@
 import ObjectID from "../../ObjectID";
+import Dictionary from "../../Dictionary";
+// A type only: the catalog stays free of the health rules' code.
+import type { CloudResourceReadings } from "../../Cloud/CloudResourceHealth";
 import RecommendationType from "../../Recommendation/RecommendationType";
 import { ServiceLanguage } from "../../Service/ServiceLanguage";
 import MonitorStep from "../MonitorStep";
@@ -69,6 +72,16 @@ export enum MonitorRecommendationResourceType {
    * oneuptime.data.pipeline.* metrics; the set is a constant.
    */
   DataPipeline = "DataPipeline",
+  /*
+   * One resource of a connected cloud account (a CloudResource row of kind
+   * resource): an EC2 instance, an RDS database, a load balancer, a Lambda
+   * function, an Azure VM, a Cloud SQL instance. Its recommendations are
+   * Metrics monitors over the key metrics its connection reads
+   * (CloudAlertTemplates), and depend on its cloud, its type and the
+   * attributes its metrics are stored with - see
+   * MonitorRecommendationContext.
+   */
+  CloudResource = "CloudResource",
 }
 
 /*
@@ -163,6 +176,33 @@ export interface MonitorRecommendationContext {
    * monitor over logs nobody sends.
    */
   kubernetesProvider?: string | null | undefined;
+  /*
+   * A cloud resource's cloud and type (CloudResource.cloudProvider and
+   * cloudResourceType: "aws", "AWS::RDS::DBInstance"). They pick its
+   * templates (getCloudAlertTemplatesFor); without them nothing applies -
+   * like a database without an engine, a cloud resource has no
+   * type-agnostic subset.
+   */
+  cloudProvider?: string | null | undefined;
+  cloudResourceType?: string | null | undefined;
+  /*
+   * The stored attributes that select its metrics
+   * (CloudResource.telemetryAttributes), which every query is filtered on.
+   * Recorded with its first metric: until then nothing is offered, since a
+   * monitor filtered on nothing would read every resource's metric.
+   */
+  cloudTelemetryAttributes?: Dictionary<string> | null | undefined;
+  /*
+   * Its readings (CloudResource.cloudReadings): the names its Azure metrics
+   * are stored under, which end with an aggregation only the read knows.
+   */
+  cloudReadings?: CloudResourceReadings | null | undefined;
+  /*
+   * An RDS instance's allocated storage in GiB, from its inventory
+   * (cloudProperties.AllocatedStorage): its free-storage template is a
+   * share of it, and waits for it.
+   */
+  cloudAllocatedStorageGiB?: number | null | undefined;
 }
 
 /*
@@ -185,6 +225,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   rumApplicationId  -> RUM application
  *   serviceId         -> APM service
  *   databaseServerId  -> Database server
+ *   cloudResourceId   -> Cloud resource
  *
  * The registry normalizes that single difference into `resourceIdentifier`
  * and each catalog adapter renames it back on the way into the module's own
@@ -233,6 +274,13 @@ export interface MonitorRecommendation {
   category: string;
   severity: MonitorRecommendationSeverity;
   getMonitorStep: (args: MonitorRecommendationArgs) => MonitorStep;
+  /*
+   * How often the created monitor is evaluated, as a 5-field cron
+   * (Monitor.monitoringInterval), when the template says: a cloud resource's
+   * every five minutes, as often as its points can change
+   * (CloudAlertTemplates). Absent: the monitor's default, every minute.
+   */
+  monitoringInterval?: string | undefined;
 }
 
 /*

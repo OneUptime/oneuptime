@@ -13,6 +13,7 @@ import {
   buildCloudMonitoredResourceIdentifier,
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -251,6 +252,14 @@ export function collectCloudResourceReadings(
               entry.readings[key] = {
                 value,
                 time: new Date(timeMs).toISOString(),
+                /*
+                 * An Azure metric's stored name says the aggregation its key
+                 * leaves out, which a monitor of it must read
+                 * (CloudResourceReading.metric).
+                 */
+                ...(provider === CloudProvider.Azure
+                  ? { metric: metricName }
+                  : {}),
               };
             }
           }

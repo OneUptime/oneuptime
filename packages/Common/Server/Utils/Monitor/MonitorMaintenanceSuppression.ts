@@ -75,6 +75,14 @@ export interface MaintainedResourceKeys {
    * name set exists for shape parity and is never filled.
    */
   databaseServers: ResourceKeySet;
+  /*
+   * Cloud resources, like databases, are matched by id only: a monitor
+   * names one by the event scope of its query (eventScope.cloudResourceId,
+   * MonitorStepResourceIdentity), never by a name, and no cloud metric
+   * carries a stamp a series could be matched by. The name set exists for
+   * shape parity and is never filled.
+   */
+  cloudResources: ResourceKeySet;
 }
 
 /*
@@ -88,10 +96,23 @@ export interface MonitorMaintenanceSuppressionResult {
   /*
    * The databases under an ongoing maintenance window that silence every
    * incident and alert this evaluation would create. Empty unless the
-   * monitor names at least one database and every resource it names is
-   * under maintenance.
+   * monitor names at least one database or cloud resource and every
+   * resource it names is under maintenance.
    */
   suppressingDatabaseServerIds: Array<string>;
+  /*
+   * The cloud resources under an ongoing maintenance window that silence
+   * them, by the same rule: a cloud resource's recommended monitors, and
+   * the ones built from its metrics, name it in their own configuration.
+   * Absent (none) on a result built before cloud resources could be held.
+   */
+  suppressingCloudResourceIds?: Array<string> | undefined;
+}
+
+// The resources that silence a monitor whole, by kind (getSuppressingResourceIds).
+export interface SuppressingResourceIds {
+  databaseServerIds: Array<string>;
+  cloudResourceIds: Array<string>;
 }
 
 /*
@@ -195,9 +216,11 @@ export default class MonitorMaintenanceSuppression {
       input.matchesPerSeries && input.matchesPerSeries.length > 0,
     );
 
-    const namesDatabase: boolean = this.monitorNamesDatabase(input.monitor);
+    const namesHeldKind: boolean = this.monitorNamesSilenceableResource(
+      input.monitor,
+    );
 
-    if (!hasSeries && !namesDatabase) {
+    if (!hasSeries && !namesHeldKind) {
       return result;
     }
 
@@ -216,23 +239,34 @@ export default class MonitorMaintenanceSuppression {
         });
     }
 
-    if (namesDatabase && maintained.databaseServers.ids.size > 0) {
+    if (
+      namesHeldKind &&
+      (maintained.databaseServers.ids.size > 0 ||
+        maintained.cloudResources.ids.size > 0)
+    ) {
       /*
        * Resolved rather than read raw: an id or endpoint that names no
-       * database of THIS project (deleted, mistyped, another tenant's)
-       * silences nothing. The resolver never throws — a failed lookup
-       * resolves to nothing, which keeps the monitor alerting.
+       * database or cloud resource of THIS project (deleted, mistyped,
+       * another tenant's) silences nothing. The resolver never throws — a
+       * failed lookup resolves to nothing, which keeps the monitor
+       * alerting.
        */
       const resolved: SeriesResolvedResourceIds =
         await MonitorResourceContextUtil.resolveResourceContextForMonitor({
           monitor: input.monitor,
         });
 
-      result.suppressingDatabaseServerIds =
-        this.getSuppressingDatabaseServerIds({
+      const suppressing: SuppressingResourceIds =
+        this.getSuppressingResourceIds({
           resolved: resolved,
           maintained: maintained,
         });
+
+      result.suppressingDatabaseServerIds = suppressing.databaseServerIds;
+
+      if (suppressing.cloudResourceIds.length > 0) {
+        result.suppressingCloudResourceIds = suppressing.cloudResourceIds;
+      }
     }
 
     return result;
@@ -241,7 +275,10 @@ export default class MonitorMaintenanceSuppression {
   public static isMonitorSuppressed(
     result: MonitorMaintenanceSuppressionResult,
   ): boolean {
-    return result.suppressingDatabaseServerIds.length > 0;
+    return (
+      result.suppressingDatabaseServerIds.length > 0 ||
+      (result.suppressingCloudResourceIds || []).length > 0
+    );
   }
 
   /*
@@ -254,11 +291,32 @@ export default class MonitorMaintenanceSuppression {
     resolved: SeriesResolvedResourceIds;
     maintained: MaintainedResourceKeys;
   }): Array<string> {
+    return this.getSuppressingResourceIds(input).databaseServerIds;
+  }
+
+  /*
+   * The same decision for both kinds a monitor's configuration names and a
+   * maintenance event can hold whole: databases and cloud resources. A
+   * monitor naming at least one of them is silenced only while every
+   * resource it names - of every type - is under maintenance; it is then
+   * silenced by the databases and cloud resources it names.
+   */
+  public static getSuppressingResourceIds(input: {
+    resolved: SeriesResolvedResourceIds;
+    maintained: MaintainedResourceKeys;
+  }): SuppressingResourceIds {
     const resolved: SeriesResolvedResourceIds = input.resolved;
     const maintained: MaintainedResourceKeys = input.maintained;
+    const none: SuppressingResourceIds = {
+      databaseServerIds: [],
+      cloudResourceIds: [],
+    };
 
-    if (resolved.databaseServerIds.length === 0) {
-      return [];
+    if (
+      resolved.databaseServerIds.length === 0 &&
+      resolved.cloudResourceIds.length === 0
+    ) {
+      return none;
     }
 
     const namedByType: Array<{ ids: Array<string>; keys: ResourceKeySet }> = [
@@ -280,17 +338,21 @@ export default class MonitorMaintenanceSuppression {
       },
       { ids: resolved.iotFleetIds, keys: maintained.iotFleets },
       { ids: resolved.databaseServerIds, keys: maintained.databaseServers },
+      { ids: resolved.cloudResourceIds, keys: maintained.cloudResources },
     ];
 
     for (const named of namedByType) {
       for (const id of named.ids) {
         if (!named.keys.ids.has(id)) {
-          return [];
+          return none;
         }
       }
     }
 
-    return [...resolved.databaseServerIds];
+    return {
+      databaseServerIds: [...resolved.databaseServerIds],
+      cloudResourceIds: [...resolved.cloudResourceIds],
+    };
   }
 
   /*
@@ -305,10 +367,9 @@ export default class MonitorMaintenanceSuppression {
     criteriaInstance: MonitorCriteriaInstance;
     suppression: MonitorMaintenanceSuppressionResult;
   }): void {
-    const databases: string =
-      input.suppression.suppressingDatabaseServerIds.length === 1
-        ? `the database ${input.suppression.suppressingDatabaseServerIds[0]} this monitor watches is`
-        : `the databases ${input.suppression.suppressingDatabaseServerIds.join(", ")} this monitor watches are`;
+    const databases: string = this.describeSuppressingResources(
+      input.suppression,
+    );
 
     logger.debug(
       `Skipping incident and alert creation for criteria ${input.criteriaInstance.data?.id}: ${databases} under an active scheduled maintenance window.`,
@@ -340,12 +401,49 @@ export default class MonitorMaintenanceSuppression {
   }
 
   /*
-   * Whether the monitor's own configuration names a database — the pure,
+   * What silenced the monitor, as the evaluation summary says it: "the
+   * database <id> this monitor watches is", "the cloud resource <id> and
+   * the database <id> this monitor watches are".
+   */
+  public static describeSuppressingResources(
+    suppression: MonitorMaintenanceSuppressionResult,
+  ): string {
+    const parts: Array<string> = [];
+    const cloudResourceIds: Array<string> =
+      suppression.suppressingCloudResourceIds || [];
+    const databaseServerIds: Array<string> =
+      suppression.suppressingDatabaseServerIds;
+
+    if (cloudResourceIds.length > 0) {
+      parts.push(
+        cloudResourceIds.length === 1
+          ? `the cloud resource ${cloudResourceIds[0]}`
+          : `the cloud resources ${cloudResourceIds.join(", ")}`,
+      );
+    }
+
+    if (databaseServerIds.length > 0) {
+      parts.push(
+        databaseServerIds.length === 1
+          ? `the database ${databaseServerIds[0]}`
+          : `the databases ${databaseServerIds.join(", ")}`,
+      );
+    }
+
+    const isOne: boolean =
+      cloudResourceIds.length + databaseServerIds.length === 1;
+
+    return `${parts.join(" and ")} this monitor watches ${isOne ? "is" : "are"}`;
+  }
+
+  /*
+   * Whether the monitor's own configuration names a resource a maintenance
+   * event silences whole - a database, or a cloud resource - the pure,
    * query-free gate in front of the maintenance lookup. The step JSON is
    * not schema-checked, so an unreadable one names nothing rather than
    * throwing out of the evaluation.
    */
-  private static monitorNamesDatabase(monitor: Monitor): boolean {
+  private static monitorNamesSilenceableResource(monitor: Monitor): boolean {
     try {
       const refs: SeriesResourceRefs =
         MonitorStepResourceIdentity.extractResourceRefsFromMonitor({
@@ -354,7 +452,8 @@ export default class MonitorMaintenanceSuppression {
 
       return (
         refs.databaseServerIds.length > 0 ||
-        refs.databaseServerEndpoints.length > 0
+        refs.databaseServerEndpoints.length > 0 ||
+        refs.cloudResourceIds.length > 0
       );
     } catch (err) {
       logger.error(
@@ -477,7 +576,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.iotFleets.names.size > 0 ||
       maintained.services.ids.size > 0 ||
       maintained.services.names.size > 0 ||
-      maintained.databaseServers.ids.size > 0
+      maintained.databaseServers.ids.size > 0 ||
+      maintained.cloudResources.ids.size > 0
     );
   }
 
@@ -513,6 +613,7 @@ export default class MonitorMaintenanceSuppression {
       iotFleets: { ids: new Set<string>(), names: new Set<string>() },
       services: { ids: new Set<string>(), names: new Set<string>() },
       databaseServers: { ids: new Set<string>(), names: new Set<string>() },
+      cloudResources: { ids: new Set<string>(), names: new Set<string>() },
     };
 
     const inProgressStateIds: Array<ObjectID> =
@@ -545,6 +646,7 @@ export default class MonitorMaintenanceSuppression {
           iotFleets: { _id: true, name: true },
           services: { _id: true, name: true },
           databaseServers: { _id: true },
+          cloudResources: { _id: true },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -618,6 +720,17 @@ export default class MonitorMaintenanceSuppression {
       for (const databaseServer of event.databaseServers || []) {
         // Id only — the display name is not an identity (see the interface).
         this.addKey(maintained.databaseServers, databaseServer._id, undefined);
+      }
+      for (const cloudResource of event.cloudResources || []) {
+        /*
+         * Id only, lower case as a monitor's configuration names it
+         * (MonitorStepResourceIdentity).
+         */
+        this.addKey(
+          maintained.cloudResources,
+          cloudResource._id ? String(cloudResource._id).toLowerCase() : undefined,
+          undefined,
+        );
       }
     }
 

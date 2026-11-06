@@ -26,6 +26,7 @@ import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -150,6 +151,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
+  "CloudResource",
   "NetworkSite",
   "Service",
 ];
@@ -701,7 +703,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   title: "Other Affected Resources",
                   stepId: "resources-affected",
                   description:
-                    "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
+                    "Hosts, clusters, databases, cloud resources, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (
@@ -732,6 +734,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         iotFleets={values.iotFleets as Array<IoTFleet>}
                         databaseServers={
                           values.databaseServers as Array<DatabaseServer>
+                        }
+                        cloudResources={
+                          values.cloudResources as Array<CloudResource>
                         }
                         networkSites={values.networkSites as Array<NetworkSite>}
                         services={values.services as Array<Service>}
@@ -770,6 +775,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                           dockerSwarmClusters: payload.dockerSwarmClusters,
                           iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
+                          cloudResources: payload.cloudResources,
                           networkSites: payload.networkSites,
                           services: payload.services,
                         } as FormValues<ScheduledMaintenance>);
@@ -818,6 +824,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       item.dockerSwarmClusters,
                       item.iotFleets,
                       item.databaseServers,
+                      item.cloudResources,
                       item.networkSites,
                       item.services,
                     ].some((resources: unknown): boolean => {
@@ -858,6 +865,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         databaseServers={
                           item.databaseServers as Array<DatabaseServer>
                         }
+                        cloudResources={
+                          item.cloudResources as Array<CloudResource>
+                        }
                         networkSites={item.networkSites as Array<NetworkSite>}
                         services={item.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
@@ -872,8 +882,8 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/proxmoxClusters/
                  * vmwareVCenters/cephClusters/storageArrays/
-                 * dockerSwarmClusters/iotFleets/databaseServers/networkSites/
-                 * services on load and submit
+                 * dockerSwarmClusters/iotFleets/databaseServers/
+                 * cloudResources/networkSites/services on load and submit
                  * (hosts is the second picker's anchor above).
                  */
                 {
@@ -968,6 +978,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 },
                 {
                   field: { databaseServers: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { cloudResources: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

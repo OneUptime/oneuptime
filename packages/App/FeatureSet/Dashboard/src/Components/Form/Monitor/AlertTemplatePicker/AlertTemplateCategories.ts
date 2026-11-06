@@ -284,6 +284,50 @@ export const IOT_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * A cloud resource's Recommendations (CloudAlertTemplates): whether it is up
+ * first, then what fails, what is held back, how slow it is, what it uses,
+ * what fills up and what waits.
+ */
+export const CLOUD_RESOURCE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> =
+  [
+    {
+      category: "Availability",
+      label: "Availability",
+      icon: IconProp.Heartbeat,
+    },
+    {
+      category: "Errors",
+      label: "Errors",
+      icon: IconProp.ExclaimationCircle,
+    },
+    {
+      category: "Throttling",
+      label: "Throttling",
+      icon: IconProp.Funnel,
+    },
+    {
+      category: "Latency",
+      label: "Latency",
+      icon: IconProp.Clock,
+    },
+    {
+      category: "Utilization",
+      label: "Utilization",
+      icon: IconProp.Gauge,
+    },
+    {
+      category: "Storage",
+      label: "Storage",
+      icon: IconProp.Disc,
+    },
+    {
+      category: "Backlog",
+      label: "Backlog",
+      icon: IconProp.QueueList,
+    },
+  ];
+
 export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   Record<MonitorRecommendationResourceType, Array<AlertTemplateCategory>>
 > = {
@@ -298,6 +342,8 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.StorageArray]:
     STORAGE_ARRAY_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.IoTDevice]: IOT_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.CloudResource]:
+    CLOUD_RESOURCE_TEMPLATE_CATEGORIES,
 };
 
 /*

@@ -2,6 +2,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -176,7 +177,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
       },
       title: "Other Affected Resources",
       description:
-        "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
+        "Hosts, clusters, databases, cloud resources, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
       fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
       getCustomElement: (
@@ -200,6 +201,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
             }
             iotFleets={values.iotFleets as Array<IoTFleet>}
             databaseServers={values.databaseServers as Array<DatabaseServer>}
+            cloudResources={values.cloudResources as Array<CloudResource>}
             networkSites={values.networkSites as Array<NetworkSite>}
             services={values.services as Array<Service>}
             resourceTypes={[
@@ -214,6 +216,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
               "DockerSwarmCluster",
               "IoTFleet",
               "DatabaseServer",
+              "CloudResource",
               "NetworkSite",
               "Service",
             ]}
@@ -246,6 +249,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
               dockerSwarmClusters: payload.dockerSwarmClusters,
               iotFleets: payload.iotFleets,
               databaseServers: payload.databaseServers,
+              cloudResources: payload.cloudResources,
               networkSites: payload.networkSites,
               services: payload.services,
             } as FormValues<ScheduledMaintenance>);
@@ -256,8 +260,8 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
     /*
      * Hidden registrations so ModelForm.getSelectFields includes every
      * other relation the second picker writes (clusters, container hosts,
-     * IoT fleets, databases, network sites and services) on load and
-     * submit; hosts is its anchor above.
+     * IoT fleets, databases, cloud resources, network sites and services)
+     * on load and submit; hosts is its anchor above.
      */
     {
       field: { kubernetesClusters: true },
@@ -342,6 +346,15 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
     },
     {
       field: { databaseServers: true },
+      title: "",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      showIf: () => {
+        return false;
+      },
+    },
+    {
+      field: { cloudResources: true },
       title: "",
       fieldType: FormFieldSchemaType.Text,
       required: false,

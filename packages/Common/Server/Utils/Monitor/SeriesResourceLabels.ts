@@ -364,6 +364,15 @@ export interface SeriesResourceRefs {
    * (NetworkDeviceMetricUtil), so no monitor series names one.
    */
   networkDeviceIds: Array<string>;
+  /*
+   * Cloud resources, by id: the one a metric query's event scope names
+   * (eventScope.cloudResourceId) - a query built on a cloud resource's
+   * Metrics page, or by its recommended monitors (CloudAlertTemplates).
+   * Its metric filter names no row: the namespace, dimensions, account and
+   * region a cloud reports a resource under are attributes, not an id.
+   * Always empty from series labels - no cloud metric carries a stamp.
+   */
+  cloudResourceIds: Array<string>;
 }
 
 export default class SeriesResourceLabels {
@@ -459,6 +468,8 @@ export default class SeriesResourceLabels {
       databaseServerEndpoints: [],
       // Never from series labels — see SeriesResourceRefs.networkDeviceIds.
       networkDeviceIds: [],
+      // Nor cloud resources — see SeriesResourceRefs.cloudResourceIds.
+      cloudResourceIds: [],
     };
   }
 

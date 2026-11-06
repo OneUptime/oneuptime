@@ -144,6 +144,14 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
           resourceType: props.resourceType,
           context: resourceContext,
         })}
+        cardDescription={RecommendationResourceRegistry.getCardDescription({
+          resourceType: props.resourceType,
+          context: resourceContext,
+        })}
+        linkCreatedMonitor={RecommendationResourceRegistry.getMonitorLinker({
+          resourceType: props.resourceType,
+          resourceId: modelId,
+        })}
       />
     </Fragment>
   );

@@ -1,4 +1,5 @@
 import CephCluster from "./CephCluster";
+import CloudResource from "./CloudResource";
 import StorageArray from "./StorageArray";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
@@ -1158,6 +1159,70 @@ export default class ScheduledMaintenance extends BaseModel {
     },
   })
   public databaseServers?: Array<DatabaseServer> = undefined;
+
+  /*
+   * The cloud resources the event holds - an RDS database being upgraded,
+   * a load balancer being replaced. While the event is in progress the
+   * monitors that watch one (those its Recommendations created, and those
+   * built from its metrics, which name it in their own configuration)
+   * open no incident or alert, as a held database's do
+   * (MonitorMaintenanceSuppression); their status still follows what they
+   * read.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CloudResource,
+    title: "Cloud Resources",
+    description:
+      "List of cloud resources affected by this event. Their monitors open no incident or alert while it is in progress.",
+  })
+  @ManyToMany(
+    () => {
+      return CloudResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceCloudResource",
+    inverseJoinColumn: {
+      name: "cloudResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public cloudResources?: Array<CloudResource> = undefined;
 
   @ColumnAccessControl({
     create: [

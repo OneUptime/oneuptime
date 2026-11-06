@@ -2,6 +2,7 @@ import PageMap from "../../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import { getDeveloperSideMenuSection } from "../../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../../Components/DeveloperDocs/DeveloperDocsPages";
+import CloudAccountRecommendationsSideMenuItem from "../../../../Components/Recommendations/CloudAccountRecommendationsSideMenuItem";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -17,7 +18,8 @@ export interface ComponentProps {
 
 /*
  * A cloud account's pages: what it holds first (its Overview, its
- * Resources and how they fit together, and what it costs), then what OneUptime AI did and may
+ * Resources and how they fit together, the monitors recommended for them,
+ * and what it costs), then what OneUptime AI did and may
  * do in it, what changed in it - in the cloud (Changes) and in OneUptime
  * (Feed: its Cloud AI agent, and who changed what AI may do) - its own
  * settings, its API pages and, last, deleting it.
@@ -57,6 +59,21 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.FlowDiagram}
+        />
+        {/*
+         * The monitors OneUptime recommends for its resources, to add to
+         * one or to every resource of a type at once. The badge counts what
+         * is still to set up (CloudAccountRecommendationsSideMenuItem).
+         */}
+        <CloudAccountRecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          accountId={props.modelId}
         />
         {/*
          * What it costs from its cloud's own billing, and the ways its

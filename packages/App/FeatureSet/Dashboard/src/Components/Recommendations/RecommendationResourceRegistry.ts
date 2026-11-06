@@ -14,6 +14,21 @@ import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
+import {
+  CloudAlertTemplate,
+  getCloudAlertTemplatesFor,
+  getCloudAlertTemplatesForType,
+  getCloudMonitoringServiceName,
+  readAllocatedStorageGiB,
+  readCloudTelemetryAttributes,
+} from "Common/Types/Monitor/CloudAlertTemplates";
+import { readCloudResourceReadings } from "Common/Types/Cloud/CloudResourceHealth";
+import { AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE } from "Common/Types/Cloud/CloudMonitoredResource";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
@@ -122,6 +137,126 @@ export interface RecommendationResourceDefinition {
   loadResource?:
     | ((resourceId: ObjectID) => Promise<BaseModel | null>)
     | undefined;
+  /*
+   * What the card says the recommendations are drawn from, when it is not
+   * what an agent sends: a cloud resource's come from what its cloud's
+   * monitoring reports about it. Absent: the card's own words.
+   */
+  getCardDescription?:
+    | ((context: MonitorRecommendationContext) => string | undefined)
+    | undefined;
+  /*
+   * What a monitor created from one of its recommendations is linked to,
+   * beside the scope its step carries: a cloud resource's monitors hold it
+   * in their Linked Resources (Monitor.cloudResources), so the monitor's
+   * page names it, its incidents and alerts are linked to it, and its own
+   * page lists them. Absent for the resource types a monitor names in its
+   * step alone.
+   */
+  linkCreatedMonitor?:
+    | ((data: { monitor: Monitor; resourceId: ObjectID }) => void)
+    | undefined;
+}
+
+/*
+ * What a cloud resource's row says that decides its recommendations
+ * (getCloudAlertTemplatesFor): its cloud and type, the attributes its
+ * metrics are stored with, its readings (an Azure metric's stored name)
+ * and, for an RDS instance, its allocated storage. Shared by a resource's
+ * Recommendations tab and its account's, which read every resource the
+ * same way.
+ */
+export function readCloudResourceRecommendationContext(
+  record: Record<string, unknown>,
+): MonitorRecommendationContext {
+  const provider: unknown = record["cloudProvider"];
+  const resourceType: unknown = record["cloudResourceType"];
+
+  return {
+    cloudProvider: typeof provider === "string" ? provider : null,
+    cloudResourceType: typeof resourceType === "string" ? resourceType : null,
+    cloudTelemetryAttributes: readCloudTelemetryAttributes(
+      record["telemetryAttributes"],
+    ),
+    cloudReadings: readCloudResourceReadings(record["cloudReadings"]),
+    cloudAllocatedStorageGiB: readAllocatedStorageGiB(
+      record["cloudProperties"],
+    ),
+  };
+}
+
+/*
+ * Why a cloud resource is offered fewer recommendations than its type has,
+ * or none - said only then: a resource offered all of them needs no note.
+ */
+export function describeCloudResourceRecommendationContext(
+  context: MonitorRecommendationContext,
+): string | undefined {
+  const forType: Array<CloudAlertTemplate> = getCloudAlertTemplatesForType({
+    provider: context.cloudProvider,
+    resourceType: context.cloudResourceType,
+  });
+
+  if (forType.length === 0) {
+    return translateTemplate(
+      "OneUptime has no recommended monitors for {{type}} yet. You can still alert on it: open a metric on its Metrics tab and create a monitor from the view.",
+      {
+        type: getCloudResourceTypeDisplayName(
+          context.cloudProvider,
+          context.cloudResourceType,
+        ),
+      },
+    );
+  }
+
+  const attributes: Record<string, string> = readCloudTelemetryAttributes(
+    context.cloudTelemetryAttributes,
+  );
+
+  if (Object.keys(attributes).length === 0) {
+    return translateTemplate(
+      "Its metrics have not arrived yet, and every recommended monitor reads them, so none is offered until its connection reads them.",
+    );
+  }
+
+  const offered: Array<CloudAlertTemplate> = getCloudAlertTemplatesFor({
+    provider: context.cloudProvider,
+    resourceType: context.cloudResourceType,
+    telemetryAttributes: attributes,
+    allocatedStorageGiB: context.cloudAllocatedStorageGiB,
+  });
+
+  if (
+    (context.cloudProvider || "").toLowerCase() === CloudProvider.AWS &&
+    offered.length === 0
+  ) {
+    const namespace: string | undefined =
+      attributes[AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE];
+
+    return namespace
+      ? translateTemplate(
+          "OneUptime has no recommended monitors for the metrics this resource reports ({{namespace}}) yet. You can still alert on it: open a metric on its Metrics tab and create a monitor from the view.",
+          { namespace: namespace },
+        )
+      : translateTemplate(
+          "Its metrics arrive in CloudWatch's JSON stream format, which these monitors do not read. Stream the account through Cloud > Connect, and they are offered here.",
+        );
+  }
+
+  if (
+    forType.some((template: CloudAlertTemplate): boolean => {
+      return Boolean(template.requiresAllocatedStorage);
+    }) &&
+    !offered.some((template: CloudAlertTemplate): boolean => {
+      return Boolean(template.requiresAllocatedStorage);
+    })
+  ) {
+    return translateTemplate(
+      "Low Free Storage is offered once the account's inventory lists the instance's allocated storage.",
+    );
+  }
+
+  return undefined;
 }
 
 /*
@@ -174,6 +309,10 @@ function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
  *   DataPipeline _id               the `oneuptime.data.pipeline.id` each
  *                                  run's metrics carry is the DataPipeline
  *                                  row id
+ *   CloudResource _id              every template's queries name the
+ *                                  CloudResource row in their event scope
+ *                                  (eventScope.cloudResourceId), beside the
+ *                                  attributes its metrics are stored with
  *
  * The six `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
@@ -648,6 +787,55 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     identifierFieldName: "_id",
     displayNameFieldName: "jobName",
   },
+  /*
+   * A cloud resource: every template reads the key metrics its connection
+   * reads, filtered on the attributes its metrics are stored with, and
+   * names the resource's row in its queries' event scope - so `_id` is the
+   * identifier, as for a database. Each context column is readable by
+   * exactly the roles that read `name`.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.CloudResource,
+    modelType: CloudResource,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    contextFieldNames: [
+      "cloudProvider",
+      "cloudResourceType",
+      "telemetryAttributes",
+      "cloudReadings",
+      "cloudProperties",
+    ],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return readCloudResourceRecommendationContext(
+        model as unknown as Record<string, unknown>,
+      );
+    },
+    describeContext: describeCloudResourceRecommendationContext,
+    getCardDescription: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      const source: string | undefined = getCloudMonitoringServiceName(
+        context.cloudProvider,
+      );
+
+      return source
+        ? translateTemplate(
+            "Monitors OneUptime recommends for this resource, from the metrics {{source}} reports about it. Pick the ones you want and create them in one step.",
+            { source: source },
+          )
+        : undefined;
+    },
+    linkCreatedMonitor: (data: {
+      monitor: Monitor;
+      resourceId: ObjectID;
+    }): void => {
+      MonitorRecommendationCreateUtil.linkToCloudResource({
+        monitor: data.monitor,
+        cloudResourceId: data.resourceId,
+      });
+    },
+  },
 ];
 
 export default class RecommendationResourceRegistry {
@@ -768,6 +956,37 @@ export default class RecommendationResourceRegistry {
     }
 
     return definition.describeContext(data.context);
+  }
+
+  // The card's description for one resource, or undefined for its own words.
+  public static getCardDescription(data: {
+    resourceType: MonitorRecommendationResourceType;
+    context: MonitorRecommendationContext;
+  }): string | undefined {
+    return this.getDefinition(data.resourceType)?.getCardDescription?.(
+      data.context,
+    );
+  }
+
+  /*
+   * What a monitor created for this resource is linked to, as a function
+   * of the monitor, or undefined for the types that link nothing.
+   */
+  public static getMonitorLinker(data: {
+    resourceType: MonitorRecommendationResourceType;
+    resourceId: ObjectID;
+  }): ((monitor: Monitor) => void) | undefined {
+    const link:
+      | ((link: { monitor: Monitor; resourceId: ObjectID }) => void)
+      | undefined = this.getDefinition(data.resourceType)?.linkCreatedMonitor;
+
+    if (!link) {
+      return undefined;
+    }
+
+    return (monitor: Monitor): void => {
+      link({ monitor: monitor, resourceId: data.resourceId });
+    };
   }
 
   /*

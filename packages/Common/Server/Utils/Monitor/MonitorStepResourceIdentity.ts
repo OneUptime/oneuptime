@@ -206,6 +206,51 @@ export default class MonitorStepResourceIdentity {
       stepData: stepData,
       refs: input.refs,
     });
+
+    /*
+     * 7. Cloud resources. A metric query built on a cloud resource's
+     *    Metrics page - and every monitor its Recommendations create
+     *    (CloudAlertTemplates) - names the resource in its event scope
+     *    (eventScope.cloudResourceId), a primary key: its filter names
+     *    the namespace, dimensions, account and region the cloud reports
+     *    it under, which are no row's. So its incidents and alerts land on
+     *    the resource, and a maintenance event holding it silences them
+     *    (MonitorMaintenanceSuppression).
+     */
+    this.collectCloudResourceRefs({
+      stepData: stepData,
+      refs: input.refs,
+    });
+  }
+
+  private static collectCloudResourceRefs(input: {
+    stepData: NonNullable<MonitorStep["data"]>;
+    refs: SeriesResourceRefs;
+  }): void {
+    for (const viewConfig of this.getMetricViewConfigs(input.stepData)) {
+      const queryConfigs: Array<MetricQueryConfigData> = Array.isArray(
+        viewConfig?.queryConfigs,
+      )
+        ? viewConfig.queryConfigs
+        : [];
+
+      for (const queryConfig of queryConfigs) {
+        const eventScope: Record<string, unknown> = this.asAttributeRecord(
+          queryConfig?.eventScope,
+        );
+        const cloudResourceId: unknown = eventScope["cloudResourceId"];
+
+        // An id or nothing: step JSON is not schema-checked.
+        if (
+          typeof cloudResourceId === "string" &&
+          ObjectID.isValidUUID(cloudResourceId.trim())
+        ) {
+          input.refs.cloudResourceIds.push(
+            cloudResourceId.trim().toLowerCase(),
+          );
+        }
+      }
+    }
   }
 
   private static collectClustersFromLogFilters(input: {
@@ -744,6 +789,7 @@ export default class MonitorStepResourceIdentity {
       databaseServerIds: [],
       databaseServerEndpoints: [],
       networkDeviceIds: [],
+      cloudResourceIds: [],
     };
   }
 
