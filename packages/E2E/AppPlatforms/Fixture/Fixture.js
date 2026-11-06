@@ -17,7 +17,8 @@
  *
  * Every read is recorded on window.__appPlatformsFixture: listRequests,
  * countRequests, itemRequests, apiRequests and unhandled - anything the
- * fixture does not model. The spec asserts `unhandled` is empty.
+ * fixture does not model - and every monitor an app's Recommendations tab
+ * makes, on creates. The spec asserts `unhandled` is empty.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -46,6 +47,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { Amber500, Indigo500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ObjectID from "Common/Types/ObjectID";
@@ -584,6 +586,61 @@ const SERVICES = EMPTY
   ? []
   : [{ _id: uuid("77000000", 1), projectId: PROJECT_ID, name: "checkout-api" }];
 
+/*
+ * What an app's recommended monitors are made with: the project's monitor
+ * statuses and severities. No monitor exists yet; the ones the
+ * Recommendations tab makes are kept, as the server keeps them.
+ */
+const MONITOR_STATUSES = [
+  {
+    _id: uuid("79100000", 1),
+    name: "Operational",
+    isOperationalState: true,
+    isOfflineState: false,
+    priority: 1,
+    color: new Color("#10b981"),
+    isArchived: false,
+  },
+  {
+    _id: uuid("79100000", 2),
+    name: "Offline",
+    isOperationalState: false,
+    isOfflineState: true,
+    priority: 2,
+    color: new Color("#ef4444"),
+    isArchived: false,
+  },
+];
+
+const INCIDENT_SEVERITIES = [
+  {
+    _id: uuid("79200000", 1),
+    name: "Critical",
+    order: 1,
+    color: new Color("#dc2626"),
+    isArchived: false,
+  },
+  {
+    _id: uuid("79200000", 2),
+    name: "Minor",
+    order: 2,
+    color: new Color("#f59e0b"),
+    isArchived: false,
+  },
+];
+
+const ALERT_SEVERITIES = [
+  {
+    _id: uuid("79300000", 1),
+    name: "High",
+    order: 1,
+    color: new Color("#dc2626"),
+    isArchived: false,
+  },
+];
+
+const MONITORS = [];
+
 const TABLES = {
   CloudResource: [...ENVIRONMENTS, RESOURCE],
   Service: SERVICES,
@@ -593,6 +650,13 @@ const TABLES = {
   CloudResourceOwnerRule: OWNER_RULES,
   CloudResourceLabelRule: LABEL_RULES,
   CloudResourceFeed: FEED,
+  // An app's Recommendations tab: what it reads, and the monitors it makes.
+  Monitor: MONITORS,
+  MonitorStatus: MONITOR_STATUSES,
+  IncidentSeverity: INCIDENT_SEVERITIES,
+  AlertSeverity: ALERT_SEVERITIES,
+  RecommendationDismissal: [],
+  OnCallDutyPolicy: [],
 };
 
 /*
@@ -607,6 +671,7 @@ const fixture = {
   aggregateRequests: [],
   apiRequests: [],
   analyticsRequests: [],
+  creates: [],
   unhandled: [],
 };
 window.__appPlatformsFixture = fixture;
@@ -766,6 +831,9 @@ const EMPTY_TABLES = [
   "KubernetesCluster",
   "LogSavedView",
   "MetricType",
+  // A cloud resource's side menu counts the maintenance that holds it.
+  "ScheduledMaintenance",
+  "ScheduledMaintenanceState",
   // The Incidents and Alerts tabs' create forms.
   "IncidentCustomField",
   "IncidentNoteTemplate",
@@ -861,6 +929,56 @@ ModelAPI.getItem = async (options) => {
 
   return found ? Object.assign(new options.modelType(), found) : null;
 };
+
+/*
+ * A monitor an app's Recommendations tab makes: kept, so what covers a
+ * recommendation is read back as the server answers it, and recorded with
+ * what it reads by - its span or metric filter - and what it is linked to.
+ */
+async function createModel(options) {
+  const name = tableName(options.modelType);
+  const model = options.model;
+  const step =
+    model.monitorSteps?.data?.monitorStepsInstanceArray?.[0]?.data || {};
+  const scope =
+    step.traceMonitor?.attributes ||
+    step.metricMonitor?.metricViewConfig?.queryConfigs?.[0]?.metricQueryData
+      ?.filterData?.attributes ||
+    null;
+
+  fixture.creates.push({
+    modelName: name,
+    name: model.name,
+    monitorType: model.monitorType,
+    scope: scope ? { ...scope } : null,
+    metricName:
+      step.metricMonitor?.metricViewConfig?.queryConfigs?.[0]?.metricQueryData
+        ?.filterData?.metricName || null,
+    spanStatuses: step.traceMonitor?.spanStatuses || null,
+    serviceIds: (step.traceMonitor?.telemetryServiceIds || []).map(String),
+    cloudResourceIds: (model.cloudResources || []).map((item) => {
+      return String(item.id || item._id);
+    }),
+  });
+
+  if (name !== "Monitor") {
+    fixture.unhandled.push({ kind: "create", modelName: name });
+    return new HTTPResponse(200, {}, {});
+  }
+
+  const created = {
+    _id: uuid("79000000", MONITORS.length + 1),
+    projectId: PROJECT_ID,
+    name: model.name,
+    monitorType: model.monitorType,
+    monitorSteps: model.monitorSteps,
+  };
+  MONITORS.push(created);
+  return new HTTPResponse(200, created, {});
+}
+
+ModelAPI.create = createModel;
+ModelAPI.createOrUpdate = createModel;
 
 /*
  * Telemetry: an environment's spans and metrics, as aggregates - a smooth

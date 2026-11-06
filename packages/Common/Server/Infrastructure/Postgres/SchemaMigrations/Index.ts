@@ -293,6 +293,7 @@ import { AddFixApprovalSourceAndRunbookTrackRecord1808992660000 } from "./180899
 import { AddUserMattermost1808992670000 } from "./1808992670000-AddUserMattermost";
 import { AddUserMattermostIndexesAndKeys1808992680000 } from "./1808992680000-AddUserMattermostIndexesAndKeys";
 import { AddUserNotificationSettingAlertByMattermost1808992950000 } from "./1808992950000-AddUserNotificationSettingAlertByMattermost";
+import { AddScheduledMaintenanceCloudResources1808994417000 } from "./1808994417000-AddScheduledMaintenanceCloudResources";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1820,4 +1821,5 @@ export default [
   AddWorkflowLogRunAgain1808994200000,
   AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
   AddCloudAccountAiAgentKeys1808994400000,
+  AddScheduledMaintenanceCloudResources1808994417000,
 ];

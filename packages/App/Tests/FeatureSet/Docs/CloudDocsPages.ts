@@ -312,6 +312,7 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A resource's changes.",
     "Incidents and alerts.",
     "A resource's health.",
+    "Recommended monitors.",
     "What the accounts cost.",
   ],
   [CLOUD_COSTS]: [
