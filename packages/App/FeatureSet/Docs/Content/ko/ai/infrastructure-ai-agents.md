@@ -157,7 +157,11 @@ AWS 계정, Azure 구독 또는 Google Cloud 프로젝트에는 에이전트를 
 | Azure 구독 | Azure Cloud Shell | 리소스 그룹 `oneuptime-ai-agent` 의 Container App `oneuptime-ai-agent`. 그 자체 관리 ID는 읽기만 할 수 있습니다. 각 변경은 또 하나의 사용자 할당 관리 ID인 `oneuptime-ai-agent-write` 로 실행됩니다. 이 ID는 구독에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가지며, 에이전트의 Container App에만 연결됩니다. 에이전트는 변경마다 그 토큰을 요청합니다. 연결에 쓰는 키는 Container Apps 시크릿으로 보관됩니다. |
 | Google Cloud 프로젝트 | Google Cloud Shell | Container-Optimized OS에서 실행되는 `e2-micro` 유형의 Compute Engine VM `oneuptime-ai-agent`. 방화벽 규칙이 없는 전용 네트워크에 있어 아무것도 연결할 수 없습니다. 서비스 계정 `oneuptime-ai-agent` 로 실행되며, 이 서비스 계정은 읽기만 할 수 있습니다. 각 변경은 두 번째 서비스 계정 `oneuptime-ai-agent-write` 로 실행됩니다. 이 계정은 프로젝트에 대해 켜진 변경의 권한을 가진 사용자 지정 역할을 가지며, 에이전트는 그 변경 하나만을 위해 15분 동안 유효한 토큰을 요청합니다. 연결에 쓰는 키는 Secret Manager 에 보관되며, 에이전트 자신의 서비스 계정만 읽을 수 있고, 명령을 다시 실행하면 키의 이전 버전은 파기됩니다. VM은 시작할 때마다 키를 읽고, 디스크나 메타데이터에 절대 저장하지 않습니다. **추가 필드**의 **에이전트 실행 위치**에서 대신 CPU가 항상 할당된 Cloud Run 서비스를 선택할 수 있으며, VM에 외부 IP 주소를 허용하지 않는 프로젝트용입니다. |
 
-에이전트를 다른 곳에서 실행하려면 **추가 필드** 에 나오는 변수로 이미지를 배포하고, 명령이 주는 것과 같은 것을 주세요. AWS에서는 `OneUptimeAiAgentWrite` 를 맡는 것만 할 수 있는 역할이며, 쓰기 역할은 이 역할을 신뢰하고 켜진 변경의 권한을 가집니다. Azure에서는 읽기만 하는 자체 관리 ID와, 실행되는 곳에 연결한 쓰기 ID `oneuptime-ai-agent-write` 입니다. Google Cloud에서는 읽기만 하는 서비스 계정과, 쓰기 서비스 계정 `oneuptime-ai-agent-write` 에 대한 Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) 역할입니다.
+에이전트를 다른 곳에서 실행하려면 **추가 필드** 에 나오는 변수로 이미지를 배포하고, 명령이 주는 것과 같은 것을 주세요:
+
+- **AWS:** 쓰기 역할 `OneUptimeAiAgentWrite` 를 맡는 것만 할 수 있는 역할. 쓰기 역할은 이 역할을 신뢰하고 켜진 변경의 권한을 가집니다.
+- **Azure:** 읽기만 하는 자체 관리 ID와, 실행되는 곳에 연결한 쓰기 ID `oneuptime-ai-agent-write`.
+- **Google Cloud:** 읽기만 하는 서비스 계정과, 쓰기 서비스 계정 `oneuptime-ai-agent-write` 에 대한 Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) 역할.
 
 명령은 작성된 대상 계정에서만 작동합니다. AWS에서는 다른 계정에 로그인한 셸에서 아무것도 만들지 않으며, Azure와 Google Cloud 명령은 호출할 때마다 구독이나 프로젝트를 지정합니다. 명령은 `ONEUPTIME_AI_INVESTIGATION=true`, 답에 따른 `ONEUPTIME_AI_FIXES`, `ONEUPTIME_AI_ALLOW_WRITES=true`, 그리고 작성된 대상 계정을 가리키는 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 를 설정합니다. 에이전트는 클라우드가 알려 주는 소속 계정으로 등록하며 OneUptime에 계정을 추가하는 일은 절대 없습니다. 명령과 다른 계정에서 시작하면 거부되며, 명령의 대상 계정 페이지에 그 이유가 표시됩니다. 프로젝트의 어떤 연결도 읽지 않는 계정에서 시작해도 거부되며, 로그에 그렇게 기록됩니다.
 

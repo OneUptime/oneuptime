@@ -200,6 +200,8 @@ const UNCONDITIONAL_APPLIANCE: RegExp =
 const A_MINUTE: RegExp = /\ba minute\b/;
 const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
 const HEADING_LINE: RegExp = /^#{1,6} \S/;
+// A line a list follows: it ends with its language's colon.
+const LIST_LEAD_END: RegExp = /[:：]$/;
 // `export const NAME: string = "value";`, the value on the same or the next line.
 const STRING_CONSTANT: RegExp =
   /export const ([A-Z][A-Z0-9_]*): string =\s*"([^"\n]*)";/g;
@@ -3380,29 +3382,30 @@ describe("Infrastructure AI Agents docs", (): void => {
 
     it("says what running a Cloud AI agent somewhere else needs on each cloud, as its setup command makes it", (): void => {
       const cloud: string = section(page, "### In a cloud account");
-      const words: string = oneLine(cloud);
-      const paragraph: string =
-        cloud.split("\n").find((line: string): boolean => {
-          return line.startsWith("To run the agent somewhere else, ");
-        }) || "";
+      const lines: Array<string> = cloud.split("\n");
+      const lead: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("To run the agent somewhere else, ");
+      });
 
-      expect(paragraph).not.toBe("");
+      expect(lead).toBeGreaterThan(-1);
       // Its variables are the ones the dialog's More fields lists.
-      expect(words).toContain(
+      expect(lines[lead]).toBe(
         `To run the agent somewhere else, deploy its image with the variables listed under **${MORE_FIELDS_SECTION_TITLE}**, and give it what the command would:`,
       );
-      // AWS: a role that may only assume the write role, as the template's task role.
-      expect(paragraph).toContain(
-        `on AWS a role that may only assume \`${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}\`, which trusts it and holds the permissions of the changes turned on;`,
-      );
-      // Azure: an identity of its own that reads, and the write identity attached.
-      expect(paragraph).toContain(
-        `on Azure a managed identity of its own that only reads, with the write identity \`${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}\` attached where it runs;`,
-      );
-      // Google Cloud: a service account that reads, with Token Creator on the write account.
-      expect(paragraph).toContain(
-        `on Google Cloud a service account that only reads, with Service Account Token Creator (\`${GCP_TOKEN_CREATOR_ROLE}\`) on the write service account \`${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}\``,
-      );
+      /*
+       * Then a list, a cloud a line, each as the page's other lists label
+       * theirs (- **Hosts:** ...), in the order the table above names them.
+       */
+      expect(lines.slice(lead + 1, lead + 6)).toEqual([
+        "",
+        // AWS: a role that may only assume the write role, as the template's task role.
+        `- **AWS:** a role that may only assume the write role \`${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}\`, which trusts it and holds the permissions of the changes turned on.`,
+        // Azure: an identity of its own that reads, and the write identity attached.
+        `- **Azure:** a managed identity of its own that only reads, with the write identity \`${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME}\` attached where it runs.`,
+        // Google Cloud: a service account that reads, with Token Creator on the write account.
+        `- **Google Cloud:** a service account that only reads, with Service Account Token Creator (\`${GCP_TOKEN_CREATOR_ROLE}\`) on the write service account \`${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}\`.`,
+        "",
+      ]);
       expect(GCP_TOKEN_CREATOR_ROLE).toBe(
         "roles/iam.serviceAccountTokenCreator",
       );
@@ -3455,6 +3458,66 @@ describe("Infrastructure AI Agents docs", (): void => {
       ).toContain(
         `--user-assigned ${variables(CloudProvider.Azure, "azure")[RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV]}`,
       );
+    });
+
+    it("lists what running the agent somewhere else needs on the English lines in every language, a cloud a line, each with its names", (): void => {
+      const englishLines: Array<string> = page.split("\n");
+      const lead: number = englishLines.findIndex((line: string): boolean => {
+        return line.startsWith("To run the agent somewhere else, ");
+      });
+      // Each cloud's line: its label, and the names it gives as code.
+      const clouds: Array<{ label: string; names: Array<string> }> = [
+        { label: "AWS", names: [AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME] },
+        { label: "Azure", names: [AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME] },
+        {
+          label: "Google Cloud",
+          names: [
+            GCP_TOKEN_CREATOR_ROLE,
+            GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+          ],
+        },
+      ];
+      const languages: Array<string> = fs
+        .readdirSync(CONTENT_DIR)
+        .filter((language: string): boolean => {
+          return fs.existsSync(pageFile(PAGE, language));
+        });
+
+      expect(lead).toBeGreaterThan(-1);
+      expect(languages).toHaveLength(17);
+
+      for (const language of languages) {
+        const lines: Array<string> = readPage(PAGE, language).split("\n");
+        // The lead ends with the language's colon, over a list of three.
+        const listed: Array<string> = lines.slice(lead + 2, lead + 5);
+
+        expect({ language, lead: lines[lead] }).toEqual({
+          language,
+          lead: expect.stringMatching(LIST_LEAD_END),
+        });
+        expect({ language, blank: [lines[lead + 1], lines[lead + 5]] }).toEqual(
+          { language, blank: ["", ""] },
+        );
+
+        clouds.forEach(
+          (
+            cloud: { label: string; names: Array<string> },
+            index: number,
+          ): void => {
+            const line: string = listed[index] || "";
+
+            expect({
+              language,
+              label: line.startsWith(`- **${cloud.label}`),
+            }).toEqual({ language, label: true });
+            // In the order its language's sentence puts them.
+            expect({ language, names: codeSpans(line).sort() }).toEqual({
+              language,
+              names: [...cloud.names].sort(),
+            });
+          },
+        );
+      }
     });
 
     it("explains why Azure's changes run as a write identity: no narrower or shorter token, and PIM needs Entra ID P2", (): void => {

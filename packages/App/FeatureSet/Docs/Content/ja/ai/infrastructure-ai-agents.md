@@ -157,7 +157,11 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 | Azure サブスクリプション | Azure Cloud Shell | リソース グループ `oneuptime-ai-agent` 内の Container App `oneuptime-ai-agent`。その独自のマネージド ID は読み取りしかできません。変更はそれぞれ、もう一つのユーザー割り当てマネージド ID `oneuptime-ai-agent-write` として実行されます。この ID は有効にした変更の権限を持つカスタム ロールをサブスクリプションに対して持ち、エージェントの Container App だけに割り当てられます。エージェントは変更のたびにそのトークンを要求します。接続に使うキーは Container Apps のシークレットとして保管されます。 |
 | Google Cloud プロジェクト | Google Cloud Shell | Container-Optimized OS 上で動く `e2-micro` タイプの Compute Engine VM `oneuptime-ai-agent`。ファイアウォール ルールのない専用ネットワーク内にあるため、外部から接続できるものはありません。サービス アカウント `oneuptime-ai-agent` として動作し、このサービス アカウントは読み取りしかできません。変更はそれぞれ二つ目のサービス アカウント `oneuptime-ai-agent-write` として実行されます。このアカウントは有効にした変更の権限を持つカスタム ロールをプロジェクトに対して持ち、エージェントはその変更一つのためだけに、15 分間有効なトークンを要求します。接続に使うキーは Secret Manager に保管され、それを読めるのはエージェント自身のサービス アカウントだけで、コマンドを再実行するとキーの古いバージョンは破棄されます。VM は起動のたびにキーを読み取り、ディスクやメタデータに保存することはありません。**その他の項目** の **エージェントの実行場所** では、代わりに CPU を常に割り当てた Cloud Run サービスを選べます。VM に外部 IP アドレスを持たせられないプロジェクト向けです。 |
 
-エージェントを別の場所で実行するには、**その他の項目** に表示される変数を使ってそのイメージをデプロイし、コマンドが与えるものと同じものを与えます。AWS では、`OneUptimeAiAgentWrite` を引き受けることだけができるロールです。書き込みロールはそのロールを信頼し、有効にした変更の権限を持ちます。Azure では、読み取りだけを行う独自のマネージド ID と、実行場所に割り当てた書き込み ID `oneuptime-ai-agent-write` です。Google Cloud では、読み取りだけを行うサービス アカウントと、書き込み用サービス アカウント `oneuptime-ai-agent-write` に対する Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) ロールです。
+エージェントを別の場所で実行するには、**その他の項目** に表示される変数を使ってそのイメージをデプロイし、コマンドが与えるものと同じものを与えます:
+
+- **AWS:** 書き込みロール `OneUptimeAiAgentWrite` を引き受けることだけができるロール。書き込みロールはそのロールを信頼し、有効にした変更の権限を持ちます。
+- **Azure:** 読み取りだけを行う独自のマネージド ID と、実行場所に割り当てた書き込み ID `oneuptime-ai-agent-write`。
+- **Google Cloud:** 読み取りだけを行うサービス アカウントと、書き込み用サービス アカウント `oneuptime-ai-agent-write` に対する Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) ロール。
 
 コマンドは、書き出された対象のアカウントでのみ機能します。AWS では別のアカウントにサインインしたシェルでは何も作成せず、Azure と Google Cloud のコマンドは呼び出しのたびにサブスクリプションまたはプロジェクトを指定します。コマンドは `ONEUPTIME_AI_INVESTIGATION=true`、回答に応じた `ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_ALLOW_WRITES=true`、そして書き出された対象のアカウントを示す `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` を設定します。エージェントは、クラウドが示す所属アカウントとして登録し、OneUptime にアカウントを追加することは決してありません。コマンドとは別のアカウントで起動すると拒否され、コマンドの対象のアカウントのページにその理由が表示されます。プロジェクトのどの接続も読み取っていないアカウントで起動した場合も拒否され、そのことがログに記録されます。
 

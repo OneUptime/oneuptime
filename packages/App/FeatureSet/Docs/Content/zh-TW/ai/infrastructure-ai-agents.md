@@ -157,7 +157,11 @@ AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案旁邊沒有可供代理�
 | Azure 訂用帳戶 | Azure Cloud Shell | 資源群組 `oneuptime-ai-agent` 中的一個 Container App `oneuptime-ai-agent`，其本身的受控識別只能讀取。每項變更都以另一個使用者指派的受控識別 `oneuptime-ai-agent-write` 執行；它在訂用帳戶上具有一個自訂角色，含已開啟變更的權限，並且只附加到代理程式的 Container App 上：代理程式為每項變更要求它的權杖。它連線時使用的金鑰保存為 Container Apps 祕密。 |
 | Google Cloud 專案 | Google Cloud Shell | 一台執行 Container-Optimized OS 的 `e2-micro` 類型 Compute Engine 虛擬機器 `oneuptime-ai-agent`，位於沒有任何防火牆規則的專用網路中，因此任何東西都無法連線到它。它以服務帳戶 `oneuptime-ai-agent` 的身分執行，該服務帳戶只能讀取。每項變更都以第二個服務帳戶 `oneuptime-ai-agent-write` 的身分執行，該帳戶在專案上具有一個自訂角色，含已開啟變更的權限；代理程式只為這一項變更要求它的權杖，有效期 15 分鐘。它連線時使用的金鑰保存在 Secret Manager 中，只有代理程式自己的服務帳戶可以讀取，再次執行該指令會銷毀金鑰的舊版本。虛擬機器每次啟動時讀取該金鑰，從不將其保存在磁碟或中繼資料中。在 **更多欄位** 的 **代理程式的執行位置** 中，可以改為選擇一律分配 CPU 的 Cloud Run 服務，適用於不允許任何虛擬機器擁有外部 IP 位址的專案。 |
 
-要在其他地方執行代理程式，請使用 **更多欄位** 中列出的變數部署其映像檔，並給它與指令相同的東西：在 AWS 上，一個只能擔任 `OneUptimeAiAgentWrite` 的角色，寫入角色信任該角色並具有已開啟變更的權限；在 Azure 上，一個唯讀的專屬受控識別，以及附加到其執行位置的寫入識別 `oneuptime-ai-agent-write`；在 Google Cloud 上，一個唯讀的服務帳戶，以及它對寫入服務帳戶 `oneuptime-ai-agent-write` 的 Service Account Token Creator（`roles/iam.serviceAccountTokenCreator`）角色。
+要在其他地方執行代理程式，請使用 **更多欄位** 中列出的變數部署其映像檔，並給它與指令相同的東西：
+
+- **AWS：** 一個只能擔任寫入角色 `OneUptimeAiAgentWrite` 的角色，寫入角色信任該角色並具有已開啟變更的權限。
+- **Azure：** 一個唯讀的專屬受控識別，以及附加到其執行位置的寫入識別 `oneuptime-ai-agent-write`。
+- **Google Cloud：** 一個唯讀的服務帳戶，以及它對寫入服務帳戶 `oneuptime-ai-agent-write` 的 Service Account Token Creator（`roles/iam.serviceAccountTokenCreator`）角色。
 
 該指令只在為其撰寫的帳戶中有效：在 AWS 上，如果 Shell 登入的是另一個帳戶，它不會建立任何內容；Azure 和 Google Cloud 的指令則會在每次呼叫時指明其訂用帳戶或專案。它會設定 `ONEUPTIME_AI_INVESTIGATION=true`、依您的回答設定 `ONEUPTIME_AI_FIXES`、設定 `ONEUPTIME_AI_ALLOW_WRITES=true`，並將 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 設為為其撰寫指令的帳戶。代理程式依其雲端所回報的所在帳戶註冊，從不向 OneUptime 新增帳戶：如果在與其指令不同的帳戶中啟動，它會被拒絕，為其撰寫指令的帳戶會在其頁面上說明原因；如果在專案的任何連線都不讀取的帳戶中啟動，它同樣會被拒絕，其日誌會說明這一點。
 
