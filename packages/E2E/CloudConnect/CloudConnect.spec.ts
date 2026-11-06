@@ -4418,6 +4418,72 @@ async function expectOnlyItsOwnReads(page: Page, arn: string): Promise<void> {
   expect(state.realtime.length).toBeGreaterThan(0);
 }
 
+// The list's header as it is drawn: each column's title, in its drawn case.
+async function drawnHeaders(page: Page): Promise<Array<string>> {
+  return await page
+    .getByTestId("logs-table")
+    .locator("thead th")
+    .evaluateAll((cells: Array<Element>): Array<string> => {
+      return cells
+        .map((cell: Element): string => {
+          return (
+            (cell.querySelector("span") as HTMLElement | null)?.innerText || ""
+          ).trim();
+        })
+        .filter(Boolean);
+    });
+}
+
+/*
+ * How the line under "No logs found" reads against the list behind it:
+ * its WCAG contrast ratio, from the colours the browser draws.
+ */
+async function emptyHintContrast(page: Page): Promise<number> {
+  return await page
+    .getByTestId("logs-table-empty")
+    .evaluate((empty: Element): number => {
+      const lines: NodeListOf<HTMLElement> = empty.querySelectorAll("p");
+      const hint: HTMLElement = lines[lines.length - 1]!;
+
+      const channels: (color: string) => Array<number> = (
+        color: string,
+      ): Array<number> => {
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const context: CanvasRenderingContext2D = canvas.getContext("2d")!;
+        context.fillStyle = color;
+        context.fillRect(0, 0, 1, 1);
+        return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+      };
+      const luminance: (color: string) => number = (color: string): number => {
+        const [red, green, blue] = channels(color).map(
+          (channel: number): number => {
+            const value: number = channel / 255;
+            return value <= 0.03928
+              ? value / 12.92
+              : Math.pow((value + 0.055) / 1.055, 2.4);
+          },
+        );
+        return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+      };
+
+      let behind: Element | null = hint;
+      let background: string = "rgba(0, 0, 0, 0)";
+      while (behind) {
+        background = getComputedStyle(behind).backgroundColor;
+        if (background !== "rgba(0, 0, 0, 0)" && background !== "transparent") {
+          break;
+        }
+        behind = behind.parentElement;
+      }
+
+      const text: number = luminance(getComputedStyle(hint).color);
+      const back: number = luminance(background);
+      return (Math.max(text, back) + 0.05) / (Math.min(text, back) + 0.05);
+    });
+}
+
 test.describe("a cloud resource's streamed Logs", () => {
   test("a database's Logs: its log group's rows, each line's severity as its level says, and nothing else's", async ({
     page,
@@ -4450,6 +4516,18 @@ test.describe("a cloud resource's streamed Logs", () => {
     await expect(page.getByTestId("locked-filter-chip-value")).toHaveText(
       "orders-db",
     );
+
+    /*
+     * Every header of the list in one case: Time and Severity are sort
+     * buttons, which once kept the case they are written in beside
+     * SERVICE and MESSAGE.
+     */
+    expect(await drawnHeaders(page)).toEqual([
+      "TIME",
+      "SERVICE",
+      "SEVERITY",
+      "MESSAGE",
+    ]);
 
     /*
      * Each line stays readable where the list draws it: never narrower than
@@ -4556,6 +4634,8 @@ test.describe("a cloud resource's streamed Logs", () => {
     const empty: Locator = page.getByTestId("logs-table-empty");
     await expect(empty).toContainText(NO_LOGS_IN_RANGE);
     await expect(empty).not.toContainText(NO_STREAMED_LOGS);
+    // What to do reads as text should: at least 4.5:1 against the list.
+    expect(await emptyHintContrast(page)).toBeGreaterThanOrEqual(4.5);
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "resource-logs-empty-range");
 
@@ -4673,6 +4753,15 @@ test.describe("a cloud resource's streamed Logs", () => {
     await expect(page.getByTestId("logs-table-empty")).toContainText(
       wordIn(GERMAN, NO_LOGS_IN_RANGE),
     );
+    // The header in German capitals, and the line readable in the dark.
+    expect(await drawnHeaders(page)).toEqual(
+      ["Time", "Service", "Severity", "Message"].map(
+        (title: string): string => {
+          return wordIn(GERMAN, title).toLocaleUpperCase("de");
+        },
+      ),
+    );
+    expect(await emptyHintContrast(page)).toBeGreaterThanOrEqual(4.5);
     await shoot(page, "resource-logs-empty-dark-de");
   });
 
@@ -4702,6 +4791,20 @@ test.describe("a cloud resource's streamed Logs", () => {
     expect(wordIn(PERSIAN, NO_LOGS_IN_RANGE)).not.toBe(NO_LOGS_IN_RANGE);
     await expect(page.getByTestId("logs-table-empty")).toContainText(
       wordIn(PERSIAN, NO_LOGS_IN_RANGE),
+    );
+    /*
+     * It sends the reader where the Persian Dashboard's own menu says:
+     * its words for Cloud > Connect and for the row's Stream metrics and
+     * logs, never the English menu inside a Persian sentence.
+     */
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      `${wordIn(PERSIAN, "Cloud")} > ${wordIn(PERSIAN, "Connect")}`,
+    );
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      wordIn(PERSIAN, "Stream metrics and logs"),
+    );
+    await expect(page.getByTestId("logs-table-empty")).not.toContainText(
+      "Cloud >",
     );
     await shoot(page, "resource-logs-empty-fa");
   });

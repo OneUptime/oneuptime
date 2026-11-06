@@ -335,7 +335,10 @@ describe("a cloud resource's Logs tab", () => {
       "utf8",
     );
     const connections: string = fs.readFileSync(
-      path.join(dashboardDir, "Components/Cloud/Connect/CloudConnectionsTable.tsx"),
+      path.join(
+        dashboardDir,
+        "Components/Cloud/Connect/CloudConnectionsTable.tsx",
+      ),
       "utf8",
     );
 
