@@ -1,4 +1,7 @@
 import HCaptcha from "@hcaptcha/react-hcaptcha";
+import FieldError, {
+  FIELD_ERROR_COLOR_CLASS_NAME,
+} from "../Forms/Fields/FieldError";
 import { Theme, useTheme } from "../../Utils/Theme";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -51,7 +54,11 @@ const Captcha: React.FC<CaptchaProps> = ({
 
   if (!siteKey) {
     return (
-      <div className={className || "text-center text-sm text-red-500"}>
+      <div
+        className={
+          className || `text-center text-sm ${FIELD_ERROR_COLOR_CLASS_NAME}`
+        }
+      >
         {translator.translateText("Captcha is not configured.")}
       </div>
     );
@@ -77,7 +84,11 @@ const Captcha: React.FC<CaptchaProps> = ({
           onBlur?.();
         }}
       />
-      {error && <span className="text-sm text-red-500">{error}</span>}
+      {/*
+       * The field's error, in every field's red and read as it is written
+       * (FieldError): a light red of its own read at 3.8:1 on white.
+       */}
+      {error && <FieldError message={error} className="text-sm" />}
     </div>
   );
 };

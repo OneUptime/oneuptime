@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 
 export interface ComponentProps {
   text: string;
@@ -8,6 +9,12 @@ export interface ComponentProps {
    * (SetupGuideContent.wrapLongLines).
    */
   wrapLongLines?: boolean | undefined;
+  /*
+   * The way the guide's words read, when they are the reader's language
+   * (SetupGuideContent.language): every block that way. Left out, each
+   * block reads the way most of its letters do.
+   */
+  direction?: ReadingDirection | undefined;
 }
 
 /*
@@ -41,7 +48,7 @@ const SetupGuideMarkdown: FunctionComponent<ComponentProps> = (
         .join(" ")
         .trim()}
     >
-      <MarkdownViewer text={props.text} />
+      <MarkdownViewer text={props.text} readingDirection={props.direction} />
     </div>
   );
 };

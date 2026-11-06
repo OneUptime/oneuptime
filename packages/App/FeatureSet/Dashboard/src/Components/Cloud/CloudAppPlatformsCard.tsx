@@ -21,8 +21,10 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  getAppPlatformsAppsRoute,
+  getAppPlatformsEnvironmentsRoute,
+} from "../AppPlatforms/AppPlatformsListRoutes";
 import AppLink from "../AppLink/AppLink";
 
 /*
@@ -36,12 +38,12 @@ import AppLink from "../AppLink/AppLink";
  *
  * App Platforms finds an environment from its telemetry, whatever account
  * it is in, and its lists hold every one: an environment in an account no
- * connection reads is in them too. The card says how many there are of
- * those, so a list that holds more than the count it was opened from says
- * why (#5646's review). It names App Platforms and says "not connected to
- * Cloud", the words Cloud > Connect uses: on a phone the card's
- * description is folded away, and "the lists" or "an account Cloud does
- * not read" said nothing there (#5702's review).
+ * connection reads is in them too. So each count opens its list with the
+ * Cloud Account chip set to the accounts it counted
+ * (AppPlatformsListRoutes): the list holds exactly what the card counts,
+ * and the chip, which can be cleared, says why it holds no more. Before,
+ * the lists opened whole, and the card had to say what else they held
+ * (#5646's and #5702's reviews).
  */
 
 export const APP_PLATFORMS_CARD_TITLE: string = translationKey("App Platforms");
@@ -56,18 +58,15 @@ export const APP_PLATFORMS_APPS: PluralTemplate = {
   one: "{{count}} app",
   other: "{{count}} apps",
 };
-export const APP_PLATFORMS_OTHER_ENVIRONMENTS: PluralTemplate = {
-  one: "App Platforms also lists {{count}} environment, with its apps, from an account not connected to Cloud.",
-  other:
-    "App Platforms also lists {{count}} environments, with their apps, from accounts not connected to Cloud.",
-};
-
 export interface CloudAppPlatformsCounts {
   // In the accounts Cloud reads.
   environments: number;
   apps: number;
-  // In accounts no connection here reads: App Platforms lists them too.
-  otherEnvironments: number;
+  /*
+   * Those accounts, as the environments' own telemetry names them - the
+   * values the lists' Cloud Account chip filters by - each once.
+   */
+  accountIds: Array<string>;
 }
 
 // How an account is matched to an environment: its cloud and its id there.
@@ -90,7 +89,7 @@ export async function fetchCloudAppPlatformsCounts(
   );
 
   if (keys.size === 0) {
-    return { environments: 0, apps: 0, otherEnvironments: 0 };
+    return { environments: 0, apps: 0, accountIds: [] };
   }
 
   const environments: ListResult<CloudResource> =
@@ -106,27 +105,35 @@ export async function fetchCloudAppPlatformsCounts(
       limit: LIMIT_PER_PROJECT,
     });
 
-  const listed: Array<CloudResource> = environments.data.filter(
+  const inAccounts: Array<CloudResource> = environments.data.filter(
     (environment: CloudResource): boolean => {
-      return Boolean(environment._id);
+      return (
+        Boolean(environment._id) &&
+        keys.has(
+          toAccountKey(
+            (environment.cloudProvider as string) || "",
+            (environment.cloudAccountId as string) || "",
+          ),
+        )
+      );
     },
   );
-  const ids: Array<ObjectID> = listed
-    .filter((environment: CloudResource): boolean => {
-      return keys.has(
-        toAccountKey(
-          (environment.cloudProvider as string) || "",
-          (environment.cloudAccountId as string) || "",
-        ),
-      );
-    })
-    .map((environment: CloudResource): ObjectID => {
+  const ids: Array<ObjectID> = inAccounts.map(
+    (environment: CloudResource): ObjectID => {
       return new ObjectID(environment._id!.toString());
-    });
-  const otherEnvironments: number = listed.length - ids.length;
+    },
+  );
+  // As each environment stores it, so the lists' chip matches them exactly.
+  const accountIds: Array<string> = Array.from(
+    new Set(
+      inAccounts.map((environment: CloudResource): string => {
+        return ((environment.cloudAccountId as string) || "").trim();
+      }),
+    ),
+  ).sort();
 
   if (ids.length === 0) {
-    return { environments: 0, apps: 0, otherEnvironments };
+    return { environments: 0, apps: 0, accountIds: [] };
   }
 
   const apps: number = await ModelAPI.count({
@@ -134,7 +141,7 @@ export async function fetchCloudAppPlatformsCounts(
     query: { cloudResourceId: new Includes(ids) },
   });
 
-  return { environments: ids.length, apps: apps || 0, otherEnvironments };
+  return { environments: ids.length, apps: apps || 0, accountIds };
 }
 
 const CountLink: FunctionComponent<{
@@ -212,9 +219,7 @@ const CloudAppPlatformsCard: FunctionComponent<ComponentProps> = (
       >
         <div className="grid grid-cols-1 gap-3 [@container(min-width:28rem)]:grid-cols-2">
           <CountLink
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENTS] as Route,
-            )}
+            to={getAppPlatformsEnvironmentsRoute(counts.accountIds)}
             icon={IconProp.Cloud}
             text={translator.translatePlural(
               APP_PLATFORMS_ENVIRONMENTS,
@@ -223,27 +228,12 @@ const CloudAppPlatformsCard: FunctionComponent<ComponentProps> = (
             testId="cloud-app-platforms-environments"
           />
           <CountLink
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.APP_PLATFORMS_APPS] as Route,
-            )}
+            to={getAppPlatformsAppsRoute(counts.accountIds)}
             icon={IconProp.Squares}
             text={translator.translatePlural(APP_PLATFORMS_APPS, counts.apps)}
             testId="cloud-app-platforms-apps"
           />
         </div>
-        {counts.otherEnvironments > 0 ? (
-          <p
-            data-testid="cloud-app-platforms-other-environments"
-            className="mt-3 text-sm text-gray-500"
-          >
-            {translator.translatePlural(
-              APP_PLATFORMS_OTHER_ENVIRONMENTS,
-              counts.otherEnvironments,
-            )}
-          </p>
-        ) : (
-          <></>
-        )}
       </div>
     </Card>
   );

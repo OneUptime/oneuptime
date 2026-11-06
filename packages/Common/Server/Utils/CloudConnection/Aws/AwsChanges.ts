@@ -14,6 +14,7 @@ import {
   CloudReadBudget,
 } from "../CloudConnectorTypes";
 import { AwsCredentials, awsErrorCodeOf, sendAwsRequest } from "./AwsApi";
+import { describeAwsHealthEventType } from "../../../../Utils/Telemetry/CloudChangeTitle";
 
 /*
  * WHAT CHANGED IN AN AWS ACCOUNT, AND WHAT AWS SAYS ABOUT ITS HEALTH.
@@ -251,31 +252,13 @@ export async function lookupAwsChanges(data: {
   return { changes, complete: false, auditRecords };
 }
 
-// AWS Health's event codes read as words: "AWS_EC2_OPERATIONAL_ISSUE" -> "EC2 operational issue".
-export function describeAwsHealthEventType(code: string): string {
-  const words: Array<string> = code
-    .split("_")
-    .filter((word: string): boolean => {
-      return word.length > 0;
-    });
-
-  if (words[0] === "AWS") {
-    words.shift();
-  }
-
-  if (words.length === 0) {
-    return code;
-  }
-
-  const service: string = words.shift()!;
-
-  return [
-    service,
-    ...words.map((word: string): string => {
-      return word.toLowerCase();
-    }),
-  ].join(" ");
-}
+/*
+ * AWS Health's event codes read as words: "AWS_EC2_OPERATIONAL_ISSUE" ->
+ * "EC2 operational issue". The words are written beside the title's reader
+ * (Utils/Telemetry/CloudChangeTitle), which words the kind of event in a
+ * reader's language from the code kept as the operation.
+ */
+export { describeAwsHealthEventType };
 
 /*
  * The account's health events updated since `start`: issues, scheduled

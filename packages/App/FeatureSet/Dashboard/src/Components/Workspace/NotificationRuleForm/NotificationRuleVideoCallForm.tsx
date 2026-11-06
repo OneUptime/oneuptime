@@ -278,9 +278,7 @@ const NotificationRuleVideoCallForm: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {props.error && (
-        <FieldError message={props.error} className="text-sm text-red-600" />
-      )}
+      {props.error && <FieldError message={props.error} className="text-sm" />}
     </div>
   );
 };

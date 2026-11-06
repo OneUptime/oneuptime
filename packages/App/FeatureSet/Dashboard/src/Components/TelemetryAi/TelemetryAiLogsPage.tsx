@@ -532,7 +532,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
         </div>
 
         {loadMoreError ? (
-          <p className="text-center text-sm text-red-500" role="alert">
+          <p className="text-center text-sm text-red-700" role="alert">
             {translator.translateTemplate(couldNotLoad, {
               error: loadMoreError,
             })}

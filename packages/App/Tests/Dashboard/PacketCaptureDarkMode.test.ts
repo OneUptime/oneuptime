@@ -218,8 +218,11 @@ describe("packet captures in the dark theme", () => {
         "bg-gray-50",
         "text-gray-900",
         "text-gray-600",
-        // The filter preview and its errors.
-        "text-red-600",
+        /*
+         * The filter preview. Its error is drawn by FieldError, in the red
+         * every field's error shares, which these files only place
+         * (FieldErrorColorGuard).
+         */
         "bg-gray-100",
         // The action error above the list.
         "border-red-200",

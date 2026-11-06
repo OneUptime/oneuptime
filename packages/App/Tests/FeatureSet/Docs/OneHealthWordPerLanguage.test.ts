@@ -19,8 +19,11 @@ import path from "path";
  *   zh-TW 健康, fa سلامت.
  * - Every translated string whose English names health says the word. A
  *   string a language has not translated yet is the i18n ratchet's business;
- *   health in its medical sense (health records, health insurance) and the
- *   literal command and path (ceph health detail, /health) are other words.
+ *   health in its medical sense (health records, health insurance), the
+ *   literal command and path (ceph health detail, /health) and the clouds'
+ *   own services by name, which a health event's title starts with (AWS
+ *   Health, Azure Service Health, Azure Resource Health, Google Cloud
+ *   Service Health: #6060), are other words.
  * - The other words are gone: no Dashboard or Admin Dashboard string, docs
  *   page, docs menu entry or API reference string of the language uses them.
  */
@@ -55,9 +58,12 @@ const APPS: Array<string> = ["Dashboard", "AdminDashboard"];
 
 const NAMES_HEALTH: RegExp = /\bhealth\b/i;
 
-// Health in its medical sense, and health as a literal command or path.
+/*
+ * Health in its medical sense, health as a literal command or path, and a
+ * cloud's health service by its name at the start of a health event's title.
+ */
 const NOT_THE_WORD: RegExp =
-  /health (insurance|records?|information|plan|data|identifiers|details)|National Health Service|^Health information$|^Health, Government|health detail|\/health/i;
+  /health (insurance|records?|information|plan|data|identifiers|details)|National Health Service|^Health information$|^Health, Government|health detail|\/health|^(AWS|Azure Service|Azure Resource|Google Cloud Service) Health:/i;
 
 function readStrings(app: string, language: string): Strings {
   return JSON.parse(
@@ -305,5 +311,10 @@ describe("one word for health in each language", () => {
         "ヘルス",
       ),
     ).toEqual([]);
+    // A cloud's health service is named, not worded; a service's health is the word.
+    expect(NOT_THE_WORD.test("AWS Health: {{event}} (open)")).toBe(true);
+    expect(NOT_THE_WORD.test("Azure Resource Health: {{event}}")).toBe(true);
+    expect(NOT_THE_WORD.test("Service health")).toBe(false);
+    expect(NOT_THE_WORD.test("Service Health")).toBe(false);
   });
 });

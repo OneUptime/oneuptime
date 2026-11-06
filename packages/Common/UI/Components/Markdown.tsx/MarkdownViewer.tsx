@@ -101,6 +101,7 @@ import {
   getShownMarkdownReadingDirection,
   rehypeBlocksReadTheirOwnWay,
 } from "./MarkdownReadingDirection";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
 import MarkdownLink from "./MarkdownLink";
 import MarkdownBlockquote, { useMarkdownTextClassName } from "./MarkdownQuote";
 import { remarkMarkdownCallouts } from "./MarkdownCallouts";
@@ -329,6 +330,16 @@ export interface ComponentProps {
    * no extra remark plugin runs.
    */
   inlineReferences?: MarkdownInlineReferenceRenderers | undefined;
+  /*
+   * The way the text is read, when whoever wrote it knows: a guide
+   * OneUptime words in the reader's language (SetupGuideContent.language)
+   * is laid out that language's way, every block of it. Unset, the text
+   * and each of its blocks read the way most of their letters do
+   * (MarkdownReadingDirection), as a note someone typed: a Persian step
+   * naming more English console labels than Persian words was laid out
+   * left to right, its numbers on the wrong side.
+   */
+  readingDirection?: ReadingDirection | undefined;
 }
 
 /*
@@ -354,16 +365,20 @@ const INLINE_REFERENCE_TRANSFORM_OPTIONS: InlineReferenceTransformOptions = {
 const MarkdownViewerFrame: FunctionComponent<{
   inlineReferences: MarkdownInlineReferenceRenderers | undefined;
   text: string;
+  readingDirection: ReadingDirection | undefined;
   children: ReactNode;
 }> = (props: {
   inlineReferences: MarkdownInlineReferenceRenderers | undefined;
   text: string;
+  readingDirection: ReadingDirection | undefined;
   children: ReactNode;
 }): ReactElement => {
   const frame: ReactElement = (
     <div
       className="max-w-none"
-      dir={getShownMarkdownReadingDirection(props.text)}
+      dir={
+        props.readingDirection || getShownMarkdownReadingDirection(props.text)
+      }
     >
       {props.children}
     </div>
@@ -1135,6 +1150,14 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
   }, [safeMode, hasInlineReferences]);
 
   /*
+   * Each block of a note reads the way most of its letters do
+   * (rehypeBlocksReadTheirOwnWay), unless whoever wrote the text gave its
+   * direction: then it reads that way whole.
+   */
+  const blockDirections: Array<typeof rehypeBlocksReadTheirOwnWay> =
+    props.readingDirection ? [] : [rehypeBlocksReadTheirOwnWay];
+
+  /*
    * More Markdown than react-markdown reads in good time is left even after
    * holding back - a log of megabytes whose lines each hold a "|" or a "<",
    * a table of thousands of rows: the text is shown as it was written, its
@@ -1145,6 +1168,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       <MarkdownViewerFrame
         inlineReferences={inlineReferences}
         text={props.text}
+        readingDirection={props.readingDirection}
       >
         {/*
          * Each of its lines reads the way its first letter does
@@ -1161,7 +1185,11 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <MarkdownViewerFrame inlineReferences={inlineReferences} text={props.text}>
+    <MarkdownViewerFrame
+      inlineReferences={inlineReferences}
+      text={props.text}
+      readingDirection={props.readingDirection}
+    >
       <ReactMarkdown
         components={components}
         urlTransform={markdownUrlTransform}
@@ -1177,7 +1205,8 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         rehypePlugins={
           /*
            * The held-back text first, so each block's direction is read
-           * from its whole text.
+           * from its whole text. A text whose direction its writer gave
+           * reads that way whole: no block is turned by its letters.
            */
           heldBack.held.length > 0
             ? [
@@ -1185,9 +1214,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                   rehypePutBackHeldText,
                   { held: heldBack.held, heldLines: heldBack.heldLines },
                 ],
-                rehypeBlocksReadTheirOwnWay,
+                ...blockDirections,
               ]
-            : [rehypeBlocksReadTheirOwnWay]
+            : blockDirections
         }
       >
         {heldBack.markdown}

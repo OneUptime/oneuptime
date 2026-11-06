@@ -488,7 +488,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
         <FieldError
           id={errorId}
           message={props.error}
-          className={`mt-1 text-sm text-red-400 ${
+          className={`mt-1 text-sm ${
             hasTitle || hasDescription ? "pl-14" : ""
           }`}
         />

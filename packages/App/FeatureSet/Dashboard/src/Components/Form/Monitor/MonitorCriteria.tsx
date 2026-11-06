@@ -388,16 +388,31 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                       )}
                                     </div>
                                   </div>
+                                  {/*
+                                   * Where the criteria sits in the order, in
+                                   * the reader's words and digits ("1 von
+                                   * 2", "۱ از ۲"), and in the grey of the
+                                   * summary beside the name: the English
+                                   * "1 of 2" read "of 2 1" on a Persian page,
+                                   * and its lighter grey was 2.4:1 on the
+                                   * header's ground.
+                                   */}
                                   <div className="flex items-center ml-2">
-                                    <span className="text-xs text-gray-400 mr-2">
+                                    <span
+                                      className="text-xs text-gray-500 mr-2"
+                                      data-testid="monitor-criteria-position"
+                                    >
                                       {translator.translateTemplate(
                                         "{{position}} of {{total}}",
                                         {
-                                          position: index + 1,
-                                          total:
+                                          position: translator.formatNumber(
+                                            index + 1,
+                                          ),
+                                          total: translator.formatNumber(
                                             monitorCriteria.data
                                               ?.monitorCriteriaInstanceArray
                                               .length || 0,
+                                          ),
                                         },
                                       )}
                                     </span>

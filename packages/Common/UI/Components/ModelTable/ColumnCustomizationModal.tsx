@@ -710,7 +710,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
       if (config.errorMessage) {
         return (
           <p
-            className="px-3 py-4 text-sm text-red-500"
+            className="px-3 py-4 text-sm text-red-700"
             data-testid="add-column-error"
           >
             {config.errorMessage}

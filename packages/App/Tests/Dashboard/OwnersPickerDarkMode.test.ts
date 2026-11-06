@@ -184,8 +184,6 @@ const DARK_TILE_STOPS: Array<string> = [
  * else Theme.css does not remap keeps its light colour in the dark theme.
  */
 const RIGHT_IN_BOTH_THEMES: Record<string, string> = {
-  // The house colour of a form field's error, as FormField draws its own.
-  "text-red-400": "a light red reads on white and on slate",
   // The Owners card's round add button turns indigo-600 under the pointer.
   "hover:text-white": "white on the indigo-600 hover fill, in both themes",
   /*

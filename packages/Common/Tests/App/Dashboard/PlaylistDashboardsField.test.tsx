@@ -4,6 +4,7 @@ import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import React from "react";
 import { DashboardPlaylistDashboard } from "../../../Types/Dashboard/DashboardPlaylist";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../UI/Components/Forms/Fields/FieldError";
 
 /*
  * A playlist's Dashboards field (issue #5235), on the playlist's create and
@@ -256,9 +257,9 @@ describe("telling the form", () => {
       screen.getByRole("combobox", { name: "Add a dashboard" }),
     ).toHaveAttribute("aria-invalid", "true");
     expect(screen.getAllByTestId("error-message")).toHaveLength(1);
-    // The colour every field's error line has (Input, Dropdown, Color).
+    // The red every field's error line has (Input, Dropdown, Color).
     expect(screen.getByTestId("error-message").className).toContain(
-      "text-red-400",
+      FIELD_ERROR_COLOR_CLASS_NAME,
     );
   });
 
