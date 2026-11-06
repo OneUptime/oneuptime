@@ -544,10 +544,20 @@ describe("a cloud account's own pages", () => {
 
     expect(sections).toContainEqual({
       title: "Basic",
-      items: ["Overview", "Resources", "Topology", "Costs"],
+      items: ["Overview", "Resources", "Topology", "Recommendations", "Costs"],
     });
     expect(accounts).toContain(
       "with their resources by type and Region, their **Costs**, their **Changes**, and a **Topology**",
+    );
+    /*
+     * The account's recommended monitors, by type of resource, and the
+     * count its menu entry shows; a resource's own tab offers its own.
+     */
+    expect(accounts).toContain(
+      "- **Recommended monitors.** An account's **Recommendations** lists the monitors OneUptime recommends for its resources, by type of resource,",
+    );
+    expect(accounts).toContain(
+      "and the side menu counts the ones still to set up. A resource's own **Recommendations** tab offers its own.",
     );
     // What AI did first, its agent last, as every resource's AI section.
     expect(sections).toContainEqual({

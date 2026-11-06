@@ -627,6 +627,8 @@ Instalações auto-hospedadas podem mudar esses valores com variáveis de ambien
 
 ## Alertas sobre um recurso
 
+Um recurso de uma [conta conectada](/docs/telemetry/cloud-accounts) recebe, na aba **Recomendações**, os monitores que o OneUptime recomenda para o tipo dele, cada um criado em uma etapa. Para alertar sobre qualquer outra métrica que ele informe:
+
 :::steps
 1. Abra o recurso e a aba **Métricas** dele, que lista todas as métricas que o provedor informa sobre ele.
 2. Abra uma métrica para vê-la em gráfico no explorador de métricas, já filtrada para o recurso.

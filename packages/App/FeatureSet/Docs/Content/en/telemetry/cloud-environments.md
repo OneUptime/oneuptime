@@ -118,7 +118,7 @@ The first attribute the telemetry carries names the app, so an app on a platform
 - **Both are changes.** Each is a dashed line on the app's and the environment's charts, a line in the environment's **Feed**, and a [change event](/docs/telemetry/change-events) that OneUptime AI reads when it investigates an incident on the environment. **Recent deploys** on **App Platforms → Overview** lists the newest.
 - **At most 12 new revisions of an app are recorded in an hour.** A `service.version` that changes with every build would otherwise be a deploy a minute.
 
-An app's page has an **Overview** with its requests, errors, latency, instances and the revisions running now, a **Revisions** tab with each revision's numbers, and **Instances**, **Logs** and **Traces** tabs filtered to the app. **Set up alerts** opens the recommended monitors of the app's service under **Services**.
+An app's page has an **Overview** with its requests, errors, latency, instances and the revisions running now, a **Revisions** tab with each revision's numbers, **Instances**, **Logs** and **Traces** tabs filtered to the app, and a **Recommendations** tab with the monitors OneUptime recommends for it: failed operations, error bursts, traffic that stops and slow requests, read from the app's own spans and its `http.server.request.duration`, each linked to the app's environment. **Set up alerts** opens it; for an app whose name is too long to filter its telemetry by, it opens the recommended monitors of the app's service under **Services** instead.
 
 An app that sends nothing for 30 days is removed with its revisions, and so is a revision no instance reports for 30 days, unless the app still runs it. On a self-hosted OneUptime, `CLOUD_APP_RETENTION_DAYS` sets the 30.
 
