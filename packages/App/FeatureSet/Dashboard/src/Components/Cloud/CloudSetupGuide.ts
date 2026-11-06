@@ -1850,7 +1850,7 @@ export function getCloudSetupGuide(
     getManagedCloudPlatformDescriptor(resolveCloudPlatform(options.platform))!;
   const translator: Translator = options.translator || ENGLISH;
 
-  return CLOUD_GUIDE_BUILDERS[descriptor.platform]({
+  const content: SetupGuideContent = CLOUD_GUIDE_BUILDERS[descriptor.platform]({
     oneuptimeUrl: options.oneuptimeUrl,
     apiKey: options.apiKey,
     descriptor: descriptor,
@@ -1861,4 +1861,12 @@ export function getCloudSetupGuide(
         : translator.translateText(text) || text;
     },
   });
+
+  /*
+   * Every sentence is the translator's language, so the card lays the
+   * guide out that language's way: a Persian guide right to left, every
+   * block - a step of console labels holds more English letters than
+   * Persian ones, and read by them it was laid out left to right.
+   */
+  return { ...content, language: translator.language };
 }

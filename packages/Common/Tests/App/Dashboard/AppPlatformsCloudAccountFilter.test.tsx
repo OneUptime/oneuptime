@@ -242,14 +242,37 @@ describe("the environments and apps the chip keeps to", () => {
     ).toEqual([ECS_PROD, CLOUD_RUN]);
   });
 
-  test("'is not' keeps every other environment, one that names no account too", () => {
+  /*
+   * As All Environments' own chip is answered: the server's NOT IN leaves
+   * out an environment whose account column holds nothing, so All Apps
+   * leaves its apps out too - the same chip keeps the same environments
+   * on both lists (the UI review of #6149).
+   */
+  test("'is not' keeps every other account's environments; one that names no account is in neither", () => {
     expect(
       getEnvironmentIdsForAccounts({
         environments,
         accountIds: [AWS_ACCOUNT],
         operator: "is_not",
       }),
-    ).toEqual([ECS_STAGING, CLOUD_RUN, NO_ACCOUNT]);
+    ).toEqual([ECS_STAGING, CLOUD_RUN]);
+    expect(
+      getEnvironmentIdsForAccounts({
+        environments,
+        accountIds: [AWS_ACCOUNT, OTHER_AWS_ACCOUNT, GCP_PROJECT],
+        operator: "is_not",
+      }),
+    ).toEqual([]);
+    // A blank pick (a hand-edited address) matches no environment either way.
+    for (const operator of ["is", "is_not"] as const) {
+      expect(
+        getEnvironmentIdsForAccounts({
+          environments,
+          accountIds: ["", " "],
+          operator,
+        }),
+      ).toEqual(operator === "is" ? [] : [ECS_PROD, ECS_STAGING, CLOUD_RUN]);
+    }
   });
 
   test("All Apps asks for those environments' apps, and for none when no environment is left", () => {

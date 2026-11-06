@@ -100,7 +100,10 @@ export function getCloudAccountFacetOptions(
 
 /*
  * The environments in the accounts picked - or, for "is not", in every
- * other account (one that names no account among them) - by id.
+ * other account - by id. An environment that names no account is in
+ * neither, as All Environments' own chip answers it (the server's NOT IN
+ * leaves out a column that holds nothing): the same chip set the same way
+ * keeps the same environments on both lists.
  */
 export function getEnvironmentIdsForAccounts(data: {
   environments: ReadonlyMap<string, CloudAccountEnvironment>;
@@ -115,9 +118,13 @@ export function getEnvironmentIdsForAccounts(data: {
   const ids: Array<string> = [];
 
   for (const [id, environment] of Array.from(data.environments.entries())) {
-    const isInAccounts: boolean = accounts.has(
-      (environment.cloudAccountId || "").trim(),
-    );
+    const accountId: string = (environment.cloudAccountId || "").trim();
+
+    if (!accountId) {
+      continue;
+    }
+
+    const isInAccounts: boolean = accounts.has(accountId);
 
     if (data.operator === "is_not" ? !isInAccounts : isInAccounts) {
       ids.push(id);

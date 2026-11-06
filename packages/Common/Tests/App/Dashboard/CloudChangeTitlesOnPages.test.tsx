@@ -75,8 +75,10 @@ import {
 import {
   CLOUD_CHANGE_TITLE_VALUE_CLASS_NAME,
   CloudChangeTitle,
+  getCloudChangeTitleDirection,
   getCloudChangeTitleText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudChangesTable";
+import { SECURITY_CASE_CONTEXT_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Context/SecurityCaseContextCopy";
 import {
   CHANGE_EVENT_MARKER_SUBTITLE,
   getChangeEventMarkerTitle,
@@ -392,6 +394,50 @@ describe("a change's title as the Changes list draws it", () => {
     expect(values(title)[0]!.textContent).toBe("CreateBucket");
   });
 
+  /*
+   * The UI review of #6149: a Persian health title starts with "AWS
+   * Health:", and its line, read by its first letter (dir="auto"), was laid
+   * out left to right - its event and its state in the wrong order for
+   * someone reading from the right. A title worded in the reader's language
+   * reads their way; a title as written reads its own.
+   */
+  test("its line reads the reader's way when it is worded in their language, its own way otherwise", () => {
+    const operationAlone: ChangeEvent = changeRow({
+      title: "CreateBucket",
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.Cloud,
+        [ChangeEventAttribute.CloudOperation]: "CreateBucket",
+        [ChangeEventAttribute.Status]: ChangeEventStatus.Succeeded,
+      },
+    });
+
+    for (const [language, way] of [
+      ["en", "ltr"],
+      ["de", "ltr"],
+      ["fa", "rtl"],
+    ] as Array<[string, string]>) {
+      const reader: ReturnType<typeof dashboardTranslator> =
+        dashboardTranslator(language);
+
+      expect({
+        language,
+        health: getCloudChangeTitleDirection(HEALTH_ROW, reader),
+        change: getCloudChangeTitleDirection(NEW_ROW, reader),
+        oldRow: getCloudChangeTitleDirection(OLD_ROW, reader),
+        deploy: getCloudChangeTitleDirection(DEPLOY_ROW, reader),
+        operationAlone: getCloudChangeTitleDirection(operationAlone, reader),
+      }).toEqual({
+        language,
+        health: way,
+        change: way,
+        oldRow: way,
+        // A pipeline's title, and an operation's name alone: as written.
+        deploy: "auto",
+        operationAlone: "auto",
+      });
+    }
+  });
+
   test("a health event, a deploy or a change with no title draws no boxes", async () => {
     let title: HTMLElement = await drawTitle("de", HEALTH_ROW);
     expect(values(title)).toHaveLength(0);
@@ -661,6 +707,39 @@ describe("the Security Connections card", () => {
     expect(changeTitles()[0]).toBe("Failed: DeleteLoadBalancer on web-alb");
     expect(changeTitles()[1]).toBe("AWS Health: EC2 operational issue (open)");
   });
+
+  // Each title set apart, and laid out the way it is read.
+  function titleDirections(): Array<string | null> {
+    return within(screen.getByTestId(SECURITY_CONNECTIONS_TEST_IDS.changes))
+      .getAllByTestId(SECURITY_CONNECTIONS_TEST_IDS.factItem)
+      .map((item: HTMLElement): string | null => {
+        return item.querySelector("bdi")?.getAttribute("dir") ?? null;
+      });
+  }
+
+  test("each title reads its own way: one worded in the reader's language theirs, one sent without facts as written", async () => {
+    await drawIn("fa");
+
+    // The health event too, though its first words are "AWS Health:".
+    expect(titleDirections()).toEqual(["rtl", "rtl", "auto"]);
+    expect(changeTitles()[1]).toBe(
+      withoutIsolateMarks(
+        dashboardTranslator("fa").translateTemplate(
+          "AWS Health: {{event}} (open)",
+          {
+            event: dashboardTranslator("fa").translateTemplate(
+              "{{service}} operational issue",
+              { service: "EC2" },
+            ),
+          },
+        ),
+      ),
+    );
+    cleanup();
+
+    await drawIn("de");
+    expect(titleDirections()).toEqual(["ltr", "ltr", "auto"]);
+  });
 });
 
 function story(): SecurityCaseStoryJson {
@@ -758,6 +837,43 @@ describe("a security case's story", () => {
     expect(
       screen.queryByText("AWS Health: EC2 operational issue (open)"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The UI review of #6149: a Persian health title starts with "AWS
+   * Health:", which a title read by its first letter laid out left to
+   * right. A change worded in the reader's language reads their way; the
+   * case's own steps, its own way.
+   */
+  test("a change worded in the reader's language reads their way, in Persian right to left", async () => {
+    getStoryMock.mockResolvedValue(story() as never);
+
+    await act(async () => {
+      render(
+        <I18nextProvider i18n={instances["fa"]!}>
+          <MemoryRouter>
+            <SecurityCaseStory caseId={new ObjectID(CASE_ID)} />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+    });
+
+    const items: Array<HTMLElement> = await screen.findAllByTestId(
+      SECURITY_CASE_CONTEXT_TEST_IDS.storyItem,
+    );
+    const changes: Array<HTMLElement> = items.filter(
+      (item: HTMLElement): boolean => {
+        return (
+          item.getAttribute("data-kind") === SecurityCaseStoryItemKind.Change
+        );
+      },
+    );
+
+    expect(changes).toHaveLength(2);
+
+    for (const item of changes) {
+      expect(item.querySelector("bdi")).toHaveAttribute("dir", "rtl");
+    }
   });
 });
 

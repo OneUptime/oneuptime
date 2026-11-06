@@ -89,7 +89,10 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getChangeTitleForReader } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  getChangeTitleDirection,
+  getChangeTitleForReader,
+} from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -667,13 +670,28 @@ const ConnectedRecord: FunctionComponent<{
                               <span
                                 className={CONNECTED_CHANGE_TITLE_CLASS_NAME}
                               >
-                                <bdi>
+                                {/*
+                                 * Set apart, each title its own way: one
+                                 * worded in the reader's language reads
+                                 * theirs - a Persian health event right to
+                                 * left, though it starts with "AWS
+                                 * Health:" - a deploy's or a pipeline's
+                                 * title its own (getChangeTitleDirection).
+                                 */}
+                                <bdi
+                                  dir={getChangeTitleDirection({
+                                    facts: change.cloudChange,
+                                    health: change.cloudHealth,
+                                    translator,
+                                  })}
+                                >
                                   {getChangeTitleForReader({
                                     title: change.title,
                                     eventType: change.eventType,
                                     facts: change.cloudChange,
                                     health: change.cloudHealth,
                                     translator,
+                                    options: { setsValuesApart: true },
                                   })}
                                 </bdi>
                               </span>

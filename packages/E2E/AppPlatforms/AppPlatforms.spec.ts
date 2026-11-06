@@ -189,15 +189,44 @@ async function recorded(page: Page): Promise<Recorded> {
 /*
  * A list's address with its Cloud Account chip set, as Cloud's Overview
  * links it (AppPlatformsListRoutes): the list's facet state under the URL
- * parameter its facet bar reads.
+ * parameter its facet bar reads. "is", unless the chip was turned round.
  */
-function accountChipQuery(tableId: string, accountIds: Array<string>): string {
+function accountChipQuery(
+  tableId: string,
+  accountIds: Array<string>,
+  operator: "is" | "is_not" = "is",
+): string {
   return `${tableId}-facets=${encodeURIComponent(
     JSON.stringify({
       facetSelections: { cloudAccountId: accountIds },
-      facetOperators: { cloudAccountId: "is" },
+      facetOperators: { cloudAccountId: operator },
     }),
   )}`;
+}
+
+/*
+ * Where each of a text's pieces starts on the screen, from the left: the
+ * order a reader sees them in, whatever order they are written in.
+ */
+async function leftEdgesOf(
+  locator: Locator,
+  pieces: Array<string>,
+): Promise<Array<number>> {
+  return await locator.evaluate(
+    (element: Element, wanted: Array<string>): Array<number> => {
+      const text: Node = element.firstChild!;
+      const written: string = text.textContent || "";
+      const range: Range = document.createRange();
+
+      return wanted.map((piece: string): number => {
+        const at: number = written.indexOf(piece);
+        range.setStart(text, at);
+        range.setEnd(text, at + piece.length);
+        return range.getBoundingClientRect().left;
+      });
+    },
+    pieces,
+  );
 }
 
 /*
@@ -923,6 +952,14 @@ test.describe("an environment's pages", () => {
     await expect(guide).toContainText("aws secretsmanager create-secret");
     await screenshot(page, "app-platforms-environment-documentation-de-1280");
 
+    /*
+     * The task definition's steps name more of the console's English labels
+     * than German words: a list in the reader's language reads its way.
+     */
+    await expect(
+      guide.getByTestId("setup-guide-step-3").locator("ol").first(),
+    ).toHaveCSS("direction", "ltr");
+
     await page.setViewportSize(PHONE);
     await open(page, `${CHECKOUT}/documentation?lang=fa`);
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
@@ -931,6 +968,29 @@ test.describe("an environment's pages", () => {
         PERSIAN[english]!,
       );
     }
+    /*
+     * Every block reads right to left (the UI review of #6149): the steps
+     * through the AWS console name more English labels than Persian
+     * words, and laid out by their letters they read left to right, their
+     * numbers on the wrong side.
+     */
+    const consoleSteps: Locator = page
+      .getByTestId("setup-guide-step-3")
+      .locator("ol")
+      .first();
+    await expect(consoleSteps).toHaveCSS("direction", "rtl");
+    expect(
+      await consoleSteps
+        .locator(":scope > li")
+        .evaluateAll((items: Array<Element>): Array<string> => {
+          return items.map((item: Element): string => {
+            return getComputedStyle(item).direction;
+          });
+        }),
+    ).not.toContain("ltr");
+    await expect(
+      page.getByTestId("setup-guide-step-3").locator("h3 + p"),
+    ).toHaveCSS("direction", "rtl");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-environment-documentation-fa-390");
   });
@@ -1830,6 +1890,89 @@ test.describe("All Environments and Archived", () => {
         .getByRole("button", { name: /^Cloud Account · / }),
     ).toContainText("4109-2277-8841");
     await screenshot(page, "app-platforms-apps-account-chip-1280");
+  });
+
+  /*
+   * The UI review of #6149: turned round, the chip keeps every other
+   * account's environments - and on All Apps their apps - and it says so in
+   * the reader's words. In Persian an account id after the chip's Persian
+   * name read with its digit groups the wrong way round ("8841-2277-4109"):
+   * it is set apart from the name now, and reads whole.
+   */
+  test("the Cloud Account chip turned to 'is not', in English, German and Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"], "is_not")}`,
+    );
+
+    await expect(
+      page.getByText("Showing 1-4 of 4 cloud environments"),
+    ).toBeVisible();
+    for (const name of ENVIRONMENT_NAMES.slice(2)) {
+      await expect(
+        page.getByRole("link", { name: name }).first(),
+      ).toBeVisible();
+    }
+    for (const name of ENVIRONMENT_NAMES.slice(0, 2)) {
+      await expect(page.getByRole("link", { name: name })).toHaveCount(0);
+    }
+    await expect(
+      page
+        .getByTestId("facet-filter-bar")
+        .getByRole("button", { name: "Cloud Account · not 4109-2277-8841" }),
+    ).toBeVisible();
+
+    // All Apps: the apps of every other account's environments.
+    await open(
+      page,
+      `${APP_PLATFORMS}/apps?${accountChipQuery("app-platforms-apps-table", ["4109-2277-8841"], "is_not")}`,
+    );
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(3);
+    for (const [index, name] of ["api", "reports", "worker"].entries()) {
+      await expect(rows.nth(index)).toContainText(name);
+    }
+
+    // In German, every word of the chip: its value and its popover.
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"], "is_not")}&lang=de`,
+    );
+    const germanChip: Locator = page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", {
+        name: `${GERMAN["Cloud Account"]} · nicht 4109-2277-8841`,
+      });
+    await expect(germanChip).toBeVisible();
+    await germanChip.click();
+    await expect(page.getByRole("dialog").getByRole("textbox")).toHaveAttribute(
+      "placeholder",
+      `${GERMAN["Cloud Account"]} suchen...`,
+    );
+    await page.keyboard.press("Escape");
+
+    // In Persian, the account id reads whole after the chip's Persian name.
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"])}&lang=fa`,
+    );
+    const value: Locator = page
+      .getByTestId("facet-filter-bar")
+      .getByTestId("filter-chip-value");
+    await expect(value).toHaveText("4109-2277-8841");
+    const [first, middle, last] = await leftEdgesOf(value, [
+      "4109",
+      "2277",
+      "8841",
+    ]);
+    expect(first!).toBeLessThan(middle!);
+    expect(middle!).toBeLessThan(last!);
+    await screenshot(page, "app-platforms-environments-account-chip-fa-1280");
   });
 
   test("Archived lists archived environments, and has none yet", async ({

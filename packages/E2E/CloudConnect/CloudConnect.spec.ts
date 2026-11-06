@@ -3044,8 +3044,12 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       expect(titles).not.toContain("AWS Health: EC2 operational issue (open)");
       await expectTitleValuesWhole(page);
       /*
-       * Each line in its own direction: a change worded in Persian reads
-       * right to left, the health event's English left to right.
+       * Each line the way its words read: every title here is worded in
+       * the reader's language, so in Persian every one reads right to left
+       * - the health event's too, though its first words are "AWS
+       * Health:", which read by its first letter put its event and its
+       * state in the wrong order (the UI review of #6149). The provider's
+       * own English words under it read left to right.
        */
       const directions: Array<string> = await page
         .getByTestId("cloud-change-title")
@@ -3054,10 +3058,18 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
             return getComputedStyle(element).direction;
           });
         });
-      expect(directions).toContain("ltr");
-      if (reader.code === "fa") {
-        expect(directions).toContain("rtl");
-      }
+      expect(directions.length).toBeGreaterThan(1);
+      expect(new Set(directions)).toEqual(
+        new Set([reader.code === "fa" ? "rtl" : "ltr"]),
+      );
+      const healthLine: Locator = page
+        .getByTestId("cloud-change-title")
+        .filter({ hasText: "AWS Health" });
+      await expect(healthLine).toHaveCount(1);
+      await expect(healthLine).toHaveCSS(
+        "direction",
+        reader.code === "fa" ? "rtl" : "ltr",
+      );
       await expect(page.getByTestId("cloud-change-detail")).toHaveCSS(
         "direction",
         "ltr",

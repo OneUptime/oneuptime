@@ -24,6 +24,7 @@ import {
   CloudHealthSource,
   CloudHealthTitleFacts,
   describeAwsHealthEventType,
+  getChangeTitleDirection,
   getChangeTitleForReader,
   getCloudChangeTitle,
   getCloudHealthTitle,
@@ -394,6 +395,105 @@ describe("what a page calls a change", () => {
         translator: english,
       }),
     ).toBe("");
+  });
+});
+
+/*
+ * Which way a page lays a change's title out (the UI review of #6149). A
+ * health title in Persian starts with its cloud's name - "AWS Health:" -
+ * and a line read by its first letter (dir="auto") was laid out left to
+ * right: its event and its state stood in the wrong order for someone
+ * reading from the right. A title OneUptime words for the reader reads
+ * their way; any other title its own.
+ */
+describe("which way a change's title reads", () => {
+  const HEALTH: CloudHealthTitleFacts = {
+    source: CloudHealthSource.Aws,
+    event: "EC2 operational issue",
+    status: "open",
+    awsEventTypeCode: "AWS_EC2_OPERATIONAL_ISSUE",
+  };
+  const CHANGE: CloudChangeTitleFacts = {
+    operation: OPERATION,
+    resource: RESOURCE,
+    failed: false,
+  };
+
+  test("a worded title reads the reader's way: right to left in Persian, left to right in every other language", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const reader: Translator = dashboardTranslator(language);
+      const way: string = language === "fa" ? "rtl" : "ltr";
+
+      expect({
+        language,
+        health: getChangeTitleDirection({
+          facts: null,
+          health: HEALTH,
+          translator: reader,
+        }),
+        change: getChangeTitleDirection({
+          facts: CHANGE,
+          translator: reader,
+        }),
+        failed: getChangeTitleDirection({
+          facts: { ...CHANGE, resource: "", failed: true },
+          translator: reader,
+        }),
+      }).toEqual({ language, health: way, change: way, failed: way });
+    }
+  });
+
+  test("so does every health source and state, the frame alone too", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    for (const health of [
+      { source: CloudHealthSource.AzureService, event: "Outage", status: "" },
+      {
+        source: CloudHealthSource.AzureResource,
+        event: "Unavailable",
+        status: "Available",
+      },
+      {
+        source: CloudHealthSource.GoogleCloud,
+        event: "an incident",
+        status: "closed",
+      },
+    ] as Array<CloudHealthTitleFacts>) {
+      expect(
+        getChangeTitleDirection({ facts: null, health, translator: persian }),
+      ).toBe("rtl");
+    }
+  });
+
+  test("a title as written reads its own way: an operation alone, a deploy's, a pipeline's", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    expect(
+      getChangeTitleDirection({
+        facts: { operation: "CreateBucket", resource: "", failed: false },
+        translator: persian,
+      }),
+    ).toBe("auto");
+    expect(getChangeTitleDirection({ facts: null, translator: persian })).toBe(
+      "auto",
+    );
+    expect(
+      getChangeTitleDirection({
+        facts: undefined,
+        health: null,
+        translator: persian,
+      }),
+    ).toBe("auto");
+  });
+
+  test("a change's facts come first, as its title is worded from them", () => {
+    expect(
+      getChangeTitleDirection({
+        facts: { operation: "CreateBucket", resource: "", failed: false },
+        health: HEALTH,
+        translator: dashboardTranslator("fa"),
+      }),
+    ).toBe("auto");
   });
 });
 

@@ -1,5 +1,9 @@
 import Dictionary from "../../Types/Dictionary";
 import {
+  getReadingDirection,
+  ReadingDirection,
+} from "../../Types/ReadingDirection";
+import {
   createTranslator,
   DEFAULT_LANGUAGE,
   SentenceOptions,
@@ -696,4 +700,29 @@ export function getChangeTitleForReader(data: {
   }
 
   return (data.title || "").trim() || (data.eventType || "").trim();
+}
+
+/*
+ * Which way a change's title is laid out where a page draws it (its line's
+ * or its isolate's dir): "auto" - its own text's way - unless it is a
+ * sentence OneUptime words for the reader (getChangeTitleForReader), which
+ * reads the reader's way. A Persian health title starts with the cloud's
+ * own name ("AWS Health: ..."), and read by its first letter it was laid
+ * out left to right: its event and its state stood in the wrong order for
+ * someone reading from the right. A cloud change worded around its
+ * operation reads the same way, whatever the operation's first letter;
+ * the operation alone, a deploy's title or a pipeline's reads its own way.
+ */
+export type ChangeTitleDirection = ReadingDirection | "auto";
+
+export function getChangeTitleDirection(data: {
+  facts: CloudChangeTitleFacts | null | undefined;
+  health?: CloudHealthTitleFacts | null | undefined;
+  translator: Translator;
+}): ChangeTitleDirection {
+  const isWorded: boolean = data.facts
+    ? getCloudChangeTitleSentence(data.facts) !== null
+    : Boolean(data.health);
+
+  return isWorded ? getReadingDirection(data.translator.language) : "auto";
 }

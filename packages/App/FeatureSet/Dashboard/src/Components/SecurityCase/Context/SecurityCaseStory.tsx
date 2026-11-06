@@ -74,6 +74,8 @@ import API from "Common/UI/Utils/API/API";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ChangeTitleDirection,
+  getChangeTitleDirection,
   getCloudChangeTitle,
   getCloudHealthTitle,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
@@ -351,6 +353,19 @@ const StoryItem: FunctionComponent<{
   const translator: Translator = useTranslator();
   const item: SecurityCaseStoryItemJson = props.item;
   const title: string = useItemTitle(item);
+  /*
+   * A change worded in the reader's language reads their way - a Persian
+   * health event right to left, though it starts with "AWS Health:" - and
+   * every other title its own (getChangeTitleDirection).
+   */
+  const titleDirection: ChangeTitleDirection =
+    item.kind === SecurityCaseStoryItemKind.Change
+      ? getChangeTitleDirection({
+          facts: item.cloudChange,
+          health: item.cloudHealth,
+          translator,
+        })
+      : "auto";
   const titleRoute: Route | null = getStoryItemTitleRoute(item);
   const tone: ReturnType<typeof getStoryItemTone> = getStoryItemTone(item);
   const outcome: SecurityEventRequestOutcome | null =
@@ -358,7 +373,7 @@ const StoryItem: FunctionComponent<{
       ? item.requestOutcome
       : null;
   const titleText: ReactElement = (
-    <bdi>
+    <bdi dir={titleDirection}>
       {item.number ? (
         <span className="font-medium text-gray-500">{item.number} </span>
       ) : (
