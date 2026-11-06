@@ -371,7 +371,7 @@ const CloudStreamGcpDialog: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Stream logs"
-      description="Run one command, and Cloud Logging sends these projects' logs to OneUptime through Pub/Sub within a minute of their being written. Metrics are still read on the connection's schedule: Cloud Monitoring has no export that pushes them."
+      description="Run one command, and Pub/Sub pushes these projects' logs to OneUptime within a minute. Metrics are still read on the connection's schedule."
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText={live?.state === "receiving" ? "Done" : "Close"}

@@ -439,8 +439,9 @@ describe("the dialog", () => {
     openDialog();
 
     expect(screen.getByRole("dialog")).toHaveTextContent("Stream logs");
+    // Logs only: metrics stay on the read's schedule.
     expect(screen.getByRole("dialog")).toHaveTextContent(
-      "Cloud Monitoring has no export that pushes them.",
+      "Metrics are still read on the connection's schedule.",
     );
     expect(screen.getByTestId(CLOUD_STREAM_DIALOG_TEST_ID)).toHaveAttribute(
       "data-provider",

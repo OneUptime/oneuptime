@@ -354,7 +354,7 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Stream metrics and logs"
-      description="Run one command, and Azure Monitor sends these subscriptions' metrics and resource logs to event hubs that OneUptime reads every minute, between reads."
+      description="Run one command, and Azure Monitor sends these subscriptions' metrics and resource logs to event hubs that OneUptime reads every minute."
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText={live?.state === "receiving" ? "Done" : "Close"}
