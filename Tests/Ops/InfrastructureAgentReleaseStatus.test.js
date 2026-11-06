@@ -517,7 +517,7 @@ describe(`${SCRIPTS}/ReleaseStatus.sh`, () => {
     expect(result.summary).toBe(result.stdout);
     expect(result.summary).toContain(`### Infrastructure agent ${VERSION}`);
     expect(result.summary).toContain(
-      "https://github.com/OneUptime/oneuptime/blob/master/agents/InfrastructureAgent/RELEASING.md",
+      "https://github.com/OneUptime/oneuptime/blob/main/agents/InfrastructureAgent/RELEASING.md",
     );
     // No HTTPS row for a site that is not on https.
     expect(Object.keys(result.rows)).not.toContain("HTTPS certificate");
@@ -1334,7 +1334,7 @@ describe(WORKFLOW, () => {
     expect(workflow.on.workflow_dispatch.inputs.version.type).toBe("string");
 
     // Not a release's gate pull request into `release`.
-    expect(workflow.on.pull_request.branches).toEqual(["master", "main"]);
+    expect(workflow.on.pull_request.branches).toEqual(["main"]);
     const paths = workflow.on.pull_request.paths;
     expect(paths).toContain(WORKFLOW);
     for (const job of Object.values(jobs)) {

@@ -152,7 +152,7 @@ Run 41966979667 passed all 343 checks. This job has not met a real OneUptime: wh
 To refresh the fixtures the tests replay, run the workflow by hand, download the artifacts, and copy what the tests read into `packages/Common/Tests/Fixtures/OpenStack/<release>/`:
 
 ```bash
-gh workflow run test.openstack-e2e.yaml --ref master
+gh workflow run test.openstack-e2e.yaml --ref main
 gh run download <run id> --pattern 'openstack-recording-*' --dir /tmp/openstack-recordings
 ```
 

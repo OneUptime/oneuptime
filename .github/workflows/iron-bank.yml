@@ -319,7 +319,7 @@ jobs:
 
       # On a pull request, what the projects are pinned to. On the schedule, or
       # when run by hand, the latest published release (or the one asked for), as
-      # the preflight jobs do: the chart here is master's, which that release
+      # the preflight jobs do: the chart here is main's, which that release
       # matches and an older pin need not.
       - name: Move the projects to the release
         if: steps.registry1.outputs.available == 'true' && github.event_name != 'pull_request'

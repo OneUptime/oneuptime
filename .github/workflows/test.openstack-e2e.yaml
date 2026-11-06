@@ -230,7 +230,7 @@ jobs:
           export APP_TAG=test
           source ./Scripts/GHA/retry.sh
           retry_registry_read "Pulling the stack's images" docker compose -f docker-compose.yml pull
-          # The test images are as new as the last test-release run to finish, and master moving
+          # The test images are as new as the last test-release run to finish, and main moving
           # cancels those, so the app's can be a day older than what this is here to test. The app
           # is what answers everything this reads, so it comes from this checkout: about 12 minutes.
           docker build --file ./packages/App/Dockerfile --target community \
@@ -623,7 +623,7 @@ jobs:
           retention-days: 7
 
   # Every agent's collector config through the real collector, which the "Ops Config Test"
-  # workflow also does, but never gets to when master moves faster than it runs.
+  # workflow also does, but never gets to when main moves faster than it runs.
   validate-collector-configs:
     name: every collector config, in the real collector
     if: ${{ inputs.kolla_aio || inputs.osa_aio }}

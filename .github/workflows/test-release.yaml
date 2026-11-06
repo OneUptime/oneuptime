@@ -14,7 +14,7 @@ name: Push Test Images to Docker Hub and GitHub Container Registry
 #
 # Because a run now outlives the pushes after it, every job checks out the
 # commit that triggered the run (actions/checkout's default), never the
-# branch: `ref: ${{ github.ref }}` fetches master's tip as of when the job
+# branch: `ref: ${{ github.ref }}` fetches main's tip as of when the job
 # starts, so a job that started after a newer push would build the newer
 # commit, and one run would push images of two commits under one version.
 concurrency:
@@ -24,7 +24,6 @@ concurrency:
 on:
   push:
     branches:
-      - "master"
       - "main"
 
 permissions:
@@ -758,9 +757,9 @@ jobs:
   # The Kubernetes AI agent, tagged like the Runner above. Nothing here runs
   # it (test-helm-chart installs the oneuptime chart, not kubernetes-agent),
   # so no job needs this one. It is here for two things: both architectures
-  # are built on every push to master, so a wrong arm64 kubectl digest fails
+  # are built on every push to main, so a wrong arm64 kubectl digest fails
   # now rather than in the release (the Build workflow's PR job is amd64
-  # only); and a test cluster can run master's agent from the `test` tag
+  # only); and a test cluster can run main's agent from the `test` tag
   # (aiAgent.image.tag=test with aiAgent.image.pullPolicy=Always).
   kubernetes-ai-agent-docker-image-build:
     needs: [read-version]
@@ -854,10 +853,10 @@ jobs:
 
   # The resource AI agent, tagged like the Kubernetes AI agent above. Nothing
   # here runs it, so no job needs this one. It is here for two things: both
-  # architectures are built on every push to master, so an Alpine package
+  # architectures are built on every push to main, so an Alpine package
   # missing for arm64 (docker-cli, govc, ceph19-common, util-linux-misc) fails
   # now rather than in the release (the Build workflow's PR job is amd64
-  # only); and a test host can run master's agent from the `test` tag
+  # only); and a test host can run main's agent from the `test` tag
   # (oneuptime/resource-ai-agent:test in the resource's docker-compose.yml).
   resource-ai-agent-docker-image-build:
     needs: [read-version]
@@ -1819,7 +1818,7 @@ jobs:
       # This job runs the same InfrastructureAgent/.goreleaser.yaml as
       # release.yml, and that config now has an sboms: block. --snapshot does
       # not skip SBOM generation, so without syft on PATH GoReleaser fails the
-      # whole job — and this workflow runs on every push to master.
+      # whole job — and this workflow runs on every push to main.
       - name: Install syft
         uses: anchore/sbom-action/download-syft@v0
 

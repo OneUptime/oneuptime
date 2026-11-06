@@ -12,7 +12,7 @@
  * pulled through the merged tag anyway. A merge is a few seconds of work
  * behind a queue for a runner of its own: a release run's merges queued 8 to
  * 21 minutes between the last build and the e2e jobs (#5328), on the
- * release's critical path. Master's e2e jobs (test-release.yaml) boot the
+ * release's critical path. Main's e2e jobs (test-release.yaml) boot the
  * -amd64 tags since #4953 (TestReleaseE2eImages.test.js); the release's do
  * the same now.
  *

@@ -15,7 +15,6 @@ on:
       - ".github/workflows/test.mobile-recorder-native.yaml"
   push:
     branches:
-      - master
       - main
     paths:
       - "packages/App/FeatureSet/MobileRecorder/**"

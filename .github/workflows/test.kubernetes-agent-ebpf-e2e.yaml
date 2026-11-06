@@ -29,7 +29,6 @@ on:
       - ".github/actions/free-disk-space/**"
   push:
     branches:
-      - master
       - main
     paths:
       - "HelmChart/Public/kubernetes-agent/**"

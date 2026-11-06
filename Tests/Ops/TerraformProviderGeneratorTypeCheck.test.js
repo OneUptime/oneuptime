@@ -11,7 +11,7 @@
  * The Terraform Provider Generation workflow runs it now. This pins that it
  * keeps doing so, where it can work:
  *
- *   - on every pull request and every push to master;
+ *   - on every pull request and every push to main;
  *   - after installing, in the same job, Common (the Common files it checks
  *     resolve their packages from packages/Common/node_modules), Scripts
  *     (GenerateSpec.ts's @readme/openapi-parser) and the generator itself
@@ -116,8 +116,8 @@ describe("the helpers this suite reads the workflow with", () => {
       push: null,
       pull_request: null,
     });
-    expect(triggers({ [true]: { push: { branches: ["master"] } } })).toEqual({
-      push: { branches: ["master"] },
+    expect(triggers({ [true]: { push: { branches: ["main"] } } })).toEqual({
+      push: { branches: ["main"] },
     });
   });
 });
@@ -135,13 +135,13 @@ describe(`${WORKFLOW} type-checks the generator`, () => {
     expect(stepsRunning(TYPE_CHECK)).toHaveLength(1);
   });
 
-  test("on every pull request and every push to master", () => {
+  test("on every pull request and every push to main", () => {
     const events = triggers(workflow);
 
     // pull_request with no filter: every pull request, whatever it touches.
     expect(Object.keys(events)).toContain("pull_request");
     expect(events.pull_request).toBeNull();
-    expect((events.push || {}).branches).toContain("master");
+    expect((events.push || {}).branches).toContain("main");
     expect(events.push).not.toHaveProperty("paths");
     expect(events.push).not.toHaveProperty("paths-ignore");
   });

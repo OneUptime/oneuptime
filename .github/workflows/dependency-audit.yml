@@ -16,7 +16,6 @@ on:
       - ".github/workflows/dependency-audit.yml"
   push:
     branches:
-      - master
       - main
     paths:
       - "**/package.json"
@@ -32,7 +31,7 @@ on:
       - ".github/workflows/dependency-audit.yml"
   schedule:
     # Advisories can be published without any lockfile changing. Recheck the
-    # current master tree weekly so new disclosures and expired exceptions
+    # current main tree weekly so new disclosures and expired exceptions
     # cannot remain invisible until the next dependency update.
     - cron: "0 8 * * 1"
   workflow_dispatch:
@@ -42,8 +41,8 @@ permissions:
 
 # Supersede in-flight runs for the same branch/PR: only the newest commit needs
 # CI. It is also the group cancel-closed-pr-runs.yml joins to stop a pull
-# request's run when the pull request closes. The weekly run shares master's
-# group with the push runs; whichever starts last audits the newest master.
+# request's run when the pull request closes. The weekly run shares main's
+# group with the push runs; whichever starts last audits the newest main.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
