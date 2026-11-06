@@ -45292,5 +45292,5 @@
   "OpenStack's own tracing, with nothing signed. A trace follows a request over RPC and stops at an HTTP call to another service, so what Neutron, Glance or Keystone did for this request is not in it.": "OpenStack 自身のトレース。何も署名しません。トレースは RPC を通じてリクエストを追い、他のサービスへの HTTP 呼び出しで途切れるため、このリクエストのために Neutron、Glance、Keystone が行った処理は含まれません。",
   "OpenStack's own tracing, with nothing signed. This trace goes on across HTTP calls, because this cloud has the guide's line in keystoneauth.": "OpenStack 自身のトレース。何も署名しません。このクラウドにはガイドにある keystoneauth の 1 行が入っているため、このトレースは HTTP 呼び出しをまたいで続きます。",
   "This trace's spans name their requests, so nothing here is a guess.": "このトレースのスパンにはリクエストが記されているため、推測は不要です。",
-  "What your widest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health.": "最も広いトレースが通過したもの。どのサービスがどのサービスを呼び、何回呼び、どれだけかかったかを示します。トレースされたリクエストが一度も届かなかったサービスは表示されませんが、それはそのサービスの状態について何も示しません。"
+  "What your widest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health.": "最も広いトレースが通過したもの。どのサービスがどのサービスを呼び、何回呼び、どれだけかかったかを示します。トレースされたリクエストが一度も届かなかったサービスは表示されませんが、それはそのサービスのヘルスについて何も示しません。"
 }
