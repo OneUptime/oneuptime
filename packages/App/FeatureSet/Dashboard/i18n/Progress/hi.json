@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11532
+    "keys": 45898,
+    "untranslated": 10999
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -93,6 +93,7 @@
     "Re-encrypt",
     "Red Hat OpenShift",
     "RegionOne",
+    "Reserved Instances",
     "Runbook: {{name}}",
     "Runner",
     "SHA",

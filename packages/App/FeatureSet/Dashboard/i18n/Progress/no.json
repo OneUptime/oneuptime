@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11560
+    "keys": 45898,
+    "untranslated": 11028
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -190,6 +190,7 @@
     "Red Hat OpenShift",
     "Region",
     "RegionOne",
+    "Reserved Instances",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
@@ -376,6 +377,7 @@
     "{{count}} pod",
     "{{count}} pods",
     "{{count}} pool",
+    "{{count}} problem",
     "{{count}} region",
     "{{count}} repository",
     "{{count}} s",

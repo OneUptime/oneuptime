@@ -227,6 +227,14 @@ Opdrachten uit opmerkingen hebben de GitHub App nodig, dus voorlopig werken ze a
 
 Voor GitLab, Forgejo of Gitea voer je het adres van de server in (GitLab.com en Codeberg zijn al ingevuld) en het token, en kies je de repository's om te verbinden: de lijst biedt alleen de repository's aan waarnaar het token kan pushen, en later meer verbinden kan het token hergebruiken. OneUptime controleert elk token bij zijn server voordat het het bewaart, bewaart het versleuteld en toont het nooit meer. De **Instellingen** van de repository tonen de server, het account en de laatste tekens van het token, met **Toegangstoken vervangen**. Weigert de server een verlopen of ingetrokken token, dan tonen zijn repository's **Token geweigerd** en werkt AI er niet meer in, tot het vervangen van het token elke repository die het gebruikt weer verbindt. Bij een GitLab-repository spreken de instellingen, net als GitLab, van merge requests: **Merge requests**, **AI-fix-merge-requests** en **Max. open fix-merge-requests**.
 
+### Aanmelden bij een Git-server
+
+OneUptime meldt zich bij een repository op elke Git-server aan met de gebruikersnaam en het wachtwoord of toegangstoken waarmee de repository is verbonden. Tenzij alleen je eigen Runners de server bereiken, controleert OneUptime ze voordat het de repository verbindt, door de server om de branches van de repository te vragen: het verzoek waarmee elke kloon begint. Een Runner stuurt ze op dezelfde manier mee, met het eerste verzoek van Git aan de server, als HTTP Basic, zodat een server die eerst Windows-aanmelding aanbiedt, zoals Azure DevOps Server, ook een persoonlijk toegangstoken aanneemt. Git krijgt ze via zijn omgeving, alleen voor die ene server: nooit op zijn opdrachtregel, en nooit in de `.git/config` van de kloon, waar de code-agent werkt.
+
+### Wat AI leest in een Git-repository
+
+Een Git-server heeft geen API waarmee de bestanden van een repository te lezen zijn, dus leest OneUptime van een repository op zo'n server alleen de branches, voor de branchkiezer. [AI vragen](/docs/ai/ask-ai) en [AI-onderzoeken](/docs/ai/ai-sre) lezen de code van GitHub-, GitLab-, Forgejo- en Gitea-repository's; gevraagd naar de code van een Git-repository, zeggen ze dat ze die niet kunnen openen. Een taak in Code werkt wel gewoon in een Git-repository: de Runner kloont hem, AI leest en wijzigt de code in de kloon en pusht de wijziging naar een nieuwe branch.
+
 ### Een Git-server op een privénetwerk
 
 OneUptime Cloud bereikt alleen Git-servers op internet, nooit een privé-, loopback- of link-local-adres. Verbind een server die alleen je eigen netwerk bereikt als **Elke Git-server**: Code zegt dat het hem niet bereikt, en **Toch verbinden** verbindt hem voor een van je eigen Runners op dat netwerk. Kies die Runner op de kaart **Runner** van de repository (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)). Een globale Runner werkt er nooit in, en OneUptime leest er op de server niets van, dus de branchkiezer biedt alleen de hoofdbranch aan. Een zelf gehoste OneUptime, en zijn globale Runner, bereiken de Git-servers van het eigen netwerk.
@@ -329,6 +337,10 @@ Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout b
 
 :::details Geen Runner pakt de taak op
 Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken niet verbonden is - die zijn repository kiest, de standaard-Runner van het project voor een repository die er geen kiest, of een globale Runner - mislukt met een melding die zegt welke, zodat hij nooit eeuwig als bezig wordt getoond. Een Runner die geen codecorrecties oppakt, telt als niet verbonden: een die is gestart met `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false`, of een globale Runner die ouder is dan 14.0.94. Code meldt dat voordat je om een taak vraagt. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
+:::
+
+:::details De server weigert de inloggegevens
+De taak mislukt en zegt welke server de inloggegevens weigerde waarmee OneUptime zich aanmeldde, en welke repository hij niet kon klonen of waar hij zijn branch niet naartoe kon pushen. Hij wordt niet opnieuw geprobeerd op de standaardbranch van de repository: op een server waarop mensen zich aanmelden met Windows-accounts, zoals Azure DevOps Server, kan een tweede geweigerde aanmelding meetellen voor het blokkeren van het account. Controleer op GitHub of de OneUptime GitHub App nog geïnstalleerd is met toegang tot de repository. Controleer elders of de gebruikersnaam en het wachtwoord of token de repository nog kunnen lezen en ernaar kunnen pushen, en geef nieuwe op met **Toegangstoken vervangen** op de pagina **Instellingen** van de repository. Probeer de taak daarna opnieuw.
 :::
 
 ## Privacy

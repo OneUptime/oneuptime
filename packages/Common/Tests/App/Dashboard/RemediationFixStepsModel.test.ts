@@ -188,6 +188,9 @@ describe("a fix still being worked out, or one that found nothing", () => {
     expect(REMEDIATION_FIX_STEP_COPY.waitingForApproval).not.toBe(
       "Waiting for approval",
     );
+    expect(REMEDIATION_FIX_STEP_COPY.waitingForSomeonesApproval).not.toBe(
+      "Waiting for approval",
+    );
     expect(REMEDIATION_FIX_STEP_COPY.cannotBeApproved).not.toBe(
       "Can't be approved",
     );
@@ -225,6 +228,57 @@ describe("a fix that waits for the reader", () => {
       at: null,
       hasDetails: false,
     });
+  });
+
+  test("to a reader who may not approve it, it needs approval - never theirs - with the same mark", () => {
+    const suggestion: RemediationFixStepSuggestion = fix({
+      status: AutoRemediationSuggestionStatus.Suggested,
+      commandPlan: { commands: [command(1)] },
+    });
+
+    expect(
+      stepOf(
+        getRemediationFixSteps({ suggestion, mayApprove: false }),
+        "approval",
+      ),
+    ).toMatchObject({
+      tone: "attention",
+      title: "Needs approval",
+      summary: null,
+      hasDetails: false,
+    });
+    // Left out, or true: the reader's own, as before.
+    expect(
+      stepOf(
+        getRemediationFixSteps({ suggestion, mayApprove: true }),
+        "approval",
+      ).title,
+    ).toBe("Needs your approval");
+    expect(stepOf(stepsOf(suggestion), "approval").title).toBe(
+      "Needs your approval",
+    );
+  });
+
+  test("a plan nobody can approve says its approval is blocked, whoever reads it", () => {
+    const suggestion: RemediationFixStepSuggestion = fix({
+      status: AutoRemediationSuggestionStatus.Suggested,
+      commandPlan: {
+        commands: [
+          command(1, {
+            stepType: RunbookStepType.SSH,
+            runnerNameSnapshot: "ops-runner",
+            command: "systemctl restart web",
+          }),
+        ],
+      },
+    });
+
+    for (const mayApprove of [true, false]) {
+      expect(
+        stepOf(getRemediationFixSteps({ suggestion, mayApprove }), "approval")
+          .title,
+      ).toBe(REMEDIATION_FIX_STEP_COPY.cannotBeApproved);
+    }
   });
 
   test("a plan with nothing to say why still opens to its commands", () => {

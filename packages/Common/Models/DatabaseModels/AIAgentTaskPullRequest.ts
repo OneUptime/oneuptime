@@ -884,6 +884,16 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   public productionBaseline?: FixProductionBaseline = undefined;
 
+  /*
+   * The pull request's two branches, as its host names them. A branch name
+   * is an identifier, so it is stored whole: a name cut to fit is another
+   * branch. Both are LongText, 500 characters, which holds any branch
+   * GitHub takes (255 bytes for the whole ref, and a name never has more
+   * characters than bytes) and any branch a code task starts from
+   * (CODE_TASK_LIMITS.maxBranchNameLength). At ShortText's 100 a longer
+   * branch failed the record, so the open-PR cap never counted the pull
+   * request and the PR state sync never tracked it.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -902,18 +912,19 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Head Branch",
     description: "The branch name of the pull request (source branch).",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public headRefName?: string = undefined;
 
+  // Stored whole, in a column as wide as headRefName's (see there).
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -932,15 +943,15 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Base Branch",
     description: "The target branch for the pull request.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public baseRefName?: string = undefined;
 

@@ -8,10 +8,12 @@ import path from "path";
  * account's Costs) with the app's esbuild config, Tailwind, theme and font,
  * over five accounts whose costs are made up day by day and worked out as
  * the server works them out. What jsdom cannot show is checked here: the
- * pages agreeing with each other, the daily chart's bars, the breakdown by
- * service, Region, account and resource, a budget made and turned off, the
- * reads that fail and Refresh, and every page at a laptop's and a phone's
- * width, dark, German and Persian.
+ * pages agreeing with each other, the daily chart's bars and the unusual
+ * day's mark above its bar, the breakdown by service, Region, account,
+ * resource, App Platforms environment, app and tag, each account's
+ * commitments, a budget made and turned off, the reads that fail and
+ * Refresh, and every page at a laptop's and a phone's width, dark, German
+ * and Persian.
  *
  * CLOUD_SPEND_FIXTURE_PORT moves the fixture off 4741, so a second checkout
  * can run the suite beside this one.

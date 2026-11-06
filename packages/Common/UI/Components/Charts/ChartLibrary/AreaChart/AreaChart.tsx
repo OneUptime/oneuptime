@@ -460,7 +460,8 @@ const ChartLegend: (
   return (
     <div
       ref={legendRef}
-      style={{ paddingLeft: paddingLeft }}
+      // The legend's own items take the pointer; see the wrapper below.
+      style={{ paddingLeft: paddingLeft, pointerEvents: "auto" }}
       className={cx(
         "flex items-center",
         { "justify-center": legendPosition === "center" },
@@ -1146,6 +1147,12 @@ const AreaChart: React.ForwardRefExoticComponent<
                    * the legend and the plot; see UseChartAnnotations.
                    */
                   height={legendHeight + annotations.railHeight}
+                  /*
+                   * The padded wrapper reaches down over the rail: it lets
+                   * the pointer through, so a mark's chip under it can be
+                   * hovered and clicked. The items above it take it back.
+                   */
+                  wrapperStyle={{ pointerEvents: "none" }}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   content={({ payload }: any) => {
                     return ChartLegend(

@@ -28,7 +28,15 @@ jest.mock("../../../Server/Utils/Logger");
 
 const ID: ObjectID = new ObjectID("11111111-2222-4333-8444-555555555555");
 
-function config(values: Partial<ProjectSmtpConfig>): ProjectSmtpConfig {
+/*
+ * A config's fields, any of them unset: a stored config can hold a field as
+ * undefined, which Partial<> cannot say under exactOptionalPropertyTypes.
+ */
+type ConfigValues = {
+  [Key in keyof ProjectSmtpConfig]?: ProjectSmtpConfig[Key] | undefined;
+};
+
+function config(values: ConfigValues): ProjectSmtpConfig {
   const item: ProjectSmtpConfig = new ProjectSmtpConfig();
 
   Object.assign(item, {
@@ -54,7 +62,7 @@ function config(values: Partial<ProjectSmtpConfig>): ProjectSmtpConfig {
   return item;
 }
 
-function server(values: Partial<ProjectSmtpConfig>): EmailServer {
+function server(values: ConfigValues): EmailServer {
   return ProjectSmtpConfigService.toEmailServer(config(values))!;
 }
 
@@ -178,11 +186,7 @@ describe("a setting left blank, or not what the provider takes, names the field"
     ],
   ])(
     "%s with %j",
-    (
-      transport: MailTransportType,
-      values: Partial<ProjectSmtpConfig>,
-      message: string,
-    ) => {
+    (transport: MailTransportType, values: ConfigValues, message: string) => {
       expect(() => {
         return server({ transportType: transport, ...values });
       }).toThrow(message);

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11500
+    "keys": 45898,
+    "untranslated": 10979
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -109,6 +109,7 @@
     "Red Hat OpenShift",
     "Red Hat OpenStack on OpenShift",
     "RegionOne",
+    "Reserved Instances",
     "Resource Class",
     "Resource class",
     "Runner",

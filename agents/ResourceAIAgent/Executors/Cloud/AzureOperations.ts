@@ -22,10 +22,22 @@ import {
   MAX_CLOUD_POLL_INTERVAL_MS,
   arrow,
   boundsOf,
+  showCloudId,
   withArticle,
 } from "./CloudChange";
-import { AzureTokenProvider } from "./AzureIdentity";
-import { RESOURCE_AI_CLOUD_OPERATIONS_ENV } from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  AzureManagedIdentityToken,
+  AzureTokenProvider,
+  requestAzureWriteToken,
+} from "./AzureIdentity";
+import {
+  AzureWriteIdentity,
+  describeAzureWriteIdentityElsewhere,
+} from "./CloudSettings";
+import {
+  RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+  RESOURCE_AI_CLOUD_OPERATIONS_ENV,
+} from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
   CloudParamValue,
   ParsedCloudCommand,
@@ -36,11 +48,20 @@ import {
  * resource, as the ONE Azure Resource Manager call it maps to, after the
  * reads that decide whether it may run and what it replaces. Every call
  * goes to https://management.azure.com{resource id}?api-version=… with a
- * fixed api-version per kind, signed with the managed identity's token
+ * fixed api-version per kind, signed with a managed identity's token
  * (AzureIdentity). A long-running operation (202 with Azure-AsyncOperation
  * or Location) is followed within the command's budget; one still running
  * then is reported as accepted and still running. Polling URLs are only
  * followed on management.azure.com: the token never goes anywhere else.
+ *
+ * Who it signs as: with ONEUPTIME_AI_AZURE_WRITE_IDENTITY set (the setup
+ * command sets it), a change - its reads and its call - runs as that
+ * write identity, with a token the agent asks for that one change; the
+ * agent's own identity only reads, and a dry run and Test connection read
+ * with it. Without it (an agent set up before), the agent's own identity
+ * makes the change, as it did then. A setting the agent cannot use refuses
+ * every change before this runs (CloudExecutor): the agent never falls
+ * back to its own identity for a change meant for the write identity.
  */
 
 export const ARM_ENDPOINT: string = "https://management.azure.com";
@@ -259,6 +280,12 @@ export class ArmClient {
 
 export default class AzureCloud {
   private readonly tokens: AzureTokenProvider;
+  /*
+   * The write identity's object id, from the last token of it the agent
+   * was given (a change's, or Test connection's): what the Activity Log
+   * names as the caller of the agent's changes.
+   */
+  private writePrincipal: string | null = null;
 
   public constructor(private readonly options: AzureCloudOptions) {
     this.tokens = new AzureTokenProvider(options.env, options.runtime.nowMs);
@@ -271,6 +298,33 @@ export default class AzureCloud {
   // The managed identity's object id, once a token was read (AzureTokenProvider.principalId).
   public principalId(): string | null {
     return this.tokens.principalId();
+  }
+
+  // The write identity's object id, once the agent was given a token of it.
+  public writePrincipalId(): string | null {
+    return this.writePrincipal;
+  }
+
+  /*
+   * A token of the write identity, for one change or for Test connection
+   * to see it can be had: never kept, and its object id remembered.
+   */
+  private async signInAsWriteIdentity(
+    send: CloudSender,
+    identity: AzureWriteIdentity,
+  ): Promise<AzureManagedIdentityToken> {
+    const answer: AzureManagedIdentityToken = await requestAzureWriteToken({
+      send,
+      env: this.options.env,
+      now: this.options.runtime.nowMs(),
+      identity,
+    });
+
+    if (answer.principalId) {
+      this.writePrincipal = answer.principalId;
+    }
+
+    return answer;
   }
 
   private async client(data: {
@@ -398,7 +452,73 @@ export default class AzureCloud {
         subscription.name ? ` (${subscription.name})` : ""
       }${subscription.state ? `, ${subscription.state}` : ""}`,
       `Signed in as: ${this.tokens.describeIdentity()}`,
+      await this.describeWriteIdentity(data.run, data.subscriptionId),
     ];
+  }
+
+  /*
+   * Test connection's line about the identity changes run as: none, one the
+   * agent will not use, or one it may - which only asking Azure for its
+   * token can tell, since nothing grants anything on it: whether it is
+   * attached where the agent runs. The token is used for nothing.
+   */
+  private async describeWriteIdentity(
+    run: CloudCommandRun,
+    subscriptionId: string,
+  ): Promise<string> {
+    const settings: CloudCommandRun["settings"] = run.settings;
+
+    if (settings.azureWriteIdentityProblem) {
+      return `Write identity: ${settings.azureWriteIdentityProblem}`;
+    }
+
+    const identity: AzureWriteIdentity | null = settings.azureWriteIdentity;
+
+    if (!identity) {
+      return `Write identity: none (${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV} is not set): changes use the agent's own identity, with whatever it allows`;
+    }
+
+    const elsewhere: string | null = describeAzureWriteIdentityElsewhere({
+      identity,
+      subscriptionId,
+    });
+
+    if (elsewhere) {
+      return `Write identity: ${elsewhere}`;
+    }
+
+    /*
+     * By its name and resource group: the subscription is the line above's
+     * (another one's is refused just above), so the rest of its resource ID
+     * - some 170 characters - would only push the verdict out of sight.
+     * Lowercased as Azure reads it, which the output's redactor leaves be.
+     */
+    const shown: string = `${identity.name} (resource group ${showCloudId(
+      "azure",
+      identity.resourceGroup,
+    )})`;
+    let check: string;
+
+    try {
+      const answer: AzureManagedIdentityToken =
+        await this.signInAsWriteIdentity(run.send.bind(run), identity);
+      const own: string | null = this.tokens.principalId();
+
+      check = `the agent can sign in as it${
+        answer.principalId ? `, as object id ${answer.principalId}` : ""
+      }`;
+
+      // Where only the write identity is attached, the agent reads with it too.
+      if (answer.principalId && own && answer.principalId === own) {
+        check = `${check}, which is the agent's own identity as well: give the agent an identity of its own that only reads`;
+      }
+    } catch (err: unknown) {
+      check = `the agent can NOT sign in as it, so every change fails: ${
+        err instanceof Error ? err.message : String(err)
+      }`;
+    }
+
+    return `Write identity: ${shown}, which the agent signs in as for each change (${check})`;
   }
 
   public async change(data: {
@@ -412,21 +532,78 @@ export default class AzureCloud {
     const operation: string = command.operation.name;
     const kindName: string = run.kindName;
     const allPermissions: string = command.kindSpec.permissions.join(", ");
-    const client: ArmClient = await run.read(
-      "to sign the agent in (its managed identity)",
-      (): Promise<ArmClient> => {
-        return this.client({
-          send: run.send.bind(run),
-          describeMissingPermission: (permission: string): string => {
-            return `The agent's identity (${this.tokens.describeIdentity()}) lacks ${permission} on ${run.shownResourceId}: the setup command's role grants it when ${operation} is in ${RESOURCE_AI_CLOUD_OPERATIONS_ENV} (cloud ${operation} on ${withArticle(kindName)} needs ${allPermissions}).`;
-          },
-        });
-      },
-    );
+    const grantedWhen: string = `the setup command's role grants it when ${operation} is in ${RESOURCE_AI_CLOUD_OPERATIONS_ENV} (cloud ${operation} on ${withArticle(kindName)} needs ${allPermissions}).`;
+    /*
+     * A change runs as the write identity, with a token asked for it; a dry
+     * run reads as the agent's own identity, which can change nothing.
+     */
+    const writeIdentity: AzureWriteIdentity | null = run.dryRun
+      ? null
+      : run.settings.azureWriteIdentity;
+    let client: ArmClient;
+    let identity: string;
+
+    /*
+     * The executor refuses these before a change runs; here again, so a
+     * write identity the agent will not use can never become its own.
+     */
+    if (!run.dryRun && run.settings.azureWriteIdentityProblem) {
+      run.refuse(run.settings.azureWriteIdentityProblem);
+    }
+
+    const elsewhere: string | null = writeIdentity
+      ? describeAzureWriteIdentityElsewhere({
+          identity: writeIdentity,
+          subscriptionId: data.subscriptionId,
+        })
+      : null;
+
+    if (elsewhere) {
+      run.refuse(elsewhere);
+    }
+
+    if (writeIdentity) {
+      const send: CloudSender = run.send.bind(run);
+      /*
+       * "to sign in as": the output redactor reads "a token of ...: x" as
+       * a secret, and would hide the reason.
+       */
+      const write: AzureManagedIdentityToken = await run.read(
+        `to sign in as the write identity ${writeIdentity.name} for this change`,
+        (): Promise<AzureManagedIdentityToken> => {
+          return this.signInAsWriteIdentity(send, writeIdentity);
+        },
+      );
+
+      identity = `the write identity ${writeIdentity.name}, signed in for this change`;
+      client = new ArmClient({
+        send,
+        token: write.token,
+        userAgent: this.options.runtime.userAgent,
+        identityName: identity,
+        describeMissingPermission: (permission: string): string => {
+          return `The write identity ${writeIdentity.name} lacks ${permission} on ${run.shownResourceId}: ${grantedWhen}`;
+        },
+      });
+    } else {
+      identity = this.tokens.describeIdentity();
+      client = await run.read(
+        "to sign the agent in (its managed identity)",
+        (): Promise<ArmClient> => {
+          return this.client({
+            send: run.send.bind(run),
+            describeMissingPermission: (permission: string): string => {
+              return `The agent's identity (${this.tokens.describeIdentity()}) lacks ${permission} on ${run.shownResourceId}: ${grantedWhen}`;
+            },
+          });
+        },
+      );
+    }
+
     const change: AzureChange = new AzureChange(
       run,
       client,
-      this.tokens.describeIdentity(),
+      identity,
       data.subscriptionId,
       data.checkTarget,
     );

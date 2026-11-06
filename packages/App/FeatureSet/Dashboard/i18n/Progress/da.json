@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45581,
-    "untranslated": 11559
+    "keys": 45898,
+    "untranslated": 11024
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -262,6 +262,7 @@
     "Region",
     "RegionOne",
     "Relation",
+    "Reserved Instances",
     "Revision",
     "Revision {{revision}}",
     "Rollbacks",
@@ -524,6 +525,7 @@
     "{{count}} pods",
     "{{count}} pool",
     "{{count}} pools",
+    "{{count}} problem",
     "{{count}} region",
     "{{count}} rotation",
     "{{count}} router",

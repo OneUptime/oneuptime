@@ -10,6 +10,7 @@ import {
   CloudConnectionTestStatus,
   CloudConnectionTypeCount,
 } from "Common/Types/CloudConnection/CloudConnectionTest";
+import { readAzureCloudStreamState } from "Common/Types/CloudConnection/CloudStreamAzure";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
@@ -211,14 +212,17 @@ export async function hasCloudConnectionReadEnded(data: {
 }
 
 /*
- * A new stream key for an AWS connection's Firehose streams: the server
- * answers it this once and keeps only its SHA-256. The key it replaces
- * keeps working until previousKeyWorksUntil.
+ * A new stream key for an AWS connection's Firehose streams, or a Google
+ * Cloud connection's push subscription: the server answers it this once
+ * and keeps only its SHA-256. The key it replaces keeps working until
+ * previousKeyWorksUntil. A Google Cloud key comes with the service account
+ * Pub/Sub must sign its pushes as.
  */
 export interface CloudStreamKeyMade {
   streamKey: string;
   createdAt: Date;
   previousKeyWorksUntil: Date | null;
+  pushServiceAccount: string | null;
 }
 
 // The answer read as the key it is; a failure when it holds none.
@@ -228,6 +232,7 @@ export function readCloudStreamKeyMade(
   const streamKey: unknown = data?.["streamKey"];
   const createdAt: Date = new Date(String(data?.["createdAt"] || ""));
   const until: unknown = data?.["previousKeyWorksUntil"];
+  const pusher: unknown = data?.["pushServiceAccount"];
 
   if (typeof streamKey !== "string" || !streamKey) {
     throw new Error("The server did not return a stream key. Try again.");
@@ -240,6 +245,7 @@ export function readCloudStreamKeyMade(
       typeof until === "string" && Number.isFinite(new Date(until).getTime())
         ? new Date(until)
         : null,
+    pushServiceAccount: typeof pusher === "string" && pusher ? pusher : null,
   };
 }
 
@@ -262,7 +268,35 @@ export async function makeCloudStreamKey(
   return readCloudStreamKeyMade(response.data);
 }
 
-// Every stream key of the connection stops working.
+/*
+ * An Azure connection's event hubs, in the subscription given, are read
+ * every minute from now on: when that started.
+ */
+export async function startCloudStreaming(data: {
+  connectionId: ObjectID;
+  hostSubscriptionId: string;
+}): Promise<{ startedAt: Date }> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `${CLOUD_CONNECTION_API_PATH}/${data.connectionId.toString()}/start-streaming`,
+      ),
+      headers: ModelAPI.getCommonHeaders(),
+      data: { hostSubscriptionId: data.hostSubscriptionId },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  const startedAt: Date = new Date(String(response.data?.["startedAt"] || ""));
+
+  return {
+    startedAt: Number.isFinite(startedAt.getTime()) ? startedAt : new Date(),
+  };
+}
+
+// Every stream key of the connection stops working; no event hub of it is read.
 export async function stopCloudStreaming(
   connectionId: ObjectID,
 ): Promise<void> {
@@ -283,10 +317,22 @@ export async function stopCloudStreaming(
 // While the streaming dialog is open, how often it asks what arrived.
 export const CLOUD_STREAM_POLL_MS: number = 5 * 1000;
 
-// When the connection's stream key was made, and what its streams delivered.
+/*
+ * When the connection's stream key was made - for Azure, when reading its
+ * event hubs started - what its streams delivered, and for Azure the
+ * subscription whose event hubs are read.
+ */
 export interface CloudStreamStatus {
   streamKeyCreatedAt: Date | null;
   streamSummary: JSONObject | null;
+  hostSubscriptionId: string | null;
+}
+
+// The subscription an Azure connection's event hubs are read in, as stored.
+export function readCloudStreamHostSubscription(
+  streamState: unknown,
+): string | null {
+  return readAzureCloudStreamState(streamState)?.hostSubscriptionId || null;
 }
 
 // What a connection's streams delivered, read again while the dialog waits.
@@ -297,7 +343,11 @@ export async function readCloudStreamStatus(
     await ModelAPI.getItem<CloudConnection>({
       modelType: CloudConnection,
       id: connectionId,
-      select: { streamKeyCreatedAt: true, streamSummary: true },
+      select: {
+        streamKeyCreatedAt: true,
+        streamSummary: true,
+        streamState: true,
+      },
     });
 
   if (!connection) {
@@ -309,6 +359,7 @@ export async function readCloudStreamStatus(
       ? new Date(connection.streamKeyCreatedAt)
       : null,
     streamSummary: connection.streamSummary || null,
+    hostSubscriptionId: readCloudStreamHostSubscription(connection.streamState),
   };
 }
 

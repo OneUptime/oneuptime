@@ -5,6 +5,7 @@ import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
 import VercelLogDrainAPI from "./API/VercelLogDrain";
 import AwsFirehoseAPI from "./API/AwsFirehose";
+import GcpPubSubAPI from "./API/GcpPubSub";
 import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import ChangeEventsIngestAPI from "./API/ChangeEventsIngest";
 import OpenLineageIngestAPI from "./API/OpenLineageIngest";
@@ -97,6 +98,11 @@ const TelemetryFeatureSet: FeatureSet = {
        * CloudWatch Logs subscriptions (/aws-firehose/v1/metrics, /logs).
        */
       app.use(TELEMETRY_PREFIXES, AwsFirehoseAPI);
+      /*
+       * Pub/Sub: a Google Cloud connection's log sinks, pushed by their
+       * topic's push subscription (/gcp-pubsub/v1/logs).
+       */
+      app.use(TELEMETRY_PREFIXES, GcpPubSubAPI);
       app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, OpenLineageIngestAPI);

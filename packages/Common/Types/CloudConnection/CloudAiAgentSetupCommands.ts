@@ -17,8 +17,10 @@ import {
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
   AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME,
+  AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP,
   AZURE_CLOUD_AI_AGENT_ROLE_NAME,
+  AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   CLOUD_AI_AGENT_NAME,
   GCP_CLOUD_AI_AGENT_DEFAULT_HOST,
   GCP_CLOUD_AI_AGENT_HOSTS,
@@ -30,6 +32,7 @@ import {
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
   GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   GcpCloudAiAgentHost,
+  getAzureCloudAiAgentWriteIdentityId,
   getCloudAiAgentOwnTargets,
   getGcpServiceAccountEmail,
 } from "../ResourceAiAgent/CloudAiAgentNames";
@@ -42,6 +45,7 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV,
+  RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
   RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV,
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
@@ -80,9 +84,13 @@ import {
  *     once per job with a session policy for that job's one action on its
  *     one resource. The agent's key is kept in Secrets Manager, read by ECS
  *     when the task starts.
- *   - Azure (Cloud Shell): a custom role from the operations, a Container
- *     App with a system-assigned identity holding that role on the
- *     subscription, and the agent's key as a Container Apps secret.
+ *   - Azure (Cloud Shell): a custom role from the operations, held on the
+ *     subscription by a write identity - a user-assigned managed identity
+ *     attached to the agent's Container App and to nothing else, whose
+ *     token the agent asks the app's identity endpoint for, one change at
+ *     a time; a second role of their reads alone, held by the Container
+ *     App's own (system-assigned) identity, which the agent reads with;
+ *     and the agent's key as a Container Apps secret.
  *   - Google Cloud (Cloud Shell): a custom role from the operations, held
  *     on the project by a write service account; a second role of their
  *     reads alone, held by the agent's own service account, which may ask
@@ -355,6 +363,9 @@ const ROLE_DESCRIPTION: string =
 const READER_ROLE_TITLE: string = "OneUptime AI Agent (reads)";
 const READER_ROLE_DESCRIPTION: string =
   "What the OneUptime Cloud AI agent reads before and without a change; its changes run as its write account";
+// Azure's second role: what the agent's own identity reads.
+const AZURE_READER_ROLE_DESCRIPTION: string =
+  "What the OneUptime Cloud AI agent reads before and without a change; its changes run as its write identity";
 
 // The read every agent runs for Test connection.
 const WHOAMI: string = "whoami";
@@ -923,13 +934,22 @@ function environmentOf(
     );
   }
 
-  // The one subscription the agent acts in, so it never has to guess among several.
+  /*
+   * The one subscription the agent acts in, so it never has to guess among
+   * several, and the identity each change runs as, with a token the agent
+   * asks for that change: by its resource ID, which names the subscription
+   * it belongs to and needs no lookup of an id Azure makes up.
+   */
   if (setup.provider === CloudProvider.Azure) {
     environment.push(
       variable(
         AI_RESOURCE_TYPE_INFO[AiResourceType.AzureSubscription]
           .identityEnvVars[0] as string,
         setup.accountId,
+      ),
+      variable(
+        RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV,
+        getAzureCloudAiAgentWriteIdentityId(setup.accountId),
       ),
     );
   }
@@ -1487,6 +1507,34 @@ export function getAzureCloudAiAgentRoleName(subscriptionId: string): string {
   return `${AZURE_CLOUD_AI_AGENT_ROLE_NAME} (${subscriptionId.trim().toLowerCase()})`;
 }
 
+// The agent's own identity's role: the same, for the reads alone.
+export function getAzureCloudAiAgentReaderRoleName(
+  subscriptionId: string,
+): string {
+  return `${AZURE_CLOUD_AI_AGENT_READER_ROLE_NAME} (${subscriptionId.trim().toLowerCase()})`;
+}
+
+// An Azure RBAC action that only reads (Microsoft.Web/sites/read).
+function isAzureReadAction(action: string): boolean {
+  return action.toLowerCase().endsWith("/read");
+}
+
+/*
+ * What the Azure agent's own identity holds: the reads of the changes
+ * turned on (what a dry run reads, and Test connection's read of the
+ * subscription), never a change - each change runs as the write identity
+ * (getCloudAiAgentRolePermissions), signed in for that change. Sorted,
+ * each once.
+ */
+export function getAzureCloudAiAgentReaderPermissions(
+  enabledOperations?: Array<string> | undefined,
+): Array<string> {
+  return getCloudAiAgentRolePermissions(
+    CloudProvider.Azure,
+    enabledOperations,
+  ).filter(isAzureReadAction);
+}
+
 export interface AzureCloudAiAgentRoleDefinition {
   Name: string;
   IsCustom: boolean;
@@ -1500,9 +1548,9 @@ export interface AzureCloudAiAgentRoleDefinition {
 
 /*
  * The custom role, as `az role definition create` and `update` take it:
- * the operations' actions on the one subscription. RBAC cannot leave the
- * agent's own resource group out of a subscription's role; the agent
- * protects it (getCloudAiAgentOwnTargets).
+ * the operations' actions on the one subscription - what the write
+ * identity holds. RBAC cannot leave the agent's own resource group out of
+ * a subscription's role; the agent protects it (getCloudAiAgentOwnTargets).
  */
 export function getAzureCloudAiAgentRoleDefinition(
   options: CloudAiAgentSetupOptions,
@@ -1529,15 +1577,61 @@ function azureRoleDefinitionOf(
 }
 
 /*
+ * The second custom role, the agent's own identity's: the reads of the
+ * same operations, on the same subscription, and no change.
+ */
+export function getAzureCloudAiAgentReaderRoleDefinition(
+  options: CloudAiAgentSetupOptions,
+): AzureCloudAiAgentRoleDefinition {
+  return azureReaderRoleDefinitionOf(
+    checkedSetup(options, CloudProvider.Azure),
+  );
+}
+
+function azureReaderRoleDefinitionOf(
+  setup: CloudAiAgentSetup,
+): AzureCloudAiAgentRoleDefinition {
+  return {
+    Name: getAzureCloudAiAgentReaderRoleName(setup.accountId),
+    IsCustom: true,
+    Description: AZURE_READER_ROLE_DESCRIPTION,
+    Actions: getAzureCloudAiAgentReaderPermissions(setup.operations),
+    NotActions: [],
+    DataActions: [],
+    NotDataActions: [],
+    AssignableScopes: [`/subscriptions/${setup.accountId}`],
+  };
+}
+
+/*
  * Azure, in Cloud Shell, in the subscription the command was written for
  * (every call names it, so the shell's default subscription does not
- * matter): the role, created or updated; the resource group and the
- * Container Apps environment, created when they are not there; the app,
- * which `az containerapp create` writes whole each time - its image,
- * secret, variables and size - keeping its identity; and the role on the
- * subscription for that identity (`az role assignment create` is a no-op
- * when the assignment is there). The role is assigned by its id, which
- * needs no lookup of a role made a minute before.
+ * matter):
+ *
+ *   - the two roles, created or updated: the changes', and their reads
+ *     alone;
+ *   - the resource group, the write identity (a user-assigned managed
+ *     identity, made once and the same identity every run after) and the
+ *     Container Apps environment, created when they are not there;
+ *   - the app, which `az containerapp create` writes whole each time - its
+ *     image, secret, variables and size - with its own system-assigned
+ *     identity, and the write identity attached to it and to nothing else:
+ *     Azure gives a managed identity's token only to code running where the
+ *     identity is attached, so this app is the only place a token of the
+ *     write identity can come from;
+ *   - the reads' role for the app's own identity, and the changes' role
+ *     for the write identity, on the subscription (`az role assignment
+ *     create` is a no-op when the assignment is there); and the changes'
+ *     role taken from the app's own identity, which held it in an agent set
+ *     up before.
+ *
+ * The roles are assigned by their ids and the identities by their object
+ * ids, which needs no lookup of a role or an identity made a minute
+ * before. Nothing grants the agent's own identity anything on the write
+ * identity: neither Managed Identity Operator, which would let it attach
+ * the identity to a resource it may write, nor a federated credential,
+ * which Azure lets a user-assigned identity hold only for an issuer outside
+ * Entra ID.
  */
 export function getAzureCloudAiAgentSetupCommand(
   options: CloudAiAgentSetupOptions,
@@ -1550,6 +1644,8 @@ function writeAzureCommand(setup: CloudAiAgentSetup): string {
   const location: string = setup.region as string;
   const subscription: string = '--subscription "$SUBSCRIPTION"';
   const group: string = `--resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}`;
+  const scope: string = '--scope "/subscriptions/$SUBSCRIPTION"';
+  const writeIdentity: string = `--name ${AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME} ${group}`;
   const variables: Array<string> = environmentOf(setup).map(
     (variable: CloudAiAgentEnvironmentVariable): string => {
       return variable.isSecret
@@ -1557,26 +1653,43 @@ function writeAzureCommand(setup: CloudAiAgentSetup): string {
         : `${variable.name}=${shellQuote(variable.value)}`;
     },
   );
+  // The same flags whether a role is created or updated.
+  const role: (definition: string) => string = (definition: string): string => {
+    return `${subscription} --role-definition "$${definition}" --query name --output tsv`;
+  };
 
   return [
     `SUBSCRIPTION=${setup.accountId}`,
     `DEFINITION=${shellQuote(JSON.stringify(azureRoleDefinitionOf(setup)))}`,
+    `READER_DEFINITION=${shellQuote(JSON.stringify(azureReaderRoleDefinitionOf(setup)))}`,
     "az extension add --name containerapp --upgrade -y --only-show-errors",
-    `ROLE=$(az role definition create ${subscription} --role-definition "$DEFINITION" --query name --output tsv 2> /dev/null || az role definition update ${subscription} --role-definition "$DEFINITION" --query name --output tsv)`,
+    `ROLE=$(az role definition create ${role("DEFINITION")} 2> /dev/null || az role definition update ${role("DEFINITION")})`,
+    `READER_ROLE=$(az role definition create ${role("READER_DEFINITION")} 2> /dev/null || az role definition update ${role("READER_DEFINITION")})`,
     `az provider register ${subscription} --namespace Microsoft.App --wait`,
+    `az provider register ${subscription} --namespace Microsoft.ManagedIdentity --wait`,
     `az group show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} > /dev/null 2>&1 || az group create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --location ${location} --output none`,
+    // The identity each change runs as: made the first time, the same one every time after.
+    `WRITE_PRINCIPAL=$(az identity show ${subscription} ${writeIdentity} --query principalId --output tsv 2> /dev/null || az identity create ${subscription} ${writeIdentity} --location ${location} --query principalId --output tsv)`,
     `az containerapp env show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} ${group} > /dev/null 2>&1 || az containerapp env create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} ${group} --location ${location} --logs-destination none --output none`,
-    // The app, its identity's role, and the line that says so: each only when the one before worked.
+    /*
+     * The app with its own identity and the write identity, their roles,
+     * and the line that says so: each only when the one before worked.
+     */
     [
-      `az containerapp create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group}`,
+      `[ -n "$WRITE_PRINCIPAL" ] && az containerapp create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group}`,
       `--environment ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} --image ${setup.image}`,
-      `--cpu ${size.vcpu} --memory ${size.memoryGiB}Gi --min-replicas 1 --max-replicas 1 --system-assigned`,
+      `--cpu ${size.vcpu} --memory ${size.memoryGiB}Gi --min-replicas 1 --max-replicas 1`,
+      `--system-assigned --user-assigned ${getAzureCloudAiAgentWriteIdentityId(setup.accountId)}`,
       `--secrets ${AZURE_CLOUD_AI_AGENT_SECRET_NAME}=${shellQuote(setup.agentKey)}`,
       `--env-vars ${variables.join(" ")}`,
       "--output none &&",
     ].join(" "),
     `  PRINCIPAL=$(az containerapp show ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group} --query identity.principalId --output tsv) &&`,
-    `  az role assignment create ${subscription} --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$ROLE" --scope "/subscriptions/$SUBSCRIPTION" --output none &&`,
+    // The agent's own identity reads; the write identity holds the changes.
+    `  az role assignment create ${subscription} --assignee-object-id "$PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$READER_ROLE" ${scope} --output none &&`,
+    `  az role assignment create ${subscription} --assignee-object-id "$WRITE_PRINCIPAL" --assignee-principal-type ServicePrincipal --role "$ROLE" ${scope} --output none &&`,
+    // An agent set up before held the changes' role itself: no longer.
+    `  { az role assignment delete ${subscription} --assignee "$PRINCIPAL" --role "$ROLE" ${scope} --output none 2> /dev/null || true; } &&`,
     `  echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
   ].join("\n");
 }
