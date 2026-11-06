@@ -16,6 +16,7 @@ import AIRunTranscript from "../Utils/AI/AIRunTranscript";
 import CodeTaskLive from "../Utils/AI/CodeTask/CodeTaskLive";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -83,8 +84,12 @@ export class Service extends DatabaseService<Model> {
       event.sequence = sequence;
       event.eventType = data.eventType;
 
+      /*
+       * A Runner's tool name, held to its column (varchar(100)): a longer
+       * one refused the whole event, and the step it said was lost.
+       */
       if (data.toolName) {
-        event.toolName = data.toolName;
+        event.toolName = truncateShortText(data.toolName);
       }
       if (data.toolArguments) {
         event.toolArguments = data.toolArguments;
