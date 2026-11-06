@@ -10,13 +10,26 @@
  * the row's button, which takes every pixel the row has left over. So,
  * without drawing the sidebar again:
  *
- *   - a name cut short lacks what it would take whole (scrollWidth) less
- *     what it is given (clientWidth);
+ *   - a name cut short lacks what its text takes whole less what its box is
+ *     given;
  *   - a name shown whole has to spare the room its button has left after
  *     it - the sidebar could be that much narrower and still show it.
  *
+ * Every width is read to the part of a pixel the page lays it out at: the
+ * text's from a range around it, which is as wide as the text however its
+ * box cuts it short, rather than scrollWidth and clientWidth, which are
+ * rounded to whole pixels. A sidebar fitted to its names is then fitted
+ * already: a second double-click leaves it as it is, where whole pixels
+ * moved it by one.
+ *
  * React-free on purpose, like FacetSidebarWidth.
  */
+
+/*
+ * Less than this between a name's text and its box is the same width,
+ * written two ways (its box is laid out in 64ths of a pixel).
+ */
+const SAME_WIDTH_IN_PX: number = 0.05;
 
 /*
  * On a name the fit reads: the value a facet row lists. Only these - a
@@ -122,6 +135,42 @@ const getRoomLeftInBox: (box: Element, isRightToLeft: boolean) => number = (
 };
 
 /*
+ * How wide a name's text is, whole, on its one line: a range around it is
+ * as wide as the text, wherever its box cuts it short. A page that cannot
+ * say (a range with no box, as in a test's DOM) has scrollWidth, in whole
+ * pixels.
+ */
+const getTextWidth: (name: HTMLElement) => number = (
+  name: HTMLElement,
+): number => {
+  const ownerDocument: Document = name.ownerDocument;
+
+  if (ownerDocument && typeof ownerDocument.createRange === "function") {
+    const range: Range = ownerDocument.createRange();
+    range.selectNodeContents(name);
+
+    if (typeof range.getBoundingClientRect === "function") {
+      const width: number = range.getBoundingClientRect().width;
+
+      if (Number.isFinite(width) && width > 0) {
+        return width;
+      }
+    }
+  }
+
+  return name.scrollWidth;
+};
+
+// How wide a name's box is drawn: to the part of a pixel, else whole.
+const getBoxWidth: (name: HTMLElement) => number = (
+  name: HTMLElement,
+): number => {
+  const width: number = name.getBoundingClientRect().width;
+
+  return Number.isFinite(width) && width > 0 ? width : name.clientWidth;
+};
+
+/*
  * What each name the sidebar lists lacks (positive) or has to spare
  * (negative), in pixels, at the width it is drawn at now. A name not drawn
  * (a folded section's, a phone's hidden sidebar) is left out: it has no box.
@@ -139,9 +188,9 @@ export const getFacetNameShortfalls: (panel: Element) => Array<number> = (
       continue;
     }
 
-    const lacking: number = name.scrollWidth - name.clientWidth;
+    const lacking: number = getTextWidth(name) - getBoxWidth(name);
 
-    if (lacking > 0) {
+    if (lacking > SAME_WIDTH_IN_PX) {
       shortfalls.push(lacking);
       continue;
     }

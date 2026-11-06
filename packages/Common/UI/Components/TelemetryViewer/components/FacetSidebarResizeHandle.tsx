@@ -131,6 +131,8 @@ interface SavedWidth {
 
 interface PointerDrag {
   pointerId: number;
+  // The edge itself, which holds the pointer while it drags.
+  handle: HTMLElement;
   panel: HTMLElement;
   // The width the sidebar's own style wrote, given back if the drag is let go.
   saved: SavedWidth;
@@ -142,6 +144,8 @@ interface PointerDrag {
   isMoved: boolean;
   pendingX: number | null;
   frame: number | null;
+  // Stops hearing Escape on the page: the drag is over.
+  stopHearingEscape: () => void;
 }
 
 interface LastPress {
@@ -234,7 +238,7 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
     setValueNow(props.width ?? FACET_SIDEBAR_DEFAULT_WIDTH_IN_PX);
   }, [props.width]);
 
-  // A sidebar that goes away mid-drag leaves no frame waiting.
+  // A sidebar that goes away mid-drag leaves no frame waiting, nor a listener.
   useEffect(() => {
     return () => {
       const drag: PointerDrag | null = dragRef.current;
@@ -243,6 +247,7 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
         cancelFrame(drag.frame);
       }
 
+      drag?.stopHearingEscape();
       dragRef.current = null;
     };
   }, []);
@@ -362,6 +367,7 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
     }
 
     dragRef.current = null;
+    drag.stopHearingEscape();
     setIsResizing(false);
 
     try {
@@ -408,8 +414,32 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
     const maxWidth: number = readMaxWidth(panel);
     const startWidth: number = readDrawnWidth(panel, maxWidth);
 
+    /*
+     * Escape puts the sidebar back, wherever the keyboard's focus is: a
+     * press on the edge does not take the focus (the press's default is
+     * prevented, so no text is selected), so the edge itself would not
+     * hear the key. Heard first, on the window, and nothing else's then -
+     * a dialog the explorer stands in stays open.
+     */
+    const onEscape: (keyEvent: KeyboardEvent) => void = (
+      keyEvent: KeyboardEvent,
+    ): void => {
+      if (keyEvent.key !== "Escape" || !dragRef.current) {
+        return;
+      }
+
+      keyEvent.preventDefault();
+      keyEvent.stopPropagation();
+      endPointerDrag({ isKept: false, element: handle });
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", onEscape, true);
+    }
+
     dragRef.current = {
       pointerId: event.pointerId,
+      handle: handle,
       panel: panel,
       saved: readSavedWidth(panel),
       startX: event.clientX,
@@ -420,6 +450,11 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
       isMoved: false,
       pendingX: null,
       frame: null,
+      stopHearingEscape: (): void => {
+        if (typeof window !== "undefined") {
+          window.removeEventListener("keydown", onEscape, true);
+        }
+      },
     };
 
     setValueNow(startWidth);
@@ -519,13 +554,7 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
   const onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = (
     event: React.KeyboardEvent<HTMLDivElement>,
   ): void => {
-    if (event.key === "Escape" && dragRef.current) {
-      event.preventDefault();
-      event.stopPropagation();
-      endPointerDrag({ isKept: false, element: event.currentTarget });
-      return;
-    }
-
+    // Mid-drag the window hears Escape (onPointerDown); no other key sizes it then.
     if (dragRef.current || event.altKey || event.ctrlKey || event.metaKey) {
       return;
     }

@@ -72,9 +72,11 @@ export const FACET_SIDEBAR_WIDTH_CLASS_NAME: string =
   "md:w-[var(--ou-facet-sidebar-width,14rem)] md:max-w-[50%]";
 
 /*
- * A name's box and what fits in it are read in whole pixels, each rounded:
- * one more pixel, so a name fitted to its sidebar is never cut by the part
- * of a pixel the rounding took off.
+ * One pixel more than the names need: a page that lays its boxes out in
+ * 64ths of a pixel, or reads a width in whole ones, never cuts a fitted
+ * name by the part of a pixel it rounded off. Read to the part of a pixel
+ * (FacetSidebarMeasure), a fitted sidebar's names then have that pixel or a
+ * little more to spare, and a second fit gives the same width.
  */
 export const FACET_SIDEBAR_FIT_ROUNDING_IN_PX: number = 1;
 

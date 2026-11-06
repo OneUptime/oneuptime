@@ -271,6 +271,79 @@ describe("getFacetNameShortfalls", () => {
     expect(getFacetNameShortfalls(newPanel())).toEqual([]);
   });
 
+  test("reads a name's text to the part of a pixel, from a range around it, where the page can say", () => {
+    const panel: HTMLElement = newPanel();
+    // Cut short: its box 146px, its text 272.344px whole (scrollWidth says 272).
+    const cut: Row = addRow(panel, {
+      buttonWidth: 180,
+      nameWidth: 146,
+      nameFullWidth: 272,
+    });
+    // Whole: its box and its text 60.359px, which clientWidth rounds to 60.
+    const whole: Row = addRow(panel, { buttonWidth: 180, nameWidth: 60.359 });
+
+    const textWidths: Map<Node, number> = new Map<Node, number>([
+      [cut.name, 272.344],
+      [whole.name, 60.359],
+    ]);
+    const realCreateRange: () => Range = document.createRange.bind(document);
+
+    document.createRange = (): Range => {
+      const range: Range = realCreateRange();
+      let selected: Node | null = null;
+
+      range.selectNodeContents = (node: Node): void => {
+        selected = node;
+      };
+      range.getBoundingClientRect = (): DOMRect => {
+        return { width: textWidths.get(selected as Node) ?? 0 } as DOMRect;
+      };
+
+      return range;
+    };
+
+    try {
+      const shortfalls: Array<number> = getFacetNameShortfalls(panel);
+
+      expect(shortfalls[0]).toBeCloseTo(272.344 - 146, 6);
+      // 180 less the 6px of padding at its end, less 28 + 60.359 used.
+      expect(shortfalls[1]).toBeCloseTo(-(180 - 6 - 28 - 60.359), 6);
+    } finally {
+      document.createRange = realCreateRange;
+    }
+  });
+
+  test("a text as wide as its box, to within a 64th of a pixel, is whole: it has room to spare, not a pixel lacking", () => {
+    const panel: HTMLElement = newPanel();
+    const row: Row = addRow(panel, { buttonWidth: 180, nameWidth: 60 });
+    const realCreateRange: () => Range = document.createRange.bind(document);
+
+    document.createRange = (): Range => {
+      const range: Range = realCreateRange();
+      range.selectNodeContents = (): void => {};
+      range.getBoundingClientRect = (): DOMRect => {
+        // A 64th of a pixel wider than its box, as the two are rounded apart.
+        return { width: 60 + 1 / 64 } as DOMRect;
+      };
+      return range;
+    };
+
+    try {
+      expect(row.name.scrollWidth).toBe(60);
+      expect(getFacetNameShortfalls(panel)).toEqual([-86]);
+    } finally {
+      document.createRange = realCreateRange;
+    }
+  });
+
+  test("a page whose ranges have no box reads the text's width from scrollWidth", () => {
+    const panel: HTMLElement = newPanel();
+    addRow(panel, { buttonWidth: 180, nameWidth: 146, nameFullWidth: 300 });
+
+    // jsdom lays no range out, so it says no width: the fallback is read.
+    expect(getFacetNameShortfalls(panel)).toEqual([300 - 146]);
+  });
+
   test("a name whose box is out of room reads as a plain 0, never -0", () => {
     const panel: HTMLElement = newPanel();
     // The name ends past its box's padding: no room left, and none lacking.

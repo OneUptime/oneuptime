@@ -650,6 +650,97 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
       expect(storedWidth()).toBe("320");
     });
 
+    test("REGRESSION: Escape puts it back wherever the focus is - a press on the edge does not take the focus", () => {
+      window.localStorage.setItem(STORAGE_KEY, "320");
+      renderSidebar();
+      const { panel, handle } = layOutPage();
+      const search: HTMLInputElement = document.createElement("input");
+      document.body.appendChild(search);
+      search.focus();
+
+      pointer(handle, "pointerDown", 320);
+      pointer(handle, "pointerMove", 420);
+
+      // The search box still has the focus, and hears the key first in a browser.
+      expect(document.activeElement).toBe(search);
+      act(() => {
+        fireEvent.keyDown(search, { key: "Escape" });
+      });
+
+      expect(writtenWidthOf(panel)).toBe("320px");
+      expect(handle).not.toHaveAttribute("data-resizing");
+      pointer(handle, "pointerUp", 420);
+      expect(storedWidth()).toBe("320");
+
+      search.remove();
+    });
+
+    test("Escape mid-drag is the drag's alone: a dialog the explorer stands in stays open", () => {
+      renderSidebar();
+      const { handle } = layOutPage();
+      const dialogHears: jest.Mock = jest.fn();
+      document.addEventListener("keydown", dialogHears as unknown as EventListener);
+
+      pointer(handle, "pointerDown", 230);
+      pointer(handle, "pointerMove", 300);
+
+      let isTaken: boolean = false;
+      act(() => {
+        isTaken = !fireEvent.keyDown(document.body, { key: "Escape" });
+      });
+
+      expect(isTaken).toBe(true);
+      expect(dialogHears).not.toHaveBeenCalled();
+
+      document.removeEventListener(
+        "keydown",
+        dialogHears as unknown as EventListener,
+      );
+    });
+
+    test("once the drag is over, Escape is the page's again", () => {
+      renderSidebar();
+      const { handle } = layOutPage();
+      const pageHears: jest.Mock = jest.fn();
+      document.addEventListener("keydown", pageHears as unknown as EventListener);
+
+      drag(handle, 230, [300]);
+      act(() => {
+        fireEvent.keyDown(document.body, { key: "Escape" });
+      });
+
+      expect(pageHears).toHaveBeenCalledTimes(1);
+      expect(storedWidth()).toBe("294");
+
+      document.removeEventListener(
+        "keydown",
+        pageHears as unknown as EventListener,
+      );
+    });
+
+    test("a sidebar that goes away mid-drag stops hearing Escape", () => {
+      renderSidebar();
+      const { handle } = layOutPage();
+      const pageHears: jest.Mock = jest.fn();
+      document.addEventListener("keydown", pageHears as unknown as EventListener);
+
+      pointer(handle, "pointerDown", 230);
+      pointer(handle, "pointerMove", 300);
+      cleanup();
+
+      act(() => {
+        fireEvent.keyDown(document.body, { key: "Escape" });
+      });
+
+      expect(pageHears).toHaveBeenCalledTimes(1);
+      expect(storedWidth()).toBeNull();
+
+      document.removeEventListener(
+        "keydown",
+        pageHears as unknown as EventListener,
+      );
+    });
+
     test("Escape gives a sidebar of its own width back its own width", () => {
       renderSidebar();
       const { panel, handle } = layOutPage();
