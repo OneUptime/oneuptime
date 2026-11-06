@@ -1492,9 +1492,7 @@ describe("AWS: the template", () => {
           return variable.isSecret;
         },
       ),
-    ).toEqual([
-      { name: CLOUD_AI_AGENT_KEY_ENV, value: KEY, isSecret: true },
-    ]);
+    ).toEqual([{ name: CLOUD_AI_AGENT_KEY_ENV, value: KEY, isSecret: true }]);
   });
 
   test("one agent, always on, reaching out through a public IP in the default subnets", () => {
@@ -2144,9 +2142,9 @@ describe("Google Cloud: the agent's own account reads, its changes run as the wr
       "oneuptime-ai-agent-write",
     );
     // A service account's id is 6 to 30 lowercase letters, digits and dashes.
-    expect(GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID.length).toBeLessThanOrEqual(
-      30,
-    );
+    expect(
+      GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID.length,
+    ).toBeLessThanOrEqual(30);
     expect(getGcpCloudAiAgentWriteServiceAccount(GCP_PROJECT)).toBe(WRITE);
   });
 
@@ -2231,7 +2229,9 @@ describe("Google Cloud: the agent's own account reads, its changes run as the wr
       expect(tokenGrant[0]![4]).toBe(WRITE);
       expect(flag(tokenGrant[0]!, "--member")).toBe(`serviceAccount:${OWN}`);
       expect(flag(tokenGrant[0]!, "--role")).toBe(GCP_TOKEN_CREATOR_ROLE);
-      expect(GCP_TOKEN_CREATOR_ROLE).toBe("roles/iam.serviceAccountTokenCreator");
+      expect(GCP_TOKEN_CREATOR_ROLE).toBe(
+        "roles/iam.serviceAccountTokenCreator",
+      );
       expect(tokenGrant[0]).toContain("--condition=None");
       expect(
         callsTo(shell, "gcloud", "projects", "add-iam-policy-binding").some(
@@ -2257,9 +2257,8 @@ describe("Google Cloud: the agent's own account reads, its changes run as the wr
         CloudProvider.GCP,
         operations,
       );
-      const reads: Array<string> = getGcpCloudAiAgentReaderPermissions(
-        operations,
-      );
+      const reads: Array<string> =
+        getGcpCloudAiAgentReaderPermissions(operations);
 
       expect(reads.length).toBeGreaterThan(0);
       for (const permission of all) {
@@ -2272,15 +2271,17 @@ describe("Google Cloud: the agent's own account reads, its changes run as the wr
           isRead: reads.includes(permission),
         }).toEqual({ permission, isRead: verb === "get" || verb === "list" });
       }
-      expect(reads.every((permission: string): boolean => {
-        return all.includes(permission);
-      })).toBe(true);
+      expect(
+        reads.every((permission: string): boolean => {
+          return all.includes(permission);
+        }),
+      ).toBe(true);
     }
 
     // A restart is the write account's alone.
-    expect(getGcpCloudAiAgentReaderPermissions(["reboot-instance"])).not.toContain(
-      "compute.instances.reset",
-    );
+    expect(
+      getGcpCloudAiAgentReaderPermissions(["reboot-instance"]),
+    ).not.toContain("compute.instances.reset");
     expect(getGcpCloudAiAgentReaderPermissions(["reboot-instance"])).toContain(
       "compute.instances.get",
     );
@@ -2953,7 +2954,10 @@ describe("Google Cloud on its VM: the command", () => {
     );
     expect(
       bindings.map((call: Array<string>): Array<string> => {
-        return [flag(call, "--member") as string, flag(call, "--role") as string];
+        return [
+          flag(call, "--member") as string,
+          flag(call, "--role") as string,
+        ];
       }),
     ).toEqual([
       [
@@ -3754,10 +3758,7 @@ describe("what the options are checked for", () => {
         }),
       },
     ],
-    [
-      "a key in capitals",
-      { agentKey: KEY.toUpperCase() },
-    ],
+    ["a key in capitals", { agentKey: KEY.toUpperCase() }],
     ["a OneUptime id that is not one", { cloudAccountId: "account-1" }],
     ["fixes off", { fixesMode: "Disabled" as CloudAiAgentFixesMode }],
     [

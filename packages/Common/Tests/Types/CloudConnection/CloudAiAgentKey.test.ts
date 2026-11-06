@@ -48,7 +48,11 @@ function record(
   madeAt: Date,
   extra: Partial<CloudAiAgentKeyRecord> = {},
 ): CloudAiAgentKeyRecord {
-  return { hash: hash.repeat(64).slice(0, 64), madeAt: madeAt.toISOString(), ...extra };
+  return {
+    hash: hash.repeat(64).slice(0, 64),
+    madeAt: madeAt.toISOString(),
+    ...extra,
+  };
 }
 
 describe("a key", () => {
@@ -110,7 +114,10 @@ describe("a key", () => {
     ["a secret that is not hex", `ouca_${ACCOUNT}_${"g".repeat(64)}`],
     ["one part too many", `ouca_${ACCOUNT}_${SECRET}_x`],
     ["one part too few", `ouca_${ACCOUNT}`],
-    ["a space inside", `ouca_${ACCOUNT}_${SECRET.slice(0, 32)} ${SECRET.slice(33)}`],
+    [
+      "a space inside",
+      `ouca_${ACCOUNT}_${SECRET.slice(0, 32)} ${SECRET.slice(33)}`,
+    ],
   ])("%s is no key", (_what: string, value: unknown) => {
     expect(parseCloudAiAgentKey(value)).toBeNull();
     expect(isCloudAiAgentKey(value)).toBe(false);
@@ -169,9 +176,9 @@ describe("what an account keeps", () => {
 
     // An object that does not say the ingestion key may still connect: it may not.
     expect(readCloudAiAgentKeys({})?.isOwnKeyRequired).toBe(true);
-    expect(readCloudAiAgentKeys({ isOwnKeyRequired: "no" })?.isOwnKeyRequired).toBe(
-      true,
-    );
+    expect(
+      readCloudAiAgentKeys({ isOwnKeyRequired: "no" })?.isOwnKeyRequired,
+    ).toBe(true);
   });
 
   test("a record that is not a key's hash and a time is left out, never half trusted", () => {
@@ -398,11 +405,19 @@ describe("making, using and revoking keys", () => {
       isOwnKeyRequired: true,
     };
 
-    expect(useCloudAiAgentKey({ keys, hash: "b".repeat(64), now: NOW })).toBeNull();
-    expect(useCloudAiAgentKey({ keys, hash: "z".repeat(64), now: NOW })).toBeNull();
+    expect(
+      useCloudAiAgentKey({ keys, hash: "b".repeat(64), now: NOW }),
+    ).toBeNull();
+    expect(
+      useCloudAiAgentKey({ keys, hash: "z".repeat(64), now: NOW }),
+    ).toBeNull();
     // The agent's own key is no pending key: using it changes nothing.
-    expect(useCloudAiAgentKey({ keys, hash: "a".repeat(64), now: NOW })).toBeNull();
-    expect(useCloudAiAgentKey({ keys: null, hash: "a".repeat(64), now: NOW })).toBeNull();
+    expect(
+      useCloudAiAgentKey({ keys, hash: "a".repeat(64), now: NOW }),
+    ).toBeNull();
+    expect(
+      useCloudAiAgentKey({ keys: null, hash: "a".repeat(64), now: NOW }),
+    ).toBeNull();
   });
 
   test("Reset agent revokes every key and keeps the ingestion key out", () => {

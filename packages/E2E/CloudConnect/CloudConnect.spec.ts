@@ -2776,7 +2776,9 @@ test.describe("OneUptime AI on a cloud account", () => {
       .getByTestId("cloud-ai-agent-setup-command");
     await expect(command).toContainText("aws cloudformation deploy");
     const [key] = await agentKeys(page);
-    expect(key).toMatch(/^ouca_30000000-0000-4000-8000-000000000001_[0-9]{64}$/);
+    expect(key).toMatch(
+      /^ouca_30000000-0000-4000-8000-000000000001_[0-9]{64}$/,
+    );
     await expect(command).toContainText(key!);
     await expect(
       steps.nth(0).getByTestId("cloud-ai-agent-setup-key-note"),

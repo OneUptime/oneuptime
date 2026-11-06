@@ -209,8 +209,7 @@ export default class ResourceAiAgentIngressAPI {
           ...(registration.cloudAiAgentKey
             ? { cloudAiAgentKey: registration.cloudAiAgentKey }
             : {
-                ingestionKeyId:
-                  registration.ingestionKeyPolicy?.ingestionKeyId,
+                ingestionKeyId: registration.ingestionKeyPolicy?.ingestionKeyId,
               }),
         });
 
@@ -483,7 +482,11 @@ export default class ResourceAiAgentIngressAPI {
         _id: data.jobId.toString(),
         assignedAgentId: data.agent.id!,
       },
-      select: { origin: true, aiRunId: true, autoRemediationSuggestionId: true },
+      select: {
+        origin: true,
+        aiRunId: true,
+        autoRemediationSuggestionId: true,
+      },
       props: { isRoot: true },
     });
 

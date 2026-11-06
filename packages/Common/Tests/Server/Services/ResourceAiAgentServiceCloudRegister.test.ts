@@ -50,12 +50,13 @@ interface ResolveData {
 
 type Resolve = (data: ResolveData) => Promise<ObjectID>;
 
-const resolveCloudAccountId: (data: Required<ResolveData>) => Promise<ObjectID> =
-  (
-    ResourceAiAgentService as unknown as {
-      resolveCloudAccountId: (data: Required<ResolveData>) => Promise<ObjectID>;
-    }
-  ).resolveCloudAccountId.bind(ResourceAiAgentService);
+const resolveCloudAccountId: (
+  data: Required<ResolveData>,
+) => Promise<ObjectID> = (
+  ResourceAiAgentService as unknown as {
+    resolveCloudAccountId: (data: Required<ResolveData>) => Promise<ObjectID>;
+  }
+).resolveCloudAccountId.bind(ResourceAiAgentService);
 
 // As registration calls it: with the project's ingestion key unless said otherwise.
 const resolve: Resolve = (data: ResolveData): Promise<ObjectID> => {
@@ -138,23 +139,22 @@ beforeEach(() => {
       },
     );
   keysOf = {};
-  jest
-    .spyOn(CloudAccountService, "findAccountOfAgentKey")
-    .mockImplementation(
-      async (
-        id: ObjectID,
-      ): Promise<{ account: CloudAccount; keys: CloudAiAgentKeys | null } | null> => {
-        const account: CloudAccount | undefined = accounts.find(
-          (row: CloudAccount): boolean => {
-            return row._id === id.toString();
-          },
-        );
+  jest.spyOn(CloudAccountService, "findAccountOfAgentKey").mockImplementation(
+    async (
+      id: ObjectID,
+    ): Promise<{
+      account: CloudAccount;
+      keys: CloudAiAgentKeys | null;
+    } | null> => {
+      const account: CloudAccount | undefined = accounts.find(
+        (row: CloudAccount): boolean => {
+          return row._id === id.toString();
+        },
+      );
 
-        return account
-          ? { account, keys: keysOf[id.toString()] || null }
-          : null;
-      },
-    );
+      return account ? { account, keys: keysOf[id.toString()] || null } : null;
+    },
+  );
   updateOne = jest
     .spyOn(CloudAccountService, "updateOneById")
     .mockImplementation(
@@ -384,14 +384,22 @@ describe("a refused Cloud AI agent is noted on the account it was set up for", (
       "OneUptime refused a Cloud AI agent that tried to connect as this account's agent",
     );
     // The refusal's own words: where it runs, and what to do.
-    expect(String(item["feedInfoInMarkdown"])).toContain("AWS account 222222222222");
-    expect(String(item["feedInfoInMarkdown"])).toContain("AWS account 111111111111");
+    expect(String(item["feedInfoInMarkdown"])).toContain(
+      "AWS account 222222222222",
+    );
+    expect(String(item["feedInfoInMarkdown"])).toContain(
+      "AWS account 111111111111",
+    );
     expect(refused.message.length).toBeGreaterThan(0);
 
     const more: string = String(item["moreInformationInMarkdown"]);
 
-    expect(more).toContain("**Where it says it runs**: AWS account 222222222222");
-    expect(more).toContain("**Connected with**: a key made for this account's agent");
+    expect(more).toContain(
+      "**Where it says it runs**: AWS account 222222222222",
+    );
+    expect(more).toContain(
+      "**Connected with**: a key made for this account's agent",
+    );
     expect(more).toContain("**Agent version**: 14.0.110");
   });
 
@@ -471,29 +479,31 @@ describe("a refused Cloud AI agent is noted on the account it was set up for", (
  */
 describe("the project's ingestion key, once the account's agent has a key of its own", () => {
   test("still connects an agent set up before keys of their own", async () => {
-    await expect(resolve({
-      projectId: PROJECT_ID,
-      resourceType: AiResourceType.AwsAccount,
-      identifier: "111111111111",
-      resourceId: PROD_ID.toString(),
-    })).resolves.toEqual(PROD_ID);
+    await expect(
+      resolve({
+        projectId: PROJECT_ID,
+        resourceType: AiResourceType.AwsAccount,
+        identifier: "111111111111",
+        resourceId: PROD_ID.toString(),
+      }),
+    ).resolves.toEqual(PROD_ID);
   });
 
   test("still connects while a key was only made, and never connected", async () => {
     keysOf[PROD_ID.toString()] = {
       current: null,
-      pending: [
-        { hash: "a".repeat(64), madeAt: new Date().toISOString() },
-      ],
+      pending: [{ hash: "a".repeat(64), madeAt: new Date().toISOString() }],
       isOwnKeyRequired: false,
     };
 
-    await expect(resolve({
-      projectId: PROJECT_ID,
-      resourceType: AiResourceType.AwsAccount,
-      identifier: "111111111111",
-      resourceId: PROD_ID.toString(),
-    })).resolves.toEqual(PROD_ID);
+    await expect(
+      resolve({
+        projectId: PROJECT_ID,
+        resourceType: AiResourceType.AwsAccount,
+        identifier: "111111111111",
+        resourceId: PROD_ID.toString(),
+      }),
+    ).resolves.toEqual(PROD_ID);
   });
 
   test.each([
@@ -519,16 +529,26 @@ describe("the project's ingestion key, once the account's agent has a key of its
     async (_what: string, keys: CloudAiAgentKeys) => {
       keysOf[PROD_ID.toString()] = keys;
 
-      const refused: ResourceAiAgentRegistrationRefusedException = await refusal(
-        { identifier: "111111111111", resourceId: PROD_ID.toString() },
-      );
+      const refused: ResourceAiAgentRegistrationRefusedException =
+        await refusal({
+          identifier: "111111111111",
+          resourceId: PROD_ID.toString(),
+        });
 
       expect(refused.reason).toBe("agent_key_required");
-      expect(refused.message).toBe(CLOUD_AI_AGENT_INGESTION_KEY_REFUSED_MESSAGE);
-      expect(refused.message).toContain("Change on the account's AI agent page");
+      expect(refused.message).toBe(
+        CLOUD_AI_AGENT_INGESTION_KEY_REFUSED_MESSAGE,
+      );
+      expect(refused.message).toContain(
+        "Change on the account's AI agent page",
+      );
       expect(feed).toHaveBeenCalledTimes(1);
       expect(
-        String((feed.mock.calls[0]![0] as Record<string, unknown>)["moreInformationInMarkdown"]),
+        String(
+          (feed.mock.calls[0]![0] as Record<string, unknown>)[
+            "moreInformationInMarkdown"
+          ],
+        ),
       ).toContain("the project's telemetry ingestion key");
       // The account keeps why: its page shows it.
       expect(
@@ -551,9 +571,9 @@ describe("the project's ingestion key, once the account's agent has a key of its
     };
 
     // No pin at all: the account is found by the cloud's identity, and still refused.
-    expect(
-      (await refusal({ identifier: "111111111111" })).reason,
-    ).toBe("agent_key_required");
+    expect((await refusal({ identifier: "111111111111" })).reason).toBe(
+      "agent_key_required",
+    );
   });
 
   test("the account's own key is never refused by this rule", async () => {
@@ -563,13 +583,15 @@ describe("the project's ingestion key, once the account's agent has a key of its
       isOwnKeyRequired: true,
     };
 
-    await expect(resolve({
-      projectId: PROJECT_ID,
-      resourceType: AiResourceType.AwsAccount,
-      identifier: "111111111111",
-      resourceId: PROD_ID.toString(),
-      registration: { isOwnKey: true },
-    })).resolves.toEqual(PROD_ID);
+    await expect(
+      resolve({
+        projectId: PROJECT_ID,
+        resourceType: AiResourceType.AwsAccount,
+        identifier: "111111111111",
+        resourceId: PROD_ID.toString(),
+        registration: { isOwnKey: true },
+      }),
+    ).resolves.toEqual(PROD_ID);
   });
 
   test("another account's own key does not change it: each account is its own", async () => {
@@ -579,11 +601,13 @@ describe("the project's ingestion key, once the account's agent has a key of its
       isOwnKeyRequired: true,
     };
 
-    await expect(resolve({
-      projectId: PROJECT_ID,
-      resourceType: AiResourceType.AwsAccount,
-      identifier: "111111111111",
-      resourceId: PROD_ID.toString(),
-    })).resolves.toEqual(PROD_ID);
+    await expect(
+      resolve({
+        projectId: PROJECT_ID,
+        resourceType: AiResourceType.AwsAccount,
+        identifier: "111111111111",
+        resourceId: PROD_ID.toString(),
+      }),
+    ).resolves.toEqual(PROD_ID);
   });
 });

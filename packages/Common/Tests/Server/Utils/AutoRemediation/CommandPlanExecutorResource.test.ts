@@ -861,9 +861,7 @@ describe("the timeline's record of every command and every undo", () => {
 
     expect(resourceEnqueue).not.toHaveBeenCalled();
 
-    const record: string = String(
-      lastFeedItem()["moreInformationInMarkdown"],
-    );
+    const record: string = String(lastFeedItem()["moreInformationInMarkdown"]);
 
     expect(record).toContain(
       '1. `docker stop web`, undoing command 1, on Docker host "web-1": skipped: Rollback not run: Docker host "web-1" no longer allows this change unattended',

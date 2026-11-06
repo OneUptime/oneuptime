@@ -92,8 +92,6 @@ describe("AddCloudAccountAiAgentKeys1808994400000", () => {
     expect(account.getTableColumnMetadata("aiAgentKeys")?.type).toBe(
       TableColumnType.JSON,
     );
-    expect(account.getTableColumnMetadata("aiAgentKeys")?.required).toBe(
-      false,
-    );
+    expect(account.getTableColumnMetadata("aiAgentKeys")?.required).toBe(false);
   });
 });

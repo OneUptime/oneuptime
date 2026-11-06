@@ -196,9 +196,7 @@ export async function canActAsGcpServiceAccount(data: {
   }
 
   const json: unknown = parseJsonBody(response);
-  const permissions: unknown = isPlainObject(json)
-    ? json["permissions"]
-    : null;
+  const permissions: unknown = isPlainObject(json) ? json["permissions"] : null;
   const may: boolean =
     Array.isArray(permissions) &&
     permissions.includes(GCP_GET_ACCESS_TOKEN_PERMISSION);

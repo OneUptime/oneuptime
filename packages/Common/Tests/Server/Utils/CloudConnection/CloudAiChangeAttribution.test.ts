@@ -322,7 +322,8 @@ describe("who the account's Cloud AI agent is", () => {
         accountId: GCP_PROJECT,
         posture: posture({
           gcpServiceAccount: "Team-AI@acme-prod.iam.gserviceaccount.com",
-          gcpWriteServiceAccount: "Team-AI-Write@acme-prod.iam.gserviceaccount.com",
+          gcpWriteServiceAccount:
+            "Team-AI-Write@acme-prod.iam.gserviceaccount.com",
         }),
       }).gcpServiceAccounts,
     ).toEqual([
@@ -524,7 +525,9 @@ describe("whether the agent made a change", () => {
     ).toBe(false);
     expect(
       isCloudAiAgentChange(
-        gcpChange("oneuptime-ai-agent-write@other-project.iam.gserviceaccount.com"),
+        gcpChange(
+          "oneuptime-ai-agent-write@other-project.iam.gserviceaccount.com",
+        ),
         gcp,
       ),
     ).toBe(false);

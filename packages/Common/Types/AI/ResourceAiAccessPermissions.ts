@@ -145,7 +145,9 @@ export function getResourceAiAgentResetEditRefusal(
  * takes what resetting it takes - one of RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS
  * and an edit of the account itself.
  */
-export function getCloudAiAgentKeyRefusal(resourceType: AiResourceType): string {
+export function getCloudAiAgentKeyRefusal(
+  resourceType: AiResourceType,
+): string {
   return `You need one of these permissions to set up this ${getResourceSentenceName(
     resourceType,
   )}'s ${getResourceAgentName(resourceType)}: ${PermissionHelper.getPermissionTitles(

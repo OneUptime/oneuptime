@@ -27,7 +27,14 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * A Cloud AI agent registering with its account's own key, end to end
@@ -141,9 +148,9 @@ beforeEach(() => {
   jest
     .spyOn(CloudAccountService, "findOneBy")
     .mockImplementation(
-      async (data: { query: Record<string, unknown> }): Promise<
-        CloudAccount | null
-      > => {
+      async (data: {
+        query: Record<string, unknown>;
+      }): Promise<CloudAccount | null> => {
         const row: AccountRow | undefined = accountOf(data.query["_id"]);
         return row ? asModel(row) : null;
       },
@@ -228,7 +235,9 @@ beforeEach(() => {
     });
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue(FeedMarkdown.asMarkdown("[Maya Chen](/users/maya)") as never);
+    .mockResolvedValue(
+      FeedMarkdown.asMarkdown("[Maya Chen](/users/maya)") as never,
+    );
   jest
     .spyOn(AutoRemediationRuleEngineService, "onAgentConnected")
     .mockResolvedValue(undefined as never);
@@ -279,13 +288,12 @@ afterEach(() => {
 });
 
 async function makeKey(): Promise<string> {
-  const made: CloudAiAgentKeyResponse = await CloudAccountService.makeAiAgentKey(
-    {
+  const made: CloudAiAgentKeyResponse =
+    await CloudAccountService.makeAiAgentKey({
       cloudAccountId: ACCOUNT_ID,
       userId: USER_ID,
       now: new Date(),
-    },
-  );
+    });
 
   return made.agentKey;
 }
@@ -365,15 +373,21 @@ describe("a key registers its account's agent, and nothing else", () => {
     AiResourceType.DockerHost,
     AiResourceType.Host,
     AiResourceType.DatabaseServer,
-  ])("an agent that says it serves a %s is refused", async (type: AiResourceType) => {
-    const refused: ResourceAiAgentRegistrationRefusedException = await refusalOf(
-      register({ key: await keyOf(await makeKey()), resourceType: type }),
-    );
+  ])(
+    "an agent that says it serves a %s is refused",
+    async (type: AiResourceType) => {
+      const refused: ResourceAiAgentRegistrationRefusedException =
+        await refusalOf(
+          register({ key: await keyOf(await makeKey()), resourceType: type }),
+        );
 
-    expect(refused.reason).toBe("resource_type_invalid");
-    expect(refused.message).toContain("made for a cloud account's Cloud AI agent");
-    expect(agentRow).toBeNull();
-  });
+      expect(refused.reason).toBe("resource_type_invalid");
+      expect(refused.message).toContain(
+        "made for a cloud account's Cloud AI agent",
+      );
+      expect(agentRow).toBeNull();
+    },
+  );
 
   test("the key's account is the pin, whatever the body says it was set up for", async () => {
     const result: ResourceAiAgentRegistrationResult = await register({
@@ -385,9 +399,13 @@ describe("a key registers its account's agent, and nothing else", () => {
   });
 
   test("an agent whose cloud names another account is refused, and the key's account says so on its feed", async () => {
-    const refused: ResourceAiAgentRegistrationRefusedException = await refusalOf(
-      register({ key: await keyOf(await makeKey()), identifier: "222222222222" }),
-    );
+    const refused: ResourceAiAgentRegistrationRefusedException =
+      await refusalOf(
+        register({
+          key: await keyOf(await makeKey()),
+          identifier: "222222222222",
+        }),
+      );
 
     expect(refused.reason).toBe("resource_not_found");
     expect(refused.message).toContain("AWS account 222222222222");
@@ -400,7 +418,9 @@ describe("a key registers its account's agent, and nothing else", () => {
       "AWS account 222222222222",
     );
     // Not the agent's key yet: a refused registration takes nothing.
-    expect(readCloudAiAgentKeys(accountOf(ACCOUNT_ID)?.aiAgentKeys)?.current).toBeNull();
+    expect(
+      readCloudAiAgentKeys(accountOf(ACCOUNT_ID)?.aiAgentKeys)?.current,
+    ).toBeNull();
   });
 });
 
@@ -414,8 +434,12 @@ describe("a new key becomes the agent's key once it connects", () => {
 
     // The first still works until the second connects: opening the dialog disconnects nothing.
     expect(
-      (await CloudAiAgentKeyAuthenticator.authenticate({ key: first, now: new Date() }))
-        .isAuthorized,
+      (
+        await CloudAiAgentKeyAuthenticator.authenticate({
+          key: first,
+          now: new Date(),
+        })
+      ).isAuthorized,
     ).toBe(true);
 
     const result: ResourceAiAgentRegistrationResult = await register({
@@ -427,8 +451,12 @@ describe("a new key becomes the agent's key once it connects", () => {
       readCloudAiAgentKeys(accountOf(ACCOUNT_ID)?.aiAgentKeys)?.current?.hash,
     ).toBe(CloudAiAgentKeyHashing.hash(second));
     expect(
-      (await CloudAiAgentKeyAuthenticator.authenticate({ key: first, now: new Date() }))
-        .isAuthorized,
+      (
+        await CloudAiAgentKeyAuthenticator.authenticate({
+          key: first,
+          now: new Date(),
+        })
+      ).isAuthorized,
     ).toBe(false);
 
     const keyItem: Record<string, unknown> | undefined = feedItems.find(
@@ -443,9 +471,8 @@ describe("a new key becomes the agent's key once it connects", () => {
 
     // And the project's ingestion key no longer connects it.
     signOff();
-    const refused: ResourceAiAgentRegistrationRefusedException = await refusalOf(
-      register({}),
-    );
+    const refused: ResourceAiAgentRegistrationRefusedException =
+      await refusalOf(register({}));
     expect(refused.reason).toBe("agent_key_required");
     expect(refused.message).toBe(CLOUD_AI_AGENT_INGESTION_KEY_REFUSED_MESSAGE);
   });
@@ -487,9 +514,8 @@ describe("a new key becomes the agent's key once it connects", () => {
 
     // The first agent still answers; a second, with a newer key, is refused its place.
     const newer: string = await makeKey();
-    const refused: ResourceAiAgentRegistrationRefusedException = await refusalOf(
-      register({ key: await keyOf(newer) }),
-    );
+    const refused: ResourceAiAgentRegistrationRefusedException =
+      await refusalOf(register({ key: await keyOf(newer) }));
 
     expect(refused.reason).toBe("previous_instance_online");
     expect(
@@ -539,8 +565,12 @@ describe("Reset agent", () => {
 
     expect(agentRow?.keyHash).toBeNull();
     expect(
-      (await CloudAiAgentKeyAuthenticator.authenticate({ key, now: new Date() }))
-        .isAuthorized,
+      (
+        await CloudAiAgentKeyAuthenticator.authenticate({
+          key,
+          now: new Date(),
+        })
+      ).isAuthorized,
     ).toBe(false);
     expect((await refusalOf(register({}))).reason).toBe("agent_key_required");
 
@@ -572,7 +602,9 @@ describe("Reset agent", () => {
     });
 
     expect((await refusalOf(register({}))).reason).toBe("agent_key_required");
-    expect(readCloudAiAgentKeys(accountOf(ACCOUNT_ID)?.aiAgentKeys)).toMatchObject({
+    expect(
+      readCloudAiAgentKeys(accountOf(ACCOUNT_ID)?.aiAgentKeys),
+    ).toMatchObject({
       current: null,
       pending: [],
       isOwnKeyRequired: true,

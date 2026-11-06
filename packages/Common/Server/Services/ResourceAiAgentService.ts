@@ -2384,15 +2384,17 @@ export class Service extends DatabaseService<Model> {
       );
 
     try {
-      const account: CloudAccount | null = await CloudAccountService.findOneBy(
-        {
-          query: { _id: data.cloudAccountId.toString() },
-          select: { _id: true, projectId: true, aiAccessLastError: true },
-          props: { isRoot: true },
-        },
-      );
+      const account: CloudAccount | null = await CloudAccountService.findOneBy({
+        query: { _id: data.cloudAccountId.toString() },
+        select: { _id: true, projectId: true, aiAccessLastError: true },
+        props: { isRoot: true },
+      });
 
-      if (!account || !account.projectId || account.aiAccessLastError === kept) {
+      if (
+        !account ||
+        !account.projectId ||
+        account.aiAccessLastError === kept
+      ) {
         return;
       }
 
@@ -2405,7 +2407,8 @@ export class Service extends DatabaseService<Model> {
       await CloudAccountFeedService.createCloudAccountFeedItem({
         cloudAccountId: data.cloudAccountId,
         projectId: account.projectId,
-        cloudAccountFeedEventType: CloudAccountFeedEventType.CloudAccountUpdated,
+        cloudAccountFeedEventType:
+          CloudAccountFeedEventType.CloudAccountUpdated,
         displayColor: Amber500,
         feedInfoInMarkdown:
           mdText`⚠️ OneUptime refused a Cloud AI agent that tried to connect as this account's agent: ${data.message}`.toString(),

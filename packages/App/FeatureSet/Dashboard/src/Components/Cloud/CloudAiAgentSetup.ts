@@ -447,7 +447,9 @@ export function readCloudAiAgentKeyAnswer(data: {
   cloudAccountId: string;
 }): string | null {
   const answer: Record<string, unknown> | null =
-    data.answer && typeof data.answer === "object" && !Array.isArray(data.answer)
+    data.answer &&
+    typeof data.answer === "object" &&
+    !Array.isArray(data.answer)
       ? (data.answer as Record<string, unknown>)
       : null;
   const key: unknown = answer ? answer["agentKey"] : null;

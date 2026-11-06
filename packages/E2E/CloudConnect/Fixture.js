@@ -1934,9 +1934,7 @@ API.post = async (options) => {
         200,
         {
           agentKey: key,
-          worksUntilConnectedBy: new Date(
-            NOW + 24 * 60 * MINUTE,
-          ).toISOString(),
+          worksUntilConnectedBy: new Date(NOW + 24 * 60 * MINUTE).toISOString(),
         },
         {},
       );

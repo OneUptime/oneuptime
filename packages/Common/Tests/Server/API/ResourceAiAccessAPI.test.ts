@@ -1973,7 +1973,10 @@ describe("ResourceAiAccessAPI", () => {
         userProps({ permissions: [], isMasterAdmin: true }),
       );
 
-      await callRoute(RESOURCE_AI_ACCESS_AGENT_KEY_PATH, body(kind.resourceType));
+      await callRoute(
+        RESOURCE_AI_ACCESS_AGENT_KEY_PATH,
+        body(kind.resourceType),
+      );
 
       expect(makeKeySpy).toHaveBeenCalledTimes(1);
     });
@@ -2028,7 +2031,8 @@ describe("ResourceAiAccessAPI", () => {
         expect(
           getResetAgentMessage({
             resourceType: kind.resourceType,
-            agentName: AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName,
+            agentName:
+              AI_RESOURCE_TYPE_INFO[kind.resourceType].agentDisplayName,
           }),
         ).toBe(
           `The ${

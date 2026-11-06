@@ -401,7 +401,9 @@ describe("Google Cloud: Test connection and the posture name the write account",
       lines[3],
       `Write service account: ${GCP_WRITE_SERVICE_ACCOUNT}, whose token the agent asks for each change, for 15 minutes (the agent may ask for one: the agent's own account holds iam.serviceAccounts.getAccessToken on it)`,
     );
-    assert.deepStrictEqual(callsIn(h), [`POST ${GCP_TEST_IAM_PERMISSIONS_URL}`]);
+    assert.deepStrictEqual(callsIn(h), [
+      `POST ${GCP_TEST_IAM_PERMISSIONS_URL}`,
+    ]);
     assert.strictEqual(h.gcp.calls[0]!.authorization, `Bearer ${GCP_TOKEN}`);
     assert.deepStrictEqual(h.gcp.calls[0]!.body, {
       permissions: ["iam.serviceAccounts.getAccessToken"],
@@ -467,7 +469,10 @@ describe("Google Cloud: Test connection and the posture name the write account",
       probe.details?.["gcpWriteServiceAccount"],
       GCP_WRITE_SERVICE_ACCOUNT,
     );
-    assert.strictEqual(probe.details?.["gcpServiceAccount"], GCP_SERVICE_ACCOUNT);
+    assert.strictEqual(
+      probe.details?.["gcpServiceAccount"],
+      GCP_SERVICE_ACCOUNT,
+    );
     assert.ok(
       (probe.protectedTargets || []).includes(
         `//iam.googleapis.com/projects/${P}/serviceAccounts/oneuptime-ai-agent-write@*`,

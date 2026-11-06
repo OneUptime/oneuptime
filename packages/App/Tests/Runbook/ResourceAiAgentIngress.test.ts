@@ -1710,14 +1710,12 @@ describe("POST /job/:jobId/heartbeat", () => {
     heartbeatJob = jest
       .spyOn(RunnerJobService, "heartbeatJob")
       .mockResolvedValue(true);
-    jobLookup = jest
-      .spyOn(RunnerJobService, "findOneBy")
-      .mockResolvedValue(
-        makeJob({
-          origin: RunnerJobOrigin.AiRemediation,
-          aiRunId: new ObjectID("12121212-1212-4212-8212-121212121212"),
-        }),
-      );
+    jobLookup = jest.spyOn(RunnerJobService, "findOneBy").mockResolvedValue(
+      makeJob({
+        origin: RunnerJobOrigin.AiRemediation,
+        aiRunId: new ObjectID("12121212-1212-4212-8212-121212121212"),
+      }),
+    );
   });
 
   test('the lease is still the agent\'s: 200 { status: "ok" }', async () => {

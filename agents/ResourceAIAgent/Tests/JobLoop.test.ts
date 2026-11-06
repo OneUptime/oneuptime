@@ -21,7 +21,7 @@ import {
 } from "node:test";
 import AgentStatus from "../AgentStatus";
 import { AgentConfig } from "../Config";
-import IngestClient from "../IngestClient";
+import IngestClient, { IngestResponse } from "../IngestClient";
 import JobLoop, {
   ClaimedJob,
   DEFAULT_JOB_TIMINGS,
@@ -38,7 +38,6 @@ import JobLoop, {
   parseClaimedJob,
   readStopReason,
 } from "../JobLoop";
-import { IngestResponse } from "../IngestClient";
 import { AgentPosture } from "../Posture";
 import { AgentIdentity, AgentSession } from "../Registration";
 import FakeBinary, { makeTempDir } from "./Helpers/FakeBinary";
@@ -226,7 +225,8 @@ describe("claimed jobs, before anything runs", () => {
         answer({
           status: "ok",
           stop: true,
-          reason: " OneUptime AI was turned off for this project (Enable AI) while its agent held this command. ",
+          reason:
+            " OneUptime AI was turned off for this project (Enable AI) while its agent held this command. ",
         }),
       ),
       "OneUptime AI was turned off for this project (Enable AI) while its agent held this command.",
@@ -237,8 +237,9 @@ describe("claimed jobs, before anything runs", () => {
       "OneUptime said to stop this command.",
     );
     assert.strictEqual(
-      readStopReason(answer({ status: "ok", stop: true, reason: "x".repeat(900) }))!
-        .length,
+      readStopReason(
+        answer({ status: "ok", stop: true, reason: "x".repeat(900) }),
+      )!.length,
       500,
     );
 
@@ -249,7 +250,11 @@ describe("claimed jobs, before anything runs", () => {
       { status: "ok", stop: false, reason: "no" },
       null,
     ]) {
-      assert.strictEqual(readStopReason(answer(body)), null, JSON.stringify(body));
+      assert.strictEqual(
+        readStopReason(answer(body)),
+        null,
+        JSON.stringify(body),
+      );
     }
 
     // Only an answer that renewed the lease can say it.

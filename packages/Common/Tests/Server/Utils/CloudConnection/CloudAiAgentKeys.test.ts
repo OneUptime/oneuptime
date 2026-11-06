@@ -21,7 +21,14 @@ import {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import crypto from "crypto";
 
 /*
@@ -64,8 +71,9 @@ beforeEach(() => {
   writes = [];
   losingWrites = 0;
 
-  jest.spyOn(CloudAccountService, "findOneById").mockImplementation(
-    async (): Promise<CloudAccount | null> => {
+  jest
+    .spyOn(CloudAccountService, "findOneById")
+    .mockImplementation(async (): Promise<CloudAccount | null> => {
       if (!stored.exists) {
         return null;
       }
@@ -82,8 +90,7 @@ beforeEach(() => {
         ? (JSON.parse(JSON.stringify(stored.aiAgentKeys)) as JSONObject)
         : (undefined as never);
       return account;
-    },
-  );
+    });
 
   jest
     .spyOn(CloudAccountService, "compareAndSetColumnsByIdWithoutHooks")
@@ -129,9 +136,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function makeKey(
-  now: Date = NOW,
-): Promise<CloudAiAgentKeyResponse> {
+async function makeKey(now: Date = NOW): Promise<CloudAiAgentKeyResponse> {
   return await CloudAccountService.makeAiAgentKey({
     cloudAccountId: ACCOUNT_ID,
     userId: USER_ID,
@@ -266,7 +271,9 @@ describe("making a key for the account's agent", () => {
   test("for an account that is gone, nothing", async () => {
     stored.exists = false;
 
-    await expect(makeKey()).rejects.toThrow("The cloud account no longer exists.");
+    await expect(makeKey()).rejects.toThrow(
+      "The cloud account no longer exists.",
+    );
   });
 });
 
@@ -337,9 +344,9 @@ describe("an agent connecting with one of the account's keys", () => {
     const made: CloudAiAgentKeyResponse = await makeKey();
 
     expect((await connect(made.agentKey, hoursLater(24))).isUsable).toBe(false);
-    expect((await authenticate(made.agentKey, hoursLater(24))).isAuthorized).toBe(
-      false,
-    );
+    expect(
+      (await authenticate(made.agentKey, hoursLater(24))).isAuthorized,
+    ).toBe(false);
   });
 
   test("an account set up before keys of their own has none to connect with", async () => {
@@ -360,12 +367,12 @@ describe("Reset agent", () => {
       now: hoursLater(1),
     });
 
-    expect((await authenticate(current.agentKey, hoursLater(1))).isAuthorized).toBe(
-      false,
-    );
-    expect((await authenticate(pending.agentKey, hoursLater(1))).isAuthorized).toBe(
-      false,
-    );
+    expect(
+      (await authenticate(current.agentKey, hoursLater(1))).isAuthorized,
+    ).toBe(false);
+    expect(
+      (await authenticate(pending.agentKey, hoursLater(1))).isAuthorized,
+    ).toBe(false);
     expect(storedKeys()).toEqual({
       current: null,
       pending: [],
@@ -382,9 +389,9 @@ describe("Reset agent", () => {
 
     const made: CloudAiAgentKeyResponse = await makeKey(hoursLater(1));
 
-    expect((await authenticate(made.agentKey, hoursLater(1))).isAuthorized).toBe(
-      true,
-    );
+    expect(
+      (await authenticate(made.agentKey, hoursLater(1))).isAuthorized,
+    ).toBe(true);
   });
 });
 
@@ -414,19 +421,22 @@ describe("who a registration with a key is from", () => {
     ["no key", undefined],
     ["a telemetry ingestion key", "0b5f2c1e-1111-4111-8111-222233334444"],
     ["a key that is not of its shape", "ouca_nope"],
-  ])("%s: refused before anything is read", async (_what: string, key: unknown) => {
-    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      CloudAccountService,
-      "findAccountOfAgentKey",
-    );
+  ])(
+    "%s: refused before anything is read",
+    async (_what: string, key: unknown) => {
+      const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        CloudAccountService,
+        "findAccountOfAgentKey",
+      );
 
-    expect(await authenticate(key)).toEqual({
-      isAuthorized: false,
-      status: 401,
-      message: CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE,
-    });
-    expect(read).not.toHaveBeenCalled();
-  });
+      expect(await authenticate(key)).toEqual({
+        isAuthorized: false,
+        status: 401,
+        message: CLOUD_AI_AGENT_KEY_REFUSED_MESSAGE,
+      });
+      expect(read).not.toHaveBeenCalled();
+    },
+  );
 
   test("a key of a removed account is refused: removing the account revokes it", async () => {
     const made: CloudAiAgentKeyResponse = await makeKey();
@@ -465,7 +475,9 @@ describe("who a registration with a key is from", () => {
       retryAfterSeconds: 15,
     });
     expect(CLOUD_AI_AGENT_REGISTRATIONS_PER_MINUTE).toBe(30);
-    expect(incrementIfBelow.mock.calls[0]![0]).toBe("cloud-ai-agent-registration");
+    expect(incrementIfBelow.mock.calls[0]![0]).toBe(
+      "cloud-ai-agent-registration",
+    );
     expect(incrementIfBelow.mock.calls[0]![1]).toBe(
       `${ACCOUNT_ID.toString()}:${Math.floor(
         Date.parse("2026-11-06T12:00:45.000Z") / 60000,
@@ -480,7 +492,9 @@ describe("who a registration with a key is from", () => {
   test("a cache that cannot be reached counts nothing: the right key still connects", async () => {
     const made: CloudAiAgentKeyResponse = await makeKey();
 
-    incrementIfBelow.mockRejectedValue(new Error("Cache is not connected") as never);
+    incrementIfBelow.mockRejectedValue(
+      new Error("Cache is not connected") as never,
+    );
 
     expect((await authenticate(made.agentKey)).isAuthorized).toBe(true);
   });

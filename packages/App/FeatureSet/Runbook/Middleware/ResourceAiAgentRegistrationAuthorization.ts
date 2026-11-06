@@ -39,9 +39,8 @@ export default class ResourceAiAgentRegistrationAuthorization {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const token: unknown = ResourceAiAgentRegistrationAuthorization.readToken(
-        req,
-      );
+      const token: unknown =
+        ResourceAiAgentRegistrationAuthorization.readToken(req);
 
       if (!isCloudAiAgentKey(token)) {
         return await TelemetryIngest.forSurface(
