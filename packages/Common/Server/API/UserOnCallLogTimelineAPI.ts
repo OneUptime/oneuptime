@@ -31,6 +31,11 @@ import {
   getResourceReference,
 } from "../Utils/OnCallNotificationContext";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
+import OnCallDutyPolicyExecutionLogService from "../Services/OnCallDutyPolicyExecutionLogService";
+import {
+  ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL,
+  isOnCallObserverPage,
+} from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
 import OnCallPageLinkToken, {
   ON_CALL_PAGE_LINK_TOKEN_PARAM,
@@ -400,27 +405,46 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
           /*
+           * An observer's page (OnCallObserverPage) is answered by saying
+           * they have seen it: the record is not acknowledged, and there is
+           * nothing to escalate.
+           */
+          const isObserverPage: boolean = await this.isObserverPage(
+            timelineItem.onCallDutyPolicyExecutionLogId,
+          );
+
+          /*
            * "Can't take it? Escalate" beside Acknowledge - for a link that
            * carries the page's own token (OnCallPageLinkToken), while the
            * page is still the person's to escalate. The texts, the WhatsApp
            * messages and the chat messages all lead here.
            */
-          const passOn: JSONObject | null = await this.getPassOnBlock({
-            token: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
-            itemId: itemId,
-            timelineItem: timelineItem,
-            timezone: timelineItem.user?.timezone?.toString(),
-            recordNoun: notificationType,
-          });
+          const passOn: JSONObject | null = isObserverPage
+            ? null
+            : await this.getPassOnBlock({
+                token: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
+                itemId: itemId,
+                timelineItem: timelineItem,
+                timezone: timelineItem.user?.timezone?.toString(),
+                recordNoun: notificationType,
+              });
+
+          const recordNoun: string = notificationType.toLowerCase();
 
           return Response.render(
             req,
             res,
             "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
             {
-              title: `Acknowledge ${notificationType} - ${notificationTitle}`,
-              message: `Do you want to acknowledge this ${notificationType}?`,
-              acknowledgeText: `Acknowledge ${notificationType}`,
+              title: isObserverPage
+                ? `${ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL} - ${notificationTitle}`
+                : `Acknowledge ${notificationType} - ${notificationTitle}`,
+              message: isObserverPage
+                ? `You're paged as an observer: the people responding stay on this ${recordNoun}. Saying you've seen it does not acknowledge the ${recordNoun}.`
+                : `Do you want to acknowledge this ${notificationType}?`,
+              acknowledgeText: isObserverPage
+                ? ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL
+                : `Acknowledge ${notificationType}`,
               acknowledgeUrl: new URL(
                 httpProtocol,
                 host,
@@ -484,6 +508,8 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 },
                 acknowledgedAt: true,
                 isAcknowledged: true,
+                // An observer's page is answered as seen (OnCallObserverPage).
+                onCallDutyPolicyExecutionLogId: true,
                 user: {
                   timezone: true,
                 },
@@ -514,6 +540,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             timelineItem.triggeredByAlertEpisode?.title ||
             timelineItem.triggeredByAlert?.title ||
             "";
+
+          const isObserverPage: boolean = await this.isObserverPage(
+            timelineItem.onCallDutyPolicyExecutionLogId,
+          );
 
           if (timelineItem.isAcknowledged) {
             // already acknowledged. Then show already acknowledged page with view details button.
@@ -549,8 +579,12 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               res,
               "/usr/src/Common/Server/Views/ViewMessage.ejs",
               {
-                title: `Notification Already Acknowledged - ${acknowledgedTitle}`,
-                message: `This notification has already been acknowledged.`,
+                title: isObserverPage
+                  ? `Already Marked as Seen - ${acknowledgedTitle}`
+                  : `Notification Already Acknowledged - ${acknowledgedTitle}`,
+                message: isObserverPage
+                  ? `This page has already been marked as seen.`
+                  : `This notification has already been acknowledged.`,
                 viewDetailsText: `View ${reference?.resourceType.toString() || ""}`,
                 viewDetailsUrl: viewDetailsUrl.toString(),
                 resourceNumber: context?.resourceNumber || "",
@@ -567,7 +601,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               acknowledgedAt: OneUptimeDate.getCurrentDate(),
               isAcknowledged: true,
               status: UserNotificationStatus.Acknowledged,
-              statusMessage: "Notification Acknowledged",
+              statusMessage: isObserverPage
+                ? "Marked as seen, paged as an observer"
+                : "Notification Acknowledged",
             },
             props: {
               isRoot: true,
@@ -854,6 +890,35 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
    * The acknowledge page's "Can't take it? Escalate", or null: for a link
    * with the page's own token, while the page is the person's to escalate.
    */
+  /*
+   * Whether a page's run pages its people as observers (OnCallObserverPage).
+   * Best effort: a run that cannot be read is answered as a responder's.
+   */
+  private async isObserverPage(
+    executionLogId: ObjectID | null | undefined,
+  ): Promise<boolean> {
+    if (!executionLogId) {
+      return false;
+    }
+
+    try {
+      return isOnCallObserverPage(
+        await OnCallDutyPolicyExecutionLogService.findOneById({
+          id: executionLogId,
+          select: {
+            _id: true,
+            isObserverPage: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
+    } catch {
+      return false;
+    }
+  }
+
   private async getPassOnBlock(data: {
     token: unknown;
     itemId: ObjectID;

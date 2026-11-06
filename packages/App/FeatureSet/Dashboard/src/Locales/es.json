@@ -45357,5 +45357,18 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime no envió ninguna clave para este agente. Vuelve a intentarlo.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "El comando incluye una clave creada solo para este agente. Ejecútalo en el plazo de un día o vuelve a abrir este cuadro de diálogo para obtener una nueva.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "Se restableció el {{agent}} y su clave ya no funciona. Vuelve a ejecutar su comando de configuración para conectarlo: Cambiar lo muestra.",
-  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Esto revoca al instante la clave del {{agentName}}. Queda desconectado hasta que vuelvas a ejecutar su comando de configuración: Cambiar lo muestra, con una clave nueva."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Esto revoca al instante la clave del {{agentName}}. Queda desconectado hasta que vuelvas a ejecutar su comando de configuración: Cambiar lo muestra, con una clave nueva.",
+  "As observers": "As observers",
+  "Everyone paged by an on-call policy to respond. People paged as observers are not added.": "Everyone paged by an on-call policy to respond. People paged as observers are not added.",
+  "Keep the policy's people informed while the people responding stay on it. Acknowledging their page only says they've seen it: nothing is acknowledged, and nobody else's page stops.": "Keep the policy's people informed while the people responding stay on it. Acknowledging their page only says they've seen it: nothing is acknowledged, and nobody else's page stops.",
+  "Observers": "Observers",
+  "Page As": "Page As",
+  "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.": "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.",
+  "Page the people of these policies as": "Page the people of these policies as",
+  "Page them as observers": "Page them as observers",
+  "Paged as Observers": "Paged as Observers",
+  "Paged as observers: their answer only says they've seen it": "Paged as observers: their answer only says they've seen it",
+  "Pages as observers: kept informed, nothing is acknowledged": "Pages as observers: kept informed, nothing is acknowledged",
+  "They take it on. Acknowledging the page acknowledges it and stops every other page about it.": "They take it on. Acknowledging the page acknowledges it and stops every other page about it.",
+  "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders.": "They're kept informed while the people responding stay on it. Acknowledging only says they've seen it: nothing else is acknowledged, nobody else's page stops, and they aren't added to its channel as responders."
 }

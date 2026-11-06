@@ -1,3 +1,4 @@
+import OnCallPageAs from "../../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import { TeamsChannelAccount, TeamsInfo, TurnContext } from "./Botbuilder";
 import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -84,6 +85,8 @@ export const MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD: string = "pageMessage";
  * the alert of the channel it was sent in (WorkspacePageAbout.toValue).
  */
 export const MICROSOFT_TEAMS_PAGE_ABOUT_FIELD: string = "pageAbout";
+// What they are paged as (OnCallPageAs), on a card about a record.
+export const MICROSOFT_TEAMS_PAGE_AS_FIELD: string = "pageAs";
 
 // A choice's kind, as a card with one list says it before its name.
 const CHOICE_PREFIXES: Record<WorkspacePageTargetKind, string> = {
@@ -173,6 +176,22 @@ export default class MicrosoftTeamsPage {
       MicrosoftTeamsPage.getPageTokens(activity),
     );
 
+    // "as observers" about something new: refused before anything is paged.
+    const observerRefusal: string | null = WorkspacePage.getObserverPageRefusal(
+      { text: text, about: about },
+    );
+
+    if (observerRefusal) {
+      await MicrosoftTeamsActionAnswer.reply({
+        turnContext: turnContext,
+        answer: {
+          markdown: mdText`${observerRefusal}`.toString(),
+          text: observerRefusal,
+        },
+      });
+      return;
+    }
+
     const [people, groups]: [WorkspacePagePeople, WorkspacePageGroups] =
       await Promise.all([
         (async (): Promise<WorkspacePagePeople> => {
@@ -222,6 +241,8 @@ export default class MicrosoftTeamsPage {
       targets: WorkspacePage.getTargets({ people: people, groups: groups }),
       message: text.message,
       about: about,
+      // "as observers" typed after who to page (OnCallObserverPage).
+      pageAs: text.pageAs,
     });
   }
 
@@ -366,6 +387,8 @@ export default class MicrosoftTeamsPage {
       targets: WorkspacePage.readTargets(picked),
       message: message,
       about: about,
+      // Only a card about a record offers it (buildFormCard).
+      pageAs: WorkspacePage.readPageAs(value[MICROSOFT_TEAMS_PAGE_AS_FIELD]),
     });
 
     // The card that paged goes, so nobody pages with it twice.
@@ -628,6 +651,19 @@ export default class MicrosoftTeamsPage {
         }
 
         /*
+         * About an incident or an alert, who is paged may be kept informed
+         * rather than asked to respond (OnCallObserverPage).
+         */
+        if (record) {
+          body.push(
+            ...MicrosoftTeamsPage.getPageAsElements({
+              id: MICROSOFT_TEAMS_PAGE_AS_FIELD,
+              value: data.prefill.pageAs,
+            }),
+          );
+        }
+
+        /*
          * About an incident or an alert, the record says what the page is
          * about: the message is optional, the page's own.
          */
@@ -680,6 +716,34 @@ export default class MicrosoftTeamsPage {
         };
       },
     }).card;
+  }
+
+  /*
+   * "Page them as" (OnCallPageAs) on a card: a compact choice, Responders
+   * until changed, and what observers are under it.
+   */
+  public static getPageAsElements(data: {
+    id: string;
+    value?: OnCallPageAs | undefined;
+  }): Array<JSONObject> {
+    return [
+      {
+        type: "Input.ChoiceSet",
+        id: data.id,
+        label: WORKSPACE_PAGE_FORM_TEXT.pageAsLabel,
+        style: "compact",
+        isMultiSelect: false,
+        value: data.value || OnCallPageAs.Responders,
+        choices: WorkspacePage.getPageAsChoices().map(
+          (choice: { label: string; value: string }): JSONObject => {
+            return { title: choice.label, value: choice.value };
+          },
+        ),
+      },
+      MicrosoftTeamsCardChoices.buildNoteElement(
+        WORKSPACE_PAGE_FORM_TEXT.pageAsHint,
+      ),
+    ];
   }
 
   /*
@@ -883,6 +947,8 @@ export default class MicrosoftTeamsPage {
     targets: OnCallPageTargets;
     message: string;
     about: WorkspacePageSubject;
+    // Responders when left out (OnCallPageAs).
+    pageAs?: OnCallPageAs | undefined;
   }): Promise<boolean> {
     // Paging takes a moment: Teams shows the bot is on it ("typing").
     await MicrosoftTeamsReplies.sendBestEffort(data.turnContext, {
@@ -899,6 +965,7 @@ export default class MicrosoftTeamsPage {
         targets: data.targets,
         message: data.message.substring(0, MAX_MESSAGE_LENGTH),
         about: data.about,
+        pageAs: data.pageAs,
         place: await MicrosoftTeamsPage.getPlace({
           turnContext: data.turnContext,
           activity: data.activity,

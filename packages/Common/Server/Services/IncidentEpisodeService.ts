@@ -74,6 +74,11 @@ import IncidentEpisodeLabelRuleEngineService from "./IncidentEpisodeLabelRuleEng
 import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
+import {
+  OnCallRulesPaging,
+  getNoOnCallRulesPaging,
+} from "../Utils/OnCall/OnCallRulePageAs";
+import OnCallObserverPaging from "../Utils/OnCall/OnCallObserverPaging";
 import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 import IncidentEpisodePrivacyRuleEngineService from "./IncidentEpisodePrivacyRuleEngineService";
 import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
@@ -707,15 +712,13 @@ export class Service extends ProjectReferencesService<Model> {
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
     /*
-     * The holds of the policies the episode's on-call rules added that may
-     * not page yet - a rule that pages only during working hours, matched
-     * outside them (OnCallRulePagingHold): set by the on-call rules step,
-     * read by the on-call step after it.
+     * What the episode's on-call rules page (OnCallRulePageAs): the
+     * responder policies they added, the policies they page as observers,
+     * and the holds of those that may not page yet - a rule that pages only
+     * during working hours, matched outside them (OnCallRulePagingHold): set
+     * by the on-call rules step, read by the on-call step after it.
      */
-    let onCallRulePagingHolds: Map<string, OnCallRulePagingHold> = new Map<
-      string,
-      OnCallRulePagingHold
-    >();
+    let onCallRulesPaging: OnCallRulesPaging = getNoOnCallRulesPaging();
 
     /*
      * Apply privacy rules BEFORE workspace operations so the workspace
@@ -899,10 +902,10 @@ export class Service extends ProjectReferencesService<Model> {
          * onCallDutyPolicies before the fan-out below picks them up.
          */
         try {
-          onCallRulePagingHolds =
+          onCallRulesPaging =
             (await IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode(
               createdItem,
-            )) || onCallRulePagingHolds;
+            )) || onCallRulesPaging;
         } catch (error) {
           logger.error(
             `Apply incident episode on-call rules failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
@@ -916,10 +919,32 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         // Execute on-call duty policies
         try {
+          /*
+           * The policies the on-call rules page as observers
+           * (OnCallObserverPage): kept informed about an episode that is
+           * still going on, whoever is responding to it. One created
+           * resolved is over.
+           */
+          if (
+            StartingStageUtil.isOngoing(startingStage) &&
+            onCallRulesPaging.observerPolicyIds.length > 0
+          ) {
+            await OnCallObserverPaging.pagePolicies({
+              projectId: createdItem.projectId!,
+              policyIds: onCallRulesPaging.observerPolicyIds,
+              holds: onCallRulesPaging.holds,
+              record: {
+                triggeredByIncidentEpisodeId: createdItem.id!,
+                userNotificationEventType:
+                  UserNotificationEventType.IncidentEpisodeCreated,
+              },
+            });
+          }
+
           await this.executeEpisodeOnCallDutyPoliciesAsync(
             createdItem,
             startingStage,
-            onCallRulePagingHolds,
+            onCallRulesPaging.holds,
           );
         } catch (error) {
           logger.error(

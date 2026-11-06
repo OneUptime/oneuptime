@@ -1,4 +1,6 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
+import OnCallPageAs from "../../../../../Types/OnCallDutyPolicy/OnCallPageAs";
+import { ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE } from "../../../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
@@ -26,6 +28,7 @@ import {
   readPageAbout,
   readPageIdList,
   readPageRecordId,
+  readPageAs,
 } from "../../../../../Types/Workflow/Components/OnCallPageSettings";
 import {
   TRUNCATED_NAME_NOTE,
@@ -52,6 +55,8 @@ const WORKFLOW_TIME_MARGIN_IN_MS: number = 5 * 1000;
 export interface PageStepRequest {
   targets: OnCallPageTargets;
   about: OnCallPageAbout;
+  // Responders, or observers kept informed (OnCallObserverPage).
+  pageAs: OnCallPageAs;
   unreadable: Array<string>;
 }
 
@@ -173,6 +178,7 @@ export default class Page extends ComponentCode {
         projectId: options.projectId,
         targets: request.targets,
         about: request.about,
+        pageAs: request.pageAs,
         props: await this.getStepProps(options),
         maxWaitForRecordInMs: Page.getMaxWaitForRecordInMs(options),
       });
@@ -270,6 +276,24 @@ export default class Page extends ComponentCode {
 
     if (!about) {
       return `${this.getArgumentName(PAGE_ARGUMENT_IDS.about)} is set to something this step does not know. Open the step and choose what the page is about.`;
+    }
+
+    /*
+     * Page As is a choice too (OnCallPageAs). Observers are kept informed
+     * about something that is already there: a new alert needs responders.
+     */
+    if (!holdsPageSettingReference(configured[PAGE_ARGUMENT_IDS.pageAs])) {
+      const pageAs: OnCallPageAs | null = readPageAs(
+        configured[PAGE_ARGUMENT_IDS.pageAs],
+      );
+
+      if (!pageAs) {
+        return `${this.getArgumentName(PAGE_ARGUMENT_IDS.pageAs)} is set to something this step does not know. Open the step and choose Responders or Observers.`;
+      }
+
+      if (pageAs === OnCallPageAs.Observers && about === PageAbout.NewAlert) {
+        return `${this.getArgumentName(PAGE_ARGUMENT_IDS.pageAs)} is Observers, but the page is about a new alert. ${ON_CALL_OBSERVERS_NEED_A_RECORD_MESSAGE}`;
+      }
     }
 
     const requiredArgumentId: string =
@@ -379,9 +403,17 @@ export default class Page extends ComponentCode {
         break;
     }
 
+    /*
+     * What the people paged are asked to do. A value from an earlier step
+     * that is neither choice pages responders, as the step always did.
+     */
+    const pageAs: OnCallPageAs =
+      readPageAs(args[PAGE_ARGUMENT_IDS.pageAs]) || OnCallPageAs.Responders;
+
     return {
       targets: targets,
       about: this.getAbout(args),
+      pageAs: pageAs,
       unreadable: list.unreadable,
     };
   }

@@ -908,6 +908,7 @@ import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpen
 import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
 import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
 import { AddCloudAccountAiAgentKeys1808994400000 } from "./1808994400000-AddCloudAccountAiAgentKeys";
+import { AddOnCallObserverPages1808994500000 } from "./1808994500000-AddOnCallObserverPages";
 
 export default [
   InitialMigration,
@@ -1820,4 +1821,5 @@ export default [
   AddWorkflowLogRunAgain1808994200000,
   AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
   AddCloudAccountAiAgentKeys1808994400000,
+  AddOnCallObserverPages1808994500000,
 ];

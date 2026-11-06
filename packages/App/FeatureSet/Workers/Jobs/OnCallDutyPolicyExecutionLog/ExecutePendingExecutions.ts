@@ -11,6 +11,7 @@ import {
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
@@ -72,6 +73,8 @@ RunCron(
           // So does a page a person asked for (OnCallPersonPage).
           triggeredByUserId: true,
           triggeredByWorkflowId: true,
+          // And an observer's page (OnCallObserverPage).
+          isObserverPage: true,
           // A run OneUptime AI holds says how its hold ended.
           aiHoldOutcome: true,
           onCallDutyPolicy: {
@@ -99,6 +102,22 @@ RunCron(
     await Promise.allSettled(promises);
   },
 );
+
+/*
+ * Whether a run ends only when one of its people answers it or its record is
+ * resolved - not when somebody else acknowledges the record: a page again
+ * (OnCallAcknowledgementTimeout), a page a person asked for
+ * (OnCallPersonPage) and an observer's page (OnCallObserverPage).
+ */
+const endsWhenAnsweredOrResolved: (
+  executionLog: OnCallDutyPolicyExecutionLog,
+) => boolean = (executionLog: OnCallDutyPolicyExecutionLog): boolean => {
+  return (
+    isOnCallPageAgainRun(executionLog) ||
+    isOnCallPersonPage(executionLog) ||
+    isOnCallObserverPage(executionLog)
+  );
+};
 
 type ExecuteOnCallPolicyFunction = (
   executionLog: OnCallDutyPolicyExecutionLog,
@@ -140,11 +159,12 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
      * (OnCallPersonPage) ends the same way: they asked for these people,
      * and somebody else acknowledging the record - often before they paged
      * at all - does not mean any of them has seen it.
+     *
+     * So does an observer's page (OnCallObserverPage): it keeps people
+     * informed about a record its responders are on, so the responders
+     * acknowledging it ends nothing. One of its people answering it does.
      */
-    if (
-      isOnCallPageAgainRun(executionLog) ||
-      isOnCallPersonPage(executionLog)
-    ) {
+    if (endsWhenAnsweredOrResolved(executionLog)) {
       const resolvedRecordKind: string | null =
         await getResolvedRecordKind(executionLog);
 
@@ -422,8 +442,14 @@ const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
       return;
     }
 
-    const handledRecordKind: string | null =
-      await getHandledRecordKind(executionLog);
+    /*
+     * An observer's page that waits (OnCallObserverPage) is still owed to its
+     * people when the responders acknowledge the record: only a resolve ends
+     * it unpaged.
+     */
+    const handledRecordKind: string | null = isOnCallObserverPage(executionLog)
+      ? await getResolvedRecordKind(executionLog)
+      : await getHandledRecordKind(executionLog);
 
     if (handledRecordKind) {
       await OnCallDutyPolicyExecutionLogService.endWaitingRun({

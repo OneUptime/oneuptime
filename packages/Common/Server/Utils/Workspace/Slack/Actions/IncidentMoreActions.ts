@@ -1,3 +1,4 @@
+import OnCallPageAs from "../../../../../Types/OnCallDutyPolicy/OnCallPageAs";
 import IncidentMember from "../../../../../Models/DatabaseModels/IncidentMember";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -94,6 +95,8 @@ export const ROLE_FIELD: string = "incidentRole";
 export const ROLE_PERSON_FIELD: string = "incidentRolePerson";
 export const PAGE_ABOUT_INCIDENT_FIELD: string = "incidentPageTargets";
 export const PAGE_ABOUT_INCIDENT_MESSAGE_FIELD: string = "incidentPageMessage";
+// What they are paged as (OnCallPageAs): responders, or observers.
+export const PAGE_ABOUT_INCIDENT_PAGE_AS_FIELD: string = "incidentPageAs";
 
 // The longest a Slack text input takes.
 const MAX_TEXT_INPUT_LENGTH: number = 3000;
@@ -830,7 +833,15 @@ export default class SlackIncidentMoreActions {
         cancelButtonTitle: WORKSPACE_INCIDENT_FORM_TEXT.cancel,
         actionId: SlackActionType.SubmitPageAboutIncident,
         actionValue: form.incident.event.id.toString(),
-        blocks: [SlackIncidentMoreActions.heading(form.incident), who, message],
+        blocks: [
+          SlackIncidentMoreActions.heading(form.incident),
+          who,
+          // Kept informed rather than asked to respond (OnCallObserverPage).
+          WorkspacePage.getPageAsDropdown({
+            blockId: PAGE_ABOUT_INCIDENT_PAGE_AS_FIELD,
+          }),
+          message,
+        ],
       },
     });
   }
@@ -849,6 +860,10 @@ export default class SlackIncidentMoreActions {
     const pageMessage: unknown =
       data.slackRequest.viewValues?.[PAGE_ABOUT_INCIDENT_MESSAGE_FIELD];
     const message: string = typeof pageMessage === "string" ? pageMessage : "";
+    // Responders on forms opened before it was asked.
+    const pageAs: OnCallPageAs = WorkspacePage.readPageAs(
+      data.slackRequest.viewValues?.[PAGE_ABOUT_INCIDENT_PAGE_AS_FIELD],
+    );
 
     const problem: string | null =
       WorkspaceIncidentActions.getPageProblem(picked);
@@ -901,6 +916,7 @@ export default class SlackIncidentMoreActions {
             event: authorized.incident.event,
             targets: WorkspacePage.readTargets(picked),
             props: authorized.props,
+            pageAs: pageAs,
             // The page's own message, when they wrote one.
             ...(message.trim() ? { message: message } : {}),
           });

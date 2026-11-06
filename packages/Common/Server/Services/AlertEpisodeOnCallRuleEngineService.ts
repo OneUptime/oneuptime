@@ -10,10 +10,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import FeedMarkdown, {
-  MarkdownText,
-  mdText,
-} from "../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -27,9 +24,15 @@ import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 import OnCallRulePagingHoldUtil, {
   ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
-  OnCallRulePagingHold,
   OnCallRulePagingHolds,
 } from "../Utils/OnCall/OnCallRulePagingHold";
+import {
+  ON_CALL_RULE_PAGE_AS_SELECT,
+  OnCallRulePageRoles,
+  OnCallRulesPaging,
+  getNoOnCallRulesPaging,
+  splitOnCallRulePolicies,
+} from "../Utils/OnCall/OnCallRulePageAs";
 
 class AlertEpisodeOnCallRuleEngineServiceClass {
   /**
@@ -46,11 +49,8 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
   @RuleEvaluation()
   public async applyRulesToEpisode(
     episode: AlertEpisode,
-  ): Promise<Map<string, OnCallRulePagingHold>> {
-    const noHolds: Map<string, OnCallRulePagingHold> = new Map<
-      string,
-      OnCallRulePagingHold
-    >();
+  ): Promise<OnCallRulesPaging> {
+    const noHolds: OnCallRulesPaging = getNoOnCallRulesPaging();
 
     if (!episode.id || !episode.projectId) {
       return noHolds;
@@ -69,6 +69,8 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
       const matchedRules: Array<AlertEpisodeOnCallRule> = [];
       // When each matched rule lets its policies page: right away wins.
       const pagingHolds: OnCallRulePagingHolds = new OnCallRulePagingHolds();
+      // What each matched rule pages its policies as: responders win.
+      const pageRoles: OnCallRulePageRoles = new OnCallRulePageRoles();
 
       for (const rule of rules) {
         if (!this.doesEpisodeMatchRule(episode, rule)) {
@@ -76,6 +78,14 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
         }
 
         pagingHolds.addRule(
+          rule,
+          (rule.onCallDutyPolicies || []).map(
+            (policy: OnCallDutyPolicy): string => {
+              return policy.id?.toString() || "";
+            },
+          ),
+        );
+        pageRoles.addRule(
           rule,
           (rule.onCallDutyPolicies || []).map(
             (policy: OnCallDutyPolicy): string => {
@@ -126,12 +136,20 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
       const merged: Array<OnCallDutyPolicy> = [
         ...(episode.onCallDutyPolicies || []),
       ];
-      const toAddIds: Array<string> = [];
-      for (const [policyId, policy] of matchedPolicies) {
-        if (!existingIds.has(policyId)) {
-          merged.push(policy);
-          toAddIds.push(policyId);
-        }
+
+      /*
+       * The responder policies are added to the episode; the observer
+       * policies are paged beside it (OnCallRulePageAs).
+       */
+      const { toAddPolicyIds: toAddIds, observerPolicyIds } =
+        splitOnCallRulePolicies({
+          matchedPolicyIds: Array.from(matchedPolicies.keys()),
+          existingPolicyIds: existingIds,
+          roles: pageRoles,
+        });
+
+      for (const policyId of toAddIds) {
+        merged.push(matchedPolicies.get(policyId)!);
       }
       // Update in-memory list so the existing fan-out runs the merged set.
       episode.onCallDutyPolicies = merged;
@@ -158,16 +176,21 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
         { projectId: episode.projectId.toString() } as LogAttributes,
       );
 
-      if (toAddIds.length > 0) {
+      if (toAddIds.length > 0 || observerPolicyIds.length > 0) {
         await this.createRuleExecutedFeedItem({
           episode,
           matchedRules,
           addedPolicyIds: toAddIds,
+          observerPolicyIds: observerPolicyIds,
         });
       }
 
       // A policy the episode had already pages as it always has: right away.
-      return pagingHolds.getHolds(toAddIds);
+      return {
+        addedPolicyIds: toAddIds,
+        observerPolicyIds: observerPolicyIds,
+        holds: pagingHolds.getHolds([...toAddIds, ...observerPolicyIds]),
+      };
     } catch (error) {
       logger.error(`Error applying alert episode on-call rules: ${error}`, {
         projectId: episode.projectId?.toString(),
@@ -251,6 +274,7 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
           episodeDescriptionPattern: true,
           onCallDutyPolicies: { _id: true },
           ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+          ...ON_CALL_RULE_PAGE_AS_SELECT,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
@@ -270,42 +294,59 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
     episode: AlertEpisode;
     matchedRules: Array<AlertEpisodeOnCallRule>;
     addedPolicyIds: Array<string>;
+    // The policies paged as observers (OnCallRulePageAs), not attached.
+    observerPolicyIds: Array<string>;
   }): Promise<void> {
-    const { episode, matchedRules, addedPolicyIds } = data;
+    const { episode, matchedRules, addedPolicyIds, observerPolicyIds } = data;
     if (
       !episode.id ||
       !episode.projectId ||
       matchedRules.length === 0 ||
-      addedPolicyIds.length === 0
+      (addedPolicyIds.length === 0 && observerPolicyIds.length === 0)
     ) {
       return;
     }
 
     try {
-      const policyObjectIds: Array<ObjectID> = addedPolicyIds.map(
-        (id: string) => {
-          return new ObjectID(id);
-        },
-      );
+      const policyObjectIds: Array<ObjectID> = [
+        ...addedPolicyIds,
+        ...observerPolicyIds,
+      ].map((id: string) => {
+        return new ObjectID(id);
+      });
 
       const policies: Array<OnCallDutyPolicy> =
         await OnCallDutyPolicyService.findBy({
           query: {
             _id: QueryHelper.any(policyObjectIds),
           },
-          select: { name: true },
+          select: { _id: true, name: true },
           props: { isRoot: true },
           limit: LIMIT_MAX,
           skip: 0,
         });
 
-      const policyNames: Array<string> = policies
-        .map((p: OnCallDutyPolicy) => {
-          return p.name?.toString() || "";
-        })
-        .filter((n: string) => {
-          return n !== "";
-        });
+      const policyNameById: Map<string, string> = new Map<string, string>();
+
+      for (const policy of policies) {
+        const name: string = policy.name?.toString() || "";
+
+        if (policy.id && name) {
+          policyNameById.set(policy.id.toString(), name);
+        }
+      }
+
+      const namesOf: (ids: Array<string>) => Array<string> = (
+        ids: Array<string>,
+      ): Array<string> => {
+        return ids
+          .map((id: string): string => {
+            return policyNameById.get(id) || "";
+          })
+          .filter((name: string): boolean => {
+            return name !== "";
+          });
+      };
 
       const ruleNames: Array<string> = matchedRules
         .map((r: AlertEpisodeOnCallRule) => {
@@ -321,10 +362,10 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
           ruleKind: "Alert Episode On-Call Rule",
           ruleNames: ruleNames,
         },
-      )}\n\nAttached the following on-call ${
-        policyNames.length === 1 ? "policy" : "policies"
-      } to the episode:\n${FeedMarkdown.bulletList(policyNames, {
-        whenEmpty: "(no named policies)",
+      )}\n\n${RuleFeedMarkdown.onCallRulePolicies({
+        recordNoun: "episode",
+        attachedPolicyNames: namesOf(addedPolicyIds),
+        observerPolicyNames: namesOf(observerPolicyIds),
       })}`;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
