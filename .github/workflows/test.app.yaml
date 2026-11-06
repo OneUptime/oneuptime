@@ -1017,7 +1017,9 @@ jobs:
           # Cloud Spend grew to 34 tests on 2026-11-04 (a resource's
           # right-sizing, its costs read at any hour of the UTC day, an unusual
           # day on Costs): 4.9 minutes locally with CI=1, its bundle built.
-          # Archivable Values (1.8) moved on to group 16: about 21.
+          # Archivable Values (1.8) moved on to group 16: about 21. Its UI
+          # review added two right-sizing states the same day (about 8
+          # seconds): 5.0, about 21.1.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
