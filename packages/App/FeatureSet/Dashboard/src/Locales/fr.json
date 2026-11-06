@@ -45351,5 +45351,13 @@
   "Only if {{first}} and {{second}}": "Seulement si {{first}} et {{second}}",
   "Only if {{first}} or {{second}}": "Seulement si {{first}} ou {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Seulement si {{first}}, {{second}} et {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Seulement si {{first}}, {{second}} ou {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Seulement si {{first}}, {{second}} ou {{third}}",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Toute personne qui n'a pas choisi ses propres colonnes pour cette liste voit celles-ci.",
+  "Default Table Columns": "Colonnes de tableau par défaut",
+  "Remove default": "Retirer les colonnes par défaut",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Remplace les colonnes par défaut de cette liste. Les personnes qui ont choisi les leurs les conservent.",
+  "Reset to project default": "Réinitialiser aux valeurs par défaut du projet",
+  "Show these columns to everyone in this project": "Afficher ces colonnes pour tout le monde dans ce projet",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Ce sont les colonnes par défaut de ce projet pour cette liste. Les modifications que vous enregistrez ne s'appliquent qu'à vous.",
+  "This list has default columns for everyone in this project.": "Cette liste a des colonnes par défaut pour tout le monde dans ce projet."
 }

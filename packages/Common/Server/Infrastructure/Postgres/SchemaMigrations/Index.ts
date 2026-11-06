@@ -907,6 +907,7 @@ import { AddOpenStackUsageAndBudgets1808993950000 } from "./1808993950000-AddOpe
 import { AddOpenStackProjectNotices1808994120000 } from "./1808994120000-AddOpenStackProjectNotices";
 import { AddWorkflowLogRunAgain1808994200000 } from "./1808994200000-AddWorkflowLogRunAgain";
 import { AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000 } from "./1808994300000-AddCloudRightSizingEvidenceAndBudgetUnusualDays";
+import { AddProjectDefaultTableColumns1808994400000 } from "./1808994400000-AddProjectDefaultTableColumns";
 
 export default [
   InitialMigration,
@@ -1818,4 +1819,5 @@ export default [
   AddOpenStackProjectNotices1808994120000,
   AddWorkflowLogRunAgain1808994200000,
   AddCloudRightSizingEvidenceAndBudgetUnusualDays1808994300000,
+  AddProjectDefaultTableColumns1808994400000,
 ];

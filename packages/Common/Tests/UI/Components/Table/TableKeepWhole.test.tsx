@@ -358,9 +358,14 @@ describe("keepWholeWhatFits", () => {
       fitsNow: fitsIn(layout, 900),
     });
 
-    expect(layout.values[0]).toHaveAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE, "true");
+    expect(layout.values[0]).toHaveAttribute(
+      TABLE_VALUE_WHOLE_ATTRIBUTE,
+      "true",
+    );
     expect(
-      layout.values[0]!.style.getPropertyValue(TABLE_VALUE_WHOLE_WIDTH_PROPERTY),
+      layout.values[0]!.style.getPropertyValue(
+        TABLE_VALUE_WHOLE_WIDTH_PROPERTY,
+      ),
     ).toBe("128px");
   });
 
@@ -380,7 +385,10 @@ describe("keepWholeWhatFits", () => {
     });
 
     expect(layout.values[0]).not.toHaveAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
-    expect(layout.values[0]).toHaveAttribute(TABLE_VALUE_GIVE_ATTRIBUTE, "line");
+    expect(layout.values[0]).toHaveAttribute(
+      TABLE_VALUE_GIVE_ATTRIBUTE,
+      "line",
+    );
   });
 
   test("nothing cut short: nothing is touched, nothing is read twice", () => {

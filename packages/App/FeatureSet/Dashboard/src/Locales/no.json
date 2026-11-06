@@ -45351,5 +45351,13 @@
   "Only if {{first}} and {{second}}": "Bare hvis {{first}} og {{second}}",
   "Only if {{first}} or {{second}}": "Bare hvis {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bare hvis {{first}}, {{second}} og {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Bare hvis {{first}}, {{second}} eller {{third}}",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Alle som ikke har valgt egne kolonner for denne listen, ser disse.",
+  "Default Table Columns": "Standard tabellkolonner",
+  "Remove default": "Fjern standard",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Erstatter standardkolonnene for denne listen. Alle som har valgt egne, beholder dem.",
+  "Reset to project default": "Tilbakestill til prosjektets standard",
+  "Show these columns to everyone in this project": "Vis disse kolonnene for alle i dette prosjektet",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Dette er prosjektets standardkolonner for denne listen. Endringer du lagrer, gjelder bare for deg.",
+  "This list has default columns for everyone in this project.": "Denne listen har standardkolonner for alle i dette prosjektet."
 }

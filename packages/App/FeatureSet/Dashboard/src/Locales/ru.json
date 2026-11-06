@@ -45351,5 +45351,13 @@
   "Only if {{first}} and {{second}}": "Только если {{first}} и {{second}}",
   "Only if {{first}} or {{second}}": "Только если {{first}} или {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Только если {{first}}, {{second}} и {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Только если {{first}}, {{second}} или {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Только если {{first}}, {{second}} или {{third}}",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Их видят все, кто не выбрал свои столбцы для этого списка.",
+  "Default Table Columns": "Столбцы таблиц по умолчанию",
+  "Remove default": "Убрать столбцы по умолчанию",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Заменяет столбцы этого списка по умолчанию. У тех, кто выбрал свои, они останутся.",
+  "Reset to project default": "Сбросить к настройкам проекта по умолчанию",
+  "Show these columns to everyone in this project": "Показывать эти столбцы всем в этом проекте",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Это столбцы этого проекта по умолчанию для этого списка. Изменения, которые вы сохраните, будут только у вас.",
+  "This list has default columns for everyone in this project.": "У этого списка есть столбцы по умолчанию для всех в этом проекте."
 }

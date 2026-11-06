@@ -45351,5 +45351,13 @@
   "Only if {{first}} and {{second}}": "सिर्फ़ तब, जब {{first}} और {{second}}",
   "Only if {{first}} or {{second}}": "सिर्फ़ तब, जब {{first}} या {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} और {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} या {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} या {{third}}",
+  "Anyone who hasn't picked their own columns for this list sees these.": "जिन्होंने इस सूची के लिए अपने कॉलम नहीं चुने हैं, वे सभी यही देखते हैं।",
+  "Default Table Columns": "डिफ़ॉल्ट टेबल कॉलम",
+  "Remove default": "डिफ़ॉल्ट हटाएँ",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "इस सूची के डिफ़ॉल्ट कॉलम बदल देता है। जिन्होंने अपने कॉलम चुने हैं, उनके वही रहते हैं।",
+  "Reset to project default": "प्रोजेक्ट डिफ़ॉल्ट पर रीसेट करें",
+  "Show these columns to everyone in this project": "इस प्रोजेक्ट में सभी को ये कॉलम दिखाएँ",
+  "These are this project's default columns for this list. Changes you save are only for you.": "ये इस सूची के लिए इस प्रोजेक्ट के डिफ़ॉल्ट कॉलम हैं। आप जो बदलाव सहेजेंगे, वे सिर्फ़ आपके लिए होंगे।",
+  "This list has default columns for everyone in this project.": "इस सूची में इस प्रोजेक्ट के सभी लोगों के लिए डिफ़ॉल्ट कॉलम हैं।"
 }

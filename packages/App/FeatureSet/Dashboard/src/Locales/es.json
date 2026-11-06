@@ -45351,5 +45351,13 @@
   "Only if {{first}} and {{second}}": "Solo si {{first}} y {{second}}",
   "Only if {{first}} or {{second}}": "Solo si {{first}} o {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Solo si {{first}}, {{second}} y {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Solo si {{first}}, {{second}} o {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Solo si {{first}}, {{second}} o {{third}}",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Quien no haya elegido sus propias columnas para esta lista ve estas.",
+  "Default Table Columns": "Columnas de tabla predeterminadas",
+  "Remove default": "Quitar las columnas predeterminadas",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Reemplaza las columnas predeterminadas de esta lista. Quien haya elegido las suyas las conserva.",
+  "Reset to project default": "Restablecer los valores predeterminados del proyecto",
+  "Show these columns to everyone in this project": "Mostrar estas columnas a todos en este proyecto",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Estas son las columnas predeterminadas de este proyecto para esta lista. Los cambios que guardes son solo para ti.",
+  "This list has default columns for everyone in this project.": "Esta lista tiene columnas predeterminadas para todos en este proyecto."
 }

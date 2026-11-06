@@ -45351,5 +45351,13 @@
   "Only if {{first}} and {{second}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}} or {{second}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}、{{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
+  "Anyone who hasn't picked their own columns for this list sees these.": "このリストで自分の列を選んでいない人には、これらの列が表示されます。",
+  "Default Table Columns": "デフォルトのテーブル列",
+  "Remove default": "デフォルトを削除",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "このリストのデフォルトの列を置き換えます。自分の列を選んだ人はそのまま使えます。",
+  "Reset to project default": "プロジェクトのデフォルトにリセット",
+  "Show these columns to everyone in this project": "このプロジェクトの全員にこれらの列を表示",
+  "These are this project's default columns for this list. Changes you save are only for you.": "これはこのプロジェクトでこのリストに設定されたデフォルトの列です。保存した変更はあなただけに適用されます。",
+  "This list has default columns for everyone in this project.": "このリストには、このプロジェクトの全員向けのデフォルトの列があります。"
 }

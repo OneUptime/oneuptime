@@ -45351,5 +45351,13 @@
   "Only if {{first}} and {{second}}": "Alleen als {{first}} en {{second}}",
   "Only if {{first}} or {{second}}": "Alleen als {{first}} of {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Alleen als {{first}}, {{second}} en {{third}}",
-  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}"
+  "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Iedereen die voor deze lijst geen eigen kolommen heeft gekozen, ziet deze.",
+  "Default Table Columns": "Standaard tabelkolommen",
+  "Remove default": "Standaard verwijderen",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Vervangt de standaardkolommen van deze lijst. Wie eigen kolommen heeft gekozen, houdt die.",
+  "Reset to project default": "Terugzetten naar projectstandaard",
+  "Show these columns to everyone in this project": "Deze kolommen aan iedereen in dit project tonen",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Dit zijn de standaardkolommen van dit project voor deze lijst. Wijzigingen die u opslaat, gelden alleen voor u.",
+  "This list has default columns for everyone in this project.": "Deze lijst heeft standaardkolommen voor iedereen in dit project."
 }

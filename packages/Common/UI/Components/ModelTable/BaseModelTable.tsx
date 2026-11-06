@@ -137,7 +137,14 @@ import { isDrawnFromRecordId } from "./ColumnSort";
 import Columns from "./Columns";
 import ColumnCustomizationModal, {
   AddableColumnsConfig,
+  ColumnCustomizationProjectDefault,
+  ColumnCustomizationSaveOptions,
 } from "./ColumnCustomizationModal";
+import {
+  canChangeProjectDefaultColumns,
+  readProjectDefaultColumns,
+  saveProjectDefaultColumns,
+} from "./ProjectDefaultColumns";
 import {
   getAttributeColumns,
   getAttributeKeysFromColumnPreference,
@@ -1178,8 +1185,34 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [columnPreference, setColumnPreference] =
     useState<ColumnPreference | null>(readStoredColumnPreference);
 
+  /*
+   * The project's default columns for this list, which everyone who has
+   * picked none of their own sees (ModelTable/ProjectDefaultColumns). Read
+   * off the project the page holds as the table is first drawn: no read of
+   * its own, and no columns that change once one lands.
+   */
+  const [projectDefaultPreference, setProjectDefaultPreference] =
+    useState<ColumnPreference | null>(() => {
+      return isColumnCustomizationEnabled
+        ? readProjectDefaultColumns(props.userPreferencesKey)
+        : null;
+    });
+
+  /*
+   * The layout the list is drawn with: the viewer's own, else the
+   * project's default for the list, else - nothing - the list's own
+   * columns.
+   */
+  const layoutPreference: ColumnPreference | null =
+    columnPreference || projectDefaultPreference;
+
   const [showColumnCustomizationModal, setShowColumnCustomizationModal] =
     useState<boolean>(false);
+
+  // The project's default columns being saved or taken away, and why not.
+  const [isSavingProjectDefault, setIsSavingProjectDefault] =
+    useState<boolean>(false);
+  const [projectDefaultError, setProjectDefaultError] = useState<string>("");
 
   /*
    * ---------------------------------------------------------------------
@@ -1228,12 +1261,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return getAttributeColumns<TBaseModel>({
       attributesColumnKey: attributeColumnKey,
       attributeKeys: getAttributeKeysFromColumnPreference({
-        preference: columnPreference,
+        preference: layoutPreference,
         attributesColumnKey: attributeColumnKey,
         reservedColumnIds: getColumnIds<TBaseModel>(declaredColumns),
       }),
     });
-  }, [attributeColumnKey, columnPreference, declaredColumns]);
+  }, [attributeColumnKey, layoutPreference, declaredColumns]);
 
   const allColumns: Columns<TBaseModel> = useMemo(() => {
     if (attributeColumns.length === 0) {
@@ -1261,10 +1294,35 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * a column this table no longer has is dropped before it is applied.
      */
     return sanitizeColumnPreference({
+      preference: layoutPreference,
+      knownColumnIds: allColumnIds,
+    });
+  }, [layoutPreference, allColumnIds, isColumnCustomizationEnabled]);
+
+  // The viewer's own layout alone: what Reset to default takes away.
+  const ownColumnPreference: ColumnPreference | null = useMemo(() => {
+    if (!isColumnCustomizationEnabled) {
+      return null;
+    }
+
+    return sanitizeColumnPreference({
       preference: columnPreference,
       knownColumnIds: allColumnIds,
     });
   }, [columnPreference, allColumnIds, isColumnCustomizationEnabled]);
+
+  // The project's default for the list, as this list's columns read it.
+  const projectDefaultColumnPreference: ColumnPreference | null =
+    useMemo(() => {
+      if (!isColumnCustomizationEnabled) {
+        return null;
+      }
+
+      return sanitizeColumnPreference({
+        preference: projectDefaultPreference,
+        knownColumnIds: allColumnIds,
+      });
+    }, [projectDefaultPreference, allColumnIds, isColumnCustomizationEnabled]);
 
   type SaveColumnPreferenceFunction = (
     preference: ColumnPreference | null,
@@ -5671,21 +5729,68 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       : String(key);
   };
 
+  /*
+   * Makes the columns the project's default for the list - or, with null,
+   * takes the list's default away - then closes the picker. Whoever shows
+   * columns to everyone sees what everyone sees: their own layout is let go
+   * (isOwnLayoutLetGo). What the server refuses is said in the picker,
+   * which stays open.
+   */
+  type SaveProjectDefaultFunction = (data: {
+    preference: ColumnPreference | null;
+    isOwnLayoutLetGo: boolean;
+  }) => Promise<void>;
+
+  const saveProjectDefault: SaveProjectDefaultFunction = async (data: {
+    preference: ColumnPreference | null;
+    isOwnLayoutLetGo: boolean;
+  }): Promise<void> => {
+    if (!props.userPreferencesKey) {
+      return;
+    }
+
+    setIsSavingProjectDefault(true);
+    setProjectDefaultError("");
+
+    try {
+      const stored: ColumnPreference | null = await saveProjectDefaultColumns({
+        tableKey: props.userPreferencesKey,
+        preference: data.preference,
+      });
+
+      setProjectDefaultPreference(stored);
+
+      if (data.isOwnLayoutLetGo) {
+        saveColumnPreference(null);
+      }
+
+      setShowColumnCustomizationModal(false);
+    } catch (err) {
+      setProjectDefaultError(API.getFriendlyMessage(err));
+    } finally {
+      setIsSavingProjectDefault(false);
+    }
+  };
+
   type OnColumnCustomizationSaveFunction = (
     entries: Array<CustomizableColumn<TBaseModel>>,
+    options: ColumnCustomizationSaveOptions,
   ) => void;
 
   const onColumnCustomizationSave: OnColumnCustomizationSaveFunction = (
     entries: Array<CustomizableColumn<TBaseModel>>,
+    options: ColumnCustomizationSaveOptions,
   ): void => {
     const preference: ColumnPreference =
       buildColumnPreference<TBaseModel>(entries);
 
     /*
-     * If the layout the viewer just saved matches what the table ships with,
-     * store nothing. Otherwise every table anyone ever opened the picker on
-     * would be pinned to the column set of the release they opened it in, and
-     * columns added later would arrive already stale.
+     * If the layout the viewer just saved matches what they would see with
+     * nothing of their own - the project's default for the list, or what
+     * the table ships with - store nothing. Otherwise every table anyone ever
+     * opened the picker on would be pinned to the column set of the release
+     * (or the project's default) they opened it in, and columns added later
+     * would arrive already stale.
      */
     /*
      * Over the DECLARED columns only. An attribute column exists because the
@@ -5693,13 +5798,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * — otherwise adding a column and then removing it again would leave the
      * table pinned to a stored layout it no longer differs from.
      */
-    const defaultPreference: ColumnPreference =
+    const declaredPreference: ColumnPreference =
       buildColumnPreference<TBaseModel>(
         getPickerEntries(null, declaredColumns),
       );
 
+    const isDeclaredLayout: boolean =
+      JSON.stringify(preference) === JSON.stringify(declaredPreference);
+
+    // The project's default as the picker would hand it back.
+    const followedPreference: ColumnPreference = projectDefaultColumnPreference
+      ? buildColumnPreference<TBaseModel>(
+          getPickerEntries(projectDefaultColumnPreference),
+        )
+      : declaredPreference;
+
     const isBackToDefault: boolean =
-      JSON.stringify(preference) === JSON.stringify(defaultPreference);
+      JSON.stringify(preference) === JSON.stringify(followedPreference);
 
     /*
      * Sorting by a column that is no longer on screen leaves the viewer with
@@ -5723,6 +5838,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setSortOrder(props.sortOrder || SortOrder.Ascending);
         setCurrentPageNumber(1);
       }
+    }
+
+    /*
+     * Everyone's: the project's default for the list. The list's own
+     * columns made everyone's is no default at all - the list's default is
+     * taken away, so a column the page adds later is shown as it ships.
+     */
+    if (options.isForEveryone) {
+      void saveProjectDefault({
+        preference: isDeclaredLayout ? null : preference,
+        isOwnLayoutLetGo: true,
+      });
+      return;
     }
 
     saveColumnPreference(isBackToDefault ? null : preference);
@@ -5787,18 +5915,49 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return null;
       }
 
+      /*
+       * The project's default columns for the list, where there is a
+       * project (the Admin Dashboard has none): whether it keeps them,
+       * whether the viewer sees them, and whether they may set them.
+       */
+      const projectDefault: ColumnCustomizationProjectDefault | undefined =
+        props.userPreferencesKey && ProjectUtil.getCurrentProjectId()
+          ? {
+              hasDefault: !isEmptyColumnPreference(
+                projectDefaultColumnPreference,
+              ),
+              isFollowed: isEmptyColumnPreference(ownColumnPreference),
+              canChange: canChangeProjectDefaultColumns(),
+              onRemove: (): void => {
+                void saveProjectDefault({
+                  preference: null,
+                  isOwnLayoutLetGo: false,
+                });
+              },
+            }
+          : undefined;
+
       return (
         <ColumnCustomizationModal<TBaseModel>
           columns={getPickerEntries(effectiveColumnPreference)}
           addableColumns={getAddableColumnsConfig()}
-          isDefaultLayout={isEmptyColumnPreference(effectiveColumnPreference)}
+          /*
+           * Reset to default takes the viewer's own layout away: shown only
+           * while they have one.
+           */
+          isDefaultLayout={isEmptyColumnPreference(ownColumnPreference)}
           title={tx("Customize Columns")}
           onSave={onColumnCustomizationSave}
+          projectDefault={projectDefault}
+          isSaving={isSavingProjectDefault}
+          error={projectDefaultError || undefined}
           onReset={() => {
             saveColumnPreference(null);
+            setProjectDefaultError("");
             setShowColumnCustomizationModal(false);
           }}
           onClose={() => {
+            setProjectDefaultError("");
             setShowColumnCustomizationModal(false);
           }}
         />
