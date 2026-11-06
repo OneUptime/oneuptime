@@ -371,7 +371,7 @@ every locale file, and git reports a conflict. To resolve it, run extract during
 the merge:
 
 ```sh
-git fetch origin master && git merge origin/master    # conflicts in src/Locales/*.json
+git fetch origin main && git merge origin/main    # conflicts in src/Locales/*.json
 cd packages/App/FeatureSet/Dashboard
 npm run i18n:extract    # reads git's merge stages (or the conflict markers) and merges both sides
 npm run i18n:check
