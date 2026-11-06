@@ -697,12 +697,12 @@ describe("the card's gate and the server's check agree", () => {
   test("a block of a permission the action does not ask leaves a run permission working", () => {
     expectAgreement([
       row(Permission.RunbookMember),
-      row(Permission.EditIncident, true),
+      row(Permission.EditProjectIncident, true),
     ]);
     expect(
       cardAllows([
         row(Permission.RunbookMember),
-        row(Permission.EditIncident, true),
+        row(Permission.EditProjectIncident, true),
       ]),
     ).toBe(true);
   });
