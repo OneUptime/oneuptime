@@ -430,15 +430,15 @@ En endring navngir én ressurs med ID-en, slik en lesing gjør, og kjører bare 
 
 | Endring | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | Sikker: ECS-tjeneste | Mer risikabel: App Service eller Function App, Container App | — |
-| `start-instance` | Sikker: EC2-instans, RDS-instans | Sikker: virtuell maskin | Sikker: Compute Engine-VM |
-| `scale-out` | Sikker: ECS-tjeneste, Auto Scaling-gruppe | Sikker: App Service-plan, VM-skaleringssett | Sikker: Cloud Run-tjeneste, administrert instansgruppe |
-| `scale-in` | Mer risikabel: ECS-tjeneste, Auto Scaling-gruppe | Mer risikabel: App Service-plan, VM-skaleringssett | Mer risikabel: Cloud Run-tjeneste, administrert instansgruppe |
+| `restart-service` | Sikker: ECS-tjeneste; Mer risikabel: App Runner-tjeneste, Elastic Beanstalk-miljø | Mer risikabel: App Service eller Function App, Container App, containergruppe | — |
+| `start-instance` | Sikker: EC2-instans, RDS-instans | Sikker: virtuell maskin, containergruppe | Sikker: Compute Engine-VM |
+| `scale-out` | Sikker: ECS-tjeneste, Auto Scaling-gruppe | Sikker: App Service-plan, VM-skaleringssett | Sikker: Cloud Run-tjeneste, administrert instansgruppe, App Engine-tjeneste |
+| `scale-in` | Mer risikabel: ECS-tjeneste, Auto Scaling-gruppe | Mer risikabel: App Service-plan, VM-skaleringssett | Mer risikabel: Cloud Run-tjeneste, administrert instansgruppe, App Engine-tjeneste |
 | `reboot-instance` | Mer risikabel: EC2-instans, RDS-instans | Mer risikabel: virtuell maskin, fleksibel PostgreSQL-server, fleksibel MySQL-server | Mer risikabel: Compute Engine-VM, Cloud SQL-instans |
-| `roll-back-service` | Mer risikabel: ECS-tjeneste, Lambda-alias | Mer risikabel: App Service eller Function App, Container App | Mer risikabel: Cloud Run-tjeneste |
+| `roll-back-service` | Mer risikabel: ECS-tjeneste, Lambda-alias | Mer risikabel: App Service eller Function App, Container App | Mer risikabel: Cloud Run-tjeneste, App Engine-tjeneste |
 | `set-concurrency` | Mer risikabel: Lambda-funksjon | — | Mer risikabel: Cloud Run-tjeneste |
 | `fail-over-database` | Alltid et menneske: Aurora-klynge, RDS-instans | Alltid et menneske: SQL-failovergruppe | Alltid et menneske: Cloud SQL-instans |
-| `stop-instance` | Alltid et menneske: EC2-instans | Alltid et menneske: virtuell maskin | Alltid et menneske: Compute Engine-VM |
+| `stop-instance` | Alltid et menneske: EC2-instans | Alltid et menneske: virtuell maskin, containergruppe | Alltid et menneske: Compute Engine-VM |
 | `redrive-queue` | Alltid et menneske: SQS-kø | — | — |
 
 `scale-out` holder seg innenfor gruppens maksimum, og dobler høyst antallet der plattformen ikke setter noe; `scale-in` går aldri under minimum eller til null. `roll-back-service` går til versjonen som kjørte før, eller til den `--to` navngir; på en App Service bytter den et utrullingsspor (`--slot`) tilbake. Skrevet ut ser en endring slik ut: `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ OneUptime AI endrer aldri agenten selv eller det den kjører i, uansett hva `ONE
 - **Verter:** hver OneUptime-unit (`oneuptime-*`, inkludert Verts-AI-agentens egen), OpenTelemetry-collectoren (`otelcol-contrib.service`, `otelcol.service`), Docker-motoren den kjører i (`docker.service`, `docker.socket`, `containerd.service`), og agentens egen prosess og prosessene over den.
 - **Proxmox:** agenten kan ikke se hvilken gjest den kjører i. Hvis den kjører i en VM eller container i den samme klyngen, setter du den VMID-en i `ONEUPTIME_AI_PROTECTED_TARGETS`; gjør det samme med agentens VM på VMware.
 - **OpenStack-skyer:** agenten kan ikke se hvilken instans den kjører i. Hvis den kjører i samme sky, setter du den instansen i `ONEUPTIME_AI_PROTECTED_TARGETS`, som `instance:<id>`. På en sky er denne listen din, og den går foran alle andre innstillinger, også et menneskes godkjenning.
-- **Skykontoer:** alt oppsettkommandoen opprettet: på AWS stakken `oneuptime-ai-agent`, ECS-klyngen og ECS-tjenesten dens og rollene `OneUptimeAiAgentTask` og `OneUptimeAiAgentWrite`; på Azure ressursgruppen `oneuptime-ai-agent`; på Google Cloud VM-en eller Cloud Run-tjenesten `oneuptime-ai-agent` og tjenestekontoene dens, `oneuptime-ai-agent` og `oneuptime-ai-agent-write`.
+- **Skykontoer:** alt oppsettkommandoen opprettet: på AWS stakken `oneuptime-ai-agent` (i en medlemskonto i en organisasjon stakken `StackSet-oneuptime-ai-agent-*` som organisasjonens StackSet laget), ECS-klyngen og ECS-tjenesten dens og rollene `OneUptimeAiAgentTask` og `OneUptimeAiAgentWrite`; på Azure ressursgruppen `oneuptime-ai-agent`; på Google Cloud VM-en eller Cloud Run-tjenesten `oneuptime-ai-agent` og tjenestekontoene dens, `oneuptime-ai-agent` og `oneuptime-ai-agent-write`.
 
 ## Påloggingsinformasjon og minste rettighet
 

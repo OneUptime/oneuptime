@@ -430,15 +430,15 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 
 | 變更 | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | 安全：ECS 服務 | 風險較高：App Service 或 Function App、Container App | — |
-| `start-instance` | 安全：EC2 執行個體、RDS 執行個體 | 安全：虛擬機器 | 安全：Compute Engine 虛擬機器 |
-| `scale-out` | 安全：ECS 服務、Auto Scaling 群組 | 安全：App Service 方案、虛擬機器擴展集 | 安全：Cloud Run 服務、代管執行個體群組 |
-| `scale-in` | 風險較高：ECS 服務、Auto Scaling 群組 | 風險較高：App Service 方案、虛擬機器擴展集 | 風險較高：Cloud Run 服務、代管執行個體群組 |
+| `restart-service` | 安全：ECS 服務；風險較高：App Runner 服務、Elastic Beanstalk 環境 | 風險較高：App Service 或 Function App、Container App、容器群組 | — |
+| `start-instance` | 安全：EC2 執行個體、RDS 執行個體 | 安全：虛擬機器、容器群組 | 安全：Compute Engine 虛擬機器 |
+| `scale-out` | 安全：ECS 服務、Auto Scaling 群組 | 安全：App Service 方案、虛擬機器擴展集 | 安全：Cloud Run 服務、代管執行個體群組、App Engine 服務 |
+| `scale-in` | 風險較高：ECS 服務、Auto Scaling 群組 | 風險較高：App Service 方案、虛擬機器擴展集 | 風險較高：Cloud Run 服務、代管執行個體群組、App Engine 服務 |
 | `reboot-instance` | 風險較高：EC2 執行個體、RDS 執行個體 | 風險較高：虛擬機器、PostgreSQL 彈性伺服器、MySQL 彈性伺服器 | 風險較高：Compute Engine 虛擬機器、Cloud SQL 執行個體 |
-| `roll-back-service` | 風險較高：ECS 服務、Lambda 別名 | 風險較高：App Service 或 Function App、Container App | 風險較高：Cloud Run 服務 |
+| `roll-back-service` | 風險較高：ECS 服務、Lambda 別名 | 風險較高：App Service 或 Function App、Container App | 風險較高：Cloud Run 服務、App Engine 服務 |
 | `set-concurrency` | 風險較高：Lambda 函式 | — | 風險較高：Cloud Run 服務 |
 | `fail-over-database` | 始終需要人：Aurora 叢集、RDS 執行個體 | 始終需要人：SQL 容錯移轉群組 | 始終需要人：Cloud SQL 執行個體 |
-| `stop-instance` | 始終需要人：EC2 執行個體 | 始終需要人：虛擬機器 | 始終需要人：Compute Engine 虛擬機器 |
+| `stop-instance` | 始終需要人：EC2 執行個體 | 始終需要人：虛擬機器、容器群組 | 始終需要人：Compute Engine 虛擬機器 |
 | `redrive-queue` | 始終需要人：SQS 佇列 | — | — |
 
 `scale-out` 不會超出群組的最大值，在平台未設定最大值時最多將數量加倍；`scale-in` 從不會低於最小值，也不會降到零。`roll-back-service` 會回到先前執行的版本，或回到 `--to` 指定的版本；在 App Service 上，它會把部署位置（`--slot`）交換回來。完整寫出來，一項變更是這樣的：`cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`。
@@ -507,7 +507,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 - **主機：** 每個 OneUptime 單元（`oneuptime-*`，包括主機 AI 代理程式自己的單元）、OpenTelemetry 收集器（`otelcol-contrib.service`、`otelcol.service`）、代理程式執行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理程式自己的處理程序和其上層處理程序。
 - **Proxmox：** 代理程式無法判斷自己在哪個客體中執行。如果它在同一叢集的虛擬機器或容器中執行，請把該 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；對 VMware 上代理程式所在的虛擬機器也這樣做。
 - **OpenStack 雲端：** 代理程式無法判斷自己在哪個執行個體中執行。如果它在同一個雲端上執行，請把該執行個體以 `instance:<id>` 的形式加入 `ONEUPTIME_AI_PROTECTED_TARGETS`。在雲端上，這份清單由您掌握，它凌駕於所有其他設定之上，包括人的核准。
-- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組；在 Google Cloud 上是 `oneuptime-ai-agent` 虛擬機器或 Cloud Run 服務及其服務帳戶 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
+- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊（在組織的成員帳戶中，是組織的 StackSet 建立的 `StackSet-oneuptime-ai-agent-*` 堆疊）、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組；在 Google Cloud 上是 `oneuptime-ai-agent` 虛擬機器或 Cloud Run 服務及其服務帳戶 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
 
 ## 憑證與最小權限
 

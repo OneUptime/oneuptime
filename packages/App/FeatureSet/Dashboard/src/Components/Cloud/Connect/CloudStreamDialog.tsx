@@ -9,6 +9,12 @@ import {
   getAwsCloudStreamTemplate,
   getCloudStreamNames,
 } from "Common/Types/CloudConnection/CloudStreamTemplate";
+import { getAwsOrganizationManagementAccountId } from "Common/Types/CloudConnection/CloudOrganizationAgents";
+import {
+  CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL,
+  getAwsCloudStreamOrganizationCommand,
+  isCloudStreamOrganizationPossible,
+} from "Common/Types/CloudConnection/CloudStreamOrganization";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -85,6 +91,13 @@ import {
  * metric rather than the key ones (it costs more), the Regions (where the
  * connection found resources), and the values for setting the streams up
  * another way. Stopping is the connections list's own action.
+ *
+ * A connection that reads an AWS Organization can also stream every
+ * account of it (More fields): the command, run in the management account,
+ * makes the same stacks there and, through a StackSet, in every member
+ * account and every account that joins later (CloudStreamOrganization).
+ * Named log groups are one account's, so it streams every log group or
+ * none.
  */
 
 export const CLOUD_STREAM_DIALOG_TEST_ID: string = "cloud-stream";
@@ -225,6 +238,14 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   const [now, setNow] = useState<Date>(() => {
     return new Date();
   });
+  /*
+   * A connection that reads an AWS Organization: every account of it, from
+   * its management account, when More fields says so.
+   */
+  const managementAccountId: string | null =
+    getAwsOrganizationManagementAccountId(props.connection.config);
+  const [everyAccount, setEveryAccount] = useState<boolean>(false);
+  const isEveryAccount: boolean = everyAccount && Boolean(managementAccountId);
 
   // While the dialog is open, ask every few seconds what arrived.
   useEffect(() => {
@@ -296,13 +317,27 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
     connectionId,
     oneuptimeUrl: getConfiguredOneUptimeUrl(),
   });
-  const command: string = setup.problem
-    ? ""
-    : getAwsCloudStreamCommand({
-        options: setup.options,
-        regions: setup.regions,
-        streamKey: madeKey?.streamKey || null,
-      });
+  // Named log groups are one account's: no organization streams them.
+  const isOrganizationRefused: boolean =
+    isEveryAccount &&
+    !setup.problem &&
+    !isCloudStreamOrganizationPossible(setup.options);
+  let command: string = "";
+
+  if (!setup.problem && !isOrganizationRefused) {
+    command = isEveryAccount
+      ? getAwsCloudStreamOrganizationCommand({
+          options: setup.options,
+          regions: setup.regions,
+          streamKey: madeKey?.streamKey || null,
+          managementAccountId: managementAccountId || "",
+        })
+      : getAwsCloudStreamCommand({
+          options: setup.options,
+          regions: setup.regions,
+          streamKey: madeKey?.streamKey || null,
+        });
+  }
   const stackName: string = getCloudStreamNames(connectionId).stackName;
   const hasKey: boolean = Boolean(madeKey || status.streamKeyCreatedAt);
   const live: CloudStreamStatusWords | null = getCloudStreamStatusWords({
@@ -518,11 +553,16 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
       title: translator.translateTemplate("Run this in {{shell}}", {
         shell: shell.title,
       }),
-      description: say(
-        translationKey(
-          "Run it as someone who may create CloudFormation stacks and IAM roles in this account.",
-        ),
-      ),
+      description: isEveryAccount
+        ? translator.translateTemplate(
+            "Run it in the management account {{account}}, as someone who may create StackSets, CloudFormation stacks and IAM roles there.",
+            { account: managementAccountId || "" },
+          )
+        : say(
+            translationKey(
+              "Run it as someone who may create CloudFormation stacks and IAM roles in this account.",
+            ),
+          ),
       content: (
         <div className="space-y-3">
           {setup.problem ? (
@@ -536,6 +576,14 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                 setup.problem.values,
               )}
             </p>
+          ) : isOrganizationRefused ? (
+            <p
+              className="text-sm text-amber-700"
+              role="alert"
+              data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-organization-problem`}
+            >
+              {say(CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL)}
+            </p>
           ) : (
             <div data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-command`}>
               <CodeBlock
@@ -546,7 +594,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
               />
             </div>
           )}
-          {!setup.problem && !madeKey ? (
+          {!setup.problem && !isOrganizationRefused && !madeKey ? (
             <p
               className="text-xs text-amber-700"
               data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-needs-key`}
@@ -641,6 +689,17 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
       isSet: setup.regions.length > 0,
       value: translator.formatNumber(setup.regions.length),
     },
+    ...(managementAccountId
+      ? [
+          {
+            key: "organization",
+            title: "Every account of the organization",
+            isSet: isEveryAccount,
+            value: FOLDED_SECTION_ON,
+            translateValue: true,
+          },
+        ]
+      : []),
     {
       key: "elsewhere",
       title: "Set it up another way",
@@ -821,6 +880,23 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                 dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-every-metric`}
                 onChange={(value: boolean) => {
                   update({ everyMetric: value });
+                }}
+              />
+            ) : (
+              <></>
+            )}
+
+            {managementAccountId ? (
+              <CheckRow
+                label={say(translationKey("Every account of the organization"))}
+                description={translator.translateTemplate(
+                  "From the management account {{account}}: a StackSet makes the same stacks in every member account, and in accounts that join the organization later. Every log group or none: named log groups are one account's.",
+                  { account: managementAccountId },
+                )}
+                isChecked={isEveryAccount}
+                dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-every-account`}
+                onChange={(value: boolean) => {
+                  setEveryAccount(value);
                 }}
               />
             ) : (

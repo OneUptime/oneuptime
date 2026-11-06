@@ -430,15 +430,15 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 
 | 更改 | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | 安全：ECS 服务 | 风险较高：App Service 或 Function App、Container App | — |
-| `start-instance` | 安全：EC2 实例、RDS 实例 | 安全：虚拟机 | 安全：Compute Engine 虚拟机 |
-| `scale-out` | 安全：ECS 服务、Auto Scaling 组 | 安全：App Service 计划、虚拟机规模集 | 安全：Cloud Run 服务、托管实例组 |
-| `scale-in` | 风险较高：ECS 服务、Auto Scaling 组 | 风险较高：App Service 计划、虚拟机规模集 | 风险较高：Cloud Run 服务、托管实例组 |
+| `restart-service` | 安全：ECS 服务；风险较高：App Runner 服务、Elastic Beanstalk 环境 | 风险较高：App Service 或 Function App、Container App、容器组 | — |
+| `start-instance` | 安全：EC2 实例、RDS 实例 | 安全：虚拟机、容器组 | 安全：Compute Engine 虚拟机 |
+| `scale-out` | 安全：ECS 服务、Auto Scaling 组 | 安全：App Service 计划、虚拟机规模集 | 安全：Cloud Run 服务、托管实例组、App Engine 服务 |
+| `scale-in` | 风险较高：ECS 服务、Auto Scaling 组 | 风险较高：App Service 计划、虚拟机规模集 | 风险较高：Cloud Run 服务、托管实例组、App Engine 服务 |
 | `reboot-instance` | 风险较高：EC2 实例、RDS 实例 | 风险较高：虚拟机、PostgreSQL 灵活服务器、MySQL 灵活服务器 | 风险较高：Compute Engine 虚拟机、Cloud SQL 实例 |
-| `roll-back-service` | 风险较高：ECS 服务、Lambda 别名 | 风险较高：App Service 或 Function App、Container App | 风险较高：Cloud Run 服务 |
+| `roll-back-service` | 风险较高：ECS 服务、Lambda 别名 | 风险较高：App Service 或 Function App、Container App | 风险较高：Cloud Run 服务、App Engine 服务 |
 | `set-concurrency` | 风险较高：Lambda 函数 | — | 风险较高：Cloud Run 服务 |
 | `fail-over-database` | 始终需要人：Aurora 集群、RDS 实例 | 始终需要人：SQL 故障转移组 | 始终需要人：Cloud SQL 实例 |
-| `stop-instance` | 始终需要人：EC2 实例 | 始终需要人：虚拟机 | 始终需要人：Compute Engine 虚拟机 |
+| `stop-instance` | 始终需要人：EC2 实例 | 始终需要人：虚拟机、容器组 | 始终需要人：Compute Engine 虚拟机 |
 | `redrive-queue` | 始终需要人：SQS 队列 | — | — |
 
 `scale-out` 不会超出组的最大值，在平台未设置最大值时最多将数量翻倍；`scale-in` 从不会低于最小值，也不会降到零。`roll-back-service` 会回到之前运行的版本，或回到 `--to` 指定的版本；在 App Service 上，它会把部署槽位（`--slot`）交换回来。完整写出来，一项更改是这样的：`cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`。
@@ -507,7 +507,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 - **主机：** 每个 OneUptime 单元（`oneuptime-*`，包括主机 AI 代理自己的单元）、OpenTelemetry 采集器（`otelcol-contrib.service`、`otelcol.service`）、代理运行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理自己的进程和其上层进程。
 - **Proxmox：** 代理无法判断自己运行在哪个客户机中。如果它运行在同一集群的虚拟机或容器中，请把该 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；对 VMware 上代理所在的虚拟机也这样做。
 - **OpenStack 云：** 代理无法判断自己运行在哪个实例中。如果它运行在同一个云上，请把该实例以 `instance:<id>` 的形式加入 `ONEUPTIME_AI_PROTECTED_TARGETS`。在云上，这个列表由您决定，它优先于其他所有设置，包括人的批准。
-- **云账户：** 其设置命令创建的一切：在 AWS 上是 `oneuptime-ai-agent` 堆栈、其 ECS 集群和服务，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 资源组；在 Google Cloud 上是 `oneuptime-ai-agent` 虚拟机或 Cloud Run 服务及其服务账号 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
+- **云账户：** 其设置命令创建的一切：在 AWS 上是 `oneuptime-ai-agent` 堆栈（在组织的成员账户中，是组织的 StackSet 创建的 `StackSet-oneuptime-ai-agent-*` 堆栈）、其 ECS 集群和服务，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 资源组；在 Google Cloud 上是 `oneuptime-ai-agent` 虚拟机或 Cloud Run 服务及其服务账号 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
 
 ## 凭据与最小权限
 

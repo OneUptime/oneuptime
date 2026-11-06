@@ -210,7 +210,7 @@ describe("getAwsStackSetDeployLine", () => {
       stackSetName: "OneUptimeThing",
       homeRegion: '"$HOME_REGION"',
       templateFile: "thing.json",
-      description: "OneUptime's thing",
+      stackSetDescription: "OneUptime's thing",
       capabilities: "CAPABILITY_NAMED_IAM",
       parameters: [
         { key: "AgentKey", value: null },
@@ -244,7 +244,7 @@ describe("getAwsStackSetDeployLine", () => {
       stackSetName: "S",
       homeRegion: "us-east-1",
       templateFile: "t.json",
-      description: "d",
+      stackSetDescription: "d",
       capabilities: "CAPABILITY_IAM",
       parameters: [],
       autoDeployment: true,

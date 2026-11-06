@@ -430,15 +430,15 @@ Een wijziging noemt één resource bij zijn id, zoals een leesbewerking dat doet
 
 | Wijziging | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | Veilig: ECS-service | Riskanter: App Service of Function App, Container App | — |
-| `start-instance` | Veilig: EC2-instantie, RDS-instantie | Veilig: virtuele machine | Veilig: Compute Engine-VM |
-| `scale-out` | Veilig: ECS-service, Auto Scaling-groep | Veilig: App Service-plan, VM-schaalset | Veilig: Cloud Run-service, beheerde instantiegroep |
-| `scale-in` | Riskanter: ECS-service, Auto Scaling-groep | Riskanter: App Service-plan, VM-schaalset | Riskanter: Cloud Run-service, beheerde instantiegroep |
+| `restart-service` | Veilig: ECS-service; Riskanter: App Runner-service, Elastic Beanstalk-omgeving | Riskanter: App Service of Function App, Container App, containergroep | — |
+| `start-instance` | Veilig: EC2-instantie, RDS-instantie | Veilig: virtuele machine, containergroep | Veilig: Compute Engine-VM |
+| `scale-out` | Veilig: ECS-service, Auto Scaling-groep | Veilig: App Service-plan, VM-schaalset | Veilig: Cloud Run-service, beheerde instantiegroep, App Engine-service |
+| `scale-in` | Riskanter: ECS-service, Auto Scaling-groep | Riskanter: App Service-plan, VM-schaalset | Riskanter: Cloud Run-service, beheerde instantiegroep, App Engine-service |
 | `reboot-instance` | Riskanter: EC2-instantie, RDS-instantie | Riskanter: virtuele machine, flexibele PostgreSQL-server, flexibele MySQL-server | Riskanter: Compute Engine-VM, Cloud SQL-instantie |
-| `roll-back-service` | Riskanter: ECS-service, Lambda-alias | Riskanter: App Service of Function App, Container App | Riskanter: Cloud Run-service |
+| `roll-back-service` | Riskanter: ECS-service, Lambda-alias | Riskanter: App Service of Function App, Container App | Riskanter: Cloud Run-service, App Engine-service |
 | `set-concurrency` | Riskanter: Lambda-functie | — | Riskanter: Cloud Run-service |
 | `fail-over-database` | Altijd een mens: Aurora-cluster, RDS-instantie | Altijd een mens: SQL-failovergroep | Altijd een mens: Cloud SQL-instantie |
-| `stop-instance` | Altijd een mens: EC2-instantie | Altijd een mens: virtuele machine | Altijd een mens: Compute Engine-VM |
+| `stop-instance` | Altijd een mens: EC2-instantie | Altijd een mens: virtuele machine, containergroep | Altijd een mens: Compute Engine-VM |
 | `redrive-queue` | Altijd een mens: SQS-wachtrij | — | — |
 
 `scale-out` blijft binnen het maximum van de groep, en verdubbelt het aantal hoogstens waar het platform geen maximum instelt; `scale-in` gaat nooit onder het minimum of naar nul. `roll-back-service` gaat naar de versie die daarvoor draaide, of naar de versie die `--to` noemt; op een App Service wisselt het een deploymentslot (`--slot`) terug. Uitgeschreven luidt een wijziging `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ OneUptime AI wijzigt nooit de agent zelf of datgene waarin hij draait, wat `ONEU
 - **Hosts:** elke OneUptime-unit (`oneuptime-*`, die van de Host-AI-agent zelf inbegrepen), de OpenTelemetry-collector (`otelcol-contrib.service`, `otelcol.service`), de Docker-engine waarin hij draait (`docker.service`, `docker.socket`, `containerd.service`), en het eigen proces van de agent en de processen daarboven.
 - **Proxmox:** de agent kan niet zien in welke gast hij draait. Draait hij in een VM of container van hetzelfde cluster, zet die VMID dan in `ONEUPTIME_AI_PROTECTED_TARGETS`; doe hetzelfde met de VM van de agent op VMware.
 - **OpenStack-clouds:** de agent kan niet zien in welke instance hij draait. Draait hij op dezelfde cloud, zet die instance dan in `ONEUPTIME_AI_PROTECTED_TARGETS`, als `instance:<id>`. Op een cloud is deze lijst van jou, en ze gaat boven elke andere instelling, de goedkeuring van een mens inbegrepen.
-- **Cloudaccounts:** alles wat zijn installatieopdracht heeft aangemaakt: op AWS de stack `oneuptime-ai-agent`, het ECS-cluster en de ECS-service ervan, en de rollen `OneUptimeAiAgentTask` en `OneUptimeAiAgentWrite`; op Azure de resourcegroep `oneuptime-ai-agent`; op Google Cloud de VM of Cloud Run-service `oneuptime-ai-agent` en de serviceaccounts ervan, `oneuptime-ai-agent` en `oneuptime-ai-agent-write`.
+- **Cloudaccounts:** alles wat zijn installatieopdracht heeft aangemaakt: op AWS de stack `oneuptime-ai-agent` (in een lidaccount van een organisatie de stack `StackSet-oneuptime-ai-agent-*` die de StackSet van de organisatie heeft gemaakt), het ECS-cluster en de ECS-service ervan, en de rollen `OneUptimeAiAgentTask` en `OneUptimeAiAgentWrite`; op Azure de resourcegroep `oneuptime-ai-agent`; op Google Cloud de VM of Cloud Run-service `oneuptime-ai-agent` en de serviceaccounts ervan, `oneuptime-ai-agent` en `oneuptime-ai-agent-write`.
 
 ## Inloggegevens en minimale rechten
 

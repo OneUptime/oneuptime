@@ -1883,7 +1883,7 @@ export function getAwsOrganizationCloudAiAgentSetupCommand(
         stackSetName: AWS_CLOUD_AI_AGENT_STACK_SET_NAME,
         homeRegion: AGENT_REGION,
         templateFile: template,
-        description:
+        stackSetDescription:
           "OneUptime Cloud AI agent: the agent of each account of the organization, with its own key.",
         capabilities: "CAPABILITY_NAMED_IAM",
         parameters: [

@@ -430,15 +430,15 @@ En ændring navngiver én ressource ved dens id, som en læsning gør, og kører
 
 | Ændring | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | Sikker: ECS-tjeneste | Mere risikabel: App Service eller Function App, Container App | — |
-| `start-instance` | Sikker: EC2-instans, RDS-instans | Sikker: virtuel maskine | Sikker: Compute Engine-VM |
-| `scale-out` | Sikker: ECS-tjeneste, Auto Scaling-gruppe | Sikker: App Service-plan, VM-skaleringssæt | Sikker: Cloud Run-tjeneste, administreret instansgruppe |
-| `scale-in` | Mere risikabel: ECS-tjeneste, Auto Scaling-gruppe | Mere risikabel: App Service-plan, VM-skaleringssæt | Mere risikabel: Cloud Run-tjeneste, administreret instansgruppe |
+| `restart-service` | Sikker: ECS-tjeneste; Mere risikabel: App Runner-tjeneste, Elastic Beanstalk-miljø | Mere risikabel: App Service eller Function App, Container App, containergruppe | — |
+| `start-instance` | Sikker: EC2-instans, RDS-instans | Sikker: virtuel maskine, containergruppe | Sikker: Compute Engine-VM |
+| `scale-out` | Sikker: ECS-tjeneste, Auto Scaling-gruppe | Sikker: App Service-plan, VM-skaleringssæt | Sikker: Cloud Run-tjeneste, administreret instansgruppe, App Engine-tjeneste |
+| `scale-in` | Mere risikabel: ECS-tjeneste, Auto Scaling-gruppe | Mere risikabel: App Service-plan, VM-skaleringssæt | Mere risikabel: Cloud Run-tjeneste, administreret instansgruppe, App Engine-tjeneste |
 | `reboot-instance` | Mere risikabel: EC2-instans, RDS-instans | Mere risikabel: virtuel maskine, fleksibel PostgreSQL-server, fleksibel MySQL-server | Mere risikabel: Compute Engine-VM, Cloud SQL-instans |
-| `roll-back-service` | Mere risikabel: ECS-tjeneste, Lambda-alias | Mere risikabel: App Service eller Function App, Container App | Mere risikabel: Cloud Run-tjeneste |
+| `roll-back-service` | Mere risikabel: ECS-tjeneste, Lambda-alias | Mere risikabel: App Service eller Function App, Container App | Mere risikabel: Cloud Run-tjeneste, App Engine-tjeneste |
 | `set-concurrency` | Mere risikabel: Lambda-funktion | — | Mere risikabel: Cloud Run-tjeneste |
 | `fail-over-database` | Altid et menneske: Aurora-cluster, RDS-instans | Altid et menneske: SQL-failovergruppe | Altid et menneske: Cloud SQL-instans |
-| `stop-instance` | Altid et menneske: EC2-instans | Altid et menneske: virtuel maskine | Altid et menneske: Compute Engine-VM |
+| `stop-instance` | Altid et menneske: EC2-instans | Altid et menneske: virtuel maskine, containergruppe | Altid et menneske: Compute Engine-VM |
 | `redrive-queue` | Altid et menneske: SQS-kø | — | — |
 
 `scale-out` holder sig inden for gruppens maksimum og højst fordobler antallet, hvor platformen ikke sætter noget; `scale-in` går aldrig under minimum eller til nul. `roll-back-service` skifter til den version, der kørte før, eller til den, `--to` nævner; på en App Service bytter den et udrulningsslot (`--slot`) tilbage. Skrevet ud ser en ændring sådan ud: `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ OneUptime AI ændrer aldrig agenten selv eller det, den kører i, uanset hvad `O
 - **Værter:** hver OneUptime-unit (`oneuptime-*`, inklusive Værts-AI-agentens egen), OpenTelemetry-collectoren (`otelcol-contrib.service`, `otelcol.service`), den Docker-motor, den kører i (`docker.service`, `docker.socket`, `containerd.service`), samt agentens egen proces og processerne over den.
 - **Proxmox:** agenten kan ikke se, hvilken gæst den kører i. Kører den i en VM eller container i det samme cluster, så sæt det VMID i `ONEUPTIME_AI_PROTECTED_TARGETS`; gør det samme med agentens VM på VMware.
 - **OpenStack-clouds:** agenten kan ikke se, hvilken instans den kører i. Kører den på samme cloud, så sæt den instans i `ONEUPTIME_AI_PROTECTED_TARGETS` som `instance:<id>`. På en cloud er denne liste din, og den vinder over alle andre indstillinger, også et menneskes godkendelse.
-- **Cloudkonti:** alt, hvad dens opsætningskommando oprettede: på AWS stakken `oneuptime-ai-agent`, dens ECS-cluster og ECS-tjeneste og rollerne `OneUptimeAiAgentTask` og `OneUptimeAiAgentWrite`; på Azure ressourcegruppen `oneuptime-ai-agent`; på Google Cloud VM'en eller Cloud Run-tjenesten `oneuptime-ai-agent` og dens tjenestekonti `oneuptime-ai-agent` og `oneuptime-ai-agent-write`.
+- **Cloudkonti:** alt, hvad dens opsætningskommando oprettede: på AWS stakken `oneuptime-ai-agent` (i en medlemskonto i en organisation stakken `StackSet-oneuptime-ai-agent-*`, som organisationens StackSet oprettede), dens ECS-cluster og ECS-tjeneste og rollerne `OneUptimeAiAgentTask` og `OneUptimeAiAgentWrite`; på Azure ressourcegruppen `oneuptime-ai-agent`; på Google Cloud VM'en eller Cloud Run-tjenesten `oneuptime-ai-agent` og dens tjenestekonti `oneuptime-ai-agent` og `oneuptime-ai-agent-write`.
 
 ## Loginoplysninger og mindste rettighed
 

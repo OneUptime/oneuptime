@@ -5,20 +5,13 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
-  CloudConnectionAuthMethod,
-  getCloudConnectionAuthMethod,
-  getCloudConnectionDefinition,
-  CloudConnectionDefinition,
-} from "../../../Types/CloudConnection/CloudConnectionCatalog";
-import {
   CLOUD_ORGANIZATION_MAX_ACCOUNTS,
   CloudOrganizationAccountView,
   CloudOrganizationAgentState,
   CloudOrganizationView,
   NOT_AN_ORGANIZATION,
-  getRoleArnAccountId,
+  getAwsOrganizationManagementAccountId,
 } from "../../../Types/CloudConnection/CloudOrganizationAgents";
-import { CloudConnectionSetupScope } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -27,7 +20,6 @@ import CloudConnectionService from "../../Services/CloudConnectionService";
 import ResourceAiAgentService from "../../Services/ResourceAiAgentService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import { readCloudSetting } from "./CloudConnectorTypes";
 
 /*
  * WHICH ACCOUNTS OF AN AWS ORGANIZATION A CLOUD AI AGENT COVERS.
@@ -107,21 +99,7 @@ export default class CloudOrganizationAgents {
   public static readManagementAccountId(
     config: JSONObject | null | undefined,
   ): string | null {
-    const settings: JSONObject = config || {};
-    const definition: CloudConnectionDefinition | undefined =
-      getCloudConnectionDefinition(CloudProvider.AWS);
-
-    if (
-      !definition ||
-      readCloudSetting(settings, "readScope") !==
-        CloudConnectionSetupScope.Organization ||
-      getCloudConnectionAuthMethod(definition, settings["authMethod"]) !==
-        CloudConnectionAuthMethod.AwsRole
-    ) {
-      return null;
-    }
-
-    return getRoleArnAccountId(readCloudSetting(settings, "roleArn"));
+    return getAwsOrganizationManagementAccountId(config);
   }
 
   /*

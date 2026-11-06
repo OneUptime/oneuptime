@@ -430,15 +430,15 @@ OneUptime किसी AWS खाते, Azure सब्सक्रिप्श
 
 | बदलाव | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | सुरक्षित: ECS सेवा | ज़्यादा जोखिम वाले: App Service या Function App, Container App | — |
-| `start-instance` | सुरक्षित: EC2 इंस्टेंस, RDS इंस्टेंस | सुरक्षित: वर्चुअल मशीन | सुरक्षित: Compute Engine VM |
-| `scale-out` | सुरक्षित: ECS सेवा, Auto Scaling ग्रुप | सुरक्षित: App Service प्लान, VM स्केल सेट | सुरक्षित: Cloud Run सेवा, प्रबंधित इंस्टेंस ग्रुप |
-| `scale-in` | ज़्यादा जोखिम वाले: ECS सेवा, Auto Scaling ग्रुप | ज़्यादा जोखिम वाले: App Service प्लान, VM स्केल सेट | ज़्यादा जोखिम वाले: Cloud Run सेवा, प्रबंधित इंस्टेंस ग्रुप |
+| `restart-service` | सुरक्षित: ECS सेवा; ज़्यादा जोखिम वाले: App Runner सेवा, Elastic Beanstalk एनवायरनमेंट | ज़्यादा जोखिम वाले: App Service या Function App, Container App, कंटेनर ग्रुप | — |
+| `start-instance` | सुरक्षित: EC2 इंस्टेंस, RDS इंस्टेंस | सुरक्षित: वर्चुअल मशीन, कंटेनर ग्रुप | सुरक्षित: Compute Engine VM |
+| `scale-out` | सुरक्षित: ECS सेवा, Auto Scaling ग्रुप | सुरक्षित: App Service प्लान, VM स्केल सेट | सुरक्षित: Cloud Run सेवा, प्रबंधित इंस्टेंस ग्रुप, App Engine सेवा |
+| `scale-in` | ज़्यादा जोखिम वाले: ECS सेवा, Auto Scaling ग्रुप | ज़्यादा जोखिम वाले: App Service प्लान, VM स्केल सेट | ज़्यादा जोखिम वाले: Cloud Run सेवा, प्रबंधित इंस्टेंस ग्रुप, App Engine सेवा |
 | `reboot-instance` | ज़्यादा जोखिम वाले: EC2 इंस्टेंस, RDS इंस्टेंस | ज़्यादा जोखिम वाले: वर्चुअल मशीन, PostgreSQL फ़्लेक्सिबल सर्वर, MySQL फ़्लेक्सिबल सर्वर | ज़्यादा जोखिम वाले: Compute Engine VM, Cloud SQL इंस्टेंस |
-| `roll-back-service` | ज़्यादा जोखिम वाले: ECS सेवा, Lambda एलियास | ज़्यादा जोखिम वाले: App Service या Function App, Container App | ज़्यादा जोखिम वाले: Cloud Run सेवा |
+| `roll-back-service` | ज़्यादा जोखिम वाले: ECS सेवा, Lambda एलियास | ज़्यादा जोखिम वाले: App Service या Function App, Container App | ज़्यादा जोखिम वाले: Cloud Run सेवा, App Engine सेवा |
 | `set-concurrency` | ज़्यादा जोखिम वाले: Lambda फ़ंक्शन | — | ज़्यादा जोखिम वाले: Cloud Run सेवा |
 | `fail-over-database` | हमेशा कोई व्यक्ति: Aurora क्लस्टर, RDS इंस्टेंस | हमेशा कोई व्यक्ति: SQL फ़ेलओवर ग्रुप | हमेशा कोई व्यक्ति: Cloud SQL इंस्टेंस |
-| `stop-instance` | हमेशा कोई व्यक्ति: EC2 इंस्टेंस | हमेशा कोई व्यक्ति: वर्चुअल मशीन | हमेशा कोई व्यक्ति: Compute Engine VM |
+| `stop-instance` | हमेशा कोई व्यक्ति: EC2 इंस्टेंस | हमेशा कोई व्यक्ति: वर्चुअल मशीन, कंटेनर ग्रुप | हमेशा कोई व्यक्ति: Compute Engine VM |
 | `redrive-queue` | हमेशा कोई व्यक्ति: SQS क्यू | — | — |
 
 `scale-out` ग्रुप की अधिकतम सीमा के भीतर रहता है, और जहाँ प्लेटफ़ॉर्म कोई सीमा तय नहीं करता वहाँ गिनती को अधिकतम दोगुना करता है; `scale-in` कभी न्यूनतम से नीचे या शून्य तक नहीं जाता। `roll-back-service` पहले चले संस्करण पर, या उस संस्करण पर जाता है जिसका नाम `--to` लेता है; किसी App Service पर यह एक डिप्लॉयमेंट स्लॉट (`--slot`) वापस स्वैप करता है। पूरा लिखा जाए, तो एक बदलाव ऐसा दिखता है: `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`।
@@ -507,7 +507,7 @@ AI एजेंट पेज कुछ भी कहे, एजेंट खु�
 - **होस्ट:** हर OneUptime यूनिट (`oneuptime-*`, होस्ट AI एजेंट की अपनी यूनिट सहित), OpenTelemetry कलेक्टर (`otelcol-contrib.service`, `otelcol.service`), वह Docker इंजन जिसमें यह चलता है (`docker.service`, `docker.socket`, `containerd.service`), और एजेंट की अपनी प्रोसेस और उसके ऊपर की प्रोसेस।
 - **Proxmox:** एजेंट यह नहीं बता सकता कि वह किस गेस्ट में चलता है। अगर यह उसी क्लस्टर के किसी VM या कंटेनर में चलता है, तो उस VMID को `ONEUPTIME_AI_PROTECTED_TARGETS` में डालें; VMware पर एजेंट के VM के साथ भी यही करें।
 - **OpenStack क्लाउड:** एजेंट यह नहीं बता सकता कि वह किस इंस्टेंस में चलता है। अगर यह उसी क्लाउड पर चलता है, तो उस इंस्टेंस को `ONEUPTIME_AI_PROTECTED_TARGETS` में `instance:<id>` के रूप में डालें। क्लाउड पर यह सूची आपकी है, और यह हर दूसरी सेटिंग पर भारी पड़ती है, किसी व्यक्ति के अनुमोदन पर भी।
-- **क्लाउड खाते:** इसकी सेटअप कमांड ने जो कुछ भी बनाया: AWS पर `oneuptime-ai-agent` स्टैक, उसका ECS क्लस्टर और सेवा, और भूमिकाएँ `OneUptimeAiAgentTask` और `OneUptimeAiAgentWrite`; Azure पर `oneuptime-ai-agent` रिसोर्स ग्रुप; Google Cloud पर `oneuptime-ai-agent` VM या Cloud Run सेवा, और उसके सेवा खाते `oneuptime-ai-agent` और `oneuptime-ai-agent-write`।
+- **क्लाउड खाते:** इसकी सेटअप कमांड ने जो कुछ भी बनाया: AWS पर `oneuptime-ai-agent` स्टैक (किसी संगठन के सदस्य खाते में, संगठन के StackSet का बनाया `StackSet-oneuptime-ai-agent-*` स्टैक), उसका ECS क्लस्टर और सेवा, और भूमिकाएँ `OneUptimeAiAgentTask` और `OneUptimeAiAgentWrite`; Azure पर `oneuptime-ai-agent` रिसोर्स ग्रुप; Google Cloud पर `oneuptime-ai-agent` VM या Cloud Run सेवा, और उसके सेवा खाते `oneuptime-ai-agent` और `oneuptime-ai-agent-write`।
 
 ## क्रेडेंशियल और न्यूनतम विशेषाधिकार
 

@@ -430,15 +430,15 @@ OneUptime은 AWS 계정, Azure 구독 또는 Google Cloud 프로젝트를 계정
 
 | 변경 | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | 안전함: ECS 서비스 | 더 위험함: App Service 또는 Function App, Container App | — |
-| `start-instance` | 안전함: EC2 인스턴스, RDS 인스턴스 | 안전함: 가상 머신 | 안전함: Compute Engine VM |
-| `scale-out` | 안전함: ECS 서비스, Auto Scaling 그룹 | 안전함: App Service 플랜, VM 확장 집합 | 안전함: Cloud Run 서비스, 관리형 인스턴스 그룹 |
-| `scale-in` | 더 위험함: ECS 서비스, Auto Scaling 그룹 | 더 위험함: App Service 플랜, VM 확장 집합 | 더 위험함: Cloud Run 서비스, 관리형 인스턴스 그룹 |
+| `restart-service` | 안전함: ECS 서비스; 더 위험함: App Runner 서비스, Elastic Beanstalk 환경 | 더 위험함: App Service 또는 Function App, Container App, 컨테이너 그룹 | — |
+| `start-instance` | 안전함: EC2 인스턴스, RDS 인스턴스 | 안전함: 가상 머신, 컨테이너 그룹 | 안전함: Compute Engine VM |
+| `scale-out` | 안전함: ECS 서비스, Auto Scaling 그룹 | 안전함: App Service 플랜, VM 확장 집합 | 안전함: Cloud Run 서비스, 관리형 인스턴스 그룹, App Engine 서비스 |
+| `scale-in` | 더 위험함: ECS 서비스, Auto Scaling 그룹 | 더 위험함: App Service 플랜, VM 확장 집합 | 더 위험함: Cloud Run 서비스, 관리형 인스턴스 그룹, App Engine 서비스 |
 | `reboot-instance` | 더 위험함: EC2 인스턴스, RDS 인스턴스 | 더 위험함: 가상 머신, PostgreSQL 유연한 서버, MySQL 유연한 서버 | 더 위험함: Compute Engine VM, Cloud SQL 인스턴스 |
-| `roll-back-service` | 더 위험함: ECS 서비스, Lambda 별칭 | 더 위험함: App Service 또는 Function App, Container App | 더 위험함: Cloud Run 서비스 |
+| `roll-back-service` | 더 위험함: ECS 서비스, Lambda 별칭 | 더 위험함: App Service 또는 Function App, Container App | 더 위험함: Cloud Run 서비스, App Engine 서비스 |
 | `set-concurrency` | 더 위험함: Lambda 함수 | — | 더 위험함: Cloud Run 서비스 |
 | `fail-over-database` | 항상 사람이 필요: Aurora 클러스터, RDS 인스턴스 | 항상 사람이 필요: SQL 장애 조치 그룹 | 항상 사람이 필요: Cloud SQL 인스턴스 |
-| `stop-instance` | 항상 사람이 필요: EC2 인스턴스 | 항상 사람이 필요: 가상 머신 | 항상 사람이 필요: Compute Engine VM |
+| `stop-instance` | 항상 사람이 필요: EC2 인스턴스 | 항상 사람이 필요: 가상 머신, 컨테이너 그룹 | 항상 사람이 필요: Compute Engine VM |
 | `redrive-queue` | 항상 사람이 필요: SQS 큐 | — | — |
 
 `scale-out` 은 그룹의 최댓값 안에서만 늘리며, 플랫폼이 최댓값을 정하지 않은 곳에서는 개수를 최대 두 배까지 늘립니다. `scale-in` 은 최솟값 아래로 줄이거나 0으로 만들지 않습니다. `roll-back-service` 는 이전에 실행되던 버전이나 `--to` 로 지정한 버전으로 옮기며, App Service에서는 배포 슬롯(`--slot`)을 다시 교환합니다. 전체를 쓰면 변경은 `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4` 와 같습니다.
@@ -507,7 +507,7 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 - **호스트:** 모든 OneUptime 유닛(호스트 AI 에이전트 자신의 유닛을 포함한 `oneuptime-*`), OpenTelemetry 수집기(`otelcol-contrib.service`, `otelcol.service`), 에이전트가 실행되는 Docker 엔진(`docker.service`, `docker.socket`, `containerd.service`), 그리고 에이전트 자신의 프로세스와 그 위의 프로세스.
 - **Proxmox:** 에이전트는 자신이 어느 게스트에서 실행되는지 알 수 없습니다. 같은 클러스터의 VM이나 컨테이너에서 실행된다면 그 VMID를 `ONEUPTIME_AI_PROTECTED_TARGETS` 에 넣으세요. VMware의 에이전트 VM도 마찬가지입니다.
 - **OpenStack 클라우드:** 에이전트는 자신이 어느 인스턴스에서 실행되는지 알 수 없습니다. 같은 클라우드에서 실행된다면 그 인스턴스를 `instance:<id>` 형식으로 `ONEUPTIME_AI_PROTECTED_TARGETS` 에 넣으세요. 클라우드에서는 이 목록이 사용자의 것이며, 사람의 승인을 포함한 다른 모든 설정보다 우선합니다.
-- **클라우드 계정:** 설정 명령이 만든 모든 것. AWS에서는 `oneuptime-ai-agent` 스택, 그 ECS 클러스터와 서비스, `OneUptimeAiAgentTask` 와 `OneUptimeAiAgentWrite` 역할, Azure에서는 `oneuptime-ai-agent` 리소스 그룹, Google Cloud에서는 `oneuptime-ai-agent` VM 또는 Cloud Run 서비스와 그 서비스 계정 `oneuptime-ai-agent` 와 `oneuptime-ai-agent-write`.
+- **클라우드 계정:** 설정 명령이 만든 모든 것. AWS에서는 `oneuptime-ai-agent` 스택(조직의 멤버 계정에서는 조직의 StackSet이 만든 `StackSet-oneuptime-ai-agent-*` 스택), 그 ECS 클러스터와 서비스, `OneUptimeAiAgentTask` 와 `OneUptimeAiAgentWrite` 역할, Azure에서는 `oneuptime-ai-agent` 리소스 그룹, Google Cloud에서는 `oneuptime-ai-agent` VM 또는 Cloud Run 서비스와 그 서비스 계정 `oneuptime-ai-agent` 와 `oneuptime-ai-agent-write`.
 
 ## 자격 증명과 최소 권한
 

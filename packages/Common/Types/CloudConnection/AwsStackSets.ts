@@ -134,12 +134,13 @@ export function getAwsStackSetDeployLine(data: {
   // The StackSet's home Region, a shell word.
   homeRegion: string;
   templateFile: string;
-  description: string;
+  // What AWS shows of the StackSet, in English: AWS shows it as written.
+  stackSetDescription: string;
   capabilities: string;
   parameters: ReadonlyArray<AwsStackSetParameter>;
   autoDeployment: boolean;
 }): string {
-  const stackSet: string = `--stack-set-name ${data.stackSetName} --region ${data.homeRegion} --template-body file://${data.templateFile} --description ${quoteForShell(data.description)} --capabilities ${data.capabilities}`;
+  const stackSet: string = `--stack-set-name ${data.stackSetName} --region ${data.homeRegion} --template-body file://${data.templateFile} --description ${quoteForShell(data.stackSetDescription)} --capabilities ${data.capabilities}`;
   const createParameters: string = formatAwsStackSetParameters(
     data.parameters.map(
       (parameter: AwsStackSetParameter): AwsStackSetParameter => {

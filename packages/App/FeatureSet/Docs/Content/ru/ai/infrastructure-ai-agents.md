@@ -430,15 +430,15 @@ OneUptime сам читает аккаунт AWS, подписку Azure или 
 
 | Изменение | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | Безопасные: сервис ECS | Более рискованные: App Service или Function App, Container App | — |
-| `start-instance` | Безопасные: экземпляр EC2, экземпляр RDS | Безопасные: виртуальная машина | Безопасные: ВМ Compute Engine |
-| `scale-out` | Безопасные: сервис ECS, группа Auto Scaling | Безопасные: план App Service, масштабируемый набор ВМ | Безопасные: сервис Cloud Run, управляемая группа экземпляров |
-| `scale-in` | Более рискованные: сервис ECS, группа Auto Scaling | Более рискованные: план App Service, масштабируемый набор ВМ | Более рискованные: сервис Cloud Run, управляемая группа экземпляров |
+| `restart-service` | Безопасные: сервис ECS; Более рискованные: сервис App Runner, среда Elastic Beanstalk | Более рискованные: App Service или Function App, Container App, группа контейнеров | — |
+| `start-instance` | Безопасные: экземпляр EC2, экземпляр RDS | Безопасные: виртуальная машина, группа контейнеров | Безопасные: ВМ Compute Engine |
+| `scale-out` | Безопасные: сервис ECS, группа Auto Scaling | Безопасные: план App Service, масштабируемый набор ВМ | Безопасные: сервис Cloud Run, управляемая группа экземпляров, сервис App Engine |
+| `scale-in` | Более рискованные: сервис ECS, группа Auto Scaling | Более рискованные: план App Service, масштабируемый набор ВМ | Более рискованные: сервис Cloud Run, управляемая группа экземпляров, сервис App Engine |
 | `reboot-instance` | Более рискованные: экземпляр EC2, экземпляр RDS | Более рискованные: виртуальная машина, гибкий сервер PostgreSQL, гибкий сервер MySQL | Более рискованные: ВМ Compute Engine, экземпляр Cloud SQL |
-| `roll-back-service` | Более рискованные: сервис ECS, псевдоним Lambda | Более рискованные: App Service или Function App, Container App | Более рискованные: сервис Cloud Run |
+| `roll-back-service` | Более рискованные: сервис ECS, псевдоним Lambda | Более рискованные: App Service или Function App, Container App | Более рискованные: сервис Cloud Run, сервис App Engine |
 | `set-concurrency` | Более рискованные: функция Lambda | — | Более рискованные: сервис Cloud Run |
 | `fail-over-database` | Всегда человек: кластер Aurora, экземпляр RDS | Всегда человек: группа отработки отказа SQL | Всегда человек: экземпляр Cloud SQL |
-| `stop-instance` | Всегда человек: экземпляр EC2 | Всегда человек: виртуальная машина | Всегда человек: ВМ Compute Engine |
+| `stop-instance` | Всегда человек: экземпляр EC2 | Всегда человек: виртуальная машина, группа контейнеров | Всегда человек: ВМ Compute Engine |
 | `redrive-queue` | Всегда человек: очередь SQS | — | — |
 
 `scale-out` не выходит за максимум группы и самое большее удваивает число экземпляров там, где платформа максимум не задаёт; `scale-in` никогда не опускается ниже минимума и не уходит до нуля. `roll-back-service` переходит на версию, которая работала до этого, или на ту, что указана в `--to`; в App Service он переключает слот развёртывания (`--slot`) обратно. Целиком изменение выглядит так: `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ OneUptime AI никогда не меняет самого агента или �
 - **Хосты:** каждый юнит OneUptime (`oneuptime-*`, включая юнит самого ИИ-агента хоста), коллектор OpenTelemetry (`otelcol-contrib.service`, `otelcol.service`), движок Docker, в котором он работает (`docker.service`, `docker.socket`, `containerd.service`), а также собственный процесс агента и процессы над ним.
 - **Proxmox:** агент не может определить, в какой гостевой системе он работает. Если он работает в ВМ или контейнере того же кластера, добавьте этот VMID в `ONEUPTIME_AI_PROTECTED_TARGETS`; то же самое сделайте с ВМ агента в VMware.
 - **Облака OpenStack:** агент не может определить, в каком инстансе он работает. Если он работает в том же облаке, добавьте этот инстанс в `ONEUPTIME_AI_PROTECTED_TARGETS` как `instance:<id>`. В облаке этот список — ваш, и он главнее любых других настроек, включая одобрение человека.
-- **Облачные аккаунты:** всё, что создала команда настройки агента: на AWS — стек `oneuptime-ai-agent`, его кластер и сервис ECS и роли `OneUptimeAiAgentTask` и `OneUptimeAiAgentWrite`; в Azure — группа ресурсов `oneuptime-ai-agent`; в Google Cloud — ВМ или сервис Cloud Run `oneuptime-ai-agent` и его сервисные аккаунты `oneuptime-ai-agent` и `oneuptime-ai-agent-write`.
+- **Облачные аккаунты:** всё, что создала команда настройки агента: на AWS — стек `oneuptime-ai-agent` (в аккаунте-участнике организации — стек `StackSet-oneuptime-ai-agent-*`, созданный StackSet организации), его кластер и сервис ECS и роли `OneUptimeAiAgentTask` и `OneUptimeAiAgentWrite`; в Azure — группа ресурсов `oneuptime-ai-agent`; в Google Cloud — ВМ или сервис Cloud Run `oneuptime-ai-agent` и его сервисные аккаунты `oneuptime-ai-agent` и `oneuptime-ai-agent-write`.
 
 ## Учётные данные и минимальные привилегии
 

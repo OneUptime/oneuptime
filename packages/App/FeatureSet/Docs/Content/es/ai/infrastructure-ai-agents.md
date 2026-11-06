@@ -430,15 +430,15 @@ Un cambio nombra un recurso por su ID, como una lectura, y solo se ejecuta en un
 
 | Cambio | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | Seguro: servicio de ECS | Más arriesgado: App Service o Function App, Container App | — |
-| `start-instance` | Seguro: instancia de EC2, instancia de RDS | Seguro: máquina virtual | Seguro: VM de Compute Engine |
-| `scale-out` | Seguro: servicio de ECS, grupo de Auto Scaling | Seguro: plan de App Service, conjunto de escalado de VM | Seguro: servicio de Cloud Run, grupo de instancias administrado |
-| `scale-in` | Más arriesgado: servicio de ECS, grupo de Auto Scaling | Más arriesgado: plan de App Service, conjunto de escalado de VM | Más arriesgado: servicio de Cloud Run, grupo de instancias administrado |
+| `restart-service` | Seguro: servicio de ECS; Más arriesgado: servicio de App Runner, entorno de Elastic Beanstalk | Más arriesgado: App Service o Function App, Container App, grupo de contenedores | — |
+| `start-instance` | Seguro: instancia de EC2, instancia de RDS | Seguro: máquina virtual, grupo de contenedores | Seguro: VM de Compute Engine |
+| `scale-out` | Seguro: servicio de ECS, grupo de Auto Scaling | Seguro: plan de App Service, conjunto de escalado de VM | Seguro: servicio de Cloud Run, grupo de instancias administrado, servicio de App Engine |
+| `scale-in` | Más arriesgado: servicio de ECS, grupo de Auto Scaling | Más arriesgado: plan de App Service, conjunto de escalado de VM | Más arriesgado: servicio de Cloud Run, grupo de instancias administrado, servicio de App Engine |
 | `reboot-instance` | Más arriesgado: instancia de EC2, instancia de RDS | Más arriesgado: máquina virtual, servidor flexible de PostgreSQL, servidor flexible de MySQL | Más arriesgado: VM de Compute Engine, instancia de Cloud SQL |
-| `roll-back-service` | Más arriesgado: servicio de ECS, alias de Lambda | Más arriesgado: App Service o Function App, Container App | Más arriesgado: servicio de Cloud Run |
+| `roll-back-service` | Más arriesgado: servicio de ECS, alias de Lambda | Más arriesgado: App Service o Function App, Container App | Más arriesgado: servicio de Cloud Run, servicio de App Engine |
 | `set-concurrency` | Más arriesgado: función de Lambda | — | Más arriesgado: servicio de Cloud Run |
 | `fail-over-database` | Siempre una persona: clúster de Aurora, instancia de RDS | Siempre una persona: grupo de conmutación por error de SQL | Siempre una persona: instancia de Cloud SQL |
-| `stop-instance` | Siempre una persona: instancia de EC2 | Siempre una persona: máquina virtual | Siempre una persona: VM de Compute Engine |
+| `stop-instance` | Siempre una persona: instancia de EC2 | Siempre una persona: máquina virtual, grupo de contenedores | Siempre una persona: VM de Compute Engine |
 | `redrive-queue` | Siempre una persona: cola de SQS | — | — |
 
 `scale-out` no supera el máximo del grupo y, como mucho, duplica el recuento donde la plataforma no fija ninguno; `scale-in` nunca baja del mínimo ni llega a cero. `roll-back-service` pasa a la versión que se ejecutaba antes, o a la que nombra `--to`; en un App Service, intercambia de vuelta un slot de implementación (`--slot`). Escrito completo, un cambio se lee `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ OneUptime AI nunca cambia el propio agente ni aquello en lo que se ejecuta, diga
 - **Hosts:** cada unidad de OneUptime (`oneuptime-*`, incluida la del propio agente de IA del host), el colector de OpenTelemetry (`otelcol-contrib.service`, `otelcol.service`), el motor de Docker en el que se ejecuta (`docker.service`, `docker.socket`, `containerd.service`) y el propio proceso del agente y los procesos por encima de él.
 - **Proxmox:** el agente no puede saber en qué invitado se ejecuta. Si se ejecuta en una VM o un contenedor del mismo clúster, pon ese VMID en `ONEUPTIME_AI_PROTECTED_TARGETS`; haz lo mismo con la VM del agente en VMware.
 - **Nubes OpenStack:** el agente no puede saber en qué instancia se ejecuta. Si se ejecuta en la misma nube, pon esa instancia en `ONEUPTIME_AI_PROTECTED_TARGETS`, como `instance:<id>`. En una nube, esta lista es tuya y prevalece sobre cualquier otro ajuste, incluida la aprobación de una persona.
-- **Cuentas en la nube:** todo lo que creó su comando de configuración: en AWS, la pila `oneuptime-ai-agent`, su clúster y su servicio de ECS, y los roles `OneUptimeAiAgentTask` y `OneUptimeAiAgentWrite`; en Azure, el grupo de recursos `oneuptime-ai-agent`; en Google Cloud, la VM o el servicio de Cloud Run `oneuptime-ai-agent` y sus cuentas de servicio `oneuptime-ai-agent` y `oneuptime-ai-agent-write`.
+- **Cuentas en la nube:** todo lo que creó su comando de configuración: en AWS, la pila `oneuptime-ai-agent` (en una cuenta miembro de una organización, la pila `StackSet-oneuptime-ai-agent-*` que creó el StackSet de la organización), su clúster y su servicio de ECS, y los roles `OneUptimeAiAgentTask` y `OneUptimeAiAgentWrite`; en Azure, el grupo de recursos `oneuptime-ai-agent`; en Google Cloud, la VM o el servicio de Cloud Run `oneuptime-ai-agent` y sus cuentas de servicio `oneuptime-ai-agent` y `oneuptime-ai-agent-write`.
 
 ## Credenciales y mínimo privilegio
 

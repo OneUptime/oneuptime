@@ -430,15 +430,15 @@ unitها با نام کاملشان نام برده می‌شوند: `systemctl 
 
 | تغییر | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | امن: سرویس ECS | پرخطرتر: App Service یا Function App، Container App | — |
-| `start-instance` | امن: نمونهٔ EC2، نمونهٔ RDS | امن: ماشین مجازی | امن: ماشین مجازی Compute Engine |
-| `scale-out` | امن: سرویس ECS، گروه Auto Scaling | امن: طرح App Service، مجموعهٔ مقیاس ماشین مجازی | امن: سرویس Cloud Run، گروه نمونهٔ مدیریت‌شده |
-| `scale-in` | پرخطرتر: سرویس ECS، گروه Auto Scaling | پرخطرتر: طرح App Service، مجموعهٔ مقیاس ماشین مجازی | پرخطرتر: سرویس Cloud Run، گروه نمونهٔ مدیریت‌شده |
+| `restart-service` | امن: سرویس ECS؛ پرخطرتر: سرویس App Runner، محیط Elastic Beanstalk | پرخطرتر: App Service یا Function App، Container App، گروه کانتینر | — |
+| `start-instance` | امن: نمونهٔ EC2، نمونهٔ RDS | امن: ماشین مجازی، گروه کانتینر | امن: ماشین مجازی Compute Engine |
+| `scale-out` | امن: سرویس ECS، گروه Auto Scaling | امن: طرح App Service، مجموعهٔ مقیاس ماشین مجازی | امن: سرویس Cloud Run، گروه نمونهٔ مدیریت‌شده، سرویس App Engine |
+| `scale-in` | پرخطرتر: سرویس ECS، گروه Auto Scaling | پرخطرتر: طرح App Service، مجموعهٔ مقیاس ماشین مجازی | پرخطرتر: سرویس Cloud Run، گروه نمونهٔ مدیریت‌شده، سرویس App Engine |
 | `reboot-instance` | پرخطرتر: نمونهٔ EC2، نمونهٔ RDS | پرخطرتر: ماشین مجازی، سرور انعطاف‌پذیر PostgreSQL، سرور انعطاف‌پذیر MySQL | پرخطرتر: ماشین مجازی Compute Engine، نمونهٔ Cloud SQL |
-| `roll-back-service` | پرخطرتر: سرویس ECS، نام مستعار Lambda | پرخطرتر: App Service یا Function App، Container App | پرخطرتر: سرویس Cloud Run |
+| `roll-back-service` | پرخطرتر: سرویس ECS، نام مستعار Lambda | پرخطرتر: App Service یا Function App، Container App | پرخطرتر: سرویس Cloud Run، سرویس App Engine |
 | `set-concurrency` | پرخطرتر: تابع Lambda | — | پرخطرتر: سرویس Cloud Run |
 | `fail-over-database` | همیشه یک انسان: خوشهٔ Aurora، نمونهٔ RDS | همیشه یک انسان: گروه failover در SQL | همیشه یک انسان: نمونهٔ Cloud SQL |
-| `stop-instance` | همیشه یک انسان: نمونهٔ EC2 | همیشه یک انسان: ماشین مجازی | همیشه یک انسان: ماشین مجازی Compute Engine |
+| `stop-instance` | همیشه یک انسان: نمونهٔ EC2 | همیشه یک انسان: ماشین مجازی، گروه کانتینر | همیشه یک انسان: ماشین مجازی Compute Engine |
 | `redrive-queue` | همیشه یک انسان: صف SQS | — | — |
 
 `scale-out` در محدودهٔ بیشینهٔ گروه می‌ماند، و جایی که پلتفرم بیشینه‌ای تعیین نکرده حداکثر تعداد را دو برابر می‌کند؛ `scale-in` هرگز پایین‌تر از کمینه یا تا صفر نمی‌رود. `roll-back-service` به نسخه‌ای که پیش‌تر اجرا می‌شد، یا به نسخه‌ای که `--to` نام می‌برد، برمی‌گردد؛ روی یک App Service، یک اسلات استقرار (`--slot`) را به حالت قبل جابه‌جا می‌کند. اگر کامل نوشته شود، یک تغییر چنین است: `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ unitها با نام کاملشان نام برده می‌شوند: `systemctl 
 - **میزبان‌ها:** هر unit از OneUptime (`oneuptime-*`، از جمله unit خود عامل هوش مصنوعی میزبان)، کالکتور OpenTelemetry (`otelcol-contrib.service`، `otelcol.service`)، موتور Docker که عامل در آن اجرا می‌شود (`docker.service`، `docker.socket`، `containerd.service`)، و فرایند خود عامل و فرایندهای بالای آن.
 - **Proxmox:** عامل نمی‌تواند تشخیص دهد در کدام مهمان اجرا می‌شود. اگر در یک ماشین مجازی یا کانتینر از همان خوشه اجرا می‌شود، آن VMID را در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید؛ همین کار را با ماشین مجازی عامل روی VMware هم انجام دهید.
 - **ابرهای OpenStack:** عامل نمی‌تواند تشخیص دهد در کدام نمونه اجرا می‌شود. اگر روی همان ابر اجرا می‌شود، آن نمونه را به‌صورت `instance:<id>` در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید. روی یک ابر، این فهرست مال شماست و بر هر تنظیم دیگر، از جمله تأیید یک انسان، غلبه می‌کند.
-- **حساب‌های ابری:** هر چیزی که فرمان راه‌اندازی‌اش ساخته است: روی AWS پشتهٔ `oneuptime-ai-agent`، خوشه و سرویس ECS آن، و نقش‌های `OneUptimeAiAgentTask` و `OneUptimeAiAgentWrite`؛ روی Azure گروه منابع `oneuptime-ai-agent`؛ روی Google Cloud ماشین مجازی یا سرویس Cloud Run با نام `oneuptime-ai-agent` و حساب‌های سرویس آن، `oneuptime-ai-agent` و `oneuptime-ai-agent-write`.
+- **حساب‌های ابری:** هر چیزی که فرمان راه‌اندازی‌اش ساخته است: روی AWS پشتهٔ `oneuptime-ai-agent` (در حساب عضو یک سازمان، پشتهٔ `StackSet-oneuptime-ai-agent-*` که StackSet سازمان ساخته است)، خوشه و سرویس ECS آن، و نقش‌های `OneUptimeAiAgentTask` و `OneUptimeAiAgentWrite`؛ روی Azure گروه منابع `oneuptime-ai-agent`؛ روی Google Cloud ماشین مجازی یا سرویس Cloud Run با نام `oneuptime-ai-agent` و حساب‌های سرویس آن، `oneuptime-ai-agent` و `oneuptime-ai-agent-write`.
 
 ## اعتبارنامه‌ها و کمترین دسترسی
 

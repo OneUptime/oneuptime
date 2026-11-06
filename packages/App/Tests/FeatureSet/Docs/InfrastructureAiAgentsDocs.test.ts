@@ -50,6 +50,7 @@ import AiResourceType, {
 import {
   AWS_CLOUD_AI_AGENT_CLUSTER_NAME,
   AWS_CLOUD_AI_AGENT_STACK_NAME,
+  AWS_CLOUD_AI_AGENT_STACK_SET_NAME,
   AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME,
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   AZURE_CLOUD_AI_AGENT_APP_NAME,
@@ -656,10 +657,18 @@ function cloudTierWord(spec: CloudOperationKindSpec): string {
   return spec.tier === ResourceCommandTier.SafeWrite ? "Safe" : "Riskier";
 }
 
+// A fix table's tiers, from the least to the most a person decides.
+const CLOUD_TIER_WORDS: ReadonlyArray<string> = [
+  "Safe",
+  "Riskier",
+  "Always a person",
+];
+
 /*
  * The cell of "Fixes on cloud accounts" for one change on one cloud, from
- * the catalog: the tier, then the kinds of resource it works on, or "—"
- * where the cloud has no such change.
+ * the catalog: each tier the change has there, then the kinds of resource
+ * it has it on ("Safe: ECS service; Riskier: App Runner service, ..."), or
+ * "—" where the cloud has no such change.
  */
 function expectedCloudFixCell(
   operation: CloudOperationSpec,
@@ -675,25 +684,26 @@ function expectedCloudFixCell(
     return "—";
   }
 
-  const tiers: Set<string> = new Set<string>(specs.map(cloudTierWord));
+  return CLOUD_TIER_WORDS.map((word: string): string => {
+    const names: Array<string> = specs
+      .filter((spec: CloudOperationKindSpec): boolean => {
+        return cloudTierWord(spec) === word;
+      })
+      .map((spec: CloudOperationKindSpec): string => {
+        const kind: CloudResourceKindSpec | null = getCloudResourceKind(
+          catalog,
+          spec.kind,
+        );
 
-  // One tier per cloud is what one cell can say.
-  expect({ operation: operation.name, catalog, tiers: tiers.size }).toEqual({
-    operation: operation.name,
-    catalog,
-    tiers: 1,
-  });
+        return kind ? kind.displayName : spec.kind;
+      });
 
-  return `${[...tiers][0]}: ${specs
-    .map((spec: CloudOperationKindSpec): string => {
-      const kind: CloudResourceKindSpec | null = getCloudResourceKind(
-        catalog,
-        spec.kind,
-      );
-
-      return kind ? kind.displayName : spec.kind;
+    return names.length > 0 ? `${word}: ${names.join(", ")}` : "";
+  })
+    .filter((part: string): boolean => {
+      return part.length > 0;
     })
-    .join(", ")}`;
+    .join("; ");
 }
 
 // "a, b, c or d", as the page lists names.
@@ -3316,6 +3326,8 @@ describe("Infrastructure AI Agents docs", (): void => {
         `arn:aws*:iam::123456789012:role/${AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME}`,
         `arn:aws*:iam::123456789012:role/${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}`,
         `arn:aws*:cloudformation:*:123456789012:stack/${AWS_CLOUD_AI_AGENT_STACK_NAME}/*`,
+        // An organization's member account: the stack its StackSet made.
+        `arn:aws*:cloudformation:*:123456789012:stack/StackSet-${AWS_CLOUD_AI_AGENT_STACK_SET_NAME}-*`,
       ]);
       expect(own.azure).toEqual([
         `/subscriptions/${CLOUD_ACCOUNT_IDS.azure}/resourcegroups/${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP}/*`,
@@ -3327,7 +3339,10 @@ describe("Infrastructure AI Agents docs", (): void => {
         `//iam.googleapis.com/projects/my-project/serviceAccounts/${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}@*`,
       ]);
       expect(oneLine(bullet)).toContain(
-        "on AWS the `oneuptime-ai-agent` stack, its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service accounts `oneuptime-ai-agent` and `oneuptime-ai-agent-write`.",
+        "on AWS the `oneuptime-ai-agent` stack (in a member account of an organization, the `StackSet-oneuptime-ai-agent-*` stack the organization's StackSet made), its ECS cluster and service, and the roles `OneUptimeAiAgentTask` and `OneUptimeAiAgentWrite`; on Azure the `oneuptime-ai-agent` resource group; on Google Cloud the `oneuptime-ai-agent` VM or Cloud Run service, and its service accounts `oneuptime-ai-agent` and `oneuptime-ai-agent-write`.",
+      );
+      expect(codeSpans(bullet)).toContain(
+        `StackSet-${AWS_CLOUD_AI_AGENT_STACK_SET_NAME}-*`,
       );
     });
 

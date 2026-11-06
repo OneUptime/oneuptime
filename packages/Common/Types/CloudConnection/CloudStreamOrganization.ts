@@ -130,7 +130,7 @@ export function getAwsCloudStreamOrganizationCommand(data: {
       stackSetName: names.stackName,
       homeRegion: STREAM_HOME,
       templateFile: CLOUD_STREAM_TEMPLATE_FILE,
-      description:
+      stackSetDescription:
         "OneUptime: CloudWatch metrics and logs of every account of the organization, streamed by Amazon Data Firehose.",
       capabilities: "CAPABILITY_IAM",
       parameters: [

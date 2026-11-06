@@ -430,15 +430,15 @@ Eine Änderung nennt eine Ressource über ihre ID, wie ein Lesevorgang, und läu
 
 | Änderung | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | Sicher: ECS-Dienst | Riskanter: App Service oder Function App, Container App | — |
-| `start-instance` | Sicher: EC2-Instanz, RDS-Instanz | Sicher: virtuelle Maschine | Sicher: Compute-Engine-VM |
-| `scale-out` | Sicher: ECS-Dienst, Auto-Scaling-Gruppe | Sicher: App-Service-Plan, VM-Skalierungsgruppe | Sicher: Cloud-Run-Dienst, verwaltete Instanzgruppe |
-| `scale-in` | Riskanter: ECS-Dienst, Auto-Scaling-Gruppe | Riskanter: App-Service-Plan, VM-Skalierungsgruppe | Riskanter: Cloud-Run-Dienst, verwaltete Instanzgruppe |
+| `restart-service` | Sicher: ECS-Dienst; Riskanter: App-Runner-Dienst, Elastic-Beanstalk-Umgebung | Riskanter: App Service oder Function App, Container App, Containergruppe | — |
+| `start-instance` | Sicher: EC2-Instanz, RDS-Instanz | Sicher: virtuelle Maschine, Containergruppe | Sicher: Compute-Engine-VM |
+| `scale-out` | Sicher: ECS-Dienst, Auto-Scaling-Gruppe | Sicher: App-Service-Plan, VM-Skalierungsgruppe | Sicher: Cloud-Run-Dienst, verwaltete Instanzgruppe, App-Engine-Dienst |
+| `scale-in` | Riskanter: ECS-Dienst, Auto-Scaling-Gruppe | Riskanter: App-Service-Plan, VM-Skalierungsgruppe | Riskanter: Cloud-Run-Dienst, verwaltete Instanzgruppe, App-Engine-Dienst |
 | `reboot-instance` | Riskanter: EC2-Instanz, RDS-Instanz | Riskanter: virtuelle Maschine, flexibler PostgreSQL-Server, flexibler MySQL-Server | Riskanter: Compute-Engine-VM, Cloud-SQL-Instanz |
-| `roll-back-service` | Riskanter: ECS-Dienst, Lambda-Alias | Riskanter: App Service oder Function App, Container App | Riskanter: Cloud-Run-Dienst |
+| `roll-back-service` | Riskanter: ECS-Dienst, Lambda-Alias | Riskanter: App Service oder Function App, Container App | Riskanter: Cloud-Run-Dienst, App-Engine-Dienst |
 | `set-concurrency` | Riskanter: Lambda-Funktion | — | Riskanter: Cloud-Run-Dienst |
 | `fail-over-database` | Immer ein Mensch: Aurora-Cluster, RDS-Instanz | Immer ein Mensch: SQL-Failovergruppe | Immer ein Mensch: Cloud-SQL-Instanz |
-| `stop-instance` | Immer ein Mensch: EC2-Instanz | Immer ein Mensch: virtuelle Maschine | Immer ein Mensch: Compute-Engine-VM |
+| `stop-instance` | Immer ein Mensch: EC2-Instanz | Immer ein Mensch: virtuelle Maschine, Containergruppe | Immer ein Mensch: Compute-Engine-VM |
 | `redrive-queue` | Immer ein Mensch: SQS-Warteschlange | — | — |
 
 `scale-out` bleibt innerhalb des Maximums der Gruppe und verdoppelt die Anzahl höchstens, wo die Plattform keines setzt; `scale-in` geht nie unter das Minimum oder auf null. `roll-back-service` wechselt zu der Version, die vorher lief, oder zu der, die `--to` nennt; bei einem App Service tauscht es einen Bereitstellungsslot (`--slot`) zurück. Ausgeschrieben lautet eine Änderung `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ OneUptime AI ändert nie den Agenten selbst oder das, worin er läuft, was auch 
 - **Hosts:** jede OneUptime-Unit (`oneuptime-*`, die des Host-KI-Agenten eingeschlossen), der OpenTelemetry-Collector (`otelcol-contrib.service`, `otelcol.service`), die Docker-Engine, in der er läuft (`docker.service`, `docker.socket`, `containerd.service`), sowie der eigene Prozess des Agenten und die Prozesse über ihm.
 - **Proxmox:** Der Agent kann nicht erkennen, in welchem Gast er läuft. Läuft er in einer VM oder einem Container desselben Clusters, tragen Sie diese VMID in `ONEUPTIME_AI_PROTECTED_TARGETS` ein; tun Sie dasselbe mit der VM des Agenten auf VMware.
 - **OpenStack-Clouds:** Der Agent kann nicht erkennen, in welcher Instanz er läuft. Läuft er auf derselben Cloud, tragen Sie diese Instanz als `instance:<id>` in `ONEUPTIME_AI_PROTECTED_TARGETS` ein. Bei einer Cloud ist diese Liste Ihre, und sie gilt vor jeder anderen Einstellung, auch vor der Genehmigung eines Menschen.
-- **Cloud-Konten:** alles, was sein Einrichtungsbefehl erstellt hat: bei AWS der Stack `oneuptime-ai-agent`, sein ECS-Cluster und -Dienst sowie die Rollen `OneUptimeAiAgentTask` und `OneUptimeAiAgentWrite`; bei Azure die Ressourcengruppe `oneuptime-ai-agent`; bei Google Cloud die VM oder der Cloud-Run-Dienst `oneuptime-ai-agent` und seine Dienstkonten `oneuptime-ai-agent` und `oneuptime-ai-agent-write`.
+- **Cloud-Konten:** alles, was sein Einrichtungsbefehl erstellt hat: bei AWS der Stack `oneuptime-ai-agent` (in einem Mitgliedskonto einer Organisation der Stack `StackSet-oneuptime-ai-agent-*`, den das StackSet der Organisation angelegt hat), sein ECS-Cluster und -Dienst sowie die Rollen `OneUptimeAiAgentTask` und `OneUptimeAiAgentWrite`; bei Azure die Ressourcengruppe `oneuptime-ai-agent`; bei Google Cloud die VM oder der Cloud-Run-Dienst `oneuptime-ai-agent` und seine Dienstkonten `oneuptime-ai-agent` und `oneuptime-ai-agent-write`.
 
 ## Anmeldedaten und minimale Rechte
 

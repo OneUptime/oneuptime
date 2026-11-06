@@ -430,15 +430,15 @@ Uma mudança nomeia um recurso pelo id dele, como faz uma leitura, e só roda em
 
 | Mudança | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | Seguro: serviço do ECS | Mais arriscado: App Service ou Function App, Container App | — |
-| `start-instance` | Seguro: instância do EC2, instância do RDS | Seguro: máquina virtual | Seguro: VM do Compute Engine |
-| `scale-out` | Seguro: serviço do ECS, grupo do Auto Scaling | Seguro: plano do App Service, conjunto de dimensionamento de VMs | Seguro: serviço do Cloud Run, grupo gerenciado de instâncias |
-| `scale-in` | Mais arriscado: serviço do ECS, grupo do Auto Scaling | Mais arriscado: plano do App Service, conjunto de dimensionamento de VMs | Mais arriscado: serviço do Cloud Run, grupo gerenciado de instâncias |
+| `restart-service` | Seguro: serviço do ECS; Mais arriscado: serviço do App Runner, ambiente do Elastic Beanstalk | Mais arriscado: App Service ou Function App, Container App, grupo de contêineres | — |
+| `start-instance` | Seguro: instância do EC2, instância do RDS | Seguro: máquina virtual, grupo de contêineres | Seguro: VM do Compute Engine |
+| `scale-out` | Seguro: serviço do ECS, grupo do Auto Scaling | Seguro: plano do App Service, conjunto de dimensionamento de VMs | Seguro: serviço do Cloud Run, grupo gerenciado de instâncias, serviço do App Engine |
+| `scale-in` | Mais arriscado: serviço do ECS, grupo do Auto Scaling | Mais arriscado: plano do App Service, conjunto de dimensionamento de VMs | Mais arriscado: serviço do Cloud Run, grupo gerenciado de instâncias, serviço do App Engine |
 | `reboot-instance` | Mais arriscado: instância do EC2, instância do RDS | Mais arriscado: máquina virtual, servidor flexível do PostgreSQL, servidor flexível do MySQL | Mais arriscado: VM do Compute Engine, instância do Cloud SQL |
-| `roll-back-service` | Mais arriscado: serviço do ECS, alias do Lambda | Mais arriscado: App Service ou Function App, Container App | Mais arriscado: serviço do Cloud Run |
+| `roll-back-service` | Mais arriscado: serviço do ECS, alias do Lambda | Mais arriscado: App Service ou Function App, Container App | Mais arriscado: serviço do Cloud Run, serviço do App Engine |
 | `set-concurrency` | Mais arriscado: função do Lambda | — | Mais arriscado: serviço do Cloud Run |
 | `fail-over-database` | Sempre uma pessoa: cluster do Aurora, instância do RDS | Sempre uma pessoa: grupo de failover do SQL | Sempre uma pessoa: instância do Cloud SQL |
-| `stop-instance` | Sempre uma pessoa: instância do EC2 | Sempre uma pessoa: máquina virtual | Sempre uma pessoa: VM do Compute Engine |
+| `stop-instance` | Sempre uma pessoa: instância do EC2 | Sempre uma pessoa: máquina virtual, grupo de contêineres | Sempre uma pessoa: VM do Compute Engine |
 | `redrive-queue` | Sempre uma pessoa: fila do SQS | — | — |
 
 `scale-out` fica dentro do máximo do grupo e, onde a plataforma não define nenhum, no máximo dobra a contagem; `scale-in` nunca fica abaixo do mínimo nem chega a zero. `roll-back-service` passa para a versão que rodava antes, ou para a que `--to` nomeia; em um App Service, ele troca de volta um slot de implantação (`--slot`). Por extenso, uma mudança fica assim: `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
@@ -507,7 +507,7 @@ A OneUptime AI nunca altera o próprio agente nem aquilo em que ele roda, diga o
 - **Hosts:** toda unit da OneUptime (`oneuptime-*`, incluindo a do próprio agente de IA do host), o coletor do OpenTelemetry (`otelcol-contrib.service`, `otelcol.service`), o mecanismo Docker em que ele roda (`docker.service`, `docker.socket`, `containerd.service`) e o processo do próprio agente e os processos acima dele.
 - **Proxmox:** o agente não consegue saber em qual convidado roda. Se ele roda em uma VM ou contêiner do mesmo cluster, coloque esse VMID em `ONEUPTIME_AI_PROTECTED_TARGETS`; faça o mesmo com a VM do agente no VMware.
 - **Nuvens OpenStack:** o agente não consegue saber em qual instância roda. Se ele roda na mesma nuvem, coloque essa instância em `ONEUPTIME_AI_PROTECTED_TARGETS`, como `instance:<id>`. Em uma nuvem, esta lista é sua e vale mais do que qualquer outra configuração, inclusive a aprovação de uma pessoa.
-- **Contas de nuvem:** tudo o que o comando de configuração dele criou: na AWS, a pilha `oneuptime-ai-agent`, o cluster e o serviço do ECS dela e as funções `OneUptimeAiAgentTask` e `OneUptimeAiAgentWrite`; no Azure, o grupo de recursos `oneuptime-ai-agent`; no Google Cloud, a VM ou o serviço do Cloud Run `oneuptime-ai-agent` e as contas de serviço dele, `oneuptime-ai-agent` e `oneuptime-ai-agent-write`.
+- **Contas de nuvem:** tudo o que o comando de configuração dele criou: na AWS, a pilha `oneuptime-ai-agent` (em uma conta-membro de uma organização, a pilha `StackSet-oneuptime-ai-agent-*` criada pelo StackSet da organização), o cluster e o serviço do ECS dela e as funções `OneUptimeAiAgentTask` e `OneUptimeAiAgentWrite`; no Azure, o grupo de recursos `oneuptime-ai-agent`; no Google Cloud, a VM ou o serviço do Cloud Run `oneuptime-ai-agent` e as contas de serviço dele, `oneuptime-ai-agent` e `oneuptime-ai-agent-write`.
 
 ## Credenciais e privilégio mínimo
 

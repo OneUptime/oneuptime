@@ -21,6 +21,17 @@
  * Shared by the server and the dashboard: React-free and Node-free.
  */
 
+import { CloudProvider } from "../Cloud/CloudPlatform";
+import { JSONObject } from "../JSON";
+import {
+  CloudConnectionAuthMethod,
+  CloudConnectionDefinition,
+  READ_SCOPE_FIELD_KEY,
+  getCloudConnectionAuthMethod,
+  getCloudConnectionDefinition,
+} from "./CloudConnectionCatalog";
+import { CloudConnectionSetupScope } from "./CloudConnectionSetupCommands";
+
 export const RESOURCE_AI_ACCESS_ORGANIZATION_PATH: string =
   "/resource-ai-access/organization";
 export const RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH: string =
@@ -85,6 +96,36 @@ export const NOT_AN_ORGANIZATION: CloudOrganizationView = {
   accounts: [],
   isTruncated: false,
 };
+
+/*
+ * The management account of an AWS connection's settings that read an AWS
+ * Organization with an IAM role - its role's account - or null for any
+ * other: one account, an access key, no role.
+ */
+export function getAwsOrganizationManagementAccountId(
+  config: JSONObject | null | undefined,
+): string | null {
+  const settings: JSONObject = config || {};
+  const definition: CloudConnectionDefinition | undefined =
+    getCloudConnectionDefinition(CloudProvider.AWS);
+  const scope: unknown = settings[READ_SCOPE_FIELD_KEY];
+
+  if (
+    !definition ||
+    typeof scope !== "string" ||
+    scope.trim() !== CloudConnectionSetupScope.Organization ||
+    getCloudConnectionAuthMethod(definition, settings["authMethod"]) !==
+      CloudConnectionAuthMethod.AwsRole
+  ) {
+    return null;
+  }
+
+  const roleArn: unknown = settings["roleArn"];
+
+  return getRoleArnAccountId(
+    typeof roleArn === "string" ? roleArn.trim() : roleArn,
+  );
+}
 
 // The AWS account an IAM role ARN is in (arn:aws:iam::<12 digits>:role/...), or null.
 export function getRoleArnAccountId(roleArn: unknown): string | null {

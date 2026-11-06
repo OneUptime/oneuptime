@@ -13,6 +13,8 @@ import {
   readCloudConnectionReadSummary,
 } from "Common/Types/CloudConnection/CloudConnectionTest";
 import { getAwsCloudStreamDeleteCommand } from "Common/Types/CloudConnection/CloudStreamTemplate";
+import { getAwsOrganizationManagementAccountId } from "Common/Types/CloudConnection/CloudOrganizationAgents";
+import { getAwsCloudStreamOrganizationDeleteCommand } from "Common/Types/CloudConnection/CloudStreamOrganization";
 import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -581,6 +583,21 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                 ? "Refuse what its streams deliver from now on."
                 : props.updateGate.disabledReason,
               getConfirmation: (item: CloudConnection) => {
+                // Where its streams delivered from, then where the read found resources.
+                const streamRegions: Array<string> = getCloudStreamStackRegions(
+                  {
+                    streamSummary: item.streamSummary,
+                    lastPullResult: item.lastPullResult,
+                  },
+                );
+                /*
+                 * A connection that reads an AWS Organization may stream
+                 * every account of it: its command deletes the management
+                 * account's stacks and, when there is one, the StackSet's.
+                 */
+                const managementAccountId: string | null =
+                  getAwsOrganizationManagementAccountId(item.config);
+
                 return {
                   title: "Stop streaming",
                   description: translator.translateTemplate(
@@ -601,15 +618,31 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                           ),
                         )}
                       </p>
+                      {managementAccountId ? (
+                        <p
+                          className="text-sm text-gray-700"
+                          data-testid="cloud-connection-stop-streaming-organization"
+                        >
+                          {translator.translateTemplate(
+                            "Run it in the management account {{account}}: it also deletes every member account's stacks, when the organization was streamed.",
+                            { account: managementAccountId },
+                          )}
+                        </p>
+                      ) : (
+                        <></>
+                      )}
                       <CodeBlock
-                        code={getAwsCloudStreamDeleteCommand({
-                          connectionId: item.id?.toString() || "",
-                          // Where its streams delivered from, then where the read found resources.
-                          regions: getCloudStreamStackRegions({
-                            streamSummary: item.streamSummary,
-                            lastPullResult: item.lastPullResult,
-                          }),
-                        })}
+                        code={
+                          managementAccountId
+                            ? getAwsCloudStreamOrganizationDeleteCommand({
+                                connectionId: item.id?.toString() || "",
+                                regions: streamRegions,
+                              })
+                            : getAwsCloudStreamDeleteCommand({
+                                connectionId: item.id?.toString() || "",
+                                regions: streamRegions,
+                              })
+                        }
                         language="bash"
                         wrapLongLines={true}
                       />

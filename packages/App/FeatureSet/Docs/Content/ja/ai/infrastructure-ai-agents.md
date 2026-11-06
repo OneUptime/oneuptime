@@ -430,15 +430,15 @@ VM はすべて正確に名前で指定します。govc は単なる名前を、
 
 | 変更 | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | 安全: ECS サービス | よりリスクが高い: App Service または Function App、Container App | — |
-| `start-instance` | 安全: EC2 インスタンス、RDS インスタンス | 安全: 仮想マシン | 安全: Compute Engine の VM |
-| `scale-out` | 安全: ECS サービス、Auto Scaling グループ | 安全: App Service プラン、VM スケール セット | 安全: Cloud Run サービス、マネージド インスタンス グループ |
-| `scale-in` | よりリスクが高い: ECS サービス、Auto Scaling グループ | よりリスクが高い: App Service プラン、VM スケール セット | よりリスクが高い: Cloud Run サービス、マネージド インスタンス グループ |
+| `restart-service` | 安全: ECS サービス；よりリスクが高い: App Runner サービス、Elastic Beanstalk 環境 | よりリスクが高い: App Service または Function App、Container App、コンテナー グループ | — |
+| `start-instance` | 安全: EC2 インスタンス、RDS インスタンス | 安全: 仮想マシン、コンテナー グループ | 安全: Compute Engine の VM |
+| `scale-out` | 安全: ECS サービス、Auto Scaling グループ | 安全: App Service プラン、VM スケール セット | 安全: Cloud Run サービス、マネージド インスタンス グループ、App Engine サービス |
+| `scale-in` | よりリスクが高い: ECS サービス、Auto Scaling グループ | よりリスクが高い: App Service プラン、VM スケール セット | よりリスクが高い: Cloud Run サービス、マネージド インスタンス グループ、App Engine サービス |
 | `reboot-instance` | よりリスクが高い: EC2 インスタンス、RDS インスタンス | よりリスクが高い: 仮想マシン、PostgreSQL フレキシブル サーバー、MySQL フレキシブル サーバー | よりリスクが高い: Compute Engine の VM、Cloud SQL インスタンス |
-| `roll-back-service` | よりリスクが高い: ECS サービス、Lambda エイリアス | よりリスクが高い: App Service または Function App、Container App | よりリスクが高い: Cloud Run サービス |
+| `roll-back-service` | よりリスクが高い: ECS サービス、Lambda エイリアス | よりリスクが高い: App Service または Function App、Container App | よりリスクが高い: Cloud Run サービス、App Engine サービス |
 | `set-concurrency` | よりリスクが高い: Lambda 関数 | — | よりリスクが高い: Cloud Run サービス |
 | `fail-over-database` | 常に人が必要: Aurora クラスター、RDS インスタンス | 常に人が必要: SQL フェールオーバー グループ | 常に人が必要: Cloud SQL インスタンス |
-| `stop-instance` | 常に人が必要: EC2 インスタンス | 常に人が必要: 仮想マシン | 常に人が必要: Compute Engine の VM |
+| `stop-instance` | 常に人が必要: EC2 インスタンス | 常に人が必要: 仮想マシン、コンテナー グループ | 常に人が必要: Compute Engine の VM |
 | `redrive-queue` | 常に人が必要: SQS キュー | — | — |
 
 `scale-out` はグループの最大値の範囲内にとどまり、プラットフォームが最大値を設定していない場合は数を最大で倍にします。`scale-in` は最小値を下回ることも、ゼロにすることもありません。`roll-back-service` は前に動作していたバージョン、または `--to` で指定したバージョンに移ります。App Service ではデプロイ スロット(`--slot`)を元に戻すスワップを行います。書き出すと、変更は `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4` のようになります。
@@ -507,7 +507,7 @@ AI エージェントのページが何を示していても、エージェン�
 - **ホスト:** OneUptime のすべてのユニット(ホスト AI エージェント自身のものを含む `oneuptime-*`)、OpenTelemetry コレクター(`otelcol-contrib.service`、`otelcol.service`)、エージェントが動作する Docker エンジン(`docker.service`、`docker.socket`、`containerd.service`)、そしてエージェント自身のプロセスとその上位のプロセス。
 - **Proxmox:** エージェントは自分がどのゲストで動作しているかを判別できません。同じクラスターの VM やコンテナで動作している場合は、その VMID を `ONEUPTIME_AI_PROTECTED_TARGETS` に追加してください。VMware 上のエージェントの VM についても同様です。
 - **OpenStack クラウド:** エージェントは自分がどのインスタンスで動いているかを判別できません。同じクラウド上で動かす場合は、そのインスタンスを `instance:<id>` として `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。クラウドでは、このリストはあなた自身のもので、人の承認も含め、ほかのどの設定よりも優先されます。
-- **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウント `oneuptime-ai-agent` と `oneuptime-ai-agent-write` です。
+- **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック (組織のメンバーアカウントでは、組織の StackSet が作成した `StackSet-oneuptime-ai-agent-*` スタック)、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウント `oneuptime-ai-agent` と `oneuptime-ai-agent-write` です。
 
 ## 認証情報と最小権限
 

@@ -31,10 +31,11 @@ export const AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME: string =
 export const AWS_CLOUD_AI_AGENT_LOG_GROUP_NAME: string = `/oneuptime/${CLOUD_AI_AGENT_NAME}`;
 /*
  * Every account of an AWS Organization at once: a StackSet of the same
- * template, whose stack in each member account StackSets names
- * StackSet-<this>-<a uuid of its own>.
+ * template, named as the stack is, whose stack in each member account
+ * StackSets names StackSet-<this>-<a uuid of its own>.
  */
-export const AWS_CLOUD_AI_AGENT_STACK_SET_NAME: string = "OneUptimeAiAgent";
+export const AWS_CLOUD_AI_AGENT_STACK_SET_NAME: string =
+  AWS_CLOUD_AI_AGENT_STACK_NAME;
 
 /*
  * Azure: a resource group holding one Container App with a system-assigned

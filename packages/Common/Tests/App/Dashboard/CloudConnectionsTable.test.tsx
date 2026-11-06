@@ -1067,6 +1067,72 @@ describe("streaming an AWS connection's metrics and logs", () => {
     expect(code).toContain("for REGION in ap-southeast-2 us-east-1; do");
   });
 
+  test("an organization's connection: Stop streaming's command is for its management account, and deletes the StackSet's stacks too", () => {
+    renderTable();
+
+    const confirmation: ReturnType<
+      NonNullable<CapturedAction["getConfirmation"]>
+    > = action("Stop streaming").getConfirmation!(
+      connection({
+        streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+        config: {
+          authMethod: "aws-role",
+          roleArn: "arn:aws:iam::111111111111:role/OneUptimeRead",
+          readScope: "organization",
+        },
+        lastPullResult: readResult({
+          resourceCount: 2,
+          regions: [{ region: "us-east-1", count: 2 }],
+        }),
+      }),
+    )!;
+
+    const { container } = render(confirmation.details!);
+    const code: string = container.querySelector("pre code")?.textContent || "";
+
+    expect(
+      container.querySelector(
+        "[data-testid='cloud-connection-stop-streaming-organization']",
+      ),
+    ).toHaveTextContent(
+      "Run it in the management account 111111111111: it also deletes every member account's stacks, when the organization was streamed.",
+    );
+    // The management account's own stacks, then the StackSet's when there is one.
+    expect(code).toContain("for REGION in us-east-1; do");
+    expect(code).toContain(
+      "aws cloudformation describe-stack-set --stack-set-name OneUptimeStream-20000000",
+    );
+    expect(code).toContain("aws cloudformation delete-stack-set");
+  });
+
+  test("a connection that reads one account: no word of an organization", () => {
+    renderTable();
+
+    const confirmation: ReturnType<
+      NonNullable<CapturedAction["getConfirmation"]>
+    > = action("Stop streaming").getConfirmation!(
+      connection({
+        streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+        config: {
+          authMethod: "aws-role",
+          roleArn: "arn:aws:iam::111111111111:role/OneUptimeRead",
+          readScope: "account",
+        },
+      }),
+    )!;
+
+    const { container } = render(confirmation.details!);
+
+    expect(
+      container.querySelector(
+        "[data-testid='cloud-connection-stop-streaming-organization']",
+      ),
+    ).toBeNull();
+    expect(
+      container.querySelector("pre code")?.textContent || "",
+    ).not.toContain("stack-set");
+  });
+
   test("Stop streaming stops every key of the connection, and the list reads again", async () => {
     renderTable();
 
