@@ -274,6 +274,24 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
     expect(text).toContain("after 15 minutes without an event");
   });
 
+  it("says when the dialog asks for the subscriptions before its steps, as the dialog decides it", () => {
+    // None read yet, or more than one command sets up: then they are not under More fields.
+    expect(readPage("en", page)).toContain(
+      `When the connection has read no subscription yet, or more than ${AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS}, the dialog asks for **Subscriptions** before its steps instead.`,
+    );
+    expect(source("azureSetup")).toContain(
+      "export function isAzureStreamSubscriptionsProblem(",
+    );
+    expect(source("azureSetup")).toContain("STREAM_NO_SUBSCRIPTION,");
+    expect(source("azureSetup")).toContain("STREAM_TOO_MANY_SUBSCRIPTIONS,");
+    expect(source("azureDialog")).toContain(
+      "isAzureStreamSubscriptionsProblem(",
+    );
+    expect(source("azureDialog")).toContain(
+      'cloudStreamPart("subscriptions-asked")',
+    );
+  });
+
   it("shows the command that deletes what the command made word for word, as the list's Stop streaming shows it", () => {
     const bash: Array<DocsFence> = bashFences(page);
 

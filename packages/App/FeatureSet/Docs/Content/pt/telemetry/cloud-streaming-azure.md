@@ -63,6 +63,8 @@ A caixa pergunta a cada poucos segundos o que chegou. O Azure começa a enviar p
 | **Assinaturas** | As assinaturas das quais transmitir: no início, as que a conexão lê. A primeira contém os hubs de eventos, e o OneUptime os lê lá. No máximo 50 |
 | **Configurar de outra forma** | Os nomes que o comando usa, para configurar tudo com o Terraform ou o portal |
 
+Quando a conexão ainda não leu nenhuma assinatura, ou lê mais de 50, a caixa pede as **Assinaturas** antes dos seus passos.
+
 Quando a primeira assinatura não é aquela em que o OneUptime lê os hubs de eventos, a caixa avisa: escolha **Ler lá** antes de executar o comando.
 
 ## O que chega

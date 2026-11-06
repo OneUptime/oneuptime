@@ -63,6 +63,8 @@ Dialogen frågar med några sekunders mellanrum vad som har kommit. Azure börja
 | **Prenumerationer** | Prenumerationerna att strömma från: först de som anslutningen läser. Den första innehåller händelsehubbarna, och OneUptime läser dem där. Högst 50 |
 | **Konfigurera det på ett annat sätt** | Namnen som kommandot använder, för att konfigurera allt med Terraform eller portalen |
 
+När anslutningen ännu inte har läst någon prenumeration, eller fler än 50, frågar dialogen i stället efter **Prenumerationer** före sina steg.
+
 När den första prenumerationen inte är den där OneUptime läser händelsehubbarna säger dialogen det: välj **Läs dem där** innan du kör kommandot.
 
 ## Vad som kommer

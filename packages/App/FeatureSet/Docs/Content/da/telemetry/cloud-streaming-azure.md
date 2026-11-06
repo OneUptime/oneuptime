@@ -63,6 +63,8 @@ Dialogen spørger med få sekunders mellemrum, hvad der er ankommet. Azure begyn
 | **Abonnementer** | De abonnementer, der skal streames fra: til at begynde med dem, forbindelsen læser. Det første rummer hændelseshubbene, og OneUptime læser dem der. Højst 50 |
 | **Sæt det op på en anden måde** | De navne, kommandoen bruger, så du kan sætte det op med Terraform eller portalen |
 
+Når forbindelsen endnu ikke har læst noget abonnement, eller flere end 50, beder dialogen i stedet om **Abonnementer** før sine trin.
+
 Når det første abonnement ikke er det, OneUptime læser hændelseshubbene i, siger dialogen det: vælg **Læs dem der**, før du kører kommandoen.
 
 ## Hvad der ankommer

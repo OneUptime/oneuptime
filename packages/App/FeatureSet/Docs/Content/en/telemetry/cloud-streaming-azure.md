@@ -63,6 +63,8 @@ The dialog asks every few seconds what arrived. Azure starts sending within a fe
 | **Subscriptions** | The subscriptions to stream from: at first, the ones the connection reads. The first holds the event hubs, and OneUptime reads them there. At most 50 |
 | **Set it up another way** | The names the command uses, to set it up with Terraform or the portal |
 
+When the connection has read no subscription yet, or more than 50, the dialog asks for **Subscriptions** before its steps instead.
+
 When the first subscription is not the one OneUptime reads the event hubs in, the dialog says so: choose **Read them there** before you run the command.
 
 ## What arrives

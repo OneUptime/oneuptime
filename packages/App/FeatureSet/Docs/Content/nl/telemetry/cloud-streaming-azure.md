@@ -63,6 +63,8 @@ Het venster vraagt om de paar seconden wat er binnenkwam. Azure begint enkele mi
 | **Abonnementen** | De abonnementen om uit te streamen: eerst de abonnementen die de koppeling leest. Het eerste bevat de Event Hubs, en OneUptime leest ze daar. Maximaal 50 |
 | **Op een andere manier instellen** | De namen die de opdracht gebruikt, om het met Terraform of de portal in te stellen |
 
+Als de koppeling nog geen abonnement heeft gelezen, of meer dan 50, vraagt het venster in plaats daarvan vóór zijn stappen om **Abonnementen**.
+
 Als het eerste abonnement niet het abonnement is waarin OneUptime de Event Hubs leest, zegt het venster dat: kies **Daar lezen** voordat u de opdracht uitvoert.
 
 ## Wat er binnenkomt

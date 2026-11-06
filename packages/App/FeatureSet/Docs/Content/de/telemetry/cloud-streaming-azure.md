@@ -63,6 +63,8 @@ Der Dialog fragt alle paar Sekunden, was angekommen ist. Azure beginnt wenige Mi
 | **Abonnements** | Die Abonnements, aus denen gestreamt wird: anfangs die, die die Verbindung liest. Das erste enthält die Event Hubs, und OneUptime liest sie dort. Höchstens 50 |
 | **Auf andere Weise einrichten** | Die Namen, die der Befehl verwendet, um es mit Terraform oder dem Portal einzurichten |
 
+Hat die Verbindung noch kein Abonnement gelesen oder mehr als 50, fragt der Dialog stattdessen vor seinen Schritten nach **Abonnements**.
+
 Wenn das erste Abonnement nicht das ist, in dem OneUptime die Event Hubs liest, sagt der Dialog es: Wählen Sie **Dort lesen**, bevor Sie den Befehl ausführen.
 
 ## Was ankommt

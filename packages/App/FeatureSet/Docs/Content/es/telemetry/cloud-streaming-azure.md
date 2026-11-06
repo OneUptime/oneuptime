@@ -63,6 +63,8 @@ El cuadro pregunta cada pocos segundos qué llegó. Azure empieza a enviar a los
 | **Suscripciones** | Las suscripciones desde las que transmitir: al principio, las que lee la conexión. La primera contiene los centros de eventos, y OneUptime los lee allí. Como máximo 50 |
 | **Configurarlo de otra forma** | Los nombres que usa el comando, para configurarlo con Terraform o el portal |
 
+Cuando la conexión aún no ha leído ninguna suscripción, o más de 50, el cuadro pide en su lugar las **Suscripciones** antes de sus pasos.
+
 Cuando la primera suscripción no es aquella en la que OneUptime lee los centros de eventos, el cuadro lo dice: elige **Leerlos allí** antes de ejecutar el comando.
 
 ## Qué llega

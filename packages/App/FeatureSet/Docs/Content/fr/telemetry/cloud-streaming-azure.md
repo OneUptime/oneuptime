@@ -63,6 +63,8 @@ La fenêtre demande toutes les quelques secondes ce qui est arrivé. Azure comme
 | **Abonnements** | Les abonnements à diffuser : au départ, ceux que lit la connexion. Le premier contient les hubs d'événements, et OneUptime les y lit. 50 au plus |
 | **Configurer autrement** | Les noms qu'utilise la commande, pour tout configurer avec Terraform ou le portail |
 
+Quand la connexion n'a encore lu aucun abonnement, ou plus de 50, la fenêtre demande plutôt les **Abonnements** avant ses étapes.
+
 Quand le premier abonnement n'est pas celui où OneUptime lit les hubs d'événements, la fenêtre le signale : choisissez **Les lire là-bas** avant d'exécuter la commande.
 
 ## Ce qui arrive

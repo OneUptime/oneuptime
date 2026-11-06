@@ -63,6 +63,8 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Azure inizia a inviare p
 | **Sottoscrizioni** | Le sottoscrizioni da cui trasmettere: all'inizio, quelle lette dalla connessione. La prima contiene gli hub eventi, e OneUptime li legge lì. Al massimo 50 |
 | **Configuralo in un altro modo** | I nomi usati dal comando, per configurare tutto con Terraform o il portale |
 
+Quando la connessione non ha ancora letto nessuna sottoscrizione, o più di 50, la finestra chiede invece le **Sottoscrizioni** prima dei suoi passaggi.
+
 Quando la prima sottoscrizione non è quella in cui OneUptime legge gli hub eventi, la finestra lo dice: scegli **Leggili lì** prima di eseguire il comando.
 
 ## Cosa arriva
