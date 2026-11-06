@@ -1243,8 +1243,12 @@ describe("the cluster's AI Insights page", () => {
       expect(days[29]).toHaveAttribute("data-investigations", "2");
       expect(days[29]).toHaveAttribute(
         "title",
-        "2026-09-30: 2 investigations, 1 failed, 1 fixes",
+        "30 Sep: 2 investigations, 1 failed, 1 fixes",
       );
+      // Its first and last day, as the reader's calendar writes them.
+      expect(
+        within(trend).getByTestId("ai-insights-trend-ends"),
+      ).toHaveTextContent("01 Sep30 Sep");
       expect(
         within(trend).getByRole("img", {
           name: "5 investigations in the last 7 days (2 the 7 days before).",

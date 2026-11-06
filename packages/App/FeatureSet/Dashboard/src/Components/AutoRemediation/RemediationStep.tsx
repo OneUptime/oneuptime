@@ -71,6 +71,10 @@ import useAiLaneSwitchStates, {
 import RemediationCodeFix from "./RemediationCodeFix";
 import RemediationTrackRecordLine from "./RemediationTrackRecordLine";
 import {
+  getRemediationFixActGate,
+  getRemediationFixWhoMayAct,
+} from "./RemediationFixActGate";
+import {
   parseRemediationTrackRecord,
   RemediationTrackRecord,
 } from "Common/Types/AutoRemediation/RemediationTrackRecord";
@@ -560,6 +564,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
   const tryAgainButtonId: string = useId();
   // What each folded fix's Review and approve opens is named after this.
   const fixDetailsIdPrefix: string = useId();
+  /*
+   * Whether the reader may approve a fix that waits, as the server asks
+   * (RemediationFixActGate): someone it certainly refuses reads that a
+   * fix needs approval - never their approval - on the pill and on the
+   * fix. Until the permission snapshot lands, theirs: the buttons stay.
+   */
+  const mayApproveFixes: boolean = !getRemediationFixWhoMayAct(
+    getRemediationFixActGate("approveOrDismiss"),
+  );
   const stepHeadingRef: React.RefObject<HTMLHeadingElement> =
     useRef<HTMLHeadingElement>(null);
   // The fix in the code the investigation recommends, once read.
@@ -1349,6 +1362,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     const steps: Array<RemediationFixStep> = getRemediationFixSteps({
       suggestion,
       translator,
+      mayApprove: mayApproveFixes,
     });
     const stepsIdPrefix: string = `${fixDetailsIdPrefix}-${suggestionId}`;
     const getStepKey: (kind: RemediationFixStepKind) => string = (
@@ -1396,10 +1410,28 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         (mcpPlan && mcpPlan.calls.length > 0),
     );
     const isReviewed: boolean = !hasPlanToReview || isStepOpen("plan");
-    const isReviewToggleShown: boolean = canApprove && hasPlanToReview;
-    const isApproveShown: boolean = canApprove && isReviewed;
-    const isDryRunShown: boolean = Boolean(dryRunTitle) && isReviewed;
-    const isDismissShown: boolean = canDismiss && (!canApprove || isReviewed);
+    /*
+     * Approve & Run, its dry run and Dismiss fix are for someone who may
+     * start runbook executions, as the server asks (RemediationFixActGate).
+     * A reader the permission snapshot certainly refuses sees none of them -
+     * nor Review and approve, which leads to them: the plan step still opens
+     * on its own line - and a quiet line in their place saying who may act.
+     */
+    const whoMayAct: string | undefined =
+      canApprove || canDismiss
+        ? getRemediationFixWhoMayAct(
+            getRemediationFixActGate(
+              canApprove ? "approveOrDismiss" : "dismiss",
+            ),
+          )
+        : undefined;
+    const mayAct: boolean = !whoMayAct;
+    const isReviewToggleShown: boolean =
+      mayAct && canApprove && hasPlanToReview;
+    const isApproveShown: boolean = mayAct && canApprove && isReviewed;
+    const isDryRunShown: boolean = mayAct && Boolean(dryRunTitle) && isReviewed;
+    const isDismissShown: boolean =
+      mayAct && canDismiss && (!canApprove || isReviewed);
     const hasButtons: boolean =
       isApproveShown || isDryRunShown || isDismissShown || canViewExecution;
     const planDetailsId: string = getRemediationFixStepDetailsId(
@@ -1511,6 +1543,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         (!isUnapprovablePlan &&
           !isReviewToggleShown &&
           !hasButtons &&
+          !whoMayAct &&
           !isActionErrorOnThisFix)
       ) {
         return null;
@@ -1680,6 +1713,31 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           )}
 
           {/*
+            Who may approve or dismiss the fix, in place of the buttons the
+            reader may not press: a mark, the sentence, and what would let
+            them, quiet, like the note over Approve & Run.
+          */}
+          {whoMayAct ? (
+            <div
+              data-testid="remediation-fix-who-may-act"
+              className="flex items-start gap-1.5 text-xs leading-5 text-gray-500"
+            >
+              <Icon
+                icon={IconProp.Lock}
+                className="mt-0.5 h-3.5 w-3.5 flex-none text-gray-400"
+              />
+              <span
+                data-testid="remediation-fix-who-may-act-words"
+                className="min-w-0"
+              >
+                {whoMayAct}
+              </span>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {/*
             What approving does, right over Approve & Run: it runs exactly
             what the opened plan step shows, under the reader's name.
           */}
@@ -1828,6 +1886,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     investigationStage: props.investigationStage,
     codeFix,
     isOffByChoice: foldState.kind === "off",
+    mayApprove: mayApproveFixes,
   });
   const updateGate: PermissionGateResult = PermissionGate.check(
     incidentIdString ? new Incident() : new Alert(),

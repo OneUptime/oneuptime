@@ -1,6 +1,14 @@
-import { Translator } from "../../Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * A segment's hover when its caller gives none: its label and how many,
+ * one sentence a language can word ("Dismissed : 2" in French).
+ */
+export const STACKED_PROGRESS_BAR_SEGMENT_TOOLTIP: string = translationKey(
+  "{{label}}: {{count}}",
+);
 
 export interface StackedProgressBarSegment {
   value: number;
@@ -48,7 +56,16 @@ const StackedProgressBar: FunctionComponent<ComponentProps> = (
                 key={index}
                 className={`${segment.color} ${heightClass} transition-all duration-300`}
                 style={{ width: `${widthPercent}%` }}
-                title={segment.tooltip || `${segment.label}: ${segment.value}`}
+                title={
+                  segment.tooltip ||
+                  translator.translateTemplate(
+                    STACKED_PROGRESS_BAR_SEGMENT_TOOLTIP,
+                    {
+                      label: segment.label,
+                      count: translator.formatNumber(segment.value),
+                    },
+                  )
+                }
               />
             );
           },
@@ -66,10 +83,17 @@ const StackedProgressBar: FunctionComponent<ComponentProps> = (
                   <span
                     className={`inline-block w-2.5 h-2.5 rounded-full ${segment.color}`}
                   />
+                  {/*
+                    How many, in the reader's digits: a Persian page read
+                    "(6)" beside its own words, where it writes "(۶)".
+                  */}
                   <span className="text-sm text-gray-600">
                     {segment.label}{" "}
-                    <span className="font-medium text-gray-800">
-                      ({segment.value})
+                    <span
+                      className="font-medium text-gray-800"
+                      data-testid="stacked-progress-bar-count"
+                    >
+                      ({translator.formatNumber(segment.value)})
                     </span>
                   </span>
                 </div>
