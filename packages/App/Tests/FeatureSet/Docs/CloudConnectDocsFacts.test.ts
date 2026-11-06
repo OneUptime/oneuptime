@@ -43,6 +43,7 @@ import {
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
 import { GCP_HOST_TITLES } from "../../../FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
+import { buildCloudAiAgentKey } from "Common/Types/CloudConnection/CloudAiAgentKey";
 import {
   AWS_GET_METRIC_DATA_USD_PER_THOUSAND_METRICS,
   AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
@@ -1053,7 +1054,10 @@ describe("Let AI fix problems", () => {
     const options: CloudAiAgentSetupOptions = {
       provider: CloudProvider.GCP,
       oneuptimeUrl: "https://oneuptime.com",
-      ingestionKey: "ingestion-key",
+      agentKey: buildCloudAiAgentKey({
+        cloudAccountId: "11111111-1111-1111-1111-111111111111",
+        secret: "a".repeat(64),
+      }),
       cloudAccountId: "11111111-1111-1111-1111-111111111111",
       accountId: "my-project",
       fixesMode: "RequireApproval",

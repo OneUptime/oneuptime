@@ -202,8 +202,17 @@ function describeRefusal(
     return `OneUptime refused the registration: ${serverMessage} Check ${describeIdentityVariable(context)}: it must name a ${describeResource(context)} of the project this key belongs to.`;
   }
 
-  if (reason === "agent_cap_reached" || reason === "agent_key_required") {
+  if (reason === "agent_cap_reached") {
     return `OneUptime refused the registration: ${serverMessage}`;
+  }
+
+  /*
+   * A Cloud AI agent set up before its account's own key, once the account
+   * has one: the ingestion key no longer connects it. The server says the
+   * way out (run the setup command again, which carries the key).
+   */
+  if (reason === "agent_key_required") {
+    return `OneUptime refused the project's telemetry ingestion key for this Cloud AI agent: ${serverMessage}`;
   }
 
   /*

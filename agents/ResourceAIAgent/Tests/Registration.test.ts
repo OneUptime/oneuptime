@@ -407,7 +407,7 @@ describe("the retry schedule", () => {
     assert.strictEqual(refused.delayMs, OPERATOR_ACTION_RETRY_MS);
     assert.strictEqual(
       refused.message,
-      `OneUptime refused the registration: ${message}`,
+      `OneUptime refused the project's telemetry ingestion key for this Cloud AI agent: ${message}`,
     );
   });
 
