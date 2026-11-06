@@ -7,6 +7,7 @@ import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
@@ -73,6 +74,7 @@ const METHOD_RULE_TYPES: Array<ComplianceRuleType> = [
   ComplianceRuleType.HasNotificationTelegramMethod,
   ComplianceRuleType.HasNotificationSlackMethod,
   ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+  ComplianceRuleType.HasNotificationMattermostMethod,
   ComplianceRuleType.HasNotificationWebhookMethod,
 ];
 
@@ -88,7 +90,7 @@ interface ChannelLabelExpectation {
   label: string;
 }
 
-// A channel a member owns a method on - nine of the ten.
+// A channel a member owns a method on - ten of the eleven.
 interface MethodChannelExpectation extends ChannelLabelExpectation {
   methodNoun: string;
   hasVerification: boolean;
@@ -171,6 +173,15 @@ const METHOD_CHANNELS: Array<MethodChannelExpectation> = [
     methodRuleType: ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
     methodModel: UserMicrosoftTeams,
     methodSentence: "Every member has a verified Microsoft Teams account.",
+  },
+  {
+    channel: ComplianceNotificationChannel.Mattermost,
+    label: "Mattermost",
+    methodNoun: "Mattermost account",
+    hasVerification: true,
+    methodRuleType: ComplianceRuleType.HasNotificationMattermostMethod,
+    methodModel: UserMattermost,
+    methodSentence: "Every member has a verified Mattermost account.",
   },
   {
     channel: ComplianceNotificationChannel.Webhook,
@@ -273,7 +284,7 @@ const NOT_RULE_TYPES: Array<[string, unknown]> = [
 ];
 
 describe("ComplianceRuleType and ComplianceNotificationChannel - stored values", () => {
-  test("every rule type is stored as its own name, and the list is exactly these thirteen", () => {
+  test("every rule type is stored as its own name, and the list is exactly these fourteen", () => {
     expect(Object.entries(ComplianceRuleType)).toEqual([
       ["HasNotificationEmailMethod", "HasNotificationEmailMethod"],
       ["HasNotificationSMSMethod", "HasNotificationSMSMethod"],
@@ -286,6 +297,7 @@ describe("ComplianceRuleType and ComplianceNotificationChannel - stored values",
         "HasNotificationMicrosoftTeamsMethod",
         "HasNotificationMicrosoftTeamsMethod",
       ],
+      ["HasNotificationMattermostMethod", "HasNotificationMattermostMethod"],
       ["HasNotificationWebhookMethod", "HasNotificationWebhookMethod"],
       ["HasIncidentOnCallRules", "HasIncidentOnCallRules"],
       ["HasAlertOnCallRules", "HasAlertOnCallRules"],
@@ -304,6 +316,7 @@ describe("ComplianceRuleType and ComplianceNotificationChannel - stored values",
       ["Telegram", "Telegram"],
       ["Slack", "Slack"],
       ["MicrosoftTeams", "MicrosoftTeams"],
+      ["Mattermost", "Mattermost"],
       ["Webhook", "Webhook"],
       ["CustomChannel", "CustomChannel"],
     ]);
@@ -823,7 +836,7 @@ const NO_CHANNELS: Array<Array<string> | null | undefined> = [
   [],
 ];
 
-// Every subset of the ten channels, each in catalog order.
+// Every subset of the eleven channels, each in catalog order.
 const everyChannelSubset: () => Array<
   Array<ComplianceNotificationChannel>
 > = (): Array<Array<ComplianceNotificationChannel>> => {
@@ -948,11 +961,11 @@ describe("ComplianceRule.normaliseChannels", () => {
     }
   });
 
-  test("every one of the 1024 subsets of the channels comes back as itself, in catalog order", () => {
+  test("every one of the 2048 subsets of the channels comes back as itself, in catalog order", () => {
     const subsets: Array<Array<ComplianceNotificationChannel>> =
       everyChannelSubset();
 
-    expect(subsets).toHaveLength(1024);
+    expect(subsets).toHaveLength(2048);
 
     for (const subset of subsets) {
       expect(ComplianceRule.normaliseChannels([...subset].reverse())).toEqual(
@@ -1108,7 +1121,7 @@ describe("ComplianceRule.getTitle", () => {
       [
         ComplianceRuleType.HasIncidentOnCallRules,
         ALL_CHANNELS,
-        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook and Custom channel for incidents",
+        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook and Custom channel for incidents",
       ],
     ],
   )(
@@ -1247,6 +1260,7 @@ describe("ComplianceRule.getTitle", () => {
       "Verified Telegram",
       "Verified Slack",
       "Verified Microsoft Teams",
+      "Verified Mattermost",
       "Webhook configured",
     ]);
   });
@@ -1472,7 +1486,7 @@ describe("ComplianceRule.describe", () => {
       ComplianceRuleType.HasAlertEpisodeOnCallRules,
       ALL_CHANNELS,
       ["P1"],
-      "Every member has alert episode on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams, by Webhook and by Custom channel for P1.",
+      "Every member has alert episode on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams, by Mattermost, by Webhook and by Custom channel for P1.",
     ],
     [
       ComplianceRuleType.HasIncidentOnCallRules,

@@ -164,6 +164,7 @@ describe("GET /sign-in-methods", () => {
       isSsoRequired: true,
       ssoProviders: [READ_PROVIDER],
       hasProjectSsoProviders: true,
+      isMagicLinkLoginEnabled: false,
     });
 
     const result: CallResult = await call("/sign-in-methods");
@@ -173,7 +174,33 @@ describe("GET /sign-in-methods", () => {
       isSsoRequired: true,
       ssoProviders: [DRAWN_PROVIDER],
       hasProjectSsoProviders: true,
+      isMagicLinkLoginEnabled: false,
     });
+  });
+
+  // Common/Types/Accounts/MagicLink: the page offers "Email me a sign-in link".
+  it("says whether the sign-in page offers sign-in links", async () => {
+    getSignInMethods.mockResolvedValue({
+      isSsoRequired: false,
+      ssoProviders: [],
+      hasProjectSsoProviders: false,
+      isMagicLinkLoginEnabled: true,
+    });
+
+    await call("/sign-in-methods");
+
+    expect(sentBody()).toEqual({
+      isSsoRequired: false,
+      ssoProviders: [],
+      hasProjectSsoProviders: false,
+      isMagicLinkLoginEnabled: true,
+    });
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        sentBody(),
+        "isMagicLinkLoginEnabled",
+      ),
+    ).toBe(true);
   });
 
   it("is never kept by the browser or a proxy", async () => {
@@ -181,6 +208,7 @@ describe("GET /sign-in-methods", () => {
       isSsoRequired: false,
       ssoProviders: [],
       hasProjectSsoProviders: false,
+      isMagicLinkLoginEnabled: true,
     });
 
     const result: CallResult = await call("/sign-in-methods");

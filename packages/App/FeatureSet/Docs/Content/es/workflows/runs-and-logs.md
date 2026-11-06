@@ -18,6 +18,8 @@ Cada vez que se ejecuta un flujo de trabajo, OneUptime guarda un registro de lo 
 
 Iniciar una ejecución desde el **Constructor** abre la misma vista **Ejecución del flujo de trabajo**, que ya sigue la ejecución, así que la ves ocurrir en lugar de buscarla después.
 
+Para volver a probar una ejecución con los mismos valores, pulsa Ejecutar de nuevo en su vista o en el menú ⋯ de su fila. Una nueva ejecución comienza desde el disparador con lo que recibió esa ejecución, así que no hace falta volver a enviar la carga de un webhook, y ejecuta el flujo de trabajo tal como está ahora, así que puedes cambiar un paso y probarlo enseguida. Sus pasos se ejecutan de verdad y, mientras el flujo de trabajo esté desactivado, es una ejecución de prueba. El panel de ejecución del flujo de trabajo en el Builder ofrece los valores de la última ejecución de la misma manera. La prueba de un solo paso se vuelve a ejecutar desde el paso. Una ejecución que comenzó con más de 1 MB de valores no se puede volver a ejecutar, ni tampoco una ejecución anterior a que OneUptime guardara estos valores. Están cifrados y nadie puede leerlos a través de la API.
+
 ## Estados de una ejecución
 
 ```mermaid title="Los estados por los que pasa una ejecución"
@@ -126,7 +128,7 @@ Un bloque que no se ejecuta suele ser un problema de conexión. Abre el **Constr
 Abre la ejecución y mira el paso. Una referencia que no se resolvió aparece señalada en el propio paso como advertencia, y su ajuste en el bloque **Recibido** está marcado como **No se resolvió**.
 
 - Si ves el texto literal `{{local.components.…}}`, la referencia no se resolvió. Normalmente es una errata en el ID del componente o en el ID del valor de retorno: recuerda que es el **Identificador** del bloque, no el nombre que se muestra en él. Comprueba también cómo está escrito `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` se envía como texto literal y la ejecución sigue indicando **Ejecutado**. Si la ejecución era una prueba de **Ejecutar solo este paso**, el bloque anterior no se ejecutó en absoluto: ejecuta el flujo de trabajo completo en su lugar.
-- Si ves **Texto vacío**, el bloque anterior se ejecutó pero no produjo ese campo.
+- Si ves **Texto vacío**, o un hueco en un mensaje, el bloque anterior se ejecutó pero no tiene nada en ese campo. O el registro no tiene ahí ningún valor, lo que la pestaña **Registro completo** anota en una línea aparte, o el bloque no transmite el campo, de lo que avisa el paso.
 
 La misma advertencia está en la pestaña **Registro completo**, en una línea que empieza por `Warning:`.
 :::

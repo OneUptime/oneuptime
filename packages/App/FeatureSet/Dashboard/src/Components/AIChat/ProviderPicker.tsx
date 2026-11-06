@@ -96,7 +96,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
     };
     /*
      * Escape closes the menu and gives the focus back to its button - and
-     * only the menu: the key is marked as spent, so the dialog the picker
+     * only the menu: the key is marked as spent, so the panel the picker
      * sits in (Ask AI) does not close with it.
      */
     const onKeyDown: (event: KeyboardEvent) => void = (
@@ -139,7 +139,11 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
     : null;
 
   return (
-    <div className="relative" ref={containerRef}>
+    /*
+     * Not `relative`: the menu is placed against the composer's row of
+     * controls (ChatInput), which has room for all of it.
+     */
+    <div ref={containerRef}>
       <button
         ref={buttonRef}
         type="button"
@@ -185,7 +189,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
           role="menu"
           aria-label={translator.translateText("AI provider")}
           data-menu-side={menuSide}
-          className={`absolute left-0 z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
+          className={`absolute left-2 z-50 w-72 max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
             menuSide === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5"
           }`}
         >

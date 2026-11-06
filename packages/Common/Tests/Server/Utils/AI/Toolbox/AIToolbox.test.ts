@@ -253,6 +253,7 @@ describe("AIToolbox contract", () => {
         "create_alert_note",
         "create_incident",
         "create_incident_note",
+        "create_workflow",
         "open_code_pull_request",
         "page_on_call_policy",
         "post_incident_status_update",
@@ -261,6 +262,7 @@ describe("AIToolbox contract", () => {
         "run_runbook",
         "run_security_playbook",
         "start_investigation",
+        "update_workflow",
       ].sort(),
     );
   });

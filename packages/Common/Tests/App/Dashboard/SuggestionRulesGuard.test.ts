@@ -215,7 +215,7 @@ describe("the trace performance fix's rule", () => {
 const ASK_AI_ENTRY_POINTS: ReadonlyArray<string> = [
   "App/FeatureSet/Dashboard/src/Components/Header/AskAI.tsx",
   "App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette.tsx",
-  "App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog.tsx",
+  "App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel.tsx",
   "App/FeatureSet/Dashboard/src/Components/AIChat/AskAiEvents.ts",
   "App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot.tsx",
   "App/FeatureSet/Dashboard/src/Utils/EventName.ts",

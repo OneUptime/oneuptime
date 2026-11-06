@@ -13,6 +13,98 @@ name: OpenStack E2E
 # Path-filtered, so it must not be a required check.
 on:
   workflow_dispatch:
+    inputs:
+      capacity_only:
+        description: Only record what Placement says of an estate of several hosts, which skips everything else
+        type: boolean
+        default: false
+      usage_only:
+        description: Only record a test period across a resize and a deletion, and what's been left to waste, on one release, which skips everything else
+        type: boolean
+        default: false
+      checks_only:
+        description: Only run the lifecycle and API checks against real clouds, breaking them under it, which skips everything else
+        type: boolean
+        default: false
+      logs_only:
+        description: Only record service logs, notifications and audit events, which skips what takes the rest of the time
+        type: boolean
+        default: false
+      control_plane_only:
+        description: Only record what RabbitMQ, Galera, Memcached, HAProxy and OVN say when they break, which takes no DevStack
+        type: boolean
+        default: false
+      traces_only:
+        description: With logs_only too, only record what OSProfiler's driver sends, on the entries that do
+        type: boolean
+        default: false
+      traces_release:
+        description: With traces_only, only this entry, by name (hibiscus-ovn)
+        type: string
+        default: ''
+      whole_path_parts:
+        description: With whole_path, only these of whole-path.py's parts, by name, and what each needs (oneuptime agent traces native)
+        type: string
+        default: ''
+      scenes_only:
+        description: Only build the estate and run the drills, on the two entries read at depth, which is what a new scene needs and about a third of the time
+        type: boolean
+        default: false
+      quotas_only:
+        description: With logs_only too, only record what each project's quotas say, on the entries that do
+        type: boolean
+        default: false
+      instance_metrics_only:
+        description: Only run the long real VM metrics drill, on the entries that do, which takes over an hour of recording and nothing else
+        type: boolean
+        default: false
+      kolla_aio:
+        description: Only deploy an all-in-one Kolla-Ansible and follow the guide for it, command by command
+        type: boolean
+        default: false
+      kolla_neutron:
+        description: With kolla_aio, the network backend, which is openvswitch unless you say ovn
+        type: choice
+        options:
+          - openvswitch
+          - ovn
+        default: openvswitch
+      osa_aio:
+        description: Only deploy an all-in-one OpenStack-Ansible and follow the guide for it, command by command
+        type: boolean
+        default: false
+      live_oneuptime:
+        description: Only start a live OneUptime, its app built from this branch, and send it what real deployments sent
+        type: boolean
+        default: false
+      whole_path:
+        description: Only the whole path, on one runner, about three hours - a real DevStack, the agent and a project's probe reading it, into a OneUptime built from this branch, nova-compute stopped under them, and a signed boot
+        type: boolean
+        default: false
+      status_pages_live:
+        description: Only status pages and project notices, on one runner, about two hours - a real DevStack and a OneUptime built from this branch, a page made in one step, a notice told about a stopped host, and maintenance keeping it quiet
+        type: boolean
+        default: false
+      agent_install_only:
+        description: Only install the agent the way its docs say, with and without Docker, on one DevStack
+        type: boolean
+        default: false
+      ai_agent_only:
+        description: Only run the OpenStack AI agent's real code against one DevStack, healthy and with nova-compute stopped, and keep what each command printed
+        type: boolean
+        default: false
+      probe_tls_only:
+        description: Only run the probe's real collector against one DevStack behind tls-proxy, and break it
+        type: boolean
+        default: false
+      services_only:
+        description: Only deploy the services a cloud may not run (Octavia, Ironic, Heat, Magnum, Manila, Designate, Barbican, Swift, Trove, Gnocchi), one group per runner, drive each into its states, and record them
+        type: boolean
+        default: false
+      services_filter:
+        description: With services_only, run only these entries, comma separated, such as services-octavia,services-trove
+        type: string
+        default: ""
   schedule:
     - cron: "23 3 * * 1"
   pull_request:
@@ -24,15 +116,1393 @@ on:
 permissions:
   contents: read
 
+# A pull request's run is superseded by its next push, and stopped when the pull request closes:
+# cancel-closed-pr-runs.yml joins this group, so it must stay "<name>-<PR number>", or a merged
+# pull request's run goes on holding six runners for hours. A run someone dispatched, or the
+# schedule started, records something of its own, so it has a group of its own and only a person
+# stops it.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  record:
-    name: ${{ matrix.name }}
+  # The probe's real collector against a real cloud. A probe only speaks HTTPS and DevStack serves
+  # plain HTTP by default, so this one turns tls-proxy on. Every other test of the probe replays
+  # recordings a curl made: only this shows a real cloud takes the requests the probe makes.
+  probe-tls:
+    name: a probe against a cloud behind TLS
+    if: ${{ inputs.probe_tls_only || github.event_name == 'schedule' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
+      # hosted runner's can be 65, which stops stack.sh with "string too long".
+      - name: Give the runner a name a certificate can hold
+        run: |
+          sudo hostnamectl set-hostname devstack
+          echo "127.0.1.1 devstack" | sudo tee -a /etc/hosts
+          hostname -f
+
+      - name: Deploy DevStack with every API behind TLS
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          enabled_services: tls-proxy
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Probe dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Probe
+
+      - name: Run the probe against it, and break it
+        run: bash Tests/Ops/openstack-e2e/probe-live.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Upload what it found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-probe-tls
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-probe-tls
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # A live OneUptime, started as the E2E jobs start it with its app built from this branch, sent
+  # what real deployments sent: the replay tests hold the same things over a database in memory.
+  live-oneuptime:
+    name: a live OneUptime, sent what real deployments sent
+    if: ${{ inputs.live_oneuptime }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    # Tells prerun's configure.sh it is in CI, where it must not `git pull`, which fetches every
+    # branch and tag and can move this checkout past the commit being tested.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/free-disk-space
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: ./.github/actions/setup-gomplate
+      - name: Preinstall
+        run: npm run prerun
+      - name: Start OneUptime
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images" docker compose -f docker-compose.yml pull
+          # The test images are as new as the last test-release run to finish, and master moving
+          # cancels those, so the app's can be a day older than what this is here to test. The app
+          # is what answers everything this reads, so it comes from this checkout: about 12 minutes.
+          docker build --file ./packages/App/Dockerfile --target community \
+            --build-arg "GIT_SHA=$GITHUB_SHA" \
+            --build-arg "APP_VERSION=$(tr -d ' \n' <VERSION)-test" \
+            --label com.oneuptime.edition=community \
+            --tag oneuptime/app:test .
+          docker compose -f docker-compose.yml up --remove-orphans -d
+          npm run status-check
+          docker image inspect "oneuptime/app:test" --format 'Built {{.Created}}, {{json .Config.Labels}}' || true
+          bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Send it what was recorded, and read back what it did
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          ONEUPTIME_URL: http://localhost
+          # What the agent sent from the same real Kolla-Ansible as the webhooks.
+          OTLP_FIXTURE: packages/Common/Tests/Fixtures/OpenStack/kolla-aio/otlp/full-view.json
+        run: python3 -I Tests/Ops/openstack-e2e/live-oneuptime.py
+      - name: Keep what the containers said
+        if: always()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/recording/containers"
+          export $(grep -v '^#' config.env | xargs)
+          docker compose -f docker-compose.yml ps -a >"${RUNNER_TEMP}/recording/containers/ps.txt" 2>&1 || true
+          docker compose -f docker-compose.yml logs --no-color --tail 3000 app >"${RUNNER_TEMP}/recording/containers/app.log" 2>&1 || true
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-live-oneuptime
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # The whole path, on one runner: nothing recorded and nothing stood in for. What real data does on
+  # its way from a cloud to a running OneUptime, which every other job holds a part of: whole-path.py
+  # says what each part checks, and every check's finding is in the artifact. Only by hand: it takes
+  # about three hours and it stops real services.
+  whole-path:
+    name: the whole path, from a real cloud to a running OneUptime
+    if: ${{ inputs.whole_path }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    # Tells prerun's configure.sh it is in CI, where it must not `git pull`.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/free-disk-space
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: ./.github/actions/setup-gomplate
+      - name: Preinstall
+        run: npm run prerun
+
+      # Before DevStack, which leaves a build less memory. The test images are as new as the last
+      # test-release run to finish, and the app and the probe are what is being tested.
+      - name: Build the app and the probe from this branch, and pull the rest of the stack
+        timeout-minutes: 60
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          source ./Scripts/GHA/retry.sh
+          version="$(tr -d ' \n' <VERSION)-test"
+          docker build --file ./packages/App/Dockerfile --target community \
+            --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "APP_VERSION=$version" \
+            --label com.oneuptime.edition=community --tag oneuptime/app:test .
+          docker build --file ./packages/Probe/Dockerfile \
+            --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "APP_VERSION=$version" \
+            --build-arg IS_ENTERPRISE_EDITION=false \
+            --label com.oneuptime.edition=community --tag oneuptime/probe:test .
+          services="$(docker compose -f docker-compose.yml config --services | grep -vxE 'app|probe-1' | tr '\n' ' ')"
+          retry_registry_read "Pulling the rest of the stack's images" docker compose -f docker-compose.yml pull $services
+          # The browser that looks at the real pages, at the Playwright packages/E2E locks.
+          retry_registry_read "Pulling the browser's image" docker pull mcr.microsoft.com/playwright:v1.63.0-noble
+          df -h /
+
+      # esbuild, for what prints a real alert template's monitor steps.
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      # @playwright/test, for what looks at the real pages. --ignore-scripts because its preinstall
+      # downloads browsers, and they are in the image.
+      - name: Install E2E dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          args: --ignore-scripts
+
+      # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
+      # hosted runner's can be 65, which stops stack.sh with "string too long". Before the action,
+      # because the RabbitMQ it installs names its node after this.
+      - name: Give the runner a name a certificate can hold
+        run: |
+          sudo hostnamectl set-hostname devstack
+          printf '\n127.0.1.1 devstack\n' | sudo tee -a /etc/hosts
+          hostname -f
+
+      # The record job's cloud, with every API behind TLS, because a probe never sends a credential
+      # over plain HTTP.
+      - name: Deploy DevStack with every API behind TLS
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          enabled_services: tls-proxy
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker compose version >/dev/null 2>&1 || sudo apt-get install -y docker-compose-v2
+          docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep '^oneuptime/'
+          free -m
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      # Beside DevStack, whose Apache holds 80 and 443: config.env's last assignment of each is the
+      # one read. Without the stack's global probe, because the probe tested is a project's own, as
+      # a person would run one, and the memory is the cloud's.
+      - name: Start OneUptime
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          # The first echo because the merge that writes config.env leaves no newline at its end,
+          # which would put the first of these on the end of its last setting.
+          # HOST with its port, because the dashboard in a browser builds its API's address from it.
+          {
+            echo
+            echo "HOST=localhost:8880"
+            echo "ONEUPTIME_HTTP_PORT=8880"
+            echo "STATUS_PAGE_HTTPS_PORT=8843"
+          } >>config.env
+          export $(grep -v '^#' config.env | xargs)
+          test "$ONEUPTIME_HTTP_PORT" = 8880
+          test "$STATUS_PAGE_HTTPS_PORT" = 8843
+          export APP_TAG=test
+          services="$(docker compose -f docker-compose.yml config --services | grep -vx 'probe-1' | tr '\n' ' ')"
+          docker compose -f docker-compose.yml up --remove-orphans -d $services
+          npm run status-check
+          # An agent runs on a machine of its own. Here it shares this one with OneUptime, and Docker
+          # can keep one bridge network from another, even at a port the other publishes.
+          sudo iptables -I DOCKER-USER -j ACCEPT || true
+          docker image inspect "oneuptime/app:test" "oneuptime/probe:test" \
+            --format '{{index .RepoTags 0}} built {{.Created}}, {{index .Config.Labels "org.opencontainers.image.revision"}}' || true
+
+      - name: Walk the whole path
+        timeout-minutes: 150
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          ONEUPTIME_URL: http://localhost:8880
+          OS_CLOUD: devstack-admin
+          PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.63.0-noble
+          WHOLE_PATH_PARTS: ${{ inputs.whole_path_parts }}
+        run: python3 -I Tests/Ops/openstack-e2e/whole-path.py
+
+      - name: Keep what the containers said
+        if: always()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/recording/containers"
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          docker compose -f docker-compose.yml ps -a >"${RUNNER_TEMP}/recording/containers/ps.txt" 2>&1 || true
+          docker compose -f docker-compose.yml logs --no-color --tail 5000 app >"${RUNNER_TEMP}/recording/containers/app.log" 2>&1 || true
+          for name in oneuptime-probe oneuptime-openstack-agent oneuptime-openstack-exporter oneuptime-openstack-traces; do
+            docker logs --tail 3000 "$name" >"${RUNNER_TEMP}/recording/containers/$name.log" 2>&1 || true
+          done
+          sudo journalctl -u devstack@n-cpu --no-pager -n 300 >"${RUNNER_TEMP}/recording/containers/nova-compute.txt" 2>&1 || true
+
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what each check found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-whole-path
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-whole-path
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # What #5750 asks of a real cloud in a running OneUptime, which whole-path.py's first parts set up:
+  # status-pages-live.py says what it checks, and every check's finding is in the artifact. Only by hand.
+  status-pages-live:
+    name: status pages and project notices, on a real cloud and a running OneUptime
+    if: ${{ inputs.status_pages_live }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    # Tells prerun's configure.sh it is in CI, where it must not `git pull`.
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/free-disk-space
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: ./.github/actions/setup-gomplate
+      - name: Preinstall
+        run: npm run prerun
+
+      # Before DevStack, which leaves a build less memory. The test images are as new as the last
+      # test-release run to finish, and the app and the probe are what is being tested.
+      - name: Build the app and the probe from this branch, and pull the rest of the stack
+        timeout-minutes: 60
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          source ./Scripts/GHA/retry.sh
+          version="$(tr -d ' \n' <VERSION)-test"
+          docker build --file ./packages/App/Dockerfile --target community \
+            --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "APP_VERSION=$version" \
+            --label com.oneuptime.edition=community --tag oneuptime/app:test .
+          docker build --file ./packages/Probe/Dockerfile \
+            --build-arg "GIT_SHA=$GITHUB_SHA" --build-arg "APP_VERSION=$version" \
+            --build-arg IS_ENTERPRISE_EDITION=false \
+            --label com.oneuptime.edition=community --tag oneuptime/probe:test .
+          services="$(docker compose -f docker-compose.yml config --services | grep -vxE 'app|probe-1' | tr '\n' ' ')"
+          retry_registry_read "Pulling the rest of the stack's images" docker compose -f docker-compose.yml pull $services
+          # The browser that looks at the real pages, at the Playwright packages/E2E locks.
+          retry_registry_read "Pulling the browser's image" docker pull mcr.microsoft.com/playwright:v1.63.0-noble
+          df -h /
+
+      # esbuild, for what prints a real alert template's monitor steps.
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      # @playwright/test, for what looks at the real pages. --ignore-scripts because its preinstall
+      # downloads browsers, and they are in the image.
+      - name: Install E2E dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          args: --ignore-scripts
+
+      # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
+      # hosted runner's can be 65, which stops stack.sh with "string too long". Before the action,
+      # because the RabbitMQ it installs names its node after this.
+      - name: Give the runner a name a certificate can hold
+        run: |
+          sudo hostnamectl set-hostname devstack
+          printf '\n127.0.1.1 devstack\n' | sudo tee -a /etc/hosts
+          hostname -f
+
+      # The record job's cloud, with every API behind TLS, because a probe never sends a credential
+      # over plain HTTP.
+      - name: Deploy DevStack with every API behind TLS
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          enabled_services: tls-proxy
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker compose version >/dev/null 2>&1 || sudo apt-get install -y docker-compose-v2
+          docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep '^oneuptime/'
+          free -m
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      # Beside DevStack, whose Apache holds 80 and 443: config.env's last assignment of each is the
+      # one read. Without the stack's global probe, because the probe tested is a project's own, as
+      # a person would run one, and the memory is the cloud's.
+      - name: Start OneUptime
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          # The first echo because the merge that writes config.env leaves no newline at its end,
+          # which would put the first of these on the end of its last setting.
+          # HOST with its port, because the dashboard in a browser builds its API's address from it.
+          {
+            echo
+            echo "HOST=localhost:8880"
+            echo "ONEUPTIME_HTTP_PORT=8880"
+            echo "STATUS_PAGE_HTTPS_PORT=8843"
+            # The webhook this tells is a server on this runner.
+            echo "ALLOW_PRIVATE_NETWORK_WEBHOOKS=true"
+          } >>config.env
+          export $(grep -v '^#' config.env | xargs)
+          test "$ONEUPTIME_HTTP_PORT" = 8880
+          test "$STATUS_PAGE_HTTPS_PORT" = 8843
+          export APP_TAG=test
+          services="$(docker compose -f docker-compose.yml config --services | grep -vx 'probe-1' | tr '\n' ' ')"
+          docker compose -f docker-compose.yml up --remove-orphans -d $services
+          npm run status-check
+          # An agent runs on a machine of its own. Here it shares this one with OneUptime, and Docker
+          # can keep one bridge network from another, even at a port the other publishes.
+          sudo iptables -I DOCKER-USER -j ACCEPT || true
+          docker image inspect "oneuptime/app:test" "oneuptime/probe:test" \
+            --format '{{index .RepoTags 0}} built {{.Created}}, {{index .Config.Labels "org.opencontainers.image.revision"}}' || true
+
+      - name: Make a status page, tell a project, and plan some work
+        timeout-minutes: 170
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          ONEUPTIME_URL: http://localhost:8880
+          OS_CLOUD: devstack-admin
+          PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.63.0-noble
+        run: python3 -I Tests/Ops/openstack-e2e/status-pages-live.py
+
+      - name: Keep what the containers said
+        if: always()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/recording/containers"
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=test
+          docker compose -f docker-compose.yml ps -a >"${RUNNER_TEMP}/recording/containers/ps.txt" 2>&1 || true
+          docker compose -f docker-compose.yml logs --no-color --tail 5000 app >"${RUNNER_TEMP}/recording/containers/app.log" 2>&1 || true
+          for name in oneuptime-probe oneuptime-openstack-agent oneuptime-openstack-exporter oneuptime-openstack-traces; do
+            docker logs --tail 3000 "$name" >"${RUNNER_TEMP}/recording/containers/$name.log" 2>&1 || true
+          done
+          sudo journalctl -u devstack@n-cpu --no-pager -n 300 >"${RUNNER_TEMP}/recording/containers/nova-compute.txt" 2>&1 || true
+
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what each check found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-status-pages-live
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-status-pages-live
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Every agent's collector config through the real collector, which the "Ops Config Test"
+  # workflow also does, but never gets to when master moves faster than it runs.
+  validate-collector-configs:
+    name: every collector config, in the real collector
+    if: ${{ inputs.kolla_aio || inputs.osa_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - name: Install the Ops tests' dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
+          args: --no-audit --no-fund
+      - run: bash Tests/Ops/validate-collector-configs.sh
+
+  # A real deployment by Kolla-Ansible, as its quick start says, and its guide followed on
+  # it with the guide's exact commands. By hand only: it takes hours, and fills a runner.
+  # Each part of the guide is a step of its own, so that one failing costs only itself.
+  follow-kolla-guide:
+    name: Kolla-Ansible all-in-one, following its guide
+    if: ${{ inputs.kolla_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/free-disk-space
+        with:
+          min-free-gb: "60"
+
+      - name: Say where the recording goes, to every step after this
+        run: echo "OUTPUT_DIR=${RUNNER_TEMP}/recording" >>"$GITHUB_ENV"
+
+      - name: Deploy Kolla-Ansible, as its quick start says
+        id: deploy
+        timeout-minutes: 150
+        env:
+          KOLLA_NEUTRON: ${{ inputs.kolla_neutron }}
+        run: bash Tests/Ops/openstack-e2e/kolla-aio.sh deploy
+
+      - name: Build the estate
+        id: estate
+        if: ${{ steps.deploy.outcome == 'success' }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/kolla-aio.sh estate
+
+      - name: Start a OneUptime for the guide to name
+        id: prepare
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh prepare
+
+      - name: Record what the cloud and each exporter answer
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh record
+
+      - name: "The guide: forward what is already firing"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh alerts
+
+      - name: "The guide: the agent, on Kolla's own exporter"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh kolla-exporter
+
+      - name: "The guide: the agent, on its own exporter and the first credential"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh full-view
+
+      - name: "The guide: the agent, on an exporter you already run"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh own-exporter
+
+      - name: "The guide: the agent, on an exporter you already run, at Kolla's version"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh own-exporter-170
+
+      - name: "The agent as systemd services, on a Kolla node"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh without-docker
+
+      - name: "The guide: service logs"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 20
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh logs
+
+      - name: "A firing alert, from Kolla's own Alertmanager"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh drill
+
+      # Last, because it reconfigures the services the others read.
+      - name: "The guide: the second credential, and its policy overrides"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 40
+        run: bash Tests/Ops/openstack-e2e/kolla-guide.sh infrastructure-only
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${OUTPUT_DIR}"
+
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-kolla-aio-${{ inputs.kolla_neutron }}
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # The same for OpenStack-Ansible. Its quick start asks for twice the vCPUs a runner has, so it
+  # has longer, and a step that fails says how far it got.
+  follow-osa-guide:
+    name: OpenStack-Ansible all-in-one, following its guide
+    if: ${{ inputs.osa_aio }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/free-disk-space
+        with:
+          min-free-gb: "80"
+
+      - name: Say where the recording goes, to every step after this
+        run: echo "OUTPUT_DIR=${RUNNER_TEMP}/recording" >>"$GITHUB_ENV"
+
+      - name: Deploy OpenStack-Ansible, as its quick start says
+        id: deploy
+        timeout-minutes: 270
+        run: bash Tests/Ops/openstack-e2e/osa-aio.sh deploy
+
+      - name: Build the estate
+        id: estate
+        if: ${{ steps.deploy.outcome == 'success' }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/osa-aio.sh estate
+
+      - name: Start a OneUptime for the guide to name
+        id: prepare
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh prepare
+
+      - name: Record what the cloud and the agent's exporter answer
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 15
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh record
+
+      - name: "The guide: the agent, on the first credential"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh full-view
+
+      - name: "The guide: what the cloud stands on"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 25
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh stands-on
+
+      - name: "The guide: service logs, from the journal"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 15
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh logs
+
+      - name: "The guide: the second credential, and its policy overrides"
+        if: ${{ steps.prepare.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash Tests/Ops/openstack-e2e/osa-guide.sh infrastructure-only
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${OUTPUT_DIR}"
+
+      - name: Upload the recording
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-osa-aio
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # Real clusters of what a cloud stands on, in containers, with the exporters
+  # Kolla-Ansible pins: a DevStack has one of each, so it cannot lose a node or quorum.
+  record-control-plane:
+    name: control plane clusters
+    if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.status_pages_live && !inputs.instance_metrics_only && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only && !inputs.scenes_only }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Break each one, and record what it says
+        run: bash Tests/Ops/openstack-e2e/control-plane-clusters.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-control-plane
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # The agent the way its docs say, on the newest release. A job of its own, so that it holds no
+  # recording up and costs only this one DevStack: nothing here needs Ceilometer. By hand when asked
+  # for by name, because a run dispatched for its recordings has no use for it, and otherwise on
+  # the weekly run and on a pull request that changes the agent. See agent-install.sh for what it
+  # proves that the installers' tests, on stubs, cannot.
+  agent-install:
+    name: agent install
+    if: ${{ inputs.agent_install_only || github.event_name != 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker compose version >/dev/null 2>&1 || sudo apt-get install -y docker-compose-v2
+          docker info --format 'Docker {{.ServerVersion}}'
+          docker compose version
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Install the agent the way its docs say, and break it
+        run: bash Tests/Ops/openstack-e2e/agent-install.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # One file the upload cannot read costs the whole recording, and a step stopped partway
+      # leaves root's behind it: a collector's state folder cost one this way.
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what it did
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-agent-install
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-agent-install
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The OpenStack AI agent's real policy and executor against a real cloud, healthy and with
+  # nova-compute stopped: every command it may run, and what each printed, which is what an
+  # investigation reads. Then real changes, with a write credential made the way the guide says: a
+  # disabled nova-compute re-enabled on approval, and a fake-driver hypervisor's evacuation
+  # proposed with its real instances and projects. The model is not called: see
+  # ai-agent-record.sh. A job of its own on one DevStack, by hand when asked for by name and on
+  # the weekly run.
+  ai-agent:
+    name: the AI agent, reading and fixing a real cloud
+    if: ${{ inputs.ai_agent_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Run the agent's real code against it, reading it and then making real changes
+        run: bash Tests/Ops/openstack-e2e/ai-agent-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload what it read
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-ai-agent
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+  # What a real cloud's inventory says over a test period, across a resize and a deletion, and what's
+  # been left to waste, for the Spend page (#5748). One release, by hand: a reading is a reading on
+  # any of them, and nothing about usage differs by release that a test could tell.
+  record-usage:
+    name: usage hibiscus-ovn
+    if: ${{ inputs.usage_only }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.2
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker info --format 'Docker {{.ServerVersion}}'
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Start the agent's exporter and collector
+        run: bash Tests/Ops/openstack-e2e/start-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]"
+          OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]"
+          OPENSTACK_RABBITMQ_TARGETS: "[]"
+          OPENSTACK_MARIADB_TARGETS: "[]"
+          OPENSTACK_MEMCACHED_TARGETS: "[]"
+          OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]"
+          OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]"
+
+      - name: Add hosts, leave things to waste, resize, delete, and record each reading
+        run: bash Tests/Ops/openstack-e2e/usage-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Stop the agent and keep what it exported
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/stop-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-usage-recording-hibiscus-ovn
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo journalctl -u 'ou-usage-*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/usage-hosts.txt" || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-usage-devstack-logs-hibiscus-ovn
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # What Placement says of an estate of several hosts, which a DevStack's one host can't show:
+  # an allocation ratio that differs by host, a reserved amount, and memory spread too thinly
+  # for a large flavor. Every step is on its own: the newest release, the release ML2/OVS is
+  # recorded on and the oldest one maintained, because Placement's answers are the same shape
+  # over all of them or the product needs to know.
+  # The probe's own check code, run from Node against a real DevStack, with the cloud broken under it.
+  # One entry behind tls-proxy, so the real transport and its certificates are what is exercised, and
+  # one on plain HTTP with ML2/OVS, whose floating IPs and agents differ. See checks-record.sh.
+  record-checks:
+    name: checks ${{ matrix.name }}
+    if: ${{ inputs.checks_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: hibiscus-ovn-tls
+            branch: stable/2026.2
+            enabled_services: "tls-proxy"
+            plain_http: "0"
+            conf_overrides: ""
+          - name: gazpacho-ovs
+            branch: stable/2026.1
+            enabled_services: "-ovn-controller,-ovn-northd,-ovs-vswitchd,-ovsdb-server,-q-ovn-metadata-agent,-q-ovn-agent,q-agt,q-dhcp,q-l3,q-meta"
+            plain_http: "1"
+            conf_overrides: |
+              Q_AGENT=openvswitch
+              Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch
+              Q_ML2_TENANT_NETWORK_TYPE=vxlan
+              Q_ML2_PLUGIN_TYPE_DRIVERS=flat,vlan,vxlan
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install Probe dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Probe
+
+      # tls-proxy puts the host's full name in a certificate's CN, which holds 64 characters, and a
+      # hosted runner's is longer.
+      - name: Give the runner a name a certificate can hold
+        if: ${{ matrix.enabled_services == 'tls-proxy' }}
+        run: |
+          sudo hostnamectl set-hostname devstack
+          echo "127.0.1.1 devstack" | sudo tee -a /etc/hosts
+          hostname -f
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: ${{ matrix.branch }}
+          enabled_services: ${{ matrix.enabled_services }}
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+            ${{ matrix.conf_overrides }}
+          enable_workaround_docker_io: "false"
+
+      - name: Run the checks, and break the cloud under them
+        run: bash Tests/Ops/openstack-e2e/checks-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          CHECKS_PLAIN_HTTP: ${{ matrix.plain_http }}
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-checks-recording-${{ matrix.name }}
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-checks-devstack-logs-${{ matrix.name }}
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  record-capacity:
+    name: capacity ${{ matrix.name }}
+    if: ${{ inputs.capacity_only || github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: hibiscus-ovn
+            branch: stable/2026.2
+            conf_overrides: ""
+          - name: gazpacho-ovn
+            branch: stable/2026.1
+            conf_overrides: ""
+          - name: epoxy-ovn
+            branch: unmaintained/2025.1
+            conf_overrides: |
+              TARGET_BRANCH=unmaintained/2025.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy DevStack
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: ${{ matrix.branch }}
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+            ${{ matrix.conf_overrides }}
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker info --format 'Docker {{.ServerVersion}}'
+
+      - name: Build the estate
+        run: bash Tests/Ops/openstack-e2e/estate.sh
+
+      - name: Start the agent's exporter and collector
+        run: bash Tests/Ops/openstack-e2e/start-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]"
+          OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]"
+          OPENSTACK_RABBITMQ_TARGETS: "[]"
+          OPENSTACK_MARIADB_TARGETS: "[]"
+          OPENSTACK_MEMCACHED_TARGETS: "[]"
+          OPENSTACK_NETWORK_EXPORTER_TARGETS: "[]"
+          OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]"
+
+      - name: Add hosts, fill them, break them, and record what Placement says
+        run: bash Tests/Ops/openstack-e2e/capacity-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Stop the agent and keep what it exported
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/stop-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold
+        if: always()
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload the recordings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-capacity-recording-${{ matrix.name }}
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo journalctl -u 'ou-capacity-*' --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/capacity-hosts.txt" || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-capacity-devstack-logs-${{ matrix.name }}
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The services a cloud may not run, each group on a DevStack of its own, because a runner has
+  # 4 vCPUs and 16 GB. Only when asked: these take an hour or more each, and what they are for
+  # is what the agent and the product read of these services, which does not change often.
+  # What each one drives a cloud through is at the top of its script, and the configs start
+  # from what Gophercloud's own CI runs on this same action and branch.
+  record-services:
+    name: ${{ matrix.name }}
+    if: ${{ inputs.services_only }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      WANTED: ${{ inputs.services_filter == '' || contains(format(',{0},', inputs.services_filter), format(',{0},', matrix.name)) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: services-octavia
+            exporter_services: load-balancer
+            # Octavia's own roles, which it offers for exactly this: reading every project's.
+            extra_credentials: lb-global-observer=load-balancer_global_observer
+            # Octavia publishes an image to test with. Building one takes longer than deploying.
+            # Neutron's plugin is what defines how Octavia's health manager gets on its network.
+            before_deploy: wget -q https://tarballs.opendev.org/openstack/octavia/test-images/test-only-amphora-x64-haproxy-ubuntu-noble.qcow2 -O /tmp/amphora-x64-haproxy.qcow2
+            enabled_services: "octavia,o-api,o-cw,o-hk,o-hm,o-da,openstack-cli-server"
+            conf_overrides: |
+              enable_plugin octavia https://github.com/openstack/octavia stable/2026.1
+              enable_plugin neutron https://github.com/openstack/neutron stable/2026.1
+              enable_plugin ovn-octavia-provider https://github.com/openstack/ovn-octavia-provider stable/2026.1
+              OCTAVIA_AMP_IMAGE_FILE=/tmp/amphora-x64-haproxy.qcow2
+              LIBVIRT_CPU_MODE=host-passthrough
+          - name: services-ironic
+            exporter_services: baremetal compute
+            # What DevStack's Ironic fails on otherwise, as Gophercloud found.
+            before_deploy: sudo apt-get purge -y dnsmasq-base
+            enabled_services: "ir-api,ir-cond,s-account,s-container,s-object,s-proxy,q-svc,q-agt,q-dhcp,q-l3,q-meta,-cinder,-c-sch,-c-api,-c-vol,-c-bak,-ovn,-ovn-controller,-ovn-northd,-q-ovn-metadata-agent,openstack-cli-server"
+            # IRONIC_CALLBACK_TIMEOUT is low so that waiting for an agent that will never call
+            # ends in a real deploy failure in minutes.
+            conf_overrides: |
+              enable_plugin ironic https://github.com/openstack/ironic stable/2026.1
+              FORCE_CONFIG_DRIVE=True
+              Q_AGENT=openvswitch
+              Q_ML2_TENANT_NETWORK_TYPE=vxlan
+              Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch
+              DEFAULT_INSTANCE_TYPE=baremetal
+              OVERRIDE_PUBLIC_BRIDGE_MTU=1400
+              VIRT_DRIVER=ironic
+              BUILD_TIMEOUT=1800
+              SERVICE_TIMEOUT=90
+              GLANCE_LIMIT_IMAGE_SIZE_TOTAL=5000
+              Q_USE_SECGROUP=False
+              API_WORKERS=1
+              IRONIC_BAREMETAL_BASIC_OPS=False
+              IRONIC_BUILD_DEPLOY_RAMDISK=False
+              IRONIC_AUTOMATED_CLEAN_ENABLED=False
+              IRONIC_CALLBACK_TIMEOUT=120
+              IRONIC_DEPLOY_DRIVER=ipmi
+              IRONIC_INSPECTOR_BUILD_RAMDISK=False
+              IRONIC_RAMDISK_TYPE=dib
+              IRONIC_TEMPEST_BUILD_TIMEOUT=720
+              IRONIC_TEMPEST_WHOLE_DISK_IMAGE=False
+              IRONIC_VM_COUNT=1
+              IRONIC_VM_EPHEMERAL_DISK=1
+              IRONIC_VM_LOG_DIR=/opt/stack/new/ironic-bm-logs
+              IRONIC_VM_SPECS_RAM=1024
+              IRONIC_DEFAULT_DEPLOY_INTERFACE=direct
+              IRONIC_ENABLED_DEPLOY_INTERFACES=direct,fake
+              SWIFT_ENABLE_TEMPURLS=True
+              SWIFT_TEMPURL_KEY=secretkey
+          - name: services-heat-magnum
+            exporter_services: orchestration container-infra
+            enabled_services: "h-eng,h-api,h-api-cfn,magnum-api,magnum-cond,openstack-cli-server"
+            conf_overrides: |
+              enable_plugin heat https://github.com/openstack/heat stable/2026.1
+              enable_plugin magnum https://github.com/openstack/magnum stable/2026.1
+              GLANCE_LIMIT_IMAGE_SIZE_TOTAL=5000
+              LIBVIRT_CPU_MODE=host-passthrough
+          - name: services-manila
+            exporter_services: sharev2
+            enabled_services: "m-api,m-sch,m-shr,m-dat,openstack-cli-server"
+            # Manila's dummy driver, as its own CI runs it: two backends, one of which takes
+            # 50 minutes to create a share, so a share can be held in creating.
+            conf_overrides: |
+              enable_plugin manila https://github.com/openstack/manila stable/2026.1
+              MANILA_SERVICE_IMAGE_ENABLED=False
+              SHARE_DRIVER=manila.tests.share.drivers.dummy.DummyDriver
+              MANILA_CONFIGURE_GROUPS=alpha,slow
+              MANILA_ENABLED_BACKENDS=alpha,slow
+              MANILA_OPTGROUP_alpha_driver_handles_share_servers=False
+              MANILA_OPTGROUP_alpha_share_backend_name=ALPHA
+              MANILA_OPTGROUP_alpha_share_driver=manila.tests.share.drivers.dummy.DummyDriver
+              MANILA_OPTGROUP_slow_driver_handles_share_servers=False
+              MANILA_OPTGROUP_slow_share_backend_name=SLOW
+              MANILA_OPTGROUP_slow_share_driver=manila.tests.share.drivers.dummy.DummyDriver
+              MANILA_OPTGROUP_slow_dummy_driver_driver_methods_delays=create_share:3000
+              MANILA_INSTALL_TEMPEST_PLUGIN_SYSTEMWIDE=false
+          - name: services-designate-barbican-swift
+            exporter_services: dns object-store
+            enabled_services: "designate,designate-central,designate-api,designate-worker,designate-producer,designate-mdns,barbican-svc,barbican-retry,barbican-keystone-listener,s-account,s-container,s-object,s-proxy,openstack-cli-server"
+            conf_overrides: |
+              enable_plugin designate https://github.com/openstack/designate stable/2026.1
+              enable_plugin barbican https://github.com/openstack/barbican stable/2026.1
+          - name: services-trove
+            exporter_services: database
+            enabled_services: "trove,tr-api,tr-tmgr,tr-cond,openstack-cli-server"
+            # Its plugin builds a guest image while it deploys. These are what its own CI sets.
+            conf_overrides: |
+              enable_plugin trove https://github.com/openstack/trove stable/2026.1
+              TROVE_AGENT_CALL_HIGH_TIMEOUT=1800
+              TROVE_USAGE_TIMEOUT=2400
+              TROVE_MGMT_GATEWAY=192.168.254.1
+              LIBVIRT_CPU_MODE=host-passthrough
+          # Gnocchi's own repository no longer has a DevStack plugin. Ceilometer's deploys it, and
+          # runs only if one of Ceilometer's own agents is on.
+          - name: services-gnocchi
+            exporter_services: gnocchi
+            enabled_services: "gnocchi-api,gnocchi-metricd,openstack-cli-server"
+            conf_overrides: |
+              enable_plugin ceilometer https://github.com/openstack/ceilometer stable/2026.1
+              disable_service ceilometer-acentral ceilometer-anotification
+              CEILOMETER_BACKENDS=gnocchi
+          # CloudKitty rates what Ceilometer wrote to Gnocchi, so it takes the polling agent on the
+          # compute node and the notification agent behind it, polling each minute so that a
+          # five-minute period has something in it. The exporter has no CloudKitty. It reads Gnocchi here.
+          - name: services-cloudkitty
+            exporter_services: gnocchi
+            enabled_services: "gnocchi-api,gnocchi-metricd,ceilometer-acompute,ceilometer-anotification,ck-api,ck-proc,openstack-cli-server"
+            conf_overrides: |
+              enable_plugin ceilometer https://github.com/openstack/ceilometer stable/2026.1
+              enable_plugin cloudkitty https://github.com/openstack/cloudkitty stable/2026.1
+              disable_service ceilometer-acentral
+              CEILOMETER_BACKENDS=gnocchi
+              CEILOMETER_PIPELINE_INTERVAL=60
+              CLOUDKITTY_BRANCH=stable/2026.1
+              CLOUDKITTYCLIENT_BRANCH=stable/2026.1
+              LIBVIRT_CPU_MODE=host-passthrough
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ env.WANTED == 'true' }}
+
+      - name: What this group needs before DevStack starts
+        if: ${{ env.WANTED == 'true' && matrix.before_deploy }}
+        run: bash -c "$BEFORE_DEPLOY"
+        env:
+          BEFORE_DEPLOY: ${{ matrix.before_deploy }}
+
+      - name: Deploy DevStack
+        id: deploy
+        if: ${{ env.WANTED == 'true' }}
+        uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
+        with:
+          branch: stable/2026.1
+          enabled_services: ${{ matrix.enabled_services }}
+          # OpenStack's own default, as in the jobs above.
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+            ${{ matrix.conf_overrides }}
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        if: ${{ env.WANTED == 'true' }}
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker info --format 'Docker {{.ServerVersion}}'
+
+      # With the collector's real config, so the recording holds what OneUptime would receive
+      # of these services, and what it receives of the ones this cloud does not run.
+      - name: Start the agent's exporter and collector
+        if: ${{ env.WANTED == 'true' }}
+        run: bash Tests/Ops/openstack-e2e/start-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Drive it through each state, and record what it says
+        if: ${{ env.WANTED == 'true' }}
+        run: bash "Tests/Ops/openstack-e2e/${MATRIX_NAME}.sh"
+        env:
+          MATRIX_NAME: ${{ matrix.name }}
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          EXPORTER_STABLE_URL: http://127.0.0.1:9181
+
+      # Last, because it restarts APIs, and on its own, so that a problem here costs no scene.
+      # Whatever those scenes said, as long as there is a cloud to ask.
+      - name: Least privilege, on the services this one runs
+        if: ${{ env.WANTED == 'true' && !cancelled() && steps.deploy.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 25
+        run: bash Tests/Ops/openstack-e2e/access-matrix.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          EXPORTER_SERVICES: ${{ matrix.exporter_services }}
+          EXTRA_CREDENTIALS: ${{ matrix.extra_credentials }}
+
+      - name: Stop the agent and keep what it exported
+        if: ${{ always() && env.WANTED == 'true' }}
+        run: bash Tests/Ops/openstack-e2e/stop-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Make every name one an artifact can hold
+        if: ${{ always() && env.WANTED == 'true' }}
+        run: bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
+
+      - name: Upload the recordings
+        if: ${{ always() && env.WANTED == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-recording-${{ matrix.name }}
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Collect DevStack's logs on failure
+        if: ${{ failure() && env.WANTED == 'true' }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/devstack-logs"
+          sudo journalctl -u 'devstack@*' --no-pager -n 20000 > "${RUNNER_TEMP}/devstack-logs/journal.txt" || true
+          sudo journalctl -u devstack@n-cpu.service --no-pager -n 5000 > "${RUNNER_TEMP}/devstack-logs/n-cpu.txt" || true
+          sudo cp -r /tmp/devstack-logs/. "${RUNNER_TEMP}/devstack-logs/" 2>/dev/null || true
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/devstack-logs"
+
+      - name: Upload DevStack's logs on failure
+        if: ${{ failure() && env.WANTED == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstack-devstack-logs-${{ matrix.name }}
+          path: ${{ runner.temp }}/devstack-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  record:
+    name: ${{ matrix.name }}
+    if: ${{ !inputs.checks_only && !inputs.control_plane_only && !inputs.agent_install_only && !inputs.ai_agent_only && !inputs.kolla_aio && !inputs.osa_aio && !inputs.live_oneuptime && !inputs.whole_path && !inputs.status_pages_live && !inputs.capacity_only && !inputs.usage_only && !inputs.services_only && !inputs.probe_tls_only }}
+    runs-on: ubuntu-24.04
+    # Half an hour more on the two entries that drill what a cloud stands on.
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -40,22 +1510,41 @@ jobs:
           # Every maintained release, and the newest unmaintained SLURP release
           # (https://releases.openstack.org). DevStack's default network
           # backend is OVN.
+          # traces: the two sides of OSProfiler's root span fix. 4.4.0 here sends a request's
+          # first span with no parent, and 4.3.0 on Flamingo sends it a parent that is never
+          # sent. What it records is on its own step, so losing it costs nothing else.
+          # deep: every scene is kept from these two (import-recording.py), one per backend.
+          # quotas: the newest release, and the other network backend's, whose Neutron answers
+          # for a project's quotas with the same plugin but other agents behind it.
           - name: hibiscus-ovn
             branch: stable/2026.2
             conf_overrides: ""
+            traces: true
+            deep: true
+            quotas: true
+            instance_metrics_drill: true
           - name: gazpacho-ovn
             branch: stable/2026.1
             conf_overrides: ""
+            control_plane: true
           - name: flamingo-ovn
             branch: stable/2025.2
             conf_overrides: ""
+            traces: true
+          # An unmaintained release's branches were renamed, and its DevStack still
+          # asks for them by the old name.
           - name: epoxy-ovn
             branch: unmaintained/2025.1
-            conf_overrides: ""
+            instance_metrics_drill: true
+            conf_overrides: |
+              TARGET_BRANCH=unmaintained/2025.1
           # ML2/OVS reports the DHCP, L3 and OVS agents OVN does not have, and
           # the product must read both.
           - name: gazpacho-ovs
             branch: stable/2026.1
+            control_plane: true
+            deep: true
+            quotas: true
             enabled_services: "-ovn-controller,-ovn-northd,-ovs-vswitchd,-ovsdb-server,-q-ovn-metadata-agent,-q-ovn-agent,q-agt,q-dhcp,q-l3,q-meta"
             conf_overrides: |
               Q_AGENT=openvswitch
@@ -66,36 +1555,172 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy DevStack
+        if: ${{ (!inputs.traces_only || (matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name))) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
         with:
           branch: ${{ matrix.branch }}
           enabled_services: ${{ matrix.enabled_services }}
-          conf_overrides: ${{ matrix.conf_overrides }}
+          # OpenStack's own default. DevStack waits 2 minutes between heartbeats and
+          # calls a service down after 12, which outlasts every drill's wait.
+          # Ceilometer only for its polling agent and the exporter it holds, from 2025.1:
+          # what it says about an instance is recorded, and nothing is stored here. Its
+          # polling interval is a minute rather than five so a run sees several.
+          conf_overrides: |
+            NOVA_SERVICE_REPORT_INTERVAL=10
+            CINDER_SERVICE_REPORT_INTERVAL=10
+            enable_plugin ceilometer https://opendev.org/openstack/ceilometer ${{ matrix.branch }}
+            disable_service ceilometer-acentral ceilometer-anotification
+            CEILOMETER_BACKENDS=none
+            CEILOMETER_PIPELINE_INTERVAL=60
+            ${{ matrix.conf_overrides }}
+          # Its workaround replaces containerd with runc, which stops Docker, and
+          # the agent's exporter and collector run in Docker. Kuryr is not used here.
+          enable_workaround_docker_io: "false"
+
+      - name: Docker still answers
+        if: ${{ (!inputs.traces_only || (matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name))) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        run: |
+          if ! docker info >/dev/null 2>&1; then
+            # DevStack can leave the runner's Docker stopped or removed.
+            sudo systemctl start docker || sudo apt-get install -y docker.io
+            sudo systemctl start docker
+          fi
+          docker info --format 'Docker {{.ServerVersion}}'
 
       - name: Build the estate
+        if: ${{ (!inputs.traces_only || (matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name))) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/estate.sh
 
-      - name: Start the agent's exporter and collector
-        run: bash Tests/Ops/openstack-e2e/start-agent.sh
+      # On its own, with an exporter of its own, so that a problem here costs nothing else.
+      - name: Record what each project's quotas say
+        if: ${{ matrix.quotas && (!inputs.logs_only || inputs.quotas_only) }}
+        continue-on-error: true
+        timeout-minutes: 20
+        run: bash Tests/Ops/openstack-e2e/quota-record.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
+      # On its own, as the access matrix is: losing a source of VM metrics costs that
+      # recording, not the drills.
+      - name: Start what reports real VM metrics
+        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && !inputs.scenes_only }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/start-instance-metrics.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Before the agent starts, so its collector reads them from its first scrape.
+      - name: Start the exporters of what the cloud stands on
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh start
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      - name: Start the agent's exporter and collector
+        if: ${{ !inputs.checks_only && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        run: bash Tests/Ops/openstack-e2e/start-agent.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+          OPENSTACK_LIBVIRT_EXPORTER_TARGETS: ${{ inputs.scenes_only && '[]' || '[127.0.0.1:9177]' }}
+          OPENSTACK_CEILOMETER_EXPORTER_TARGETS: ${{ inputs.scenes_only && '[]' || '[127.0.0.1:9101]' }}
+          OPENSTACK_RABBITMQ_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:15692]' || '[]' }}
+          OPENSTACK_MARIADB_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:9104]' || '[]' }}
+          OPENSTACK_MEMCACHED_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:9150]' || '[]' }}
+          OPENSTACK_NETWORK_EXPORTER_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:1981]' || '[]' }}
+          OPENSTACK_LIBVIRT_HEALTH_TARGETS: ${{ matrix.control_plane && !inputs.scenes_only && '[127.0.0.1:9177]' || '[]' }}
+
+      # On its own, so that a problem here still leaves the drills recorded. It takes
+      # its policy files back off when it ends, whichever way it ends. A run of scenes
+      # still tries it where it has calls per thing to ask about: only ML2/OVS has those.
       - name: Least privilege, tested on the real policies
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || (matrix.deep && matrix.enabled_services)) }}
+        continue-on-error: true
         run: bash Tests/Ops/openstack-e2e/access-matrix.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
 
       - name: Record the failure drills
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/drills.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
           EXPORTER_STABLE_URL: http://127.0.0.1:9181
 
+      # After the drills, so the scenes they recorded hold the estate they always held.
+      - name: Record real VM metrics from both sources
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/instance-metrics.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Over an hour on its own, so never part of a full run: a noisy instance and a noisy
+      # neighbour for as long as an alert template's window takes to fill and to empty.
+      - name: Run the long real VM metrics drill
+        if: ${{ inputs.instance_metrics_only && matrix.instance_metrics_drill }}
+        continue-on-error: true
+        timeout-minutes: 100
+        run: bash Tests/Ops/openstack-e2e/instance-metrics-drill.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # What the cloud does when what it stands on goes away. After the rest, because it
+      # takes the whole cloud down more than once, and on its own, so that a problem here
+      # still leaves everything else recorded.
+      - name: Stop what the cloud stands on, and record what falls
+        if: ${{ !inputs.checks_only && !inputs.logs_only && !inputs.instance_metrics_only && matrix.control_plane && !inputs.scenes_only }}
+        continue-on-error: true
+        run: bash Tests/Ops/openstack-e2e/control-plane-cloud.sh drills
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Signs real requests, on its own and with a limit of its own, so that a problem here
+      # costs neither the drills nor the logs. Before the logs, because it takes back
+      # everything it changes, and they leave a cloud configured their own way.
+      # Not for a run that only wants the logs, which would wait for it on the entries that do.
+      - name: Record what OSProfiler's driver sends for a signed request
+        if: ${{ matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name) && !inputs.quotas_only && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) && !inputs.scenes_only }}
+        continue-on-error: true
+        timeout-minutes: 75
+        run: bash Tests/Ops/openstack-e2e/traces-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # Whatever became of the step above, including its limit killing it: a hang there must not
+      # leave OSProfiler on for the steps after it.
+      - name: Put back whatever the traces step left
+        if: ${{ always() && matrix.traces }}
+        continue-on-error: true
+        timeout-minutes: 10
+        run: bash Tests/Ops/openstack-e2e/traces-put-back.sh
+
+      # Last, because it changes every service's config and breaks things of its own, and
+      # on its own, so that a problem here still leaves the drills recorded.
+      # With a limit of its own, as the traces have, so that a cloud it has broken costs this
+      # recording and not the job's limit, which takes the upload with it.
+      - name: Record service logs, notifications and audit events
+        if: ${{ !inputs.checks_only && !inputs.traces_only && !inputs.quotas_only && !inputs.instance_metrics_only && !inputs.scenes_only }}
+        continue-on-error: true
+        timeout-minutes: 75
+        run: bash Tests/Ops/openstack-e2e/logs-record.sh
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/recording
+
       - name: Stop the agent and keep what it exported
-        if: always()
+        if: ${{ always() && !inputs.logs_only && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/stop-agent.sh
         env:
           OUTPUT_DIR: ${{ runner.temp }}/recording
+
+      # One file the upload cannot read costs the whole recording, and a step stopped partway
+      # leaves root's behind it: a collector's state folder cost one this way.
+      - name: Make every name one an artifact can hold, and every file one it can read
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" "${RUNNER_TEMP}/recording" || true
+          chmod -R u+rwX "${RUNNER_TEMP}/recording" || true
+          bash Tests/Ops/openstack-e2e/safe-artifact-names.sh "${RUNNER_TEMP}/recording"
 
       - name: Upload the recordings
         if: always()

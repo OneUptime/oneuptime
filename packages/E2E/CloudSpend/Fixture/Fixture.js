@@ -346,7 +346,8 @@ function costSummaryOf(accountRow) {
     dailyTotals,
     monthServices,
     currency: BILLED[accountRow].currency,
-    now: new Date(LOADED_AT - 2 * HOUR),
+    // Read a while ago, and today, whatever the hour: COST_ROWS reach today's part.
+    now: new Date(Math.max(LOADED_AT - 2 * HOUR, today.getTime())),
   });
 }
 

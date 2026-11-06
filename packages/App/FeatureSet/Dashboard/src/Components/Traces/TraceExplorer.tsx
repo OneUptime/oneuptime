@@ -2,6 +2,7 @@ import {
   getHandDrawnButtonStateClassName,
   getHandDrawnLookClassName,
 } from "Common/UI/Components/Button/ButtonStates";
+import { PAGE_DOCK_END_CLASS_NAME } from "Common/UI/Utils/PageDock";
 import FlameGraph from "./FlameGraph";
 import TraceServiceMap from "./TraceServiceMap";
 import TraceHeader from "./TraceDetail/TraceHeader";
@@ -1615,13 +1616,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             {selectedNode && selectedSubtree && (
               <>
                 <div
-                  className="fixed inset-0 z-40 bg-gray-900/30 xl:hidden"
+                  className={`fixed inset-0 ${PAGE_DOCK_END_CLASS_NAME} z-40 bg-gray-900/30 xl:hidden`}
                   aria-hidden="true"
                   onClick={() => {
                     setSelectedSpanId(null);
                   }}
                 />
-                <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg overflow-hidden border-l border-gray-200 bg-white shadow-xl xl:sticky xl:inset-auto xl:top-4 xl:z-auto xl:h-[min(760px,calc(100vh-2rem))] xl:w-[420px] xl:max-w-none xl:flex-none xl:rounded-lg xl:border xl:shadow-none 2xl:w-[480px]">
+                <div
+                  className={`fixed inset-y-0 ${PAGE_DOCK_END_CLASS_NAME} z-50 w-full max-w-lg overflow-hidden border-l border-gray-200 bg-white shadow-xl xl:sticky xl:inset-auto xl:top-4 xl:z-auto xl:h-[min(760px,calc(100vh-2rem))] xl:w-[420px] xl:max-w-none xl:flex-none xl:rounded-lg xl:border xl:shadow-none 2xl:w-[480px]`}
+                >
                   <TraceSpanPanel
                     traceId={traceId}
                     span={selectedNode.span}

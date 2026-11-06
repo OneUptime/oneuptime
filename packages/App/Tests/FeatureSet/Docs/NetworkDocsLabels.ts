@@ -79,6 +79,11 @@ export const FILLED_TEMPLATES: Readonly<
   Record<string, { key: string; values: Record<string, string> }>
 > = {
   "Uptime (24h)": { key: "Uptime ({{hours}}h)", values: { hours: "24" } },
+  // The Network SNMP Walk's Collect, on a row twelve devices answer (#5548).
+  "Collect on 12 devices": {
+    key: "Collect on {{count}} devices",
+    values: { count: "12" },
+  },
 };
 
 /*

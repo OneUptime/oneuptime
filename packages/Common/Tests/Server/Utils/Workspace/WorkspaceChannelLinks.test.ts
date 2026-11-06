@@ -14,11 +14,11 @@ import logger from "../../../../Server/Utils/Logger";
 
 /*
  * Which links an incident's, alert's, episode's or scheduled maintenance
- * event's "Open in Slack" / "Open in Microsoft Teams" button gets: the
- * record is read with the caller's own permissions first, and only then its
- * channels (a column no API reads) as OneUptime; each link is built from the
- * channel and the project's connection, Slack first, never twice, and never
- * from an id of the wrong shape.
+ * event's "Open in Slack", "Open in Microsoft Teams" or "Open in Mattermost"
+ * button gets: the record is read with the caller's own permissions first,
+ * and only then its channels (a column no API reads) as OneUptime; each link
+ * is built from the channel and the project's connection, Slack first, never
+ * twice, and never from an id of the wrong shape.
  */
 
 type FindOneById = (data: {
@@ -188,6 +188,21 @@ const teamsChannel: (data: {
   return channel;
 };
 
+const mattermostChannel: (
+  name: string,
+  id?: string,
+) => NotificationRuleWorkspaceChannel = (
+  name: string,
+  id?: string,
+): NotificationRuleWorkspaceChannel => {
+  return {
+    id: id || "n7y1g3kq5jfsdb8xwz2m4cpvha",
+    name,
+    workspaceType: WorkspaceType.Mattermost,
+    notificationRuleId: "rule-3",
+  };
+};
+
 /*
  * The record as each read sees it: the caller's read gets the record (or
  * nothing), the root read gets its channels.
@@ -224,11 +239,20 @@ const givenRecord: (data: {
 const givenConnections: (data: {
   slack?: unknown;
   teams?: unknown;
-}) => void = (data: { slack?: unknown; teams?: unknown }): void => {
+  mattermost?: unknown;
+}) => void = (data: {
+  slack?: unknown;
+  teams?: unknown;
+  mattermost?: unknown;
+}): void => {
   mockGetProjectAuth.mockImplementation(
     async (read: Parameters<GetProjectAuth>[0]): Promise<unknown> => {
       if (read.workspaceType === WorkspaceType.Slack) {
         return data.slack ?? null;
+      }
+
+      if (read.workspaceType === WorkspaceType.Mattermost) {
+        return data.mattermost ?? null;
       }
 
       return data.teams ?? null;
@@ -244,6 +268,21 @@ const SLACK_CONNECTION: unknown = {
 const TEAMS_CONNECTION: unknown = {
   miscData: { tenantId: TENANT_GUID, teamId: TEAM_GUID, teamName: "Ops" },
   workspaceProjectId: TENANT_GUID,
+};
+
+const MATTERMOST_ACCESS_TOKEN: string = "s3cr3tb0tt0k3nthatnev3rl3av3s";
+
+const MATTERMOST_CONNECTION: unknown = {
+  miscData: {
+    serverUrl: "https://chat.example.com",
+    teamId: "t4m9r2x8bqc6dn1kz7w3fyjgse",
+    teamName: "acme",
+    teamDisplayName: "Acme Inc",
+    botUserId: "b0t5k1m7qz3xn9fw2c8dhjgrvy",
+    botUsername: "oneuptime",
+  },
+  workspaceProjectId: "t4m9r2x8bqc6dn1kz7w3fyjgse",
+  authToken: JSON.stringify({ accessToken: MATTERMOST_ACCESS_TOKEN }),
 };
 
 const getLinks: (
@@ -263,7 +302,11 @@ beforeEach(() => {
     finder.mockReset();
   }
   mockGetProjectAuth.mockReset();
-  givenConnections({ slack: SLACK_CONNECTION, teams: TEAMS_CONNECTION });
+  givenConnections({
+    slack: SLACK_CONNECTION,
+    teams: TEAMS_CONNECTION,
+    mattermost: MATTERMOST_CONNECTION,
+  });
 });
 
 describe("who may ask", () => {
@@ -624,6 +667,249 @@ describe("the project's connection", () => {
       }),
     ).toEqual([WorkspaceType.MicrosoftTeams]);
     expect(loggedError).toHaveBeenCalledTimes(2);
+
+    loggedError.mockRestore();
+  });
+});
+
+describe("a Mattermost channel", () => {
+  const givenChannels: (
+    channels: Array<NotificationRuleWorkspaceChannel>,
+  ) => void = (channels: Array<NotificationRuleWorkspaceChannel>): void => {
+    givenRecord({
+      recordType: WorkspaceChannelRecordType.Incident,
+      visibleToCaller: true,
+      channels,
+    });
+  };
+
+  const urlsOf: (links: Array<WorkspaceChannelLink>) => Array<string> = (
+    links: Array<WorkspaceChannelLink>,
+  ): Array<string> => {
+    return links.map((link: WorkspaceChannelLink) => {
+      return link.url;
+    });
+  };
+
+  test.each(Object.values(WorkspaceChannelRecordType))(
+    "%s: opens on the project's own server, in the team it was connected to",
+    async (recordType: WorkspaceChannelRecordType) => {
+      givenRecord({
+        recordType,
+        visibleToCaller: true,
+        channels: [mattermostChannel("inc-42")],
+      });
+
+      expect(await getLinks(recordType)).toEqual([
+        {
+          workspaceType: WorkspaceType.Mattermost,
+          channelName: "inc-42",
+          url: "https://chat.example.com/acme/channels/inc-42",
+        },
+      ]);
+    },
+  );
+
+  test("comes after Slack and Microsoft Teams, each in the order the record got them", async () => {
+    givenChannels([
+      mattermostChannel("inc-42"),
+      teamsChannel({ name: "Incident 42", teamId: TEAM_GUID }),
+      mattermostChannel("sre-war-room", "z8x2q4w6e1r3t5y7u9i0o2p4as"),
+      slackChannel("C0456EFGH", "incident-42"),
+    ]);
+
+    expect(
+      (await getLinks()).map((link: WorkspaceChannelLink) => {
+        return `${link.workspaceType}:${link.channelName}`;
+      }),
+    ).toEqual([
+      "Slack:incident-42",
+      "MicrosoftTeams:Incident 42",
+      "Mattermost:inc-42",
+      "Mattermost:sre-war-room",
+    ]);
+  });
+
+  test("the record holds it twice: one button", async () => {
+    givenChannels([
+      mattermostChannel("inc-42"),
+      { ...mattermostChannel("inc-42"), notificationRuleId: "rule-4" },
+    ]);
+
+    expect(await getLinks()).toHaveLength(1);
+  });
+
+  test("a server on a path, on a port or over http keeps what it was connected with", async () => {
+    givenChannels([mattermostChannel("inc-42")]);
+
+    for (const [serverUrl, expected] of [
+      [
+        "https://example.com/mattermost",
+        "https://example.com/mattermost/acme/channels/inc-42",
+      ],
+      [
+        "https://chat.example.com:8065",
+        "https://chat.example.com:8065/acme/channels/inc-42",
+      ],
+      ["http://10.0.0.5:8065", "http://10.0.0.5:8065/acme/channels/inc-42"],
+    ] as Array<[string, string]>) {
+      givenConnections({
+        mattermost: { miscData: { serverUrl, teamName: "acme" } },
+      });
+
+      expect(urlsOf(await getLinks())).toEqual([expected]);
+    }
+  });
+
+  /*
+   * Done means this: whatever a channel row holds, the button goes to the
+   * connected server's own origin, or there is no button.
+   */
+  test.each<[string]>([
+    ["../../evil"],
+    ["a/b"],
+    ["https://evil.example"],
+    ["@evil.example"],
+    ["x?next=https://evil.example"],
+    ["x#y"],
+    ["Incident 42"],
+    ["%2e%2e%2fevil"],
+    [""],
+  ])(
+    "a name that is not one of Mattermost's is left out: %p",
+    async (name: string) => {
+      givenChannels([mattermostChannel(name), mattermostChannel("inc-42")]);
+
+      expect(urlsOf(await getLinks())).toEqual([
+        "https://chat.example.com/acme/channels/inc-42",
+      ]);
+    },
+  );
+
+  test("a row cannot name its server or its team: only the connection does", async () => {
+    givenChannels([
+      {
+        ...mattermostChannel("inc-42"),
+        teamId: "evil",
+        teamName: "evil",
+        serverUrl: "https://evil.example",
+        url: "https://evil.example/evil/channels/inc-42",
+      } as NotificationRuleWorkspaceChannel,
+    ]);
+
+    expect(urlsOf(await getLinks())).toEqual([
+      "https://chat.example.com/acme/channels/inc-42",
+    ]);
+  });
+
+  test("a stored name that is not text is left out, and fails nothing", async () => {
+    givenChannels([
+      {
+        ...mattermostChannel("x"),
+        name: 42 as unknown as string,
+      },
+      {
+        ...mattermostChannel("x"),
+        name: undefined as unknown as string,
+      },
+      mattermostChannel("inc-42"),
+    ]);
+
+    expect(urlsOf(await getLinks())).toEqual([
+      "https://chat.example.com/acme/channels/inc-42",
+    ]);
+  });
+
+  test("Mattermost disconnected since: no Mattermost button, the others stay", async () => {
+    givenConnections({ slack: SLACK_CONNECTION, mattermost: null });
+    givenChannels([
+      mattermostChannel("inc-42"),
+      slackChannel("C0456EFGH", "incident-42"),
+    ]);
+
+    expect(
+      (await getLinks()).map((link: WorkspaceChannelLink) => {
+        return link.workspaceType;
+      }),
+    ).toEqual([WorkspaceType.Slack]);
+  });
+
+  test.each<[string, unknown]>([
+    ["no misc data", {}],
+    ["no server", { miscData: { teamName: "acme" } }],
+    ["no team", { miscData: { serverUrl: "https://chat.example.com" } }],
+    [
+      "a server that is not one",
+      { miscData: { serverUrl: "javascript:alert(1)", teamName: "acme" } },
+    ],
+    [
+      "a server with a user name in it",
+      {
+        miscData: {
+          serverUrl: "https://chat.example.com@evil.example",
+          teamName: "acme",
+        },
+      },
+    ],
+    [
+      "a team that is not one",
+      {
+        miscData: {
+          serverUrl: "https://chat.example.com",
+          teamName: "../../evil",
+        },
+      },
+    ],
+    ["values that are not text", { miscData: { serverUrl: 1, teamName: {} } }],
+  ])(
+    "a connection with %s has no button",
+    async (_label: string, connection: unknown) => {
+      givenConnections({ mattermost: connection });
+      givenChannels([mattermostChannel("inc-42")]);
+
+      expect(await getLinks()).toEqual([]);
+    },
+  );
+
+  test("only its own connection is read, and nothing of the bot's token reaches the page", async () => {
+    givenChannels([mattermostChannel("inc-42")]);
+
+    const links: Array<WorkspaceChannelLink> = await getLinks();
+
+    expect(mockGetProjectAuth).toHaveBeenCalledTimes(1);
+    expect(mockGetProjectAuth.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Mattermost,
+    });
+    expect(JSON.stringify(links)).not.toContain(MATTERMOST_ACCESS_TOKEN);
+  });
+
+  test("a record without one never reads the Mattermost connection", async () => {
+    givenChannels([slackChannel("C0456EFGH", "incident-42")]);
+
+    await getLinks();
+
+    expect(
+      mockGetProjectAuth.mock.calls.map((call: Parameters<GetProjectAuth>) => {
+        return call[0].workspaceType;
+      }),
+    ).toEqual([WorkspaceType.Slack]);
+  });
+
+  test("a connection that cannot be read leaves its button out and does not fail the page", async () => {
+    const loggedError: SpyInstance<typeof logger.error> = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined;
+      });
+
+    mockGetProjectAuth.mockImplementation(async () => {
+      throw new Error("connection refused");
+    });
+    givenChannels([mattermostChannel("inc-42")]);
+
+    expect(await getLinks()).toEqual([]);
+    expect(loggedError).toHaveBeenCalledTimes(1);
 
     loggedError.mockRestore();
   });

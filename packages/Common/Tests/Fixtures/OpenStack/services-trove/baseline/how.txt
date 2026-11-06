@@ -1,0 +1,2 @@
+Trove's lists, before any instance.
+On its own: Trove's lists before any instance. Guest image: trove-guest-ubuntu-noble.

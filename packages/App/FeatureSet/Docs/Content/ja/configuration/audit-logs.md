@@ -99,6 +99,7 @@ flowchart TB
 | インベントリ項目 | `Inventory Item` |
 | コレクター設定 | `Collector Config` |
 | vCenter サーバー | `vCenter` |
+| OpenStack クラウドと、それに対して実行されるチェック | `OpenStack Cloud`、`OpenStack Cloud Check` |
 | パケットキャプチャとそのダウンロード | `Packet Capture` |
 | セキュリティケースとその優先度・ステータス、プレイブックとその実行、保護対象のエンティティ、エンティティの重要度、リセットされたエンティティのリスク | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
 | ルールの例外 | `Rule Exception` |
@@ -107,6 +108,7 @@ flowchart TB
 | ハント | `Hunt` |
 | セキュリティケースのタスクと証拠 | `Security Case Task`、`Security Case Evidence` |
 | データストアとその検出結果、データセキュリティの問題、設定、チェックの設定、カスタムデータタイプ、データ所在地ルール | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
+| データオブザーバビリティの設定 | `Data Observability Setting` |
 | 監査ログのエクスポート | `Audit Log Export` |
 
 管理者が他の人のアカウントで通知方法や個人のオンコールルールを追加または削除したときも記録されます。アドレスや番号そのものは記録されません。

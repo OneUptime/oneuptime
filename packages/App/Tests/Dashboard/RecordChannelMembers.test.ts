@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import IconProp from "Common/Types/Icon/IconProp";
 import { WorkspaceChannelRecordType } from "Common/Types/Workspace/WorkspaceChannelLink";
 import {
   WorkspaceChannelAddOutcome,
@@ -28,16 +29,26 @@ import {
   CHANNEL_PEOPLE_FOLDED_COUNT,
   CHANNEL_STATE_TEXT,
   ChannelViewerPrompt,
+  MATTERMOST_ADD_OUTCOME_TEXT,
+  MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL,
+  MATTERMOST_CHANNEL_STATE_TEXT,
+  MATTERMOST_CHANNEL_TEXT,
   PEOPLE_COUNT,
   RECORD_CHANNEL_TEXT,
   SHOW_MORE_PEOPLE,
+  TEAMS_CHANNEL_STATE_TEXT,
+  TEAMS_CHANNEL_TEXT,
   UNNAMED_PEOPLE,
   canAddPeopleTo,
   getAddOutcomeSentences,
   getAddProblemSentences,
   getCardTitle,
+  getChannelIcon,
   getChannelLabel,
+  getChannelProductText,
+  getChannelStateText,
   getFoldedCount,
+  getOpenChannelText,
   getPeopleInChannelUserIds,
   getPickNotices,
   getShownPeople,
@@ -108,6 +119,44 @@ describe("the card's title", () => {
     ).toBe("Chat Channels");
   });
 
+  test("names Mattermost, one channel or several", () => {
+    expect(
+      getCardTitle([channel({ workspaceType: WorkspaceType.Mattermost })]),
+    ).toBe("Mattermost Channel");
+    expect(
+      getCardTitle([
+        channel({ workspaceType: WorkspaceType.Mattermost }),
+        channel({ workspaceType: WorkspaceType.Mattermost }),
+      ]),
+    ).toBe("Mattermost Channels");
+  });
+
+  test.each([
+    [WorkspaceType.Slack, WorkspaceType.Mattermost],
+    [WorkspaceType.MicrosoftTeams, WorkspaceType.Mattermost],
+    [WorkspaceType.Mattermost, WorkspaceType.Slack],
+  ] as Array<[WorkspaceType, WorkspaceType]>)(
+    "channels in %s and %s are Chat Channels",
+    (first: WorkspaceType, second: WorkspaceType) => {
+      expect(
+        getCardTitle([
+          channel({ workspaceType: first }),
+          channel({ workspaceType: second }),
+        ]),
+      ).toBe("Chat Channels");
+    },
+  );
+
+  test("channels in all three are Chat Channels", () => {
+    expect(
+      getCardTitle([
+        channel({ workspaceType: WorkspaceType.Slack }),
+        channel({ workspaceType: WorkspaceType.MicrosoftTeams }),
+        channel({ workspaceType: WorkspaceType.Mattermost }),
+      ]),
+    ).toBe("Chat Channels");
+  });
+
   test("reads the page's links too, while the channels load", () => {
     expect(
       getCardTitle([
@@ -115,6 +164,9 @@ describe("the card's title", () => {
         { workspaceType: WorkspaceType.MicrosoftTeams },
       ]),
     ).toBe("Microsoft Teams Channels");
+    expect(getCardTitle([{ workspaceType: WorkspaceType.Mattermost }])).toBe(
+      "Mattermost Channel",
+    );
   });
 });
 
@@ -139,6 +191,144 @@ describe("a channel's name", () => {
         channel({ workspaceType: WorkspaceType.MicrosoftTeams, name: "" }),
       ),
     ).toBe("Channel");
+  });
+
+  test("a Mattermost channel is written by its name, without a #", () => {
+    expect(
+      getChannelLabel(
+        channel({ workspaceType: WorkspaceType.Mattermost, name: "inc-42" }),
+      ),
+    ).toBe("inc-42");
+    expect(
+      getChannelLabel(
+        channel({ workspaceType: WorkspaceType.Mattermost, name: "" }),
+      ),
+    ).toBe("Channel");
+  });
+});
+
+describe("the product a channel is in", () => {
+  test("its icon, and the words that open a channel there", () => {
+    expect(getChannelIcon(WorkspaceType.Slack)).toBe(IconProp.Slack);
+    expect(getChannelIcon(WorkspaceType.MicrosoftTeams)).toBe(
+      IconProp.MicrosoftTeams,
+    );
+    expect(getChannelIcon(WorkspaceType.Mattermost)).toBe(IconProp.Mattermost);
+
+    expect(getOpenChannelText(WorkspaceType.Slack)).toBe("Open in Slack");
+    expect(getOpenChannelText(WorkspaceType.MicrosoftTeams)).toBe(
+      "Open in Microsoft Teams",
+    );
+    expect(getOpenChannelText(WorkspaceType.Mattermost)).toBe(
+      "Open in Mattermost",
+    );
+  });
+
+  test("what the card says of a Mattermost channel names Mattermost, and never Slack", () => {
+    const words: Array<string> = [
+      ...Object.values(MATTERMOST_CHANNEL_TEXT),
+      ...Object.values(MATTERMOST_CHANNEL_STATE_TEXT),
+      ...Object.values(MATTERMOST_ADD_OUTCOME_TEXT).flatMap(
+        (text: { self: string; other: string }) => {
+          return [text.self, text.other];
+        },
+      ),
+      ...Object.values(MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL),
+    ];
+
+    for (const word of words) {
+      expect({ word, namesSlack: word.includes("Slack") }).toEqual({
+        word,
+        namesSlack: false,
+      });
+    }
+
+    expect(getChannelProductText(WorkspaceType.Mattermost)).toBe(
+      MATTERMOST_CHANNEL_TEXT,
+    );
+    expect(getChannelProductText(WorkspaceType.Slack).notFound).toBe(
+      "OneUptime can't find your Slack account, so it can't add you.",
+    );
+  });
+
+  test("the state of a channel is said in its own product's words, and nothing for one that takes people", () => {
+    expect(
+      getChannelStateText(
+        WorkspaceType.Mattermost,
+        WorkspaceChannelState.Archived,
+      ),
+    ).toBe(
+      "This channel is archived. Unarchive it in Mattermost to add people.",
+    );
+    expect(
+      getChannelStateText(WorkspaceType.Slack, WorkspaceChannelState.Archived),
+    ).toBe("This channel is archived. Unarchive it in Slack to add people.");
+    expect(
+      getChannelStateText(
+        WorkspaceType.Mattermost,
+        WorkspaceChannelState.Unreachable,
+      ),
+    ).toBe(
+      "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.",
+    );
+    expect(
+      getChannelStateText(
+        WorkspaceType.Mattermost,
+        WorkspaceChannelState.Members,
+      ),
+    ).toBeUndefined();
+    expect(
+      getChannelStateText(
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceChannelState.ManagedInTeams,
+      ),
+    ).toBeUndefined();
+    expect(Object.keys(MATTERMOST_CHANNEL_STATE_TEXT).sort()).toEqual(
+      Object.keys(CHANNEL_STATE_TEXT).sort(),
+    );
+  });
+
+  test("a Microsoft Teams channel whose project lost its connection is told so in Teams' words, and where to connect it", () => {
+    expect(
+      getChannelStateText(
+        WorkspaceType.MicrosoftTeams,
+        WorkspaceChannelState.NotConnected,
+      ),
+    ).toBe("Microsoft Teams isn't connected to this project.");
+    expect(
+      getChannelProductText(WorkspaceType.MicrosoftTeams).connectProject,
+    ).toBe("Connect Microsoft Teams");
+  });
+
+  test("Slack and Mattermost keep their own words for a lost connection", () => {
+    expect(
+      getChannelStateText(
+        WorkspaceType.Slack,
+        WorkspaceChannelState.NotConnected,
+      ),
+    ).toBe("Slack isn't connected to this project.");
+    expect(getChannelProductText(WorkspaceType.Slack).connectProject).toBe(
+      "Connect Slack",
+    );
+    expect(
+      getChannelStateText(
+        WorkspaceType.Mattermost,
+        WorkspaceChannelState.NotConnected,
+      ),
+    ).toBe("Mattermost isn't connected to this project.");
+    expect(getChannelProductText(WorkspaceType.Mattermost).connectProject).toBe(
+      "Connect Mattermost",
+    );
+  });
+
+  test("the hint for a channel the bot was taken out of holds no command: the bot's name is the server's", () => {
+    expect(
+      splitAtSlackInviteCommand(MATTERMOST_CHANNEL_TEXT.unreachableHint),
+    ).toEqual({
+      before: MATTERMOST_CHANNEL_TEXT.unreachableHint,
+      command: "",
+      after: "",
+    });
   });
 });
 
@@ -220,7 +410,7 @@ describe("what the viewer is offered", () => {
       ChannelViewerPrompt.AskToBeAdded,
     );
     expect(prompt({ isPrivate: false }, false)).toBe(
-      ChannelViewerPrompt.JoinInSlack,
+      ChannelViewerPrompt.JoinInWorkspace,
     );
   });
 
@@ -243,24 +433,22 @@ describe("what the viewer is offered", () => {
       ).toBe(false);
     }
 
-    expect(
-      prompt(
-        {
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          state: WorkspaceChannelState.ManagedInTeams,
-        },
-        true,
-      ),
-    ).toBe(ChannelViewerPrompt.None);
-    expect(
-      canAddPeopleTo({
-        channel: channel({
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          state: WorkspaceChannelState.ManagedInTeams,
-        }),
-        canAddPeople: true,
-      }),
-    ).toBe(false);
+    // Both states a Teams channel reaches; the server never finds its viewer.
+    for (const state of [
+      WorkspaceChannelState.ManagedInTeams,
+      WorkspaceChannelState.NotConnected,
+    ]) {
+      const teams: Partial<WorkspaceRecordChannel> = {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        state: state,
+        viewer: WorkspaceChannelViewerStatus.NotFound,
+      };
+
+      expect(prompt(teams, true)).toBe(ChannelViewerPrompt.None);
+      expect(
+        canAddPeopleTo({ channel: channel(teams), canAddPeople: true }),
+      ).toBe(false);
+    }
   });
 
   test("Add people only for somebody who may add people, into a Slack channel that takes them", () => {
@@ -269,6 +457,70 @@ describe("what the viewer is offered", () => {
     );
     expect(canAddPeopleTo({ channel: channel(), canAddPeople: false })).toBe(
       false,
+    );
+  });
+
+  describe("in a Mattermost channel", () => {
+    const mattermost: (
+      overrides?: Partial<WorkspaceRecordChannel>,
+    ) => Partial<WorkspaceRecordChannel> = (
+      overrides?: Partial<WorkspaceRecordChannel>,
+    ): Partial<WorkspaceRecordChannel> => {
+      return { workspaceType: WorkspaceType.Mattermost, ...overrides };
+    };
+
+    test("the same as in Slack: Join channel, connecting first, or how to get in", () => {
+      expect(prompt(mattermost(), true)).toBe(ChannelViewerPrompt.Join);
+      expect(
+        prompt(
+          mattermost({ viewer: WorkspaceChannelViewerStatus.NotFound }),
+          true,
+        ),
+      ).toBe(ChannelViewerPrompt.ConnectToJoin);
+      expect(
+        prompt(mattermost({ viewer: WorkspaceChannelViewerStatus.In }), true),
+      ).toBe(ChannelViewerPrompt.None);
+      expect(prompt(mattermost({ isPrivate: true }), false)).toBe(
+        ChannelViewerPrompt.AskToBeAdded,
+      );
+      expect(prompt(mattermost({ isPrivate: false }), false)).toBe(
+        ChannelViewerPrompt.JoinInWorkspace,
+      );
+    });
+
+    test("Add people for somebody who may add people, while it takes them", () => {
+      expect(
+        canAddPeopleTo({
+          channel: channel(mattermost()),
+          canAddPeople: true,
+        }),
+      ).toBe(true);
+      expect(
+        canAddPeopleTo({
+          channel: channel(mattermost()),
+          canAddPeople: false,
+        }),
+      ).toBe(false);
+    });
+
+    test.each([
+      WorkspaceChannelState.Archived,
+      WorkspaceChannelState.Unreachable,
+      WorkspaceChannelState.NotConnected,
+      WorkspaceChannelState.Unavailable,
+    ] as Array<WorkspaceChannelState>)(
+      "%s offers nothing",
+      (state: WorkspaceChannelState) => {
+        expect(prompt(mattermost({ state: state }), true)).toBe(
+          ChannelViewerPrompt.None,
+        );
+        expect(
+          canAddPeopleTo({
+            channel: channel(mattermost({ state: state })),
+            canAddPeople: true,
+          }),
+        ).toBe(false);
+      },
     );
   });
 
@@ -291,14 +543,20 @@ describe("what the viewer is offered", () => {
 describe("what adding people says", () => {
   test("every outcome has a sentence about the viewer and one about somebody else", () => {
     for (const outcome of Object.values(WorkspaceChannelAddOutcome)) {
-      expect(ADD_OUTCOME_TEXT[outcome].self).toBeTruthy();
-      expect(ADD_OUTCOME_TEXT[outcome].other).toContain("{{name}}");
-      expect(ADD_OUTCOME_TEXT[outcome].self).not.toContain("{{name}}");
+      for (const text of [
+        ADD_OUTCOME_TEXT[outcome],
+        MATTERMOST_ADD_OUTCOME_TEXT[outcome],
+      ]) {
+        expect(text.self).toBeTruthy();
+        expect(text.other).toContain("{{name}}");
+        expect(text.self).not.toContain("{{name}}");
+      }
     }
   });
 
   test("the viewer joining is said; the people added are not - they appear in the list", () => {
     const sentences: Array<AddOutcomeSentence> = getAddOutcomeSentences({
+      workspaceType: WorkspaceType.Slack,
       viewerUserId: VIEWER,
       answer: {
         results: [
@@ -327,6 +585,7 @@ describe("what adding people says", () => {
 
   test("every problem is said, about the viewer as 'you' and about others by name", () => {
     const sentences: Array<AddOutcomeSentence> = getAddOutcomeSentences({
+      workspaceType: WorkspaceType.Slack,
       viewerUserId: VIEWER.toUpperCase(),
       answer: {
         results: [
@@ -368,6 +627,7 @@ describe("what adding people says", () => {
   test("a channel that took nobody is said by its state", () => {
     expect(
       getAddOutcomeSentences({
+        workspaceType: WorkspaceType.Slack,
         viewerUserId: VIEWER,
         answer: { channelState: WorkspaceChannelState.Archived, results: [] },
       }),
@@ -431,6 +691,7 @@ describe("what a pick in Add people says", () => {
   test("a person: added by name, or the viewer as 'you'", () => {
     expect(
       getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           results: [result(BOB, "Bob", WorkspaceChannelAddOutcome.Added)],
         },
@@ -441,6 +702,7 @@ describe("what a pick in Add people says", () => {
 
     expect(
       getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           results: [result(VIEWER, "Alice", WorkspaceChannelAddOutcome.Added)],
         },
@@ -455,6 +717,7 @@ describe("what a pick in Add people says", () => {
   test("a person in the channel already is said, in grey - not as a problem", () => {
     expect(
       getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           results: [result(BOB, "Bob", WorkspaceChannelAddOutcome.AlreadyIn)],
         },
@@ -474,6 +737,7 @@ describe("what a pick in Add people says", () => {
       count: number,
     ): Array<PeopleSearchNotice> => {
       return getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           results: [
             ...[BOB, CAROL, DAN].slice(0, count).map((userId: string) => {
@@ -505,6 +769,7 @@ describe("what a pick in Add people says", () => {
   test("a team whose people are all in the channel says so, so the pick is not silent", () => {
     expect(
       getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           results: [
             result(BOB, "Bob", WorkspaceChannelAddOutcome.AlreadyIn),
@@ -526,6 +791,7 @@ describe("what a pick in Add people says", () => {
   test("a team that added nobody and hit problems says only the problems", () => {
     expect(
       getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           results: [
             result(BOB, "Bob", WorkspaceChannelAddOutcome.AlreadyIn),
@@ -547,6 +813,7 @@ describe("what a pick in Add people says", () => {
   test("a channel that took nobody is said by its state", () => {
     expect(
       getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           channelState: WorkspaceChannelState.Unreachable,
           results: [],
@@ -568,6 +835,7 @@ describe("the problems of one pick", () => {
   test("several people with one problem: one sentence that names them all, in the language's list form", () => {
     expect(
       getAddProblemSentences({
+        workspaceType: WorkspaceType.Slack,
         results: [
           result(BOB, "Bob Jones", WorkspaceChannelAddOutcome.NotFound),
           result(CAROL, "Carol Lee", WorkspaceChannelAddOutcome.NotFound),
@@ -581,6 +849,7 @@ describe("the problems of one pick", () => {
 
     expect(
       getAddProblemSentences({
+        workspaceType: WorkspaceType.Slack,
         results: [BOB, CAROL, DAN, EVE].map((userId: string, index: number) => {
           return result(
             userId,
@@ -599,6 +868,7 @@ describe("the problems of one pick", () => {
   test("one person: the one-person sentence; the viewer: 'you', before the others", () => {
     expect(
       getAddProblemSentences({
+        workspaceType: WorkspaceType.Slack,
         results: [
           result(BOB, "Bob", WorkspaceChannelAddOutcome.Guest),
           result(VIEWER, "Alice", WorkspaceChannelAddOutcome.Guest),
@@ -616,6 +886,7 @@ describe("the problems of one pick", () => {
     expect(ADD_PROBLEM_ORDER).toEqual([
       WorkspaceChannelAddOutcome.NotFound,
       WorkspaceChannelAddOutcome.NotProjectMember,
+      WorkspaceChannelAddOutcome.NotInTeam,
       WorkspaceChannelAddOutcome.Guest,
       WorkspaceChannelAddOutcome.Refused,
       WorkspaceChannelAddOutcome.TryAgain,
@@ -623,6 +894,7 @@ describe("the problems of one pick", () => {
 
     expect(
       getAddProblemSentences({
+        workspaceType: WorkspaceType.Slack,
         results: [
           result(BOB, "Bob", WorkspaceChannelAddOutcome.TryAgain),
           result(CAROL, "Carol", WorkspaceChannelAddOutcome.NotProjectMember),
@@ -648,9 +920,15 @@ describe("the problems of one pick", () => {
     expect(Object.keys(ADD_PROBLEM_TEXT_FOR_SEVERAL).sort()).toEqual(
       [...problems].sort(),
     );
+    expect(Object.keys(MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL).sort()).toEqual(
+      [...problems].sort(),
+    );
     expect([...ADD_PROBLEM_ORDER].sort()).toEqual([...problems].sort());
 
-    for (const text of Object.values(ADD_PROBLEM_TEXT_FOR_SEVERAL)) {
+    for (const text of [
+      ...Object.values(ADD_PROBLEM_TEXT_FOR_SEVERAL),
+      ...Object.values(MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL),
+    ]) {
       expect(text).toContain("{{names}}");
       expect(text).not.toContain("{{name}}");
     }
@@ -678,6 +956,7 @@ describe("the problems of one pick", () => {
 
     expect(
       getAddProblemSentences({
+        workspaceType: WorkspaceType.Slack,
         results: [
           result(BOB, "Bob", WorkspaceChannelAddOutcome.Refused),
           result(CAROL, "Carol", WorkspaceChannelAddOutcome.Refused),
@@ -689,8 +968,24 @@ describe("the problems of one pick", () => {
       "Slack hat OneUptime nicht erlaubt, Bob und Carol hinzuzufügen.",
     ]);
 
+    // A Mattermost channel's, the same way, in its own product's words.
+    expect(
+      getAddProblemSentences({
+        workspaceType: WorkspaceType.Mattermost,
+        results: [
+          result(BOB, "Bob", WorkspaceChannelAddOutcome.NotInTeam),
+          result(CAROL, "Carol", WorkspaceChannelAddOutcome.NotInTeam),
+        ],
+        viewerUserId: VIEWER,
+        translator: translator,
+      }),
+    ).toEqual([
+      "Bob und Carol sind nicht in dem Mattermost-Team, mit dem dieses Projekt verbunden ist, daher kann OneUptime diese Personen nicht hinzufügen.",
+    ]);
+
     expect(
       getPickNotices({
+        workspaceType: WorkspaceType.Slack,
         answer: {
           results: [result(BOB, "Bob", WorkspaceChannelAddOutcome.Added)],
         },
@@ -704,6 +999,144 @@ describe("the problems of one pick", () => {
         text: "1 Person aus Plattform hinzugefügt.",
       },
     ]);
+  });
+});
+
+describe("what adding people to a Mattermost channel says", () => {
+  const WORKSPACE: WorkspaceType = WorkspaceType.Mattermost;
+
+  test("every problem names Mattermost, about the viewer as 'you' and about others by name", () => {
+    expect(
+      getAddOutcomeSentences({
+        workspaceType: WORKSPACE,
+        viewerUserId: VIEWER,
+        answer: {
+          results: [
+            result(VIEWER, "Alice", WorkspaceChannelAddOutcome.NotFound),
+            result(BOB, "Bob", WorkspaceChannelAddOutcome.NotInTeam),
+          ],
+        },
+      }),
+    ).toEqual([
+      {
+        template:
+          "OneUptime can't find your Mattermost account, so it can't add you.",
+        name: "Alice",
+        isProblem: true,
+      },
+      {
+        template:
+          "{{name}} isn't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+        name: "Bob",
+        isProblem: true,
+      },
+    ]);
+  });
+
+  test("a channel that took nobody is said by its state, in Mattermost's words", () => {
+    expect(
+      getAddOutcomeSentences({
+        workspaceType: WORKSPACE,
+        viewerUserId: VIEWER,
+        answer: { channelState: WorkspaceChannelState.Archived, results: [] },
+      }),
+    ).toEqual([
+      {
+        template:
+          "This channel is archived. Unarchive it in Mattermost to add people.",
+        name: "",
+        isProblem: true,
+      },
+    ]);
+    expect(
+      getPickNotices({
+        workspaceType: WORKSPACE,
+        answer: {
+          channelState: WorkspaceChannelState.Unavailable,
+          results: [],
+        },
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Problem,
+        text: "Mattermost didn't answer. Try again in a minute.",
+      },
+    ]);
+  });
+
+  test("a pick's problems, one person or several", () => {
+    expect(
+      getAddProblemSentences({
+        workspaceType: WORKSPACE,
+        results: [
+          result(BOB, "Bob Jones", WorkspaceChannelAddOutcome.NotFound),
+          result(CAROL, "Carol Lee", WorkspaceChannelAddOutcome.NotFound),
+          result(DAN, "Dan Brown", WorkspaceChannelAddOutcome.NotInTeam),
+          result(EVE, "Eve Stone", WorkspaceChannelAddOutcome.Refused),
+          result(FAY, "Fay Moon", WorkspaceChannelAddOutcome.TryAgain),
+        ],
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      "OneUptime can't find Bob Jones and Carol Lee in Mattermost: their accounts aren't connected, and OneUptime can't see Mattermost accounts with their email addresses. Ask them to connect Mattermost in User Settings.",
+      "Dan Brown isn't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+      "Mattermost didn't let OneUptime add Eve Stone.",
+      "Mattermost didn't answer for Fay Moon. Try again in a minute.",
+    ]);
+  });
+
+  test("several people outside the team are named in one sentence, and the viewer on their own", () => {
+    expect(
+      getAddProblemSentences({
+        workspaceType: WORKSPACE,
+        results: [
+          result(VIEWER, "Alice", WorkspaceChannelAddOutcome.NotInTeam),
+          result(BOB, "Bob", WorkspaceChannelAddOutcome.NotInTeam),
+          result(CAROL, "Carol", WorkspaceChannelAddOutcome.NotInTeam),
+        ],
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
+      "Bob and Carol aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+    ]);
+  });
+
+  test("somebody in it already and somebody added read as in any channel", () => {
+    expect(
+      getPickNotices({
+        workspaceType: WORKSPACE,
+        answer: {
+          results: [
+            result(BOB, "Bob", WorkspaceChannelAddOutcome.Added),
+            result(CAROL, "Carol", WorkspaceChannelAddOutcome.AlreadyIn),
+          ],
+        },
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      { tone: PeopleSearchNoticeTone.Done, text: "Added Bob." },
+      {
+        tone: PeopleSearchNoticeTone.Unchanged,
+        text: "Carol is already in this channel.",
+      },
+    ]);
+  });
+
+  test("Slack's channels never say Mattermost's words", () => {
+    expect(
+      getAddProblemSentences({
+        workspaceType: WorkspaceType.Slack,
+        results: [result(BOB, "Bob", WorkspaceChannelAddOutcome.NotInTeam)],
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual(["Slack didn't let OneUptime add Bob."]);
   });
 });
 
@@ -834,6 +1267,16 @@ describe("the card's words in every Dashboard language", () => {
         },
       ),
       ...Object.values(ADD_PROBLEM_TEXT_FOR_SEVERAL),
+      ...Object.values(MATTERMOST_CHANNEL_TEXT),
+      ...Object.values(MATTERMOST_CHANNEL_STATE_TEXT),
+      ...Object.values(MATTERMOST_ADD_OUTCOME_TEXT).flatMap(
+        (text: { self: string; other: string }) => {
+          return [text.self, text.other];
+        },
+      ),
+      ...Object.values(MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL),
+      ...Object.values(TEAMS_CHANNEL_TEXT),
+      ...Object.values(TEAMS_CHANNEL_STATE_TEXT),
       // Lists two or three names, as the grouped sentences fill {{names}}.
       "{{first}} and {{second}}",
       "{{first}}, {{second}} and {{third}}",
@@ -844,6 +1287,7 @@ describe("the card's words in every Dashboard language", () => {
       "Channel Member Added",
       "Open in Slack",
       "Open in Microsoft Teams",
+      "Open in Mattermost",
       "Try again",
     ]),
   );

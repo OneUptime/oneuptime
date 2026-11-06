@@ -6,7 +6,7 @@ Ela responde a quatro perguntas:
 
 :::cards
 - [Onde estão os nossos dados sensíveis?](/docs/data-security/data-types): 143 tipos de dados, de números de cartão e documentos nacionais de identidade a chaves de API, encontrados em buckets, tabelas e telemetria.
-- [Eles estão expostos?](/docs/data-security/checks-and-issues): 33 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
+- [Eles estão expostos?](/docs/data-security/checks-and-issues): 34 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
 - [Quem pode acessá-los, e para onde eles vão?](/docs/data-security/flows-access-residency): Cada identidade que pode acessar cada repositório, a mais arriscada primeiro, quais serviços o usam e quais provedores de IA e hosts os dados dele alcançam.
 - [Eles atendem às nossas regras?](/docs/data-security/compliance): Regras de residência, e nove estruturas de conformidade pontuadas a partir do que as varreduras encontraram.
 :::

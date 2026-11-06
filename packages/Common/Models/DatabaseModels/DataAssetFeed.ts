@@ -37,6 +37,12 @@ export enum DataAssetFeedEventType {
   ColumnTypeChanged = "ColumnTypeChanged",
   ColumnNullabilityChanged = "ColumnNullabilityChanged",
   DescriptionUpdated = "DescriptionUpdated",
+  OwnerUserAdded = "OwnerUserAdded",
+  OwnerUserRemoved = "OwnerUserRemoved",
+  OwnerTeamAdded = "OwnerTeamAdded",
+  OwnerTeamRemoved = "OwnerTeamRemoved",
+  OwnerRuleExecuted = "OwnerRuleExecuted",
+  LabelRuleExecuted = "LabelRuleExecuted",
 }
 
 const readPermissions: Array<Permission> = [

@@ -90,7 +90,7 @@ Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Be
 | **Einstellungen** | **Benutzerdefinierte Felder**, **Beschriftungsregeln** und **Eigentümerregeln** |
 | **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: Bereitschaft als Code einrichten |
 
-**Richtlinien**, **Zeitpläne** und **Eingehende Anrufe** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** listet die Chat-Werkzeuge, die das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat.
+**Richtlinien**, **Zeitpläne** und **Eingehende Anrufe** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** listet die Chat-Werkzeuge, die das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat.
 
 Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an. Klicken Sie darauf, um **Meine Bereitschaftsrichtlinien** zu öffnen: jede Richtlinie, für die Sie Bereitschaft haben, in all Ihren Projekten, und ob Sie direkt darin genannt sind, über ein Team oder über einen Plan.
 

@@ -1,0 +1,15 @@
+200 nova-services
+200 nova-hypervisors
+200 nova-hypervisors-before-2-88
+200 placement-providers
+200 ironic-nodes
+403 ironic-conductors
+200 ironic-versions
+500 ironic-drivers
+200 ironic-nodes-as-system
+200 ironic-conductors-as-system
+500 ironic-node-validate-ou-node-available
+503 ironic-node-validate-ou-node-half
+503 ironic-node-validate-ou-node-maintenance
+503 ironic-node-validate-ou-node-clean-failed
+503 ironic-node-validate-ou-node-deploy-failed

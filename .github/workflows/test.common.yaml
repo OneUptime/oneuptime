@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - master
+      - main
 
 jobs:
   # Common's `npm run test` used to pass --detectOpenHandles. Jest's scheduler

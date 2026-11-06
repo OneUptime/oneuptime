@@ -1,0 +1,2 @@
+ou-lb-pending stuck in PENDING_CREATE, for the same reason.
+On its own: the worker is still stopped, so the new load balancer is accepted and nothing builds it.

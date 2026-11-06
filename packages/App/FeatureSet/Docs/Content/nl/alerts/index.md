@@ -59,7 +59,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De lijst
 | **Waarschuwingen** | **Alle waarschuwingen** en **Actieve waarschuwingen**, waarvan de rode badge de waarschuwingen telt die nog niet zijn opgelost. |
 | **Episoden** | **Alle episodes** en **Actieve episodes**: gerelateerde waarschuwingen, gebundeld tot één probleem om aan te werken. |
 | **AI**            | **Inzichten**, **Logboeken** en **Instellingen**: wat OneUptime AI van je waarschuwingen heeft geleerd, alles wat het heeft gedaan en wat het mag doen. |
-| **Werkruimte**    | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Slack of Teams koppelen** als het er geen heeft. |
+| **Werkruimte**    | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft. |
 | **Regels**        | **Groeperingsregels**, **Bereikbaarheidsregels**, **Incidentregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **Herinneringsregels**. |
 | **Instellingen**  | **Status waarschuwing**, **Ernst van waarschuwing**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes**, **Nummering**. |
 

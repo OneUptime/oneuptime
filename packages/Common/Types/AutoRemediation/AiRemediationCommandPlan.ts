@@ -26,6 +26,10 @@ import {
   parseRemediationTrackRecord,
   RemediationTrackRecord,
 } from "./RemediationTrackRecord";
+import {
+  OpenStackChangeReach,
+  parseStoredOpenStackChangeReach,
+} from "../../Utils/AiRemediation/Resource/OpenStackChangeReach";
 
 /*
  * Defined in a leaf module of their own (no imports) so the pure kubectl
@@ -278,6 +282,14 @@ export interface AiRemediationCommand {
    * fix was proposed. Absent when it never ran there before.
    */
   trackRecord?: RemediationTrackRecord | undefined;
+  /*
+   * A change to an OpenStack cloud: how many instances and projects it touches,
+   * which, and what state their host is in, as the cloud's AI agent read them when
+   * the change was composed (`openstack dry-run <change>`). What a person approving
+   * it is told, and never written by the model. Facts, not what decides whether it
+   * runs: the agent reads all of it again just before it changes anything.
+   */
+  reach?: OpenStackChangeReach | undefined;
   execution?: AiRemediationCommandExecutionState | undefined;
   rollbackExecution?: AiRemediationCommandExecutionState | undefined;
 }
@@ -681,6 +693,7 @@ export class AiRemediationCommandPlanUtil {
           ? AiRemediationCommandPlanUtil.parseKubectlFacts(obj)
           : {}),
         ...AiRemediationCommandPlanUtil.parseDryRunFact(obj["dryRun"]),
+        ...AiRemediationCommandPlanUtil.parseReachFact(obj["reach"]),
         ...AiRemediationCommandPlanUtil.parseTrackRecordFact(
           obj["trackRecord"],
         ),
@@ -879,6 +892,16 @@ export class AiRemediationCommandPlanUtil {
     }
 
     return { dryRun };
+  }
+
+  // A stored reach, when well-formed; dropped otherwise, like every fact here.
+  public static parseReachFact(
+    value: unknown,
+  ): Pick<AiRemediationCommand, "reach"> {
+    const reach: OpenStackChangeReach | null =
+      parseStoredOpenStackChangeReach(value);
+
+    return reach ? { reach } : {};
   }
 
   /*

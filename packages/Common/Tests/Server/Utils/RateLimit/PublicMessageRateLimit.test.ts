@@ -99,6 +99,7 @@ const ALL_KINDS: Array<PublicMessageKind> = [
   PublicMessageKind.StatusPagePasswordReset,
   PublicMessageKind.StatusPageMagicLink,
   PublicMessageKind.PasswordReset,
+  PublicMessageKind.MagicLink,
   PublicMessageKind.SignUpEmail,
 ];
 
@@ -224,6 +225,11 @@ describe("the limits in force", () => {
         perClientLimit: 30,
         perContactLimit: 5,
       },
+      // An account's sign-in links: the same numbers as a status page's.
+      [PublicMessageKind.MagicLink]: {
+        perClientLimit: 30,
+        perContactLimit: 10,
+      },
       [PublicMessageKind.SignUpEmail]: {
         perClientLimit: 60,
         perContactLimit: 5,
@@ -301,6 +307,14 @@ describe("the limits in force", () => {
         config: PublicMessageRateLimitConfig,
       ): number => {
         return config.kinds[PublicMessageKind.PasswordReset].perContactLimit;
+      },
+      MAGIC_LINKS_PER_IP: (config: PublicMessageRateLimitConfig): number => {
+        return config.kinds[PublicMessageKind.MagicLink].perClientLimit;
+      },
+      MAGIC_LINKS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.MagicLink].perContactLimit;
       },
       SIGN_UP_EMAILS_PER_IP: (config: PublicMessageRateLimitConfig): number => {
         return config.kinds[PublicMessageKind.SignUpEmail].perClientLimit;

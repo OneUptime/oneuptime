@@ -193,6 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS CloudTrail | 投递到 CloudWatch Logs 的跟踪，由收集器的 `awscloudwatch` 接收器读取；对于在 **云** 下连接的账户，也可以用 [云审计日志](#读取云账户的审计日志) |
 | Google Cloud 审计日志 | 指向 Pub/Sub 的日志接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 读取；对于在 **云** 下连接的项目，也可以用 [云审计日志](#读取云账户的审计日志) |
 | Azure 活动和 Entra ID 日志 | 流式传输到 Event Hub 的诊断设置，由收集器的 `azureeventhub` 接收器以 `format: raw` 读取；对于在 **云** 下连接的订阅的活动日志，也可以用 [云审计日志](#读取云账户的审计日志) |
+| OpenStack 审计轨迹 | 云的通知和审计过滤器以 `driver = log` 发送到其日志，由代理的[日志配置档](/docs/telemetry/openstack#谁做了什么)读取 |
 | CEF、LEEF | 产品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
 | Palo Alto Networks、FortiGate、Cisco ASA | 防火墙自身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 转发 |
 | Kubernetes 审计日志 | API 服务器的审计日志文件，由收集器的 `filelog` 接收器读取 |
@@ -339,7 +340,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 通知 **狩猎发现了安全事件** 会写明狩猎及其搜索、运行发现的事件数量和读取的时间窗口，并链接到显示这些事件的狩猎页面；其中不包含任何事件本身的内容。每个人默认通过电子邮件和推送接收，并可在 **用户设置 → 通知设置** 中选择渠道。与其他例行邮件一样，它可能会被归入 [邮件汇总](/docs/emails/notification-rollup)。
 
-要将狩猎的发现发布到 Slack 或 Microsoft Teams，请在 **产品 → 安全事件 → 工作区 → Slack**（或 **Microsoft Teams**）中，在发布[安全案例](/docs/telemetry/security-cases#发布到-slack-和-microsoft-teams-频道)的规则下方，向 **狩猎规则** 添加规则。规则指定要发布到的频道（在 Microsoft Teams 中还包括聊天），以及（如果需要）它适用的狩猎，按 **狩猎名称** 匹配：名称等于、包含、以你的文本开头或以你的文本结尾。每当计划运行发现事件时，它会发布该狩猎、其搜索、事件数量和时间，并附上指向这些事件的链接，不含事件本身的任何内容。狩猎规则由可以设置安全剧本的角色设置，例如 Project Owner、Project Admin 或 Security Admin。
+要将狩猎的发现发布到 Slack、Microsoft Teams 或 Mattermost，请在 **产品 → 安全事件 → 工作区 → Slack**（或 **Microsoft Teams**、**Mattermost**）中，在发布[安全案例](/docs/telemetry/security-cases#发布到-slackmicrosoft-teams-和-mattermost-频道)的规则下方，向 **狩猎规则** 添加规则。规则指定要发布到的频道（在 Microsoft Teams 中还包括聊天），以及（如果需要）它适用的狩猎，按 **狩猎名称** 匹配：名称等于、包含、以你的文本开头或以你的文本结尾。每当计划运行发现事件时，它会发布该狩猎、其搜索、事件数量和时间，并附上指向这些事件的链接，不含事件本身的任何内容。狩猎规则由可以设置安全剧本的角色设置，例如 Project Owner、Project Admin 或 Security Admin。
 
 ### 将事件保存到案例
 

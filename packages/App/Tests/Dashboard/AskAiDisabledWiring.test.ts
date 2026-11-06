@@ -52,7 +52,7 @@ const readCode: ReadCodeFunction = (
 
 const HOOK: string = readCode("Components", "AIChat", "useAiChat.ts");
 
-const PANEL: string = readCode("Components", "AIChat", "AskAiDialog.tsx");
+const PANEL: string = readCode("Components", "AIChat", "AskAiPanel.tsx");
 
 const FULL_PAGE: string = readCode("Pages", "AICopilot", "AICopilot.tsx");
 
@@ -95,9 +95,9 @@ describe("the verdict is resolved once, in the hook both surfaces share", () => 
 });
 
 describe("the one front door closes", () => {
-  test("a reason to be off wins over every other view of the dialog", () => {
+  test("a reason to be off wins over every other view of the panel", () => {
     /*
-     * The dialog draws one view at a time: the notice, the history, a
+     * The panel draws one view at a time: the notice, the history, a
      * conversation or the start. The reason AI is off is read first, so
      * none of the others - and none of their composers - is ever drawn
      * while it stands.
@@ -107,7 +107,7 @@ describe("the one front door closes", () => {
     );
   });
 
-  test("the dialog shows the notice", () => {
+  test("the panel shows the notice", () => {
     expect(PANEL).toContain(
       '{view === "unavailable" && chat.unavailableReason ? (',
     );
@@ -116,24 +116,23 @@ describe("the one front door closes", () => {
     );
   });
 
-  test("the dialog withholds the composer entirely", () => {
+  test("the panel withholds the composer entirely", () => {
     /*
      * Withheld, not disabled: a greyed-out textarea still reads as "type here
      * and something will happen", and the send path is the thing that cannot
-     * work. The composer is drawn only by the start and the conversation.
+     * work. The composer is drawn only under the start and the conversation.
      */
-    expect(PANEL.split("composer={composer}").length - 1).toBe(1);
-    expect(PANEL).toContain('{view === "home" ? (');
-    expect(PANEL).toContain('{view === "conversation" ? (');
+    expect(PANEL.split("{composer}").length - 1).toBe(1);
+    expect(PANEL).toContain('{view === "home" || view === "conversation" ? (');
     expect(PANEL).toContain(
-      '<div className="mx-auto w-full max-w-3xl px-4 sm:px-6"> {composer} </div>',
+      '<div className="mx-auto w-full max-w-3xl px-4">{composer}</div>',
     );
   });
 
   test("the chat's own address draws no workspace of its own to close", () => {
     /*
      * It used to be a second design of the conversation, with its own
-     * early return for this notice. It opens the dialog now, which decides.
+     * early return for this notice. It opens the panel now, which decides.
      */
     expect(FULL_PAGE).toContain("openAskAi({");
     expect(FULL_PAGE).not.toContain("useAiChat(");

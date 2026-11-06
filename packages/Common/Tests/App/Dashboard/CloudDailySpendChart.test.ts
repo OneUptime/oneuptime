@@ -133,7 +133,9 @@ describe("the days still being reported", () => {
       });
 
     expect(
-      chart!.series.map((series: SeriesPoints) => series.seriesName),
+      chart!.series.map((series: SeriesPoints) => {
+        return series.seriesName;
+      }),
     ).toEqual(["Spend", "Still being reported"]);
 
     const values: (series: SeriesPoints) => Array<[string, number]> = (

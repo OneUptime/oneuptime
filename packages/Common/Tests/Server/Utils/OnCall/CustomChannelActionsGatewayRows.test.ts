@@ -56,6 +56,7 @@ type SentAs =
   | "telegram"
   | "slack"
   | "microsoftTeams"
+  | "mattermost"
   | "webhook"
   | "nothing";
 
@@ -69,6 +70,7 @@ const METHOD_COLUMN: Record<Exclude<SentAs, "nothing">, string> = {
   telegram: "userTelegramId",
   slack: "userSlackId",
   microsoftTeams: "userMicrosoftTeamsId",
+  mattermost: "userMattermostId",
   webhook: "userWebhookId",
 };
 
@@ -291,6 +293,7 @@ describe("the links are still only a gateway's or a custom channel's", () => {
     "telegram",
     "slack",
     "microsoftTeams",
+    "mattermost",
     "webhook",
     "nothing",
   ] as Array<SentAs>)(

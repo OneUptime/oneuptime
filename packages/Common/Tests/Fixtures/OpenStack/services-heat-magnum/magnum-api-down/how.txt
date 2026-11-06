@@ -1,0 +1,2 @@
+Magnum's API stopped.
+On its own: Magnum's API is stopped.

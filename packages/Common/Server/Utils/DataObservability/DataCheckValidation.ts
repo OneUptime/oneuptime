@@ -4,6 +4,8 @@ import {
   DataCheckType,
   doesAlertConditionNeedThreshold,
   isColumnCheckType,
+  isQueryCheckType,
+  isSampleableCheckType,
   MAX_ACCEPTED_VALUES,
 } from "../../../Types/DataObservability/DataCheckType";
 import { DataAssetColumn } from "../../../Types/DataObservability/DataAssetColumn";
@@ -29,6 +31,7 @@ export interface DataCheckDraft {
   referenceTableKey?: string | null | undefined;
   referenceColumnName?: string | null | undefined;
   customSql?: string | null | undefined;
+  samplePercent?: number | null | undefined;
   intervalInMinutes?: number | null | undefined;
   alertCondition?: DataCheckAlertCondition | null | undefined;
   alertThreshold?: number | null | undefined;
@@ -133,7 +136,29 @@ export function validateDataCheck(
     }
   }
 
-  if (type === DataCheckType.CustomSql) {
+  if (type === DataCheckType.FailingRows && draft.segmentColumn) {
+    throw new BadDataException(
+      "A Failing Rows check counts one query's rows, and has no segments. Add the column to the query, or use Custom SQL.",
+    );
+  }
+
+  if (draft.samplePercent !== undefined && draft.samplePercent !== null) {
+    const percent: number = Number(draft.samplePercent);
+
+    if (!isSampleableCheckType(type)) {
+      throw new BadDataException(
+        `A ${type} check needs every row: only a check that reads a rate can read a share of them.`,
+      );
+    }
+
+    if (!Number.isFinite(percent) || percent <= 0 || percent >= 100) {
+      throw new BadDataException(
+        "Sample Percent must be more than 0 and less than 100.",
+      );
+    }
+  }
+
+  if (isQueryCheckType(type)) {
     if (table.engine === "mongodb") {
       checkMongoPipeline(draft.customSql || "");
     } else {

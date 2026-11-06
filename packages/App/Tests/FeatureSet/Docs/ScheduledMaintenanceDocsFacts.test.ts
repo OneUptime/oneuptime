@@ -1063,7 +1063,7 @@ describe("what an event affects", () => {
       "Slack",
       "Microsoft Teams",
       "Mattermost",
-      "Connect Slack or Teams",
+      "Connect a workspace",
     ]);
     expect(affects).toContain(
       "the Slack, Microsoft Teams and Mattermost rules under **Workspace** post it to your channels.",
@@ -2157,7 +2157,7 @@ describe("the create form", () => {
     );
   });
 
-  it("folds Owners and Labels under More fields", () => {
+  it("folds Owners, Labels and Data Observability Databases under More fields", () => {
     expect(
       readCommonSource("UI/Components/FoldedSection/FoldedSectionTitles.ts"),
     ).toContain(
@@ -2168,9 +2168,9 @@ describe("the create form", () => {
     );
     expect(
       CREATE_PAGE.match(/collapsibleSection: advancedSection,/g)?.length,
-    ).toBe(2);
+    ).toBe(3);
     expect(creating).toContain(
-      "**Owners** and **Labels** wait under **More fields**, folded.",
+      "**Owners**, **Labels** and **Data Observability Databases** wait under **More fields**, folded.",
     );
   });
 
@@ -2287,6 +2287,7 @@ describe("starting from a resource or a template", () => {
         CreateFromRecordKind.DockerHost,
         CreateFromRecordKind.PodmanHost,
         CreateFromRecordKind.VMwareVCenter,
+        CreateFromRecordKind.OpenStackCloud,
         CreateFromRecordKind.StorageArray,
         CreateFromRecordKind.IoTFleet,
         CreateFromRecordKind.DatabaseServer,
@@ -2305,7 +2306,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 

@@ -52,6 +52,7 @@ const INFRA_TYPES: Array<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.OpenStack,
   MonitorType.VMware,
   MonitorType.Ceph,
   MonitorType.StorageArray,

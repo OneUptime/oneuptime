@@ -547,6 +547,7 @@ describe("each person's settings decide", () => {
     off.alertByTelegram = false;
     off.alertBySlack = false;
     off.alertByMicrosoftTeams = false;
+    off.alertByMattermost = false;
     off.alertByWebhook = false;
     off.alertByCustomChannel = false;
 

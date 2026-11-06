@@ -99,6 +99,7 @@ flowchart TB
 | 资产清单项 | `Inventory Item` |
 | 收集器配置 | `Collector Config` |
 | vCenter 服务器 | `vCenter` |
+| OpenStack 云，以及针对它们运行的检查 | `OpenStack Cloud`、`OpenStack Cloud Check` |
 | 抓包及其下载 | `Packet Capture` |
 | 安全案例及其优先级和状态、剧本及其运行、受保护的实体、实体重要性，以及被重置的实体风险 | `Security Case`、`Security Case Priority`、`Security Case Status`、`Security Playbook`、`Security Playbook Run`、`Protected Entity`、`Entity Criticality`、`Entity Risk` |
 | 规则例外 | `Rule Exception` |
@@ -107,6 +108,7 @@ flowchart TB
 | 狩猎 | `Hunt` |
 | 安全案例的任务和证据 | `Security Case Task`、`Security Case Evidence` |
 | 数据存储及其发现，以及数据安全的问题、设置、检查设置、自定义数据类型和数据驻留规则 | `Data Store`、`Data Store Finding`、`Data Security Issue`、`Data Security Setting`、`Check Setting`、`Custom Data Type`、`Residency Rule` |
+| 数据可观测性设置 | `Data Observability Setting` |
 | 审计日志导出 | `Audit Log Export` |
 
 当管理员在他人的账户上添加或移除通知方式或个人值班规则时，也会记录，但不包含地址或号码本身。

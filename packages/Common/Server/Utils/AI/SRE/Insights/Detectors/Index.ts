@@ -4,6 +4,7 @@ import ExceptionSpikeDetector from "./ExceptionSpikeDetector";
 import ErrorLogSpikeDetector from "./ErrorLogSpikeDetector";
 import TraceLatencyRegressionDetector from "./TraceLatencyRegressionDetector";
 import MetricDriftDetector from "./MetricDriftDetector";
+import DataDriftDetector from "./DataDriftDetector";
 import DeployRegressionDetector from "./DeployRegressionDetector";
 import ProfileHotspotDetector from "./ProfileHotspotDetector";
 import ExceptionMissingStackTraceDetector from "./ExceptionMissingStackTraceDetector";
@@ -42,6 +43,7 @@ export default class InsightDetectors {
       new TraceLatencyRegressionDetector(),
       new ErrorLogSpikeDetector(),
       new MetricDriftDetector(),
+      new DataDriftDetector(),
       new DeployRegressionDetector(),
     ];
   }

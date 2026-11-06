@@ -1,3 +1,7 @@
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import { OpenStackCloudFeedEventType } from "../../../Models/DatabaseModels/OpenStackCloudFeed";
+import OpenStackCloudFeedService from "../../../Server/Services/OpenStackCloudFeedService";
+import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
 import CephClusterFeedService from "../../../Server/Services/CephClusterFeedService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
@@ -57,6 +61,7 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
   AI_RESOURCE_TYPE_INFO,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { getJestSpyOn } from "../../Spy";
@@ -243,6 +248,19 @@ const WIRING: Array<ServiceWiring> = [
     linkMethod: "getHostMarkdownLink",
     editPermission: Permission.EditHost,
     readPermission: Permission.ReadHost,
+  },
+  {
+    resourceType: AiResourceType.OpenStackCloud,
+    service: OpenStackCloudService,
+    modelType: OpenStackCloud,
+    feedService: OpenStackCloudFeedService,
+    feedMethod: "createOpenStackCloudFeedItem",
+    idKey: "openStackCloudId",
+    eventKey: "openStackCloudFeedEventType",
+    updatedEvent: OpenStackCloudFeedEventType.OpenStackCloudUpdated,
+    linkMethod: "getOpenStackCloudMarkdownLink",
+    editPermission: Permission.EditOpenStackCloud,
+    readPermission: Permission.ReadOpenStackCloud,
   },
 ];
 
@@ -980,7 +998,7 @@ it("the wiring table covers every resource type", () => {
     }),
   ).toEqual(
     ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-      return !isCloudAiResourceType(type);
+      return !isCloudAiResourceType(type) && !isReadOnlyAiResourceType(type);
     }),
   );
 });

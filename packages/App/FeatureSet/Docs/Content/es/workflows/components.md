@@ -29,6 +29,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | Leer o cambiar incidentes, monitores y otros registros        | [Componentes de datos de OneUptime](#componentes-de-datos-de-oneuptime)  |
 | Abrir, reconocer y resolver incidentes o alertas por los problemas de otra herramienta | [Incidentes y alertas de otras herramientas](#incidentes-y-alertas-de-otras-herramientas) |
 | Reconocer o cerrar un problema de Zabbix | [Zabbix](#zabbix) |
+| Pedir a una persona que apruebe una corrección en una nube OpenStack | [Propose an OpenStack fix](#propose-an-openstack-fix) |
 
 Un bloque dedicado es mejor que uno genérico: el bloque de Slack conoce los límites de Slack, y un bloque de registros conoce los campos del registro, así que obtienes errores y registros más claros que con un bloque **API** que haga el mismo trabajo.
 
@@ -428,6 +429,28 @@ Para reconocer o cerrar, el bloque lee primero el problema. Un problema que Zabb
 
 **Updated** salta cuando Zabbix aceptó la actualización, y **Error** cuando no se pudo llegar a Zabbix o la rechazó, con el motivo de Zabbix: Zabbix responde a una solicitud rechazada con un estado de éxito, así que el bloque lee lo que respondió Zabbix en lugar de su estado. Devuelve **Summary**, lo que hizo en una frase.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Pide a una persona que apruebe un cambio en la nube OpenStack de la que trata una alerta o un incidente. Nunca hace el cambio. La corrección espera en la alerta o el incidente, y en los canales en los que publica, igual que una que propone OneUptime AI, sea cual sea el modo de corrección de la nube. Un flujo de trabajo no puede aprobar lo que propone.
+
+No necesita ningún modelo de IA, y pasa por las mismas reglas que una corrección que propone OneUptime AI: la política de comandos, los destinos de escritura y los destinos protegidos del agente, y la lectura que hace el agente de lo que toca el cambio. No se propone la evacuación de un host que sigue activo, ni una que el agente no puede leer por completo.
+
+| Ajuste | Qué hace |
+| ------ | -------- |
+| **ID de la alerta** | La alerta para la que es la corrección, normalmente el ID que devolvió tu disparador. Rellena este o **ID del incidente**, y la nube sale de aquello a lo que está vinculado el registro. |
+| **ID del incidente** | El incidente para el que es la corrección, normalmente el ID que devolvió tu disparador. Rellena este o **ID de la alerta**. |
+| **Comando** | El cambio que se propone, con la única grafía que acepta OneUptime. Consulta [los cambios que puede hacer una corrección](/docs/telemetry/openstack#correcciones). Puede usar valores de bloques anteriores, y se lee después de rellenarlos. |
+| **Por qué** | Lo que lee primero la persona que lo aprueba. Si se deja vacío, indica qué flujo de trabajo lo pidió. |
+| **OpenStack Cloud ID** | En **Más campos**. Solo para un registro vinculado a más de una nube, o a ninguna. |
+
+Devuelve **Suggestion ID** (la corrección que espera aprobación), **Tier** (Safe o Riskier, según lee OneUptime el comando) y **Already Waiting** (verdadero cuando el mismo cambio en esa nube ya estaba esperando, así que no se añadió un segundo).
+
+**Éxito** salta cuando ya se ha preguntado a una persona, sin esperar su respuesta. **Error** salta cuando no se propuso nada, con el motivo en **Error**: el comando se rechaza, todavía no se permiten correcciones en esa nube, o los flujos de trabajo de un proyecto han propuesto 20 correcciones en la última hora.
+
+La plantilla [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) es un buen punto de partida.
+
 ## Componentes de datos de OneUptime
 
 Para cada tipo de registro de OneUptime (monitores, incidentes, alertas, páginas de estado, políticas de guardia y muchos más), el panel **Añadir componente** tiene estos componentes: en **Recursos de OneUptime**, haz clic en el tipo de registro (**Explorar todos los recursos** tiene los que no se muestran), o busca por el nombre del tipo. Cada título se genera a partir del tipo de registro, así que el conjunto de Monitor dice:
@@ -485,9 +508,9 @@ Una consulta siempre se limita al proyecto en el que se ejecuta el flujo de trab
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Fields to pass on**, en los componentes Find y en los disparadores, se elige de una lista; su **Editar como JSON** muestra las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`.
+Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Fields to pass on**, en los componentes Find y en los disparadores, se elige de una lista; su **Editar como JSON** muestra las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`. Los campos de un registro relacionado van bajo su clave, como en `{"monitor": {"name": true}}`: `{"monitor": true}` solo transmite su ID.
 
-Los **campos personalizados** son una sola columna, `customFields`, que guarda el valor de cada campo personalizado con el nombre del campo. Los componentes Update solo cambian los campos personalizados que nombras, y todos los demás conservan su valor:
+Los **Campos personalizados** son una sola columna, `customFields`, que guarda el valor de cada campo personalizado con el nombre del campo. Los componentes Update solo cambian los campos personalizados que nombras, y todos los demás conservan su valor:
 
 ```json
 { "customFields": { "Notification Count": 1 } }
@@ -495,7 +518,11 @@ Los **campos personalizados** son una sola columna, `customFields`, que guarda e
 
 define **Notification Count** y deja los demás campos personalizados del registro como estaban. Pon un campo personalizado a `null` para vaciarlo, o pon el propio `customFields` a `null` para vaciarlos todos. Dos flujos de trabajo que actualizan a la vez campos personalizados distintos del mismo registro se aplican los dos. Esto vale solo para los componentes Update: la API de OneUptime escribe `customFields` completo, así que una solicitud a ella debe llevar todos los campos personalizados que quieras conservar.
 
+Cada campo personalizado del proyecto aparece como un campo propio dondequiera que un componente nombre los campos de un registro: en los campos que escribe un componente, con el control de su tipo y las opciones propias de un desplegable; en las condiciones de una consulta; en los valores que puede usar un paso posterior; y en los campos que vigila un disparador, para que un flujo de trabajo pueda ejecutarse cuando cambie un solo campo personalizado. Un campo personalizado de archivo se sube a un registro, así que es el único tipo que se queda en JSON.
+
 Rara vez escribes estas claves tú mismo. En los ajustes del componente, **Añadir un campo** (o **Añadir una condición** en una consulta) muestra las columnas del modelo por su nombre, con el tipo de valor que admite cada una. Búscalas por nombre, por clave de columna o por lo que hace el campo, y pulsa **Intro** para añadir la mejor coincidencia. En una creación, aparecen primero los campos sin los que no se puede crear el registro, después los campos principales del modelo (los que rellena por ti si los omites) y después todo lo demás.
+
+Un campo que apunta a otro registro, como la gravedad de un incidente, muestra los registros del proyecto por nombre: elige uno y su ID se escribe por ti. Una lista de registros, como las etiquetas de un incidente, funciona igual. Para usar en su lugar un valor de un paso anterior, pulsa `{ }` junto a la lista.
 
 Los campos que OneUptime rellena por sí mismo no se ofrecen al escribir un registro: el `_id` del registro, **Creado en**, **Actualizado en**, **Creado por el usuario**, los slugs, los números de registro y los estados de notificación. Quién creó, archivó o resolvió un registro, y cuándo, nunca lo define un flujo de trabajo: un registro que crea un flujo de trabajo no tiene creador, un valor que un flujo de trabajo envía para uno de esos campos junto a otros campos se ignora, y un Update que no envía nada más falla con un mensaje que los nombra. Una actualización solo ofrece los campos que pueden cambiar después de que exista un registro. Una consulta sí ofrece el ID, las marcas de tiempo y **Creado por el usuario**, porque son útiles para filtrar. **Eliminado el** no se ofrece en ningún sitio: los registros se eliminan del todo, así que siempre está vacío.
 

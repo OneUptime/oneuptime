@@ -7,7 +7,7 @@ import {
   getCloudMarketplacesContent,
 } from "../Utils/CloudMarketplaces";
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
-import Pricing from "../Utils/Pricing";
+import Pricing, { getWatchedTablePricingContent } from "../Utils/Pricing";
 import { SelfHostedContent, getSelfHostedContent } from "../Utils/SelfHosted";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import ejs from "ejs";
@@ -112,6 +112,7 @@ async function renderPricing(
   // The locals Routes.ts hands the page.
   const locals: Record<string, unknown> = {
     pricing: Pricing,
+    watchedTables: getWatchedTablePricingContent(),
     enableGoogleTagManager: false,
     seo: seoFor("/pricing"),
   };
@@ -277,6 +278,7 @@ describe("the pricing page's line about the cloud marketplaces", () => {
   test("is reported by the page's click listener, which every tagged link reaches", async () => {
     const html: string = await render("pricing.ejs", {
       pricing: Pricing,
+      watchedTables: getWatchedTablePricingContent(),
       enableGoogleTagManager: false,
       seo: seoFor("/pricing"),
       cloudMarketplaces: content,

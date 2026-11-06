@@ -99,6 +99,7 @@ flowchart TB
 | इन्वेंटरी आइटम | `Inventory Item` |
 | कलेक्टर कॉन्फ़िग | `Collector Config` |
 | vCenter सर्वर | `vCenter` |
+| OpenStack क्लाउड, और उन पर चलने वाली जाँचें | `OpenStack Cloud`, `OpenStack Cloud Check` |
 | पैकेट कैप्चर और उनके डाउनलोड | `Packet Capture` |
 | सुरक्षा केस और उनकी प्राथमिकताएँ व स्थितियाँ, प्लेबुक और उनके रन, संरक्षित एंटिटी, एंटिटी महत्व, और रीसेट किया गया एंटिटी जोखिम | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
 | नियम अपवाद | `Rule Exception` |
@@ -107,6 +108,7 @@ flowchart TB
 | हंट | `Hunt` |
 | सुरक्षा केस के कार्य और साक्ष्य | `Security Case Task`, `Security Case Evidence` |
 | डेटा स्टोर और उनके निष्कर्ष, और डेटा सुरक्षा की समस्याएं, सेटिंग्स, जांच सेटिंग्स, कस्टम डेटा प्रकार और डेटा रेजिडेंसी नियम | `Data Store`, `Data Store Finding`, `Data Security Issue`, `Data Security Setting`, `Check Setting`, `Custom Data Type`, `Residency Rule` |
+| डेटा ऑब्ज़र्वेबिलिटी की सेटिंग्स | `Data Observability Setting` |
 | ऑडिट लॉग एक्सपोर्ट | `Audit Log Export` |
 
 यह भी दर्ज होता है जब कोई एडमिन किसी और के खाते पर सूचना विधि या व्यक्तिगत ऑन-कॉल नियम जोड़ता या हटाता है, बिना खुद पते या नंबर के।

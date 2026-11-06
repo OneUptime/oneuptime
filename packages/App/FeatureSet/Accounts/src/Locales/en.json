@@ -67,6 +67,7 @@
     "forgotPassword": "Forgot password?",
     "signInWithSso": "Sign in with SSO",
     "signInWithMicrosoft": "Sign in with Microsoft",
+    "emailSignInLink": "Email me a sign-in link",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Generate Backup Codes",
       "skip": "Skip for now",
       "generateFailed": "No backup codes were returned. Please try again from User Profile > Two Factor Authentication."
+    },
+    "magicLink": {
+      "title": "Finish signing in",
+      "subtitle": "Use the button below to finish signing in with the link from your email.",
+      "submit": "Sign in",
+      "noLink": "This page needs the sign-in link from your email. Open the link again, or ask for a new one.",
+      "turnedOff": "Sign-in links are turned off on this server. Please sign in with your email and password.",
+      "requestNewLink": "Email me a new link",
+      "backToSignIn": "Back to sign in"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "We have emailed you the password reset link. Please do not forget to check spam.",
     "submitButton": "Send Password Reset Link",
     "rememberPasswordPrompt": "Remember your password?",
+    "loginLink": "Sign in."
+  },
+  "magicLink": {
+    "title": "Sign in with a link",
+    "subtitle": "Enter your email address and we'll send you a link that signs you in. No password needed.",
+    "submitButton": "Email me a sign-in link",
+    "sentTitle": "Check your email",
+    "sent": "If {{email}} has an account, a sign-in link is on its way. It works once and expires in {{minutes}} minutes.",
+    "notReceived": "Not in your inbox? Check your spam folder, or make sure you typed the address you signed up with.",
+    "sendAnother": "Send another link",
+    "knowPasswordPrompt": "Know your password?",
     "loginLink": "Sign in."
   },
   "resetPassword": {

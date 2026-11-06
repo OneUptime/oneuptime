@@ -52,6 +52,7 @@ type NameRefKey = keyof Pick<
   | "podmanHostNames"
   | "kubernetesClusterNames"
   | "proxmoxClusterNames"
+  | "openStackCloudNames"
   | "vmwareVCenterNames"
   | "cephClusterNames"
   | "storageArrayNames"
@@ -90,6 +91,23 @@ export default class MonitorStepResourceIdentity {
     }
 
     return this.dedupeRefs(refs);
+  }
+
+  // The metric filters a monitor scopes itself with, across its steps.
+  public static getMetricFilterAttributes(monitor: Monitor): JSONObject {
+    const merged: JSONObject = {};
+
+    for (const monitorStep of monitor.monitorSteps?.data
+      ?.monitorStepsInstanceArray || []) {
+      if (monitorStep.data) {
+        Object.assign(
+          merged,
+          this.collectMetricFilterAttributes({ stepData: monitorStep.data }),
+        );
+      }
+    }
+
+    return merged;
   }
 
   private static collectFromStep(input: {
@@ -239,6 +257,7 @@ export default class MonitorStepResourceIdentity {
     input.refs.kubernetesClusterNames.push(...logRefs.kubernetesClusterNames);
     input.refs.dockerSwarmClusterNames.push(...logRefs.dockerSwarmClusterNames);
     input.refs.proxmoxClusterNames.push(...logRefs.proxmoxClusterNames);
+    input.refs.openStackCloudNames.push(...logRefs.openStackCloudNames);
     input.refs.vmwareVCenterNames.push(...logRefs.vmwareVCenterNames);
     input.refs.cephClusterNames.push(...logRefs.cephClusterNames);
     input.refs.storageArrayNames.push(...logRefs.storageArrayNames);
@@ -466,6 +485,11 @@ export default class MonitorStepResourceIdentity {
           key: "proxmoxClusterNames",
           value: stepData.proxmoxMonitor?.clusterIdentifier,
         };
+      case MonitorType.OpenStack:
+        return {
+          key: "openStackCloudNames",
+          value: stepData.openstackMonitor?.cloudIdentifier,
+        };
       case MonitorType.VMware:
         /*
          * The `vmware.vcenter.name` the VMware Agent stamps. Returned
@@ -621,6 +645,7 @@ export default class MonitorStepResourceIdentity {
       stepData.dockerMonitor?.metricViewConfig,
       stepData.podmanMonitor?.metricViewConfig,
       stepData.proxmoxMonitor?.metricViewConfig,
+      stepData.openstackMonitor?.metricViewConfig,
       stepData.vmwareMonitor?.metricViewConfig,
       stepData.cephMonitor?.metricViewConfig,
       stepData.storageArrayMonitor?.metricViewConfig,
@@ -735,6 +760,7 @@ export default class MonitorStepResourceIdentity {
       kubernetesClusterNames: [],
       dockerSwarmClusterNames: [],
       proxmoxClusterNames: [],
+      openStackCloudNames: [],
       vmwareVCenterNames: [],
       cephClusterNames: [],
       storageArrayNames: [],

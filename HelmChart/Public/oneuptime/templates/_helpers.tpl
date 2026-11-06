@@ -499,6 +499,16 @@ the button when it is set; the secret is in oneuptime.env.runtime.
   value: {{ $.Values.dashboard.cnameRecord | default "" }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
   value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan | quote }}
+- name: WATCHED_TABLES_INCLUDED_PER_PROJECT
+  value: {{ $.Values.billing.watchedTables.includedPerProject | quote }}
+- name: WATCHED_TABLE_PRICE_IN_USD
+  value: {{ $.Values.billing.watchedTables.pricePerTableInUSD | quote }}
+- name: WATCHED_TABLE_VOLUME_THRESHOLD
+  value: {{ $.Values.billing.watchedTables.volumeThreshold | quote }}
+- name: WATCHED_TABLE_VOLUME_PRICE_IN_USD
+  value: {{ $.Values.billing.watchedTables.volumePricePerTableInUSD | quote }}
+- name: WATCHED_TABLE_STRIPE_PRICE_ID
+  value: {{ $.Values.billing.watchedTables.stripePriceId | default "" | quote }}
 - name: LOG_LEVEL
   value: {{ $.Values.logLevel }}
 - name: HTTP_PROTOCOL

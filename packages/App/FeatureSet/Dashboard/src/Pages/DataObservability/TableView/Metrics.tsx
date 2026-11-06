@@ -13,7 +13,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 const TableMetricsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { dataAssetId } = useTableViewContext();
+  const { dataAssetId, dataAsset } = useTableViewContext();
 
   return (
     <MetricsViewer
@@ -23,6 +23,11 @@ const TableMetricsPage: FunctionComponent<
       attributeFilterDisplayKeys={{
         [DataObservabilityAttribute.TableId]: "Table",
       }}
+      attributeFilterDisplayValues={
+        dataAsset?.assetKey
+          ? { [DataObservabilityAttribute.TableId]: dataAsset.assetKey }
+          : undefined
+      }
     />
   );
 };

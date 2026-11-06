@@ -34,6 +34,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import { getDraftFromGraph } from "../../../../Types/Workflow/WorkflowDraft";
+import { getWorkflowComponent } from "./WorkflowBuilderTools";
 
 /*
  * Derived from the model ACLs so the tool gates can never drift from RBAC.
@@ -270,10 +272,45 @@ interface WorkflowRunOutcome {
 export const ARCHIVED_WORKFLOW_NOTE: string =
   "This workflow is archived, so it does not run from any trigger. Unarchive it to run it again.";
 
+// More than this is more than a model can read and write back whole.
+const MAX_WORKFLOW_STEPS_TEXT_LENGTH: number = 48 * 1024;
+
+/*
+ * A workflow's steps as update_workflow takes them, with its secrets out: a
+ * saved password reads [hidden], and what else looks like one is redacted
+ * (Serializer), which the draft keeps as saved when it is written back. Whole or
+ * not at all: a draft cut short and written back would remove the rest.
+ */
+function describeWorkflowSteps(workflow: Workflow): {
+  text: string;
+  redactionCount: number;
+} {
+  const redacted: { text: string; count: number } = ToolResultSerializer.redact(
+    JSON.stringify(
+      getDraftFromGraph({
+        graph: workflow.graph,
+        getComponent: getWorkflowComponent,
+      }),
+    ),
+  );
+
+  if (redacted.text.length > MAX_WORKFLOW_STEPS_TEXT_LENGTH) {
+    return {
+      text: "\nThis workflow's steps are too long to read here, so they cannot be changed with update_workflow. Tell the user to change them in its Builder.",
+      redactionCount: 0,
+    };
+  }
+
+  return {
+    text: `\nIts steps and connections, as update_workflow takes them:\n${redacted.text}`,
+    redactionCount: redacted.count,
+  };
+}
+
 export const QueryWorkflowsTool: ObservabilityTool = {
   name: "query_workflows",
   description:
-    "Query automation workflows in this project. List mode returns each workflow (name, description, enabled) with its recent run outcomes — last run status/time and how many of the recent runs failed. Archived workflows are left out of the list, as they never run. Pass workflowId (from the list mode `id` field) to get detail mode: the workflow plus its most recent runs (status, startedAt, completedAt, duration) including the tail of the run log for failed runs — use that to answer 'why did this workflow fail?'. A run marked testRun was started by a person from the Builder while the workflow was turned off, not by its trigger.",
+    "Query automation workflows in this project. List mode returns each workflow (name, description, enabled) with its recent run outcomes — last run status/time and how many of the recent runs failed. Archived workflows are left out of the list, as they never run. Pass workflowId (from the list mode `id` field) to get detail mode: the workflow plus its most recent runs (status, startedAt, completedAt, duration) including the tail of the run log for failed runs — use that to answer 'why did this workflow fail?'. A run marked testRun was started by a person from the Builder while the workflow was turned off, not by its trigger. With includeSteps, detail mode also gives the workflow's steps and connections, as update_workflow takes them. A saved secret reads [hidden].",
   inputSchema: {
     type: "object",
     properties: {
@@ -286,6 +323,11 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         type: "number",
         description:
           "Detail mode only: maximum recent runs to return (default 10, max 20).",
+      },
+      includeSteps: {
+        type: "boolean",
+        description:
+          "Detail mode only: also give the workflow's steps and connections, to change them with update_workflow.",
       },
       limit: {
         type: "number",
@@ -320,6 +362,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
           isEnabled: true,
           isArchived: true,
           createdAt: true,
+          ...(ToolArgs.getBoolean(args, "includeSteps") ? { graph: true } : {}),
         },
         props: ctx.props,
       });
@@ -384,6 +427,11 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         createdAt: workflow.createdAt,
       };
 
+      const steps: { text: string; redactionCount: number } =
+        ToolArgs.getBoolean(args, "includeSteps")
+          ? describeWorkflowSteps(workflow)
+          : { text: "", redactionCount: 0 };
+
       const runRows: Array<JSONObject> = runs.map((run: WorkflowLog) => {
         const isFailedRun: boolean = run.workflowStatus
           ? RUN_FAILURE_STATUSES.has(run.workflowStatus)
@@ -420,17 +468,18 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         ToolResultSerializer.serializeRows(rows);
 
       return {
-        dataForLlm:
+        dataForLlm: `${
           workflow.isArchived === true
             ? `${ARCHIVED_WORKFLOW_NOTE}\n${serialized.text}`
-            : serialized.text,
+            : serialized.text
+        }${steps.text}`,
         rowCount: serialized.rowCount,
         citationLabel: `Workflow "${workflow.name}" (${runs.length} recent runs)`,
         citationTarget: {
           type: AIChatCitationTargetType.WorkflowView,
           params: { workflowId: workflowId.toString() },
         },
-        redactionCount: serialized.redactionCount,
+        redactionCount: serialized.redactionCount + steps.redactionCount,
         isTruncated: serialized.isTruncated,
         widget:
           runRows.length > 0

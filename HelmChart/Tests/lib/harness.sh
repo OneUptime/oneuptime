@@ -323,6 +323,85 @@ harness_namespace() {
     kubectl create namespace "$1" >/dev/null 2>&1 || true
 }
 
+# `helm template` of the chart, for the suites that check what it renders. On a
+# failure it reports and ends the suite.
+render() {
+    # render <output-file> [extra helm template arguments...]
+    local out="$1"
+    shift
+    if ! helm template oneuptime "$HELM_CHART_DIR" "$@" >"$out" 2>"${out}.err"; then
+        fail "helm template failed for $(basename "$out")"
+        sed 's/^/        /' "${out}.err"
+        harness_report
+        exit 1
+    fi
+}
+
+# Splits a rendered manifest into one file per pod-bearing object under
+# <dir>, named "<kind>@<metadata.name>": the chart's own Deployments,
+# StatefulSets, Jobs, CronJobs, DaemonSets and Pods (the `helm test` hook is
+# a bare Pod). Subchart output is left out: helm stamps every document with a
+# "# Source:" line, and only "oneuptime/templates/..." is this chart's own.
+split_workloads() {
+    # split_workloads <manifest> <dir>
+    mkdir -p "$2"
+    awk -v dir="$2" '
+        /^---[[:space:]]*$/ { flush(); next }
+        { doc = doc $0 "\n" }
+        END { flush() }
+        function flush(   kind, name, own, n, i, lines, line) {
+            if (doc == "") { return }
+            kind = ""; name = ""; own = 0
+            n = split(doc, lines, "\n")
+            for (i = 1; i <= n; i++) {
+                line = lines[i]
+                if (line ~ /^# Source: oneuptime\/templates\//) { own = 1 }
+                else if (kind == "" && line ~ /^kind:[[:space:]]/) {
+                    sub(/^kind:[[:space:]]*/, "", line); kind = line
+                }
+                else if (name == "" && line ~ /^  name:[[:space:]]/) {
+                    sub(/^  name:[[:space:]]*/, "", line); name = line
+                }
+            }
+            if (own && name != "" && (kind == "Deployment" || kind == "StatefulSet" || \
+                    kind == "Job" || kind == "CronJob" || kind == "DaemonSet" || kind == "Pod")) {
+                gsub(/["\047]/, "", name)
+                print doc > (dir "/" kind "@" name)
+                close(dir "/" kind "@" name)
+            }
+            doc = ""
+        }
+    ' "$1"
+}
+
+# Every image a rendered document runs, one per line, unquoted.
+images_of() {
+    # images_of <file>
+    awk '
+        /^[[:space:]]*(-[[:space:]]+)?image:[[:space:]]/ {
+            sub(/^[[:space:]]*(-[[:space:]]+)?image:[[:space:]]*/, "")
+            gsub(/["\047]/, "")
+            print
+        }
+    ' "$1"
+}
+
+# The value the first env entry named <name> carries in a rendered document.
+env_value_of() {
+    # env_value_of <file> <name>
+    awk -v want="$2" '
+        found && /^[[:space:]]*value:[[:space:]]/ {
+            sub(/^[[:space:]]*value:[[:space:]]*/, ""); gsub(/["\047]/, ""); print; exit
+        }
+        /^[[:space:]]*-[[:space:]]+name:[[:space:]]/ {
+            line = $0
+            sub(/^[[:space:]]*-[[:space:]]+name:[[:space:]]*/, "", line)
+            gsub(/["\047]/, "", line)
+            found = (line == want)
+        }
+    ' "$1"
+}
+
 # Prints the suite tally, hands it to run.sh when there is one, and returns
 # non-zero if anything failed -- call it as the last line of a suite.
 harness_report() {

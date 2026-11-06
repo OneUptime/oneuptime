@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"alles aus"| nothing["Nichts wird gesendet"]
 ```
 
-- Jede Zeile ist ein Ereignis und jede Spalte ein Kanal: E-Mail, SMS, Anruf, Push, WhatsApp, Telegram, Slack und Microsoft Teams sowie Webhook. Slack und Microsoft Teams sind nur dann Spalten, wenn das Projekt sie verbunden hat.
+- Jede Zeile ist ein Ereignis und jede Spalte ein Kanal: E-Mail, SMS, Anruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost und Webhook. Slack, Microsoft Teams und Mattermost sind nur dann Spalten, wenn das Projekt sie verbunden hat.
 - Ein eingeschalteter Kanal sendet an jede verifizierte Methode, die Sie darauf in diesem Projekt haben, nicht nur an eine.
 - Ein eingeschalteter Kanal ohne verifizierte Methode dahinter sendet nichts. **Ihre Einrichtungs-Checkliste** sagt das unter **Auf dem Laufenden bleiben**.
 - Eine Neuigkeit geht an die Eigentümer des Datensatzes: die als Eigentümer genannten Personen und die Mitglieder seiner Eigentümer-Teams. Hat ein Datensatz keine Eigentümer, geht sie stattdessen an die Eigentümer des Projekts. Ein Ereignis darüber, als Eigentümer hinzugefügt worden zu sein, geht nur an die hinzugefügte Person.

@@ -1,0 +1,2 @@
+manila-scheduler stopped cleanly.
+On its own: manila-scheduler was stopped cleanly.

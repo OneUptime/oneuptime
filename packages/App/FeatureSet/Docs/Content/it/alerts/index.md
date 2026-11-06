@@ -59,7 +59,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. L'elenco degli av
 | **Avvisi**         | **Tutti gli avvisi** e **Avvisi attivi**, il cui badge rosso conta gli avvisi non ancora risolti.                          |
 | **Episodi** | **Tutti gli episodi** e **Episodi attivi**: avvisi correlati, raggruppati in un unico problema su cui lavorare. |
 | **IA**             | **Informazioni**, **Registri** e **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri avvisi, tutto ciò che ha fatto e che cosa può fare. |
-| **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di ciò che il progetto ha collegato, o **Collega Slack o Teams** quando non ne ha nessuno. |
+| **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di ciò che il progetto ha collegato, o **Collega un'area di lavoro** quando non ne ha nessuno. |
 | **Regole**         | **Regole di raggruppamento**, **Regole di reperibilità**, **Regole degli incidenti**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole dei promemoria**. |
 | **Impostazioni**   | **Stato avviso**, **Gravità avviso**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi**, **Numerazione**. |
 

@@ -62,6 +62,7 @@ flowchart LR
 | AWS CloudTrail | 主控台登入、在您的 AWS 帳戶中所做的變更，以及被 AWS 拒絕的呼叫 |
 | Google Cloud 稽核日誌 | 在您的 Google Cloud 專案中所做的變更、被 Google 拒絕的呼叫，以及與 Google Cloud 共用的 Google Workspace 登入 |
 | Azure 活動與 Entra ID 日誌 | 在您的 Azure 訂用帳戶中所做的變更、Defender for Cloud 警示，以及 Microsoft Entra ID 的登入和目錄變更 |
+| OpenStack 稽核軌跡 | Keystone 中失敗的登入、角色授予與變更，稽核過濾器對每個 API 所看到的內容，對全世界開放的安全群組，以及被設為公開的映像檔 |
 | CEF | 傳送 Common Event Format 的防火牆、IDS、WAF 和其他安全性產品產生的威脅、被封鎖的連線和登入 |
 | LEEF | 來自傳送 Log Event Extended Format 的產品的同類內容，許多產品為 IBM QRadar 傳送這種格式 |
 | Palo Alto Networks | 來自 PAN-OS 本身 syslog 的威脅、被封鎖的連線、GlobalProtect 和管理員登入以及設定變更 |

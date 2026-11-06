@@ -1,0 +1,15 @@
+$ openstack container list
++--------------------+
+| Name               |
++--------------------+
+| ou-container-admin |
++--------------------+
+$ openstack object store account show
++------------+---------------------------------------+
+| Field      | Value                                 |
++------------+---------------------------------------+
+| Account    | AUTH_ae4a67bb74a44dddb73258c2b4fa0bb6 |
+| Bytes      | 0                                     |
+| Containers | 1                                     |
+| Objects    | 0                                     |
++------------+---------------------------------------+

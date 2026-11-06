@@ -8,9 +8,9 @@ import ts from "typescript";
  *
  * "Why do I have to enable a workflow in order to test run it?" A run that
  * carries startedByUserId goes ahead while the workflow is off, as a test
- * run (QueueWorkflow.addWorkflowToQueue). That is right for the two routes
- * behind the Builder's Run Workflow and Run just this step, which set it to
- * the signed-in caller they have just checked. Anywhere else it would be a
+ * run (QueueWorkflow.addWorkflowToQueue). That is right for the routes behind
+ * Run Workflow, Run just this step and Run again, which set it to the
+ * signed-in caller they have just checked. Anywhere else it would be a
  * hole in what off means: a webhook, a schedule, a OneUptime event, an
  * incoming email or another workflow's Execute Workflow step passing a
  * person would start a workflow somebody turned off on purpose.
@@ -19,7 +19,7 @@ import ts from "typescript";
  * addWorkflowToQueue, executeWorkflow or scheduleWorkflow, and each value
  * declared as an ExecuteWorkflowType - in the workflow service and in
  * Common's server code (and ee/'s, when it is there), and holds the
- * startedByUserId among them to those two routes, each setting it from the
+ * startedByUserId among them to those routes, each setting it from the
  * caller's own props.
  */
 
@@ -54,15 +54,22 @@ const PERSON_PROPERTY: string = "startedByUserId";
 const RUN_ACCESS_CHECK: RegExp =
   /WorkflowRunAccess\.assertMayRun(?:Workflow|Step)\(/;
 
-// The two routes behind the Builder, and what each sets the person from.
-const ALLOWED_STARTERS: ReadonlyArray<{ file: string; value: string }> = [
+// The routes a person runs a workflow through, and what each sets the person from.
+const ALLOWED_STARTERS: ReadonlyArray<{
+  file: string;
+  value: string;
+  // Manual.ts has Run Workflow and Run again.
+  routes: number;
+}> = [
   {
     file: "packages/App/FeatureSet/Workflow/API/Manual.ts",
     value: "databaseProps.userId",
+    routes: 2,
   },
   {
     file: "packages/App/FeatureSet/Workflow/API/RunStep.ts",
     value: "databaseProps.userId",
+    routes: 1,
   },
 ];
 
@@ -224,7 +231,7 @@ describe("who may hand the queue a person", () => {
     expect(RUN_REQUESTS_FOUND.length).toBeGreaterThanOrEqual(8);
   });
 
-  test("only the Builder's Run Workflow and Run just this step pass a person", () => {
+  test("only Run Workflow, Run just this step and Run again pass a person", () => {
     const withPerson: Array<string> = RUN_REQUESTS_FOUND.filter(
       (request: RunRequest): boolean => {
         return request.person !== null;
@@ -234,40 +241,50 @@ describe("who may hand the queue a person", () => {
     });
 
     expect(withPerson.sort()).toEqual(
-      ALLOWED_STARTERS.map((starter: { file: string }): string => {
-        return starter.file;
-      }).sort(),
+      ALLOWED_STARTERS.flatMap(
+        (starter: { file: string; routes: number }): Array<string> => {
+          return new Array<string>(starter.routes).fill(starter.file);
+        },
+      ).sort(),
     );
   });
 
   test.each(ALLOWED_STARTERS)(
     "$file sets the person from the caller it checked",
-    (starter: { file: string; value: string }) => {
+    (starter: { file: string; value: string; routes: number }) => {
       const requests: Array<RunRequest> = RUN_REQUESTS_FOUND.filter(
         (request: RunRequest): boolean => {
           return request.file === starter.file && request.person !== null;
         },
       );
 
-      expect(requests).toHaveLength(1);
-      expect(requests[0]!.person).toBe(starter.value);
+      expect(requests).toHaveLength(starter.routes);
 
-      // ...after the checks that make databaseProps.userId a member's.
+      for (const request of requests) {
+        expect(request.person).toBe(starter.value);
+      }
+
+      // ...each after the checks that make databaseProps.userId a member's.
       const source: string = fs.readFileSync(
         path.join(REPOSITORY_ROOT, starter.file),
         "utf8",
       );
-      const memberCheck: number = source.indexOf(
-        "CommonAPI.assertAuthenticatedProjectMember(databaseProps)",
-      );
-      const accessCheck: number = source.search(RUN_ACCESS_CHECK);
-      const queued: number = source.indexOf(
-        `${PERSON_PROPERTY}: ${starter.value}`,
-      );
+      const handlers: Array<string> = source
+        .split(`${PERSON_PROPERTY}: ${starter.value}`)
+        .slice(0, -1);
 
-      expect(memberCheck).toBeGreaterThan(-1);
-      expect(accessCheck).toBeGreaterThan(memberCheck);
-      expect(queued).toBeGreaterThan(accessCheck);
+      expect(handlers).toHaveLength(starter.routes);
+
+      for (const handler of handlers) {
+        // What comes before this run is asked for, since the one before it.
+        const memberCheck: number = handler.indexOf(
+          "CommonAPI.assertAuthenticatedProjectMember(databaseProps)",
+        );
+        const accessCheck: number = handler.search(RUN_ACCESS_CHECK);
+
+        expect(memberCheck).toBeGreaterThan(-1);
+        expect(accessCheck).toBeGreaterThan(memberCheck);
+      }
     },
   );
 });

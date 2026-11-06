@@ -146,6 +146,18 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     description:
       "A queue, topic or subscription the Queues product scopes messaging traces and broker metrics by. Never an inventory item of its own.",
   },
+  /*
+   * Membership-only like the two above: it keys an OpenStack part's traces and
+   * never becomes an inventory row. The OpenStack product's own pages list these.
+   */
+  [EntityType.OpenStackResource]: {
+    label: "OpenStack Resource",
+    pluralLabel: "OpenStack Resources",
+    category: InventoryCategory.Cloud,
+    icon: IconProp.Cloud,
+    description:
+      "A part of an OpenStack cloud, such as an instance or a volume, that a trace says it touched. Never an inventory item of its own.",
+  },
   [EntityType.RemoteService]: {
     label: "Remote Service",
     pluralLabel: "Remote Services",
@@ -234,6 +246,13 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.Proxmox,
     description: "A Proxmox VE cluster.",
   },
+  [EntityType.OpenStackCloud]: {
+    label: "OpenStack Cloud",
+    pluralLabel: "OpenStack Clouds",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.Cloud,
+    description: "An OpenStack cloud: one Keystone, with all its regions.",
+  },
   [EntityType.ProxmoxNode]: {
     label: "Proxmox Node",
     pluralLabel: "Proxmox Nodes",
@@ -241,12 +260,26 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.Server,
     description: "A hypervisor node in a Proxmox cluster.",
   },
+  [EntityType.OpenStackHypervisor]: {
+    label: "OpenStack Hypervisor",
+    pluralLabel: "OpenStack Hypervisors",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.Server,
+    description: "A compute host running instances in an OpenStack cloud.",
+  },
   [EntityType.ProxmoxGuest]: {
     label: "Proxmox Guest",
     pluralLabel: "Proxmox Guests",
     category: InventoryCategory.Clusters,
     icon: IconProp.ComputerDesktop,
     description: "A VM or container guest running on Proxmox.",
+  },
+  [EntityType.OpenStackInstance]: {
+    label: "OpenStack Instance",
+    pluralLabel: "OpenStack Instances",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.ComputerDesktop,
+    description: "A virtual machine running in an OpenStack project.",
   },
   [EntityType.VMwareVCenter]: {
     label: "vCenter",

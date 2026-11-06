@@ -28,6 +28,11 @@ import DashboardLabelRule from "../../../../Models/DatabaseModels/DashboardLabel
 import DashboardOwnerRule from "../../../../Models/DatabaseModels/DashboardOwnerRule";
 import DashboardOwnerTeam from "../../../../Models/DatabaseModels/DashboardOwnerTeam";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
+import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
+import DataAssetLabelRule from "../../../../Models/DatabaseModels/DataAssetLabelRule";
+import DataAssetOwnerRule from "../../../../Models/DatabaseModels/DataAssetOwnerRule";
+import DataAssetOwnerTeam from "../../../../Models/DatabaseModels/DataAssetOwnerTeam";
+import DataAssetOwnerUser from "../../../../Models/DatabaseModels/DataAssetOwnerUser";
 import DataStoreLabelRule from "../../../../Models/DatabaseModels/DataStoreLabelRule";
 import DataStoreOwnerRule from "../../../../Models/DatabaseModels/DataStoreOwnerRule";
 import DataStoreOwnerTeam from "../../../../Models/DatabaseModels/DataStoreOwnerTeam";
@@ -111,10 +116,15 @@ import PodmanHostOwnerRule from "../../../../Models/DatabaseModels/PodmanHostOwn
 import PodmanHostOwnerTeam from "../../../../Models/DatabaseModels/PodmanHostOwnerTeam";
 import PodmanHostOwnerUser from "../../../../Models/DatabaseModels/PodmanHostOwnerUser";
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
 import ProxmoxClusterLabelRule from "../../../../Models/DatabaseModels/ProxmoxClusterLabelRule";
+import OpenStackCloudLabelRule from "../../../../Models/DatabaseModels/OpenStackCloudLabelRule";
 import ProxmoxClusterOwnerRule from "../../../../Models/DatabaseModels/ProxmoxClusterOwnerRule";
+import OpenStackCloudOwnerRule from "../../../../Models/DatabaseModels/OpenStackCloudOwnerRule";
 import ProxmoxClusterOwnerTeam from "../../../../Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import OpenStackCloudOwnerTeam from "../../../../Models/DatabaseModels/OpenStackCloudOwnerTeam";
 import ProxmoxClusterOwnerUser from "../../../../Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import OpenStackCloudOwnerUser from "../../../../Models/DatabaseModels/OpenStackCloudOwnerUser";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
 import RumApplicationLabelRule from "../../../../Models/DatabaseModels/RumApplicationLabelRule";
 import RumApplicationOwnerRule from "../../../../Models/DatabaseModels/RumApplicationOwnerRule";
@@ -196,6 +206,11 @@ import DashboardLabelRuleService from "../../../Services/DashboardLabelRuleServi
 import DashboardOwnerRuleEngineService from "../../../Services/DashboardOwnerRuleEngineService";
 import DashboardOwnerRuleService from "../../../Services/DashboardOwnerRuleService";
 import DashboardService from "../../../Services/DashboardService";
+import DataAssetLabelRuleEngineService from "../../../Services/DataAssetLabelRuleEngineService";
+import DataAssetLabelRuleService from "../../../Services/DataAssetLabelRuleService";
+import DataAssetOwnerRuleEngineService from "../../../Services/DataAssetOwnerRuleEngineService";
+import DataAssetOwnerRuleService from "../../../Services/DataAssetOwnerRuleService";
+import DataAssetService from "../../../Services/DataAssetService";
 import DataStoreLabelRuleEngineService from "../../../Services/DataStoreLabelRuleEngineService";
 import DataStoreLabelRuleService from "../../../Services/DataStoreLabelRuleService";
 import DataStoreOwnerRuleEngineService from "../../../Services/DataStoreOwnerRuleEngineService";
@@ -281,10 +296,15 @@ import PodmanHostOwnerRuleEngineService from "../../../Services/PodmanHostOwnerR
 import PodmanHostOwnerRuleService from "../../../Services/PodmanHostOwnerRuleService";
 import PodmanHostService from "../../../Services/PodmanHostService";
 import ProxmoxClusterLabelRuleEngineService from "../../../Services/ProxmoxClusterLabelRuleEngineService";
+import OpenStackCloudLabelRuleEngineService from "../../../Services/OpenStackCloudLabelRuleEngineService";
 import ProxmoxClusterLabelRuleService from "../../../Services/ProxmoxClusterLabelRuleService";
+import OpenStackCloudLabelRuleService from "../../../Services/OpenStackCloudLabelRuleService";
 import ProxmoxClusterOwnerRuleEngineService from "../../../Services/ProxmoxClusterOwnerRuleEngineService";
+import OpenStackCloudOwnerRuleEngineService from "../../../Services/OpenStackCloudOwnerRuleEngineService";
 import ProxmoxClusterOwnerRuleService from "../../../Services/ProxmoxClusterOwnerRuleService";
+import OpenStackCloudOwnerRuleService from "../../../Services/OpenStackCloudOwnerRuleService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import RumApplicationLabelRuleEngineService from "../../../Services/RumApplicationLabelRuleEngineService";
 import RumApplicationLabelRuleService from "../../../Services/RumApplicationLabelRuleService";
 import RumApplicationOwnerRuleEngineService from "../../../Services/RumApplicationOwnerRuleEngineService";
@@ -502,6 +522,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: DashboardService,
     engine: DashboardOwnerRuleEngineService,
     ownerModelTypes: [DashboardOwnerUser, DashboardOwnerTeam],
+  }),
+  [RuleRunType.DataAssetLabelRule]: defineRuleRun({
+    ruleModelType: DataAssetLabelRule,
+    resourceModelType: DataAsset,
+    ruleService: DataAssetLabelRuleService,
+    resourceService: DataAssetService,
+    engine: DataAssetLabelRuleEngineService,
+  }),
+  [RuleRunType.DataAssetOwnerRule]: defineRuleRun({
+    ruleModelType: DataAssetOwnerRule,
+    resourceModelType: DataAsset,
+    ruleService: DataAssetOwnerRuleService,
+    resourceService: DataAssetService,
+    engine: DataAssetOwnerRuleEngineService,
+    ownerModelTypes: [DataAssetOwnerUser, DataAssetOwnerTeam],
   }),
   [RuleRunType.DataStoreLabelRule]: defineRuleRun({
     ruleModelType: DataStoreLabelRule,
@@ -767,6 +802,13 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: ProxmoxClusterService,
     engine: ProxmoxClusterLabelRuleEngineService,
   }),
+  [RuleRunType.OpenStackCloudLabelRule]: defineRuleRun({
+    ruleModelType: OpenStackCloudLabelRule,
+    resourceModelType: OpenStackCloud,
+    ruleService: OpenStackCloudLabelRuleService,
+    resourceService: OpenStackCloudService,
+    engine: OpenStackCloudLabelRuleEngineService,
+  }),
   [RuleRunType.ProxmoxClusterOwnerRule]: defineRuleRun({
     ruleModelType: ProxmoxClusterOwnerRule,
     resourceModelType: ProxmoxCluster,
@@ -774,6 +816,14 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: ProxmoxClusterService,
     engine: ProxmoxClusterOwnerRuleEngineService,
     ownerModelTypes: [ProxmoxClusterOwnerUser, ProxmoxClusterOwnerTeam],
+  }),
+  [RuleRunType.OpenStackCloudOwnerRule]: defineRuleRun({
+    ruleModelType: OpenStackCloudOwnerRule,
+    resourceModelType: OpenStackCloud,
+    ruleService: OpenStackCloudOwnerRuleService,
+    resourceService: OpenStackCloudService,
+    engine: OpenStackCloudOwnerRuleEngineService,
+    ownerModelTypes: [OpenStackCloudOwnerUser, OpenStackCloudOwnerTeam],
   }),
   [RuleRunType.RumApplicationLabelRule]: defineRuleRun({
     ruleModelType: RumApplicationLabelRule,

@@ -268,16 +268,6 @@ function createDeferred<T>(): Deferred<T> {
   return { promise: promise, resolve: resolve };
 }
 
-/*
- * Rejections are made by an async function, so they are native promises.
- * The UI telemetry in the import graph loads zone.js, whose Promise reports
- * a rejection as unhandled when a native await subscribes to it a tick
- * later, which would fill the log with false alarms.
- */
-async function rejectWith(error: unknown): Promise<never> {
-  throw error;
-}
-
 // Partial<T> under exactOptionalPropertyTypes forbids an explicit undefined.
 type MonitorOverrides = {
   [K in keyof Monitor]?: Monitor[K] | undefined;
@@ -842,7 +832,7 @@ beforeEach(() => {
       const failure: Error | undefined = server.monitorFailures.shift();
 
       if (failure) {
-        return rejectWith(failure);
+        return Promise.reject(failure);
       }
 
       const spec: MonitorSpec | null | undefined = server.monitors[monitorId];
@@ -869,7 +859,7 @@ beforeEach(() => {
       const isFull: boolean = Boolean(request.select["lastMonitoringLog"]);
 
       if (server.probeFailure) {
-        return rejectWith(server.probeFailure);
+        return Promise.reject(server.probeFailure);
       }
 
       return Promise.resolve(
@@ -927,7 +917,7 @@ beforeEach(() => {
       return Promise.resolve(listOf([]));
     }
 
-    return rejectWith(new Error("Unexpected list request"));
+    return Promise.reject(new Error("Unexpected list request"));
   });
 
   analyticsGetListSpy = jest.spyOn(AnalyticsModelAPI, "getList");
@@ -2089,9 +2079,7 @@ describe("Monitor overview page: the Summary card's last check", () => {
 
   test("until the evaluation log can be read, it is the scheduler's stamp", async () => {
     setUpStalledKubernetes();
-    analyticsGetListSpy.mockImplementation((): Promise<unknown> => {
-      return rejectWith(new Error("Logs are unavailable."));
-    });
+    analyticsGetListSpy.mockRejectedValue(new Error("Logs are unavailable."));
 
     await renderPage();
 

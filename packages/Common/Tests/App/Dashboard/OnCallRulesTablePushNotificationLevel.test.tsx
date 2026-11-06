@@ -181,6 +181,7 @@ const METHOD_RELATIONS: Array<string> = [
   "userTelegram",
   "userSlack",
   "userMicrosoftTeams",
+  "userMattermost",
   "userWebhook",
 ];
 

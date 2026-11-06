@@ -25,6 +25,7 @@ import { MonitorStepPodmanMonitorUtil } from "../../../Types/Monitor/MonitorStep
 import { MonitorStepDockerSwarmMonitorUtil } from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 import { MonitorStepKubernetesMonitorUtil } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import { MonitorStepOpenStackMonitorUtil } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepVMwareMonitorUtil } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorStepCephMonitorUtil } from "../../../Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
@@ -53,6 +54,10 @@ import {
   getAllProxmoxAlertTemplates,
   getProxmoxDefaultAlertTemplateId,
 } from "../../../Types/Monitor/ProxmoxAlertTemplates";
+import {
+  getAllOpenStackAlertTemplates,
+  getOpenStackDefaultAlertTemplateId,
+} from "../../../Types/Monitor/OpenStackAlertTemplates";
 import {
   getAllVMwareAlertTemplates,
   getVMwareDefaultAlertTemplateId,
@@ -116,6 +121,7 @@ import PodmanMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Comp
 import DockerSwarmMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/DockerSwarmMonitor/DockerSwarmMonitorStepForm";
 import KubernetesMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/KubernetesMonitor/KubernetesMonitorStepForm";
 import ProxmoxMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMonitorStepForm";
+import OpenStackMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMonitorStepForm";
 import VMwareMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMonitorStepForm";
 import CephMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephMonitorStepForm";
 import StorageArrayMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayMonitorStepForm";
@@ -215,6 +221,20 @@ const FORM_CASES: Array<FormCase> = [
       render(
         <ProxmoxMonitorStepForm
           monitorStepProxmoxMonitor={MonitorStepProxmoxMonitorUtil.getDefault()}
+          onChange={onChange}
+          onMonitorCriteriaChange={onCriteria}
+        />,
+      );
+    },
+  },
+  {
+    name: "OpenStack",
+    templates: getAllOpenStackAlertTemplates(),
+    defaultTemplateId: getOpenStackDefaultAlertTemplateId(),
+    render: (onChange: MockFunction, onCriteria: MockFunction): void => {
+      render(
+        <OpenStackMonitorStepForm
+          monitorStepOpenStackMonitor={MonitorStepOpenStackMonitorUtil.getDefault()}
           onChange={onChange}
           onMonitorCriteriaChange={onCriteria}
         />,

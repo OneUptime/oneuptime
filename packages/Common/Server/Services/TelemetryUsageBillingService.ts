@@ -30,6 +30,7 @@ import DockerHostService from "./DockerHostService";
 import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import OpenStackCloudService from "./OpenStackCloudService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
 import StorageArrayService from "./StorageArrayService";
@@ -40,6 +41,7 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
@@ -876,11 +878,29 @@ export class Service extends DatabaseService<Model> {
         limit: LIMIT_MAX,
         props: { isRoot: true },
       });
+
+    const openStackClouds: Array<OpenStackCloud> =
+      await OpenStackCloudService.findBy({
+        query: { projectId: projectId },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
     for (const proxmoxCluster of proxmoxClusters) {
       if (proxmoxCluster.id && proxmoxCluster.retainTelemetryDataForDays) {
         retentionByServiceId.set(
           proxmoxCluster.id.toString(),
           proxmoxCluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    for (const openStackCloud of openStackClouds) {
+      if (openStackCloud.id && openStackCloud.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          openStackCloud.id.toString(),
+          openStackCloud.retainTelemetryDataForDays,
         );
       }
     }

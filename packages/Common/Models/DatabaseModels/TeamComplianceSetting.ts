@@ -469,7 +469,7 @@ export default class TeamComplianceSetting extends BaseModel {
     allowedValues: Object.values(ComplianceNotificationChannel),
     title: "Notification Channel",
     description:
-      "Deprecated: use notificationChannels. The first of the rule's notification channels, or empty when it accepts any channel. Sending this field without notificationChannels sets the rule to that one channel (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams, Webhook or CustomChannel).",
+      "Deprecated: use notificationChannels. The first of the rule's notification channels, or empty when it accepts any channel. Sending this field without notificationChannels sets the rule to that one channel (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams, Mattermost, Webhook or CustomChannel).",
   })
   @Column({
     nullable: true,
@@ -502,7 +502,7 @@ export default class TeamComplianceSetting extends BaseModel {
     type: TableColumnType.JSON,
     title: "Notification Channels",
     description:
-      "On-call rules only: the channels members must be notified on, as a list - each member needs a rule on every one of them (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams, Webhook or CustomChannel, which any custom channel that is on meets). Leave empty to accept any channel.",
+      "On-call rules only: the channels members must be notified on, as a list - each member needs a rule on every one of them (Call, SMS, Push, Email, WhatsApp, Telegram, Slack, MicrosoftTeams, Mattermost, Webhook or CustomChannel, which any custom channel that is on meets). Leave empty to accept any channel.",
   })
   @Column({
     type: ColumnType.JSON,

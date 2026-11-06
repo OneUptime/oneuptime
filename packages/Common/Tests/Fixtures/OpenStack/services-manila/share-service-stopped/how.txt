@@ -1,0 +1,2 @@
+manila-share stopped cleanly, with shares still listed.
+On its own: manila-share was stopped cleanly, and Manila says stopped, not down.

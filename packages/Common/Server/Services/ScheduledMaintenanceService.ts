@@ -68,6 +68,9 @@ import StatusPageSubscriberService from "../../Server/Services/StatusPageSubscri
 import QueryHelper from "../../Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "../../Server/Types/Markdown";
 import logger, { LogAttributes } from "../../Server/Utils/Logger";
+import OpenStackMaintenanceReach from "../Utils/OpenStack/OpenStackMaintenanceReach";
+import OpenStackProjectNotices from "../Utils/OpenStack/OpenStackProjectNotices";
+import { readOpenStackMaintenanceParts } from "../../Types/OpenStack/OpenStackMaintenancePart";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
@@ -1873,6 +1876,13 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
       );
     }
 
+    // JSON a caller wrote: what quiets a host reads only what is really a part.
+    if (createBy.data.openStackParts !== undefined) {
+      createBy.data.openStackParts = readOpenStackMaintenanceParts(
+        createBy.data.openStackParts,
+      );
+    }
+
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
@@ -2315,6 +2325,25 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
               userId: createdItem.createdByUserId?.toString(),
             } as LogAttributes,
           );
+        }
+      })
+      .then(async () => {
+        // On a host or a zone of an OpenStack cloud: who that touches, for whoever planned it.
+        if (createdItem.projectId && createdItem.id) {
+          await OpenStackMaintenanceReach.nameInFeed({
+            projectId: createdItem.projectId,
+            scheduledMaintenanceId: createdItem.id,
+            openStackParts: createdItem.openStackParts,
+          });
+
+          // And whoever asked to hear about those projects, once they have seen who that tells.
+          await OpenStackProjectNotices.recordForMaintenance({
+            projectId: createdItem.projectId,
+            scheduledMaintenanceId: createdItem.id,
+            openStackParts: createdItem.openStackParts,
+            startsAt: createdItem.startsAt,
+            endsAt: createdItem.endsAt,
+          });
         }
       })
       .catch((error: Error) => {

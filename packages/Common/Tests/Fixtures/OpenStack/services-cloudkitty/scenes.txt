@@ -1,0 +1,4 @@
+no-rating-data recorded
+no-rule-yet recorded
+rated recorded
+api-down recorded

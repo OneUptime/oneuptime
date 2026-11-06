@@ -37,6 +37,7 @@ export const MONITOR_LINKED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "DockerHost",
   "PodmanHost",
   "ProxmoxCluster",
+  "OpenStackCloud",
   "VMwareVCenter",
   "CephCluster",
   "StorageArray",
@@ -53,6 +54,7 @@ export type MonitorLinkedResourceKey =
   | "dockerHosts"
   | "podmanHosts"
   | "proxmoxClusters"
+  | "openStackClouds"
   | "vmwareVCenters"
   | "cephClusters"
   | "storageArrays"
@@ -69,6 +71,7 @@ export const MONITOR_LINKED_RESOURCE_KEYS: Array<MonitorLinkedResourceKey> = [
   "dockerHosts",
   "podmanHosts",
   "proxmoxClusters",
+  "openStackClouds",
   "vmwareVCenters",
   "cephClusters",
   "storageArrays",
@@ -123,6 +126,7 @@ export const MONITOR_LINKED_RESOURCES_SELECT: Record<
   dockerHosts: { _id: true, name: true },
   podmanHosts: { _id: true, name: true },
   proxmoxClusters: { _id: true, name: true },
+  openStackClouds: { _id: true, name: true },
   vmwareVCenters: { _id: true, name: true },
   cephClusters: { _id: true, name: true },
   storageArrays: { _id: true, name: true },
@@ -261,6 +265,7 @@ export function buildPrefillPayload(data: {
     dockerHosts: undefined,
     podmanHosts: undefined,
     proxmoxClusters: undefined,
+    openStackClouds: undefined,
     vmwareVCenters: undefined,
     cephClusters: undefined,
     storageArrays: undefined,

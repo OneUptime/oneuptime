@@ -621,7 +621,7 @@ describe("a fix that waits for approval", () => {
     );
     expect(within(fix!).queryByTestId("remediation-approve-button")).toBeNull();
     expect(within(fix!).queryByTestId("remediation-dry-run-button")).toBeNull();
-    expect(within(fix!).queryByText("Dismiss")).toBeNull();
+    expect(within(fix!).queryByText("Dismiss fix")).toBeNull();
     expect(within(fix!).queryByTestId("remediation-approval-note")).toBeNull();
   });
 
@@ -666,7 +666,7 @@ describe("a fix that waits for approval", () => {
     expect(
       within(actions).getByTestId("remediation-approve-button"),
     ).toBeInTheDocument();
-    expect(within(actions).getByText("Dismiss")).toBeInTheDocument();
+    expect(within(actions).getByText("Dismiss fix")).toBeInTheDocument();
 
     fireEvent.click(review);
     expect(review).toHaveAttribute("aria-expanded", "false");
@@ -674,7 +674,7 @@ describe("a fix that waits for approval", () => {
     expect(document.activeElement).toBe(review);
     expect(detailsOf(plan)).toBeNull();
     expect(within(fix!).queryByTestId("remediation-approve-button")).toBeNull();
-    expect(within(fix!).queryByText("Dismiss")).toBeNull();
+    expect(within(fix!).queryByText("Dismiss fix")).toBeNull();
   });
 
   test("the plan's own press opens it the same way, Approve & Run with it", async () => {
@@ -756,7 +756,7 @@ describe("a fix that waits for approval", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Review and approve" }));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+      fireEvent.click(screen.getByRole("button", { name: "Dismiss fix" }));
     });
 
     const request: { url: { toString: () => string } } = postSpy.mock
@@ -800,7 +800,7 @@ describe("a fix that waits for approval", () => {
     ).toHaveTextContent(
       "This plan can't be approved: OneUptime AI no longer runs SSH commands.",
     );
-    expect(within(approval).getByText("Dismiss")).toBeInTheDocument();
+    expect(within(approval).getByText("Dismiss fix")).toBeInTheDocument();
     expect(within(fix!).queryByText("Approve & Run")).toBeNull();
     expect(
       within(fix!).queryByTestId("remediation-fix-details-toggle"),
@@ -847,7 +847,7 @@ describe("a fix that waits for approval", () => {
     expect(
       within(fix!).queryByTestId("remediation-fix-step-toggle"),
     ).toBeNull();
-    expect(within(fix!).getByText("Dismiss")).toBeInTheDocument();
+    expect(within(fix!).getByText("Dismiss fix")).toBeInTheDocument();
   });
 
   test("a plan that cannot be read says so, once, and opens to its reasoning alone", async () => {

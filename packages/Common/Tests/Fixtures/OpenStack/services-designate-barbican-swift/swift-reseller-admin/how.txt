@@ -1,0 +1,2 @@
+The same, read by a credential allowed into any account.
+On its own: this credential now has the role Swift lets into any account, which is what reading every project's usage takes.

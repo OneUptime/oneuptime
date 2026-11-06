@@ -270,7 +270,7 @@ flowchart TB
 
 - **인시던트 자체** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. `IncidentUpdated` 항목은 편집이 무엇을 바꿨는지 기록합니다. 제목, 설명, 근본 원인, 해결 노트, 레이블, 심각도, 모니터와 그 모니터에 설정한 상태, 그리고 인시던트의 범위에 추가되거나 빠진 상태 페이지입니다. 바뀐 값마다 한 줄이 있고 그대로 저장된 값은 줄이 없으므로, 아무것도 바꾸지 않고 카드를 저장하거나 API 클라이언트나 워크플로우가 인시던트를 그대로 다시 써도 항목이 전혀 추가되지 않습니다. 같게 읽히는 텍스트는 같은 것으로 보며(줄 끝과 앞뒤 공백은 제외), 레이블은 순서와 관계없이 같은 집합이면 같습니다. 지운 값은 제거된 것으로 읽히고, 모든 레이블을 떼면 "All labels removed."로 표시됩니다. 알림의 **Alert updated** 항목도 같은 방식으로 동작합니다.
 - **노트와 문서** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. `PostmortemNote` 항목은 포스트모템을 저장할 때마다가 아니라 포스트모템의 노트가 바뀔 때 기록됩니다.
-- **사람** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`, 그리고 `ChannelMemberAdded`입니다. 마지막은 **채널 멤버 추가됨**으로 표시되며, 인시던트 페이지에서 인시던트의 Slack 채널에 추가된 사람을 나타냅니다. [레코드 채널에 있는 사람](/docs/workspace-connections/slack#레코드-채널에-있는-사람)을 참고하세요.
+- **사람** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`, 그리고 `ChannelMemberAdded`입니다. 마지막은 **채널 멤버 추가됨**으로 표시되며, 인시던트 페이지에서 인시던트의 Slack 또는 Mattermost 채널에 추가된 사람을 나타냅니다. [레코드 채널에 있는 사람](/docs/workspace-connections/slack#레코드-채널에-있는-사람)을 참고하세요.
 - **연결된 알림** — `AlertLinked`와 `AlertUnlinked`로, **경고 연결됨**과 **경고 연결 해제됨**으로 표시됩니다.
 - **알림** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **자동화** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
@@ -306,7 +306,7 @@ flowchart TB
 - **인시던트 템플릿에서** — 템플릿에는 **소유자** 항목이 있습니다. 인시던트를 소유하고 생성되거나 업데이트될 때 알림을 받는 사람과 팀으로, **소유자 추가**와 같은 목록에서 고릅니다. 템플릿에서 인시던트를 만들면 미리 채워지고, 인시던트의 Slack과 Microsoft Teams 채널이 생긴 뒤에 추가되므로, 인시던트 소유자를 새 채널에 초대하는 알림 규칙은 이들도 초대합니다. 대시보드와, **Incident Template**을 고른 워크플로우의 **Create One Incident** 단계는 "추가되었습니다" 알림 없이 이들을 추가하고, 템플릿이 있는 [양식](/docs/forms/on-submit)은 이들에게 알리며 이들이 추가될 때까지 인시던트의 **인시던트 생성됨** 알림을 보류합니다. [인시던트 선언](/docs/incidents/declaring-incidents)을 참고하세요.
 - **인시던트 소유자 규칙에서** — 일치하는 규칙이 생성 시 자동으로 소유자를 추가합니다.
 - **API로 생성할 때** — 생성 호출과 함께 전달된 소유자 사용자와 팀도 채널이 생긴 뒤에 같은 방식으로, "추가되었습니다" 알림 없이 추가됩니다.
-- **직접** — 인시던트 중 언제든 **소유자** 페이지의 **소유자 추가** 컨트롤로 추가합니다. 인시던트가 열려 있는 동안에는 **개요** 헤더에서 소유자 아래의 **추가** 로도 추가할 수 있습니다.
+- **By hand** — 인시던트 중 언제든 **소유자** 페이지의 **소유자 추가** 컨트롤로 추가합니다. 인시던트가 열려 있는 동안에는 **개요** 헤더에서 소유자 아래의 **추가** 로도 추가할 수 있습니다.
 
 같은 사람을 두 번 추가해도 안전합니다. 이미 지정된 소유자는 중복되지 않습니다.
 
@@ -337,7 +337,7 @@ flowchart TB
 | **소유자로 추가됨**        | 여러분이 소유자로 추가될 때.                                 | `You have been added as the owner of Incident {number} - {title}` |
 | **아직 해결되지 않음**     | 인시던트의 다음 리마인더 시각에 따른 리마인더.               | `[Reminder] Incident {number} is still {state} - {title}`      |
 
-각 알림은 그 사람이 **사용자 설정 → 알림 설정**에서 켠 채널(이메일, SMS, 음성 통화, 푸시, WhatsApp, Telegram, Slack, Microsoft Teams, 웹훅)로 나가며, 실제로 무엇이 전송될지는 그것이 정합니다. 받는 사람은 각각을 따로 끌 수 있습니다. 사용자별 설정은 인시던트 생성, 노트 게시, 상태 변경, 소유자 추가, 구성원 할당, 아직 열려 있음 리마인더 알림을 보낼지로 표현되어 있습니다. 상태 변경 때만 전화를 받고 싶은 사람은 정확히 그렇게 할 수 있습니다. 상태 변경이 무엇을 뜻하는지는 [인시던트 상태 및 심각도](/docs/incidents/states-and-severities)를 참고하세요.
+각 알림은 그 사람이 **사용자 설정 → 알림 설정**에서 켠 채널(이메일, SMS, 음성 통화, 푸시, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, 웹훅)로 나가며, 실제로 무엇이 전송될지는 그것이 정합니다. 받는 사람은 각각을 따로 끌 수 있습니다. 사용자별 설정은 인시던트 생성, 노트 게시, 상태 변경, 소유자 추가, 구성원 할당, 아직 열려 있음 리마인더 알림을 보낼지로 표현되어 있습니다. 상태 변경 때만 전화를 받고 싶은 사람은 정확히 그렇게 할 수 있습니다. 상태 변경이 무엇을 뜻하는지는 [인시던트 상태 및 심각도](/docs/incidents/states-and-severities)를 참고하세요.
 
 **소유자가 없는 인시던트도 조용하지 않습니다.** 인시던트에 소유자가 전혀 없으면 알림 작업은 프로젝트 소유자에게 대신 보내므로, 아무것도 놓치지 않습니다. 템플릿에 소유자가 있는 양식으로 보고된 인시던트의 **인시던트 생성됨** 알림은 대신 그 소유자를 기다립니다. 알림받은 각 사람은 해당 피드 항목에도 추가되므로, 나중에 누구에게 어떤 주소로 알렸는지 정확히 확인할 수 있습니다.
 

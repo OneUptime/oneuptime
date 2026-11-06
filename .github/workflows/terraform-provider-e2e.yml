@@ -31,6 +31,7 @@ on:
     branches:
       - main
       - master
+      - main
       - develop
   # Nightly, on master. HashiCorp asks the providers it lists as Partner for
   # tests that run nightly as a GitHub Action, and it gives master a run on

@@ -39,67 +39,6 @@ AIR_GAPPED_VALUES="${TESTS_DIR}/air-gapped-values.yaml"
 REGISTRY="registry.example.com"
 PULL_SECRET="internal-registry"
 
-render() {
-    # render <output-file> [extra helm template arguments...]
-    local out="$1"
-    shift
-    if ! helm template oneuptime "$HELM_CHART_DIR" "$@" >"$out" 2>"${out}.err"; then
-        fail "helm template failed for $(basename "$out")"
-        sed 's/^/        /' "${out}.err"
-        harness_report
-        exit 1
-    fi
-}
-
-# Splits a rendered manifest into one file per pod-bearing object under
-# <dir>, named "<kind>@<metadata.name>": the chart's own Deployments,
-# StatefulSets, Jobs, CronJobs, DaemonSets and Pods (the `helm test` hook is
-# a bare Pod). Subchart output is left out: helm stamps every document with a
-# "# Source:" line, and only "oneuptime/templates/..." is this chart's own.
-split_workloads() {
-    # split_workloads <manifest> <dir>
-    mkdir -p "$2"
-    awk -v dir="$2" '
-        /^---[[:space:]]*$/ { flush(); next }
-        { doc = doc $0 "\n" }
-        END { flush() }
-        function flush(   kind, name, own, n, i, lines, line) {
-            if (doc == "") { return }
-            kind = ""; name = ""; own = 0
-            n = split(doc, lines, "\n")
-            for (i = 1; i <= n; i++) {
-                line = lines[i]
-                if (line ~ /^# Source: oneuptime\/templates\//) { own = 1 }
-                else if (kind == "" && line ~ /^kind:[[:space:]]/) {
-                    sub(/^kind:[[:space:]]*/, "", line); kind = line
-                }
-                else if (name == "" && line ~ /^  name:[[:space:]]/) {
-                    sub(/^  name:[[:space:]]*/, "", line); name = line
-                }
-            }
-            if (own && name != "" && (kind == "Deployment" || kind == "StatefulSet" || \
-                    kind == "Job" || kind == "CronJob" || kind == "DaemonSet" || kind == "Pod")) {
-                gsub(/["\047]/, "", name)
-                print doc > (dir "/" kind "@" name)
-                close(dir "/" kind "@" name)
-            }
-            doc = ""
-        }
-    ' "$1"
-}
-
-# Every image a rendered document runs, one per line, unquoted.
-images_of() {
-    # images_of <file>
-    awk '
-        /^[[:space:]]*(-[[:space:]]+)?image:[[:space:]]/ {
-            sub(/^[[:space:]]*(-[[:space:]]+)?image:[[:space:]]*/, "")
-            gsub(/["\047]/, "")
-            print
-        }
-    ' "$1"
-}
-
 # The nameservers a rendered pod spec lists under dnsConfig, one per line.
 nameservers_of() {
     # nameservers_of <file>
@@ -108,22 +47,6 @@ nameservers_of() {
         /^[[:space:]]*nameservers:[[:space:]]*$/ { inblock = 1; indent = match($0, /[^ ]/); next }
         inblock && /^[[:space:]]*-[[:space:]]/ { sub(/^[[:space:]]*-[[:space:]]*/, ""); gsub(/["\047]/, ""); print; next }
         inblock && /^[[:space:]]*[a-zA-Z]/ { if (match($0, /[^ ]/) <= indent) { inblock = 0 } }
-    ' "$1"
-}
-
-# The value the first env entry named <name> carries in a rendered document.
-env_value_of() {
-    # env_value_of <file> <name>
-    awk -v want="$2" '
-        found && /^[[:space:]]*value:[[:space:]]/ {
-            sub(/^[[:space:]]*value:[[:space:]]*/, ""); gsub(/["\047]/, ""); print; exit
-        }
-        /^[[:space:]]*-[[:space:]]+name:[[:space:]]/ {
-            line = $0
-            sub(/^[[:space:]]*-[[:space:]]+name:[[:space:]]*/, "", line)
-            gsub(/["\047]/, "", line)
-            found = (line == want)
-        }
     ' "$1"
 }
 

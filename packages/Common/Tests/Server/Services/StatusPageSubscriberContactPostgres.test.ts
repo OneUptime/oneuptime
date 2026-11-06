@@ -33,6 +33,7 @@ import {
   test,
 } from "@jest/globals";
 import { DataSource } from "typeorm";
+import { dropSchemaOneTableAtATime } from "../../Helpers/DropSchemaOneTableAtATime";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -215,7 +216,7 @@ describePostgres(
       }
 
       if (database?.isInitialized) {
-        await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+        await dropSchemaOneTableAtATime(database, schema);
         await database.destroy();
       }
     });

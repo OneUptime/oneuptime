@@ -46,15 +46,22 @@ export class LazyLibrary<T> {
   }
 }
 
+export interface LazyLibraryLoad<T> {
+  // The library, once it is there: null while it loads and if it cannot.
+  library: T | null;
+  // Why it could not load, for a component that must say so.
+  error: Error | null;
+}
+
 /*
- * A library for a component that needs it, once it is there: null while it
- * loads, if it cannot, and while the component does not need it - nothing is
- * loaded for it then.
+ * A library for a component that needs it, and how its load went: nothing is
+ * loaded while the component does not need it. For a component that cannot
+ * draw without it - a form's code editor - and so has to say when it cannot.
  */
-export function useLazyLibrary<T>(
+export function useLazyLibraryLoad<T>(
   library: LazyLibrary<T>,
   isNeeded: boolean,
-): T | null {
+): LazyLibraryLoad<T> {
   /*
    * Boxed: state set to a function would be taken for an update, and a
    * library may be one.
@@ -63,8 +70,12 @@ export function useLazyLibrary<T>(
     const loaded: T | null = library.getLoaded();
     return loaded === null ? null : { library: loaded };
   });
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Only what this ask comes to counts.
+    setError(null);
+
     if (!isNeeded || arrived) {
       return;
     }
@@ -77,8 +88,12 @@ export function useLazyLibrary<T>(
           setArrived({ library: loaded });
         }
       },
-      (): void => {
-        // The component stays as it is drawn without it.
+      (loadError: unknown): void => {
+        if (isMounted) {
+          setError(
+            loadError instanceof Error ? loadError : new Error(`${loadError}`),
+          );
+        }
       },
     );
 
@@ -87,5 +102,20 @@ export function useLazyLibrary<T>(
     };
   }, [library, isNeeded, arrived]);
 
-  return isNeeded && arrived ? arrived.library : null;
+  return {
+    library: isNeeded && arrived ? arrived.library : null,
+    error: error,
+  };
+}
+
+/*
+ * A library for a component that can do without it, once it is there: null
+ * while it loads, if it cannot - the component stays as it is drawn without
+ * it - and while the component does not need it.
+ */
+export function useLazyLibrary<T>(
+  library: LazyLibrary<T>,
+  isNeeded: boolean,
+): T | null {
+  return useLazyLibraryLoad(library, isNeeded).library;
 }

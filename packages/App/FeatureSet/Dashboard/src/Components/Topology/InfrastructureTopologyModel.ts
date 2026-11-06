@@ -935,6 +935,7 @@ const PASS_THROUGH_TYPES: Set<string> = new Set<string>([
   EntityType.KubernetesCluster,
   EntityType.KubernetesNamespace,
   EntityType.ProxmoxCluster,
+  EntityType.OpenStackCloud,
   EntityType.VMwareVCenter,
   EntityType.VMwareCluster,
   EntityType.CephCluster,

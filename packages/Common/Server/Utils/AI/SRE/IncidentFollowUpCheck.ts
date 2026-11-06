@@ -31,8 +31,9 @@ import LinkedInfrastructureContext, {
   LinkedInfrastructureResource,
   describeAlertNumber,
   describeLinkedResource,
-  describeLinkedResourceKind,
+  describeLinkedResourceNoun,
   describeOpenedAfterDeclared,
+  getLinkedResourceActivityKind,
   describeRelativeTime,
 } from "./LinkedInfrastructureContext";
 
@@ -614,7 +615,7 @@ export default class IncidentFollowUpCheck {
       context.alertTitle,
     );
     const where: MarkdownText = resource
-      ? mdText`${describeLinkedResourceKind(resource.type)} ${resource.name}`
+      ? mdText`${describeLinkedResourceNoun(resource)} ${resource.name}`
       : mdText`infrastructure linked to this incident`;
 
     return title
@@ -650,7 +651,8 @@ export default class IncidentFollowUpCheck {
     const activity: FollowUpCheckActivity = {
       alertNumber: context.alertNumber,
       alertNumberWithPrefix: context.alertNumberWithPrefix,
-      resourceKind: resource?.type || "",
+      // An App Platforms environment as what it is, not "Cloud resource".
+      resourceKind: resource ? getLinkedResourceActivityKind(resource) : "",
       resourceName: resource?.name || "",
       minutesAfterIncident: Math.max(
         0,

@@ -85,11 +85,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-/*
- * A refused request is an async function that throws, not
- * mockRejectedValue: the card's imports load zone.js, whose patched Promise
- * reports a rejected one as unhandled although the card catches it.
- */
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
@@ -1026,9 +1021,7 @@ describe("Reset Link", () => {
 
   // Nobody knows whether there are some: the question promises nothing.
   test("when the custom domains could not be read, says nothing of them", async () => {
-    getListMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("The server is down");
-    });
+    getListMock.mockRejectedValue(new Error("The server is down"));
 
     await renderLoadedCard();
 
@@ -1123,9 +1116,9 @@ describe("Reset Link", () => {
   });
 
   test("a refused reset keeps the old link and says why", async () => {
-    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error("You do not have permission to update this form.");
-    });
+    updateByIdMock.mockRejectedValue(
+      new Error("You do not have permission to update this form."),
+    );
 
     await renderLoadedCard();
 

@@ -62,6 +62,7 @@ Kortet **Dina loggar**, högst upp på **Anslutningar**, behöver ingen installa
 | AWS CloudTrail | Inloggningar i konsolen, ändringar i dina AWS-konton och anrop som AWS nekade |
 | Google Cloud-granskningsloggar | Ändringar i dina Google Cloud-projekt, anrop som Google nekade och inloggningar i Google Workspace som delas med Google Cloud |
 | Azure-aktivitetsloggar och Entra ID-loggar | Ändringar i dina Azure-prenumerationer, larm från Defender for Cloud, samt inloggningar och katalogändringar i Microsoft Entra ID |
+| Granskningsspår för OpenStack | Misslyckade inloggningar, rolltilldelningar och ändringar i Keystone, vad granskningsfiltret såg av varje API, säkerhetsgrupper som öppnats mot hela världen och avbildningar som gjorts offentliga |
 | CEF | Hot, blockerade anslutningar och inloggningar från brandväggar, IDS, WAF:ar och andra säkerhetsprodukter som skickar Common Event Format |
 | LEEF | Samma sak från produkter som skickar Log Event Extended Format, som många gör för IBM QRadar |
 | Palo Alto Networks | Hot, blockerade anslutningar, GlobalProtect- och administratörsinloggningar samt konfigurationsändringar från PAN-OS egen syslog |

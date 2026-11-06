@@ -12,6 +12,7 @@ import PodmanHostService from "../../Services/PodmanHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
 import StorageArrayService from "../../Services/StorageArrayService";
@@ -167,6 +168,10 @@ function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
     [
       "proxmoxClusterId",
       { service: ProxmoxClusterService, identifierField: null },
+    ],
+    [
+      "openStackCloudId",
+      { service: OpenStackCloudService, identifierField: null },
     ],
     [
       "vmwareVCenterId",

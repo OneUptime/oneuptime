@@ -1,0 +1,3 @@
+# HELP openstack_nova_up up
+# TYPE openstack_nova_up gauge
+openstack_nova_up 0

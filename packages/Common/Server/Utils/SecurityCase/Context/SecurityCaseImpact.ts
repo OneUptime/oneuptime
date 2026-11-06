@@ -71,6 +71,8 @@ import HostOwnerUserService from "../../../Services/HostOwnerUserService";
 import HostService from "../../../Services/HostService";
 import InventoryItemService from "../../../Services/InventoryItemService";
 import KubernetesClusterOwnerTeamService from "../../../Services/KubernetesClusterOwnerTeamService";
+import OpenStackCloudOwnerTeamService from "../../../Services/OpenStackCloudOwnerTeamService";
+import OpenStackCloudOwnerUserService from "../../../Services/OpenStackCloudOwnerUserService";
 import KubernetesClusterOwnerUserService from "../../../Services/KubernetesClusterOwnerUserService";
 import MonitorOwnerTeamService from "../../../Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../Services/MonitorOwnerUserService";
@@ -181,6 +183,11 @@ const OWNER_TABLES: Partial<Record<SecurityConnectionKind, OwnerTables>> = {
     column: "kubernetesClusterId",
     teams: KubernetesClusterOwnerTeamService as unknown as OwnerRowsReader,
     users: KubernetesClusterOwnerUserService as unknown as OwnerRowsReader,
+  },
+  [SecurityConnectionKind.OpenStackCloud]: {
+    column: "openStackCloudId",
+    teams: OpenStackCloudOwnerTeamService as unknown as OwnerRowsReader,
+    users: OpenStackCloudOwnerUserService as unknown as OwnerRowsReader,
   },
   [SecurityConnectionKind.DockerHost]: {
     column: "dockerHostId",

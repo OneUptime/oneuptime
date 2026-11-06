@@ -286,6 +286,7 @@ export const CONNECTION_KIND_LABELS: Readonly<
   [SecurityConnectionKind.PodmanHost]: translationKey("Podman Host"),
   [SecurityConnectionKind.KubernetesCluster]:
     translationKey("Kubernetes Cluster"),
+  [SecurityConnectionKind.OpenStackCloud]: translationKey("OpenStack Cloud"),
   [SecurityConnectionKind.NetworkDevice]: translationKey("Network Device"),
   [SecurityConnectionKind.CloudResource]: translationKey("Cloud Resource"),
   [SecurityConnectionKind.ServerlessFunction]: translationKey(
@@ -307,6 +308,7 @@ export const CONNECTION_KIND_PLURALS: Readonly<
   [SecurityConnectionKind.KubernetesCluster]: translationKey(
     "Kubernetes Clusters",
   ),
+  [SecurityConnectionKind.OpenStackCloud]: translationKey("OpenStack Clouds"),
   [SecurityConnectionKind.NetworkDevice]: translationKey("Network Devices"),
   [SecurityConnectionKind.CloudResource]: translationKey("Cloud Resources"),
   [SecurityConnectionKind.ServerlessFunction]: translationKey(
@@ -325,6 +327,7 @@ export const CONNECTION_KIND_ICONS: Readonly<
   [SecurityConnectionKind.DockerHost]: IconProp.Docker,
   [SecurityConnectionKind.PodmanHost]: IconProp.Podman,
   [SecurityConnectionKind.KubernetesCluster]: IconProp.Kubernetes,
+  [SecurityConnectionKind.OpenStackCloud]: IconProp.Cloud,
   [SecurityConnectionKind.NetworkDevice]: IconProp.Signal,
   // As the explorers' resource facets draw them (ResourceFacetCatalog).
   [SecurityConnectionKind.CloudResource]: IconProp.Cloud,
@@ -355,6 +358,9 @@ export const CONNECTION_REASON_TEXT: Readonly<
   ),
   [SecurityConnectionReason.ClusterName]: translationKey(
     "Named {{value}}, its cluster name.",
+  ),
+  [SecurityConnectionReason.CloudName]: translationKey(
+    "Named {{value}}, its cloud name.",
   ),
   [SecurityConnectionReason.DeviceName]: translationKey(
     "Named {{value}}, the device's name.",

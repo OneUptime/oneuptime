@@ -8,8 +8,9 @@ import { beforeAll, describe, expect, it, test } from "@jest/globals";
 /*
  * THE SECURITY EMAILS SAY WHERE THE REQUEST BEHIND THEM CAME FROM.
  *
- * A password reset, a changed password, a status page's sign-in link, a
- * single sign-on to confirm, wrong two factor codes, a spent backup code:
+ * A password reset, a changed password, a sign-in link for an account or a
+ * status page, a single sign-on to confirm, wrong two factor codes, a spent
+ * backup code:
  * each of these emails goes out because of a request somebody else could
  * have made, so each says when, from which IP address, roughly where and on
  * which device (issue #5599) - the time in a row of its own, the rest
@@ -82,6 +83,7 @@ const REQUEST_CARD_EMAILS: Array<[string, string, string | null]> = [
   ["StatusPageForgotPassword", "Requested at:", "Details of the request:"],
   ["StatusPagePasswordChanged", "Changed at:", null],
   ["StatusPageMagicLink", "Requested at:", "Details of the request:"],
+  ["MagicLink", "Requested at:", "Details of the request:"],
   ["ConfirmProjectSsoSignIn", "Signed in at:", "Details of the sign-in:"],
 ];
 
@@ -348,6 +350,22 @@ describe("the password reset email", () => {
     );
     expect(rendered.indexOf("Details of the request:")).toBeLessThan(
       rendered.indexOf("Didn't ask for this?"),
+    );
+  });
+});
+
+describe("a private status page's password changed email", () => {
+  it("says what changed and what was signed out", () => {
+    const rendered: string = textOf(
+      render("StatusPagePasswordChanged", {
+        ...ORIGIN,
+        statusPageName: "Acme Status",
+      }),
+    );
+
+    expect(rendered).toContain("Your password was changed.");
+    expect(rendered).toContain(
+      "The password you use to log in to Acme Status was just changed, and every device that was signed in with it has been signed out.",
     );
   });
 });

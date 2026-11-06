@@ -1,6 +1,7 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
 import {
   DataCheckType,
+  isSampleableCheckType,
   MAX_ACCEPTED_VALUES,
   MAX_SEGMENTS_PER_CHECK,
 } from "../../../Types/DataObservability/DataCheckType";
@@ -43,6 +44,7 @@ export interface MongoCheckTarget {
   referenceTableName?: string | null | undefined;
   referenceColumnName?: string | null | undefined;
   customSql?: string | null | undefined;
+  samplePercent?: number | null | undefined;
 }
 
 const MAX_CUSTOM_PIPELINE_LENGTH: number = 10_000;
@@ -205,12 +207,20 @@ export function buildMongoCheckStatement(target: MongoCheckTarget): {
       DataCheckType.RowCount,
       DataCheckType.DistinctCount,
       DataCheckType.OrphanCount,
+      DataCheckType.FailingRows,
     ].includes(target.type)
       ? 0
       : null,
   };
 
-  if (target.type === DataCheckType.CustomSql) {
+  // The documents a pipeline hands back are the failures: they are counted.
+  if (target.type === DataCheckType.FailingRows) {
+    statement.isSegmented = false;
+    statement.pipeline = [
+      ...checkMongoPipeline(target.customSql || ""),
+      { $count: "value" },
+    ];
+  } else if (target.type === DataCheckType.CustomSql) {
     statement.pipeline = [
       ...checkMongoPipeline(target.customSql || ""),
       { $limit: MAX_SEGMENTS_PER_CHECK },
@@ -402,11 +412,55 @@ export function buildMongoCheckStatement(target: MongoCheckTarget): {
     }
   }
 
+  /*
+   * A share of the documents, each kept by chance: MongoDB still reads them
+   * all, and is spared the work on the rest.
+   */
+  if (
+    target.samplePercent &&
+    target.samplePercent > 0 &&
+    target.samplePercent < 100 &&
+    isSampleableCheckType(target.type)
+  ) {
+    statement.pipeline = [
+      {
+        $match: {
+          $expr: { $lt: [{ $rand: {} }, target.samplePercent / 100] },
+        },
+      },
+      ...statement.pipeline,
+    ];
+  }
+
   return {
     sql: JSON.stringify(statement),
     params: [],
     isSegmented: statement.isSegmented,
   };
+}
+
+// The newest value of a field, for a collection's freshness.
+export function buildMongoLatestStatement(target: {
+  schemaName: string;
+  tableName: string;
+  columnName: string;
+}): { sql: string; params: Array<string> } {
+  const statement: MongoCheckStatement = {
+    database: target.schemaName,
+    collection: mongoField(target.tableName),
+    pipeline: [
+      {
+        $group: {
+          _id: null,
+          value: { $max: `$${mongoField(target.columnName)}` },
+        },
+      },
+    ],
+    isSegmented: false,
+    emptyValue: null,
+  };
+
+  return { sql: JSON.stringify(statement), params: [] };
 }
 
 // A planned check's statement, as the catalog session runs it.

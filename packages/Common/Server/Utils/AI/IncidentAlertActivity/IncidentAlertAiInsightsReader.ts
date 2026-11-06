@@ -238,6 +238,7 @@ export default class IncidentAlertAiInsightsReader {
             verificationStatus: true,
             createdAt: true,
             approvedAt: true,
+            approvedFrom: true,
             incidentId: true,
             alertId: true,
           },
@@ -396,6 +397,7 @@ export default class IncidentAlertAiInsightsReader {
                 approvedAt: suggestion.approvedAt
                   ? new Date(suggestion.approvedAt)
                   : undefined,
+                approvedFrom: suggestion.approvedFrom,
                 subjectId: subjectIdOfFix(suggestion)!,
               };
             },

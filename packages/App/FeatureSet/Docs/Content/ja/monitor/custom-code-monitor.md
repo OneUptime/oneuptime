@@ -167,7 +167,7 @@ return {
 
 - モニターの識別情報: `monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`isCustomMetric`。
 - `oneuptime.` と `resource.` の名前空間にあるすべて。これらには、OneUptime が取り込み時に付ける識別子が入ります。
-- リソースの識別属性: `service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name`、`docker.swarm.cluster.name`。
+- リソースの識別属性: `service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`openstack.cloud.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name`、`docker.swarm.cluster.name`。
 
 これらの名前は単なるラベルではありません。OneUptime はこれらを、データポイントがどのリソースに属するかの主張として読み取ります。`service.name: payments-api` を付けたメトリクスはそのサービスのメトリクスタブに表示され、後から `service.name` でグループ化したメトリクスモニターを作ると、そのアラートはそのサービスに関連付けられ、サービスのオーナーを呼び出し、そのサービスのメンテナンス期間中は鳴らなくなります。モニターをサービスやホストに関連付けたいときは、代わりにモニター自身のラベルを使ってください。
 

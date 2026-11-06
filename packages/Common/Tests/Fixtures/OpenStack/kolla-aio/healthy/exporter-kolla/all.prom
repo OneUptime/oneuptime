@@ -1,0 +1,208 @@
+# HELP openstack_glance_image_bytes image_bytes
+# TYPE openstack_glance_image_bytes gauge
+openstack_glance_image_bytes{id="bf5779f5-30e3-44b4-95aa-564a1403e8d0",name="cirros",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 2.1692416e+07
+openstack_glance_image_bytes{id="c49d6372-1d3b-4eaa-8ac1-af20ad0f5bfe",name="ou-image-stuck",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 0
+# HELP openstack_glance_images images
+# TYPE openstack_glance_images gauge
+openstack_glance_images 2
+# HELP openstack_glance_up up
+# TYPE openstack_glance_up gauge
+openstack_glance_up 1
+# HELP openstack_identity_domains domains
+# TYPE openstack_identity_domains gauge
+openstack_identity_domains 1
+# HELP openstack_identity_groups groups
+# TYPE openstack_identity_groups gauge
+openstack_identity_groups 0
+# HELP openstack_identity_project_info project_info
+# TYPE openstack_identity_project_info gauge
+openstack_identity_project_info{description="",domain_id="default",enabled="true",id="f8ef1181c6cb4fa2a4ffd6b587ae7875",is_domain="false",name="service",parent_id="default"} 1
+openstack_identity_project_info{description="Bootstrap project for initializing the cloud.",domain_id="default",enabled="true",id="cd40fcbf2bc04f68ab58867520434085",is_domain="false",name="admin",parent_id="default"} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="14283d99f9104b6fb8ea6fc8c1e4debe",is_domain="false",name="ou-payments",parent_id="default"} 1
+openstack_identity_project_info{description="OneUptime test estate",domain_id="default",enabled="true",id="c3150a88900d4a178a6faf576943ccee",is_domain="false",name="ou-research",parent_id="default"} 1
+# HELP openstack_identity_projects projects
+# TYPE openstack_identity_projects gauge
+openstack_identity_projects 4
+# HELP openstack_identity_regions regions
+# TYPE openstack_identity_regions gauge
+openstack_identity_regions 1
+# HELP openstack_identity_up up
+# TYPE openstack_identity_up gauge
+openstack_identity_up 1
+# HELP openstack_identity_users users
+# TYPE openstack_identity_users gauge
+openstack_identity_users 6
+# HELP openstack_neutron_agent_state agent_state
+# TYPE openstack_neutron_agent_state counter
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="compute-01.example.internal",id="1d39cb4b-57d5-4405-84b9-f19ecb034203",service="neutron-metadata-agent"} 1
+openstack_neutron_agent_state{adminState="up",availability_zone="",hostname="compute-01.example.internal",id="faf00970-2161-401e-9ebc-d530ab62eca5",service="neutron-openvswitch-agent"} 1
+openstack_neutron_agent_state{adminState="up",availability_zone="nova",hostname="compute-01.example.internal",id="815c2d65-0e90-488b-a4c4-4f79178d8792",service="neutron-dhcp-agent"} 1
+openstack_neutron_agent_state{adminState="up",availability_zone="nova",hostname="compute-01.example.internal",id="ac0f2674-7fd9-4f94-b9b1-d21a312cf89a",service="neutron-l3-agent"} 1
+# HELP openstack_neutron_floating_ip floating_ip
+# TYPE openstack_neutron_floating_ip gauge
+openstack_neutron_floating_ip{floating_ip_address="192.168.100.125",floating_network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",id="2f394fce-ecd2-4920-9be4-a07cf0b22736",project_id="14283d99f9104b6fb8ea6fc8c1e4debe",router_id="9bf695ba-72a5-42c8-ae25-112c597e3a5b",status="ACTIVE"} 1
+openstack_neutron_floating_ip{floating_ip_address="192.168.100.141",floating_network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",id="e3370998-f9a6-40bd-b507-314c8b1bedc1",project_id="14283d99f9104b6fb8ea6fc8c1e4debe",router_id="",status="DOWN"} 1
+# HELP openstack_neutron_floating_ips floating_ips
+# TYPE openstack_neutron_floating_ips gauge
+openstack_neutron_floating_ips 2
+# HELP openstack_neutron_floating_ips_associated_not_active floating_ips_associated_not_active
+# TYPE openstack_neutron_floating_ips_associated_not_active gauge
+openstack_neutron_floating_ips_associated_not_active 0
+# HELP openstack_neutron_l3_agent_of_router l3_agent_of_router
+# TYPE openstack_neutron_l3_agent_of_router gauge
+openstack_neutron_l3_agent_of_router{agent_admin_up="true",agent_alive="true",agent_host="compute-01.example.internal",ha_state="",l3_agent_id="ac0f2674-7fd9-4f94-b9b1-d21a312cf89a",router_id="9bf695ba-72a5-42c8-ae25-112c597e3a5b"} 1
+# HELP openstack_neutron_network network
+# TYPE openstack_neutron_network gauge
+openstack_neutron_network{id="382353a1-31db-43ae-b74b-f026326d61f7",is_external="false",is_shared="false",name="ou-research-net",provider_network_type="vxlan",provider_physical_network="",provider_segmentation_id="119",status="ACTIVE",subnets="e0000b3a-bacf-4128-9751-b4cd1a30d466",tags="",tenant_id="c3150a88900d4a178a6faf576943ccee"} 0
+openstack_neutron_network{id="695703e4-ddbb-4565-b6d5-15fee4b580a4",is_external="true",is_shared="false",name="public",provider_network_type="flat",provider_physical_network="physnet1",provider_segmentation_id="",status="ACTIVE",subnets="27b45222-9ca9-46a3-aaca-5bdda7f8458f",tags="",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 0
+openstack_neutron_network{id="95b58781-e891-48da-aa61-104d5df3137b",is_external="false",is_shared="false",name="ou-net",provider_network_type="vxlan",provider_physical_network="",provider_segmentation_id="167",status="ACTIVE",subnets="e9cf2a11-f418-4b28-a5ee-022474685fc6",tags="",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 0
+# HELP openstack_neutron_network_ip_availabilities_total network_ip_availabilities_total
+# TYPE openstack_neutron_network_ip_availabilities_total gauge
+openstack_neutron_network_ip_availabilities_total{cidr="10.77.0.0/24",ip_version="4",network_id="95b58781-e891-48da-aa61-104d5df3137b",network_name="ou-net",project_id="14283d99f9104b6fb8ea6fc8c1e4debe",subnet_name="ou-subnet"} 253
+openstack_neutron_network_ip_availabilities_total{cidr="10.78.0.0/24",ip_version="4",network_id="382353a1-31db-43ae-b74b-f026326d61f7",network_name="ou-research-net",project_id="c3150a88900d4a178a6faf576943ccee",subnet_name="ou-research-subnet"} 253
+openstack_neutron_network_ip_availabilities_total{cidr="192.168.100.0/24",ip_version="4",network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",network_name="public",project_id="cd40fcbf2bc04f68ab58867520434085",subnet_name="public-subnet"} 100
+# HELP openstack_neutron_network_ip_availabilities_used network_ip_availabilities_used
+# TYPE openstack_neutron_network_ip_availabilities_used gauge
+openstack_neutron_network_ip_availabilities_used{cidr="10.77.0.0/24",ip_version="4",network_id="95b58781-e891-48da-aa61-104d5df3137b",network_name="ou-net",project_id="14283d99f9104b6fb8ea6fc8c1e4debe",subnet_name="ou-subnet"} 4
+openstack_neutron_network_ip_availabilities_used{cidr="10.78.0.0/24",ip_version="4",network_id="382353a1-31db-43ae-b74b-f026326d61f7",network_name="ou-research-net",project_id="c3150a88900d4a178a6faf576943ccee",subnet_name="ou-research-subnet"} 3
+openstack_neutron_network_ip_availabilities_used{cidr="192.168.100.0/24",ip_version="4",network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",network_name="public",project_id="cd40fcbf2bc04f68ab58867520434085",subnet_name="public-subnet"} 3
+# HELP openstack_neutron_networks networks
+# TYPE openstack_neutron_networks gauge
+openstack_neutron_networks 3
+# HELP openstack_neutron_port port
+# TYPE openstack_neutron_port gauge
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="compute:nova",fixed_ips="10.77.0.105",mac_address="fa:16:3e:2a:98:5a",network_id="95b58781-e891-48da-aa61-104d5df3137b",status="ACTIVE",uuid="8c15bd3c-97da-4484-b92c-592ab96f758c"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="compute:nova",fixed_ips="10.77.0.237",mac_address="fa:16:3e:de:91:0d",network_id="95b58781-e891-48da-aa61-104d5df3137b",status="ACTIVE",uuid="0ba2c74c-cf99-4fb8-8a68-5b60138a4c58"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="compute:nova",fixed_ips="10.78.0.202",mac_address="fa:16:3e:d1:32:1b",network_id="382353a1-31db-43ae-b74b-f026326d61f7",status="ACTIVE",uuid="5581d0ba-32d0-4d33-b1d1-9fea6bf45d5a"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="compute:nova",fixed_ips="10.78.0.228",mac_address="fa:16:3e:d1:7a:54",network_id="382353a1-31db-43ae-b74b-f026326d61f7",status="ACTIVE",uuid="0f0ce471-617e-4672-81bf-f069e4cc9476"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="network:dhcp",fixed_ips="10.77.0.2",mac_address="fa:16:3e:f6:ea:d2",network_id="95b58781-e891-48da-aa61-104d5df3137b",status="ACTIVE",uuid="3a83f9ba-8cc7-4d78-b55b-9fec889c60de"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="network:dhcp",fixed_ips="10.78.0.2",mac_address="fa:16:3e:24:1a:c5",network_id="382353a1-31db-43ae-b74b-f026326d61f7",status="ACTIVE",uuid="88f1916e-6062-49cb-bb30-63ce42f2ba5b"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="network:router_gateway",fixed_ips="192.168.100.124",mac_address="fa:16:3e:06:98:c7",network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",status="ACTIVE",uuid="b79ff532-9cd6-4093-9f66-51342063e832"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="ovs",device_owner="network:router_interface",fixed_ips="10.77.0.1",mac_address="fa:16:3e:2a:62:e2",network_id="95b58781-e891-48da-aa61-104d5df3137b",status="ACTIVE",uuid="cd1fa251-f285-40f6-9a52-74c056312cba"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="unbound",device_owner="network:floatingip",fixed_ips="192.168.100.125",mac_address="fa:16:3e:ea:82:90",network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",status="N/A",uuid="c521137f-51cb-4375-a7ab-8e6ec0685ee3"} 1
+openstack_neutron_port{admin_state_up="true",binding_vif_type="unbound",device_owner="network:floatingip",fixed_ips="192.168.100.141",mac_address="fa:16:3e:5d:ea:05",network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",status="N/A",uuid="9627977c-41ca-4ec0-a2d8-5ae748e9edf2"} 1
+# HELP openstack_neutron_ports ports
+# TYPE openstack_neutron_ports gauge
+openstack_neutron_ports 10
+# HELP openstack_neutron_ports_lb_not_active ports_lb_not_active
+# TYPE openstack_neutron_ports_lb_not_active gauge
+openstack_neutron_ports_lb_not_active 0
+# HELP openstack_neutron_ports_no_ips ports_no_ips
+# TYPE openstack_neutron_ports_no_ips gauge
+openstack_neutron_ports_no_ips 0
+# HELP openstack_neutron_router router
+# TYPE openstack_neutron_router gauge
+openstack_neutron_router{admin_state_up="true",external_network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",id="9bf695ba-72a5-42c8-ae25-112c597e3a5b",name="ou-router",project_id="14283d99f9104b6fb8ea6fc8c1e4debe",status="ACTIVE"} 1
+# HELP openstack_neutron_routers routers
+# TYPE openstack_neutron_routers gauge
+openstack_neutron_routers 1
+# HELP openstack_neutron_routers_not_active routers_not_active
+# TYPE openstack_neutron_routers_not_active gauge
+openstack_neutron_routers_not_active 0
+# HELP openstack_neutron_security_groups security_groups
+# TYPE openstack_neutron_security_groups gauge
+openstack_neutron_security_groups 5
+# HELP openstack_neutron_subnet subnet
+# TYPE openstack_neutron_subnet gauge
+openstack_neutron_subnet{cidr="10.77.0.0/24",dns_nameservers="",enable_dhcp="true",gateway_ip="10.77.0.1",id="e9cf2a11-f418-4b28-a5ee-022474685fc6",name="ou-subnet",network_id="95b58781-e891-48da-aa61-104d5df3137b",tags="",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 1
+openstack_neutron_subnet{cidr="10.78.0.0/24",dns_nameservers="",enable_dhcp="true",gateway_ip="10.78.0.1",id="e0000b3a-bacf-4128-9751-b4cd1a30d466",name="ou-research-subnet",network_id="382353a1-31db-43ae-b74b-f026326d61f7",tags="",tenant_id="c3150a88900d4a178a6faf576943ccee"} 1
+openstack_neutron_subnet{cidr="192.168.100.0/24",dns_nameservers="",enable_dhcp="false",gateway_ip="192.168.100.10",id="27b45222-9ca9-46a3-aaca-5bdda7f8458f",name="public-subnet",network_id="695703e4-ddbb-4565-b6d5-15fee4b580a4",tags="",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 1
+# HELP openstack_neutron_subnets subnets
+# TYPE openstack_neutron_subnets gauge
+openstack_neutron_subnets 3
+# HELP openstack_neutron_up up
+# TYPE openstack_neutron_up gauge
+openstack_neutron_up 1
+# HELP openstack_nova_agent_state agent_state
+# TYPE openstack_nova_agent_state counter
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01.example.internal",id="2ce542a1-bb5d-4026-88b6-c5768537bc7c",service="nova-compute",zone="nova"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01.example.internal",id="7e04067b-aed2-4807-9394-db0169cbfe81",service="nova-conductor",zone="internal"} 1
+openstack_nova_agent_state{adminState="enabled",disabledReason="",hostname="compute-01.example.internal",id="d4b1fec4-cc28-4ab3-af48-e821fbbb6356",service="nova-scheduler",zone="internal"} 1
+# HELP openstack_nova_availability_zones availability_zones
+# TYPE openstack_nova_availability_zones gauge
+openstack_nova_availability_zones 1
+# HELP openstack_nova_flavor flavor
+# TYPE openstack_nova_flavor gauge
+openstack_nova_flavor{disk="1",id="290b051e-454b-4c33-ac55-40b0c716e4c1",is_public="true",name="ou.tiny",ram="128",vcpus="1"} 1
+openstack_nova_flavor{disk="1",id="6b642345-1497-42fb-8bcc-2e437a108ee4",is_public="true",name="ou.impossible",ram="1048576",vcpus="1"} 1
+# HELP openstack_nova_flavors flavors
+# TYPE openstack_nova_flavors gauge
+openstack_nova_flavors 2
+# HELP openstack_nova_limits_instances_max limits_instances_max
+# TYPE openstack_nova_limits_instances_max gauge
+openstack_nova_limits_instances_max{tenant="admin",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 10
+openstack_nova_limits_instances_max{tenant="ou-payments",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 4
+openstack_nova_limits_instances_max{tenant="ou-research",tenant_id="c3150a88900d4a178a6faf576943ccee"} 20
+openstack_nova_limits_instances_max{tenant="service",tenant_id="f8ef1181c6cb4fa2a4ffd6b587ae7875"} 10
+# HELP openstack_nova_limits_instances_used limits_instances_used
+# TYPE openstack_nova_limits_instances_used gauge
+openstack_nova_limits_instances_used{tenant="admin",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 0
+openstack_nova_limits_instances_used{tenant="ou-payments",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 3
+openstack_nova_limits_instances_used{tenant="ou-research",tenant_id="c3150a88900d4a178a6faf576943ccee"} 2
+openstack_nova_limits_instances_used{tenant="service",tenant_id="f8ef1181c6cb4fa2a4ffd6b587ae7875"} 0
+# HELP openstack_nova_limits_memory_max limits_memory_max
+# TYPE openstack_nova_limits_memory_max gauge
+openstack_nova_limits_memory_max{tenant="admin",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 51200
+openstack_nova_limits_memory_max{tenant="ou-payments",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 2.097152e+06
+openstack_nova_limits_memory_max{tenant="ou-research",tenant_id="c3150a88900d4a178a6faf576943ccee"} 40960
+openstack_nova_limits_memory_max{tenant="service",tenant_id="f8ef1181c6cb4fa2a4ffd6b587ae7875"} 51200
+# HELP openstack_nova_limits_memory_used limits_memory_used
+# TYPE openstack_nova_limits_memory_used gauge
+openstack_nova_limits_memory_used{tenant="admin",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 0
+openstack_nova_limits_memory_used{tenant="ou-payments",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 1.048832e+06
+openstack_nova_limits_memory_used{tenant="ou-research",tenant_id="c3150a88900d4a178a6faf576943ccee"} 256
+openstack_nova_limits_memory_used{tenant="service",tenant_id="f8ef1181c6cb4fa2a4ffd6b587ae7875"} 0
+# HELP openstack_nova_limits_vcpus_max limits_vcpus_max
+# TYPE openstack_nova_limits_vcpus_max gauge
+openstack_nova_limits_vcpus_max{tenant="admin",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 20
+openstack_nova_limits_vcpus_max{tenant="ou-payments",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 8
+openstack_nova_limits_vcpus_max{tenant="ou-research",tenant_id="c3150a88900d4a178a6faf576943ccee"} 40
+openstack_nova_limits_vcpus_max{tenant="service",tenant_id="f8ef1181c6cb4fa2a4ffd6b587ae7875"} 20
+# HELP openstack_nova_limits_vcpus_used limits_vcpus_used
+# TYPE openstack_nova_limits_vcpus_used gauge
+openstack_nova_limits_vcpus_used{tenant="admin",tenant_id="cd40fcbf2bc04f68ab58867520434085"} 0
+openstack_nova_limits_vcpus_used{tenant="ou-payments",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 3
+openstack_nova_limits_vcpus_used{tenant="ou-research",tenant_id="c3150a88900d4a178a6faf576943ccee"} 2
+openstack_nova_limits_vcpus_used{tenant="service",tenant_id="f8ef1181c6cb4fa2a4ffd6b587ae7875"} 0
+# HELP openstack_nova_server_local_gb server_local_gb
+# TYPE openstack_nova_server_local_gb gauge
+openstack_nova_server_local_gb{id="35672580-2e3c-465d-a850-37c5ac8dd481",name="ou-from-volume",tenant_id="c3150a88900d4a178a6faf576943ccee"} 1
+openstack_nova_server_local_gb{id="4719257a-8861-4ca0-a1b2-0d89140898e9",name="ou-research-1",tenant_id="c3150a88900d4a178a6faf576943ccee"} 1
+openstack_nova_server_local_gb{id="b397f568-9e57-4971-92e7-f0e655cbbcc4",name="ou-running",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 1
+openstack_nova_server_local_gb{id="e7462af0-ee88-4831-83d7-c333f6983ceb",name="ou-stopped",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe"} 1
+# HELP openstack_nova_server_status server_status
+# TYPE openstack_nova_server_status gauge
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="",flavor_id="<nil>",host_id="",hypervisor_hostname="",id="46c3672d-c6cd-4c17-8068-d2821d7a789b",instance_libvirt="instance-00000001",name="ou-failed",status="ERROR",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe",user_id="7c00a922f140442aa588a1899494178b",uuid="46c3672d-c6cd-4c17-8068-d2821d7a789b"} 4
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="<nil>",host_id="12462a76c37a8c4ab6b961aead58d4ee554256ba98308e78bf68a504",hypervisor_hostname="compute-01.example.internal",id="35672580-2e3c-465d-a850-37c5ac8dd481",instance_libvirt="instance-00000004",name="ou-from-volume",status="ACTIVE",tenant_id="c3150a88900d4a178a6faf576943ccee",user_id="7c00a922f140442aa588a1899494178b",uuid="35672580-2e3c-465d-a850-37c5ac8dd481"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="<nil>",host_id="12462a76c37a8c4ab6b961aead58d4ee554256ba98308e78bf68a504",hypervisor_hostname="compute-01.example.internal",id="4719257a-8861-4ca0-a1b2-0d89140898e9",instance_libvirt="instance-00000003",name="ou-research-1",status="ACTIVE",tenant_id="c3150a88900d4a178a6faf576943ccee",user_id="7c00a922f140442aa588a1899494178b",uuid="4719257a-8861-4ca0-a1b2-0d89140898e9"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="<nil>",host_id="acfab9acccaef8afb8213246732122cdbee02b5b230ea1f47289961c",hypervisor_hostname="compute-01.example.internal",id="b397f568-9e57-4971-92e7-f0e655cbbcc4",instance_libvirt="instance-00000001",name="ou-running",status="ACTIVE",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe",user_id="7c00a922f140442aa588a1899494178b",uuid="b397f568-9e57-4971-92e7-f0e655cbbcc4"} 0
+openstack_nova_server_status{address_ipv4="",address_ipv6="",availability_zone="nova",flavor_id="<nil>",host_id="acfab9acccaef8afb8213246732122cdbee02b5b230ea1f47289961c",hypervisor_hostname="compute-01.example.internal",id="e7462af0-ee88-4831-83d7-c333f6983ceb",instance_libvirt="instance-00000002",name="ou-stopped",status="SHUTOFF",tenant_id="14283d99f9104b6fb8ea6fc8c1e4debe",user_id="7c00a922f140442aa588a1899494178b",uuid="e7462af0-ee88-4831-83d7-c333f6983ceb"} 11
+# HELP openstack_nova_total_vms total_vms
+# TYPE openstack_nova_total_vms gauge
+openstack_nova_total_vms 5
+# HELP openstack_nova_up up
+# TYPE openstack_nova_up gauge
+openstack_nova_up 1
+# HELP openstack_placement_resource_allocation_ratio resource_allocation_ratio
+# TYPE openstack_placement_resource_allocation_ratio gauge
+openstack_placement_resource_allocation_ratio{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 1
+openstack_placement_resource_allocation_ratio{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 1
+openstack_placement_resource_allocation_ratio{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
+# HELP openstack_placement_resource_reserved resource_reserved
+# TYPE openstack_placement_resource_reserved gauge
+openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 0
+openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 512
+openstack_placement_resource_reserved{hostname="compute-01.example.internal",resourcetype="VCPU"} 0
+# HELP openstack_placement_resource_total resource_total
+# TYPE openstack_placement_resource_total gauge
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 144
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 15983
+openstack_placement_resource_total{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
+# HELP openstack_placement_resource_usage resource_usage
+# TYPE openstack_placement_resource_usage gauge
+openstack_placement_resource_usage{hostname="compute-01.example.internal",resourcetype="DISK_GB"} 3
+openstack_placement_resource_usage{hostname="compute-01.example.internal",resourcetype="MEMORY_MB"} 512
+openstack_placement_resource_usage{hostname="compute-01.example.internal",resourcetype="VCPU"} 4
+# HELP openstack_placement_up up
+# TYPE openstack_placement_up gauge
+openstack_placement_up 1

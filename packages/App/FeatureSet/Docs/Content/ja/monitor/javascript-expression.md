@@ -123,7 +123,7 @@ JavaScript の式は、Website、API、Incoming Request、Incoming Email、SQL Q
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000
 ```
 
-データベースのヘルスのモニターでは、`metrics` オブジェクト全体にインデックスを付けて 1 つのメトリクスを読み取ります。系列名にはドットが含まれるため、波かっこの中には入れられません。
+データベースのヘルスのモニターでは、系列名をドットごと波かっこの中に書くか、`metrics` オブジェクト全体にインデックスを付けて 1 つのメトリクスを読み取ります。どちらでも動作します。
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

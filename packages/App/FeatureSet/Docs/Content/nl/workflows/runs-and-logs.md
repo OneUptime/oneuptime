@@ -18,6 +18,8 @@ Elke keer dat een workflow draait, slaat OneUptime op wat er gebeurde — wannee
 
 Als je een uitvoering vanuit de **Bouwer** start, opent dezelfde weergave **Workflow-uitvoering**, die de uitvoering al volgt, zodat je haar ziet gebeuren in plaats van haar achteraf te moeten zoeken.
 
+Om een uitvoering opnieuw te proberen met dezelfde waarden, druk je op Opnieuw uitvoeren in de weergave ervan of in het ⋯-menu van de rij. Een nieuwe uitvoering start bij de trigger met waarmee die uitvoering begon, zodat de payload van een webhook niet opnieuw hoeft te worden verzonden, en voert de workflow uit zoals die nu is, zodat je een stap kunt wijzigen en het meteen kunt proberen. De stappen worden echt uitgevoerd, en zolang de workflow uit staat is het een testuitvoering. Het paneel voor het uitvoeren van de workflow in de Builder biedt de waarden van de laatste uitvoering op dezelfde manier aan. De test van één stap wordt opnieuw uitgevoerd vanuit de stap. Een uitvoering die begon met meer dan 1 MB aan waarden kan niet opnieuw worden uitgevoerd, en een uitvoering van voordat OneUptime deze waarden bewaarde ook niet. Ze zijn versleuteld en niemand kan ze via de API lezen.
+
 ## Statussen van een uitvoering
 
 ```mermaid title="De statussen die een uitvoering doorloopt"
@@ -126,7 +128,7 @@ Een blok dat niet draait, is meestal een aansluitprobleem. Open de **Bouwer** en
 Open de uitvoering en bekijk de stap. Een verwijzing die niet werd opgelost, wordt bij de stap zelf als waarschuwing gemeld, en de instelling ervan in het blok **Ontvangen** is gemarkeerd als **Did not resolve**.
 
 - Zie je de letterlijke tekst `{{local.components.…}}`, dan werd de verwijzing niet opgelost. Meestal is dat een typfout in de component-ID of de ID van de retourwaarde — onthoud dat het de **Identifier** van het blok is, niet de naam die erop staat. Controleer ook de spelling van `local.components` zelf: `{{local.componets.api-get-1.returnValues.response-body}}` wordt als letterlijke tekst verstuurd en de uitvoering meldt nog steeds **Uitgevoerd**. Was de uitvoering een test met **Run just this step**, dan draaide het eerdere blok helemaal niet — voer in plaats daarvan de hele workflow uit.
-- Zie je **Empty text**, dan draaide het eerdere blok wel maar leverde het dat veld niet op.
+- Zie je **Empty text**, of een gat in een bericht, dan draaide het eerdere blok wel maar heeft het niets in dat veld. Of het record heeft daar geen waarde, wat het tabblad **Full Log** op een eigen regel vermeldt, of het blok geeft het veld niet door, waarvoor de stap waarschuwt.
 
 Dezelfde waarschuwing staat in het tabblad **Full Log**, op een regel die begint met `Warning:`.
 :::

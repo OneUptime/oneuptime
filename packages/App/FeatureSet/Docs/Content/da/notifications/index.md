@@ -27,7 +27,7 @@ flowchart TB
 
 | Side | Hvad den indeholder | Spørgsmålet, den besvarer |
 | --- | --- | --- |
-| **Notifikationsmetoder** | Dine e-mailadresser, telefonnumre, WhatsApp-numre, Telegram-, Slack- og Microsoft Teams-konti, push-enheder og webhooks | Hvor kan OneUptime nå mig? |
+| **Notifikationsmetoder** | Dine e-mailadresser, telefonnumre, WhatsApp-numre, Telegram-, Slack-, Microsoft Teams- og Mattermost-konti, push-enheder og webhooks | Hvor kan OneUptime nå mig? |
 | **Vagtregler** | For hver slags tilkald og hver alvorlighed: hvilken metode der prøves, og efter hvor lang tid | Hvordan bliver jeg tilkaldt, mens jeg har vagt? |
 | **Notifikationsindstillinger** | For hver begivenhed om noget, du ejer, eller om dine vagter: hvilke kanaler der bruges | Hvad hører jeg ellers om, og hvor? |
 
@@ -90,7 +90,7 @@ Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvor
 
 Et tilkald kan nå dig for en slags og en alvorlighed, du ikke har en regel for: for eksempel en alvorlighed, der er tilføjet, efter du blev medlem. OneUptime tilkalder dig alligevel, via det, du har bekræftet:
 
-1. Hver gratis metode, du har: push-enheder, e-mailadresser, Slack og Microsoft Teams.
+1. Hver gratis metode, du har: push-enheder, e-mailadresser, Slack, Microsoft Teams og Mattermost.
 2. Har du ingen af dem, én betalt metode, i denne rækkefølge: sms, et telefonopkald, WhatsApp, Telegram. Det er den første, du har bekræftet, på en kanal, projektet har slået til.
 3. Har du heller ingen af dem, en webhook.
 

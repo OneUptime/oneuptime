@@ -1139,6 +1139,7 @@ export const SECURITY_CONNECTION_LOOKUP_KINDS: Readonly<{
     SecurityConnectionKind.DockerHost,
     SecurityConnectionKind.PodmanHost,
     SecurityConnectionKind.KubernetesCluster,
+    SecurityConnectionKind.OpenStackCloud,
     SecurityConnectionKind.NetworkDevice,
     SecurityConnectionKind.CloudResource,
     SecurityConnectionKind.Monitor,

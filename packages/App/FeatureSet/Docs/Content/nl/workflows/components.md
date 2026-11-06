@@ -29,6 +29,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | Incidenten, monitoren en andere records te lezen of te wijzigen | [OneUptime-datacomponenten](#oneuptime-datacomponenten)         |
 | Incidenten of waarschuwingen voor de problemen van een ander hulpmiddel te openen, te bevestigen en op te lossen | [Incidenten en waarschuwingen uit andere hulpmiddelen](#incidenten-en-waarschuwingen-uit-andere-hulpmiddelen) |
 | Een Zabbix-probleem te bevestigen of te sluiten | [Zabbix](#zabbix) |
+| Een persoon te vragen een fix voor een OpenStack-cloud goed te keuren | [Een OpenStack-fix voorstellen](#propose-an-openstack-fix) |
 
 Een specifiek blok is beter dan een algemeen: het Slack-blok kent de limieten van Slack, en een recordblok kent de velden van het record, dus je krijgt duidelijkere fouten en logboeken dan van een **API**-blok dat hetzelfde werk doet.
 
@@ -428,6 +429,28 @@ Om te bevestigen of te sluiten, leest het blok eerst het probleem. Een probleem 
 
 **Updated** gaat af als Zabbix de update heeft aangenomen, en **Error** als Zabbix niet bereikbaar was of de update weigerde, met de reden van Zabbix: Zabbix beantwoordt een geweigerd verzoek met een successtatus, dus leest het blok wat Zabbix antwoordde in plaats van de status. Het geeft **Summary** terug, wat het deed in één zin.
 
+## OpenStack
+
+### Propose an OpenStack fix
+
+Vraagt een persoon één wijziging goed te keuren in de OpenStack-cloud waar een waarschuwing of incident over gaat. Het voert de wijziging nooit zelf door. De fix wacht op de waarschuwing of het incident, en in de kanalen waarin hij post, net als een fix die OneUptime AI voorstelt, wat de fixmodus van de cloud ook is. Een workflow kan niet goedkeuren wat hij voorstelt.
+
+Het heeft geen AI-model nodig en volgt dezelfde regels als een fix die OneUptime AI voorstelt: het opdrachtbeleid, de schrijfdoelen en beschermde doelen van de agent, en de leesactie van de agent naar wat de wijziging raakt. Een evacuatie van een host die nog draait, of een die de agent niet volledig kan lezen, wordt niet voorgesteld.
+
+| Instelling | Wat het doet |
+| ---------- | ------------ |
+| **Alert ID** | De waarschuwing waarvoor de fix is, meestal de ID die je trigger teruggaf. Vul dit of **Incident ID** in, en de cloud komt uit wat het record is gekoppeld aan. |
+| **Incident ID** | Het incident waarvoor de fix is, meestal de ID die je trigger teruggaf. Vul dit of **Alert ID** in. |
+| **Opdracht** | De wijziging die je voorstelt, in de ene schrijfwijze die OneUptime accepteert. Zie [de wijzigingen die een fix kan doorvoeren](/docs/telemetry/openstack#fixes). Het kan waarden uit eerdere blokken gebruiken en wordt gelezen nadat die zijn ingevuld. |
+| **Waarom** | Wat de persoon die goedkeurt als eerste leest. Leeg gelaten staat er welke workflow erom vroeg. |
+| **OpenStack Cloud ID** | Onder **Meer velden**. Alleen voor een record dat aan meer dan één cloud is gekoppeld, of aan geen enkele. |
+
+Het geeft **Suggestion ID** terug (de fix die op goedkeuring wacht), **Tier** (Veilig of Riskanter, zoals OneUptime de opdracht leest) en **Already Waiting** (waar wanneer dezelfde wijziging op die cloud al wachtte, zodat er geen tweede is toegevoegd).
+
+**Success** gaat af zodra een persoon is gevraagd, zonder op het antwoord te wachten. **Error** gaat af wanneer er niets is voorgesteld, met de reden in **Error**: de opdracht wordt geweigerd, fixes zijn op die cloud nog niet toegestaan, of de workflows van een project hebben het afgelopen uur 20 fixes voorgesteld.
+
+De template [Voorstellen een falende OpenStack-computeservice uit de scheduling te halen](/docs/workflows/authoring) is een plek om te beginnen.
+
 ## OneUptime-datacomponenten
 
 Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statuspagina's, bereikbaarheidsbeleid en nog veel meer) heeft het paneel **Component toevoegen** deze componenten: klik onder **OneUptime-resources** op het recordtype (**Door alle resources bladeren** bevat de niet-getoonde), of zoek op de naam van het type. Elke titel wordt uit het recordtype gegenereerd, dus de set voor Monitor luidt:
@@ -485,7 +508,7 @@ Een query is altijd beperkt tot het project waarin de workflow draait. Je kunt d
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Fields to pass on**, bij de Find-componenten en de triggers, kies je uit een lijst; **Bewerken als JSON** toont daar dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`.
+Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Fields to pass on**, bij de Find-componenten en de triggers, kies je uit een lijst; **Bewerken als JSON** toont daar dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`. De velden van een gekoppeld record staan onder zijn sleutel, zoals in `{"monitor": {"name": true}}`: `{"monitor": true}` geeft alleen de ID ervan door.
 
 **Aangepaste velden** zijn één kolom, `customFields`, met de waarde van elk aangepast veld onder de naam van het veld. De Update-componenten wijzigen alleen de aangepaste velden die je noemt, en alle andere houden hun waarde:
 
@@ -495,7 +518,11 @@ Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het l
 
 stelt **Notification Count** in en laat de andere aangepaste velden van het record zoals ze waren. Zet een aangepast veld op `null` om het te wissen, of zet `customFields` zelf op `null` om ze allemaal te wissen. Twee workflows die op hetzelfde moment verschillende aangepaste velden van hetzelfde record bijwerken, komen allebei aan. Dit geldt alleen voor de Update-componenten: de OneUptime-API schrijft `customFields` in zijn geheel, dus een verzoek aan de API moet elk aangepast veld bevatten dat je wilt houden.
 
+Elk aangepast veld van het project staat als eigen veld vermeld overal waar een component de velden van een record noemt: bij de velden die een component schrijft, met de invoer van zijn type en de eigen opties van een keuzelijst; in de voorwaarden van een query; bij de waarden die een latere stap kan gebruiken; en bij de velden die een trigger in de gaten houdt, zodat een workflow kan draaien wanneer één aangepast veld verandert. Een aangepast bestandsveld wordt naar een record geüpload en is daarom het enige type dat in JSON blijft.
+
 Je typt deze sleutels zelden zelf. In de instellingen van het component toont **Add a field** (of **Add a condition** bij een query) de kolommen van het model op naam, met het soort waarde dat elke kolom aanneemt. Zoek op naam, op kolomsleutel of op wat het veld doet, en druk op **Enter** om de beste overeenkomst toe te voegen. Bij het aanmaken komen eerst de velden zonder welke het record niet kan worden aangemaakt, dan de hoofdvelden van het model (die het voor je invult als je ze weglaat) en dan de rest.
+
+Een veld dat naar een ander record verwijst, zoals de ernst van een incident, toont de records van het project op naam: kies er een, en de ID wordt voor je ingevuld. Een lijst met records, zoals de labels van een incident, werkt op dezelfde manier. Wil je in plaats daarvan een waarde uit een eerdere stap gebruiken, klik dan op `{ }` naast de lijst.
 
 Velden die OneUptime zelf invult, worden niet aangeboden als je een record schrijft: de `_id` van het record, **Aangemaakt op**, **Bijgewerkt op**, **Aangemaakt door gebruiker**, slugs, recordnummers en meldingsstatussen. Wie een record aanmaakte, archiveerde of oploste, en wanneer, is nooit aan een workflow om in te stellen: een record dat een workflow aanmaakt, heeft geen maker, een waarde die een workflow voor een van die velden naast andere velden meestuurt, wordt genegeerd, en een Update die verder niets meestuurt, mislukt met een melding die ze noemt. Een update biedt alleen velden die na het aanmaken van een record kunnen veranderen. Een query biedt wel de ID, de tijdstempels en **Aangemaakt door gebruiker** aan, omdat die nuttig zijn om op te filteren. **Deleted At** wordt nergens aangeboden: records worden echt verwijderd, dus het is altijd leeg.
 

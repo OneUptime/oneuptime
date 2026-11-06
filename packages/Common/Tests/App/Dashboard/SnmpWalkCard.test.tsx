@@ -47,6 +47,7 @@ import {
 } from "../../../Types/NetworkDevice/NetworkDeviceSnmpWalk";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -1712,5 +1713,80 @@ describe("saving what a walk read", () => {
       screen.queryByRole("button", { name: "Download this walk" }),
     ).toBeNull();
     expect(screen.queryByTestId("snmp-walk-result-actions")).toBeNull();
+  });
+});
+
+/*
+ * Issue #5548: an OID found on one device, checked on the rest of the
+ * fleet. Compare with other devices, in an OID's menu, opens the Network's
+ * SNMP Walk page on that OID with this device already picked.
+ */
+describe("comparing an OID with other devices", () => {
+  function givenLastWalk(): void {
+    getListMock.mockResolvedValue({
+      data: [completedWalk(OLD_WALK_ID)],
+      count: 1,
+      skip: 0,
+      limit: 5,
+    });
+  }
+
+  test("opens the Network's SNMP Walk page on the OID, with this device picked", async () => {
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+
+    try {
+      givenLastWalk();
+      await renderCard();
+      await click(
+        within(rowFor(CISCO_CPU.oid)).getByTestId("snmp-walk-row-more"),
+      );
+      await click(screen.getByText("Compare with other devices"));
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+
+      const target: string = String(navigate.mock.calls[0]![0]);
+      const [routePath, query] = target.split("?") as [string, string];
+      const params: URLSearchParams = new URLSearchParams(query);
+
+      expect(routePath).toMatch(/\/network-devices\/snmp-walk$/);
+      expect(params.get("devices")).toBe(DEVICE_ID);
+      expect(params.get("oid")).toBe(CISCO_CPU.oid);
+      // Nothing is walked from here: the page waits for the reader to press Walk.
+      expect(createMock).not.toHaveBeenCalled();
+    } finally {
+      navigate.mockRestore();
+    }
+  });
+
+  test("is offered on every OID, collected or not", async () => {
+    getDeviceMock.mockResolvedValue(
+      device({ snmpOids: [{ oid: SYS_UPTIME.oid }] }),
+    );
+    givenLastWalk();
+    await renderCard();
+
+    for (const oid of [SYS_UPTIME.oid, SYS_NAME.oid]) {
+      await click(within(rowFor(oid)).getByTestId("snmp-walk-row-more"));
+
+      expect(
+        screen.getByText("Compare with other devices"),
+      ).toBeInTheDocument();
+
+      // Close the menu again before opening the next one.
+      await click(within(rowFor(oid)).getByTestId("snmp-walk-row-more"));
+    }
+  });
+
+  test("is not offered to a reader who may not walk", async () => {
+    givenLastWalk();
+    await renderCard({ canWalk: false });
+    await click(
+      within(rowFor(CISCO_CPU.oid)).getByTestId("snmp-walk-row-more"),
+    );
+
+    expect(screen.getByText("Copy OID")).toBeInTheDocument();
+    expect(screen.queryByText("Compare with other devices")).toBeNull();
   });
 });

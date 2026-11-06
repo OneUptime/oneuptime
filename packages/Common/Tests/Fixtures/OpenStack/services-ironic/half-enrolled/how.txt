@@ -1,0 +1,2 @@
+A node left in enroll, with no resource class or driver details: what Nova's hypervisor list and the exporter's compute scrape then say.
+On its own: created and left, with no resource class, properties or driver details, as an operator midway through enrolling leaves it.

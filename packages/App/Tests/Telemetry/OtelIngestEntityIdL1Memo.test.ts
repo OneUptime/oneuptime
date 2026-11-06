@@ -52,6 +52,7 @@ import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import LabelService from "Common/Server/Services/LabelService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
@@ -141,6 +142,19 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
       method: "findOrCreateByName",
     },
     maintenance: { service: ProxmoxClusterService, method: "updateLastSeen" },
+  },
+  {
+    name: "autoDiscoverOpenStackCloud",
+    method: "autoDiscoverOpenStackCloud",
+    namespace: "openstack-cloud-id",
+    attributes: [
+      stringAttribute("openstack.cloud.name", "prod-east"),
+    ] as JSONArray,
+    findOrCreate: {
+      service: OpenStackCloudService,
+      method: "findOrCreateByName",
+    },
+    maintenance: { service: OpenStackCloudService, method: "updateLastSeen" },
   },
   {
     name: "autoDiscoverVMwareVCenter",

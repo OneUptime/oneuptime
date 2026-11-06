@@ -433,7 +433,7 @@ En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når
 | `collectionIssueSummary` | Én linje om hver utilgjengelig gruppe, klar for en tittel. Tom når alt ble samlet inn. | `string` |
 | `metrics` | De innsamlede verdiene, etter serienavn. | `Object` |
 
-Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en sti leser hvert punktum som et steg inn i et objekt, så en mal kan ikke plukke én verdi ut av `metrics`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En metrikk som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
+Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en mal kan likevel plukke ut én: skriv hele navnet etter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En metrikk som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
 
 ### Monitorer for eksterne statussider
 
@@ -452,7 +452,7 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 
 ### Metrikk- og infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |

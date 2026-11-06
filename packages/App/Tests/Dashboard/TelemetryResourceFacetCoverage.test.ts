@@ -67,7 +67,7 @@ const PRELOADED_KEYS: Array<string> = [
 ];
 
 describe("the catalog the explorers are wired from", () => {
-  test("lists all fourteen non-Service resource types, each once, in sidebar order", () => {
+  test("lists all fifteen non-Service resource types, each once, in sidebar order", () => {
     expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual([
       "hostId",
       "dockerHostId",
@@ -75,6 +75,7 @@ describe("the catalog the explorers are wired from", () => {
       "kubernetesClusterId",
       "dockerSwarmClusterId",
       "proxmoxClusterId",
+      "openStackCloudId",
       "vmwareVCenterId",
       "cephClusterId",
       "storageArrayId",

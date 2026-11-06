@@ -28,7 +28,7 @@ flowchart TB
 | 方式 | 最适合 | 示例 |
 | --- | --- | --- |
 | 内置连接 | OneUptime 自己连接的工具。只需填写表单，无需构建任何东西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[安全事件](/docs/telemetry/security-events) 连接 |
-| 工作流模板 | 双向保持同步的工单工具、监控问题、安全事件报告，以及聊天消息。选择一个模板并填写几项设置即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix) |
+| 工作流模板 | 双向保持同步的工单工具、监控问题、安全事件报告，以及聊天消息。选择一个模板并填写几项设置即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix)、[Datadog](/docs/integrations/datadog)、[New Relic](/docs/integrations/new-relic) |
 | Incoming Request 监视器 | 发送 Webhook 的告警工具。无需工作流，每条告警对应一个事件，通知值班人员，并在告警恢复时解决。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 你自己构建的工作流 | 任何带有 Webhook 或 REST API 的工具，以及你自己的任何逻辑。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ flowchart TB
 | [Zabbix](/docs/integrations/zabbix) | 双向 | 把 Zabbix 问题转为事件或警报，在恢复时解决它们，并从 OneUptime 确认或关闭这些问题。 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站 | 把 Alertmanager 通知转为事件。 |
 | [Grafana](/docs/integrations/grafana) | 入站 | 把 Grafana 告警转为事件。 |
-| [Datadog](/docs/integrations/datadog) | 入站 | 把 Datadog 监控告警转为事件。 |
+| [Datadog](/docs/integrations/datadog) | 入站 | 把 Datadog 监控告警转为事件或警报，并在恢复时解决它们。 |
+| [New Relic](/docs/integrations/new-relic) | 入站 | 把 New Relic 问题转为事件或警报，并在问题关闭时解决它们。 |
 
 ### 安全工具
 
@@ -133,7 +134,7 @@ URL 是唯一的凭据，所以要像对待密码一样对待它。参见 [Webho
 5. 点击 **运行工作流**，在 **事件** 中选择一个事件，然后运行。测试运行会真的发送请求。然后打开 **已启用**。
 :::
 
-如果工具需要先转换数据格式，就在两者之间添加一个 [Run Custom JavaScript](/docs/workflows/components#custom-code) 块。Zendesk、New Relic、AWS（通过 SNS）、StatusCake 以及其他各种工具都是同样的做法：只有 URL 和请求主体不同。
+如果工具需要先转换数据格式，就在两者之间添加一个 [Run Custom JavaScript](/docs/workflows/components#custom-code) 块。Zendesk、AWS（通过 SNS）、StatusCake 以及其他各种工具都是同样的做法：只有 URL 和请求主体不同。
 
 ## 妥善保管凭据
 

@@ -31,6 +31,7 @@ enum ComponentID {
   WorkflowRun = "workflow-run",
   Sleep = "sleep",
   AIGenerateText = "ai-generate-text",
+  OpenStackProposeFix = "openstack-propose-fix",
   /*
    * Open, acknowledge or resolve an incident or an alert for a problem in
    * another tool, or note on it, by that tool's ID (Components/FromAnotherTool).

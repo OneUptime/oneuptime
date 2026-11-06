@@ -1500,6 +1500,7 @@ describe("criteria", () => {
       "host",
       "iot-device",
       "kubernetes",
+      "openstack",
       "podman",
       "proxmox",
       "storage-array",
@@ -1515,7 +1516,7 @@ describe("criteria", () => {
       readSource(
         "App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
       ).match(/queryAttributes: readAttributes,/g),
-    ).toHaveLength(11);
+    ).toHaveLength(12);
     expect(readPage("en", "monitor/kubernetes-monitor")).toContain(
       'Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history.',
     );

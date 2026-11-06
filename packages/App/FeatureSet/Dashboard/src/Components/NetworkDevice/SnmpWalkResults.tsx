@@ -65,6 +65,11 @@ export interface SnmpWalkRowActions {
   onCollectOnTemplate: (row: SnmpWalkRow) => void;
   // Where "Alert on it" goes for a collected OID; undefined hides it.
   getAlertRoute?: ((row: SnmpWalkRow) => Route) | undefined;
+  /*
+   * Opens the Network's SNMP Walk page on the OID with this device picked,
+   * to walk it on other devices too (issue #5548); undefined hides it.
+   */
+  onCompareWithOtherDevices?: ((row: SnmpWalkRow) => void) | undefined;
 }
 
 export interface ComponentProps {
@@ -93,7 +98,7 @@ interface RowProps {
   translator: Translator;
 }
 
-interface PartProps {
+export interface PartProps {
   view: SnmpWalkRowView;
   translator: Translator;
 }
@@ -195,7 +200,12 @@ const SnmpWalkRowType: FunctionComponent<TypeProps> = (
   );
 };
 
-const SnmpWalkRowValue: FunctionComponent<PartProps> = (
+/*
+ * A walked value as both SNMP Walk pages show it: cut past
+ * SNMP_WALK_VALUE_PREVIEW_LENGTH with Show all, a Timeticks with the time it
+ * adds up to, an SNMP NULL as a dash.
+ */
+export const SnmpWalkRowValue: FunctionComponent<PartProps> = (
   props: PartProps,
 ): ReactElement => {
   const view: SnmpWalkRowView = props.view;
@@ -341,6 +351,19 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
       }}
     />,
   ];
+
+  if (actions.onCompareWithOtherDevices) {
+    menuItems.push(
+      <MoreMenuItem
+        key="compare-with-other-devices"
+        icon={IconProp.Search}
+        text={translator.translateText("Compare with other devices")!}
+        onClick={() => {
+          actions.onCompareWithOtherDevices?.(row);
+        }}
+      />,
+    );
+  }
 
   if (actions.canCollectOnTemplate && actions.templateName && !isCollected) {
     menuItems.push(

@@ -67,6 +67,7 @@
     "forgotPassword": "Password dimenticata?",
     "signInWithSso": "Accedi con SSO",
     "signInWithMicrosoft": "Accedi con Microsoft",
+    "emailSignInLink": "Inviami un link di accesso",
     "noAccountPrompt": "Non hai un account?",
     "registerLink": "Registrati.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Genera codici di backup",
       "skip": "Salta per ora",
       "generateFailed": "Non è stato restituito alcun codice di backup. Riprova da Profilo utente > Autenticazione a due fattori."
+    },
+    "magicLink": {
+      "title": "Completa l'accesso",
+      "subtitle": "Usa il pulsante qui sotto per completare l'accesso con il link ricevuto via e-mail.",
+      "submit": "Accedi",
+      "noLink": "Questa pagina richiede il link di accesso ricevuto via e-mail. Apri di nuovo il link o richiedine uno nuovo.",
+      "turnedOff": "I link di accesso sono disattivati su questo server. Accedi con la tua e-mail e password.",
+      "requestNewLink": "Inviami un nuovo link",
+      "backToSignIn": "Torna all'accesso"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Ti abbiamo inviato il link per il reset della password tramite e-mail. Non dimenticare di controllare la cartella spam.",
     "submitButton": "Invia link per il reset",
     "rememberPasswordPrompt": "Ricordi la tua password?",
+    "loginLink": "Accedi."
+  },
+  "magicLink": {
+    "title": "Accedi con un link",
+    "subtitle": "Inserisci il tuo indirizzo e-mail e ti invieremo un link per accedere. Nessuna password necessaria.",
+    "submitButton": "Inviami un link di accesso",
+    "sentTitle": "Controlla la tua e-mail",
+    "sent": "Se {{email}} ha un account, un link di accesso è in arrivo. Funziona una sola volta e scade tra {{minutes}} minuti.",
+    "notReceived": "Non è nella posta in arrivo? Controlla la cartella spam o verifica di aver inserito l'indirizzo con cui ti sei registrato.",
+    "sendAnother": "Invia un altro link",
+    "knowPasswordPrompt": "Conosci la tua password?",
     "loginLink": "Accedi."
   },
   "resetPassword": {

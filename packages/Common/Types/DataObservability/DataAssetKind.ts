@@ -14,9 +14,21 @@ enum DataAssetKind {
   MaterializedView = "Materialized View",
   PartitionedTable = "Partitioned Table",
   ForeignTable = "Foreign Table",
+  // A path in a bucket, watched like a table: its objects are its rows (StoragePaths).
+  StoragePath = "Storage Path",
 }
 
 export default DataAssetKind;
+
+/*
+ * Whether this kind counts as a watched table on the bill. A view holds no rows
+ * and has no size of its own, so it is free: everything else holds data.
+ */
+export function isBilledAsWatchedTable(
+  kind: DataAssetKind | undefined | null,
+): boolean {
+  return kind !== DataAssetKind.View;
+}
 
 export const DATA_ASSET_KINDS: ReadonlyArray<DataAssetKind> = [
   DataAssetKind.Table,
@@ -24,6 +36,7 @@ export const DATA_ASSET_KINDS: ReadonlyArray<DataAssetKind> = [
   DataAssetKind.MaterializedView,
   DataAssetKind.PartitionedTable,
   DataAssetKind.ForeignTable,
+  DataAssetKind.StoragePath,
 ];
 
 export function isDataAssetKind(value: unknown): value is DataAssetKind {

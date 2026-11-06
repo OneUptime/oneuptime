@@ -9,12 +9,16 @@ Dataobservabilitet læser hver database med et login, der kun læser dens katalo
 
 ## Vælg, hvem der forbinder
 
-Under **Dataobservabilitet > Databaser** vælger du **Connect a Database** og derefter:
+Under **Dataobservabilitet > Databaser** vælger du **Forbind en database** og derefter:
 
-- **OneUptime connects**: indsæt en forbindelsesstreng. Den gemmes krypteret, bruges kun af OneUptimes workers og vises aldrig igen.
-- **A probe in my network connects**: vælg en af dine sonder, og angiv navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen, f.eks. `ORDERS_DB_URL`. Forbindelsesstrengen forlader aldrig dit netværk. Se [Brugerdefinerede sonder](/docs/probe/custom-probe).
+- **OneUptime forbinder**: indsæt en forbindelsesstreng. Den gemmes krypteret, bruges kun af OneUptimes workers og vises aldrig igen.
+- **En sonde i mit netværk forbinder**: vælg en af dine sonder, og angiv navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen, f.eks. `ORDERS_DB_URL`. Forbindelsesstrengen forlader aldrig dit netværk. Se [Brugerdefinerede sonder](/docs/probe/custom-probe).
 
 En database, der allerede er forbundet til Datasikkerhed, overvåges også, uden at du skal forbinde noget, og det samme gælder hvert BigQuery-datasæt, som din [cloudforbindelse](/docs/telemetry/cloud-accounts) har fundet.
+
+## Databaser, du kan forbinde
+
+**Databaser, du kan forbinde** under **Databaser** viser det, dit projekt allerede kender til, og som ingen har forbundet: databaser, dine spor taler med, databaser i dine cloudkonti og databaser, som Databaseovervågning overvåger. **Forbind** starter formularen ud fra det, der er kendt om hver, med en forbindelsesstreng at udfylde. **Skjul** forhindrer, at en kommer tilbage. Intet læses, før du forbinder den.
 
 ## Et skrivebeskyttet login pr. motor
 
@@ -30,7 +34,7 @@ Forbindelsesstrengen: `postgres://oneuptime_reader:...@orders-db.internal:5432/o
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB læses med sin egen driver: `mongodb+srv://oneuptime_reader:...@cluster0
 | Tjek | Hvert 15. minut, hver time, hver 6. time eller hver dag, som hvert tjek angiver |
 | Afstamning og seneste læsninger fra forespørgselshistorikken | Én gang i timen, tilbage til den seneste læsning |
 
-Hver sætning kører skrivebeskyttet, med en tidsgrænse for sætninger og låse, hvor motoren har dem. Forbindelsesstrengen logges aldrig og fjernes fra hver fejlmeddelelse. En statistik, som login ikke må læse, udelades med en advarsel på databasen; indsamlingen mislykkes aldrig af den grund.
+Hver sætning kører skrivebeskyttet, med en tidsgrænse for sætninger og låse, hvor motoren har dem. Forbindelsesstrengen logges aldrig og fjernes fra hver fejlmeddelelse. En statistik, som login ikke må læse, udelades med en advarsel på databasen; indsamlingen mislykkes aldrig af den grund. Forbindelser til private adresser afvises på OneUptime Cloud: brug en sonde.
+
+## Læsereplikaer
+
+En PostgreSQL- eller SQL Server-læsereplika flytter ikke sine skrivetællere, så en tabel dér kan se uændret ud, mens den ændrer sig. OneUptime ser, at det er en replika, udelader tællerne, siger det på databasen og falder tilbage til tabellens størrelse og rækker. Forbind primærdatabasen, hvor du kan, eller angiv en [friskhedskolonne](/docs/data-observability/table-health) for de tabeller, der betyder noget.
+
+## Lagerstier
+
+Ikke alt, du er afhængig af, ligger i en database. En eksport, der lander i en bucket hver nat, er lige så forsinket eller lige så kort som enhver tabel. Under **Lagerstier** vælger du **Rediger stier** for en bucket, som din [cloudforbindelse](/docs/telemetry/cloud-accounts) har fundet, på Amazon S3, Google Cloud Storage eller en Azure-lagerkonto, og angiver de stier, der betyder noget, én pr. linje. På Azure skal hver starte med containerens navn.
+
+Hver sti vises derefter under **Tabeller**: dens nyeste objekt er, hvornår den sidst blev ændret, dens objekter er dens rækker, og deres størrelse er dens størrelse, og de samme advarsler gælder. Kun navne, størrelser og tidspunkter læses, aldrig et objekt. En sti med mere end 10000 objekter har intet nøjagtigt antal, ingen nøjagtig størrelse og intet nøjagtigt nyeste objekt og siger det: angiv en smallere.
 
 ## Fejlfinding
 
 - **Databasen viser Mislykkedes.** Dens meddelelse siger hvorfor: en vært, OneUptime ikke kan nå, et afvist login, en TLS-tilstand, serveren ikke accepterer. Forbind en database inde i dit netværk via en sonde.
 - **Tabeller viser ingen seneste ændring.** Login kan ikke læse motorens statistik: giv det, som fanen for din motor viser, eller vent, til en tabels rækker har ændret sig to gange.
 - **En tabel mangler.** Den ligger i et skema, som login ikke må bruge, eller den er udelukket på databasen. Giv `USAGE` på dens skema, eller fjern udelukkelsen.
+- **En MySQL-tabel har ingen kolonner.** Login skal have `REFERENCES`, som ovenfor: det viser en tabels kolonner uden at give nogen læsning af dens rækker.
 
 ## Næste trin
 

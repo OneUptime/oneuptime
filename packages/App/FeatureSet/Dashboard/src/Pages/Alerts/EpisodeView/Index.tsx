@@ -305,7 +305,7 @@ const AlertEpisodeView: FunctionComponent<
     });
   };
 
-  // The episode's own Slack and Teams channels: Open in Slack / Teams.
+  // The episode's own chat channels: Open in Slack / Teams / Mattermost.
   const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
     recordType: WorkspaceChannelRecordType.AlertEpisode,
     recordId: modelId,

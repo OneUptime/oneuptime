@@ -109,6 +109,7 @@ describe("LOGS_SCOPE_FACET_ENTITY_TYPES", () => {
       kubernetesClusterId: ServiceType.KubernetesCluster,
       dockerSwarmClusterId: ServiceType.DockerSwarmCluster,
       proxmoxClusterId: ServiceType.ProxmoxCluster,
+      openStackCloudId: ServiceType.OpenStackCloud,
       vmwareVCenterId: ServiceType.VMwareVCenter,
       cephClusterId: ServiceType.CephCluster,
       storageArrayId: ServiceType.StorageArray,

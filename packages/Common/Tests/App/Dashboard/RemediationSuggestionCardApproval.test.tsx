@@ -407,7 +407,7 @@ describe("RemediationStep Approve & Run", () => {
     });
     expect(screen.getByTestId("remediation-approve-button")).toBeDisabled();
     // Dismiss is locked too while the approval is in flight.
-    expect(screen.getByText("Dismiss").closest("button")).toBeDisabled();
+    expect(screen.getByText("Dismiss fix").closest("button")).toBeDisabled();
 
     await act(async () => {
       answers[0]!(new HTTPResponse<JSONObject>(200, {}, {}));
@@ -459,7 +459,9 @@ describe("RemediationStep Approve & Run", () => {
     await renderWaitingPlan();
 
     act(() => {
-      (screen.getByText("Dismiss").closest("button") as HTMLElement).click();
+      (
+        screen.getByText("Dismiss fix").closest("button") as HTMLElement
+      ).click();
     });
     expect(actionPosts(DISMISS_ROUTE)).toHaveLength(1);
 
@@ -473,7 +475,9 @@ describe("RemediationStep Approve & Run", () => {
       "remediation-action-error",
     );
     expect(alert).toHaveTextContent("You cannot dismiss this.");
-    expect(alert).toHaveTextContent("the suggestion was not dismissed");
+    // A fix, as the button names it - never the model's "suggestion".
+    expect(alert).toHaveTextContent("the fix was not dismissed");
+    expect(alert).not.toHaveTextContent("suggestion");
     expect(alert).not.toHaveTextContent("nothing ran");
   });
 
@@ -482,6 +486,35 @@ describe("RemediationStep Approve & Run", () => {
     expect(getActionErrorTitle("approve")).toMatch(/nothing ran/);
     expect(getActionErrorTitle("dismiss")).toMatch(/not dismissed/);
     expect(getActionErrorTitle(null)).toBe("Could not save your action");
+  });
+
+  /*
+   * The UI review of #5519's follow-ups: a refused Dismiss fix said "the
+   * suggestion was not dismissed" under a button that says Dismiss fix.
+   * Each headline is the key RemediationFollowUpWordsInLocale holds every
+   * language to.
+   */
+  test("every refusal headline names a fix, as the step's buttons do, never a suggestion", () => {
+    expect(getActionErrorTitle("dismiss")).toBe(
+      "Could not save your action: the fix was not dismissed",
+    );
+
+    for (const action of ["approve", "dry-run", "dismiss", null] as const) {
+      for (const status of [
+        undefined,
+        ...Object.values(AutoRemediationSuggestionStatus),
+      ]) {
+        expect({
+          action,
+          status,
+          title: getActionErrorTitle(action, status),
+        }).toEqual({
+          action,
+          status,
+          title: expect.not.stringContaining("suggestion"),
+        });
+      }
+    }
   });
 
   /*
@@ -516,7 +549,9 @@ describe("RemediationStep Approve & Run", () => {
 
     expect(
       getActionErrorTitle("dismiss", AutoRemediationSuggestionStatus.Approved),
-    ).toMatch(/not dismissed — this fix had already started/);
+    ).toBe(
+      "Could not save your action: the fix was not dismissed — it had already started; see its commands below",
+    );
   });
 
   test("an approval refused because a teammate already approved does not say nothing ran", async () => {
@@ -889,7 +924,7 @@ describe("RemediationStep with an SSH command from before runbook credentials we
     expect(REMOVED_SSH_PLAN_NOTE).toBe(
       "This plan can't be approved: OneUptime AI no longer runs SSH commands.",
     );
-    expect(screen.getByText("Dismiss").closest("button")).toBeEnabled();
+    expect(screen.getByText("Dismiss fix").closest("button")).toBeEnabled();
     // Nothing is waiting for an approval nobody can give.
     expect(screen.getByText("Can't be approved")).toBeInTheDocument();
     expect(screen.queryByText("Waiting for approval")).not.toBeInTheDocument();
@@ -916,7 +951,7 @@ describe("RemediationStep with an SSH command from before runbook credentials we
     );
 
     act(() => {
-      screen.getByText("Dismiss").closest("button")!.click();
+      screen.getByText("Dismiss fix").closest("button")!.click();
     });
 
     await waitFor(() => {
@@ -966,6 +1001,6 @@ describe("RemediationStep with an SSH command from before runbook credentials we
       screen.queryByTestId("remediation-removed-ssh-note"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Approve & Run")).not.toBeInTheDocument();
-    expect(screen.queryByText("Dismiss")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dismiss fix")).not.toBeInTheDocument();
   });
 });

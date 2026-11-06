@@ -101,6 +101,7 @@ oneuptime resources
 | `oneuptime context list`, `use`, `current`, `delete` | زمینه‌های ذخیره‌شده را فهرست می‌کند، عوض می‌کند، نشان می‌دهد و حذف می‌کند | [احراز هویت](/docs/cli/authentication#زمینهها) |
 | `oneuptime whoami` | URL و کلید API را که دستور بعدی به کار می‌برد نشان می‌دهد، و با `--check` این‌که OneUptime کلید را می‌پذیرد یا نه | [احراز هویت](/docs/cli/authentication#ببینید-cli-از-چه-چیزی-استفاده-خواهد-کرد) |
 | `oneuptime deploy` | یک استقرار، یا تغییری دیگر، را برای نمودارها و OneUptime AI ثبت می‌کند | [استقرارها و تغییرها](/docs/telemetry/change-events) |
+| `oneuptime data-checks apply` | بررسی‌های داده پروژه را با یک فایل در مخزن شما یکی می‌کند | [مرجع دستورها](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | پس از یک ساخت، آرتیفکت‌های یک پروژهٔ dbt را به مشاهده‌پذیری داده می‌فرستد | [مرجع دستورها](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | با یک نوع رکورد کار می‌کند | [عملیات روی منابع](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | فیلدهای یک منبع و پرچم‌هایی را که آن‌ها را تنظیم می‌کنند فهرست می‌کند | [عملیات روی منابع](/docs/cli/resource-operations#دیدن-فیلدهای-یک-منبع) |

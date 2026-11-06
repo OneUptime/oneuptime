@@ -28,7 +28,7 @@ flowchart TB
 | 方式 | 最適合 | 範例 |
 | --- | --- | --- |
 | 內建連接 | OneUptime 自己連接的工具。只需填寫表單，無需建置任何東西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[安全性事件](/docs/telemetry/security-events) 連接 |
-| 工作流程範本 | 雙向保持同步的工單工具、監控問題、安全性事件報告，以及聊天訊息。選擇一個範本並填寫幾項設定即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix) |
+| 工作流程範本 | 雙向保持同步的工單工具、監控問題、安全性事件報告，以及聊天訊息。選擇一個範本並填寫幾項設定即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix)、[Datadog](/docs/integrations/datadog)、[New Relic](/docs/integrations/new-relic) |
 | Incoming Request 監測器 | 傳送 Webhook 的警示工具。無需工作流程，每條警示對應一個事件，通知待命人員，並在警示恢復時解決。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 你自己建置的工作流程 | 任何帶有 Webhook 或 REST API 的工具，以及你自己的任何邏輯。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ flowchart TB
 | [Zabbix](/docs/integrations/zabbix) | 雙向 | 把 Zabbix 問題轉為事件或警示，在恢復時解決它們，並從 OneUptime 確認或關閉這些問題。 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 傳入 | 把 Alertmanager 通知轉為事件。 |
 | [Grafana](/docs/integrations/grafana) | 傳入 | 把 Grafana 警示轉為事件。 |
-| [Datadog](/docs/integrations/datadog) | 傳入 | 把 Datadog 監控警示轉為事件。 |
+| [Datadog](/docs/integrations/datadog) | 傳入 | 把 Datadog 監控警示轉為事件或警示，並在恢復時解決它們。 |
+| [New Relic](/docs/integrations/new-relic) | 傳入 | 把 New Relic 問題轉為事件或警示，並在問題關閉時解決它們。 |
 
 ### 安全工具
 
@@ -133,7 +134,7 @@ URL 是唯一的憑證，所以要像對待密碼一樣對待它。請參閱 [We
 5. 點選 **執行工作流程**，在 **事件** 中選擇一個事件，然後執行。測試執行會真的傳送請求。然後開啟 **已啟用**。
 :::
 
-如果工具需要先轉換資料格式，就在兩者之間新增一個 [Run Custom JavaScript](/docs/workflows/components#custom-code) 區塊。Zendesk、New Relic、AWS（透過 SNS）、StatusCake 以及其他各種工具都是同樣的做法：只有 URL 和請求內文不同。
+如果工具需要先轉換資料格式，就在兩者之間新增一個 [Run Custom JavaScript](/docs/workflows/components#custom-code) 區塊。Zendesk、AWS（透過 SNS）、StatusCake 以及其他各種工具都是同樣的做法：只有 URL 和請求內文不同。
 
 ## 妥善保管憑證
 

@@ -1,0 +1,2 @@
+gnocchi-metricd running again, and the backlog gone.
+On its own: gnocchi-metricd started again, and worked through the backlog.

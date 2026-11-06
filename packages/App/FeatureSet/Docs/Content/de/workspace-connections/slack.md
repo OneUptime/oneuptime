@@ -43,7 +43,7 @@ Ein Slack-Workspace kann mit mehr als einem Projekt verbunden sein, etwa mit Pro
 :::steps
 ### OneUptime in Ihrem Slack-Workspace installieren
 
-Gehen Sie zu **Projekteinstellungen** > **Arbeitsbereich** > **Slack** und klicken Sie auf **Mit Slack verbinden**. Wählen Sie den Workspace und erlauben Sie OneUptime den Zugriff. Slack schickt Sie zurück auf dieselbe Seite, die nun den Workspace nennt, mit dem das Projekt verbunden ist. Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Slack oder Teams verbinden**, der ebenfalls hierher führt.
+Gehen Sie zu **Projekteinstellungen** > **Arbeitsbereich** > **Slack** und klicken Sie auf **Mit Slack verbinden**. Wählen Sie den Workspace und erlauben Sie OneUptime den Zugriff. Slack schickt Sie zurück auf dieselbe Seite, die nun den Workspace nennt, mit dem das Projekt verbunden ist. Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Arbeitsbereich verbinden**, der ebenfalls hierher führt.
 
 ### Ihr eigenes Slack-Konto verbinden
 

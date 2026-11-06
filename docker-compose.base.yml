@@ -38,6 +38,11 @@ x-common-variables: &common-variables
   VAPID_SUBJECT: ${VAPID_SUBJECT}
 
   ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
+  WATCHED_TABLES_INCLUDED_PER_PROJECT: ${WATCHED_TABLES_INCLUDED_PER_PROJECT}
+  WATCHED_TABLE_PRICE_IN_USD: ${WATCHED_TABLE_PRICE_IN_USD}
+  WATCHED_TABLE_VOLUME_THRESHOLD: ${WATCHED_TABLE_VOLUME_THRESHOLD}
+  WATCHED_TABLE_VOLUME_PRICE_IN_USD: ${WATCHED_TABLE_VOLUME_PRICE_IN_USD}
+  WATCHED_TABLE_STRIPE_PRICE_ID: ${WATCHED_TABLE_STRIPE_PRICE_ID}
 
   # Outbound webhook egress policy — see config.example.env for the full
   # explanation. Both are off by default and instance-wide; there is no
@@ -403,7 +408,13 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
+      # Names the role and database the container was told to create: on its
+      # own pg_isready connects as root, the user Docker runs a check as, and
+      # the server logs FATAL: role "root" does not exist at every check.
+      # Over TCP because the temporary server the image runs while creating a
+      # new database listens only on its socket: nothing is told this one is
+      # healthy until the server the other containers connect to is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
       retries: 5

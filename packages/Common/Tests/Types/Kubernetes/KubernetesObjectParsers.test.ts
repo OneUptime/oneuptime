@@ -367,6 +367,28 @@ describe("parseNodeObject", () => {
     });
     expect(result!.status.conditions[0]!.status).toBe("True");
   });
+
+  test("keeps which machine of its cloud the node is, for what links it to that machine", () => {
+    const providerID: string =
+      "openstack:///a1b2c3d4-0000-4000-8000-000000000001";
+    const result: ReturnType<typeof parseNodeObject> = parseNodeObject(
+      kv([
+        ["metadata", obj(kv([["name", str("node-a")]]))],
+        ["spec", obj(kv([["providerID", str(providerID)]]))],
+      ]),
+    );
+    expect(result!.spec?.providerID).toBe(providerID);
+  });
+
+  test("a node no cloud provider set up has no provider ID, rather than an empty one", () => {
+    const result: ReturnType<typeof parseNodeObject> = parseNodeObject(
+      kv([
+        ["metadata", obj(kv([["name", str("node-a")]]))],
+        ["spec", obj(kv([["unschedulable", str("true")]]))],
+      ]),
+    );
+    expect(result!.spec).toEqual({ unschedulable: true, taints: [] });
+  });
 });
 
 describe("parseDeploymentObject", () => {

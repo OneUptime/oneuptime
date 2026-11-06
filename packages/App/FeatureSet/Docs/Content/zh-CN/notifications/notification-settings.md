@@ -18,7 +18,7 @@ flowchart TB
     setting -->|"全部关闭"| nothing["不发送任何内容"]
 ```
 
-- 每一行是一个通知项，每一列是一个渠道：邮件、短信、电话、推送、WhatsApp、Telegram、Slack 和 Microsoft Teams，以及 Webhook。只有在项目已连接 Slack 和 Microsoft Teams 时，它们才会成为列。
+- 每一行是一个通知项，每一列是一个渠道：邮件、短信、电话、推送、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 和 Webhook。只有在项目已连接 Slack、Microsoft Teams 和 Mattermost 时，它们才会成为列。
 - 开启的渠道会发送到你在此项目中该渠道上的每种已验证方式，而不只是其中一种。
 - 开启的渠道如果背后没有已验证的方式，就不会发送任何内容。 **Your setup checklist** 会在 **Staying informed** 下指出这一点。
 - 更新会发送给记录的所有者：被指定为所有者的人，以及其所有者团队的成员。当记录没有所有者时，会改为发送给项目所有者。关于被添加为所有者的通知项只发送给被添加的人。

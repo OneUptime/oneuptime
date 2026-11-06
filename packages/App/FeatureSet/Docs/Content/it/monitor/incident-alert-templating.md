@@ -433,7 +433,7 @@ Un dispositivo di rete riceve un ping a ogni interrogazione e viene scansionato 
 | `collectionIssueSummary` | Una riga su ogni gruppo non disponibile, pronta per un titolo. Vuota quando è stato raccolto tutto. | `string` |
 | `metrics` | I valori raccolti, per nome di serie. | `Object` |
 
-I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.database.connections.used.percent`, e un percorso legge ogni punto come un passo dentro un oggetto, quindi un modello non può estrarre un singolo valore da `metrics`. Inserisci `{{metrics}}` intero, come JSON, oppure usa `{{collectionIssueSummary}}`. Una metrica che non è stata raccolta manca da `metrics`, non vale zero. Per agire su un valore, confrontalo nel criterio con un'[espressione JavaScript](/docs/monitor/javascript-expression).
+I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.database.connections.used.percent`, e un modello può comunque estrarne uno: scrivi il nome intero dopo `metrics.`, come in `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Inserisci `{{metrics}}` intero, come JSON, oppure usa `{{collectionIssueSummary}}`. Una metrica che non è stata raccolta manca da `metrics`, non vale zero. Per agire su un valore, confrontalo nel criterio con un'[espressione JavaScript](/docs/monitor/javascript-expression).
 
 ### Monitor delle pagine di stato esterne
 
@@ -452,7 +452,7 @@ I nomi delle serie in `metrics` contengono punti, come `oneuptime.monitor.databa
 
 ### Monitor di metriche e infrastruttura
 
-I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, VMware, Ceph, Storage Array e IoT Device hanno una variabile propria:
+I monitor Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array e IoT Device hanno una variabile propria:
 
 | Variabile | Cosa contiene | Tipo |
 | --- | --- | --- |

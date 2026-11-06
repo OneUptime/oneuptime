@@ -10,6 +10,7 @@
 import ComponentMetadata, { NodeDataProp } from "../Component";
 import ComponentID from "../ComponentID";
 import { getAIGenerateTextDocumentation } from "./AIDocumentation";
+import { getOpenStackProposeFixDocumentation } from "./OpenStackDocumentation";
 import {
   getApiDeleteDocumentation,
   getApiGetByIdDocumentation,
@@ -98,6 +99,7 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   [ComponentID.WorkflowRun]: getExecuteWorkflowDocumentation,
   [ComponentID.Sleep]: getSleepDocumentation,
   [ComponentID.AIGenerateText]: getAIGenerateTextDocumentation,
+  [ComponentID.OpenStackProposeFix]: getOpenStackProposeFixDocumentation,
   [ComponentID.IncidentFromAnotherTool]:
     getIncidentFromAnotherToolDocumentation,
   [ComponentID.AlertFromAnotherTool]: getAlertFromAnotherToolDocumentation,

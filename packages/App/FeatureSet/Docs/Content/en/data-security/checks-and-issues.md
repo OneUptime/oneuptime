@@ -1,10 +1,10 @@
 # Data Security Checks and Issues
 
-Data Security runs 33 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
+Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.
-- [Every check](#every-check): All 33, with what each one checks and how to fix it.
+- [Every check](#every-check): All 34, with what each one checks and how to fix it.
 - [Risk score](#risk-score): How issues are ordered inside a severity.
 - [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue.
 - [Fix it from here](#fix-it-from-here): Close an exposure, or turn on a missing protection, in one click.
@@ -87,6 +87,7 @@ Severity is given for Restricted, Confidential, Internal and Public data, in tha
 | Passwords are stored in plain text (`plaintext-passwords`) | Every store but telemetry | A password field holds values that are not password hashes (bcrypt, argon2, scrypt or PBKDF2). | Critical / Critical / Critical / Critical | Hash passwords with bcrypt, scrypt or argon2, migrate the stored ones, and make every account reset its password. |
 | Production data was copied into a non-production store (`production-data-in-non-production`) | Every store but telemetry | Values found in a production store were also found here, in a development, test or staging store. | High / Medium / — / — | Replace the copy with masked or synthetic data, and delete the real data from the non-production store. |
 | Sensitive data nobody has used in 90 days (`stale-sensitive-data`) | Every store but telemetry | The store holds sensitive data and has had no reads or writes for 90 days. | Medium / Low / — / — | Confirm the data is no longer needed, then archive it with a retention date, or delete it. |
+| A new column holds personal data (`new-personal-data-column`) | Every store but telemetry | A column added in the last 14 days has a name that says it holds personal data. | High / High / Medium / Medium | Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it. |
 | Nobody owns this sensitive store (`no-owner`) | Every store | The store holds sensitive data and has no owner. | Medium / Low / — / — | Add an owner on the store's **Owners** page, or an owner rule that matches its tags. |
 
 ### Telemetry

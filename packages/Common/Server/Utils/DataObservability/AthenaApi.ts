@@ -121,6 +121,13 @@ export function readAthenaConnection(value: string): AthenaConnection {
   return connection;
 }
 
+// Why a check was stopped, in the setting's own words.
+export function describeScanLimit(maxBytesScanned: number): string {
+  const gigabytes: number = Math.round(maxBytesScanned / (1024 * 1024 * 1024));
+
+  return `This check would read more than the ${gigabytes} GB a check may read, so it was stopped. Sample it, or raise the limit in Data Observability's Settings.`;
+}
+
 // A value written into a query as Athena reads a string: quoted, its quotes doubled.
 export function athenaStringLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
@@ -255,6 +262,8 @@ export default class AthenaApi {
   public async query(data: {
     statement: string;
     params?: Array<string> | undefined;
+    // Athena has no limit to send with a query: it is followed, and stopped past this.
+    maxBytesScanned?: number | undefined;
   }): Promise<Array<Record<string, unknown>>> {
     const params: Array<string> = data.params || [];
     let index: number = 0;
@@ -306,7 +315,15 @@ export default class AthenaApi {
         );
       }
 
-      if (this.now() - startedAt > ATHENA_QUERY_DEADLINE_IN_MS) {
+      const scanned: number = Number(
+        readObject(execution["Statistics"])["DataScannedInBytes"],
+      );
+      const isOverLimit: boolean =
+        Boolean(data.maxBytesScanned) &&
+        Number.isFinite(scanned) &&
+        scanned > data.maxBytesScanned!;
+
+      if (isOverLimit || this.now() - startedAt > ATHENA_QUERY_DEADLINE_IN_MS) {
         try {
           await this.call("athena", "AmazonAthena.StopQueryExecution", {
             QueryExecutionId: executionId,
@@ -315,7 +332,11 @@ export default class AthenaApi {
           // The workgroup's own limit ends it either way.
         }
 
-        throw new Error("The Athena query did not finish in time.");
+        throw new Error(
+          isOverLimit
+            ? describeScanLimit(data.maxBytesScanned!)
+            : "The Athena query did not finish in time.",
+        );
       }
 
       await this.wait(POLL_WAIT_IN_MS);

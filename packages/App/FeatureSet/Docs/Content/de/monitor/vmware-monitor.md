@@ -14,7 +14,7 @@ Ein VMware-Monitor beobachtet ein vCenter - seine Rechenzentren, Cluster, ESXi-H
 Die Metriken kommen aus der API von vCenter, gelesen mit einem Konto mit Lesezugriff, auf einem von zwei Wegen:
 
 - **Der VMware-Agent**, ein OpenTelemetry Collector mit seinem Receiver `vcenter`, den Sie auf einem Rechner betreiben, der vCenter erreicht. Siehe [VMware-Agent](/docs/telemetry/vmware).
-- **Eine Probe**, ohne etwas zu installieren: Sie verbinden das vCenter in OneUptime und wählen die Probe, die es erreicht. Siehe [VMware ohne Agent](/docs/telemetry/vmware-agentless).
+- **A probe**, ohne etwas zu installieren: Sie verbinden das vCenter in OneUptime und wählen die Probe, die es erreicht. Siehe [VMware ohne Agent](/docs/telemetry/vmware-agentless).
 
 Beide senden in jedem Erfassungsintervall (standardmäßig 2 Minuten) dieselben Serien, versehen mit dem Namen des vCenter, `vmware.vcenter.name`. Ein vCenter ist ein vSphere-Endpunkt: ein vCenter Server oder ein eigenständiger ESXi-Host. Ein VMware-Monitor ist an ein vCenter gebunden. Jede Minute führt er seine Abfrage über die Metriken dieses vCenter aus und vergleicht das Ergebnis mit seinen Kriterien.
 
@@ -145,6 +145,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 - **Zähl- und Zustandsvorlagen verwenden Max**, sodass eine einzige Erfassung, die den Zustand zeigt, sie auslöst: Paketfehler, Ballooning, Swapping, roter und gelber Status, Hosts, die nicht effektiv sind, Überlastung.
 - **Host Not Responding verwendet Max und löst bei 0 aus:** Ein laufender ESXi-Host nutzt immer Arbeitsspeicher, also ist eine Erfassung, die genutzten Arbeitsspeicher meldet, ein Host, der antwortet, und nur ein Zeitfenster, in dem keine das tat, löst sie aus.
 - **Jede Vorlage gruppiert nach dem eigenen Identitätsattribut des Objekts**, sodass pro betroffenem Objekt ein Vorfall ausgelöst wird, der das Objekt nennt. Die Ausnahme ist **vCenter Stopped Reporting**, die das gesamte vCenter überwacht: Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
+- **Datacenter-Zählvorlagen erholen sich, wenn ihre Serie verschwunden ist:** Der Receiver erfasst eine Anzahl nur für Zustände, die existieren. Wird der letzte rote Host grün, bleibt also keine Serie übrig, und ihre Erholungskriterien zählen eine fehlende Serie als 0. Hat kein Datacenter mehr eine Serie, erholen sie sich nur, wenn `vcenter.datacenter.cpu.limit` im selben Fenster eingetroffen ist, sodass ein vCenter, das nicht mehr berichtet, nichts schließt.
 - **Schwellenwerte sind an ihre Einheit gebunden** (`%`, `ms`, `us`), sodass sie ihre Bedeutung behalten, egal welche Einheit ein Diagramm zeigt.
 
 ## Erfasste Metriken

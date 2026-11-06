@@ -28,7 +28,7 @@ Uma integração bidirecional, como Jira ou Dynamics 365, usa os dois sentidos: 
 | Forma | Ideal para | Exemplos |
 | --- | --- | --- |
 | Uma conexão integrada | Ferramentas às quais o OneUptime se conecta sozinho. Você preenche um formulário e não há nada a montar. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), as conexões de [Eventos de segurança](/docs/telemetry/security-events) |
-| Um modelo de workflow | Ferramentas de tickets, sincronizadas nos dois sentidos, problemas de monitoramento, relatórios de incidentes de segurança e mensagens de chat. Você escolhe um modelo e preenche algumas configurações. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
+| Um modelo de workflow | Ferramentas de tickets, sincronizadas nos dois sentidos, problemas de monitoramento, relatórios de incidentes de segurança e mensagens de chat. Você escolhe um modelo e preenche algumas configurações. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
 | Um monitor Incoming Request | Ferramentas de alerta que enviam um webhook. Você recebe um incidente por alerta, encaminhado ao plantão e resolvido quando o alerta se recupera, sem workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Um workflow que você monta | Qualquer ferramenta com um webhook ou uma API REST, e qualquer lógica sua. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -43,7 +43,8 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 | [Zabbix](/docs/integrations/zabbix) | Ambos | Transforma os problemas do Zabbix em incidentes ou alertas, os resolve na recuperação e reconhece ou fecha os problemas a partir do OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | De entrada | Transforma as notificações do Alertmanager em incidentes. |
 | [Grafana](/docs/integrations/grafana) | De entrada | Transforma os alertas do Grafana em incidentes. |
-| [Datadog](/docs/integrations/datadog) | De entrada | Transforma os alertas dos monitores do Datadog em incidentes. |
+| [Datadog](/docs/integrations/datadog) | De entrada | Transforma os alertas dos monitores do Datadog em incidentes ou alertas, e os resolve na recuperação. |
+| [New Relic](/docs/integrations/new-relic) | De entrada | Transforma os problemas do New Relic em incidentes ou alertas, e os resolve quando o problema é fechado. |
 
 ### Ferramentas de segurança
 
@@ -133,7 +134,7 @@ A URL é a única credencial, então trate-a como uma senha. Veja [Webhook](/doc
 5. Clique em **Executar fluxo de trabalho**, escolha um incidente em **Incidente** e execute. Uma execução de teste envia a requisição de verdade. Depois, ative **Habilitado**.
 :::
 
-Quando a ferramenta precisa dos dados em outro formato, adicione um bloco [Run Custom JavaScript](/docs/workflows/components#custom-code) entre os dois. A receita é a mesma para Zendesk, New Relic, AWS (via SNS), StatusCake e todas as outras: só mudam a URL e o corpo.
+Quando a ferramenta precisa dos dados em outro formato, adicione um bloco [Run Custom JavaScript](/docs/workflows/components#custom-code) entre os dois. A receita é a mesma para Zendesk, AWS (via SNS), StatusCake e todas as outras: só mudam a URL e o corpo.
 
 ## Proteger as credenciais
 

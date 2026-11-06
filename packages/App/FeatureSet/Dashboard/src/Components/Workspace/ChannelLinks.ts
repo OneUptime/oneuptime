@@ -5,26 +5,31 @@ import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
-import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "Common/Types/Workspace/WorkspaceType";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * THE "OPEN IN SLACK" / "OPEN IN MICROSOFT TEAMS" BUTTONS OF A RECORD'S PAGE.
+ * THE "OPEN IN SLACK" / "OPEN IN MICROSOFT TEAMS" / "OPEN IN MATTERMOST"
+ * BUTTONS OF A RECORD'S PAGE.
  *
  * An incident, alert, episode or scheduled maintenance event that a
  * workspace notification rule made a channel for shows a button in its
  * header that opens that channel - Datadog's "Open Slack": the room where
  * the incident is being worked is one click from its page. One button per
  * workspace; a record with two Slack channels gets one Open in Slack that
- * lists both. A record with channels in both Slack and Microsoft Teams gets
- * one Open channel that lists them all: two buttons as wide as their
- * products' names left the title a few letters beside the state buttons.
- * No channel, no button.
+ * lists both. A record with channels in more than one workspace gets one
+ * Open channel that lists them all: two buttons as wide as their products'
+ * names left the title a few letters beside the state buttons. No channel,
+ * no button.
  *
  * React-free so the rules can be tested on their own.
  */
 export interface ChannelLinkGroup {
   workspaceType: WorkspaceType;
+  // The header action's id: "open-in-slack".
+  actionId: string;
   // "Open in Slack": a translation key.
   label: string;
   icon: IconProp;
@@ -34,10 +39,12 @@ export interface ChannelLinkGroup {
 export const CHANNEL_LINK_TEXT: {
   openInSlack: string;
   openInMicrosoftTeams: string;
+  openInMattermost: string;
   openChannel: string;
 } = {
   openInSlack: translationKey("Open in Slack"),
   openInMicrosoftTeams: translationKey("Open in Microsoft Teams"),
+  openInMattermost: translationKey("Open in Mattermost"),
   openChannel: translationKey("Open channel"),
 };
 
@@ -46,13 +53,32 @@ export const CHANNEL_LINK_TEXT: {
  * every language.
  */
 export function getWorkspaceName(workspaceType: WorkspaceType): string {
-  return workspaceType === WorkspaceType.Slack ? "Slack" : "Microsoft Teams";
+  return getWorkspaceTypeDisplayName(workspaceType);
 }
 
-// Slack first: the order the record's channels are listed in everywhere.
-const WORKSPACE_ORDER: Array<WorkspaceType> = [
-  WorkspaceType.Slack,
-  WorkspaceType.MicrosoftTeams,
+/*
+ * The workspaces with a button. Slack first, then Microsoft Teams, then
+ * Mattermost: the order the record's channels are listed in everywhere.
+ */
+const WORKSPACE_BUTTONS: ReadonlyArray<Omit<ChannelLinkGroup, "links">> = [
+  {
+    workspaceType: WorkspaceType.Slack,
+    actionId: "open-in-slack",
+    label: CHANNEL_LINK_TEXT.openInSlack,
+    icon: IconProp.Slack,
+  },
+  {
+    workspaceType: WorkspaceType.MicrosoftTeams,
+    actionId: "open-in-microsoft-teams",
+    label: CHANNEL_LINK_TEXT.openInMicrosoftTeams,
+    icon: IconProp.MicrosoftTeams,
+  },
+  {
+    workspaceType: WorkspaceType.Mattermost,
+    actionId: "open-in-mattermost",
+    label: CHANNEL_LINK_TEXT.openInMattermost,
+    icon: IconProp.Mattermost,
+  },
 ];
 
 export function getChannelLinkGroups(
@@ -60,10 +86,10 @@ export function getChannelLinkGroups(
 ): Array<ChannelLinkGroup> {
   const groups: Array<ChannelLinkGroup> = [];
 
-  for (const workspaceType of WORKSPACE_ORDER) {
+  for (const button of WORKSPACE_BUTTONS) {
     const ofType: Array<WorkspaceChannelLink> = links.filter(
       (link: WorkspaceChannelLink) => {
-        return link.workspaceType === workspaceType;
+        return link.workspaceType === button.workspaceType;
       },
     );
 
@@ -71,18 +97,7 @@ export function getChannelLinkGroups(
       continue;
     }
 
-    groups.push({
-      workspaceType: workspaceType,
-      label:
-        workspaceType === WorkspaceType.Slack
-          ? CHANNEL_LINK_TEXT.openInSlack
-          : CHANNEL_LINK_TEXT.openInMicrosoftTeams,
-      icon:
-        workspaceType === WorkspaceType.Slack
-          ? IconProp.Slack
-          : IconProp.MicrosoftTeams,
-      links: ofType,
-    });
+    groups.push({ ...button, links: ofType });
   }
 
   return groups;
@@ -90,9 +105,9 @@ export function getChannelLinkGroups(
 
 /*
  * A channel as its menu item names it: "#incident-42-checkout" in Slack,
- * where channels are written with their #, the bare name in Teams. In the
- * Open channel menu, which mixes the two, each item says its product first:
- * "Slack · #incident-42-checkout" (getChannelLinkMenuLabel).
+ * where channels are written with their #, the bare name in Teams and
+ * Mattermost. In the Open channel menu, which mixes them, each item says its
+ * product first: "Slack · #incident-42-checkout" (getChannelLinkMenuLabel).
  */
 export function getChannelLinkLabel(link: WorkspaceChannelLink): string {
   const name: string = link.channelName.trim();

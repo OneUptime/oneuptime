@@ -56,7 +56,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Overview**  | **All Events** and **Ongoing Events**, whose badge counts the events in progress right now.                                          |
 | **Calendar**  | **Maintenance Calendar**: every event on a month, a week or a day, beside the calendars from outside the project you add.            |
-| **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect Slack or Teams** when it has none. |
+| **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect a workspace** when it has none. |
 | **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                             |
 | **Settings**  | **Event State**, **Event Templates**, **Note Templates**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
 

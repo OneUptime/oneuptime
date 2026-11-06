@@ -7,6 +7,7 @@ import Runbook from "./Runbook";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
+import AutoRemediationApprovalSource from "../../Types/AutoRemediation/AutoRemediationApprovalSource";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -497,6 +498,35 @@ export default class AutoRemediationSuggestion extends BaseModel {
   })
   public runbookNameSnapshot?: string = undefined;
 
+  /*
+   * How the proposed runbook went the last times OneUptime AI ran it as a
+   * fix for other incidents and alerts of the project, when it was proposed
+   * (RemediationTrackRecord shape, from RemediationTrackRecordReader): what
+   * the person approving it weighs, on the AI card and in the fix's Slack
+   * and Microsoft Teams message. Empty when it never ran before.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Runbook Track Record",
+    description:
+      "How the proposed runbook went the last times OneUptime AI ran it for other incidents and alerts, when it was proposed.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public runbookTrackRecord?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -773,6 +803,35 @@ export default class AutoRemediationSuggestion extends BaseModel {
     nullable: true,
   })
   public approvedAt?: Date = undefined;
+
+  /*
+   * Where the person approved the fix: the AI card in OneUptime, or the
+   * fix's message in Slack or Microsoft Teams (RemediationApproval). Empty
+   * until approved, and for a fix approved before it was kept.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(AutoRemediationApprovalSource),
+    title: "Approved From",
+    description:
+      "Where this suggestion was approved: Dashboard (the AI card), Slack or MicrosoftTeams. Empty until approved.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public approvedFrom?: AutoRemediationApprovalSource = undefined;
 
   @ColumnAccessControl({
     create: [],

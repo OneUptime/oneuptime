@@ -1,9 +1,9 @@
 # Ask AI fixture
 
-An offline harness for Ask AI on the main stage: the dialog in the middle of the screen over
-the dimmed, blurred Dashboard page it was opened from, and a full-screen sheet on a phone. The
-dialog and everything in it are the production components
-(`packages/App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog.tsx` and the start, the
+An offline harness for Ask AI beside the page: the panel docked at the side of the window, the
+Dashboard page making room for it and still all there, a sheet over the page on a tablet, and the
+whole screen on a phone. The panel and everything in it are the production components
+(`packages/App/FeatureSet/Dashboard/src/Components/AIChat/AskAiPanel.tsx` and the start, the
 composer, the conversation, the history and the way back it draws), mounted once at the root
 as `App.tsx` mounts it, with the header's Ask AI (`Components/Header/AskAI.tsx`) and the chat's
 own address (`Pages/AICopilot/AICopilot.tsx`). `Fixture/server.js` bundles them with esbuild,
@@ -17,9 +17,11 @@ cd packages/E2E
 npm run test-ask-ai-ui
 ```
 
-## The page behind
+## The page beside it
 
-A fabricated "Acme Production" workspace. `?page=` picks the page under the dialog:
+A fabricated "Acme Production" workspace, its header's links going from one page to another with
+the panel open, and an **Open details** button that opens one of the app's own side panels
+(`SideOver`). `?page=` picks the page it starts on:
 
 - `incident` (the default): incident #42 "Checkout latency above 2s", whose context the
   composer's pill names and whose own suggestions the start offers;
@@ -29,7 +31,7 @@ A fabricated "Acme Production" workspace. `?page=` picks the page under the dial
 
 ## The conversations
 
-An in-page server answers what the dialog asks and records what it sends on
+An in-page server answers what the panel asks and records what it sends on
 `window.__askAiFixture.state` (`sent`, `approvals`, `feedback`, `cancelled`, `deleted`, and
 `unhandled` - any request the fixture does not model, which fails the spec).
 
@@ -62,16 +64,26 @@ states are listed, as the API answers them.
 
 ## What the spec holds
 
-`AskAi.spec.ts` (61 tests, Chromium) pins the browser clock, fences the network to the fixture
-server, and fails on any uncaught page error:
+`AskAi.spec.ts` (Chromium) pins the browser clock, fences the network to the fixture server, and
+fails on any uncaught page error:
 
 - every way in: the header's Ask AI, `Ctrl` / `Cmd` + `I` (and the keys left to another text
-  box), **Explain with AI**, and the chat's address, followed inside the app (the dialog opens
-  over the page the person came from) or opened on its own (over Home);
-- a real dialog: in the middle of the screen at 1280 pixels, a margin of the page round it at
-  768, the whole screen at 390; the page behind dimmed, blurred, inert and still; Tab and
-  Shift + Tab going round inside it; Esc closing it and giving the focus back; a click beside
-  it closing it and a drag that ends there not; Esc in a menu closing only the menu;
+  box), **Explain with AI**, and the chat's address, followed inside the app (the panel opens
+  beside the page the person came from) or opened on its own (beside Home);
+- beside the page: at the end of the window, the page ending where it starts at 1024, 1280 and
+  1920 pixels, with nothing behind it; the page not inert, still scrolling, its buttons answering
+  and the keyboard free to leave the panel; the panel staying through the page's links, the
+  composer's pill and the start's suggestions following the page; `Esc` the page's own on the
+  page and closing the panel from inside it; `Ctrl` + `I` going from the page back to the
+  composer; the app's side panel opening beside it, not behind it; right to left, all of it at the
+  left;
+- its edge: dragged, the page following, the width kept for the next time; never narrower than it
+  can be used nor so wide the page has no room; a double click back to the width it opens at; the
+  arrows, `Home` and `End`; a window made narrower narrowing it and made wide again putting it back;
+- where there is no room for both: at 768 a sheet at the side and at 390 the whole screen, a real
+  dialog, the page behind dimmed, inert and still, `Tab` and `Shift` + `Tab` going round inside it,
+  `Esc` and a click beside it closing it, a citation stepping it aside, and a window crossing that
+  width leaving everything in it where it was;
 - the start: one question, the page in the composer's pill, the page's own four suggestions,
   the pill cleared and brought back, and its words, lines and elements counted;
 - questions that follow the record: a resolved incident's four (how the response went and what
@@ -81,16 +93,16 @@ server, and fails on any uncaught page error:
 - an answer written quietly: one live line that opens into its steps, the question held still
   while the answer is written below it, the answer's citation chips, its sources, time, Copy and
   thumbs on one row, its sources and run stats, Stop, Try again, a question that cannot be sent,
-  an approval decided inside the dialog and the card it leaves saying each fact once;
+  an approval decided inside the panel and the card it leaves saying each fact once;
 - what an answer carries, fitted to where it is drawn: citation marks that read as footnotes, not
   as inline code; a chart's axis writing each value on one line ("2.6 s", "650 ms"); a table
-  keeping every column on screen on a phone; four figures in a row on a laptop and two by two on
-  a phone; a trace's bars that read in the dark;
-- the composer's menus opening where they fit: up from the start's composer when the dialog's
-  foot would cut them off, down when there is room;
+  keeping every column on screen on a phone; four figures two by two in the panel and in a row in
+  a panel dragged wide; a trace's bars that read in the dark;
+- the composer at the panel's foot in every view, staying where it is as the first question is
+  sent; its menus opening up from it, inside the panel even at its narrowest;
 - conversations within reach: the last three on the start, all of them a click away, the focus
   moving into the history as it opens, opening one, deleting one only once its row has asked
-  (Esc keeps it and leaves the dialog open), New chat;
+  (Esc keeps it and leaves the panel open), New chat;
 - closing loses nothing: the way back to an answer still being written, in the corner on a
   laptop and under the header on a phone, saying when it is ready;
 - dark (the start's mark glowing indigo, not sitting in a black shadow), German (the permission
@@ -99,7 +111,7 @@ server, and fails on any uncaught page error:
   before its words keeping its English lines' punctuation) and reduced motion;
 - an approval card in the reader's language, at 1280 and 390: its title, its line and its own
   words in German and in Persian - the alert's title and the host's name as written, set apart
-  in the Persian sentences, each read right to left - with Allow and Skip beside the title on a
-  laptop and under its whole title on a phone, and the row a run leaves in German.
+  in the Persian sentences, each read right to left - with Allow and Skip beside the title in a
+  panel dragged wide and under its whole title on a phone, and the row a run leaves in German.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.

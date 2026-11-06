@@ -43,7 +43,7 @@ One Microsoft 365 organization can be connected to more than one project, such a
 :::steps
 ### Grant admin consent
 
-Go to **Project Settings** > **Workspace** > **Microsoft Teams** and click **Grant Admin Consent**. A Microsoft 365 administrator signs in and allows the OneUptime app for the organization. The card then says **Admin Consent Completed**. Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect Slack or Teams**, which leads here too.
+Go to **Project Settings** > **Workspace** > **Microsoft Teams** and click **Grant Admin Consent**. A Microsoft 365 administrator signs in and allows the OneUptime app for the organization. The card then says **Admin Consent Completed**. Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**, which leads here too.
 
 ### Connect your account
 

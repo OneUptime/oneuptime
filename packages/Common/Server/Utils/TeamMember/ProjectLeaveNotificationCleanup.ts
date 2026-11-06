@@ -2,6 +2,7 @@ import ObjectID from "../../../Types/ObjectID";
 import UserCallService from "../../Services/UserCallService";
 import UserEmailService from "../../Services/UserEmailService";
 import UserIncomingCallNumberService from "../../Services/UserIncomingCallNumberService";
+import UserMattermostService from "../../Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../Services/UserMicrosoftTeamsService";
 import UserNotificationEmailRollupItemService from "../../Services/UserNotificationEmailRollupItemService";
 import UserNotificationEmailRollupSettingService from "../../Services/UserNotificationEmailRollupSettingService";
@@ -35,7 +36,7 @@ import ProjectLeaveRows, {
  * What goes, for that (project, person) only:
  *   - their notification rules (on-call rules, shift rules, opt-outs),
  *   - their notification methods: email, SMS, call, WhatsApp, Telegram, push
- *     devices, webhooks, Slack and Microsoft Teams accounts,
+ *     devices, webhooks, Slack, Microsoft Teams and Mattermost accounts,
  *   - their notification settings (which events they hear about, and how),
  *   - their email rollup preference and the rollup mail still pending for
  *     them,
@@ -80,6 +81,7 @@ export default class ProjectLeaveNotificationCleanup {
       personalTable(UserWebhookService),
       personalTable(UserSlackService),
       personalTable(UserMicrosoftTeamsService),
+      personalTable(UserMattermostService),
       personalTable(UserNotificationSettingService),
       personalTable(UserNotificationEmailRollupSettingService),
       personalTable(UserNotificationEmailRollupItemService, {

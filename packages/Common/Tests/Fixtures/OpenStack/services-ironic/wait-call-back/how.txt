@@ -1,0 +1,2 @@
+A node waiting in wait call-back for an agent that will never call.
+On its own: Ironic is waiting for a deploy agent, which does not exist on fake hardware.

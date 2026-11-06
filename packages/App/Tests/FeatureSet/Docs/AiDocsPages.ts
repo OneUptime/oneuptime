@@ -173,6 +173,7 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
    */
   [AI_SRE]: [
     "Summary",
+    "Impact",
     "Evidence",
     "Review and approve",
     "Approve and run",
@@ -366,6 +367,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Database servers:",
     "Hosts:",
     "Proxmox:",
+    "OpenStack clouds:",
     "Cloud accounts:",
     "OneUptime AI's tools.",
     "When OneUptime queues it.",

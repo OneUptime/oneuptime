@@ -3,6 +3,7 @@ import OnCallNotificationAlertingService from "../../../Server/Services/OnCallNo
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
   ExecuteFallbackNotificationOptions,
@@ -138,6 +139,9 @@ const SLACK_METHOD_ID: ObjectID = new ObjectID(
 const MICROSOFT_TEAMS_METHOD_ID: ObjectID = new ObjectID(
   "a9a9a9a9-a9a9-4a9a-8a9a-a9a9a9a9a9a9",
 );
+const MATTERMOST_METHOD_ID: ObjectID = new ObjectID(
+  "aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+);
 
 const RESPONDER_EMAIL: string = "responder@company.com";
 const SEVERITY_NAME: string = "Sev4";
@@ -212,6 +216,16 @@ function makeVerifiedMicrosoftTeams(): Record<string, unknown> {
     _id: MICROSOFT_TEAMS_METHOD_ID.toString(),
     microsoftTeamsUserId: "teams-user-1",
     microsoftTeamsUserName: RESPONDER_NAME,
+    isVerified: true,
+  };
+}
+
+function makeVerifiedMattermost(): Record<string, unknown> {
+  return {
+    id: MATTERMOST_METHOD_ID,
+    _id: MATTERMOST_METHOD_ID.toString(),
+    mattermostUserId: "abcdefghijklmnopqrstuvwxyz",
+    mattermostUserName: "responder",
     isVerified: true,
   };
 }
@@ -347,6 +361,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
   let emailFindSpy: jest.SpyInstance;
   let slackFindSpy: jest.SpyInstance;
   let microsoftTeamsFindSpy: jest.SpyInstance;
+  let mattermostFindSpy: jest.SpyInstance;
   let smsFindSpy: jest.SpyInstance;
   let callFindSpy: jest.SpyInstance;
   let whatsAppFindSpy: jest.SpyInstance;
@@ -398,6 +413,9 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       .mockResolvedValue(null as never);
     microsoftTeamsFindSpy = jest
       .spyOn(UserMicrosoftTeamsService, "findOneBy")
+      .mockResolvedValue(null as never);
+    mattermostFindSpy = jest
+      .spyOn(UserMattermostService, "findOneBy")
       .mockResolvedValue(null as never);
     smsFindSpy = jest
       .spyOn(UserSmsService, "findOneBy")
@@ -503,6 +521,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
         emailFindSpy,
         slackFindSpy,
         microsoftTeamsFindSpy,
+        mattermostFindSpy,
         webhookFindSpy,
         projectFindSpy,
         ...everyPaidChannelFindSpy(),
@@ -627,6 +646,57 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
         expect(spy).not.toHaveBeenCalled();
       }
       expect(webhookFindSpy).not.toHaveBeenCalled();
+    });
+
+    test('a verified Mattermost account alone is chosen, as "Mattermost", with the relation AND the FK', async () => {
+      const mattermost: Record<string, unknown> = makeVerifiedMattermost();
+      mattermostFindSpy.mockResolvedValue(mattermost as never);
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual(["Mattermost"]);
+      expect(result.notified).toBe(true);
+      expect(result.outcome).toBe(FallbackNotificationOutcome.Delivered);
+
+      const rule: UserNotificationRule = deliveredRules()[0]!;
+      expect(rule.userMattermost).toBe(mattermost);
+      expect(rule.userMattermostId!.toString()).toBe(
+        MATTERMOST_METHOD_ID.toString(),
+      );
+
+      for (const spy of everyPaidChannelFindSpy()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+      expect(webhookFindSpy).not.toHaveBeenCalled();
+    });
+
+    test("the Mattermost lookup is scoped to this project, this user, and verified accounts only", async () => {
+      mattermostFindSpy.mockResolvedValue(makeVerifiedMattermost() as never);
+
+      await runFallback();
+
+      const query: Record<string, unknown> = queryOf(mattermostFindSpy);
+
+      expect(String(query["projectId"])).toBe(String(PROJECT_ID));
+      expect(String(query["userId"])).toBe(String(USER_ID));
+      expect(query["isVerified"]).toBe(true);
+    });
+
+    test("Mattermost is used beside the other free methods, after Microsoft Teams", async () => {
+      slackFindSpy.mockResolvedValue(makeVerifiedSlack() as never);
+      microsoftTeamsFindSpy.mockResolvedValue(
+        makeVerifiedMicrosoftTeams() as never,
+      );
+      mattermostFindSpy.mockResolvedValue(makeVerifiedMattermost() as never);
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual([
+        "Slack",
+        "Microsoft Teams",
+        "Mattermost",
+      ]);
+      expect(deliverSpy).toHaveBeenCalledTimes(3);
     });
 
     test("a responder with push, email, Slack AND Microsoft Teams gets ALL FOUR, in this order", async () => {
@@ -1049,6 +1119,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
           rule.userTelegram,
           rule.userSlack,
           rule.userMicrosoftTeams,
+          rule.userMattermost,
           rule.userWebhook,
         ].filter((method: unknown): boolean => {
           return Boolean(method);

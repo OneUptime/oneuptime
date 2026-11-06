@@ -20,6 +20,7 @@ enum SecurityLogFormat {
   AwsCloudTrail = "aws-cloudtrail",
   GoogleCloudAudit = "google-cloud-audit",
   AzureActivity = "azure-activity",
+  OpenStackAudit = "openstack-audit",
   Cef = "cef",
   Leef = "leef",
   PaloAlto = "palo-alto",
@@ -145,6 +146,17 @@ export const SECURITY_LOG_FORMATS: ReadonlyArray<SecurityLogFormatDefinition> =
       productName: "Azure Activity Log",
       example:
         '{"category":"Administrative","operationName":"MICROSOFT.AUTHORIZATION/ROLEASSIGNMENTS/WRITE","resultType":"Success","callerIpAddress":"203.0.113.7","identity":{"claims":{"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn":"alice@example.com"}},"resourceId":"/SUBSCRIPTIONS/00000000-0000-0000-0000-000000000000"}',
+    },
+    {
+      format: SecurityLogFormat.OpenStackAudit,
+      group: SecurityLogFormatGroup.Cloud,
+      title: "OpenStack audit trail",
+      description:
+        "Sign-ins, role grants and changes in Keystone, what changed or was refused on the other APIs, security groups opened to the world and images made public.",
+      vendorName: "OpenStack",
+      productName: "OpenStack audit trail",
+      example:
+        '{"event_type":"identity.role_assignment.created","payload":{"typeURI":"http://schemas.dmtf.org/cloud/audit/1.0/event","action":"created.role_assignment","outcome":"success","role":"0e6b990380154a2599ce6b6e91548a68","project":"24bdcff1aab8474895dbaac509793de1","user":"2d5ca7ff0a1a4bc6b4a4dd9e8a95ec85"}}',
     },
     {
       format: SecurityLogFormat.Cef,

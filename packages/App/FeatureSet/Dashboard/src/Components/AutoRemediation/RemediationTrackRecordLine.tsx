@@ -65,6 +65,12 @@ export const TRACK_RECORD_RUN_LINK_CLASS_NAMES: Readonly<
 
 export interface ComponentProps {
   record: RemediationTrackRecord;
+  /*
+   * The line's own spacing: a gap above it under a change's other facts,
+   * none where its container spaces its lines (a runbook's, over Approve &
+   * Run).
+   */
+  className?: string | undefined;
 }
 
 // The page of a run's incident or alert.
@@ -96,7 +102,9 @@ const RemediationTrackRecordLine: FunctionComponent<ComponentProps> = (
     <div
       data-testid="remediation-command-track-record"
       data-tone={tone}
-      className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1"
+      className={`${
+        props.className === undefined ? "mt-2" : props.className
+      } flex flex-wrap items-center gap-x-2 gap-y-1`.trim()}
     >
       <span
         className={`${REMEDIATION_FIX_FACT_CLASS_NAME} ${

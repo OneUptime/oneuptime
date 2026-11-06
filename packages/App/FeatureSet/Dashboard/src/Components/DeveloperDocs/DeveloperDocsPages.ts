@@ -342,6 +342,16 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       tableName: "ProxmoxCluster",
     },
     {
+      pageKey: PageMap.OPENSTACK_CLOUDS,
+      scope: DeveloperDocsScope.List,
+      tableName: "OpenStackCloud",
+    },
+    {
+      pageKey: PageMap.OPENSTACK_CLOUD_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "OpenStackCloud",
+    },
+    {
       pageKey: PageMap.VMWARE_VCENTERS,
       scope: DeveloperDocsScope.List,
       tableName: "VMwareVCenter",
@@ -496,6 +506,15 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       pageKey: PageMap.INVENTORY_VIEW,
       scope: DeveloperDocsScope.View,
       tableName: "InventoryItem",
+    },
+    /*
+     * Data Observability: a data product, which people make - its tables,
+     * who uses them and its freshness SLA - and so can keep as code.
+     */
+    {
+      pageKey: PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "DataProduct",
     },
   ];
 

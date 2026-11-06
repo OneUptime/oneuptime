@@ -43,7 +43,7 @@ Eén Microsoft 365-organisatie kan aan meer dan één project gekoppeld zijn, zo
 :::steps
 ### Beheerderstoestemming geven
 
-Ga naar **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** en klik op **Beheerderstoestemming verlenen**. Een Microsoft 365-beheerder meldt zich aan en staat de OneUptime-app toe voor de organisatie. De kaart zegt daarna **Admin Consent Completed**. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Slack of Teams koppelen**, dat ook hierheen leidt.
+Ga naar **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** en klik op **Beheerderstoestemming verlenen**. Een Microsoft 365-beheerder meldt zich aan en staat de OneUptime-app toe voor de organisatie. De kaart zegt daarna **Admin Consent Completed**. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Je account koppelen
 

@@ -303,7 +303,7 @@ service:
 - `delay` 會等待 CloudWatch 發布一個期間（這需要幾分鐘），因此在此設定下，佇列的 broker 指標會延遲 11 到 17 分鐘送達：以它們為基礎的監測器需要更長的時間範圍（請參閱 [警示](#警示) 下的 **延遲送達的指標**）。
 - 一個接收器讀取一個區域和一個命名空間：每個區域新增一個執行個體。
 
-**串流傳送** 會在 CloudWatch 發布指標時推送它們。為 `AWS/SQS`（和 `AWS/SNS`）命名空間建立輸出格式為 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，傳遞到目的地為 HTTP 端點的 Amazon Data Firehose 串流：也就是你的 Collector，並帶有存取金鑰。Firehose 只傳遞到 443 連接埠上的 `https://`，因此 Collector 需要憑證和公開的 443 連接埠（例如在負載平衡器後方）：
+**串流中** 會在 CloudWatch 發布指標時推送它們。為 `AWS/SQS`（和 `AWS/SNS`）命名空間建立輸出格式為 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，傳遞到目的地為 HTTP 端點的 Amazon Data Firehose 串流：也就是你的 Collector，並帶有存取金鑰。Firehose 只傳遞到 443 連接埠上的 `https://`，因此 Collector 需要憑證和公開的 443 連接埠（例如在負載平衡器後方）：
 
 ```yaml
 extensions:
@@ -994,7 +994,7 @@ service:
 
 `rabbitmq.message.published.delta` 的每個點是自上次抓取以來發布的訊息數，因此基於它、以 `resource.rabbitmq.queue.name` 篩選並在其時間範圍內加總的指標監測器，計算的是該時間範圍內發布的數量：15 分鐘內低於 1，就表示沒有人在發布。每次 Collector 啟動後，處理器都沒有可以從佇列第一個點減去的先前值，預設會把該點原樣傳送：也就是計數器的整個累計總數，彷彿佇列有史以來的每則訊息都在一次抓取中發布。`initial_value: drop` 會保留該點不傳送，因此佇列的複本從回報其計數器的第二次抓取開始。以同樣的方式複製另一個計數器，各自使用一個 `copy_metric` 陳述式和一個 `include` 項目。此時 ActiveMQ 的 JMX Scraper 必須經由這樣的 Collector 傳送，送到取代 `rabbitmq` 的 `otlp` 接收器；RocketMQ 的計數器則在其 `prometheus` 接收器的管線中使用同樣的兩個處理器。
 
-**手動建立時**，請以在該指標中指明佇列的屬性進行篩選；同一系統的每個佇列使用的屬性都相同：
+**By hand** 建立時，請以在該指標中指明佇列的屬性進行篩選；同一系統的每個佇列使用的屬性都相同：
 
 | 何時警示 | 指標 | 篩選條件 | 彙總方式 |
 | --- | --- | --- | --- |

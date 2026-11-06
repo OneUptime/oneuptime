@@ -85,7 +85,7 @@ Filen innehåller arbetsflödets namn, beskrivning, aktiveringsläge och graf. D
 - **Globala variabler.** Ett block som läser `{{global.variables.MY_SECRET}}` behåller den referensen, men värdet finns inte i filen. Skapa variablerna i målprojektet innan du kör det importerade arbetsflödet.
 - **Ägare och etiketter.** Ditt projekts egna etikett- och ägarregler körs mot det importerade arbetsflödet, precis som om du hade skapat det manuellt.
 
-Ett importerat arbetsflöde skapas alltid **inaktiverat**, även om det var aktiverat där det exporterades från — dess graf kan peka på monitorer, jourpolicyer eller andra arbetsflöden som inte finns i målprojektet. Granska det, testa det med **Kör arbetsflöde** och slå sedan på det. Att duplicera ett arbetsflöde fungerar på samma sätt, så att en kopia aldrig börjar köras sida vid sida med originalet innan du har redigerat den.
+Ett importerat arbetsflöde skapas alltid **disabled**, även om det var aktiverat där det exporterades från — dess graf kan peka på monitorer, jourpolicyer eller andra arbetsflöden som inte finns i målprojektet. Granska det, testa det med **Kör arbetsflöde** och slå sedan på det. Att duplicera ett arbetsflöde fungerar på samma sätt, så att en kopia aldrig börjar köras sida vid sida med originalet innan du har redigerat den.
 
 Eftersom grafen följer med oförändrad följer allt som skrivits direkt i ett block också med. Det är det praktiska skälet till att hålla autentiseringsuppgifter i hemliga variabler: exporterar du ett arbetsflöde med en hårdkodad token ger du den token till den som får filen.
 

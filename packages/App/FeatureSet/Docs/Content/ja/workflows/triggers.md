@@ -185,7 +185,7 @@ flowchart TB
     field -->|"いいえ"| nothing
 ```
 
-**On Create**、**On Update**、**On Create or Update** は、トリガーの **Fields to pass on** で選んだフィールドとともにレコードを次のブロックへ渡します。たとえば **Incident → On Create** トリガーは新しいインシデントを渡すので、次のブロックは `{{local.components.incident-on-create-1.returnValues.model.title}}` のように、そのタイトル、説明、重大度、または選んだ他の任意のフィールドを読めます。選ばなかったフィールドは空で届きます。
+**On Create**、**On Update**、**On Create or Update** は、トリガーの **Fields to pass on** で選んだフィールドとともにレコードを次のブロックへ渡します。たとえば **Incident → On Create** トリガーは新しいインシデントを渡すので、次のブロックは `{{local.components.incident-on-create-1.returnValues.model.title}}` のように、そのタイトル、説明、重大度、または選んだ他の任意のフィールドを読めます。選ばなかったフィールドは空で届きます。レコードに何もないフィールドも同じです。たとえば、モニターが発生させていないアラートのモニターです。
 
 **On Create or Update** は **What Happened** も渡します。新しいレコードが実行を開始したときは `created`、変更が開始したときは `updated` で、`{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}` のように読めます。2 つを別々に扱うには、**If / Else** ブロックで比較するか、**Switch / Case** でそれぞれに経路を用意します。
 

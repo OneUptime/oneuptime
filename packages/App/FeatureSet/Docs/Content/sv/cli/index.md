@@ -101,6 +101,7 @@ Listan visar varje sorts post som du kan arbeta med, och dess kommando, till exe
 | `oneuptime context list`, `use`, `current`, `delete` | Listar, byter, visar och tar bort sparade kontexter | [Autentisering](/docs/cli/authentication#kontexter) |
 | `oneuptime whoami` | Visar URL:en och API-nyckeln som nästa kommando kommer att använda, och med `--check` om OneUptime godtar nyckeln | [Autentisering](/docs/cli/authentication#kontrollera-vad-clin-kommer-att-använda) |
 | `oneuptime deploy` | Registrerar en driftsättning, eller en annan ändring, för diagram och OneUptime AI | [Driftsättningar och ändringar](/docs/telemetry/change-events) |
+| `oneuptime data-checks apply` | Gör projektets datakontroller likadana som en fil i ditt repository | [Kommandoreferens](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Skickar ett dbt-projekts artefakter efter ett bygge till Dataobserverbarhet | [Kommandoreferens](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbetar med en sorts post | [Resursoperationer](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Listar en resurs fält och de flaggor som sätter dem | [Resursoperationer](/docs/cli/resource-operations#se-en-resurs-fält) |

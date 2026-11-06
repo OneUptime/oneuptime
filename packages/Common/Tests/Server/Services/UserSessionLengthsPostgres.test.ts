@@ -7,6 +7,7 @@ import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import UserSessionService, {
   SESSION_END_REVOKED_REASONS,
   SessionLengthsImpact,
+  SessionMetadata,
   SessionRenewalDecision,
 } from "../../../Server/Services/UserSessionService";
 import RealtimeAccessChanges, {
@@ -51,7 +52,8 @@ import { DataSource } from "typeorm";
  *     and whether the asker is one of them, ending nothing;
  *   - saving the setting through GlobalConfigService applies it to the
  *     sessions there are, and a refresh after it can say why;
- *   - thousands of sessions end in batches.
+ *   - thousands of sessions end in batches;
+ *   - a refresh on its way when a session is ended does not bring it back.
  */
 const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_USER_SESSION_LENGTH_TESTS"] === "true"
@@ -578,5 +580,153 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
 
     expect(live[0]!.count).toBe("0");
     expect(endedSessionIds()).toHaveLength(1234);
+  });
+
+  /*
+   * POST /refresh-token reads the session, decides, and then writes its new
+   * refresh token: several statements apart. A new password, a block or a
+   * sign-out elsewhere can land between them, and a renewal that wrote over it
+   * would hand whoever is refreshing a working session the owner has just ended.
+   * Somebody refreshing in a loop would be inside that window most of the time.
+   */
+  describe("a session ended while a refresh of it is on its way", () => {
+    const renew: (
+      session: UserSession,
+    ) => Promise<SessionMetadata | null> = async (
+      session: UserSession,
+    ): Promise<SessionMetadata | null> => {
+      return await UserSessionService.renewSessionWithNewRefreshToken({
+        session: session,
+        lengths: null,
+      });
+    };
+
+    const storedToken: (id: ObjectID) => Promise<string> = async (
+      id: ObjectID,
+    ): Promise<string> => {
+      const rows: Array<{ refreshToken: string }> = await query(
+        `SELECT "refreshToken" FROM "${schema}"."UserSession" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      return rows[0]!.refreshToken;
+    };
+
+    test("a live session renews: the new token works, the old one does not, and the token is stored hashed", async () => {
+      const user: ObjectID = ObjectID.generate();
+      const token: string = ObjectID.generate().toString();
+      const id: ObjectID = await insertSession({
+        userId: user,
+        signedInMinutesAgo: 5,
+        refreshToken: token,
+      });
+
+      const session: UserSession | null =
+        await UserSessionService.findActiveSessionByRefreshToken(token);
+      const renewed: SessionMetadata | null = await renew(session!);
+
+      expect(renewed?.session.id?.toString()).toBe(id.toString());
+      expect(renewed?.refreshToken).not.toBe(token);
+      expect((await rowOf(id)).isRevoked).toBe(false);
+      expect(await storedToken(id)).toBe(await hashOf(renewed!.refreshToken));
+      expect(
+        (
+          await UserSessionService.findActiveSessionByRefreshToken(
+            renewed!.refreshToken,
+          )
+        )?.id?.toString(),
+      ).toBe(id.toString());
+      expect(
+        await UserSessionService.findActiveSessionByRefreshToken(token),
+      ).toBeNull();
+    });
+
+    test("the renewal does not bring it back, and leaves the row as the revocation left it", async () => {
+      const user: ObjectID = ObjectID.generate();
+      const token: string = ObjectID.generate().toString();
+      const id: ObjectID = await insertSession({
+        userId: user,
+        signedInMinutesAgo: 5,
+        refreshToken: token,
+      });
+
+      // What the refresh read before it renewed.
+      const session: UserSession | null =
+        await UserSessionService.findActiveSessionByRefreshToken(token);
+
+      expect(session?.id?.toString()).toBe(id.toString());
+
+      // A new password lands while the request is on its way.
+      await UserSessionService.revokeAllSessionsByUserId(user, {
+        reason: "Password changed",
+      });
+
+      const ended: SessionRow = await rowOf(id);
+      const hashBefore: string = await storedToken(id);
+
+      expect(await renew(session!)).toBeNull();
+
+      expect(await rowOf(id)).toEqual(ended);
+      expect(ended.isRevoked).toBe(true);
+      expect(ended.revokedReason).toBe("Password changed");
+      expect(await storedToken(id)).toBe(hashBefore);
+      expect(
+        await UserSessionService.findActiveSessionByRefreshToken(token),
+      ).toBeNull();
+    });
+
+    test("a session removed while a refresh of it is on its way is not renewed", async () => {
+      const token: string = ObjectID.generate().toString();
+      const id: ObjectID = await insertSession({
+        userId: ObjectID.generate(),
+        signedInMinutesAgo: 5,
+        refreshToken: token,
+      });
+      const session: UserSession | null =
+        await UserSessionService.findActiveSessionByRefreshToken(token);
+
+      await query(
+        `UPDATE "${schema}"."UserSession" SET "deletedAt" = NOW() WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      expect(await renew(session!)).toBeNull();
+    });
+
+    test("racing for real, many times over: the session is ended every time, and what the renewal handed out does not work", async () => {
+      for (let round: number = 0; round < 40; round++) {
+        const user: ObjectID = ObjectID.generate();
+        const token: string = ObjectID.generate().toString();
+        const id: ObjectID = await insertSession({
+          userId: user,
+          signedInMinutesAgo: 5,
+          refreshToken: token,
+        });
+        const session: UserSession | null =
+          await UserSessionService.findActiveSessionByRefreshToken(token);
+
+        const [renewed]: [SessionMetadata | null, void] = await Promise.all([
+          renew(session!),
+          UserSessionService.revokeAllSessionsByUserId(user, {
+            reason: "Password changed",
+          }),
+        ]);
+
+        const row: SessionRow = await rowOf(id);
+
+        expect({ round: round, isRevoked: row.isRevoked }).toEqual({
+          round: round,
+          isRevoked: true,
+        });
+
+        if (renewed) {
+          expect(
+            await UserSessionService.findActiveSessionByRefreshToken(
+              renewed.refreshToken,
+            ),
+          ).toBeNull();
+        }
+      }
+    });
   });
 });

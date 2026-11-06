@@ -120,18 +120,30 @@ async function openList(page: Page, search: string = ""): Promise<void> {
 
 /*
  * A license's select box, on its row or its phone card: "Select Enterprise
- * License: Netlock.hu · da74••••7c7a", whose kind is in the reader's
- * language.
+ * License: Netlock.hu · da74••••7c7a", in the reader's language: the sentence
+ * ("Select {{name}}") and the kind are both translated.
  */
-function checkbox(page: Page, name: string): Locator {
+function checkbox(
+  page: Page,
+  name: string,
+  sentence: string = "Select {{name}}",
+): Locator {
+  const [before, after]: Array<string> = sentence.split("{{name}}");
+
   return page.getByRole("checkbox", {
-    name: new RegExp(`^Select [^:]+: ${escapeRegExp(name)}$`),
+    name: new RegExp(
+      `^${escapeRegExp(before!)}[^:]+: ${escapeRegExp(name)}${escapeRegExp(after!)}$`,
+    ),
   });
 }
 
-async function select(page: Page, names: Array<string>): Promise<void> {
+async function select(
+  page: Page,
+  names: Array<string>,
+  sentence?: string,
+): Promise<void> {
   for (const name of names) {
-    await checkbox(page, name).check();
+    await checkbox(page, name, sentence).check();
   }
 }
 
@@ -497,7 +509,11 @@ test.describe("in German", () => {
     };
 
     await openList(page, "&lang=de");
-    await select(page, [NAMES["netlockA"]!, NAMES["netlockB"]!]);
+    await select(
+      page,
+      [NAMES["netlockA"]!, NAMES["netlockB"]!],
+      word("Select {{name}}"),
+    );
     const menu: Locator = await openBulkMenu(page, word("Bulk Actions"));
     await expect(menu.getByRole("menuitem").first()).toHaveText(
       word("Change Expiry Date"),

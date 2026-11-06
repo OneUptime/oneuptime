@@ -175,6 +175,7 @@ describe("which updates link something a fix acts on", () => {
         "podmanHosts",
         "dockerSwarmClusters",
         "proxmoxClusters",
+        "openStackClouds",
         "vmwareVCenters",
         "cephClusters",
         "databaseServers",

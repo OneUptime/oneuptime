@@ -45,7 +45,10 @@ import React, {
   useState,
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import {
   SteppedModalFooter,
   getSteppedModalFooter,
@@ -61,6 +64,10 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { openAskAi } from "../AIChat/AskAiEvents";
+import useAiOffered from "../../Utils/UseAiOffered";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
@@ -99,6 +106,16 @@ import ChosenTemplate from "../TemplatePicker/ChosenTemplate";
 import { CATALOG_TEXT_ALIGN_CLASS_NAME } from "../TemplatePicker/CatalogText";
 import { isEnterToSubmit } from "../../Utils/TemplatePicker/WizardKeys";
 
+export const CreateWorkflowCopy: {
+  readonly withAi: string;
+  readonly withAiButton: string;
+  readonly withAiPrompt: string;
+} = {
+  withAi: translationKey("Describe what it should do, and Ask AI builds it."),
+  withAiButton: translationKey("Ask AI"),
+  withAiPrompt: translationKey("Build a workflow that "),
+};
+
 export interface ComponentProps {
   onClose: () => void;
   /** Called with the created workflow so the page can navigate to it. */
@@ -125,6 +142,8 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString, translateTemplate } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  const isAiOffered: boolean = useAiOffered();
   const [step, setStep] = useState<WizardStep>(WizardStep.PickTemplate);
   /*
    * null is a real choice here — it means "start from scratch" — so a separate
@@ -402,6 +421,38 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
          */
         isStartFromScratchChosen={
           hasChosen && selectedTemplateId === null && !pickedTemplate
+        }
+        /*
+         * The third way to start, after an empty canvas and a template: say
+         * what it should do. Ask AI opens with the sentence begun, unsent. Not
+         * offered while the project's AI is off.
+         */
+        afterStartFromScratch={
+          isAiOffered ? (
+            <div
+              className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-white px-4 py-3"
+              data-testid="create-workflow-with-ai"
+            >
+              <p className="min-w-0 flex-1 text-sm text-gray-700">
+                {translator.translateText(CreateWorkflowCopy.withAi)}
+              </p>
+              <Button
+                title={CreateWorkflowCopy.withAiButton}
+                icon={IconProp.Sparkles}
+                buttonStyle={ButtonStyleType.NORMAL}
+                buttonSize={ButtonSize.Small}
+                dataTestId="create-workflow-with-ai-button"
+                onClick={() => {
+                  props.onClose();
+                  openAskAi({
+                    prompt: translator.translateText(
+                      CreateWorkflowCopy.withAiPrompt,
+                    ),
+                  });
+                }}
+              />
+            </div>
+          ) : undefined
         }
       />
     );

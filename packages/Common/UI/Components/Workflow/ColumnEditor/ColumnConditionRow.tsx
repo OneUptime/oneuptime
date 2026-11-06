@@ -20,7 +20,13 @@ import Dropdown, {
 } from "../../Dropdown/Dropdown";
 import AutocompleteTextInput from "../../AutocompleteTextInput/AutocompleteTextInput";
 import { ModelSchemaColumn } from "../ModelSchema";
-import { columnTypeLabel, controlForColumn } from "./ColumnControl";
+import { getCustomFieldName } from "../../../../Types/Workflow/CustomFieldsColumn";
+import { CustomFieldRowCopy } from "../CustomFields/CustomFieldColumns";
+import {
+  columnPickLabel,
+  controlForFilter,
+  getColumnTitle,
+} from "./ColumnControl";
 import { operatorLabelFor, operatorsForControl } from "./ColumnOperators";
 import {
   isColumnDescriptionInformative,
@@ -74,11 +80,12 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
    * with nothing to clear in its pickers and no Remove beside it.
    */
   const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
-  const control: ModelColumnControl = controlForColumn(props.column);
+  const control: ModelColumnControl = controlForFilter(props.column);
   const operatorOption: DictionaryFilterOperatorOption = getOperatorOption(
     props.row.operator,
   );
   const issue: string | null = rowIssue(props.row, props.column);
+  const customFieldName: string | null = getCustomFieldName(props.row.columnId);
   const isUnknownColumn: boolean = !props.column && props.row.columnId !== "";
 
   /*
@@ -96,7 +103,9 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
     (column: ModelSchemaColumn) => {
       return {
         value: column.id,
-        label: column.title,
+        label: getColumnTitle(column) || column.id,
+        // A custom field is named by a person: drawn as they wrote it.
+        isUserContent: Boolean(column.customField),
         description: [
           isColumnKeyInformative(column) ? column.id : "",
           (isColumnDescriptionInformative(column)
@@ -104,7 +113,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
                 translator.translateText(column.description),
                 70,
               )
-            : "") || columnTypeLabel(column),
+            : "") || columnPickLabel(column),
         ]
           .filter((part: string) => {
             return part !== "";
@@ -130,9 +139,14 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
   ) {
     columnOptions.unshift({
       value: props.row.columnId,
-      label: props.column?.title || props.row.columnId,
+      label:
+        getColumnTitle(props.column) || customFieldName || props.row.columnId,
       description: isUnknownColumn
-        ? translator.translateText("Not a column on this model") || ""
+        ? translator.translateText(
+            customFieldName !== null
+              ? CustomFieldRowCopy.noSuchField
+              : "Not a column on this model",
+          ) || ""
         : translator.translateTemplate(
             "{{column}} · can't be picked from the list",
             { column: props.row.columnId },
@@ -195,8 +209,19 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           />
         )}
         {isUnknownColumn ? (
-          <span className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">
-            {translator.translateText("Not a column on this model")}
+          <span
+            className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700"
+            data-testid="model-column-unknown-note"
+          >
+            {translator.translateText(
+              customFieldName !== null
+                ? CustomFieldRowCopy.noSuchField
+                : "Not a column on this model",
+            )}
+          </span>
+        ) : customFieldName !== null ? (
+          <span className="mt-1 inline-block truncate rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500">
+            {translator.translateText(CustomFieldRowCopy.chip)}
           </span>
         ) : (
           props.column && (
@@ -249,6 +274,8 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           text={props.row.text}
           values={props.row.values}
           operatorOption={operatorOption}
+          linkedTableName={props.column?.linkedTableName}
+          choices={props.column?.customField?.options}
           placeholder={props.column?.example || props.column?.placeholder}
           autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}

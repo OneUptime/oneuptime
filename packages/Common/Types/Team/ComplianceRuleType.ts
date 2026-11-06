@@ -21,6 +21,7 @@ enum ComplianceRuleType {
   HasNotificationTelegramMethod = "HasNotificationTelegramMethod",
   HasNotificationSlackMethod = "HasNotificationSlackMethod",
   HasNotificationMicrosoftTeamsMethod = "HasNotificationMicrosoftTeamsMethod",
+  HasNotificationMattermostMethod = "HasNotificationMattermostMethod",
   HasNotificationWebhookMethod = "HasNotificationWebhookMethod",
   HasIncidentOnCallRules = "HasIncidentOnCallRules",
   HasAlertOnCallRules = "HasAlertOnCallRules",

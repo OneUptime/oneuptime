@@ -223,7 +223,7 @@ describe("product menus list only the connected workspaces", () => {
       await renderAt(menu.Menu, menu.landing);
 
       expect(workspaceLinks()).toEqual([
-        { title: "Connect Slack or Teams", href: routeFor(menu.connect) },
+        { title: "Connect a workspace", href: routeFor(menu.connect) },
       ]);
     },
   );
@@ -358,7 +358,7 @@ describe("product menus list only the connected workspaces", () => {
 
       expect(isExpanded("Workspace")).toBe(true);
       expect(sectionBody("Workspace")).not.toHaveClass("invisible");
-      expect(activeLinkTitles()).toEqual(["Connect Slack or Teams"]);
+      expect(activeLinkTitles()).toEqual(["Connect a workspace"]);
     },
   );
 
@@ -428,15 +428,15 @@ describe("product menus list only the connected workspaces", () => {
     fireEvent.click(sectionToggle("Workspace"));
 
     expect(isExpanded("Workspace")).toBe(true);
-    expect(titles(workspaceLinks())).toEqual(["Connect Slack or Teams"]);
+    expect(titles(workspaceLinks())).toEqual(["Connect a workspace"]);
   });
 
-  test("on a phone, the connect page is named Workspace / Connect Slack or Teams", async () => {
+  test("on a phone, the connect page is named Workspace / Connect a workspace", async () => {
     setViewportWidth(MOBILE_WIDTH);
     connect();
     await renderAt(IncidentsSideMenu, PageMap.INCIDENTS_WORKSPACE_CONNECTIONS);
 
-    expect(mobileSummaryText()).toContain("Workspace / Connect Slack or Teams");
+    expect(mobileSummaryText()).toContain("Workspace / Connect a workspace");
   });
 });
 
@@ -474,7 +474,7 @@ describe("no flash while the answer is on its way", () => {
     async (_name: string, menu: ProductMenu) => {
       await renderAt(menu.Menu, menu.landing);
 
-      expect(titles(workspaceLinks())).toEqual(["Connect Slack or Teams"]);
+      expect(titles(workspaceLinks())).toEqual(["Connect a workspace"]);
       expect(isExpanded("Workspace")).toBe(false);
     },
   );
@@ -518,7 +518,7 @@ describe("no flash while the answer is on its way", () => {
       await answer.promise;
     });
 
-    expect(titles(workspaceLinks())).toEqual(["Connect Slack or Teams"]);
+    expect(titles(workspaceLinks())).toEqual(["Connect a workspace"]);
     expect(isExpanded("Workspace")).toBe(false);
   });
 });

@@ -3500,6 +3500,23 @@ async function handleApi(method, options) {
     return resourceSecurity(body);
   }
 
+  // Whether a host or a cluster runs on an OpenStack cloud: these don't.
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/openstack-resource/placement-of-host/")
+  ) {
+    return ok({ placement: null });
+  }
+
+  if (
+    method === "POST" &&
+    parsed.pathname.includes(
+      "/openstack-resource/magnum-cluster-of-kubernetes-cluster/",
+    )
+  ) {
+    return ok({ link: null });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({});
 }

@@ -1,6 +1,6 @@
 # Verbonden signalen
 
-Een beveiligingszaak zegt over welke gebruikers, hosts en adressen ze gaat. Verbonden signalen zegt welke daarvan OneUptime al kent - uw hosts, containerhosts, Kubernetes-clusters, netwerkapparaten, cloud-resources, serverless functies, services, de monitoren die ze controleren, en leden - en wat er op elk ervan gebeurde rond de zaak: de logboeken, traces en metrieken, de incidenten en waarschuwingen die erop openstaan, de monitoren die het bewaken en wat er is veranderd. Het doorzoekt ook uw logboeken en traces zelf naar ze: het adres van een aanvaller in het toegangslogboek van een webserver, een gelekt e-mailadres in de fout van een applicatie. Andersom zegt de pagina van een host, een cluster, een cloud-resource, een service, een monitor of een lid wat Security Events erover heeft gevonden.
+Een beveiligingszaak zegt over welke gebruikers, hosts en adressen ze gaat. Verbonden signalen zegt welke daarvan OneUptime al kent - uw hosts, containerhosts, Kubernetes-clusters, OpenStack-clouds, netwerkapparaten, cloud-resources, serverless functies, services, de monitoren die ze controleren, en leden - en wat er op elk ervan gebeurde rond de zaak: de logboeken, traces en metrieken, de incidenten en waarschuwingen die erop openstaan, de monitoren die het bewaken en wat er is veranderd. Het doorzoekt ook uw logboeken en traces zelf naar ze: het adres van een aanvaller in het toegangslogboek van een webserver, een gelekt e-mailadres in de fout van een applicatie. Andersom zegt de pagina van een host, een cluster, een cloud-resource, een service, een monitor of een lid wat Security Events erover heeft gevonden.
 
 :::cards
 - [Waar u het ziet](#waar-u-het-ziet): De pagina van een zaak, het tabblad van een gebeurtenis, de pagina van een entiteit en de pagina's van wat ze noemen.
@@ -32,7 +32,7 @@ OneUptime zoekt elke waarde op tussen de records van het project, zegt hoe zeker
 - **Verbonden signalen**, een pagina van elke beveiligingszaak: open een zaak onder **Producten → Beveiligingsgebeurtenissen → Beveiligingszaken → Open zaken** en daarna **Verbonden signalen** na **Entiteiten** in het menu ervan.
 - **Verbonden**, een tabblad van elke beveiligingsgebeurtenis: open een gebeurtenis onder **Producten → Beveiligingsgebeurtenissen → Gebeurtenissen**. Het toont wat de gebeurtenis noemt, in het uur eromheen.
 - De pagina van een entiteit, onder **Producten → Beveiligingsgebeurtenissen → Entiteitrisico**: waar OneUptime de gebruiker, de host of het adres kent, rond de laatste beveiligingsgebeurtenis.
-- Een kaart **Beveiliging** op de pagina van elke host, Docker-host, Podman-host, Kubernetes-cluster, elk netwerkapparaat, elke cloud-resource, elke serverless functie, elke service, elke monitor, elk lid en elk inventarisitem: de open beveiligingszaken die het noemen, hoeveel beveiligingsgebeurtenissen en bevindingen het in de afgelopen 7 dagen noemden, de ernstigste daarvan en het risico. **Openen in Security Events** opent het daar. De kaart van een monitor gaat over de hosts en adressen die hij controleert.
+- Een kaart **Beveiliging** op de pagina van elke host, Docker-host, Podman-host, Kubernetes-cluster, elke OpenStack-cloud, elk netwerkapparaat, elke cloud-resource, elke serverless functie, elke service, elke monitor, elk lid en elk inventarisitem: de open beveiligingszaken die het noemen, hoeveel beveiligingsgebeurtenissen en bevindingen het in de afgelopen 7 dagen noemden, de ernstigste daarvan en het risico. **Openen in Security Events** opent het daar. De kaart van een monitor gaat over de hosts en adressen die hij controleert.
 - Een kaart **Beveiliging** op de pagina van een incident, wanneer een beveiligingszaak het incident heeft gemeld (**Gemeld vanuit**) of open zaken een host of cluster noemen die het raakt (**Open zaken die noemen wat het raakt**).
 
 ## Hoe een waarde wordt gekoppeld
@@ -41,7 +41,7 @@ Elke gebruiker, host en elk adres dat een zaak of een gebeurtenis noemt, wordt o
 
 | Wat de zaak of gebeurtenis noemt | Gekoppeld aan | Hoe zeker |
 | --- | --- | --- |
-| Een host- of domeinnaam die gelijk is aan de naam die een host, een containerhost, een cluster of een netwerkapparaat meldt, of een naam waarop een cloud-resource antwoordt | Dat record | Exact |
+| Een host- of domeinnaam die gelijk is aan de naam die een host, een containerhost, een cluster, een OpenStack-cloud of een netwerkapparaat meldt, of een naam waarop een cloud-resource antwoordt | Dat record | Exact |
 | Dezelfde naam, gegeven zonder te zeggen dat het een host is | Dat record | Mogelijk |
 | Een korte of volledige vorm van de naam van een record, zoals `web-1` en `web-1.acme.internal` | Dat record | Mogelijk |
 | Een openbaar IP-adres dat maar één host of netwerkapparaat heeft, of waarop maar één cloud-resource antwoordt | Dat record | Exact |
@@ -50,7 +50,7 @@ Elke gebruiker, host en elk adres dat een zaak of een gebeurtenis noemt, wordt o
 | Een host, een openbaar IP-adres of de host van een URL die een monitor controleert | Die monitor | Exact |
 | Een privé-IP-adres dat een monitor controleert | Die monitor | Mogelijk |
 | Het e-mailadres van een lid | Dat lid | Exact |
-| Het record waaronder een logregel is verzonden, voor de gebeurtenissen gelezen uit uw logboeken | Die host, dat cluster, die cloud-resource, die serverless functie of die service | Exact |
+| Het record waaronder een logregel is verzonden, voor de gebeurtenissen gelezen uit uw logboeken | Die host, dat cluster, die OpenStack-cloud, die cloud-resource, die serverless functie of die service | Exact |
 | Een kale gebruikersnaam, een bestandshash of een proces | Niets: geen record wordt erop geïndexeerd | - |
 
 - Een mogelijke overeenkomst toont **Mogelijke overeenkomst** naast de naam en zegt waarom. Ze wordt nooit meegeteld op de pagina van het record, en een incident dat de zaak meldt, wordt er nooit aan gekoppeld.
@@ -94,7 +94,7 @@ Onder de records doorzoekt Verbonden signalen uw logboeken en traces, over hetze
 
 ## Incidenten die een zaak meldt
 
-**Incident melden** op een zaak, of de stap van een playbook die er een meldt, koppelt het incident aan de hosts, Docker- en Podman-hosts, Kubernetes-clusters, netwerkapparaten, cloud-resources en services waarmee de zaak exact verbonden is. De stap van een playbook die de dienstdoende oproept, koppelt de waarschuwing die hij opent op dezelfde manier; elke waarschuwing en elk incident dat een detectieregel of een treffer van threat intelligence opent, wordt gekoppeld aan wat de treffer exact noemt, en elk dat Data Security opent aan de gegevensopslag waar het om gaat. Het incident verschijnt op hun pagina's, de regels van hun eigenaren gelden ervoor, en de feed ervan noemt de zaak en waaraan het is gekoppeld. Een mogelijke overeenkomst wordt nooit gekoppeld, en een monitor ook niet: een incident op een monitor kan zijn status veranderen en op zijn statuspagina's verschijnen.
+**Incident melden** op een zaak, of de stap van een playbook die er een meldt, koppelt het incident aan de hosts, Docker- en Podman-hosts, Kubernetes-clusters, OpenStack-clouds, netwerkapparaten, cloud-resources en services waarmee de zaak exact verbonden is. De stap van een playbook die de dienstdoende oproept, koppelt de waarschuwing die hij opent op dezelfde manier; elke waarschuwing en elk incident dat een detectieregel of een treffer van threat intelligence opent, wordt gekoppeld aan wat de treffer exact noemt, en elk dat Data Security opent aan de gegevensopslag waar het om gaat. Het incident verschijnt op hun pagina's, de regels van hun eigenaren gelden ervoor, en de feed ervan noemt de zaak en waaraan het is gekoppeld. Een mogelijke overeenkomst wordt nooit gekoppeld, en een monitor ook niet: een incident op een monitor kan zijn status veranderen en op zijn statuspagina's verschijnen.
 
 ## OneUptime AI
 

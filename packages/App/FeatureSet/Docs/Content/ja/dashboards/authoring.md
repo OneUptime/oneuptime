@@ -39,7 +39,7 @@
 | --- | --- |
 | 監視と APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | インシデント対応 | Incident Dashboard, Alert Dashboard |
-| インフラストラクチャ | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| インフラストラクチャ | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **おすすめ** には Monitor Dashboard、Incident Dashboard、Alert Dashboard、Kubernetes Dashboard、Hosts Dashboard、Metrics Dashboard が入っています。テンプレートは出発点であり、つながりではありません。ダッシュボードを作成したら、自由に変更してください。あとからテンプレートがダッシュボードを更新することはありません。
 

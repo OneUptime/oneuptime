@@ -2,6 +2,9 @@
 # Nova, and nothing else: each rule keeps Nova's own default and adds the role.
 # Merge these into your /etc/nova/policy.yaml. oslo.policy notices a changed file
 # on its own, so no restart is needed.
+# To take them off again, empty the file rather than deleting it: on Flamingo and
+# Epoxy a service fails every request once a policy file it has read is gone, until
+# it is restarted, and Keystone failing that way stops the whole cloud.
 "os_compute_api:os-hypervisors:list": "rule:context_is_admin or role:oneuptime_monitoring"
 "os_compute_api:os-hypervisors:list-detail": "rule:context_is_admin or role:oneuptime_monitoring"
 "os_compute_api:os-hypervisors:show": "rule:context_is_admin or role:oneuptime_monitoring"

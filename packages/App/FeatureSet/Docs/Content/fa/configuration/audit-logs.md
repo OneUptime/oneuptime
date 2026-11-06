@@ -99,6 +99,7 @@ flowchart TB
 | اقلام موجودی | `Inventory Item` |
 | پیکربندی‌های کالکتور | `Collector Config` |
 | سرورهای vCenter | `vCenter` |
+| ابرهای OpenStack، و بررسی‌هایی که روی آن‌ها اجرا می‌شود | `OpenStack Cloud`، `OpenStack Cloud Check` |
 | ضبط‌های بسته و دانلودهایشان | `Packet Capture` |
 | پرونده‌های امنیتی و اولویت‌ها و وضعیت‌هایشان، پلی‌بوک‌ها و اجراهای آن‌ها، موجودیت‌های محافظت‌شده، اهمیت موجودیت، و ریسک موجودیتی که کسی بازنشانی کند | `Security Case`، `Security Case Priority`، `Security Case Status`، `Security Playbook`، `Security Playbook Run`، `Protected Entity`، `Entity Criticality`، `Entity Risk` |
 | استثناهای قاعده | `Rule Exception` |
@@ -107,6 +108,7 @@ flowchart TB
 | شکارها | `Hunt` |
 | وظایف و شواهد پرونده‌های امنیتی | `Security Case Task`، `Security Case Evidence` |
 | مخازن داده و یافته‌هایشان، و مسائل، تنظیمات، تنظیمات بررسی، انواع داده سفارشی و قواعد محل نگهداری داده در امنیت داده | `Data Store`، `Data Store Finding`، `Data Security Issue`، `Data Security Setting`، `Check Setting`، `Custom Data Type`، `Residency Rule` |
+| تنظیمات مشاهده‌پذیری داده | `Data Observability Setting` |
 | خروجی‌های گزارش ممیزی | `Audit Log Export` |
 
 این هم ثبت می‌شود که مدیری روش اعلان یا قاعدهٔ آنکال شخصی را روی حساب کس دیگری اضافه یا حذف کند، بدون خود نشانی یا شماره.

@@ -53,7 +53,7 @@ flowchart TB
 
 Fem veier fører til det samme objektet:
 
-- **For hånd** — klikk på **Erklær hendelse** i listen over hendelser. Det åpner veiviseren **Erklær ny hendelse**, som har tre trinn: **Hendelsesdetaljer**, **Berørte ressurser**, **Vakt og roller**. Det første trinnet spør om en tittel, en alvorlighetsgrad og en beskrivelse, og det de fleste hendelser aldri trenger, er brettet sammen under **Flere felt**. Bare det første trinnet spør om noe du må svare på: **Neste** går gjennom resten, og **Erklær hendelse** står på sammendraget til slutt.
+- **By hand** — klikk på **Erklær hendelse** i listen over hendelser. Det åpner veiviseren **Erklær ny hendelse**, som har tre trinn: **Hendelsesdetaljer**, **Berørte ressurser**, **Vakt og roller**. Det første trinnet spør om en tittel, en alvorlighetsgrad og en beskrivelse, og det de fleste hendelser aldri trenger, er brettet sammen under **Flere felt**. Bare det første trinnet spør om noe du må svare på: **Neste** går gjennom resten, og **Erklær hendelse** står på sammendraget til slutt.
   - **Fra varsler** — **Erklær hendelse** på et utvalg varsler, eller i overskriften til ett varsel, åpner den samme veiviseren, forhåndsutfylt fra varslene, knytter dem til den nye hendelsen og bekrefter dem, med mindre du fjerner haken, slik at de slutter å eskalere — se [Koblede varsler](/docs/incidents/linked-alerts).
   - **Fra Spør AI** — be om en hendelse i [Spør AI](/docs/ai/ask-ai): den erklærer den som deg, knyttet til ressursen du spurte fra siden til, for eksempel en verts. For å registrere et problem som noen allerede tar seg av, eller som allerede er over, ber du om den bekreftet eller løst: den starter i den tilstanden og tilkaller ingen — se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 - **Fra en mal** — klikk på **Opprett fra mal** og velg en lagret **Hendelse Mal**. Maler forhåndsutfyller tittel, beskrivelse, alvorlighetsgrad, starttilstand, ressurser, vaktpolicyer, eiere og etiketter.
@@ -67,7 +67,7 @@ Arbeidsflyter åpner også hendelser: [Huntress](/docs/integrations/huntress)-ar
 
 Ved opprettelsen kjører OneUptime automatiseringen du har satt opp: personvernregler, eierregler, etikettregler, vaktregler og runbook-regler. Alle vaktpolicyer som er knyttet til hendelsen — for hånd, fra en mal eller lagt til av en vaktregel som samsvarer — kjøres parallelt.
 
-Eierne får beskjed via kanalene hver av dem har slått på under **Brukerinnstillinger → Varselinnstillinger**: e-post, SMS, taleanrop, push, WhatsApp, Telegram, Slack, Microsoft Teams eller webhook. Har en hendelse ingen eiere i det hele tatt, går varselet til prosjektets eiere i stedet for å gå tapt.
+Eierne får beskjed via kanalene hver av dem har slått på under **Brukerinnstillinger → Varselinnstillinger**: e-post, SMS, taleanrop, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en hendelse ingen eiere i det hele tatt, går varselet til prosjektets eiere i stedet for å gå tapt.
 
 Er hendelsen synlig på en statusside, og er varsler til abonnenter slått på, får abonnentene også beskjed: abonnentene på hver statusside som viser en av monitorene, eller bare dem på sidene du har begrenset den til. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience) for å gi hver målgruppe sin egen statusside.
 
@@ -160,7 +160,7 @@ Rediger eller legg til alvorlighetsgrader under **Hendelser → Innstillinger �
 | **Oversikt**  | **Alle hendelser**, **Aktive hendelser** og **Etteranalyser** — den andre har et rødt merke med antallet hendelser i en tilstand over den løste tilstanden, og den tredje viser etteranalysen for hver hendelse, for filtrering etter eier, alvorlighetsgrad eller status. |
 | **Episoder**  | Hendelsesepisoder, en egen grupperingsfunksjon med egne sider.                                                                                                            |
 | **KI**        | **Innsikt**, **Logger**, **Innstillinger**: hva OneUptime AI har lært av hendelsene dine og alt den har gjort for dem, og hva den kan gjøre på egen hånd — med reglene for hvilke hendelser den undersøker og retter. Se [AI SRE](/docs/ai/ai-sre). |
-| **Arbeidsområde** | Chatarbeidsområdene prosjektet har koblet til: **Slack**, **Microsoft Teams** og **Mattermost**, hver med sine varselregler for hendelser. Er ingen av dem koblet til, inneholder den **Koble til Slack eller Teams**, en side som viser alle tre og hvordan de kobles til. |
+| **Arbeidsområde** | Chatarbeidsområdene prosjektet har koblet til: **Slack**, **Microsoft Teams** og **Mattermost**, hver med sine varselregler for hendelser. Er ingen av dem koblet til, inneholder den **Koble til et arbeidsområde**, en side som viser alle tre og hvordan de kobles til. |
 | **Regler**    | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Påminnelsesregler**. |
 | **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Statuser for etteranalyse**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Medlemskap i episoder**, **Nummerering**. |
 

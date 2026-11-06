@@ -69,6 +69,16 @@ import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
 import MessagingEntityKeyResolver from "./MessagingEntityKeys";
+import OpenStackTraceEntityKeyResolver from "./OpenStackTraceEntityKeys";
+import {
+  OpenStackDriverService,
+  OpenStackDriverSpan,
+  isOSProfilerDriverScope,
+  isOpenStackNativeScope,
+  normalizeOSProfilerResourceInPlace,
+  readOpenStackNativeSpanInPlace,
+  readOSProfilerSpanInPlace,
+} from "Common/Utils/OpenStack/OpenStackTraces";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceDropFilterService, {
   LoadedTraceDropFilter,
@@ -421,6 +431,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       const messagingEntityKeys: MessagingEntityKeyResolver =
         new MessagingEntityKeyResolver(projectId);
 
+      /*
+       * A span from OSProfiler's driver gets the key of each OpenStack part
+       * its request names, on its own row. Memoized for this request only —
+       * see OpenStackTraceEntityKeys.
+       */
+      const openStackTraceEntityKeys: OpenStackTraceEntityKeyResolver =
+        new OpenStackTraceEntityKeyResolver(projectId);
+
       // Load trace pipeline artifacts once per batch (60s cached inside services).
       let dropFilters: Array<LoadedTraceDropFilter> = [];
       let scrubRules: Array<CompiledTraceScrubRule> = [];
@@ -465,6 +483,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
           this.stampServerlessFunctionNameAttribute(resourceAttributes_raw);
+
+          /*
+           * OSProfiler's driver names nova-compute nova-nova-compute. Put
+           * right on the wire shape, before the Service row and the entity
+           * keys are read from it - see OpenStackTraces. Nothing for any
+           * other block, at the cost of a look at each scope's name.
+           */
+          const openStackDriverService: OpenStackDriverService | null =
+            normalizeOSProfilerResourceInPlace(resourceSpan as JSONObject);
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -643,6 +670,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 scopeSpan["scope"] as JSONObject | undefined,
               );
 
+              const isOSProfilerScope: boolean = isOSProfilerDriverScope(
+                scopeSpan["scope"],
+              );
+              const isOsloScope: boolean = isOpenStackNativeScope(
+                scopeSpan["scope"],
+              );
+
               let spanCounter: number = 0;
               for (const span of spans) {
                 try {
@@ -716,10 +750,53 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const wireParentSpanId: string = this.convertBase64ToHexSafe(
                     span["parentSpanId"] as string | undefined,
                   );
-                  const parentSpanId: string =
-                    sessionTraceState !== null &&
-                    sessionTraceState.syntheticParentSpanId !== null &&
-                    wireParentSpanId === sessionTraceState.syntheticParentSpanId
+
+                  /*
+                   * A span from OSProfiler's driver, read as it arrives: what
+                   * a traced call was handed comes out of its attributes for
+                   * good, and its name, kind, parent and failure are put
+                   * right - see OpenStackTraces. Before the evaluation row,
+                   * so drop filters, scrub rules and pipelines see it as it
+                   * is stored, and before the attribute keys are read.
+                   */
+                  const openStackSpan: OpenStackDriverSpan | null =
+                    isOSProfilerScope
+                      ? readOSProfilerSpanInPlace({
+                          name: (span["name"] as string) || "",
+                          kind: OtelTracesIngestService.mapSpanKind(
+                            span["kind"],
+                          ),
+                          traceId: traceId,
+                          parentSpanId: wireParentSpanId,
+                          attributes: spanAttributes as JSONObject,
+                          events: span["events"],
+                          service: openStackDriverService,
+                        })
+                      : isOsloScope
+                        ? readOpenStackNativeSpanInPlace({
+                            name: (span["name"] as string) || "",
+                            kind: OtelTracesIngestService.mapSpanKind(
+                              span["kind"],
+                            ),
+                            parentSpanId: wireParentSpanId,
+                            attributes: spanAttributes as JSONObject,
+                            events: span["events"],
+                            status: span["status"],
+                            service: openStackDriverService,
+                          })
+                        : null;
+
+                  // Nothing hangs under one of these, so nothing is orphaned.
+                  if (openStackSpan?.saysNothing) {
+                    continue;
+                  }
+
+                  const parentSpanId: string = openStackSpan
+                    ? openStackSpan.parentSpanId
+                    : sessionTraceState !== null &&
+                        sessionTraceState.syntheticParentSpanId !== null &&
+                        wireParentSpanId ===
+                          sessionTraceState.syntheticParentSpanId
                       ? ""
                       : wireParentSpanId;
 
@@ -758,7 +835,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     );
                   }
 
-                  const spanName: string = (span["name"] as string) || "";
+                  // The driver never sets a span's status: see OpenStackTraces.
+                  if (openStackSpan?.isFailed) {
+                    statusCode = SpanStatus.Error;
+                    statusMessage = openStackSpan.statusMessage;
+                  }
+
+                  const spanName: string = openStackSpan
+                    ? openStackSpan.name
+                    : (span["name"] as string) || "";
                   /*
                    * OBI v0.14 reports a Kafka / MQTT / NATS exchange it saw
                    * on the receiving side (a broker, a subscriber handed a
@@ -773,11 +858,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                    * evaluation row, so drop filters, scrub rules, pipelines
                    * and the entity keys all see the stored kind.
                    */
-                  const spanKind: SpanKind =
-                    normalizeObiReceivingSideMessagingSpanKind({
-                      kind: OtelTracesIngestService.mapSpanKind(span["kind"]),
-                      attributes: spanAttributes,
-                    });
+                  const spanKind: SpanKind = openStackSpan
+                    ? (openStackSpan.kind as SpanKind)
+                    : normalizeObiReceivingSideMessagingSpanKind({
+                        kind: OtelTracesIngestService.mapSpanKind(span["kind"]),
+                        attributes: spanAttributes,
+                      });
 
                   /*
                    * OBI's own Node.js inspector requests and their
@@ -995,6 +1081,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                    * key lookups for spans that are not messaging.
                    */
                   messagingEntityKeys.appendToSpanRow(spanRow);
+
+                  /*
+                   * A span from OSProfiler's driver or from oslo belongs to each
+                   * OpenStack part its request names, for that part's page to find.
+                   */
+                  if (isOSProfilerScope || isOsloScope) {
+                    openStackTraceEntityKeys.appendToSpanRow(spanRow);
+                  }
 
                   /*
                    * Exception rows are only built for spans that survived

@@ -1,0 +1,2 @@
+A load balancer ACTIVE on the ovn provider, with a member.
+On its own, on the ovn provider, which boots no VM and has no amphora rows.

@@ -11,6 +11,7 @@ import UserNotificationRuleService, {
 } from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
@@ -189,6 +190,13 @@ const CHANNELS: Array<ChannelFixture> = [
     label: "Microsoft Teams",
     service: UserMicrosoftTeamsService as unknown as ChannelFixture["service"],
     relationProperty: "userMicrosoftTeams",
+  },
+  {
+    idColumn: "userMattermostId",
+    relationColumn: "userMattermost",
+    label: "Mattermost",
+    service: UserMattermostService as unknown as ChannelFixture["service"],
+    relationProperty: "userMattermost",
   },
   {
     idColumn: "userPushId",

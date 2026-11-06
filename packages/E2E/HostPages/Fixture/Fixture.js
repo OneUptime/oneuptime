@@ -18,6 +18,8 @@
  *   ?lang=    de or fa reads the German or Persian locale file (Persian
  *             lays the page out right to left)
  *   ?theme=   dark adds html.dark (server.js)
+ *   ?openstack= instance | hypervisor: this host is a part of an OpenStack cloud
+ *             (SuiteHelpers/OpenStackPlacement.js)
  *
  * POST /host/needs-attention answers as HostService
  * .findHostsThatMayNeedAttention does: every host of the project past one of
@@ -86,6 +88,10 @@ import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
 import { PROJECT_ID, buildFleet, hostMetricRows, uuid } from "./Data";
+import {
+  getOpenStackPlacement,
+  getOpenStackPlacementScenario,
+} from "../../SuiteHelpers/OpenStackPlacement";
 
 /*
  * ---------------------------------------------------------------------------
@@ -100,6 +106,7 @@ const FLEET = ["calm", "new", "large"].includes(params.get("fleet"))
 const ALERTS = ["some", "denied"].includes(params.get("alerts"))
   ? params.get("alerts")
   : "none";
+const OPENSTACK = getOpenStackPlacementScenario(params);
 const FAIL = ["attention"].includes(params.get("fail"))
   ? params.get("fail")
   : "";
@@ -679,6 +686,14 @@ async function handleApi(method, options) {
       openCases: null,
       risk: null,
     });
+  }
+
+  // Where this host is on OpenStack. Most hosts are on no cloud, and say nothing.
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/openstack-resource/placement-of-host/")
+  ) {
+    return ok(getOpenStackPlacement(OPENSTACK));
   }
 
   // The AI agent card: the host has no Host AI agent yet.

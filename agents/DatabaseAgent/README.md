@@ -167,6 +167,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -200,6 +201,7 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 | `DATABASE_TLS_INSECURE` | No | `true` (default) connects without TLS, `false` turns TLS on (for Elasticsearch / OpenSearch, the endpoint's `https://` does) |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accepts a certificate the collector image does not trust. Default `false` |
 | `DATABASE_TLS_SSLMODE` | PostgreSQL | The two TLS switches as libpq's `sslmode` for the PostgreSQL config's SQL checks: `disable`, `require` (TLS, certificate not verified) or `verify-full`. install.sh writes it; default `disable` |
+| `DATABASE_TLS_MYSQL` | MySQL and MariaDB | The two TLS switches as the driver's `tls` for the MySQL config's readings of Galera: `false`, `skip-verify` or `true`. `install.sh` works it out from them. |
 | `DATABASE_COLLECTION_INTERVAL` | No | How often statistics are read. Default `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB, SQL Server, Oracle). They contain query text. Default `false` |
 | `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its Documentation tab has it). The data then joins that database directly, whatever address it reports (or none), and shows on its pages — use it in Kubernetes and for private IPs |

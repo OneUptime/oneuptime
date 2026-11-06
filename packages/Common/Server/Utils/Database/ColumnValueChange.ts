@@ -163,6 +163,43 @@ export default class ColumnValueChange {
    * A many-to-many value as the rows it writes or holds: null as no rows,
    * which is how TypeORM writes a list set to null.
    */
+  /**
+   * The custom fields a write changes, by name: a record's custom fields are
+   * one JSON column, so whether a column changed cannot say which of them did.
+   * Those a write leaves out, and those it writes back as they were, have not
+   * changed. One it clears has: either bag can be no bag at all, which is
+   * every field empty.
+   */
+  public static getChangedCustomFieldNames(data: {
+    storedValue: unknown;
+    writtenValue: unknown;
+  }): Array<string> {
+    const stored: Record<string, unknown> = ColumnValueChange.toBag(
+      data.storedValue,
+    );
+    const written: Record<string, unknown> = ColumnValueChange.toBag(
+      data.writtenValue,
+    );
+
+    const names: Set<string> = new Set<string>([
+      ...Object.keys(stored),
+      ...Object.keys(written),
+    ]);
+
+    return Array.from(names).filter((name: string): boolean => {
+      return !JSONFunctions.deepEqual(
+        stored[name] ?? null,
+        written[name] ?? null,
+      );
+    });
+  }
+
+  private static toBag(value: unknown): Record<string, unknown> {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
   private static toRelationList(value: unknown): unknown {
     return value === null ? [] : value;
   }

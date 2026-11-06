@@ -626,6 +626,38 @@ describe("IdentityRateLimit", () => {
         "verification-email-resend",
       );
     });
+
+    /*
+     * A hundred and fifty a quarter hour, on BOTH counters: a sign-in with a
+     * link carries its token, not an email address, so the account counter
+     * is keyed on the client address alone (Types/Accounts/MagicLink).
+     */
+    it("ships the documented sign-in link budget", () => {
+      expect(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.MagicLink),
+      ).toEqual({
+        windowSeconds: 15 * 60,
+        perAccountLimit: 150,
+        perIpLimit: 150,
+      });
+    });
+
+    it("hands the sign-in link bucket its own budget, not the login one it would fall through to", () => {
+      const magicLinkConfig: ReturnType<
+        typeof IdentityRateLimit.getBucketConfig
+      > = IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.MagicLink);
+
+      expect(magicLinkConfig).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+      );
+      expect(magicLinkConfig).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Passkey),
+      );
+    });
+
+    it("names the sign-in link bucket with a stable key segment", () => {
+      expect(IdentityRateLimitBucket.MagicLink).toBe("magic-link");
+    });
   });
 
   describe("the per-account counter", () => {
@@ -1549,6 +1581,7 @@ describe("IdentityRateLimit", () => {
           IdentityRateLimitBucket.WebAuthnChallenge,
           IdentityRateLimitBucket.StatusPageLogin,
           IdentityRateLimitBucket.Passkey,
+          IdentityRateLimitBucket.MagicLink,
         ]),
       );
       expect(SIGN_IN_BUCKETS).toHaveLength(
@@ -1760,6 +1793,142 @@ describe("the verification email resend bucket's configuration", () => {
         windowSeconds: 900,
         perAccountLimit: 20,
         perIpLimit: 20,
+      });
+    },
+  );
+});
+
+/*
+ * The sign-in link bucket's budget, from its own settings (POST
+ * /login-with-magic-link). Read once, at module load, so these reload the
+ * module.
+ */
+describe("the sign-in link bucket's configuration", () => {
+  type BucketConfigShape = {
+    windowSeconds: number;
+    perAccountLimit: number;
+    perIpLimit: number;
+  };
+
+  interface IdentityRateLimitModule {
+    default: {
+      getBucketConfig: (bucket: IdentityRateLimitBucket) => BucketConfigShape;
+    };
+  }
+
+  const ENV_KEYS: Array<string> = [
+    "IDENTITY_MAGIC_LINK_RATE_LIMIT_WINDOW_SECONDS",
+    "IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "IDENTITY_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
+  ];
+
+  const configsUnderEnv: (env: Record<string, string>) => {
+    magicLink: BucketConfigShape;
+    login: BucketConfigShape;
+  } = (
+    env: Record<string, string>,
+  ): { magicLink: BucketConfigShape; login: BucketConfigShape } => {
+    const previous: Record<string, string | undefined> = {};
+
+    for (const key of ENV_KEYS) {
+      previous[key] = process.env[key];
+
+      const configured: string | undefined = env[key];
+
+      if (configured === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = configured;
+      }
+    }
+
+    let configs: {
+      magicLink: BucketConfigShape;
+      login: BucketConfigShape;
+    } | null = null;
+
+    try {
+      jest.isolateModules((): void => {
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+        const freshModule: IdentityRateLimitModule = require("../../../Server/Middleware/IdentityRateLimit");
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+        configs = {
+          magicLink: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.MagicLink,
+          ),
+          login: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.Login,
+          ),
+        };
+      });
+    } finally {
+      for (const key of ENV_KEYS) {
+        const restored: string | undefined = previous[key];
+
+        if (restored === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = restored;
+        }
+      }
+    }
+
+    if (!configs) {
+      throw new Error("The reloaded module produced no bucket configuration");
+    }
+
+    return configs;
+  };
+
+  it("falls back to the documented defaults when nothing is configured", () => {
+    expect(configsUnderEnv({}).magicLink).toEqual({
+      windowSeconds: 900,
+      perAccountLimit: 150,
+      perIpLimit: 150,
+    });
+  });
+
+  it("reads its window and its limit from its own settings, one limit for both counters", () => {
+    expect(
+      configsUnderEnv({
+        IDENTITY_MAGIC_LINK_RATE_LIMIT_WINDOW_SECONDS: "321",
+        IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW: "7",
+      }).magicLink,
+    ).toEqual({
+      windowSeconds: 321,
+      perAccountLimit: 7,
+      perIpLimit: 7,
+    });
+  });
+
+  it("neither moves with the login settings nor moves them", () => {
+    const configs: { magicLink: BucketConfigShape; login: BucketConfigShape } =
+      configsUnderEnv({
+        IDENTITY_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW: "1111",
+      });
+
+    expect(configs.magicLink.perIpLimit).toBe(150);
+
+    expect(
+      configsUnderEnv({
+        IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW: "9",
+      }).login.perIpLimit,
+    ).toBe(150);
+  });
+
+  it.each(["0", "-5", "not-a-number", ""])(
+    "ignores an unusable setting (%p) and keeps the default",
+    (value: string) => {
+      expect(
+        configsUnderEnv({
+          IDENTITY_MAGIC_LINK_RATE_LIMIT_WINDOW_SECONDS: value,
+          IDENTITY_MAGIC_LINK_RATE_LIMIT_PER_IP_PER_WINDOW: value,
+        }).magicLink,
+      ).toEqual({
+        windowSeconds: 900,
+        perAccountLimit: 150,
+        perIpLimit: 150,
       });
     },
   );

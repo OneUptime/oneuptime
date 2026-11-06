@@ -252,7 +252,7 @@ describe("explain/pin wiring", () => {
   });
 
   test("Ask AI opens and pre-fills on a prompt dispatch, never sending it", () => {
-    const dialog: string = readSquashed("Components/AIChat/AskAiDialog.tsx");
+    const dialog: string = readSquashed("Components/AIChat/AskAiPanel.tsx");
     const events: string = readSquashed("Components/AIChat/AskAiEvents.ts");
     expect(events).toContain(
       'const prompt: string = readText(detail, "prompt");',

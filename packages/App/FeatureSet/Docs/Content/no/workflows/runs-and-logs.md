@@ -18,6 +18,8 @@ Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skje
 
 Starter du en kjøring fra **Bygger**, åpnes den samme visningen **Arbeidsflytkjøring**, som allerede følger kjøringen, slik at du kan se den skje i stedet for å måtte lete etter den etterpå.
 
+For å prøve en kjøring på nytt med de samme verdiene trykker du på Kjør på nytt i visningen av den, eller i ⋯-menyen på raden. En ny kjøring starter fra utløseren med det den kjøringen startet med, så nyttelasten til en webhook ikke må sendes på nytt, og den kjører arbeidsflyten slik den er nå, så du kan endre et trinn og prøve med en gang. Trinnene kjøres på ekte, og så lenge arbeidsflyten er av, er det en testkjøring. Panelet for å kjøre arbeidsflyten i Builder tilbyr verdiene fra siste kjøring på samme måte. En test av ett trinn kjøres på nytt fra trinnet. En kjøring som startet med mer enn 1 MB verdier, kan ikke kjøres på nytt, og heller ikke en kjøring fra før OneUptime tok vare på disse verdiene. De er kryptert, og ingen kan lese dem gjennom API-et.
+
 ## Status for en kjøring
 
 ```mermaid title="Statusene en kjøring går gjennom"
@@ -126,7 +128,7 @@ En blokk som ikke kjører, er vanligvis et koblingsproblem. Åpne **Bygger**, og
 Åpne kjøringen, og se på trinnet. En referanse som ikke ble oppløst, fremheves på selve trinnet som en advarsel, og innstillingen dens i blokken **Mottatt** er merket **Did not resolve**.
 
 - Ser du den bokstavelige teksten `{{local.components.…}}`, ble ikke referansen oppløst. Vanligvis er det en skrivefeil i komponent-ID-en eller ID-en til returverdien — husk at det er blokkens **Identifier**, ikke navnet som står på den. Sjekk også stavemåten til selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bokstavelig tekst, og kjøringen melder likevel **Utført**. Var kjøringen en test med **Run just this step**, kjørte ikke den tidligere blokken i det hele tatt — kjør hele arbeidsflyten i stedet.
-- Ser du **Empty text**, kjørte den tidligere blokken, men produserte ikke det feltet.
+- Ser du **Empty text**, eller et hull i en melding, kjørte den tidligere blokken, men har ingenting i det feltet. Enten har posten ingen verdi der, noe fanen **Full Log** noterer på en egen linje, eller så sender ikke blokken feltet videre, noe trinnet advarer om.
 
 Den samme advarselen står i fanen **Full Log** som en linje som begynner med `Warning:`.
 :::

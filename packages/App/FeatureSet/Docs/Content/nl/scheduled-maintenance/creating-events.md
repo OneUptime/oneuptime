@@ -35,7 +35,7 @@ Ga naar **Geplande onderhoud → Alle gebeurtenissen** en klik op **Geplande ond
 
 ### Zeggen wat er gebeurt en wanneer
 
-Typ een **Titel** en voeg een **Beschrijving** toe als dat helpt: die is in Markdown en verschijnt op je statuspagina's. **Begint op** staat al op het volgende hele uur van je klok, en **Eindigt op** een uur later; wijzig ze alleen als ze niet kloppen. Als je **Begint op** verschuift, schuift **Eindigt op** mee, zodat het venster zijn lengte houdt. **Eigenaren** en **Labels** wachten ingeklapt onder **Meer velden**.
+Typ een **Titel** en voeg een **Beschrijving** toe als dat helpt: die is in Markdown en verschijnt op je statuspagina's. **Begint op** staat al op het volgende hele uur van je klok, en **Eindigt op** een uur later; wijzig ze alleen als ze niet kloppen. Als je **Begint op** verschuift, schuift **Eindigt op** mee, zodat het venster zijn lengte houdt. **Eigenaren**, **Labels** en **Data Observability Databases** wachten ingeklapt onder **Meer velden**.
 
 ### Kiezen wat het raakt
 
@@ -75,7 +75,7 @@ Twee dingen vullen het formulier onderweg voor je in:
 
 ## Beginnen vanaf een resource of een sjabloon
 
-Op het tabblad **Geplande onderhoud** van een host, een Kubernetes-, Proxmox-, Ceph- of Docker Swarm-cluster, een Docker- of Podman-host, een vCenter, een opslagarray, een IoT-vloot, een database, een service of een netwerklocatie opent **Geplande onderhoudsgebeurtenis aanmaken** hetzelfde formulier met die resource al gekozen onder **Andere getroffen resources**, en het tabblad toont de gebeurtenissen die haar raken. Het tabblad van een inventarisitem kiest de host, de service of het Kubernetes-cluster waarnaar het item verwijst.
+Op het tabblad **Geplande onderhoud** van een host, een Kubernetes-, Proxmox-, Ceph- of Docker Swarm-cluster, een Docker- of Podman-host, een vCenter, een OpenStack-cloud, een opslagarray, een IoT-vloot, een database, een service of een netwerklocatie opent **Geplande onderhoudsgebeurtenis aanmaken** hetzelfde formulier met die resource al gekozen onder **Andere getroffen resources**, en het tabblad toont de gebeurtenissen die haar raken. Het tabblad van een inventarisitem kiest de host, de service of het Kubernetes-cluster waarnaar het item verwijst.
 
 **Maken op basis van sjabloon**, naast de knop om te maken, vraagt je **Selecteer sjabloon voor geplande onderhoud** en opent dan het formulier, ingevuld vanuit het sjabloon. Zie [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates).
 

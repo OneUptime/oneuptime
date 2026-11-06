@@ -1,0 +1,2 @@
+nova: service_type = compute
+cinder: service_type = volumev3

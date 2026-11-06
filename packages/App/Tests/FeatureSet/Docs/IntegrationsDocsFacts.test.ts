@@ -1,14 +1,15 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
-  ALERTING_PAGES,
   CHAT_STEP_PAGES,
   DYNAMICS,
   GROUPING_VARIABLES,
+  INBOUND_WORKFLOW_PAGES,
   INTEGRATIONS_PAGES,
   ISSUE_PAGES,
   IntegrationsDocsPageEntry,
   JIRA,
   OPSGENIE,
+  OTHER_TOOL_VARIABLES,
   OVERVIEW,
   PAGERDUTY,
   SERVICENOW,
@@ -386,14 +387,18 @@ describe("every page: the workflow steps it names", () => {
       /*
        * And the variable a monitor's grouping adds, named after the last
        * segment of its path (AlertingIntegrationsDocsFacts holds each to
-       * the grouping the page sets).
+       * the grouping the page sets), and what another tool's own template
+       * reads (AlertingToolTemplateDocsFacts holds each to the payload).
        */
       const groupingVariables: ReadonlyArray<string> =
         GROUPING_VARIABLES[entry.page] || [];
+      const otherToolVariables: ReadonlyArray<string> =
+        OTHER_TOOL_VARIABLES[entry.page] || [];
       const wrong: Array<string> = referencesOf(entry.page).filter(
         (reference: string): boolean => {
           return (
             !groupingVariables.includes(reference) &&
+            !otherToolVariables.includes(reference) &&
             !roots.some((root: string): boolean => {
               return reference.startsWith(root);
             })
@@ -413,7 +418,7 @@ describe("every page: the workflow steps it names", () => {
     PAGERDUTY,
     OPSGENIE,
     SERVICENOW,
-    ...ALERTING_PAGES,
+    ...INBOUND_WORKFLOW_PAGES,
     ...ISSUE_PAGES,
     ...CHAT_STEP_PAGES,
   ])(

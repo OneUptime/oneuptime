@@ -6,7 +6,7 @@ Hver kommando i CLI-en `oneuptime`, med argumentene, alternativene og standardve
 - [Globale alternativer](#globale-alternativer): Alternativene hver kommando tar.
 - [Innlogging og kontekster](#innlogging-og-kontekster): login og context-kommandoene.
 - [Ressurskommandoer](#ressurskommandoer): Operasjonene, feltene og handlingene til hver ressurs.
-- [Andre kommandoer](#andre-kommandoer): deploy, dbt upload, whoami, resources, version og help.
+- [Andre kommandoer](#andre-kommandoer): deploy, dbt upload, data-checks apply, whoami, resources, version og help.
 :::
 
 ## Kommandoene
@@ -322,6 +322,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--run-results <file>` | Nei | Kjøringsresultatene som sendes | `run_results.json` i målmappen |
 | `--project <name>` | Nei | Navnet på dbt-prosjektet, bare nødvendig når ikke noe manifest sendes | Manifestets prosjekt |
 | `--ingestion-key <key>` | Nei | En telemetri-inntaksnøkkel til prosjektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+Får prosjektets datasjekker til å samsvare med en YAML-fil, slik at de ligger i et repositorium og gjennomgås som kode. En feil et sted i filen gjør at ingenting brukes, og kommandoen avsluttes med en feil. Formatet på filen står i [Kontroller og avstemminger](/docs/data-observability/checks).
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| Alternativ | Påkrevd | Hva det er | Standard |
+| --- | --- | --- | --- |
+| `--dry-run` | Nei | Sier hva som ville endret seg, og endrer ingenting | Av |
+| `--prune` | Nei | Sletter sjekker en tidligere kjøring opprettet som filen ikke lenger nevner | Av |
 
 ### `oneuptime whoami`
 

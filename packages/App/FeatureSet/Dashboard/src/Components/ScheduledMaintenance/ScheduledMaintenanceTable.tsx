@@ -734,6 +734,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               _id: true,
               projectId: true,
             },
+            openStackClouds: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
             vmwareVCenters: {
               name: true,
               _id: true,
@@ -884,6 +889,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   _id: true,
                   projectId: true,
                 },
+                openStackClouds: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
                 vmwareVCenters: {
                   name: true,
                   _id: true,
@@ -939,6 +949,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     dockerHosts={item.dockerHosts || []}
                     podmanHosts={item.podmanHosts || []}
                     proxmoxClusters={item.proxmoxClusters || []}
+                    openStackClouds={item.openStackClouds || []}
                     vmwareVCenters={item.vmwareVCenters || []}
                     cephClusters={item.cephClusters || []}
                     storageArrays={item.storageArrays || []}
