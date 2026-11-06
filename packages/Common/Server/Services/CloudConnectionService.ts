@@ -15,6 +15,7 @@ import {
   isCloudConnectionProvider,
 } from "../../Types/CloudConnection/CloudConnectionCatalog";
 import {
+  CLOUD_STREAM_KEY_WRITE_ATTEMPTS,
   CloudStreamKeyHashes,
   readCloudStreamKeyHashes,
   rotateCloudStreamKeyHashes,
@@ -29,6 +30,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import CloudConnectorRegistry from "../Utils/CloudConnection/CloudConnectorRegistry";
 import { CloudConnectionSettings } from "../Utils/CloudConnection/CloudConnectorTypes";
 import CloudStreamAuthenticator from "../Utils/CloudConnection/CloudStreamAuthentication";
+import CloudStreamKeyedConnections from "../Utils/CloudConnection/CloudStreamKeyedConnections";
 import CloudStreamKeys from "../Utils/CloudConnection/CloudStreamKeys";
 import GcpCloudConnector from "../Utils/CloudConnection/Gcp/GcpCloudConnector";
 import logger from "../Utils/Logger";
@@ -598,6 +600,14 @@ export class Service extends DatabaseService<Model> {
    * for CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS, so streams set up with it keep
    * delivering until their stacks are updated. The caller has checked the
    * connection is the project's and the person may change it.
+   *
+   * Two admins making a key at the same moment both keep theirs: the
+   * hashes are read, rotated and written back only if they are still what
+   * was read (one compare-and-set statement), and a write that finds them
+   * changed reads them again and rotates the newer ones - so the key made
+   * first becomes the replaced key that works a day more, and neither is
+   * lost. At most CLOUD_STREAM_KEY_WRITE_ATTEMPTS tries, which only a run
+   * of keys made at the very same instant can use up.
    */
   public async createStreamKey(data: {
     connectionId: ObjectID;
@@ -607,50 +617,73 @@ export class Service extends DatabaseService<Model> {
     createdAt: Date;
     previousKeyWorksUntil: Date | null;
   }> {
-    const connection: Model | null = await this.findOneById({
-      id: data.connectionId,
-      select: { _id: true, provider: true, streamKeyHashes: true },
-      props: { isRoot: true },
-    });
-
-    if (!connection) {
-      throw new BadDataException("The connection no longer exists.");
-    }
-
-    if (connection.provider !== CloudProvider.AWS) {
-      throw new BadDataException(
-        "Only AWS connections stream metrics and logs through Amazon Data Firehose.",
-      );
-    }
-
     const generated: { key: string; hash: string } = CloudStreamKeys.generate(
       data.connectionId,
     );
-    const hashes: CloudStreamKeyHashes = rotateCloudStreamKeyHashes({
-      hashes: readCloudStreamKeyHashes(connection.streamKeyHashes),
-      newHash: generated.hash,
-      now: data.now,
-    });
 
-    await this.updateColumnsByIdWithoutHooks({
-      id: data.connectionId,
-      // JSON columns make the typed partial too deep for TypeScript.
-      data: {
-        streamKeyHashes: hashes as unknown as JSONObject,
-        streamKeyCreatedAt: data.now,
-      } as never,
-    });
+    for (
+      let attempt: number = 1;
+      attempt <= CLOUD_STREAM_KEY_WRITE_ATTEMPTS;
+      attempt++
+    ) {
+      const connection: Model | null = await this.findOneById({
+        id: data.connectionId,
+        select: { _id: true, provider: true, streamKeyHashes: true },
+        props: { isRoot: true },
+      });
 
-    CloudStreamAuthenticator.forget(data.connectionId);
+      if (!connection) {
+        throw new BadDataException("The connection no longer exists.");
+      }
 
-    return {
-      streamKey: generated.key,
-      createdAt: data.now,
-      // The key this one replaced: the newest of those that still work.
-      previousKeyWorksUntil: hashes.previous?.[0]
-        ? new Date(hashes.previous[0].expiresAt)
-        : null,
-    };
+      if (connection.provider !== CloudProvider.AWS) {
+        throw new BadDataException(
+          "Only AWS connections stream metrics and logs through Amazon Data Firehose.",
+        );
+      }
+
+      const hashes: CloudStreamKeyHashes = rotateCloudStreamKeyHashes({
+        hashes: readCloudStreamKeyHashes(connection.streamKeyHashes),
+        newHash: generated.hash,
+        now: data.now,
+      });
+
+      const isWritten: boolean =
+        await this.compareAndSetColumnsByIdWithoutHooks({
+          id: data.connectionId,
+          // JSON columns make the typed partial too deep for TypeScript.
+          data: {
+            streamKeyHashes: hashes as unknown as JSONObject,
+            streamKeyCreatedAt: data.now,
+          } as never,
+          // Written only over the very hashes this rotation was made from.
+          expectedData: {
+            streamKeyHashes: (connection.streamKeyHashes ??
+              null) as unknown as JSONObject,
+          } as never,
+        });
+
+      if (!isWritten) {
+        // Another key was written first, or Stop streaming ran: rotate those.
+        continue;
+      }
+
+      CloudStreamAuthenticator.forget(data.connectionId);
+      CloudStreamKeyedConnections.keyMade(data.connectionId);
+
+      return {
+        streamKey: generated.key,
+        createdAt: data.now,
+        // The key this one replaced: the newest of those that still work.
+        previousKeyWorksUntil: hashes.previous?.[0]
+          ? new Date(hashes.previous[0].expiresAt)
+          : null,
+      };
+    }
+
+    throw new BadDataException(
+      "Other stream keys were being made for this connection at the same moment. Make the key again.",
+    );
   }
 
   /*
@@ -668,6 +701,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     CloudStreamAuthenticator.forget(connectionId);
+    CloudStreamKeyedConnections.keysStopped(connectionId);
   }
 
   /*

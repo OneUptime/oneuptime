@@ -37,10 +37,10 @@ import OtelPayloadDecoder from "../OtelPayloadDecoder";
  * Dimensions a connection's own reads write on each datapoint
  * (CloudMetricPayload), so the ingest finds the resource each datapoint is
  * about with its own resolver (CloudMonitoredResource). Every resource then
- * carries the connection's telemetry service and id, as a read's do. The
- * key metrics are then written in the read's own shape
- * (shapeStreamedKeyMetrics, below), so a streamed key metric and a read
- * one are one series.
+ * carries the connection's telemetry service and id, as a read's do. Each
+ * resource's own series is then kept once, without its splits, and the key
+ * metrics are written in the read's own shape (shapeStreamedMetrics,
+ * below), so a streamed key metric and a read one are one series.
  *
  * No regular expression reads a record.
  */
@@ -378,37 +378,44 @@ export function readMetricResourceFacts(
 }
 
 /*
- * THE STREAM'S KEY METRICS, IN THE SHAPE A CONNECTION'S READ WRITES THEM.
+ * THE STREAM'S METRICS, EACH RESOURCE'S OWN SERIES ONCE - AND THE KEY ONES
+ * IN THE SHAPE A CONNECTION'S READ WRITES THEM.
  *
  * A metric stream sends a summary of each minute - count, sum, minimum and
  * maximum - for every dimension set CloudWatch has: a function's
  * Invocations for the function, and again for each of its versions and
  * aliases; a load balancer's RequestCount for it, and again for each of
- * its zones. A connection's read writes each key metric (CloudKeyMetrics)
- * as a gauge of the one statistic it reads, for each resource's own
- * aggregate alone - the series with the fewest dimensions, never its
- * per-zone or per-version splits. While a stream delivers a namespace the
- * read no longer writes it (CloudStreamedMetrics), so the stream writes the
- * key metrics as the read would:
+ * its zones. A resource's charts read every series its metric filter
+ * matches (CloudMonitoredResourceScope), and its own aggregate and its
+ * splits all match it: summed without a group-by, the function's
+ * Invocations would count every invocation two or three times. So per
+ * resource and metric only the series with the fewest dimensions is kept
+ * (several when they tie: an ElastiCache cluster's nodes), among the
+ * delivery's and those the connection's deliveries brought in the last
+ * hour, since one minute's series can come in two deliveries - for every
+ * metric, the key ones and, with Every metric under More fields, all the
+ * others.
+ *
+ * A connection's read writes each key metric (CloudKeyMetrics) as a gauge
+ * of the one statistic it reads, for each resource's own aggregate alone.
+ * While a stream delivers a namespace the read no longer writes it
+ * (CloudStreamedMetrics), so the stream writes the key metrics as the read
+ * would:
  *
  *   - a gauge of the read's statistic: Average is the sum over the count,
  *     Sum the sum, Maximum the quantile-1 value and Minimum the quantile-0
  *     one, at the start of the minute (CloudWatch's own time for a
  *     datapoint, as the read and the JSON format write it), in the read's
  *     unit. A minute without an observation writes nothing;
- *   - per resource and metric, only the series with the fewest dimensions
- *     (several when they tie: an ElastiCache cluster's nodes), among the
- *     delivery's and those the connection's deliveries brought in the last
- *     hour, since one minute's series can come in two deliveries; a series
- *     of no resource - a namespace's or an account's own total, with no
- *     dimension that names one - is left out, as the read leaves it.
+ *   - a series of no resource - a namespace's or an account's own total,
+ *     with no dimension that names one - is left out, as the read leaves it.
  *
  * So a key metric is one series of one point type whichever way it came,
  * and a resource's charts, its monitors and its pages read it as before: a
- * summary's value is its sum, which a gauge of an Average is not, and a
- * resource's own aggregate counted again with its splits would double it.
- * Every other metric (Every metric, under More fields) stays the stream's
- * summary, every series of it: no read writes it.
+ * summary's value is its sum, which a gauge of an Average is not. Every
+ * other metric stays the stream's summary - no read writes it - and its
+ * series of no resource are kept: they are an account's own metrics, in
+ * its own namespaces too, which no resource's filter matches.
  */
 
 export interface StreamedKeyMetric {
@@ -601,33 +608,137 @@ export const STREAMED_SERIES_MEMORY: StreamedSeriesMemory =
 // Datapoints read between two yields to the event loop.
 const POINTS_PER_YIELD: number = 2000;
 
-interface KeyPointPlace {
+interface StreamedPointPlace {
   // The connection, the resource and the metric: null for a resource no rule knows.
   seriesKey: string | null;
   dimensions: number;
 }
 
+// Whether a point is a split of a resource whose own aggregate streams.
+function isSplit(
+  place: StreamedPointPlace | undefined,
+  fewest: Map<string, number>,
+): boolean {
+  return Boolean(
+    place?.seriesKey &&
+      place.dimensions >
+        (fewest.get(place.seriesKey) ?? Number.MAX_SAFE_INTEGER),
+  );
+}
+
+// A key metric's points as the read's gauge: a resource's own aggregate each.
+function toReadGauge(data: {
+  metric: JSONObject;
+  keyMetric: StreamedKeyMetric;
+  places: Map<JSONObject, StreamedPointPlace>;
+  fewest: Map<string, number>;
+}): JSONObject | null {
+  const dataPoints: Array<JSONObject> = [];
+
+  for (const rawPoint of readArray(
+    readObject(data.metric["summary"])["dataPoints"],
+  )) {
+    const point: JSONObject = readObject(rawPoint);
+    const place: StreamedPointPlace | undefined = data.places.get(point);
+
+    /*
+     * A series of no resource (a namespace's or an account's own total),
+     * which the read never writes, or a split of a resource whose own
+     * aggregate streams.
+     */
+    if (!place?.seriesKey || isSplit(place, data.fewest)) {
+      continue;
+    }
+
+    const value: number | null = readStatisticValue(
+      point,
+      data.keyMetric.statistic,
+    );
+
+    if (value === null) {
+      continue;
+    }
+
+    const startTime: number | null = readNumberLike(point["startTimeUnixNano"]);
+    const time: JSONValue | undefined =
+      startTime && startTime > 0
+        ? point["startTimeUnixNano"]
+        : point["timeUnixNano"];
+
+    dataPoints.push({
+      ...(time !== undefined && time !== null
+        ? { startTimeUnixNano: time, timeUnixNano: time }
+        : {}),
+      asDouble: value,
+      attributes: readArray(point["attributes"]),
+    });
+  }
+
+  return dataPoints.length > 0
+    ? {
+        name: data.metric["name"] as JSONValue,
+        unit: data.keyMetric.unit,
+        gauge: { dataPoints: dataPoints as unknown as JSONArray },
+      }
+    : null;
+}
+
+/*
+ * Any other metric as the stream sent it, without the splits of a resource
+ * whose own aggregate streams - or null when nothing is left of it. The
+ * very metric, untouched, when it has no split.
+ */
+function withoutSplits(data: {
+  metric: JSONObject;
+  places: Map<JSONObject, StreamedPointPlace>;
+  fewest: Map<string, number>;
+}): JSONObject | null {
+  const summary: JSONObject = readObject(data.metric["summary"]);
+  const points: JSONArray = readArray(summary["dataPoints"]);
+  const kept: Array<JSONObject> = [];
+
+  for (const rawPoint of points) {
+    const point: JSONObject = readObject(rawPoint);
+
+    if (!isSplit(data.places.get(point), data.fewest)) {
+      kept.push(point);
+    }
+  }
+
+  if (kept.length === points.length) {
+    return data.metric;
+  }
+
+  return kept.length > 0
+    ? {
+        ...data.metric,
+        summary: { ...summary, dataPoints: kept as unknown as JSONArray },
+      }
+    : null;
+}
+
 /*
  * One delivery's resources ({ resource, scopeMetrics }, the connection
- * stamped on them) with their key metrics in the read's shape. Nothing
- * given is changed: a resource that changes is a new object.
+ * stamped on them) with each resource's own series once, and the key
+ * metrics in the read's shape. Nothing given is changed: a resource that
+ * changes is a new object, and one that does not is handed back as it was.
  */
-export async function shapeStreamedKeyMetrics(data: {
+export async function shapeStreamedMetrics(data: {
   resources: Array<JSONObject>;
   connectionId: string;
   now: Date;
   memory?: StreamedSeriesMemory | undefined;
 }): Promise<Array<JSONObject>> {
   const memory: StreamedSeriesMemory = data.memory || STREAMED_SERIES_MEMORY;
-  const places: Map<JSONObject, KeyPointPlace> = new Map<
+  const places: Map<JSONObject, StreamedPointPlace> = new Map<
     JSONObject,
-    KeyPointPlace
+    StreamedPointPlace
   >();
-  // The fewest dimensions of each resource's key metric in this delivery.
+  // The fewest dimensions of each resource's metric in this delivery.
   const deliveryFewest: Map<string, number> = new Map<string, number>();
   let read: number = 0;
 
-  // First: which resource each key metric's datapoint is about.
+  // First: which resource each summary datapoint is about.
   for (const resourceMetrics of data.resources) {
     const resourceAttributes: Array<OtlpAttribute> = readArray(
       readObject(resourceMetrics["resource"])["attributes"],
@@ -642,10 +753,7 @@ export async function shapeStreamedKeyMetrics(data: {
         const metric: JSONObject = readObject(rawMetric);
         const name: string = readText(metric["name"]);
 
-        if (
-          !metric["summary"] ||
-          !STREAMED_KEY_METRICS.has(name.toLowerCase())
-        ) {
+        if (!metric["summary"]) {
           continue;
         }
 
@@ -709,7 +817,7 @@ export async function shapeStreamedKeyMetrics(data: {
     );
   }
 
-  // Then: each key metric a gauge of its resources' own aggregates.
+  // Then: each resource's own series once, the key metrics as the read's gauges.
   const shaped: Array<JSONObject> = [];
 
   for (const resourceMetrics of data.resources) {
@@ -722,70 +830,24 @@ export async function shapeStreamedKeyMetrics(data: {
 
       for (const rawMetric of readArray(scope["metrics"])) {
         const metric: JSONObject = readObject(rawMetric);
-        const name: string = readText(metric["name"]);
-        const keyMetric: StreamedKeyMetric | undefined =
-          STREAMED_KEY_METRICS.get(name.toLowerCase());
 
-        if (!metric["summary"] || !keyMetric) {
+        if (!metric["summary"]) {
           metrics.push(metric);
           continue;
         }
 
-        isChanged = true;
+        const keyMetric: StreamedKeyMetric | undefined =
+          STREAMED_KEY_METRICS.get(readText(metric["name"]).toLowerCase());
+        const written: JSONObject | null = keyMetric
+          ? toReadGauge({ metric, keyMetric, places, fewest })
+          : withoutSplits({ metric, places, fewest });
 
-        const dataPoints: Array<JSONObject> = [];
-
-        for (const rawPoint of readArray(
-          readObject(metric["summary"])["dataPoints"],
-        )) {
-          const point: JSONObject = readObject(rawPoint);
-          const place: KeyPointPlace | undefined = places.get(point);
-
-          /*
-           * A series of no resource (a namespace's or an account's own
-           * total), which the read never writes, or a split of a resource
-           * whose own aggregate streams.
-           */
-          if (
-            !place?.seriesKey ||
-            place.dimensions >
-              (fewest.get(place.seriesKey) ?? Number.MAX_SAFE_INTEGER)
-          ) {
-            continue;
-          }
-
-          const value: number | null = readStatisticValue(
-            point,
-            keyMetric.statistic,
-          );
-
-          if (value === null) {
-            continue;
-          }
-
-          const startTime: number | null = readNumberLike(
-            point["startTimeUnixNano"],
-          );
-          const time: JSONValue | undefined =
-            startTime && startTime > 0
-              ? point["startTimeUnixNano"]
-              : point["timeUnixNano"];
-
-          dataPoints.push({
-            ...(time !== undefined && time !== null
-              ? { startTimeUnixNano: time, timeUnixNano: time }
-              : {}),
-            asDouble: value,
-            attributes: readArray(point["attributes"]),
-          });
+        if (written !== metric) {
+          isChanged = true;
         }
 
-        if (dataPoints.length > 0) {
-          metrics.push({
-            name: metric["name"] as JSONValue,
-            unit: keyMetric.unit,
-            gauge: { dataPoints: dataPoints as unknown as JSONArray },
-          });
+        if (written) {
+          metrics.push(written);
         }
       }
 

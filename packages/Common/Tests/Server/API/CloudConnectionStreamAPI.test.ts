@@ -172,6 +172,24 @@ beforeEach(() => {
       writes.push(data.data);
       stored.streamKeyHashes = data.data["streamKeyHashes"] as JSONObject;
     }) as never);
+  // A new key is written only over the hashes it was rotated from, as Postgres would.
+  jest
+    .spyOn(CloudConnectionService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockImplementation((async (data: {
+      data: JSONObject;
+      expectedData: JSONObject;
+    }) => {
+      if (
+        JSON.stringify(stored.streamKeyHashes ?? null) !==
+        JSON.stringify(data.expectedData["streamKeyHashes"] ?? null)
+      ) {
+        return false;
+      }
+
+      writes.push(data.data);
+      stored.streamKeyHashes = data.data["streamKeyHashes"] as JSONObject;
+      return true;
+    }) as never);
 });
 
 afterEach(() => {

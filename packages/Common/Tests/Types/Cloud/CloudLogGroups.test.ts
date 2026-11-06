@@ -134,6 +134,26 @@ describe("log groups AWS names after their resource", () => {
       dimensions: { ClusterName: "production" },
       arn: "arn:aws:ecs:us-east-1:123456789012:cluster/production",
     },
+    {
+      // The name the Step Functions console gives a state machine's log group.
+      logGroup: "/aws/vendedlogs/states/order-flow-Logs",
+      namespace: "AWS/States",
+      dimensions: {
+        StateMachineArn:
+          "arn:aws:states:us-east-1:123456789012:stateMachine:order-flow",
+      },
+      arn: "arn:aws:states:us-east-1:123456789012:stateMachine:order-flow",
+    },
+    {
+      // A name that ends in -Logs itself keeps the rest: only one suffix goes.
+      logGroup: "/aws/vendedlogs/states/audit_Logs-Logs",
+      namespace: "AWS/States",
+      dimensions: {
+        StateMachineArn:
+          "arn:aws:states:us-east-1:123456789012:stateMachine:audit_Logs",
+      },
+      arn: "arn:aws:states:us-east-1:123456789012:stateMachine:audit_Logs",
+    },
   ])(
     "$logGroup is the log of the resource its metrics are filed under",
     (example: {
@@ -205,6 +225,37 @@ describe("log groups AWS names after their resource", () => {
     ).toBe("arn:aws-cn:lambda:cn-north-1:123456789012:function:checkout");
   });
 
+  test("a state machine's ARN is its group's Region's and partition's, and its metrics' too", () => {
+    for (const [region, partition] of [
+      ["eu-central-1", "aws"],
+      ["us-gov-east-1", "aws-us-gov"],
+      ["cn-northwest-1", "aws-cn"],
+    ]) {
+      const filed: CloudLogGroupResource = fromLogs(
+        "/aws/vendedlogs/states/order-flow-Logs",
+        region!,
+      );
+      const arn: string = `arn:${partition}:states:${region}:123456789012:stateMachine:order-flow`;
+
+      expect(filed.resource.providerResourceId).toBe(arn);
+      expect(filed.attributes).toEqual({ [CLOUD_RESOURCE_ID_ATTRIBUTE]: arn });
+      expect(filed.resource.identityKey).toBe(
+        fromMetrics({
+          namespace: "AWS/States",
+          dimensions: { StateMachineArn: arn },
+          region: region!,
+        }).identityKey,
+      );
+    }
+  });
+
+  test("a state machine's group in an upper-case Region is read in AWS's own spelling", () => {
+    expect(
+      fromLogs("/aws/vendedlogs/states/order-flow-Logs", "EU-WEST-1").resource
+        .providerResourceId,
+    ).toBe("arn:aws:states:eu-west-1:123456789012:stateMachine:order-flow");
+  });
+
   test("every rule's type is a type the catalog names", () => {
     for (const rule of AWS_LOG_GROUP_RULES) {
       expect(getCloudResourceTypeLabel("aws", rule.type)).not.toBe(rule.type);
@@ -228,6 +279,19 @@ describe("log groups no rule reads", () => {
     // Not AWS's spelling.
     "/aws/Lambda/checkout",
     "",
+    /*
+     * An ECS task's group names its task definition, not its service, and a
+     * CodeBuild project is no type the catalog has yet.
+     */
+    "/ecs/storefront",
+    "/aws/codebuild/build-storefront",
+    // A Step Functions group the console did not name, or no state machine's name.
+    "/aws/vendedlogs/states/order-flow",
+    "/aws/vendedlogs/states/-Logs",
+    "/aws/vendedlogs/states/flows/order-flow-Logs",
+    "/aws/vendedlogs/states/order.flow-Logs",
+    `/aws/vendedlogs/states/${"s".repeat(81)}-Logs`,
+    "/aws/vendedlogs/states/order-flow-logs",
   ])("%s is unfiled", (logGroup: string) => {
     expect(
       getAwsLogGroupResource({ logGroup, accountId: ACCOUNT, region: REGION }),
@@ -258,6 +322,31 @@ describe("log groups no rule reads", () => {
     ).toBeNull();
   });
 
+  test("a state machine's group of no account or no AWS Region is unfiled: its ARN needs both", () => {
+    for (const place of [
+      { accountId: "", region: REGION },
+      { accountId: ACCOUNT, region: "" },
+      { accountId: ACCOUNT, region: "europe" },
+      { accountId: ACCOUNT, region: "us_east_1" },
+    ]) {
+      expect(
+        getAwsLogGroupResource({
+          logGroup: "/aws/vendedlogs/states/order-flow-Logs",
+          ...place,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("a state machine name of 80 characters, the most AWS allows, is still read", () => {
+    const name: string = "s".repeat(80);
+
+    expect(
+      fromLogs(`/aws/vendedlogs/states/${name}-Logs`).resource
+        .providerResourceId,
+    ).toBe(`arn:aws:states:us-east-1:123456789012:stateMachine:${name}`);
+  });
+
   test("a name of slashes after a prefix is no resource", () => {
     expect(
       getAwsLogGroupResource({
@@ -283,6 +372,7 @@ describe("which resource pages have a Logs tab", () => {
         "AWS::RDS::DBCluster",
         "AWS::RDS::DBInstance",
         "AWS::Redshift::Cluster",
+        "AWS::StepFunctions::StateMachine",
       ].sort(),
     );
 
