@@ -199,6 +199,12 @@ export const RESOURCE_AI_AGENT_API_KEY_ENVS: ReadonlyArray<string> = [
  *                    one change, for 15 minutes; the agent's own account
  *                    then only reads. Unset (an agent set up before), its
  *                    own account makes the changes.
+ * AZURE_WRITE_IDENTITY: Azure only: the resource ID of the user-assigned
+ *                    managed identity each change runs as, attached where
+ *                    the agent runs; the agent asks for its token for each
+ *                    change, and its own identity then only reads. Unset
+ *                    (an agent set up before), its own identity makes the
+ *                    changes.
  * Protected targets (ONEUPTIME_AI_PROTECTED_TARGETS) take the agent's own
  * service, roles and stack on top of what an operator lists.
  */
@@ -212,6 +218,8 @@ export const RESOURCE_AI_AWS_WRITE_ROLE_ARN_ENV: string =
   "ONEUPTIME_AI_AWS_WRITE_ROLE_ARN";
 export const RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV: string =
   "ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT";
+export const RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV: string =
+  "ONEUPTIME_AI_AZURE_WRITE_IDENTITY";
 export const RESOURCE_AI_PROTECTED_TARGETS_ENV: string =
   "ONEUPTIME_AI_PROTECTED_TARGETS";
 /*
