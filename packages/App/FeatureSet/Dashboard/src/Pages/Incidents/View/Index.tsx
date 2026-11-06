@@ -1138,7 +1138,14 @@ const IncidentView: FunctionComponent<
   }
 
   /*
-   * Built once and shared by all four preview cards. Resolved to `undefined`
+   * A metrics monitor's incident: its telemetry card is the metric
+   * investigation (EventMetricInvestigationPanel), not the snapshot card.
+   */
+  const isMetricSnapshot: boolean =
+    telemetryQuery?.telemetryType === TelemetryType.Metric;
+
+  /*
+   * Built once and shared by the preview cards. Resolved to `undefined`
    * rather than an element that renders nothing, because Card decides whether
    * to lay out its right-hand column from the PRESENCE of rightElement — an
    * element returning an empty fragment is still truthy, and would leave an
@@ -1355,7 +1362,7 @@ const IncidentView: FunctionComponent<
             }}
           />
 
-          {telemetryQuery?.telemetryType === TelemetryType.Metric ? (
+          {isMetricSnapshot && telemetryQuery ? (
             /*
              * A metrics monitor's incident: the metrics it watched, to
              * investigate right here - any time range, the ones around the
@@ -1378,8 +1385,7 @@ const IncidentView: FunctionComponent<
             <></>
           )}
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType !== TelemetryType.Metric && (
+          {telemetryQuery && !isMetricSnapshot && (
             <TelemetryCompanionSignalTabs
               telemetryQuery={telemetryQuery}
               // The companion tabs follow the zoom: they show the slice too.

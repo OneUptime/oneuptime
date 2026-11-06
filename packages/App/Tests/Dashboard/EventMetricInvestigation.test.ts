@@ -133,9 +133,7 @@ describe("the time ranges around an event", () => {
       start: "2026-11-05T05:29:00.000Z",
       end: LATER.toISOString(),
     });
-    expect(byId[EventMetricPresetId.Evaluated]!.window).toBe(
-      EVALUATION_WINDOW,
-    );
+    expect(byId[EventMetricPresetId.Evaluated]!.window).toBe(EVALUATION_WINDOW);
   });
 
   test("around the start of an incident that began ten minutes ago ends at now", () => {

@@ -44,7 +44,9 @@ export interface MetricInvestigationUrlState {
 export type ReadUrlParamFunction = (name: string) => string | null;
 
 export default class MetricInvestigationUrl {
-  public static getParamNames(prefix: string): MetricInvestigationUrlParamNames {
+  public static getParamNames(
+    prefix: string,
+  ): MetricInvestigationUrlParamNames {
     return {
       time: `${prefix}Time`,
       start: `${prefix}Start`,

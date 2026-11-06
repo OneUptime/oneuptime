@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -46,7 +52,9 @@ export interface UseMetricInvestigationOptions {
    * investigation once the page knows them: a link to one of them is read
    * when it mounts.
    */
-  getPresets?: ((now: Date) => Array<MetricInvestigationTimePreset>) | undefined;
+  getPresets?:
+    | ((now: Date) => Array<MetricInvestigationTimePreset>)
+    | undefined;
   // The pick it starts from; else the first preset, else the past hour.
   defaultSelection?: MetricInvestigationTimeSelection | undefined;
   /*
@@ -353,7 +361,9 @@ const useMetricInvestigation: (
 
   const selectPreset: (presetId: string) => void = useCallback(
     (presetId: string): void => {
-      if (!MetricInvestigationTime.findPreset(latest.current.presets, presetId)) {
+      if (
+        !MetricInvestigationTime.findPreset(latest.current.presets, presetId)
+      ) {
         return;
       }
 
@@ -449,8 +459,8 @@ const useMetricInvestigation: (
     });
   }, []);
 
-  const setQueries: (queries: MetricInvestigationQueries) => void =
-    useCallback((nextQueries: MetricInvestigationQueries): void => {
+  const setQueries: (queries: MetricInvestigationQueries) => void = useCallback(
+    (nextQueries: MetricInvestigationQueries): void => {
       const normalized: MetricInvestigationQueries =
         MetricInvestigationQueryUtil.normalize(nextQueries);
 
@@ -465,7 +475,9 @@ const useMetricInvestigation: (
             : normalized,
         };
       });
-    }, []);
+    },
+    [],
+  );
 
   /*
    * Works the windows out again - a range that ends at now moves on to now -
@@ -564,8 +576,9 @@ const useMetricInvestigation: (
     : null;
   const urlParamsKey: string = urlParams ? JSON.stringify(urlParams) : "";
 
-  const lastWrittenUrlParamsKey: React.MutableRefObject<string | null> =
-    useRef<string | null>(null);
+  const lastWrittenUrlParamsKey: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (!urlParamPrefix || !urlParams) {

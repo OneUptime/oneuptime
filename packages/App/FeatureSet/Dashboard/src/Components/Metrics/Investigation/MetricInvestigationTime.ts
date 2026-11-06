@@ -113,7 +113,9 @@ export default class MetricInvestigationTime {
     const startMs: number = toEpochMs(window.startValue);
     const endMs: number = toEpochMs(window.endValue);
 
-    return Number.isFinite(startMs) && Number.isFinite(endMs) && startMs < endMs;
+    return (
+      Number.isFinite(startMs) && Number.isFinite(endMs) && startMs < endMs
+    );
   }
 
   /*

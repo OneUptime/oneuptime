@@ -25,10 +25,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * overviews (TelemetrySnapshotPanel) and the companion tabs every snapshot
  * card carries (TelemetryCompanionSignalTabs).
  *
- * - The primary metric chart is pinned to the window the monitor
- *   evaluated. A drag zooms the whole snapshot (the companion tabs are
- *   handed the slice; see TelemetrySnapshotZoomAcrossTabs.test), and a
- *   double-click or Reset zoom returns to that window.
+ * - A metric snapshot is the metric investigation (issue #5954): it
+ *   charts the range around the event's start (an episode panel handed no
+ *   start anchors on the end of what the monitor evaluated). A drag zooms
+ *   the whole card (the companion tabs are handed the slice; see
+ *   TelemetrySnapshotZoomAcrossTabs.test), and a double-click or Reset zoom
+ *   returns to the range picked before.
  * - A zoom made inside a companion tab stays the companion's own. The same
  *   card opens inside the investigation drawer, over pages whose charts
  *   zoom the page: none of that page's zoom may reach a companion (no
@@ -244,7 +246,6 @@ import ResetTimeRangeZoomButton, {
   RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID,
 } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
-import OneUptimeDate from "../../../Types/Date";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import ObjectID from "../../../Types/ObjectID";
@@ -363,6 +364,8 @@ function logSnapshotQuery(): TelemetryQuery {
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
+  // The investigation keeps what the reader changed in the page's URL.
+  window.history.replaceState({}, "", "/");
   fetchResultsMock.mockReset();
   analyticsGetListMock.mockReset();
   for (const key of Object.keys(mockChartsByMetric)) {
@@ -384,7 +387,11 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe("the episode overview's snapshot panel: the primary metric chart", () => {
+describe("the episode overview's snapshot panel: a metric snapshot's investigation", () => {
+  // Thirty minutes either side of the end of what the monitor evaluated.
+  const AROUND_START_START: Date = new Date("2026-09-14T17:30:00.000Z");
+  const AROUND_START_END: Date = new Date("2026-09-14T18:30:00.000Z");
+
   function renderPanel(telemetryQuery: TelemetryQuery): RenderResult {
     return render(
       <TelemetrySnapshotPanel
@@ -396,18 +403,25 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
     );
   }
 
-  test("charts the snapshot window and offers a drag, with no reset yet", async () => {
+  function pickedRange(): string {
+    return (
+      screen.getByTestId("metric-investigation-time-button").textContent || ""
+    );
+  }
+
+  test("charts the range around the start and offers a drag, with no reset yet", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
     expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-      windowOf(SNAPSHOT_START, SNAPSHOT_END),
+      windowOf(AROUND_START_START, AROUND_START_END),
     );
+    expect(pickedRange()).toContain("Around the start");
     expect(chartsOf(PRIMARY_METRIC).onTimeRangeSelect).toBeInstanceOf(Function);
     expect(chartsOf(PRIMARY_METRIC).onTimeRangeReset).toBeUndefined();
   });
 
-  test("a drag zooms the chart; the badge keeps naming the snapshot window", async () => {
+  test("a drag zooms the chart; the picker names the slice, with Reset zoom beside it", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -418,17 +432,13 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
         windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
       );
     });
-    expect(
-      screen.getByText(
-        OneUptimeDate.getInBetweenDatesAsFormattedString(SNAPSHOT),
-      ),
-    ).toBeInTheDocument();
+    expect(pickedRange()).not.toContain("Around the start");
     expect(
       screen.getByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
     ).toBeVisible();
   });
 
-  test("a double-click returns to the snapshot window", async () => {
+  test("a double-click returns to the range around the start", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -442,7 +452,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
 
     await waitFor(() => {
       expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        windowOf(AROUND_START_START, AROUND_START_END),
       );
     });
     expect(
@@ -450,7 +460,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
     ).toBeNull();
   });
 
-  test("Reset zoom returns to the snapshot window too", async () => {
+  test("Reset zoom returns to it too", async () => {
     renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -461,12 +471,12 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
 
     await waitFor(() => {
       expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        windowOf(AROUND_START_START, AROUND_START_END),
       );
     });
   });
 
-  test("a stored snapshot whose bounds came back as ISO strings zooms and resets to the same instants", async () => {
+  test("a stored snapshot whose bounds came back as ISO strings anchors, zooms and resets to the same instants", async () => {
     renderPanel(
       metricSnapshotQuery(
         new InBetween<Date>(
@@ -476,6 +486,10 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
       ),
     );
     await chartsSettled(PRIMARY_METRIC);
+
+    expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
+      windowOf(AROUND_START_START, AROUND_START_END),
+    );
 
     await press(`Drag across ${PRIMARY_METRIC}`);
     await waitFor(() => {
@@ -487,7 +501,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
 
     await waitFor(() => {
       expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(SNAPSHOT_START, SNAPSHOT_END),
+        windowOf(AROUND_START_START, AROUND_START_END),
       );
     });
   });
@@ -530,7 +544,7 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
     );
   });
 
-  test("a different snapshot window ends the zoom and charts that window", async () => {
+  test("a different snapshot window keeps the reader's zoom, and a reset goes around its new start", async () => {
     const result: RenderResult = renderPanel(metricSnapshotQuery(SNAPSHOT));
     await chartsSettled(PRIMARY_METRIC);
 
@@ -554,14 +568,28 @@ describe("the episode overview's snapshot panel: the primary metric chart", () =
       />,
     );
 
+    // The zoom is the reader's pick, not the record's.
+    expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
+      windowOf(MOCK_DRAG.start, MOCK_DRAG.end),
+    );
+
+    fireEvent.click(
+      await screen.findByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
+    );
+
+    /*
+     * Around the new start, cut at now: a moment after NOW, as the waits
+     * above move the fake clock on by a few ticks.
+     */
     await waitFor(() => {
-      expect(lastFetchedWindowFor(PRIMARY_METRIC)).toEqual(
-        windowOf(nextStart, nextEnd),
-      );
+      const [startMs, endMs]: [number, number] = lastFetchedWindowFor(
+        PRIMARY_METRIC,
+      )!;
+
+      expect(startMs).toBe(new Date("2026-09-14T18:15:00.000Z").getTime());
+      expect(endMs).toBeGreaterThanOrEqual(NOW.getTime());
+      expect(endMs - NOW.getTime()).toBeLessThan(60 * 1000);
     });
-    expect(
-      screen.queryByTestId(RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID),
-    ).toBeNull();
   });
 
   test.each([

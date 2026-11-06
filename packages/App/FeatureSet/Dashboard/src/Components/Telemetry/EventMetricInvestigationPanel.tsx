@@ -152,7 +152,10 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
 
   // What the monitor evaluated, shaded on every chart it falls on.
   const regions: Array<ChartReferenceRegionProps> = useMemo(() => {
-    if (!Number.isFinite(evaluationStartMs) || !Number.isFinite(evaluationEndMs)) {
+    if (
+      !Number.isFinite(evaluationStartMs) ||
+      !Number.isFinite(evaluationEndMs)
+    ) {
       return [];
     }
 
@@ -168,6 +171,14 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
       },
     ];
   }, [evaluationStartMs, evaluationEndMs, props.subject, translator]);
+
+  /*
+   * A snapshot that kept no query has nothing to investigate: the card is
+   * left out, as it always was.
+   */
+  if (queryConfigs.length === 0) {
+    return <></>;
+  }
 
   const isAlert: boolean = words.telemetryNoun === "alert";
 

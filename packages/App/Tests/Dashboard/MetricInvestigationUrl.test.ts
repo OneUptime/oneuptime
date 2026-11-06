@@ -236,9 +236,9 @@ describe("readState", () => {
       expect(
         MetricInvestigationTime.isSameSelection(readBack.selection, selection),
       ).toBe(true);
-      expect(MetricInvestigationQueryUtil.isSame(readBack.queries, QUERIES)).toBe(
-        true,
-      );
+      expect(
+        MetricInvestigationQueryUtil.isSame(readBack.queries, QUERIES),
+      ).toBe(true);
     },
   );
 

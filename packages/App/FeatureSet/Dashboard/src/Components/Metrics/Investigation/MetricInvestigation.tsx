@@ -164,11 +164,10 @@ const MetricInvestigation: FunctionComponent<ComponentProps> = (
     </div>
   );
 
-  const description: string | undefined =
-    investigation.isQueriesChanged
-      ? props.changedDescription ||
-        translator.translateText("The metrics you picked.")
-      : props.description;
+  const description: string | undefined = investigation.isQueriesChanged
+    ? props.changedDescription ||
+      translator.translateText("The metrics you picked.")
+    : props.description;
 
   return (
     <TimeRangeZoomProvider zoom={investigation.zoom}>

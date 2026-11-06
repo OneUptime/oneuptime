@@ -19,11 +19,11 @@ import MetricInvestigationQueryUtil, {
 
 function query(input: {
   metricName: string;
-  variable?: string;
-  attributes?: Record<string, unknown>;
-  aggregation?: MetricsAggregationType;
-  groupBy?: Array<string>;
-  id?: string;
+  variable?: string | undefined;
+  attributes?: Record<string, unknown> | undefined;
+  aggregation?: MetricsAggregationType | undefined;
+  groupBy?: Array<string> | undefined;
+  id?: string | undefined;
 }): MetricQueryConfigData {
   return {
     ...(input.id ? { id: input.id } : {}),
@@ -144,10 +144,7 @@ describe("isSame", () => {
   });
 
   test.each([
-    [
-      "another metric",
-      { metricName: "pod_cpu_saturation" },
-    ],
+    ["another metric", { metricName: "pod_cpu_saturation" }],
     [
       "another filter value",
       {
@@ -377,7 +374,7 @@ describe("the URL", () => {
     ["not a list", '{"metricName":"a"}'],
     ["an empty list", "[]"],
     ["only queries with no metric", '[{"metricName":""}]'],
-    ["garbage entries", "[1, null, \"x\", []]"],
+    ["garbage entries", '[1, null, "x", []]'],
   ])("%s reads as no queries", (_name: string, raw: string | null) => {
     expect(
       MetricInvestigationQueryUtil.fromUrlValue({ queries: raw }),
@@ -407,7 +404,7 @@ describe("the URL", () => {
       " ",
       "-",
       "%",
-      "\"",
+      '"',
       "/",
       "&",
       "=",

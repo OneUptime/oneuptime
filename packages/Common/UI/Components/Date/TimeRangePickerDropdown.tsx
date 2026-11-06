@@ -275,7 +275,9 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
    * always was.
    */
   const rangeLabel: string = getTimeRangeButtonLabel(props.value);
-  const buttonLabel: string = selectedMoment ? selectedMoment.label : rangeLabel;
+  const buttonLabel: string = selectedMoment
+    ? selectedMoment.label
+    : rangeLabel;
   const size: TimeRangePickerSize = props.size || TimeRangePickerSize.Compact;
 
   const activeOptionClassName: string =

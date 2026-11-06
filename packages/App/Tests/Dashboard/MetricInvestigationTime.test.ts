@@ -74,9 +74,9 @@ function custom(
 
 describe("isUsableWindow", () => {
   test("a window with its start before its end is usable", () => {
-    expect(
-      MetricInvestigationTime.isUsableWindow(AROUND_START.window),
-    ).toBe(true);
+    expect(MetricInvestigationTime.isUsableWindow(AROUND_START.window)).toBe(
+      true,
+    );
   });
 
   test.each([
@@ -98,9 +98,12 @@ describe("isUsableWindow", () => {
       "a window with blank bounds",
       new InBetween<Date>("" as unknown as Date, "" as unknown as Date),
     ],
-  ])("%s is not", (_name: string, value: InBetween<Date> | null | undefined) => {
-    expect(MetricInvestigationTime.isUsableWindow(value)).toBe(false);
-  });
+  ])(
+    "%s is not",
+    (_name: string, value: InBetween<Date> | null | undefined) => {
+      expect(MetricInvestigationTime.isUsableWindow(value)).toBe(false);
+    },
+  );
 
   test("bounds stored as ISO strings or epoch numbers are read as instants", () => {
     expect(
@@ -193,12 +196,12 @@ describe("isSameWindow", () => {
 
   test("two missing windows are the same, one missing window is not", () => {
     expect(MetricInvestigationTime.isSameWindow(null, undefined)).toBe(true);
-    expect(MetricInvestigationTime.isSameWindow(AROUND_START.window, null)).toBe(
-      false,
-    );
-    expect(MetricInvestigationTime.isSameWindow(null, AROUND_START.window)).toBe(
-      false,
-    );
+    expect(
+      MetricInvestigationTime.isSameWindow(AROUND_START.window, null),
+    ).toBe(false);
+    expect(
+      MetricInvestigationTime.isSameWindow(null, AROUND_START.window),
+    ).toBe(false);
   });
 
   test("windows with unreadable bounds are never the same", () => {
@@ -606,9 +609,9 @@ describe("getZoomSelection", () => {
 
 describe("the URL", () => {
   test("a preset is written by its id, a relative range by its name", () => {
-    expect(MetricInvestigationTime.toUrlValue(preset("around-start"))).toEqual(
-      { time: "around-start" },
-    );
+    expect(MetricInvestigationTime.toUrlValue(preset("around-start"))).toEqual({
+      time: "around-start",
+    });
     expect(
       MetricInvestigationTime.toUrlValue(relative(TimeRange.PAST_ONE_WEEK)),
     ).toEqual({ time: "Past 1 Week" });
@@ -680,9 +683,18 @@ describe("the URL", () => {
     ["a preset this page does not offer", { time: "start-to-end" }],
     ["a preset whose window is broken", { time: "broken" }],
     ["something that is neither", { time: "yesterday" }],
-    ["a custom window without its start", { time: "custom", end: "2026-11-05T02:00:00.000Z" }],
-    ["a custom window without its end", { time: "custom", start: "2026-11-05T02:00:00.000Z" }],
-    ["a custom window with an unreadable start", { time: "custom", start: "soon", end: "2026-11-05T02:00:00.000Z" }],
+    [
+      "a custom window without its start",
+      { time: "custom", end: "2026-11-05T02:00:00.000Z" },
+    ],
+    [
+      "a custom window without its end",
+      { time: "custom", start: "2026-11-05T02:00:00.000Z" },
+    ],
+    [
+      "a custom window with an unreadable start",
+      { time: "custom", start: "soon", end: "2026-11-05T02:00:00.000Z" },
+    ],
     [
       "a custom window that ends before it starts",
       {

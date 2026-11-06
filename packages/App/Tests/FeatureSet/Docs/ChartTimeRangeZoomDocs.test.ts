@@ -1165,11 +1165,24 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
      * episode pages and is exercised by Common's
      * EventOverviewTelemetrySnapshotZoom, TelemetrySnapshotPanelTimeRangeZoom,
      * SnapshotExplorerPrimaryZoom and EventOverviewSnapshotExplorerZoom
-     * suites (a metric primary, and a log, trace or exception primary).
+     * suites (a log, trace or exception primary), and a metric primary's
+     * investigation (issue #5954) by EventMetricInvestigationPanel and
+     * MetricInvestigation.
      */
     expect(section).toContain(
-      "The telemetry snapshot on an incident, alert or episode page has a window of its own too. A drag on its chart (the metric chart, or the log, trace or exception volume chart when that is what the snapshot shows) zooms the whole snapshot, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out. **Reset zoom** beside the snapshot's badge, or a double-click on that chart, puts the snapshot window back.",
+      "The telemetry snapshot on an incident, alert or episode page has a window of its own too. A drag on its chart (the log, trace or exception volume chart when that is what the snapshot shows) zooms the whole snapshot, so its Metrics, Logs, Traces and Exceptions tabs all show the slice you dragged out. **Reset zoom** beside the snapshot's badge, or a double-click on that chart, puts the snapshot window back. When a metrics monitor opened the incident, alert or episode, its card investigates the metrics over a time range you pick instead: a drag on a metric chart zooms that time range, every tab follows it, and Reset zoom beside the time picker, or a double-click on the chart, goes back to the range you picked.",
     );
+
+    // What the page says of a metric snapshot, against the code that does it.
+    const investigation: string = readCode(
+      `${DASHBOARD_SRC}/Components/Metrics/Investigation/MetricInvestigationTimePicker.tsx`,
+    );
+    expect(investigation).toContain("<ResetTimeRangeZoomButton />");
+    expect(
+      readCode(
+        `${DASHBOARD_SRC}/Components/Telemetry/EventMetricInvestigationPanel.tsx`,
+      ),
+    ).toContain("snapshotWindow={investigation.window}");
   });
 
   it("the charts listed as not zooming never take a zoom", () => {
