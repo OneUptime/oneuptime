@@ -15,6 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import type { Mock, SpyInstance } from "jest-mock";
 import React from "react";
 import SizedColumnsStyle, {
   SIZED_COLUMNS_STYLE_ATTRIBUTE,
@@ -95,7 +96,7 @@ const styleText: () => string = (): string => {
 describe("SizedColumnsStyle tells its table when its rules change", () => {
   test("not as they are first written: a table drawn with widths kept is measured as it is drawn", () => {
     const store: ColumnWidthsStore = new ColumnWidthsStore({ name: 300 });
-    const onRulesChange: jest.Mock<() => void> = jest.fn<() => void>();
+    const onRulesChange: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <SizedColumnsStyle
@@ -115,7 +116,7 @@ describe("SizedColumnsStyle tells its table when its rules change", () => {
   test("once a column is sized for the first time, with its rule already on the page", () => {
     const store: ColumnWidthsStore = new ColumnWidthsStore();
     const textsWhenTold: Array<string> = [];
-    const onRulesChange: jest.Mock<() => void> = jest.fn<() => void>(() => {
+    const onRulesChange: Mock<() => void> = jest.fn<() => void>(() => {
       textsWhenTold.push(styleText());
     });
 
@@ -142,7 +143,7 @@ describe("SizedColumnsStyle tells its table when its rules change", () => {
 
   test("not when a sized column's width changes: its rule is the same, only its header cell's width is not", () => {
     const store: ColumnWidthsStore = new ColumnWidthsStore({ status: 180 });
-    const onRulesChange: jest.Mock<() => void> = jest.fn<() => void>();
+    const onRulesChange: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <SizedColumnsStyle
@@ -284,7 +285,7 @@ const boxReadsDuring: (work: () => void) => number = (
 ): number => {
   let reads: number = 0;
   const original: () => DOMRect = Element.prototype.getBoundingClientRect;
-  const spy: jest.SpiedFunction<() => DOMRect> = jest
+  const spy: SpyInstance<() => DOMRect> = jest
     .spyOn(Element.prototype, "getBoundingClientRect")
     .mockImplementation(function (this: Element): DOMRect {
       if (this.getAttribute("data-testid") === "table-scroll") {
