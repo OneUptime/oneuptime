@@ -285,17 +285,23 @@ export default class HttpMailApi {
         bodyText: await response.text(),
       };
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
+      /*
+       * Our own timer aborted it. Read from the signal, not the error: fetch
+       * rejects with a DOMException, which is not an Error of this realm
+       * everywhere (a test's VM context is another), so `instanceof Error`
+       * misses it.
+       */
+      if (
+        controller.signal.aborted ||
+        (error as { name?: unknown } | null)?.name === "AbortError"
+      ) {
         throw new MailApiSendException(
           `${data.providerName} did not answer within ${Math.round(data.timeoutMs / 1000)} seconds. Check that this server can reach ${host} over HTTPS (port 443).`,
           { isRetryable: true },
         );
       }
 
-      const reason: string =
-        error instanceof Error
-          ? HttpMailApi.describeNetworkError(error)
-          : String(error);
+      const reason: string = HttpMailApi.describeNetworkError(error);
 
       throw new MailApiSendException(
         `${data.providerName} could not be reached at ${host}: ${reason}. Check that this server can reach ${host} over HTTPS (port 443).`,
@@ -420,10 +426,15 @@ export default class HttpMailApi {
 
   /*
    * Node's fetch says only "fetch failed"; the reason (ENOTFOUND,
-   * ECONNREFUSED, a certificate it would not trust) is on its cause.
+   * ECONNREFUSED, a certificate it would not trust) is on its cause. Read
+   * by shape: the error is not an Error of this realm everywhere.
    */
-  private static describeNetworkError(error: Error): string {
-    const cause: unknown = (error as Error & { cause?: unknown }).cause;
+  private static describeNetworkError(error: unknown): string {
+    if (!error || typeof error !== "object") {
+      return String(error);
+    }
+
+    const cause: unknown = (error as { cause?: unknown }).cause;
 
     if (cause && typeof cause === "object") {
       const code: unknown = (cause as { code?: unknown }).code;
@@ -440,7 +451,11 @@ export default class HttpMailApi {
       }
     }
 
-    return error.message || "the request failed";
+    const message: unknown = (error as { message?: unknown }).message;
+
+    return typeof message === "string" && message
+      ? message
+      : "the request failed";
   }
 
   private static async sleep(ms: number): Promise<void> {
