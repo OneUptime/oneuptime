@@ -511,20 +511,24 @@ describe("on a real 2026.2, with nothing signed", () => {
   }
 
   function logRows(scene: string): Array<OpenStackTraceLogRow> {
-    return recording.journal(scene).map((line): OpenStackTraceLogRow => {
-      const stamp: { attributes: Record<string, string>; body: string } =
-        stampOpenStackLogRecord({
-          attributes: { "journald.unit": line.unit },
-          body: line.message,
-          severityNumber: 9,
-        });
+    type JournalLine = ReturnType<typeof recording.journal>[number];
 
-      return {
-        time: new Date(line.time * 1000),
-        body: stamp.body,
-        attributes: stamp.attributes,
-      };
-    });
+    return recording
+      .journal(scene)
+      .map((line: JournalLine): OpenStackTraceLogRow => {
+        const stamp: { attributes: Record<string, string>; body: string } =
+          stampOpenStackLogRecord({
+            attributes: { "journald.unit": line.unit },
+            body: line.message,
+            severityNumber: 9,
+          });
+
+        return {
+          time: new Date(line.time * 1000),
+          body: stamp.body,
+          attributes: stamp.attributes,
+        };
+      });
   }
 
   describe("as OpenStack ships it", () => {
