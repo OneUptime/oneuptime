@@ -17,6 +17,7 @@ on:
   push:
     branches:
       - master
+      - main
     paths:
       - "**/package.json"
       - "**/package-lock.json"

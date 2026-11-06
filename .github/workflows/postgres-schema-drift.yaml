@@ -13,6 +13,7 @@ on:
   push:
     branches:
       - master
+      - main
 
 jobs:
   # Migrates an empty database with every migration registered in

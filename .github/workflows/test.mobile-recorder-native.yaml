@@ -16,6 +16,7 @@ on:
   push:
     branches:
       - master
+      - main
     paths:
       - "packages/App/FeatureSet/MobileRecorder/**"
       - "packages/MobileApp/app.config.js"

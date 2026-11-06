@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - master
+      - main
 
 
 # Every job below runs at least one `npm install`. `cache: npm` keyed on every
