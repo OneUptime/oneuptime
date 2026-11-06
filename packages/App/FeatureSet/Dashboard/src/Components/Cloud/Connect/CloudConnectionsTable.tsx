@@ -13,6 +13,8 @@ import {
   readCloudConnectionReadSummary,
 } from "Common/Types/CloudConnection/CloudConnectionTest";
 import { getAwsCloudStreamDeleteCommand } from "Common/Types/CloudConnection/CloudStreamTemplate";
+import { getAwsOrganizationManagementAccountId } from "Common/Types/CloudConnection/CloudOrganizationAgents";
+import { getAwsCloudStreamOrganizationDeleteCommand } from "Common/Types/CloudConnection/CloudStreamOrganization";
 import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -396,6 +398,12 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
     let description: string;
     let stays: string | undefined;
     let command: string;
+    /*
+     * A connection that reads an AWS Organization may stream every account
+     * of it: its command, for the management account, deletes that
+     * account's stacks and, when there is one, the StackSet's.
+     */
+    let isOrganization: boolean = false;
 
     if (item.provider === CloudProvider.Azure) {
       description = translator.translateTemplate(
@@ -430,23 +438,34 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
         lastPullResult: item.lastPullResult,
       });
     } else {
+      // Where its streams delivered from, then where the read found resources.
+      const regions: Array<string> = getCloudStreamStackRegions({
+        streamSummary: item.streamSummary,
+        lastPullResult: item.lastPullResult,
+      });
+      const managementAccountId: string | null =
+        getAwsOrganizationManagementAccountId(item.config);
+
+      isOrganization = Boolean(managementAccountId);
       description = translator.translateTemplate(
         "Every stream key of {{name}} stops working at once, and the connection reads all its metrics on its schedule again. What was delivered stays.",
         { name },
       );
-      stays = translator.translateText(
-        translationKey(
-          "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
-        ),
-      );
-      command = getAwsCloudStreamDeleteCommand({
-        connectionId,
-        // Where its streams delivered from, then where the read found resources.
-        regions: getCloudStreamStackRegions({
-          streamSummary: item.streamSummary,
-          lastPullResult: item.lastPullResult,
-        }),
-      });
+      // One paragraph that ends at the command: for an organization, where to run it.
+      stays = managementAccountId
+        ? translator.translateTemplate(
+            "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, the member accounts' too, run this in AWS CloudShell in the management account {{account}}:",
+            { account: managementAccountId },
+            { setsValuesApart: true },
+          )
+        : translator.translateText(
+            translationKey(
+              "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
+            ),
+          );
+      command = managementAccountId
+        ? getAwsCloudStreamOrganizationDeleteCommand({ connectionId, regions })
+        : getAwsCloudStreamDeleteCommand({ connectionId, regions });
     }
 
     return {
@@ -459,7 +478,16 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
           className="space-y-2"
           data-testid="cloud-connection-stop-streaming"
         >
-          <p className="text-sm text-gray-700">{stays}</p>
+          <p
+            className="text-sm text-gray-700"
+            data-testid={
+              isOrganization
+                ? "cloud-connection-stop-streaming-organization"
+                : undefined
+            }
+          >
+            {stays}
+          </p>
           {/*
            * As tall as the streaming dialog's command at most: Azure's runs
            * to twenty lines, and the question and its buttons stay in view

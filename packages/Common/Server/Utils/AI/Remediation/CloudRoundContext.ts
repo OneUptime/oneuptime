@@ -2,7 +2,10 @@ import CloudAccount from "../../../../Models/DatabaseModels/CloudAccount";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import Dictionary from "../../../../Types/Dictionary";
 import ObjectID from "../../../../Types/ObjectID";
-import { getManagedCloudPlatformLabel } from "../../../../Types/Cloud/CloudPlatform";
+import {
+  ManagedCloudPlatform,
+  getManagedCloudPlatformLabel,
+} from "../../../../Types/Cloud/CloudPlatform";
 import { isCloudResourceKindResource } from "../../../../Types/Cloud/CloudResourceKind";
 import { getCloudResourceTypeLabel } from "../../../../Types/Cloud/CloudResourceCatalog";
 import AlertService from "../../../Services/AlertService";
@@ -44,6 +47,36 @@ import { escapeUntrustedContext } from "./RemediationPlanRunner";
  */
 
 const MAX_LISTED: number = 10;
+
+/*
+ * What a change names on each App Platforms platform: the one resource of
+ * the cloud catalog an environment there runs as. A platform it does not
+ * list is named by every one of them.
+ */
+export const ENVIRONMENT_CHANGE_TARGETS: Readonly<
+  Record<ManagedCloudPlatform, string>
+> = {
+  [ManagedCloudPlatform.AwsEcs]: "its ECS service",
+  [ManagedCloudPlatform.AwsElasticBeanstalk]:
+    "its Elastic Beanstalk environment",
+  [ManagedCloudPlatform.AwsAppRunner]: "its App Runner service",
+  [ManagedCloudPlatform.GcpCloudRun]: "its Cloud Run service",
+  [ManagedCloudPlatform.GcpAppEngine]: "its App Engine service",
+  [ManagedCloudPlatform.AzureContainerApps]: "its Container App",
+  [ManagedCloudPlatform.AzureContainerInstances]: "its container group",
+  [ManagedCloudPlatform.AzureAppService]: "its App Service",
+};
+
+const ANY_ENVIRONMENT_CHANGE_TARGET: string =
+  "its ECS service, App Runner service, Elastic Beanstalk environment, Cloud Run service, App Engine service, Container App, container group or App Service";
+
+// What a change names in an environment of this platform.
+export function getEnvironmentChangeTarget(platform: unknown): string {
+  return typeof platform === "string" &&
+    Object.prototype.hasOwnProperty.call(ENVIRONMENT_CHANGE_TARGETS, platform)
+    ? ENVIRONMENT_CHANGE_TARGETS[platform as ManagedCloudPlatform]
+    : ANY_ENVIRONMENT_CHANGE_TARGET;
+}
 const MAX_NAME_CHARS: number = 160;
 const MAX_ID_CHARS: number = 600;
 
@@ -182,7 +215,9 @@ export default class CloudRoundContext {
       return escapeUntrustedContext(
         `- Cloud environment ${JSON.stringify(name)} (App Platforms: ${platform}${
           region ? ` in ${region}` : ""
-        }): where the signal's services run. It is not one resource, so a change never names it: find the service running there - its ECS service, Cloud Run service, Container App or App Service - with query_cloud_resource or query_telemetry_resources, and change that service by its id.`,
+        }): where the signal's services run. It is not one resource, so a change never names it: find the service running there - ${getEnvironmentChangeTarget(
+          row.cloudPlatform,
+        )} - with query_cloud_resource or query_telemetry_resources, and change that service by its id.`,
       );
     }
 

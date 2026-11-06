@@ -229,11 +229,24 @@ const SAMPLES: Array<{
   {
     type: "AWS::AppRunner::Service",
     listed: listed(
-      "arn:aws:apprunner:eu-west-1:123456789012:service/frontend/abc",
+      "arn:aws:apprunner:eu-west-1:123456789012:service/frontend/8fe1e10304f84fd2b0df550fe98a71fa",
       { ServiceName: "frontend" },
     ),
     namespace: "AWS/AppRunner",
-    dimensions: { ServiceName: "frontend" },
+    // The id its ARN carries, as the service's metrics report it too.
+    dimensions: {
+      ServiceName: "frontend",
+      ServiceID: "8fe1e10304f84fd2b0df550fe98a71fa",
+    },
+  },
+  {
+    type: "AWS::ElasticBeanstalk::Environment",
+    listed: listed(
+      "arn:aws:elasticbeanstalk:eu-west-1:123456789012:environment/shop/shop-prod",
+      { EnvironmentName: "shop-prod", ApplicationName: "shop" },
+    ),
+    namespace: "AWS/ElasticBeanstalk",
+    dimensions: { EnvironmentName: "shop-prod", ApplicationName: "shop" },
   },
 ];
 

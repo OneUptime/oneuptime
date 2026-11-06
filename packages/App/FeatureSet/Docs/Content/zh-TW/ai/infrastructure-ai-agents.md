@@ -167,6 +167,8 @@ AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案旁邊沒有可供代理�
 
 該指令包含一個僅為此帳戶的代理程式建立的金鑰，位於 `ONEUPTIME_AI_AGENT_KEY` 中，而不是專案的遙測擷取金鑰：它只連線該代理程式，不連線其他任何東西，也不傳送遙測資料。在代理程式用它連線之前，它在一天內有效，之後請再次開啟 **讓 AI 修正問題** 取得新金鑰；代理程式一旦用它連線，之前的金鑰即失效。只有可以重設代理程式並編輯該帳戶的人才能取得金鑰。在這些金鑰之前設定的代理程式會繼續使用擷取金鑰連線，直到再次執行其設定指令；此後，擷取金鑰將無法再連線它。帳戶的 **動態** 會顯示代理程式何時使用新金鑰連線以及由誰建立，並記錄被 OneUptime 拒絕的代理程式及其自稱的執行位置。在這些金鑰之前設定的代理程式改用自己的金鑰時，該項目還會列出它之前用來連線的擷取金鑰：該金鑰仍會為整個專案傳送遙測資料，如果它是專為此代理程式建立的，請將其刪除。
 
+**AWS Organization 的所有帳戶。** 對於讀取 AWS Organization 的連線所找到的 AWS 帳戶，**讓 AI 修正問題** 也會詢問 **哪些帳戶？** 選擇 **組織的所有帳戶** 會產生一條在組織管理帳戶的 AWS CloudShell 中執行的指令。CloudFormation StackSet `oneuptime-ai-agent` 會在每個成員帳戶中設定同樣的代理程式，角色相同，因此最小權限也相同；由於成員帳戶可能沒有預設 VPC，代理程式執行於一個不允許任何流量進入的專屬小型網路中。StackSets 從不部署到管理帳戶，因此管理帳戶會取得自己的堆疊 `oneuptime-ai-agent`。每個代理程式仍使用自己帳戶的金鑰連線：對話方塊會為你可以編輯的每個帳戶建立金鑰，並列出被排除的帳戶；每個成員帳戶的堆疊都將自己的金鑰作為參數保存，在金鑰所屬帳戶以外的帳戶中執行的代理程式會被拒絕。所有代理程式都執行於 US East (N. Virginia)，即 `us-east-1`（在 AWS GovCloud 和中國則為 CloudShell 本身所在區域），因此從任何區域再次執行該指令都會更新同一個 StackSet。對話方塊會列出每個帳戶及其代理程式的狀態：**已連線**、**離線** 或 **等待中**，`aws cloudformation list-stack-instances` 可顯示每個成員帳戶的堆疊。之後加入組織的帳戶還沒有金鑰：在 OneUptime 讀取到它之後再次執行該指令即可。要移除這些代理程式，請先用 `aws cloudformation delete-stack-instances --no-retain-stacks` 刪除 StackSet 的堆疊，再刪除 StackSet 和管理帳戶的堆疊。
+
 要變更任何內容，請再次執行該指令：再次開啟 **讓 AI 修正問題**，或在帳戶的 **AI 代理程式** 頁面上選擇 **變更**，然後執行它寫出的指令。角色一律只具有已開啟的變更。雲端帳戶的 **人工智慧** 區段有兩個頁面：**日誌** 和 **AI 代理程式**；代理程式的費用請見 [連線雲端帳戶](/docs/telemetry/cloud-accounts#讓-ai-修正問題)。在 **活動** 下，帳戶的 **動態** 會記錄代理程式的連線或重設，以及對 OneUptime AI 在其中可以做什麼的每一次變更，並記下變更者。
 
 ### 連線到 OneUptime
@@ -436,16 +438,18 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 
 | 變更 | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | 安全：ECS 服務 | 風險較高：App Service 或 Function App、Container App | — |
-| `start-instance` | 安全：EC2 執行個體、RDS 執行個體 | 安全：虛擬機器 | 安全：Compute Engine 虛擬機器 |
-| `scale-out` | 安全：ECS 服務、Auto Scaling 群組 | 安全：App Service 方案、虛擬機器擴展集 | 安全：Cloud Run 服務、代管執行個體群組 |
-| `scale-in` | 風險較高：ECS 服務、Auto Scaling 群組 | 風險較高：App Service 方案、虛擬機器擴展集 | 風險較高：Cloud Run 服務、代管執行個體群組 |
+| `restart-service` | 安全：ECS 服務；風險較高：App Runner 服務、Elastic Beanstalk 環境 | 風險較高：App Service 或 Function App、Container App、容器群組 | — |
+| `start-instance` | 安全：EC2 執行個體、RDS 執行個體 | 安全：虛擬機器、容器群組 | 安全：Compute Engine 虛擬機器 |
+| `scale-out` | 安全：ECS 服務、Auto Scaling 群組 | 安全：App Service 方案、虛擬機器擴展集 | 安全：Cloud Run 服務、代管執行個體群組、App Engine 服務 |
+| `scale-in` | 風險較高：ECS 服務、Auto Scaling 群組 | 風險較高：App Service 方案、虛擬機器擴展集 | 風險較高：Cloud Run 服務、代管執行個體群組、App Engine 服務 |
 | `reboot-instance` | 風險較高：EC2 執行個體、RDS 執行個體 | 風險較高：虛擬機器、PostgreSQL 彈性伺服器、MySQL 彈性伺服器 | 風險較高：Compute Engine 虛擬機器、Cloud SQL 執行個體 |
-| `roll-back-service` | 風險較高：ECS 服務、Lambda 別名 | 風險較高：App Service 或 Function App、Container App | 風險較高：Cloud Run 服務 |
+| `roll-back-service` | 風險較高：ECS 服務、Lambda 別名 | 風險較高：App Service 或 Function App、Container App | 風險較高：Cloud Run 服務、App Engine 服務 |
 | `set-concurrency` | 風險較高：Lambda 函式 | — | 風險較高：Cloud Run 服務 |
 | `fail-over-database` | 始終需要人：Aurora 叢集、RDS 執行個體 | 始終需要人：SQL 容錯移轉群組 | 始終需要人：Cloud SQL 執行個體 |
-| `stop-instance` | 始終需要人：EC2 執行個體 | 始終需要人：虛擬機器 | 始終需要人：Compute Engine 虛擬機器 |
+| `stop-instance` | 始終需要人：EC2 執行個體 | 始終需要人：虛擬機器、容器群組 | 始終需要人：Compute Engine 虛擬機器 |
 | `redrive-queue` | 始終需要人：SQS 佇列 | — | — |
+
+**持久的修正。** 對於程式碼宣告的變更，例如擴縮、並行或復原，步驟下方的 **向程式碼開啟提取要求** 可以讓修正持久生效。OneUptime 會依據資源的標籤和存放庫中的檔案，在連線到 Code 的存放庫中尋找程式碼，在開啟任何內容之前先詢問使用哪個存放庫，然後在那裡啟動一個工作，在程式碼中做同樣的變更，可以與即時變更並行，也可以取代它。之後，步驟會顯示提取要求的狀態並附上連結；事件或警示的動態，以及它的 Slack 和 Microsoft Teams 頻道，會說明是誰提出的要求，並在提取要求開啟後附上連結。
 
 `scale-out` 不會超出群組的最大值，在平台未設定最大值時最多將數量加倍；`scale-in` 從不會低於最小值，也不會降到零。`roll-back-service` 會回到先前執行的版本，或回到 `--to` 指定的版本；在 App Service 上，它會把部署位置（`--slot`）交換回來。完整寫出來，一項變更是這樣的：`cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`。
 
@@ -513,7 +517,7 @@ OneUptime 會透過帳戶的唯讀連線，自行即時讀取 AWS 帳戶、Azure
 - **主機：** 每個 OneUptime 單元（`oneuptime-*`，包括主機 AI 代理程式自己的單元）、OpenTelemetry 收集器（`otelcol-contrib.service`、`otelcol.service`）、代理程式執行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理程式自己的處理程序和其上層處理程序。
 - **Proxmox：** 代理程式無法判斷自己在哪個客體中執行。如果它在同一叢集的虛擬機器或容器中執行，請把該 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；對 VMware 上代理程式所在的虛擬機器也這樣做。
 - **OpenStack 雲端：** 代理程式無法判斷自己在哪個執行個體中執行。如果它在同一個雲端上執行，請把該執行個體以 `instance:<id>` 的形式加入 `ONEUPTIME_AI_PROTECTED_TARGETS`。在雲端上，這份清單由您掌握，它凌駕於所有其他設定之上，包括人的核准。
-- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組，以及其中的寫入識別 `oneuptime-ai-agent-write`；在 Google Cloud 上是 `oneuptime-ai-agent` 虛擬機器或 Cloud Run 服務及其服務帳戶 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
+- **雲端帳戶：** 其設定指令建立的一切：在 AWS 上是 `oneuptime-ai-agent` 堆疊（在組織的成員帳戶中，是組織的 StackSet 建立的 `StackSet-oneuptime-ai-agent-*` 堆疊）、其 ECS 叢集和服務，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 資源群組，以及其中的寫入識別 `oneuptime-ai-agent-write`；在 Google Cloud 上是 `oneuptime-ai-agent` 虛擬機器或 Cloud Run 服務及其服務帳戶 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
 
 ## 憑證與最小權限
 
@@ -612,7 +616,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 ## 不涵蓋的內容
 
-Kubernetes 叢集使用 Kubernetes AI 代理程式。一個雲端 AI 代理程式服務一個 AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案，而且沒有針對整個 AWS Organization 的代理程式：讀取組織或租用戶的連線，需要在 AI 應修正的每個帳戶、訂用帳戶或專案中各有一個代理程式。對以程式碼宣告之資源的修正一律只是一項提議：OneUptime AI 不會針對該程式碼開啟提取要求。IoT 裝置群和網路裝置沒有 AI 代理程式：對它們執行操作需要裝置憑證，而 OneUptime AI 只透過您執行的 Runner 使用這些憑證。
+Kubernetes 叢集使用 Kubernetes AI 代理程式。一個雲端 AI 代理程式服務一個 AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案。AWS Organization 只需一個指令即可在其每個帳戶中各設定一個代理程式（請參閱[在雲端帳戶中](#在雲端帳戶中)），但讀取 Azure 租用戶或 Google Cloud 組織的連線，需要在 AI 應修正的每個訂用帳戶或專案中各設定一個代理程式。針對宣告資源之程式碼的提取要求，只有在有人提出要求時才會開啟，且只在連線到 Code 的存放庫中、只針對程式碼宣告的變更：重新啟動不會留下任何下次 apply 需要復原的內容。IoT 裝置群和網路裝置沒有 AI 代理程式：對它們執行操作需要裝置憑證，而 OneUptime AI 只透過您執行的 Runner 使用這些憑證。
 
 ## 後續步驟
 
