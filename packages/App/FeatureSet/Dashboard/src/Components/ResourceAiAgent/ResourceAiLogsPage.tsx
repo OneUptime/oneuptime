@@ -34,10 +34,8 @@ import {
   getResourceInvestigationSummary,
   parseResourceAiLogs,
 } from "./ResourceAiLogs";
-import {
-  canReadResourceCommandJobs,
-  getResourceCommandJobsPermissionTitles,
-} from "./ResourceAiAccessPermissions";
+import { canReadResourceCommandJobs } from "./ResourceAiAccessPermissions";
+import { getCommandJobsNoAccessState } from "./CommandJobsNoAccess";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -56,6 +54,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import TableEmptyState from "Common/UI/Components/Table/TableEmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -712,25 +711,18 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
       ) : (
         /*
          * Roles that may open this page may not read RunnerJob rows, so
-         * the table could only fail. Explain instead; RunnerJob's ACL
-         * stays as it is.
+         * the table could only fail. The card says so as every list the
+         * reader may not read says it (CommandJobsNoAccess); RunnerJob's
+         * ACL stays as it is.
          */
         <Card
           title={descriptor.commandsCardTitle}
           description={getResourceCommandsCardDescription(descriptor)}
         >
-          <p
-            className="text-sm text-gray-600"
-            data-testid="resource-command-jobs-permission-note"
-          >
-            {translator.translateTemplate(
-              "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
-              {
-                permissions:
-                  getResourceCommandJobsPermissionTitles().join(", "),
-              },
-            )}
-          </p>
+          <TableEmptyState
+            {...getCommandJobsNoAccessState(translator)}
+            dataTestId="resource-command-jobs-permission-note"
+          />
         </Card>
       )}
     </Fragment>
