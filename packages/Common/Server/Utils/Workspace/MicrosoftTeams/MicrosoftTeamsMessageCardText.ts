@@ -238,6 +238,79 @@ export interface MessageCardFact {
   isFullWidthColon?: boolean;
 }
 
+/*
+ * A piece of a card's body, in the order its message wrote it: a paragraph
+ * of text, or a "**Label:** value" line read as a fact.
+ */
+export type MessageCardPart =
+  | { text: string }
+  | { fact: { name: string; value: string } };
+
+export interface MessageCardSection {
+  markdown: true;
+  text?: string;
+  facts?: Array<{ name: string; value: string }>;
+}
+
+/*
+ * A card's sections, in the order its message wrote its text and its facts.
+ *
+ * Teams draws a section's text above its facts. A card of one section, all
+ * of its text and all of its facts, put whatever came after the facts above
+ * them: a status page's "Incident - Checkout is down" card read its
+ * description first and its severity and resources under it, though the
+ * message names the severity first. So text that comes before facts shares
+ * their section, drawn in that order, and text after a fact starts a
+ * section of its own. Paragraphs side by side are one text, as they were.
+ */
+export const toMessageCardSections: (
+  parts: ReadonlyArray<MessageCardPart>,
+) => Array<MessageCardSection> = (
+  parts: ReadonlyArray<MessageCardPart>,
+): Array<MessageCardSection> => {
+  const sections: Array<MessageCardSection> = [];
+  let texts: Array<string> = [];
+  let facts: Array<{ name: string; value: string }> = [];
+
+  const close: () => void = (): void => {
+    if (texts.length === 0 && facts.length === 0) {
+      return;
+    }
+
+    const section: MessageCardSection = { markdown: true };
+
+    if (texts.length > 0) {
+      section.text = texts.join("\n\n");
+    }
+
+    if (facts.length > 0) {
+      section.facts = facts;
+    }
+
+    sections.push(section);
+    texts = [];
+    facts = [];
+  };
+
+  for (const part of parts) {
+    if ("fact" in part) {
+      facts.push(part.fact);
+      continue;
+    }
+
+    // Text after a fact: below it, so in a section of its own.
+    if (facts.length > 0) {
+      close();
+    }
+
+    texts.push(part.text);
+  }
+
+  close();
+
+  return sections;
+};
+
 // The full-width colon Chinese writes after a label ("严重程度：").
 export const FULL_WIDTH_COLON: string = "\u{FF1A}";
 

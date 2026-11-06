@@ -73,6 +73,7 @@ import {
 } from "./OpenStackPartRoutes";
 import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * Availability zones and aggregates: hypervisors, what they can give, and how they are
@@ -201,7 +202,7 @@ function hypervisorsText(
       ),
     );
   }
-  return parts.join(", ");
+  return joinList(parts);
 }
 
 function toResource(

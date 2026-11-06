@@ -88,6 +88,7 @@ import {
   getCloudRegionNames,
   getResourceCountWords,
 } from "./CloudConnectionWords";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The project's cloud connections, a row each, in three columns: the
@@ -863,7 +864,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                           {cloud || ""}
                           {accounts.length > 0 ? (
                             <span data-testid="cloud-connection-accounts">
-                              {cloud ? " · " : ""}
+                              {cloud ? <InlineSeparator /> : null}
                               {accounts.join(", ")}
                             </span>
                           ) : (

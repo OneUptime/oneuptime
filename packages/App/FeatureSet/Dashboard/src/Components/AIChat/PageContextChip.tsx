@@ -4,6 +4,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { DashboardPageContext } from "./PageContext";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   context: DashboardPageContext;
@@ -68,7 +69,7 @@ const PageContextChip: FunctionComponent<ComponentProps> = (
         {chipLabel}
         {context.entityTitle ? (
           <>
-            {" · "}
+            <InlineSeparator />
             <bdi>{context.entityTitle}</bdi>
           </>
         ) : (

@@ -78,6 +78,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 export enum ModelColumnEditorMode {
   /** Conditions that select records: column, operator, value. */
@@ -783,7 +784,7 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
                   )}
               {emptyRequiredCount > 0 && (
                 <span className="text-amber-600">
-                  {" · "}
+                  <InlineSeparator />
                   {translator.translatePlural(
                     {
                       one: "{{count}} required field still empty",

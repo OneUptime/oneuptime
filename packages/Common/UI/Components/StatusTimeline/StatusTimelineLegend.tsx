@@ -5,7 +5,7 @@ import {
   StatusTimelineSummaryItem,
 } from "./StatusTimelineLayout";
 import { formatDurationInSeconds } from "../../Utils/UseLiveDuration";
-import { Translator } from "../../Utils/TranslateTemplate";
+import { getInlineSeparator, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -107,7 +107,8 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
                     : "",
                 ]
                   .filter(Boolean)
-                  .join(" · ")}
+                  // Set apart the reader's way: a bullet beside Persian digits.
+                  .join(getInlineSeparator(translator.language))}
               </span>
             </li>
           );

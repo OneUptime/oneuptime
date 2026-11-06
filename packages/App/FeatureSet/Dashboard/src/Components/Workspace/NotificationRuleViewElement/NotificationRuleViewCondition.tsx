@@ -28,6 +28,7 @@ import {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   notificationRuleCondition: NotificationRuleCondition | undefined;
@@ -324,11 +325,11 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     if (checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource) {
       valueElement = (
         <span className="font-medium text-gray-900">
-          {selectedIds
-            .map((value: string): string => {
+          {joinList(
+            selectedIds.map((value: string): string => {
               return translator.translateText(value) || value;
-            })
-            .join(", ")}
+            }),
+          )}
         </span>
       );
     }

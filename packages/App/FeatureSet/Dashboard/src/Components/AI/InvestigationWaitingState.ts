@@ -105,20 +105,22 @@ export function getWaitEndKind(
  * When the wait ends, as the reader reads a clock: the time alone today or
  * tomorrow - "10:42", or "10:42 AM" for someone whose clock is 12-hour - and
  * the day with it further off ("23 Oct, 10:42"), in the reader's time zone.
+ * The day and the time are joined as the reader's language joins them
+ * ("23. Okt., 10:42", "۲۳ اکتبر، ۱۰:۴۲"), never with English's comma alone.
  */
 export function formatWaitUntil(
   waitUntil: Date,
   now: Date = OneUptimeDate.getCurrentDate(),
 ): string {
-  const time: string = OneUptimeDate.getLocalTimeString(waitUntil, {
-    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
-  });
+  const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
 
   if (getWaitEndKind(waitUntil, now) === "later") {
-    return `${OneUptimeDate.getDateAsLocalDayMonthString(waitUntil)}, ${time}`;
+    return OneUptimeDate.getDateAsLocalDayMonthTimeString(waitUntil, {
+      use12HourFormat,
+    });
   }
 
-  return time;
+  return OneUptimeDate.getLocalTimeString(waitUntil, { use12HourFormat });
 }
 
 export interface InvestigationWaitingCopy {

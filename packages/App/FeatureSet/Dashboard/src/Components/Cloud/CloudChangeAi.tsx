@@ -21,6 +21,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A CHANGE ONEUPTIME AI MADE, ON A CLOUD CHANGES LIST (the account's
@@ -108,7 +109,7 @@ const AiMark: FunctionComponent<{
 const Separator: FunctionComponent = (): ReactElement => {
   return (
     <span className="text-gray-300" aria-hidden={true}>
-      ·
+      <InlineSeparator markOnly />
     </span>
   );
 };

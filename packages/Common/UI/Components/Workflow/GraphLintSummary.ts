@@ -31,6 +31,7 @@ import {
   WorkflowLintRule,
   WorkflowLintSeverity,
 } from "./GraphLint";
+import { joinList } from "../../Utils/ListSeparator";
 
 /** The part of a lint result a summary is built from. */
 export interface WorkflowLintCounts {
@@ -113,7 +114,8 @@ export const getWorkflowLintCountText: GetWorkflowLintCountTextFunction = (
     );
   }
 
-  return parts.join(", ");
+  // Joined as their words are written: "۱ خطا، ۲ هشدار" in Persian.
+  return joinList(parts);
 };
 
 export type GetWorkflowLintToneFunction = (

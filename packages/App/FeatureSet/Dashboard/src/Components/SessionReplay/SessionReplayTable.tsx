@@ -131,6 +131,7 @@ import SessionReplayIdentityNudge, {
   hasAnyVisitorId,
   shouldShowIdentityNudge,
 } from "./SessionReplayIdentityNudge";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 export {
   buildSessionReplayListFilters,
   EMPTY_ADVANCED_FILTERS,
@@ -1164,7 +1165,7 @@ function getSessionReplayCells(
           >
             {hasStart && (
               <span aria-hidden="true" className="text-gray-400">
-                ·
+                <InlineSeparator markOnly />
               </span>
             )}
             <span

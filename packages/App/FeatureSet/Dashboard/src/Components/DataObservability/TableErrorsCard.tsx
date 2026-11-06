@@ -19,6 +19,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   dataAssetId: ObjectID;
@@ -87,7 +88,7 @@ const TableErrorsCard: FunctionComponent<ComponentProps> = (
                     </p>
                     <p className="text-xs text-gray-500">
                       {exception.serviceName}
-                      {" · "}
+                      <InlineSeparator />
                       {translator.translatePlural(
                         {
                           one: "{{count}} time",
@@ -123,7 +124,7 @@ const TableErrorsCard: FunctionComponent<ComponentProps> = (
                     </p>
                     <p className="text-xs text-gray-500">
                       {log.serviceName}
-                      {" · "}
+                      <InlineSeparator />
                       {OneUptimeDate.fromNow(
                         OneUptimeDate.fromString(log.time),
                       )}

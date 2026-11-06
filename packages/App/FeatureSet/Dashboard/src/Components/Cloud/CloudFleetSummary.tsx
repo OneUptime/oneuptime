@@ -36,6 +36,7 @@ import CloudStatTileTitle, {
 } from "./CloudStatTileTitle";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The stat strip at the top of App Platforms' Overview: how many apps there
@@ -365,7 +366,7 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
                           (part: string, partIndex: number): ReactElement => {
                             return (
                               <Fragment key={part}>
-                                {partIndex > 0 ? " · " : ""}
+                                {partIndex > 0 ? <InlineSeparator /> : null}
                                 <span
                                   className="whitespace-nowrap"
                                   data-testid="cloud-fleet-summary-tile-sublabel-part"

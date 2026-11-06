@@ -38,6 +38,7 @@ import { llmConnectionDocsUrl, runLlmConnectionTest } from "./LlmConnectApi";
 import LlmConnectionLogo from "./LlmConnectionLogo";
 import LlmConnectionTestPanel from "./LlmConnectionTestPanel";
 import LlmTellYourPeopleNote from "./LlmTellYourPeopleNote";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * Connect a provider account or a company AI tool, or edit a connection.
@@ -206,11 +207,11 @@ export function llmConnectionTestDisabledReason(data: {
   }
 
   return data.translator.translateTemplate("Fill in {{fields}} to test.", {
-    fields: missing
-      .map((field: LlmConnectionField): string => {
+    fields: joinList(
+      missing.map((field: LlmConnectionField): string => {
         return data.translator.translateText(field.title) || field.title;
-      })
-      .join(", "),
+      }),
+    ),
   });
 }
 

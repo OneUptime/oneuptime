@@ -58,6 +58,7 @@ import {
 } from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
 import { NAME_BREAKS_FROM_LENGTH } from "Common/Utils/NameBreaks";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * What the Watchlists pages say about a list, worked out without React: the
@@ -358,11 +359,11 @@ export function describeWatchlistReaders(
     return translator.translateText(READ_BY_NO_RULE) || READ_BY_NO_RULE;
   }
 
-  const names: string = readers.shown
-    .map((reader: ShownWatchlistReader): string => {
+  const names: string = joinList(
+    readers.shown.map((reader: ShownWatchlistReader): string => {
       return describeWatchlistReader(translator, reader);
-    })
-    .join(", ");
+    }),
+  );
 
   if (readers.more === 0) {
     return names;

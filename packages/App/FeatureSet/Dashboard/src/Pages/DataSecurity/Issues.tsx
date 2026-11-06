@@ -59,6 +59,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 // The line under an issue's title: its check's group, and when it was found.
 const FIRST_DETECTED: string = translationKey("First detected {{time}}");
@@ -257,7 +258,9 @@ const DataSecurityIssuesPage: FunctionComponent<
                             item.checkGroup}
                         </span>
                         {item.firstDetectedAt ? (
-                          <span aria-hidden="true">·</span>
+                          <span aria-hidden="true">
+                            <InlineSeparator markOnly />
+                          </span>
                         ) : (
                           <></>
                         )}
