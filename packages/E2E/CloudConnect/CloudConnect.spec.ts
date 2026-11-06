@@ -4057,3 +4057,401 @@ test.describe("streaming an AWS account's metrics and logs", () => {
     await shoot(page, "stream-dialog-fa");
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * A cloud resource's Logs page with what an AWS connection's stream
+ * delivered from the resource's log group, as the Firehose ingest writes it
+ * (CloudConnect/StreamedLogs.js, which stamps the rows with the log group
+ * rules themselves): orders-db's PostgreSQL log of the last hour - each
+ * line's severity as its level says it, the chart and the facets of only
+ * its rows, a row's attributes - and nightly-export, a function that
+ * stopped three days ago, whose last runs a person finds by choosing a
+ * longer range. Its empty list says what is true of the account: how to
+ * start streaming, or, once it streams, that nothing came in the range.
+ * Every read is the resource's own, and modelled; the page fits at 1280,
+ * 1024 and 768 beside the side menu and on a phone, dark, in German and in
+ * Persian.
+ * ---------------------------------------------------------------------------
+ */
+
+const ORDERS_DB_ARN: string = "arn:aws:rds:eu-west-1:123456789012:db:orders-db";
+const NIGHTLY_EXPORT_ARN: string =
+  "arn:aws:lambda:us-east-1:123456789012:function:nightly-export";
+const STORED_RESOURCE_ID: string = "resource.cloud.resource_id";
+// What an empty list says before the account streams, and once it does.
+const NO_STREAMED_LOGS: string =
+  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.";
+const NO_LOGS_IN_RANGE: string =
+  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.";
+
+interface LogRead {
+  kind: string;
+  attributes: Record<string, string>;
+  facetKeys?: Array<string>;
+}
+
+interface LogsState {
+  logReads: Array<LogRead>;
+  unhandled: Array<Record<string, unknown>>;
+  realtime: Array<{ model: string; eventType?: string }>;
+}
+
+async function logsState(page: Page): Promise<LogsState> {
+  return (await fixture(page)) as unknown as LogsState;
+}
+
+async function openLogs(
+  page: Page,
+  resourceId: string,
+  query: string,
+): Promise<void> {
+  await openAccounts(page, `${RESOURCE_PATH}/${resourceId}/logs?${query}`);
+  await expect(page.getByTestId("logs-viewer-list")).toBeVisible();
+}
+
+// The list's rows, without a row's opened details.
+function logRows(page: Page): Locator {
+  return page.getByTestId("logs-table").locator("tbody tr[aria-selected]");
+}
+
+function facetValue(page: Page, value: string): Locator {
+  return page.locator(`[data-testid="facet-value-row"][data-value="${value}"]`);
+}
+
+// One attribute of an opened row: its key, then its value.
+function attributeRow(page: Page, key: string): Locator {
+  return page
+    .locator("li")
+    .filter({ has: page.locator(`span[title="${key}"]`) });
+}
+
+async function chooseRange(page: Page, label: string): Promise<void> {
+  await page.getByTestId("log-time-range-picker-button").click();
+  await page
+    .getByTestId("log-time-range-picker-dropdown")
+    .getByRole("button", { name: label, exact: true })
+    .click();
+}
+
+// Every read of the page names the resource's own id, and none is unmodelled.
+async function expectOnlyItsOwnReads(page: Page, arn: string): Promise<void> {
+  const state: LogsState = await logsState(page);
+
+  expect(state.unhandled).toEqual([]);
+
+  const scoped: Array<LogRead> = state.logReads.filter(
+    (read: LogRead): boolean => {
+      return read.kind !== "/telemetry/logs/get-attributes";
+    },
+  );
+
+  expect(
+    scoped.map((read: LogRead): string => {
+      return read.kind;
+    }),
+  ).toEqual(
+    expect.arrayContaining([
+      "list",
+      "/telemetry/logs/histogram",
+      "/telemetry/logs/facets",
+    ]),
+  );
+  for (const read of scoped) {
+    expect({ kind: read.kind, attributes: read.attributes }).toEqual({
+      kind: read.kind,
+      attributes: { [STORED_RESOURCE_ID]: arn },
+    });
+  }
+  // The live tail listens; the fixture never sends on it.
+  expect(state.realtime.length).toBeGreaterThan(0);
+}
+
+test.describe("a cloud resource's streamed Logs", () => {
+  test("a database's Logs: its log group's rows, each line's severity as its level says, and nothing else's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, ORDERS_DB, "state=connected&stream=receiving");
+
+    const rows: Locator = logRows(page);
+    await expect(rows).toHaveCount(20);
+    // Newest first: the checkpoint a couple of minutes ago.
+    await expect(rows.first()).toContainText("checkpoint starting: time");
+    await expect(rows.first()).toContainText(/information/i);
+
+    // The level RDS for PostgreSQL writes after its prefix, read as the row's severity.
+    for (const [line, severity] of [
+      ["deadlock detected", /error/i],
+      ['password authentication failed for user "report_ro"', /fatal/i],
+      ["there is no transaction in progress", /warning/i],
+      ["canceling statement due to statement timeout", /error/i],
+    ] as Array<[string, RegExp]>) {
+      await expect(rows.filter({ hasText: line })).toContainText(severity);
+    }
+    // A DETAIL line goes with the line before it: none of its own.
+    await expect(rows.filter({ hasText: "Process 24102 waits" })).toContainText(
+      /unspecified/i,
+    );
+
+    // The chip names the database, never its ARN.
+    await expect(page.getByTestId("locked-filter-chip-value")).toHaveText(
+      "orders-db",
+    );
+
+    /*
+     * Each line stays readable where the list draws it: never narrower than
+     * 8rem (a phone once squeezed it to a letter a line, every row a screen
+     * tall), and - beside the side menu at 1280 - inside the list, though
+     * RDS opens every line with one long run of time, client, user and
+     * process that once pushed it past the list's edge.
+     */
+    const lines: Array<Locator> = await rows.locator("p[title]").all();
+    expect(lines).toHaveLength(20);
+    await expect
+      .poll(async (): Promise<string> => {
+        const [list, ...boxes] = await boxesInOneFrame([
+          page.getByTestId("logs-viewer-list"),
+          ...lines,
+        ]);
+        const narrowest: number = Math.min(
+          ...boxes.map((box: FrameBox): number => {
+            return box.width;
+          }),
+        );
+        const furthest: number = Math.max(
+          ...boxes.map((box: FrameBox): number => {
+            return box.x + box.width;
+          }),
+        );
+        const tallest: number = Math.max(
+          ...boxes.map((box: FrameBox): number => {
+            return box.height;
+          }),
+        );
+
+        if (narrowest < 127) {
+          return `a line ${narrowest}px wide`;
+        }
+        if (isDesktop() && furthest > list!.x + list!.width + 1) {
+          return `a line past the list's edge by ${furthest - list!.x - list!.width}px`;
+        }
+        if (tallest > 420) {
+          return `a line ${tallest}px tall`;
+        }
+        return "readable";
+      })
+      .toBe("readable");
+
+    if (isDesktop()) {
+      // Its facets count only its rows.
+      for (const [severity, count] of [
+        ["Information", "12"],
+        ["Error", "3"],
+        ["Unspecified", "3"],
+        ["Fatal", "1"],
+        ["Warning", "1"],
+      ]) {
+        await expect(
+          facetValue(page, severity!).getByTestId("facet-value-count"),
+        ).toHaveText(count!);
+      }
+      // The connection's telemetry service, which the stream writes into.
+      await expect(page.getByText("AWS 123456789012").first()).toBeVisible();
+    }
+
+    await expectOnlyItsOwnReads(page, ORDERS_DB_ARN);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs");
+  });
+
+  test("a row opens on what the stream stamped: the account, Region, log group and the database's id - and no App Platforms platform", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "A row's attributes: a desktop's.");
+
+    await openLogs(page, ORDERS_DB, "state=connected&stream=receiving");
+    await logRows(page).filter({ hasText: "deadlock detected" }).click();
+
+    for (const [key, value] of [
+      [STORED_RESOURCE_ID, ORDERS_DB_ARN],
+      ["resource.cloud.account.id", "123456789012"],
+      ["resource.cloud.region", "eu-west-1"],
+      ["resource.cloud.provider", "aws"],
+      ["resource.aws.log.group.name", "/aws/rds/instance/orders-db/postgresql"],
+      ["resource.service.name", "AWS 123456789012"],
+      ["aws.log.stream.name", "orders-db.0"],
+    ]) {
+      await expect(attributeRow(page, key!)).toContainText(value!);
+    }
+    // A database is no App Platforms platform: its logs are its own.
+    await expect(attributeRow(page, "resource.cloud.platform")).toHaveCount(0);
+
+    expect((await logsState(page)).unhandled).toEqual([]);
+    await shoot(page, "resource-logs-row");
+  });
+
+  test("a function that stopped: nothing in the past hour, said as it is, and its last runs over the past week", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, NIGHTLY_EXPORT, "state=connected&stream=receiving");
+
+    // Its account streams: the list says nothing came in this range, and what to check.
+    const empty: Locator = page.getByTestId("logs-table-empty");
+    await expect(empty).toContainText(NO_LOGS_IN_RANGE);
+    await expect(empty).not.toContainText(NO_STREAMED_LOGS);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-empty-range");
+
+    await chooseRange(page, "Past 1 Week");
+
+    const rows: Locator = logRows(page);
+    await expect(rows).toHaveCount(11);
+    await expect(
+      rows.filter({ hasText: "Task timed out after 900.00 seconds" }),
+    ).toContainText(/error/i);
+    await expect(
+      rows.filter({ hasText: "the bucket is throttling writes" }),
+    ).toContainText(/warning/i);
+    // Lambda's own START and REPORT lines say no level.
+    await expect(
+      rows.filter({ hasText: "START RequestId" }).first(),
+    ).toContainText(/unspecified/i);
+
+    await expectOnlyItsOwnReads(page, NIGHTLY_EXPORT_ARN);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-function");
+  });
+
+  test("a function's rows are the function's in Serverless too: faas.name and its FaaS platform", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "A row's attributes: a desktop's.");
+
+    await openLogs(page, NIGHTLY_EXPORT, "state=connected&stream=receiving");
+    await chooseRange(page, "Past 1 Week");
+    await logRows(page)
+      .filter({ hasText: "Task timed out after 900.00 seconds" })
+      .click();
+
+    await expect(attributeRow(page, STORED_RESOURCE_ID)).toContainText(
+      NIGHTLY_EXPORT_ARN,
+    );
+    await expect(attributeRow(page, "resource.faas.name")).toContainText(
+      "nightly-export",
+    );
+    await expect(attributeRow(page, "resource.cloud.platform")).toContainText(
+      "aws_lambda",
+    );
+    await expect(attributeRow(page, "resource.cloud.region")).toContainText(
+      "us-east-1",
+    );
+  });
+
+  test("before its account streams, an empty list says how to start", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, NIGHTLY_EXPORT, "state=connected");
+
+    const empty: Locator = page.getByTestId("logs-table-empty");
+    await expect(empty).toContainText(NO_STREAMED_LOGS);
+    await expect(empty).not.toContainText(NO_LOGS_IN_RANGE);
+    expect((await logsState(page)).unhandled).toEqual([]);
+  });
+
+  test("beside the side menu at 1024 and 768: nothing scrolls the page sideways, and each row keeps its time and severity", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "Beside the side menu: a desktop's widths.");
+
+    for (const width of [1024, 768]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openLogs(page, ORDERS_DB, "state=connected&stream=receiving");
+
+      const first: Locator = logRows(page).first();
+      await expect(first).toBeVisible();
+      await expect(first).toContainText("Nov");
+      await expect(sideMenu(page)).toBeVisible();
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await shoot(page, `resource-logs-${width}`);
+    }
+  });
+
+  test("dark and German: its chip, its chart and its empty sentence in German, and it fits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(
+      page,
+      ORDERS_DB,
+      "state=connected&stream=receiving&theme=dark&lang=de",
+    );
+
+    await expect(logRows(page)).toHaveCount(20);
+    await expect(page.getByTestId("locked-filter-chip-value")).toHaveText(
+      "orders-db",
+    );
+    // The chip's key and the chart's title, in German.
+    expect(wordIn(GERMAN, "Resource")).not.toBe("Resource");
+    await expect(
+      page.getByText(`${wordIn(GERMAN, "Resource")}:`),
+    ).toBeVisible();
+    await expect(page.getByText(wordIn(GERMAN, "Log Volume"))).toBeVisible();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-dark-de");
+
+    // An empty range, in German too.
+    await openLogs(
+      page,
+      NIGHTLY_EXPORT,
+      "state=connected&stream=receiving&theme=dark&lang=de",
+    );
+    expect(wordIn(GERMAN, NO_LOGS_IN_RANGE)).not.toBe(NO_LOGS_IN_RANGE);
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      wordIn(GERMAN, NO_LOGS_IN_RANGE),
+    );
+    await shoot(page, "resource-logs-empty-dark-de");
+  });
+
+  test("Persian: laid out right to left, each line read left to right as it was written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLogs(page, ORDERS_DB, "state=connected&stream=receiving&lang=fa");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(logRows(page)).toHaveCount(20);
+    // A line of a database's log keeps its own direction on a Persian page.
+    const line: Locator = logRows(page)
+      .filter({ hasText: "deadlock detected" })
+      .locator("bdi")
+      .first();
+    await expect(line).toHaveAttribute("dir", "ltr");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "resource-logs-fa");
+
+    await openLogs(
+      page,
+      NIGHTLY_EXPORT,
+      "state=connected&stream=receiving&lang=fa",
+    );
+    expect(wordIn(PERSIAN, NO_LOGS_IN_RANGE)).not.toBe(NO_LOGS_IN_RANGE);
+    await expect(page.getByTestId("logs-table-empty")).toContainText(
+      wordIn(PERSIAN, NO_LOGS_IN_RANGE),
+    );
+    await shoot(page, "resource-logs-empty-fa");
+  });
+});

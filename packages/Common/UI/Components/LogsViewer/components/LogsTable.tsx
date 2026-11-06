@@ -149,6 +149,13 @@ export type LogsTableSortField = "time" | "severityText";
 // The list's own box: the rows, their loader and their empty state.
 export const LOGS_TABLE_TEST_ID: string = "logs-table";
 
+/*
+ * A log's message: its own line breaks kept, a run too long for the column
+ * broken where it must, and never narrower than 8rem.
+ */
+export const LOGS_TABLE_MESSAGE_CLASS_NAME: string =
+  "min-w-[8rem] whitespace-pre-wrap text-sm text-gray-800 [overflow-wrap:anywhere]";
+
 // What an empty list says, and the line under it when its host says nothing.
 export const LOGS_TABLE_EMPTY_TITLE: string = translationKey("No logs found");
 export const LOGS_TABLE_EMPTY_HINT: string = translationKey(
@@ -657,10 +664,19 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                 {/*
                                  * Read the way it is written (IsolatedText):
                                  * an English message on a Persian page keeps
-                                 * its full stop at its end.
+                                 * its full stop at its end. A word longer
+                                 * than the column breaks where it must
+                                 * (anywhere), so the column keeps to the
+                                 * list's width: an RDS line opens with one
+                                 * long run (its time, client, user and
+                                 * process), and break-words alone let it
+                                 * push the message past the list's edge.
+                                 * Breaking anywhere would also let a narrow
+                                 * list squeeze the column to a letter a
+                                 * line (a phone did): 8rem is its floor.
                                  */}
                                 <p
-                                  className="whitespace-pre-wrap break-words text-sm text-gray-800"
+                                  className={LOGS_TABLE_MESSAGE_CLASS_NAME}
                                   title={message}
                                 >
                                   {message ? (

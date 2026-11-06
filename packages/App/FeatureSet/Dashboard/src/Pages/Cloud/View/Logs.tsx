@@ -23,6 +23,7 @@ import {
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import { STORED_CLOUD_RESOURCE_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudLogGroups";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A cloud resource's logs: what an AWS connection's stream delivered from
@@ -31,10 +32,31 @@ import { STORED_CLOUD_RESOURCE_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudLogG
  * stamps each log with the resource's id as the cloud.resource_id resource
  * attribute (CloudLogGroups), and this tab filters on it. The side menu
  * shows the tab only for a kind of resource a log group names.
+ *
+ * Its empty list says what is true of the resource's account: before its
+ * connection streams, how to start; once it does, that nothing came from
+ * the resource's log group in the time range - which can be older, as a
+ * function that stopped running shows - and what to check.
  */
 
 export const CLOUD_RESOURCE_LOGS_NOT_FOUND: string =
   "Cloud resource not found.";
+
+export const CLOUD_RESOURCE_NO_STREAMED_LOGS: string = translationKey(
+  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.",
+);
+export const CLOUD_RESOURCE_NO_LOGS_IN_RANGE: string = translationKey(
+  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.",
+);
+
+// What the empty list says: whether the account's connection streams yet.
+export function getCloudResourceNoLogsMessage(
+  resource: Pick<CloudResource, "cloudConnection"> | null | undefined,
+): string {
+  return resource?.cloudConnection?.streamKeyCreatedAt
+    ? CLOUD_RESOURCE_NO_LOGS_IN_RANGE
+    : CLOUD_RESOURCE_NO_STREAMED_LOGS;
+}
 
 export function getCloudResourceLogsViewerId(modelId: ObjectID): string {
   return `cloud-resource-streamed-logs-${modelId.toString()}`;
@@ -79,6 +101,10 @@ const CloudResourceLogs: FunctionComponent<
         select: {
           name: true,
           providerResourceId: true,
+          // Whether its account's connection streams: what the empty list says.
+          cloudConnection: {
+            streamKeyCreatedAt: true,
+          },
         },
       });
 
@@ -142,7 +168,7 @@ const CloudResourceLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group."
+        noLogsMessage={getCloudResourceNoLogsMessage(cloudResource)}
       />
     </Fragment>
   );

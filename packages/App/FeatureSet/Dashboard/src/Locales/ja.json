@@ -45352,5 +45352,6 @@
   "Only if {{first}} or {{second}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
-  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "この環境の cloud.platform、cloud.account.id、cloud.region リソース属性が付いたログが、ここに表示されます。AWS アカウントが CloudWatch Logs をストリーミングすると、そのログも表示されます。Cloud > 接続 でアカウントの接続の「メトリクスとログをストリーミング」を選択してください。"
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "この環境の cloud.platform、cloud.account.id、cloud.region リソース属性が付いたログが、ここに表示されます。AWS アカウントが CloudWatch Logs をストリーミングすると、そのログも表示されます。Cloud > 接続 でアカウントの接続の「メトリクスとログをストリーミング」を選択してください。",
+  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "この期間に、このリソースのロググループからは何も届いていません。より長い期間を選択するか、ストリームにそのロググループが含まれているか確認してください。Cloud > 接続 でアカウントの接続の「メトリクスとログをストリーミング」から確認できます。"
 }

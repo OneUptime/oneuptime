@@ -45352,5 +45352,6 @@
   "Only if {{first}} or {{second}}": "仅当{{first}}或{{second}}时",
   "Only if {{first}}, {{second}} and {{third}}": "仅当{{first}}、{{second}}且{{third}}时",
   "Only if {{first}}, {{second}} or {{third}}": "仅当{{first}}、{{second}}或{{third}}时",
-  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "带有此环境的 cloud.platform、cloud.account.id 和 cloud.region 资源属性的日志会显示在这里；其 AWS 账户流式传输 CloudWatch Logs 后，这些日志也会显示在这里：请在 Cloud > 连接 中为该账户的连接选择“流式传输指标和日志”。"
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "带有此环境的 cloud.platform、cloud.account.id 和 cloud.region 资源属性的日志会显示在这里；其 AWS 账户流式传输 CloudWatch Logs 后，这些日志也会显示在这里：请在 Cloud > 连接 中为该账户的连接选择“流式传输指标和日志”。",
+  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "在此时间范围内，此资源的日志组没有传来任何内容。请选择更长的时间范围，或检查流是否包含其日志组：在 Cloud > 连接 中，查看该账户连接的“流式传输指标和日志”。"
 }
