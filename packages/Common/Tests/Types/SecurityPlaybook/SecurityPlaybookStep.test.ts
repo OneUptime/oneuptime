@@ -37,6 +37,7 @@ import {
 import {
   SecurityPlaybookConditionMatch,
   SecurityPlaybookStepOutcome,
+  getSecurityPlaybookStepConditions,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import {
   DATA_EXPOSURE_TEMPLATE_KEY,
@@ -1549,7 +1550,10 @@ describe("the playbook templates", () => {
     });
 
     expect(again[0]!.id).not.toBe(built[0]!.id);
-    expect(again[1]!.runIf?.stepId).toBe(again[0]!.id);
+    // A step waits on one result or several: read the first it waits on.
+    expect(getSecurityPlaybookStepConditions(again[1]!.runIf)[0]?.stepId).toBe(
+      again[0]!.id,
+    );
   });
 
   test("Close a Data Exposure answers Data Security's cases: owners told, the exposure closed once a person approves, a checklist left", () => {

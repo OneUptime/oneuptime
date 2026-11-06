@@ -82,6 +82,12 @@ export const ALLOWED_ENUM_VALUES: ReadonlyArray<AllowedEnumValue> = [
     enumName: "DiscoveredHostNameFilter",
     drawnAs: '"All" (getDiscoveredHostNameFilterLabel)',
   },
+  {
+    file: "packages/Common/Types/SecurityPlaybook/SecurityPlaybookStepCondition.ts",
+    enumName: "SecurityPlaybookConditionMatch",
+    drawnAs:
+      '"When any one of them happened" (RUN_WHEN_ANY_LABEL), and on a step\'s card "Only if ... or ..." (RUN_IF_SEVERAL_TEMPLATES in the Dashboard\'s SecurityPlaybookStepForm)',
+  },
 ];
 
 export type AnyWordKind = "match-condition-option" | "enum-value" | "other";
