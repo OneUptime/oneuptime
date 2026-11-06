@@ -2,6 +2,7 @@ import DashboardVariablesModal from "../../../../App/FeatureSet/Dashboard/src/Co
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../UI/Components/Forms/Fields/FieldError";
 /*
  * The main entry, not "/extend-expect": the latter no longer ships type
  * declarations, so every jest-dom matcher in this file fails to typecheck and
@@ -478,6 +479,49 @@ describe("Dashboard Variables modal", () => {
       expect(
         screen.getByText("Letters, digits and underscore only"),
       ).toBeInTheDocument();
+      expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+    });
+
+    /*
+     * What is wrong with a variable's name is said under it as every
+     * field's error is (FieldError): in the error's own red - a light red
+     * of its own read at 3.8:1 - said at once, and read as it is written.
+     */
+    test("what is wrong with a name is said under it in every field's red", () => {
+      renderModal();
+
+      addVariableRow();
+      typeInto(NAME_PLACEHOLDER, "9 bad name");
+
+      const line: HTMLElement = screen
+        .getByText("Letters, digits and underscore only")
+        .closest("[data-testid='error-message']") as HTMLElement;
+
+      expect(line).not.toBeNull();
+      expect(line).toHaveAttribute("role", "alert");
+      expect(line).toHaveClass(
+        "mt-1",
+        "text-[11px]",
+        FIELD_ERROR_COLOR_CLASS_NAME,
+      );
+      expect(line.className).not.toContain("text-red-500");
+    });
+
+    test("a name used twice is said under the second, in the same red", () => {
+      renderModal();
+
+      addVariableRow();
+      addVariableRow();
+
+      for (const field of screen.getAllByPlaceholderText(NAME_PLACEHOLDER)) {
+        fireEvent.change(field, { target: { value: "cluster" } });
+      }
+
+      const line: HTMLElement = screen
+        .getByText("Duplicate name")
+        .closest("[data-testid='error-message']") as HTMLElement;
+
+      expect(line).toHaveClass(FIELD_ERROR_COLOR_CLASS_NAME);
       expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
     });
 

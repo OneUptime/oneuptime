@@ -96,7 +96,7 @@ export const ERROR_LINES_ON_A_DARK_GROUND: ReadonlyArray<ErrorLineOnADarkGround>
       file: "ee/AdminDashboard/Health/DiagnosticLogs.tsx",
       value: 'String(rowObject["error"] || "")',
       reason:
-        "A Valkey error counter's name in the diagnostics log panel (LogPanel), whose ground is bg-gray-900 in both themes: red-400 reads at 6.3:1 there, and red-700 would not read at all.",
+        "A Valkey error counter's name in the diagnostics log panel (LogPanel), whose ground is bg-gray-900 in both themes: red-400 reads at 6.4:1 there, where red-700 would be 2.7:1.",
     },
   ];
 
