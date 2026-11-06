@@ -6,18 +6,26 @@ import React from "react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import ResourceOverview, {
+  getResourceOverviewIdentifierWords,
   RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
+  RESOURCE_OVERVIEW_IDENTIFIER_SENTENCE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import frenchLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fr.json";
 import italianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/it.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import chineseLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/zh-CN.json";
 import { CLOUD_ACCOUNT_STATUS_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAccountStatus";
 import { CLOUD_RESOURCE_STATUS_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview";
 import {
   DASHBOARD_LANGUAGES,
+  dashboardTranslator,
   isWordedInDashboardLocale,
+  readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { getTemplatePlaceholders, Translator } from "../../../Types/Translator";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   forgetRememberedDateTexts,
@@ -53,8 +61,10 @@ beforeAll(async () => {
   for (const [language, locale] of [
     ["en", englishLocale],
     ["de", germanLocale],
+    ["fr", frenchLocale],
     ["it", italianLocale],
     ["fa", persianLocale],
+    ["zh-CN", chineseLocale],
   ] as Array<[string, Record<string, unknown>]>) {
     const instance: i18n = createInstance();
 
@@ -364,7 +374,7 @@ describe("the hero's identifier line", () => {
     expect(line).toHaveClass("flex", "min-w-0");
     expect(line).not.toHaveClass("truncate");
     expect(line.firstElementChild).toHaveClass("flex-none");
-    expect(line.firstElementChild?.textContent).toBe("نوع:");
+    expect(line.firstElementChild?.textContent).toBe("نوع: ");
     expect(value.tagName).toBe("BDI");
     expect(value).toHaveClass("min-w-0", "truncate");
     // Its direction is its own text's: left to right for a Latin type.
@@ -391,8 +401,153 @@ describe("the hero's identifier line", () => {
     for (const piece of Array.from(line.children)) {
       expect(piece).toHaveClass("font-mono");
     }
-    // A monospace space between them, as the one line had.
-    expect(line).toHaveClass("gap-2");
+    /*
+     * A monospace space between them, as the one line had: the sentence's
+     * own, kept as written - no gap of the row's besides.
+     */
+    expect(line.firstElementChild?.textContent).toBe("service.name: ");
+    expect(line.firstElementChild).toHaveClass("whitespace-pre");
+    expect(line.className).not.toMatch(/(^| )gap-/);
+  });
+
+  /*
+   * #5702's follow-up: the line put a fixed ": " after its label. It is one
+   * sentence now, "{{label}}: {{identifier}}", so each language writes the
+   * colon its own way.
+   */
+  describe("its label's colon, as each language writes it", () => {
+    function linePieces(): { label: string; value: string } {
+      return {
+        label:
+          screen.getByTestId("resource-overview-identifier-label")
+            .textContent || "",
+        value:
+          screen.getByTestId("resource-overview-identifier-value")
+            .textContent || "",
+      };
+    }
+
+    const IDENTIFIER: string = "Elastic Load Balancer (ALB, NLB, GWLB)";
+
+    test("English: a colon after the label, then a space", () => {
+      renderHero("en", {
+        status: "connected",
+        identifierLabel: "type",
+        identifier: IDENTIFIER,
+      });
+
+      expect(linePieces()).toEqual({ label: "type: ", value: IDENTIFIER });
+    });
+
+    test("French spaces the colon", () => {
+      renderHero("fr", {
+        status: "connected",
+        identifierLabel: "type",
+        identifier: IDENTIFIER,
+      });
+
+      expect(linePieces()).toEqual({ label: "type : ", value: IDENTIFIER });
+      expect(identifierLine().textContent).toBe(`type : ${IDENTIFIER}`);
+    });
+
+    test("German writes it as English does, after its own word", () => {
+      renderHero("de", {
+        status: "connected",
+        identifierLabel: "account",
+        identifier: "123456789012",
+      });
+
+      expect(linePieces()).toEqual({
+        label: "Konto: ",
+        value: "123456789012",
+      });
+    });
+
+    test("Persian puts the colon after its word, read right to left, and sets a Latin label apart", () => {
+      renderHero("fa", {
+        status: "connected",
+        identifierLabel: "type",
+        identifier: IDENTIFIER,
+      });
+
+      expect(linePieces()).toEqual({ label: "نوع: ", value: IDENTIFIER });
+      cleanup();
+
+      renderHero("fa", {
+        status: "connected",
+        identifierLabel: "service.name",
+        identifier: "checkout",
+      });
+
+      const label: string = linePieces().label;
+
+      expect(withoutIsolateMarks(label)).toBe("service.name: ");
+      // Set apart, so its dot never moves the colon in a sentence read right to left.
+      expect(label).not.toBe(withoutIsolateMarks(label));
+    });
+
+    test("Chinese writes a full-width colon with no space after it", () => {
+      renderHero("zh-CN", {
+        status: "connected",
+        identifierLabel: "type",
+        identifier: IDENTIFIER,
+      });
+
+      expect(linePieces()).toEqual({ label: "类型：", value: IDENTIFIER });
+    });
+
+    test("a translation that lost the identifier reads the English sentence, never a line without it", () => {
+      const german: Translator = dashboardTranslator("de");
+      const lost: Translator = {
+        ...german,
+        translateTemplate: (): string => {
+          return "Typ:";
+        },
+      };
+
+      expect(getResourceOverviewIdentifierWords(lost, "Typ")).toEqual({
+        before: "Typ: ",
+        after: "",
+      });
+    });
+
+    test("every language writes the sentence with both its values, the label before the identifier", () => {
+      for (const language of DASHBOARD_LANGUAGES) {
+        const worded: string =
+          readDashboardLocale(language)[
+            RESOURCE_OVERVIEW_IDENTIFIER_SENTENCE
+          ] || "";
+
+        expect({
+          language,
+          values: getTemplatePlaceholders(worded).sort(),
+          labelFirst:
+            worded.indexOf("{{label}}") < worded.indexOf("{{identifier}}"),
+        }).toEqual({
+          language,
+          values: ["identifier", "label"],
+          labelFirst: true,
+        });
+
+        const words: { before: string; after: string } =
+          getResourceOverviewIdentifierWords(
+            dashboardTranslator(language),
+            "x",
+          );
+
+        expect({
+          language,
+          starts: withoutIsolateMarks(words.before).startsWith("x"),
+        }).toEqual({
+          language,
+          starts: true,
+        });
+        expect({ language, after: words.after }).toEqual({
+          language,
+          after: "",
+        });
+      }
+    });
   });
 
   test("each word a page names its identifier by reads in every language", () => {

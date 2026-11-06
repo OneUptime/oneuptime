@@ -11,6 +11,8 @@ import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import {
+  getSentenceParts,
+  SentencePart,
   translateNamedAction,
   translationKey,
   Translator,
@@ -211,6 +213,65 @@ export interface ResourceOverviewProps {
 export const RESOURCE_OVERVIEW_DETAILS_DESCRIPTION: string = translationKey(
   "Metadata captured from OpenTelemetry resource attributes.",
 );
+
+/*
+ * The hero's identifier line, "type: Elastic Load Balancer", is one sentence
+ * in the reader's language, so each language writes its label's colon its
+ * own way: French spaces it ("type : ..."), Chinese writes a full-width one
+ * with no space after it.
+ */
+export const RESOURCE_OVERVIEW_IDENTIFIER_SENTENCE: string = translationKey(
+  "{{label}}: {{identifier}}",
+);
+
+// The words of the identifier line around the identifier, as drawn.
+export interface ResourceOverviewIdentifierWords {
+  // The label and its colon, and the space after it when the language puts one there.
+  before: string;
+  // What the language writes after the identifier: "" in every language today.
+  after: string;
+}
+
+/*
+ * The identifier line's words before and after the identifier, in the
+ * translator's language (a sentence that lost the identifier reads in
+ * English). The label is the reader's word ("Typ") or an attribute's name
+ * as written ("service.name"), set apart where it could move the words
+ * around it in a sentence read right to left.
+ */
+export function getResourceOverviewIdentifierWords(
+  translator: Translator,
+  label: string,
+): ResourceOverviewIdentifierWords {
+  const parts: Array<SentencePart> = getSentenceParts({
+    translator,
+    template: RESOURCE_OVERVIEW_IDENTIFIER_SENTENCE,
+    slots: ["identifier"],
+    values: { label },
+  });
+  const slotAt: number = parts.findIndex((part: SentencePart): boolean => {
+    return part.kind === "slot";
+  });
+
+  if (slotAt < 0) {
+    return { before: `${label}: `, after: "" };
+  }
+
+  const textOf: (pieces: Array<SentencePart>) => string = (
+    pieces: Array<SentencePart>,
+  ): string => {
+    return pieces
+      .map((part: SentencePart): string => {
+        return part.kind === "text" ? part.text : "";
+      })
+      .join("");
+  };
+
+  return {
+    before: textOf(parts.slice(0, slotAt)),
+    after: textOf(parts.slice(slotAt + 1)),
+  };
+}
 
 const tileColorClasses: Record<
   ResourceOverviewTileColor,
@@ -508,6 +569,8 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
    */
   const identifierLabel: string =
     translator.translateText(props.identifierLabel) || props.identifierLabel;
+  const identifierWords: ResourceOverviewIdentifierWords =
+    getResourceOverviewIdentifierWords(translator, identifierLabel);
 
   return (
     <Fragment>
@@ -601,15 +664,29 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                    * Each piece is set in monospace itself, as the whole
                    * line always was: the page gives every element Inter
                    * (index.ejs's universal rule), so a child would not
-                   * keep the line's font. The gap is a monospace space.
+                   * keep the line's font.
+                   *
+                   * The label and its colon are the reader's sentence
+                   * ("{{label}}: {{identifier}}"), so each language writes
+                   * the colon its own way - French "type : ", Chinese
+                   * "类型：" - and the space after it, kept as written
+                   * (whitespace-pre), is the gap: none where the language
+                   * puts none.
                    */
                   <div
                     data-testid="resource-overview-identifier"
-                    className="mt-1 flex min-w-0 items-baseline gap-2 font-mono text-sm text-gray-500"
+                    className="mt-1 flex min-w-0 items-baseline font-mono text-sm text-gray-500"
                   >
-                    <span className="flex-none font-mono">
-                      {identifierLabel}:
-                    </span>{" "}
+                    {identifierWords.before ? (
+                      <span
+                        data-testid="resource-overview-identifier-label"
+                        className="flex-none whitespace-pre font-mono"
+                      >
+                        {identifierWords.before}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                     <bdi
                       dir="auto"
                       data-testid="resource-overview-identifier-value"
@@ -617,6 +694,13 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     >
                       {props.identifier}
                     </bdi>
+                    {identifierWords.after ? (
+                      <span className="flex-none whitespace-pre font-mono">
+                        {identifierWords.after}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </div>
                 ) : (
                   <></>

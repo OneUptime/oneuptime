@@ -670,7 +670,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                * was the form's, for any box left blank.
                */
               <FieldError
-                className="pt-1 text-sm text-red-600"
+                className="pt-1 text-sm"
                 message={
                   chosen.length === 0
                     ? ModelFieldPickerCopy.pickAtLeastOne

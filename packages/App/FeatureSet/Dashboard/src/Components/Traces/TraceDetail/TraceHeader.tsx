@@ -132,7 +132,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
             )}
           >
             {summary.errorCount.toLocaleString()}
-            <span className="text-sm font-normal text-red-500">
+            <span className="text-sm font-normal text-red-600">
               {translator.translateTemplate("{{percent}} of spans", {
                 percent: formatPercent(summary.errorRatePercent),
               })}

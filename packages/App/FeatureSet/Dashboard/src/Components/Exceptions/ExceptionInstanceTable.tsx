@@ -15,8 +15,12 @@ import SpanStatusElement from "../Span/SpanStatusElement";
 import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
-  title: string;
-  description: string;
+  /*
+   * The title and description of the card the table is drawn in. A table
+   * drawn without a card (isMinimalTable) shows neither.
+   */
+  title?: string | undefined;
+  description?: string | undefined;
   query: Query<ExceptionInstance>;
   // Rendered in the card header, e.g. the snapshot window an incident is scoped to.
   rightElement?: ReactElement | undefined;
@@ -27,6 +31,19 @@ export interface ComponentProps {
    * sign it happened.
    */
   disableUrlState?: boolean | undefined;
+  /*
+   * The table on its own, framed, with no card round it - as TraceTable's
+   * isMinimalTable is: for the Exceptions monitor's preview, which the fold
+   * it sits in already names ("Matching exceptions"). In a card it was a
+   * second "Matching exceptions" header under the fold's own, and in Create
+   * Monitor's criteria step that card was drawn as a section of the step
+   * (CardFormSections): a rule and a title in the middle of "Exceptions to
+   * watch", its rows unframed, where the Logs and Traces monitors show a
+   * framed list.
+   */
+  isMinimalTable?: boolean | undefined;
+  // What the table says when no exception matches its query.
+  noItemsMessage?: string | undefined;
 }
 
 const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
@@ -59,15 +76,19 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
       isViewable={false}
       userPreferencesKey="exception-instance-table"
       disableUrlState={props.disableUrlState}
-      cardProps={{
-        title: props.title,
-        description: props.description,
-        rightElement: props.rightElement,
-      }}
+      cardProps={
+        props.isMinimalTable
+          ? undefined
+          : {
+              title: props.title || "",
+              description: props.description,
+              rightElement: props.rightElement,
+            }
+      }
       query={computedQuery}
       sortBy="time"
       sortOrder={SortOrder.Descending}
-      noItemsMessage="No exception instances found."
+      noItemsMessage={props.noItemsMessage || "No exception instances found."}
       showRefreshButton={true}
       showViewIdButton={true}
       filters={[

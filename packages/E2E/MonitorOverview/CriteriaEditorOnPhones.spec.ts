@@ -19,11 +19,13 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * frame with its padding - and the alert's description editor was 166px
  * wide inside its fold.
  *
- * Below sm the step's cards (Monitor Target, Test Monitor, Monitor
- * Criteria) are sections of the page's card - a rule above each, no frame -
- * and the criteria's box is the one frame round its fields: Filters,
- * Actions and Settings, each filter's box and each action's box reach out
- * to its sides as bands. From sm up nothing changes.
+ * The step's cards (Monitor Target, Test Monitor, Monitor Criteria) are
+ * sections of the page's card - a rule above each, no frame - at every
+ * width: below sm since #5482, and from sm up too, where they were cards
+ * inside the page's card. Below sm the criteria's box is the one frame
+ * round its fields: Filters, Actions and Settings, each filter's box and
+ * each action's box reach out to its sides as bands. From sm up the
+ * criteria editor inside the section is the one it always was.
  *
  * The production Create page, the production Tailwind build and Theme.css,
  * against the offline fixture (Fixture/Fixture.js), with the same guards as
@@ -592,9 +594,9 @@ test.describe("The criteria editor on a phone", () => {
   });
 });
 
-test.describe("The criteria editor from sm up: nothing changes", () => {
-  for (const width of [640, 1280]) {
-    test(`at ${width}px: framed cards, framed sections, the boxes set in under their switches`, async ({
+test.describe("The criteria editor from sm up", () => {
+  for (const width of [640, 1024, 1280]) {
+    test(`at ${width}px: the step's cards are sections, as on a phone; the criteria's own sections framed, the boxes set in under their switches`, async ({
       page,
     }: {
       page: Page;
@@ -602,7 +604,13 @@ test.describe("The criteria editor from sm up: nothing changes", () => {
       test.setTimeout(180000);
       await page.setViewportSize({ width: width, height: 1000 });
       const box: Locator = await openCriteria(page);
+      const criteria: DrawnBox = await drawn(box);
 
+      /*
+       * Cards inside the page's card, from sm up, before: a border all
+       * round, 12px corners and a shadow. Now a rule above each, and the
+       * section as wide as the criteria's box - the page card's content.
+       */
       for (const title of STEP_CARDS) {
         const frame: DrawnBox = await drawn(stepCardFrame(page, title));
 
@@ -613,11 +621,20 @@ test.describe("The criteria editor from sm up: nothing changes", () => {
           frame.borderBottom,
           frame.borderLeft,
           frame.radius,
-        ]).toEqual([title, 1, 1, 1, 1, 12]);
-        expect([title, frame.shadow]).not.toEqual([title, "none"]);
+          frame.shadow,
+        ]).toEqual([title, 1, 0, 0, 0, 0, "none"]);
+        expect([
+          title,
+          Math.round(frame.left),
+          Math.round(frame.right),
+        ]).toEqual([
+          title,
+          Math.round(criteria.left),
+          Math.round(criteria.right),
+        ]);
       }
 
-      // A card's title: 18px on a 24px line, as every card's.
+      // A section's title, a step below the page card's: 16px, on a 24px line.
       const titleFont: { size: string; line: string } = await cardHeading(
         page,
         "Monitor Criteria",
@@ -625,7 +642,7 @@ test.describe("The criteria editor from sm up: nothing changes", () => {
         const style: CSSStyleDeclaration = getComputedStyle(element);
         return { size: style.fontSize, line: style.lineHeight };
       });
-      expect(titleFont).toEqual({ size: "18px", line: "24px" });
+      expect(titleFont).toEqual({ size: "16px", line: "24px" });
 
       for (const section of await sectionFrames(box).all()) {
         const drawnSection: DrawnBox = await drawn(section);
@@ -680,7 +697,7 @@ test.describe("The criteria editor from sm up: nothing changes", () => {
     });
   }
 
-  test("dark mode at 1280px: the step's cards keep the dark theme's shadow", async ({
+  test("dark mode at 1280px: the step's sections are ruled in the dark theme's grey, on the page card's ground", async ({
     page,
   }: {
     page: Page;
@@ -689,18 +706,28 @@ test.describe("The criteria editor from sm up: nothing changes", () => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     await openCriteria(page, "?theme=dark");
 
-    /*
-     * The cards' shadow is given from sm up only (sm:shadow-sm), a token of
-     * its own: Theme.css gives it the dark theme's deeper shadow, as it does
-     * shadow-sm.
-     */
     for (const title of STEP_CARDS) {
-      const frame: DrawnBox = await drawn(stepCardFrame(page, title));
+      const rule: { color: string; shadow: string; background: string } =
+        await stepCardFrame(page, title).evaluate(
+          (
+            element: Element,
+          ): { color: string; shadow: string; background: string } => {
+            const style: CSSStyleDeclaration = getComputedStyle(element);
+            return {
+              color: style.borderTopColor,
+              shadow: style.boxShadow,
+              background: style.backgroundColor,
+            };
+          },
+        );
 
-      expect([title, frame.shadow]).toEqual([
-        title,
-        expect.stringContaining("rgba(0, 0, 0, 0.36)"),
-      ]);
+      // Tailwind's light gray-200 would be a bright line on the dark card.
+      expect([title, rule.color]).not.toEqual([title, LIGHT_BORDER_RGB]);
+      expect([title, rule.shadow]).toEqual([title, "none"]);
+      // No ground of its own: the page card's shows through.
+      expect([title, rule.background]).toEqual([title, "rgba(0, 0, 0, 0)"]);
     }
+
+    await screenshot(page, "criteria-editor-1280-dark");
   });
 });

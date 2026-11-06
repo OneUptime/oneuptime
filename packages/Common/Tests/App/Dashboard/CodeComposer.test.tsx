@@ -56,6 +56,7 @@ jest.mock("../../../UI/Components/EntityDropdown/EntityDropdown", () => {
     default: (props: {
       dataTestId?: string;
       ariaLabel?: string;
+      isClearable?: boolean;
       value: string | null;
       onChange: (
         value: string | null,
@@ -77,6 +78,8 @@ jest.mock("../../../UI/Components/EntityDropdown/EntityDropdown", () => {
         {
           "data-testid": props.dataTestId,
           "aria-label": props.ariaLabel,
+          // Whether the picker would offer Clear (EntityDropdown's default).
+          "data-clearable": String(props.isClearable !== false),
           value: props.value || "",
           onChange: (event: React.ChangeEvent<HTMLSelectElement>) => {
             const picked: { label: string; value: string } | undefined =
@@ -913,6 +916,36 @@ describe("adding context", () => {
       message: "Find the cause",
       context: [{ type: "Incident", id: INCIDENT_ID }],
     });
+  });
+
+  /*
+   * A pick the dialog cannot add without - the record, a profile's service -
+   * offers no Clear: another is picked in its place. The logs' service is
+   * "Any service" until one is picked, and keeps its Clear to go back to
+   * any.
+   */
+  test("a required pick offers no Clear; the logs' optional service keeps it", async () => {
+    renderComposer();
+
+    let dialog: HTMLElement = await openContextDialog(
+      CodeTaskContextType.Incident,
+    );
+    expect(within(dialog).getByTestId("code-context-record")).toHaveAttribute(
+      "data-clearable",
+      "false",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    dialog = await openContextDialog(CodeTaskContextType.Profile);
+    expect(
+      within(dialog).getByTestId("code-context-profile-service"),
+    ).toHaveAttribute("data-clearable", "false");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    dialog = await openContextDialog(CodeTaskContextType.Logs);
+    expect(
+      within(dialog).getByTestId("code-context-logs-service"),
+    ).toHaveAttribute("data-clearable", "true");
   });
 
   test("a trace ID is checked as one, and logs carry their search, window and service", async () => {

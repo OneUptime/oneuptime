@@ -218,8 +218,9 @@ describe("the color field in the dark theme", () => {
     );
 
     /*
-     * None: the field's error line is FieldError's, in the error colour
-     * every field shares (FIELD_ERROR_CLASS_NAME's text-red-400).
+     * None: the field's error line is FieldError's, in the red every
+     * field's error shares (FIELD_ERROR_COLOR_CLASS_NAME), which Theme.css
+     * re-colours for the dark theme.
      */
     expect(unthemed).toEqual([]);
   });

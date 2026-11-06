@@ -42,7 +42,7 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
       {props.error && (
         <FieldError
           message={props.error}
-          className="text-sm text-red-500 mt-2"
+          className="text-sm mt-2"
           announce="none"
         />
       )}

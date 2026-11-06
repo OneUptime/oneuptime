@@ -1063,34 +1063,67 @@ const CHANGES =
 const AI_FIX_ID = "80000000-0000-4000-8000-000000000001";
 const AI_FIX_INCIDENT_ID = "70000000-0000-4000-8000-000000000001";
 const AI_SESSION = "oneuptime-ai-scale-out-9f2c61d0";
+// The ECS service the fix scaled out, as the account's inventory holds it.
+const CHECKOUT_SERVICE_ARN =
+  "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout";
+const CHECKOUT_SERVICE_ID = "40000000-0000-4000-8000-0000000000c1";
 
-function aiChange(minutesAgo, step, title) {
+/*
+ * One change the agent made, exactly as the recorder writes it
+ * (buildCloudChangeEntry): CloudTrail's operation is the service and the
+ * event name ("ecs:UpdateService"), which classifyCloudChange calls a
+ * deploy; the title names the resource by the name the inventory holds,
+ * which is kept beside it with the resource's row; the description says
+ * who ran it on the cloud's id. The fix and its rollback are two jobs of
+ * the agent's, each its own CloudTrail event.
+ */
+function aiChange(minutesAgo, step, jobId, eventId) {
   return cloudChange(
     minutesAgo,
     {
-      eventType: "scaling",
-      title: title,
-      description: `${AI_SESSION} ran UpdateService in account 123456789012 (us-east-1), on checkout.`,
+      eventType: "deployment",
+      title: "ecs:UpdateService on checkout",
+      description: `${AI_SESSION} ran ecs:UpdateService in account 123456789012 (us-east-1), on ${CHECKOUT_SERVICE_ARN}.`,
     },
     {
+      "oneuptime.cloud.operation": "ecs:UpdateService",
+      "oneuptime.cloud.event_id": eventId,
       "oneuptime.change.status": "succeeded",
       "cloud.region": "us-east-1",
       "oneuptime.cloud.actor": AI_SESSION,
-      "oneuptime.cloud.operation": "UpdateService",
+      "cloud.resource_id": CHECKOUT_SERVICE_ARN,
+      "oneuptime.resource.type": "CloudResource",
+      "oneuptime.resource.id": CHECKOUT_SERVICE_ID,
+      "oneuptime.cloud.resource_name": "checkout",
       "oneuptime.change.made_by": "oneuptime-ai",
-      "oneuptime.runner_job.id": "90000000-0000-4000-8000-000000000001",
+      "oneuptime.runner_job.id": jobId,
+      "oneuptime.ai.step": step,
       "oneuptime.auto_remediation_suggestion.id": AI_FIX_ID,
       "oneuptime.ai_run.id": "60000000-0000-4000-8000-000000000001",
-      "oneuptime.ai.step": step,
       "oneuptime.incident.id": AI_FIX_INCIDENT_ID,
     },
   );
 }
 
 if (dataState === "connected" && params.get("changes") === "ai") {
+  /*
+   * A rollback is the same operation on the same resource, and the recorder
+   * titles it the same way: its step (oneuptime.ai.step) is what says it
+   * undid the fix.
+   */
   CHANGES.push(
-    aiChange(39, "fix", "UpdateService on checkout"),
-    aiChange(30, "rollback", "UpdateService on checkout (rolled back)"),
+    aiChange(
+      39,
+      "fix",
+      "90000000-0000-4000-8000-000000000001",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b01",
+    ),
+    aiChange(
+      30,
+      "rollback",
+      "90000000-0000-4000-8000-000000000002",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b02",
+    ),
   );
   // Newest first, as the list reads them.
   CHANGES.sort((left, right) => {

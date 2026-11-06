@@ -604,6 +604,36 @@ export default Frame;
     ).toEqual([]);
   });
 
+  /*
+   * A form's cards drawn as the sections of the card or dialog the form is
+   * in (CardFormSections): Create Monitor's criteria step, inside the page's
+   * card. They were cards there from sm up, and are sections at every width.
+   */
+  test("leaves alone a form's cards drawn as its sections, in CardFormSections", () => {
+    expect(
+      scan(
+        page(`<Card title="Create New Monitor">
+      <CardFormSections className="mt-5 space-y-6">
+        <Card title="Monitor Target" />
+        <Card title="Monitor Criteria" />
+      </CardFormSections>
+    </Card>`),
+      ),
+    ).toEqual([]);
+  });
+
+  test("still finds a card in a card that is not drawn in CardFormSections", () => {
+    expect(
+      scan(
+        page(`<Card title="Create New Monitor">
+      <div className="mt-5 space-y-6">
+        <Card title="Monitor Target" />
+      </div>
+    </Card>`),
+      ),
+    ).toEqual(["Card in Card"]);
+  });
+
   test("leaves alone what draws no card: a table without a card, a card told to hide its card, a tile", () => {
     expect(
       scan({
@@ -657,6 +687,30 @@ export default Chart;
     ).toEqual([
       ["Card", true],
       ["p", false],
+    ]);
+  });
+
+  test("says which children of CardFormSections are not whole cards, too", () => {
+    const files: Record<string, string> = page(`<CardFormSections>
+      <Card title="Monitor Target" />
+      <div>Fields that are not a card</div>
+    </CardFormSections>`);
+    const children: Array<CardSectionsChild> = scanCardSectionsChildren(
+      Object.entries(files).map(
+        ([file, text]: [string, string]): CardNestingSource => {
+          return { file, text };
+        },
+      ),
+      makeImportResolver(new Set<string>(Object.keys(files))),
+    );
+
+    expect(
+      children.map((child: CardSectionsChild): [string, boolean] => {
+        return [child.element, child.isCard];
+      }),
+    ).toEqual([
+      ["Card", true],
+      ["div", false],
     ]);
   });
 

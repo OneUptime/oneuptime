@@ -551,9 +551,19 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
           <></>
         ) : (
           <div className="mt-2">
+            {/*
+             * The list on its own, framed, as Matching logs and Matching
+             * spans are: the fold already names it, so a card round it
+             * only said "Matching exceptions" a second time - and in the
+             * criteria step that card was drawn as a section of the step,
+             * a rule and a title inside "Exceptions to watch". A preview
+             * never reads or writes the page's address: a Time filter
+             * restored from it would replace the monitor's own filters.
+             */}
             <ExceptionInstanceTable
-              title="Matching exceptions"
-              description="Exceptions matching the current monitor filters."
+              isMinimalTable={true}
+              disableUrlState={true}
+              noItemsMessage="No exceptions match these filters right now."
               query={previewQuery}
             />
           </div>

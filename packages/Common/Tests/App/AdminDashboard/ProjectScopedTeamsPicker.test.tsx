@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../UI/Components/Forms/Fields/FieldError";
 import React from "react";
 import {
   afterEach,
@@ -908,6 +909,18 @@ describe("ProjectScopedTeamsPicker", () => {
     await settle();
 
     expect(onChange).not.toHaveBeenCalled();
+
+    /*
+     * In the field's place, drawn as every field's error is (FieldError):
+     * the error's own red - the light red it had read at 3.8:1 - said at
+     * once.
+     */
+    const line: HTMLElement = view.getByTestId("error-message");
+
+    expect(line).toHaveTextContent("Teams could not be loaded.");
+    expect(line).toHaveAttribute("role", "alert");
+    expect(line).toHaveClass("text-sm", FIELD_ERROR_COLOR_CLASS_NAME);
+    expect(line.className).not.toContain("text-red-500");
   });
 
   test("a members team that cannot be worked out only means nothing is picked", async () => {

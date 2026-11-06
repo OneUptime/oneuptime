@@ -29,6 +29,7 @@ jest.mock("@hcaptcha/react-hcaptcha", () => {
 });
 
 import Captcha from "../../../UI/Components/Captcha/Captcha";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../UI/Components/Forms/Fields/FieldError";
 import ThemeUtil, { Theme } from "../../../UI/Utils/Theme";
 
 afterEach(() => {
@@ -86,5 +87,48 @@ describe("the captcha's theme", () => {
 
     expect(screen.getByText("Captcha is not configured.")).toBeInTheDocument();
     expect(screen.queryByTestId("hcaptcha")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * The captcha's error is a field's error, drawn as every field's is
+ * (FieldError): the error's own red, said at once. It was a light red of
+ * its own, 3.8:1 on the white card.
+ */
+describe("the captcha's error", () => {
+  test("is the field's error line, in every field's red", () => {
+    render(<Captcha siteKey="site-key" error="Please verify you are human." />);
+
+    const line: HTMLElement = screen.getByTestId("error-message");
+
+    expect(line).toHaveTextContent("Please verify you are human.");
+    expect(line).toHaveAttribute("role", "alert");
+    expect(line).toHaveClass("text-sm", FIELD_ERROR_COLOR_CLASS_NAME);
+    expect(line.className).not.toContain("text-red-500");
+  });
+
+  test("without an error there is no error line", () => {
+    render(<Captcha siteKey="site-key" />);
+
+    expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
+  });
+
+  test("a captcha with no site key says so in the same red, unless the page places it", () => {
+    render(<Captcha siteKey="" />);
+
+    expect(screen.getByText("Captcha is not configured.")).toHaveClass(
+      "text-center",
+      "text-sm",
+      FIELD_ERROR_COLOR_CLASS_NAME,
+    );
+
+    cleanup();
+
+    render(<Captcha siteKey="" className="my-captcha" />);
+
+    expect(screen.getByText("Captcha is not configured.")).toHaveAttribute(
+      "class",
+      "my-captcha",
+    );
   });
 });
