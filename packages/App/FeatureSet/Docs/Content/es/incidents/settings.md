@@ -649,7 +649,7 @@ Las reglas guardadas antes de que el formulario preguntara por propietarios pued
 
 ## Reglas de guardia de incidentes
 
-**Incidentes → Reglas → Reglas de guardia** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) es donde automatizas los avisos. La tarjeta, **Reglas de guardia de incidentes**, dice lo que hacen: activar automáticamente políticas de guardia para los nuevos incidentes que coincidan. La página tiene dos pestañas: **Reglas de incidentes** y **Reglas de episodios**.
+**Incidentes → Reglas → Reglas de guardia** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) es donde automatizas los avisos. La tarjeta, **Reglas de guardia de incidentes**, dice lo que hacen: activar automáticamente políticas de guardia para los incidentes que coincidan, para que respondan o como observadores a los que se mantiene informados. La página tiene dos pestañas: **Reglas de incidentes** y **Reglas de episodios**.
 
 El formulario de creación tiene dos pasos:
 
@@ -659,6 +659,10 @@ El formulario de creación tiene dos pasos:
 :::
 
 Una regla avisa en cuanto un incidente coincide con ella. Para que espere al horario laboral, responde **¿Cuándo debe avisar esta regla?** en **Más campos** con **Solo en horario laboral**. El **Horario laboral** empieza de lunes a viernes, de 09:00 a 17:00, en tu propia zona horaria: elige otros días, otra **Hora de inicio** u **Hora de finalización**, u otra **Zona horaria**, y una frase bajo la opción dice lo que pasará. En la lista, la regla muestra su horario bajo su nombre. Un incidente que coincide fuera de ese horario recibe una ejecución que espera, como **Esperando**, y no avisa a nadie; cuando empieza el horario, la política activa su primera regla de escalado y escala como siempre. Si el incidente se reconoce o se resuelve antes, no se avisa a nadie. Si el incidente cambia mientras espera y ahora coincide con una regla que avisa de inmediato, por ejemplo porque se sube su gravedad, la ejecución empieza a avisar en ese momento, y el feed del incidente dice por qué.
+
+Una regla avisa a las personas de sus políticas para que respondan: reconocer el aviso reconoce el incidente. Para mantener informado a un equipo mientras otro responde, como un equipo de supervisión al que se avisa de cada incidente crítico, responde **Page the people of these policies as** en **Más campos** con **Observers**. Su aviso dice que son observadores, y reconocerlo solo dice que lo han visto: el incidente no se reconoce, no se detiene el aviso de nadie más y nadie pasa a ser su Comandante de incidente. Su aviso sigue hasta que uno de ellos responde o el incidente se resuelve, y una regla de Slack o Microsoft Teams que invita a los responsables de guardia al canal del incidente los deja fuera. En la lista, la regla dice bajo su nombre que avisa como observadores. Una política que una regla coincidente avisa para responder y otra como observadores avisa para responder.
+
+Las reglas se ejecutan cuando se declara un incidente, y de nuevo cada vez que cambian su gravedad o sus etiquetas mientras está abierto. Cuando se sube a una gravedad con la que coincide una regla, o recibe una etiqueta con la que coincide alguna, las políticas de esa regla avisan en ese momento, para responder o como observadores, y el feed del incidente dice que la regla ahora coincide con él, y por qué. Una política que ya avisó sobre el incidente no vuelve a avisar, salvo que avisara como observadores y ahora se le pida responder. No se deshace nada cuando el incidente deja de coincidir, y cambiar el título, la descripción o el monitor no vuelve a ejecutar las reglas.
 
 ### Cómo se resuelve la coincidencia
 

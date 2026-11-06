@@ -249,7 +249,7 @@ Certains éléments portent des détails supplémentaires — une notification a
 L'en-tête de la carte a aussi un menu **Actions** pour agir sans quitter la chronologie :
 
 - **Exécuter le runbook** — lance un [runbook](/docs/runbooks/index) sur cet incident.
-- **Exécuter la politique d'astreinte** — alerte une politique à la demande. Une politique archivée n'alerte personne : son journal d'exécution sur l'incident indique qu'elle n'a pas été exécutée parce que la politique est archivée.
+- **Exécuter la politique d'astreinte** — alerte une politique à la demande. Une politique archivée n'alerte personne : son journal d'exécution sur l'incident indique qu'elle n'a pas été exécutée parce que la politique est archivée. Activez **Page them as observers** pour plutôt tenir informées les personnes de la politique : leur réponse indique seulement qu'elles ont vu l'alerte, et l'incident n'est pas pris en compte.
 - **Ajouter une note publique** — l'éditeur de la page **Notes publiques**, dans une boîte de dialogue : rédigez la note, puis **Post update**. Les modèles, **Rédiger avec l'IA**, les pièces jointes, **Notifier les abonnés à la page de statut** avec qui elle atteindra, et **Aperçu** sont tous là. La note est publiée maintenant ; pour l'antidater, choisissez **Posted now**.
 - **Ajouter une note privée** — l'éditeur de la page **Notes privées**, dans une boîte de dialogue : rédigez la note, puis **Add note**.
 
@@ -304,7 +304,7 @@ Cinq chemins mènent à la liste des propriétaires :
 
 - **À la déclaration** — la personne qui déclare un incident en devient propriétaire, et **Propriétaires**, sous **Plus de champs** dans **Déclarer un incident**, en ajoute d'autres : chaque équipe dont elle est membre est à un clic, sous le champ. Voir [Qui en sera propriétaire](/docs/incidents/declaring-incidents#qui-en-sera-propriétaire).
 - **Depuis un modèle d'incident** — les modèles portent un champ **Propriétaires** : les personnes et les équipes propriétaires de l'incident, qui seront notifiées quand il est créé ou mis à jour, choisies dans la même liste qu'**Ajouter un propriétaire**. Créer un incident à partir du modèle les préremplit, et ils sont ajoutés une fois que les canaux Slack et Microsoft Teams de l'incident existent, si bien qu'une règle de notification qui invite les propriétaires d'incident dans un nouveau canal les invite aussi. Le tableau de bord, et l'étape **Create One Incident** d'un workflow avec un **Incident Template** choisi, les ajoutent sans la notification « vous avez été ajouté » ; un [formulaire](/docs/forms/on-submit) avec un modèle les notifie, et retient la notification **Incident créé** de l'incident jusqu'à ce qu'ils soient ajoutés. Voir [Déclarer un incident](/docs/incidents/declaring-incidents).
-- **Depuis les règles de propriétaire des incidents** — les règles correspondantes ajoutent des propriétaires automatiquement à la création.
+- **Depuis les règles de propriétaire des incidents** — les règles correspondantes ajoutent des propriétaires automatiquement à la création, puis de nouveau quand la gravité ou les étiquettes de l'incident changent.
 - **À la création par l'API** — les utilisateurs et équipes propriétaires passés avec l'appel de création sont ajoutés de la même façon, une fois les canaux créés, et sans la notification « vous avez été ajouté ».
 - **À la main** — le contrôle **Ajouter un propriétaire** de la page **Propriétaires**, à tout moment de l'incident, ou **Ajouter** sous les propriétaires dans l'en-tête de la **Vue d'ensemble** tant qu'il est ouvert.
 
@@ -324,6 +324,8 @@ Une nouvelle règle doit ajouter quelqu'un : choisissez au moins un propriétair
 **Notifier les propriétaires**, sous **Plus de champs**, décide si les personnes sont prévenues. Laissez-le activé pour un véritable acheminement ; désactivez-le pour ajouter des propriétaires en silence — utile quand une règle est une commodité de suivi plutôt qu'une alerte.
 
 Chaque exécution de règle est écrite dans le fil d'activité de l'incident, si bien que vous pouvez toujours savoir si une personne a été ajoutée par une règle ou par un humain.
+
+Les règles s'exécutent quand un incident est déclaré, puis de nouveau chaque fois que sa gravité ou ses étiquettes changent tant qu'il est ouvert. Un incident dont la gravité est relevée à un niveau auquel une règle correspond, ou qui reçoit une étiquette à laquelle une règle correspond, reçoit alors les propriétaires de cette règle, notifiés comme la règle le dit, et son fil d'activité indique que la règle lui correspond désormais, et pourquoi : c'est ainsi qu'une équipe reprend un incident dès qu'il s'avère toucher toute l'organisation. Les propriétaires ne sont jamais retirés quand l'incident ne correspond plus.
 
 ## Ce dont les propriétaires sont notifiés
 

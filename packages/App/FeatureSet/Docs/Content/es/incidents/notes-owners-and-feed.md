@@ -249,7 +249,7 @@ Algunos elementos llevan detalles adicionales —una notificación a propietario
 La cabecera de la tarjeta también tiene un menú **Acciones** para que puedas actuar sin salir de la cronología:
 
 - **Ejecutar runbook** — inicia un [runbook](/docs/runbooks/index) sobre este incidente.
-- **Ejecutar política de guardia** — avisa a una política bajo demanda. Una política archivada no avisa a nadie: su registro de ejecución en el incidente dice que no se ejecutó porque la política está archivada.
+- **Ejecutar política de guardia** — avisa a una política bajo demanda. Una política archivada no avisa a nadie: su registro de ejecución en el incidente dice que no se ejecutó porque la política está archivada. Activa **Page them as observers** para mantener informadas a las personas de la política en su lugar: su respuesta solo dice que han visto el aviso, y el incidente no se reconoce.
 - **Añadir nota pública** — el editor de la página **Notas públicas**, en un diálogo: escribe la nota y luego **Post update**. Las plantillas, **Redactar con IA**, los adjuntos, **Notificar a los suscriptores de la página de estado** con a quién llegará, y **Vista previa** están todos ahí. La nota se publica ahora; para ponerle una fecha anterior, elige **Posted now**.
 - **Añadir nota privada** — el editor de la página **Notas privadas**, en un diálogo: escribe la nota y luego **Add note**.
 
@@ -304,7 +304,7 @@ Hay cinco caminos para llegar a la lista de propietarios:
 
 - **Al declararlo** — la persona que declara un incidente pasa a ser propietaria, y **Propietarios**, en **Más campos** de **Declarar incidente**, añade más: cada equipo del que es miembro está a un clic, debajo del campo. Consulta [Quién será su propietario](/docs/incidents/declaring-incidents#quién-será-su-propietario).
 - **Desde una plantilla de incidente** — las plantillas llevan un campo **Propietarios**: las personas y los equipos propietarios del incidente, a los que se notificará cuando se cree o se actualice, elegidos de la misma lista que **Añadir propietario**. Crear un incidente desde la plantilla los rellena, y se añaden una vez que existen los canales de Slack y Microsoft Teams del incidente, así que una regla de notificación que invita a los propietarios del incidente a un canal nuevo también los invita a ellos. El panel, y el paso **Create One Incident** de un flujo de trabajo con un **Incident Template** elegido, los añaden sin la notificación de «te han añadido»; un [formulario](/docs/forms/on-submit) con plantilla los notifica, y retiene la notificación **Incidente creado** del incidente hasta que se añaden. Consulta [Declarar un incidente](/docs/incidents/declaring-incidents).
-- **Desde las reglas de propietario de incidentes** — las reglas que coinciden añaden propietarios automáticamente en el momento de la creación.
+- **Desde las reglas de propietario de incidentes** — las reglas que coinciden añaden propietarios automáticamente en el momento de la creación, y de nuevo cuando cambian la gravedad o las etiquetas del incidente.
 - **En la creación por la API** — los usuarios y equipos propietarios que se pasan con la llamada de creación se añaden de la misma forma, una vez que existen los canales, y sin la notificación de «te han añadido».
 - **A mano** — el control **Añadir propietario** de la página **Propietarios**, en cualquier momento del incidente, o **Añadir** debajo de los propietarios en la cabecera de la **Vista general** mientras está abierto.
 
@@ -324,6 +324,8 @@ Una regla nueva tiene que añadir a alguien: elige al menos un propietario, acti
 **Notificar a los propietarios**, en **Más campos**, controla si las personas se enteran. Déjalo activado para un enrutamiento real; desactívalo para añadir propietarios en silencio, útil cuando una regla es una comodidad de registro más que un aviso.
 
 Cada ejecución de una regla se escribe en el feed del incidente, así que siempre puedes saber si a una persona la añadió una regla o un humano.
+
+Las reglas se ejecutan cuando se declara un incidente, y de nuevo cada vez que cambian su gravedad o sus etiquetas mientras está abierto. Un incidente que se sube a una gravedad con la que coincide una regla, o que recibe una etiqueta con la que coincide alguna, recibe en ese momento los propietarios de esa regla, notificados como dice la regla, y su feed dice que la regla ahora coincide con él, y por qué: así un equipo se hace cargo de un incidente en cuanto resulta afectar a toda la organización. Los propietarios nunca se quitan cuando el incidente deja de coincidir.
 
 ## De qué se notifica a los propietarios
 

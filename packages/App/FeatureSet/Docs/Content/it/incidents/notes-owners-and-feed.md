@@ -249,7 +249,7 @@ Alcune voci portano dettagli in più — una notifica ai proprietari elenca tutt
 L'intestazione della scheda ha anche un menu **Azioni** per agire senza lasciare la cronologia:
 
 - **Execute Runbook** — avvia un [runbook](/docs/runbooks/index) su questo incidente.
-- **Esegui criterio di reperibilità** — avvisa una policy su richiesta. Una policy archiviata non avvisa nessuno: il suo registro di esecuzione sull'incidente dice che non è stata eseguita perché la policy è archiviata.
+- **Esegui criterio di reperibilità** — avvisa una policy su richiesta. Una policy archiviata non avvisa nessuno: il suo registro di esecuzione sull'incidente dice che non è stata eseguita perché la policy è archiviata. Attiva **Page them as observers** per tenere invece informate le persone della policy: la loro risposta dice solo che hanno visto la chiamata, e l'incidente non viene riconosciuto.
 - **Add Public Note** — l'editor della pagina **Note pubbliche**, in una finestra: scrivete la nota, poi **Post update**. I modelli, **Bozza con IA**, gli allegati, **Notify status page subscribers** con chi raggiungerà, e **Anteprima** sono tutti lì. La nota viene pubblicata adesso; per retrodatarla, scegliete **Posted now**.
 - **Aggiungi nota privata** — l'editor della pagina **Note private**, in una finestra: scrivete la nota, poi **Add note**.
 
@@ -304,7 +304,7 @@ Ci sono cinque strade per entrare nell'elenco dei proprietari:
 
 - **Alla dichiarazione** — la persona che dichiara un incidente ne diventa proprietaria, e **Proprietari**, sotto **Altri campi** in **Dichiara incidente**, ne aggiunge altri: ogni team di cui è membro è a un clic, sotto il campo. Vedete [Chi ne sarà proprietario](/docs/incidents/declaring-incidents#chi-ne-sarà-proprietario).
 - **Da un modello di incidente** — i modelli portano un campo **Proprietari**: le persone e i team proprietari dell'incidente, che verranno avvisati quando viene creato o aggiornato, scelti dallo stesso elenco di **Aggiungi proprietario**. Creare un incidente dal modello li precompila, e vengono aggiunti una volta che esistono i canali Slack e Microsoft Teams dell'incidente, così una regola di notifica che invita i proprietari degli incidenti in un nuovo canale invita anche loro. La dashboard, e il passaggio **Create One Incident** di un workflow con un **Incident Template** scelto, li aggiungono senza la notifica «siete stati aggiunti»; un [modulo](/docs/forms/on-submit) con un modello li avvisa, e trattiene la notifica **Incidente creato** dell'incidente finché non vengono aggiunti. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents).
-- **Dalle regole dei proprietari degli incidenti** — le regole corrispondenti aggiungono proprietari automaticamente al momento della creazione.
+- **Dalle regole dei proprietari degli incidenti** — le regole corrispondenti aggiungono proprietari automaticamente al momento della creazione, e di nuovo quando cambiano la gravità o le etichette dell'incidente.
 - **Alla creazione tramite l'API** — gli utenti e i team proprietari passati con la chiamata di creazione vengono aggiunti allo stesso modo, una volta che esistono i canali, e senza la notifica «siete stati aggiunti».
 - **A mano** — il controllo **Aggiungi proprietario** della pagina **Proprietari**, in qualsiasi momento dell'incidente, oppure **Aggiungi** sotto i proprietari nell'intestazione della **Panoramica** finché è aperto.
 
@@ -324,6 +324,8 @@ Una nuova regola deve aggiungere qualcuno: scegliete almeno un proprietario, att
 **Notifica ai proprietari**, sotto **Altri campi**, stabilisce se le persone vengono informate. Lasciatelo attivo per un vero instradamento; disattivatelo per aggiungere proprietari in silenzio — utile quando una regola è una comodità di registrazione più che un avviso.
 
 Ogni esecuzione di una regola viene scritta nel feed dell'incidente, così potete sempre sapere se una persona è stata aggiunta da una regola o da un essere umano.
+
+Le regole vengono eseguite quando un incidente viene dichiarato, e di nuovo ogni volta che la sua gravità o le sue etichette cambiano mentre è aperto. Un incidente la cui gravità viene alzata a un livello a cui corrisponde una regola, o che riceve un'etichetta a cui ne corrisponde una, riceve in quel momento i proprietari di quella regola, avvisati come dice la regola, e il suo feed dice che la regola ora gli corrisponde, e perché: così un team prende in carico un incidente appena si scopre che riguarda tutta l'organizzazione. I proprietari non vengono mai rimossi quando l'incidente smette di corrispondere.
 
 ## Di che cosa vengono avvisati i proprietari
 

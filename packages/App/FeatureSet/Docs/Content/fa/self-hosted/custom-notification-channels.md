@@ -79,6 +79,7 @@ flowchart TB
   "onCallPolicy": { "id": "1d4e…", "name": "Primary" },
   "escalationRule": { "id": "7b2f…", "name": "Level 1" },
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": {
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
@@ -98,6 +99,7 @@ flowchart TB
 | `recordType`، `record` | فراخوان دربارهٔ چیست: یک `incident`، `alert`، `incidentEpisode` یا `alertEpisode` |
 | `onCallPolicy`، `escalationRule` | سیاست و سطحی که فرد را فراخواند |
 | `isPageAgain` | `true` وقتی رکورد مدتی پیش تأیید شده و هنوز برطرف نشده است |
+| `isObserverPage` | وقتی فرد به‌عنوان ناظر فراخوانده می‌شود `true` است: در جریان قرار می‌گیرد در حالی که دیگران پاسخ می‌دهند. تأیید فراخوانش فقط نشان می‌دهد که آن را دیده است |
 | `actions` | پیوندهایی که سرویس شما برای [اقدام روی فراخوان](#اقدام-روی-یک-فراخوان) فرا می‌خواند |
 
 فراخوانی که برای چند نفر است، برای هر نفر یک درخواست است، هر کدام با پیوندهای خودِ همان فرد، تا OneUptime بداند چه کسی پاسخ داد. عنوان، پیام و توضیح روی هم حداکثر 16,384 نویسه‌اند؛ توضیح بلندتر بریده می‌شود و با «… (truncated — see OneUptime for the full text)» پایان می‌یابد.
@@ -170,6 +172,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
   "onCallPolicy": null,
   "escalationRule": null,
   "isPageAgain": false,
+  "isObserverPage": false,
   "actions": null,
   "notificationType": "Send incident state changed notification when I am the owner of the incident",
   "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"

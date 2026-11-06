@@ -249,7 +249,7 @@ Vissa poster har extra detaljer — en avisering till ägarna listar till exempe
 Kortets rubrik har också en meny **Åtgärder**, så att du kan agera utan att lämna tidslinjen:
 
 - **Execute Runbook** — starta ett [runbook](/docs/runbooks/index) för den här incidenten.
-- **Kör jourpolicy** — larma en policy på begäran. En arkiverad policy larmar ingen: dess körningslogg på incidenten säger att den inte kördes eftersom policyn är arkiverad.
+- **Kör jourpolicy** — larma en policy på begäran. En arkiverad policy larmar ingen: dess körningslogg på incidenten säger att den inte kördes eftersom policyn är arkiverad. Slå på **Page them as observers** för att i stället hålla policyns personer informerade: deras svar säger bara att de har sett larmet, och incidenten bekräftas inte.
 - **Add Public Note** — redigeraren från sidan **Offentliga anteckningar**, i en dialog: skriv anteckningen, och sedan **Post update**. Mallar, **Utkast med AI**, bilagor, **Notify status page subscribers** med vem den når, och **Förhandsgranskning** finns alla där. Anteckningen publiceras nu; för att bakåtdatera den väljer du **Posted now**.
 - **Lägg till privat anteckning** — redigeraren från sidan **Privata anteckningar**, i en dialog: skriv anteckningen, och sedan **Add note**.
 
@@ -304,7 +304,7 @@ Det finns fem vägar in på listan över ägare:
 
 - **Vid deklarering** — den som deklarerar en incident blir ägare, och **Ägare** under **Fler fält** i **Deklarera incident** lägger till fler: varje team som personen är medlem i finns ett klick bort under fältet. Se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 - **Från en incidentmall** — mallar har ett fält **Ägare**: personerna och teamen som äger incidenten och meddelas när den skapas eller uppdateras, valda från samma lista som **Lägg till ägare**. Att skapa en incident från mallen förifyller dem, och de läggs till när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem. Instrumentpanelen, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, lägger till dem utan aviseringen "du har lagts till"; ett [formulär](/docs/forms/on-submit) med en mall meddelar dem och håller tillbaka incidentens avisering **Incident skapad** tills de har lagts till. Se [Deklarera en incident](/docs/incidents/declaring-incidents).
-- **Från Ägarregler för incidenter** — matchande regler lägger till ägare automatiskt när incidenten skapas.
+- **Från Ägarregler för incidenter** — matchande regler lägger till ägare automatiskt när incidenten skapas, och igen när dess allvarlighetsgrad eller etiketter ändras.
 - **Vid skapande via API:t** — användare och team som anges som ägare med skapandeanropet läggs till på samma sätt, när kanalerna finns, och utan aviseringen "du har lagts till".
 - **By hand** — kontrollen **Lägg till ägare** på sidan **Ägare**, när som helst under incidenten, eller **Lägg till** under ägarna i rubriken på **Översikt** så länge den är öppen.
 
@@ -324,6 +324,8 @@ En ny regel måste lägga till någon: välj minst en ägare, slå på ett regla
 **Avisera ägare**, under **Fler fält**, styr om folk får veta det. Låt det vara påslaget för riktig dirigering; stäng av det för att lägga till ägare tyst — användbart när en regel är en administrativ bekvämlighet och inte ett larm.
 
 Varje körning av en regel skrivs i incidentens flöde, så att du alltid kan se om en person lades till av en regel eller av en människa.
+
+Regler körs när en incident deklareras, och igen varje gång dess allvarlighetsgrad eller etiketter ändras medan den är öppen. En incident som höjs till en allvarlighetsgrad som en regel matchar, eller får en etikett som en regel matchar, får då den regelns ägare, aviserade som regeln säger, och dess flöde säger att regeln nu matchar den, och varför: så tar ett team över en incident så snart det visar sig att den berör hela organisationen. Ägare tas aldrig bort när incidenten slutar matcha.
 
 ## Vad ägarna meddelas om
 
