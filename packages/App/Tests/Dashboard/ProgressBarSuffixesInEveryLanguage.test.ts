@@ -57,7 +57,7 @@ const SUFFIXES_GIVEN_AT_RUN_TIME: ReadonlyMap<string, string> = new Map<
   ["options.pluralLabel", "the list's plural label"],
 ]);
 
-// Languages without a "one" form never read a "_one" key.
+// A suffix with no words of its own reads the same in every language.
 const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
 const LETTER: RegExp = /\p{L}/u;
 
@@ -295,7 +295,7 @@ describe("the progress bars' suffixes", () => {
   });
 
   test("a suffix not written out is one this suite knows the words of", () => {
-    const unknown: Array<string> = SUFFIXES.filter(
+    const unlisted: Array<string> = SUFFIXES.filter(
       (suffix: ProgressBarSuffix): boolean => {
         return (
           suffix.key === undefined &&
@@ -308,7 +308,7 @@ describe("the progress bars' suffixes", () => {
      * Write the suffix as a translationKey() constant, or list the
      * expression above with where its words come from.
      */
-    expect(unknown).toEqual([]);
+    expect(unlisted).toEqual([]);
   });
 
   test("every suffix written out is a Dashboard key", () => {

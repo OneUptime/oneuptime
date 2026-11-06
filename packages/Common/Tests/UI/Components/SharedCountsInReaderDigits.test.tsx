@@ -156,9 +156,7 @@ describe("a filter button's count", () => {
       />,
     );
 
-    expect(screen.getByTestId("severity-critical").textContent).toBe(
-      "بحرانی",
-    );
+    expect(screen.getByTestId("severity-critical").textContent).toBe("بحرانی");
     expect(screen.getByTestId("severity-all").textContent).toBe(
       "All severities",
     );
@@ -390,8 +388,8 @@ describe("the command palette's result count", () => {
       await Promise.resolve();
     });
 
-    expect(
-      screen.getByTestId("command-palette-result-count").textContent,
-    ).toBe("3 results");
+    expect(screen.getByTestId("command-palette-result-count").textContent).toBe(
+      "3 results",
+    );
   });
 });

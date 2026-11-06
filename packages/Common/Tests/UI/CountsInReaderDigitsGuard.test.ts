@@ -179,10 +179,7 @@ function drawnValues(expression: ts.Expression): Array<ts.Expression> {
   return [expression];
 }
 
-function findRawCounts(
-  file: string,
-  text: string,
-): Array<RawCountFinding> {
+function findRawCounts(file: string, text: string): Array<RawCountFinding> {
   const source: ts.SourceFile = ts.createSourceFile(
     file,
     text,

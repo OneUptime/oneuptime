@@ -135,12 +135,18 @@ describe.each(APPS)("the %s's progress sentences", (app: string) => {
         expect(template).not.toBe(key);
 
         for (const placeholder of ["{{count}}", "{{total}}", SUFFIX]) {
-          expect({ language, key, uses: template.split(placeholder).length })
-            .toEqual({ language, key, uses: 2 });
+          expect({
+            language,
+            key,
+            uses: template.split(placeholder).length,
+          }).toEqual({ language, key, uses: 2 });
         }
 
-        expect({ language, template, names: suffixNamesWhatIsCounted(template) })
-          .toEqual({ language, template, names: true });
+        expect({
+          language,
+          template,
+          names: suffixNamesWhatIsCounted(template),
+        }).toEqual({ language, template, names: true });
       }
     },
   );
@@ -203,10 +209,7 @@ describe("the bar as a Hindi, Korean and Japanese reader reads it", () => {
   }
 
   test.each([
-    [
-      "recommended monitors created",
-      "7 में से 3 सुझाए गए मॉनिटर बनाए गए",
-    ],
+    ["recommended monitors created", "7 में से 3 सुझाए गए मॉनिटर बनाए गए"],
     ["stores checked", "7 में से 3 स्टोर जांचे गए"],
     [
       "stores with their content scanned",

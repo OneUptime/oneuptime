@@ -856,9 +856,9 @@ describe("choosing the hosts", () => {
     await search("10.48.11.");
 
     // 10.48.11.1 and .2; .3 is already added and cannot be ticked.
-    expect(screen.getByTestId("discovered-host-select-shown")).toHaveTextContent(
-      "Select all 2",
-    );
+    expect(
+      screen.getByTestId("discovered-host-select-shown"),
+    ).toHaveTextContent("Select all 2");
     expect(screen.getByTestId("discovered-device-select-all")).toHaveAttribute(
       "aria-label",
       "Select the 2 hosts shown",

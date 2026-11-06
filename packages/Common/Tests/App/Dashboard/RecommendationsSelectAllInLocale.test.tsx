@@ -176,7 +176,9 @@ function renderIn(language: string): void {
 }
 
 function section(category: string): HTMLElement {
-  return screen.getByTestId(`${RECOMMENDATION_CATEGORY_TEST_ID_PREFIX}${category}`);
+  return screen.getByTestId(
+    `${RECOMMENDATION_CATEGORY_TEST_ID_PREFIX}${category}`,
+  );
 }
 
 // What `language` says for selecting `count`, from its shipped locale.
@@ -239,7 +241,11 @@ describe("a section of one recommendation offers no Select all", () => {
 });
 
 describe("the sentence's words in every language", () => {
-  test.each(LANGUAGES.filter((language: string) => language !== "en"))(
+  test.each(
+    LANGUAGES.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )(
     "%s words Select all {{count}} with the count in it, once",
     (language: string) => {
       const words: string | undefined = LOCALES[language]![SELECT_ALL];
