@@ -1,12 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, type ViewStyle } from "react-native";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import Card, { type CardVariant } from "./Card";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
@@ -91,6 +85,9 @@ function flat(element: RenderedElement): ViewStyle {
 function noop(): void {
   return undefined;
 }
+
+// Pressability's DEFAULT_MIN_PRESS_DURATION: how long a quick press looks pressed.
+const MIN_PRESS_DURATION_MS: number = 130;
 
 describe("A static card", () => {
   test("renders its children inside a plain view, not a button", async () => {
@@ -298,24 +295,37 @@ describe("A pressable card", () => {
     });
   });
 
+  /*
+   * A press let go of sooner than Pressability's minimum press duration (130
+   * ms in react-native's Pressability) keeps its pressed look until then, on
+   * a timer. The test let go at once and waited in real time for that timer,
+   * which a busy CI runner let pass the wait (main's MobileApp Test, run
+   * 42175592349): the clock is run out here instead.
+   */
   test("letting go restores the resting surface and runs onPress", async () => {
-    const onPress: jest.Mock = jest.fn();
-    await render(
-      <Card onPress={onPress} testID="card">
-        <Text>Incident 42</Text>
-      </Card>,
-    );
-    const card: RenderedElement = screen.getByTestId("card");
+    jest.useFakeTimers();
+    try {
+      const onPress: jest.Mock = jest.fn();
+      await render(
+        <Card onPress={onPress} testID="card">
+          <Text>Incident 42</Text>
+        </Card>,
+      );
+      const card: RenderedElement = screen.getByTestId("card");
 
-    await holdDown(card);
-    await letGo(card);
+      await holdDown(card);
+      await letGo(card);
 
-    expect(onPress).toHaveBeenCalledTimes(1);
-    await waitFor(() => {
+      expect(onPress).toHaveBeenCalledTimes(1);
+      await act(async (): Promise<void> => {
+        jest.advanceTimersByTime(MIN_PRESS_DURATION_MS);
+      });
       expect(flat(screen.getByTestId("card")).backgroundColor).toBe(
         lightColors.backgroundElevated,
       );
-    });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test("a caller's style still wins while pressed", async () => {
