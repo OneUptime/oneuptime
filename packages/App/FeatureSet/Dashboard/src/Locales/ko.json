@@ -45280,5 +45280,17 @@
   "A new column holds personal data": "새 열에 개인 데이터가 있습니다",
   "A column added in the last 14 days has a name that says it holds personal data.": "최근 14일 이내에 추가된 열의 이름이 개인 데이터를 담고 있음을 나타냅니다.",
   "A migration can start collecting personal data without anyone deciding it should. Catching it the day it ships is when it is cheapest to mask, move or drop.": "마이그레이션이 아무도 정하지 않았는데 개인 데이터를 수집하기 시작할 수 있습니다. 배포되는 날 발견하면 마스킹, 이동, 삭제 비용이 가장 적게 듭니다.",
-  "Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it.": "이 열이 이 데이터를 담아도 되는지 확인하고 이유를 기록하세요. 그렇지 않다면 열을 삭제하거나 쓰기를 중단하세요."
+  "Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it.": "이 열이 이 데이터를 담아도 되는지 확인하고 이유를 기록하세요. 그렇지 않다면 열을 삭제하거나 쓰기를 중단하세요.",
+  "A span in this trace holds this request's ID.": "이 트레이스의 스팬에 이 요청의 ID가 담겨 있습니다.",
+  "A trace follows a request over RPC and over HTTP calls between services. Work a service does later on a thread of its own, as nova-compute does to build an instance, starts new traces under the same request ID.": "트레이스는 RPC와 서비스 간 HTTP 호출을 거치는 요청을 따라갑니다. nova-compute가 인스턴스를 만들 때처럼 서비스가 나중에 자체 스레드에서 하는 작업은 같은 요청 ID로 새 트레이스를 시작합니다.",
+  "A trace follows a request over RPC, from nova-api to nova-conductor, nova-scheduler and nova-compute. It does not cross an HTTP call: when Nova asks Neutron something, that is a trace of its own. One line in keystoneauth joins them, in the guide.": "트레이스는 nova-api에서 nova-conductor, nova-scheduler, nova-compute에 이르는 RPC를 거치는 요청을 따라갑니다. HTTP 호출은 넘어가지 못합니다. Nova가 Neutron에 무언가를 요청하면 그것은 별도의 트레이스입니다. keystoneauth의 한 줄이 이를 연결하며, 가이드에 있습니다.",
+  "Every request, with nothing signed": "서명 없이 모든 요청",
+  "How to turn it on": "켜는 방법",
+  "On 2026.2, OpenStack's own tracing can trace every API request with nothing signed.": "2026.2에서는 OpenStack 자체 추적이 서명 없이 모든 API 요청을 추적할 수 있습니다.",
+  "OpenStack's own tracing is on, so every API request is traced with nothing signed. This says what has been traced, not how the cloud is doing.": "OpenStack 자체 추적이 켜져 있으므로 모든 API 요청이 서명 없이 추적됩니다. 이것은 무엇이 추적되었는지를 보여 줄 뿐, 클라우드의 상태를 나타내지는 않습니다.",
+  "OpenStack's own tracing, on 2026.2 only.": "OpenStack 자체 추적, 2026.2에서만 가능합니다.",
+  "OpenStack's own tracing, with nothing signed. A trace follows a request over RPC and stops at an HTTP call to another service, so what Neutron, Glance or Keystone did for this request is not in it.": "서명 없는 OpenStack 자체 추적입니다. 트레이스는 RPC를 거치는 요청을 따라가다 다른 서비스로의 HTTP 호출에서 멈추므로, 이 요청을 위해 Neutron, Glance, Keystone이 한 일은 포함되지 않습니다.",
+  "OpenStack's own tracing, with nothing signed. This trace goes on across HTTP calls, because this cloud has the guide's line in keystoneauth.": "서명 없는 OpenStack 자체 추적입니다. 이 클라우드에는 가이드의 keystoneauth 한 줄이 적용되어 있어 이 트레이스는 HTTP 호출을 넘어서도 이어집니다.",
+  "This trace's spans name their requests, so nothing here is a guess.": "이 트레이스의 스팬에는 요청이 명시되어 있으므로 추측이 전혀 없습니다.",
+  "What your widest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health.": "가장 폭넓은 트레이스가 거친 경로입니다. 어떤 서비스가 어떤 서비스를 얼마나 자주, 얼마나 오래 호출했는지 보여 줍니다. 추적된 요청이 닿지 않은 서비스는 표시되지 않으며, 이는 그 서비스의 상태에 대해 아무것도 알려 주지 않습니다."
 }

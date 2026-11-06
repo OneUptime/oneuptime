@@ -1204,7 +1204,7 @@ CADF イベントには、保持すべきでないものが含まれることが
 
 ## コントロールプレーンでリクエストをトレースする
 
-「インスタンスの起動に 4 分もかかるのはなぜか」という問いは、Nova、Neutron、Keystone、Glance をまたぎ、ログは断片しか示しません。トレースは、時間がどこで費やされたかを示します。OpenStack でそれを行う方法が [OSProfiler](https://docs.openstack.org/osprofiler/latest/) で、OneUptime は、それが送るものを[トレース](/docs/telemetry/traces-explorer)に、クラウドの構成要素とそのログに結び付けて表示します。
+「インスタンスの起動に 4 分もかかるのはなぜか」という問いは、Nova、Neutron、Keystone、Glance をまたぎ、ログは断片しか示しません。トレースは、時間がどこで費やされたかを示します。OpenStack でそれを行う方法が [OSProfiler](https://docs.openstack.org/osprofiler/latest/) で、OneUptime は、それが送るものを[トレース](/docs/telemetry/traces-explorer)に、クラウドの構成要素とそのログに結び付けて表示します。2026.2 には、何も署名しなくてよい [OpenStack 自身のトレース](#openstack-自身のトレース)もあります。
 
 何をオンにするのかを理解しておいてください。
 
@@ -1221,6 +1221,7 @@ CADF イベントには、保持すべきでないものが含まれることが
 - [トレースをオンにする](#トレースをオンにする): Collector、ライブラリ、設定。
 - [リクエストをトレースする](#リクエストをトレースする): お使いのクラウド用のコマンドと、そのトレースの場所。
 - [トレースのコスト](#トレースのコスト): 数えたものと、誰も測定していないもの。
+- [OpenStack 自身のトレース](#openstack-自身のトレース): 2026.2 で、何も署名せずにすべての API リクエストを。
 :::
 
 ### トレースが示すもの
@@ -1349,7 +1350,7 @@ unset OS_PROFILE
 
 ### トレースのコスト
 
-リクエストに署名するまでは、何もかかりません。OSProfiler がオンで何も署名されていない場合、リクエストにかかるコストは、ヘッダーの確認が 1 回失敗する分だけです。署名付きリクエストのコストについて、OpenStack は[数値を示しておらず](https://docs.openstack.org/osprofiler/latest/user/integration.html)、誰も測定していないため、私たちも示していません。署名付きリクエストは、通過するすべてのサービスでより多くの処理を行い、それぞれからすべてのスパンを HTTP で送信し、お客様のキーをメッセージバス上のコンテキストの中で運びます。署名するのは、調べようとしているものであって、トラフィックではありません。
+OSProfiler だけの場合、リクエストに署名するまでは、何もかかりません。OSProfiler がオンで何も署名されていない場合、リクエストにかかるコストは、ヘッダーの確認が 1 回失敗する分だけです。署名付きリクエストのコストについて、OpenStack は[数値を示しておらず](https://docs.openstack.org/osprofiler/latest/user/integration.html)、誰も測定していないため、私たちも示していません。署名付きリクエストは、通過するすべてのサービスでより多くの処理を行い、それぞれからすべてのスパンを HTTP で送信し、お客様のキーをメッセージバス上のコンテキストの中で運びます。署名するのは、調べようとしているものであって、トラフィックではありません。
 
 数えたのは、1 台のマシンの DevStack で署名付きの起動が送信するものです。
 
@@ -1363,6 +1364,8 @@ unset OS_PROFILE
 
 Collector を停止しても、署名付きの起動は動作し、そのスパンは失われました。そのため、トレースがリクエストの妨げになることはありませんでした。
 
+2026.2 で、まだ eventlet 上で動く `cinder-volume` が、再起動後にコアを 1 つ丸ごと使い続けることがありました。ほとんどは OSProfiler のドライバーがオンのときで、オフのときも 1 度ありました。もう一度再起動すると収まりました。原因は分かっていないため、マシンが高負荷になったら、まずそこを調べてください。
+
 ### スパンが保持するもの
 
 OSProfiler のドライバーは、トレースされた呼び出しに渡されたものを、Python が出力するのと同じ形式でスパンにコピーします。インスタンスの管理者パスワードとユーザーデータ、ボリュームの接続情報などです。Collector は、`args`、`kwargs`、`result`、`db.params` をマシンから出る前に取り除き、OneUptime は、別の経路で届いたスパンについて、到着時にそれらを取り除きます。これをオフにする方法はありません。`trace_sqlalchemy` のステートメントはプレースホルダーのまま保持され、値は保持されません。
@@ -1371,7 +1374,57 @@ OSProfiler のドライバーは、トレースされた呼び出しに渡され
 
 ### スケジュールによるトレース
 
-トレースが存在するのは、リクエストが署名されたときだけなので、ここにあるものがクラウドを自動的にトレースすることはありません。[ライフサイクルチェック](#ライフサイクルチェック)は、キーが渡されると自身の書き込みに署名し、各ステップがそれぞれ別のトレースになるため、検出された遅い起動にはトレースがあります。キーは、OneUptime がキーを保持する唯一の場所です。暗号化され、書き込み専用で、このチェックだけのためのものです。
+OSProfiler だけの場合、トレースが存在するのは、リクエストが署名されたときだけなので、ここにあるものがクラウドを自動的にトレースすることはありません。[ライフサイクルチェック](#ライフサイクルチェック)は、キーが渡されると自身の書き込みに署名し、各ステップがそれぞれ別のトレースになるため、検出された遅い起動にはトレースがあります。キーは、OneUptime がキーを保持する唯一の場所です。暗号化され、書き込み専用で、このチェックだけのためのものです。
+
+### OpenStack 自身のトレース
+
+2026.2 では、oslo.messaging 18.3.1 と oslo.middleware 8.2.0 が、何も署名せずにすべての API リクエストをトレースします。それ以前のリリースにはありません。[上の手順](#トレースをオンにする)は残してください。各サービスに送信用のトレーサーを与えるのは OSProfiler のドライバーで、それがないと oslo.messaging はすべての呼び出しで `has no attribute 'trace_exporter'` を出して失敗します。
+
+次を、各サービスの設定の `[profiler]` の隣に追加します。
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+次を `nova.conf`、`neutron.conf`、`cinder.conf`、`glance-api.conf` に追加します。`service_name` はその API 自身の名前、`otlp_endpoint` は Collector の `connection_string` が指す先にします。
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+次のフィルターを、それらの API の paste ファイルに追加し、各パイプラインの `osprofiler` の直前に `otel_tracing` を追加します。その後、再起動します。
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+これで、トレースは RPC を通じてリクエストを追います。起動は、`nova-api` から `nova-conductor` と `nova-scheduler` を経て `nova-compute` まで、1 つのトレースになり、それらのスパンにはログと同じリクエスト ID が入っているので、その[ログ](#トレースからそのログへ)を推測で探す必要はありません。HTTP 呼び出しはまたがないため、Nova が Neutron に問い合わせるものは、それ自身のトレースになります。`keystone` と Placement にはフィルターを追加できるパイプラインがなく、`cinder-volume` もここでは何も送信しません。どちらを送っているかは、**トレース**ページで分かります。
+
+トレースを HTTP 呼び出しをまたいで運ぶには、各サービスが動く場所の keystoneauth に 1 行追加します。これはお使いのマシン上の OpenStack のコードへの変更なので、アップグレードをまたいで維持するのはお客様です。
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+これで、起動のトレースは、`nova-api` が問い合わせる Neutron と Glance もまたぎます。`nova-compute` は専用のスレッドでインスタンスを構築し、同じリクエスト ID の下で新しいトレースを開始するため、そこから Neutron への問い合わせは、起動のトレースに入りません。
+
+コンピュートノード 1 台と読み取り 1 つの、ある 1 台の DevStack でかかったコストです。忙しいクラウドではなく、3 つの API は、ばらつきと区別できる範囲では遅くなりませんでした。
+
+| 40 回の読み取り、または計測 | オフ | オン |
+| --- | --- | --- |
+| `GET /servers`、半数が応答した時間 | 48 ms | 32 ms |
+| `GET /v2.0/networks`、半数が応答した時間 | 16 ms | 18 ms |
+| `GET /v2/images`、半数が応答した時間 | 5 ms | 8 ms |
+| 静かな二分間の CPU、全サービスの合計 | 3.0 s | 3.9 s |
+
+1 回の起動で約 220 のスパンができ、Collector はそのうち約 110、約 75 KB を転送します。アイドル状態の 1 分間では約 33 のスパンができ、転送するのは約 2 です。`nova-compute` がコンダクターにオブジェクトの読み取りや保存を頼むスパンは、失敗したものでない限り捨てるからです。これらは、起動の RPC スパンの大半と、アイドル状態のクラウドのほぼすべてを占めます。残したい場合は、Collector のパイプラインから `filter/nova-object-calls` を外してください。
+
+これは、2026.2 の DevStack で、実際の起動から動作中の OneUptime までを実行したもので、ほかの環境では試していません。
 
 ## 外部からクラウドを確認する
 
@@ -1476,16 +1529,6 @@ Nova はサーバーのポートも作成し、サーバーとともに削除し
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
-
-### OpenStack 自身のトレース
-
-2026.2 の oslo.middleware 8.2.0 と oslo.messaging 18.3.1 は、何も署名されていなくてもトレースできるため、いつか常時送られるフィードになる可能性があります。私たちはこれらを試しましたが、OneUptime はまだ読み取りません。出荷時の状態では、サービスをまたぐリクエストを追跡しないからです。
-
-- oslo.messaging だけでは何も送信せず、呼び出しのたびに `has no attribute 'trace_exporter'` をログに出力します。
-- 各 API のパイプラインに oslo.middleware のフィルターを追加すると、API の呼び出しは、それぞれ別のトレースになります。1 回の起動で 83 のトレースができ、2 つのサービスをまたぐものは 1 つもありませんでした。外向きの HTTP 呼び出しでトレースを引き継ぐものがないためです。Keystone と Placement には、追加先のパイプラインがありません。
-- それらのスパンにはリクエスト ID がなく、RPC のスパンにはあります。
-
-これらをオンにしても、そのスパンは Collector を通じて、それ自身の名前で、このクラウドの**トレース**ページに届きます。
 
 ## AI エージェント
 

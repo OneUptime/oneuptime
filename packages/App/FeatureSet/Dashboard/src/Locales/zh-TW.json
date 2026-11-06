@@ -45280,5 +45280,17 @@
   "A new column holds personal data": "新欄位包含個人資料",
   "A column added in the last 14 days has a name that says it holds personal data.": "最近 14 天內新增的欄位，其名稱顯示它包含個人資料。",
   "A migration can start collecting personal data without anyone deciding it should. Catching it the day it ships is when it is cheapest to mask, move or drop.": "遷移可能在無人決定的情況下開始收集個人資料。在其上線當天發現，是遮罩、移動或刪除成本最低的時候。",
-  "Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it.": "確認該欄位應當存放這些資料，並記錄原因。若不應存放，請刪除該欄位或停止寫入。"
+  "Confirm the column should hold this data, and record why. If it should not, drop it or stop writing to it.": "確認該欄位應當存放這些資料，並記錄原因。若不應存放，請刪除該欄位或停止寫入。",
+  "A span in this trace holds this request's ID.": "此追蹤中的一個跨度包含這個請求的 ID。",
+  "A trace follows a request over RPC and over HTTP calls between services. Work a service does later on a thread of its own, as nova-compute does to build an instance, starts new traces under the same request ID.": "追蹤會透過 RPC 以及服務之間的 HTTP 呼叫跟隨一個請求。服務之後在自己的執行緒上做的工作（例如 nova-compute 建立執行個體）會在同一個請求 ID 下開始新的追蹤。",
+  "A trace follows a request over RPC, from nova-api to nova-conductor, nova-scheduler and nova-compute. It does not cross an HTTP call: when Nova asks Neutron something, that is a trace of its own. One line in keystoneauth joins them, in the guide.": "追蹤會透過 RPC 跟隨一個請求，從 nova-api 到 nova-conductor、nova-scheduler 和 nova-compute。它不會橫跨 HTTP 呼叫：Nova 詢問 Neutron 的事情會是各自獨立的追蹤。指南中 keystoneauth 的一行設定可以把它們串起來。",
+  "Every request, with nothing signed": "每個請求，不需簽署任何東西",
+  "How to turn it on": "如何開啟",
+  "On 2026.2, OpenStack's own tracing can trace every API request with nothing signed.": "在 2026.2 上，OpenStack 自己的追蹤可以在不簽署任何東西的情況下追蹤每個 API 請求。",
+  "OpenStack's own tracing is on, so every API request is traced with nothing signed. This says what has been traced, not how the cloud is doing.": "OpenStack 自己的追蹤已開啟，所以每個 API 請求都會被追蹤，不需簽署任何東西。這顯示的是已追蹤的內容，而不是雲端的運作狀況。",
+  "OpenStack's own tracing, on 2026.2 only.": "OpenStack 自己的追蹤，僅限 2026.2。",
+  "OpenStack's own tracing, with nothing signed. A trace follows a request over RPC and stops at an HTTP call to another service, so what Neutron, Glance or Keystone did for this request is not in it.": "OpenStack 自己的追蹤，不需簽署任何東西。追蹤會透過 RPC 跟隨一個請求，並在對其他服務的 HTTP 呼叫處停止，所以 Neutron、Glance 或 Keystone 為這個請求所做的事不在其中。",
+  "OpenStack's own tracing, with nothing signed. This trace goes on across HTTP calls, because this cloud has the guide's line in keystoneauth.": "OpenStack 自己的追蹤，不需簽署任何東西。這個追蹤會跨越 HTTP 呼叫繼續下去，因為此雲端已加入指南中 keystoneauth 的那一行。",
+  "This trace's spans name their requests, so nothing here is a guess.": "此追蹤的跨度都有指名其請求，所以這裡沒有任何猜測。",
+  "What your widest traces crossed: which service called which, how often and how long it took. A service no traced request reached is not on it, and that says nothing about its health.": "你最廣的追蹤橫跨了什麼：哪個服務呼叫了哪個服務、次數多少、花了多久。沒有任何已追蹤請求到達的服務不會出現在這裡，而這並不代表它的健康狀況。"
 }

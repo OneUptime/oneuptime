@@ -1204,7 +1204,7 @@ En CADF-hændelse kan rumme, hvad der ikke bør gemmes: dens initiators legitima
 
 ## Spor forespørgsler gennem kontrolplanet
 
-"Hvorfor tager det fire minutter at starte en instans?" krydser Nova, Neutron, Keystone og Glance, og logs viser kun stumperne. Et spor viser, hvor tiden gik. OpenStacks måde at lave et på er [OSProfiler](https://docs.openstack.org/osprofiler/latest/), og OneUptime viser det, den sender, i [Spor](/docs/telemetry/traces-explorer), forbundet med cloudens dele og dens logs.
+"Hvorfor tager det fire minutter at starte en instans?" krydser Nova, Neutron, Keystone og Glance, og logs viser kun stumperne. Et spor viser, hvor tiden gik. OpenStacks måde at lave et på er [OSProfiler](https://docs.openstack.org/osprofiler/latest/), og OneUptime viser det, den sender, i [Spor](/docs/telemetry/traces-explorer), forbundet med cloudens dele og dens logs. På 2026.2 findes også [OpenStacks egen sporing](#openstacks-egen-sporing), som ikke kræver noget signeret.
 
 Vær klar over, hvad du slår til:
 
@@ -1221,6 +1221,7 @@ Vær klar over, hvad du slår til:
 - [Slå spor til](#slå-spor-til): Collectoren, bibliotekerne og konfigurationen.
 - [Spor en forespørgsel](#spor-en-forespørgsel): Kommandoen til din cloud, og hvor dens spor er.
 - [Hvad sporing koster](#hvad-sporing-koster): Hvad der blev talt, og hvad ingen har målt.
+- [OpenStacks egen sporing](#openstacks-egen-sporing): Hver API-forespørgsel uden noget signeret, på 2026.2.
 :::
 
 ### Hvad et spor viser
@@ -1349,7 +1350,7 @@ Hver åbner [den forespørgsel](#følg-en-forespørgsel), på tværs af hver tje
 
 ### Hvad sporing koster
 
-Intet, før en forespørgsel signeres. Med OSProfiler slået til og intet signeret koster en forespørgsel ét mislykket tjek af en header. OpenStack [angiver intet tal](https://docs.openstack.org/osprofiler/latest/user/integration.html) for, hvad en signeret koster, og det gør vi heller ikke, fordi ingen har målt det. En signeret forespørgsel gør mere arbejde i hver tjeneste, den krydser, sender hver span over HTTP fra hver af dem og bærer din nøgle på tværs af meddelelsesbussen i sin kontekst. Signér det, du undersøger, ikke trafik.
+Med OSProfiler alene intet, før en forespørgsel signeres. Med OSProfiler slået til og intet signeret koster en forespørgsel ét mislykket tjek af en header. OpenStack [angiver intet tal](https://docs.openstack.org/osprofiler/latest/user/integration.html) for, hvad en signeret koster, og det gør vi heller ikke, fordi ingen har målt det. En signeret forespørgsel gør mere arbejde i hver tjeneste, den krydser, sender hver span over HTTP fra hver af dem og bærer din nøgle på tværs af meddelelsesbussen i sin kontekst. Signér det, du undersøger, ikke trafik.
 
 Det, der er talt, er det, en signeret start sender, på én maskines DevStack:
 
@@ -1363,6 +1364,8 @@ På 2026.2 sender `nova-conductor` også, og senere arbejde lander i sporet, så
 
 Med collectoren stoppet virkede en signeret start stadig, og dens spans gik tabt, så sporing kom ikke i vejen for forespørgslen.
 
+På 2026.2 spandt `cinder-volume`, som stadig kører på eventlet, nogle gange en hel kerne efter en genstart, mest med OSProfilers driver slået til og én gang uden. En ny genstart løste det. Vi ved ikke hvorfor, så kig der først, hvis en maskine løber varm.
+
 ### Hvad en span rummer
 
 OSProfilers driver kopierer det, et sporet kald blev givet, ind i sin span, skrevet ud, som Python ville udskrive det: en instans' admin-adgangskode og brugerdata og en volumens forbindelsesinfo. Collectoren fjerner `args`, `kwargs`, `result` og `db.params`, før de forlader maskinen, og OneUptime fjerner dem ved ankomsten for en span, der kom en anden vej. Intet slår det fra. En sætning fra `trace_sqlalchemy` beholdes med sine pladsholdere, og dens værdier gør ikke.
@@ -1371,7 +1374,57 @@ Din nøgle er i ingen af dem. Den rejser mellem en tjenestes egne dele, i kontek
 
 ### Spor efter en tidsplan
 
-Et spor findes kun, når en forespørgsel er signeret, så intet her sporer en cloud af sig selv. [Livscyklustjekket](#livscyklustjekket) signerer sine egne skrivninger, når det får nøglen, hvert trin i et spor for sig, så en langsom start, det ser, har et spor. Nøglen er det eneste sted, OneUptime holder en: krypteret, kun til skrivning og kun til det tjek.
+Med OSProfiler alene findes et spor kun, når en forespørgsel er signeret, så intet her sporer en cloud af sig selv. [Livscyklustjekket](#livscyklustjekket) signerer sine egne skrivninger, når det får nøglen, hvert trin i et spor for sig, så en langsom start, det ser, har et spor. Nøglen er det eneste sted, OneUptime holder en: krypteret, kun til skrivning og kun til det tjek.
+
+### OpenStacks egen sporing
+
+På 2026.2 sporer oslo.messaging 18.3.1 og oslo.middleware 8.2.0 hver API-forespørgsel uden noget signeret. Tidligere udgivelser har dem ikke. Behold [trinnene ovenfor](#slå-spor-til): OSProfilers driver giver hver tjeneste en tracer at sende igennem, og uden den fejler oslo.messaging ved hvert kald med `has no attribute 'trace_exporter'`.
+
+Tilføj dette til hver tjenestes konfiguration, ved siden af `[profiler]`:
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+Tilføj dette til `nova.conf`, `neutron.conf`, `cinder.conf` og `glance-api.conf`, med `service_name` som det pågældende API's eget navn og `otlp_endpoint` som den collector, `connection_string` peger på:
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+Tilføj dette filter til hvert af disse API's paste-fil, og `otel_tracing` til hver pipeline, lige før `osprofiler`. Genstart dem derefter:
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+Et spor følger nu en forespørgsel over RPC: en start er ét spor fra `nova-api` gennem `nova-conductor` og `nova-scheduler` til `nova-compute`, og de spans rummer det forespørgsels-ID, dens logs rummer, så dens [logs](#fra-et-spor-til-dets-logs) ikke kræver gætværk. Det krydser ikke et HTTP-kald, så Nova, der spørger Neutron, er et spor for sig. `keystone` og Placement har ingen pipeline at tilføje filteret til, `cinder-volume` sender heller ikke noget her, og siden **Spor** viser, hvilket af de to en cloud sender.
+
+For at føre et spor på tværs af HTTP-kald skal du tilføje én linje til keystoneauth, hvor hver tjeneste kører. Det er en ændring af OpenStacks kode på dine maskiner, så den er din at bevare på tværs af opgraderinger:
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+En starts spor krydser så også Neutron og Glance, for det `nova-api` spørger dem om. `nova-compute` bygger en instans på sin egen tråd, som starter nye spor under samme forespørgsels-ID, så det, den spørger Neutron om, bliver uden for startens spor.
+
+Hvad det kostede på én maskines DevStack, med én compute-node og én læser. Det er ingen travl cloud, og tre API'er svarede ikke langsommere, så vidt vi kunne se over støjen:
+
+| Læst 40 gange, eller målt | Fra | Til |
+| --- | --- | --- |
+| `GET /servers`, halvdelen besvaret inden for | 48 ms | 32 ms |
+| `GET /v2.0/networks`, halvdelen besvaret inden for | 16 ms | 18 ms |
+| `GET /v2/images`, halvdelen besvaret inden for | 5 ms | 8 ms |
+| CPU over to stille minutter, alle tjenester tilsammen | 3,0 s | 3,9 s |
+
+En start laver omkring 220 spans, og collectoren sender omkring 110 af dem videre, omkring 75 KB. Et tomgangsminut laver omkring 33, og den sender omkring 2 videre, fordi den dropper, at `nova-compute` beder sin conductor om at læse eller gemme et objekt, medmindre et fejlede. Det er de fleste af en starts RPC-spans og næsten alle på en tomgående cloud. Tag `filter/nova-object-calls` ud af collectorens pipeline for at beholde dem.
+
+Dette blev kørt på DevStack på 2026.2, fra en rigtig start til en kørende OneUptime, og ingen andre steder.
 
 ## Tjek clouden udefra
 
@@ -1476,16 +1529,6 @@ Slå tjekket fra, og ingen flere kørsler starter. Indtil intet opkaldt efter de
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
-
-### OpenStacks egen sporing
-
-oslo.middleware 8.2.0 og oslo.messaging 18.3.1, på 2026.2, kan spore uden noget signeret, så de kunne en dag blive et altid slået til feed. Vi kørte dem, og OneUptime læser dem endnu ikke, fordi de, som de leveres, ikke følger en forespørgsel på tværs af tjenester:
-
-- oslo.messaging alene sender intet og logger `has no attribute 'trace_exporter'` for hvert kald.
-- Med oslo.middlewares filter tilføjet til hvert API's pipeline er et API-kald et spor for sig. En start lavede 83 spor, og intet krydsede to tjenester, fordi intet sender sporet videre på et udgående HTTP-kald. Keystone og Placement har ingen pipeline at tilføje det til.
-- De spans rummer intet forespørgsels-ID, og RPC-spans gør.
-
-Hvis du slår dem til, når deres spans stadig denne clouds side **Spor** gennem collectoren, under deres egne navne.
 
 ## AI-agent
 

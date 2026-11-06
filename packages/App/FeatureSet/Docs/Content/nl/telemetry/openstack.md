@@ -1204,7 +1204,7 @@ Een CADF-gebeurtenis kan bevatten wat niet bewaard hoort te worden: de referenti
 
 ## Verzoeken traceren door het controlevlak
 
-"Waarom duurt het starten van een instantie vier minuten?" loopt door Nova, Neutron, Keystone en Glance, en logboeken tonen alleen de stukken. Een trace toont waar de tijd heen ging. OpenStacks manier om er een te maken is [OSProfiler](https://docs.openstack.org/osprofiler/latest/), en OneUptime toont wat het stuurt in [Traces](/docs/telemetry/traces-explorer), gekoppeld aan de onderdelen van de cloud en aan zijn logboeken.
+"Waarom duurt het starten van een instantie vier minuten?" loopt door Nova, Neutron, Keystone en Glance, en logboeken tonen alleen de stukken. Een trace toont waar de tijd heen ging. OpenStacks manier om er een te maken is [OSProfiler](https://docs.openstack.org/osprofiler/latest/), en OneUptime toont wat het stuurt in [Traces](/docs/telemetry/traces-explorer), gekoppeld aan de onderdelen van de cloud en aan zijn logboeken. Op 2026.2 is er ook [OpenStacks eigen tracing](#openstacks-eigen-tracing), waarvoor niets hoeft te worden ondertekend.
 
 Wees duidelijk over wat u aanzet:
 
@@ -1221,6 +1221,7 @@ Wees duidelijk over wat u aanzet:
 - [Traces aanzetten](#traces-aanzetten): De collector, de bibliotheken en de configuratie.
 - [Een verzoek traceren](#een-verzoek-traceren): De opdracht voor uw cloud, en waar zijn trace staat.
 - [Wat tracing kost](#wat-tracing-kost): Wat is geteld, en wat niemand heeft gemeten.
+- [OpenStacks eigen tracing](#openstacks-eigen-tracing): Elk API-verzoek zonder iets te ondertekenen, op 2026.2.
 :::
 
 ### Wat een trace toont
@@ -1349,7 +1350,7 @@ Elk opent [dat verzoek](#een-verzoek-volgen), over elke service heen, inclusief 
 
 ### Wat tracing kost
 
-Niets totdat een verzoek wordt ondertekend. Met OSProfiler aan en niets ondertekend kost een verzoek één mislukte controle van een header. OpenStack [geeft geen getal](https://docs.openstack.org/osprofiler/latest/user/integration.html) voor wat een ondertekend verzoek kost, en wij ook niet, omdat niemand het heeft gemeten. Een ondertekend verzoek doet meer werk in elke service die het doorkruist, stuurt elke span via HTTP vanuit elk ervan, en draagt uw sleutel over de berichtenbus in zijn context. Onderteken wat u onderzoekt, niet het verkeer.
+Met alleen OSProfiler niets totdat een verzoek wordt ondertekend. Met OSProfiler aan en niets ondertekend kost een verzoek één mislukte controle van een header. OpenStack [geeft geen getal](https://docs.openstack.org/osprofiler/latest/user/integration.html) voor wat een ondertekend verzoek kost, en wij ook niet, omdat niemand het heeft gemeten. Een ondertekend verzoek doet meer werk in elke service die het doorkruist, stuurt elke span via HTTP vanuit elk ervan, en draagt uw sleutel over de berichtenbus in zijn context. Onderteken wat u onderzoekt, niet het verkeer.
 
 Wat is geteld is wat een ondertekende boot stuurt, op de DevStack van één machine:
 
@@ -1363,6 +1364,8 @@ Op 2026.2 stuurt `nova-conductor` ook, en later werk komt in de trace terecht, d
 
 Met de collector gestopt werkte een ondertekende boot nog steeds en gingen zijn spans verloren, dus tracing stond het verzoek niet in de weg.
 
+Op 2026.2 draaide `cinder-volume`, dat nog op eventlet draait, na een herstart soms een hele core vol, meestal met de driver van OSProfiler aan en één keer met hem uit. Een nieuwe herstart loste het op. We weten niet waarom, dus kijk daar eerst als een machine heet draait.
+
 ### Wat een span bevat
 
 De driver van OSProfiler kopieert wat een getraceerde aanroep meekreeg in zijn span, uitgeschreven zoals Python het zou afdrukken: het adminwachtwoord en de gebruikersgegevens van een instantie, en de verbindingsgegevens van een volume. De collector verwijdert `args`, `kwargs`, `result` en `db.params` voordat ze de machine verlaten, en OneUptime verwijdert ze bij aankomst voor een span die op een andere manier kwam. Niets zet dat uit. Een statement van `trace_sqlalchemy` wordt bewaard met zijn placeholders, en zijn waarden niet.
@@ -1371,7 +1374,57 @@ Uw sleutel zit in geen van beide. Hij reist wel tussen de eigen onderdelen van e
 
 ### Traces volgens schema
 
-Een trace bestaat alleen wanneer een verzoek wordt ondertekend, dus niets hier traceert een cloud uit zichzelf. [De levenscyclus-controle](#de-levenscyclus-controle) ondertekent zijn eigen schrijfacties wanneer hij de sleutel krijgt, elke stap in een eigen trace, zodat een trage boot die hij ziet een trace heeft. De sleutel is de enige plek waar OneUptime er een bewaart: versleuteld, alleen schrijfbaar, en voor die controle alleen.
+Met alleen OSProfiler bestaat een trace alleen wanneer een verzoek wordt ondertekend, dus niets hier traceert een cloud uit zichzelf. [De levenscyclus-controle](#de-levenscyclus-controle) ondertekent zijn eigen schrijfacties wanneer hij de sleutel krijgt, elke stap in een eigen trace, zodat een trage boot die hij ziet een trace heeft. De sleutel is de enige plek waar OneUptime er een bewaart: versleuteld, alleen schrijfbaar, en voor die controle alleen.
+
+### OpenStacks eigen tracing
+
+Op 2026.2 traceren oslo.messaging 18.3.1 en oslo.middleware 8.2.0 elk API-verzoek zonder dat iets is ondertekend. Eerdere releases hebben ze niet. Houd [de stappen hierboven](#traces-aanzetten) aan: de driver van OSProfiler geeft elke service een tracer om mee te sturen, en zonder hem faalt oslo.messaging bij elke aanroep met `has no attribute 'trace_exporter'`.
+
+Voeg dit toe aan de configuratie van elke service, naast `[profiler]`:
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+Voeg dit toe aan `nova.conf`, `neutron.conf`, `cinder.conf` en `glance-api.conf`, met als `service_name` de eigen naam van die API en als `otlp_endpoint` de collector die `connection_string` noemt:
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+Voeg dit filter toe aan het paste-bestand van elk van die API's, en `otel_tracing` aan elke pipeline, vlak vóór `osprofiler`. Herstart ze daarna:
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+Een trace volgt nu een verzoek over RPC: een boot is één trace van `nova-api` via `nova-conductor` en `nova-scheduler` naar `nova-compute`, en die spans bevatten het verzoek-ID dat ook zijn logboeken bevatten, dus zijn [logboeken](#van-een-trace-naar-zijn-logboeken) hoeven niet te worden geraden. Hij doorkruist geen HTTP-aanroep, dus Nova die Neutron aanroept is een eigen trace. `keystone` en Placement hebben geen pipeline om het filter aan toe te voegen, `cinder-volume` stuurt hier ook niets, en de pagina **Traces** zegt welke van de twee een cloud stuurt.
+
+Om een trace over HTTP-aanroepen mee te nemen, voegt u één regel toe aan keystoneauth waar elke service draait. Het is een wijziging in de code van OpenStack op uw machines, dus u houdt haar zelf bij over upgrades heen:
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+De trace van een boot doorkruist dan ook Neutron en Glance, voor wat `nova-api` hen vraagt. `nova-compute` bouwt een instantie op een eigen thread, die nieuwe traces start onder hetzelfde verzoek-ID, dus wat hij Neutron vraagt blijft buiten de trace van de boot.
+
+Wat het kostte op de DevStack van één machine, met één compute-node en één lezer. Dat is geen drukke cloud, en drie API's antwoordden niet trager voor zover we boven de ruis konden zien:
+
+| 40 keer gelezen, of gemeten | Uit | Aan |
+| --- | --- | --- |
+| `GET /servers`, de helft beantwoord binnen | 48 ms | 32 ms |
+| `GET /v2.0/networks`, de helft beantwoord binnen | 16 ms | 18 ms |
+| `GET /v2/images`, de helft beantwoord binnen | 5 ms | 8 ms |
+| CPU over twee rustige minuten, alle services samen | 3,0 s | 3,9 s |
+
+Een boot maakt ongeveer 220 spans, en de collector stuurt er ongeveer 110 van door, zo'n 75 KB. Een rustige minuut maakt er ongeveer 33, en er worden ongeveer 2 doorgestuurd, omdat de collector weglaat dat `nova-compute` zijn conductor vraagt een object te lezen of op te slaan, tenzij het mislukte. Dat zijn de meeste RPC-spans van een boot en bijna alle van een rustige cloud. Haal `filter/nova-object-calls` uit de pipeline van de collector om ze te houden.
+
+Dit is gedraaid op DevStack op 2026.2, van een echte boot tot een draaiend OneUptime, en nergens anders.
 
 ## De cloud van buitenaf controleren
 
@@ -1476,16 +1529,6 @@ Zet de controle uit en er beginnen geen runs meer. Totdat niets met zijn naam me
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
-
-### OpenStacks eigen tracing
-
-oslo.middleware 8.2.0 en oslo.messaging 18.3.1, op 2026.2, kunnen traceren zonder dat iets is ondertekend, dus ze zouden ooit een altijd-aan-feed kunnen zijn. We hebben ze gedraaid, en OneUptime leest ze nog niet, omdat ze zoals geleverd een verzoek niet over services heen volgen:
-
-- oslo.messaging stuurt op zichzelf niets, en logt `has no attribute 'trace_exporter'` bij elke aanroep.
-- Met het filter van oslo.middleware toegevoegd aan de pipeline van elke API is een API-aanroep een eigen trace. Een boot maakte 83 traces, en geen doorkruiste er twee services, omdat niets de trace doorgeeft bij een uitgaande HTTP-aanroep. Keystone en Placement hebben geen pipeline om het aan toe te voegen.
-- Die spans bevatten geen verzoek-ID, en de RPC-spans wel.
-
-Als u ze aanzet, bereiken hun spans de pagina **Traces** van deze cloud nog steeds via de collector, onder hun eigen namen.
 
 ## AI-agent
 

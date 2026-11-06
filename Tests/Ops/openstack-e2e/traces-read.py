@@ -5,6 +5,7 @@
     traces-read.py summary TRACES_DIR
     traces-read.py check TRACES_DIR
     traces-read.py native TRACES_DIR
+    traces-read.py cost TRACES_DIR
     OU_TRACES_KEY=... traces-read.py remove-key TRACES_DIR
     OU_TRACES_KEY=... traces-read.py sign TRACE_ID
 
@@ -22,6 +23,9 @@ where it does fails this on purpose, because the guide then says something untru
 is in the trace once the guide's one line is applied, and Nova's conductor and scheduler are
 once they run one worker each, and that is held too. It exits non-zero when any of that is
 not so, which fails the step without costing the steps after it.
+
+cost writes native-cost.json from what measure_cost left in cost-raw/: how long each API took to
+answer, and what the services burned and the collector passed on while nobody asked anything.
 
 native writes native-summary.json: what the scenes with nothing signed made of OpenStack's own
 OpenTelemetry tracing, where a release ships it. They print no Trace ID, so they are read by
@@ -315,6 +319,8 @@ def native(traces_dir):
     """What each native scene made, read by its moments."""
     path = recording_path(traces_dir, "otlp-driver.json")
     spans = list(spans_in(path))
+    # The agent's traces profile takes out what it is told to, so this is what would be sent on.
+    sent_on = [int(span.get("startTimeUnixNano", 0)) / 1e9 for _, _, span in spans_in(recording_path(traces_dir, "otlp-agent.json"))]
     out = {}
     for scene in read_scenes(traces_dir):
         name = scene.get("scene", "")
@@ -347,6 +353,7 @@ def native(traces_dir):
             "exitCode": scene.get("exitCode"),
             "spans": sum(scopes.values()),
             "spansByScope": dict(sorted(scopes.items())),
+            "spansTheCollectorSends": sum(1 for at in sent_on if since <= at <= until),
             "traces": len(traces),
             "tracesAcrossServices": sum(1 for services in traces.values() if len(services) > 1),
             "servicesInOneTrace": max((len(services) for services in traces.values()), default=0),
@@ -403,6 +410,92 @@ def remove_key(traces_dir):
     return 0
 
 
+def read_cost_file(folder, name):
+    try:
+        with open(os.path.join(folder, name), encoding="utf-8") as handle:
+            return handle.read()
+    except OSError:
+        return ""
+
+
+def cpu_seconds_of(text):
+    """What `systemctl show -p Id -p CPUUsageNSec` wrote, by unit: a block for each, in its own order."""
+    seconds = {}
+    for block in text.split("\n\n"):
+        fields = dict(line.split("=", 1) for line in block.splitlines() if "=" in line)
+        unit = fields.get("Id", "")
+        usage = fields.get("CPUUsageNSec", "")
+        if unit and usage.isdigit():
+            seconds[unit] = int(usage) / 1e9
+    return seconds
+
+
+def burned_between(folder):
+    before = cpu_seconds_of(read_cost_file(folder, "cpu-before.txt"))
+    after = cpu_seconds_of(read_cost_file(folder, "cpu-after.txt"))
+    return {unit: round(after[unit] - before[unit], 2) for unit in after if unit in before}
+
+
+def seconds_between(folder):
+    began = read_cost_file(folder, "before-at.txt").strip()
+    ended = read_cost_file(folder, "after-at.txt").strip()
+    return int(ended) - int(began) if began.isdigit() and ended.isdigit() else 0
+
+
+def hot(folder):
+    """The units that burned over half a core between two moments, one a line."""
+    seconds = seconds_between(folder)
+    for unit, burned in burned_between(folder).items():
+        if seconds and burned > seconds / 2:
+            print(unit)
+
+
+def cost(traces_dir):
+    """How long APIs took and what the services burned, with tracing off and on."""
+    raw = os.path.join(traces_dir, "cost-raw")
+    out = {"byScene": {}}
+    # What each service burned over each scene, from the first with nothing on: only those that
+    # burned a fifth of a core, because every scene's whole list is noise.
+    scenes = os.path.join(raw, "scenes")
+    for scene in read_scenes(traces_dir):
+        folder = os.path.join(scenes, scene.get("scene", ""))
+        seconds = seconds_between(folder)
+        if seconds:
+            out["byScene"][scene["scene"]] = {
+                "seconds": seconds,
+                "hot": {unit: burned for unit, burned in burned_between(folder).items() if burned > seconds / 5},
+            }
+    for label in sorted(os.listdir(raw)) if os.path.isdir(raw) else []:
+        if label == "scenes":
+            continue
+        folder = os.path.join(raw, label)
+        answers = {}
+        for api in ("compute", "network", "image"):
+            times = sorted(float(line) for line in read_cost_file(folder, f"{api}.txt").split() if line.replace(".", "", 1).isdigit())
+            if times:
+                answers[api] = {
+                    "requests": len(times),
+                    "p50Milliseconds": round(times[len(times) // 2] * 1000, 1),
+                    "p95Milliseconds": round(times[min(len(times) - 1, int(len(times) * 0.95))] * 1000, 1),
+                }
+        burned = burned_between(folder)
+        seconds = int(read_cost_file(folder, "seconds.txt").strip() or 0)
+        number = lambda name: int(read_cost_file(folder, name).strip() or 0)  # pylint: disable=cell-var-from-loop
+        out[label] = {
+            "answers": answers,
+            "quietSeconds": seconds,
+            "cpuSecondsWhileQuiet": burned,
+            "cpuSecondsWhileQuietInAll": round(sum(burned.values()), 2),
+            "spansWhileQuiet": number("spans-after.txt") - number("spans-before.txt"),
+            "spansTheCollectorSendsWhileQuiet": number("agent-spans-after.txt") - number("agent-spans-before.txt"),
+            "collectorBytesWhileQuiet": number("bytes-after.txt") - number("bytes-before.txt"),
+        }
+    with open(os.path.join(traces_dir, "native-cost.json"), "w", encoding="utf-8") as handle:
+        json.dump(out, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    print(json.dumps({label: {key: value for key, value in row.items() if key != "cpuSecondsWhileQuiet"} for label, row in out.items() if label != "byScene"}))
+
+
 def main():
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "count":
@@ -415,6 +508,12 @@ def main():
         return check(sys.argv[2])
     if command == "native":
         native(sys.argv[2])
+        return 0
+    if command == "cost":
+        cost(sys.argv[2])
+        return 0
+    if command == "hot":
+        hot(sys.argv[2])
         return 0
     if command == "remove-key":
         return remove_key(sys.argv[2])

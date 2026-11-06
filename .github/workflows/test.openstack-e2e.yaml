@@ -38,6 +38,14 @@ on:
         description: With logs_only too, only record what OSProfiler's driver sends, on the entries that do
         type: boolean
         default: false
+      traces_release:
+        description: With traces_only, only this entry, by name (hibiscus-ovn)
+        type: string
+        default: ''
+      whole_path_parts:
+        description: With whole_path, only these of whole-path.py's parts, by name, and what each needs (oneuptime agent traces native)
+        type: string
+        default: ''
       scenes_only:
         description: Only build the estate and run the drills, on the two entries read at depth, which is what a new scene needs and about a third of the time
         type: boolean
@@ -387,6 +395,7 @@ jobs:
           ONEUPTIME_URL: http://localhost:8880
           OS_CLOUD: devstack-admin
           PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.63.0-noble
+          WHOLE_PATH_PARTS: ${{ inputs.whole_path_parts }}
         run: python3 -I Tests/Ops/openstack-e2e/whole-path.py
 
       - name: Keep what the containers said
@@ -1546,7 +1555,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy DevStack
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ (!inputs.traces_only || (matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name))) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         uses: gophercloud/devstack-action@60ca1042045c0c9e3e001c64575d381654ffcba1 # v0.19
         with:
           branch: ${{ matrix.branch }}
@@ -1569,7 +1578,7 @@ jobs:
           enable_workaround_docker_io: "false"
 
       - name: Docker still answers
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ (!inputs.traces_only || (matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name))) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: |
           if ! docker info >/dev/null 2>&1; then
             # DevStack can leave the runner's Docker stopped or removed.
@@ -1579,7 +1588,7 @@ jobs:
           docker info --format 'Docker {{.ServerVersion}}'
 
       - name: Build the estate
-        if: ${{ (!inputs.traces_only || matrix.traces) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
+        if: ${{ (!inputs.traces_only || (matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name))) && (!inputs.quotas_only || matrix.quotas) && (!inputs.instance_metrics_only || matrix.instance_metrics_drill) && (!inputs.scenes_only || matrix.deep) }}
         run: bash Tests/Ops/openstack-e2e/estate.sh
 
       # On its own, with an exporter of its own, so that a problem here costs nothing else.
@@ -1671,7 +1680,7 @@ jobs:
       # everything it changes, and they leave a cloud configured their own way.
       # Not for a run that only wants the logs, which would wait for it on the entries that do.
       - name: Record what OSProfiler's driver sends for a signed request
-        if: ${{ matrix.traces && !inputs.quotas_only && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) && !inputs.scenes_only }}
+        if: ${{ matrix.traces && (inputs.traces_release == '' || inputs.traces_release == matrix.name) && !inputs.quotas_only && !inputs.instance_metrics_only && (inputs.traces_only || !inputs.logs_only) && !inputs.scenes_only }}
         continue-on-error: true
         timeout-minutes: 75
         run: bash Tests/Ops/openstack-e2e/traces-record.sh

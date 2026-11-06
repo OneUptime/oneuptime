@@ -127,7 +127,7 @@ const OpenStackCloudTraces: FunctionComponent<
       <OpenStackTraceARequestCard openStackCloudId={modelId} />
       <OpenStackControlPlaneMapCard
         cloudName={cloudName}
-        traceIds={traced.data.traceIds}
+        traceIds={traced.data.widestTraceIds}
       />
       {/*
        * entityScope is the query scope, as on a host's or a cluster's page: spans match by

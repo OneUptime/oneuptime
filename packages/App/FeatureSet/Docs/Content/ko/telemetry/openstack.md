@@ -1204,7 +1204,7 @@ CADF 이벤트에는 보관하면 안 되는 내용이 있을 수 있습니다. 
 
 ## 컨트롤 플레인 요청 추적
 
-"인스턴스 부팅에 왜 4분이 걸리나?"라는 질문은 Nova, Neutron, Keystone, Glance를 가로지르며, 로그는 조각만 보여 줍니다. 트레이스는 시간이 어디에 쓰였는지 보여 줍니다. OpenStack에서 이를 만드는 방법은 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)이며, OneUptime은 OSProfiler가 보내는 것을 [트레이스](/docs/telemetry/traces-explorer)에서 클라우드의 구성 요소 및 로그와 연결해 보여 줍니다.
+"인스턴스 부팅에 왜 4분이 걸리나?"라는 질문은 Nova, Neutron, Keystone, Glance를 가로지르며, 로그는 조각만 보여 줍니다. 트레이스는 시간이 어디에 쓰였는지 보여 줍니다. OpenStack에서 이를 만드는 방법은 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)이며, OneUptime은 OSProfiler가 보내는 것을 [트레이스](/docs/telemetry/traces-explorer)에서 클라우드의 구성 요소 및 로그와 연결해 보여 줍니다. 2026.2에는 서명이 필요 없는 [OpenStack 자체 추적](#openstack-자체-추적)도 있습니다.
 
 무엇을 켜는 것인지 분명히 알아 두세요.
 
@@ -1221,6 +1221,7 @@ CADF 이벤트에는 보관하면 안 되는 내용이 있을 수 있습니다. 
 - [트레이스 켜기](#트레이스-켜기): collector, 라이브러리, 설정입니다.
 - [요청 추적](#요청-추적): 사용자 클라우드용 명령과 그 트레이스가 있는 곳입니다.
 - [추적 비용](#추적-비용): 집계한 것과 아무도 측정하지 않은 것입니다.
+- [OpenStack 자체 추적](#openstack-자체-추적): 2026.2에서 서명 없이 모든 API 요청을 추적합니다.
 :::
 
 ### 트레이스가 보여 주는 것
@@ -1349,7 +1350,7 @@ OSProfiler와 oslo.log는 서로를 모르기 때문에, 어떤 스팬에도 요
 
 ### 추적 비용
 
-요청이 서명되기 전에는 없습니다. OSProfiler를 켜 두고 서명된 것이 없으면 요청당 비용은 헤더 검사 한 번이 실패하는 정도입니다. 서명된 요청의 비용에 대해서는 OpenStack도 [수치를 제시하지 않으며](https://docs.openstack.org/osprofiler/latest/user/integration.html) 우리도 그렇습니다. 아무도 측정하지 않았기 때문입니다. 서명된 요청은 거치는 모든 서비스에서 더 많은 작업을 하고, 각 서비스에서 모든 스팬을 HTTP로 전송하며, 사용자의 키를 컨텍스트에 담아 메시지 버스로 전달합니다. 일반 트래픽이 아니라 조사하려는 요청에만 서명하세요.
+OSProfiler만 쓸 때는 요청이 서명되기 전에는 없습니다. OSProfiler를 켜 두고 서명된 것이 없으면 요청당 비용은 헤더 검사 한 번이 실패하는 정도입니다. 서명된 요청의 비용에 대해서는 OpenStack도 [수치를 제시하지 않으며](https://docs.openstack.org/osprofiler/latest/user/integration.html) 우리도 그렇습니다. 아무도 측정하지 않았기 때문입니다. 서명된 요청은 거치는 모든 서비스에서 더 많은 작업을 하고, 각 서비스에서 모든 스팬을 HTTP로 전송하며, 사용자의 키를 컨텍스트에 담아 메시지 버스로 전달합니다. 일반 트래픽이 아니라 조사하려는 요청에만 서명하세요.
 
 집계된 것은 한 머신의 DevStack에서 서명된 부팅이 보내는 양입니다.
 
@@ -1363,6 +1364,8 @@ OSProfiler와 oslo.log는 서로를 모르기 때문에, 어떤 스팬에도 요
 
 collector를 중지해도 서명된 부팅은 정상 동작했고 스팬만 손실되었으므로, 추적이 요청을 방해하지 않았습니다.
 
+2026.2에서 아직 eventlet으로 실행되는 `cinder-volume`이 재시작 후 코어 하나를 통째로 소모한 적이 있었습니다. 대부분 OSProfiler의 드라이버를 켠 상태였고 한 번은 끈 상태였습니다. 한 번 더 재시작하면 해소되었습니다. 이유는 모르므로 머신이 과열되면 먼저 이곳을 살펴보세요.
+
 ### 스팬에 담기는 것
 
 OSProfiler의 드라이버는 추적된 호출에 전달된 것을 Python이 출력하는 형식 그대로 스팬에 복사합니다. 인스턴스의 admin 비밀번호와 user data, 볼륨의 연결 정보가 여기에 해당합니다. collector는 머신을 떠나기 전에 `args`, `kwargs`, `result`, `db.params`를 제거하고, OneUptime은 다른 경로로 온 스팬에 대해 도착할 때 이를 제거합니다. 이를 끄는 설정은 없습니다. `trace_sqlalchemy`의 구문은 플레이스홀더 상태로 보관되며 값은 보관되지 않습니다.
@@ -1371,7 +1374,57 @@ OSProfiler의 드라이버는 추적된 호출에 전달된 것을 Python이 출
 
 ### 일정에 따른 트레이스
 
-트레이스는 요청이 서명될 때만 존재하므로, 여기에는 클라우드를 자동으로 추적하는 것이 없습니다. [라이프사이클 점검](#라이프사이클-점검)은 키를 받으면 자신의 쓰기에 서명하고 단계마다 별도의 트레이스를 만들므로, 이 점검이 본 느린 부팅에는 트레이스가 있습니다. 키는 OneUptime이 보관하는 유일한 곳이며 암호화되고 쓰기 전용이며 해당 점검 전용입니다.
+OSProfiler만 쓸 때 트레이스는 요청이 서명될 때만 존재하므로, 여기에는 클라우드를 자동으로 추적하는 것이 없습니다. [라이프사이클 점검](#라이프사이클-점검)은 키를 받으면 자신의 쓰기에 서명하고 단계마다 별도의 트레이스를 만들므로, 이 점검이 본 느린 부팅에는 트레이스가 있습니다. 키는 OneUptime이 보관하는 유일한 곳이며 암호화되고 쓰기 전용이며 해당 점검 전용입니다.
+
+### OpenStack 자체 추적
+
+2026.2에서는 oslo.messaging 18.3.1과 oslo.middleware 8.2.0이 서명된 것이 없어도 모든 API 요청을 추적합니다. 이전 릴리스에는 없습니다. [위의 단계](#트레이스-켜기)는 그대로 유지하세요. 각 서비스가 트레이스를 보낼 트레이서를 갖게 하는 것이 OSProfiler의 드라이버이며, 이것이 없으면 oslo.messaging이 호출마다 `has no attribute 'trace_exporter'` 오류로 실패합니다.
+
+각 서비스의 구성에 `[profiler]` 옆에 다음을 추가하세요.
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+`nova.conf`, `neutron.conf`, `cinder.conf`, `glance-api.conf`에 다음을 추가하세요. `service_name`은 해당 API 자체의 이름이고, `otlp_endpoint`는 collector의 `connection_string`이 가리키는 주소입니다.
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+이 API들 각각의 paste 파일에 다음 필터를 추가하고, 각 파이프라인의 `osprofiler` 바로 앞에 `otel_tracing`을 넣으세요. 그런 다음 재시작하세요.
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+이제 트레이스는 RPC를 거치는 요청을 따라갑니다. 부팅은 `nova-api`에서 `nova-conductor`와 `nova-scheduler`를 거쳐 `nova-compute`에 이르는 하나의 트레이스이며, 이 스팬에는 해당 로그에 있는 요청 ID가 담겨 있으므로 [로그](#트레이스에서-로그로)를 추측 없이 찾을 수 있습니다. HTTP 호출은 넘어가지 못하므로 Nova가 Neutron에 요청하는 것은 별도의 트레이스입니다. `keystone`과 Placement에는 필터를 추가할 파이프라인이 없고 `cinder-volume`도 여기서는 아무것도 보내지 않으며, 클라우드가 둘 중 무엇을 보내고 있는지는 **트레이스** 페이지에 나옵니다.
+
+트레이스가 HTTP 호출도 넘어가게 하려면 각 서비스가 실행되는 곳의 keystoneauth에 한 줄을 추가하세요. 이는 사용자 머신에 있는 OpenStack 코드의 변경이므로 업그레이드할 때마다 직접 유지해야 합니다.
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+그러면 부팅의 트레이스는 `nova-api`가 요청하는 Neutron과 Glance까지 가로지릅니다. `nova-compute`는 인스턴스를 자체 스레드에서 만드는데, 이 스레드는 같은 요청 ID로 새 트레이스를 시작하므로 여기서 Neutron에 요청하는 것은 부팅의 트레이스에 들어가지 않습니다.
+
+DevStack 한 대에서 든 비용입니다. 컴퓨트 노드 하나와 읽는 쪽 하나였습니다. 바쁜 클라우드가 아니며, API 세 개는 노이즈와 구별될 만큼 느려지지 않았습니다.
+
+| 40번 읽은 값 또는 측정값 | 끔 | 켬 |
+| --- | --- | --- |
+| `GET /servers`, 절반이 응답한 시간 | 48 ms | 32 ms |
+| `GET /v2.0/networks`, 절반이 응답한 시간 | 16 ms | 18 ms |
+| `GET /v2/images`, 절반이 응답한 시간 | 5 ms | 8 ms |
+| 조용한 이 분 동안의 CPU, 모든 서비스 합계 | 3.0 s | 3.9 s |
+
+부팅 한 번은 약 220개의 스팬을 만들고, collector는 그중 약 110개, 약 75KB를 전달합니다. 유휴 상태의 1분은 약 33개를 만들고 약 2개를 전달하는데, 실패한 것이 없으면 `nova-compute`가 conductor에 객체를 읽거나 저장하라고 요청하는 스팬을 버리기 때문입니다. 이것이 부팅의 RPC 스팬 대부분이자 유휴 클라우드 스팬의 거의 전부입니다. 이를 유지하려면 collector 파이프라인에서 `filter/nova-object-calls`를 빼세요.
+
+이는 2026.2의 DevStack에서 실제 부팅부터 실행 중인 OneUptime까지 돌려 본 결과이며, 다른 곳에서는 해 보지 않았습니다.
 
 ## 외부에서 클라우드 점검
 
@@ -1476,16 +1529,6 @@ Nova는 서버의 포트도 만들고 서버와 함께 삭제합니다.
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
-
-### OpenStack 자체 추적
-
-2026.2의 oslo.middleware 8.2.0과 oslo.messaging 18.3.1은 서명된 것이 없어도 추적할 수 있으므로, 언젠가는 상시 피드가 될 수 있습니다. 직접 실행해 보았지만 OneUptime은 아직 이를 읽지 않습니다. 현재 배포된 상태로는 서비스 간 요청을 따라가지 못하기 때문입니다.
-
-- oslo.messaging 단독으로는 아무것도 보내지 않으며, 호출마다 `has no attribute 'trace_exporter'`를 기록합니다.
-- 각 API의 파이프라인에 oslo.middleware의 필터를 추가하면 API 호출 하나가 각각 별도의 트레이스가 됩니다. 부팅 한 번이 트레이스 83개를 만들었고 서비스 둘을 가로지르는 것은 없었는데, 나가는 HTTP 호출에서 트레이스를 전달하는 것이 없기 때문입니다. Keystone과 Placement에는 필터를 추가할 파이프라인이 없습니다.
-- 이 스팬에는 요청 ID가 없으며, RPC 스팬에는 있습니다.
-
-이를 켜더라도 해당 스팬은 collector를 거쳐 이 클라우드의 **트레이스** 페이지에 자체 이름으로 도달합니다.
 
 ## AI 에이전트
 

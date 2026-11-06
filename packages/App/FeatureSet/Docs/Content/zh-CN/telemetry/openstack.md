@@ -1204,7 +1204,7 @@ CADF 事件可能包含不应保留的内容：发起者的凭据包含令牌的
 
 ## 通过控制平面追踪请求
 
-“为什么启动一个实例要花四分钟？”这个问题会跨越 Nova、Neutron、Keystone 和 Glance，而日志只能显示其中的片段。追踪则显示时间花在了哪里。OpenStack 实现追踪的方式是 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)，OneUptime 在[追踪](/docs/telemetry/traces-explorer)中显示它所发送的内容，并与云的各个部分及其日志关联起来。
+“为什么启动一个实例要花四分钟？”这个问题会跨越 Nova、Neutron、Keystone 和 Glance，而日志只能显示其中的片段。追踪则显示时间花在了哪里。OpenStack 实现追踪的方式是 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)，OneUptime 在[追踪](/docs/telemetry/traces-explorer)中显示它所发送的内容，并与云的各个部分及其日志关联起来。在 2026.2 上还有 [OpenStack 自带的追踪](#openstack-自带的追踪)，它无需任何签名。
 
 请明确你要开启的是什么：
 
@@ -1221,6 +1221,7 @@ CADF 事件可能包含不应保留的内容：发起者的凭据包含令牌的
 - [开启追踪](#开启追踪): collector、库和配置。
 - [追踪请求](#追踪请求): 适用于你的云的命令，以及它的追踪在哪里。
 - [追踪的开销](#追踪的开销): 统计了什么，以及没有人测量过什么。
+- [OpenStack 自带的追踪](#openstack-自带的追踪): 在 2026.2 上，无需签名即可追踪每个 API 请求。
 :::
 
 ### 追踪显示什么
@@ -1349,7 +1350,7 @@ unset OS_PROFILE
 
 ### 追踪的开销
 
-在请求被签名之前没有任何开销。开启 OSProfiler 但没有签名时，一个请求只多花一次对请求头的失败检查。OpenStack 对已签名请求的开销[没有给出数字](https://docs.openstack.org/osprofiler/latest/user/integration.html)，我们也没有，因为没有人测量过。已签名的请求在它所经过的每个服务中都要做更多的工作，从每个服务通过 HTTP 发送每个 span，并在其上下文中通过消息总线携带你的密钥。请对你正在调查的请求签名，而不是对流量签名。
+单独使用 OSProfiler 时，在请求被签名之前没有任何开销。开启 OSProfiler 但没有签名时，一个请求只多花一次对请求头的失败检查。OpenStack 对已签名请求的开销[没有给出数字](https://docs.openstack.org/osprofiler/latest/user/integration.html)，我们也没有，因为没有人测量过。已签名的请求在它所经过的每个服务中都要做更多的工作，从每个服务通过 HTTP 发送每个 span，并在其上下文中通过消息总线携带你的密钥。请对你正在调查的请求签名，而不是对流量签名。
 
 统计过的是在一台机器的 DevStack 上一次已签名的启动所发送的内容：
 
@@ -1363,6 +1364,8 @@ unset OS_PROFILE
 
 collector 停止时，已签名的启动仍然正常工作，只是它的 span 丢失了，所以追踪没有妨碍请求。
 
+在 2026.2 上，仍运行在 eventlet 上的 `cinder-volume` 在重启后有时会占满一个核心，多数发生在开启了 OSProfiler 驱动的情况下，有一次是在关闭时。再重启一次就恢复了。我们不知道原因，所以如果某台机器发热，请先看那里。
+
 ### span 包含什么
 
 OSProfiler 的驱动会把被追踪的调用所收到的内容复制到它的 span 中，按 Python 打印的方式写出：实例的管理员密码和用户数据，以及卷的连接信息。collector 在这些内容离开机器之前会移除 `args`、`kwargs`、`result` 和 `db.params`，对于通过其他途径到达的 span，OneUptime 在其到达时移除它们。没有任何方式可以关闭这一点。来自 `trace_sqlalchemy` 的语句会保留其占位符，而不保留其值。
@@ -1371,7 +1374,57 @@ OSProfiler 的驱动会把被追踪的调用所收到的内容复制到它的 sp
 
 ### 按计划的追踪
 
-只有在请求被签名时才存在追踪，所以这里没有任何东西会自行追踪一朵云。[生命周期检查](#生命周期检查)在获得密钥时会对它自己的写入签名，每一步各是一条追踪，所以它所看到的缓慢启动有一条追踪。密钥是 OneUptime 唯一保存密钥的地方：加密、只写，且仅用于该检查。
+单独使用 OSProfiler 时，只有在请求被签名时才存在追踪，所以这里没有任何东西会自行追踪一朵云。[生命周期检查](#生命周期检查)在获得密钥时会对它自己的写入签名，每一步各是一条追踪，所以它所看到的缓慢启动有一条追踪。密钥是 OneUptime 唯一保存密钥的地方：加密、只写，且仅用于该检查。
+
+### OpenStack 自带的追踪
+
+在 2026.2 上，oslo.messaging 18.3.1 和 oslo.middleware 8.2.0 无需签名即可追踪每个 API 请求。更早的发行版没有它们。请保留[上面的步骤](#开启追踪)：OSProfiler 的驱动程序为每个服务提供可供发送的追踪器，没有它，oslo.messaging 每次调用都会失败，并报 `has no attribute 'trace_exporter'`。
+
+把下面这段加到每个服务的配置中，放在 `[profiler]` 旁边：
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+把下面这段加到 `nova.conf`、`neutron.conf`、`cinder.conf` 和 `glance-api.conf`，其中 `service_name` 是该 API 自己的名称，`otlp_endpoint` 是 collector 的 `connection_string` 所指的地址：
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+把下面这个过滤器加到这些 API 各自的 paste 文件中，并把 `otel_tracing` 加到每个管道里，紧挨在 `osprofiler` 之前。然后重启它们：
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+现在，追踪会通过 RPC 跟随一个请求：一次启动是一条追踪，从 `nova-api` 经 `nova-conductor` 和 `nova-scheduler` 到 `nova-compute`，这些 span 带有其日志所带的请求 ID，所以它的[日志](#从追踪到它的日志)无需猜测。它不会跨越 HTTP 调用，所以 Nova 请求 Neutron 是另一条独立的追踪。`keystone` 和 Placement 没有可添加过滤器的管道，`cinder-volume` 在这里也不发送任何内容，**追踪**页面会告诉你一朵云发送的是这两种中的哪一种。
+
+要让追踪跨越 HTTP 调用，请在每个服务运行的地方给 keystoneauth 加一行。这是对你机器上 OpenStack 代码的修改，所以升级后需要你自己保留：
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+这样，一次启动的追踪也会跨越 Neutron 和 Glance，即 `nova-api` 向它们发出的请求。`nova-compute` 在自己的线程上构建实例，这会在同一请求 ID 下开始新的追踪，所以它向 Neutron 发出的请求不在这次启动的追踪里。
+
+下面是在一台机器的 DevStack 上的开销，只有一个计算节点和一个读取者。这不是繁忙的云，三个 API 的响应没有变慢，至少我们无法与噪声区分：
+
+| 读取 40 次，或测量值 | 关 | 开 |
+| --- | --- | --- |
+| `GET /servers`，一半请求在此时间内响应 | 48 ms | 32 ms |
+| `GET /v2.0/networks`，一半请求在此时间内响应 | 16 ms | 18 ms |
+| `GET /v2/images`，一半请求在此时间内响应 | 5 ms | 8 ms |
+| 两分钟空闲时间内的 CPU，所有服务合计 | 3.0 s | 3.9 s |
+
+一次启动产生约 220 个 span，collector 转发其中约 110 个，约 75 KB。空闲的一分钟产生约 33 个，只转发约 2 个，因为除非失败，否则它会丢弃 `nova-compute` 请求其 conductor 读取或保存对象的 span。这些占一次启动 RPC span 的大部分，也几乎是空闲云的全部。要保留它们，请把 `filter/nova-object-calls` 从 collector 的管道中去掉。
+
+这是在 2026.2 的 DevStack 上，从一次真实启动到一个运行中的 OneUptime 进行的，没有在其他地方运行过。
 
 ## 从外部检查云
 
@@ -1476,16 +1529,6 @@ Nova 还会创建服务器的端口，并在删除服务器时一并删除它。
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
-
-### OpenStack 自带的追踪
-
-在 2026.2 上，oslo.middleware 8.2.0 和 oslo.messaging 18.3.1 可以在不签名的情况下进行追踪，所以它们有朝一日可能成为一个常开的数据流。我们运行过它们，但 OneUptime 目前还不读取它们，因为按其现有的发行状态，它们不会跨服务跟踪请求：
-
-- 单独使用 oslo.messaging 不会发送任何内容，并且每次调用都会记录 `has no attribute 'trace_exporter'`。
-- 把 oslo.middleware 的过滤器添加到每个 API 的管道后，每次 API 调用都是一条独立的追踪。一次启动产生了 83 条追踪，没有一条跨越两个服务，因为没有任何东西会在对外的 HTTP 调用中传递追踪。Keystone 和 Placement 没有可添加它的管道。
-- 这些 span 不包含请求 ID，而 RPC span 包含。
-
-如果你开启它们，它们的 span 仍会通过 collector 以各自的名称到达这朵云的 **追踪** 页面。
 
 ## AI 代理
 

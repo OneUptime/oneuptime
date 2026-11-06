@@ -77,7 +77,12 @@ export async function fetchOpenStackTracedServices(
           ? { attributes: { [OPENSTACK_REGION_SPAN_ATTRIBUTE]: region } }
           : {}),
       } as unknown as Query<Span>,
-      select: { startTime: true, traceId: true, attributes: true },
+      select: {
+        startTime: true,
+        traceId: true,
+        parentSpanId: true,
+        attributes: true,
+      },
       sort: { startTime: SortOrder.Descending },
       limit: RECENT_SPANS_READ,
       skip: 0,
@@ -88,6 +93,7 @@ export async function fetchOpenStackTracedServices(
       return {
         startTime: row.startTime,
         traceId: row.traceId,
+        parentSpanId: row.parentSpanId?.toString(),
         attributes: (row.attributes as JSONObject | undefined) || null,
       };
     }),

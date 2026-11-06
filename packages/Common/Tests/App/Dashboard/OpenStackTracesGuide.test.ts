@@ -19,6 +19,7 @@ import {
   OpenStackDeploymentTool,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
 import {
+  OPENSTACK_KEYSTONEAUTH_PATCH,
   OPENSTACK_PLACEMENT_PATCH,
   OPENSTACK_TRACES_CONNECTION_STRING,
   OPENSTACK_TRACES_INSTALL_FILE,
@@ -209,6 +210,21 @@ describe.each(TOOLS)("the guide for %s", (tool: OpenStackDeploymentTool) => {
     expect(placement).toContain("run on 2025.2 and on 2026.2");
   });
 
+  test("it says what OpenStack's own tracing gives, and that it stops at an HTTP call", () => {
+    const own: string = topicTitled(
+      tool,
+      "Every request, with nothing signed",
+    ).markdown;
+
+    expect(own).toContain("on 2026.2");
+    expect(own).toContain("tracing_enabled = True");
+    expect(own).toContain("oslo_middleware:TracingMiddleware.factory");
+    expect(own).toContain("has no attribute 'trace_exporter'");
+    expect(own).toContain("does not cross an HTTP call");
+    expect(own).toContain(OPENSTACK_KEYSTONEAUTH_PATCH);
+    expect(own).toContain("nowhere else");
+  });
+
   test("it says what one worker each costs, and how, on this tool", () => {
     const oneWorker: string = topicTitled(
       tool,
@@ -369,6 +385,30 @@ describe("the one line Placement needs", () => {
     );
 
     expect(script).toContain(`sudo ${OPENSTACK_PLACEMENT_PATCH} `);
+  });
+
+  test("the line for keystoneauth is the one the rig runs, and the one the docs give", () => {
+    const script: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../../Tests/Ops/openstack-e2e/traces-record.sh",
+      ),
+      "utf8",
+    );
+    const docs: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Docs/Content/en/telemetry/openstack.md",
+      ),
+      "utf8",
+    );
+
+    expect(script).toContain(`sudo ${OPENSTACK_KEYSTONEAUTH_PATCH} `);
+    expect(docs).toContain(`${OPENSTACK_KEYSTONEAUTH_PATCH} `);
+    // It cannot break a process that never loaded OpenTelemetry.
+    expect(OPENSTACK_KEYSTONEAUTH_PATCH).toContain(
+      'if "opentelemetry.propagate" in sys.modules:',
+    );
   });
 
   test("adds the group the driver reads, and nothing else", () => {

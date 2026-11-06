@@ -54,6 +54,16 @@ const LIBRARIES: string =
  */
 export const OPENSTACK_PLACEMENT_PATCH: string = `sed -i '/profiler\\.set_defaults(config)/a\\        config.register_opts(profiler._OTLP_OPTS, group="profiler_otlp")'`;
 
+/*
+ * What carries a trace across an HTTP call between services. oslo.middleware reads traceparent as
+ * a request comes in, and nothing writes it on the way out, so every call to another service
+ * starts a trace of its own. keystoneauth's Session.request is how every service calls another,
+ * and it already adds OSProfiler's headers there. In a process that has not loaded OpenTelemetry
+ * this is a lookup and nothing else, so it cannot break a client. traces-record.sh runs exactly
+ * this, and OpenStackTracesGuide.test.ts holds the two together.
+ */
+export const OPENSTACK_KEYSTONEAUTH_PATCH: string = `sed -i '/headers\\.update(osprofiler_web\\.get_trace_id_headers())/a\\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)'`;
+
 function placementPatchCommand(python: string): string {
   return `${OPENSTACK_PLACEMENT_PATCH} "$(${python} -c 'import placement.wsgi as module; print(module.__file__)')"`;
 }
@@ -456,7 +466,9 @@ OpenStack gives no overhead figure for a signed one, so none is promised here, a
 
 What has been counted is what a signed boot sends, on one machine's DevStack. On 2025.2 that is about 100 spans and 50 KB, about 150 spans with \`trace_requests\`, and about 900 spans and 1 MB with \`trace_sqlalchemy\`, which is why that stays off until you have a database question. On 2026.2, where \`nova-conductor\` sends too and later work lands in the trace, it is about 180 spans and 80 KB, about 320 spans, and about 1,000 spans and 1 MB.
 
-With the collector stopped, a signed boot still worked, and its spans were lost: tracing did not get in the request's way.`,
+With the collector stopped, a signed boot still worked, and its spans were lost: tracing did not get in the request's way.
+
+On 2026.2 \`cinder-volume\`, which still runs on eventlet, sometimes spun a whole core after a restart, mostly with OSProfiler's driver on and once with it off. Another restart cleared it. We do not know why, so look there first if a machine runs hot.`,
   };
 }
 
@@ -487,6 +499,38 @@ ${guide.placement}`,
   };
 }
 
+function ownTracingTopic(): SetupGuideTopic {
+  return {
+    title: "Every request, with nothing signed",
+    summary: "OpenStack's own tracing, on 2026.2 only.",
+    markdown: `oslo.messaging 18.3.1 and oslo.middleware 8.2.0, on 2026.2, trace every API request with nothing signed. Earlier releases do not have them. Keep the steps above: OSProfiler's driver is what gives each service a tracer to send through, and without it oslo.messaging fails on every call with \`has no attribute 'trace_exporter'\`.
+
+Add this to each service's config, beside \`[profiler]\`:
+
+${codeBlock("ini", "[oslo_messaging_tracing]\ntracing_enabled = True")}
+
+Add this to \`nova.conf\`, \`neutron.conf\`, \`cinder.conf\` and \`glance-api.conf\`, with \`service_name\` that API's own name and \`otlp_endpoint\` the collector \`connection_string\` names:
+
+${codeBlock("ini", "[oslo_middleware_tracing]\nenabled = True\notlp_endpoint = http://127.0.0.1:4318\nservice_name = nova-api")}
+
+Add this filter to each of those APIs' paste file, and \`otel_tracing\` to each pipeline, just before \`osprofiler\`. Then restart them:
+
+${codeBlock("ini", "[filter:otel_tracing]\npaste.filter_factory = oslo_middleware:TracingMiddleware.factory")}
+
+A trace now follows a request over RPC: a boot is one trace from \`nova-api\` through \`nova-conductor\` and \`nova-scheduler\` to \`nova-compute\`, and those spans hold the request ID its logs hold. It does not cross an HTTP call, so Nova asking Neutron is a trace of its own. \`keystone\` and Placement have no pipeline to add the filter to, and \`cinder-volume\` sends nothing here either.
+
+To carry a trace across HTTP calls, add one line to keystoneauth where each service runs. It is a change to OpenStack's code on your machines, so it is yours to keep across upgrades:
+
+${codeBlock("bash", `${OPENSTACK_KEYSTONEAUTH_PATCH} "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"`)}
+
+A boot's trace then crosses Neutron and Glance too, for what \`nova-api\` asks them. \`nova-compute\` builds an instance on a thread of its own, which starts new traces under the same request ID, so what it asks Neutron stays out of the boot's trace.
+
+What it cost on one machine's DevStack, with one compute node and one reader: three APIs answered no slower that we could tell from noise, and two quiet minutes cost about a CPU-second more across every service. A boot makes about 220 spans, and the collector sends on about 110 of them, about 75 KB. An idle minute makes about 33, and it sends on about 2, because it drops \`nova-compute\` asking its conductor to read or save an object unless one failed. Take \`filter/nova-object-calls\` out of the collector's pipeline to keep them.
+
+This was run on DevStack on 2026.2, from a real boot to a running OneUptime, and nowhere else.`,
+  };
+}
+
 function oneWorkerTopic(guide: ToolGuide): SetupGuideTopic {
   return {
     title: "Nova's conductor and scheduler",
@@ -502,6 +546,7 @@ function detailsTopics(guide: ToolGuide): Array<SetupGuideTopic> {
     cannotShowTopic(),
     placementTopic(guide),
     oneWorkerTopic(guide),
+    ownTracingTopic(),
     costsTopic(),
     {
       title: "What a span can hold",
