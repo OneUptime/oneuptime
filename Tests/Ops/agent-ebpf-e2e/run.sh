@@ -196,13 +196,43 @@ platform_up() {
   esac
 }
 
+# kind imports an image with `ctr images import --all-platforms`, which needs
+# every platform the image's index names. Docker's containerd image store (the
+# default since Docker 29; ubuntu-latest had 29.4.2 on 2026-11-06) saves a
+# pulled multi-platform image's whole index but holds only this machine's
+# platform, so `kind load docker-image` failed on the first one it lacked:
+# "ctr: content digest sha256:...: not found" (#6180). An archive of this
+# machine's platform alone loads on either image store: a Docker without
+# `save --platform` (before 28) has the classic store, which saves one anyway.
+# Its help is read whole, not piped to grep -q: under pipefail a grep that
+# stops early can fail the pipe.
+save_image_for_nodes() { # save_image_for_nodes <image> <archive>
+  local help
+  help="$(docker image save --help 2>&1)"
+  case "${help}" in
+    *--platform*)
+      docker image save --platform "$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" \
+        -o "$2" "$1"
+      ;;
+    *) docker image save -o "$2" "$1" ;;
+  esac
+}
+kind_load_image() { # kind_load_image <image>
+  local archive status=0
+  archive="$(mktemp "${TMPDIR:-/tmp}/agent-ebpf-e2e-image.XXXXXX")" || return 1
+  save_image_for_nodes "$1" "${archive}" &&
+    kind load image-archive --name "${CLUSTER}" "${archive}" || status=$?
+  rm -f "${archive}"
+  return "${status}"
+}
+
 platform_load_images() {
   local img
   case "${PLATFORM}" in
     kind)
       for img in ${ALL_IMAGES}; do
         log "loading ${img} into the KinD nodes"
-        retry 3 kind load docker-image --name "${CLUSTER}" "${img}" >>"${OUT}/image-load.log" 2>&1 ||
+        retry 3 kind_load_image "${img}" >>"${OUT}/image-load.log" 2>&1 ||
           die "kind load ${img} failed"
       done
       ;;
