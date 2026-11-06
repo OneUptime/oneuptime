@@ -256,9 +256,8 @@ describe("getCloudEnvironmentNoLogsMessage", () => {
       ),
     ).toBe(true);
     expect(CLOUD_ENVIRONMENT_NO_LOGS_OR_STREAM).toContain(
-      "Stream metrics and logs",
+      "in Cloud > Connect, choose Stream metrics and logs in the account's row.",
     );
-    expect(CLOUD_ENVIRONMENT_NO_LOGS_OR_STREAM).toContain("Cloud > Connect");
   });
 
   test("both are read in every language the Dashboard has, and none of them is left in English", () => {
@@ -308,12 +307,27 @@ describe("getCloudEnvironmentNoLogsMessage", () => {
       }
 
       if (file !== "en.json") {
-        for (const word of ["AWS", "CloudWatch Logs", "Cloud >"]) {
+        for (const word of ["AWS", "CloudWatch Logs"]) {
           expect({
             file,
             word,
             kept: locale[CLOUD_ENVIRONMENT_NO_LOGS_OR_STREAM]!.includes(word),
           }).toEqual({ file, word, kept: true });
+        }
+        /*
+         * The place and the menu item as this language's Dashboard draws
+         * them - its own words for Cloud > Connect, never the English menu
+         * inside a translated sentence.
+         */
+        for (const drawn of [
+          `${locale["Cloud"]} > ${locale["Connect"]}`,
+          locale["Stream metrics and logs"]!,
+        ]) {
+          expect({
+            file,
+            drawn,
+            named: locale[CLOUD_ENVIRONMENT_NO_LOGS_OR_STREAM]!.includes(drawn),
+          }).toEqual({ file, drawn, named: true });
         }
       }
     }

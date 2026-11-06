@@ -303,14 +303,45 @@ describe("a cloud resource's Logs tab", () => {
         cloudConnection: { streamKeyCreatedAt: new Date() },
       } as never),
     ).toBe(CLOUD_RESOURCE_NO_LOGS_IN_RANGE);
-    // Both send the reader to the same place: the stream on the connection.
+    /*
+     * Both send the reader to the same place, named as the Dashboard draws
+     * it: the Connect page under Cloud, and the account's row there, whose
+     * menu holds Stream metrics and logs.
+     */
     for (const sentence of [
       CLOUD_RESOURCE_NO_STREAMED_LOGS,
       CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
     ]) {
-      expect(sentence).toContain("Stream metrics and logs");
-      expect(sentence).toContain("Cloud > Connect");
+      expect(sentence).toContain("in Cloud > Connect, ");
+      expect(sentence).toContain(
+        "Stream metrics and logs in the account's row.",
+      );
     }
+    // Once it streams, the range comes first: the likelier reason.
+    expect(
+      CLOUD_RESOURCE_NO_LOGS_IN_RANGE.startsWith(
+        "Nothing arrived from this resource's log group in this time range. Choose a longer range, ",
+      ),
+    ).toBe(true);
+  });
+
+  test("the place and the menu item it names are the Dashboard's own: Cloud > Connect, and the row's Stream metrics and logs", () => {
+    const dashboardDir: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src",
+    );
+    const sideMenu: string = fs.readFileSync(
+      path.join(dashboardDir, "Pages/Cloud/SideMenu.tsx"),
+      "utf8",
+    );
+    const connections: string = fs.readFileSync(
+      path.join(dashboardDir, "Components/Cloud/Connect/CloudConnectionsTable.tsx"),
+      "utf8",
+    );
+
+    expect(sideMenu).toContain('title: "Cloud",');
+    expect(sideMenu).toContain('title: "Connect",');
+    expect(connections).toContain('title: "Stream metrics and logs",');
   });
 
   test("both are read in every language the Dashboard has, and left in English in none", () => {
@@ -347,9 +378,23 @@ describe("a cloud resource's Logs tab", () => {
             file,
             translated: true,
           });
-          expect({ file, cloud: value!.includes("Cloud >") }).toEqual({
+          /*
+           * The place and the menu item as this language's Dashboard draws
+           * them - its own words for Cloud > Connect, never the English
+           * menu inside a translated sentence.
+           */
+          const place: string = `${locale["Cloud"]} > ${locale["Connect"]}`;
+          const item: string = locale["Stream metrics and logs"]!;
+
+          expect({ file, place, named: value!.includes(place) }).toEqual({
             file,
-            cloud: true,
+            place,
+            named: true,
+          });
+          expect({ file, item, named: value!.includes(item) }).toEqual({
+            file,
+            item,
+            named: true,
           });
         }
       }

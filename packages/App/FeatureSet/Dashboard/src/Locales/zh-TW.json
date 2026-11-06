@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "請以區域代碼填寫區域，例如 us-east-1 或 eu-central-1。",
   "List at most {{count}} Regions.": "最多填寫 {{count}} 個區域。",
   "Log groups": "日誌群組",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "當其帳戶的連線開始串流 CloudWatch Logs 後，日誌就會顯示在這裡：請在 Cloud > 連線 中為該連線選擇「串流指標和日誌」，並包含此資源的日誌群組。",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "此資源的 AWS 帳戶串流其日誌群組後，日誌就會顯示在這裡：請在 雲端 > 連線 中，在該帳戶所在列選擇「串流指標和日誌」。",
   "Logs endpoint": "日誌端點",
   "Logs of {{count}} log groups from {{region}}": "來自 {{region}} 的 {{count}} 個日誌群組的日誌",
   "Logs of {{count}} log groups from {{region}}_one": "來自 {{region}} 的 {{count}} 個日誌群組的日誌",
@@ -45567,6 +45567,6 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` 會在 Node.js 中開啟 {{detector}} 資源偵測器。其他語言的開啟方式：{{others}}。",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "已登入該專案並已啟用 Secret Manager API（`gcloud services enable secretmanager.googleapis.com`）的 `gcloud`",
   "OTLP Endpoint": "OTLP 端點",
-  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "帶有此環境的 cloud.platform、cloud.account.id 和 cloud.region 資源屬性的日誌會顯示在這裡；其 AWS 帳戶串流 CloudWatch Logs 後，這些日誌也會顯示在這裡：請在 Cloud > 連線 中為該帳戶的連線選擇「串流指標和日誌」。",
-  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "在此時間範圍內，此資源的日誌群組沒有傳來任何內容。請選擇更長的時間範圍，或檢查串流是否包含其日誌群組：在 Cloud > 連線 中，查看該帳戶連線的「串流指標和日誌」。"
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "帶有此環境的 cloud.platform、cloud.account.id 和 cloud.region 資源屬性的日誌會顯示在這裡；其 AWS 帳戶串流 CloudWatch Logs 後，這些日誌也會顯示在這裡：請在 雲端 > 連線 中，在該帳戶所在列選擇「串流指標和日誌」。",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "在此時間範圍內，此資源的日誌群組沒有傳來任何內容。請選擇更長的時間範圍，或檢查其帳戶是否串流此日誌群組：請在 雲端 > 連線 中，在該帳戶所在列開啟「串流指標和日誌」。"
 }

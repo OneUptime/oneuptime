@@ -43,10 +43,10 @@ export const CLOUD_RESOURCE_LOGS_NOT_FOUND: string =
   "Cloud resource not found.";
 
 export const CLOUD_RESOURCE_NO_STREAMED_LOGS: string = translationKey(
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.",
 );
 export const CLOUD_RESOURCE_NO_LOGS_IN_RANGE: string = translationKey(
-  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.",
 );
 
 // What the empty list says: whether the account's connection streams yet.

@@ -573,7 +573,7 @@ describe("Cloud Environment copy", () => {
       '"Logs appear here when they carry this environment\'s cloud.platform, cloud.account.id and cloud.region resource attributes."',
     );
     expect(logsTab).toContain(
-      "\"Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.\"",
+      "\"Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.\"",
     );
     expect(logsTab).toContain(
       "noLogsMessage={getCloudEnvironmentNoLogsMessage(",

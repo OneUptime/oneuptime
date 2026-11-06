@@ -4332,9 +4332,9 @@ const NIGHTLY_EXPORT_ARN: string =
 const STORED_RESOURCE_ID: string = "resource.cloud.resource_id";
 // What an empty list says before the account streams, and once it does.
 const NO_STREAMED_LOGS: string =
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.";
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.";
 const NO_LOGS_IN_RANGE: string =
-  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.";
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.";
 
 interface LogRead {
   kind: string;

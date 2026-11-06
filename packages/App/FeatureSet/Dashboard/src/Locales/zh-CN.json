@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "请用区域代码填写区域，例如 us-east-1 或 eu-central-1。",
   "List at most {{count}} Regions.": "最多填写 {{count}} 个区域。",
   "Log groups": "日志组",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "当其账户的连接开始流式传输 CloudWatch Logs 后，日志会显示在这里：请在 Cloud > 连接 中为该连接选择“流式传输指标和日志”，并包含此资源的日志组。",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "此资源的 AWS 账户流式传输其日志组后，日志会显示在这里：请在 云 > 连接 中，在该账户所在行选择“流式传输指标和日志”。",
   "Logs endpoint": "日志端点",
   "Logs of {{count}} log groups from {{region}}": "来自 {{region}} 的 {{count}} 个日志组的日志",
   "Logs of {{count}} log groups from {{region}}_one": "来自 {{region}} 的 {{count}} 个日志组的日志",
@@ -45567,6 +45567,6 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` 在 Node.js 中开启 {{detector}} 资源检测器。其他语言的开启方式：{{others}}。",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "已登录到该项目并已启用 Secret Manager API（`gcloud services enable secretmanager.googleapis.com`）的 `gcloud`",
   "OTLP Endpoint": "OTLP 端点",
-  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: choose Stream metrics and logs on the account's connection in Cloud > Connect.": "带有此环境的 cloud.platform、cloud.account.id 和 cloud.region 资源属性的日志会显示在这里；其 AWS 账户流式传输 CloudWatch Logs 后，这些日志也会显示在这里：请在 Cloud > 连接 中为该账户的连接选择“流式传输指标和日志”。",
-  "Nothing came from this resource's log group in this time range. Choose a longer range, or check that the stream includes its log group: Stream metrics and logs, on its account's connection in Cloud > Connect.": "在此时间范围内，此资源的日志组没有传来任何内容。请选择更长的时间范围，或检查流是否包含其日志组：在 Cloud > 连接 中，查看该账户连接的“流式传输指标和日志”。"
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "带有此环境的 cloud.platform、cloud.account.id 和 cloud.region 资源属性的日志会显示在这里；其 AWS 账户流式传输 CloudWatch Logs 后，这些日志也会显示在这里：请在 云 > 连接 中，在该账户所在行选择“流式传输指标和日志”。",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "在此时间范围内，此资源的日志组没有传来任何内容。请选择更长的时间范围，或检查其账户是否流式传输此日志组：请在 云 > 连接 中，在该账户所在行打开“流式传输指标和日志”。"
 }
