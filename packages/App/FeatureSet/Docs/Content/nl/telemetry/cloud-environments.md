@@ -4,7 +4,7 @@ Een **Cloud-omgeving** is de plek waar je containers draaien op een beheerd clou
 
 Omgevingen staan in App-platforms, een eigen product: **App-platforms → Overzicht** groepeert ze per platform en toont eerst de omgevingen die stil zijn gevallen, **App-platforms → Alle apps** toont elke app die erin draait, en **App-platforms → Alle omgevingen** toont ze allemaal. De resources in je cloudaccounts, zoals virtuele machines, buckets en beheerde databases, staan in Cloud: zie [Cloud-resources](/docs/telemetry/cloud-resources).
 
-Om de omgevingen of apps van één cloudaccount te zien, filter je **Alle omgevingen** of **Alle apps** met de filterchip **Cloud-account**: die toont elk account waarin de omgevingen staan, onder de cloud ervan, en houdt de accounts die je kiest, of alle andere. Op **Cloud → Overzicht** telt de kaart **App-platforms** de omgevingen en apps in je verbonden cloudaccounts, en elk getal opent zijn lijst met de chip al ingesteld op die accounts. Verwijder de chip om de hele lijst te zien.
+Om de omgevingen of apps van één cloudaccount te zien, filter je **Alle omgevingen** of **Alle apps** met de filterchip **Cloud-account**: die toont elk account waarin de omgevingen staan, onder de cloud ervan, met de naam die het in **Cloud → Accounts** heeft en de ID onder de naam, en houdt de accounts die je kiest, of alle andere. Op **Cloud → Overzicht** telt de kaart **App-platforms** de omgevingen en apps in je verbonden cloudaccounts, en elk getal opent zijn lijst met de chip al ingesteld op die accounts. Verwijder de chip om de hele lijst te zien.
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Taken op Fargate of EC2, met CPU en geheugen per taak.

@@ -4,7 +4,7 @@ Et **Skymiljø** er stedet der containerne dine kjører på en administrert skyp
 
 Miljøer vises i App-plattformer, et eget produkt: **App-plattformer → Oversikt** grupperer dem etter plattform og viser de som har blitt stille først, **App-plattformer → Alle apper** viser hver app som kjører i dem, og **App-plattformer → Alle miljøer** viser alle. Ressursene i skykontoene dine, som virtuelle maskiner, bøtter og administrerte databaser, finnes i Sky: se [Skyressurser](/docs/telemetry/cloud-resources).
 
-For å se miljøene eller appene til én skykonto, filtrer **Alle miljøer** eller **Alle apper** med filterbrikken **Skykonto**: Den viser hver konto miljøene ligger i, under sin sky, og beholder kontoene du velger, eller alle de andre. På **Sky → Oversikt** teller kortet **App-plattformer** miljøene og appene i de tilkoblede skykontoene dine, og hvert tall åpner listen sin med brikken allerede satt til de kontoene. Fjern brikken for å se hele listen.
+For å se miljøene eller appene til én skykonto, filtrer **Alle miljøer** eller **Alle apper** med filterbrikken **Skykonto**: Den viser hver konto miljøene ligger i, under sin sky, med navnet den har i **Sky → Kontoer** og ID-en under navnet, og beholder kontoene du velger, eller alle de andre. På **Sky → Oversikt** teller kortet **App-plattformer** miljøene og appene i de tilkoblede skykontoene dine, og hvert tall åpner listen sin med brikken allerede satt til de kontoene. Fjern brikken for å se hele listen.
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Oppgaver på Fargate eller EC2, med CPU og minne per oppgave.
