@@ -42,8 +42,11 @@ minutes ago from `reports--v12abc`, deployed two days ago, to the
 `reports--v11def` it ran before). Their requests,
 errors and p95 over the last hour, and `checkout-api`'s per revision, come
 back from `/telemetry/traces/analytics` (`APP_SIGNALS`, `REVISION_SIGNALS`).
-The service `checkout-api`'s telemetry is under is in Services, so its app page
-offers **Set up alerts**. `checkout`'s feed holds the line `checkout-api`'s
+The service `checkout-api`'s telemetry is under is in Services, and its app
+page's **Set up alerts** opens the app's own Recommendations tab, whose
+monitors read the app's spans and request durations by its telemetry filter;
+the project's monitor statuses and severities they are made with are modelled,
+and every monitor the tab makes is kept. `checkout`'s feed holds the line `checkout-api`'s
 deploy of 43 wrote, and `reports`' environment's the line of its rollback
 (`CloudResourceFeed`, as `CloudAppChangeRecorder` writes them).
 
@@ -75,8 +78,10 @@ Query parameters on any page:
 
 `window.__appPlatformsFixture` holds every read: `listRequests`,
 `countRequests`, `itemRequests`, `aggregateRequests`, `apiRequests`,
-`analyticsRequests` (the grouped trace reads, with their bodies) and
-`unhandled` - anything the fixture does not model. Every test fails on a page
+`analyticsRequests` (the grouped trace reads, with their bodies), `creates`
+(each monitor an app's Recommendations tab made: its name, type, filter,
+services and linked environment) and `unhandled` - anything the fixture does
+not model. Every test fails on a page
 error, on a request that leaves `127.0.0.1`, and on anything in `unhandled`.
 
 Screenshots land in `output/playwright/app-platforms-ui/*-synthetic.png`.
