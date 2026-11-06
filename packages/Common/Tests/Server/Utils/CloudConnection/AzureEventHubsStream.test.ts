@@ -298,7 +298,7 @@ describe("a read of an event hub", () => {
           throw new Error("The queue is away");
         },
         onOffset: async (
-          namespace: string,
+          _namespace: string,
           partition: number,
           offset: number,
         ): Promise<void> => {

@@ -144,7 +144,7 @@ async function fetchFromFake(): Promise<GoogleKeysResponse> {
 
 beforeAll(async () => {
   server = http.createServer(
-    (request: http.IncomingMessage, response: http.ServerResponse) => {
+    (_request: http.IncomingMessage, response: http.ServerResponse) => {
       keyReads++;
       response.statusCode = keyStatus;
       response.setHeader("Content-Type", "application/json; charset=UTF-8");
@@ -226,10 +226,11 @@ describe("A token Google signed for a push", () => {
 
   test("is checked once: the same token pushed again is not verified again, until it expires", async () => {
     const token: string = sign({});
-    const verify: SpyInstance<typeof crypto.verify> = jest.spyOn(
+    // crypto.verify is overloaded (a callback's last): the spy only counts.
+    const verify: SpyInstance = jest.spyOn(
       crypto,
       "verify",
-    );
+    ) as unknown as SpyInstance;
 
     expect((await GoogleOidcTokens.verify(token, NOW)).isValid).toBe(true);
     expect((await GoogleOidcTokens.verify(token, NOW)).isValid).toBe(true);

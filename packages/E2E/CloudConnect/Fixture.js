@@ -63,6 +63,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import { getCloudStreamPushServiceAccountEmail } from "Common/Types/CloudConnection/CloudStream";
 
 /*
  * The fixture page: the real Cloud > Connect page in the real Cloud layout
@@ -138,9 +139,38 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *               Firehose delivers to no other
  *
  * window.__cloudConnectFixture.deliver() makes the first delivery arrive,
- * as it does a few minutes after the stream's command finished. The page says
- * which language it is in and which way it reads, as production's
- * followLanguageForPage does: Persian is laid out right to left.
+ * as it does a few minutes after the stream's command finished.
+ *
+ * How the Azure connection streams its metrics and resource logs - Azure
+ * Monitor sends them to event hubs OneUptime reads (Stream metrics and
+ * logs, on its row) - and the Google Cloud connection its logs, pushed
+ * through Pub/Sub (Stream logs), answered from POST
+ * /cloud-connection/<id>/start-streaming, /stream-key and /stop-streaming
+ * as the server answers them:
+ *
+ *   ?azurestream=  none (default: reading is off)
+ *               | reading (on for the event hubs in Contoso production's
+ *               subscription, nothing read yet)
+ *               | receiving (metrics from westeurope and logs from
+ *               northeurope, a minute ago)
+ *               | failing (the connection's app may not read the event
+ *               hubs)
+ *   ?gcpstream=    none (default: it has no stream key)
+ *               | waiting (a key, and no push yet)
+ *               | receiving (logs of acme-prod from europe-west1, a
+ *               minute ago)
+ *               | refused (a push came with a token Google did not sign
+ *               for the connection's push service account)
+ *
+ * window.__cloudConnectFixture.deliver("azure") and deliver("gcp") make
+ * their first events arrive. A web app and a virtual machine of the Azure
+ * subscription, and a Compute Engine instance and an instance group of
+ * the Google Cloud project, have pages of their own, for the Logs tab
+ * their streams give.
+ *
+ * The page says which language it is in and which way it reads, as
+ * production's followLanguageForPage does: Persian is laid out right to
+ * left.
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -182,6 +212,16 @@ const streamState = ["waiting", "receiving", "refused"].includes(
   params.get("stream"),
 )
   ? params.get("stream")
+  : "none";
+const azureStreamState = ["reading", "receiving", "failing"].includes(
+  params.get("azurestream"),
+)
+  ? params.get("azurestream")
+  : "none";
+const gcpStreamState = ["waiting", "receiving", "refused"].includes(
+  params.get("gcpstream"),
+)
+  ? params.get("gcpstream")
   : "none";
 
 // What the AWS connection's streams delivered: metrics and logs a minute ago.
@@ -245,6 +285,113 @@ function streamFields() {
       logSources: [],
       lastRefusal: {
         reason: "wrong-key",
+        at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+    },
+  };
+}
+
+// The subscription whose event hubs the Azure connection reads: Contoso production's.
+const AZURE_SUBSCRIPTION = "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b";
+
+// What the Azure connection read from its event hubs: metrics and logs a minute ago.
+function azureReceivingSummary() {
+  const at = new Date(Date.now() - 60 * 1000).toISOString();
+  return {
+    lastDeliveryAt: at,
+    lastReadAt: at,
+    metricSources: [
+      {
+        accountId: AZURE_SUBSCRIPTION,
+        region: "westeurope",
+        namespaces: [
+          "Microsoft.Compute/virtualMachines",
+          "Microsoft.Sql/servers/databases",
+          "Microsoft.Web/sites",
+        ],
+        lastAt: at,
+      },
+    ],
+    logSources: [
+      {
+        accountId: AZURE_SUBSCRIPTION,
+        region: "northeurope",
+        logGroups: ["AppServiceHTTPLogs", "AppServiceConsoleLogs"],
+        lastAt: at,
+      },
+    ],
+  };
+}
+
+// Whether the Azure connection's event hubs are read, and what was, as ?azurestream= sets them.
+function azureStreamFields() {
+  if (azureStreamState === "none") {
+    return {};
+  }
+  const reading = {
+    streamKeyCreatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    streamState: { hostSubscriptionId: AZURE_SUBSCRIPTION, offsets: {} },
+  };
+  if (azureStreamState === "reading") {
+    return { ...reading, streamSummary: {} };
+  }
+  if (azureStreamState === "receiving") {
+    return { ...reading, streamSummary: azureReceivingSummary() };
+  }
+  return {
+    ...reading,
+    streamSummary: {
+      metricSources: [],
+      logSources: [],
+      lastRefusal: {
+        reason: "no-access",
+        at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+    },
+  };
+}
+
+// What Pub/Sub pushed for the Google Cloud connection: three logs a minute ago.
+function gcpReceivingSummary() {
+  const at = new Date(Date.now() - 60 * 1000).toISOString();
+  return {
+    lastDeliveryAt: at,
+    metricSources: [],
+    logSources: [
+      {
+        accountId: "acme-prod",
+        region: "europe-west1",
+        logGroups: [
+          "run.googleapis.com/requests",
+          "run.googleapis.com/stderr",
+          "cloudaudit.googleapis.com/activity",
+        ],
+        lastAt: at,
+      },
+    ],
+  };
+}
+
+// The Google Cloud connection's stream key and what Pub/Sub pushed, as ?gcpstream= sets them.
+function gcpStreamFields() {
+  if (gcpStreamState === "none") {
+    return {};
+  }
+  const madeAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  if (gcpStreamState === "waiting") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: {} };
+  }
+  if (gcpStreamState === "receiving") {
+    return { streamKeyCreatedAt: madeAt, streamSummary: gcpReceivingSummary() };
+  }
+  return {
+    streamKeyCreatedAt: madeAt,
+    streamSummary: {
+      lastDeliveryAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+      metricSources: [],
+      logSources: [],
+      lastRefusal: {
+        reason: "wrong-token",
         at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
       },
     },
@@ -391,6 +538,7 @@ const connections =
             },
           }),
           connection("20000000-0000-4000-8000-000000000002", {
+            ...azureStreamFields(),
             name: "Contoso production",
             provider: "azure",
             config: {
@@ -420,6 +568,7 @@ const connections =
             },
           }),
           connection("20000000-0000-4000-8000-000000000003", {
+            ...gcpStreamFields(),
             name: "Google Cloud acme-prod",
             provider: "gcp",
             isEnabled: false,
@@ -777,6 +926,63 @@ const AWS_RESOURCES = [
       Arn: "arn:aws:sqs:eu-west-1:123456789012:orders-dlq",
       MessageRetentionPeriod: 1209600,
     },
+  }),
+];
+
+/*
+ * A web app and a virtual machine of the Azure subscription, and a Compute
+ * Engine instance and an instance group of the Google Cloud project, each
+ * drawn on its own page for the Logs tab its stream gives
+ * (CloudLogGroups): a web app's resource logs and an instance's entries;
+ * none for a machine Azure keeps no resource logs of, or for a group of
+ * instances, whose logs are its instances'.
+ */
+const AZURE_WEB_APP_ID = "40000000-0000-4000-8000-000000000101";
+const AZURE_VM_ID = "40000000-0000-4000-8000-000000000102";
+const GCE_INSTANCE_ID = "40000000-0000-4000-8000-000000000103";
+const GCE_GROUP_ID = "40000000-0000-4000-8000-000000000104";
+const AZURE_GROUP_PATH = `/subscriptions/${AZURE_SUBSCRIPTION}/resourceGroups/storefront/providers`;
+
+const OTHER_CLOUD_RESOURCES = [
+  cloudResource(AZURE_WEB_APP_ID, {
+    name: "checkout-web",
+    cloudProvider: "azure",
+    cloudAccountId: AZURE_SUBSCRIPTION,
+    cloudResourceKind: "resource",
+    cloudResourceType: "Microsoft.Web/sites",
+    providerResourceId: `${AZURE_GROUP_PATH}/Microsoft.Web/sites/checkout-web`,
+    cloudRegion: "westeurope",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource(AZURE_VM_ID, {
+    name: "build-agent-1",
+    cloudProvider: "azure",
+    cloudAccountId: AZURE_SUBSCRIPTION,
+    cloudResourceKind: "resource",
+    cloudResourceType: "Microsoft.Compute/virtualMachines",
+    providerResourceId: `${AZURE_GROUP_PATH}/Microsoft.Compute/virtualMachines/build-agent-1`,
+    cloudRegion: "westeurope",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource(GCE_INSTANCE_ID, {
+    name: "orders-worker-1",
+    cloudProvider: "gcp",
+    cloudAccountId: "acme-prod",
+    cloudResourceKind: "resource",
+    cloudResourceType: "gce_instance",
+    providerResourceId: "4410912387654321098",
+    cloudRegion: "europe-west1",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource(GCE_GROUP_ID, {
+    name: "orders-workers",
+    cloudProvider: "gcp",
+    cloudAccountId: "acme-prod",
+    cloudResourceKind: "resource",
+    cloudResourceType: "instance_group",
+    providerResourceId: "6620987612345678901",
+    cloudRegion: "europe-west1",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
   }),
 ];
 
@@ -1154,6 +1360,8 @@ const state = {
   // Every stream key made, by connection, and every Stop streaming.
   streamKeys: [],
   streamStops: [],
+  // Every time reading an Azure connection's event hubs was turned on, and where.
+  streamStarts: [],
 };
 
 /*
@@ -1551,13 +1759,21 @@ const RUNNER_JOBS = [
 
 window.__cloudConnectFixture = {
   state: state,
-  // The first delivery arrives, a few minutes after the stream's command.
-  deliver: () => {
+  /*
+   * The first delivery arrives, a few minutes after the stream's command:
+   * AWS's unless a cloud is named ("azure", "gcp").
+   */
+  deliver: (provider = "aws") => {
     const found = connections.find((item) => {
-      return item.provider === "aws";
+      return item.provider === provider;
     });
     if (found) {
-      found.streamSummary = receivingSummary();
+      found.streamSummary =
+        provider === "azure"
+          ? azureReceivingSummary()
+          : provider === "gcp"
+            ? gcpReceivingSummary()
+            : receivingSummary();
     }
   },
   // The Cloud AI agent connects, as it does once its command finished.
@@ -1747,7 +1963,7 @@ ModelAPI.getItem = async (args) => {
   }
 
   if (args.modelType === CloudResource) {
-    const found = AWS_RESOURCES.find((item) => {
+    const found = [...AWS_RESOURCES, ...OTHER_CLOUD_RESOURCES].find((item) => {
       return item._id === args.id.toString();
     });
     return found ? Object.assign(new CloudResource(), found) : null;
@@ -1946,8 +2162,39 @@ API.post = async (options) => {
   }
 
   /*
-   * A new stream key for an AWS connection, shown this once; the key it
-   * replaces works for a day more. Stop streaming: no key of it works.
+   * Reading an Azure connection's event hubs turned on, in the
+   * subscription given: since when - kept, when it was on already.
+   */
+  if (url.endsWith("/start-streaming")) {
+    const id = new URL(url).pathname.split("/").slice(-2)[0];
+    const found = connections.find((item) => {
+      return item.id.toString() === id;
+    });
+    const hostSubscriptionId = String(
+      (options.data || {}).hostSubscriptionId || "",
+    );
+    state.streamStarts.push({ id: id, hostSubscriptionId: hostSubscriptionId });
+    const startedAt =
+      found && found.streamKeyCreatedAt
+        ? new Date(found.streamKeyCreatedAt)
+        : new Date();
+    if (found) {
+      found.streamKeyCreatedAt = startedAt;
+      found.streamState = {
+        hostSubscriptionId: hostSubscriptionId,
+        offsets: {},
+      };
+      found.streamSummary = found.streamSummary || {};
+    }
+    return new HTTPResponse(200, { startedAt: startedAt.toISOString() }, {});
+  }
+
+  /*
+   * A new stream key for an AWS or a Google Cloud connection, shown this
+   * once; the key it replaces works for a day more. A Google Cloud key
+   * comes with the push service account its pushes are signed as. Stop
+   * streaming: no key of it works, and an Azure connection's event hubs
+   * are read no more.
    */
   if (url.endsWith("/stream-key") || url.endsWith("/stop-streaming")) {
     const pathname = new URL(url).pathname;
@@ -1984,6 +2231,13 @@ API.post = async (options) => {
         previousKeyWorksUntil: hadKey
           ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
           : null,
+        pushServiceAccount:
+          found && found.provider === "gcp"
+            ? getCloudStreamPushServiceAccountEmail({
+                connectionId: id,
+                projectId: String(found.config.keyProjectId || ""),
+              })
+            : null,
       },
       {},
     );
