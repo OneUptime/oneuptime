@@ -106,11 +106,11 @@ Hendelser starter med tre alvorlighetsgrader og varsler med to. Når malen i en 
 
 ## Rediger alvorlighetsgrader
 
-Gå til **Varsler → Innstillinger → Varselsalvor**. Kortet **Varsel Alvorligheter** viser dem med den mest alvorlige først; dra en rad for å endre rangen. **Opprett Varselsalvor** legger til en sist i listen, som den minst alvorlige, med de samme **Navn**, **Beskrivelse** og **Farge** som en tilstand.
+Gå til **Varsler → Innstillinger → Varselsalvor**. Kortet **Alvorlighetsgrader for varsler** viser dem med den mest alvorlige først; dra en rad for å endre rangen. **Opprett Varselsalvor** legger til en sist i listen, som den minst alvorlige, med de samme **Navn**, **Beskrivelse** og **Farge** som en tilstand.
 
 Rangen avgjør hvilken alvorlighetsgrad som vinner der OneUptime sammenligner dem: En episodes alvorlighetsgrad stiger til det mest alvorlige varselet som blir med i den. Alvorlighetsgrader har ingen flagg og ingen slettelås: Enhver alvorlighetsgrad kan slettes, også de to forhåndsopprettede.
 
-En alvorlighetsgrad tilkaller ingen på egen hånd. For å tilkalle etter alvorlighetsgrad legger du til en vaktregel der **Varsel Alvorligheter** samsvarer med den: se [Varselregler og innstillinger](/docs/alerts/settings). Endrer du et varsels alvorlighetsgrad, skrives en oppføring i feeden, og påminnelsesregelen samsvares på nytt.
+En alvorlighetsgrad tilkaller ingen på egen hånd. For å tilkalle etter alvorlighetsgrad legger du til en vaktregel der **Alvorlighetsgrader for varsler** samsvarer med den: se [Varselregler og innstillinger](/docs/alerts/settings). Endrer du et varsels alvorlighetsgrad, skrives en oppføring i feeden, og påminnelsesregelen samsvares på nytt.
 
 ## Arkivere en status eller alvorlighetsgrad
 

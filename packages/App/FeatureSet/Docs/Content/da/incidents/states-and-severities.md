@@ -37,7 +37,7 @@ flowchart TB
 
 Modellen `IncidentState` har `name`, `description`, `color` og `order`, plus tre booleans: `isCreatedState`, `isAcknowledgedState` og `isResolvedState`. Alt, hvad produktet gør med tilstande, tager udgangspunkt i de booleans og i `order` — aldrig i tilstandens navn. Derfor kan du omdøbe **Løst** til "Closed", uden at noget går i stykker: flaget følger med rækken.
 
-Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag. Intet i OneUptime behandler af sig selv **Critical Incident** anderledes end **Minor Incident** — alvorsgraden betyder kun noget, hvor du peger noget på den, som matchkriteriet **Hændelse Alvorligheder** i en vagtregel.
+Modellen `IncidentSeverity` har `name`, `description`, `color` og `order` og intet andet. Der er ingen flag. Intet i OneUptime behandler af sig selv **Critical Incident** anderledes end **Minor Incident** — alvorsgraden betyder kun noget, hvor du peger noget på den, som matchkriteriet **Alvorlighedsgrader for hændelser** i en vagtregel.
 
 Et par hurtige regler:
 
@@ -149,7 +149,7 @@ To forskelle fra tilstande:
 - **Der er ingen sletningsbeskyttelse.** Enhver alvorsgrad kan slettes, også de tre forudoprettede.
 - **Der er ingen flag at arve og intet "Tæller som".** En ny alvorsgrad opfører sig præcis som de forudoprettede — den er en etiket med en farve og en rang.
 
-Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → Vagtregler** er en regels felt **Hændelse Alvorligheder** et matchkriterium. At angive **Critical Incident** dér er, hvordan "tilkald databaseteamet ved alt kritisk" udtrykkes — vagtpolitikken sidder på reglen, ikke på alvorsgraden.
+Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → Vagtregler** er en regels felt **Alvorlighedsgrader for hændelser** et matchkriterium. At angive **Critical Incident** dér er, hvordan "tilkald databaseteamet ved alt kritisk" udtrykkes — vagtpolitikken sidder på reglen, ikke på alvorsgraden.
 
 **At ændre en hændelses alvorsgrad** — under **Rediger** på hændelsens kort **Hændelsesdetaljer**, via API'et eller Terraform (`incidentSeverityId`), med et workflow eller med AI-værktøjerne — gør de samme fire ting, uanset hvordan det sendes: hændelsens feed får en post **Incident updated**, der nævner den nye alvorsgrad, hændelsens SLA-frister beregnes igen, dens påmindelsesregel matches igen, og hændelsesmetrikkerne tæller én ændring af alvorsgrad. At gemme den alvorsgrad, hændelsen allerede har, gør ingen af dem, så redigerer du kun titlen på en hændelse, forbliver dens SLA-frister, påmindelser og antal ændringer af alvorsgrad, som de var. En advarsels alvorsgrad virker på samme måde for dens feedpost og dens påmindelser.
 

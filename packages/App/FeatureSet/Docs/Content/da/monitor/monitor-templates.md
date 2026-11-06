@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Åbn Skabeloner
 
-Gå til **Monitorer → Indstillinger → Skabeloner**, og klik på **Opret Monitor Skabelon**.
+Gå til **Monitorer → Indstillinger → Skabeloner**, og klik på **Opret Monitorskabelon**.
 
 ### Navngiv skabelonen
 
@@ -47,7 +47,7 @@ Vælg under **Overvågningsstandarder** **Monitortype** med den samme vælger so
 
 ### Angiv kriterierne og intervallet
 
-Udfyld under **Kriterier**, hvad der skal tjekkes, og kriterierne, som i [Opret monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felter mod synkroniseringer (se [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor)). For en monitortype, som sonder tjekker, beder det sidste trin, **Interval**, om **Overvågningsinterval**. Klik på **Opret Monitor Skabelon** på det sidste trin.
+Udfyld under **Kriterier**, hvad der skal tjekkes, og kriterierne, som i [Opret monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felter mod synkroniseringer (se [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor)). For en monitortype, som sonder tjekker, beder det sidste trin, **Interval**, om **Overvågningsinterval**. Klik på **Opret Monitorskabelon** på det sidste trin.
 :::
 
 Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver del: **Skabeloninformation**, **Overvågningsstandarder**, **Overvågningskriterier**, **Overvågningsinterval** (med **Minimum sondeenighed**), **Etiketter**, **Standardværdier for brugerdefinerede felter** (når projektet har brugerdefinerede monitorfelter) og **Tilknyttede overvågninger**. Du ændrer hver del på dens eget kort, for eksempel med **Rediger kriterier** eller **Rediger interval**.

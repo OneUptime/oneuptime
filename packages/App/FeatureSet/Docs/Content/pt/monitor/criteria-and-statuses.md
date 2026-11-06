@@ -148,7 +148,7 @@ Um status que você adicionar depois não entra na lista **Conta como indisponib
 :::steps
 ### Abrir Status do monitor
 
-Vá para **Monitores → Configurações → Status do monitor**. **Configurações** começa recolhido no menu lateral: expanda-o primeiro. O cartão **Monitor Status** lista os status do mais saudável ao pior.
+Vá para **Monitores → Configurações → Status do monitor**. **Configurações** começa recolhido no menu lateral: expanda-o primeiro. O cartão **Status dos monitores** lista os status do mais saudável ao pior.
 
 ### Criar o status
 

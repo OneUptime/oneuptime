@@ -148,7 +148,7 @@ Een status die u later toevoegt, wordt niet toegevoegd aan de lijst **Telt als d
 :::steps
 ### Monitorstatus openen
 
-Ga naar **Monitoren → Instellingen → Monitorstatus**. **Instellingen** is ingeklapt in het zijmenu: klap het eerst uit. De kaart **Monitor Statussen** toont de statussen van gezondst tot slechtst.
+Ga naar **Monitoren → Instellingen → Monitorstatus**. **Instellingen** is ingeklapt in het zijmenu: klap het eerst uit. De kaart **Monitorstatussen** toont de statussen van gezondst tot slechtst.
 
 ### De status maken
 

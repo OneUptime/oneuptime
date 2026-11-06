@@ -68,7 +68,7 @@ En regels betingelser afgør, hvilke advarsler den handler på, og læses som s�
 
 | Betingelse                                                    | Sammenligner med                                                                                               |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Advarsel Alvorligheder**, **Advarselsmærkater**, **Overvågningsetiketter** | **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.                    |
+| **Monitorer**, **Alvorlighedsgrader for advarsler**, **Advarselsmærkater**, **Overvågningsetiketter** | **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.                    |
 | **Advarselstitel**, **Beskrivelse af advarsel**, **Overvågningsnavn**, **Overvågningsbeskrivelse** | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** og **Matcher ikke mønster** for et regulært udtryk eller et `*`-jokertegn. |
 
 Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver skal holde, eller **Én skal matche**, hvor én er nok. Episoderegler matcher i stedet en episodes alvorsgrad, etiketter, titel og beskrivelse.
@@ -87,7 +87,7 @@ Klik på **Opret Alert On-Call Rule**. Under **Match** matcher **Alle advarsler*
 Under **Vagtpolitikker** vælger du de **Vagtpolitikker**, reglen tilkalder. Dens **Navn** følger dem, for eksempel "Tilkald Platform on-call", indtil du skriver dit eget, og en **Beskrivelse** venter under **Flere felter**. Opret derefter reglen.
 :::
 
-En alvorsgrad tilkalder ingen af sig selv: En vagtregel, der matcher på **Advarsel Alvorligheder**, er måden at sætte "tilkald databaseteamet ved hver High-advarsel" op på. For at se, hvad der kørte for én advarsel, åbner du dens side **Vagtudførelser**. Hver person nås derefter på den måde, de har sat op under **Brugerindstillinger → Vagtregler** på fanen **Advarsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
+En alvorsgrad tilkalder ingen af sig selv: En vagtregel, der matcher på **Alvorlighedsgrader for advarsler**, er måden at sætte "tilkald databaseteamet ved hver High-advarsel" op på. For at se, hvad der kørte for én advarsel, åbner du dens side **Vagtudførelser**. Hver person nås derefter på den måde, de har sat op under **Brugerindstillinger → Vagtregler** på fanen **Advarsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 En regel tilkalder, så snart en advarsel matcher den. For at lade den vente på arbejdstiden i stedet, svarer du **Kun i arbejdstiden** på **Hvornår skal denne regel tilkalde?** under **Flere felter**. **Arbejdstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidszone: vælg andre dage, et andet **Starttidspunkt** eller **Sluttidspunkt** eller en anden **Tidszone**, og en sætning under valget fortæller, hvad der sker. På listen viser reglen sin arbejdstid under navnet. En advarsel, der matcher uden for de tider, får en kørsel, der venter og ikke tilkalder nogen; når arbejdstiden begynder, tilkalder politikken sin første eskaleringsregel og eskalerer som normalt. Bliver advarslen bekræftet eller løst først, bliver ingen tilkaldt. Ændrer advarslen sig, mens den venter, så den nu matcher en regel, der tilkalder med det samme, for eksempel fordi dens alvorlighed hæves, begynder kørslen at tilkalde straks, og advarslens feed fortæller hvorfor. To regler, der tilkalder den samme politik, tilkalder den, så snart en af dem tillader det: en regel for dine højeste alvorligheder, der tilkalder med det samme, ved siden af en regel for resten, der venter på arbejdstiden, holder nætterne rolige.
 
@@ -130,7 +130,7 @@ Hændelsen får advarslens titel, beskrivelse, monitor, berørte ressourcer og e
 :::steps
 ### Vælg, hvilke advarsler der skal påmindes om
 
-Klik på **Opret Alert Reminder Rule**. Under **Match** lader du **Alle advarsler** være valgt for at påminde om hver advarsel, eller du vælger **Kun advarsler, der opfylder betingelserne** og derefter de **Advarsel Alvorligheder** og **Etiketter**, den gælder for.
+Klik på **Opret Alert Reminder Rule**. Under **Match** lader du **Alle advarsler** være valgt for at påminde om hver advarsel, eller du vælger **Kun advarsler, der opfylder betingelserne** og derefter de **Alvorlighedsgrader for advarsler** og **Etiketter**, den gælder for.
 
 ### Indstil intervallet
 

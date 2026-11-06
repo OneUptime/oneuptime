@@ -603,3 +603,184 @@ describe("the User Settings page's title", () => {
     ).toBe("Benutzereinstellungen für das Projekt Acme");
   });
 });
+
+/*
+ * The model names of the areas people meet first - incidents, alerts,
+ * monitors, status pages, on-call and scheduled maintenance - where a pass
+ * worded the singular and left its plural, or a family, word for word: the
+ * English words' own translations in the English order and each with its
+ * capital ("Incidente Gravità" for Incident Severities, "Statusside
+ * Meddelelse" for Status Page Announcement, "Monitor Gruppe" for Monitor
+ * Group). They are table titles, rule conditions, delete dialogs and the
+ * create buttons drawn from a name. Read from the models themselves, so a
+ * new model of these families is held to it too.
+ */
+describe("the first-met areas' model names", () => {
+  const MODELS_DIR: string = path.resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "Models",
+    "DatabaseModels",
+  );
+  const NAME_IN_MODEL: RegExp = /(?:singularName|pluralName): "([^"]+)"/g;
+  const FIRST_MET_FAMILY: RegExp =
+    /^(Incident|Alert|Monitor|Status Page|On-Call|On Call|OnCall|Scheduled|Team On-Call|User +On-Call|Subscriber)/;
+  const WORD: RegExp = /[\p{L}\p{N}'’-]+/gu;
+  // Words these languages keep from English, and names that keep their case.
+  const KEPT_WORDS: ReadonlySet<string> = new Set<string>([
+    "Feed",
+    "Feeds",
+    "Log",
+    "Logs",
+    "Policy",
+    "Postmortem",
+    "Webhook",
+    "OneUptime",
+  ]);
+  const LANGUAGES_WITH_CASE: ReadonlyArray<string> = [
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+  ];
+
+  const firstMetNames: Array<string> = Array.from(
+    new Set<string>(
+      fs
+        .readdirSync(MODELS_DIR)
+        .filter((file: string): boolean => {
+          return file.endsWith(".ts");
+        })
+        .flatMap((file: string): Array<string> => {
+          const model: string = fs.readFileSync(
+            path.join(MODELS_DIR, file),
+            "utf8",
+          );
+
+          return Array.from(model.matchAll(NAME_IN_MODEL)).map(
+            (match: RegExpMatchArray): string => {
+              return match[1] || "";
+            },
+          );
+        })
+        .filter((name: string): boolean => {
+          return FIRST_MET_FAMILY.test(name);
+        }),
+    ),
+  ).sort();
+
+  // Every word with a capital, as English writes a name: word for word.
+  const readsWordForWord: (value: string) => boolean = (
+    value: string,
+  ): boolean => {
+    const words: Array<string> = value.match(WORD) || [];
+    const ownWords: Array<string> = words.filter((word: string): boolean => {
+      return !KEPT_WORDS.has(word) && word !== word.toUpperCase();
+    });
+
+    return (
+      words.length >= 2 &&
+      ownWords.length >= 2 &&
+      ownWords.every((word: string): boolean => {
+        const first: string = word.charAt(0);
+
+        return first !== first.toLowerCase();
+      })
+    );
+  };
+
+  test("the models of these areas are read", () => {
+    expect(firstMetNames.length).toBeGreaterThan(150);
+    expect(firstMetNames).toEqual(
+      expect.arrayContaining([
+        "Incident Severities",
+        "Status Page Announcement",
+        "Monitor Group",
+        "On-Call Policy Schedule",
+      ]),
+    );
+  });
+
+  test.each(LANGUAGES_WITH_CASE)(
+    "in %s, none reads word for word, a capital on every word",
+    (code: string) => {
+      const wordForWord: Array<string> = firstMetNames
+        .filter((name: string): boolean => {
+          const value: string | undefined = valueOf(code, name);
+
+          return (
+            value !== undefined && value !== name && readsWordForWord(value)
+          );
+        })
+        .map((name: string): string => {
+          return `${name} = ${valueOf(code, name)}`;
+        });
+
+      expect(wordForWord).toEqual([]);
+    },
+  );
+
+  test.each(["it", "pt", "ru"])(
+    "in %s, a status page's parts are named before the page they belong to",
+    (code: string) => {
+      const statusPage: string = valueOf(code, "Status Page") || "";
+      const pageFirst: Array<string> = firstMetNames
+        .filter((name: string): boolean => {
+          const value: string = valueOf(code, name) || "";
+
+          return (
+            name.startsWith("Status Page ") &&
+            value.startsWith(`${statusPage} `) &&
+            value.charAt(statusPage.length + 1) !==
+              value.charAt(statusPage.length + 1).toLowerCase()
+          );
+        })
+        .map((name: string): string => {
+          return `${name} = ${valueOf(code, name)}`;
+        });
+
+      expect(statusPage.length).toBeGreaterThan(0);
+      expect(pageFirst).toEqual([]);
+    },
+  );
+
+  test("the names rule conditions and settings pages show read whole", () => {
+    expect(valueOf("it", "Incident Severities")).toBe(
+      "Gravità degli incidenti",
+    );
+    expect(valueOf("da", "Alert Severities")).toBe(
+      "Alvorlighedsgrader for advarsler",
+    );
+    expect(valueOf("nl", "Alert Episodes")).toBe("Waarschuwingsepisodes");
+    expect(valueOf("da", "Monitor Group")).toBe("Monitorgruppe");
+    expect(valueOf("sv", "Status Page Announcement")).toBe(
+      "Statussidemeddelande",
+    );
+    expect(valueOf("ru", "Status Page Domain")).toBe("Домен страницы статуса");
+    expect(valueOf("pt", "Status Page Subscribers")).toBe(
+      "Assinantes da página de status",
+    );
+    expect(valueOf("no", "On-Call Policy Schedule")).toBe(
+      "Vaktplan for vaktpolicy",
+    );
+  });
+
+  test("a create button drawn from one reads whole: Opret Monitorgruppe", () => {
+    expect(
+      translatorFor("da").translateTemplate("Create {{itemName}}", {
+        itemName: valueOf("da", "Monitor Group") || "",
+      }),
+    ).toBe("Opret Monitorgruppe");
+    expect(
+      translatorFor("nl").translateTemplate("Create {{itemName}}", {
+        itemName: valueOf("nl", "Status Page Announcement") || "",
+      }),
+    ).toBe("Aankondiging op statuspagina aanmaken");
+  });
+});

@@ -148,7 +148,7 @@ En status du legger til senere, kommer ikke med i listen **Teller som nedetid** 
 :::steps
 ### Åpne Monitorstatus
 
-Gå til **Overvåkere → Innstillinger → Monitorstatus**. **Innstillinger** er sammenslått i sidemenyen: utvid den først. Kortet **Monitor Statuser** viser statusene fra den friskeste til den verste.
+Gå til **Overvåkere → Innstillinger → Monitorstatus**. **Innstillinger** er sammenslått i sidemenyen: utvid den først. Kortet **Monitorstatuser** viser statusene fra den friskeste til den verste.
 
 ### Opprett statusen
 
@@ -167,7 +167,7 @@ Den driftsklare statusen og frakoblet-statusen er merket **Innebygd**: du kan gi
 
 ### Statustidslinjen
 
-Hver statusendring lagres på monitorens **Statustidslinje**: når den startet, hvor lenge den varte, og **Vis årsak** for kriteriet som satte den. **Opprett Monitor Status Hendelse** legger til en status manuelt. På en monitor som sonder kontrollerer, setter neste kontroll som samsvarer med et kriterium med en status den statusen igjen.
+Hver statusendring lagres på monitorens **Statustidslinje**: når den startet, hvor lenge den varte, og **Vis årsak** for kriteriet som satte den. **Opprett Statushendelse for monitor** legger til en status manuelt. På en monitor som sonder kontrollerer, setter neste kontroll som samsvarer med et kriterium med en status den statusen igjen.
 
 En statusendring varsler monitorens eiere bare hvis de har slått på **Overvåkingsstatus endret** i varslingsinnstillingene sine: den er slått av fra start. En monitor som går tilbake til sin **Standard overvåkingsstatus** fordi ingen kriterier samsvarte, varsler ingen. Se [Hva som er slått på for et nytt medlem](/docs/notifications/notification-settings#hva-som-er-slått-på-for-et-nytt-medlem).
 

@@ -32,9 +32,9 @@ Sonden som kjører sjekken, mottar verdien, så en monitor som bruker en hemmeli
 ### Legg til en hemmelighet
 
 :::steps
-1. Gå til **Monitorer → Innstillinger → Hemmeligheter**, og klikk på **Opprett Monitor Hemmelighet**.
+1. Gå til **Monitorer → Innstillinger → Hemmeligheter**, og klikk på **Opprett Monitorhemmelighet**.
 2. Angi et **Navn** og **Verdi for hemmelighet**. Navnet er det du viser til, for eksempel `ApiKey`. Det kan bare inneholde bokstaver, tall, bindestreker (`-`) og understreker (`_`), og to hemmeligheter i et prosjekt kan ikke ha det samme.
-3. Velg i trinnet **Tilgang** hvilke monitorer som kan bruke den (se neste avsnitt), og klikk så på **Opprett Monitor Hemmelighet**.
+3. Velg i trinnet **Tilgang** hvilke monitorer som kan bruke den (se neste avsnitt), og klikk så på **Opprett Monitorhemmelighet**.
 :::
 
 > [!IMPORTANT]

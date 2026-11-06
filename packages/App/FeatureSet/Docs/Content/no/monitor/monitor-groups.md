@@ -61,7 +61,7 @@ Gå til **Overvåkere → Monitorgrupper**. Kortet **Monitorgrupper** viser hver
 
 ### Opprett gruppen
 
-Klikk på **Opprett Monitor Gruppe**, skriv inn et **Navn** og, om du vil, en **Beskrivelse**, og klikk på **Opprett Monitor Gruppe** nederst i skjemaet. Gruppen starter uten monitorer.
+Klikk på **Opprett Monitorgruppe**, skriv inn et **Navn** og, om du vil, en **Beskrivelse**, og klikk på **Opprett Monitorgruppe** nederst i skjemaet. Gruppen starter uten monitorer.
 
 ### Legg til monitorene
 
@@ -101,7 +101,7 @@ Gå til **Statussider**, åpne siden og klikk på **Ressurser** i sidemenyen.
 
 ### Bytt dialogen til en gruppe
 
-Klikk på **Legg til monitor**. Under nedtrekkslisten med monitorer klikker du på **Legg heller til en monitorgruppe.** Nedtrekkslisten blir til **Monitor Gruppe**.
+Klikk på **Legg til monitor**. Under nedtrekkslisten med monitorer klikker du på **Legg heller til en monitorgruppe.** Nedtrekkslisten blir til **Monitorgruppe**.
 
 ### Velg gruppen, og legg den til
 

@@ -148,7 +148,7 @@ En status som du lägger till senare läggs inte till i listan **Räknas som dri
 :::steps
 ### Öppna Monitorstatus
 
-Gå till **Övervakare → Inställningar → Monitorstatus**. **Inställningar** är hopfällt i sidomenyn: fäll ut det först. Kortet **Monitor Statusar** listar statusarna från den friskaste till den värsta.
+Gå till **Övervakare → Inställningar → Monitorstatus**. **Inställningar** är hopfällt i sidomenyn: fäll ut det först. Kortet **Monitorstatusar** listar statusarna från den friskaste till den värsta.
 
 ### Skapa statusen
 
@@ -167,7 +167,7 @@ Den fungerande statusen och offline-statusen är markerade som **Inbyggd**: du k
 
 ### Statustidslinjen
 
-Varje statusändring sparas på monitorns **Statustidslinje**: när den började, hur länge den varade, och **Visa orsak** för det kriterium som satte den. **Skapa Monitor Status Händelse** lägger till en status manuellt. På en monitor som sonder kontrollerar sätter nästa kontroll som matchar ett kriterium med en status den statusen igen.
+Varje statusändring sparas på monitorns **Statustidslinje**: när den började, hur länge den varade, och **Visa orsak** för det kriterium som satte den. **Skapa Statushändelse för monitor** lägger till en status manuellt. På en monitor som sonder kontrollerar sätter nästa kontroll som matchar ett kriterium med en status den statusen igen.
 
 En statusändring meddelar monitorns ägare bara om de har slagit på **Övervakningsstatus ändrad** i sina aviseringsinställningar: den är avstängd från början. En monitor som går tillbaka till sin **Standardstatus för övervakning** eftersom inget kriterium matchade meddelar ingen. Se [Vad som är påslaget för en ny medlem](/docs/notifications/notification-settings#vad-som-är-påslaget-för-en-ny-medlem).
 

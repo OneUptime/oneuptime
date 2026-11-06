@@ -659,7 +659,7 @@ Regler, der blev gemt, før formularen spurgte om ejere, kan stadig have et stan
 Oprettelsesformularen har to trin:
 
 :::steps
-1. **Match** — **Alle hændelser**, som en ny regel starter på, eller **Kun hændelser, der opfylder betingelserne**, som åbner reglens betingelser. Hver betingelse vælger et kriterium — **Monitorer**, **Hændelse Alvorligheder**, **Hændelsesetiketter**, **Overvågningsetiketter**, **Hændelsestitel**, **Hændelsesbeskrivelse**, **Overvågningsnavn** eller **Overvågningsbeskrivelse** — en operator og en værdi og læses som en sætning: "Hvis **Hændelsestitel** indeholder `database`", "Og **Overvågningsetiketter** har en af _Production_".
+1. **Match** — **Alle hændelser**, som en ny regel starter på, eller **Kun hændelser, der opfylder betingelserne**, som åbner reglens betingelser. Hver betingelse vælger et kriterium — **Monitorer**, **Alvorlighedsgrader for hændelser**, **Hændelsesetiketter**, **Overvågningsetiketter**, **Hændelsestitel**, **Hændelsesbeskrivelse**, **Overvågningsnavn** eller **Overvågningsbeskrivelse** — en operator og en værdi og læses som en sætning: "Hvis **Hændelsestitel** indeholder `database`", "Og **Overvågningsetiketter** har en af _Production_".
 2. **Vagtpolitikker** — de politikker, denne regel tilkalder, og reglens **Navn**, udfyldt ud fra dem ("Tilkald Platform on-call"), indtil du skriver dit eget; dens **Beskrivelse** venter under **Flere felter**. Reglen starter aktiveret; dens redigeringsformular tilføjer kontakten **Aktiveret**, og listen viser et grønt mærke **Aktiveret** eller et rødt mærke **Deaktiveret** pr. regel.
 :::
 
@@ -670,7 +670,7 @@ En regel tilkalder, så snart en hændelse matcher den. For at lade den vente p�
 De regler, siden selv kommer med, er værd at gøre til dine egne:
 
 - Med to eller flere betingelser vælger du **Alle skal matche** (hver betingelse skal være sand) eller **Én skal matche** (én er nok). En regel uden betingelser matcher hver hændelse.
-- Et listekriterium — **Monitorer**, **Hændelse Alvorligheder**, **Hændelsesetiketter**, **Overvågningsetiketter** — bruger **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.
+- Et listekriterium — **Monitorer**, **Alvorlighedsgrader for hændelser**, **Hændelsesetiketter**, **Overvågningsetiketter** — bruger **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.
 - Et tekstkriterium — hændelsens titel og beskrivelse, dens monitorers navne og beskrivelser — bruger **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med** eller **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** / **Matcher ikke mønster** til et regulært udtryk uden forskel på store og små bogstaver eller et jokertegn `*`. En ny tekstbetingelse starter på **Indeholder**.
 - **Alle matchende regler udløses.** Der er ingen prioritet og ingen kortslutning.
 - Det sæt politikker, der faktisk udføres, er foreningen af hver matchende regels politikker plus enhver politik, der er knyttet til hændelsen i hånden eller af en skabelon, uden dubletter, så hver politik kører højst én gang. Når to matchende regler tilkalder den samme politik, tilkalder den, så snart en af dem tillader det: med det samme vinder over arbejdstiden.

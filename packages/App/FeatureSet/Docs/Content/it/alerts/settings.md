@@ -68,7 +68,7 @@ Le condizioni di una regola decidono su quali avvisi agisce, e si leggono come f
 
 | Condizione                                                    | Confronta con                                                                                                  |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitor**, **Avviso Gravità**, **Etichette dell'avviso**, **Etichette del monitor** | **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di**, rispetto ai valori che scegliete.     |
+| **Monitor**, **Gravità degli avvisi**, **Etichette dell'avviso**, **Etichette del monitor** | **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di**, rispetto ai valori che scegliete.     |
 | **Titolo dell'avviso**, **Descrizione dell'avviso**, **Nome del monitor**, **Descrizione del monitor** | **Contiene**, **Non contiene**, **Uguale a**, **Diverso da**, **Inizia con**, **Termina con**, senza distinguere maiuscole e minuscole, oppure **Corrisponde al pattern** e **Non corrisponde al pattern**, per un'espressione regolare o un carattere jolly `*`. |
 
 Con due o più condizioni, scegliete **Soddisfa tutte**, dove ognuna deve valere, oppure **Soddisfa almeno una**, dove ne basta una. Le regole degli episodi corrispondono invece a gravità, etichette, titolo e descrizione di un episodio.
@@ -87,7 +87,7 @@ Fate clic su **Crea: Alert On-Call Rule**. In **Corrispondenza**, **Tutti gli av
 In **Policy di reperibilità**, scegliete le **Policy di reperibilità** che la regola attiva. Il suo **Nome** le segue, come «Chiama Platform on-call», finché non ne digitate uno vostro, e una **Descrizione** attende sotto **Altri campi**. Poi create la regola.
 :::
 
-Una gravità da sola non chiama nessuno: una regola di reperibilità che corrisponde su **Avviso Gravità** è il modo per impostare «chiamare il team del database per ogni avviso High». Per vedere che cosa è stato eseguito per un avviso, aprite la sua pagina **Esecuzioni di reperibilità**. Ogni persona viene poi raggiunta nel modo impostato in **Impostazioni utente → Regole di reperibilità**, nella scheda **Avvisi**; vedere [Regole di escalation](/docs/on-call/escalation-rules).
+Una gravità da sola non chiama nessuno: una regola di reperibilità che corrisponde su **Gravità degli avvisi** è il modo per impostare «chiamare il team del database per ogni avviso High». Per vedere che cosa è stato eseguito per un avviso, aprite la sua pagina **Esecuzioni di reperibilità**. Ogni persona viene poi raggiunta nel modo impostato in **Impostazioni utente → Regole di reperibilità**, nella scheda **Avvisi**; vedere [Regole di escalation](/docs/on-call/escalation-rules).
 
 Una regola chiama appena un avviso corrisponde. Perché attenda invece l'orario di lavoro, rispondete **Solo durante l'orario di lavoro** a **Quando deve chiamare questa regola?** sotto **Altri campi**. L'**Orario di lavoro** parte dal lunedì al venerdì, dalle 09:00 alle 17:00, nel vostro fuso orario: scegliete altri giorni, un'altra **Ora di inizio** o **Ora di fine**, o un altro **Fuso orario**, e una frase sotto la scelta dice cosa succederà. Nell'elenco, la regola mostra il suo orario sotto il nome. Un avviso che corrisponde fuori da quell'orario riceve un'esecuzione che attende e non chiama nessuno; quando inizia l'orario, la policy chiama con la sua prima regola di escalation ed esegue l'escalation come sempre. Se l'avviso viene riconosciuto o risolto prima, nessuno viene chiamato. Se l'avviso cambia mentre attende e ora corrisponde a una regola che chiama subito, per esempio perché ne è stata alzata la gravità, l'esecuzione inizia a chiamare in quel momento, e il feed dell'avviso dice perché. Due regole che attivano la stessa policy la attivano appena una delle due lo consente: una regola per le gravità più alte che chiama subito, accanto a una regola per il resto che attende l'orario di lavoro, tiene tranquille le notti.
 
@@ -130,7 +130,7 @@ Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, 
 :::steps
 ### Scegliere gli avvisi da ricordare
 
-Fate clic su **Crea: Alert Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Avviso Gravità** e le **Etichette** a cui si applica.
+Fate clic su **Crea: Alert Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Gravità degli avvisi** e le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 

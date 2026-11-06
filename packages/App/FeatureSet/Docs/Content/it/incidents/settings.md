@@ -169,7 +169,7 @@ Un modello di post-mortem è lo scheletro del resoconto che producete dopo un in
 
 :::steps
 1. Andate in **Incidenti → Impostazioni → Modelli post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La scheda si intitola **Modelli post-mortem**.
-2. Fate clic su **Crea: Incidente Postmortem Modello** e compilate la sua unica pagina: **Nome del modello** e **Descrizione del modello**, entrambi obbligatori, poi **Modello di postmortem**, il corpo stesso, in Markdown, obbligatorio.
+2. Fate clic su **Crea: Modello di postmortem per incidenti** e compilate la sua unica pagina: **Nome del modello** e **Descrizione del modello**, entrambi obbligatori, poi **Modello di postmortem**, il corpo stesso, in Markdown, obbligatorio.
 3. Salvatelo. La pagina **Post-mortem** di ogni incidente ora offre **Applica modello**. Finché non c'è nulla di scritto, il pulsante è **Inizia da un modello**; una volta scritto il post-mortem, **Applica modello** è nel menu **⋯** della scheda.
 :::
 
@@ -659,7 +659,7 @@ Le regole salvate prima che il modulo chiedesse i proprietari possono avere anco
 Il modulo di creazione ha due passaggi:
 
 :::steps
-1. **Corrispondenza** — **Tutti gli incidenti**, da cui parte una nuova regola, oppure **Solo gli incidenti che soddisfano le condizioni**, che apre le condizioni della regola. Ogni condizione sceglie un criterio — **Monitor**, **Incidente Gravità**, **Etichette dell'incidente**, **Etichette del monitor**, **Titolo dell'incidente**, **Descrizione dell'incidente**, **Nome del monitor** o **Descrizione del monitor** — un operatore e un valore, e si legge come una frase: «Se **Titolo dell'incidente** contiene `database`», «E **Etichette del monitor** ha uno qualsiasi di _Production_».
+1. **Corrispondenza** — **Tutti gli incidenti**, da cui parte una nuova regola, oppure **Solo gli incidenti che soddisfano le condizioni**, che apre le condizioni della regola. Ogni condizione sceglie un criterio — **Monitor**, **Gravità degli incidenti**, **Etichette dell'incidente**, **Etichette del monitor**, **Titolo dell'incidente**, **Descrizione dell'incidente**, **Nome del monitor** o **Descrizione del monitor** — un operatore e un valore, e si legge come una frase: «Se **Titolo dell'incidente** contiene `database`», «E **Etichette del monitor** ha uno qualsiasi di _Production_».
 2. **Policy di reperibilità** — le policy che questa regola attiva, e il **Nome** della regola, compilato a partire da esse («Chiama Platform on-call») finché non ne digitate uno vostro; la sua **Descrizione** attende sotto **Altri campi**. La regola parte abilitata; il suo modulo di modifica aggiunge l'interruttore **Abilitato**, e l'elenco mostra un'etichetta verde **Abilitato** o rossa **Disabilitato** per regola.
 :::
 
@@ -670,7 +670,7 @@ Una regola chiama appena un incidente corrisponde. Perché attenda invece l'orar
 Le regole che la pagina stessa porta con sé vanno interiorizzate:
 
 - Con due o più condizioni scegliete **Soddisfa tutte** (ogni condizione deve essere vera) o **Soddisfa almeno una** (ne basta una). Una regola senza condizioni corrisponde a ogni incidente.
-- Un criterio di elenco — **Monitor**, **Incidente Gravità**, **Etichette dell'incidente**, **Etichette del monitor** — usa **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di** i valori che scegliete.
+- Un criterio di elenco — **Monitor**, **Gravità degli incidenti**, **Etichette dell'incidente**, **Etichette del monitor** — usa **Ha uno qualsiasi di**, **Ha tutti i** o **Non ha nessuno di** i valori che scegliete.
 - Un criterio di testo — il titolo e la descrizione dell'incidente, i nomi e le descrizioni dei suoi monitor — usa **Contiene**, **Non contiene**, **Uguale a**, **Diverso da**, **Inizia con** o **Termina con**, senza distinzione tra maiuscole e minuscole, oppure **Corrisponde al pattern** / **Non corrisponde al pattern** per un'espressione regolare senza distinzione tra maiuscole e minuscole o un carattere jolly `*`. Una nuova condizione di testo parte su **Contiene**.
 - **Scattano tutte le regole corrispondenti.** Non c'è priorità né cortocircuito.
 - L'insieme delle policy effettivamente eseguite è l'unione delle policy di ogni regola corrispondente più qualsiasi policy collegata all'incidente a mano o da un modello, deduplicata così ogni policy viene eseguita al massimo una volta. Quando due regole corrispondenti attivano la stessa policy, questa chiama appena una delle due lo consente: subito vince sull'orario di lavoro.

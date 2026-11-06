@@ -35,7 +35,7 @@ De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten v
 | **Incidenten** | Incidenten | Ernstniveaus van incidenten |
 | **Incidentepisodes** | Episodes die incidenten bundelen | Ernstniveaus van incidenten |
 | **Waarschuwingen** | Waarschuwingen | Ernstniveaus van waarschuwingen |
-| **Waarschuwing Episodes** | Episodes die waarschuwingen bundelen | Ernstniveaus van waarschuwingen |
+| **Waarschuwingsepisodes** | Episodes die waarschuwingen bundelen | Ernstniveaus van waarschuwingen |
 
 Een episode roept je op via zijn eigen bereikbaarheidsbeleid, los van de incidenten of waarschuwingen erin, daarom staan zijn regels op een eigen tabblad. Het adres van de pagina noemt het geopende tabblad, bijvoorbeeld `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andere waarden zijn `incident-episodes` en `alert-episodes`, en zonder `type` opent de pagina op **Incidenten**.
 

@@ -119,14 +119,14 @@ Allt i formuläret kan ändras på händelsens egna sidor, utom de tre prenumera
 | Beskrivningen                               | **Beskrivning** i dess sidomeny                                                |
 | Ägarna                                      | **Ägare** i dess sidomeny                                                      |
 
-**Ändra övervakningsstatus till** kan ändras tills händelsen börjar. Därefter visar kortet den skrivskyddad, eftersom monitorerna redan har den statusen. En redigering lägger till en post i **Schemalagd Underhåll Flöde** som nämner vad den ändrade; att spara utan ändringar lägger inte till någon.
+**Ändra övervakningsstatus till** kan ändras tills händelsen börjar. Därefter visar kortet den skrivskyddad, eftersom monitorerna redan har den statusen. En redigering lägger till en post i **Flöde för schemalagt underhåll** som nämner vad den ändrade; att spara utan ändringar lägger inte till någon.
 
 ## Skriv anteckningar medan arbetet pågår
 
 - **Offentliga anteckningar** är uppdateringar till dina kunder: de visas på händelsens statussidor, och var och en kan meddela deras prenumeranter med **Avisera statussidans prenumeranter**.
 - **Privata anteckningar** är bara för ditt team.
 
-Skriv en på händelsens sida **Offentliga anteckningar** eller **Privata anteckningar**, eller från menyn **Åtgärder** i **Schemalagd Underhåll Flöde** med **Lägg till offentlig anteckning** eller **Lägg till privat anteckning**. Samma meny kör en runbook med **Kör runbook**. En anteckningsmall fyller i text som ditt team ofta skriver: se [Underhållsregler och inställningar](/docs/scheduled-maintenance/settings#anteckningsmallar).
+Skriv en på händelsens sida **Offentliga anteckningar** eller **Privata anteckningar**, eller från menyn **Åtgärder** i **Flöde för schemalagt underhåll** med **Lägg till offentlig anteckning** eller **Lägg till privat anteckning**. Samma meny kör en runbook med **Kör runbook**. En anteckningsmall fyller i text som ditt team ofta skriver: se [Underhållsregler och inställningar](/docs/scheduled-maintenance/settings#anteckningsmallar).
 
 ## Skapa händelser från kod
 

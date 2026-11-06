@@ -34,7 +34,7 @@ Siden viser monitorene du setter på den, som ressurser, og hendelser når siden
 ## Kort oppsummert
 
 - **Opprettes med et navn.** En ny statusside ber bare om sitt **Navn**; **Beskrivelse** og **Etiketter** venter under **Flere felt**. Ressurser, merkevare og domener setter du opp etterpå.
-- **Ressurser er det de besøkende ser.** Hver rad på siden er en **Statusside Ressurs**: en monitor (eller monitorgruppe) med sitt eget visningsnavn, verktøytips og oppetidsvalg. Grupper deler en lang side inn i seksjoner og kan nøstes.
+- **Ressurser er det de besøkende ser.** Hver rad på siden er en **Statussideressurs**: en monitor (eller monitorgruppe) med sitt eget visningsnavn, verktøytips og oppetidsvalg. Grupper deler en lang side inn i seksjoner og kan nøstes.
 - **En URL for forhåndsvisning fra første dag.** Hver statusside får en forhåndsvisningslenke, slik at du kan se den før det finnes et egendefinert domene.
 - **Rutene for besøkende avhenger av innstillinger.** Hendelser, episoder, kunngjøringer og planlagte hendelser vises bare så lenge bryteren deres i **Hva statussiden din viser** (under **Avanserte innstillinger**) er slått på, og abonnementssiden bare så lenge **Vis abonnentside** er slått på.
 - **Hvem som kan se den, er ett valg.** Alle med lenken, bare personer som logger inn (private brukere, SAML- eller OIDC-SSO), eller alle med passordet, på sidens skjerm **Tilgang**, med en valgfri IP-tillatelsesliste under **Flere innstillinger**.

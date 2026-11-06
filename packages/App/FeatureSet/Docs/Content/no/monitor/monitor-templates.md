@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Åpne Maler
 
-Gå til **Monitorer → Innstillinger → Maler**, og klikk på **Opprett Monitor Mal**.
+Gå til **Monitorer → Innstillinger → Maler**, og klikk på **Opprett Monitormal**.
 
 ### Gi malen et navn
 
@@ -47,7 +47,7 @@ Under **Standardverdier for overvåking** velger du **Monitortype** med den samm
 
 ### Angi kriteriene og intervallet
 
-Under **Kriterier** fyller du ut hva som skal sjekkes, og kriteriene, som i [Opprett monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felt mot synkroniseringer (se [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor)). For en monitortype som sonder sjekker, ber det siste trinnet, **Intervall**, om **Overvåkingsintervall**. Klikk på **Opprett Monitor Mal** på det siste trinnet.
+Under **Kriterier** fyller du ut hva som skal sjekkes, og kriteriene, som i [Opprett monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** øverst kan du beskytte felt mot synkroniseringer (se [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor)). For en monitortype som sonder sjekker, ber det siste trinnet, **Intervall**, om **Overvåkingsintervall**. Klikk på **Opprett Monitormal** på det siste trinnet.
 :::
 
 Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: **Malinformasjon**, **Standardverdier for overvåking**, **Overvåkingskriterier**, **Overvåkingsintervall** (med **Minimum sondeenighet**), **Etiketter**, **Standardverdier for egendefinerte felt** (når prosjektet har egendefinerte monitorfelt) og **Tilkoblede overvåkere**. Du endrer hver del på sitt eget kort, for eksempel med **Rediger kriterier** eller **Rediger intervall**.

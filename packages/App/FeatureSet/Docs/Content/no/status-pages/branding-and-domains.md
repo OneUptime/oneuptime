@@ -155,7 +155,7 @@ På OneUptime Cloud krever det planen **Growth** å legge til eller endre noen a
 
 Som standard kan en statusside nås på forhåndsvisnings-URL-en på skjermen **Oversikt**. For å legge den på ditt eget vertsnavn går du til **Statussider → siden din → Merkevare → Egendefinerte domener** (`{id}/domains`).
 
-Kortet **Egendefinerte domener** sier hva du skal gjøre: pek hvert domenes CNAME-post til installasjonens CNAME-post for statussider, så utsteder OneUptime domenets SSL-sertifikat og fornyer det for deg. Uten noe satt opp sier tabellen **Ingen egendefinerte domener funnet**, med **Opprett Statusside Domene** under. Tabellen har to kolonner, **Domene** og **Status**, og filtre for **Domene**, **CNAME gyldig** og **SSL klargjort**.
+Kortet **Egendefinerte domener** sier hva du skal gjøre: pek hvert domenes CNAME-post til installasjonens CNAME-post for statussider, så utsteder OneUptime domenets SSL-sertifikat og fornyer det for deg. Uten noe satt opp sier tabellen **Ingen egendefinerte domener funnet**, med **Opprett Statussidedomene** under. Tabellen har to kolonner, **Domene** og **Status**, og filtre for **Domene**, **CNAME gyldig** og **SSL klargjort**.
 
 Å legge siden på domenet ditt tar tre trinn, og bare de to første er dine:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Åpne Opprett Statusside Domene
 
-Klikk på **Opprett Statusside Domene** under **Egendefinerte domener**. Dialogen består av én side.
+Klikk på **Opprett Statussidedomene** under **Egendefinerte domener**. Dialogen består av én side.
 
 #### Skriv inn underdomenet
 
@@ -213,7 +213,7 @@ I **Domene** (plassholder `Select domain`) velger du ett av de verifiserte domen
 
 #### Opprett domenet
 
-Klikk på **Opprett Statusside Domene**. Dialogen lukkes, og **DNS-oppsett** for det nye domenet åpnes, med posten som skal legges til.
+Klikk på **Opprett Statussidedomene**. Dialogen lukkes, og **DNS-oppsett** for det nye domenet åpnes, med posten som skal legges til.
 :::
 
 Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke et annet underdomene legger du til det domenet og sletter det gamle. Et navn som et dashbord eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.

@@ -148,7 +148,7 @@ Uno stato che aggiungete in seguito non viene aggiunto all'elenco **Conta come i
 :::steps
 ### Aprire Stato del monitor
 
-Andate in **Monitor → Impostazioni → Stato del monitor**. **Impostazioni** è chiuso nel menu laterale: espandetelo prima. La scheda **Monitor Stati** elenca gli stati dal più sano al peggiore.
+Andate in **Monitor → Impostazioni → Stato del monitor**. **Impostazioni** è chiuso nel menu laterale: espandetelo prima. La scheda **Stati dei monitor** elenca gli stati dal più sano al peggiore.
 
 ### Creare lo stato
 

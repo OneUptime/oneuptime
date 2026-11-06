@@ -659,7 +659,7 @@ Regels die werden opgeslagen voordat het formulier om eigenaren vroeg, kunnen no
 Het aanmaakformulier heeft twee stappen:
 
 :::steps
-1. **Overeenkomst** — **Alle incidenten**, waar een nieuwe regel mee begint, of **Alleen incidenten die aan de voorwaarden voldoen**, dat de voorwaarden van de regel opent. Elke voorwaarde kiest een criterium — **Monitoren**, **Incident Ernsten**, **Incident-labels**, **Monitorlabels**, **Incidenttitel**, **Incidentbeschrijving**, **Monitornaam** of **Monitorbeschrijving** — een operator en een waarde, en leest als een zin: "Als **Incidenttitel** `database` bevat", "En **Monitorlabels** heeft een van _Production_".
+1. **Overeenkomst** — **Alle incidenten**, waar een nieuwe regel mee begint, of **Alleen incidenten die aan de voorwaarden voldoen**, dat de voorwaarden van de regel opent. Elke voorwaarde kiest een criterium — **Monitoren**, **Ernstniveaus van incidenten**, **Incident-labels**, **Monitorlabels**, **Incidenttitel**, **Incidentbeschrijving**, **Monitornaam** of **Monitorbeschrijving** — een operator en een waarde, en leest als een zin: "Als **Incidenttitel** `database` bevat", "En **Monitorlabels** heeft een van _Production_".
 2. **Bereikbaarheidsbeleid** — het beleid dat deze regel oproept, en de **Naam** van de regel, daaruit ingevuld ("Platform on-call oproepen") totdat je zelf een naam typt; de **Beschrijving** wacht onder **Meer velden**. De regel begint ingeschakeld; het bewerkingsformulier voegt de schakelaar **Ingeschakeld** toe, en de lijst toont per regel een groen label **Ingeschakeld** of een rood label **Uitgeschakeld**.
 :::
 
@@ -670,7 +670,7 @@ Een regel roept op zodra een incident erop past. Om de regel in plaats daarvan o
 De regels die de pagina zelf meebrengt, zijn het waard om je eigen te maken:
 
 - Met twee of meer voorwaarden kies je **Voldoet aan alle** (elke voorwaarde moet waar zijn) of **Voldoet aan één** (één is genoeg). Een regel zonder voorwaarden komt met elk incident overeen.
-- Een lijstcriterium — **Monitoren**, **Incident Ernsten**, **Incident-labels**, **Monitorlabels** — gebruikt **Heeft een van**, **Heeft alle** of **Heeft geen van** de waarden die je kiest.
+- Een lijstcriterium — **Monitoren**, **Ernstniveaus van incidenten**, **Incident-labels**, **Monitorlabels** — gebruikt **Heeft een van**, **Heeft alle** of **Heeft geen van** de waarden die je kiest.
 - Een tekstcriterium — de titel en de beschrijving van het incident, de namen en beschrijvingen van zijn monitoren — gebruikt **Bevat**, **Bevat niet**, **Is gelijk aan**, **Is niet gelijk aan**, **Begint met** of **Eindigt met**, zonder op hoofdletters te letten, of **Komt overeen met patroon** / **Komt niet overeen met patroon** voor een reguliere expressie zonder onderscheid tussen hoofdletters en kleine letters of een jokerteken `*`. Een nieuwe tekstvoorwaarde begint op **Bevat**.
 - **Alle overeenkomende regels gaan af.** Er is geen prioriteit en geen kortsluiting.
 - Het beleid dat daadwerkelijk wordt uitgevoerd, is de vereniging van het beleid van elke overeenkomende regel plus elk beleid dat met de hand of door een sjabloon aan het incident is gehangen, ontdubbeld zodat elk beleid hoogstens één keer draait. Roepen twee overeenkomende regels hetzelfde beleid op, dan roept het op zodra een van beide het toelaat: direct wint van werktijden.

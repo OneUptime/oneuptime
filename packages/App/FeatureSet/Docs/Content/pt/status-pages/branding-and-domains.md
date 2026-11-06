@@ -155,7 +155,7 @@ No OneUptime Cloud, adicionar ou alterar qualquer um deles exige o plano **Growt
 
 Por padrão, uma página de status pode ser acessada pela URL de prévia mostrada na tela **Visão geral** dela. Para colocá-la no seu próprio nome de host, vá para **Páginas de status → sua página → Marca → Domínios personalizados** (`{id}/domains`).
 
-O cartão **Domínios personalizados** diz o que fazer: aponte o registro CNAME de cada domínio para o registro CNAME de páginas de status da sua instalação, e o OneUptime emite o certificado SSL do domínio e o renova para você. Sem nada configurado, a tabela diz **Nenhum domínio personalizado encontrado**, com **Criar: Página de status Domínio** abaixo. A tabela tem duas colunas, **Domínio** e **Status**, e filtros para **Domínio**, **CNAME válido** e **SSL provisionado**.
+O cartão **Domínios personalizados** diz o que fazer: aponte o registro CNAME de cada domínio para o registro CNAME de páginas de status da sua instalação, e o OneUptime emite o certificado SSL do domínio e o renova para você. Sem nada configurado, a tabela diz **Nenhum domínio personalizado encontrado**, com **Criar: Domínio da página de status** abaixo. A tabela tem duas colunas, **Domínio** e **Status**, e filtros para **Domínio**, **CNAME válido** e **SSL provisionado**.
 
 Colocar a página no seu domínio leva três etapas, e só as duas primeiras são com você:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Abrir Criar: Página de status Domínio
 
-Em **Domínios personalizados**, clique em **Criar: Página de status Domínio**. A caixa de diálogo tem uma só página.
+Em **Domínios personalizados**, clique em **Criar: Domínio da página de status**. A caixa de diálogo tem uma só página.
 
 #### Digitar o subdomínio
 
@@ -213,7 +213,7 @@ Em **Domínio** (texto de exemplo `Select domain`), escolha um dos seus domínio
 
 #### Criar o domínio
 
-Clique em **Criar: Página de status Domínio**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre, com o registro a adicionar.
+Clique em **Criar: Domínio da página de status**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre, com o registro a adicionar.
 :::
 
 O nome completo de um domínio é fixado quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo. Um nome que um painel ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.

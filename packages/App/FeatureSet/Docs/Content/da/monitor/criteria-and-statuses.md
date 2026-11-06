@@ -148,7 +148,7 @@ En status, du tilføjer senere, kommer ikke med på listen **Tæller som nedetid
 :::steps
 ### Åbn Monitorstatus
 
-Gå til **Overvågninger → Indstillinger → Monitorstatus**. **Indstillinger** er foldet sammen i sidemenuen: fold den ud først. Kortet **Monitor Statusser** viser statusserne fra den sundeste til den værste.
+Gå til **Overvågninger → Indstillinger → Monitorstatus**. **Indstillinger** er foldet sammen i sidemenuen: fold den ud først. Kortet **Monitorstatusser** viser statusserne fra den sundeste til den værste.
 
 ### Opret statussen
 
@@ -167,7 +167,7 @@ Den driftsklare status og offline-statussen er markeret som **Indbygget**: du ka
 
 ### Statustidslinjen
 
-Hver statusændring gemmes på monitorens **Statustidslinje**: hvornår den startede, hvor længe den varede, og **Vis årsag** for det kriterium, der satte den. **Opret Monitor Status Begivenhed** tilføjer en status manuelt. På en monitor, som sonder kontrollerer, sætter den næste kontrol, der matcher et kriterium med en status, den status igen.
+Hver statusændring gemmes på monitorens **Statustidslinje**: hvornår den startede, hvor længe den varede, og **Vis årsag** for det kriterium, der satte den. **Opret Statusbegivenhed for monitor** tilføjer en status manuelt. På en monitor, som sonder kontrollerer, sætter den næste kontrol, der matcher et kriterium med en status, den status igen.
 
 En statusændring giver kun monitorens ejere besked, hvis de har slået **Overvågningsstatus ændret** til i deres notifikationsindstillinger: den er slået fra fra start. En monitor, der går tilbage til sin **Standardstatus for overvågning**, fordi intet kriterium matchede, giver ingen besked. Se [Hvad der er slået til for et nyt medlem](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
 

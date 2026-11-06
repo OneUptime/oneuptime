@@ -203,7 +203,7 @@ För att testa en händelseutlösare utan att vänta på händelsen klickar du p
 | **Larm**                                  | Samma tre händelser, för larm.                                                            |
 | **Övervakning**                           | Reagera när en monitor läggs till, redigeras eller tas bort.                              |
 | **Schemalagd underhållshändelse**         | Meddela ett underhållsfönster automatiskt när det schemaläggs.                            |
-| **Statussida Prenumerant**                | Välkomna någon som prenumererar på en statussida.                                         |
+| **Statussideprenumerant**                | Välkomna någon som prenumererar på en statussida.                                         |
 | **Jourpolicy**                            | Synkronisera ändringar i policyn med ett annat jourschemasystem.                          |
 
 I panelen **Lägg till utlösare** finns de under **OneUptime-resurser**: klicka på resursen och sedan på utlösaren. **Bläddra bland alla resurser** har alla, och sökfältet hittar en utlösare utifrån några få ord, som `incident created`.

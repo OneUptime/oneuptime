@@ -106,11 +106,11 @@ Incidenten beginnen met drie ernstniveaus en waarschuwingen met twee. Wanneer he
 
 ## Ernstniveaus bewerken
 
-Ga naar **Waarschuwingen → Instellingen → Ernst van waarschuwing**. De kaart **Waarschuwing Ernsten** toont ze met de ernstigste eerst; sleep een rij om haar rang te wijzigen. **Ernst van waarschuwing aanmaken** voegt er een toe aan het einde van de lijst, als minst ernstige, met dezelfde **Naam**, **Beschrijving** en **Kleur** als een status.
+Ga naar **Waarschuwingen → Instellingen → Ernst van waarschuwing**. De kaart **Ernstniveaus van waarschuwingen** toont ze met de ernstigste eerst; sleep een rij om haar rang te wijzigen. **Ernst van waarschuwing aanmaken** voegt er een toe aan het einde van de lijst, als minst ernstige, met dezelfde **Naam**, **Beschrijving** en **Kleur** als een status.
 
 De rang bepaalt welk ernstniveau wint waar OneUptime ze vergelijkt: de ernst van een episode stijgt tot die van de ernstigste waarschuwing die zich erbij voegt. Ernstniveaus hebben geen vlaggen en geen verwijderslot: elk ernstniveau kan worden verwijderd, ook de twee vooraf aangemaakte.
 
-Een ernstniveau roept op zichzelf niemand op. Om op ernst op te roepen, voeg je een bereikbaarheidsregel toe waarvan de **Waarschuwing Ernsten** erop overeenkomen: zie [Waarschuwingsregels en instellingen](/docs/alerts/settings). Een wijziging van de ernst van een waarschuwing schrijft een vermelding in haar feed en matcht haar herinneringsregel opnieuw.
+Een ernstniveau roept op zichzelf niemand op. Om op ernst op te roepen, voeg je een bereikbaarheidsregel toe waarvan de **Ernstniveaus van waarschuwingen** erop overeenkomen: zie [Waarschuwingsregels en instellingen](/docs/alerts/settings). Een wijziging van de ernst van een waarschuwing schrijft een vermelding in haar feed en matcht haar herinneringsregel opnieuw.
 
 ## Een status of ernst archiveren
 

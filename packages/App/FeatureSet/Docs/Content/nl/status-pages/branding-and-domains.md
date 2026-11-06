@@ -155,7 +155,7 @@ Op OneUptime Cloud vereist het toevoegen of wijzigen van een ervan het plan **Gr
 
 Standaard is een statuspagina bereikbaar op de voorbeeld-URL op het scherm **Overzicht** ervan. Om haar op uw eigen hostnaam te zetten, gaat u naar **Statuspagina's → uw pagina → Huisstijl → Aangepaste domeinen** (`{id}/domains`).
 
-De kaart **Aangepaste domeinen** zegt wat u moet doen: laat het CNAME-record van elk domein naar het statuspagina-CNAME-record van uw installatie wijzen, en OneUptime geeft het SSL-certificaat van het domein uit en verlengt het voor u. Zonder iets ingesteld zegt de tabel **Geen aangepaste domeinen gevonden**, met **Statuspagina Domein aanmaken** eronder. De tabel heeft twee kolommen, **Domein** en **Status**, en filters voor **Domein**, **CNAME geldig** en **SSL geprovisioneerd**.
+De kaart **Aangepaste domeinen** zegt wat u moet doen: laat het CNAME-record van elk domein naar het statuspagina-CNAME-record van uw installatie wijzen, en OneUptime geeft het SSL-certificaat van het domein uit en verlengt het voor u. Zonder iets ingesteld zegt de tabel **Geen aangepaste domeinen gevonden**, met **Domein van statuspagina aanmaken** eronder. De tabel heeft twee kolommen, **Domein** en **Status**, en filters voor **Domein**, **CNAME geldig** en **SSL geprovisioneerd**.
 
 De pagina op uw domein zetten kost drie stappen, en alleen de eerste twee zijn voor u:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Statuspagina Domein aanmaken openen
 
-Klik op **Aangepaste domeinen** op **Statuspagina Domein aanmaken**. Het dialoogvenster bestaat uit één pagina.
+Klik op **Aangepaste domeinen** op **Domein van statuspagina aanmaken**. Het dialoogvenster bestaat uit één pagina.
 
 #### Het subdomein invullen
 
@@ -213,7 +213,7 @@ Kies in **Domein** (plaatshouder `Select domain`) een van uw geverifieerde domei
 
 #### Het domein aanmaken
 
-Klik op **Statuspagina Domein aanmaken**. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent, met het record dat u moet toevoegen.
+Klik op **Domein van statuspagina aanmaken**. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent, met het record dat u moet toevoegen.
 :::
 
 De volledige naam van een domein ligt vast zodra u het toevoegt, dus **Bewerken** wijzigt alleen het certificaat ervan. Om een ander subdomein te gebruiken, voegt u dat domein toe en verwijdert u het oude. Een naam die een dashboard of een formulier al gebruikt, in welk project ook, wordt geweigerd: één domein toont één statuspagina, dashboard of formulier.

@@ -34,7 +34,7 @@ A página mostra como recursos os monitores que você coloca nela, e os incident
 ## Em resumo
 
 - **Criada com um nome.** Uma nova página de status pede apenas o **Nome**; **Descrição** e **Rótulos** ficam em **Mais campos**. Recursos, marca e domínios são configurados depois.
-- **Os recursos são o que os visitantes veem.** Cada linha da página é um **Página de status Recurso**: um monitor (ou grupo de monitores) com seu próprio nome de exibição, dica e opções de tempo de atividade. Os grupos dividem uma página longa em seções e podem ser aninhados.
+- **Os recursos são o que os visitantes veem.** Cada linha da página é um **Recurso da página de status**: um monitor (ou grupo de monitores) com seu próprio nome de exibição, dica e opções de tempo de atividade. Os grupos dividem uma página longa em seções e podem ser aninhados.
 - **Uma URL de pré-visualização desde o primeiro dia.** Toda página de status recebe um link de pré-visualização, para que você possa vê-la antes de existir um domínio personalizado.
 - **As rotas para visitantes dependem de configurações.** Incidentes, episódios, anúncios e eventos agendados só aparecem enquanto seu interruptor em **O que sua página de status mostra** (em **Configurações avançadas**) estiver ligado, e a página de inscrição só enquanto **Mostrar página de assinantes** estiver ligado.
 - **Quem pode vê-la é uma única escolha.** Qualquer pessoa com o link, apenas quem entra (usuários privados, SSO SAML ou OIDC) ou qualquer pessoa com a senha, na tela **Acesso** da página, com uma lista de IPs permitidos opcional em **Mais configurações**.

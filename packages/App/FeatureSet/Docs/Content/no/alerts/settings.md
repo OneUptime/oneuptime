@@ -68,7 +68,7 @@ Betingelsene i en regel avgjør hvilke varsler den virker på, og leses som setn
 
 | Betingelse                                                    | Sammenligner med                                                                                               |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Varsel Alvorligheter**, **Varseletiketter**, **Overvåkingsetiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
+| **Monitorer**, **Alvorlighetsgrader for varsler**, **Varseletiketter**, **Overvåkingsetiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
 | **Varseltittel**, **Varselbeskrivelse**, **Overvåkingsnavn**, **Overvåkingsbeskrivelse** | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** og **Samsvarer ikke med mønster** for et regulært uttrykk eller et `*`-jokertegn. |
 
 Med to eller flere betingelser velger du **Samsvar med alle**, der hver må stemme, eller **Samsvar med én**, der én er nok. Episoderegler samsvarer i stedet med en episodes alvorlighetsgrad, etiketter, tittel og beskrivelse.
@@ -87,7 +87,7 @@ Klikk på **Opprett Alert On-Call Rule**. Under **Treff** samsvarer **Alle varsl
 Under **Vaktretningslinjer** velger du **Vaktpolicyer** regelen tilkaller. **Navn** følger dem, for eksempel "Tilkall Platform on-call", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
 :::
 
-En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Varsel Alvorligheter**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
+En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Alvorlighetsgrader for varsler**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 En regel tilkaller så snart et varsel samsvarer med den. For å la den vente på arbeidstiden i stedet, svarer du **Bare i arbeidstiden** på **Når skal denne regelen tilkalle?** under **Flere felt**. **Arbeidstid** starter som mandag til fredag, 09:00 til 17:00, i din egen tidssone: velg andre dager, et annet **Starttidspunkt** eller **Sluttidspunkt** eller en annen **Tidssone**, og en setning under valget forteller hva som skjer. I listen viser regelen arbeidstiden under navnet. Et varsel som samsvarer utenfor disse tidene, får en kjøring som venter og ikke tilkaller noen; når arbeidstiden begynner, tilkaller retningslinjen sin første eskaleringsregel og eskalerer som vanlig. Blir varselet bekreftet eller løst først, blir ingen tilkalt. Endrer varselet seg mens det venter, slik at det nå samsvarer med en regel som tilkaller med en gang, for eksempel fordi alvorlighetsgraden heves, begynner kjøringen å tilkalle straks, og feeden til varselet forteller hvorfor. To regler som tilkaller den samme retningslinjen, tilkaller den så snart en av dem tillater det: en regel for de høyeste alvorlighetsgradene som tilkaller med en gang, ved siden av en regel for resten som venter på arbeidstiden, holder nettene rolige.
 
@@ -130,7 +130,7 @@ Hendelsen får varselets tittel, beskrivelse, monitor, berørte ressurser og eti
 :::steps
 ### Velg hvilke varsler det skal minnes om
 
-Klikk på **Opprett Alert Reminder Rule**. Under **Treff** lar du **Alle varsler** være valgt for å minne om hvert varsel, eller du velger **Bare varsler som oppfyller betingelsene** og deretter **Varsel Alvorligheter** og **Etiketter** den gjelder for.
+Klikk på **Opprett Alert Reminder Rule**. Under **Treff** lar du **Alle varsler** være valgt for å minne om hvert varsel, eller du velger **Bare varsler som oppfyller betingelsene** og deretter **Alvorlighetsgrader for varsler** og **Etiketter** den gjelder for.
 
 ### Angi intervallet
 

@@ -34,7 +34,7 @@ Formuläret **Deklarera ny incident** frågar efter en incident i tre steg — *
 1. Öppna **Incidenter → Alla incidenter** och klicka på **Deklarera incident** längst upp till höger i listan **Incidenter**. Formuläret öppnas på **Incidentdetaljer**.
 2. Ange en **Titel** och välj en **Incidentallvar**. Resten av formuläret är valfritt.
 3. Klicka dig igenom de återstående stegen med **Nästa** och fyll i det du vet nu: monitorer och andra resurser, jourpolicyer, roller.
-4. Läs sammanfattningen och klicka på **Deklarera incident**. Du hamnar på den nya incidenten, och dess **Incident Flöde** börjar registrera.
+4. Läs sammanfattningen och klicka på **Deklarera incident**. Du hamnar på den nya incidenten, och dess **Incidentflöde** börjar registrera.
 :::
 
 Bara det första steget har obligatoriska fält, plus alla anpassade fält som dina administratörer har markerat som **Obligatoriskt vid skapande**, som steget **Detaljer** frågar efter. Varje steg före sammanfattningen har en vanlig **Nästa**, och **Deklarera incident** finns på sammanfattningen, det sista steget. Har du bråttom fyller du i **Incidentdetaljer** och trycker **Nästa** genom de andra stegen utan att fylla i dem: att lägga till resurser, lägga till jourpolicyer och tilldela roller kan också vänta till incidentens egna sidor. Trycker du på **Enter** i ett fält går det också vidare; det deklarerar aldrig före sammanfattningen.

@@ -169,7 +169,7 @@ En mal for etteranalyse er skjelettet til rapporten du lager etter en hendelse �
 
 :::steps
 1. Gå til **Hendelser → Innstillinger → Postmortem-maler** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-maler**.
-2. Klikk på **Opprett Hendelse Postmortem Mal**, og fyll ut den ene siden: **Malnavn** og **Malbeskrivelse**, begge påkrevd, og deretter **Mal for etteranalyse**, selve teksten, i Markdown, påkrevd.
+2. Klikk på **Opprett Mal for etteranalyse av hendelser**, og fyll ut den ene siden: **Malnavn** og **Malbeskrivelse**, begge påkrevd, og deretter **Mal for etteranalyse**, selve teksten, i Markdown, påkrevd.
 3. Lagre den. Siden **Etteranalyse** for hver hendelse tilbyr nå **Bruk mal**. Så lenge ingenting er skrevet, heter knappen **Start fra mal**; når etteranalysen er skrevet, ligger **Bruk mal** i kortets meny **⋯**.
 :::
 
@@ -659,7 +659,7 @@ Regler som ble lagret før skjemaet spurte om eiere, kan fortsatt ha et standard
 Opprettelsesskjemaet har to trinn:
 
 :::steps
-1. **Treff** — **Alle hendelser**, som en ny regel starter på, eller **Bare hendelser som oppfyller betingelsene**, som åpner regelens betingelser. Hver betingelse velger et kriterium — **Monitorer**, **Hendelse Alvorligheter**, **Hendelsesetiketter**, **Overvåkingsetiketter**, **Hendelsestittel**, **Hendelsesbeskrivelse**, **Overvåkingsnavn** eller **Overvåkingsbeskrivelse** — en operator og en verdi, og leses som en setning: «Hvis **Hendelsestittel** inneholder `database`», «Og **Overvåkingsetiketter** har en av _Production_».
+1. **Treff** — **Alle hendelser**, som en ny regel starter på, eller **Bare hendelser som oppfyller betingelsene**, som åpner regelens betingelser. Hver betingelse velger et kriterium — **Monitorer**, **Alvorlighetsgrader for hendelser**, **Hendelsesetiketter**, **Overvåkingsetiketter**, **Hendelsestittel**, **Hendelsesbeskrivelse**, **Overvåkingsnavn** eller **Overvåkingsbeskrivelse** — en operator og en verdi, og leses som en setning: «Hvis **Hendelsestittel** inneholder `database`», «Og **Overvåkingsetiketter** har en av _Production_».
 2. **Vaktretningslinjer** — policyene denne regelen tilkaller, og regelens **Navn**, fylt ut fra dem ("Tilkall Platform on-call"), til du skriver inn ditt eget; **Beskrivelse** venter under **Flere felt**. Regelen starter aktivert; redigeringsskjemaet legger til bryteren **Aktivert**, og listen viser et grønt merke **Aktivert** eller et rødt merke **Deaktivert** per regel.
 :::
 
@@ -670,7 +670,7 @@ En regel tilkaller så snart en hendelse samsvarer med den. For å la den vente 
 Reglene siden selv har med, er verdt å gjøre til dine egne:
 
 - Med to eller flere betingelser velger du **Samsvar med alle** (hver betingelse må være sann) eller **Samsvar med én** (én er nok). En regel uten betingelser samsvarer med hver hendelse.
-- Et listekriterium — **Monitorer**, **Hendelse Alvorligheter**, **Hendelsesetiketter**, **Overvåkingsetiketter** — bruker **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.
+- Et listekriterium — **Monitorer**, **Alvorlighetsgrader for hendelser**, **Hendelsesetiketter**, **Overvåkingsetiketter** — bruker **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.
 - Et tekstkriterium — hendelsens tittel og beskrivelse, monitorenes navn og beskrivelser — bruker **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med** eller **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** / **Samsvarer ikke med mønster** for et regulært uttrykk uten forskjell på store og små bokstaver eller et jokertegn `*`. En ny tekstbetingelse starter på **Inneholder**.
 - **Alle samsvarende regler utløses.** Det finnes ingen prioritet og ingen kortslutning.
 - Settet med policyer som faktisk kjøres, er foreningen av policyene til hver samsvarende regel pluss alle policyer som er knyttet til hendelsen for hånd eller av en mal, uten duplikater, slik at hver policy kjører høyst én gang. Når to samsvarende regler tilkaller den samme policyen, tilkaller den så snart en av dem tillater det: med en gang vinner over arbeidstiden.

@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Öppna Mallar
 
-Gå till **Monitorer → Inställningar → Mallar** och klicka på **Skapa Monitor Mall**.
+Gå till **Monitorer → Inställningar → Mallar** och klicka på **Skapa Monitormall**.
 
 ### Namnge mallen
 
@@ -47,7 +47,7 @@ Under **Standardvärden för övervakning** väljer du **Monitortyp** med samma 
 
 ### Ange kriterierna och intervallet
 
-Under **Kriterier** fyller du i vad som ska kontrolleras och kriterierna, som i [Skapa monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** överst skyddar du fält mot synkroniseringar (se [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor)). För en monitortyp som sonder kontrollerar frågar det sista steget, **Intervall**, efter **Övervakningsintervall**. Klicka på **Skapa Monitor Mall** på det sista steget.
+Under **Kriterier** fyller du i vad som ska kontrolleras och kriterierna, som i [Skapa monitor](/docs/monitor/create-monitor#kriterier). Med kortet **Template sync settings** överst skyddar du fält mot synkroniseringar (se [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor)). För en monitortyp som sonder kontrollerar frågar det sista steget, **Intervall**, efter **Övervakningsintervall**. Klicka på **Skapa Monitormall** på det sista steget.
 :::
 
 Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för varje del: **Mallinformation**, **Standardvärden för övervakning**, **Övervakningskriterier**, **Övervakningsintervall** (med **Minsta sondöverensstämmelse**), **Etiketter**, **Standardvärden för anpassade fält** (när projektet har anpassade monitorfält) och **Länkade övervakare**. Du ändrar varje del på sitt eget kort, till exempel med **Redigera kriterier** eller **Redigera intervall**.

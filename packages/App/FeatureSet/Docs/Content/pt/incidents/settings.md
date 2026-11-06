@@ -169,7 +169,7 @@ Um modelo de post-mortem é o esqueleto do relatório que você produz depois de
 
 :::steps
 1. Vá em **Incidentes → Configurações → Modelos de post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). O cartão se chama **Modelos de post-mortem**.
-2. Clique em **Criar: Incidente Postmortem Modelo** e preencha sua única página: **Nome do modelo** e **Descrição do modelo**, ambos obrigatórios, e depois **Modelo de análise pós-incidente**, o próprio corpo, em Markdown, obrigatório.
+2. Clique em **Criar: Modelo de análise pós-incidente** e preencha sua única página: **Nome do modelo** e **Descrição do modelo**, ambos obrigatórios, e depois **Modelo de análise pós-incidente**, o próprio corpo, em Markdown, obrigatório.
 3. Salve-o. A página **Post-mortem** de cada incidente agora oferece **Aplicar modelo**. Enquanto nada estiver escrito, o botão é **Começar com um modelo**; depois que o post-mortem estiver escrito, **Aplicar modelo** fica no menu **⋯** do cartão.
 :::
 
@@ -659,7 +659,7 @@ As regras salvas antes de o formulário perguntar pelos proprietários ainda pod
 O formulário de criação tem duas etapas:
 
 :::steps
-1. **Corresponder** — **Todos os incidentes**, onde uma regra nova começa, ou **Somente os incidentes que atendem às condições**, que abre as condições da regra. Cada condição escolhe um critério — **Monitores**, **Incidente Severidades**, **Rótulos de incidentes**, **Rótulos do Monitor**, **Título do Incidente**, **Descrição do incidente**, **Nome do Monitor** ou **Descrição do Monitor** — um operador e um valor, e se lê como uma frase: «Se **Título do Incidente** contém `database`», «E **Rótulos do Monitor** tem algum de _Production_».
+1. **Corresponder** — **Todos os incidentes**, onde uma regra nova começa, ou **Somente os incidentes que atendem às condições**, que abre as condições da regra. Cada condição escolhe um critério — **Monitores**, **Severidades dos incidentes**, **Rótulos de incidentes**, **Rótulos do Monitor**, **Título do Incidente**, **Descrição do incidente**, **Nome do Monitor** ou **Descrição do Monitor** — um operador e um valor, e se lê como uma frase: «Se **Título do Incidente** contém `database`», «E **Rótulos do Monitor** tem algum de _Production_».
 2. **Políticas de plantão** — as políticas que esta regra aciona, e o **Nome** da regra, preenchido a partir delas ("Acionar Platform on-call") até você digitar um próprio; a **Descrição** fica em **Mais campos**. A regra começa habilitada; o formulário de edição dela acrescenta o interruptor **Habilitado**, e a lista mostra uma etiqueta verde **Habilitado** ou vermelha **Desabilitado** por regra.
 :::
 
@@ -670,7 +670,7 @@ Uma regra aciona assim que um incidente corresponde a ela. Para que ela aguarde 
 As regras que a própria página traz valem a pena ser internalizadas:
 
 - Com duas ou mais condições, você escolhe **Corresponder a todas** (toda condição precisa ser verdadeira) ou **Corresponder a qualquer** (uma basta). Uma regra sem condições corresponde a todo incidente.
-- Um critério de lista — **Monitores**, **Incidente Severidades**, **Rótulos de incidentes**, **Rótulos do Monitor** — usa **Tem algum de**, **Tem todos os** ou **Não tem nenhum de** os valores que você escolher.
+- Um critério de lista — **Monitores**, **Severidades dos incidentes**, **Rótulos de incidentes**, **Rótulos do Monitor** — usa **Tem algum de**, **Tem todos os** ou **Não tem nenhum de** os valores que você escolher.
 - Um critério de texto — o título e a descrição do incidente, os nomes e as descrições dos monitores dele — usa **Contém**, **Não contém**, **Igual a**, **Diferente de**, **Começa com** ou **Termina com**, sem diferenciar maiúsculas e minúsculas, ou **Corresponde ao padrão** / **Não corresponde ao padrão** para uma expressão regular sem diferenciar maiúsculas e minúsculas ou um curinga `*`. Uma condição de texto nova começa em **Contém**.
 - **Todas as regras que correspondem disparam.** Não há prioridade nem curto-circuito.
 - O conjunto de políticas que de fato é executado é a união das políticas de toda regra que corresponde, mais qualquer política anexada ao incidente manualmente ou por um modelo, sem duplicatas, para que cada política seja executada no máximo uma vez. Quando duas regras que correspondem acionam a mesma política, ela aciona assim que qualquer uma delas permitir: imediatamente vence o horário comercial.

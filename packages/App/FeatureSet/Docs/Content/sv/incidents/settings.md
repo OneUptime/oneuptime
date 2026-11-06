@@ -169,7 +169,7 @@ En mall för efteranalys är skelettet till rapporten som du tar fram efter en i
 
 :::steps
 1. Gå till **Incidenter → Inställningar → Postmortem-mallar** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-mallar**.
-2. Klicka på **Skapa Incident Postmortem Mall** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan **Mall för efteranalys**, själva texten, i Markdown, obligatorisk.
+2. Klicka på **Skapa Mall för efteranalys av incidenter** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan **Mall för efteranalys**, själva texten, i Markdown, obligatorisk.
 3. Spara den. Varje incidents sida **Efteranalys** erbjuder nu **Tillämpa mall**. Så länge inget är skrivet heter knappen **Börja från mall**; när efteranalysen är skriven finns **Tillämpa mall** i kortets meny **⋯**.
 :::
 
@@ -659,7 +659,7 @@ Regler som sparades innan formuläret frågade efter ägare kan fortfarande ha e
 Skapandeformuläret har två steg:
 
 :::steps
-1. **Matcha** — **Alla incidenter**, som en ny regel börjar på, eller **Endast incidenter som uppfyller villkoren**, som öppnar regelns villkor. Varje villkor väljer ett kriterium — **Monitorer**, **Incident Allvarligheter**, **Incidentetiketter**, **Övervakningsetiketter**, **Incidenttitel**, **Incidentbeskrivning**, **Övervakningsnamn** eller **Övervakningsbeskrivning** — en operator och ett värde, och läses som en mening: "Om **Incidenttitel** innehåller `database`", "Och **Övervakningsetiketter** har någon av _Production_".
+1. **Matcha** — **Alla incidenter**, som en ny regel börjar på, eller **Endast incidenter som uppfyller villkoren**, som öppnar regelns villkor. Varje villkor väljer ett kriterium — **Monitorer**, **Allvarlighetsgrader för incidenter**, **Incidentetiketter**, **Övervakningsetiketter**, **Incidenttitel**, **Incidentbeskrivning**, **Övervakningsnamn** eller **Övervakningsbeskrivning** — en operator och ett värde, och läses som en mening: "Om **Incidenttitel** innehåller `database`", "Och **Övervakningsetiketter** har någon av _Production_".
 2. **Jourpolicyer** — policyerna som den här regeln larmar, och regelns **Namn**, ifyllt utifrån dem ("Larma Platform on-call") tills du skriver ett eget; dess **Beskrivning** väntar under **Fler fält**. Regeln börjar aktiverad; dess redigeringsformulär lägger till reglaget **Aktiverad**, och listan visar ett grönt märke **Aktiverad** eller ett rött märke **Inaktiverad** per regel.
 :::
 
@@ -670,7 +670,7 @@ En regel larmar så snart en incident matchar den. För att låta den vänta på
 Reglerna som sidan själv har med är värda att göra till dina egna:
 
 - Med två eller fler villkor väljer du **Matcha alla** (varje villkor måste vara sant) eller **Matcha något** (ett räcker). En regel utan villkor matchar varje incident.
-- Ett listkriterium — **Monitorer**, **Incident Allvarligheter**, **Incidentetiketter**, **Övervakningsetiketter** — använder **Har någon av**, **Har alla** eller **Har ingen av** värdena som du väljer.
+- Ett listkriterium — **Monitorer**, **Allvarlighetsgrader för incidenter**, **Incidentetiketter**, **Övervakningsetiketter** — använder **Har någon av**, **Har alla** eller **Har ingen av** värdena som du väljer.
 - Ett textkriterium — incidentens titel och beskrivning, dess monitorers namn och beskrivningar — använder **Innehåller**, **Innehåller inte**, **Lika med**, **Inte lika med**, **Börjar med** eller **Slutar med**, utan hänsyn till versaler och gemener, eller **Matchar mönster** / **Matchar inte mönster** för ett reguljärt uttryck utan skillnad på versaler och gemener eller ett jokertecken `*`. Ett nytt textvillkor börjar på **Innehåller**.
 - **Alla matchande regler utlöses.** Det finns ingen prioritet och ingen kortslutning.
 - Uppsättningen policyer som faktiskt körs är unionen av varje matchande regels policyer plus alla policyer som har kopplats till incidenten för hand eller av en mall, utan dubbletter, så att varje policy körs högst en gång. När två matchande regler larmar samma policy larmar den så snart någon av dem tillåter det: direkt vinner över arbetstid.

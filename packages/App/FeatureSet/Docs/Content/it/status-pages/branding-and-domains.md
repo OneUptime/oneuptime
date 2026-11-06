@@ -155,7 +155,7 @@ Su OneUptime Cloud, aggiungerne o modificarne uno richiede il piano **Growth**. 
 
 Per impostazione predefinita, una pagina di stato è raggiungibile all'URL di anteprima mostrato nella sua schermata **Panoramica**. Per portarla sul vostro nome host, andate in **Pagine di stato → la vostra pagina → Branding → Domini personalizzati** (`{id}/domains`).
 
-La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Crea: Pagina di stato Dominio** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
+La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Crea: Dominio della pagina di stato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
 
 Portare la pagina sul vostro dominio richiede tre passaggi, e solo i primi due spettano a voi:
 
@@ -197,7 +197,7 @@ statusPage:
 :::steps
 #### Aprire Crea: Pagina di stato Dominio
 
-In **Domini personalizzati**, fate clic su **Crea: Pagina di stato Dominio**. La finestra di dialogo è una sola pagina.
+In **Domini personalizzati**, fate clic su **Crea: Dominio della pagina di stato**. La finestra di dialogo è una sola pagina.
 
 #### Inserire il sottodominio
 
@@ -213,7 +213,7 @@ In **Dominio** (segnaposto `Select domain`), scegliete uno dei vostri domini ver
 
 #### Creare il dominio
 
-Fate clic su **Crea: Pagina di stato Dominio**. La finestra di dialogo si chiude e si apre la **Configurazione DNS** del nuovo dominio, con il record da aggiungere.
+Fate clic su **Crea: Dominio della pagina di stato**. La finestra di dialogo si chiude e si apre la **Configurazione DNS** del nuovo dominio, con il record da aggiungere.
 :::
 
 Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungete quel dominio ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
