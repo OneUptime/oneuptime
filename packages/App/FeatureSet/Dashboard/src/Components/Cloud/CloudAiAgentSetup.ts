@@ -32,6 +32,7 @@ import {
   parseResourceAiRemediationMode,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import { getCloudCatalogProvider } from "Common/Utils/AiRemediation/Resource/CloudOperationCatalog";
+import { parseCloudAiAgentKey } from "Common/Types/CloudConnection/CloudAiAgentKey";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -346,12 +347,16 @@ export function getProtectedTargetsProblem(data: {
   return patterns.length > most ? { kind: "too-many", most } : null;
 }
 
-// The setup command's options for these choices and this account.
+/*
+ * The setup command's options for these choices and this account, with the
+ * key made for its agent (Types/CloudConnection/CloudAiAgentKey) - "" while
+ * it is being made, which no command is written from.
+ */
 export function getCloudAiAgentSetupOptions(data: {
   provider: CloudProvider;
   choices: CloudAiAgentSetupChoices;
   oneuptimeUrl: string;
-  ingestionKey: string;
+  agentKey: string;
   cloudAccountId: string;
   accountId: string;
 }): CloudAiAgentSetupOptions {
@@ -367,7 +372,7 @@ export function getCloudAiAgentSetupOptions(data: {
   return {
     provider: data.provider,
     oneuptimeUrl: data.oneuptimeUrl,
-    ingestionKey: data.ingestionKey,
+    agentKey: data.agentKey,
     cloudAccountId: data.cloudAccountId,
     accountId: data.accountId,
     fixesMode: getCloudAiAgentFixesMode(data.choices),
@@ -431,3 +436,36 @@ export function getCloudAiAgentLogsCommand(
 
 // How often the dialog asks whether the agent connected, while it waits.
 export const CLOUD_AI_AGENT_CONNECT_POLL_INTERVAL_MS: number = 5000;
+
+/*
+ * The key route's answer (POST /resource-ai-access/agent-key) as the key it
+ * holds - one of this account's own - or null for anything else, so no
+ * command is ever written from a value that is not one.
+ */
+export function readCloudAiAgentKeyAnswer(data: {
+  answer: unknown;
+  cloudAccountId: string;
+}): string | null {
+  const answer: Record<string, unknown> | null =
+    data.answer && typeof data.answer === "object" && !Array.isArray(data.answer)
+      ? (data.answer as Record<string, unknown>)
+      : null;
+  const key: unknown = answer ? answer["agentKey"] : null;
+  const parsed: { cloudAccountId: string; secret: string } | null =
+    parseCloudAiAgentKey(key);
+
+  return parsed &&
+    parsed.cloudAccountId === data.cloudAccountId.trim().toLowerCase()
+    ? (key as string).trim()
+    : null;
+}
+
+// The line under the command, about the key it holds.
+export const CLOUD_AI_AGENT_KEY_NOTE: string = translationKey(
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.",
+);
+
+// While the key is being made, where the command goes.
+export const CLOUD_AI_AGENT_MAKING_KEY_TEXT: string = translationKey(
+  "Making a key for this agent…",
+);

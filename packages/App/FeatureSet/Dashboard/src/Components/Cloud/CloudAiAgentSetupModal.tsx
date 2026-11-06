@@ -4,6 +4,8 @@ import {
   CLOUD_AI_AGENT_CONNECT_POLL_INTERVAL_MS,
   CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION,
   CLOUD_AI_AGENT_FIX_SAFE_TITLE,
+  CLOUD_AI_AGENT_KEY_NOTE,
+  CLOUD_AI_AGENT_MAKING_KEY_TEXT,
   CLOUD_SHELL_NAMES,
   CloudAiAgentProtectedTargetsProblem,
   CloudAiAgentSetupChoices,
@@ -14,9 +16,11 @@ import {
   getDefaultCloudAiAgentSetupChoices,
   getProtectedTargetsProblem,
   parseProtectedTargets,
+  readCloudAiAgentKeyAnswer,
 } from "./CloudAiAgentSetup";
 import { ResourceAiAgentDescriptor } from "../ResourceAiAgent/ResourceAiAgentDescriptors";
 import {
+  RESOURCE_AI_ACCESS_AGENT_KEY_ROUTE,
   RESOURCE_AI_ACCESS_STATUS_ROUTE,
   getResourceAiAccessRequestBody,
   getResourceAutomaticRemediation,
@@ -30,15 +34,17 @@ import AutomaticRemediationNote from "../AiAccess/AutomaticRemediationNote";
 import useAiAgentAccessStatus, {
   AiAgentAccessStatusRead,
 } from "../AiAccess/useAiAgentAccessStatus";
-import IngestionKeySelector from "../Telemetry/IngestionKeySelector";
 import { getSetupGuideOneUptimeUrl } from "../SetupGuide/SetupGuide";
 import SetupGuideOptionPicker from "../SetupGuide/SetupGuideOptionPicker";
 import SetupGuideSteps, {
   SetupGuideStepView,
 } from "../SetupGuide/SetupGuideSteps";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
-import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
 import {
   CloudAiAgentEnvironmentVariable,
   CloudAiAgentSetupOptions,
@@ -64,7 +70,10 @@ import {
   GCP_CLOUD_AI_AGENT_HOSTS,
   GcpCloudAiAgentHost,
 } from "Common/Types/ResourceAiAgent/CloudAiAgentNames";
-import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import {
@@ -74,7 +83,7 @@ import {
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -91,11 +100,19 @@ import React, {
  * "Let AI fix problems" on a cloud account, laid out as every "connect
  * this" guide in the product is (Add Host, the agents' setup guides): the
  * guide's one question on top - how far may AI go - then numbered steps:
- * choose the key the agent connects with, run one command in the cloud's
- * own shell (it creates the Cloud AI agent's role and starts the agent),
- * and wait for it to connect. Nothing is pasted back: the agent connects
- * on its own, and the last step says Connected when it does. Every other
- * setting has a safe default and is folded under More fields.
+ * run one command in the cloud's own shell (it creates the Cloud AI agent's
+ * role and starts the agent), and wait for it to connect. Nothing is pasted
+ * back: the agent connects on its own, and the last step says Connected
+ * when it does. Every other setting has a safe default and is folded under
+ * More fields.
+ *
+ * The command carries a key made for this account's agent alone
+ * (Types/CloudConnection/CloudAiAgentKey), made as the dialog opens: it
+ * connects that agent and nothing else, never sends telemetry, and works
+ * for a day until the agent connects with it. The agent's key so far keeps
+ * working until then, so opening the dialog disconnects nothing. Only the
+ * people who may set the agent up get a key; anyone else is told why where
+ * the command would be.
  *
  * Changing how far AI may go is running the updated command: the agent's
  * own settings decide, as for every AI agent, and the final say stays in
@@ -192,14 +209,87 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
       accountId: props.accountId,
     });
   });
-  const [ingestionKey, setIngestionKey] =
-    useState<TelemetryIngestionKey | null>(null);
+  // The key made for this agent as the dialog opened, and why there is none.
+  const [agentKey, setAgentKey] = useState<string>("");
+  const [keyError, setKeyError] = useState<string>("");
+  const [isMakingKey, setIsMakingKey] = useState<boolean>(true);
+  const [keyRequest, setKeyRequest] = useState<number>(0);
   const [isAiLogReadEnabled, setIsAiLogReadEnabled] = useState<boolean>(
     props.isAiLogReadEnabled,
   );
   const [isSavingLogs, setIsSavingLogs] = useState<boolean>(false);
   const [logsError, setLogsError] = useState<string>("");
   const [pollToken, setPollToken] = useState<number>(0);
+
+  /*
+   * One key per opening (and per Try again): the route makes it, and it is
+   * shown here alone, in the command.
+   */
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    setIsMakingKey(true);
+    setKeyError("");
+
+    const makeKey: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              RESOURCE_AI_ACCESS_AGENT_KEY_ROUTE,
+            ),
+            data: getResourceAiAccessRequestBody(
+              props.descriptor,
+              props.cloudAccountId.toString(),
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (!isCurrent) {
+          return;
+        }
+
+        if (response instanceof HTTPErrorResponse) {
+          setKeyError(API.getFriendlyMessage(response));
+          return;
+        }
+
+        const key: string | null = readCloudAiAgentKeyAnswer({
+          answer: response.data,
+          cloudAccountId: props.cloudAccountId.toString(),
+        });
+
+        if (!key) {
+          setKeyError(
+            translator.translateText(
+              translationKey(
+                "OneUptime did not send a key for this agent. Try again.",
+              ),
+            ) || "OneUptime did not send a key for this agent. Try again.",
+          );
+          return;
+        }
+
+        setAgentKey(key);
+      } catch (error) {
+        if (isCurrent) {
+          setKeyError(API.getFriendlyMessage(error));
+        }
+      } finally {
+        if (isCurrent) {
+          setIsMakingKey(false);
+        }
+      }
+    };
+
+    makeKey().catch(() => {
+      // handled inside makeKey
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [keyRequest]);
 
   // While the dialog is open, ask every few seconds whether the agent connected.
   useEffect(() => {
@@ -242,13 +332,11 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     host: HOST,
     isHttps: HTTP_PROTOCOL === Protocol.HTTPS,
   });
-  const ingestionKeyValue: string = ingestionKey?.secretKey?.toString() || "";
-
   const options: CloudAiAgentSetupOptions = getCloudAiAgentSetupOptions({
     provider: props.provider,
     choices,
     oneuptimeUrl,
-    ingestionKey: ingestionKeyValue,
+    agentKey,
     cloudAccountId: props.cloudAccountId.toString(),
     accountId: props.accountId,
   });
@@ -260,13 +348,9 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     });
   let problem: string | null = null;
 
-  if (!ingestionKeyValue) {
-    problem =
-      translator.translateText(
-        translationKey(
-          "Pick the telemetry ingestion key the agent connects with.",
-        ),
-      ) || "Pick the telemetry ingestion key the agent connects with.";
+  if (!agentKey) {
+    // Said where the command goes: making it, or why there is no key.
+    problem = keyError || "";
   } else if (protectedProblem?.kind === "unreadable") {
     problem = translator.translateTemplate(
       "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
@@ -392,31 +476,6 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
 
   const steps: Array<SetupGuideStepView> = [
     {
-      title:
-        translator.translateText(translationKey("Choose an ingestion key")) ||
-        "Choose an ingestion key",
-      description:
-        translator.translateText(
-          translationKey(
-            "The agent connects to your project with this key. Pick an existing key or create a new one: the command below uses it.",
-          ),
-        ) || undefined,
-      content: (
-        <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-key`}>
-          <IngestionKeySelector
-            endpointLabel={translationKey("OneUptime URL")}
-            endpointValue={oneuptimeUrl}
-            keyTypeFilter={TelemetryIngestionKeyType.Server}
-            newKeyName={translationKey("Cloud AI agent key")}
-            hideValues={true}
-            onSelectedKeyChange={(key: TelemetryIngestionKey | null) => {
-              setIngestionKey(key);
-            }}
-          />
-        </div>
-      ),
-    },
-    {
       title: translator.translateTemplate("Run this in {{shell}}", { shell }),
       description:
         translator.translateText(
@@ -430,13 +489,55 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             <div data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-command`}>
               <CodeBlock language="bash" code={command} />
             </div>
-          ) : (
+          ) : isMakingKey ? (
             <p
-              className="text-sm text-amber-700"
-              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-problem`}
+              className="text-sm text-gray-500"
+              role="status"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-making-key`}
             >
-              {problem}
+              {translator.translateText(CLOUD_AI_AGENT_MAKING_KEY_TEXT) ||
+                CLOUD_AI_AGENT_MAKING_KEY_TEXT}
             </p>
+          ) : (
+            <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+              <p
+                className="min-w-0 flex-1 text-sm text-amber-700"
+                data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-problem`}
+              >
+                {problem}
+              </p>
+              {/*
+               * A key that could not be made (a network error, a refusal):
+               * asked for again. A refusal says who may set the agent up.
+               */}
+              {keyError ? (
+                <Button
+                  title="Try again"
+                  icon={IconProp.Refresh}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  dataTestId={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-key-try-again`}
+                  onClick={() => {
+                    setKeyRequest((request: number) => {
+                      return request + 1;
+                    });
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+            </div>
+          )}
+          {command ? (
+            <p
+              className="text-xs text-gray-500"
+              data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-key-note`}
+            >
+              {translator.translateText(CLOUD_AI_AGENT_KEY_NOTE) ||
+                CLOUD_AI_AGENT_KEY_NOTE}
+            </p>
+          ) : (
+            <></>
           )}
           <p
             className="text-xs text-gray-500"

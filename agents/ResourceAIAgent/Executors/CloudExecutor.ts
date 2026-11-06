@@ -14,6 +14,7 @@ import {
   ResourceCommandRequest,
   ResourceExecutor,
   ResourcePostureProbe,
+  RunControl,
 } from "./ResourceExecutor";
 import { redactOutput, replaceNulCharacters } from "./SpawnSandbox";
 import AwsCloud, { AwsProbe } from "./Cloud/AwsOperations";
@@ -40,6 +41,7 @@ import {
 import {
   CloudAgentSettings,
   formatRequiredTag,
+  getServiceAccountProject,
   parseCloudAgentSettings,
 } from "./Cloud/CloudSettings";
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
@@ -57,6 +59,7 @@ import {
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
   RESOURCE_AI_GCP_HOST_ENV,
+  RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
   ResourceCommandTier,
 } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
@@ -470,8 +473,8 @@ export default class CloudExecutor implements ResourceExecutor {
       refusal: null,
       displayCommand: guarded.displayCommand,
       tier: guarded.tier,
-      run: (): Promise<ExecResult> => {
-        return this.run(call);
+      run: (control?: RunControl | undefined): Promise<ExecResult> => {
+        return this.run(call, control);
       },
     };
   }
@@ -498,6 +501,10 @@ export default class CloudExecutor implements ResourceExecutor {
 
     if (settings.awsWriteRoleProblem) {
       return settings.awsWriteRoleProblem;
+    }
+
+    if (settings.gcpWriteServiceAccountProblem) {
+      return settings.gcpWriteServiceAccountProblem;
     }
 
     const resource: ParsedCloudCommand["resource"] = command.resource;
@@ -545,6 +552,21 @@ export default class CloudExecutor implements ResourceExecutor {
     const metadataNumber: string | null = this.gcp
       ? this.gcp.metadata.getKnownProjectNumber()
       : null;
+
+    // The write account is the served project's own, as its setup command makes it.
+    if (settings.gcpWriteServiceAccount) {
+      const writeProject: string = getServiceAccountProject(
+        settings.gcpWriteServiceAccount,
+      );
+
+      if (
+        writeProject !== accountId &&
+        !(metadataId === writeProject && metadataNumber === accountId)
+      ) {
+        return `${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} names a service account of project ${writeProject}, but the agent serves project ${accountId || "(unknown)"}, so it changes nothing. Set it to a service account of project ${accountId || "the agent serves"}.`;
+      }
+    }
+
     const names: Array<string> = [accountId];
 
     if (metadataId === accountId || metadataNumber === accountId) {
@@ -570,16 +592,24 @@ export default class CloudExecutor implements ResourceExecutor {
 
   // ---- run -------------------------------------------------------------------------------
 
-  private async run(call: CloudCall): Promise<ExecResult> {
+  private async run(
+    call: CloudCall,
+    control?: RunControl | undefined,
+  ): Promise<ExecResult> {
     if (isCloudDryRun(call.command)) {
       return this.dryRun(call);
     }
 
+    /*
+     * A change stops before its call when OneUptime says so while it runs
+     * (Enable AI turned off since the claim): CloudCommandRun.change.
+     */
     const run: CloudCommandRun = new CloudCommandRun(
       this.runtime,
       call.command,
       call.settings,
       call.timeoutInMs,
+      control ? { stopReason: control.stopReason } : {},
     );
 
     try {
@@ -1159,13 +1189,19 @@ export default class CloudExecutor implements ResourceExecutor {
 
       details["gcpProjectNumber"] = probe.projectNumber;
       details["gcpServiceAccount"] = probe.serviceAccount;
+      // The account its changes run as (CloudAiChangeAttribution marks them).
+      if (settings.gcpWriteServiceAccount) {
+        details["gcpWriteServiceAccount"] = settings.gcpWriteServiceAccount;
+      }
       details["gcpHost"] = this.gcpHost();
       reachable = probe.reachable;
       reachError = probe.reachError;
     }
 
     const problem: string | null =
-      settings.requiredTagProblem || settings.awsWriteRoleProblem;
+      settings.requiredTagProblem ||
+      settings.awsWriteRoleProblem ||
+      settings.gcpWriteServiceAccountProblem;
 
     if (reachable && problem) {
       details["settingsProblem"] = problem.slice(0, MAX_POSTURE_STRING_LENGTH);

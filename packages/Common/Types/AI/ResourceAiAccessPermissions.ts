@@ -140,6 +140,27 @@ export function getResourceAiAgentResetEditRefusal(
   )} to reset its ${getResourceAgentName(resourceType)}.`;
 }
 
+/*
+ * Making a key for a cloud account's Cloud AI agent sets that agent up: it
+ * takes what resetting it takes - one of RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS
+ * and an edit of the account itself.
+ */
+export function getCloudAiAgentKeyRefusal(resourceType: AiResourceType): string {
+  return `You need one of these permissions to set up this ${getResourceSentenceName(
+    resourceType,
+  )}'s ${getResourceAgentName(resourceType)}: ${PermissionHelper.getPermissionTitles(
+    RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
+  ).join(", ")}.`;
+}
+
+export function getCloudAiAgentKeyEditRefusal(
+  resourceType: AiResourceType,
+): string {
+  return `You need permission to edit this ${getResourceSentenceName(
+    resourceType,
+  )} to set up its ${getResourceAgentName(resourceType)}.`;
+}
+
 // The refusal for a caller who may not reset the resource's AI agent.
 export function getResourceAiAgentResetRefusal(
   resourceType: AiResourceType,

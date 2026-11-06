@@ -27,6 +27,29 @@ import {
 export const GCP_METADATA_BASE_URL: string =
   "http://metadata.google.internal/computeMetadata/v1";
 
+/*
+ * Each change's token of the write service account: IAM Credentials'
+ * generateAccessToken, asked for with the agent's own token, for the
+ * shortest time a change needs - 15 minutes, as AWS's write role session
+ * lasts - and for the cloud-platform scope the APIs of the changes take.
+ * Never kept: the next change asks for its own.
+ */
+export const IAM_CREDENTIALS_API: string =
+  "https://iamcredentials.googleapis.com/v1";
+export const IAM_API: string = "https://iam.googleapis.com/v1";
+export const GCP_WRITE_TOKEN_LIFETIME_SECONDS: number = 900;
+export const GCP_CLOUD_PLATFORM_SCOPE: string =
+  "https://www.googleapis.com/auth/cloud-platform";
+// What lets the agent's own account ask for the write account's token.
+export const GCP_GET_ACCESS_TOKEN_PERMISSION: string =
+  "iam.serviceAccounts.getAccessToken";
+
+export interface GcpWriteToken {
+  token: string;
+  // When it stops working (ms since the epoch), when Google said.
+  expiresAtMs: number | null;
+}
+
 export const GCP_TOKEN_REFRESH_MARGIN_MS: number = 5 * 60 * 1000;
 
 const PROJECT_ID_PATTERN: RegExp = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
@@ -43,6 +66,153 @@ function isHeaderSafe(value: string): boolean {
   }
 
   return value.length > 0;
+}
+
+// The error text of a Google API's error answer, short.
+function describeGoogleError(response: CloudHttpResponse): string {
+  const json: unknown = parseJsonBody(response);
+  const error: unknown = isPlainObject(json) ? json["error"] : null;
+  const message: string | null = isPlainObject(error)
+    ? readString(error, "message")
+    : null;
+
+  return message ? message.slice(0, 300) : `HTTP ${response.status}`;
+}
+
+/*
+ * A token of the write service account for one change, asked for with the
+ * agent's own token. Throws an Error that says what to fix when Google
+ * refuses it: the agent's own account may not act as the write account (the
+ * setup command grants it Service Account Token Creator on that account
+ * alone), or the write account is gone.
+ */
+export async function generateGcpWriteToken(data: {
+  send: CloudSender;
+  ownToken: string;
+  serviceAccount: string;
+  userAgent: string;
+}): Promise<GcpWriteToken> {
+  let response: CloudHttpResponse;
+
+  try {
+    response = await data.send({
+      method: "POST",
+      url: `${IAM_CREDENTIALS_API}/projects/-/serviceAccounts/${data.serviceAccount}:generateAccessToken`,
+      headers: {
+        Authorization: `Bearer ${data.ownToken}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": data.userAgent,
+      },
+      body: JSON.stringify({
+        scope: [GCP_CLOUD_PLATFORM_SCOPE],
+        lifetime: `${GCP_WRITE_TOKEN_LIFETIME_SECONDS}s`,
+      }),
+    });
+  } catch (err: unknown) {
+    throw new Error(
+      `IAM Credentials did not answer (${
+        err instanceof Error ? err.message : String(err)
+      })`,
+    );
+  }
+
+  if (response.status === 403) {
+    throw new Error(
+      `Google Cloud refused the agent's own service account a token of ${data.serviceAccount} (HTTP 403: ${describeGoogleError(
+        response,
+      )}): the setup command grants it Service Account Token Creator (roles/iam.serviceAccountTokenCreator) on that account alone. Run the setup command again.`,
+    );
+  }
+
+  if (response.status === 404) {
+    throw new Error(
+      `the write service account ${data.serviceAccount} does not exist (HTTP 404). Run the setup command again, which makes it.`,
+    );
+  }
+
+  if (response.status !== 200) {
+    throw new Error(
+      `IAM Credentials answered HTTP ${response.status}: ${describeGoogleError(response)}`,
+    );
+  }
+
+  const json: unknown = parseJsonBody(response);
+  const object: Record<string, unknown> | null = isPlainObject(json)
+    ? json
+    : null;
+  const token: string | null = readString(object, "accessToken");
+
+  if (!token || !isHeaderSafe(token)) {
+    throw new Error(
+      `IAM Credentials answered without a token of ${data.serviceAccount}`,
+    );
+  }
+
+  const expireTime: string | null = readString(object, "expireTime");
+  const expiresAtMs: number = expireTime ? Date.parse(expireTime) : NaN;
+
+  return {
+    token,
+    expiresAtMs: Number.isFinite(expiresAtMs) ? expiresAtMs : null,
+  };
+}
+
+/*
+ * Whether the agent's own account may ask for a token of the write account,
+ * asked of IAM without asking for one (testIamPermissions, which needs no
+ * permission of its own): what Test connection says. Never throws.
+ */
+export async function canActAsGcpServiceAccount(data: {
+  send: CloudSender;
+  ownToken: string;
+  serviceAccount: string;
+  userAgent: string;
+}): Promise<{ may: boolean; detail: string }> {
+  let response: CloudHttpResponse;
+
+  try {
+    response = await data.send({
+      method: "POST",
+      url: `${IAM_API}/projects/-/serviceAccounts/${data.serviceAccount}:testIamPermissions`,
+      headers: {
+        Authorization: `Bearer ${data.ownToken}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": data.userAgent,
+      },
+      body: JSON.stringify({
+        permissions: [GCP_GET_ACCESS_TOKEN_PERMISSION],
+      }),
+    });
+  } catch (err: unknown) {
+    return {
+      may: false,
+      detail: `IAM did not answer (${err instanceof Error ? err.message : String(err)})`,
+    };
+  }
+
+  if (response.status !== 200) {
+    return {
+      may: false,
+      detail: `IAM answered HTTP ${response.status}: ${describeGoogleError(response)}`,
+    };
+  }
+
+  const json: unknown = parseJsonBody(response);
+  const permissions: unknown = isPlainObject(json)
+    ? json["permissions"]
+    : null;
+  const may: boolean =
+    Array.isArray(permissions) &&
+    permissions.includes(GCP_GET_ACCESS_TOKEN_PERMISSION);
+
+  return {
+    may,
+    detail: may
+      ? `the agent's own account holds ${GCP_GET_ACCESS_TOKEN_PERMISSION} on it`
+      : `the agent's own account lacks ${GCP_GET_ACCESS_TOKEN_PERMISSION} on it, which Service Account Token Creator grants`,
+  };
 }
 
 export class GcpMetadata {

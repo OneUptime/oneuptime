@@ -23,8 +23,17 @@ import {
   boundsOf,
   withArticle,
 } from "./CloudChange";
-import { GcpMetadata } from "./GcpIdentity";
-import { RESOURCE_AI_CLOUD_OPERATIONS_ENV } from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  GCP_WRITE_TOKEN_LIFETIME_SECONDS,
+  GcpMetadata,
+  GcpWriteToken,
+  canActAsGcpServiceAccount,
+  generateGcpWriteToken,
+} from "./GcpIdentity";
+import {
+  RESOURCE_AI_CLOUD_OPERATIONS_ENV,
+  RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
+} from "../../Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
   CloudParamValue,
   ParsedCloudCommand,
@@ -34,11 +43,18 @@ import {
  * The Google Cloud AI agent: each catalog change on each kind of Google
  * Cloud resource, as the ONE API call it maps to (Compute Engine v1, Cloud
  * Run Admin v2, Cloud SQL Admin v1), after the reads that decide whether it
- * may run and what it replaces, signed with the service account's token
- * from the metadata server (GcpIdentity). A change starts a long-running
- * operation: it is polled briefly within the command's budget and
- * reported by name and status. Poll URLs are built by the agent from the
- * operation's name on the API's own host, never taken from the answer.
+ * may run and what it replaces. A change starts a long-running operation:
+ * it is polled briefly within the command's budget and reported by name
+ * and status. Poll URLs are built by the agent from the operation's name on
+ * the API's own host, never taken from the answer.
+ *
+ * Who it signs as: with ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT set (the
+ * setup command sets it), a change - its reads and its call - runs as that
+ * write account, with a token the agent asks for that one change and that
+ * lasts 15 minutes (generateGcpWriteToken); the agent's own service
+ * account, whose token the metadata server always hands out, only reads,
+ * and a dry run reads with it. Without it (an agent set up before), the
+ * agent's own account makes the change, as it did then.
  */
 
 export const COMPUTE_API: string = "https://compute.googleapis.com/compute/v1";
@@ -314,7 +330,49 @@ export default class GcpCloud {
       );
     }
 
+    lines.push(await this.describeWriteAccount(data.run));
+
     return lines;
+  }
+
+  // Test connection's line about the account changes run as.
+  private async describeWriteAccount(run: CloudCommandRun): Promise<string> {
+    const settings: CloudCommandRun["settings"] = run.settings;
+
+    if (settings.gcpWriteServiceAccountProblem) {
+      return `Write service account: ${settings.gcpWriteServiceAccountProblem}`;
+    }
+
+    const account: string | null = settings.gcpWriteServiceAccount;
+
+    if (!account) {
+      return `Write service account: none (${RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV} is not set): changes use the agent's own service account, with whatever it allows`;
+    }
+
+    const send: CloudSender = run.send.bind(run);
+    let check: { may: boolean; detail: string };
+
+    try {
+      check = await canActAsGcpServiceAccount({
+        send,
+        ownToken: await this.metadata.token(send),
+        serviceAccount: account,
+        userAgent: this.options.runtime.userAgent,
+      });
+    } catch (err: unknown) {
+      check = {
+        may: false,
+        detail: err instanceof Error ? err.message : String(err),
+      };
+    }
+
+    return `Write service account: ${account}, whose token the agent asks for each change, for ${
+      GCP_WRITE_TOKEN_LIFETIME_SECONDS / 60
+    } minutes (${
+      check.may
+        ? `the agent may ask for one: ${check.detail}`
+        : `the agent may NOT ask for one, so every change fails: ${check.detail}`
+    })`;
   }
 
   public async change(data: {
@@ -327,7 +385,7 @@ export default class GcpCloud {
     const kindName: string = run.kindName;
     const allPermissions: string = command.kindSpec.permissions.join(", ");
     const send: CloudSender = run.send.bind(run);
-    const token: string = await run.read(
+    const ownToken: string = await run.read(
       "to sign the agent in (the metadata server)",
       (): Promise<string> => {
         return this.metadata.token(send);
@@ -344,16 +402,48 @@ export default class GcpCloud {
       }
     }
 
-    const identity: string = email
+    /*
+     * A change runs as the write account, with a token asked for it alone;
+     * a dry run reads as the agent's own account, which can change nothing.
+     */
+    const writeAccount: string | null = run.dryRun
+      ? null
+      : run.settings.gcpWriteServiceAccount;
+    let token: string = ownToken;
+    let identity: string = email
       ? `the service account ${email}`
       : "the agent's service account";
+    let who: string = email
+      ? `The service account ${email}`
+      : "The agent's service account";
+
+    if (writeAccount) {
+      const write: GcpWriteToken = await run.read(
+        `for a token of the write service account ${writeAccount} for this change (IAM Credentials generateAccessToken, ${
+          GCP_WRITE_TOKEN_LIFETIME_SECONDS / 60
+        } minutes)`,
+        (): Promise<GcpWriteToken> => {
+          return generateGcpWriteToken({
+            send,
+            ownToken,
+            serviceAccount: writeAccount,
+            userAgent: this.options.runtime.userAgent,
+          });
+        },
+      );
+
+      token = write.token;
+      identity = `the write service account ${writeAccount}, with a token for this change alone`;
+      who = `The write service account ${writeAccount}`;
+    }
+
     const client: GcpClient = new GcpClient({
       send,
       token,
       userAgent: this.options.runtime.userAgent,
       identityName: identity,
       describeMissingPermission: (permission: string): string => {
-        return `${identity.charAt(0).toUpperCase()}${identity.slice(1)} lacks ${permission} on ${run.resourceId}: the setup command's custom role grants it when ${operation} is in ${RESOURCE_AI_CLOUD_OPERATIONS_ENV} (cloud ${operation} on ${withArticle(kindName)} needs ${allPermissions}).`;
+        return `${who} lacks ${permission} on ${run.resourceId}: the setup command's custom role grants it when ${operation} is in ${RESOURCE_AI_CLOUD_OPERATIONS_ENV} (cloud ${operation} on ${withArticle(kindName)} needs ${allPermissions}).`;
       },
     });
     const resourceProject: string = run.part("project");

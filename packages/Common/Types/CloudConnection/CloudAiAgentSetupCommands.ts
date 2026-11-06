@@ -24,17 +24,20 @@ import {
   GCP_CLOUD_AI_AGENT_HOSTS,
   GCP_CLOUD_AI_AGENT_INSTANCE_NAME,
   GCP_CLOUD_AI_AGENT_NETWORK_NAME,
+  GCP_CLOUD_AI_AGENT_READER_ROLE_ID,
   GCP_CLOUD_AI_AGENT_ROLE_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
   GCP_CLOUD_AI_AGENT_SERVICE_NAME,
+  GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
   GcpCloudAiAgentHost,
   getCloudAiAgentOwnTargets,
+  getGcpServiceAccountEmail,
 } from "../ResourceAiAgent/CloudAiAgentNames";
 import {
   MAX_POSTURE_LIST_ENTRIES,
   MAX_POSTURE_STRING_LENGTH,
-  RESOURCE_AI_AGENT_API_KEY_ENVS,
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
+  RESOURCE_AI_AGENT_KEY_ENV,
   RESOURCE_AI_AGENT_IMAGE_REPOSITORY,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -43,10 +46,12 @@ import {
   RESOURCE_AI_CLOUD_OPERATIONS_ENV,
   RESOURCE_AI_CLOUD_REQUIRED_TAG_ENV,
   RESOURCE_AI_GCP_HOST_ENV,
+  RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
   RESOURCE_AI_PROTECTED_TARGETS_ENV,
   ResourceCommandTier,
 } from "../ResourceAiAgent/ResourceAiAccess";
 import { shellQuote } from "../Runbook/ShellWord";
+import { parseCloudAiAgentKey } from "./CloudAiAgentKey";
 import {
   CLOUD_CHANGE_OPERATION_NAMES,
   CLOUD_OPERATIONS,
@@ -73,26 +78,32 @@ import {
  *     holds the operations' permissions - changes only on resources that
  *     carry the required tag, when one is set - and the agent assumes it
  *     once per job with a session policy for that job's one action on its
- *     one resource. The ingestion key is kept in Secrets Manager, read by
- *     ECS when the task starts.
+ *     one resource. The agent's key is kept in Secrets Manager, read by ECS
+ *     when the task starts.
  *   - Azure (Cloud Shell): a custom role from the operations, a Container
  *     App with a system-assigned identity holding that role on the
- *     subscription, and the ingestion key as a Container Apps secret.
- *   - Google Cloud (Cloud Shell): a custom role from the operations, a
- *     service account holding it on the project, the ingestion key in
- *     Secret Manager (only that service account may read it), and the
- *     agent running as that service account on one small Compute Engine
+ *     subscription, and the agent's key as a Container Apps secret.
+ *   - Google Cloud (Cloud Shell): a custom role from the operations, held
+ *     on the project by a write service account; a second role of their
+ *     reads alone, held by the agent's own service account, which may ask
+ *     for a token of the write account (one per change, for 15 minutes)
+ *     and nothing more; the agent's key in Secret Manager (only the agent's
+ *     own account may read it, and every older version of the secret is
+ *     destroyed once the new one is in), and the agent running as its own
+ *     service account on one small Compute Engine
  *     VM of Container-Optimized OS, in a network of its own that lets
  *     nothing in, whose startup script reads the key from Secret Manager
  *     at every boot - or, for a project that allows no VM an external
  *     address, on a Cloud Run service with CPU always allocated (four
  *     times the cost: Cloud Run keeps CPU allocated only for a whole vCPU).
  *
- * On every cloud the key is a secret of the platform's, never a plain
- * variable: a task definition's or a Cloud Run service's variables are
- * shown to anyone who may describe them (AWS ReadOnlyAccess, Google
- * Cloud's Viewer), and the key registers agents and sends telemetry for
- * the whole OneUptime project.
+ * The key is the account's own (Types/CloudConnection/CloudAiAgentKey):
+ * made for this one cloud account when the dialog opens, it registers this
+ * account's agent and nothing else - never another resource's agent, and
+ * never telemetry. On every cloud it is still a secret of the platform's,
+ * never a plain variable: a task definition's or a Cloud Run service's
+ * variables are shown to anyone who may describe them (AWS ReadOnlyAccess,
+ * Google Cloud's Viewer).
  *
  * Azure and Google Cloud have no general tag condition, so there the agent
  * checks the required tag (or label) itself, as it does everywhere.
@@ -106,8 +117,10 @@ import {
  * changed: the operations, the protected resources, the required tag and
  * how far AI may go are the agent's own settings, so turning an operation
  * off and running the command again takes its permission out of the role.
- * Nothing is pasted back: the agent registers with the ingestion key and
- * connects on its own. The last line printed says so.
+ * It also gives the agent the new key it carries: once the agent connects
+ * with it, the key it had before stops working. Nothing is pasted back: the
+ * agent registers with its key and connects on its own. The last line
+ * printed says so.
  *
  * Every value the command takes from the options is checked first
  * (describeCloudAiAgentSetupProblem) and the command is never written from
@@ -139,8 +152,12 @@ export interface CloudAiAgentSetupOptions {
   provider: CloudProvider;
   // This OneUptime's address, as the agent reaches it.
   oneuptimeUrl: string;
-  // A telemetry ingestion key of the project: what the agent registers with.
-  ingestionKey: string;
+  /*
+   * The account's own key for its agent (Types/CloudConnection/
+   * CloudAiAgentKey): what the agent registers with. It names the account,
+   * which must be cloudAccountId.
+   */
+  agentKey: string;
   // OneUptime's id of the cloud account (CloudAccount), pinned on the agent.
   cloudAccountId: string;
   // The cloud's own id: AWS account id, Azure subscription id, Google Cloud project id.
@@ -164,7 +181,7 @@ export interface CloudAiAgentSetupOptions {
 export interface CloudAiAgentEnvironmentVariable {
   name: string;
   value: string;
-  // The ingestion key: a secret where the platform keeps them, never shown in full.
+  // The agent's key: a secret where the platform keeps them.
   isSecret: boolean;
 }
 
@@ -211,14 +228,11 @@ export const CLOUD_AI_AGENT_STARTED_MESSAGE: string =
 /*
  * Variables the agent's Config reads (agents/ResourceAIAgent/Config.ts:
  * ONEUPTIME_URL_ENV and HEALTH_HOST_ENV; the health port is PORT, which
- * Cloud Run sets from --port). The key goes in the one of
- * RESOURCE_AI_AGENT_API_KEY_ENVS that names an ingestion key.
+ * Cloud Run sets from --port). The key goes in the first of
+ * RESOURCE_AI_AGENT_API_KEY_ENVS, the one that names an agent's own key.
  */
 export const CLOUD_AI_AGENT_ONEUPTIME_URL_ENV: string = "ONEUPTIME_URL";
-export const CLOUD_AI_AGENT_INGESTION_KEY_ENV: string =
-  RESOURCE_AI_AGENT_API_KEY_ENVS.find((name: string): boolean => {
-    return name === "ONEUPTIME_TELEMETRY_INGESTION_KEY";
-  }) || "ONEUPTIME_TELEMETRY_INGESTION_KEY";
+export const CLOUD_AI_AGENT_KEY_ENV: string = RESOURCE_AI_AGENT_KEY_ENV;
 export const CLOUD_AI_AGENT_HEALTH_HOST_ENV: string =
   "ONEUPTIME_AI_AGENT_HEALTH_HOST";
 
@@ -226,7 +240,7 @@ export const CLOUD_AI_AGENT_HEALTH_HOST_ENV: string =
 export const AWS_CLOUD_AI_AGENT_TEMPLATE_FILE: string = `${CLOUD_AI_AGENT_NAME}.json`;
 export const GCP_CLOUD_AI_AGENT_ENV_FILE: string = `${CLOUD_AI_AGENT_NAME}.env.yaml`;
 export const GCP_CLOUD_AI_AGENT_KEY_FILE: string = `${CLOUD_AI_AGENT_NAME}.key`;
-export const AZURE_CLOUD_AI_AGENT_SECRET_NAME: string = "ingestion-key";
+export const AZURE_CLOUD_AI_AGENT_SECRET_NAME: string = "agent-key";
 export const GCP_CLOUD_AI_AGENT_SECRET_NAME: string = `${CLOUD_AI_AGENT_NAME}-key`;
 
 /*
@@ -239,6 +253,14 @@ export const GCP_CLOUD_AI_AGENT_KEY_FILE_END: string = "KEY ENDS";
 // What lets the Google Cloud agent's service account read its one secret.
 export const GCP_SECRET_ACCESSOR_ROLE: string =
   "roles/secretmanager.secretAccessor";
+
+/*
+ * What lets the agent's own service account ask for a token of the write
+ * account: granted on the write account alone, never the project, so it
+ * acts as no other account of the project.
+ */
+export const GCP_TOKEN_CREATOR_ROLE: string =
+  "roles/iam.serviceAccountTokenCreator";
 
 /*
  * Cloud Run checks, as it deploys, that the service account may read the
@@ -329,6 +351,10 @@ export const GCP_CLOUD_AI_AGENT_KEY_READER: string = [
 const ROLE_TITLE: string = "OneUptime AI Agent";
 const ROLE_DESCRIPTION: string =
   "What the OneUptime Cloud AI agent may change: the operations turned on for it";
+// Google Cloud's second role: what the agent's own account reads.
+const READER_ROLE_TITLE: string = "OneUptime AI Agent (reads)";
+const READER_ROLE_DESCRIPTION: string =
+  "What the OneUptime Cloud AI agent reads before and without a change; its changes run as its write account";
 
 // The read every agent runs for Test connection.
 const WHOAMI: string = "whoami";
@@ -391,9 +417,6 @@ const TAG_VALUE_PATTERN: RegExp = /^[A-Za-z0-9_.:/+@-]{1,256}$/;
 const GCP_LABEL_KEY_PATTERN: RegExp = /^[a-z][a-z0-9_-]{0,62}$/;
 const GCP_LABEL_VALUE_PATTERN: RegExp = /^[a-z0-9_-]{1,63}$/;
 
-// The longest ingestion key taken.
-const MAX_INGESTION_KEY_LENGTH: number = 256;
-
 function isLetterOrDigit(char: string): boolean {
   return (
     (char >= "a" && char <= "z") ||
@@ -420,8 +443,6 @@ function holdsOnly(value: string, others: string): boolean {
  * commands write holds one.
  */
 const URL_CHARACTERS: string = "-._~:/?#[]@$&'()*+,;=%";
-// What an ingestion key may hold.
-const KEY_CHARACTERS: string = "-._~+/=:";
 /*
  * What a protected-target pattern may hold: what an ARN, an Azure resource
  * ID or a Google Cloud resource name holds, and "*". Never a comma (the
@@ -620,7 +641,7 @@ function readProtectedTargets(
 interface CloudAiAgentSetup {
   provider: CloudProvider;
   oneuptimeUrl: string;
-  ingestionKey: string;
+  agentKey: string;
   cloudAccountId: string;
   accountId: string;
   fixesMode: CloudAiAgentFixesMode;
@@ -655,17 +676,6 @@ function readSetup(
     return urlProblem;
   }
 
-  const key: string =
-    typeof options.ingestionKey === "string" ? options.ingestionKey.trim() : "";
-
-  if (
-    !key ||
-    key.length > MAX_INGESTION_KEY_LENGTH ||
-    !holdsOnly(key, KEY_CHARACTERS)
-  ) {
-    return "The ingestion key is not one OneUptime issues: copy it again from Project Settings, under Telemetry Ingestion Keys.";
-  }
-
   const cloudAccountId: string =
     typeof options.cloudAccountId === "string"
       ? options.cloudAccountId.trim().toLowerCase()
@@ -673,6 +683,20 @@ function readSetup(
 
   if (!UUID_PATTERN.test(cloudAccountId)) {
     return "The cloud account's OneUptime id is not an id: open the account's page under Cloud → Accounts and set the agent up from there.";
+  }
+
+  // The account's own key, and this account's: no other key is written.
+  const key: string =
+    typeof options.agentKey === "string" ? options.agentKey.trim() : "";
+  const parsedKey: { cloudAccountId: string; secret: string } | null =
+    parseCloudAiAgentKey(key);
+
+  if (!parsedKey) {
+    return "The agent's key is not one OneUptime made: open Let AI fix problems on the account's page again, which makes a new one.";
+  }
+
+  if (parsedKey.cloudAccountId !== cloudAccountId) {
+    return "This key was made for another cloud account's agent: open Let AI fix problems on this account's own page, which makes one for it.";
   }
 
   const accountId: string =
@@ -754,7 +778,7 @@ function readSetup(
   return {
     provider,
     oneuptimeUrl: url,
-    ingestionKey: key,
+    agentKey: key,
     cloudAccountId,
     accountId,
     fixesMode: options.fixesMode,
@@ -817,6 +841,16 @@ export function getAwsCloudAiAgentWriteRoleArn(accountId: string): string {
   return `arn:aws:iam::${accountId}:role/${AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME}`;
 }
 
+// The Google Cloud write account, whose token each change asks for.
+export function getGcpCloudAiAgentWriteServiceAccount(
+  projectId: string,
+): string {
+  return getGcpServiceAccountEmail({
+    serviceAccountId: GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+    projectId,
+  });
+}
+
 function environmentOf(
   setup: CloudAiAgentSetup,
 ): Array<CloudAiAgentEnvironmentVariable> {
@@ -838,7 +872,7 @@ function environmentOf(
       AI_RESOURCE_TYPE_INFO[RESOURCE_TYPES[setup.provider]].agentAlias,
     ),
     variable(CLOUD_AI_AGENT_ONEUPTIME_URL_ENV, setup.oneuptimeUrl),
-    variable(CLOUD_AI_AGENT_INGESTION_KEY_ENV, setup.ingestionKey, true),
+    variable(CLOUD_AI_AGENT_KEY_ENV, setup.agentKey, true),
     variable(RESOURCE_AI_CLOUD_ACCOUNT_ID_ENV, setup.cloudAccountId),
     variable(RESOURCE_AI_ALLOW_WRITES_ENV, "true"),
     variable(AI_INVESTIGATION_ENV, "true"),
@@ -879,6 +913,16 @@ function environmentOf(
     );
   }
 
+  // The account each change runs as, through a token for that change alone.
+  if (setup.provider === CloudProvider.GCP) {
+    environment.push(
+      variable(
+        RESOURCE_AI_GCP_WRITE_SERVICE_ACCOUNT_ENV,
+        getGcpCloudAiAgentWriteServiceAccount(setup.accountId),
+      ),
+    );
+  }
+
   // The one subscription the agent acts in, so it never has to guess among several.
   if (setup.provider === CloudProvider.Azure) {
     environment.push(
@@ -911,7 +955,7 @@ function environmentOf(
 
 /*
  * Every variable the agent needs, for a team that runs it its own way: the
- * same the cloud's command gives it. The ingestion key is the one secret.
+ * same the cloud's command gives it. The agent's key is the one secret.
  */
 export function getCloudAiAgentEnvironment(
   options: CloudAiAgentSetupOptions,
@@ -983,6 +1027,29 @@ const GCP_OPERATION_READS: ReadonlyArray<[string, Array<string>]> = [
   ["compute", ["compute.zoneOperations.get", "compute.regionOperations.get"]],
   ["run", ["run.operations.get"]],
 ];
+
+// The verbs of a Google Cloud permission (service.resource.verb) that only read.
+const GCP_READ_VERBS: ReadonlyArray<string> = ["get", "list"];
+
+/*
+ * What the Google Cloud agent's own service account holds: the reads of the
+ * changes turned on (what a dry run reads, and what the agent reads before
+ * a change to check it), never a change - each change runs as the write
+ * account (getCloudAiAgentRolePermissions), through a token for that change
+ * alone. Sorted, each once.
+ */
+export function getGcpCloudAiAgentReaderPermissions(
+  enabledOperations?: Array<string> | undefined,
+): Array<string> {
+  return getCloudAiAgentRolePermissions(
+    CloudProvider.GCP,
+    enabledOperations,
+  ).filter((permission: string): boolean => {
+    return GCP_READ_VERBS.includes(
+      permission.substring(permission.lastIndexOf(".") + 1),
+    );
+  });
+}
 
 /*
  * What the agent reads to check a required tag where the resource's own
@@ -1114,7 +1181,7 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
       return variable.isSecret;
     })
     .map((variable: CloudAiAgentEnvironmentVariable): TemplateValue => {
-      return { Name: variable.name, ValueFrom: { Ref: "IngestionKeySecret" } };
+      return { Name: variable.name, ValueFrom: { Ref: "AgentKeySecret" } };
     });
 
   const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[CloudProvider.AWS];
@@ -1133,11 +1200,12 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
         Type: "List<AWS::EC2::Subnet::Id>",
         Description: "The default VPC's default subnets.",
       },
-      IngestionKey: {
+      AgentKey: {
         Type: "String",
         NoEcho: true,
         MinLength: 1,
-        Description: "The telemetry ingestion key the agent registers with.",
+        Description:
+          "The key the agent registers with: this account's own, which connects its agent and nothing else.",
       },
     },
     Resources: {
@@ -1155,13 +1223,18 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
           RetentionInDays: AWS_CLOUD_AI_AGENT_LOG_RETENTION_DAYS,
         },
       },
-      // The key the agent registers with, which only ECS reads, as the task starts.
-      IngestionKeySecret: {
+      /*
+       * The key the agent registers with, which only ECS reads, as the task
+       * starts. A secret of its own name: the one an earlier version of this
+       * template kept the project's ingestion key in (IngestionKeySecret) is
+       * removed with the update that makes this one.
+       */
+      AgentKeySecret: {
         Type: "AWS::SecretsManager::Secret",
         Properties: {
           Description:
-            "The telemetry ingestion key the OneUptime Cloud AI agent registers with.",
-          SecretString: { Ref: "IngestionKey" },
+            "The key the OneUptime Cloud AI agent registers with: this account's own.",
+          SecretString: { Ref: "AgentKey" },
         },
       },
       // What ECS pulls the image, writes the logs and reads the key with.
@@ -1185,14 +1258,14 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
           ],
           Policies: [
             {
-              PolicyName: "ReadTheIngestionKey",
+              PolicyName: "ReadTheAgentKey",
               PolicyDocument: {
                 Version: "2012-10-17",
                 Statement: [
                   {
                     Effect: "Allow",
                     Action: "secretsmanager:GetSecretValue",
-                    Resource: { Ref: "IngestionKeySecret" },
+                    Resource: { Ref: "AgentKeySecret" },
                   },
                 ],
               },
@@ -1357,7 +1430,7 @@ function getAwsTemplate(setup: CloudAiAgentSetup): TemplateValue {
 /*
  * The CloudFormation template the AWS command deploys, as JSON: also what a
  * team that keeps its infrastructure in CloudFormation deploys itself, with
- * VpcId, SubnetIds and IngestionKey as its parameters.
+ * VpcId, SubnetIds and AgentKey as its parameters.
  */
 export function getAwsCloudAiAgentTemplate(
   options: CloudAiAgentSetupOptions,
@@ -1398,7 +1471,7 @@ function writeAwsCommand(setup: CloudAiAgentSetup): string {
     `  echo "This Region has no default VPC with default subnets for the agent to run in. Run the command in a Region that has one, or create it with: aws ec2 create-default-vpc"`,
     "else",
     `  [ "$(aws cloudformation describe-stacks ${stack} --query "Stacks[0].StackStatus" --output text 2> /dev/null)" = ROLLBACK_COMPLETE ] && aws cloudformation delete-stack ${stack} && aws cloudformation wait stack-delete-complete ${stack}`,
-    `  aws cloudformation deploy ${stack} --template-file ${AWS_CLOUD_AI_AGENT_TEMPLATE_FILE} --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset --parameter-overrides VpcId="$VPC" SubnetIds="$SUBNETS" IngestionKey=${shellQuote(setup.ingestionKey)} && echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
+    `  aws cloudformation deploy ${stack} --template-file ${AWS_CLOUD_AI_AGENT_TEMPLATE_FILE} --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset --parameter-overrides VpcId="$VPC" SubnetIds="$SUBNETS" AgentKey=${shellQuote(setup.agentKey)} && echo "${CLOUD_AI_AGENT_STARTED_MESSAGE}"`,
     "fi",
   ].join("\n");
 }
@@ -1498,7 +1571,7 @@ function writeAzureCommand(setup: CloudAiAgentSetup): string {
       `az containerapp create ${subscription} --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} ${group}`,
       `--environment ${AZURE_CLOUD_AI_AGENT_ENVIRONMENT_NAME} --image ${setup.image}`,
       `--cpu ${size.vcpu} --memory ${size.memoryGiB}Gi --min-replicas 1 --max-replicas 1 --system-assigned`,
-      `--secrets ${AZURE_CLOUD_AI_AGENT_SECRET_NAME}=${shellQuote(setup.ingestionKey)}`,
+      `--secrets ${AZURE_CLOUD_AI_AGENT_SECRET_NAME}=${shellQuote(setup.agentKey)}`,
       `--env-vars ${variables.join(" ")}`,
       "--output none &&",
     ].join(" "),
@@ -1520,8 +1593,9 @@ const GCP_PERMISSION_APIS: Readonly<Record<string, string>> = {
 /*
  * The APIs the Google Cloud command turns on: what the agent runs on
  * (Compute Engine and Cloud Logging for its VM, or Cloud Run), IAM and
- * Resource Manager (the role, the service account and its binding),
- * Secret Manager (the key), and those of the operations turned on.
+ * Resource Manager (the roles, the service accounts and their bindings),
+ * IAM Credentials (each change's token of the write account), Secret
+ * Manager (the key), and those of the operations turned on.
  */
 export function getGcpCloudAiAgentServices(
   enabledOperations?: Array<string> | undefined,
@@ -1532,6 +1606,7 @@ export function getGcpCloudAiAgentServices(
       ? ["run.googleapis.com"]
       : ["compute.googleapis.com", "logging.googleapis.com"]),
     "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "secretmanager.googleapis.com",
   ];
@@ -1553,10 +1628,15 @@ export function getGcpCloudAiAgentServices(
 
 /*
  * Google Cloud, in Cloud Shell, in the project the command was written for
- * (every call names it): the APIs, the role (created, or updated to
- * exactly these permissions), the service account (created when it is not
- * there) and its binding, the key as a new version of a Secret Manager
- * secret only that service account may read, then the agent on its host:
+ * (every call names it): the APIs; the two roles (created, or updated to
+ * exactly these permissions) - the changes' for the write account, their
+ * reads alone for the agent's own; the two service accounts (created when
+ * they are not there) and their bindings, with the agent's own account
+ * allowed to ask for a token of the write account and of no other (and no
+ * longer holding the changes' role, as an agent set up before did); the key
+ * as a new version of a Secret Manager secret only the agent's own account
+ * may read - every older version destroyed once the new one is in - then
+ * the agent on its host:
  *
  *   - compute-engine (the default): a network of its own whose firewall
  *     lets nothing in (a VPC denies every connection in until a rule
@@ -1585,6 +1665,8 @@ export function getGcpCloudAiAgentSetupCommand(
 
 // The service account the agent runs as, in the command's shell.
 const GCP_MEMBER: string = `${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
+// The service account its changes run as.
+const GCP_WRITE_MEMBER: string = `${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
 const GCP_PROJECT_FLAG: string = '--project "$PROJECT_ID"';
 
 /*
@@ -1597,7 +1679,7 @@ function gcpApiIsOn(api: string): string {
   return `gcloud services list ${GCP_PROJECT_FLAG} --enabled --filter "config.name=${api}" --format "value(config.name)" --quiet 2> /dev/null | grep -q .`;
 }
 
-// What both hosts share: the APIs, the role and its account, and the key.
+// What both hosts share: the APIs, the roles and their accounts, and the key.
 function writeGcpCommandStart(setup: CloudAiAgentSetup): Array<string> {
   // The same title, description and permissions whether it creates or updates.
   const role: string = [
@@ -1605,22 +1687,45 @@ function writeGcpCommandStart(setup: CloudAiAgentSetup): Array<string> {
     `--description ${shellQuote(ROLE_DESCRIPTION)}`,
     '--permissions "$PERMISSIONS" --stage GA --quiet',
   ].join(" ");
+  const readerRole: string = [
+    `--title ${shellQuote(READER_ROLE_TITLE)}`,
+    `--description ${shellQuote(READER_ROLE_DESCRIPTION)}`,
+    '--permissions "$READ_PERMISSIONS" --stage GA --quiet',
+  ].join(" ");
   const secret: string = GCP_CLOUD_AI_AGENT_SECRET_NAME;
 
   return [
     `PROJECT_ID=${setup.accountId}`,
     `PERMISSIONS=${shellQuote(getCloudAiAgentRolePermissions(CloudProvider.GCP, setup.operations).join(","))}`,
+    `READ_PERMISSIONS=${shellQuote(getGcpCloudAiAgentReaderPermissions(setup.operations).join(","))}`,
     `gcloud services enable ${getGcpCloudAiAgentServices(setup.operations, setup.gcpHost).join(" ")} ${GCP_PROJECT_FLAG}`,
     `gcloud iam roles create ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${GCP_PROJECT_FLAG} ${role} > /dev/null 2>&1 || gcloud iam roles update ${GCP_CLOUD_AI_AGENT_ROLE_ID} ${GCP_PROJECT_FLAG} ${role} > /dev/null`,
+    `gcloud iam roles create ${GCP_CLOUD_AI_AGENT_READER_ROLE_ID} ${GCP_PROJECT_FLAG} ${readerRole} > /dev/null 2>&1 || gcloud iam roles update ${GCP_CLOUD_AI_AGENT_READER_ROLE_ID} ${GCP_PROJECT_FLAG} ${readerRole} > /dev/null`,
     `gcloud iam service-accounts create ${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID} ${GCP_PROJECT_FLAG} --display-name ${shellQuote("OneUptime Cloud AI agent")} > /dev/null 2>&1 || true`,
-    `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${GCP_MEMBER}" --role "projects/$PROJECT_ID/roles/${GCP_CLOUD_AI_AGENT_ROLE_ID}" --condition=None > /dev/null`,
+    `gcloud iam service-accounts create ${GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID} ${GCP_PROJECT_FLAG} --display-name ${shellQuote("OneUptime Cloud AI agent: changes")} > /dev/null 2>&1 || true`,
+    // The changes' role is the write account's; the agent's own account reads.
+    `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${GCP_WRITE_MEMBER}" --role "projects/$PROJECT_ID/roles/${GCP_CLOUD_AI_AGENT_ROLE_ID}" --condition=None > /dev/null`,
+    `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${GCP_MEMBER}" --role "projects/$PROJECT_ID/roles/${GCP_CLOUD_AI_AGENT_READER_ROLE_ID}" --condition=None > /dev/null`,
+    // A token of the write account, for a change: the agent's own account may ask for one, on that account alone.
+    `gcloud iam service-accounts add-iam-policy-binding "${GCP_WRITE_MEMBER}" ${GCP_PROJECT_FLAG} --member "serviceAccount:${GCP_MEMBER}" --role ${GCP_TOKEN_CREATOR_ROLE} --condition=None > /dev/null`,
+    // An agent set up before held the changes' role itself: no longer.
+    `gcloud projects remove-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${GCP_MEMBER}" --role "projects/$PROJECT_ID/roles/${GCP_CLOUD_AI_AGENT_ROLE_ID}" --condition=None > /dev/null 2>&1 || true`,
     // The key: a secret only the agent's service account may read.
     `cat > ${GCP_CLOUD_AI_AGENT_KEY_FILE} <<'${GCP_CLOUD_AI_AGENT_KEY_FILE_END}'`,
-    setup.ingestionKey,
+    setup.agentKey,
     GCP_CLOUD_AI_AGENT_KEY_FILE_END,
     `gcloud secrets create ${secret} ${GCP_PROJECT_FLAG} --replication-policy automatic > /dev/null 2>&1 || true`,
-    `tr -d '\\n' < ${GCP_CLOUD_AI_AGENT_KEY_FILE} | gcloud secrets versions add ${secret} ${GCP_PROJECT_FLAG} --data-file=- > /dev/null`,
+    `KEY_VERSION=$(tr -d '\\n' < ${GCP_CLOUD_AI_AGENT_KEY_FILE} | gcloud secrets versions add ${secret} ${GCP_PROJECT_FLAG} --data-file=- --format "value(name.basename())")`,
     `rm ${GCP_CLOUD_AI_AGENT_KEY_FILE}`,
+    /*
+     * Every older version of the secret is destroyed once the new one is in:
+     * the agent reads the latest, and an older one holds a key that no
+     * longer connects anything (or, from before agents had keys of their
+     * own, the project's ingestion key) for its service account to read.
+     * Only when the new version was added: a run that failed to add it
+     * leaves the one that works.
+     */
+    `if [ -n "$KEY_VERSION" ]; then for VERSION in $(gcloud secrets versions list ${secret} ${GCP_PROJECT_FLAG} --filter "state:ENABLED OR state:DISABLED" --format "value(name.basename())" --quiet); do [ "$VERSION" = "$KEY_VERSION" ] || gcloud secrets versions destroy "$VERSION" --secret ${secret} ${GCP_PROJECT_FLAG} --quiet > /dev/null; done; fi`,
     `gcloud secrets add-iam-policy-binding ${secret} ${GCP_PROJECT_FLAG} --member "serviceAccount:${GCP_MEMBER}" --role ${GCP_SECRET_ACCESSOR_ROLE} --condition=None > /dev/null`,
   ];
 }
@@ -1647,7 +1752,7 @@ function writeGcpStartupScript(setup: CloudAiAgentSetup): string {
   const keyVariable: string =
     variables.find((variable: CloudAiAgentEnvironmentVariable): boolean => {
       return variable.isSecret;
-    })?.name || CLOUD_AI_AGENT_INGESTION_KEY_ENV;
+    })?.name || CLOUD_AI_AGENT_KEY_ENV;
   const run: string = GCP_CLOUD_AI_AGENT_RUN_DIRECTORY;
 
   /*
