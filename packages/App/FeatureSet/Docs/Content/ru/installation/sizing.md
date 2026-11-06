@@ -100,7 +100,7 @@ PostgreSQL хранит вашу конфигурацию и рабочее со
 | Входной шлюз | `nginx` | Объёмом запросов |
 | Telemetry writer, если включён | `telemetryWriter` | Не с нагрузкой: он объединяет каждую вставку телеметрии в ClickHouse, поэтому его размер подбирают под то, что выдерживает ClickHouse |
 
-Чарт включает **KEDA**, чтобы приложение, воркеры, зонды и глобальный Runner масштабировались по отставанию своих очередей. Включите `keda.enabled` вместе с собственным `keda.enabled` каждого сервиса (например, `app.keda.enabled`). На кластере, где KEDA ещё нет, первой установке нужен дополнительный проход: см. [руководство по KEDA](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) в чарте. Сервисы, которыми KEDA не управляет, могут вместо этого использовать автомасштабирование по процессору или памяти (`autoscaling`).
+Чарт включает **KEDA**, чтобы приложение, воркеры, зонды и глобальный Runner масштабировались по отставанию своих очередей. Включите `keda.enabled` вместе с собственным `keda.enabled` каждого сервиса (например, `app.keda.enabled`). На кластере, где KEDA ещё нет, первой установке нужен дополнительный проход: см. [руководство по KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) в чарте. Сервисы, которыми KEDA не управляет, могут вместо этого использовать автомасштабирование по процессору или памяти (`autoscaling`).
 
 ## Начальные уровни
 
@@ -130,7 +130,7 @@ PostgreSQL хранит вашу конфигурацию и рабочее со
 | **Valkey** | Чарт его не реплицирует. Направьте OneUptime на внешний управляемый Redis или Valkey с автоматическим переключением при сбое (`externalValkey`). OneUptime подключается к одному хосту и порту, поэтому используйте основную конечную точку сервиса, а не конечную точку в режиме кластера. |
 
 > [!WARNING]
-> Включение любого из операторов для существующей установки запускает новую пустую базу данных: ни один из них не копирует данные одиночной базы, которую заменяет. Перенесите данные, как описано в руководствах чарта, – для [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) и для [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
+> Включение любого из операторов для существующей установки запускает новую пустую базу данных: ни один из них не копирует данные одиночной базы, которую заменяет. Перенесите данные, как описано в руководствах чарта, – для [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) и для [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
 
 ## Срок хранения и его влияние на хранилище
 

@@ -244,7 +244,7 @@ fi
 # Where the files come from: every agent's install.sh has this same block
 # ----------------------------------------------------------------------------
 AGENT_FILES_PATH="install/openstack-agent"
-AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/OpenStackAgent"
+AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/OpenStackAgent"
 AGENT_FILES_URL=""
 AGENT_FILE_ANSWER=""
 

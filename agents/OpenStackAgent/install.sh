@@ -1058,7 +1058,7 @@ chmod go-w "$INSTALL_DIR" 2>/dev/null || true
 # stops the install, and every file must arrive as plain text, wherever it
 # comes from. Every agent's install.sh has this same block.
 AGENT_FILES_PATH="install/openstack-agent"
-AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/OpenStackAgent"
+AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/OpenStackAgent"
 AGENT_FILES_URL=""
 AGENT_FILE_ANSWER=""
 

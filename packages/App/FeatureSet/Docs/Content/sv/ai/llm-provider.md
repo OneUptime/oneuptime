@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 Med fakturering påslagen, eller med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` i Helm-värdena), kan ett projekts egen leverantör inte nå den här adressen inom klustret, som slås upp till en privat kluster-IP. Skapa i stället leverantören i Admin Dashboard under **Inställningar → Globala LLM-leverantörer**, med samma fält: en global LLM-leverantör kan nå den adressen.
 
-Se [Helm-chartets vLLM-guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) för GPU-schemaläggning, åtkomstbegränsade modeller och justeringsalternativ.
+Se [Helm-chartets vLLM-guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md) för GPU-schemaläggning, åtkomstbegränsade modeller och justeringsalternativ.
 
 ## God praxis
 

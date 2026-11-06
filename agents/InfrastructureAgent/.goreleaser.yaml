@@ -238,7 +238,7 @@ winget:
     description: |-
       The OneUptime Infrastructure Agent runs as a Windows service and reports CPU, memory, disks, network and running processes to a OneUptime Server / VM monitor every 30 seconds.
     license: Apache-2.0
-    license_url: https://github.com/OneUptime/oneuptime/blob/master/agents/InfrastructureAgent/LICENSE
+    license_url: https://github.com/OneUptime/oneuptime/blob/main/agents/InfrastructureAgent/LICENSE
     homepage: https://oneuptime.com/docs/monitor/server-monitor
     release_notes_url: "https://github.com/OneUptime/oneuptime/releases/tag/{{ .Tag }}"
     installation_notes: "From an Administrator prompt, run: oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com, then: oneuptime-infrastructure-agent start"

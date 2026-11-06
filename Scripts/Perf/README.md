@@ -99,7 +99,7 @@ profiled runs.
 ## A/B: a baseline against this checkout
 
 ```sh
-bash make-baseline.sh                     # the merge base with origin/master, in $PERF_DIR/baseline
+bash make-baseline.sh                     # the merge base with origin/main, in $PERF_DIR/baseline
 bash ab-stack.sh /tmp/oneuptime-perf/seed.json 8 8 2
                                           # both sides twice, idle then load: about 100 minutes
 bash ab-monitor.sh heartbeat 300 3        # one heartbeat check, both sides, 3 rounds

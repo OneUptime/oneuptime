@@ -211,7 +211,7 @@ OneUptime Database Agent یک OpenTelemetry Collector از پیش پیکربند
 
 **هر عامل یک سرور پایگاه داده را پایش می‌کند.** هویت روی هر چیزی که عامل می‌فرستد زده می‌شود، پس برای هر سرور یک عامل (یک پوشه نصب) اجرا کنید، و اگر می‌خواهید رپلیکاها صفحه خودشان را داشته باشند، برای هر رپلیکا هم یکی.
 
-عامل در [پوشه DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) است: `docker-compose.yml`، یک پیکربندی کالکتور برای هر گیرنده (`configs/postgresql.yaml`، `configs/mysql.yaml`، `configs/sqlserver.yaml`، `configs/oracledb.yaml`، `configs/redis.yaml`، `configs/mongodb.yaml`، `configs/elasticsearch.yaml`، `configs/memcached.yaml`)، `install.sh`، `troubleshoot.sh` و یک یونیت systemd. یک فورک یا جایگزینِ سازگار پیکربندی خانواده‌اش را اجرا می‌کند و نام خودش را گزارش می‌دهد: `DATABASE_SYSTEM=mariadb` فایل `configs/mysql.yaml` را اجرا می‌کند و پایگاه داده به‌صورت MariaDB نشان داده می‌شود.
+عامل در [پوشه DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) است: `docker-compose.yml`، یک پیکربندی کالکتور برای هر گیرنده (`configs/postgresql.yaml`، `configs/mysql.yaml`، `configs/sqlserver.yaml`، `configs/oracledb.yaml`، `configs/redis.yaml`، `configs/mongodb.yaml`، `configs/elasticsearch.yaml`، `configs/memcached.yaml`)، `install.sh`، `troubleshoot.sh` و یک یونیت systemd. یک فورک یا جایگزینِ سازگار پیکربندی خانواده‌اش را اجرا می‌کند و نام خودش را گزارش می‌دهد: `DATABASE_SYSTEM=mariadb` فایل `configs/mysql.yaml` را اجرا می‌کند و پایگاه داده به‌صورت MariaDB نشان داده می‌شود.
 
 ### پیش از شروع
 

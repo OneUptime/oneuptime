@@ -518,7 +518,7 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 | 클라우드 계정 | 실행되는 곳의 ID. AWS에서는 ECS 태스크의 역할이며, `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 의 쓰기 역할만 맡을 수 있음. Azure에서는 Container App의 관리 ID, Google Cloud에서는 VM 또는 Cloud Run 서비스가 실행되는 서비스 계정 | 없음. OneUptime이 읽기 전용 연결을 통해 계정을 읽음 | 설정 명령이 작성하는 역할: 켜진 변경의 권한과 그 변경에 필요한 읽기만, 그 밖에는 없음. AWS에서는 변경마다 그 리소스 하나에 대한 그 변경 하나만 허용하는 세션 정책과 함께 `OneUptimeAiAgentWrite` 를 맡음 |
 | OpenStack 클라우드 | 변경에는 에이전트 전용 애플리케이션 자격 증명인 `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` 와 `_SECRET`: [가이드](/docs/telemetry/openstack#변경용-자격-증명)에 만드는 방법이 있습니다. 읽기에는 수집기의 익스포터가 읽는 `clouds.yaml` 의 애플리케이션 자격 증명(`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS`, 다른 항목을 쓰려면 `ONEUPTIME_AI_OPENSTACK_CLOUD`), 또는 설정된 경우 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` 와 `OPENSTACK_AUTH_URL`. 그리고 `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
-수집기의 README에는 정확한 명령이 있습니다. Proxmox 수정용 토큰을 위한 `pveum` 명령([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), vSphere 수정용 역할([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), Ceph의 읽기용과 수정용 caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)), 엔진별 데이터베이스 권한([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent))입니다. 클라우드 AI 에이전트의 역할은 설정 명령이 작성합니다. 변경을 끄고 명령을 다시 실행하면 그 권한이 역할에서 빠집니다.
+수집기의 README에는 정확한 명령이 있습니다. Proxmox 수정용 토큰을 위한 `pveum` 명령([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)), vSphere 수정용 역할([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)), Ceph의 읽기용과 수정용 caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)), 엔진별 데이터베이스 권한([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent))입니다. 클라우드 AI 에이전트의 역할은 설정 명령이 작성합니다. 변경을 끄고 명령을 다시 실행하면 그 권한이 역할에서 빠집니다.
 
 ## 보안 모델
 
@@ -593,7 +593,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `cloud … is not one of the changes this agent may make` | **AI가 문제를 해결하도록 허용** 의 **추가 필드** 에서 그 변경을 켜고 명령을 다시 실행하세요. 그러면 에이전트의 역할에도 그 변경의 권한이 부여됩니다. |
 | `the agent only changes resources that carry the …` | 리소스에 `oneuptime-ai=allow` 태그(Google Cloud에서는 레이블)를 붙이거나, 태그 없이 에이전트를 다시 설정하세요. |
 
-[Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent), [데이터베이스](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) 에이전트의 README와 [호스트 AI 에이전트](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent)의 README에는 각자의 연결 오류에 대한 문제 해결 표가 있습니다.
+[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent), [데이터베이스](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) 에이전트의 README와 [호스트 AI 에이전트](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent)의 README에는 각자의 연결 오류에 대한 문제 해결 표가 있습니다.
 
 ## 다루지 않는 것
 

@@ -11,7 +11,7 @@ How to install, upgrade, and uninstall the OneUptime Helm chart.
 - A hostname or IP address where OneUptime will be reachable.
 
 If you plan to turn on KEDA autoscaling (`keda.enabled: true`) on a cluster that
-has never had KEDA, read [KEDA Ops](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md)
+has never had KEDA, read [KEDA Ops](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)
 first — the bundled operator's CRDs have to reach the cluster before the chart's
 `ScaledObject`s can, so the very first install takes one extra pass. Otherwise it
 aborts with `no matches for kind "ScaledObject" in version "keda.sh/v1alpha1"`.

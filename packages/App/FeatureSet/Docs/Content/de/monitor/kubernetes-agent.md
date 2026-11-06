@@ -385,7 +385,7 @@ Profiling braucht **Linux 5.10** oder neuer und einen privilegierten Pod mit den
 | `kubeStateMetrics.enabled` | `false` | Cluster-Zustand aus kube-state-metrics. |
 | `aiAgent.enabled` | `true` | Der Kubernetes-KI-Agent. Siehe [Kubernetes-KI-Agent](/docs/telemetry/kubernetes-agent#kubernetes-ki-agent) dazu, was er tun darf. |
 
-Die [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) des Charts listet und erklärt jede Option, und [Kubernetes-Agent](/docs/telemetry/kubernetes-agent) behandelt Filtern, Sampling und das Begrenzen der Datenmenge.
+Die [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/kubernetes-agent/values.yaml) des Charts listet und erklärt jede Option, und [Kubernetes-Agent](/docs/telemetry/kubernetes-agent) behandelt Filtern, Sampling und das Begrenzen der Datenmenge.
 
 ## Upgrade
 

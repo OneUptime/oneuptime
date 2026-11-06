@@ -215,7 +215,7 @@ The following environment variables are used:
 Tests run automatically via GitHub Actions on:
 
 - Pull requests
-- Pushes to `main`, `master`, or `develop` branches
+- Pushes to `main`
 - Manual workflow dispatch
 - `workflow_call` from other workflows (the release pipeline uses this workflow as a gate)
 

@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 При включённом биллинге или с `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` в значениях Helm) собственный провайдер проекта не может обратиться к этому адресу внутри кластера, который разрешается в частный IP кластера. Вместо этого создайте провайдер в Admin Dashboard в **Настройки → Глобальные LLM-провайдеры** с теми же полями: глобальный провайдер LLM может обратиться к этому адресу.
 
-См. [руководство по vLLM в Helm-чарте](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) о планировании GPU, моделях с ограниченным доступом и параметрах настройки.
+См. [руководство по vLLM в Helm-чарте](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md) о планировании GPU, моделях с ограниченным доступом и параметрах настройки.
 
 ## Рекомендации
 

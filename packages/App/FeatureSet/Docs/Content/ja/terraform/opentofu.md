@@ -97,7 +97,7 @@ OpenTofu をインストールします。プロバイダーには 1.6 で十分
 
 ## 再利用できるモジュール
 
-OneUptime のリポジトリの [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) には、すぐに実行できる構成と、1 つのサービスを設定するモジュールがあります。このモジュールは、渡した各アドレスの Web サイトモニター、作成するすべてのものに付けるラベル、エスカレーションルールが 1 つあるオンコールポリシー、モニターを一覧表示するステータスページを作ります。普通の HCL なので、Terraform でも動作します。
+OneUptime のリポジトリの [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) には、すぐに実行できる構成と、1 つのサービスを設定するモジュールがあります。このモジュールは、渡した各アドレスの Web サイトモニター、作成するすべてのものに付けるラベル、エスカレーションルールが 1 つあるオンコールポリシー、モニターを一覧表示するステータスページを作ります。普通の HCL なので、Terraform でも動作します。
 
 ```hcl title="main.tf"
 module "storefront" {

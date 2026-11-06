@@ -261,7 +261,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 
 ## پیکربندی نصب خودمیزبان
 
-لازم نیست چیزی روشن شود: فیدها در هر نصبی کار می‌کنند. چهار متغیر محیطی آن‌ها را کنترل می‌کنند که برای Docker Compose در `config.env` یا زیر `onCallCalendarFeed` در مقادیر Helm تنظیم می‌شوند ([مرجع پیکربندی](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) چارت را ببینید):
+لازم نیست چیزی روشن شود: فیدها در هر نصبی کار می‌کنند. چهار متغیر محیطی آن‌ها را کنترل می‌کنند که برای Docker Compose در `config.env` یا زیر `onCallCalendarFeed` در مقادیر Helm تنظیم می‌شوند ([مرجع پیکربندی](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) چارت را ببینید):
 
 | متغیر | مقدار Helm | پیش‌فرض | اثر |
 | --- | --- | --- | --- |
@@ -273,7 +273,7 @@ location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance
 همچنین مرتبط:
 
 - **`HOST` و `HTTP_PROTOCOL`** پیوندها را می‌سازند. اگر `HOST` خالی یا `localhost` باشد، یا `HTTP_PROTOCOL` برابر `http` باشد، صفحه فید هشدار نشان می‌دهد و پیوندها از بیرون کار نمی‌کنند. اگر `HOST` یک نشانی خصوصی باشد — `10.x`، `172.16–31.x`، `192.168.x`، نامی بدون نقطه مانند نام یک کانتینر، یا نامی زیر `.internal`، `.local`، `.lan` و مانند آن‌ها — صفحه می‌گوید Google Calendar و Outlook در وب نمی‌توانند به پیوند برسند؛ برنامه‌های روی رایانه‌ای در همان شبکه همچنان می‌توانند.
-- **`TRUSTED_PROXY_HOPS`** تعیین می‌کند محدودیت هر نشانی کدام نشانی را می‌شمارد. پیش‌فرض `1` برای چیدمان‌های استاندارد Docker Compose و Helm درست است؛ برای هر پراکسی خودتان — یک CDN، WAF یا متعادل‌کننده بار — که به `X-Forwarded-For` چیزی می‌افزاید یکی اضافه کنید، وگرنه هر کلاینت تقویم مثل یک نشانی دیده می‌شود و همه یک سهمیه را شریک می‌شوند. [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) را در مستندات چارت ببینید.
+- **`TRUSTED_PROXY_HOPS`** تعیین می‌کند محدودیت هر نشانی کدام نشانی را می‌شمارد. پیش‌فرض `1` برای چیدمان‌های استاندارد Docker Compose و Helm درست است؛ برای هر پراکسی خودتان — یک CDN، WAF یا متعادل‌کننده بار — که به `X-Forwarded-For` چیزی می‌افزاید یکی اضافه کنید، وگرنه هر کلاینت تقویم مثل یک نشانی دیده می‌شود و همه یک سهمیه را شریک می‌شوند. [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) را در مستندات چارت ببینید.
 - **Redis** پشتیبان حافظه‌های نهان و محدودکننده نرخ است. هر دو به‌آرامی تنزل می‌کنند: بدون Redis فیدها همچنان ساخته می‌شوند، فقط کندتر، و محدودکننده درخواست‌ها را رد می‌کند.
 - در حالت تفکیک‌شده چارت Helm (`worker.enabled: true`)، فیدها در لایه API ساخته می‌شوند، پس آن لایه را برای هجوم کلاینت‌های تقویمی که سر هر ساعت دریافت می‌کنند اندازه‌گذاری کنید.
 - استثنای گزارش دسترسی Nginx که در بالا نشان داده شد بخشی از `packages/Nginx/default.conf.template` همراه است؛ اگر قالب را سفارشی می‌کنید آن را نگه دارید.

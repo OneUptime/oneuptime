@@ -211,7 +211,7 @@ OneUptime Database Agent 是一個預先設定好的 OpenTelemetry Collector，�
 
 **一個代理程式監控一台資料庫伺服器。** 代理程式傳送的所有內容都會加上身分識別，因此每台伺服器執行一個代理程式（一個安裝目錄）；如果希望複本有自己的頁面，就為每個複本各執行一個。
 
-代理程式位於 [DatabaseAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)：`docker-compose.yml`、每個接收器一份 Collector 設定（`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`）、`install.sh`、`troubleshoot.sh` 和一個 systemd 單元。分支或相容的替代品會執行其系列的設定，並回報自己的名稱：`DATABASE_SYSTEM=mariadb` 會執行 `configs/mysql.yaml`，資料庫顯示為 MariaDB。
+代理程式位於 [DatabaseAgent 目錄](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)：`docker-compose.yml`、每個接收器一份 Collector 設定（`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`）、`install.sh`、`troubleshoot.sh` 和一個 systemd 單元。分支或相容的替代品會執行其系列的設定，並回報自己的名稱：`DATABASE_SYSTEM=mariadb` 會執行 `configs/mysql.yaml`，資料庫顯示為 MariaDB。
 
 ### 開始之前
 

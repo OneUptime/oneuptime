@@ -24,7 +24,7 @@ OBI's config unprivileged. Only this test shows, on a real kernel, that:
 
 It runs in CI as the "Kubernetes Agent eBPF E2E" workflow
 ([`.github/workflows/test.kubernetes-agent-ebpf-e2e.yaml`](../../../.github/workflows/test.kubernetes-agent-ebpf-e2e.yaml)):
-on pull requests and pushes to master that touch the chart, this directory or
+on pull requests and pushes to main that touch the chart, this directory or
 the workflow, weekly (the runner kernel changes under an unchanged chart), and
 on demand, where `obi_image` tries another OBI build. The analyzer's unit tests
 run on every pull request in "Ops Config Test".

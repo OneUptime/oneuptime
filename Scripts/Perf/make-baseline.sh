@@ -12,13 +12,13 @@
 # stack.sh probe-restart, in-app.sh, ab-stack.sh and ab-monitor.sh read it.
 #
 # Usage: make-baseline.sh [commit] [out]
-#        (defaults: the merge base with origin/master, $PERF_DIR/baseline)
+#        (defaults: the merge base with origin/main, $PERF_DIR/baseline)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 PERF_DIR="${PERF_DIR:-/tmp/oneuptime-perf}"
-COMMIT="${1:-$(git -C "$REPO" merge-base HEAD origin/master)}"
+COMMIT="${1:-$(git -C "$REPO" merge-base HEAD origin/main)}"
 OUT="${2:-$PERF_DIR/baseline}"
 
 case "$OUT" in

@@ -273,7 +273,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 在开启计费的情况下，或设置了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（Helm values 中的 `outboundConnections.blockPrivateNetwork: true`）时，项目自有的提供商无法访问这个集群内地址，因为它解析到一个私有的集群 IP。请改为在 Admin Dashboard 的 **设置 → 全局 LLM 提供商** 下用相同的字段创建提供商：全局 LLM 提供商可以访问该地址。
 
-有关 GPU 调度、受限模型和调优选项，请参阅 [Helm chart 的 vLLM 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)。
+有关 GPU 调度、受限模型和调优选项，请参阅 [Helm chart 的 vLLM 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/ai-vllm.md)。
 
 ## 最佳实践
 

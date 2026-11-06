@@ -44,8 +44,8 @@ runs:
           --source tgz:crane "https://github.com/google/go-containerregistry/releases/download/v${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz"
         echo "${RUNNER_TEMP}/marketplace-bin" >>"$GITHUB_PATH"
 
-    # The workflow runs from master, whose charts may already be ahead of the release. The
-    # edition is built from the charts as they were released (the automation stays master's):
+    # The workflow runs from main, whose charts may already be ahead of the release. The
+    # edition is built from the charts as they were released (the automation stays main's):
     # OneUptime's for Enterprise, the Kubernetes agent's for the EKS add-on.
     - name: Take the released chart
       shell: bash

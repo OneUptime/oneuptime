@@ -65,7 +65,7 @@ Please write extensive tests for your changes. If you are adding a new feature, 
 
 There are a lot of tests in the app, please do not run all of them, run only the tests that are relevant to your changes. Running all the tests is a waste of time and resources. We run all the tests in CI, so you can be sure that your changes are not breaking anything. Only run test suites relevant to your changes.
 
-Do not run whole test folders or packages - for example all of `packages/App/Tests/Dashboard`, `packages/Common/Tests/UI`, `packages/App/Tests/FeatureSet/Docs` or the `packages/Home` tests - and do not re-run them after merging master into your branch. CI runs them on master, and failures there are fixed together on master. Run the tests you added or changed, and the tests that read or scan the files you changed (search the test folders for those files' paths and names).
+Do not run whole test folders or packages - for example all of `packages/App/Tests/Dashboard`, `packages/Common/Tests/UI`, `packages/App/Tests/FeatureSet/Docs` or the `packages/Home` tests - and do not re-run them after merging main into your branch. CI runs them on main, and failures there are fixed together on main. Run the tests you added or changed, and the tests that read or scan the files you changed (search the test folders for those files' paths and names).
 
 Property tests, fuzz sweeps and generated fixtures draw their pseudo-random inputs from `seededRandom(seed)` in `packages/Common/Tests/Helpers/SeededRandom.ts` (`random()` is a fraction, `random(limit)` a whole number below the limit), and texts made of an alphabet's pieces from `generatedTexts` in `packages/Common/Tests/Helpers/GeneratedTexts.ts`, so every run draws the same inputs and a failure can be run again. Shuffle with `shuffled(items, random)` from the same file. Do not write a generator of your own: the copies of `state * 1103515245 + 12345` the tests used to carry repeated within a few thousand draws, and `SeededRandomGuard.test.ts` fails a test file that rolls one of the kinds they carried (an LCG, mulberry32, xorshift).
 
@@ -88,7 +88,7 @@ see `HelmChart/README.md` for how to add one.
 
 ### Release notes
 
-Each release's notes on GitHub, which the upgrade guide sends self-hosters to and the website links to as the Changelog, are written by `Scripts/Release/GenerateReleaseNotes.js` from what the release ships: the title of every pull request and the subject of every commit pushed straight to master. So a title is a line someone reads on the release page. Write it as `type(area): what changed, for the person using OneUptime`, not what the code does.
+Each release's notes on GitHub, which the upgrade guide sends self-hosters to and the website links to as the Changelog, are written by `Scripts/Release/GenerateReleaseNotes.js` from what the release ships: the title of every pull request and the subject of every commit pushed straight to main. So a title is a line someone reads on the release page. Write it as `type(area): what changed, for the person using OneUptime`, not what the code does.
 
 - `feat`, `fix`, `perf` and `docs` each have a section. `test`, `ci`, `chore`, `refactor`, `style` and `build` go under Maintenance, which is folded, and so does anything in an area of the repository rather than the product (`fix(ci): ...`; `INTERNAL_AREAS` in the script).
 - The scope is the area the line is filed under: use the product's name (`exceptions`, `on-call`, `status-pages`). A title with no type can open with its area instead (`Workflows: every template in five steps`); it goes under New and improved.
@@ -102,7 +102,7 @@ GH_TOKEN=$(gh auth token) node Scripts/Release/GenerateReleaseNotes.js --version
 gh release edit 14.0.98 --notes-file notes.md
 ```
 
-With `--to master` and no `--version`, it shows what the next release will say.
+With `--to main` and no `--version`, it shows what the next release will say.
 
 ### Mobile app releases
 

@@ -3,7 +3,7 @@
 OneUptime 由同一個存放庫建置，並以兩個版本提供：
 
 - **Community Edition**：完整的監控、事件與可觀測性平台，包括 SAML 與 OpenID Connect 單一登入，採用 Apache 2.0 授權開源，可免費自行託管，規模不限。
-- **Enterprise Edition**：Community Edition 加上存放庫 [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) 目錄中的企業模組。這些模組加入 SCIM 佈建，以及治理與執行個體管理功能。它們依據 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) 授權，在正式環境中使用需要符合您使用者人數的 Enterprise 授權。
+- **Enterprise Edition**：Community Edition 加上存放庫 [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee) 目錄中的企業模組。這些模組加入 SCIM 佈建，以及治理與執行個體管理功能。它們依據 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) 授權，在正式環境中使用需要符合您使用者人數的 Enterprise 授權。
 
 兩個版本是各自獨立的容器映像檔。Community 映像檔不包含任何來自 `ee/` 的程式碼。OneUptime Cloud 執行的是 Enterprise Edition，在雲端由您的方案決定您能取得其中哪些功能。
 
@@ -113,7 +113,7 @@ npm run update
 
 ## 授權
 
-存放庫根目錄中的 [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) 檔案規定了哪個授權涵蓋哪些內容：`ee/` 目錄中的所有內容都適用 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE)，第三方元件保留其擁有者提供它們時所用的授權，其餘所有內容都適用 Apache 2.0 授權。
+存放庫根目錄中的 [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) 檔案規定了哪個授權涵蓋哪些內容：`ee/` 目錄中的所有內容都適用 [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE)，第三方元件保留其擁有者提供它們時所用的授權，其餘所有內容都適用 Apache 2.0 授權。
 
 新的 Enterprise Edition 安裝會以 **14 天試用期** 執行，從該安裝首次啟動 Enterprise Edition 時開始計算。試用期用於評估：在正式環境中使用 Enterprise Edition 需要依據 OneUptime Enterprise License 訂閱。請在試用期結束前啟用授權：試用期結束後，SCIM、稽核日誌記錄與保留期覆寫都會停止，企業設定會變為唯讀（請參閱[授權到期或缺少時](#授權到期或缺少時)）。如需授權，請聯絡 [sales@oneuptime.com](mailto:sales@oneuptime.com)。
 

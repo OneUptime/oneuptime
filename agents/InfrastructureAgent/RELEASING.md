@@ -266,7 +266,7 @@ Before merging a change to `.goreleaser.yaml`, `build-msi.sh`, the `.wxs`,
    changes to its own scripts.
 3. After the first release that has the change, read its status run. It is
    the first time the change meets the real tap, site and winget. A release
-   run builds master as it was when the run started, and takes about four
+   run builds main as it was when the run started, and takes about four
    hours, so the release published next may not have it yet: 14.0.75
    was published four hours after the cask's fix was merged, without it.
 

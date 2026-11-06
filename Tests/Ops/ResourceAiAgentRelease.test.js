@@ -21,7 +21,7 @@
  *  - generate-sboms waits for its merge, and generate_sboms.sh scans it (its
  *    drift check against release.yml fails a release that builds an image the
  *    script does not account for);
- *  - pull requests build it in build.yml (amd64), and every push to master
+ *  - pull requests build it in build.yml (amd64), and every push to main
  *    builds both architectures in test-release.yaml with the `test` tags, so
  *    an Alpine package that goes missing for one architecture (docker-cli,
  *    govc, ceph19-common, util-linux-misc) fails before a release does;
@@ -630,7 +630,7 @@ describe("build.yml: pull requests build the resource AI agent image", () => {
   });
 });
 
-describe("test-release.yaml: every push to master builds the resource AI agent for both architectures", () => {
+describe("test-release.yaml: every push to main builds the resource AI agent for both architectures", () => {
   const jobs = readYaml(TEST_RELEASE_WORKFLOW).jobs;
   const builds = callsFor(jobs, "build_docker_images.sh", IMAGE);
   const merges = callsFor(jobs, "merge_docker_manifests.sh", IMAGE);
@@ -686,14 +686,14 @@ describe("test.resource-ai-agent.yaml: pull requests run the agent's own tests",
     });
   const scripts = readJson(`${AGENT_DIR}/package.json`).scripts;
 
-  test("on every pull request and every push to master", () => {
+  test("on every pull request and every push to main", () => {
     // js-yaml reads the `on:` key as the boolean true (YAML 1.1).
     const triggers = workflow.on || workflow[true];
 
     expect(Object.keys(triggers)).toEqual(
       expect.arrayContaining(["pull_request", "push"]),
     );
-    expect(triggers.push.branches).toContain("master");
+    expect(triggers.push.branches).toContain("main");
   });
 
   test("installs, checks the Common copies, and runs the tests, in the agent's directory", () => {
