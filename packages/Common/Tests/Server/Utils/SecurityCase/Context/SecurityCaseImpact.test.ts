@@ -28,10 +28,12 @@ import ModelPermission from "../../../../../Server/Types/Database/Permissions/In
 import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityCaseImpact, {
+  IMPACT_MAX_CLOUD_RESOURCES_READ,
   buildFlowPeersStatement,
   buildReachedRequestsStatement,
   getCaseAddresses,
 } from "../../../../../Server/Utils/SecurityCase/Context/SecurityCaseImpact";
+import InBetween from "../../../../../Types/BaseDatabase/InBetween";
 import SecurityCaseDataAtRisk from "../../../../../Server/Utils/SecurityCase/Context/SecurityCaseDataAtRisk";
 import SecurityConnections from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
 import TelemetryReadAccess from "../../../../../Server/Utils/Telemetry/TelemetryReadAccess";
@@ -569,6 +571,175 @@ describe("SecurityCaseImpact.build", () => {
       },
       isBeforeFirstDetection: true,
     });
+  });
+
+  test("a cloud resource's changes are read by the attribute that names it, as its Changes page reads them", async () => {
+    const CLOUD_ID: string = "efefefef-efef-4fef-8fef-efefefefefef";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue(
+      connections({
+        resources: [
+          connectedResource(
+            SecurityConnectionKind.CloudResource,
+            CLOUD_ID,
+            "checkout-alb",
+          ),
+        ],
+      }),
+    );
+    jest.spyOn(CloudResourceOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(CloudResourceOwnerUserService, "findBy").mockResolvedValue([]);
+
+    // As the recorder writes it: no primary record, the resource by its attribute.
+    const cloud: ChangeEvent = new ChangeEvent();
+    cloud._id = new ObjectID("abababab-abab-4bab-8bab-abababababad");
+    cloud.time = at(-45);
+    cloud.title = "Failed: DeleteLoadBalancer on checkout-alb";
+    cloud.eventType = "cloud-change";
+    cloud.attributes = {
+      "oneuptime.change.source": "cloud",
+      "oneuptime.cloud.operation": "DeleteLoadBalancer",
+      "oneuptime.change.status": "failed",
+      "oneuptime.cloud.resource_name": "checkout-alb",
+      "oneuptime.resource.type": "CloudResource",
+      "oneuptime.resource.id": CLOUD_ID,
+    } as never;
+
+    const reads: jest.SpyInstance = jest
+      .spyOn(ChangeEventService, "findBy")
+      .mockImplementation(
+        async (data: unknown): Promise<Array<ChangeEvent>> => {
+          const query: JSONObject = (data as { query: JSONObject }).query;
+
+          // Only the read by the attribute finds it: its primary record is none.
+          return query["attributes"] ? [cloud] : [];
+        },
+      );
+
+    expect(
+      recordOf(await impact(), SecurityConnectionKind.CloudResource).lastChange,
+    ).toEqual({
+      id: "abababab-abab-4bab-8bab-abababababad",
+      time: at(-45).toISOString(),
+      title: "Failed: DeleteLoadBalancer on checkout-alb",
+      eventType: "cloud-change",
+      cloudChange: {
+        operation: "DeleteLoadBalancer",
+        resource: "checkout-alb",
+        failed: true,
+      },
+      // 45 minutes before the case's first detection.
+      isBeforeFirstDetection: true,
+    });
+
+    const byAttribute: { query: JSONObject; props: unknown } = reads.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as { query: JSONObject; props: unknown };
+      })
+      .find((call: { query: JSONObject }): boolean => {
+        return Boolean(call.query["attributes"]);
+      })!;
+
+    expect(byAttribute.query["attributes"]).toEqual({
+      "oneuptime.resource.id": CLOUD_ID,
+    });
+    expect(byAttribute.query["projectId"]).toBe(PROJECT_ID);
+    // In the case's window, as the case's reader may read.
+    expect(byAttribute.query["time"]).toBeInstanceOf(InBetween);
+    expect(byAttribute.props).toBe(CALLER);
+  });
+
+  test("a change both reads find is listed once, and the latest of all is the last change", async () => {
+    const CLOUD_ID: string = "efefefef-efef-4fef-8fef-efefefefefef";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue(
+      connections({
+        resources: [
+          connectedResource(
+            SecurityConnectionKind.CloudResource,
+            CLOUD_ID,
+            "checkout-alb",
+          ),
+        ],
+      }),
+    );
+    jest.spyOn(CloudResourceOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(CloudResourceOwnerUserService, "findBy").mockResolvedValue([]);
+
+    function change(id: string, minutes: number): ChangeEvent {
+      const row: ChangeEvent = new ChangeEvent();
+      row._id = new ObjectID(id);
+      row.time = at(minutes);
+      row.title = `change ${id.slice(-2)}`;
+      row.eventType = "cloud-change";
+      row.primaryEntityId = new ObjectID(CLOUD_ID);
+      row.attributes = { "oneuptime.resource.id": CLOUD_ID } as never;
+      return row;
+    }
+
+    const older: ChangeEvent = change(
+      "abababab-abab-4bab-8bab-ababababab01",
+      -300,
+    );
+    const latest: ChangeEvent = change(
+      "abababab-abab-4bab-8bab-ababababab02",
+      -10,
+    );
+
+    jest
+      .spyOn(ChangeEventService, "findBy")
+      .mockImplementation(
+        async (data: unknown): Promise<Array<ChangeEvent>> => {
+          const query: JSONObject = (data as { query: JSONObject }).query;
+
+          return query["attributes"] ? [latest, older] : [older];
+        },
+      );
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(
+      recordOf(json, SecurityConnectionKind.CloudResource).lastChange?.id,
+    ).toBe("abababab-abab-4bab-8bab-ababababab02");
+  });
+
+  test(`at most ${IMPACT_MAX_CLOUD_RESOURCES_READ} cloud resources' changes are read`, async () => {
+    const many: Array<SecurityConnectedResourceJson> = Array.from({
+      length: IMPACT_MAX_CLOUD_RESOURCES_READ + 5,
+    }).map((_value: unknown, index: number): SecurityConnectedResourceJson => {
+      return connectedResource(
+        SecurityConnectionKind.CloudResource,
+        `efefefef-efef-4fef-8fef-${String(index).padStart(12, "0")}`,
+        `resource-${index}`,
+      );
+    });
+
+    jest
+      .spyOn(SecurityConnections, "forCase")
+      .mockResolvedValue(connections({ resources: many }));
+    jest.spyOn(CloudResourceOwnerTeamService, "findBy").mockResolvedValue([]);
+    jest.spyOn(CloudResourceOwnerUserService, "findBy").mockResolvedValue([]);
+
+    const reads: jest.SpyInstance = jest
+      .spyOn(ChangeEventService, "findBy")
+      .mockResolvedValue([]);
+
+    await impact();
+
+    // The records' own read, then one a cloud resource.
+    expect(reads).toHaveBeenCalledTimes(1 + IMPACT_MAX_CLOUD_RESOURCES_READ);
+  });
+
+  test("a case with no cloud resource reads its records' own changes only", async () => {
+    // The default case: a service and a host.
+    const reads: jest.SpyInstance = jest.spyOn(ChangeEventService, "findBy");
+
+    await impact();
+
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(
+      (reads.mock.calls[0]![0] as { query: JSONObject }).query["attributes"],
+    ).toBeUndefined();
   });
 
   test("lists the machines the case's addresses talked to, the busiest first", async () => {

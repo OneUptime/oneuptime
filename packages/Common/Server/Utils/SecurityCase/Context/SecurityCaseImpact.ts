@@ -56,7 +56,10 @@ import {
   canonicalAddress,
   readRecordAddresses,
 } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
-import { readChangeEventFields } from "../../../../Utils/Telemetry/ChangeEventFields";
+import {
+  ChangeEventAttribute,
+  readChangeEventFields,
+} from "../../../../Utils/Telemetry/ChangeEventFields";
 import {
   CloudChangeTitleFacts,
   readCloudChangeTitleFacts,
@@ -147,6 +150,14 @@ import SecurityCaseDataAtRisk from "./SecurityCaseDataAtRisk";
 export const IMPACT_CHANGE_LOOKBACK_IN_DAYS: number = 7;
 // The most changes read to find each record's last.
 export const IMPACT_MAX_CHANGES_READ: number = 200;
+
+/*
+ * A cloud resource's changes name it by an attribute, not as their primary
+ * record (CloudChangeRecorder), so they are read resource by resource, as
+ * its Changes page reads them: at most this many cloud resources, and
+ * IMPACT_MAX_CHANGES_READ changes each.
+ */
+export const IMPACT_MAX_CLOUD_RESOURCES_READ: number = 20;
 // The most monitors read to find the status pages showing them.
 export const IMPACT_MAX_MONITORS_READ: number = 100;
 // The most events read for requests from public addresses that reached the app.
@@ -729,8 +740,7 @@ export default class SecurityCaseImpact {
         const record: Dictionary<unknown> = row as Dictionary<unknown>;
         const recordId: string = readId(record[tables.column]);
         const team: Dictionary<unknown> | undefined = record["team"] as
-          | Dictionary<unknown>
-          | undefined;
+          Dictionary<unknown> | undefined;
         const teamId: string = readId(team);
         const list: SecurityCaseImpactOwnersJson = ownersOf(recordId);
 
@@ -749,8 +759,7 @@ export default class SecurityCaseImpact {
         const record: Dictionary<unknown> = row as Dictionary<unknown>;
         const recordId: string = readId(record[tables.column]);
         const user: Dictionary<unknown> | undefined = record["user"] as
-          | Dictionary<unknown>
-          | undefined;
+          Dictionary<unknown> | undefined;
         const userId: string = readId(user);
         const list: SecurityCaseImpactOwnersJson = ownersOf(recordId);
 
@@ -796,35 +805,86 @@ export default class SecurityCaseImpact {
       return changes;
     }
 
-    const rows: Array<ChangeEvent> = await ChangeEventService.findBy({
-      query: {
-        projectId: data.projectId,
-        time: new InBetween(
-          OneUptimeDate.addRemoveDays(
-            data.scope.window.start,
-            -IMPACT_CHANGE_LOOKBACK_IN_DAYS,
+    const time: InBetween<Date> = new InBetween(
+      OneUptimeDate.addRemoveDays(
+        data.scope.window.start,
+        -IMPACT_CHANGE_LOOKBACK_IN_DAYS,
+      ),
+      data.scope.window.end,
+    );
+    const select: JSONObject = {
+      _id: true,
+      time: true,
+      eventType: true,
+      title: true,
+      primaryEntityId: true,
+      attributes: true,
+    };
+    const cloudResourceIds: Array<string> = data.resources
+      .filter((resource: SecurityConnectedResourceJson): boolean => {
+        return (
+          resource.kind === SecurityConnectionKind.CloudResource &&
+          keyOfId.has(resource.id)
+        );
+      })
+      .map((resource: SecurityConnectedResourceJson): string => {
+        return resource.id;
+      })
+      .slice(0, IMPACT_MAX_CLOUD_RESOURCES_READ);
+
+    // The records' own changes, and each cloud resource's by the attribute that names it.
+    const reads: Array<Array<ChangeEvent>> = await Promise.all([
+      ChangeEventService.findBy({
+        query: {
+          projectId: data.projectId,
+          time,
+          primaryEntityId: QueryHelper.any(
+            Array.from(keyOfId.keys()).map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
           ),
-          data.scope.window.end,
-        ),
-        primaryEntityId: QueryHelper.any(
-          Array.from(keyOfId.keys()).map((id: string): ObjectID => {
-            return new ObjectID(id);
-          }),
-        ),
-      } as never,
-      select: {
-        _id: true,
-        time: true,
-        eventType: true,
-        title: true,
-        primaryEntityId: true,
-        attributes: true,
-      } as never,
-      sort: { time: SortOrder.Descending } as never,
-      limit: IMPACT_MAX_CHANGES_READ,
-      skip: 0,
-      props: data.props,
-    });
+        } as never,
+        select: select as never,
+        sort: { time: SortOrder.Descending } as never,
+        limit: IMPACT_MAX_CHANGES_READ,
+        skip: 0,
+        props: data.props,
+      }),
+      ...cloudResourceIds.map((id: string): Promise<Array<ChangeEvent>> => {
+        return ChangeEventService.findBy({
+          query: {
+            projectId: data.projectId,
+            time,
+            attributes: { [ChangeEventAttribute.ResourceId]: id },
+          } as never,
+          select: select as never,
+          sort: { time: SortOrder.Descending } as never,
+          limit: IMPACT_MAX_CHANGES_READ,
+          skip: 0,
+          props: data.props,
+        });
+      }),
+    ]);
+
+    // Each change once, latest first, whichever read found it.
+    const seen: Set<string> = new Set();
+    const rows: Array<ChangeEvent> = reads
+      .flat()
+      .filter((row: ChangeEvent): boolean => {
+        const id: string = row._id?.toString() || "";
+
+        if (id && seen.has(id)) {
+          return false;
+        }
+
+        seen.add(id);
+        return true;
+      })
+      .sort((a: ChangeEvent, b: ChangeEvent): number => {
+        return (
+          new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime()
+        );
+      });
 
     for (const row of rows) {
       if (!row.time) {
