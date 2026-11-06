@@ -1985,7 +1985,7 @@ test.describe("All Environments and Archived", () => {
     await page.getByTestId("facet-filter-bar-toggle").click();
     await page
       .getByTestId("facet-filter-bar")
-      .getByRole("button", { name: PERSIAN["Cloud Account"] })
+      .getByRole("button", { name: PERSIAN["Cloud Account"]! })
       .click();
     const popover: Locator = page.getByRole("dialog");
     await expect(popover.getByRole("textbox")).toBeVisible();
