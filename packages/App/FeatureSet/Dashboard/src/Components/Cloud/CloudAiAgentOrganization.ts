@@ -65,7 +65,7 @@ export const CLOUD_AI_AGENT_SCOPE_ORGANIZATION_DESCRIPTION: string =
 // What the dialog does, once every account is the answer.
 export const CLOUD_AI_AGENT_ORGANIZATION_DIALOG_DESCRIPTION: string =
   translationKey(
-    "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization: it creates each agent's role and starts the agents, which connect on their own.",
+    "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization. Each account's agent connects on its own.",
   );
 
 // The command's step, for the organization.

@@ -45846,8 +45846,8 @@
   "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "此资源由 {{code}} 声明，因此下次 apply 会恢复代码中的内容。拉取请求会让代码与此修复保持一致。",
   "It makes a CloudFormation stack, {{stack}}, in each Region of every account of the organization: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your accounts. AWS bills each metric stream for each metric update it sends, and Firehose for what it delivers.": "它会在组织每个账户的每个区域创建一个 CloudFormation 堆栈 {{stack}}：包括指标流和日志订阅、两个只向 OneUptime 投递的 Firehose 流，以及一个存放未能投递内容的存储桶。其中没有任何东西能读取你的账户。AWS 按每个指标流发送的每次指标更新计费，并按 Firehose 投递的数据量计费。",
   "Declared as code by {{owner}}: this change sets nothing the code declares, so the next apply does not undo it.": "由 {{owner}} 以代码方式声明：此更改不涉及代码声明的任何内容，因此下次应用配置时不会撤销它。",
-  "Run one command, and Amazon Data Firehose delivers the CloudWatch metrics and logs of every account of the organization to OneUptime within minutes, between reads.": "只需运行一条命令，Amazon Data Firehose 就会在几分钟内将组织中每个账户的 CloudWatch 指标和日志投递到 OneUptime，无需等待下一次读取。",
-  "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization: it creates each agent's role and starts the agents, which connect on their own.": "在 {{shell}} 中运行一条命令，即可让 OneUptime AI 修复组织中每个账户的问题：它会创建每个代理的角色并启动这些代理，代理会自行连接。",
+  "Run one command, and Amazon Data Firehose delivers every account's CloudWatch metrics and logs to OneUptime within minutes, between reads.": "只需运行一条命令，Amazon Data Firehose 就会在几分钟内将每个账户的 CloudWatch 指标和日志投递到 OneUptime，无需等待下一次读取。",
+  "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization. Each account's agent connects on its own.": "在 {{shell}} 中运行一条命令，即可让 OneUptime AI 修复组织中每个账户的问题。每个账户的代理会自行连接。",
   "The live change was dismissed: once the pull request is merged, the next apply makes the change.": "实时更改已被驳回：拉取请求合并后，下次 apply 会进行更改。",
   "The pull request makes the code say what the fix sets, so the next apply keeps it.": "拉取请求会让代码与修复设置的值保持一致，因此下次 apply 会保留它。"
 }

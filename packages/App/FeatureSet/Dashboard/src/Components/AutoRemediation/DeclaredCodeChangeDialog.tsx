@@ -475,13 +475,18 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
             >
               {candidates.map(
                 (candidate: DeclaredCodeOwnerCandidateJSON): ReactElement => {
+                  /*
+                   * A row that can be chosen answers the pointer; one that
+                   * cannot is told by its radio, which keeps a field's own
+                   * locked look (HandDrawnButtonLockedLookGuard).
+                   */
                   return (
                     <label
                       key={candidate.repositoryId}
                       className={`flex items-start gap-3 px-3 py-2.5 ${
                         candidate.canAsk
                           ? "cursor-pointer hover:bg-gray-50"
-                          : "cursor-not-allowed"
+                          : ""
                       }`}
                       data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-repository`}
                       data-repository={candidate.repositoryId}

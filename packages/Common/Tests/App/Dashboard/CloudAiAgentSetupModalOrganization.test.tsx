@@ -379,7 +379,7 @@ describe("every account of the organization", () => {
 
     // The dialog says what it does now: every account, each agent's role.
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "Run one command in AWS CloudShell to let OneUptime AI fix problems in every account of the organization: it creates each agent's role and starts the agents, which connect on their own.",
+      "Run one command in AWS CloudShell to let OneUptime AI fix problems in every account of the organization. Each account's agent connects on its own.",
     );
 
     const steps: HTMLElement = screen.getByTestId("setup-guide-steps");

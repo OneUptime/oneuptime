@@ -577,7 +577,11 @@ describe("the dialog that asks before opening it", () => {
     expect(
       within(rows[1]!).getByTestId("declared-code-dialog-repository-name"),
     ).toHaveClass("text-gray-500");
-    expect(rows[1]).toHaveClass("cursor-not-allowed");
+    // Only a row that can be chosen answers the pointer; its radio says the rest.
+    expect(rows[1]).not.toHaveClass("cursor-pointer");
+    expect(within(rows[1]!).getByRole("radio")).toHaveClass(
+      "disabled:cursor-not-allowed",
+    );
     expect(rows[0]).toHaveClass("cursor-pointer");
     // The likeliest one the reader may ask in is chosen.
     expect(within(rows[0]!).getByRole("radio")).toBeChecked();

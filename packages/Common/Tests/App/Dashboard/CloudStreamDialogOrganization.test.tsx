@@ -200,7 +200,7 @@ describe("streaming every account of an organization", () => {
     await streamEveryAccount();
 
     expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "Run one command, and Amazon Data Firehose delivers the CloudWatch metrics and logs of every account of the organization to OneUptime within minutes, between reads.",
+      "Run one command, and Amazon Data Firehose delivers every account's CloudWatch metrics and logs to OneUptime within minutes, between reads.",
     );
   });
 
