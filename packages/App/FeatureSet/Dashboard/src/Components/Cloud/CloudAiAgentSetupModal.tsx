@@ -459,12 +459,16 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
    */
   const elsewhereTexts: CloudAiAgentElsewhereTexts =
     CLOUD_AI_AGENT_ELSEWHERE_TEXTS[props.provider];
-  const { image: elsewhereImage, ...elsewhereWriteNames } =
-    getCloudAiAgentElsewhereValues(props.provider);
+  const elsewhereNames: Record<string, string> = getCloudAiAgentElsewhereValues(
+    props.provider,
+  );
+  const elsewhereImage: string = elsewhereNames["image"] || "";
   const elsewhereWriteSlots: Record<string, ReactElement> = {};
 
-  for (const [placeholder, name] of Object.entries(elsewhereWriteNames)) {
-    elsewhereWriteSlots[placeholder] = <ElsewhereName name={name} />;
+  for (const [placeholder, name] of Object.entries(elsewhereNames)) {
+    if (placeholder !== "image") {
+      elsewhereWriteSlots[placeholder] = <ElsewhereName name={name} />;
+    }
   }
 
   /*

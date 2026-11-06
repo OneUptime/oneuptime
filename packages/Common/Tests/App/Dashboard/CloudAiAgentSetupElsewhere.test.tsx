@@ -607,7 +607,7 @@ describe("Run the agent somewhere else, in every language", () => {
     expect(new Set(LINES).size).toBe(10);
 
     for (const line of LINES) {
-      expect((englishLocale as Record<string, string>)[line]).toBe(line);
+      expect(readDashboardLocale("en")[line]).toBe(line);
     }
   });
 
