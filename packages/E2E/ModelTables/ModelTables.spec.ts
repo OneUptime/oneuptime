@@ -4266,7 +4266,11 @@ test.describe("a first visit, and a header of one long word", () => {
           const table: HTMLTableElement | null = box.querySelector("table");
           const boxWidth: number = box.getBoundingClientRect().width;
 
-          if (content && getComputedStyle(content).visibility === "hidden") {
+          if (
+            content &&
+            content.getAttribute("data-settling") === "true" &&
+            getComputedStyle(content).opacity === "0"
+          ) {
             frame = { kind: "settling", tableWidth: 0, boxWidth: boxWidth };
           } else if (skeleton) {
             frame = {
@@ -4499,6 +4503,216 @@ test.describe("a first visit, and a header of one long word", () => {
     expect(read.tableWidth - read.boxWidth).toBeGreaterThan(32);
     expect(read.tableWidth - read.boxWidth).toBeLessThanOrEqual(128);
     await screenshot(page, "alerts-de-given-way-900");
+  });
+});
+
+/*
+ * "Default columns per project" (#5485's follow-ups): a Project Owner or
+ * Admin shows a list's columns to everyone in the project from its Customize
+ * Columns, and everyone who has picked no columns of their own for the list
+ * sees them (Project.defaultTableColumns). The project's defaults come with
+ * the project the page holds, so the list draws them from its first paint.
+ * ?defaultColumns=incidents: the incidents list's default has Labels and
+ * Owners off; ?defaultColumns=none: the project keeps none yet.
+ */
+test.describe("default columns per project", () => {
+  async function openColumns(page: Page): Promise<Locator> {
+    await page.getByRole("button", { name: "More options" }).first().click();
+    await page.getByRole("menuitem", { name: "Columns", exact: true }).click();
+
+    const picker: Locator = page.getByTestId("column-customization-modal");
+
+    await expect(picker).toBeVisible();
+    await expect(page.getByTestId("modal")).toHaveCSS("opacity", "1");
+
+    return picker;
+  }
+
+  async function headerTitles(page: Page): Promise<Array<string>> {
+    return (await header(page).allInnerTexts()).map((title: string): string => {
+      return title.trim();
+    });
+  }
+
+  async function projectUpdates(page: Page): Promise<Array<unknown>> {
+    return (
+      (await fixture(page)) as unknown as {
+        updates: Array<{ tableName: string; data: unknown }>;
+      }
+    ).updates
+      .filter((update: { tableName: string }): boolean => {
+        return update.tableName === "Project";
+      })
+      .map((update: { data: unknown }): unknown => {
+        return update.data;
+      });
+  }
+
+  async function ownColumns(page: Page): Promise<string | null> {
+    return await page.evaluate((): string | null => {
+      return window.localStorage.getItem(
+        "BaseModelTableColumns.incidents-table",
+      );
+    });
+  }
+
+  test("a list draws the project's default from its first paint: Labels and Owners off for anyone who picked none of their own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=incidents`, 1600);
+
+    const titles: Array<string> = await headerTitles(page);
+
+    expect(titles).toEqual(
+      expect.arrayContaining(["Incident Number", "Title", "State"]),
+    );
+    expect(titles).not.toContain("Labels");
+    expect(titles).not.toContain("Owners");
+  });
+
+  test("someone who may not change it is told the columns are the project's, and that what they save is theirs alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=incidents&role=viewer`, 1600);
+
+    const picker: Locator = await openColumns(page);
+
+    await expect(
+      picker.getByTestId("column-customization-project-default-note"),
+    ).toHaveText(
+      "These are this project's default columns for this list. Changes you save are only for you.",
+    );
+    await expect(
+      picker.getByTestId("column-customization-everyone"),
+    ).toHaveCount(0);
+    await expect(
+      picker.getByTestId("column-customization-remove-default"),
+    ).toHaveCount(0);
+    await screenshot(page, "default-columns-viewer-note-1600");
+  });
+
+  test("a Project Owner shows their columns to everyone: the project keeps them, and the list opens with them after a reload", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=none`, 1600);
+
+    const picker: Locator = await openColumns(page);
+    const everyone: Locator = picker
+      .getByTestId("column-customization-everyone")
+      .locator("xpath=ancestor::div[1]")
+      .getByRole("checkbox");
+
+    await expect(everyone).not.toBeChecked();
+    await expect(
+      picker.getByText(
+        "Anyone who hasn't picked their own columns for this list sees these.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "default-columns-owner-box-1600");
+
+    await picker.getByTestId("column-toggle-labels").uncheck();
+    await everyone.check();
+    await page.getByTestId("modal-footer-submit-button").click();
+    await expect(picker).toHaveCount(0);
+
+    await expect
+      .poll(async () => {
+        return await projectUpdates(page);
+      })
+      .toEqual([
+        {
+          defaultTableColumns: {
+            "incidents-table": expect.objectContaining({ hidden: ["labels"] }),
+          },
+        },
+      ]);
+    expect(await headerTitles(page)).not.toContain("Labels");
+    // The Owner sees what everyone sees: nothing of their own kept.
+    expect(await ownColumns(page)).toBeNull();
+
+    await page.reload();
+    await expect(page.getByTestId("table-skeleton-loader")).toHaveCount(0);
+    await expect(bodyRows(page, "incidents-table").first()).toBeVisible();
+
+    expect(await headerTitles(page)).not.toContain("Labels");
+    expect(await headerTitles(page)).toContain("Owners");
+  });
+
+  test("a Project Owner takes the list's default away: everyone sees the list's own columns again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?defaultColumns=incidents`, 1600);
+    expect(await headerTitles(page)).not.toContain("Labels");
+
+    const picker: Locator = await openColumns(page);
+
+    await expect(
+      picker.getByText(
+        "This list has default columns for everyone in this project.",
+      ),
+    ).toBeVisible();
+    await expect(
+      picker.getByText(
+        "Replaces this list's default columns. Anyone who picked their own keeps theirs.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "default-columns-owner-remove-1600");
+
+    await picker.getByTestId("column-customization-remove-default").click();
+    await expect(picker).toHaveCount(0);
+
+    expect(await projectUpdates(page)).toEqual([{ defaultTableColumns: null }]);
+    await expect(header(page).filter({ hasText: "Labels" })).toHaveCount(1);
+    await expect(header(page).filter({ hasText: "Owners" })).toHaveCount(1);
+  });
+
+  test("a person's own columns win, and Reset takes them back to the project's default - and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.addInitScript((): void => {
+      window.localStorage.setItem(
+        "BaseModelTableColumns.incidents-table",
+        JSON.stringify({ order: ["title", "incidentNumber"], hidden: [] }),
+      );
+    });
+    await open(page, `${INCIDENTS}?defaultColumns=incidents&role=viewer`, 1600);
+
+    const isTitleFirst: (titles: Array<string>) => boolean = (
+      titles: Array<string>,
+    ): boolean => {
+      return titles.indexOf("Title") < titles.indexOf("Incident Number");
+    };
+
+    // Their own: Title before the number, Labels and Owners on.
+    expect(isTitleFirst(await headerTitles(page))).toBe(true);
+    expect(await headerTitles(page)).toContain("Labels");
+
+    const picker: Locator = await openColumns(page);
+    const reset: Locator = picker
+      .locator("xpath=ancestor::*[@data-testid='modal']")
+      .getByTestId("column-customization-reset");
+
+    await expect(reset).toHaveText("Reset to project default");
+    await reset.click();
+    await expect(picker).toHaveCount(0);
+
+    await expect
+      .poll(async () => {
+        return await headerTitles(page);
+      })
+      .not.toContain("Labels");
+    expect(isTitleFirst(await headerTitles(page))).toBe(false);
+    expect(await ownColumns(page)).toBeNull();
   });
 });
 

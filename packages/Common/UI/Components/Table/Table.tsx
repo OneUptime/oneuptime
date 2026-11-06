@@ -110,6 +110,17 @@ import {
   useDragAndDrop,
 } from "../DragAndDrop/DragAndDropLoader";
 
+/*
+ * How a table's rows are drawn while they settle (useTableScrollState's
+ * isSettling): see-through at once - no fade out, which would show the rows
+ * as they came for its length - and out of the pointer's way.
+ */
+export const TABLE_SETTLING_STYLE: React.CSSProperties = {
+  opacity: 0,
+  transition: "none",
+  pointerEvents: "none",
+};
+
 export interface BulkActionProps<T extends GenericObject> {
   buttons: Array<BulkActionButtonSchema<T>>;
   /*
@@ -1267,20 +1278,23 @@ const Table: TableFunction = <T extends GenericObject>(
          * one.
          */}
         {/*
-         * Not shown while its rows settle: drawn too wide for their card
-         * before the page had their rules or its fonts, they are measured
-         * again a frame later and fold, become cards or scroll then
-         * (useTableScrollState's isSettling) - shown already fitted rather
-         * than running past the card first. Hidden by its own style, not a
+         * Not shown while its rows settle: drawn before the page had their
+         * rules or its fonts, they are measured again a frame later and
+         * fold, become cards or scroll then (useTableScrollState's
+         * isSettling) - shown already fitted, fading in, rather than
+         * running past the card first. Hidden by its own style, not a
          * class: the rule of a class the page has not used yet is written
-         * only after the commit that draws it.
+         * only after the commit that draws it. See-through, with no fade
+         * out and no pointer (TABLE_SETTLING_STYLE): its rows and their
+         * words are where they are, for the measuring and for anything that
+         * reads them, for the frame or two they settle in.
          */}
         <div
           data-testid="table-content"
           {...(scrollState.isSettling
             ? { [TABLE_SETTLING_ATTRIBUTE]: "true" }
             : {})}
-          style={scrollState.isSettling ? { visibility: "hidden" } : undefined}
+          style={scrollState.isSettling ? TABLE_SETTLING_STYLE : undefined}
           className={
             isRefetchingWithData
               ? "opacity-60 pointer-events-none transition-opacity duration-150"
