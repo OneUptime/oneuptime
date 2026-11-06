@@ -394,8 +394,10 @@ describe("the resources, laid over the account's own figures", () => {
       records: [record({ amount: 100 }), record({ service: RDS, amount: 60 })],
       resourceCosts: [
         cost({ resourceId: "i-0web1", amount: 70 }),
-        // An instance gone since: no Region of its own, but EC2 was billed
-        // in one Region that day.
+        /*
+         * An instance gone since: no Region of its own, but EC2 was billed
+         * in one Region that day.
+         */
         cost({ resourceId: "i-0gone", amount: 12.5 }),
         cost({
           service: RDS,

@@ -447,6 +447,37 @@ describe.each(
       }
     }
   });
+
+  /*
+   * The legend's wrapper is HTML laid over the chart, padded down over the
+   * rail to buy its strip: in a browser it took every press and hover meant
+   * for a chip under it (Costs' daily spend, whose legend names the days
+   * still being reported, could not open an unusual day's mark). It lets
+   * the pointer through; the legend's own items take it back.
+   */
+  test("the legend's wrapper lets the pointer through to the rail; its items take it", () => {
+    const { container } = render(
+      chart.render({
+        timeReferenceLines: [{ date: minutesIn(90), label: "Deploy" }],
+        showLegend: true,
+      }),
+    );
+
+    expect(chips(container)).toHaveLength(1);
+
+    const wrapper: HTMLElement | null = container.querySelector(
+      ".recharts-legend-wrapper",
+    );
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.style.pointerEvents).toBe("none");
+    // Still where recharts puts it: laid over the chart's top.
+    expect(wrapper!.style.position).toBe("absolute");
+
+    const items: HTMLElement = wrapper!.firstElementChild as HTMLElement;
+    expect(items).not.toBeNull();
+    expect(items.style.pointerEvents).toBe("auto");
+    expect(items).toHaveTextContent("latency");
+  });
 });
 
 describe("marker hover card", () => {

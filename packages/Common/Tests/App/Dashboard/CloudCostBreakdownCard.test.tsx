@@ -51,7 +51,10 @@ import CloudCostBreakdownCard, {
   scopeCloudCostPlatformLists,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostBreakdownCard";
 import { BREAKDOWN_REST_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostBreakdown";
-import { CloudCostPlatformLists } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostReads";
+import {
+  CloudCostDimension,
+  CloudCostPlatformLists,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostReads";
 import { CloudAccountRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/UseCloudAccounts";
 
 /*
@@ -630,12 +633,14 @@ describe("by resource", () => {
 describe("the helpers", () => {
   test("an empty list says what it breaks down by", () => {
     const text: (
-      dimension: Parameters<
-        typeof getCloudCostBreakdownEmptyText
-      >[0]["dimension"],
+      dimension: CloudCostDimension,
       hasEnvironments: boolean,
       hasTagKeys: boolean,
-    ) => string = (dimension, hasEnvironments, hasTagKeys) => {
+    ) => string = (
+      dimension: CloudCostDimension,
+      hasEnvironments: boolean,
+      hasTagKeys: boolean,
+    ): string => {
       return getCloudCostBreakdownEmptyText({
         dimension,
         hasEnvironments,
