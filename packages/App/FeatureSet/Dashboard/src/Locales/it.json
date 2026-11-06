@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "Indica le regioni con i loro codici, come us-east-1 o eu-central-1.",
   "List at most {{count}} Regions.": "Indica al massimo {{count}} regioni.",
   "Log groups": "Gruppi di log",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "I log compaiono qui quando la connessione del suo account trasmette CloudWatch Logs: scegli Trasmetti metriche e log sulla connessione in Cloud > Collega, con il gruppo di log di questa risorsa.",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "I log compaiono qui quando l'account AWS di questa risorsa trasmette il suo gruppo di log: in Cloud > Collega, scegli Trasmetti metriche e log nella riga dell'account.",
   "Logs endpoint": "Endpoint dei log",
   "Logs of {{count}} log groups from {{region}}": "Log di {{count}} gruppi di log da {{region}}",
   "Logs of {{count}} log groups from {{region}}_one": "Log di {{count}} gruppo di log da {{region}}",
@@ -45620,6 +45620,8 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` attiva il rilevatore di risorse {{detector}} in Node.js. Gli altri linguaggi lo attivano con: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, con accesso al progetto e l'API Secret Manager attivata (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "Endpoint OTLP",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "I log compaiono qui quando portano gli attributi di risorsa cloud.platform, cloud.account.id e cloud.region di questo ambiente, o quando il suo account AWS trasmette CloudWatch Logs: in Cloud > Collega, scegli Trasmetti metriche e log nella riga dell'account.",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "In questo intervallo di tempo non è arrivato nulla dal gruppo di log di questa risorsa. Scegli un intervallo più lungo, oppure controlla che il suo account trasmetta questo gruppo di log: in Cloud > Collega, apri Trasmetti metriche e log nella riga dell'account.",
   "Page default ({{language}})": "Predefinita della pagina ({{language}})",
   "The language their notifications are written in.": "La lingua delle notifiche che riceve."
 }

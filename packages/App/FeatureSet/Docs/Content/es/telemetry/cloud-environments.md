@@ -32,6 +32,7 @@ flowchart TB
 - **El entorno lo agrupa todo.** Cada carga de trabajo con la misma plataforma, la misma cuenta y la misma región llega a un mismo entorno. Los servicios conservan sus propias filas en **Servicios**.
 - **Cada tarea en ejecución es una instancia.** La pestaña **Instancias** del entorno lista sus tareas, instancias o réplicas en ejecución, con CPU y memoria en vivo cuando la plataforma puede proporcionarlas.
 - **Cada servicio es una aplicación.** Un servicio de ECS, un servicio de Cloud Run o una Container App es una aplicación de su entorno, y OneUptime guarda las revisiones que ejecuta: consulte [Aplicaciones y despliegues](#aplicaciones-y-despliegues).
+- **Los registros de CloudWatch transmitidos también cuentan.** Una cuenta de AWS que [transmite sus registros de CloudWatch](/docs/telemetry/cloud-streaming) pone los registros de sus servicios de App Runner, sus entornos de Elastic Beanstalk, y sus tareas y clústeres de ECS en la pestaña **Registros** de su entorno, y el entorno aparece con ellos si ninguna aplicación le ha informado todavía. No crean ninguna aplicación: una aplicación se nombra por su propia telemetría.
 
 ## Antes de empezar
 

@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "リージョンは us-east-1 や eu-central-1 のようなコードで指定してください。",
   "List at most {{count}} Regions.": "リージョンは最大 {{count}} 個まで指定してください。",
   "Log groups": "ロググループ",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "アカウントの接続が CloudWatch Logs をストリーミングすると、ここにログが表示されます。Cloud > 接続 でその接続の「メトリクスとログをストリーミング」を選択し、このリソースのロググループを指定してください。",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "このリソースの AWS アカウントがロググループをストリーミングすると、ここにログが表示されます。クラウド > 接続 で、アカウントの行の「メトリクスとログをストリーミング」を選択してください。",
   "Logs endpoint": "ログのエンドポイント",
   "Logs of {{count}} log groups from {{region}}": "{{region}} の {{count}} 個のロググループのログ",
   "Logs of {{count}} log groups from {{region}}_one": "{{region}} の {{count}} 個のロググループのログ",
@@ -45620,6 +45620,8 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` は Node.js で {{detector}} リソース検出器を有効にします。ほかの言語での有効化: {{others}}。",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "プロジェクトにサインインし、Secret Manager API を有効にした `gcloud`（`gcloud services enable secretmanager.googleapis.com`）",
   "OTLP Endpoint": "OTLP エンドポイント",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "この環境の cloud.platform、cloud.account.id、cloud.region リソース属性が付いたログが、ここに表示されます。AWS アカウントが CloudWatch Logs をストリーミングすると、そのログも表示されます。クラウド > 接続 で、アカウントの行の「メトリクスとログをストリーミング」を選択してください。",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "この期間に、このリソースのロググループからは何も届いていません。より長い期間を選択するか、アカウントがこのロググループをストリーミングしているか確認してください。クラウド > 接続 で、アカウントの行の「メトリクスとログをストリーミング」を開くと確認できます。",
   "Page default ({{language}})": "ページのデフォルト ({{language}})",
   "The language their notifications are written in.": "通知に使う言語です。"
 }

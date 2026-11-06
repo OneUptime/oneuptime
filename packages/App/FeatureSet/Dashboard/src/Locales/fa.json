@@ -42247,7 +42247,7 @@
   "List Regions by their codes, such as us-east-1 or eu-central-1.": "مناطق را با کدشان بنویسید، مانند us-east-1 یا eu-central-1.",
   "List at most {{count}} Regions.": "حداکثر {{count}} منطقه بنویسید.",
   "Log groups": "گروه‌های لاگ",
-  "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.": "وقتی اتصال حساب آن CloudWatch Logs را جریان دهد، لاگ‌ها اینجا نمایش داده می‌شوند: در Cloud > اتصال، روی اتصال «جریان‌دادن متریک‌ها و لاگ‌ها» را با گروه لاگ این منبع انتخاب کنید.",
+  "Logs appear here once this resource's AWS account streams its log group: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "وقتی حساب AWS این منبع گروه لاگ آن را جریان دهد، لاگ‌ها اینجا نمایش داده می‌شوند: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را انتخاب کنید.",
   "Logs endpoint": "نقطه پایانی لاگ‌ها",
   "Logs of {{count}} log groups from {{region}}": "لاگ‌های {{count}} گروه لاگ از {{region}}",
   "Logs of {{count}} log groups from {{region}}_one": "لاگ‌های {{count}} گروه لاگ از {{region}}",
@@ -45620,6 +45620,8 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` تشخیص‌دهندهٔ منبع {{detector}} را در Node.js روشن می‌کند. زبان‌های دیگر آن را با این‌ها روشن می‌کنند: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`، واردشده به پروژه، با Secret Manager API فعال (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "نقطه پایانی OTLP",
+  "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "لاگ‌هایی که ویژگی‌های منبع cloud.platform، cloud.account.id و cloud.region این محیط را دارند، اینجا نمایش داده می‌شوند؛ وقتی حساب AWS آن CloudWatch Logs را جریان دهد، آن لاگ‌ها هم اینجا نمایش داده می‌شوند: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را انتخاب کنید.",
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "در این بازهٔ زمانی چیزی از گروه لاگ این منبع نرسیده است. بازهٔ طولانی‌تری انتخاب کنید، یا بررسی کنید که حساب آن این گروه لاگ را جریان دهد: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را باز کنید.",
   "Page default ({{language}})": "پیش‌فرض صفحه ({{language}})",
   "The language their notifications are written in.": "زبانی که اعلان‌هایشان به آن نوشته می‌شود."
 }

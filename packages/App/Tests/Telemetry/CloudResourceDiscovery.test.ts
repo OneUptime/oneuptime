@@ -40,6 +40,7 @@ jest.mock("Common/Server/Utils/PasswordHash", () => {
 });
 
 import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelIngestBaseService";
+import { buildResourceLogs } from "../../FeatureSet/Telemetry/Utils/AwsFirehose/CloudWatchLogs";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
@@ -852,6 +853,222 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
     expect(recordRevision).not.toHaveBeenCalled();
     expect(recordInstance).toHaveBeenCalledWith(
       expect.objectContaining({ revision: undefined }),
+    );
+  });
+});
+
+/*
+ * What a cloud connection's stream delivers: CloudWatch Logs of an App
+ * Runner service, an Elastic Beanstalk environment, an ECS task or cluster,
+ * stamped by the Firehose logs ingest (buildResourceLogs, CloudLogGroups)
+ * with the connection's telemetry service as service.name, its id, the
+ * account, the Region and the platform. Their environment is found - the
+ * very one the platform's apps report to - and nothing else: no app named
+ * after the connection, no app from what the log group names, no instance.
+ */
+describe("autoDiscoverCloudResource for what a cloud connection's stream delivers", () => {
+  const CONNECTION_ID: string = "33333333-3333-4333-8333-333333333333";
+  const CONNECTION_SERVICE: string = "Production AWS";
+
+  // The OTLP resource the Firehose logs ingest builds for a log group's events.
+  function streamedResource(logGroup: string): Record<string, string> {
+    const built: { resourceLogs: Array<JSONObject> } = buildResourceLogs({
+      messages: [
+        {
+          messageType: "DATA_MESSAGE",
+          owner: "123456789012",
+          logGroup,
+          logStream: "instance/1a2b3c4d5e6f",
+          logEvents: [
+            {
+              id: "1",
+              timestamp: Date.UTC(2026, 10, 6, 10, 0, 0),
+              message: "GET /cart 200",
+            },
+          ],
+        },
+      ],
+      region: "us-east-1",
+      serviceName: CONNECTION_SERVICE,
+      connectionId: CONNECTION_ID,
+      observedAtMs: Date.UTC(2026, 10, 6, 10, 0, 1),
+    });
+
+    expect(built.resourceLogs).toHaveLength(1);
+
+    const values: Record<string, string> = {};
+
+    for (const attribute of (built.resourceLogs[0]!["resource"] as JSONObject)[
+      "attributes"
+    ] as JSONArray) {
+      const entry: JSONObject = attribute as JSONObject;
+      values[entry["key"] as string] = (entry["value"] as JSONObject)[
+        "stringValue"
+      ] as string;
+    }
+
+    return values;
+  }
+
+  function expectNothingButTheEnvironment(): void {
+    expect(recordApp).not.toHaveBeenCalled();
+    expect(findAppId).not.toHaveBeenCalled();
+    expect(recordRevision).not.toHaveBeenCalled();
+    expect(recordChange).not.toHaveBeenCalled();
+    expect(recordInstance).not.toHaveBeenCalled();
+    // Not even a fence was claimed for an app, a revision or an instance.
+    expect(
+      [...heldFences].filter((fence: string): boolean => {
+        return fence.startsWith("cloud-app") || fence.includes("instance");
+      }),
+    ).toEqual([]);
+  }
+
+  test.each([
+    {
+      logGroup: "/aws/apprunner/storefront/8a7b6c5d4e3f/application",
+      platform: "aws_app_runner",
+      name: "AWS App Runner · us-east-1 · 123456789012",
+    },
+    {
+      logGroup: "/aws/elasticbeanstalk/storefront-prod/var/log/web.stdout.log",
+      platform: "aws_elastic_beanstalk",
+      name: "AWS Elastic Beanstalk · us-east-1 · 123456789012",
+    },
+    {
+      logGroup: "/ecs/storefront-web",
+      platform: "aws_ecs",
+      name: "AWS ECS · us-east-1 · 123456789012",
+    },
+    {
+      logGroup: "/aws/ecs/containerinsights/production/performance",
+      platform: "aws_ecs",
+      name: "AWS ECS · us-east-1 · 123456789012",
+    },
+  ])(
+    "$logGroup: its environment is found, and no app or instance is made",
+    async (example: { logGroup: string; platform: string; name: string }) => {
+      const streamed: Record<string, string> = streamedResource(
+        example.logGroup,
+      );
+
+      // What the stream stamped: the connection's service, and the platform.
+      expect(streamed).toEqual(
+        expect.objectContaining({
+          "service.name": CONNECTION_SERVICE,
+          "oneuptime.cloud.connection.id": CONNECTION_ID,
+          "cloud.platform": example.platform,
+        }),
+      );
+
+      const result: unknown = await discover(streamed);
+
+      expect((result as ObjectID).toString()).toBe(RESOURCE_ID);
+      expect(findOrCreate).toHaveBeenCalledTimes(1);
+      expect(findOrCreate).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        resourceIdentifier: `${example.platform}|123456789012|us-east-1`,
+        name: example.name,
+        cloudPlatform: example.platform,
+        cloudProvider: "aws",
+        cloudRegion: "us-east-1",
+        cloudAccountId: "123456789012",
+      });
+      // The environment is kept reporting while the logs stream.
+      expect(updateLastSeen).toHaveBeenCalledTimes(1);
+      expectNothingButTheEnvironment();
+    },
+  );
+
+  test("a log group of no App Platforms platform finds no environment at all", async () => {
+    for (const logGroup of [
+      "/aws/lambda/checkout",
+      "/aws/rds/instance/orders-db/error",
+      "/aws/vendedlogs/states/order-flow-Logs",
+      "/my-team/app",
+    ]) {
+      await expect(discover(streamedResource(logGroup))).resolves.toBeNull();
+    }
+
+    expect(findOrCreate).not.toHaveBeenCalled();
+    expectNothingButTheEnvironment();
+  });
+
+  test("whatever names an instance or an app it carried, a connection's resource records neither", async () => {
+    await discover({
+      ...streamedResource("/ecs/checkout-api"),
+      "aws.ecs.task.arn": TASK_ARN,
+      "aws.ecs.cluster.arn": CLUSTER_ARN,
+      "aws.ecs.task.revision": "43",
+      "service.instance.id": "sdk-instance-7",
+      "host.name": "ip-10-0-1-23",
+    });
+
+    expect(findOrCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceIdentifier: "aws_ecs|123456789012|us-east-1",
+      }),
+    );
+    expectNothingButTheEnvironment();
+  });
+
+  test("an App Runner app's own telemetry in the same environment still makes its app and its instance", async () => {
+    // The stream's logs: the environment, nothing else.
+    await discover(
+      streamedResource("/aws/apprunner/storefront/8a7b6c5d4e3f/application"),
+    );
+    expectNothingButTheEnvironment();
+
+    // The app's own SDK, set up as Other Cloud Platforms says.
+    await discover({
+      "service.name": "storefront",
+      "service.version": "1.4.2",
+      "cloud.provider": "aws",
+      "cloud.platform": "aws_app_runner",
+      "cloud.region": "us-east-1",
+      "cloud.account.id": "123456789012",
+      "host.name": "ip-169-254-172-2",
+    });
+
+    // One environment for both: the second batch found it in the id cache.
+    expect(findOrCreate).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cloudPlatform: "aws_app_runner",
+        identity: expect.objectContaining({
+          name: "storefront",
+          nameAttribute: "service.name",
+        }),
+      }),
+    );
+    expect(recordInstance).toHaveBeenCalledWith(
+      expect.objectContaining({ instanceName: "ip-169-254-172-2" }),
+    );
+  });
+
+  test("an ECS task's own telemetry makes its app in its cluster; the stream's group of its family makes none", async () => {
+    await discover(streamedResource("/ecs/checkout-api"));
+    expectNothingButTheEnvironment();
+
+    await discover({
+      ...ECS_ATTRIBUTES,
+      "aws.ecs.task.family": "checkout-api",
+      "aws.ecs.cluster.arn": CLUSTER_ARN,
+      "aws.ecs.task.arn": TASK_ARN,
+    });
+
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity: expect.objectContaining({
+          name: "checkout-api",
+          groupName: "production",
+        }),
+      }),
+    );
+    expect(recordInstance).toHaveBeenCalledWith(
+      expect.objectContaining({ instanceName: TASK_ID }),
     );
   });
 });
