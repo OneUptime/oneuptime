@@ -743,6 +743,10 @@ describe("the dialog", () => {
 
     expect(part("logs")).toBeInTheDocument();
     expect(part("log-groups-region")).toHaveValue("us-east-1");
+    // Said before the command runs: what it checks first, and AWS's limit.
+    expect(part("logs")).toHaveTextContent(
+      "The command checks each group first and sets nothing up if one is not there or already has two subscription filters, the most AWS allows.",
+    );
     // None named yet: no command, and why.
     expect(queryPart("command")).not.toBeInTheDocument();
     expect(queryPart("download")).not.toBeInTheDocument();
@@ -753,6 +757,11 @@ describe("the dialog", () => {
     expect(queryPart("problem")).not.toBeInTheDocument();
     expect(command()).toContain("/aws/lambda/checkout");
     expect(command()).toContain("AWS::Logs::SubscriptionFilter");
+    // The command reads the group's subscription filters before it deploys.
+    expect(command()).toContain(
+      "for GROUP_IN in 'us-east-1 /aws/lambda/checkout'; do",
+    );
+    expect(command()).toContain("aws logs describe-subscription-filters");
     expect(command()).toContain("AWS::CloudWatch::MetricStream");
     expect(command()).toContain(LOGS_URL);
 
@@ -775,6 +784,15 @@ describe("the dialog", () => {
     expect(command()).toContain("AWS::Logs::AccountPolicy");
     expect(command()).toContain("SUBSCRIPTION_FILTER_POLICY");
     expect(command()).not.toContain("AWS::CloudWatch::MetricStream");
+    // Said before the command runs: the one account-wide subscription a SIEM may hold.
+    expect(part("logs")).toHaveTextContent(
+      "AWS allows one account-wide log subscription per Region: if another tool, such as a SIEM, already holds it, the command says so and sets nothing up.",
+    );
+    // The named groups' check goes with their list.
+    expect(part("logs")).not.toHaveTextContent(
+      "The command checks each group first",
+    );
+    expect(command()).toContain("aws logs describe-account-policies");
 
     // Every metric is a metrics choice: not offered for logs alone.
     await openMoreFields();

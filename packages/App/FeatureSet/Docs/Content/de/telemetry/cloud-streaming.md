@@ -47,6 +47,8 @@ Gehen Sie zu **Cloud → Verbinden** und wählen Sie in der Zeile des AWS-Kontos
 
 Für Protokolle geben Sie die **Protokollgruppen** an, eine pro Zeile, mit Namen in der **Region** daneben oder mit ARN in ihrer eigenen Region, oder wählen Sie **Jede Protokollgruppe des Kontos, auch neue**. Ein Befehl abonniert höchstens 50 Protokollgruppen mit Namen, in höchstens 10 Regionen.
 
+AWS erlaubt pro Region ein kontoweites Protokollabonnement und pro Protokollgruppe zwei Abonnementfilter. Bevor der Befehl etwas bereitstellt, prüft er beides: Wenn ein anderes Tool, etwa ein SIEM, das kontoweite Abonnement einer Region bereits belegt oder eine von Ihnen genannte Protokollgruppe nicht existiert oder bereits zwei Abonnementfilter hat, sagt er, welche, und richtet nichts ein.
+
 ### Einen Stream-Schlüssel erstellen
 
 Wählen Sie **Stream-Schlüssel erstellen**. Der Schlüssel wird nur dieses eine Mal angezeigt, im Befehl: OneUptime speichert nur seinen SHA-256.
@@ -167,6 +169,10 @@ Prüfen Sie, ob der Befehl in jeder Region ohne Fehler fertig wurde: `aws cloudf
 
 :::details Die Verbindung sagt Stream abgelehnt
 Der Dialog und der Tooltip der Zeile sagen, warum. Ein falscher Schlüssel bedeutet, dass die Stacks mit einem Schlüssel laufen, der nicht mehr funktioniert: Erstellen Sie einen neuen Schlüssel und führen Sie den Befehl erneut aus. Firehose sendet weiter, was es hält, und es wird angenommen, sobald der Schlüssel stimmt.
+:::
+
+:::details Der Befehl meldet `Nothing was set up`
+Die Zeilen darüber sagen, warum, jeweils mit ihrer Region oder Protokollgruppe. Wenn ein anderes Tool das kontoweite Protokollabonnement einer Region belegt, geben Sie stattdessen die zu streamenden Protokollgruppen an oder entfernen Sie die Richtlinie dieses Tools. Wenn eine Protokollgruppe bereits zwei Abonnementfilter hat, entfernen Sie einen davon oder lassen Sie die Gruppe weg. Wenn es keine solche Protokollgruppe gibt, prüfen Sie ihren Namen und ihre Region oder geben Sie ihren ARN an. Führen Sie den Befehl dann erneut aus.
 :::
 
 :::details Die Protokolle einer Lambda-Funktion erscheinen nicht auf ihrer Seite
