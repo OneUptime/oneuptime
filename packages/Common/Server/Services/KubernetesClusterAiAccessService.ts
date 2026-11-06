@@ -1,4 +1,5 @@
 import Alert from "../../Models/DatabaseModels/Alert";
+import { truncateLongText } from "../Utils/Database/TruncateColumnValue";
 import Incident from "../../Models/DatabaseModels/Incident";
 import KubernetesAiAgent from "../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -2624,9 +2625,13 @@ class KubernetesClusterAiAccessServiceClass {
               aiAccessLastError: null,
             }
           : {
-              aiAccessLastError: (data.errorMessage || "Command failed.").slice(
-                0,
-                2000,
+              /*
+               * Held to what the column takes (LongText, 500): the 2000 this
+               * was cut to was refused whole above 500, and the page's last
+               * error stayed what it was.
+               */
+              aiAccessLastError: truncateLongText(
+                data.errorMessage || "Command failed.",
               ),
             }) as never,
         props: { isRoot: true },

@@ -3,12 +3,19 @@ import LocalFile from "Common/Server/Utils/LocalFile";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import path from "path";
 import TaskLogger from "./TaskLogger";
-import GitCredentials, { GitCredentialHandle } from "./GitCredentials";
+import GitCredentials, {
+  GITHUB_TOKEN_USERNAME,
+  GitCredentialHandle,
+} from "./GitCredentials";
+import GitCommandError from "./GitCommandError";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "./GitPorcelain";
 import SecretRedactor from "./SecretRedactor";
 import GitHostGuard from "./GitHostGuard";
 import { CodeTaskChanges, CodeTaskFileStatus } from "Common/Types/AI/CodeTask";
-import { CodeHostRunnerInfo } from "Common/Types/CodeRepository/CodeHost";
+import {
+  CodeHostRunnerInfo,
+  CodeHostUrl,
+} from "Common/Types/CodeRepository/CodeHost";
 
 export interface CloneResult {
   workingDirectory: string;
@@ -54,6 +61,12 @@ const DEFAULT_GIT_TIMEOUT_MS: number = 60 * 1000;
 
 // `git log`/`git status` on a large tree can exceed the 1 MB default.
 const GIT_MAX_BUFFER_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * Hooks looked for in a directory that cannot hold any: no hook runs. For a
+ * command that carries the credentials (the push).
+ */
+export const NO_HOOKS_OPTION: string = "core.hooksPath=/dev/null";
 
 /*
  * How much of a commit's diff a request from Code reports: the server keeps
@@ -129,6 +142,10 @@ export default class RepositoryManager {
 
     const credentials: GitCredentialHandle = await GitCredentials.create(
       config.token,
+      {
+        username: RepositoryManager.getUsername(config),
+        remoteUrl,
+      },
     );
 
     try {
@@ -165,13 +182,25 @@ export default class RepositoryManager {
          * back to the remote's own default is strictly better than failing
          * the run: the fix still gets attempted, and the pull request
          * targets whatever was actually checked out.
+         *
+         * A clone that failed for a reason the second clone would fail for
+         * too is not tried again: a server that refused the credentials (a
+         * second refused sign-in counts toward a Windows account's lockout,
+         * on an Azure DevOps Server) or could not be reached, or a clone
+         * that ran out of time. The run then says what happened, not that
+         * a branch was missing.
          */
-        if (!config.baseBranch) {
+        if (
+          !config.baseBranch ||
+          !RepositoryManager.mayBeMissingBranch(error)
+        ) {
           throw error;
         }
 
         await this.log(
-          `Branch "${config.baseBranch}" was not found on the remote — cloning the repository's default branch instead.`,
+          error instanceof GitCommandError && error.isMissingRemoteBranch()
+            ? `Branch "${config.baseBranch}" was not found on the remote — cloning the repository's default branch instead.`
+            : `Branch "${config.baseBranch}" could not be cloned — cloning the repository's default branch instead.`,
         );
 
         await LocalFile.deleteDirectory(repositoryPath).catch(() => {
@@ -180,6 +209,13 @@ export default class RepositoryManager {
 
         await clone();
       }
+    } catch (error) {
+      throw RepositoryManager.describeRemoteFailure({
+        action: "clone",
+        config,
+        remoteUrl,
+        error,
+      });
     } finally {
       await credentials.dispose();
     }
@@ -207,13 +243,102 @@ export default class RepositoryManager {
 
   /*
    * The remote's address with the username Git signs in with - never the
-   * token, which goes through the askpass helper.
+   * token, which goes in the git process's environment (GitCredentials).
    */
   private static getRemoteUrl(config: RepositoryConfig): string {
     return GitCredentials.buildRemoteUrl({
       ...config,
-      ...(config.codeHost ? { username: config.codeHost.username } : {}),
+      username: RepositoryManager.getUsername(config),
     });
+  }
+
+  /*
+   * The username Git signs in with: a GitLab, Forgejo or Gitea token's
+   * account, or a Git repository's own username (CodeHostRunnerInfo);
+   * x-access-token for a GitHub installation token.
+   */
+  private static getUsername(config: RepositoryConfig): string {
+    return config.codeHost?.username || GITHUB_TOKEN_USERNAME;
+  }
+
+  /*
+   * Whether a failed clone of the branch asked for may be the branch
+   * missing, so cloning the remote's default branch could work: anything
+   * but a refused sign-in, a server that could not be reached, or a clone
+   * that ran out of time.
+   */
+  private static mayBeMissingBranch(error: unknown): boolean {
+    if (!(error instanceof GitCommandError)) {
+      return true;
+    }
+
+    if (error.isMissingRemoteBranch()) {
+      return true;
+    }
+
+    return !(
+      error.isSignInRefusal() ||
+      error.isServerUnreachable() ||
+      error.isTimeout
+    );
+  }
+
+  /*
+   * A clone or push that failed, said for the person whose run it was:
+   * which repository, what to check, and what git said - the error a task
+   * handler reports as the run's message. A refused sign-in says where the
+   * credentials are kept; it is the failure a person can fix. An error that
+   * did not come from git (the host guard's refusal) is said as it is.
+   */
+  public static describeRemoteFailure(data: {
+    action: "clone" | "push";
+    config: RepositoryConfig;
+    remoteUrl: string;
+    branchName?: string | undefined;
+    error: unknown;
+  }): Error {
+    const error: unknown = data.error;
+
+    if (!(error instanceof GitCommandError)) {
+      return error instanceof Error ? error : new Error(String(error));
+    }
+
+    const repository: string = `${data.config.organizationName}/${data.config.repositoryName}`;
+    const host: string =
+      CodeHostUrl.getHostName(data.remoteUrl) || "The Git server";
+    const branch: string = data.branchName
+      ? `the branch ${data.branchName}`
+      : "the branch";
+    // What could not be done, to follow "so" or to stand as a sentence.
+    const what: string =
+      data.action === "clone"
+        ? `${repository} could not be cloned`
+        : `${branch} could not be pushed to ${repository}`;
+    const sentence: string =
+      data.action === "clone" ? what : `The ${what.substring("the ".length)}`;
+    const gitSays: string = error.gitSays ? ` Git said: ${error.gitSays}` : "";
+
+    if (error.isSignInRefusal()) {
+      const check: string = data.config.codeHost
+        ? `Check the username and the password or token it is connected with in Code, and that they may ${data.action === "clone" ? "read" : "write to"} the repository.`
+        : "Check that the OneUptime GitHub App is still installed with access to the repository.";
+
+      return new Error(
+        `${host} refused the credentials OneUptime signed in with, so ${what}. ${check}${gitSays}`,
+      );
+    }
+
+    if (error.isTimeout) {
+      return new Error(
+        `Git did not finish in time and was stopped, so ${what}.${gitSays}`,
+      );
+    }
+
+    if (error.isServerUnreachable()) {
+      return new Error(`${host} could not be reached, so ${what}.${gitSays}`);
+    }
+
+    return new Error(`${sentence}.${gitSays}`);
   }
 
   /*
@@ -502,8 +627,9 @@ export default class RepositoryManager {
    * Push the branch.
    *
    * The remote keeps its credential-free URL; authentication is supplied
-   * for this one command through the askpass environment, so nothing
-   * authenticated is ever written to .git/config.
+   * for this one command through the git process's environment
+   * (GitCredentials), so nothing authenticated is ever written to
+   * .git/config.
    */
   public async pushBranch(
     repoPath: string,
@@ -514,12 +640,17 @@ export default class RepositoryManager {
 
     SecretRedactor.register(config.token, "repository-token");
 
+    const remoteUrl: string = RepositoryManager.getRemoteUrl(config);
+
     const credentials: GitCredentialHandle = await GitCredentials.create(
       config.token,
+      {
+        username: RepositoryManager.getUsername(config),
+        remoteUrl,
+      },
     );
 
     try {
-      const remoteUrl: string = RepositoryManager.getRemoteUrl(config);
       const hostOptions: Array<string> = await RepositoryManager.getHostOptions(
         config,
         remoteUrl,
@@ -531,14 +662,39 @@ export default class RepositoryManager {
         { env: credentials.env },
       );
 
+      /*
+       * No hook of the repository's runs in the push: a setup command
+       * (`npm ci` installing husky) points core.hooksPath at the
+       * repository's committed hooks, and a pre-push hook would run with
+       * this command's environment - the credentials in it - and could fail
+       * or stall the push, losing the change after the whole run. The
+       * commit skips them for the same reason (--no-verify); the hooks are
+       * the repository's CI's to run.
+       */
       await this.runGitCommand(
         repoPath,
-        [...hostOptions, "push", "-u", "origin", branchName],
+        [
+          ...hostOptions,
+          "-c",
+          NO_HOOKS_OPTION,
+          "push",
+          "-u",
+          "origin",
+          branchName,
+        ],
         {
           timeoutInMS: PUSH_TIMEOUT_MS,
           env: credentials.env,
         },
       );
+    } catch (error) {
+      throw RepositoryManager.describeRemoteFailure({
+        action: "push",
+        config,
+        remoteUrl,
+        branchName,
+        error,
+      });
     } finally {
       await credentials.dispose();
     }
@@ -900,11 +1056,14 @@ export default class RepositoryManager {
    * Two things every call depends on:
    *   - a timeout, so no git command can wedge the strictly-serial code-fix
    *     loop indefinitely;
-   *   - a redacted rejection. Node's execFile puts the whole command line
-   *     into the Error message, and the task handlers forward that message
-   *     to the server as the run's statusMessage, where it is stored and
-   *     displayed. Re-throwing a redacted Error is what keeps a credential
-   *     that reached argv by any route out of the database.
+   *   - a redacted rejection that says what git said went wrong
+   *     (GitCommandError), not the command line. Node's execFile puts the
+   *     whole command line into the Error message, and the task handlers
+   *     forward that message to the server as the run's statusMessage,
+   *     where it is stored and displayed - so a credential that reached
+   *     argv by any route never gets there, and git's own reason is not
+   *     pushed past the length the run's message is kept at. The command
+   *     line, redacted, goes to this Runner's debug log.
    */
   private async runGitCommand(
     repoPath: string,
@@ -935,7 +1094,14 @@ export default class RepositoryManager {
         ...(options?.env ? { env: { ...process.env, ...options.env } } : {}),
       });
     } catch (error) {
-      throw new Error(SecretRedactor.redactError(error));
+      logger.debug(
+        `git command failed in ${cwd}: ${SecretRedactor.redactError(error)}`,
+        {
+          repoPath: cwd,
+        } as LogAttributes,
+      );
+
+      throw GitCommandError.fromExecError(args, error);
     }
   }
 
