@@ -5,15 +5,18 @@ import {
   startOfUtcMonth,
 } from "Common/Types/Cloud/CloudCost";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { CloudCostDimension } from "./CloudCostReads";
+import { CloudCostDimension, CloudCostRestKind } from "./CloudCostReads";
 
 /*
  * HOW THE COSTS PAGES BREAK THE SPEND DOWN.
  *
  * "Where the money goes" lists what cost the most in a period - this
  * month, last month or the last 30 days, in UTC days as the clouds bill -
- * by service, Region, account or resource. React-free: App tests read the
- * windows and the names a breakdown's keys are drawn with.
+ * by service, Region, account or resource, by App Platforms environment
+ * or app, or by a tag's value. A breakdown by environment, app or tag
+ * lists only those, and says under the list what the rest of the spend
+ * came to. React-free: App tests read the windows and the names a
+ * breakdown's keys are drawn with.
  */
 
 export enum CloudCostPeriod {
@@ -60,7 +63,26 @@ export const CLOUD_COST_DIMENSION_OPTIONS: Array<{
   { label: translationKey("Regions"), value: "region" },
   { label: translationKey("Accounts"), value: "cloudAccountId" },
   { label: translationKey("Resources"), value: "resourceId" },
+  { label: translationKey("Environments"), value: "environment" },
+  { label: translationKey("Apps"), value: "app" },
+  { label: translationKey("Tags"), value: "tag" },
 ];
+
+/*
+ * What a breakdown by environment, app or tag says under its list: what
+ * the rest of the period's spend came to, and why it is not in the list.
+ */
+export const BREAKDOWN_REST_LABELS: Readonly<
+  Record<CloudCostRestKind, string>
+> = {
+  "not-in-environment": translationKey(
+    "{{amount}} is not in an App Platforms environment.",
+  ),
+  "not-one-app": translationKey(
+    "{{amount}} is billed to an environment as a whole, not to one app.",
+  ),
+  "without-tag": translationKey("{{amount}} does not carry this tag."),
+};
 
 // A cost with no value for the dimension, as its row is named.
 export const NO_REGION: string = translationKey("No Region");

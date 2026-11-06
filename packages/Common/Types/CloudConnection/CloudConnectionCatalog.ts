@@ -244,6 +244,40 @@ function dataSecurityResponseField(): CloudConnectionField {
   };
 }
 
+/*
+ * AWS: the setting that says whether the connection reads what each
+ * resource costs, from Cost Explorer's resource-level data (opt-in in the
+ * account's Cost Management preferences, for the last 14 days). Off until
+ * someone turns it on: each read is one more Cost Explorer request a day or
+ * a few, at $0.01 each. Azure and Google Cloud's billing name each
+ * resource already, so they have no such setting.
+ */
+export const RESOURCE_COSTS_FIELD_KEY: string = "resourceCosts";
+
+export type CloudConnectionResourceCosts = "off" | "on";
+
+// Whether a connection reads costs per resource: "on" alone does.
+export function isCloudConnectionResourceCostsOn(value: unknown): boolean {
+  return value === "on";
+}
+
+function resourceCostsField(): CloudConnectionField {
+  return {
+    key: RESOURCE_COSTS_FIELD_KEY,
+    title: "Costs per resource",
+    description:
+      "Reads what each resource costs from Cost Explorer, once you turn on resource-level data in Cost Management preferences. About one more Cost Explorer request a day, at $0.01 each.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "On", value: "on" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+  };
+}
+
 function readIntervalField(defaultMinutes: number): CloudConnectionField {
   return {
     key: READ_INTERVAL_FIELD_KEY,
@@ -360,6 +394,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         isAdvanced: true,
       },
       readIntervalField(10),
+      resourceCostsField(),
       dataSecurityField(),
       dataSecurityResponseField(),
     ],

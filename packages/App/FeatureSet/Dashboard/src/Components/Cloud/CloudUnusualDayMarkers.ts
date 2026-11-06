@@ -30,8 +30,9 @@ import {
  */
 
 // What ran high and what it cost: "Amazon Athena: $52.10".
-export const UNUSUAL_DAY_MARKER_LABEL: string =
-  translationKey("{{what}}: {{amount}}");
+export const UNUSUAL_DAY_MARKER_LABEL: string = translationKey(
+  "{{what}}: {{amount}}",
+);
 
 // Under it, on a page over every account: "data-lake · 2.5 times its usual $21.00".
 export const UNUSUAL_DAY_MARKER_SUBTITLE: string = translationKey(

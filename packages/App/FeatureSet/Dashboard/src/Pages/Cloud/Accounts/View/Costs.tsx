@@ -1,4 +1,5 @@
 import PageComponentProps from "../../../PageComponentProps";
+import CloudCommitmentsCard from "../../../../Components/Cloud/CloudCommitmentsCard";
 import CloudCostsView from "../../../../Components/Cloud/CloudCostsView";
 import CloudSavingsTable from "../../../../Components/Cloud/CloudSavingsTable";
 import useCloudAccounts, {
@@ -14,8 +15,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 /*
  * A cloud account's Costs: what it costs from its cloud's own billing - the
  * month so far and where it is heading, each day of the last 30, where the
- * money goes - and the ways its cloud's recommender says it could spend
- * less, the largest first.
+ * money goes - how much of it its commitments cover and how much of them is
+ * used, when it has any, and the ways its cloud's recommender says it could
+ * spend less, the largest first.
  */
 const CloudAccountCosts: FunctionComponent<
   PageComponentProps
@@ -43,6 +45,7 @@ const CloudAccountCosts: FunctionComponent<
         accounts={read.accounts}
         cloudAccountId={modelId}
       />
+      <CloudCommitmentsCard accounts={read.accounts} isOneAccount={true} />
       <CloudSavingsTable
         id="cloud-account-savings-table"
         cloudAccountId={modelId}

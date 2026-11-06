@@ -6,6 +6,7 @@ import CloudCostGapsCard, {
 import CloudCostSetupSteps, {
   getCloudProvidersOf,
 } from "../../Components/Cloud/CloudCostSetupSteps";
+import CloudCommitmentsCard from "../../Components/Cloud/CloudCommitmentsCard";
 import { getCloudSavingsTiles } from "../../Components/Cloud/CloudOverviewTiles";
 import CloudSavingsTable from "../../Components/Cloud/CloudSavingsTable";
 import CloudStatStrip from "../../Components/Cloud/CloudStatStrip";
@@ -26,10 +27,11 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * Cloud > Savings: how to spend less, from your clouds' own recommenders -
  * AWS Cost Optimization Hub, Azure Advisor, Google Cloud's Recommender.
  * The strip says what could be saved a month and in what way (smaller
- * sizes, idle resources, commitments); the table lists every
- * recommendation, the largest first; the accounts whose recommendations
- * are not read follow, with why and what to do. Before any are read, it
- * says what each cloud needs.
+ * sizes, idle resources, commitments); Commitments says how much of the
+ * spend the commitments the accounts have cover and how much of them is
+ * used; the table lists every recommendation, the largest first; the
+ * accounts whose recommendations are not read follow, with why and what to
+ * do. Before any are read, it says what each cloud needs.
  */
 
 export const SAVINGS_NOT_READ_TITLE: string = translationKey(
@@ -92,6 +94,7 @@ const CloudSavings: FunctionComponent<
           </div>
         </Card>
       )}
+      <CloudCommitmentsCard accounts={read.accounts} />
       <CloudSavingsTable
         id="cloud-savings-table"
         currency={read.totals.savings.currency}

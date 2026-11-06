@@ -53,9 +53,7 @@ import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.j
  */
 
 jest.mock("../../../UI/Components/Charts/Bar/BarChart", () => {
-  const ReactActual: typeof React = jest.requireActual(
-    "react",
-  ) as typeof React;
+  const ReactActual: typeof React = jest.requireActual("react") as typeof React;
 
   return {
     __esModule: true,

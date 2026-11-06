@@ -31,6 +31,11 @@ import Permission from "../../Types/Permission";
  * of every daily partition of the metrics alive for as long (SloHistory
  * says why). Monthly partitions, kept CLOUD_COST_HISTORY_DAYS.
  *
+ * Each cost keeps its tags (tags, with their keys in tagKeys for the skip
+ * index): a Google Cloud billing export's labels, else the tags OneUptime
+ * holds for the resource it is billed to - so the spend breaks down by any
+ * of them (CloudCostService reads a tag's values, groupByAttributeKeys).
+ *
  * Read through the account the cost belongs to: a caller whose grants are
  * limited to labels reads the costs of the accounts those reach.
  */
@@ -197,6 +202,42 @@ export default class CloudCost extends AnalyticsBaseModel {
           description: "When the cloud connection read the figure.",
           type: TableColumnType.Date,
         }),
+        new AnalyticsTableColumn({
+          key: "tags",
+          codec: { codec: "ZSTD", level: 3 },
+          title: "Tags",
+          description:
+            "The cost's tags (labels on Google Cloud): the billing export's, else the tags of the resource it is billed to, when it was read.",
+          required: true,
+          defaultValue: {},
+          type: TableColumnType.MapStringString,
+          mapKeysColumn: "tagKeys",
+          accessControl: {
+            read: readPermissions,
+            create: createPermissions,
+            update: [],
+          },
+        }),
+        new AnalyticsTableColumn({
+          key: "tagKeys",
+          codec: { codec: "ZSTD", level: 3 },
+          title: "Tag Keys",
+          description: "The keys of the cost's tags.",
+          required: true,
+          defaultValue: [],
+          type: TableColumnType.ArrayText,
+          skipIndex: {
+            name: "idx_tag_keys",
+            type: SkipIndexType.BloomFilter,
+            params: [0.01],
+            granularity: 1,
+          },
+          accessControl: {
+            read: readPermissions,
+            create: createPermissions,
+            update: [],
+          },
+        }),
       ],
       projections: [],
       sortKeys: ["projectId", "cloudAccountId", "day", "service"],
@@ -310,5 +351,21 @@ export default class CloudCost extends AnalyticsBaseModel {
 
   public set readAt(v: Date | undefined) {
     this.setColumnValue("readAt", v);
+  }
+
+  public get tags(): Record<string, string> | undefined {
+    return this.getColumnValue("tags") as Record<string, string> | undefined;
+  }
+
+  public set tags(v: Record<string, string> | undefined) {
+    this.setColumnValue("tags", v);
+  }
+
+  public get tagKeys(): Array<string> | undefined {
+    return this.getColumnValue("tagKeys") as Array<string> | undefined;
+  }
+
+  public set tagKeys(v: Array<string> | undefined) {
+    this.setColumnValue("tagKeys", v);
   }
 }

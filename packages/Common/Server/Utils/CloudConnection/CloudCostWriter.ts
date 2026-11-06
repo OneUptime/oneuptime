@@ -5,13 +5,17 @@ import { findCloudCostAnomalies } from "../../../Types/Cloud/CloudCostAnomaly";
 import {
   CloudAccountCostSummary,
   CloudCostAnomaly,
+  CloudCostTagKey,
   CLOUD_COST_DEFAULT_CURRENCY,
   addUtcDays,
   addUtcMonths,
   fromCloudCostDay,
+  getCloudCostTagsKey,
+  normalizeCloudCostTags,
   startOfUtcDay,
   startOfUtcMonth,
   summarizeCloudAccountCosts,
+  summarizeCloudCostTagKeys,
   toCloudCostDay,
 } from "../../../Types/Cloud/CloudCost";
 import OneUptimeDate from "../../../Types/Date";
@@ -44,6 +48,14 @@ import { CloudCostRecord } from "./CloudConnectorTypes";
  * a day it covers gets a row that cancels it. Only an account read in full
  * for the window is corrected so: one that could not be read keeps what it
  * has. The same technique as LlmProviderUsageWriter.
+ *
+ * A series is a day's cost of an account's service, in a Region, of a
+ * resource, in a currency, with a set of tags: a resource tagged anew is,
+ * from the next read of a day, a series of its new tags, and the old one
+ * is taken back. And a figure that is the whole of its service and Region
+ * on a day (isServiceTotal: an AWS day whose resources were not read this
+ * time, while they are kept) leaves the resources' series as they are and
+ * brings the rest - the series not billed to a resource - in line with it.
  */
 
 const COST_TABLE: string = AnalyticsTableName.CloudCost;
@@ -67,7 +79,14 @@ export interface CloudCostSeriesPoint {
   region: string;
   resourceId: string;
   currency: string;
+  // The cost's tags, as normalizeCloudCostTags keeps them.
+  tags: Record<string, string>;
   amount: number;
+  /*
+   * The whole of its account, day, service, Region and currency, the
+   * resources' series kept apart included (CloudCostRecord.isServiceTotal).
+   */
+  isServiceTotal?: boolean | undefined;
 }
 
 export interface CloudCostWriteTarget {
@@ -100,6 +119,22 @@ export default class CloudCostWriter {
       point.service,
       point.region,
       point.resourceId,
+      point.currency,
+      getCloudCostTagsKey(point.tags || {}),
+    ]);
+  }
+
+  /*
+   * The figure a series belongs to: its account's row, day, service,
+   * Region and currency - what a whole-service figure (isServiceTotal) is
+   * the whole of.
+   */
+  public static serviceKey(point: CloudCostSeriesPoint): string {
+    return JSON.stringify([
+      point.cloudAccountId,
+      point.day,
+      point.service,
+      point.region,
       point.currency,
     ]);
   }
@@ -136,11 +171,15 @@ export default class CloudCostWriter {
         day: record.day,
         service: record.service,
         region: record.region,
-        resourceId: record.resourceId,
+        resourceId: record.isServiceTotal ? "" : record.resourceId,
         currency: record.currency || CLOUD_COST_DEFAULT_CURRENCY,
+        tags: record.isServiceTotal ? {} : normalizeCloudCostTags(record.tags),
         amount: record.amount,
+        ...(record.isServiceTotal ? { isServiceTotal: true } : {}),
       };
-      const key: string = CloudCostWriter.seriesKey(point);
+      const key: string = point.isServiceTotal
+        ? `total:${CloudCostWriter.serviceKey(point)}`
+        : CloudCostWriter.seriesKey(point);
       const existing: CloudCostSeriesPoint | undefined = points.get(key);
 
       if (existing) {
@@ -157,6 +196,10 @@ export default class CloudCostWriter {
    * The rows to write so storage matches the cloud: for every day-series
    * the cloud reports or storage holds within the window, the cloud's
    * figure minus the stored sum, where they differ.
+   *
+   * A whole-service figure is matched another way: its resources' series
+   * stay as they are, and the series not billed to a resource ("" resource)
+   * takes up the difference - so the figure's series add up to it.
    */
   public static computeDeltas(data: {
     desired: Array<CloudCostSeriesPoint>;
@@ -171,9 +214,22 @@ export default class CloudCostWriter {
       return point.day >= startDay && point.day < endDay;
     };
 
+    const totals: Map<string, CloudCostSeriesPoint> = new Map();
     const desired: Map<string, CloudCostSeriesPoint> = new Map();
 
     for (const point of data.desired.filter(inWindow)) {
+      if (point.isServiceTotal) {
+        const key: string = CloudCostWriter.serviceKey(point);
+        const existing: CloudCostSeriesPoint | undefined = totals.get(key);
+
+        if (existing) {
+          existing.amount += point.amount;
+        } else {
+          totals.set(key, { ...point });
+        }
+        continue;
+      }
+
       const key: string = CloudCostWriter.seriesKey(point);
       const existing: CloudCostSeriesPoint | undefined = desired.get(key);
 
@@ -185,8 +241,32 @@ export default class CloudCostWriter {
     }
 
     const stored: Map<string, CloudCostSeriesPoint> = new Map();
+    // A whole-service figure's stored series: its resources' sum, and the rest's.
+    const totalParts: Map<
+      string,
+      { resources: number; rest: number; restTemplate?: CloudCostSeriesPoint }
+    > = new Map();
 
     for (const point of data.stored.filter(inWindow)) {
+      const serviceKey: string = CloudCostWriter.serviceKey(point);
+
+      if (totals.has(serviceKey)) {
+        const parts: {
+          resources: number;
+          rest: number;
+          restTemplate?: CloudCostSeriesPoint;
+        } = totalParts.get(serviceKey) || { resources: 0, rest: 0 };
+
+        if (point.resourceId) {
+          parts.resources += point.amount;
+        } else {
+          parts.rest += point.amount;
+        }
+
+        totalParts.set(serviceKey, parts);
+        continue;
+      }
+
       const key: string = CloudCostWriter.seriesKey(point);
       const existing: CloudCostSeriesPoint | undefined = stored.get(key);
 
@@ -213,10 +293,47 @@ export default class CloudCostWriter {
         continue;
       }
 
-      deltas.push({ ...template, amount: delta });
+      deltas.push(CloudCostWriter.seriesPoint(template, delta));
+    }
+
+    for (const [serviceKey, total] of totals) {
+      const parts: { resources: number; rest: number } = totalParts.get(
+        serviceKey,
+      ) || { resources: 0, rest: 0 };
+      const delta: number = total.amount - parts.resources - parts.rest;
+
+      if (Math.abs(delta) < COST_EPSILON) {
+        continue;
+      }
+
+      // The rest: the series of the figure not billed to a resource.
+      deltas.push(
+        CloudCostWriter.seriesPoint(
+          { ...total, resourceId: "", tags: {} },
+          delta,
+        ),
+      );
     }
 
     return deltas;
+  }
+
+  // A series' point with an amount: never a whole-service figure.
+  private static seriesPoint(
+    template: CloudCostSeriesPoint,
+    amount: number,
+  ): CloudCostSeriesPoint {
+    return {
+      cloudAccountId: template.cloudAccountId,
+      accountId: template.accountId,
+      day: template.day,
+      service: template.service,
+      region: template.region,
+      resourceId: template.resourceId,
+      currency: template.currency,
+      tags: template.tags,
+      amount,
+    };
   }
 
   /*
@@ -228,7 +345,7 @@ export default class CloudCostWriter {
     cloudAccountIds: Array<string>;
     window: { start: Date; end: Date };
   }): Statement {
-    const statement: Statement = SQL`SELECT toString(cloudAccountId) AS accountRowId, any(accountId) AS cloudAccountName, toString(toDate(day, 'UTC')) AS dayText, service AS serviceName, region AS regionName, resourceId AS resourceKey, currency AS currencyCode, sum(cost) AS total FROM ${COST_TABLE} WHERE projectId = ${{
+    const statement: Statement = SQL`SELECT toString(cloudAccountId) AS accountRowId, any(accountId) AS cloudAccountName, toString(toDate(day, 'UTC')) AS dayText, service AS serviceName, region AS regionName, resourceId AS resourceKey, currency AS currencyCode, tags AS tagMap, sum(cost) AS total FROM ${COST_TABLE} WHERE projectId = ${{
       type: TableColumnType.ObjectID,
       value: data.projectId,
     }} AND cloudAccountId IN ${{
@@ -240,11 +357,20 @@ export default class CloudCostWriter {
     }} AND day < ${{
       type: TableColumnType.Date,
       value: data.window.end,
-    }} GROUP BY accountRowId, dayText, serviceName, regionName, resourceKey, currencyCode`;
+    }} GROUP BY accountRowId, dayText, serviceName, regionName, resourceKey, currencyCode, tagMap`;
 
     statement.append(READ_QUERY_SETTINGS);
 
     return statement;
+  }
+
+  // A stored row's tags, as the map comes back: an object of text, or none.
+  public static readTagMap(value: unknown): Record<string, string> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    return normalizeCloudCostTags(value as Record<string, unknown>);
   }
 
   // Rows of the stored-sums query, read back as series points.
@@ -270,6 +396,7 @@ export default class CloudCostWriter {
         region: String(row["regionName"] ?? ""),
         resourceId: String(row["resourceKey"] ?? ""),
         currency: String(row["currencyCode"] || CLOUD_COST_DEFAULT_CURRENCY),
+        tags: CloudCostWriter.readTagMap(row["tagMap"]),
         amount: total,
       });
     }
@@ -286,6 +413,8 @@ export default class CloudCostWriter {
     const readAt: string = OneUptimeDate.toClickhouseDateTime(data.now);
 
     return data.deltas.map((delta: CloudCostSeriesPoint): JSONObject => {
+      const tags: Record<string, string> = normalizeCloudCostTags(delta.tags);
+
       return {
         _id: ObjectID.generateTimeOrdered().toString(),
         projectId: data.target.projectId.toString(),
@@ -299,6 +428,8 @@ export default class CloudCostWriter {
         resourceId: delta.resourceId,
         cost: delta.amount,
         currency: delta.currency,
+        tags,
+        tagKeys: Object.keys(tags),
         readAt,
       };
     });
@@ -451,6 +582,7 @@ export default class CloudCostWriter {
   }): Map<string, CloudAccountCostSummary> {
     const summaries: Map<string, CloudAccountCostSummary> = new Map();
     const monthStartDay: string = toCloudCostDay(startOfUtcMonth(data.now));
+    const thirtyDaysBack: string = toCloudCostDay(addUtcDays(data.now, -29));
 
     for (const cloudAccountId of data.cloudAccountIds) {
       const points: Array<CloudCostSeriesPoint> = data.points.filter(
@@ -520,6 +652,17 @@ export default class CloudCostWriter {
 
       if (anomalies.length > 0) {
         summary.anomalies = anomalies;
+      }
+
+      // The tags its last 30 days' costs carry: what Costs breaks them down by.
+      const tagKeys: Array<CloudCostTagKey> = summarizeCloudCostTagKeys(
+        points.filter((point: CloudCostSeriesPoint): boolean => {
+          return point.currency === currency && point.day >= thirtyDaysBack;
+        }),
+      );
+
+      if (tagKeys.length > 0) {
+        summary.tagKeys = tagKeys;
       }
 
       summaries.set(cloudAccountId, summary);
