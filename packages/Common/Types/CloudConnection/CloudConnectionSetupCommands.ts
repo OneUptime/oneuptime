@@ -226,13 +226,18 @@ export const AWS_READ_ONLY_ACTIONS: Array<string> =
  * Actions allowed only on some resources. API Gateway's reads are one
  * action for every path, so it is allowed on the APIs' own definitions
  * only - never on /apikeys, which can return a key's value.
+ *
+ * One pattern a kind of API: /restapis* is /restapis and every path under
+ * it, as /restapis and /restapis/* were, since no other path of API
+ * Gateway's starts with /restapis (nor with /apis). The access key's user
+ * holds this policy inline, where IAM allows 2,048 characters in all:
+ * with Cost Explorer's commitment reads and Elastic Beanstalk's list, the
+ * four patterns took it to 2,070.
  */
 export const AWS_SCOPED_READ_RESOURCES: Record<string, Array<string>> = {
   "apigateway:GET": [
-    "arn:aws:apigateway:*::/restapis",
-    "arn:aws:apigateway:*::/restapis/*",
-    "arn:aws:apigateway:*::/apis",
-    "arn:aws:apigateway:*::/apis/*",
+    "arn:aws:apigateway:*::/restapis*",
+    "arn:aws:apigateway:*::/apis*",
   ],
 };
 
