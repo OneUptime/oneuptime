@@ -31,6 +31,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * Data Security > Settings > Residency: where data may live.
@@ -408,11 +409,11 @@ const DataSecurityResidency: FunctionComponent<
                 <span className="text-sm text-gray-700">
                   {categories.length === 0
                     ? translator.translateText("All personal data")
-                    : categories
-                        .map((category: string): string => {
+                    : joinList(
+                        categories.map((category: string): string => {
                           return translator.translateText(category) || category;
-                        })
-                        .join(", ")}
+                        }),
+                      )}
                 </span>
               );
             },
@@ -429,13 +430,13 @@ const DataSecurityResidency: FunctionComponent<
                 <span className="text-sm text-gray-700">
                   {countries.length === 0
                     ? translator.translateText("Anyone")
-                    : countries
-                        .map((code: string): string => {
+                    : joinList(
+                        countries.map((code: string): string => {
                           const name: string = getCountryName(code);
 
                           return translator.translateText(name) || name;
-                        })
-                        .join(", ")}
+                        }),
+                      )}
                 </span>
               );
             },

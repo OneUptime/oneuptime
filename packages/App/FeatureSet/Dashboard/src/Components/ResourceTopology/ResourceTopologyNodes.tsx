@@ -45,6 +45,7 @@ import {
   ResourceTopologyMoreItem,
 } from "./ResourceTopologyView";
 import { truncateTopologyNameMiddle } from "./ResourceTopologyFormat";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The map's pieces. Every part is a card of its own, side by side with the
@@ -852,7 +853,7 @@ export function describeTopologyPart(
     parts.push(issues);
   }
 
-  return parts.join(", ");
+  return joinList(parts);
 }
 
 /*
@@ -867,23 +868,23 @@ export function describeTopologyOpen(
   const contents: string = describeTopologyContents(translator, node);
   const attention: number = node.attentionBelow;
 
-  return [
-    translator.translateTemplate("Open {{name}}", {
-      name: topologyNodeName(translator, node),
-    }),
-    contents,
-    attention > 0
-      ? describeTopologyAttentionSplit(
-          translator,
-          node.criticalBelow,
-          attention - node.criticalBelow,
-        )
-      : "",
-  ]
-    .filter((part: string): boolean => {
+  return joinList(
+    [
+      translator.translateTemplate("Open {{name}}", {
+        name: topologyNodeName(translator, node),
+      }),
+      contents,
+      attention > 0
+        ? describeTopologyAttentionSplit(
+            translator,
+            node.criticalBelow,
+            attention - node.criticalBelow,
+          )
+        : "",
+    ].filter((part: string): boolean => {
       return part.length > 0;
-    })
-    .join(", ");
+    }),
+  );
 }
 
 /* The class the canvas's rules give the round toggle its hover by. */

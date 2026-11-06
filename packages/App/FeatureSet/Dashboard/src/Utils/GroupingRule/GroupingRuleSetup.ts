@@ -1,5 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { toPeoplePickerIds } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * The plain-language half of the Incident and Alert Grouping Rules pages.
@@ -1115,7 +1116,7 @@ export const getGroupingRuleSummary: (data: {
       }
 
       grouping = translate(GROUPING_SUMMARY_COPY.perCombination, {
-        fields: fields.join(", "),
+        fields: joinList(fields),
       });
       break;
     }
