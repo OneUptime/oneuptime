@@ -1048,11 +1048,12 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Seed the two canonical Google-SRE multi-window burn rate rules, with
+   * Seed the three canonical Google-SRE multi-window burn rate rules, with
    * thresholds scaled to the SLO's compliance window. The textbook constants
-   * (14.4x over 1h/5m, 6x over 6h/30m) are derived from spending 2% / 5% of a
-   * 30-day budget: threshold = budgetFraction * windowHours / longWindowHours.
-   * A 30-day window reproduces exactly 14.4 and 6; shorter or longer windows
+   * (14.4x over 1h/5m, 6x over 6h/30m, 1x over 3d/6h) are derived from spending
+   * 2% / 5% / 10% of a 30-day budget:
+   * threshold = budgetFraction * windowHours / longWindowHours.
+   * A 30-day window reproduces exactly 14.4, 6 and 1; shorter or longer windows
    * stay correctly calibrated.
    */
   private async seedDefaultBurnRateRules(
@@ -1120,6 +1121,12 @@ export class Service extends ProjectReferencesService<Model> {
         burnRateThreshold: this.roundToTwoDecimals((0.05 * windowHours) / 6),
         longWindowInMinutes: 360,
         shortWindowInMinutes: 30,
+      },
+      {
+        name: "Slow leak",
+        burnRateThreshold: this.roundToTwoDecimals((0.1 * windowHours) / 72),
+        longWindowInMinutes: 4320,
+        shortWindowInMinutes: 360,
       },
     ];
 

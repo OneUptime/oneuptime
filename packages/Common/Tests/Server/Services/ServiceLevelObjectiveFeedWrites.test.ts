@@ -444,7 +444,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
       sloRow({ createdAt: CREATED_AT }),
     );
 
-    expect(seedingFlagsAtRuleCreate).toEqual([true, true]);
+    expect(seedingFlagsAtRuleCreate).toEqual([true, true, true]);
     expect(SloFeedUtil.isSeedingDefaultBurnRateRules(SLO_ID)).toBe(false);
   });
 
@@ -475,7 +475,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
           return rule.name;
         },
       ),
-    ).toEqual(["Fast burn", "Slow burn"]);
+    ).toEqual(["Fast burn", "Slow burn", "Slow leak"]);
     // The row's time, so the item sorts ahead of the owner the create adds next.
     expect(args.postedAt).toBe(CREATED_AT);
   });
@@ -510,7 +510,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - feed wiring", () => {
           return rule.name;
         },
       ),
-    ).toEqual(["Slow burn"]);
+    ).toEqual(["Slow burn", "Slow leak"]);
   });
 
   test("does not wait for the created item, and a failing one never fails the create", async () => {
