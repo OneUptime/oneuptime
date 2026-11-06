@@ -45669,5 +45669,6 @@
   "The same change in the {{code}} code, so the next apply keeps it.": "同じ変更を {{code}} のコードにも入れ、次の apply でも保たれるようにします。",
   "You may not ask AI to work in it.": "AI にこのリポジトリでの作業を依頼する権限がありません。",
   "a repository": "リポジトリ",
-  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "このリソースは {{code}} で宣言されているため、次の apply でコードの内容に戻ります。プルリクエストでコードを修正と同じ内容にします。"
+  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "このリソースは {{code}} で宣言されているため、次の apply でコードの内容に戻ります。プルリクエストでコードを修正と同じ内容にします。",
+  "It makes a CloudFormation stack, {{stack}}, in each Region of every account of the organization: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your accounts. AWS bills each metric stream for each metric update it sends, and Firehose for what it delivers.": "組織のすべてのアカウントの各リージョンに CloudFormation スタック {{stack}} を作成します。中身はメトリクスストリームとログのサブスクリプション、OneUptime にだけ配信する 2 つの Firehose ストリーム、配信できなかったものを保管するバケットです。このスタックにはアカウントを読み取れるものは何もありません。AWS は各メトリクスストリームについて送信したメトリクスの更新ごとに、Firehose について配信した量に応じて課金します。"
 }

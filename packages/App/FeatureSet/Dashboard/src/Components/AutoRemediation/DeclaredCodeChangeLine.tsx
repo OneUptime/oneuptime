@@ -167,10 +167,11 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
         data-testid={DECLARED_CODE_LINE_TEST_ID}
         data-state="offered"
       >
+        {/* OUTLINE: sized to its words at every width, with no dialog footer's margin. */}
         <Button
           title={DECLARED_CODE_ASK_TITLE}
           icon={IconProp.Code}
-          buttonStyle={ButtonStyleType.NORMAL}
+          buttonStyle={ButtonStyleType.OUTLINE}
           buttonSize={ButtonSize.Small}
           dataTestId={`${DECLARED_CODE_LINE_TEST_ID}-ask`}
           onClick={() => {
@@ -178,7 +179,11 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
           }}
         />
         <span className="text-xs text-gray-500">
-          {translator.translateTemplate(DECLARED_CODE_ASK_HINT, { code })}
+          {translator.translateTemplate(
+            DECLARED_CODE_ASK_HINT,
+            { code },
+            { setsValuesApart: true },
+          )}
         </span>
         {dialog}
       </div>
@@ -202,7 +207,8 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
       data-testid={DECLARED_CODE_LINE_TEST_ID}
       data-state={change.state}
     >
-      <p className={`flex items-start gap-1.5 text-xs leading-5 ${tone}`}>
+      {/* A div: the icon draws a div, which a paragraph may not hold. */}
+      <div className={`flex items-start gap-1.5 text-xs leading-5 ${tone}`}>
         <Icon
           icon={
             change.state === DeclaredCodeChangeState.Opened
@@ -220,9 +226,11 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
                 translator.translateText(DECLARED_CODE_UNNAMED_REPOSITORY) ||
                 DECLARED_CODE_UNNAMED_REPOSITORY,
             },
+            // A repository's Latin name keeps its place in a Persian sentence.
+            { setsValuesApart: true },
           )}
         </span>
-      </p>
+      </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 ps-5">
         {change.pullRequestUrl ? (
           <a
@@ -234,8 +242,15 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
           >
             <span>
               {translator.translateText(DECLARED_CODE_VIEW_PULL_REQUEST)}
+              {/*
+               * The space outside the number's own direction: inside it, a
+               * right-to-left line drew it on the far side - "#482Pull".
+               */}
               {change.pullRequestNumber ? (
-                <span dir="ltr"> #{change.pullRequestNumber}</span>
+                <>
+                  {" "}
+                  <span dir="ltr">#{change.pullRequestNumber}</span>
+                </>
               ) : (
                 <></>
               )}

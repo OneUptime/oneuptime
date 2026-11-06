@@ -45669,5 +45669,6 @@
   "The same change in the {{code}} code, so the next apply keeps it.": "在 {{code}} 程式碼中做同樣的變更，讓下次 apply 保留它。",
   "You may not ask AI to work in it.": "您無權讓 AI 在其中工作。",
   "a repository": "某個存放庫",
-  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "此資源由 {{code}} 宣告，因此下次 apply 會恢復程式碼中的內容。提取要求會讓程式碼與此修正保持一致。"
+  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "此資源由 {{code}} 宣告，因此下次 apply 會恢復程式碼中的內容。提取要求會讓程式碼與此修正保持一致。",
+  "It makes a CloudFormation stack, {{stack}}, in each Region of every account of the organization: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your accounts. AWS bills each metric stream for each metric update it sends, and Firehose for what it delivers.": "它會在組織每個帳戶的每個區域建立一個 CloudFormation 堆疊 {{stack}}：包括指標串流和日誌訂閱、兩個只傳送到 OneUptime 的 Firehose 串流，以及一個存放無法傳送內容的儲存貯體。其中沒有任何東西能讀取你的帳戶。AWS 依每個指標串流傳送的每次指標更新計費，並依 Firehose 傳送的資料量計費。"
 }

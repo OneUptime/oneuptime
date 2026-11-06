@@ -128,8 +128,22 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
                 data-state={account.agent}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-gray-900">
-                    <bdi>{account.name}</bdi>
+                  {/*
+                   * A long name takes two lines before it is cut, and its
+                   * own direction places the cut: a Latin name on a
+                   * right-to-left page loses its end, not its start. The
+                   * row is a flex line, so a short name keeps to the
+                   * reading start.
+                   */}
+                  <p className="flex text-sm text-gray-900">
+                    <span
+                      dir="auto"
+                      title={account.name}
+                      className="line-clamp-2 min-w-0 break-words"
+                      data-testid={`${CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_TEST_ID}-name`}
+                    >
+                      {account.name}
+                    </span>
                   </p>
                   <p className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
                     <span dir="ltr" className="font-mono">

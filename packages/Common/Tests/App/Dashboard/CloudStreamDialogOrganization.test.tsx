@@ -47,7 +47,10 @@ import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import Protocol from "../../../Types/API/Protocol";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAuthMethod } from "../../../Types/CloudConnection/CloudConnectionCatalog";
-import { CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL } from "../../../Types/CloudConnection/CloudStreamOrganization";
+import {
+  CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL,
+  CLOUD_STREAM_ORGANIZATION_WHAT_IT_MAKES,
+} from "../../../Types/CloudConnection/CloudStreamOrganization";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../UI/Utils/API/API";
@@ -151,6 +154,13 @@ describe("streaming every account of an organization", () => {
       "Every account of the organization",
     );
     expect(command()).not.toContain("create-stack-set");
+    // One account's note, until every account is chosen.
+    expect(part("what-it-makes")).toHaveTextContent(
+      "in each Region: the metric stream",
+    );
+    expect(part("what-it-makes")).not.toHaveTextContent(
+      "of every account of the organization",
+    );
 
     await openMoreFields();
 
@@ -172,6 +182,13 @@ describe("streaming every account of an organization", () => {
     expect(command()).toContain("STREAM_KEY='<YOUR_STREAM_KEY>'");
     expect(screen.getByTestId("setup-guide-step-2")).toHaveTextContent(
       `Run it in the management account ${MANAGEMENT}, as someone who may create StackSets, CloudFormation stacks and IAM roles there.`,
+    );
+    // What it makes is every account's, not this one's alone.
+    expect(part("what-it-makes")).toHaveTextContent(
+      CLOUD_STREAM_ORGANIZATION_WHAT_IT_MAKES.replace(
+        "{{stack}}",
+        "OneUptimeStream-6f1c3a2e",
+      ),
     );
 
     // Its key, once made, is in the command as one account's is.

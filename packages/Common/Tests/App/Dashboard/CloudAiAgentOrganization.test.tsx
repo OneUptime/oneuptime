@@ -298,6 +298,33 @@ describe("CloudAiAgentOrganizationAccounts", () => {
     ).toBeNull();
   });
 
+  test("each name keeps its own direction and takes two lines before it is cut", () => {
+    render(<CloudAiAgentOrganizationAccounts view={VIEW} />);
+
+    const names: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-ai-agent-organization-accounts-name",
+    );
+
+    expect(
+      names.map((name: HTMLElement): string => {
+        return name.textContent || "";
+      }),
+    ).toEqual(["Management", "Payments"]);
+
+    for (const name of names) {
+      // dir=auto: a Latin name on a right-to-left page is cut at its end.
+      expect(name).toHaveAttribute("dir", "auto");
+      expect(name).toHaveClass("line-clamp-2");
+      expect(name).toHaveClass("break-words");
+      expect(name).toHaveClass("min-w-0");
+      expect(name).not.toHaveClass("truncate");
+      // The whole name on hover, when two lines cut it.
+      expect(name).toHaveAttribute("title", name.textContent || "");
+      // Its line is a flex row, so a short name keeps to the reading start.
+      expect(name.parentElement).toHaveClass("flex");
+    }
+  });
+
   test("every agent connected: said so", () => {
     render(
       <CloudAiAgentOrganizationAccounts

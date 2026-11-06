@@ -45669,5 +45669,6 @@
   "The same change in the {{code}} code, so the next apply keeps it.": "همان تغییر در کد {{code}}، تا apply بعدی آن را نگه دارد.",
   "You may not ask AI to work in it.": "شما اجازه ندارید از هوش مصنوعی بخواهید در آن کار کند.",
   "a repository": "یک مخزن",
-  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "این منبع در {{code}} تعریف شده است، پس apply بعدی هر چه کد بگوید را برمی‌گرداند. یک pull request کد را با اصلاح یکسان می‌کند."
+  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "این منبع در {{code}} تعریف شده است، پس apply بعدی هر چه کد بگوید را برمی‌گرداند. یک pull request کد را با اصلاح یکسان می‌کند.",
+  "It makes a CloudFormation stack, {{stack}}, in each Region of every account of the organization: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your accounts. AWS bills each metric stream for each metric update it sends, and Firehose for what it delivers.": "در هر منطقه از هر حساب سازمان یک پشته CloudFormation به نام {{stack}} می‌سازد: جریان متریک و اشتراک‌های لاگ، دو جریان Firehose که فقط به OneUptime تحویل می‌دهند، و یک باکت برای آنچه نتوانستند تحویل دهند. هیچ چیز در آن نمی‌تواند حساب‌های شما را بخواند. AWS برای هر جریان متریک بابت هر به‌روزرسانی متریکی که می‌فرستد، و برای Firehose بابت آنچه تحویل می‌دهد هزینه می‌گیرد."
 }

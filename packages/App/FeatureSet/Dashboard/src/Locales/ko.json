@@ -45669,5 +45669,6 @@
   "The same change in the {{code}} code, so the next apply keeps it.": "같은 변경을 {{code}} 코드에도 적용해 다음 apply에서도 유지되게 합니다.",
   "You may not ask AI to work in it.": "AI에게 이 저장소에서 작업하도록 요청할 권한이 없습니다.",
   "a repository": "저장소",
-  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "이 리소스는 {{code}}로 선언되어 있어 다음 apply가 코드의 내용으로 되돌립니다. 풀 리퀘스트로 코드도 수정과 같은 내용이 되게 합니다."
+  "{{code}} declares this resource, so the next apply puts back whatever the code says. A pull request makes the code say the same as the fix.": "이 리소스는 {{code}}로 선언되어 있어 다음 apply가 코드의 내용으로 되돌립니다. 풀 리퀘스트로 코드도 수정과 같은 내용이 되게 합니다.",
+  "It makes a CloudFormation stack, {{stack}}, in each Region of every account of the organization: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your accounts. AWS bills each metric stream for each metric update it sends, and Firehose for what it delivers.": "조직의 모든 계정의 각 리전에 CloudFormation 스택 {{stack}}을 만듭니다. 메트릭 스트림과 로그 구독, OneUptime으로만 전송하는 Firehose 스트림 두 개, 전송하지 못한 내용을 담는 버킷으로 구성됩니다. 이 스택에는 계정을 읽을 수 있는 것이 없습니다. AWS는 각 메트릭 스트림에 대해서는 보낸 메트릭 업데이트마다, Firehose에 대해서는 전송한 양에 따라 요금을 청구합니다."
 }

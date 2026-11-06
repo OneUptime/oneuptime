@@ -61,6 +61,15 @@ export const CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL: string =
     "Named log groups are one account's. To stream every account of the organization, stream every log group, or metrics alone.",
   );
 
+/*
+ * What the dialog says the organization's command makes, under it: one
+ * account's note says "in each Region", and the stacks of every account
+ * are the organization's.
+ */
+export const CLOUD_STREAM_ORGANIZATION_WHAT_IT_MAKES: string = translationKey(
+  "It makes a CloudFormation stack, {{stack}}, in each Region of every account of the organization: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your accounts. AWS bills each metric stream for each metric update it sends, and Firehose for what it delivers.",
+);
+
 // Whether these choices can be streamed from every account of an organization.
 export function isCloudStreamOrganizationPossible(
   options: Pick<CloudStreamTemplateOptions, "logs">,

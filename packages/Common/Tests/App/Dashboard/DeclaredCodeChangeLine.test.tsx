@@ -237,6 +237,15 @@ describe("the line under a step", () => {
     expect(postsTo(CHANGES_ROUTE)[0]!["data"]).toEqual({
       suggestionId: SUGGESTION_ID,
     });
+
+    /*
+     * A button in a card: sized to its words, without the dialog footer's
+     * margin a NORMAL button keeps (which pushed it off the step's edge).
+     */
+    const ask: HTMLElement = screen.getByTestId("declared-code-change-ask");
+
+    expect(ask).not.toHaveClass("md:ml-3");
+    expect(ask).not.toHaveClass("w-full");
   });
 
   test.each([
@@ -289,6 +298,8 @@ describe("the line under a step", () => {
 
       expect(line).toHaveAttribute("data-state", state);
       expect(line).toHaveTextContent(sentence);
+      // The icon draws a div, so its line is not a paragraph.
+      expect(line.querySelector("p div")).toBeNull();
       expect(
         within(line).getByTestId("declared-code-change-task"),
       ).toHaveAttribute(
@@ -331,6 +342,16 @@ describe("the line under a step", () => {
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(link).toHaveTextContent("View pull request #7");
+
+    /*
+     * The number reads left to right in every language, and the space
+     * before it is outside its direction: inside, a right-to-left line drew
+     * the space on the far side - "#7View".
+     */
+    const number: HTMLElement = within(link).getByText("#7");
+
+    expect(number).toHaveAttribute("dir", "ltr");
+    expect(number.textContent).toBe("#7");
   });
 
   test("another step's pull request is not this one's", async () => {
@@ -368,12 +389,41 @@ describe("the dialog that asks before opening it", () => {
       "Most likely the desired_count of the aws_ecs_service that declares it.",
     );
 
+    // The attribute and the resource type as the code writes them.
+    const written: Array<[string, string]> = [
+      ["declared-code-dialog-attribute", "desired_count"],
+      ["declared-code-dialog-resource-type", "aws_ecs_service"],
+    ];
+
+    for (const [testId, text] of written) {
+      const code: HTMLElement = within(dialog).getByTestId(testId);
+
+      expect(code.tagName).toBe("CODE");
+      expect(code).toHaveTextContent(text);
+      expect(code).toHaveAttribute("dir", "ltr");
+    }
+
     const rows: Array<HTMLElement> = within(dialog).getAllByTestId(
       "declared-code-dialog-repository",
     );
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent("acme/platform");
+
+    /*
+     * Each name's line keeps the page's direction, so in Persian every name
+     * starts beside its radio (a left-to-right line put a long one at the
+     * far edge), and the name inside is set apart.
+     */
+    for (const row of rows) {
+      const name: HTMLElement = within(row).getByTestId(
+        "declared-code-dialog-repository-name",
+      );
+
+      expect(name).not.toHaveAttribute("dir");
+      expect(name.querySelector("bdi")).not.toBeNull();
+      expect(name.querySelector("bdi")?.textContent).toBe(name.textContent);
+    }
     expect(rows[0]).toHaveTextContent(
       "Its Terraform code has a file named after the resource: envs/prod/web/main.tf",
     );

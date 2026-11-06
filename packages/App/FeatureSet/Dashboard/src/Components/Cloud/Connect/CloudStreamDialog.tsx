@@ -12,6 +12,7 @@ import {
 import { getAwsOrganizationManagementAccountId } from "Common/Types/CloudConnection/CloudOrganizationAgents";
 import {
   CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL,
+  CLOUD_STREAM_ORGANIZATION_WHAT_IT_MAKES,
   getAwsCloudStreamOrganizationCommand,
   isCloudStreamOrganizationPossible,
 } from "Common/Types/CloudConnection/CloudStreamOrganization";
@@ -557,6 +558,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
         ? translator.translateTemplate(
             "Run it in the management account {{account}}, as someone who may create StackSets, CloudFormation stacks and IAM roles there.",
             { account: managementAccountId || "" },
+            { setsValuesApart: true },
           )
         : say(
             translationKey(
@@ -652,10 +654,15 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
               className="mt-px h-3.5 w-3.5 flex-shrink-0"
             />
             <span>
-              {translator.translateTemplate(
-                "It makes a CloudFormation stack, {{stack}}, in each Region: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your account. AWS bills the metric stream for each metric update it sends, and Firehose for what it delivers.",
-                { stack: stackName },
-              )}
+              {isEveryAccount
+                ? translator.translateTemplate(
+                    CLOUD_STREAM_ORGANIZATION_WHAT_IT_MAKES,
+                    { stack: stackName },
+                  )
+                : translator.translateTemplate(
+                    "It makes a CloudFormation stack, {{stack}}, in each Region: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your account. AWS bills the metric stream for each metric update it sends, and Firehose for what it delivers.",
+                    { stack: stackName },
+                  )}
             </span>
           </div>
         </div>
@@ -892,6 +899,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                 description={translator.translateTemplate(
                   "From the management account {{account}}: a StackSet makes the same stacks in every member account, and in accounts that join the organization later. Every log group or none: named log groups are one account's.",
                   { account: managementAccountId },
+                  { setsValuesApart: true },
                 )}
                 isChecked={isEveryAccount}
                 dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-every-account`}

@@ -37,6 +37,7 @@ import {
 } from "Common/Utils/AiRemediation/DeclaredCodeChange";
 import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -309,10 +310,30 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
               className="text-xs leading-5 text-gray-600"
               data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-target`}
             >
-              {translator.translateTemplate(DECLARED_CODE_DIALOG_TARGET, {
-                attribute: owner.target.attribute,
-                resourceType: owner.target.resourceType,
-              })}
+              {/* The attribute and the resource type as the code writes them. */}
+              <TranslatedSentence
+                template={DECLARED_CODE_DIALOG_TARGET}
+                slots={{
+                  attribute: (
+                    <code
+                      dir="ltr"
+                      className="break-all font-mono text-[0.6875rem] text-gray-800"
+                      data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-attribute`}
+                    >
+                      {owner.target.attribute}
+                    </code>
+                  ),
+                  resourceType: (
+                    <code
+                      dir="ltr"
+                      className="break-all font-mono text-[0.6875rem] text-gray-800"
+                      data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-resource-type`}
+                    >
+                      {owner.target.resourceType}
+                    </code>
+                  ),
+                }}
+              />
             </p>
           ) : (
             <></>
@@ -371,19 +392,26 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
                         }}
                       />
                       <span className="min-w-0">
+                        {/*
+                         * The line keeps the page's direction, so every
+                         * name starts beside its radio; the name inside is
+                         * set apart, so its slash and dashes stay in place.
+                         */}
                         <span
-                          dir="ltr"
                           className="block break-all font-mono text-sm text-gray-900"
+                          data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-repository-name`}
                         >
-                          {candidate.fullName}
+                          <bdi>{candidate.fullName}</bdi>
                         </span>
-                        <span className="block text-xs text-gray-500">
+                        {/* A long path breaks rather than widen a phone's dialog. */}
+                        <span className="block break-words text-xs text-gray-500">
                           {translator.translateTemplate(
                             DECLARED_CODE_REASON_WORDS[candidate.reason],
                             {
                               code,
                               path: candidate.matchedPaths[0] || "",
                             },
+                            { setsValuesApart: true },
                           )}
                         </span>
                         {candidate.canAsk ? (
@@ -424,6 +452,7 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
       description={translator.translateTemplate(
         DECLARED_CODE_DIALOG_DESCRIPTION,
         { code },
+        { setsValuesApart: true },
       )}
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
