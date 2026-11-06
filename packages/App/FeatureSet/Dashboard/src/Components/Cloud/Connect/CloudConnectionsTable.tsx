@@ -626,6 +626,7 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
                           {translator.translateTemplate(
                             "Run it in the management account {{account}}: it also deletes every member account's stacks, when the organization was streamed.",
                             { account: managementAccountId },
+                            { setsValuesApart: true },
                           )}
                         </p>
                       ) : (

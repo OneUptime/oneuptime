@@ -696,6 +696,8 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
           shell,
           account: organizationView?.managementAccountId || "",
         },
+        // The shell's Latin name and the account id keep their places in Persian.
+        { setsValuesApart: true },
       ),
       description:
         translator.translateText(
@@ -1051,6 +1053,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                   description: translator.translateTemplate(
                     CLOUD_AI_AGENT_SCOPE_ACCOUNT_DESCRIPTION,
                     { account: props.accountId },
+                    { setsValuesApart: true },
                   ),
                 },
                 {

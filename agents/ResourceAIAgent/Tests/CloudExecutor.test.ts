@@ -2508,6 +2508,8 @@ describe("the posture", () => {
         "arn:aws*:iam::123456789012:role/OneUptimeAiAgentTask",
         "arn:aws*:iam::123456789012:role/OneUptimeAiAgentWrite",
         "arn:aws*:cloudformation:*:123456789012:stack/oneuptime-ai-agent/*",
+        // In a member account of an organization, the stack its StackSet made.
+        "arn:aws*:cloudformation:*:123456789012:stack/StackSet-oneuptime-ai-agent-*",
         "arn:aws:ecs:us-east-1:123456789012:service/ops-tools/ai-agent",
       ],
     });
