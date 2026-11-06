@@ -3898,7 +3898,7 @@ describe("every resource type", () => {
        */
       expect(confirm).toHaveTextContent(
         descriptor.isCloudAccount
-          ? `This revokes the ${descriptor.agentName}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.`
+          ? `This revokes the ${descriptor.agentName}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.`
           : `This revokes the ${descriptor.agentName}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.`,
       );
       expect(postsTo(RESET_ROUTE)).toHaveLength(0);

@@ -205,12 +205,14 @@ beforeEach(() => {
       async (data: {
         id: ObjectID;
         data: Record<string, unknown>;
-      }): Promise<void> => {
+      }): Promise<number> => {
         const row: AccountRow | undefined = accountOf(data.id);
 
         if (row && typeof data.data["aiAccessLastError"] === "string") {
           row.aiAccessLastError = data.data["aiAccessLastError"];
         }
+
+        return row ? 1 : 0;
       },
     );
   jest
@@ -266,10 +268,12 @@ beforeEach(() => {
   jest
     .spyOn(ResourceAiAgentService, "updateOneById")
     .mockImplementation(
-      async (data: { data: Record<string, unknown> }): Promise<void> => {
+      async (data: { data: Record<string, unknown> }): Promise<number> => {
         if (agentRow) {
           Object.assign(agentRow, data.data);
         }
+
+        return agentRow ? 1 : 0;
       },
     );
   jest

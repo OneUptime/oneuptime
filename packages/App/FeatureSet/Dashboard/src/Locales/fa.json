@@ -45357,5 +45357,5 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime کلیدی برای این عامل نفرستاد. دوباره تلاش کنید.",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "این فرمان کلیدی دارد که فقط برای این عامل ساخته شده است. آن را ظرف یک روز اجرا کنید، یا برای کلید تازه این پنجره را دوباره باز کنید.",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} بازنشانی شد و کلیدش دیگر کار نمی‌کند. برای وصل کردنش فرمان راه‌اندازی‌اش را دوباره اجرا کنید: «تغییر» آن را نشان می‌دهد.",
-  "This revokes the {{agentName}}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.": "این کار کلید {{agentName}} را بی‌درنگ باطل می‌کند و تا وقتی فرمان راه‌اندازی‌اش را دوباره اجرا نکنید قطع می‌ماند: «تغییر» آن را با کلیدی تازه نشان می‌دهد. اگر ممکن است کلید افشا شده باشد، از این گزینه استفاده کنید."
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "این کار کلید {{agentName}} را بی‌درنگ باطل می‌کند. تا وقتی فرمان راه‌اندازی‌اش را دوباره اجرا نکنید قطع می‌ماند: «تغییر» آن را با کلیدی تازه نشان می‌دهد."
 }

@@ -161,7 +161,7 @@ beforeEach(() => {
       async (data: {
         id: ObjectID;
         data: Record<string, unknown>;
-      }): Promise<void> => {
+      }): Promise<number> => {
         // What the account keeps, as a later read of it sees it.
         const account: CloudAccount | undefined = accounts.find(
           (row: CloudAccount): boolean => {
@@ -172,6 +172,8 @@ beforeEach(() => {
         if (account && typeof data.data["aiAccessLastError"] === "string") {
           account.aiAccessLastError = data.data["aiAccessLastError"];
         }
+
+        return account ? 1 : 0;
       },
     );
   feed = jest

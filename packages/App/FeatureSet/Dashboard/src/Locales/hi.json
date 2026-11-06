@@ -45357,5 +45357,5 @@
   "OneUptime did not send a key for this agent. Try again.": "OneUptime ने इस एजेंट के लिए कोई कुंजी नहीं भेजी। फिर से प्रयास करें।",
   "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "इस कमांड में केवल इसी एजेंट के लिए बनाई गई कुंजी है। इसे एक दिन के भीतर चलाएँ, या नई कुंजी के लिए यह डायलॉग फिर से खोलें।",
   "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} को रीसेट कर दिया गया, और उसकी कुंजी अब काम नहीं करती। इसे कनेक्ट करने के लिए इसकी सेटअप कमांड फिर से चलाएँ: बदलें इसे दिखाता है।",
-  "This revokes the {{agentName}}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.": "इससे {{agentName}} की कुंजी तुरंत रद्द हो जाती है, और जब तक आप इसकी सेटअप कमांड फिर से नहीं चलाते, यह डिस्कनेक्ट रहता है: बदलें इसे नई कुंजी के साथ दिखाता है। इसका उपयोग तब करें जब कुंजी लीक होने की आशंका हो।"
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "इससे {{agentName}} की कुंजी तुरंत रद्द हो जाती है। जब तक आप इसकी सेटअप कमांड फिर से नहीं चलाते, यह डिस्कनेक्ट रहता है: बदलें इसे नई कुंजी के साथ दिखाता है।"
 }

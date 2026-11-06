@@ -2155,7 +2155,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
              */
             descriptor.isCloudAccount
               ? translator.translateTemplate(
-                  "This revokes the {{agentName}}'s key at once, and it stays disconnected until you run its setup command again: Change shows it, with a new key. Use it if the key may have leaked.",
+                  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.",
                   { agentName: translatableTerm(descriptor.agentName) },
                 )
               : translator.translateTemplate(
