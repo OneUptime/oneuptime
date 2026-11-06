@@ -77,6 +77,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * An AI Insights page's body (AiActivityInsightsPage loads it): what is
@@ -502,7 +503,7 @@ function Evidence(props: {
             <Fragment key={subject.id}>
               {index > 0 ? (
                 <span aria-hidden="true" className="text-gray-300">
-                  &middot;
+                  <InlineSeparator markOnly />
                 </span>
               ) : (
                 <></>

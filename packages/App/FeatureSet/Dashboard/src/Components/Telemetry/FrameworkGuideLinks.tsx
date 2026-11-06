@@ -12,6 +12,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   language: TelemetryGuideLanguageKey;
@@ -80,7 +81,7 @@ const FrameworkGuideLinks: FunctionComponent<ComponentProps> = (
                 </a>
                 {index < links.length - 1 && (
                   <span className="px-1.5 text-gray-300" aria-hidden="true">
-                    &middot;
+                    <InlineSeparator markOnly />
                   </span>
                 )}
               </li>

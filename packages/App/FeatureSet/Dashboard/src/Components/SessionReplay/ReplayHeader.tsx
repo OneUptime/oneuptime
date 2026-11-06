@@ -29,6 +29,7 @@ import {
   ReplayUserSessionsState,
   findAdjacentUserSessions,
 } from "./ReplayUserSessions";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * One compact bar above the picture, not a detail card.
@@ -539,7 +540,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
   /* The dot between two runs of the facts row. Decorative, never read. */
   const separator: ReactElement = (
     <span aria-hidden="true" className="text-gray-300">
-      ·
+      <InlineSeparator markOnly />
     </span>
   );
 
@@ -699,7 +700,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                         aria-hidden="true"
                         className="max-md:hidden text-gray-300 md:inline"
                       >
-                        ·
+                        <InlineSeparator markOnly />
                       </span>
                     )}
                     <span

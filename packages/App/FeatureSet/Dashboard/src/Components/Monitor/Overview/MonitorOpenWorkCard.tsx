@@ -19,6 +19,7 @@ import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -200,7 +201,7 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
             </Link>
             <p className="mt-0.5 text-xs text-gray-500">
               {metaParts.join(" · ")}
-              {row.startedAt ? " · " : ""}
+              {row.startedAt ? <InlineSeparator /> : null}
               {row.startedAt ? <RelativeTime date={row.startedAt} /> : <></>}
             </p>
           </div>

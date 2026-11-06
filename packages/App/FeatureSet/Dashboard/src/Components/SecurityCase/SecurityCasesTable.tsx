@@ -85,6 +85,7 @@ import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   // Which of the queue's pages this list is; the open cases when not given.
@@ -473,7 +474,9 @@ const SecurityCasesList: FunctionComponent<{
                 <span>
                   {item.source ? translator.translateText(item.source) : ""}
                 </span>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true">
+                  <InlineSeparator markOnly />
+                </span>
               </span>
               <span
                 data-testid={SECURITY_CASE_ROW_DETECTIONS_TEST_ID}

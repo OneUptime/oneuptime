@@ -212,6 +212,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * A resource's AI agent page (AI → AI agent): whether OneUptime AI can reach
@@ -1738,7 +1739,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               ].map((part: ReactElement, index: number): ReactElement => {
                 return (
                   <Fragment key={`meta-${index}`}>
-                    {index > 0 ? " · " : ""}
+                    {index > 0 ? <InlineSeparator /> : null}
                     {part}
                   </Fragment>
                 );

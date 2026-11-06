@@ -23,7 +23,8 @@ import {
  * Persian's zero ("۰"). InlineSeparator draws what the reader's language
  * sets facts apart with (getInlineSeparator): a bullet on a Persian page,
  * the middle dot in every other language. Every frontend draws its
- * separators with it, and a new {" · "} fails here.
+ * separators with it, and a new middle dot written by hand as a JSX node of
+ * its own fails here, in each form one was written.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(
@@ -35,8 +36,36 @@ const REPOSITORY_ROOT: string = path.resolve(
   "..",
 );
 
-// The separator written by hand in JSX.
-const LITERAL_SEPARATOR: string = '{" · "}';
+/*
+ * A middle dot written by hand as a JSX node of its own, in each form the
+ * frontends wrote one (125 of them, before InlineSeparator).
+ */
+const HAND_WRITTEN_SEPARATORS: Array<[string, RegExp]> = [
+  // {" · "}
+  ["an expression", /\{\s*(["'`])\s*\u{00B7}\s*\1\s*\}/gu],
+  // {cond ? " · " : ""}, {isLast ? "" : " ·"}, {cond && " · "}
+  ["a condition's text", /(?:\?|:|&&)\s*(["'`])\s*\u{00B7}\s*\1\s*(?=[:})])/gu],
+  // <span> · </span>, <span aria-hidden="true">·</span>, <span>&middot;</span>
+  ["an element's whole text", />[ \t]*(?:\u{00B7}|&middot;)[ \t]*<\//gu],
+  // A line of its own between an element's tags: ·, ·{" "}, &middot;
+  ["a line of its own", /^[ \t]*(?:\u{00B7}|&middot;)(?:\{" "\})?[ \t]*$/gmu],
+];
+
+const findHandWrittenSeparators: (source: string) => Array<string> = (
+  source: string,
+): Array<string> => {
+  const found: Array<string> = [];
+
+  for (const [form, pattern] of HAND_WRITTEN_SEPARATORS) {
+    for (const match of source.matchAll(pattern)) {
+      found.push(
+        `${form}, line ${source.slice(0, match.index).split("\n").length}`,
+      );
+    }
+  }
+
+  return found;
+};
 
 const instances: Record<string, i18n> = {};
 
@@ -99,6 +128,28 @@ describe("InlineSeparator", () => {
       );
     },
   );
+
+  /*
+   * Where a line's gap or margins space its facts, the dot was a span's
+   * whole text: markOnly draws the mark without the spaces.
+   */
+  test.each([
+    ["fa", "\u{2022}"],
+    ["en", "\u{00B7}"],
+    ["de", "\u{00B7}"],
+  ])(
+    "%s: markOnly draws the mark alone, %s",
+    (language: string, mark: string) => {
+      draw(
+        language,
+        <span data-testid="mark" aria-hidden="true">
+          <InlineSeparator markOnly />
+        </span>,
+      );
+
+      expect(screen.getByTestId("mark").textContent).toBe(mark);
+    },
+  );
 });
 
 /*
@@ -158,7 +209,7 @@ describe("the status timeline's legend", () => {
 });
 
 describe("every frontend draws its separators with InlineSeparator", () => {
-  test('no frontend writes {" · "} by hand', () => {
+  test("no frontend writes a middle dot by hand as a JSX node of its own", () => {
     const found: Array<string> = [];
 
     for (const root of listScanRoots(REPOSITORY_ROOT)) {
@@ -167,18 +218,39 @@ describe("every frontend draws its separators with InlineSeparator", () => {
           continue;
         }
 
-        const source: string = fs.readFileSync(file, "utf-8");
-        let at: number = source.indexOf(LITERAL_SEPARATOR);
-
-        while (at !== -1) {
-          found.push(
-            `${toRelativePath(REPOSITORY_ROOT, file)}:${source.slice(0, at).split("\n").length}`,
-          );
-          at = source.indexOf(LITERAL_SEPARATOR, at + 1);
+        for (const where of findHandWrittenSeparators(
+          fs.readFileSync(file, "utf-8"),
+        )) {
+          found.push(`${toRelativePath(REPOSITORY_ROOT, file)}: ${where}`);
         }
       }
     }
 
     expect(found).toEqual([]);
+  });
+
+  // The guard finds each form a frontend wrote, and leaves text and strings.
+  test.each([
+    ['{" · "}', "an expression, line 1"],
+    ['{cond ? " · " : ""}', "a condition's text, line 1"],
+    ['{isLast ? "" : " ·"}', "a condition's text, line 1"],
+    ['{cond && " · "}', "a condition's text, line 1"],
+    ["<span> · </span>", "an element's whole text, line 1"],
+    ['<span aria-hidden="true">·</span>', "an element's whole text, line 1"],
+    ["<span>&middot;</span>", "an element's whole text, line 1"],
+    ["<span>\n  ·\n</span>", "a line of its own, line 2"],
+    ['<p>\n  {a}{" "}\n  ·{" "}\n  {b}\n</p>', "a line of its own, line 3"],
+  ])("finds %j", (source: string, where: string) => {
+    expect(findHandWrittenSeparators(source)).toEqual([where]);
+  });
+
+  test.each([
+    'parts.join(" · ")',
+    "`${a} · ${b}`",
+    "<InlineSeparator />",
+    "<InlineSeparator markOnly />",
+    ' * A comment: "12 incidents · 3 alerts".',
+  ])("leaves %j", (source: string) => {
+    expect(findHandWrittenSeparators(source)).toEqual([]);
   });
 });

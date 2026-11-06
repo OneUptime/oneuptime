@@ -46,6 +46,7 @@ import {
 } from "./ResourceTopologyView";
 import { truncateTopologyNameMiddle } from "./ResourceTopologyFormat";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
  * The map's pieces. Every part is a card of its own, side by side with the
@@ -1556,7 +1557,7 @@ export const ResourceTopologyHeadingNode: FunctionComponent<
            * attention" never read as one number.
            */}
           <span aria-hidden={true} style={{ flexShrink: 0 }}>
-            ·
+            <InlineSeparator markOnly />
           </span>
           <span
             style={{
