@@ -20,7 +20,7 @@ import { readCloudResourceRecommendationContext } from "./RecommendationResource
  * What a cloud account's recommended monitors are worked out from, read the
  * same way by its Recommendations tab (CloudAccountMonitorRecommendations)
  * and by the side menu's count beside it
- * (CloudAccountRecommendationsSideMenuItem), so the two never disagree:
+ * (CloudAccountRecommendationsMenuItem), so the two never disagree:
  *
  *   - the account's resources - its live rows of kind resource, with the
  *     columns their recommendations depend on, as a resource's own tab

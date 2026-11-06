@@ -34,7 +34,7 @@ export interface ComponentProps {
  * Every failure is swallowed and the entry renders with no badge, as
  * RecommendationsSideMenuItem's does: the page behind it works either way.
  */
-const CloudAccountRecommendationsSideMenuItem: FunctionComponent<
+const CloudAccountRecommendationsMenuItem: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
   const [count, setCount] = useState<number | undefined>(undefined);
@@ -96,4 +96,4 @@ const CloudAccountRecommendationsSideMenuItem: FunctionComponent<
   );
 };
 
-export default CloudAccountRecommendationsSideMenuItem;
+export default CloudAccountRecommendationsMenuItem;

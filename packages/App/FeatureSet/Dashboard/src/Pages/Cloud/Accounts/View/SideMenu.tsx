@@ -2,7 +2,7 @@ import PageMap from "../../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import { getDeveloperSideMenuSection } from "../../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../../Components/DeveloperDocs/DeveloperDocsPages";
-import CloudAccountRecommendationsSideMenuItem from "../../../../Components/Recommendations/CloudAccountRecommendationsSideMenuItem";
+import CloudAccountRecommendationsMenuItem from "../../../../Components/Recommendations/CloudAccountRecommendationsMenuItem";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -63,9 +63,9 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
         {/*
          * The monitors OneUptime recommends for its resources, to add to
          * one or to every resource of a type at once. The badge counts what
-         * is still to set up (CloudAccountRecommendationsSideMenuItem).
+         * is still to set up (CloudAccountRecommendationsMenuItem).
          */}
-        <CloudAccountRecommendationsSideMenuItem
+        <CloudAccountRecommendationsMenuItem
           link={{
             title: "Recommendations",
             to: RouteUtil.populateRouteParams(
