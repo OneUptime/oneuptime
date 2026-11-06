@@ -313,12 +313,19 @@ describe("how streaming is said to be doing", () => {
     ).toBe("receiving");
   });
 
-  test("every reason a delivery is refused for says what happened and what to do", () => {
-    for (const reason of Object.values(CloudStreamRefusalReason)) {
-      expect(CLOUD_STREAM_REFUSAL_WORDS[reason].reason.length).toBeGreaterThan(
+  test("every reason a Firehose delivery is refused for says what happened and what to do", () => {
+    for (const reason of [
+      CloudStreamRefusalReason.WrongKey,
+      CloudStreamRefusalReason.TurnedOff,
+      CloudStreamRefusalReason.NotAllowed,
+      CloudStreamRefusalReason.TooLarge,
+      CloudStreamRefusalReason.Malformed,
+      CloudStreamRefusalReason.Throttled,
+    ]) {
+      expect(CLOUD_STREAM_REFUSAL_WORDS[reason]!.reason.length).toBeGreaterThan(
         10,
       );
-      expect(CLOUD_STREAM_REFUSAL_WORDS[reason].advice.length).toBeGreaterThan(
+      expect(CLOUD_STREAM_REFUSAL_WORDS[reason]!.advice.length).toBeGreaterThan(
         10,
       );
     }
@@ -576,6 +583,8 @@ describe("the key the server answers", () => {
       streamKey: STREAM_KEY,
       createdAt: NOW,
       previousKeyWorksUntil: new Date("2026-11-05T10:00:00.000Z"),
+      // An AWS key is signed off against no service account.
+      pushServiceAccount: null,
     });
 
     const made: { previousKeyWorksUntil: Date | null } = readCloudStreamKeyMade(
@@ -946,7 +955,10 @@ describe("the dialog", () => {
       await Promise.resolve();
     });
 
-    // What is asked: when the key was made and what arrived, nothing else.
+    /*
+     * What is asked: when the key was made, what arrived and - for an Azure
+     * connection - whose event hubs are read; nothing else.
+     */
     expect(getItemSpy).toHaveBeenCalledTimes(1);
     expect(getItemSpy.mock.calls[0]![0]).toMatchObject({
       modelType: CloudConnection,
@@ -954,7 +966,7 @@ describe("the dialog", () => {
     });
     expect(
       Object.keys(getItemSpy.mock.calls[0]![0].select as JSONObject).sort(),
-    ).toEqual(["streamKeyCreatedAt", "streamSummary"]);
+    ).toEqual(["streamKeyCreatedAt", "streamState", "streamSummary"]);
     expect(getItemSpy.mock.calls[0]![0].id.toString()).toBe(CONNECTION_ID);
 
     expect(part("live")).toHaveAttribute("data-state", "receiving");

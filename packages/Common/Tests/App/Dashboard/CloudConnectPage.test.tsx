@@ -466,30 +466,32 @@ describe("saving", () => {
     });
   });
 
-  test("a new AWS connection hears that it can stream its metrics and logs; another cloud does not", async () => {
+  test("a new connection hears how its cloud streams: AWS and Azure their metrics and logs, Google Cloud its logs", async () => {
     await openPage();
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("cloud-connection-tile-aws"));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByText("Save the connection"));
-    });
+    for (const [tile, said] of [
+      [
+        "aws",
+        "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and CloudWatch Logs, choose Stream metrics and logs in its row.",
+      ],
+      [
+        "azure",
+        "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and resource logs, choose Stream metrics and logs in its row.",
+      ],
+      [
+        "gcp",
+        "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For its logs as they are written, choose Stream logs in its row.",
+      ],
+    ] as Array<[string, string]>) {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`cloud-connection-tile-${tile}`));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("Save the connection"));
+      });
 
-    expect(screen.getByTestId("cloud-connect-saved")).toHaveTextContent(
-      "Connected. The first read starts within a minute; resources appear under All Resources as it finds them. For metrics within minutes, and CloudWatch Logs, choose Stream metrics and logs in its row.",
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("cloud-connection-tile-gcp"));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByText("Save the connection"));
-    });
-
-    expect(screen.getByTestId("cloud-connect-saved")).not.toHaveTextContent(
-      "Stream metrics and logs",
-    );
+      expect(screen.getByTestId("cloud-connect-saved")).toHaveTextContent(said);
+    }
   });
 
   test("an edit from the list: the form is the connection's, and saving says it is read again", async () => {

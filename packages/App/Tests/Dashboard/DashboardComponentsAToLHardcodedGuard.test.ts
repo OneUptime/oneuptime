@@ -30,6 +30,10 @@ const ALLOWED: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "the Regions field's placeholder, AWS Region codes (us-east-1, eu-west-1): what the field takes, written as AWS writes it",
   },
+  "Components/Cloud/Connect/CloudStreamGcpDialog.tsx": {
+    count: 1,
+    why: "the Filter field's placeholder, a Cloud Logging query (resource.type=\"cloud_run_revision\" AND severity>=ERROR): what the field takes, in Google's query language",
+  },
   "Components/Code/CodeContextModal.tsx": {
     count: 2,
     why: "placeholders that are code: an example path in a repository (src/api/users.ts) and an example trace id",

@@ -12,10 +12,8 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import {
   FOLDED_SECTION_ON,
@@ -27,25 +25,17 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import { getConfiguredOneUptimeUrl } from "../../SetupGuide/ConfiguredOneUptimeUrl";
 import SetupGuideOptionPicker from "../../SetupGuide/SetupGuideOptionPicker";
 import SetupGuideSteps, {
   SetupGuideStepView,
 } from "../../SetupGuide/SetupGuideSteps";
 import {
-  CLOUD_STREAM_POLL_MS,
   CloudStreamKeyMade,
   CloudStreamStatus,
   cloudConnectionDocsUrl,
   makeCloudStreamKey,
-  readCloudStreamStatus,
 } from "./CloudConnectApi";
 import { CloudTemplate, drawCloudTemplate } from "./CloudConnectionWords";
 import {
@@ -59,6 +49,18 @@ import {
   streamsLogs,
   streamsMetrics,
 } from "./CloudStreamSetup";
+import {
+  CLOUD_STREAM_DIALOG_TEST_ID,
+  CLOUD_STREAM_INPUT_CLASS_NAME,
+  CloudStreamCheckRow,
+  CloudStreamCopyRow,
+  CloudStreamLiveStep,
+  CloudStreamNotice,
+  CloudStreamShellLink,
+  CloudStreamWatch,
+  CloudStreamWhatItMakes,
+  useCloudStreamWatch,
+} from "./CloudStreamParts";
 import {
   CloudStreamStatusWords,
   getCloudStreamDefaultRegions,
@@ -84,10 +86,11 @@ import {
  * The rest has a sensible default and is folded under More fields: every
  * metric rather than the key ones (it costs more), the Regions (where the
  * connection found resources), and the values for setting the streams up
- * another way. Stopping is the connections list's own action.
+ * another way. Stopping is the connections list's own action. What the
+ * three clouds' dialogs share is CloudStreamParts'.
  */
 
-export const CLOUD_STREAM_DIALOG_TEST_ID: string = "cloud-stream";
+export { CLOUD_STREAM_DIALOG_TEST_ID };
 
 export interface ComponentProps {
   connection: CloudConnection;
@@ -116,81 +119,6 @@ function downloadTemplate(template: JSONObject): void {
   window.URL.revokeObjectURL(url);
 }
 
-interface CheckRowProps {
-  label: string;
-  description?: string | undefined;
-  isChecked: boolean;
-  onChange: (value: boolean) => void;
-  dataTestId: string;
-}
-
-// A choice that is on or off, its line under it - as Let AI fix problems has.
-const CheckRow: FunctionComponent<CheckRowProps> = (
-  props: CheckRowProps,
-): ReactElement => {
-  const descriptionId: string = `${props.dataTestId}-description-${useId()}`;
-
-  return (
-    <div>
-      <label className="flex items-start gap-2 text-sm text-gray-800">
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          checked={props.isChecked}
-          data-testid={props.dataTestId}
-          aria-describedby={props.description ? descriptionId : undefined}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            props.onChange(event.target.checked);
-          }}
-        />
-        <span className="min-w-0">{props.label}</span>
-      </label>
-      {props.description ? (
-        <p id={descriptionId} className="mt-0.5 ps-6 text-xs text-gray-500">
-          {props.description}
-        </p>
-      ) : (
-        <></>
-      )}
-    </div>
-  );
-};
-
-interface CopyRowProps {
-  label: string;
-  value: string;
-  dataTestId: string;
-}
-
-// One value to copy for a stream set up another way: its name, and it.
-const CopyRow: FunctionComponent<CopyRowProps> = (
-  props: CopyRowProps,
-): ReactElement => {
-  return (
-    <div className="min-w-0" data-testid={props.dataTestId}>
-      <p className="text-xs font-medium text-gray-700">{props.label}</p>
-      <div className="mt-1 flex items-center gap-2">
-        <code
-          dir="ltr"
-          className="min-w-0 flex-1 break-all rounded-md bg-gray-50 px-2 py-1.5 font-mono text-xs text-gray-900"
-        >
-          {props.value}
-        </code>
-        <CopyTextButton
-          textToBeCopied={props.value}
-          iconOnly={true}
-          size="sm"
-          variant="ghost"
-          title={props.label}
-        />
-      </div>
-    </div>
-  );
-};
-
-const INPUT_CLASS_NAME: string =
-  "block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
-
 const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -215,49 +143,11 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   const [madeKey, setMadeKey] = useState<CloudStreamKeyMade | null>(null);
   const [isMakingKey, setIsMakingKey] = useState<boolean>(false);
   const [keyError, setKeyError] = useState<string>("");
-  const [status, setStatus] = useState<CloudStreamStatus>({
-    streamKeyCreatedAt: props.connection.streamKeyCreatedAt
-      ? new Date(props.connection.streamKeyCreatedAt)
-      : null,
-    streamSummary: props.connection.streamSummary || null,
-  });
-  // Moves on with every answer, so "a minute ago" stays true.
-  const [now, setNow] = useState<Date>(() => {
-    return new Date();
-  });
-
-  // While the dialog is open, ask every few seconds what arrived.
-  useEffect(() => {
-    if (!props.connection.id) {
-      return undefined;
-    }
-
-    const id: ObjectID = props.connection.id;
-    let isCurrent: boolean = true;
-
-    const interval: ReturnType<typeof setInterval> = setInterval(() => {
-      readCloudStreamStatus(id)
-        .then((read: CloudStreamStatus | null) => {
-          if (!isCurrent) {
-            return;
-          }
-
-          if (read) {
-            setStatus(read);
-          }
-
-          setNow(new Date());
-        })
-        .catch(() => {
-          // Asked again at the next tick.
-        });
-    }, CLOUD_STREAM_POLL_MS);
-
-    return () => {
-      isCurrent = false;
-      clearInterval(interval);
-    };
-  }, [connectionId]);
+  // While the dialog is open, what arrived is asked for every few seconds.
+  const watch: CloudStreamWatch = useCloudStreamWatch(props.connection);
+  const status: CloudStreamStatus = watch.status;
+  const setStatus: CloudStreamWatch["setStatus"] = watch.setStatus;
+  const now: Date = watch.now;
 
   const update: (changes: Partial<CloudStreamChoices>) => void = (
     changes: Partial<CloudStreamChoices>,
@@ -413,101 +303,18 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   }
 
   // Step 3: what arrived, or what to wait for.
-  let liveStep: ReactElement;
-
-  if (!hasKey || !live) {
-    liveStep = (
-      <p
-        className="text-sm text-gray-500"
-        data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-live`}
-        data-state="no-key"
-      >
-        {say(
-          translationKey(
-            "Make a key and run the command: this step says when the first delivery arrives.",
-          ),
-        )}
-      </p>
-    );
-  } else if (live.state === "receiving") {
-    liveStep = (
-      <div
-        className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3"
-        role="status"
-        aria-live="polite"
-        data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-live`}
-        data-state="receiving"
-      >
-        <div className="flex items-start gap-3">
-          <Icon
-            icon={IconProp.CheckCircle}
-            className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
-          />
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm text-emerald-900">
-              {drawCloudTemplate(translator, live.sentence)}
-            </p>
-            {sources.length > 0 ? (
-              <ul
-                className="space-y-0.5 text-xs text-emerald-800"
-                data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-sources`}
-              >
-                {sources.map((source: string): ReactElement => {
-                  return <li key={source}>{source}</li>;
-                })}
-              </ul>
-            ) : (
-              <></>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  } else if (live.state === "refused") {
-    liveStep = (
-      <div
-        className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3"
-        role="status"
-        aria-live="polite"
-        data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-live`}
-        data-state="refused"
-      >
-        <Icon
-          icon={IconProp.Alert}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-600"
-        />
-        <p className="text-sm text-rose-900">
-          {drawCloudTemplate(translator, live.sentence)}
-        </p>
-      </div>
-    );
-  } else {
-    liveStep = (
-      <div
-        className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-        role="status"
-        aria-live="polite"
-        data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-live`}
-        data-state={live.state}
-      >
-        {live.state === "waiting" ? (
-          <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-            {/* The dot's own indigo: a mid-tone reads the same in the dark theme. */}
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-75 motion-reduce:animate-none" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-500" />
-          </span>
-        ) : (
-          <Icon
-            icon={IconProp.Clock}
-            className="h-4 w-4 flex-shrink-0 text-gray-400"
-          />
-        )}
-        <p className="text-sm text-gray-700">
-          {drawCloudTemplate(translator, live.sentence)}
-        </p>
-      </div>
-    );
-  }
+  const liveStep: ReactElement = (
+    <CloudStreamLiveStep
+      live={live}
+      isOn={hasKey}
+      sources={sources}
+      offSentence={say(
+        translationKey(
+          "Make a key and run the command: this step says when the first delivery arrives.",
+        ),
+      )}
+    />
+  );
 
   const steps: Array<SetupGuideStepView> = [
     {
@@ -564,21 +371,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
            * moves under it when both do not fit (CloudSetupCommand).
            */}
           <div className="flex flex-col gap-x-4 gap-y-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <a
-              href={shell.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-open-shell`}
-              className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <Icon icon={IconProp.Terminal} className="h-4 w-4" />
-              <span>
-                {translator.translateTemplate("Open {{shell}}", {
-                  shell: shell.title,
-                })}
-              </span>
-              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-            </a>
+            <CloudStreamShellLink shell={shell} />
             {setup.problem ? (
               <></>
             ) : (
@@ -595,21 +388,12 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
               </button>
             )}
           </div>
-          <div
-            className="flex items-start gap-1.5 border-t border-gray-200 pt-3 text-xs text-gray-500"
-            data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-what-it-makes`}
-          >
-            <Icon
-              icon={IconProp.ShieldCheck}
-              className="mt-px h-3.5 w-3.5 flex-shrink-0"
-            />
-            <span>
-              {translator.translateTemplate(
-                "It makes a CloudFormation stack, {{stack}}, in each Region: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your account. AWS bills the metric stream for each metric update it sends, and Firehose for what it delivers.",
-                { stack: stackName },
-              )}
-            </span>
-          </div>
+          <CloudStreamWhatItMakes
+            text={translator.translateTemplate(
+              "It makes a CloudFormation stack, {{stack}}, in each Region: the metric stream and log subscriptions, two Firehose streams that deliver to OneUptime only, and a bucket for what they could not deliver. Nothing in it can read your account. AWS bills the metric stream for each metric update it sends, and Firehose for what it delivers.",
+              { stack: stackName },
+            )}
+          />
         </div>
       ),
     },
@@ -658,22 +442,14 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-6" data-testid={CLOUD_STREAM_DIALOG_TEST_ID}>
         {props.connection.isEnabled === false ? (
-          <div
-            className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-            data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-turned-off`}
-          >
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
-            />
-            <span>
-              {say(
-                translationKey(
-                  "This connection is turned off, so its streams' deliveries are refused. Turn it on to take them.",
-                ),
-              )}
-            </span>
-          </div>
+          <CloudStreamNotice
+            text={say(
+              translationKey(
+                "This connection is turned off, so its streams' deliveries are refused. Turn it on to take them.",
+              ),
+            )}
+            dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-turned-off`}
+          />
         ) : (
           <></>
         )}
@@ -710,7 +486,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
             className="space-y-3 rounded-lg border border-gray-200 px-4 py-3"
             data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-logs`}
           >
-            <CheckRow
+            <CloudStreamCheckRow
               label={say(
                 translationKey("Every log group of the account, new ones too"),
               )}
@@ -744,7 +520,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                     id={`${fieldId}-log-groups`}
                     rows={3}
                     dir="ltr"
-                    className={INPUT_CLASS_NAME}
+                    className={CLOUD_STREAM_INPUT_CLASS_NAME}
                     placeholder="/aws/lambda/checkout"
                     spellCheck={false}
                     aria-describedby={`${fieldId}-log-groups-help`}
@@ -784,7 +560,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                     type="text"
                     dir="ltr"
                     spellCheck={false}
-                    className={INPUT_CLASS_NAME}
+                    className={CLOUD_STREAM_INPUT_CLASS_NAME}
                     value={choices.logGroupsRegion}
                     data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-log-groups-region`}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -808,7 +584,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
         >
           <div className="space-y-5">
             {streamsMetrics(choices.what) ? (
-              <CheckRow
+              <CloudStreamCheckRow
                 label={say(
                   translationKey("Every metric, not only the key ones"),
                 )}
@@ -839,7 +615,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                 type="text"
                 dir="ltr"
                 spellCheck={false}
-                className={INPUT_CLASS_NAME}
+                className={CLOUD_STREAM_INPUT_CLASS_NAME}
                 placeholder="us-east-1, eu-west-1"
                 aria-describedby={`${fieldId}-regions-help`}
                 value={choices.regionsText}
@@ -877,18 +653,18 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <CopyRow
+                <CloudStreamCopyRow
                   label={say(translationKey("Metrics endpoint"))}
                   value={setup.metricsUrl}
                   dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-metrics-url`}
                 />
-                <CopyRow
+                <CloudStreamCopyRow
                   label={say(translationKey("Logs endpoint"))}
                   value={setup.logsUrl}
                   dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-logs-url`}
                 />
                 {madeKey ? (
-                  <CopyRow
+                  <CloudStreamCopyRow
                     label={say(translationKey("Access key"))}
                     value={madeKey.streamKey}
                     dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-access-key`}

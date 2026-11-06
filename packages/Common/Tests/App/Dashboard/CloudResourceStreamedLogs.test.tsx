@@ -14,13 +14,17 @@ import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * A cloud resource's Logs tab: what an AWS connection's stream delivered
- * from the CloudWatch Logs group AWS names after the resource. The stream
- * stamps each log with the resource's ARN as the cloud.resource_id resource
- * attribute (CloudLogGroups), so the tab asks for exactly that - never the
- * project's every log - and names the resource on its locked chip. The
- * resource's view shows the tab in its menu only for a kind of resource a
- * log group names: a function or a database has it, a bucket does not.
+ * A cloud resource's Logs tab: what its connection's stream delivered
+ * about it - an AWS connection's from the CloudWatch Logs group AWS names
+ * after the resource, an Azure connection's from its diagnostic setting, a
+ * Google Cloud connection's from Cloud Logging. The stream stamps each log
+ * with the resource's id as the cloud.resource_id resource attribute
+ * (CloudLogGroups), so the tab asks for exactly that - never the project's
+ * every log - names the resource on its locked chip, and says in its
+ * cloud's words how logs get there. The resource's view shows the tab in
+ * its menu only for a kind of resource with logs of its own: a function, a
+ * database or a web app has it; a bucket, an Azure virtual machine or an
+ * instance group does not.
  */
 
 const MODEL_ID: string = "0193c0de-3333-4aaa-8bbb-000000000003";
@@ -156,6 +160,7 @@ jest.mock(
 import CloudResourceLogs, {
   CLOUD_RESOURCE_LOGS_NOT_FOUND,
   getCloudResourceLogsQuery,
+  getCloudResourceNoLogsMessage,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Logs";
 import CloudResourceViewLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Layout";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -222,7 +227,32 @@ describe("a cloud resource's Logs tab", () => {
     expect(props["noLogsMessage"]).toContain("Stream metrics and logs");
   });
 
-  test("reads the resource's name and ARN, and nothing else of it", async () => {
+  test.each([
+    ["aws", "Stream metrics and logs", "CloudWatch Logs"],
+    ["azure", "Stream metrics and logs", "resource logs"],
+    ["gcp", "Stream logs", "Cloud Logging"],
+    [undefined, "Stream metrics and logs", "CloudWatch Logs"],
+  ])(
+    "a %s resource says how its logs get here, in its cloud's words",
+    async (provider: string | undefined, action: string, source: string) => {
+      getItemMock.mockResolvedValue({
+        name: "checkout",
+        providerResourceId: FUNCTION_ARN,
+        cloudProvider: provider,
+      });
+
+      render(<CloudResourceLogs {...PAGE_PROPS} />);
+      await screen.findByTestId("logs-viewer");
+
+      const message: string = lastViewerProps()["noLogsMessage"] as string;
+
+      expect(message).toContain(action);
+      expect(message).toContain(source);
+      expect(message).toBe(getCloudResourceNoLogsMessage(provider));
+    },
+  );
+
+  test("reads the resource's name, ARN and cloud, and nothing else of it", async () => {
     getItemMock.mockResolvedValue({
       name: "checkout",
       providerResourceId: FUNCTION_ARN,
@@ -235,7 +265,7 @@ describe("a cloud resource's Logs tab", () => {
     expect(
       (getItemMock.mock.calls[0]![0] as { select: Record<string, boolean> })
         .select,
-    ).toEqual({ name: true, providerResourceId: true });
+    ).toEqual({ name: true, providerResourceId: true, cloudProvider: true });
   });
 
   test("a resource without a name is named on its chip by its ARN", async () => {
@@ -303,6 +333,12 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     ["an RDS database", "aws", "AWS::RDS::DBInstance"],
     ["an Aurora cluster", "aws", "AWS::RDS::DBCluster"],
     ["an App Runner service", "aws", "AWS::AppRunner::Service"],
+    ["an Azure web app", "azure", "Microsoft.Web/sites"],
+    ["an Azure SQL database", "azure", "Microsoft.Sql/servers/databases"],
+    ["an Azure key vault", "azure", "Microsoft.KeyVault/vaults"],
+    ["a Cloud Run service", "gcp", "cloud_run_revision"],
+    ["a Compute Engine VM", "gcp", "gce_instance"],
+    ["a Cloud SQL instance", "gcp", "cloudsql_database"],
   ])("%s has Logs", async (_kind: string, provider: string, type: string) => {
     await openView({
       cloudResourceKind: "resource",
@@ -317,6 +353,11 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     ["an S3 bucket", "aws", "AWS::S3::Bucket"],
     ["an EC2 instance", "aws", "AWS::EC2::Instance"],
     ["an Azure function", "azure", "AWS::Lambda::Function"],
+    // Its own logs need an agent in it.
+    ["an Azure virtual machine", "azure", "Microsoft.Compute/virtualMachines"],
+    ["an Azure storage account", "azure", "Microsoft.Storage/storageAccounts"],
+    ["a Google Cloud instance group", "gcp", "instance_group"],
+    ["a Google Cloud type of no rule", "gcp", "k8s_container"],
     ["a resource of no type", "aws", undefined],
   ])(
     "%s has none",

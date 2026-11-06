@@ -23,18 +23,48 @@ import {
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import { STORED_CLOUD_RESOURCE_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudLogGroups";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * A cloud resource's logs: what an AWS connection's stream delivered from
- * the CloudWatch Logs group AWS names after the resource - a function's
- * /aws/lambda/<name>, a database's /aws/rds/instance/<name>/... The stream
- * stamps each log with the resource's id as the cloud.resource_id resource
- * attribute (CloudLogGroups), and this tab filters on it. The side menu
- * shows the tab only for a kind of resource a log group names.
+ * A cloud resource's logs: what its connection's stream delivered about
+ * it - for AWS, the CloudWatch Logs group AWS names after the resource (a
+ * function's /aws/lambda/<name>, a database's /aws/rds/instance/<name>/...);
+ * for Azure, the resource logs its diagnostic setting sends, under its ARM
+ * id; for Google Cloud, the log entries Cloud Logging files under its
+ * monitored resource. The stream stamps each log with the resource's id as
+ * the cloud.resource_id resource attribute (CloudLogGroups), and this tab
+ * filters on it. The side menu shows the tab only for a kind of resource
+ * that has logs of its own.
  */
 
 export const CLOUD_RESOURCE_LOGS_NOT_FOUND: string =
   "Cloud resource not found.";
+
+// What the tab says while no log has come, in its cloud's words.
+export const CLOUD_RESOURCE_NO_LOGS_MESSAGES: Record<CloudProvider, string> = {
+  [CloudProvider.AWS]: translationKey(
+    "Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group.",
+  ),
+  [CloudProvider.Azure]: translationKey(
+    "Logs appear here once its subscription's connection streams resource logs: choose Stream metrics and logs on the connection in Cloud > Connect, with logs.",
+  ),
+  [CloudProvider.GCP]: translationKey(
+    "Logs appear here once its project's connection streams Cloud Logging: choose Stream logs on the connection in Cloud > Connect.",
+  ),
+};
+
+export function getCloudResourceNoLogsMessage(
+  provider: string | null | undefined,
+): string {
+  const value: string = (provider || "").toLowerCase();
+
+  if (value === CloudProvider.Azure || value === CloudProvider.GCP) {
+    return CLOUD_RESOURCE_NO_LOGS_MESSAGES[value];
+  }
+
+  return CLOUD_RESOURCE_NO_LOGS_MESSAGES[CloudProvider.AWS];
+}
 
 export function getCloudResourceLogsViewerId(modelId: ObjectID): string {
   return `cloud-resource-streamed-logs-${modelId.toString()}`;
@@ -79,6 +109,7 @@ const CloudResourceLogs: FunctionComponent<
         select: {
           name: true,
           providerResourceId: true,
+          cloudProvider: true,
         },
       });
 
@@ -142,7 +173,9 @@ const CloudResourceLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="Logs appear here once its account's connection streams CloudWatch Logs: choose Stream metrics and logs on the connection in Cloud > Connect, with this resource's log group."
+        noLogsMessage={getCloudResourceNoLogsMessage(
+          cloudResource.cloudProvider,
+        )}
       />
     </Fragment>
   );
