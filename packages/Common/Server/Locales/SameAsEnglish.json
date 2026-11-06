@@ -8,7 +8,8 @@
     "Note",
     "[Incident] {{title}}"
   ],
-  "it": ["Offline"],
+  "es": ["No"],
+  "it": ["No", "Offline"],
   "pt": ["Offline", "Status", "Status:"],
   "nl": [
     "Details",

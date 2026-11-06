@@ -22,6 +22,7 @@ import Protocol from "../../../Types/API/Protocol";
 import URL from "../../../Types/API/URL";
 import OneUptimeDate from "../../../Types/Date";
 import { getDateDisplayLanguage } from "../../../Types/DateLanguage";
+import { writeInLanguage } from "../../../Server/Utils/ServerTranslation";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../Types/JSON";
 import Email from "../../../Types/Email";
@@ -45,7 +46,9 @@ import {
  * the page's default (SubscriberLanguage): the default email's subject, its
  * own words and when the event starts; the text message; the Slack
  * message's words and its date. A custom template is the team's own and
- * reads as it always did, its dates in English.
+ * reads as written, to every subscriber: the dates it is filled with are in
+ * the page's default language (SubscriberTemplateValues), English for a
+ * page with none.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -300,13 +303,33 @@ describe("a scheduled event's notifications, in the subscriber's language", () =
     );
   });
 
-  test("a custom template is the team's own: its dates as they always were", async () => {
-    pages = [statusPage({ defaultLanguage: "de", smtp: true })];
+  // The page's custom email template, with this body and subject.
+  const useCustomEmail: (body: string, subject?: string) => void = (
+    body: string,
+    subject?: string,
+  ): void => {
     const template: StatusPageSubscriberNotificationTemplate =
       new StatusPageSubscriberNotificationTemplate();
     template._id = "template-email";
-    template.templateBody = "Beginn: {{scheduledStartTime}}";
+    template.templateBody = body;
+
+    if (subject) {
+      template.emailSubject = subject;
+    }
+
     customEmailTemplate = template;
+  };
+
+  // When the event starts, as a custom template's values write it in `language`.
+  const startIn: (language: string) => string = (language: string): string => {
+    return writeInLanguage(language, (): string => {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(STARTS_AT);
+    });
+  };
+
+  test("a custom template is the team's own: its dates are in the page's language", async () => {
+    pages = [statusPage({ defaultLanguage: "de", smtp: true })];
+    useCustomEmail("Beginn: {{scheduledStartTime}}");
 
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
       scheduledEvent(),
@@ -314,12 +337,81 @@ describe("a scheduled event's notifications, in the subscriber's language", () =
 
     const mail: JSONObject = sentMail();
 
+    expect(startIn("de")).not.toBe(startIn("en"));
     expect(mail["templateType"]).toBe(EmailTemplateType.BlankTemplate);
     expect(String((mail["vars"] as JSONObject)["body"])).toBe(
-      `Beginn: ${OneUptimeDate.getDateAsUserFriendlyFormattedString(STARTS_AT)}`,
+      `Beginn: ${startIn("de")}`,
     );
+    // The team's words are sent as written, with no language of their own.
     expect(Object.keys(mail)).not.toContain("language");
     // A subject OneUptime gives the template is in the subscriber's language.
     expect(mail["subject"]).toBe(`[Geplante Wartung] ${TITLE}`);
+  });
+
+  test("a subscriber's own language does not change a custom template's values", async () => {
+    pages = [statusPage({ defaultLanguage: "de", smtp: true })];
+    subscribers = [subscriber("fr")];
+    useCustomEmail("Beginn: {{scheduledStartTime}}");
+
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      scheduledEvent(),
+    ]);
+
+    expect(String((sentMail()["vars"] as JSONObject)["body"])).toBe(
+      `Beginn: ${startIn("de")}`,
+    );
+  });
+
+  test("a custom template's {{scheduledAt}} is in the page's language, in its body and its subject", async () => {
+    pages = [statusPage({ defaultLanguage: "de", smtp: true })];
+    useCustomEmail("Ab {{scheduledAt}}", "Wartung ab {{scheduledAt}}");
+
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      scheduledEvent(),
+    ]);
+
+    const germanScheduledAt: string = writeInLanguage("de", (): string => {
+      return OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+        date: STARTS_AT,
+        timezones: [],
+        use12HourFormat: true,
+      }).join(", ");
+    });
+
+    expect(sentMail()["subject"]).toBe(`Wartung ab ${germanScheduledAt}`);
+    expect(String((sentMail()["vars"] as JSONObject)["body"])).toContain(
+      "Ab ",
+    );
+    expect(String((sentMail()["vars"] as JSONObject)["body"])).not.toContain(
+      OneUptimeDate.getDateAsFormattedArrayInMultipleTimezones({
+        date: STARTS_AT,
+        timezones: [],
+        use12HourFormat: true,
+      })[0]!,
+    );
+  });
+
+  test("an English page's custom template reads as it always has", async () => {
+    pages = [statusPage({ smtp: true })];
+    useCustomEmail("Start: {{scheduledStartTime}}");
+
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      scheduledEvent(),
+    ]);
+
+    expect(String((sentMail()["vars"] as JSONObject)["body"])).toBe(
+      `Start: ${OneUptimeDate.getDateAsUserFriendlyFormattedString(STARTS_AT)}`,
+    );
+  });
+
+  test("leaves dates in English once the event's notifications are written", async () => {
+    pages = [statusPage({ defaultLanguage: "de", smtp: true })];
+    useCustomEmail("Beginn: {{scheduledStartTime}}");
+
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      scheduledEvent(),
+    ]);
+
+    expect(getDateDisplayLanguage()).toBe("en");
   });
 });
