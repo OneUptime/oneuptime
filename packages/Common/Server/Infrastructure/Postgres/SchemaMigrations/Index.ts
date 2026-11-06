@@ -914,7 +914,7 @@ import { AddEmailProviderSettings1808994600000 } from "./1808994600000-AddEmailP
 import { AddGroupingRuleMinimumCount1808994700000 } from "./1808994700000-AddGroupingRuleMinimumCount";
 import { AddGroupingWaitKeyIndexes1808994710000 } from "./1808994710000-AddGroupingWaitKeyIndexes";
 import { AddCloudConnectionStreamState1808995100000 } from "./1808995100000-AddCloudConnectionStreamState";
-import { WidenGitBranchNameColumns1808994780000 } from "./1808994780000-WidenGitBranchNameColumns";
+import { WidenGitBranchNameColumns1808995180000 } from "./1808995180000-WidenGitBranchNameColumns";
 
 export default [
   InitialMigration,
@@ -1833,5 +1833,5 @@ export default [
   AddGroupingRuleMinimumCount1808994700000,
   AddGroupingWaitKeyIndexes1808994710000,
   AddCloudConnectionStreamState1808995100000,
-  WidenGitBranchNameColumns1808994780000,
+  WidenGitBranchNameColumns1808995180000,
 ];

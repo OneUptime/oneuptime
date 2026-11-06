@@ -25,10 +25,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nothing is rebuilt - each table is locked only for its catalog change.
  * Same shape as WidenThingNameColumns1808992530000.
  */
-export class WidenGitBranchNameColumns1808994780000
+export class WidenGitBranchNameColumns1808995180000
   implements MigrationInterface
 {
-  public name: string = "WidenGitBranchNameColumns1808994780000";
+  public name: string = "WidenGitBranchNameColumns1808995180000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

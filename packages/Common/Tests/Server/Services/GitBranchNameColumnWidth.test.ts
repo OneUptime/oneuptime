@@ -4,7 +4,7 @@ import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { MigrationName1765580181582 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1765580181582-MigrationName";
 import { MigrationName1766774689743 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1766774689743-MigrationName";
-import { WidenGitBranchNameColumns1808994780000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994780000-WidenGitBranchNameColumns";
+import { WidenGitBranchNameColumns1808995180000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1808995180000-WidenGitBranchNameColumns";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
@@ -49,7 +49,7 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  *
  * TypeORM generates the change as DROP COLUMN + ADD, which drops every
  * recorded branch and puts every repository back on "main", the column's
- * default. WidenGitBranchNameColumns1808994780000 is ALTER COLUMN ... TYPE:
+ * default. WidenGitBranchNameColumns1808995180000 is ALTER COLUMN ... TYPE:
  * the same schema (the drift check passes), every name kept. Pure metadata,
  * the real length check and recorded SQL here - no Postgres.
  */
@@ -297,9 +297,9 @@ describe("A branch name in a branch column", () => {
   );
 });
 
-describe("WidenGitBranchNameColumns1808994780000", () => {
-  const migration: WidenGitBranchNameColumns1808994780000 =
-    new WidenGitBranchNameColumns1808994780000();
+describe("WidenGitBranchNameColumns1808995180000", () => {
+  const migration: WidenGitBranchNameColumns1808995180000 =
+    new WidenGitBranchNameColumns1808995180000();
 
   test("up() widens each column in place, keeping every name", async () => {
     const { runner, sql } = recordQueries();
@@ -374,7 +374,7 @@ describe("WidenGitBranchNameColumns1808994780000", () => {
         },
       );
       const widened: number = names.indexOf(
-        "WidenGitBranchNameColumns1808994780000",
+        "WidenGitBranchNameColumns1808995180000",
       );
       const created: number = names.indexOf(column.createdByName);
 
@@ -385,6 +385,6 @@ describe("WidenGitBranchNameColumns1808994780000", () => {
   );
 
   test("its name carries its timestamp, as its file's does", () => {
-    expect(migration.name).toBe("WidenGitBranchNameColumns1808994780000");
+    expect(migration.name).toBe("WidenGitBranchNameColumns1808995180000");
   });
 });
