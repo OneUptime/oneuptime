@@ -45646,7 +45646,7 @@
   "The command leaves out {{count}} accounts you may not edit: no key was made for their agents._one": "このコマンドでは、編集権限のない {{count}} 個のアカウントが除外されます。それらのエージェントのキーは作成されていません。",
   "The organization has more accounts than this list shows: the first {{count}}.": "組織には、この一覧に表示されているより多くのアカウントがあります: 最初の {{count}} 個を表示しています。",
   "Wait for them to connect": "接続を待ちます",
-  "Which accounts?": "どのアカウントに?",
+  "Which accounts?": "どのアカウントに？",
   "{{connected}} of {{total}} accounts connected": "{{total}} 個中 {{connected}} 個のアカウントが接続済み",
   "A pull request to the code is being written in {{repository}}.": "{{repository}} でコードへのプルリクエストを作成しています。",
   "A pull request to the code is open in {{repository}}: merge it, and the next apply keeps the fix.": "{{repository}} でコードへのプルリクエストが開いています。マージすると、次の apply でも修正が保たれます。",
