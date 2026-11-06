@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Server/Utils/CloudConnection/CloudOrganizationAgents - which accounts of
@@ -98,12 +99,10 @@ function agent(data: {
 }
 
 describe("CloudOrganizationAgents", () => {
-  let findAccountSpy: jest.SpiedFunction<typeof CloudAccountService.findOneBy>;
-  let findAccountsSpy: jest.SpiedFunction<typeof CloudAccountService.findBy>;
-  let findConnectionSpy: jest.SpiedFunction<
-    typeof CloudConnectionService.findOneBy
-  >;
-  let findAgentsSpy: jest.SpiedFunction<typeof ResourceAiAgentService.findBy>;
+  let findAccountSpy: SpyInstance<typeof CloudAccountService.findOneBy>;
+  let findAccountsSpy: SpyInstance<typeof CloudAccountService.findBy>;
+  let findConnectionSpy: SpyInstance<typeof CloudConnectionService.findOneBy>;
+  let findAgentsSpy: SpyInstance<typeof ResourceAiAgentService.findBy>;
 
   beforeEach(() => {
     findAccountSpy = jest
@@ -268,7 +267,7 @@ describe("CloudOrganizationAgents", () => {
       });
 
       const call: Record<string, unknown> = findAccountsSpy.mock
-        .calls[0]![0] as Record<string, unknown>;
+        .calls[0]![0] as unknown as Record<string, unknown>;
 
       // The caller's own props: an account they may not read is never named.
       expect(call["props"]).toBe(CALLER);
@@ -338,7 +337,7 @@ describe("CloudOrganizationAgents", () => {
       });
 
       const call: Record<string, unknown> = findAgentsSpy.mock
-        .calls[0]![0] as Record<string, unknown>;
+        .calls[0]![0] as unknown as Record<string, unknown>;
       const query: Record<string, unknown> = call["query"] as Record<
         string,
         unknown

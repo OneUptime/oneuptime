@@ -3,6 +3,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import {
+  CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM,
   CLOUD_AI_AGENT_ORGANIZATION_SKIPPED,
   CLOUD_AI_AGENT_ORGANIZATION_STATE_WORDS,
   canSetUpCloudAiAgentOrganization,
@@ -350,6 +351,117 @@ describe("CloudAiAgentOrganizationAccounts", () => {
     expect(summary).toHaveTextContent(
       "Every account's agent is connected. Running the command again with other choices updates them all.",
     );
+  });
+
+  test("the account the dialog was opened on is marked This account, and no other", () => {
+    render(
+      <CloudAiAgentOrganizationAccounts
+        view={VIEW}
+        currentCloudAccountId={CLOUD_A.toUpperCase()}
+      />,
+    );
+
+    const marks: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-ai-agent-organization-accounts-this-account",
+    );
+
+    expect(marks).toHaveLength(1);
+    expect(marks[0]).toHaveTextContent("This account");
+    expect(
+      marks[0]!.closest(
+        "[data-testid='cloud-ai-agent-organization-accounts-account']",
+      ),
+    ).toHaveAttribute("data-account", "222222222222");
+  });
+
+  test("an account the command leaves out reads Skipped, not Waiting - unless an agent of its own connected", () => {
+    render(
+      <CloudAiAgentOrganizationAccounts
+        view={{
+          ...VIEW,
+          accounts: [
+            ...VIEW.accounts,
+            {
+              cloudAccountId: CLOUD_STRANGER,
+              accountId: "333333333333",
+              name: "Security tooling",
+              isManagementAccount: false,
+              agent: "connected",
+              lastSeenAt: "2026-11-06T11:59:00.000Z",
+            },
+          ],
+        }}
+        skippedCloudAccountIds={[CLOUD_A.toUpperCase(), CLOUD_STRANGER]}
+      />,
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-ai-agent-organization-accounts-account",
+    );
+
+    // No agent, and no key in the command: nothing will connect it.
+    expect(rows[1]).toHaveAttribute("data-skipped", "true");
+    expect(rows[1]).toHaveTextContent("Skipped");
+    expect(rows[1]).not.toHaveTextContent("Waiting");
+    // Its own agent connected all the same: said as it is.
+    expect(rows[2]).toHaveAttribute("data-skipped", "false");
+    expect(rows[2]).toHaveTextContent("Connected");
+    expect(rows[0]).toHaveAttribute("data-skipped", "false");
+  });
+
+  test("without the account it was opened on, nothing is marked This account", () => {
+    render(<CloudAiAgentOrganizationAccounts view={VIEW} />);
+
+    expect(
+      screen.queryByTestId("cloud-ai-agent-organization-accounts-this-account"),
+    ).toBeNull();
+  });
+
+  test("a short list shows whole; a long one scrolls inside its frame", () => {
+    const many: (count: number) => CloudOrganizationView = (
+      count: number,
+    ): CloudOrganizationView => {
+      const accounts: Array<CloudOrganizationAccountView> = [];
+
+      for (let index: number = 0; index < count; index++) {
+        accounts.push({
+          cloudAccountId: `30000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+          accountId: String(100000000000 + index),
+          name: `team-${index}`,
+          isManagementAccount: index === 0,
+          agent: "none",
+          lastSeenAt: null,
+        });
+      }
+
+      return { ...VIEW, accounts };
+    };
+
+    const { unmount } = render(
+      <CloudAiAgentOrganizationAccounts
+        view={many(CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM)}
+      />,
+    );
+    const short: HTMLElement = screen.getByTestId(
+      "cloud-ai-agent-organization-accounts-list",
+    );
+
+    // A frame that scrolls inside the dialog cut a phone's last row in half.
+    expect(short).toHaveAttribute("data-scrolls", "false");
+    expect(short).not.toHaveClass("overflow-y-auto");
+    unmount();
+
+    render(
+      <CloudAiAgentOrganizationAccounts
+        view={many(CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM + 1)}
+      />,
+    );
+    const long: HTMLElement = screen.getByTestId(
+      "cloud-ai-agent-organization-accounts-list",
+    );
+
+    expect(long).toHaveAttribute("data-scrolls", "true");
+    expect(long).toHaveClass("overflow-y-auto");
   });
 
   test("more accounts than listed: said with how many are", () => {

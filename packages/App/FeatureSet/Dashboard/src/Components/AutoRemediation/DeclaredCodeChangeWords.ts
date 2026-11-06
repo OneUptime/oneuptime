@@ -2,6 +2,7 @@ import {
   AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import { isCloudAiResourceType } from "Common/Types/ResourceAiAgent/AiResourceType";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -255,6 +256,43 @@ export const DECLARED_CODE_DIALOG_WAITING_NOTE: string = translationKey(
 export const DECLARED_CODE_DIALOG_RAN_NOTE: string = translationKey(
   "The live change already ran: the pull request makes the code say the same, so the next apply does not undo it.",
 );
+export const DECLARED_CODE_DIALOG_DISMISSED_NOTE: string = translationKey(
+  "The live change was dismissed: once the pull request is merged, the next apply makes the change.",
+);
+// Approved and on its way, or it did not finish: nothing to decide about it here.
+export const DECLARED_CODE_DIALOG_APPROVED_NOTE: string = translationKey(
+  "The pull request makes the code say what the fix sets, so the next apply keeps it.",
+);
+
+/*
+ * What becomes of the live change, as the dialog says it under the
+ * repositories: by how its step ran, else by where the fix stands - it
+ * still waits for approval, it was dismissed (the pull request alone makes
+ * the change), or it was approved. Without the fix's status (the run
+ * step's list, whose fix was approved), by how the step ran alone.
+ */
+export function getDeclaredCodeLiveChangeNote(data: {
+  command: AiRemediationCommand;
+  suggestionStatus?: AutoRemediationSuggestionStatus | undefined;
+}): string {
+  if (hasLiveChangeRun(data.command)) {
+    return DECLARED_CODE_DIALOG_RAN_NOTE;
+  }
+
+  if (data.suggestionStatus === AutoRemediationSuggestionStatus.Dismissed) {
+    return DECLARED_CODE_DIALOG_DISMISSED_NOTE;
+  }
+
+  if (
+    data.command.execution ||
+    data.suggestionStatus === AutoRemediationSuggestionStatus.Approved ||
+    data.suggestionStatus === AutoRemediationSuggestionStatus.AutoExecuted
+  ) {
+    return DECLARED_CODE_DIALOG_APPROVED_NOTE;
+  }
+
+  return DECLARED_CODE_DIALOG_WAITING_NOTE;
+}
 
 // Why a repository is offered, in the reader's words.
 export const DECLARED_CODE_REASON_WORDS: Readonly<

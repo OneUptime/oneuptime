@@ -15,14 +15,20 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import DeclaredCodeChangeLine from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/DeclaredCodeChangeLine";
 import {
+  DECLARED_CODE_DIALOG_APPROVED_NOTE,
+  DECLARED_CODE_DIALOG_DISMISSED_NOTE,
   DECLARED_CODE_DIALOG_RAN_NOTE,
   DECLARED_CODE_DIALOG_WAITING_NOTE,
+  DECLARED_CODE_STATE_TONES,
   canAskForDeclaredCodeChange,
   findDeclaredCodeChange,
+  getDeclaredCodeLiveChangeNote,
   getStartingRepositoryId,
+  isDeclaredCodeReadRetryable,
   readDeclaredCodeChanges,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/DeclaredCodeChangeWords";
 import { readDeclaredCodeOwner } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/DeclaredCodeChangeDialog";
@@ -33,6 +39,7 @@ import {
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPolicyVerdict,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -58,8 +65,10 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  *     the repositories with why each is offered - the likeliest chosen, one
  *     the reader may not ask in never - and what becomes of the live change;
  *   - Open pull request asks for it in the chosen repository, and the line
- *     then says where it stands: being written, open (its link), ended
- *     without one, failed (Ask again).
+ *     then says where it stands, in the AI card's marks and the code fix
+ *     line's words: being written (View progress), open (View pull request,
+ *     View task), waiting for the reader's answer (Answer in Code), nothing
+ *     to change (View task), failed (View task, Try again).
  *
  * Nothing is drawn under a step whose change the code does not declare.
  */
@@ -138,7 +147,8 @@ const OWNER: DeclaredCodeOwnerJSON = {
 
 let changesAnswer: JSONObject;
 let ownerAnswer: () => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse>;
-let postSpy: jest.SpiedFunction<typeof API.post>;
+// jest-mock's spy, as jest.spyOn of @jest/globals makes it (compile-common's layout).
+let postSpy: SpyInstance<typeof API.post>;
 
 function postsTo(route: string): Array<JSONObject> {
   return postSpy.mock.calls
@@ -193,7 +203,7 @@ beforeEach(() => {
     }
 
     return new HTTPResponse<JSONObject>(200, {}, {});
-  }) as never);
+  }) as never) as unknown as SpyInstance<typeof API.post>;
 });
 
 afterEach(() => {
@@ -203,12 +213,19 @@ afterEach(() => {
 
 async function renderLine(
   step: AiRemediationCommand = command(),
+  showsWhy?: boolean,
+  suggestionStatus?: AutoRemediationSuggestionStatus,
 ): Promise<ReturnType<typeof render>> {
   let view: ReturnType<typeof render> | null = null;
 
   await act(async () => {
     view = render(
-      <DeclaredCodeChangeLine suggestionId={SUGGESTION_ID} command={step} />,
+      <DeclaredCodeChangeLine
+        suggestionId={SUGGESTION_ID}
+        command={step}
+        {...(showsWhy === undefined ? {} : { showsWhy })}
+        {...(suggestionStatus === undefined ? {} : { suggestionStatus })}
+      />,
     );
   });
 
@@ -248,6 +265,21 @@ describe("the line under a step", () => {
     expect(ask).not.toHaveClass("w-full");
   });
 
+  test("under the note that says why (the plan's list), the button has no hint of its own", async () => {
+    await renderLine(command(), false);
+
+    const line: HTMLElement = screen.getByTestId("declared-code-change");
+
+    expect(line).toHaveAttribute("data-state", "offered");
+    expect(
+      within(line).getByTestId("declared-code-change-ask"),
+    ).toHaveTextContent("Open a pull request to the code");
+    expect(
+      within(line).queryByTestId("declared-code-change-why"),
+    ).not.toBeInTheDocument();
+    expect(line).not.toHaveTextContent("so the next apply keeps it");
+  });
+
   test.each([
     [
       "a restart, which the code does not declare",
@@ -269,18 +301,35 @@ describe("the line under a step", () => {
     [
       DeclaredCodeChangeState.Writing,
       "A pull request to the code is being written in acme/platform.",
+      "View progress",
+      "live",
+    ],
+    [
+      DeclaredCodeChangeState.WaitingForYou,
+      "The pull request to the code in acme/platform waits for your answer.",
+      "Answer in Code",
+      "attention",
     ],
     [
       DeclaredCodeChangeState.Ended,
-      "AI opened no pull request in acme/platform: it found nothing to change, or it waits for your answer.",
+      "OneUptime AI read the code in acme/platform and found nothing to change.",
+      "View task",
+      "idle",
     ],
     [
       DeclaredCodeChangeState.Failed,
       "The pull request to the code could not be written in acme/platform.",
+      "View task",
+      "failed",
     ],
   ])(
-    "%s: says so, with the task's link",
-    async (state: DeclaredCodeChangeState, sentence: string) => {
+    "%s: says so after the card's mark, with the task's link in the words of what to do",
+    async (
+      state: DeclaredCodeChangeState,
+      sentence: string,
+      linkWords: string,
+      tone: string,
+    ) => {
       changesAnswer = {
         changes: [
           {
@@ -297,20 +346,87 @@ describe("the line under a step", () => {
       const line: HTMLElement = screen.getByTestId("declared-code-change");
 
       expect(line).toHaveAttribute("data-state", state);
-      expect(line).toHaveTextContent(sentence);
-      // The icon draws a div, so its line is not a paragraph.
-      expect(line.querySelector("p div")).toBeNull();
       expect(
-        within(line).getByTestId("declared-code-change-task"),
-      ).toHaveAttribute(
+        within(line).getByTestId("declared-code-change-text"),
+      ).toHaveTextContent(sentence);
+      // The mark is the AI card's: its colours by where the request stands.
+      const mark: HTMLElement = within(line).getByTestId(
+        "declared-code-change-mark",
+      );
+
+      expect(mark).toHaveAttribute("data-tone", tone);
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+      expect(DECLARED_CODE_STATE_TONES[state]).toBe(tone);
+      // The mark draws an icon, so it is not inside the sentence's paragraph.
+      expect(line.querySelector("p div")).toBeNull();
+      expect(line.querySelector("p svg")).toBeNull();
+
+      const task: HTMLElement = within(line).getByTestId(
+        "declared-code-change-task",
+      );
+
+      expect(task).toHaveAttribute(
         "href",
         `/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`,
       );
+      expect(task).toHaveTextContent(linkWords);
       expect(
-        within(line).queryByTestId("declared-code-change-ask-again") !== null,
+        within(line).queryByTestId("declared-code-change-try-again") !== null,
       ).toBe(state === DeclaredCodeChangeState.Failed);
+      // Only an open pull request has a link of its own.
+      expect(
+        within(line).queryByTestId("declared-code-change-pull-request"),
+      ).not.toBeInTheDocument();
     },
   );
+
+  test("failed: Try again opens the dialog that asks again", async () => {
+    changesAnswer = {
+      changes: [
+        {
+          sequence: 1,
+          taskId: TASK_ID,
+          repositoryName: "acme/platform",
+          state: DeclaredCodeChangeState.Failed,
+        },
+      ],
+    };
+
+    await renderLine();
+
+    const again: HTMLElement = screen.getByTestId(
+      "declared-code-change-try-again",
+    );
+
+    expect(again).toHaveTextContent("Try again");
+
+    await act(async () => {
+      fireEvent.click(again);
+    });
+
+    expect(
+      await screen.findByTestId("declared-code-dialog"),
+    ).toBeInTheDocument();
+  });
+
+  test("a repository the reader may not read is still named as one", async () => {
+    changesAnswer = {
+      changes: [
+        {
+          sequence: 1,
+          taskId: TASK_ID,
+          repositoryName: "",
+          state: DeclaredCodeChangeState.Writing,
+        },
+      ],
+    };
+
+    await renderLine();
+
+    expect(screen.getByTestId("declared-code-change-text")).toHaveTextContent(
+      "A pull request to the code is being written in a repository.",
+    );
+  });
 
   test("open: the pull request's link, which opens elsewhere", async () => {
     changesAnswer = {
@@ -342,6 +458,14 @@ describe("the line under a step", () => {
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(link).toHaveTextContent("View pull request #7");
+    // The task beside it, as the code fix line names it.
+    expect(screen.getByTestId("declared-code-change-task")).toHaveTextContent(
+      "View task",
+    );
+    expect(screen.getByTestId("declared-code-change-mark")).toHaveAttribute(
+      "data-tone",
+      "done",
+    );
 
     /*
      * The number reads left to right in every language, and the space
@@ -423,10 +547,38 @@ describe("the dialog that asks before opening it", () => {
       expect(name).not.toHaveAttribute("dir");
       expect(name.querySelector("bdi")).not.toBeNull();
       expect(name.querySelector("bdi")?.textContent).toBe(name.textContent);
+      /*
+       * Drawn as Code's pages draw a repository's name, in the page's own
+       * font: a mono class on the line never reached the name, whose bdi
+       * takes the Dashboard's universal Inter rule.
+       */
+      expect(name).toHaveClass("font-medium");
+      expect(name).not.toHaveClass("font-mono");
     }
+    // A name breaks after its slash before anywhere else.
+    expect(
+      within(rows[0]!)
+        .getByTestId("declared-code-dialog-repository-name")
+        .querySelector("wbr"),
+    ).not.toBeNull();
     expect(rows[0]).toHaveTextContent(
       "Its Terraform code has a file named after the resource: envs/prod/web/main.tf",
     );
+    // The file's path is code, read left to right, breaking at its slashes.
+    const path: HTMLElement = within(rows[0]!).getByTestId(
+      "declared-code-dialog-path",
+    );
+
+    expect(path.tagName).toBe("CODE");
+    expect(path).toHaveAttribute("dir", "ltr");
+    expect(path).toHaveTextContent("envs/prod/web/main.tf");
+    expect(path.querySelector("wbr")).not.toBeNull();
+    // A repository that cannot be chosen reads as one, in the dark theme too.
+    expect(
+      within(rows[1]!).getByTestId("declared-code-dialog-repository-name"),
+    ).toHaveClass("text-gray-500");
+    expect(rows[1]).toHaveClass("cursor-not-allowed");
+    expect(rows[0]).toHaveClass("cursor-pointer");
     // The likeliest one the reader may ask in is chosen.
     expect(within(rows[0]!).getByRole("radio")).toBeChecked();
     // One they may not ask in cannot be chosen, and says why.
@@ -452,6 +604,21 @@ describe("the dialog that asks before opening it", () => {
     expect(
       await within(dialog).findByTestId("declared-code-dialog-live-change"),
     ).toHaveTextContent(DECLARED_CODE_DIALOG_RAN_NOTE);
+  });
+
+  test("a dismissed fix: the pull request alone makes the change - never 'approve it too'", async () => {
+    await renderLine(
+      command(),
+      false,
+      AutoRemediationSuggestionStatus.Dismissed,
+    );
+    const dialog: HTMLElement = await openDialog();
+    const note: HTMLElement = await within(dialog).findByTestId(
+      "declared-code-dialog-live-change",
+    );
+
+    expect(note).toHaveTextContent(DECLARED_CODE_DIALOG_DISMISSED_NOTE);
+    expect(note).not.toHaveTextContent("approve it too");
   });
 
   test("Open pull request asks in the chosen repository, and the line says it is being written", async () => {
@@ -501,7 +668,7 @@ describe("the dialog that asks before opening it", () => {
     ).toBeDisabled();
   });
 
-  test("a refusal reading the repositories is said", async () => {
+  test("a refusal reading the repositories is said, with no Try again: it says the same every time", async () => {
     ownerAnswer = async () => {
       return new HTTPErrorResponse(
         400,
@@ -516,6 +683,70 @@ describe("the dialog that asks before opening it", () => {
     expect(
       await within(dialog).findByTestId("declared-code-dialog-load-error"),
     ).toHaveTextContent("This fix has no such step.");
+    expect(
+      within(dialog).queryByTestId("declared-code-dialog-try-again"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a failure that may pass is said with Try again, which reads the repositories again", async () => {
+    let calls: number = 0;
+
+    ownerAnswer = async () => {
+      calls += 1;
+
+      if (calls === 1) {
+        return new HTTPErrorResponse(
+          503,
+          { message: "OneUptime could not read the repositories just now." },
+          {},
+        );
+      }
+
+      return new HTTPResponse<JSONObject>(
+        200,
+        OWNER as unknown as JSONObject,
+        {},
+      );
+    };
+
+    await renderLine();
+    const dialog: HTMLElement = await openDialog();
+
+    expect(
+      await within(dialog).findByTestId("declared-code-dialog-load-error"),
+    ).toHaveTextContent("OneUptime could not read the repositories just now.");
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByTestId("declared-code-dialog-try-again"),
+      );
+    });
+
+    expect(
+      await within(dialog).findAllByTestId("declared-code-dialog-repository"),
+    ).toHaveLength(2);
+    expect(postsTo(OWNER_ROUTE)).toHaveLength(2);
+  });
+
+  test("while it looks, it says so, and nothing can be opened yet", async () => {
+    ownerAnswer = async () => {
+      return await new Promise<HTTPResponse<JSONObject>>(() => {
+        // Never answers while the test looks.
+      });
+    };
+
+    await renderLine();
+    const dialog: HTMLElement = await openDialog();
+
+    expect(
+      within(dialog).getByTestId("declared-code-dialog-loading"),
+    ).toHaveTextContent("Looking for the code in your repositories…");
+    expect(
+      within(dialog).getByTestId("declared-code-dialog-loading"),
+    ).toHaveAttribute("role", "status");
+    expect(
+      screen.getByRole("button", { name: "Open pull request" }),
+    ).toBeDisabled();
   });
 });
 
@@ -573,6 +804,75 @@ describe("the words behind it", () => {
         candidates: [{ repositoryId: "x", reason: "because" }],
       })?.candidates,
     ).toEqual([]);
+  });
+
+  test("reading the repositories again may answer otherwise only after no answer, a server error, a timeout or too many requests", () => {
+    for (const status of [-1, 0, 408, 429, 500, 502, 503, 504]) {
+      expect(isDeclaredCodeReadRetryable(status)).toBe(true);
+    }
+
+    for (const status of [400, 401, 403, 404, 422]) {
+      expect(isDeclaredCodeReadRetryable(status)).toBe(false);
+    }
+  });
+
+  test("what becomes of the live change: by how its step ran, else by where the fix stands", () => {
+    const ran: AiRemediationCommand = command({
+      execution: { status: AiRemediationCommandExecutionStatus.Succeeded },
+    });
+    const failed: AiRemediationCommand = command({
+      execution: { status: AiRemediationCommandExecutionStatus.Failed },
+    });
+
+    expect(getDeclaredCodeLiveChangeNote({ command: ran })).toBe(
+      DECLARED_CODE_DIALOG_RAN_NOTE,
+    );
+    expect(
+      getDeclaredCodeLiveChangeNote({
+        command: ran,
+        suggestionStatus: AutoRemediationSuggestionStatus.Approved,
+      }),
+    ).toBe(DECLARED_CODE_DIALOG_RAN_NOTE);
+    expect(
+      getDeclaredCodeLiveChangeNote({
+        command: command(),
+        suggestionStatus: AutoRemediationSuggestionStatus.Suggested,
+      }),
+    ).toBe(DECLARED_CODE_DIALOG_WAITING_NOTE);
+    expect(getDeclaredCodeLiveChangeNote({ command: command() })).toBe(
+      DECLARED_CODE_DIALOG_WAITING_NOTE,
+    );
+    expect(
+      getDeclaredCodeLiveChangeNote({
+        command: command(),
+        suggestionStatus: AutoRemediationSuggestionStatus.Dismissed,
+      }),
+    ).toBe(DECLARED_CODE_DIALOG_DISMISSED_NOTE);
+    // Approved and on its way, or it did not finish: nothing to decide here.
+    for (const status of [
+      AutoRemediationSuggestionStatus.Approved,
+      AutoRemediationSuggestionStatus.AutoExecuted,
+    ]) {
+      expect(
+        getDeclaredCodeLiveChangeNote({
+          command: command(),
+          suggestionStatus: status,
+        }),
+      ).toBe(DECLARED_CODE_DIALOG_APPROVED_NOTE);
+    }
+    expect(getDeclaredCodeLiveChangeNote({ command: failed })).toBe(
+      DECLARED_CODE_DIALOG_APPROVED_NOTE,
+    );
+  });
+
+  test("each state's mark, in the AI card's colours", () => {
+    expect(DECLARED_CODE_STATE_TONES).toEqual({
+      [DeclaredCodeChangeState.Writing]: "live",
+      [DeclaredCodeChangeState.Opened]: "done",
+      [DeclaredCodeChangeState.WaitingForYou]: "attention",
+      [DeclaredCodeChangeState.Ended]: "idle",
+      [DeclaredCodeChangeState.Failed]: "failed",
+    });
   });
 
   test("the dialog starts on the best repository the reader may ask in, or none", () => {

@@ -1,6 +1,7 @@
 import {
   CLOUD_ORGANIZATION_AGENT_STATES,
   CLOUD_ORGANIZATION_MAX_ACCOUNTS,
+  CloudOrganizationAccountView,
   CloudOrganizationView,
   NOT_AN_ORGANIZATION,
   RESOURCE_AI_ACCESS_ORGANIZATION_KEYS_PATH,
@@ -228,10 +229,22 @@ describe("countConnectedAccounts", () => {
         isOrganization: true,
         managementAccountId: "111111111111",
         accounts: [
-          { ...(ROW as never), agent: "connected" },
-          { ...(ROW as never), agent: "offline" },
-          { ...(ROW as never), agent: "none" },
-          { ...(ROW as never), agent: "connected" },
+          {
+            ...(ROW as unknown as CloudOrganizationAccountView),
+            agent: "connected",
+          },
+          {
+            ...(ROW as unknown as CloudOrganizationAccountView),
+            agent: "offline",
+          },
+          {
+            ...(ROW as unknown as CloudOrganizationAccountView),
+            agent: "none",
+          },
+          {
+            ...(ROW as unknown as CloudOrganizationAccountView),
+            agent: "connected",
+          },
         ],
         isTruncated: false,
       }),

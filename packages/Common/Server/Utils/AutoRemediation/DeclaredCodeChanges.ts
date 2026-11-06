@@ -522,16 +522,17 @@ export default class DeclaredCodeChanges {
       suggestion: step.suggestion,
       userId: data.props.userId!,
       leadWithAuthor: true,
-      markdown: mdText`asked ${ProductBrandingText.getProductName()} AI for a pull request to the ${
-        step.declaredCode.name
-      } code in ${getRepositoryFullName({
-        name: repository.name || "",
-        organizationName: repository.organizationName || "",
-        repositoryName: repository.repositoryName || "",
-      })}: ${step.change.sentence}. [View the task](${getCodeTaskPageUrl({
-        projectId,
-        taskId: task.id!,
-      })})`.toString(),
+      markdown:
+        mdText`asked ${ProductBrandingText.getProductName()} AI for a pull request to the ${
+          step.declaredCode.name
+        } code in ${getRepositoryFullName({
+          name: repository.name || "",
+          organizationName: repository.organizationName || "",
+          repositoryName: repository.repositoryName || "",
+        })}: ${step.change.sentence}. [View the task](${getCodeTaskPageUrl({
+          projectId,
+          taskId: task.id!,
+        })})`.toString(),
     });
 
     return { taskId: task.id!.toString(), wasAlreadyAsked: false };

@@ -21,6 +21,7 @@ import {
 } from "./CloudAiAgentSetup";
 import {
   CLOUD_AI_AGENT_ORGANIZATION_COST_TEXT,
+  CLOUD_AI_AGENT_ORGANIZATION_DIALOG_DESCRIPTION,
   CLOUD_AI_AGENT_ORGANIZATION_INSTANCES_TEXT,
   CLOUD_AI_AGENT_ORGANIZATION_KEY_NOTE,
   CLOUD_AI_AGENT_ORGANIZATION_MAKING_KEYS_TEXT,
@@ -174,6 +175,11 @@ import React, {
  */
 
 export const CLOUD_AI_AGENT_SETUP_TEST_ID: string = "cloud-ai-agent-setup";
+
+// What the dialog does, for this account alone.
+const CLOUD_AI_AGENT_ACCOUNT_DIALOG_DESCRIPTION: string = translationKey(
+  "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
+);
 
 // The question's two answers, as the option picker keys them.
 const ASK_FIRST: string = "ask-first";
@@ -814,6 +820,11 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
             <CloudAiAgentOrganizationAccounts
               view={organizationView}
               currentCloudAccountId={props.cloudAccountId.toString()}
+              skippedCloudAccountIds={skippedAccounts.map(
+                (account: CloudOrganizationSkippedAccount): string => {
+                  return account.cloudAccountId;
+                },
+              )}
             />
           ) : (
             <></>
@@ -1018,8 +1029,11 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Let AI fix problems"
+      /* Every account of the organization: the dialog says so, as its steps do. */
       description={translator.translateTemplate(
-        "Run one command in {{shell}} to let OneUptime AI fix problems here: it creates the agent's role and starts the agent, which connects on its own.",
+        isOrganization
+          ? CLOUD_AI_AGENT_ORGANIZATION_DIALOG_DESCRIPTION
+          : CLOUD_AI_AGENT_ACCOUNT_DIALOG_DESCRIPTION,
         { shell },
       )}
       modalWidth={ModalWidth.Medium}

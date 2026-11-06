@@ -474,6 +474,8 @@ function CloudCommandNote(props: {
   command: AiRemediationCommand;
   // The fix the step is of: a change to declared code is asked for from it.
   suggestionId?: string | undefined;
+  // Where the fix stands: the pull request's dialog says what becomes of the live change.
+  suggestionStatus?: AutoRemediationSuggestionStatus | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const { command } = props;
@@ -513,7 +515,9 @@ function CloudCommandNote(props: {
           data-lasting={isLasting ? "true" : "false"}
         >
           {translator.translateTemplate(
-            isLasting ? DECLARED_CODE_LASTING_NOTE : DECLARED_CODE_NOT_LASTING_NOTE,
+            isLasting
+              ? DECLARED_CODE_LASTING_NOTE
+              : DECLARED_CODE_NOT_LASTING_NOTE,
             { owner: command.managedAsCode },
             // A Latin owner keeps its place in a Persian sentence.
             { setsValuesApart: true },
@@ -531,6 +535,7 @@ function CloudCommandNote(props: {
           suggestionId={props.suggestionId}
           command={command}
           showsWhy={false}
+          suggestionStatus={props.suggestionStatus}
         />
       ) : (
         <></>
@@ -768,6 +773,7 @@ export const RemediationCommandPlanList: FunctionComponent<{
               <CloudCommandNote
                 command={command}
                 suggestionId={props.suggestionId}
+                suggestionStatus={props.suggestionStatus}
               />
 
               {command.rollbackCommand ? (
@@ -862,6 +868,8 @@ export const RemediationCommandRunList: FunctionComponent<{
                 <DeclaredCodeChangeLine
                   suggestionId={props.suggestionId}
                   command={command}
+                  /* A fix with a run step was approved: its change is on its way or ran. */
+                  suggestionStatus={AutoRemediationSuggestionStatus.Approved}
                 />
               ) : (
                 <></>

@@ -1090,12 +1090,22 @@ describe("streaming an AWS connection's metrics and logs", () => {
     const { container } = render(confirmation.details!);
     const code: string = container.querySelector("pre code")?.textContent || "";
 
-    expect(
-      container.querySelector(
-        "[data-testid='cloud-connection-stop-streaming-organization']",
-      ),
-    ).toHaveTextContent(
-      "Run it in the management account 111111111111: it also deletes every member account's stacks, when the organization was streamed.",
+    /*
+     * One paragraph that ends at the command: where to run it, and that
+     * the member accounts' stacks go too - not one account's sentence
+     * ending in a colon, then another before the command.
+     */
+    const paragraphs: Array<HTMLParagraphElement> = Array.from(
+      container.querySelectorAll("p"),
+    );
+
+    expect(paragraphs).toHaveLength(1);
+    expect(paragraphs[0]).toHaveAttribute(
+      "data-testid",
+      "cloud-connection-stop-streaming-organization",
+    );
+    expect(paragraphs[0]).toHaveTextContent(
+      "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, the member accounts' too, run this in AWS CloudShell in the management account 111111111111:",
     );
     // The management account's own stacks, then the StackSet's when there is one.
     expect(code).toContain("for REGION in us-east-1; do");
@@ -1128,6 +1138,10 @@ describe("streaming an AWS connection's metrics and logs", () => {
         "[data-testid='cloud-connection-stop-streaming-organization']",
       ),
     ).toBeNull();
+    expect(container.querySelectorAll("p")).toHaveLength(1);
+    expect(container.querySelector("p")).toHaveTextContent(
+      "The streams stay in AWS, and AWS bills them, until their stacks are deleted. To delete them, run this in AWS CloudShell:",
+    );
     expect(
       container.querySelector("pre code")?.textContent || "",
     ).not.toContain("stack-set");

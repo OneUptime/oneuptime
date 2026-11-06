@@ -24,6 +24,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { AiRemediationCommand } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -86,6 +87,8 @@ export interface ComponentProps {
    * just above (the note on the declared code), so there it does not.
    */
   showsWhy?: boolean | undefined;
+  // Where the fix stands: the dialog says what becomes of the live change.
+  suggestionStatus?: AutoRemediationSuggestionStatus | undefined;
 }
 
 // Where the pull request stands, as a small mark in the AI card's colours.
@@ -198,6 +201,7 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
     <DeclaredCodeChangeDialog
       suggestionId={props.suggestionId}
       command={props.command}
+      suggestionStatus={props.suggestionStatus}
       onClose={() => {
         setIsDialogOpen(false);
       }}

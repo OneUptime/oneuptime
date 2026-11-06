@@ -31,6 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Where a fix that lasts touches what was there before:
@@ -155,9 +156,7 @@ describe("CodeTaskRuns.start, asked from a fix", () => {
 });
 
 describe("CodeFixPullRequestRecord, for a task asked from a fix", () => {
-  let opened: jest.SpiedFunction<
-    typeof DeclaredCodeChanges.onPullRequestOpened
-  >;
+  let opened: SpyInstance<typeof DeclaredCodeChanges.onPullRequestOpened>;
   let existing: AIAgentTaskPullRequest | null;
 
   beforeEach(() => {
@@ -254,7 +253,7 @@ describe("the fix's chat message", () => {
     );
   });
 
-  test("a restart of a declared resource: put back, and nothing to ask for", () => {
+  test("a restart of a declared resource: the next apply undoes no restart, so the message says nothing of the code", () => {
     const text: string = parts([
       command({
         managedAsCode: "Terraform",
@@ -262,9 +261,8 @@ describe("the fix's chat message", () => {
       }),
     ]);
 
-    expect(text).toContain(
-      "Declared as code by Terraform: the next apply may put the old value back.",
-    );
+    expect(text).not.toContain("Declared as code");
+    expect(text).not.toContain("put the old value back");
     expect(text).not.toContain("pull request");
   });
 

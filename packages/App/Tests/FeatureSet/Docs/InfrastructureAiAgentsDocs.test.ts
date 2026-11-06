@@ -2903,10 +2903,18 @@ describe("Infrastructure AI Agents docs", (): void => {
         "scale-out",
         "set-concurrency",
       ]);
-      // The feed, and so the channels, hear who asked and of the pull request.
+      /*
+       * The feed, and so the channels, hear who asked and of the pull
+       * request - the product named as the installation names it.
+       */
       expect(changes).toContain("sendWorkspaceNotification: true");
-      expect(changes).toContain("asked OneUptime AI for a pull request to the");
-      expect(changes).toContain("OneUptime AI opened a pull request to the");
+      expect(changes).toContain(
+        "asked ${ProductBrandingText.getProductName()} AI for a pull request to the",
+      );
+      expect(changes).toContain("${product} AI opened a pull request to the");
+      expect(changes).toContain(
+        "const product: string = ProductBrandingText.getProductName();",
+      );
     });
 
     it("changes only what the account's inventory lists, and only proposes a fix to a resource declared as code, as the server holds it", (): void => {

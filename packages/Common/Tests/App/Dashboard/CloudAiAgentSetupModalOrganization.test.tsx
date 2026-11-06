@@ -26,7 +26,10 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { buildCloudAiAgentKey } from "../../../Types/CloudConnection/CloudAiAgentKey";
-import { CloudOrganizationView } from "../../../Types/CloudConnection/CloudOrganizationAgents";
+import {
+  CloudOrganizationAccountView,
+  CloudOrganizationView,
+} from "../../../Types/CloudConnection/CloudOrganizationAgents";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -297,16 +300,20 @@ describe("which accounts the agent is set up in", () => {
     expect(
       within(scope).getByTestId("setup-guide-option-account"),
     ).toHaveTextContent(`One agent, in AWS account ${ACCOUNT}.`);
+    // Two short answers: what each agent is given is the command step's to say.
     expect(
       within(scope).getByTestId("setup-guide-option-organization"),
     ).toHaveTextContent(
-      "An agent in each of its 3 accounts, from one command in the management account: each with the same least-privilege role, and a key of its own.",
+      "An agent in each of its 3 accounts, from one command in the management account.",
     );
 
     // This account's own command, and no organization's keys asked for.
     expect(
       await screen.findByTestId("cloud-ai-agent-setup-command"),
     ).toHaveTextContent(keyOf(CLOUD_ACCOUNT_ID, "a"));
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "to let OneUptime AI fix problems here: it creates the agent's role",
+    );
     expect(postsTo(ORGANIZATION_KEYS_ROUTE)).toHaveLength(0);
     expect(postsTo(ORGANIZATION_ROUTE)[0]!["data"]).toEqual({
       resourceType: AiResourceType.AwsAccount,
@@ -370,10 +377,19 @@ describe("every account of the organization", () => {
       resourceId: CLOUD_ACCOUNT_ID,
     });
 
+    // The dialog says what it does now: every account, each agent's role.
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Run one command in AWS CloudShell to let OneUptime AI fix problems in every account of the organization: it creates each agent's role and starts the agents, which connect on their own.",
+    );
+
     const steps: HTMLElement = screen.getByTestId("setup-guide-steps");
 
     expect(steps).toHaveTextContent(
       `Run this in AWS CloudShell, in the management account ${MANAGEMENT}`,
+    );
+    // Who runs it, and what every account's agent is given.
+    expect(steps).toHaveTextContent(
+      "Run it as someone who may create StackSets and roles in the management account. Each account's agent gets the same least-privilege role and a key of its own.",
     );
     expect(steps).toHaveTextContent("Wait for them to connect");
     expect(
@@ -433,6 +449,51 @@ describe("every account of the organization", () => {
     });
 
     expect(await organizationCommand()).toContain(keyOf(CLOUD_SANDBOX, "3"));
+  });
+
+  test("an account the command leaves out reads Skipped in the list, not Waiting", async () => {
+    // Sandbox has no agent, and the command leaves it out.
+    const view: CloudOrganizationView = {
+      ...ORGANIZATION,
+      accounts: ORGANIZATION.accounts.map(
+        (
+          account: CloudOrganizationAccountView,
+        ): CloudOrganizationAccountView => {
+          return account.cloudAccountId === CLOUD_SANDBOX
+            ? { ...account, agent: "none", lastSeenAt: null }
+            : account;
+        },
+      ),
+    };
+
+    organizationAnswer = view as unknown as JSONObject;
+    organizationKeyAnswers = [
+      answer({
+        ...KEYS,
+        keys: (KEYS["keys"] as Array<JSONObject>).slice(0, 2),
+        skipped: [
+          {
+            cloudAccountId: CLOUD_SANDBOX,
+            accountId: "222222222222",
+            name: "Sandbox",
+            reason: "You need permission to edit this AWS account.",
+          },
+        ],
+      }),
+    ];
+    openDialog();
+    await chooseEveryAccount();
+    await organizationCommand();
+
+    const sandbox: HTMLElement = screen
+      .getAllByTestId("cloud-ai-agent-organization-accounts-account")
+      .find((row: HTMLElement): boolean => {
+        return row.getAttribute("data-account") === "222222222222";
+      })!;
+
+    expect(sandbox).toHaveAttribute("data-skipped", "true");
+    expect(sandbox).toHaveTextContent("Skipped");
+    expect(sandbox).not.toHaveTextContent("Waiting");
   });
 
   test("the accounts no key was made for are named, and left out of the command", async () => {
@@ -580,6 +641,21 @@ describe("every account of the organization", () => {
     expect(rows[0]).toHaveTextContent("Connected");
     expect(rows[1]).toHaveTextContent("Waiting");
     expect(rows[2]).toHaveTextContent("Offline");
+    // The account the dialog was opened on is marked, and only it.
+    expect(
+      screen.getAllByTestId(
+        "cloud-ai-agent-organization-accounts-this-account",
+      ),
+    ).toHaveLength(1);
+    expect(
+      within(rows[1]!).getByTestId(
+        "cloud-ai-agent-organization-accounts-this-account",
+      ),
+    ).toHaveTextContent("This account");
+    // A short list shows whole: the dialog scrolls, not a frame inside it.
+    expect(
+      screen.getByTestId("cloud-ai-agent-organization-accounts-list"),
+    ).toHaveAttribute("data-scrolls", "false");
     expect(
       screen.getByTestId("cloud-ai-agent-organization-accounts-summary"),
     ).toHaveTextContent("1 of 3 accounts connected");
@@ -587,5 +663,10 @@ describe("every account of the organization", () => {
     expect(
       screen.getByTestId("cloud-ai-agent-setup-organization-instances-command"),
     ).toHaveTextContent("list-stack-instances");
+    expect(
+      screen.getByTestId("cloud-ai-agent-setup-organization-instances-command"),
+    ).toHaveTextContent(
+      "When an account does not connect, its stack says why. Run this in the management account:",
+    );
   });
 });

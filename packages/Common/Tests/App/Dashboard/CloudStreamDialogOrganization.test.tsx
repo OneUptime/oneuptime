@@ -162,11 +162,45 @@ describe("streaming every account of an organization", () => {
       "of every account of the organization",
     );
 
+    // The fold's line names its fields in the order it draws them.
+    const header: string =
+      within(part("more-fields")).getByTestId("folded-section-header")
+        .textContent || "";
+
+    expect(header.indexOf("Every metric")).toBeLessThan(
+      header.indexOf("Every account of the organization"),
+    );
+    expect(header.indexOf("Every account of the organization")).toBeLessThan(
+      header.indexOf("Regions"),
+    );
+
     await openMoreFields();
 
     expect(part("every-account")).not.toBeChecked();
     expect(part("more-fields")).toHaveTextContent(
-      `From the management account ${MANAGEMENT}: a StackSet makes the same stacks in every member account, and in accounts that join the organization later.`,
+      `From the management account ${MANAGEMENT}, a StackSet makes the same stacks in every member account, and in accounts that join later. It streams every log group or no logs, since a named log group belongs to one account.`,
+    );
+    // The fold draws it where its line names it: after Every metric, before Regions.
+    const fold: string = part("more-fields").textContent || "";
+
+    expect(fold.indexOf("Every metric, not only the key ones")).toBeLessThan(
+      fold.indexOf("Every account of the organization"),
+    );
+    expect(fold.indexOf("Every account of the organization")).toBeLessThan(
+      fold.indexOf("Regions"),
+    );
+    // Until it is chosen, the dialog streams this account.
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "delivers this account's CloudWatch metrics and logs",
+    );
+  });
+
+  test("chosen, the dialog says it streams every account of the organization", async () => {
+    openDialog(ORGANIZATION_CONFIG);
+    await streamEveryAccount();
+
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Run one command, and Amazon Data Firehose delivers the CloudWatch metrics and logs of every account of the organization to OneUptime within minutes, between reads.",
     );
   });
 

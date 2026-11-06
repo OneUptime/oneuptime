@@ -15,6 +15,7 @@ import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
 } from "../../../../Server/Utils/AI/Remediation/DeclaredCodeOwner";
 import CloudAiTargets from "../../../../Server/Utils/AI/ResourceAccess/CloudAiTargets";
+import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import DeclaredCodeChanges, {
   DECLARED_CODE_NOT_DECLARED_MESSAGE,
   DECLARED_CODE_NOT_LASTING_MESSAGE,
@@ -51,6 +52,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Server/Utils/AutoRemediation/DeclaredCodeChanges - a fix that lasts: a
@@ -184,34 +186,26 @@ function task(data: {
 }
 
 describe("DeclaredCodeChanges", () => {
-  let userRead: jest.SpiedFunction<
+  let userRead: SpyInstance<
     typeof AutoRemediationSuggestionService.findOneById
   >;
-  let rootRead: jest.SpiedFunction<
-    typeof AutoRemediationSuggestionService.findOneBy
-  >;
-  let targetRead: jest.SpiedFunction<typeof CloudAiTargets.findChangeTarget>;
-  let candidates: jest.SpiedFunction<typeof DeclaredCodeOwner.findCandidates>;
-  let readable: jest.SpiedFunction<
-    typeof CodeTaskAccess.listReadableRepositories
-  >;
-  let canAsk: jest.SpiedFunction<typeof CodeTaskAccess.canAskInRepository>;
-  let getRepository: jest.SpiedFunction<
-    typeof CodeTaskAccess.getReadableRepository
-  >;
-  let gate: jest.SpiedFunction<typeof CodeTaskGate.assertCanStart>;
-  let contextBuild: jest.SpiedFunction<typeof CodeTaskContextBuilder.build>;
-  let startTask: jest.SpiedFunction<typeof CodeTaskRuns.start>;
-  let findRuns: jest.SpiedFunction<typeof AIRunService.findBy>;
-  let findRun: jest.SpiedFunction<typeof AIRunService.findOneBy>;
-  let replies: jest.SpiedFunction<typeof CodeTaskThread.getRepliesByTask>;
-  let pullRequests: jest.SpiedFunction<typeof CodeTaskThread.getPullRequests>;
-  let incidentFeed: jest.SpiedFunction<
+  let rootRead: SpyInstance<typeof AutoRemediationSuggestionService.findOneBy>;
+  let targetRead: SpyInstance<typeof CloudAiTargets.findChangeTarget>;
+  let candidates: SpyInstance<typeof DeclaredCodeOwner.findCandidates>;
+  let readable: SpyInstance<typeof CodeTaskAccess.listReadableRepositories>;
+  let canAsk: SpyInstance<typeof CodeTaskAccess.canAskInRepository>;
+  let getRepository: SpyInstance<typeof CodeTaskAccess.getReadableRepository>;
+  let gate: SpyInstance<typeof CodeTaskGate.assertCanStart>;
+  let contextBuild: SpyInstance<typeof CodeTaskContextBuilder.build>;
+  let startTask: SpyInstance<typeof CodeTaskRuns.start>;
+  let findRuns: SpyInstance<typeof AIRunService.findBy>;
+  let findRun: SpyInstance<typeof AIRunService.findOneBy>;
+  let replies: SpyInstance<typeof CodeTaskThread.getRepliesByTask>;
+  let pullRequests: SpyInstance<typeof CodeTaskThread.getPullRequests>;
+  let incidentFeed: SpyInstance<
     typeof IncidentFeedService.createIncidentFeedItem
   >;
-  let alertFeed: jest.SpiedFunction<
-    typeof AlertFeedService.createAlertFeedItem
-  >;
+  let alertFeed: SpyInstance<typeof AlertFeedService.createAlertFeedItem>;
 
   beforeEach(() => {
     userRead = jest
@@ -558,19 +552,45 @@ describe("DeclaredCodeChanges", () => {
         sendWorkspaceNotification: true,
         leadWithAuthor: true,
       });
-      expect(String(item["feedInfoInMarkdown"])).toContain(
-        "asked OneUptime AI for a pull request to the Terraform code that declares the ECS service web, in acme/platform",
+      const markdown: string = String(item["feedInfoInMarkdown"]);
+
+      expect(markdown).toContain(
+        "asked OneUptime AI for a pull request to the Terraform code in acme/platform: Scale",
       );
-      expect(String(item["feedInfoInMarkdown"])).toContain(
-        `/code/tasks/${TASK_ID.toString()})`,
-      );
+      /*
+       * The change names its resource, so the note names it once: it was
+       * "...code that declares the ECS service web, in ...: Scale the ECS
+       * service web ..." on a phone's three lines.
+       */
+      expect(markdown.split("service web").length - 1).toBe(1);
+      expect(markdown).not.toContain("that declares");
+      expect(markdown).toContain(`/code/tasks/${TASK_ID.toString()})`);
       expect(alertFeed).not.toHaveBeenCalled();
     });
 
+    test("the note names the product as the installation does: it reaches Slack and Teams as written", async () => {
+      jest
+        .spyOn(ProductBrandingText, "getProductName")
+        .mockReturnValue("Acme Ops");
+
+      await start();
+
+      const item: Record<string, unknown> = incidentFeed.mock
+        .calls[0]![0] as Record<string, unknown>;
+
+      expect(String(item["feedInfoInMarkdown"])).toContain(
+        "asked Acme Ops AI for a pull request to the Terraform code in acme/platform",
+      );
+      expect(String(item["feedInfoInMarkdown"])).not.toContain("OneUptime");
+    });
+
     test("a fix of an alert: the alert's feed", async () => {
-      const row: AutoRemediationSuggestion = suggestion([step()]);
-      row.incidentId = undefined;
-      row.alertId = ObjectID.generate();
+      // An alert's fix: no incident (an optional field is never set to undefined).
+      const alertId: ObjectID = ObjectID.generate();
+      const row: AutoRemediationSuggestion = Object.assign(
+        suggestion([step()]),
+        { incidentId: undefined, alertId },
+      );
       rootRead.mockResolvedValue(row);
 
       await start();
@@ -578,9 +598,7 @@ describe("DeclaredCodeChanges", () => {
       expect(alertFeed).toHaveBeenCalledTimes(1);
       expect(incidentFeed).not.toHaveBeenCalled();
       expect(contextBuild.mock.calls[0]![0]).toMatchObject({
-        inputs: [
-          { type: CodeTaskContextType.Alert, id: row.alertId.toString() },
-        ],
+        inputs: [{ type: CodeTaskContextType.Alert, id: alertId.toString() }],
       });
     });
 
@@ -712,7 +730,8 @@ describe("DeclaredCodeChanges", () => {
       [AIRunStatus.Queued, false, DeclaredCodeChangeState.Writing],
       [AIRunStatus.Running, false, DeclaredCodeChangeState.Writing],
       [AIRunStatus.Completed, false, DeclaredCodeChangeState.Ended],
-      [AIRunStatus.Completed, true, DeclaredCodeChangeState.Ended],
+      // It stopped to ask the person: said apart from "nothing to change".
+      [AIRunStatus.Completed, true, DeclaredCodeChangeState.WaitingForYou],
       [AIRunStatus.NoFixFound, false, DeclaredCodeChangeState.Ended],
       [AIRunStatus.Error, false, DeclaredCodeChangeState.Failed],
       [AIRunStatus.Cancelled, false, DeclaredCodeChangeState.Failed],
@@ -842,6 +861,30 @@ describe("DeclaredCodeChanges", () => {
         leadWithAuthor: false,
       });
       expect(item["userId"]).toBeUndefined();
+    });
+
+    test("the opened note names the product as the installation does", async () => {
+      jest
+        .spyOn(ProductBrandingText, "getProductName")
+        .mockReturnValue("Acme Ops");
+      findRun.mockResolvedValue(linkedRun());
+
+      await DeclaredCodeChanges.onPullRequestOpened({
+        projectId: PROJECT_ID,
+        aiRunId: TASK_ID,
+        pullRequestUrl: "https://github.com/acme/platform/pull/7",
+        title: "Scale web to 4 tasks",
+      });
+
+      expect(
+        String(
+          (incidentFeed.mock.calls[0]![0] as Record<string, unknown>)[
+            "feedInfoInMarkdown"
+          ],
+        ),
+      ).toBe(
+        "Acme Ops AI opened a pull request to the Terraform code that declares the ECS service web, so the next apply keeps the fix: [Scale web to 4 tasks](https://github.com/acme/platform/pull/7)",
+      );
     });
 
     test("an address that is not a web one is named, never linked", async () => {

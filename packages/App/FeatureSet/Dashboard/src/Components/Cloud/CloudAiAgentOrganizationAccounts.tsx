@@ -3,6 +3,7 @@ import {
   CLOUD_AI_AGENT_ORGANIZATION_CONNECTED_COUNT,
   CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM,
   CLOUD_AI_AGENT_ORGANIZATION_MANAGEMENT_LABEL,
+  CLOUD_AI_AGENT_ORGANIZATION_SKIPPED_WORD,
   CLOUD_AI_AGENT_ORGANIZATION_STATE_WORDS,
   CLOUD_AI_AGENT_ORGANIZATION_THIS_ACCOUNT_LABEL,
   CLOUD_AI_AGENT_ORGANIZATION_TRUNCATED,
@@ -40,6 +41,12 @@ export interface ComponentProps {
   view: CloudOrganizationView;
   // OneUptime's id of the account the dialog was opened on: marked This account.
   currentCloudAccountId?: string | undefined;
+  /*
+   * The accounts the command leaves out (no key was made for them): one
+   * with no agent reads Skipped, not Waiting - nothing this command does
+   * connects it.
+   */
+  skippedCloudAccountIds?: ReadonlyArray<string> | undefined;
 }
 
 // Each state's pill: its colours, and its dot.
@@ -65,9 +72,13 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
   const isEveryoneConnected: boolean = isEveryCloudOrganizationAgentConnected(
     props.view,
   );
-  const isLong: boolean =
-    total > CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM;
+  const isLong: boolean = total > CLOUD_AI_AGENT_ORGANIZATION_LIST_SCROLLS_FROM;
   const current: string = (props.currentCloudAccountId || "").toLowerCase();
+  const skipped: Set<string> = new Set<string>(
+    (props.skippedCloudAccountIds || []).map((id: string): string => {
+      return id.toLowerCase();
+    }),
+  );
 
   return (
     <div
@@ -132,6 +143,10 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
       >
         {props.view.accounts.map(
           (account: CloudOrganizationAccountView): ReactElement => {
+            const isSkipped: boolean =
+              account.agent === "none" &&
+              skipped.has(account.cloudAccountId.toLowerCase());
+
             return (
               <li
                 key={account.cloudAccountId}
@@ -139,6 +154,7 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
                 data-testid={`${CLOUD_AI_AGENT_ORGANIZATION_ACCOUNTS_TEST_ID}-account`}
                 data-account={account.accountId}
                 data-state={account.agent}
+                data-skipped={isSkipped ? "true" : "false"}
               >
                 <div className="min-w-0 flex-1">
                   {/*
@@ -198,7 +214,9 @@ const CloudAiAgentOrganizationAccounts: FunctionComponent<ComponentProps> = (
                     aria-hidden="true"
                   />
                   {translator.translateText(
-                    CLOUD_AI_AGENT_ORGANIZATION_STATE_WORDS[account.agent],
+                    isSkipped
+                      ? CLOUD_AI_AGENT_ORGANIZATION_SKIPPED_WORD
+                      : CLOUD_AI_AGENT_ORGANIZATION_STATE_WORDS[account.agent],
                   )}
                 </span>
               </li>

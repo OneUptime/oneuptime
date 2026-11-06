@@ -5,16 +5,14 @@ import {
   DECLARED_CODE_DIALOG_LOADING,
   DECLARED_CODE_DIALOG_MAY_NOT_ASK,
   DECLARED_CODE_DIALOG_NO_REPOSITORY,
-  DECLARED_CODE_DIALOG_RAN_NOTE,
   DECLARED_CODE_DIALOG_REPOSITORY_LABEL,
   DECLARED_CODE_DIALOG_SUBMIT,
   DECLARED_CODE_DIALOG_TARGET,
   DECLARED_CODE_DIALOG_TITLE,
   DECLARED_CODE_DIALOG_TRY_AGAIN,
-  DECLARED_CODE_DIALOG_WAITING_NOTE,
   DECLARED_CODE_REASON_WORDS,
+  getDeclaredCodeLiveChangeNote,
   getStartingRepositoryId,
-  hasLiveChangeRun,
   isDeclaredCodeReadRetryable,
 } from "./DeclaredCodeChangeWords";
 import PageMap from "../../Utils/PageMap";
@@ -24,6 +22,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { AiRemediationCommand } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -80,6 +79,8 @@ const CODE_CLASS_NAME: string =
 export interface ComponentProps {
   suggestionId: string;
   command: AiRemediationCommand;
+  // Where the fix stands, for what becomes of the live change.
+  suggestionStatus?: AutoRemediationSuggestionStatus | undefined;
   onClose: () => void;
   // The task was asked for: the card reads where it stands.
   onAsked: (taskId: string) => void;
@@ -553,9 +554,10 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
           />
           <p className="min-w-0">
             {translator.translateText(
-              hasLiveChangeRun(props.command)
-                ? DECLARED_CODE_DIALOG_RAN_NOTE
-                : DECLARED_CODE_DIALOG_WAITING_NOTE,
+              getDeclaredCodeLiveChangeNote({
+                command: props.command,
+                suggestionStatus: props.suggestionStatus,
+              }),
             )}
           </p>
         </div>

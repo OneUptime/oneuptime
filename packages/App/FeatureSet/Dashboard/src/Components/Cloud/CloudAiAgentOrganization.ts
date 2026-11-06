@@ -62,6 +62,12 @@ export const CLOUD_AI_AGENT_SCOPE_ORGANIZATION_DESCRIPTION: string =
     "An agent in each of its {{count}} accounts, from one command in the management account.",
   );
 
+// What the dialog does, once every account is the answer.
+export const CLOUD_AI_AGENT_ORGANIZATION_DIALOG_DESCRIPTION: string =
+  translationKey(
+    "Run one command in {{shell}} to let OneUptime AI fix problems in every account of the organization: it creates each agent's role and starts the agents, which connect on their own.",
+  );
+
 // The command's step, for the organization.
 export const CLOUD_AI_AGENT_ORGANIZATION_STEP_TITLE: string = translationKey(
   "Run this in {{shell}}, in the management account {{account}}",
@@ -120,6 +126,14 @@ export const CLOUD_AI_AGENT_ORGANIZATION_STATE_WORDS: Readonly<
   offline: translationKey("Offline"),
   none: translationKey("Waiting"),
 };
+
+/*
+ * An account the command leaves out (no key could be made for it) and
+ * with no agent: it waits for nothing this command does, so it does not
+ * read Waiting.
+ */
+export const CLOUD_AI_AGENT_ORGANIZATION_SKIPPED_WORD: string =
+  translationKey("Skipped");
 
 /*
  * Whether the dialog asks which accounts: an AWS account of an

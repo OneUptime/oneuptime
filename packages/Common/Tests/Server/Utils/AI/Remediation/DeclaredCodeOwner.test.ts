@@ -15,6 +15,7 @@ import {
   readDeclaredCode,
 } from "../../../../../Utils/AiRemediation/DeclaredCodeChange";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * Server/Utils/AI/Remediation/DeclaredCodeOwner - which repository connected
@@ -48,7 +49,7 @@ function repository(
 // The fake host: each repository's tree, read the way the server reads one.
 function host(repositories: Array<FakeRepository>): {
   repositories: Array<ResolvableRepository>;
-  getTreePaths: jest.Mock<
+  getTreePaths: Mock<
     (repository: ResolvableRepository) => Promise<Array<string>>
   >;
 } {
@@ -366,12 +367,12 @@ describe("getRepositoryFullName", () => {
 
 describe("findCandidates", () => {
   test("reads only the repositories AI can work in, through their own host", async () => {
-    const resolvable: jest.SpiedFunction<
+    const resolvable: SpyInstance<
       typeof CodeRepositoryService.getResolvableRepositories
     > = jest
       .spyOn(CodeRepositoryService, "getResolvableRepositories")
       .mockResolvedValue([TERRAFORM.repository]);
-    const tree: jest.SpiedFunction<
+    const tree: SpyInstance<
       typeof CodeRepositoryServiceClass.getRepositoryTreePaths
     > = jest
       .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
