@@ -45568,5 +45568,15 @@
   "OTLP Endpoint": "OTLP-endpoint",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "Bara den som får starta runbook-körningar kan godkänna eller avfärda den här åtgärden.",
   "Only someone who may start runbook executions can dismiss this fix.": "Bara den som får starta runbook-körningar kan avfärda den här åtgärden.",
-  "{{label}}: {{count}}": "{{label}}: {{count}}"
+  "{{label}}: {{count}}": "{{label}}: {{count}}",
+  "{{count}} users affected": "{{count}} användare påverkade",
+  "{{count}} users affected_one": "{{count}} användare påverkad",
+  "{{count}} sessions affected": "{{count}} sessioner påverkade",
+  "{{count}} sessions affected_one": "{{count}} session påverkad",
+  "{{count}} requests affected": "{{count}} begäranden påverkade",
+  "{{count}} requests affected_one": "{{count}} begäran påverkad",
+  "{{count}} services affected": "{{count}} tjänster påverkade",
+  "{{count}} services affected_one": "{{count}} tjänst påverkad",
+  "{{affected}} of {{count}} SLOs affected": "{{affected}} av {{count}} SLO:er påverkade",
+  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} av {{count}} SLO påverkat"
 }

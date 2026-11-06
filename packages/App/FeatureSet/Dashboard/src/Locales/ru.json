@@ -45568,5 +45568,15 @@
   "OTLP Endpoint": "Эндпоинт OTLP",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "Одобрить или отклонить это исправление может только тот, у кого есть право запускать выполнения сценариев.",
   "Only someone who may start runbook executions can dismiss this fix.": "Отклонить это исправление может только тот, у кого есть право запускать выполнения сценариев.",
-  "{{label}}: {{count}}": "{{label}}: {{count}}"
+  "{{label}}: {{count}}": "{{label}}: {{count}}",
+  "{{count}} users affected": "Затронуто пользователей: {{count}}",
+  "{{count}} users affected_one": "{{count}} пользователь затронут",
+  "{{count}} sessions affected": "Затронуто сеансов: {{count}}",
+  "{{count}} sessions affected_one": "{{count}} сеанс затронут",
+  "{{count}} requests affected": "Затронуто запросов: {{count}}",
+  "{{count}} requests affected_one": "{{count}} запрос затронут",
+  "{{count}} services affected": "Затронуто служб: {{count}}",
+  "{{count}} services affected_one": "{{count}} служба затронута",
+  "{{affected}} of {{count}} SLOs affected": "Затронуто SLO: {{affected}} из {{count}}",
+  "{{affected}} of {{count}} SLOs affected_one": "Затронуто SLO: {{affected}} из {{count}}"
 }

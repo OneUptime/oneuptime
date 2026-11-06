@@ -755,6 +755,8 @@ export default class AIAlertInvestigationRunner {
         ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
+        // Who and what it hurts, in numbers, for the folded step.
+        recordImpactNumbers: true,
         // Says when the logs stood in the way, with a way forward.
         logStallSubject: {
           subjectType: "alert",

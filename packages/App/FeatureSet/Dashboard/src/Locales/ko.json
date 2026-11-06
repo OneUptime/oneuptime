@@ -45568,5 +45568,15 @@
   "OTLP Endpoint": "OTLP 엔드포인트",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "런북 실행을 시작할 수 있는 사람만 이 수정을 승인하거나 무시할 수 있습니다.",
   "Only someone who may start runbook executions can dismiss this fix.": "런북 실행을 시작할 수 있는 사람만 이 수정을 무시할 수 있습니다.",
-  "{{label}}: {{count}}": "{{label}}: {{count}}"
+  "{{label}}: {{count}}": "{{label}}: {{count}}",
+  "{{count}} users affected": "사용자 {{count}}명 영향",
+  "{{count}} users affected_one": "사용자 {{count}}명 영향",
+  "{{count}} sessions affected": "세션 {{count}}개 영향",
+  "{{count}} sessions affected_one": "세션 {{count}}개 영향",
+  "{{count}} requests affected": "요청 {{count}}개 영향",
+  "{{count}} requests affected_one": "요청 {{count}}개 영향",
+  "{{count}} services affected": "서비스 {{count}}개 영향",
+  "{{count}} services affected_one": "서비스 {{count}}개 영향",
+  "{{affected}} of {{count}} SLOs affected": "SLO {{count}}개 중 {{affected}}개 영향",
+  "{{affected}} of {{count}} SLOs affected_one": "SLO {{count}}개 중 {{affected}}개 영향"
 }

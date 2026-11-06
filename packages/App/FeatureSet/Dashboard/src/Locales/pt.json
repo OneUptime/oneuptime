@@ -45568,5 +45568,15 @@
   "OTLP Endpoint": "Endpoint OTLP",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "Só quem pode iniciar execuções de runbook pode aprovar ou dispensar esta correção.",
   "Only someone who may start runbook executions can dismiss this fix.": "Só quem pode iniciar execuções de runbook pode dispensar esta correção.",
-  "{{label}}: {{count}}": "{{label}}: {{count}}"
+  "{{label}}: {{count}}": "{{label}}: {{count}}",
+  "{{count}} users affected": "{{count}} usuários afetados",
+  "{{count}} users affected_one": "{{count}} usuário afetado",
+  "{{count}} sessions affected": "{{count}} sessões afetadas",
+  "{{count}} sessions affected_one": "{{count}} sessão afetada",
+  "{{count}} requests affected": "{{count}} requisições afetadas",
+  "{{count}} requests affected_one": "{{count}} requisição afetada",
+  "{{count}} services affected": "{{count}} serviços afetados",
+  "{{count}} services affected_one": "{{count}} serviço afetado",
+  "{{affected}} of {{count}} SLOs affected": "SLOs afetados: {{affected}} de {{count}}",
+  "{{affected}} of {{count}} SLOs affected_one": "SLO afetado: {{affected}} de {{count}}"
 }

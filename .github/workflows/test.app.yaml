@@ -1093,11 +1093,15 @@ jobs:
           # suites and tests each time: its half of Event Overview took 13.3,
           # 17.4 and 21.3 minutes, on runners slower than the runs before. Data
           # Security moved on to group 13: about 15 to 24.5.
+          # Dashboard Templates (2.5) moved on to group 20 on 2026-11-06, when
+          # #5715's follow-ups grew this half of Event Overview by about 0.2
+          # minutes (the impact's short numbers on the folded investigation,
+          # and the marks after citation chips and record pills on phones in
+          # English, German and Persian): 22.1 here, past the budget, to 19.6.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
-              test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -1484,10 +1488,14 @@ jobs:
             suites: >-
               test-openstack-pages-ui
               test-ai-insights-ui
+          # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
+          # the most room, when Event Overview's second half grew past that
+          # group's budget: about 14.1.
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
               test-openstack-pages-ui
+              test-dashboard-templates-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

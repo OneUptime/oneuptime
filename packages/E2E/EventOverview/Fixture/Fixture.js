@@ -504,6 +504,11 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
+import {
+  describeInvestigationImpactNumbers,
+  InvestigationImpactCounted,
+  investigationImpactNumbersToJSON,
+} from "Common/Utils/AI/InvestigationImpactNumbers";
 import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
 import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkdown";
 import UserUtil from "Common/UI/Utils/User";
@@ -4506,6 +4511,27 @@ function stallSummary(investigation) {
   };
 }
 
+/*
+ * ?impact=on: the numbers Incident #1042's run recorded with its report's
+ * Impact section, as the engine records the block it takes off the
+ * answer (Utils/AI/InvestigationImpactNumbers): an InvestigationImpact
+ * event, which the folded Investigation step draws under the summary -
+ * requests, not users, the two services and one of the two SLOs that
+ * count checkout.
+ */
+function impactSummary() {
+  const numbers = {
+    users: { count: 1240, counted: InvestigationImpactCounted.Requests },
+    services: { count: 2 },
+    slos: { affected: 1, total: 2 },
+  };
+
+  return {
+    message: describeInvestigationImpactNumbers(numbers),
+    impactNumbers: investigationImpactNumbersToJSON(numbers),
+  };
+}
+
 function defineInvestigation(spec) {
   if (stallMode) {
     spec = {
@@ -5827,6 +5853,14 @@ function buildEvents(investigation, options) {
         0,
       );
     }
+    // After the TL;DR, as the engine records it.
+    if (options.impact) {
+      push(
+        AIRunEventType.InvestigationImpact,
+        { resultSummary: options.impact },
+        0,
+      );
+    }
     if (!options.skipRunCompleted) {
       push(AIRunEventType.RunCompleted, {}, 0);
     }
@@ -6058,6 +6092,11 @@ function investigationPayload(investigation) {
       ending: "completed",
       skipRunCompleted: isPending,
       stall: stallMode ? stallSummary(investigation) : null,
+      // Only the run whose report has the Impact section: #1042's first.
+      impact:
+        impactMode && investigation.analysis === INCIDENT_ANALYSIS
+          ? impactSummary()
+          : null,
     });
     if (isPending) {
       isAnalysisPending = true;

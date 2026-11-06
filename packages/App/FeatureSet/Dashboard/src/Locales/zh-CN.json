@@ -45568,5 +45568,15 @@
   "OTLP Endpoint": "OTLP 端点",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "只有可以启动 Runbook 执行的人才能批准或忽略此修复。",
   "Only someone who may start runbook executions can dismiss this fix.": "只有可以启动 Runbook 执行的人才能忽略此修复。",
-  "{{label}}: {{count}}": "{{label}}：{{count}}"
+  "{{label}}: {{count}}": "{{label}}：{{count}}",
+  "{{count}} users affected": "{{count}} 名用户受影响",
+  "{{count}} users affected_one": "{{count}} 名用户受影响",
+  "{{count}} sessions affected": "{{count}} 个会话受影响",
+  "{{count}} sessions affected_one": "{{count}} 个会话受影响",
+  "{{count}} requests affected": "{{count}} 个请求受影响",
+  "{{count}} requests affected_one": "{{count}} 个请求受影响",
+  "{{count}} services affected": "{{count}} 个服务受影响",
+  "{{count}} services affected_one": "{{count}} 个服务受影响",
+  "{{affected}} of {{count}} SLOs affected": "{{count}} 个 SLO 中有 {{affected}} 个受影响",
+  "{{affected}} of {{count}} SLOs affected_one": "{{count}} 个 SLO 中有 {{affected}} 个受影响"
 }

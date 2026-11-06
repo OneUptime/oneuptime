@@ -45568,5 +45568,15 @@
   "OTLP Endpoint": "OTLP-endpoint",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "Kun en, der må starte runbook-kørsler, kan godkende eller afvise denne rettelse.",
   "Only someone who may start runbook executions can dismiss this fix.": "Kun en, der må starte runbook-kørsler, kan afvise denne rettelse.",
-  "{{label}}: {{count}}": "{{label}}: {{count}}"
+  "{{label}}: {{count}}": "{{label}}: {{count}}",
+  "{{count}} users affected": "{{count}} brugere berørt",
+  "{{count}} users affected_one": "{{count}} bruger berørt",
+  "{{count}} sessions affected": "{{count}} sessioner berørt",
+  "{{count}} sessions affected_one": "{{count}} session berørt",
+  "{{count}} requests affected": "{{count}} forespørgsler berørt",
+  "{{count}} requests affected_one": "{{count}} forespørgsel berørt",
+  "{{count}} services affected": "{{count}} tjenester berørt",
+  "{{count}} services affected_one": "{{count}} tjeneste berørt",
+  "{{affected}} of {{count}} SLOs affected": "{{affected}} af {{count}} SLO'er berørt",
+  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} af {{count}} SLO berørt"
 }

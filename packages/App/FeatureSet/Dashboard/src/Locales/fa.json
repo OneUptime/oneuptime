@@ -45568,5 +45568,15 @@
   "OTLP Endpoint": "نقطه پایانی OTLP",
   "Only someone who may start runbook executions can approve or dismiss this fix.": "فقط کسی که اجازهٔ شروع اجرای رانبوک‌ها را دارد می‌تواند این اصلاح را تأیید یا رد کند.",
   "Only someone who may start runbook executions can dismiss this fix.": "فقط کسی که اجازهٔ شروع اجرای رانبوک‌ها را دارد می‌تواند این اصلاح را رد کند.",
-  "{{label}}: {{count}}": "{{label}}: {{count}}"
+  "{{label}}: {{count}}": "{{label}}: {{count}}",
+  "{{count}} users affected": "{{count}} کاربر تحت تأثیر",
+  "{{count}} users affected_one": "{{count}} کاربر تحت تأثیر",
+  "{{count}} sessions affected": "{{count}} نشست تحت تأثیر",
+  "{{count}} sessions affected_one": "{{count}} نشست تحت تأثیر",
+  "{{count}} requests affected": "{{count}} درخواست تحت تأثیر",
+  "{{count}} requests affected_one": "{{count}} درخواست تحت تأثیر",
+  "{{count}} services affected": "{{count}} سرویس تحت تأثیر",
+  "{{count}} services affected_one": "{{count}} سرویس تحت تأثیر",
+  "{{affected}} of {{count}} SLOs affected": "{{affected}} از {{count}} SLO تحت تأثیر",
+  "{{affected}} of {{count}} SLOs affected_one": "{{affected}} از {{count}} SLO تحت تأثیر"
 }
