@@ -64,6 +64,7 @@ import {
   AZURE_STREAM_DOCS_PATH,
   getAzureStreamDefaultSubscriptions,
   getAzureStreamSetup,
+  getAzureStreamStartSubscriptions,
   getAzureStreamStopCommand,
   getDefaultAzureStreamChoices,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamAzureSetup";
@@ -400,6 +401,37 @@ describe("the subscriptions it streams from", () => {
     expect(getAzureStreamDefaultSubscriptions({})).toEqual([]);
   });
 
+  test("while reading is on, the one whose event hubs are read first, however the read lists them", () => {
+    const read: { accounts: Array<string> } = { accounts: [SUB_A, SUB_B] };
+
+    expect(
+      getAzureStreamStartSubscriptions({
+        readSubscriptionId: SUB_B.toUpperCase(),
+        lastPullResult: read,
+      }),
+    ).toEqual([SUB_B, SUB_A]);
+    // One the connection does not read: first, then the ones it reads.
+    expect(
+      getAzureStreamStartSubscriptions({
+        readSubscriptionId: "33333333-cccc-4ccc-8ccc-333333333333",
+        lastPullResult: read,
+      }),
+    ).toEqual(["33333333-cccc-4ccc-8ccc-333333333333", SUB_A, SUB_B]);
+    // Reading off, or no subscription said: the ones it reads, as they are.
+    expect(
+      getAzureStreamStartSubscriptions({
+        readSubscriptionId: null,
+        lastPullResult: read,
+      }),
+    ).toEqual([SUB_A, SUB_B]);
+    expect(
+      getAzureStreamStartSubscriptions({
+        readSubscriptionId: "prod",
+        lastPullResult: read,
+      }),
+    ).toEqual([SUB_A, SUB_B]);
+  });
+
   test("the first holds the event hubs; what stops a command is said", () => {
     const setup: ReturnType<typeof getAzureStreamSetup> = getAzureStreamSetup({
       choices: getDefaultAzureStreamChoices([SUB_B, SUB_A]),
@@ -551,7 +583,7 @@ describe("the dialog", () => {
     );
   });
 
-  test("on for another subscription, it says so, and reads them in the first listed instead", async () => {
+  test("opened while reading is on, it starts on the subscription read in, though the read lists it second", () => {
     const startedAt: Date = new Date("2026-11-05T08:00:00.000Z");
     openDialog(
       connection({
@@ -559,6 +591,30 @@ describe("the dialog", () => {
         streamState: { hostSubscriptionId: SUB_B, offsets: {} },
       }),
     );
+
+    expect(part("reading")).toHaveTextContent(
+      `OneUptime reads the event hubs in subscription ${SUB_B} every minute.`,
+    );
+    expect(command()).toContain(`local HOST='${SUB_B}'`);
+    expect(command()).toContain(`for SUB in '${SUB_B}' '${SUB_A}'; do`);
+    expect(queryPart("start-reading")).not.toBeInTheDocument();
+  });
+
+  test("on for another subscription than the first listed, it says so, and reads them in the first listed instead", async () => {
+    const startedAt: Date = new Date("2026-11-05T08:00:00.000Z");
+    openDialog(
+      connection({
+        streamKeyCreatedAt: startedAt,
+        streamState: { hostSubscriptionId: SUB_B, offsets: {} },
+      }),
+    );
+
+    await openMoreFields();
+    await act(async () => {
+      fireEvent.change(part("subscriptions"), {
+        target: { value: `${SUB_A}, ${SUB_B}` },
+      });
+    });
 
     expect(part("start")).toHaveTextContent(
       `OneUptime reads the event hubs in subscription ${SUB_B}, and this command makes them in ${SUB_A}, the first listed. Read them there before you run it.`,

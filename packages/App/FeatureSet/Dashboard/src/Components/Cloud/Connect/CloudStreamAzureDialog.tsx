@@ -32,8 +32,8 @@ import {
   AZURE_STREAM_WHAT_OPTIONS,
   AzureStreamChoices,
   AzureStreamSetup,
-  getAzureStreamDefaultSubscriptions,
   getAzureStreamSetup,
+  getAzureStreamStartSubscriptions,
   getDefaultAzureStreamChoices,
 } from "./CloudStreamAzureSetup";
 import {
@@ -46,6 +46,7 @@ import {
   CloudStreamWatch,
   CloudStreamWhatItMakes,
   cloudStreamPart,
+  getCloudStreamStatusOf,
   useCloudStreamWatch,
 } from "./CloudStreamParts";
 import { CloudStreamWhat } from "./CloudStreamSetup";
@@ -62,8 +63,9 @@ import {
  *   1. turn reading on: OneUptime reads the event hubs the command makes
  *      every minute, as the connection's app - and waits for them until
  *      they are there. Reading is for the event hubs of one subscription,
- *      the first the command lists: when that changes, the step says so
- *      and reads them there instead;
+ *      the first the command lists, so a dialog opened while reading is on
+ *      starts on that one: when the first changes, the step says so and
+ *      reads them there instead;
  *   2. one command for Azure Cloud Shell (CloudStreamAzure): an Event Hubs
  *      namespace in each region, in a resource group of its own, the
  *      app's read role on that group alone, and a diagnostic setting on
@@ -111,8 +113,16 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
       : "";
 
   const [choices, setChoices] = useState<AzureStreamChoices>(() => {
+    const current: CloudStreamStatus = getCloudStreamStatusOf(props.connection);
+
     return getDefaultAzureStreamChoices(
-      getAzureStreamDefaultSubscriptions(props.connection),
+      getAzureStreamStartSubscriptions({
+        readSubscriptionId: current.streamKeyCreatedAt
+          ? current.hostSubscriptionId
+          : null,
+        config: props.connection.config,
+        lastPullResult: props.connection.lastPullResult,
+      }),
     );
   });
   const [isStarting, setIsStarting] = useState<boolean>(false);

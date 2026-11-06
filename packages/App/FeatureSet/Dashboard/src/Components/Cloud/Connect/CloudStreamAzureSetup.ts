@@ -97,6 +97,33 @@ export function getAzureStreamDefaultSubscriptions(connection: {
   );
 }
 
+/*
+ * The subscriptions the dialog starts on. While reading is on, the one
+ * whose event hubs are read comes first, so the command makes them where
+ * OneUptime reads them - however the next read happens to list the
+ * subscriptions - then the ones the connection reads.
+ */
+export function getAzureStreamStartSubscriptions(data: {
+  // The subscription whose event hubs are read, while reading is on.
+  readSubscriptionId: string | null;
+  config?: JSONObject | undefined;
+  lastPullResult?: JSONObject | undefined;
+}): Array<string> {
+  const subscriptions: Array<string> = getAzureStreamDefaultSubscriptions(data);
+  const read: string = (data.readSubscriptionId || "").trim().toLowerCase();
+
+  if (!ObjectID.isValidUUID(read)) {
+    return subscriptions;
+  }
+
+  return [
+    read,
+    ...subscriptions.filter((subscription: string): boolean => {
+      return subscription !== read;
+    }),
+  ];
+}
+
 export function getDefaultAzureStreamChoices(
   subscriptions: Array<string>,
 ): AzureStreamChoices {
