@@ -67,6 +67,19 @@ export const INCIDENT_NUMBER_BADGE: EpisodeMemberEmailListBadge = {
 export const EPISODE_MEMBER_ROW_DIVIDER: string =
   "border-top: 1px solid #e2e8f0;";
 
+/*
+ * The width of a row's View cell: 52px holds English's "View →", and a
+ * longer word ("Ansehen →", "Bekijken →") widens it by a character's
+ * width each, so the link never wraps or breaks inside its word.
+ */
+export const getEpisodeMemberViewCellWidth: (view: string) => number = (
+  view: string,
+): number => {
+  const characters: number = Array.from(view).length;
+
+  return characters <= 6 ? 52 : 52 + (characters - 6) * 9;
+};
+
 export default class EpisodeMemberEmailList {
   /*
    * The list as HTML, or an empty string when there are no members: the
@@ -119,7 +132,9 @@ export default class EpisodeMemberEmailList {
           getOnCallPageMemberMonitor(translator, item.monitorName),
         )}</span>`
       : "";
-    const view: string = SafeHtml.escape(getOnCallPageMemberView(translator));
+    const viewWord: string = getOnCallPageMemberView(translator);
+    const view: string = SafeHtml.escape(viewWord);
+    const viewWidth: number = getEpisodeMemberViewCellWidth(viewWord);
     const isRightToLeft: boolean =
       getReadingDirection(translator.language) === RIGHT_TO_LEFT;
     const badgeSpace: string = isRightToLeft
@@ -139,7 +154,7 @@ export default class EpisodeMemberEmailList {
                       <a href="${link}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${title}</a>
                       ${monitorLine}
                     </td>
-                    <td width="52" style="${viewCellSide}">
+                    <td width="${viewWidth}" style="${viewCellSide}">
                       <a href="${link}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">${view}</a>
                     </td>
                   </tr>

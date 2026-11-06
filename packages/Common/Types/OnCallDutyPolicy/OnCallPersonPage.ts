@@ -143,9 +143,7 @@ function pager(notice: OnCallPersonPageNotice): string {
  * The name of who paged as a sentence's value: their name as written, or
  * "Someone" in the sentence's language.
  */
-function pagerValue(
-  notice: OnCallPersonPageNotice,
-): string | TranslatableTerm {
+function pagerValue(notice: OnCallPersonPageNotice): string | TranslatableTerm {
   const name: string = notice.pagedByName.trim();
 
   return name || translatableTerm(translationKey("Someone"));

@@ -96,7 +96,9 @@ const KIND_WORDS: Readonly<Record<OnCallPageKind, OnCallPageKindWords>> = {
     ),
     noRootCause: translationKey("No root cause identified for this incident"),
     pushTitleNew: translationKey("New Incident: {{title}}"),
-    pushTitleNewWithNumber: translationKey("New Incident {{number}}: {{title}}"),
+    pushTitleNewWithNumber: translationKey(
+      "New Incident {{number}}: {{title}}",
+    ),
     pushTitleStillNotResolved: translationKey(
       "Incident still not resolved: {{title}}",
     ),
@@ -613,10 +615,9 @@ export const getOnCallPageSmsWords: (
               "{{record}} in {{project}} is still not resolved",
               { record: data.record, project: data.projectName },
             )
-          : translator.translateTemplate(
-              "{{record}} is still not resolved",
-              { record: data.record },
-            );
+          : translator.translateTemplate("{{record}} is still not resolved", {
+              record: data.record,
+            });
       }
 
       return data.projectName

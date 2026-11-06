@@ -4890,7 +4890,10 @@ export class Service extends ProjectReferencesService<Model> {
           ? getOnCallPersonPageLead(personPage, translator)
           : undefined,
         kind: OnCallPageSmsKind.Alert,
-        severityName: getOnCallPageStateName(translator, alert.alertSeverity?.name),
+        severityName: getOnCallPageStateName(
+          translator,
+          alert.alertSeverity?.name,
+        ),
         number: this.getRecordNumberText(
           alert.alertNumberWithPrefix,
           alert.alertNumber,
@@ -4925,7 +4928,10 @@ export class Service extends ProjectReferencesService<Model> {
           ? getOnCallPersonPageLead(personPage, translator)
           : undefined,
         kind: OnCallPageSmsKind.Incident,
-        severityName: getOnCallPageStateName(translator, incident.incidentSeverity?.name),
+        severityName: getOnCallPageStateName(
+          translator,
+          incident.incidentSeverity?.name,
+        ),
         number: this.getRecordNumberText(
           incident.incidentNumberWithPrefix,
           incident.incidentNumber,
@@ -4954,7 +4960,10 @@ export class Service extends ProjectReferencesService<Model> {
       message: this.buildOnCallPageSmsText({
         isPageAgain: Boolean(pageAgain),
         kind: OnCallPageSmsKind.AlertEpisode,
-        severityName: getOnCallPageStateName(translator, alertEpisode.alertSeverity?.name),
+        severityName: getOnCallPageStateName(
+          translator,
+          alertEpisode.alertSeverity?.name,
+        ),
         number: this.getRecordNumberText(
           alertEpisode.episodeNumberWithPrefix,
           alertEpisode.episodeNumber,
@@ -4983,7 +4992,10 @@ export class Service extends ProjectReferencesService<Model> {
       message: this.buildOnCallPageSmsText({
         isPageAgain: Boolean(pageAgain),
         kind: OnCallPageSmsKind.IncidentEpisode,
-        severityName: getOnCallPageStateName(translator, incidentEpisode.incidentSeverity?.name),
+        severityName: getOnCallPageStateName(
+          translator,
+          incidentEpisode.incidentSeverity?.name,
+        ),
         number: this.getRecordNumberText(
           incidentEpisode.episodeNumberWithPrefix,
           incidentEpisode.episodeNumber,
@@ -5280,10 +5292,14 @@ export class Service extends ProjectReferencesService<Model> {
         return undefined;
       }
 
+      /*
+       * Empty for a pager with neither: each message then says "Someone"
+       * in its own language (OnCallPersonPage).
+       */
       const pagedByName: string =
         run.triggeredByUser?.name?.toString().trim() ||
         run.triggeredByUser?.email?.toString().trim() ||
-        "Someone";
+        "";
 
       const teamName: string = options.userBelongsToTeamId
         ? (
@@ -6181,23 +6197,24 @@ export class Service extends ProjectReferencesService<Model> {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlert,
       vars: vars,
-      subject: personPage && !pageAgain
-        ? getOnCallPersonPageEmailSubject({
-            recordLabel: getOnCallPageRecordLabel(
-              translator,
-              OnCallPageKind.Alert,
-              alertNumber,
-            ),
-            recordTitle: alert.title || "",
-            notice: personPage,
-            translator: translator,
-          })
-        : getOnCallPageEmailSubject(translator, {
-            kind: OnCallPageKind.Alert,
-            number: alertNumber,
-            title: alert.title!,
-            isPageAgain: Boolean(pageAgain),
-          }),
+      subject:
+        personPage && !pageAgain
+          ? getOnCallPersonPageEmailSubject({
+              recordLabel: getOnCallPageRecordLabel(
+                translator,
+                OnCallPageKind.Alert,
+                alertNumber,
+              ),
+              recordTitle: alert.title || "",
+              notice: personPage,
+              translator: translator,
+            })
+          : getOnCallPageEmailSubject(translator, {
+              kind: OnCallPageKind.Alert,
+              number: alertNumber,
+              title: alert.title!,
+              isPageAgain: Boolean(pageAgain),
+            }),
       isSubjectLiteral: true,
       ...this.getEmailLanguage(translator),
     };
@@ -6305,23 +6322,24 @@ export class Service extends ProjectReferencesService<Model> {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeIncident,
       vars: vars,
-      subject: personPage && !pageAgain
-        ? getOnCallPersonPageEmailSubject({
-            recordLabel: getOnCallPageRecordLabel(
-              translator,
-              OnCallPageKind.Incident,
-              incidentNumber,
-            ),
-            recordTitle: incident.title || "",
-            notice: personPage,
-            translator: translator,
-          })
-        : getOnCallPageEmailSubject(translator, {
-            kind: OnCallPageKind.Incident,
-            number: incidentNumber,
-            title: incident.title!,
-            isPageAgain: Boolean(pageAgain),
-          }),
+      subject:
+        personPage && !pageAgain
+          ? getOnCallPersonPageEmailSubject({
+              recordLabel: getOnCallPageRecordLabel(
+                translator,
+                OnCallPageKind.Incident,
+                incidentNumber,
+              ),
+              recordTitle: incident.title || "",
+              notice: personPage,
+              translator: translator,
+            })
+          : getOnCallPageEmailSubject(translator, {
+              kind: OnCallPageKind.Incident,
+              number: incidentNumber,
+              title: incident.title!,
+              isPageAgain: Boolean(pageAgain),
+            }),
       isSubjectLiteral: true,
       ...this.getEmailLanguage(translator),
     };
