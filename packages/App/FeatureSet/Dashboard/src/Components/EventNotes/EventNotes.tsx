@@ -65,6 +65,17 @@ import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
+import usePublicNoteApproval, {
+  UsePublicNoteApprovalResult,
+} from "./PublicNoteApproval/usePublicNoteApproval";
+import {
+  approveNote,
+  getNoteApprovalState,
+  isNotePublished,
+  rejectNote,
+  resubmitNote,
+  withdrawNoteEdit,
+} from "./PublicNoteApproval/PublicNoteApprovalUtil";
 
 /*
  * What the page hands the notes feed: the kind of note it shows, from the
@@ -290,6 +301,33 @@ function EventNotes<TNote extends BaseModel>(
   const timestampField: string = getNoteSortField(model);
 
   /*
+   * Public note approval (PublicNoteApproval): who approves this kind of
+   * note, and where each note on the page stands. Nothing is read for a
+   * kind without approval.
+   */
+  const approvalApiPath: string | undefined = isPublic
+    ? props.approval?.apiPath
+    : undefined;
+  const approval: UsePublicNoteApprovalResult = usePublicNoteApproval({
+    apiPath: approvalApiPath,
+    notes: notes as Array<NoteRecord>,
+  });
+  const isApprovalRequired: boolean = Boolean(approval.policy?.isRequired);
+
+  /*
+   * An edit of a published note waits for approval while the project asks
+   * for it: its text waits, and its files cannot change then.
+   */
+  const isEditHeldForApproval: (note: TNote) => boolean = (
+    note: TNote,
+  ): boolean => {
+    return (
+      isApprovalRequired &&
+      isNotePublished(getNoteApprovalState(note as NoteRecord))
+    );
+  };
+
+  /*
    * initial: the first load, drawn as a skeleton.
    * replace: a new search or sort; the old results stay up until the new
    *          ones arrive, so the search box keeps its focus.
@@ -438,7 +476,8 @@ function EventNotes<TNote extends BaseModel>(
     note._id = noteId;
     record["note"] = values.note;
 
-    if (isEditAttachmentsEnabled) {
+    // A published note's files stay while its edits wait for approval.
+    if (isEditAttachmentsEnabled && !isEditHeldForApproval(original)) {
       record["attachments"] = values.attachments;
     }
 
@@ -531,6 +570,28 @@ function EventNotes<TNote extends BaseModel>(
     }
 
     await refresh();
+  };
+
+  /*
+   * A decision, a note sent again or an edit withdrawn: the server decides
+   * (PublicNoteApprovalRoutes), and the feed reads the notes again.
+   */
+  const runApprovalAction: (
+    action: (data: { apiPath: string; noteId: string }) => Promise<void>,
+    note: TNote,
+  ) => Promise<void> = async (
+    action: (data: { apiPath: string; noteId: string }) => Promise<void>,
+    note: TNote,
+  ): Promise<void> => {
+    const noteId: string | null = getNoteId(note as NoteRecord);
+
+    if (!noteId || !approvalApiPath) {
+      return;
+    }
+
+    await action({ apiPath: approvalApiPath, noteId });
+    await refresh();
+    await approval.refresh();
   };
 
   const updateNotifyOption: NotifyOption | undefined = canNotifyAboutEdit
@@ -741,6 +802,43 @@ function EventNotes<TNote extends BaseModel>(
                         Boolean((note as NoteRecord).postedAt)
                       }
                       updateNotifyOption={updateNotifyOption}
+                      approval={
+                        approvalApiPath
+                          ? {
+                              state: getNoteApprovalState(note as NoteRecord),
+                              summary: noteId
+                                ? approval.summaries[noteId]
+                                : undefined,
+                              isRequired: isApprovalRequired,
+                              isEditHeld: isEditHeldForApproval(note),
+                              canEdit:
+                                editGate.isShown && !editGate.isDisabled,
+                              onApprove: () => {
+                                return runApprovalAction(approveNote, note);
+                              },
+                              onReject: (reason: string) => {
+                                return runApprovalAction(
+                                  (data: {
+                                    apiPath: string;
+                                    noteId: string;
+                                  }): Promise<void> => {
+                                    return rejectNote({ ...data, reason });
+                                  },
+                                  note,
+                                );
+                              },
+                              onResubmit: () => {
+                                return runApprovalAction(resubmitNote, note);
+                              },
+                              onWithdrawEdit: () => {
+                                return runApprovalAction(
+                                  withdrawNoteEdit,
+                                  note,
+                                );
+                              },
+                            }
+                          : undefined
+                      }
                     />
                   );
                 })}
@@ -888,7 +986,10 @@ function EventNotes<TNote extends BaseModel>(
           isOpen: isComposerOpen,
           onOpenChange: setIsComposerOpen,
         }}
-        onPosted={refresh}
+        onPosted={async () => {
+          await refresh();
+          await approval.refresh();
+        }}
       />
 
       {actionError && (

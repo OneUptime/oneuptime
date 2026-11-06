@@ -194,6 +194,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Pencil,
         },
+        /*
+         * Whether public notes wait for approval before they are published,
+         * and who approves them: beside the note templates.
+         */
+        {
+          link: {
+            title: "Public Note Approval",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_PUBLIC_NOTE_APPROVAL
+              ] as Route,
+            ),
+          },
+          icon: IconProp.ShieldCheck,
+        },
         {
           link: {
             title: "Custom Fields",

@@ -133,6 +133,8 @@ export const INCIDENT_FEED_KINDS: Record<IncidentFeedEventType, FeedEntryKind> =
       SHARED_FEED_ENTRY_KINDS.VideoCallSummary,
     [IncidentFeedEventType.ChannelMemberAdded]:
       SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
+    [IncidentFeedEventType.PublicNoteApproval]:
+      SHARED_FEED_ENTRY_KINDS.PublicNoteApproval,
   };
 
 export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> =

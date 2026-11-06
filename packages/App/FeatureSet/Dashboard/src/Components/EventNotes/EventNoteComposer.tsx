@@ -52,6 +52,13 @@ import {
   PRIVATE_EVENT_PRIVATE_NOTE_ACTION,
   getPrivateEventPublicNoteRefusal,
 } from "./PrivateEventNotesCopy";
+import usePublicNoteApproval, {
+  UsePublicNoteApprovalResult,
+} from "./PublicNoteApproval/usePublicNoteApproval";
+import {
+  PublicNoteApprovalCopy,
+  getApproverNames,
+} from "./PublicNoteApproval/PublicNoteApprovalUtil";
 
 /*
  * Where the composer is drawn.
@@ -202,6 +209,35 @@ function EventNoteComposer<TNote extends BaseModel>(
   }, [kind.modelType]);
 
   const isPublic: boolean = kind.visibility === "public";
+
+  /*
+   * When the project asks for this kind of note to be approved, the
+   * composer says so before it is sent - and who approves - and sends it
+   * for approval rather than posting it (PublicNoteApproval).
+   */
+  const approval: UsePublicNoteApprovalResult = usePublicNoteApproval({
+    apiPath: isPublic ? kind.approval?.apiPath : undefined,
+    notes: [],
+  });
+  const isApprovalRequired: boolean = Boolean(approval.policy?.isRequired);
+  const firstStepApprovers: Array<string> = getApproverNames(
+    approval.policy?.steps[0],
+  );
+  const submitLabel: string = isApprovalRequired
+    ? PublicNoteApprovalCopy.composerSubmit
+    : copy.submitLabel;
+  const approvalNotice: ReactElement | undefined = isApprovalRequired ? (
+    <p data-testid="note-composer-approval-notice">
+      {tx(PublicNoteApprovalCopy.composerNotice)}
+      {firstStepApprovers.length > 0
+        ? ` ${translator.translateTemplate(
+            PublicNoteApprovalCopy.composerNoticeApprovers,
+            { approvers: firstStepApprovers.join(", ") },
+          )}`
+        : ""}
+    </p>
+  ) : undefined;
+
   /*
    * What the viewer holds, blocks included - on a private record's page,
    * what they hold on the record: its notes are posted only by a team of
@@ -592,6 +628,8 @@ function EventNoteComposer<TNote extends BaseModel>(
         error={postError}
         isAutoFocused={true}
         leadingActions={composerActions}
+        submitLabel={isApprovalRequired ? submitLabel : undefined}
+        notice={approvalNotice}
         dataTestId="note-composer"
         onSubmit={() => {
           void postNote();
@@ -662,7 +700,7 @@ function EventNoteComposer<TNote extends BaseModel>(
               }
             : undefined
         }
-        submitButtonText={canPost ? copy.submitLabel : undefined}
+        submitButtonText={canPost ? submitLabel : undefined}
         closeButtonText={canPost ? undefined : "Close"}
         isLoading={isPosting}
         disableSubmitButton={isNoteBlank(draft.note)}

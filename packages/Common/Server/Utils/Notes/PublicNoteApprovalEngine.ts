@@ -284,10 +284,16 @@ export default class PublicNoteApprovalEngine {
       return false;
     }
 
+    const noteId: string | null = this.idOf(data.note);
+
+    if (!noteId) {
+      return true;
+    }
+
     try {
       await this.announceWaiting({
         host: data.host,
-        noteId: this.idOf(data.note)!,
+        noteId: new ObjectID(noteId),
         isAgain: false,
       });
     } catch (error) {
