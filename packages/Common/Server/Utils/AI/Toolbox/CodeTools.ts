@@ -26,10 +26,7 @@ import CodeHostAccess, {
   CodeHostReader,
 } from "../../CodeRepository/CodeHost/CodeHostAccess";
 import { CodeHostFileContent } from "../../CodeRepository/CodeHost/CodeHostTypes";
-import {
-  CodeHost,
-  CodeHostCapability,
-} from "../../../../Types/CodeRepository/CodeHost";
+import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 import StackTraceParser, {
   ParsedStackTrace,
   StackFrame,
@@ -49,10 +46,11 @@ import {
  * The trust posture here is deliberately narrower than the observability
  * tools': source is read-only, only repositories OneUptime reaches and whose
  * files it reads (a GitHub repository through the GitHub App, a GitLab,
- * Forgejo or Gitea repository through its connection - CodeHostAccess), and
- * every payload goes through the same secret redaction as telemetry (a repo's
- * config files are a likelier place to find a live credential than a log line
- * is).
+ * Forgejo or Gitea repository through its connection, a Git repository on
+ * Azure DevOps through Azure DevOps' file API and its Git credentials -
+ * CodeHostAccess), and every payload goes through the same secret redaction
+ * as telemetry (a repo's config files are a likelier place to find a live
+ * credential than a log line is).
  */
 
 /*
@@ -178,15 +176,24 @@ async function addInstallationIds(
  * What the code tools may say of the project's repositories: the ones whose
  * code OneUptime reads now, and the plain Git repositories this caller may
  * see. A Git repository is connected for Code's tasks - a Runner clones it -
- * but a Git server has no API for its files, so OneUptime reads only its
- * branches. Named so the model says why it cannot read one (issue #6144:
- * an Azure DevOps Server repository connected as Git read as though nothing
- * were connected) - never as readable.
+ * but a Git server OneUptime does not know has no API for its files, so
+ * OneUptime reads only its branches. Named so the model says why it cannot
+ * read one (issue #6144: a repository connected as Git read as though
+ * nothing were connected) - never as readable. A Git repository on Azure
+ * DevOps is no plain one: its files are read (AzureDevOpsApi), as a GitLab
+ * repository's are.
  */
 export interface CodeToolRepositories {
   readable: Array<CodeRepository>;
   plainGit: Array<CodeRepository>;
 }
+
+/*
+ * Where OneUptime reads code, as the tools tell the model when it reads
+ * none: every host but a Git server OneUptime does not know.
+ */
+const READ_HOSTS: string =
+  "GitHub, GitLab, Forgejo, Gitea and Azure DevOps repositories are read";
 
 // A repository as the code tools name it: its name and where it is.
 function nameRepository(repository: CodeRepository): string {
@@ -213,8 +220,9 @@ export function describePlainGitRepositories(
  * The repositories this user can see, already filtered to the ones that are
  * actually readable. A repository row can exist without a way in (a GitHub
  * one imported then uninstalled, a GitLab one whose token was refused) or on
- * a host whose files OneUptime does not read (a plain Git repository), and
- * those must never look readable to the model. A run held to some
+ * a host whose files OneUptime does not read (a plain Git repository: a Git
+ * server that is not Azure DevOps), and those must never look readable to
+ * the model. A run held to some
  * repositories (ctx.codeRepositoryAllowance - the ones the rules that matched
  * its incident name) reads only those.
  */
@@ -263,6 +271,8 @@ export async function findCodeToolRepositories(
         repositoryName: true,
         mainBranchName: true,
         repositoryHostedAt: true,
+        // A Git repository's clone address says whether it is on Azure DevOps.
+        repositoryUrl: true,
         description: true,
       },
       limit: LIMIT_MAX,
@@ -292,32 +302,35 @@ export async function findCodeToolRepositories(
 
   /*
    * Plain Git repositories are never read, whatever their connection: there
-   * is no API to read their files through. They are said apart.
+   * is no API to read their files through. They are said apart. A Git
+   * repository on Azure DevOps is not one: its files are read through Azure
+   * DevOps' own API, where it is reached.
    */
   const plainGit: Array<CodeRepository> = repositories.filter(
     (repository: CodeRepository) => {
       return (
         CodeHost.readType(repository.repositoryHostedAt) ===
-        CodeRepositoryType.Git
+          CodeRepositoryType.Git &&
+        !CodeHost.canReadRepositoryCode({
+          type: CodeRepositoryType.Git,
+          repositoryUrl: repository.repositoryUrl?.toString(),
+        })
       );
     },
   );
 
   /*
-   * Repositories on other hosts are read through their connections: only
-   * those connected now, on a host whose files OneUptime reads, whose server
-   * OneUptime may reach.
+   * Repositories on other hosts - and Git repositories on Azure DevOps -
+   * are read through their connections: only those connected now, whose
+   * files OneUptime reads, on a server OneUptime may reach.
    */
   const otherRepositories: Array<CodeRepository> =
     await keepRepositoriesWithReadableCode(
       ctx,
       repositories.filter((repository: CodeRepository) => {
-        const type: CodeRepositoryType = CodeHost.readType(
-          repository.repositoryHostedAt,
-        );
-
         return (
-          type !== CodeRepositoryType.GitHub && type !== CodeRepositoryType.Git
+          CodeHost.readType(repository.repositoryHostedAt) !==
+            CodeRepositoryType.GitHub && !plainGit.includes(repository)
         );
       }),
     );
@@ -369,7 +382,8 @@ export async function findCodeToolRepositories(
 /*
  * Of repositories on hosts beside GitHub, those whose code OneUptime reads
  * now: connected through their connection (the project's, its token not
- * refused), on a host whose files it reads, on a server it may reach.
+ * refused), whose files it reads - their host's, or a Git repository's on
+ * Azure DevOps (CodeHost.canReadRepositoryCode) - on a server it may reach.
  */
 async function keepRepositoriesWithReadableCode(
   ctx: ToolContext,
@@ -400,7 +414,10 @@ async function keepRepositoriesWithReadableCode(
       summary &&
         summary.state === CodeHostConnectionState.Connected &&
         summary.isReachableFromServer &&
-        CodeHost.can(summary.provider, CodeHostCapability.ReadCode),
+        CodeHost.canReadRepositoryCode({
+          type: summary.provider,
+          repositoryUrl: repository.repositoryUrl?.toString(),
+        }),
     );
   });
 }
@@ -513,12 +530,12 @@ export async function resolveTargetRepository(
 
     if (found.plainGit.length > 0) {
       throw new BadDataException(
-        `This project has no connected code repository whose source OneUptime can read: GitHub, GitLab, Forgejo and Gitea repositories are read. ${describePlainGitRepositories(found.plainGit)}`,
+        `This project has no connected code repository whose source OneUptime can read: ${READ_HOSTS}. ${describePlainGitRepositories(found.plainGit)}`,
       );
     }
 
     throw new BadDataException(
-      "This project has no connected code repository whose source OneUptime can read. Connect one in Code: GitHub, GitLab, Forgejo and Gitea repositories are read (a plain Git repository's files are not).",
+      `This project has no connected code repository whose source OneUptime can read. Connect one in Code: ${READ_HOSTS} (another Git server's files are not).`,
     );
   }
 
@@ -751,7 +768,7 @@ export const ListCodeRepositoriesTool: ObservabilityTool = {
     return {
       dataForLlm:
         rows.length === 0
-          ? `(no code repository in this project whose source OneUptime can read — GitHub, GitLab, Forgejo and Gitea repositories are read)${plainGitNote.text}`
+          ? `(no code repository in this project whose source OneUptime can read — ${READ_HOSTS})${plainGitNote.text}`
           : `${serialized.text}${plainGitNote.text}`,
       rowCount: serialized.rowCount,
       citationLabel: `Connected code repositories (${serialized.rowCount})`,
