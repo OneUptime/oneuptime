@@ -98,7 +98,7 @@ En logggruppe arkiveres under en ressurs når AWS har navngitt den etter en:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda skriver den.
+Hver logg bærer ressursens ID som `cloud.resource_id`, og loggene til en Lambda-funksjon bærer også `faas.name`, så de vises også på funksjonen under Serverless. En logggruppe med et annet navn strømmes likevel, under sin konto og region. Alvorlighetsgraden til en logg er den meldingen oppgir, slik Lambda, PostgreSQL eller MySQL skriver den.
 
 Logger fra en App Runner-tjeneste, et Elastic Beanstalk-miljø og en ECS-klynge bærer også `cloud.platform`, og det gjør også loggene til en ECS-oppgave, fra logggruppen ECS-konsollen kaller `/ecs/<task-definition-family>`, med `aws.ecs.task.family`. Med kontoen og regionen havner de dermed på miljøet sitt i App-plattformer, som dukker opp med dem hvis ingen app har rapportert til det ennå. De lager ingen app: en app får navn etter sin egen telemetri, slik [Skymiljøer](/docs/telemetry/cloud-environments) forklarer.
 

@@ -98,7 +98,7 @@ AWS가 리소스 이름을 따서 이름을 붙인 로그 그룹은 그 리소�
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-각 로그는 리소스의 ID를 `cloud.resource_id`로 지니며, Lambda 함수의 로그는 `faas.name`도 지니므로 Serverless의 함수에도 표시됩니다. 다른 이름의 로그 그룹도 그 계정과 리전 아래에서 그대로 스트리밍됩니다. 로그의 심각도는 Lambda가 쓰는 방식대로 메시지에 적힌 심각도입니다.
+각 로그는 리소스의 ID를 `cloud.resource_id`로 지니며, Lambda 함수의 로그는 `faas.name`도 지니므로 Serverless의 함수에도 표시됩니다. 다른 이름의 로그 그룹도 그 계정과 리전 아래에서 그대로 스트리밍됩니다. 로그의 심각도는 Lambda, PostgreSQL, MySQL이 쓰는 방식대로 메시지에 적힌 심각도입니다.
 
 App Runner 서비스, Elastic Beanstalk 환경, ECS 클러스터의 로그도 `cloud.platform`을 지닙니다. ECS 콘솔이 `/ecs/<task-definition-family>`라고 이름 붙이는 로그 그룹에서 오는 ECS 작업의 로그도 마찬가지이며, `aws.ecs.task.family`도 지닙니다. 계정과 리전과 함께 이 로그는 앱 플랫폼의 해당 환경에 도착하며, 아직 어떤 앱도 보고하지 않은 환경은 이 로그와 함께 나타납니다. 앱은 만들어지지 않습니다. 앱은 자체 텔레메트리로 이름이 정해집니다. [클라우드 환경](/docs/telemetry/cloud-environments)을 참고하세요.
 

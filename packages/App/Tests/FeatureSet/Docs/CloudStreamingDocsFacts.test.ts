@@ -70,6 +70,9 @@ const SOURCES: Record<string, string> = {
   resourceMenu: `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`,
   ingest:
     "packages/App/FeatureSet/Telemetry/Services/AwsFirehoseIngestService.ts",
+  ingestLogs:
+    "packages/App/FeatureSet/Telemetry/Utils/AwsFirehose/CloudWatchLogs.ts",
+  severity: "packages/Common/Types/Cloud/CloudWatchLogSeverity.ts",
   authentication:
     "packages/Common/Server/Utils/CloudConnection/CloudStreamAuthentication.ts",
   folded: "packages/Common/UI/Components/FoldedSection/FoldedSectionTitles.ts",
@@ -318,6 +321,19 @@ describe("Stream CloudWatch Metrics and Logs", () => {
       arrives.findIndex((cells: Array<string>): boolean => {
         return cells[0] === "Logs of a log group AWS names after a resource";
       }) + 1,
+    );
+  });
+
+  it("says a log's severity is read the way Lambda, PostgreSQL and MySQL write it, as the rule reads it", () => {
+    expect(prose()).toContain(
+      "A log's severity is the one its message states, the way Lambda, PostgreSQL or MySQL writes it.",
+    );
+
+    // The rule the stream's ingest reads each line with.
+    expect(source("severity")).toContain("function readPostgresLevel(");
+    expect(source("severity")).toContain("function readMySqlLevel(");
+    expect(source("ingestLogs")).toContain(
+      'from "Common/Types/Cloud/CloudWatchLogSeverity"',
     );
   });
 

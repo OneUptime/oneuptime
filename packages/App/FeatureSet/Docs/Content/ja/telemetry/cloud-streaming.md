@@ -98,7 +98,7 @@ AWS がリソースにちなんで名前を付けたロググループは、そ�
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-各ログはリソースの ID を `cloud.resource_id` として持ち、Lambda 関数のログは `faas.name` も持つため、Serverless の関数にも表示されます。ほかの名前のロググループもそのアカウントとリージョンの下でストリーミングされます。ログの重大度は、Lambda の書き方に沿ってメッセージに示されたものです。
+各ログはリソースの ID を `cloud.resource_id` として持ち、Lambda 関数のログは `faas.name` も持つため、Serverless の関数にも表示されます。ほかの名前のロググループもそのアカウントとリージョンの下でストリーミングされます。ログの重大度は、Lambda、PostgreSQL、MySQL の書き方に沿ってメッセージに示されたものです。
 
 App Runner サービス、Elastic Beanstalk 環境、ECS クラスターのログは `cloud.platform` も持ちます。ECS コンソールが `/ecs/<task-definition-family>` と名付けるロググループから届く ECS タスクのログも同様で、`aws.ecs.task.family` も持ちます。アカウントとリージョンと合わせて、これらのログは アプリプラットフォーム のその環境に届き、まだどのアプリも報告していない環境はこれらのログとともに現れます。アプリは作られません。アプリはそれ自身のテレメトリで名付けられます。[クラウド環境](/docs/telemetry/cloud-environments) を参照してください。
 

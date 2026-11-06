@@ -98,7 +98,7 @@ Un groupe de journaux est classé sous une ressource quand AWS l'a nommé d'apr�
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Chaque journal porte l'ID de la ressource dans `cloud.resource_id`, et les journaux d'une fonction Lambda portent aussi `faas.name`, ils apparaissent donc également sur la fonction dans Serverless. Un groupe de journaux d'un autre nom est diffusé quand même, sous son compte et sa région. La gravité d'un journal est celle qu'indique son message, à la manière de Lambda.
+Chaque journal porte l'ID de la ressource dans `cloud.resource_id`, et les journaux d'une fonction Lambda portent aussi `faas.name`, ils apparaissent donc également sur la fonction dans Serverless. Un groupe de journaux d'un autre nom est diffusé quand même, sous son compte et sa région. La gravité d'un journal est celle qu'indique son message, à la manière de Lambda, de PostgreSQL ou de MySQL.
 
 Les journaux d'un service App Runner, d'un environnement Elastic Beanstalk et d'un cluster ECS portent aussi `cloud.platform`, tout comme ceux d'une tâche ECS, issus du groupe de journaux que la console ECS nomme `/ecs/<task-definition-family>`, avec `aws.ecs.task.family`. Avec le compte et la région, ils arrivent ainsi sur leur environnement dans Plateformes d'applications, qui apparaît avec eux si aucune application ne lui a encore rien envoyé. Ils ne créent aucune application : une application est nommée par sa propre télémétrie, comme l'explique [Environnements cloud](/docs/telemetry/cloud-environments).
 

@@ -98,7 +98,7 @@ AWS 每个区域只允许一个账户级日志订阅，每个日志组最多两�
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-每条日志都以 `cloud.resource_id` 携带资源的 ID，Lambda 函数的日志还携带 `faas.name`，因此它们也会显示在 Serverless 中的该函数上。其他名称的日志组同样会被流式传输，归于其账户和区域之下。日志的严重性就是其消息中按 Lambda 的写法注明的严重性。
+每条日志都以 `cloud.resource_id` 携带资源的 ID，Lambda 函数的日志还携带 `faas.name`，因此它们也会显示在 Serverless 中的该函数上。其他名称的日志组同样会被流式传输，归于其账户和区域之下。日志的严重性就是其消息中按 Lambda、PostgreSQL 或 MySQL 的写法注明的严重性。
 
 App Runner 服务、Elastic Beanstalk 环境和 ECS 集群的日志还携带 `cloud.platform`，ECS 任务的日志也是如此：它们来自 ECS 控制台命名为 `/ecs/<task-definition-family>` 的日志组，并携带 `aws.ecs.task.family`。加上账户和区域，这些日志就会落在 应用平台 中它们所在的环境上；如果还没有应用向该环境上报过，环境会随这些日志一起出现。它们不会创建应用：应用由其自身的遥测命名，参见 [云环境](/docs/telemetry/cloud-environments)。
 

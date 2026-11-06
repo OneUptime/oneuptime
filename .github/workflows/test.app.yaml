@@ -943,6 +943,13 @@ jobs:
           # tests to Cloud Connect the same day (about 0.7 minutes: the suite
           # 9.3, the group 22.3), so Resource Onboarding (0.6) moved to group
           # 16: 21.7.
+          # A cloud resource's Logs page with a stream's rows added 8 tests to
+          # Cloud Connect on 2026-11-06 (14 runs on its desktop and phone: a
+          # database's and a stopped function's Logs, a row's attributes, the
+          # empty list before and while the account streams, 1024 and 768
+          # beside the side menu, dark German and Persian; about 0.6 minutes
+          # on a runner: the suite 9.9, the group 22.3), so Public Addresses
+          # (1.2, Chromium only) moved to group 12: 21.1.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -950,7 +957,6 @@ jobs:
               test-cloud-connect-ui
               test-host-collectors-ui
               test-vmware-host-page-ui
-              test-public-addresses-ui
               test-docker-swarm-pages-ui
               test-container-host-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
@@ -1215,7 +1221,9 @@ jobs:
           # 18: about 19.5. Permissions Per Tab (0.5, Chromium only) moved here
           # from group 8 on 2026-11-04, when Cloud Connect's German and Persian
           # tests and the Cloud agent follow-ups' together took that group
-          # past 22: 19.8.
+          # past 22: 19.8. Public Addresses (1.2, Chromium only) moved here
+          # from group 8 on 2026-11-06, when Cloud Connect's streamed resource
+          # Logs took that group past 22: 21.0.
           - group: 12
             suites: >-
               test-code-ui
@@ -1223,6 +1231,7 @@ jobs:
               test-acknowledgement-timeout-ui
               test-new-version-ui
               test-permissions-per-tab-ui
+              test-public-addresses-ui
           # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
           # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
           # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)

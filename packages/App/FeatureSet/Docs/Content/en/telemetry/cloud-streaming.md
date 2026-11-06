@@ -98,7 +98,7 @@ A log group is filed under a resource when AWS named it after one:
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda writes it.
+Each log carries the resource's ID as `cloud.resource_id`, and a Lambda function's logs carry `faas.name` too, so they also appear on the function in Serverless. A log group of any other name streams all the same, under its account and Region. A log's severity is the one its message states, the way Lambda, PostgreSQL or MySQL writes it.
 
 An App Runner service's, an Elastic Beanstalk environment's and an ECS cluster's logs also carry `cloud.platform`, and so do an ECS task's, from the log group the ECS console names `/ecs/<task-definition-family>`, with `aws.ecs.task.family`. With the account and Region, that puts them on their environment in App Platforms, which appears with them if no app has reported to it yet. They make no app: an app is named by its own telemetry, as [Cloud Environments](/docs/telemetry/cloud-environments) says.
 

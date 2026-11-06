@@ -98,7 +98,7 @@ Un gruppo di log viene archiviato sotto una risorsa quando AWS gli ha dato il no
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Ogni log porta l'ID della risorsa come `cloud.resource_id`, e i log di una funzione Lambda portano anche `faas.name`, così compaiono anche sulla funzione in Serverless. Un gruppo di log con un altro nome viene trasmesso lo stesso, sotto il suo account e la sua regione. La gravità di un log è quella che indica il suo messaggio, come la scrive Lambda.
+Ogni log porta l'ID della risorsa come `cloud.resource_id`, e i log di una funzione Lambda portano anche `faas.name`, così compaiono anche sulla funzione in Serverless. Un gruppo di log con un altro nome viene trasmesso lo stesso, sotto il suo account e la sua regione. La gravità di un log è quella che indica il suo messaggio, come la scrive Lambda, PostgreSQL o MySQL.
 
 Anche i log di un servizio App Runner, di un ambiente Elastic Beanstalk e di un cluster ECS portano `cloud.platform`, e così quelli di un task ECS, dal gruppo di log che la console ECS chiama `/ecs/<task-definition-family>`, con `aws.ecs.task.family`. Con l'account e la regione, questo li porta sul loro ambiente in Piattaforme applicative, che compare con loro se nessuna app vi ha ancora inviato dati. Non creano nessuna app: un'app prende il nome dalla sua telemetria, come spiega [Ambienti cloud](/docs/telemetry/cloud-environments).
 

@@ -98,7 +98,7 @@ Een loggroep wordt onder een resource opgeslagen als AWS hem naar een resource n
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Elk logboek draagt de ID van de resource als `cloud.resource_id`, en de logboeken van een Lambda-functie dragen ook `faas.name`, zodat ze ook bij de functie onder Serverless verschijnen. Een loggroep met een andere naam wordt toch gestreamd, onder zijn account en regio. De ernst van een logboek is die welke het bericht noemt, zoals Lambda die schrijft.
+Elk logboek draagt de ID van de resource als `cloud.resource_id`, en de logboeken van een Lambda-functie dragen ook `faas.name`, zodat ze ook bij de functie onder Serverless verschijnen. Een loggroep met een andere naam wordt toch gestreamd, onder zijn account en regio. De ernst van een logboek is die welke het bericht noemt, zoals Lambda, PostgreSQL of MySQL die schrijft.
 
 De logboeken van een App Runner-service, een Elastic Beanstalk-omgeving en een ECS-cluster dragen ook `cloud.platform`, net als die van een ECS-taak, uit de loggroep die de ECS-console `/ecs/<task-definition-family>` noemt, met `aws.ecs.task.family`. Met het account en de regio komen ze zo bij hun omgeving in App-platforms terecht, die met ze verschijnt als nog geen app ernaar heeft gerapporteerd. Ze maken geen app: een app wordt genoemd naar zijn eigen telemetrie, zoals [Cloud-omgevingen](/docs/telemetry/cloud-environments) uitlegt.
 

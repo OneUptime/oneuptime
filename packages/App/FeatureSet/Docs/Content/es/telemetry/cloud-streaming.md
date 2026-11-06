@@ -98,7 +98,7 @@ Un grupo de registros se archiva bajo un recurso cuando AWS le dio el nombre de 
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
 | `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
-Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda.
+Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda, PostgreSQL o MySQL.
 
 Los registros de un servicio de App Runner, un entorno de Elastic Beanstalk y un clúster de ECS llevan además `cloud.platform`, y también los de una tarea de ECS, del grupo de registros que la consola de ECS llama `/ecs/<task-definition-family>`, con `aws.ecs.task.family`. Con la cuenta y la región, eso los lleva a su entorno en Plataformas de aplicaciones, que aparece con ellos si ninguna aplicación le ha informado todavía. No crean ninguna aplicación: una aplicación se nombra por su propia telemetría, como explica [Entornos en la nube](/docs/telemetry/cloud-environments).
 
