@@ -166,11 +166,13 @@ async function widthOf(locator: Locator): Promise<number> {
 
 /*
  * After Reset column widths, a column comes back to the width it had. The
- * table fits its card again only once the widths are gone (the fit measures
- * the box after a paint), so for a frame the column is drawn as wide as its
- * values, and a slower machine reads that frame: 14.0.100's gate run read
- * Affected Resources 156.75px wider, a frame before it came back. So wait
- * for it, rather than read it once.
+ * table measures itself again before the frame after the click is painted
+ * (SizedColumnsStyle's onRulesChange), so the width is back by the time the
+ * click is: read here until it is, as a slower machine may still be laying
+ * the page out. (Until the table measured itself at once, it fitted its
+ * card again only a frame later, and 14.0.100's gate run read Affected
+ * Resources 156.75px wider in that frame; "no frame runs past the card",
+ * below, is what holds that frame away.)
  */
 async function expectWidthBack(header: Locator, before: number): Promise<void> {
   await expect
@@ -178,6 +180,112 @@ async function expectWidthBack(header: Locator, before: number): Promise<void> {
       return Math.abs((await widthOf(header)) - before);
     })
     .toBeLessThanOrEqual(1);
+}
+
+// A frame as the page drew it: its table, the table's box and one column.
+interface DrawnFrame {
+  boxWidth: number;
+  tableWidth: number;
+  columnWidth: number;
+}
+
+const DRAWN_FRAMES_COUNT: number = 8;
+
+/*
+ * From the next click or key press on, what each of the next frames draws:
+ * read in the frame itself - a requestAnimationFrame callback runs just
+ * before its frame is laid out and painted - so a frame a table is drawn in
+ * at its unfitted widths, fitted again only on the frame after, is read as
+ * drawn. Read with drawnFrames once there are DRAWN_FRAMES_COUNT of them.
+ */
+async function recordFramesAfterNext(
+  page: Page,
+  data: { event: "click" | "keydown"; columnId: string },
+): Promise<void> {
+  await page.evaluate(
+    (options: { event: string; columnId: string; count: number }): void => {
+      const frames: Array<DrawnFrame> = [];
+
+      (window as unknown as { __drawnFrames: Array<DrawnFrame> }).__drawnFrames =
+        frames;
+
+      const read: () => void = (): void => {
+        const header: HTMLTableCellElement | null = document.querySelector(
+          `thead th[data-column-id="${options.columnId}"]`,
+        );
+        const table: HTMLTableElement | null = header
+          ? header.closest("table")
+          : null;
+        const scrollBox: Element | null = header
+          ? header.closest('[data-testid="table-scroll"]')
+          : null;
+
+        frames.push({
+          boxWidth: scrollBox ? scrollBox.getBoundingClientRect().width : -1,
+          tableWidth: table ? table.getBoundingClientRect().width : -1,
+          columnWidth: header ? header.getBoundingClientRect().width : -1,
+        });
+
+        if (frames.length < options.count) {
+          requestAnimationFrame(read);
+        }
+      };
+
+      // Before the page's own handlers: the first frame read is the click's.
+      document.addEventListener(
+        options.event,
+        (): void => {
+          requestAnimationFrame(read);
+        },
+        { capture: true, once: true },
+      );
+    },
+    {
+      event: data.event,
+      columnId: data.columnId,
+      count: DRAWN_FRAMES_COUNT,
+    },
+  );
+}
+
+async function drawnFrames(page: Page): Promise<Array<DrawnFrame>> {
+  await expect
+    .poll(async (): Promise<number> => {
+      return await page.evaluate((): number => {
+        return (
+          (window as unknown as { __drawnFrames?: Array<DrawnFrame> })
+            .__drawnFrames || []
+        ).length;
+      });
+    })
+    .toBe(DRAWN_FRAMES_COUNT);
+
+  return await page.evaluate((): Array<DrawnFrame> => {
+    return (window as unknown as { __drawnFrames: Array<DrawnFrame> })
+      .__drawnFrames;
+  });
+}
+
+/*
+ * Every frame after the press: the table no wider than its card, and the
+ * column back at the width it had before it was sized.
+ */
+function expectEveryFrameFitted(
+  frames: Array<DrawnFrame>,
+  columnWidthBefore: number,
+): void {
+  expect(frames).toHaveLength(DRAWN_FRAMES_COUNT);
+
+  frames.forEach((frame: DrawnFrame, index: number) => {
+    expect(
+      frame.tableWidth,
+      `frame ${index + 1}: the table runs past its card`,
+    ).toBeLessThanOrEqual(frame.boxWidth + 1);
+    expect(
+      Math.abs(frame.columnWidth - columnWidthBefore),
+      `frame ${index + 1}: the column is ${frame.columnWidth}px, not ${columnWidthBefore}px`,
+    ).toBeLessThanOrEqual(1);
+  });
 }
 
 // A pointer's drag of an edge, `by` pixels along the line, in steps.
@@ -531,6 +639,69 @@ test.describe("Reset column widths", () => {
 
     await expectWidthBack(header, before);
     expect(await storedWidths(page, INCIDENTS_KEY)).toBeNull();
+  });
+
+  /*
+   * "After Reset column widths a table draws for a frame at its unfitted
+   * widths before it fits its card again" - the 14.0.100 release gate. The
+   * table measured itself on the frame after the reset, once that frame
+   * was painted: Affected Resources about 340px wide in that frame, the
+   * rows some 190px past the card's edge, then back. It measures itself
+   * again before the frame is painted now.
+   */
+  test("no frame runs past the card: the first frame after the click is the table fitted again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    const header: Locator = headerOf(page, "monitors");
+    const before: number = await widthOf(header);
+
+    await drag(page, edgeOf(page, "monitors"), -100);
+    await page.getByRole("button", { name: "More options" }).first().click();
+
+    const reset: Locator = page.getByRole("menuitem", {
+      name: "Reset column widths",
+    });
+
+    await expect(reset).toBeVisible();
+    await recordFramesAfterNext(page, { event: "click", columnId: "monitors" });
+    await reset.click();
+
+    expectEveryFrameFitted(await drawnFrames(page), before);
+  });
+
+  test("nor after Delete gives a column wider than the card back: the first frame is the table fitted again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    const edge: Locator = edgeOf(page, "monitors");
+    const before: number = await widthOf(headerOf(page, "monitors"));
+
+    // End: as wide as its widest value, wider than the card has room for.
+    await edge.focus();
+    await page.keyboard.press("End");
+    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+      "data-overflowing",
+      "true",
+    );
+
+    await recordFramesAfterNext(page, {
+      event: "keydown",
+      columnId: "monitors",
+    });
+    await page.keyboard.press("Delete");
+
+    expectEveryFrameFitted(await drawnFrames(page), before);
+    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+      "data-overflowing",
+      "false",
+    );
   });
 });
 

@@ -755,6 +755,24 @@ const Table: TableFunction = <T extends GenericObject>(
     });
   };
 
+  /*
+   * The sized columns' rules changed while no edge is dragged - Reset
+   * column widths, a column given back with Delete: the table measures
+   * itself again at once, before the page is painted (SizedColumnsStyle's
+   * onRulesChange), rather than on the next frame. Its values were held at
+   * the widths the last measuring gave them; drawn so for a frame, a table
+   * whose columns were reset ran past its card before it fitted it again.
+   * A drag's own end measures again once the width it kept is drawn
+   * (onColumnResizeEnd).
+   */
+  const onSizedColumnsRulesChange: () => void = (): void => {
+    if (scrollStateHold.isHeldRef.current) {
+      return;
+    }
+
+    scrollStateHold.remeasureRef.current?.();
+  };
+
   // The rows scroll by the box's class now: the drag's own scroll is let go.
   useLayoutEffect(() => {
     if (scrollState.isOverflowing && !scrollStateHold.isHeldRef.current) {
@@ -1275,6 +1293,7 @@ const Table: TableFunction = <T extends GenericObject>(
                     store={columnWidths.store}
                     scope={columnWidthsScope}
                     columns={resizableColumns}
+                    onRulesChange={onSizedColumnsRulesChange}
                   />
                   <style
                     ref={dragStyleRef}
