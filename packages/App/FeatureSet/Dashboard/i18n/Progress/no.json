@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45983,
-    "untranslated": 11027
+    "keys": 45996,
+    "untranslated": 10962
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -369,6 +369,7 @@
     "{{count}} hypervisor",
     "{{count}} manager",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} node",
     "{{count}} person",

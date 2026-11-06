@@ -4,6 +4,8 @@ Eine **Cloud-Umgebung** ist der Ort, an dem Ihre Container auf einer verwalteten
 
 Umgebungen stehen in App-Plattformen, einem eigenen Produkt: **App-Plattformen → Übersicht** gruppiert sie nach Plattform und zeigt die zuerst, die verstummt sind, **App-Plattformen → Alle Apps** listet jede App auf, die in ihnen läuft, und **App-Plattformen → Alle Umgebungen** listet alle auf. Die Ressourcen in Ihren Cloud-Konten, etwa virtuelle Maschinen, Buckets und verwaltete Datenbanken, finden Sie in Cloud: siehe [Cloud-Ressourcen](/docs/telemetry/cloud-resources).
 
+Um die Umgebungen oder Apps eines Cloud-Kontos zu sehen, filtern Sie **Alle Umgebungen** oder **Alle Apps** mit dem Filter-Chip **Cloud-Konto**: Er listet jedes Konto, in dem die Umgebungen liegen, unter seiner Cloud auf und behält die Konten, die Sie wählen, oder alle anderen. Auf **Cloud → Übersicht** zählt die Karte **App-Plattformen** die Umgebungen und Apps in Ihren verbundenen Cloud-Konten, und jede Zahl öffnet ihre Liste mit dem Chip, der bereits auf diese Konten gesetzt ist. Entfernen Sie den Chip, um die ganze Liste zu sehen.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tasks auf Fargate oder EC2, mit CPU und Arbeitsspeicher pro Task.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Dienste und Jobs, auch als Serverless-Funktionen aufgeführt.

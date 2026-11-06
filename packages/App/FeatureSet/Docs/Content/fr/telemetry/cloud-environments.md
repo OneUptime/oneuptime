@@ -4,6 +4,8 @@ Un **Environnement cloud** est l'endroit où vos conteneurs tournent sur une pla
 
 Les environnements sont listés dans Plateformes d'applications, un produit à part entière : **Plateformes d'applications → Vue d'ensemble** les regroupe par plateforme et affiche d'abord ceux qui se sont tus, **Plateformes d'applications → Toutes les applications** liste chaque application qu'ils exécutent, et **Plateformes d'applications → Tous les environnements** les liste tous. Les ressources de vos comptes cloud, comme les machines virtuelles, les buckets et les bases de données managées, sont dans Cloud : voir [Ressources cloud](/docs/telemetry/cloud-resources).
 
+Pour voir les environnements ou les applications d'un compte cloud, filtrez **Tous les environnements** ou **Toutes les applications** avec la puce de filtre **Compte cloud** : elle liste chaque compte où se trouvent les environnements, sous son cloud, et garde les comptes que vous choisissez, ou tous les autres. Sur **Cloud → Vue d'ensemble**, la carte **Plateformes d'applications** compte les environnements et les applications de vos comptes cloud connectés, et chaque nombre ouvre sa liste avec la puce déjà réglée sur ces comptes. Retirez la puce pour voir toute la liste.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Des tâches sur Fargate ou EC2, avec le CPU et la mémoire de chaque tâche.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Services et jobs, aussi listés comme fonctions serverless.

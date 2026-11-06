@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45983,
-    "untranslated": 11023
+    "keys": 45996,
+    "untranslated": 10958
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -147,6 +147,7 @@
     "Integration",
     "Interface",
     "Interfaces",
+    "Internet",
     "Interval",
     "IoT",
     "Israel (+972)",
@@ -349,6 +350,7 @@
     "VMID {{vmid}}",
     "Version",
     "Version {{number}}",
+    "Version {{version}}",
     "Vital",
     "Web",
     "Web, iOS, Android, React Native",
@@ -515,6 +517,7 @@
     "{{count}} manager",
     "{{count}} match",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} node",
     "{{count}} note",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45983,
-    "untranslated": 3352
+    "keys": 45996,
+    "untranslated": 3288
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -295,6 +295,7 @@
     "Initiator",
     "Integration",
     "Interaction to Next Paint",
+    "Internet",
     "IoT",
     "Isle of Man",
     "Israel",
@@ -640,6 +641,7 @@
     "Variable",
     "Version",
     "Version {{number}}",
+    "Version {{version}}",
     "Vertical Pod Autoscalers",
     "Viewport",
     "Vital",

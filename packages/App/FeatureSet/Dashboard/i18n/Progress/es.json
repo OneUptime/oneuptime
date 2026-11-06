@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45983,
-    "untranslated": 2665
+    "keys": 45996,
+    "untranslated": 2601
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -224,6 +224,7 @@
     "Info",
     "Interaction to Next Paint",
     "Interfaces",
+    "Internet",
     "IoT",
     "Israel",
     "Israel (+972)",
@@ -640,6 +641,7 @@
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} pod",
     "{{count}} pods",

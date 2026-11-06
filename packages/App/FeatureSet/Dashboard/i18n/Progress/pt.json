@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45983,
-    "untranslated": 11009
+    "keys": 45996,
+    "untranslated": 10944
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -126,6 +126,7 @@
     "Interface",
     "Interface {{index}}",
     "Interfaces",
+    "Internet",
     "IoT",
     "Israel (+972)",
     "Item",
@@ -443,6 +444,7 @@
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} namespace",
     "{{count}} namespaces",

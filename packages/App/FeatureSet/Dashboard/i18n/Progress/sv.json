@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45983,
-    "untranslated": 11020
+    "keys": 45996,
+    "untranslated": 10955
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -123,6 +123,7 @@
     "Info",
     "Information",
     "Integration",
+    "Internet",
     "IoT",
     "Israel (+972)",
     "Japan (+81)",
@@ -282,6 +283,7 @@
     "VMware vCenter",
     "Version",
     "Version {{number}}",
+    "Version {{version}}",
     "Vital",
     "Webhook",
     "Webhooks",
@@ -404,6 +406,7 @@
     "{{count}} manager",
     "{{count}} managers",
     "{{count}} mon",
+    "{{count}} monitor",
     "{{count}} mons",
     "{{count}} person",
     "{{count}} placement group",

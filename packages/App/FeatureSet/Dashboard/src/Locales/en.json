@@ -46021,5 +46021,18 @@
   "{{event}} covers this environment. Until it ends, the monitors of its apps open no incidents or alerts.": "{{event}} covers this environment. Until it ends, the monitors of its apps open no incidents or alerts.",
   "{{tab}} signals": "{{tab}} signals",
   "Open the metrics explorer with this time window": "Open the metrics explorer with this time window",
-  "Open the traces explorer with this scope": "Open the traces explorer with this scope"
+  "Open the traces explorer with this scope": "Open the traces explorer with this scope",
+  "Response activity": "Response activity",
+  "Affects {{products}}.": "Affects {{products}}.",
+  "Azure caused it.": "Azure caused it.",
+  "Azure published a health advisory.": "Azure published a health advisory.",
+  "Azure published a security advisory.": "Azure published a security advisory.",
+  "Azure published an advisory that needs your action.": "Azure published an advisory that needs your action.",
+  "Azure published an incident.": "Azure published an incident.",
+  "Azure published planned maintenance.": "Azure published planned maintenance.",
+  "Published by Azure.": "Published by Azure.",
+  "Published by the cloud provider for account {{account}}.": "Published by the cloud provider for account {{account}}.",
+  "Published by {{provider}} for account {{account}}.": "Published by {{provider}} for account {{account}}.",
+  "Someone with access caused it.": "Someone with access caused it.",
+  "Tracking ID: {{trackingId}}.": "Tracking ID: {{trackingId}}."
 }

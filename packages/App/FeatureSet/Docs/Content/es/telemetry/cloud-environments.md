@@ -4,6 +4,8 @@ Un **Entorno en la nube** es el lugar donde se ejecutan sus contenedores en una 
 
 Los entornos aparecen en Plataformas de aplicaciones, un producto propio: **Plataformas de aplicaciones → Vista general** los agrupa por plataforma y muestra primero los que han dejado de informar, **Plataformas de aplicaciones → Todas las aplicaciones** enumera cada aplicación que ejecutan, y **Plataformas de aplicaciones → Todos los entornos** los enumera todos. Los recursos de sus cuentas en la nube, como máquinas virtuales, buckets y bases de datos gestionadas, están en Nube: consulte [Recursos en la nube](/docs/telemetry/cloud-resources).
 
+Para ver los entornos o las aplicaciones de una cuenta en la nube, filtre **Todos los entornos** o **Todas las aplicaciones** con el chip de filtro **Cuenta en la nube**: enumera cada cuenta en la que están los entornos, bajo su nube, y conserva las cuentas que elija, o todas las demás. En **Nube → Vista general**, la tarjeta **Plataformas de aplicaciones** cuenta los entornos y las aplicaciones de sus cuentas en la nube conectadas, y cada recuento abre su lista con el chip ya puesto en esas cuentas. Quite el chip para ver la lista completa.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tareas en Fargate o EC2, con la CPU y la memoria de cada tarea.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Servicios y trabajos, también listados como funciones serverless.

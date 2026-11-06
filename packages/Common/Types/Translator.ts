@@ -382,6 +382,28 @@ export const getTemplatePlaceholders: (template: string) => Array<string> = (
   return names;
 };
 
+/*
+ * Whether a plural's one form says exactly one: its English other form
+ * names the count and its one form does not - "Fired once" beside "Fired
+ * {{count}} times", "Show the host" beside "Show every host ({{count}})".
+ * A language's "one" form is said for every count it calls one (21 and 31
+ * in Russian, 0 in French), so such a one form is said for one only
+ * (translatePlural).
+ *
+ * Not a pair that names the count in neither form: a word drawn beside a
+ * number shown on its own ("day", "metric" under "21") or a number another
+ * value holds ("{{number}} event") - its one form is the language's form
+ * for that number ("21 день", never "21 дней").
+ */
+export const isOneFormOnlyForOne: (template: PluralTemplate) => boolean = (
+  template: PluralTemplate,
+): boolean => {
+  return (
+    getTemplatePlaceholders(template.other).includes("count") &&
+    !getTemplatePlaceholders(template.one).includes("count")
+  );
+};
+
 // Whether a template has words of its own besides its placeholders.
 const LETTER: RegExp = /\p{L}/u;
 
@@ -789,14 +811,28 @@ export const createTranslator: (
    * The form for `count` the way i18next resolves it: the language's own
    * category ("few" for 3 in Russian) under the key plus "_few", else the key
    * itself, which holds the language's general (other) form.
+   *
+   * A language's "one" form is said for every count its language calls one
+   * - 21 and 31 in Russian, 0 in French. A one form that says exactly one
+   * (oneFormSaysOnlyOne: "Fired once" beside "Fired {{count}} times") is
+   * said for one only: any other count of that category reads the general
+   * form instead, which names the count ("Срабатываний: 21", not
+   * "Сработало один раз").
    */
-  const findPlural: (key: string, count: number) => string | undefined = (
+  const findPlural: (
     key: string,
     count: number,
+    oneFormSaysOnlyOne?: boolean,
+  ) => string | undefined = (
+    key: string,
+    count: number,
+    oneFormSaysOnlyOne: boolean = false,
   ): string | undefined => {
     const category: string = getPluralCategory(activeLanguage, count);
+    const saysOnlyOne: boolean =
+      category === "one" && oneFormSaysOnlyOne && count !== 1;
 
-    if (category !== "other") {
+    if (category !== "other" && !saysOnlyOne) {
       const form: string | undefined = find(`${key}_${category}`);
 
       if (form !== undefined) {
@@ -820,7 +856,11 @@ export const createTranslator: (
   ): string => {
     // English has two forms: exactly one, and everything else.
     const english: string = count === 1 ? template.one : template.other;
-    const stored: string | undefined = findPlural(template.other, count);
+    const stored: string | undefined = findPlural(
+      template.other,
+      count,
+      isOneFormOnlyForOne(template),
+    );
 
     /*
      * An English form left in a locale is a placeholder, not a translation:

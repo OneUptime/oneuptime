@@ -4,6 +4,8 @@ Et **Cloud-miljø** er stedet, hvor dine containere kører på en administreret 
 
 Miljøer vises i App-platforme, et produkt for sig: **App-platforme → Oversigt** grupperer dem efter platform og viser dem, der er blevet stille, først, **App-platforme → Alle apps** viser hver app, der kører i dem, og **App-platforme → Alle miljøer** viser dem alle. Ressourcerne i dine cloudkonti, såsom virtuelle maskiner, buckets og administrerede databaser, findes i Cloud: se [Cloud-ressourcer](/docs/telemetry/cloud-resources).
 
+Vil du se et cloudkontos miljøer eller apps, så filtrer **Alle miljøer** eller **Alle apps** med filterchippen **Cloud-konto**: Den viser hver konto, miljøerne ligger i, under sin cloud, og beholder de konti, du vælger, eller alle de andre. På **Cloud → Oversigt** tæller kortet **App-platforme** miljøerne og apps i dine forbundne cloudkonti, og hvert tal åbner sin liste med chippen allerede sat til de konti. Fjern chippen for at se hele listen.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Opgaver på Fargate eller EC2, med CPU og hukommelse pr. opgave.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Tjenester og jobs, også vist som serverløse funktioner.

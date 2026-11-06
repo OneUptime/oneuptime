@@ -983,6 +983,10 @@ jobs:
           # Collectors (1.2) moved to group 3 and VMware Host Page (1.4) to
           # group 14: 20.7. Azure's write identity added 1 test the same day
           # (a desktop's only, about 0.1): the suite 12.2, the group 20.8.
+          # What Azure published about its health, in German and in Persian,
+          # added 1 test to Cloud Connect the same day (4 runs on its desktop
+          # and phone, about 4 seconds each locally; about 0.3 minutes on a
+          # runner): the suite 12.5, the group 21.1.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -1208,6 +1212,8 @@ jobs:
           # Security Operations gained two tests on 2026-11-06 (#6025: the
           # Russian case queue's titles and assignees whole at a 1280 and a
           # 1216 laptop, about 6 seconds locally): 21.0.
+          # And one more the same day (#6158: a case's Story and Impact in
+          # German and in Persian, six pages, about 14 seconds locally): 21.3.
           - group: 11
             suites: >-
               test-security-operations-ui
