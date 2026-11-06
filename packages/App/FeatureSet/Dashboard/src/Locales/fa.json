@@ -20026,7 +20026,7 @@
   "Uptime — Last {{count}} Days_one": "Uptime — Last {{count}} Day",
   "Use the root cause field on episodes to document findings for future reference.": "Use the root cause field on episodes to document findings for future reference.",
   "Use title templates to create descriptive episode names that help operators understand the issue at a glance.": "Use title templates to create descriptive episode names that help operators understand the issue at a glance.",
-  "User Settings for Project {{project}}": "User Settings for Project {{project}}",
+  "User Settings for Project {{project}}": "تنظیمات کاربر در پروژهٔ {{project}}",
   "VM Metrics: {{vmName}}": "متریک‌های VM: {{vmName}}",
   "Verified methods ({{count}} unverified)": "روش‌های تأییدشده ({{count}} تأییدنشده)",
   "Verified methods ({{count}} unverified)_one": "روش‌های تأییدشده ({{count}} تأییدنشده)",

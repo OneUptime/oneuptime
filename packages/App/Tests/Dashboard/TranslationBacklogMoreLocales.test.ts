@@ -506,3 +506,100 @@ describe("the AI card's message times", () => {
     expect(text.replace(/\s/g, " ")).toBe(words);
   });
 });
+
+/*
+ * THE UI REVIEW'S WORDS (#6215).
+ *
+ * The replay rail now draws its words in the reader's language, which put
+ * old translations made without the rail beside them on screen: the chip
+ * that says the list follows the playhead read "Next" in Russian (Далее),
+ * Korean (다음) and Dutch (Volgend), "the following" in Swedish, Danish and
+ * Traditional Chinese, and "subscribe" in Simplified Chinese (关注); the
+ * tab of clicks and other interactions read as a verb in German, French
+ * and Spanish ("Interagieren"), where every other language names the
+ * interactions. And the title over every User Settings page, the page
+ * whose matrix this pull request laid out for phones, was English in 14
+ * languages.
+ */
+describe("the replay rail's own words", () => {
+  const FOLLOWING_MISREAD: Record<string, string> = {
+    ru: "Далее",
+    ko: "다음",
+    nl: "Volgend",
+    sv: "Följande",
+    da: "Følgende",
+    "zh-TW": "以下",
+    "zh-CN": "关注",
+  };
+
+  test.each(LANGUAGES)(
+    "in %s, the chip that says the list follows the playhead is worded",
+    (code: string) => {
+      expect(unworded(code, ["Following"])).toEqual([]);
+    },
+  );
+
+  test.each(Object.entries(FOLLOWING_MISREAD))(
+    "in %s, it says the list follows, not %s",
+    (code: string, misread: string) => {
+      expect(valueOf(code, "Following")).not.toBe(misread);
+    },
+  );
+
+  test("it reads as the chip that resumes it does, in the languages that misread it", () => {
+    expect(valueOf("nl", "Following")).toBe("Volgt");
+    expect(valueOf("sv", "Following")).toBe("Följer");
+    expect(valueOf("da", "Following")).toBe("Følger");
+    expect(valueOf("ru", "Following")).toBe("Слежение");
+    expect(valueOf("ko", "Following")).toBe("따라가는 중");
+    expect(valueOf("ko", "Resume following")).toBe("다시 따라가기");
+    expect(valueOf("zh-CN", "Following")).toBe("跟随中");
+    expect(valueOf("zh-CN", "Resume following")).toBe("继续跟随");
+    expect(valueOf("zh-TW", "Following")).toBe("跟隨中");
+    expect(valueOf("zh-TW", "Resume following")).toBe("繼續跟隨");
+  });
+
+  test("the Interact tab names the interactions, as the other tabs name what they hold", () => {
+    expect(valueOf("de", "Interact")).toBe("Interaktionen");
+    expect(valueOf("fr", "Interact")).toBe("Interactions");
+    expect(valueOf("es", "Interact")).toBe("Interacciones");
+
+    for (const code of LANGUAGES) {
+      expect(["Interagieren", "Interagir", "Interactuar"]).not.toContain(
+        valueOf(code, "Interact"),
+      );
+    }
+  });
+});
+
+describe("the User Settings page's title", () => {
+  test.each(LANGUAGES)(
+    "in %s, it is worded, with the project's name in it",
+    (code: string) => {
+      expect(unworded(code, ["User Settings for Project {{project}}"])).toEqual(
+        [],
+      );
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "in %s, it names User Settings as the side menu and the breadcrumbs do",
+    (code: string) => {
+      const userSettings: string | undefined = valueOf(code, "User Settings");
+
+      expect(userSettings).toBeDefined();
+      expect(valueOf(code, "User Settings for Project {{project}}")).toContain(
+        userSettings,
+      );
+    },
+  );
+
+  test("filled in, it reads whole: Benutzereinstellungen für das Projekt Acme", () => {
+    expect(
+      translatorFor("de").translateTemplate(
+        "User Settings for Project {{project}}",
+        { project: "Acme" },
+      ),
+    ).toBe("Benutzereinstellungen für das Projekt Acme");
+  });
+});

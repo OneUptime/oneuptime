@@ -1456,6 +1456,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             children: renderSections(security),
           },
         ]}
+        /*
+         * Seven areas: beside the side menu on a tablet, or on a phone, one
+         * row of them ran past the page (Security and On-Call out of sight,
+         * the page scrolling sideways). They wrap onto a second row
+         * instead, every area in sight, as the matrix below them does.
+         */
+        wrap={true}
         onTabChange={() => {}}
       />
     </Fragment>

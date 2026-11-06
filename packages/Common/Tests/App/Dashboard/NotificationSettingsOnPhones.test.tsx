@@ -523,3 +523,64 @@ describe("the matrix's own box decides, not the window", () => {
     ).toBeGreaterThan(0);
   });
 });
+
+/*
+ * The page's seven areas (Incidents to Security) sit in one row of tabs
+ * over the matrix. Beside the side menu on a tablet, or on a phone, that
+ * row ran past the page: Security and On-Call out of sight and the whole
+ * page scrolling sideways. They wrap onto a second row instead.
+ */
+describe("the page's areas", () => {
+  const AREAS: Array<string> = [
+    "Incidents",
+    "Alerts",
+    "Monitoring",
+    "Status Pages",
+    "Scheduled Maintenance",
+    "On-Call",
+    "Security",
+  ];
+
+  test("every area is a tab, in the order the page lists them", async () => {
+    setWindowWidth(PHONE_WIDTH);
+    await renderPage();
+
+    expect(
+      screen.getAllByRole("tab").map((tab: HTMLElement): string => {
+        return tab.textContent?.trim() || "";
+      }),
+    ).toEqual(AREAS);
+  });
+
+  test.each([PHONE_WIDTH, LAPTOP_WIDTH])(
+    "at %ipx, the tabs wrap onto another row rather than run past the page",
+    async (width: number) => {
+      setWindowWidth(width);
+      await renderPage();
+
+      const tabList: HTMLElement = screen.getByRole("tablist");
+
+      expect(tabList.className).toContain("flex-wrap");
+      expect(tabList.className).not.toContain("overflow-x-auto");
+      expect(tabList.className).not.toContain("md:overflow-visible");
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "in %s, the areas wrap too, in the language's own words",
+    async (language: string) => {
+      await renderPage(language);
+
+      expect(screen.getByRole("tablist").className).toContain("flex-wrap");
+      expect(
+        screen.getAllByRole("tab").map((tab: HTMLElement): string => {
+          return tab.textContent?.trim() || "";
+        }),
+      ).toEqual(
+        AREAS.map((area: string): string => {
+          return drawn(language, area);
+        }),
+      );
+    },
+  );
+});

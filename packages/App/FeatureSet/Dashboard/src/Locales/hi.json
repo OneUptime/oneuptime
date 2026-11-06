@@ -20026,7 +20026,7 @@
   "Uptime — Last {{count}} Days_one": "Uptime — Last {{count}} Day",
   "Use the root cause field on episodes to document findings for future reference.": "Use the root cause field on episodes to document findings for future reference.",
   "Use title templates to create descriptive episode names that help operators understand the issue at a glance.": "Use title templates to create descriptive episode names that help operators understand the issue at a glance.",
-  "User Settings for Project {{project}}": "User Settings for Project {{project}}",
+  "User Settings for Project {{project}}": "प्रोजेक्ट {{project}} की उपयोगकर्ता सेटिंग्स",
   "VM Metrics: {{vmName}}": "VM मेट्रिक्स: {{vmName}}",
   "Verified methods ({{count}} unverified)": "सत्यापित तरीके ({{count}} असत्यापित)",
   "Verified methods ({{count}} unverified)_one": "सत्यापित तरीके ({{count}} असत्यापित)",
