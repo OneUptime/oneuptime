@@ -1204,7 +1204,7 @@ CADF 事件可能包含不該保留的東西：它的發起者憑證含有部分
 
 ## 透過控制平面追蹤請求
 
-「為什麼啟動一個執行個體要花四分鐘？」這個問題橫跨 Nova、Neutron、Keystone 和 Glance，而日誌只顯示片段。追蹤會顯示時間花在哪裡。OpenStack 產生追蹤的方式是 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)，而 OneUptime 會在[追蹤](/docs/telemetry/traces-explorer)中顯示它所送出的內容，並連結到雲端的各個部分和它的日誌。
+「為什麼啟動一個執行個體要花四分鐘？」這個問題橫跨 Nova、Neutron、Keystone 和 Glance，而日誌只顯示片段。追蹤會顯示時間花在哪裡。OpenStack 產生追蹤的方式是 [OSProfiler](https://docs.openstack.org/osprofiler/latest/)，而 OneUptime 會在[追蹤](/docs/telemetry/traces-explorer)中顯示它所送出的內容，並連結到雲端的各個部分和它的日誌。在 2026.2 上還有 [OpenStack 自己的追蹤](#openstack-自己的追蹤)，它不需要簽署任何東西。
 
 請清楚你要開啟的是什麼：
 
@@ -1221,6 +1221,7 @@ CADF 事件可能包含不該保留的東西：它的發起者憑證含有部分
 - [開啟追蹤](#開啟追蹤): 收集器、函式庫與設定。
 - [追蹤請求](#追蹤請求): 適用於你的雲端的命令，以及它的追蹤在哪裡。
 - [追蹤的成本](#追蹤的成本): 計算過的內容，以及沒有人測量過的內容。
+- [OpenStack 自己的追蹤](#openstack-自己的追蹤): 在 2026.2 上，不需要簽署任何東西的每個 API 請求。
 :::
 
 ### 追蹤顯示什麼
@@ -1349,7 +1350,7 @@ unset OS_PROFILE
 
 ### 追蹤的成本
 
-在請求被簽署之前沒有任何成本。開啟 OSProfiler 但沒有簽署任何東西時，一個請求的成本是一次失敗的標頭檢查。OpenStack 對已簽署請求的成本[沒有給出數字](https://docs.openstack.org/osprofiler/latest/user/integration.html)，我們也沒有，因為沒有人測量過。已簽署的請求會在它橫跨的每個服務中做更多工作，從每個服務透過 HTTP 送出每個 span，並在它的 context 中帶著你的金鑰橫跨訊息匯流排。請簽署你正在調查的請求，而不是一般流量。
+僅使用 OSProfiler 時，在請求被簽署之前沒有任何成本。開啟 OSProfiler 但沒有簽署任何東西時，一個請求的成本是一次失敗的標頭檢查。OpenStack 對已簽署請求的成本[沒有給出數字](https://docs.openstack.org/osprofiler/latest/user/integration.html)，我們也沒有，因為沒有人測量過。已簽署的請求會在它橫跨的每個服務中做更多工作，從每個服務透過 HTTP 送出每個 span，並在它的 context 中帶著你的金鑰橫跨訊息匯流排。請簽署你正在調查的請求，而不是一般流量。
 
 已計算過的是已簽署的啟動請求在一台機器的 DevStack 上送出的內容：
 
@@ -1363,6 +1364,8 @@ unset OS_PROFILE
 
 收集器停止時，已簽署的啟動請求仍然可以運作，只是它的 span 遺失了，所以追蹤並沒有妨礙請求。
 
+在 2026.2 上，仍在 eventlet 上執行的 `cinder-volume`，在重新啟動後有時會讓整個核心空轉，大多是在 OSProfiler 的驅動程式開啟時，有一次是在關閉時。再重新啟動一次就恢復了。我們不知道原因，所以如果有機器發燙，請先看那裡。
+
 ### span 包含什麼
 
 OSProfiler 的驅動程式會把被追蹤的呼叫所帶的內容複製到它的 span 中，並以 Python 印出的方式寫出：執行個體的 admin 密碼和使用者資料，以及磁碟區的連線資訊。收集器會在這些資料離開機器之前移除 `args`、`kwargs`、`result` 和 `db.params`，而對於以其他方式抵達的 span，OneUptime 會在抵達時移除它們。沒有任何東西能關閉這點。`trace_sqlalchemy` 的語句會連同其佔位符保留，但不保留其值。
@@ -1371,7 +1374,57 @@ OSProfiler 的驅動程式會把被追蹤的呼叫所帶的內容複製到它的
 
 ### 排程的追蹤
 
-只有在請求被簽署時才會有追蹤，所以這裡沒有任何東西會自行追蹤雲端。[生命週期檢查](#生命週期檢查)在取得金鑰時會簽署它自己的寫入，每個步驟各自成為一個追蹤，所以它看到的緩慢啟動就有一個追蹤。這把金鑰是 OneUptime 唯一保存金鑰的地方：加密、唯寫，而且僅供該檢查使用。
+僅使用 OSProfiler 時，只有在請求被簽署時才會有追蹤，所以這裡沒有任何東西會自行追蹤雲端。[生命週期檢查](#生命週期檢查)在取得金鑰時會簽署它自己的寫入，每個步驟各自成為一個追蹤，所以它看到的緩慢啟動就有一個追蹤。這把金鑰是 OneUptime 唯一保存金鑰的地方：加密、唯寫，而且僅供該檢查使用。
+
+### OpenStack 自己的追蹤
+
+在 2026.2 上，oslo.messaging 18.3.1 和 oslo.middleware 8.2.0 不需要簽署任何東西，就能追蹤每個 API 請求。更早的版本沒有它們。請保留[上面的步驟](#開啟追蹤)：OSProfiler 的驅動程式讓每個服務有一個可用來送出的追蹤器，沒有它，oslo.messaging 會在每次呼叫時失敗並出現 `has no attribute 'trace_exporter'`。
+
+把這段加到每個服務的設定中，放在 `[profiler]` 旁邊：
+
+```ini
+[oslo_messaging_tracing]
+tracing_enabled = True
+```
+
+把這段加到 `nova.conf`、`neutron.conf`、`cinder.conf` 和 `glance-api.conf`，其中 `service_name` 是該 API 自己的名稱，`otlp_endpoint` 是 `connection_string` 所指定的收集器：
+
+```ini
+[oslo_middleware_tracing]
+enabled = True
+otlp_endpoint = http://127.0.0.1:4318
+service_name = nova-api
+```
+
+把這個篩選器加到上述每個 API 的 paste 檔案中，並把 `otel_tracing` 加到每個管線裡，放在 `osprofiler` 之前。然後重新啟動它們：
+
+```ini
+[filter:otel_tracing]
+paste.filter_factory = oslo_middleware:TracingMiddleware.factory
+```
+
+現在追蹤會透過 RPC 跟隨一個請求：一次啟動是從 `nova-api` 經過 `nova-conductor` 和 `nova-scheduler` 到 `nova-compute` 的單一追蹤，而且那些 span 帶有其日誌所帶的請求 ID，所以它的[日誌](#從追蹤到它的日誌)不需要猜測。它不會橫跨 HTTP 呼叫，所以 Nova 詢問 Neutron 會是各自獨立的追蹤。`keystone` 和 Placement 沒有可以加入篩選器的管線，`cinder-volume` 在這裡也不送出任何東西，而**追蹤**頁面會告訴你雲端送出的是哪一種。
+
+若要讓追蹤橫跨 HTTP 呼叫，請在每個服務執行的地方對 keystoneauth 加一行。這是對你機器上 OpenStack 程式碼的修改，所以升級後需要由你自己保留：
+
+```bash
+sed -i '/headers\.update(osprofiler_web\.get_trace_id_headers())/a\        if "opentelemetry.propagate" in sys.modules: sys.modules["opentelemetry.propagate"].inject(headers)' "$(python3 -c 'import keystoneauth1.session as module; print(module.__file__)')"
+```
+
+這樣一次啟動的追蹤也會橫跨 Neutron 和 Glance，涵蓋 `nova-api` 對它們的詢問。`nova-compute` 在自己的執行緒上建立執行個體，這會在同一個請求 ID 下開始新的追蹤，所以它詢問 Neutron 的內容不會出現在該次啟動的追蹤中。
+
+在一台機器的 DevStack 上的成本，使用一個運算節點和一個讀取者。那不是繁忙的雲端，而且三個 API 的回應沒有變慢，至少我們分辨不出與雜訊的差別：
+
+| 讀取 40 次，或測量 | 關閉 | 開啟 |
+| --- | --- | --- |
+| `GET /servers`，一半的回應在以下時間內 | 48 ms | 32 ms |
+| `GET /v2.0/networks`，一半的回應在以下時間內 | 16 ms | 18 ms |
+| `GET /v2/images`，一半的回應在以下時間內 | 5 ms | 8 ms |
+| 兩分鐘安靜期間的 CPU，所有服務合計 | 3.0 s | 3.9 s |
+
+一次啟動會產生約 220 個 span，而收集器會轉送其中約 110 個，約 75 KB。閒置的一分鐘會產生約 33 個，而它只轉送約 2 個，因為除非失敗，否則它會丟棄 `nova-compute` 要求其 conductor 讀取或儲存物件的 span。這些是一次啟動的 RPC span 的大部分，也幾乎是閒置雲端的全部。若要保留它們，請從收集器的管線中移除 `filter/nova-object-calls`。
+
+這是在 2026.2 的 DevStack 上執行的，從一次真實的啟動到一個正在執行的 OneUptime，沒有在其他地方執行過。
 
 ## 從外部檢查雲端
 
@@ -1476,16 +1529,6 @@ Nova 也會建立伺服器的連接埠，並在刪除伺服器時一併刪除。
 openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
-
-### OpenStack 自己的追蹤
-
-2026.2 上的 oslo.middleware 8.2.0 和 oslo.messaging 18.3.1 不需要簽署任何東西就能追蹤，所以有一天它們可能成為一直開著的資料流。我們執行過它們，而 OneUptime 目前還不讀取它們，因為依其出貨的狀態，它們不會跨服務追蹤請求：
-
-- 單獨使用 oslo.messaging 不會送出任何東西，並且對每次呼叫記錄 `has no attribute 'trace_exporter'`。
-- 把 oslo.middleware 的篩選器加到每個 API 的管線後，每次 API 呼叫都是各自獨立的追蹤。一次啟動產生了 83 個追蹤，沒有一個橫跨兩個服務，因為在對外的 HTTP 呼叫上沒有任何東西會傳遞追蹤。Keystone 和 Placement 沒有可以加入它的管線。
-- 那些 span 不包含請求 ID，而 RPC 的 span 有。
-
-如果你開啟它們，它們的 span 仍會透過收集器，以它們自己的名稱抵達這個雲端的**追蹤**頁面。
 
 ## AI 代理程式
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 45208,
-    "untranslated": 11662
+    "keys": 45254,
+    "untranslated": 11616
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -275,6 +275,7 @@
     "deployment",
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "failed password",
+    "filter",
     "flavor",
     "fullest: {{storageName}}",
     "govc",
