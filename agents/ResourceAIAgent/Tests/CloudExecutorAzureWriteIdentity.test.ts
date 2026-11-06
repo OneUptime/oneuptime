@@ -1,4 +1,4 @@
-import "./Helpers/TestSupport";
+import { recordingLogger } from "./Helpers/TestSupport";
 import assert from "assert";
 import { describe, test } from "node:test";
 import {
@@ -43,7 +43,6 @@ import {
   refusalOf,
   runCloud,
 } from "./Helpers/CloudHarness";
-import { recordingLogger } from "./Helpers/TestSupport";
 import {
   AZURE_CLOUD_AI_AGENT_WRITE_IDENTITY_NAME,
   getAzureCloudAiAgentWriteIdentityId,
@@ -441,6 +440,19 @@ describe("Azure: the write identity setting", () => {
     assert.deepStrictEqual(h.arm.calls, []);
     assert.deepStrictEqual(h.arm.writeTokenRequests, []);
     assert.deepStrictEqual(h.arm.tokenRequests, []);
+  });
+
+  test("an agent that does not know its subscription changes nothing, and says that, not the write identity, is why", () => {
+    const h: CloudHarness = cloudHarness("azure", {
+      env: WRITE_ENV,
+      identity: null,
+    });
+
+    assert.strictEqual(
+      refusalOf(h, "azure", `cloud start-instance ${VM}`),
+      "Refused by the Cloud AI agent: it does not know which Azure subscription it serves, so it runs nothing.",
+    );
+    assert.deepStrictEqual(h.cloud.requests, []);
   });
 
   test("its subscription is compared without case, as Azure compares IDs", async () => {

@@ -122,7 +122,9 @@ const USER_ASSIGNED_IDENTITY_ID_EXAMPLE: string =
  * serves changes nothing (no full stop), or null for one of its own: the
  * write identity is the subscription's own, as its setup command makes it,
  * so a change never runs as an identity another subscription's owners
- * hold - and the agent never falls back to its own identity instead.
+ * hold - and the agent never falls back to its own identity instead. An
+ * agent that does not know its subscription changes nothing anyway, and
+ * says so for that reason (null here).
  */
 export function describeAzureWriteIdentityElsewhere(data: {
   identity: AzureWriteIdentity;
@@ -130,12 +132,12 @@ export function describeAzureWriteIdentityElsewhere(data: {
 }): string | null {
   const serves: string = data.subscriptionId.trim().toLowerCase();
 
-  if (serves && data.identity.subscriptionId === serves) {
+  if (!serves || data.identity.subscriptionId === serves) {
     return null;
   }
 
   // Short enough for the posture (MAX_POSTURE_STRING_LENGTH) with both ids.
-  return `${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV} names an identity of subscription ${data.identity.subscriptionId}, but the agent serves subscription ${serves || "(unknown)"}, so it changes nothing`;
+  return `${RESOURCE_AI_AZURE_WRITE_IDENTITY_ENV} names an identity of subscription ${data.identity.subscriptionId}, but the agent serves subscription ${serves}, so it changes nothing`;
 }
 
 // A user-assigned identity's resource ID read apart, or null for anything else.
