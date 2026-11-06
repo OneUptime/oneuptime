@@ -23,6 +23,32 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * 0 is a sequence: a run's first event. Every writer counts from 0 - the
+   * chat turn, the investigation engine, and appendEventToRun, which takes
+   * the run's event count - and the required-column check reads 0 as
+   * missing, so a run's first event was refused as "sequence is required".
+   * For a code-fix run that was every event: appendEventToRun counts the
+   * run's events, the count stayed 0, and each of the Runner's progress
+   * lines was refused the same way (issue #6144). Any whole number from 0
+   * up is a value of it; anything else is still read as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      column === "sequence" &&
+      typeof value === "number" &&
+      Number.isSafeInteger(value) &&
+      value >= 0
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
+  /*
    * Append one event to a run's glass-box trail, allocating the next
    * sequence number from the run's current event count — the same idiom
    * AIInvestigationEngine uses, factored out for callers that emit
