@@ -66,11 +66,33 @@ describe("BreakableName", () => {
       "container.blockio.io_service_bytes_recursive",
     );
 
+    // Its dots say where its words are: its underscores stay whole.
     expect(partsOf(holder)).toEqual([
       "container.",
       "blockio.",
       "io_service_bytes_recursive",
     ]);
+  });
+
+  /*
+   * #5485's follow-up: a BreakableName audit for underscored metric names.
+   * A Prometheus metric's name has no dot to break at, and broke at
+   * whatever letter filled the line.
+   */
+  test("a Prometheus metric's name, all underscores, breaks after each of them", () => {
+    const holder: HTMLElement = draw(
+      "http_server_request_duration_seconds_bucket",
+    );
+
+    expect(partsOf(holder)).toEqual([
+      "http_",
+      "server_",
+      "request_",
+      "duration_",
+      "seconds_",
+      "bucket",
+    ]);
+    expect(holder.querySelectorAll("wbr")).toHaveLength(5);
   });
 
   test("a task's id breaks after its kind", () => {

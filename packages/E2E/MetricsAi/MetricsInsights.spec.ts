@@ -54,8 +54,45 @@ const LONG_PAYMENTS: string =
   "storefront-payments-gateway-eu-west-1-production";
 const LONG_METRIC: string =
   "com.acme.storefront.checkout.payment_authorization.gateway_round_trip_milliseconds";
+// A Prometheus exporter's name: all underscores, no dot.
+const LONG_PROMETHEUS_METRIC: string =
+  "storefront_payments_gateway_authorization_latency_seconds_bucket";
 
 const LAPTOP_WIDTHS: Array<number> = [1440, 1280, 1024, 768];
+
+// The text of each line a chip draws, read off its line boxes.
+async function chipLines(chip: Locator): Promise<Array<string>> {
+  return await chip.evaluate((element: HTMLElement): Array<string> => {
+    const range: Range = document.createRange();
+    const tops: Map<number, string> = new Map();
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node: Node | null = walker.nextNode();
+
+    while (node) {
+      const text: string = node.textContent || "";
+
+      for (let index: number = 0; index < text.length; index++) {
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        const top: number = Math.round(range.getBoundingClientRect().top);
+        tops.set(top, (tops.get(top) || "") + text.charAt(index));
+      }
+
+      node = walker.nextNode();
+    }
+
+    return Array.from(tops.entries())
+      .sort((a: [number, string], b: [number, string]): number => {
+        return a[0] - b[0];
+      })
+      .map((entry: [number, string]): string => {
+        return entry[1];
+      });
+  });
+}
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -474,39 +511,7 @@ test.describe("Metrics > Insights: the services reporting metrics", () => {
     // Every character, as written: a break adds none.
     await expect(chip).toHaveText(LONG_METRIC);
 
-    const lines: Array<string> = await chip.evaluate(
-      (element: HTMLElement): Array<string> => {
-        // The text of each line the chip draws, read off its line boxes.
-        const range: Range = document.createRange();
-        const tops: Map<number, string> = new Map();
-        const walker: TreeWalker = document.createTreeWalker(
-          element,
-          NodeFilter.SHOW_TEXT,
-        );
-        let node: Node | null = walker.nextNode();
-
-        while (node) {
-          const text: string = node.textContent || "";
-
-          for (let index: number = 0; index < text.length; index++) {
-            range.setStart(node, index);
-            range.setEnd(node, index + 1);
-            const top: number = Math.round(range.getBoundingClientRect().top);
-            tops.set(top, (tops.get(top) || "") + text.charAt(index));
-          }
-
-          node = walker.nextNode();
-        }
-
-        return Array.from(tops.entries())
-          .sort((a: [number, string], b: [number, string]): number => {
-            return a[0] - b[0];
-          })
-          .map((entry: [number, string]): string => {
-            return entry[1];
-          });
-      },
-    );
+    const lines: Array<string> = await chipLines(chip);
 
     expect(lines.length).toBeGreaterThan(1);
     // Each line but the last ends at one of the name's own dots.
@@ -514,6 +519,40 @@ test.describe("Metrics > Insights: the services reporting metrics", () => {
       expect(line.endsWith(".")).toBe(true);
     }
     expect(lines.join("")).toBe(LONG_METRIC);
+  });
+
+  /*
+   * #5485's follow-up, a BreakableName audit for underscored metric names:
+   * a Prometheus metric's name has no dot, and broke at whatever letter
+   * filled the chip's line. It breaks after its own underscores now
+   * (Common/Utils/NameBreaks).
+   */
+  test("a Prometheus metric's name of sixty characters wraps inside its chip, after its own underscores", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await open(page, "insights=long");
+    await atWidth(page, isPhone(testInfo) ? 390 : 1024);
+
+    const chip: Locator = page
+      .getByTestId("metrics-service-card-metric")
+      .filter({ hasText: LONG_PROMETHEUS_METRIC });
+
+    await expect(chip).toHaveCount(1);
+    await expect(chip).toHaveText(LONG_PROMETHEUS_METRIC);
+
+    const lines: Array<string> = await chipLines(chip);
+
+    expect(lines.length).toBeGreaterThan(1);
+    // Each line but the last ends at one of the name's own underscores.
+    for (const line of lines.slice(0, -1)) {
+      expect({ line, endsAfterAnUnderscore: line.endsWith("_") }).toEqual({
+        line,
+        endsAfterAnUnderscore: true,
+      });
+    }
+    expect(lines.join("")).toBe(LONG_PROMETHEUS_METRIC);
   });
 
   test("in the dark theme every card is a dark card, and the rows still end on one line", async ({
