@@ -35,10 +35,12 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudUnusualDayMarkers";
 import {
   CloudUnusualDayRow,
+  UNUSUAL_DAY_TIMES_USUAL,
   UNUSUAL_DAY_WHOLE_ACCOUNT,
   getCloudUnusualDayRows,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudUnusualDaysCard";
 import { CloudAccountRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/UseCloudAccounts";
+import { formatCloudMoney } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostWords";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
@@ -222,27 +224,27 @@ describe("the marks: one per line of the Unusual days card", () => {
     ).toEqual([
       [
         "2026-11-19T12:00:00.000Z",
-        "Amazon Athena: $96.40",
+        "Amazon Athena cost $96.40",
         "data-lake · 2.1 times its usual $45.90",
       ],
       [
         "2026-11-19T12:00:00.000Z",
-        `${UNUSUAL_DAY_WHOLE_ACCOUNT}: $2,400`,
+        `${UNUSUAL_DAY_WHOLE_ACCOUNT} cost $2,400`,
         "web-prod · 1.6 times its usual $1,500",
       ],
       [
         "2026-11-19T12:00:00.000Z",
-        "AWS Lambda: $412.00",
+        "AWS Lambda cost $412.00",
         "web-prod · 2.3 times its usual $180.00",
       ],
       [
         "2026-11-17T12:00:00.000Z",
-        "Amazon S3: $60.00",
+        "Amazon S3 cost $60.00",
         "data-lake · 3 times its usual $20.00",
       ],
       [
         "2026-11-12T12:00:00.000Z",
-        "AWS Glue: $40.00",
+        "AWS Glue cost $40.00",
         "web-prod · Usually costs nothing",
       ],
     ]);
@@ -253,7 +255,7 @@ describe("the marks: one per line of the Unusual days card", () => {
       // The kind's own colour, as every other chart's alert marks are drawn.
       expect(mark.color).toBeUndefined();
     }
-    expect(UNUSUAL_DAY_MARKER_LABEL).toBe("{{what}}: {{amount}}");
+    expect(UNUSUAL_DAY_MARKER_LABEL).toBe("{{what}} cost {{amount}}");
     expect(UNUSUAL_DAY_MARKER_SUBTITLE).toBe("{{account}} · {{comparison}}");
   });
 
@@ -347,9 +349,24 @@ describe("the marks: one per line of the Unusual days card", () => {
         amount: "96,40 €",
       }),
     );
-    // The template is German's own, not English's.
+    // The sentence is German's own, not English's.
     expect(german.hasTranslation(UNUSUAL_DAY_MARKER_LABEL)).toBe(true);
-    expect(german.hasTranslation(UNUSUAL_DAY_MARKER_SUBTITLE)).toBe(true);
+    expect(inGerman[0]!.label).not.toContain(" cost ");
+    /*
+     * The subtitle has no words of its own to translate - its comparison
+     * does - so it is no key: the dot joins German's words.
+     */
+    expect(german.hasTranslation(UNUSUAL_DAY_MARKER_SUBTITLE)).toBe(false);
+    expect(inGerman[0]!.subtitle).toContain(
+      german.translateTemplate(UNUSUAL_DAY_TIMES_USUAL, {
+        times: "2,1",
+        usual: formatCloudMoney({
+          amount: 45.9,
+          currency: "EUR",
+          translator: german,
+        }),
+      }),
+    );
     expect(inGerman[1]!.label).toContain(
       german.translateText(UNUSUAL_DAY_WHOLE_ACCOUNT)!,
     );
@@ -424,7 +441,7 @@ describe("the chart, drawn", () => {
     expect(handed[0]).toEqual(
       expect.objectContaining({
         date: "2026-11-19T12:00:00.000Z",
-        label: "Amazon Athena: $96.40",
+        label: "Amazon Athena cost $96.40",
         kind: ChartEventKind.Alert,
       }),
     );

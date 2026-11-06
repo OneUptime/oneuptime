@@ -266,7 +266,7 @@ function resourceCostsField(): CloudConnectionField {
     key: RESOURCE_COSTS_FIELD_KEY,
     title: "Costs per resource",
     description:
-      "Reads what each resource costs from Cost Explorer, once you turn on resource-level data in Cost Management preferences. About one more Cost Explorer request a day, at $0.01 each.",
+      "Reads what each resource costs from Cost Explorer, once resource-level data is turned on in the account's Cost Management preferences. A few more Cost Explorer requests a day, at $0.01 each.",
     type: "dropdown",
     required: false,
     options: [

@@ -59,7 +59,9 @@ export const COMMITMENTS_DESCRIPTION: string = translationKey(
   "How much of the last 30 days' spend your Savings Plans, reservations and committed use discounts paid for, and how much of them was used.",
 );
 export const COMMITMENT_COVERS: string = translationKey("Covers {{percent}}");
-export const COMMITMENT_COVERS_ALL: string = translationKey("Covers all of it");
+export const COMMITMENT_COVERS_ALL: string = translationKey(
+  "Covers all eligible spend",
+);
 export const COMMITMENT_COVERED_OF: string = translationKey(
   "{{covered}} of {{eligible}}",
 );
@@ -67,11 +69,16 @@ export const COMMITMENT_NONE: string = translationKey("No commitment");
 export const COMMITMENT_ON_DEMAND: string = translationKey(
   "{{amount}} ran at on-demand rates",
 );
-export const COMMITMENT_USED: string = translationKey("{{percent}} used");
-export const COMMITMENT_ALL_USED: string = translationKey("All used");
+/*
+ * A commitment's utilization, as the clouds' own consoles say it - never
+ * "{{percent}} used", which the Dashboard says of a disk's or a pool's
+ * capacity ("belegt", "occupied").
+ */
+export const COMMITMENT_USED: string = translationKey("{{percent}} utilized");
+export const COMMITMENT_ALL_USED: string = translationKey("Fully utilized");
 export const COMMITMENT_UNUSED: string = translationKey("{{amount}} unused");
 export const COMMITMENT_USE_NOT_REPORTED: string = translationKey(
-  "How much is used is not reported",
+  "Utilization not reported",
 );
 export const COMMITMENT_ORGANIZATION: string = translationKey(
   "Every account of the organization",

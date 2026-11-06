@@ -77,7 +77,7 @@ export const BREAKDOWN_EMPTY: string = translationKey(
 );
 export const BREAKDOWN_TOTAL: string = translationKey("{{amount}} in all");
 export const BREAKDOWN_RESOURCES_NOTE: string = translationKey(
-  "Azure and Google Cloud's detailed billing export name the resource each cost is for. AWS does for a connection with Costs per resource on, from the day it is turned on.",
+  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.",
 );
 /*
  * The AWS accounts whose costs per resource could not be read, each with
@@ -110,8 +110,11 @@ export const APPS_NOTE: string = translationKey(
   "An app's cost is what its platform bills it by name. Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.",
 );
 
-// By tag.
-export const TAG_PICKER_LABEL: string = translationKey("Tag");
+/*
+ * By tag: the key whose values the list is by ("team", "env"). "Tag key",
+ * not "Tag", which some languages word as a mark or an HTML tag.
+ */
+export const TAG_PICKER_LABEL: string = translationKey("Tag key");
 export const TAGS_EMPTY: string = translationKey("No costs carry tags yet.");
 export const TAGS_NOTE: string = translationKey(
   "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to. On AWS that needs Costs per resource on.",

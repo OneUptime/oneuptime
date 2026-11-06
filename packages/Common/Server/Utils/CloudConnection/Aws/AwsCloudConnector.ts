@@ -78,8 +78,14 @@ import {
   readAwsCostAndUsage,
   readAwsCostOptimizationHub,
 } from "./AwsCosts";
-import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
-import { CloudCommitmentSummary } from "../../../../Types/Cloud/CloudCommitments";
+import {
+  CLOUD_COST_DEFAULT_CURRENCY,
+  CloudCostState,
+} from "../../../../Types/Cloud/CloudCost";
+import {
+  CLOUD_COMMITMENT_WINDOW_DAYS,
+  CloudCommitmentSummary,
+} from "../../../../Types/Cloud/CloudCommitments";
 import { readAwsCommitments } from "./AwsCommitments";
 import {
   AwsResourceCost,
@@ -2308,8 +2314,8 @@ export default class AwsCloudConnector implements CloudConnector {
               state: CloudCostState.NotSetUp,
               message:
                 "A GovCloud account's commitments are read from the standard AWS account it is billed through.",
-              currency: "USD",
-              days: 30,
+              currency: CLOUD_COST_DEFAULT_CURRENCY,
+              days: CLOUD_COMMITMENT_WINDOW_DAYS,
               kinds: [],
               readAt: (options.now ? options.now() : new Date()).toISOString(),
             },

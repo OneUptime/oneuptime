@@ -1379,6 +1379,8 @@ describe("the real source roots", () => {
       // A cloud resource's status by its key metrics, and the kinds of saving the clouds recommend.
       "keys packages/Common/Types/Cloud/CloudResourceHealth.ts",
       "keys packages/Common/Types/Cloud/CloudCost.ts",
+      // What each cloud calls its commitments, on the Commitments card.
+      "keys packages/Common/Types/Cloud/CloudCommitments.ts",
       // A resource's right-sizing from OneUptime's own readings: its verdict and why.
       "keys packages/Common/Types/Cloud/CloudRightSizing.ts",
       // A cloud change's title in the reader's language - only its frame.

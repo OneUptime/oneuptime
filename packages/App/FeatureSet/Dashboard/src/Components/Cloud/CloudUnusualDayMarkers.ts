@@ -29,12 +29,18 @@ import {
  * React-free: the marks are data the chart draws.
  */
 
-// What ran high and what it cost: "Amazon Athena: $52.10".
+/*
+ * What ran high and what it cost: "Amazon Athena cost $52.10". A sentence,
+ * so each language words it (and spaces its punctuation) its own way.
+ */
 export const UNUSUAL_DAY_MARKER_LABEL: string = translationKey(
-  "{{what}}: {{amount}}",
+  "{{what}} cost {{amount}}",
 );
 
-// Under it, on a page over every account: "data-lake · 2.5 times its usual $21.00".
+/*
+ * Under it, on a page over every account: "data-lake · 2.5 times its usual
+ * $21.00". Its words are the comparison's: the dot alone joins them.
+ */
 export const UNUSUAL_DAY_MARKER_SUBTITLE: string = translationKey(
   "{{account}} · {{comparison}}",
 );

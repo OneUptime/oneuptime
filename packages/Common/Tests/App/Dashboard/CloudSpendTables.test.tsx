@@ -48,6 +48,7 @@ import {
   CloudCostState,
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudCommitmentKind } from "../../../Types/Cloud/CloudCommitments";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -466,6 +467,69 @@ describe("Cloud > Savings", () => {
     expect(gap).toHaveAttribute("data-reason", CloudCostState.NotAllowed);
     expect(gap).toHaveTextContent("cost-optimization-hub:ListRecommendations");
     expect(gap).toHaveTextContent("Cost Optimization Hub");
+  });
+
+  test("each account's commitments, under what could be saved and over the ways to spend less", async () => {
+    accountsForTest = [
+      account({
+        savingsSummary: {
+          state: CloudCostState.Reading,
+          count: 1,
+          monthlySavings: 40,
+          byKind: {
+            [CloudSavingKind.Commitment]: { count: 1, monthlySavings: 40 },
+          },
+          currency: "EUR",
+          commitments: {
+            state: CloudCostState.Reading,
+            currency: "EUR",
+            days: 30,
+            kinds: [
+              {
+                kind: CloudCommitmentKind.SavingsPlans,
+                coveredSpend: 600,
+                onDemandSpend: 400,
+                commitmentSpend: 500,
+                unusedSpend: 25,
+              },
+            ],
+            readAt: new Date().toISOString(),
+          },
+          readAt: new Date().toISOString(),
+        },
+      }),
+    ];
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    const card: HTMLElement = await screen.findByTestId("cloud-commitments");
+    expect(card).toHaveTextContent("web-prod");
+    expect(card).toHaveTextContent("Savings Plans");
+    expect(card).toHaveTextContent("Covers 60%");
+    expect(card).toHaveTextContent("€25.00 unused");
+    expect(
+      screen.getByTestId("cloud-savings-strip").compareDocumentPosition(card) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("no account's commitments read: no Commitments card", async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <CloudSavings {...pageProps} />
+        </MemoryRouter>,
+      );
+    });
+
+    await screen.findByTestId("cloud-savings-not-read");
+    expect(screen.queryByTestId("cloud-commitments")).toBeNull();
   });
 });
 
