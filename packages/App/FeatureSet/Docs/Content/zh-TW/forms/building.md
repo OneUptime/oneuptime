@@ -50,15 +50,15 @@ flowchart LR
 
 摺疊在問題上方的 **品牌** 決定表單頁面的外觀：頁面頂端、表單名稱上方的標誌，以及表單開啟期間瀏覽器分頁中的網站圖示。在您上傳自己的之前，表單會顯示 OneUptime 的標誌和網站圖示。
 
-摺疊時，該區段會列出 **標誌** 和 **Favicon** （表單有自己的圖像後會顯示為已設定），並說明哪些 OneUptime 的圖像仍在使用。展開它即可依頁面顯示的樣子檢視兩者：標誌在頁面頂端的樣子，以及網站圖示在瀏覽器分頁中、位於表單名稱（即分頁標題）旁邊的樣子。
+摺疊時，該區段會列出 **標誌** 和 **網站圖示** （表單有自己的圖像後會顯示為已設定），並說明哪些 OneUptime 的圖像仍在使用。展開它即可依頁面顯示的樣子檢視兩者：標誌在頁面頂端的樣子，以及網站圖示在瀏覽器分頁中、位於表單名稱（即分頁標題）旁邊的樣子。
 
 **編輯品牌** 在一個對話方塊中變更它們：
 
 | 欄位 | 說明 |
 | --- | --- |
 | **標誌** | 顯示在表單頁面頂端、名稱上方，取代 OneUptime 標誌。不超過 512 KB 的 PNG、JPEG、GIF、WebP 或 SVG 圖像。移除後恢復為 OneUptime 標誌。 |
-| **Logo Alt Text** | 螢幕閱讀器朗讀的標誌內容：通常是您組織的名稱。有標誌時會詢問。留空時螢幕閱讀器會略過標誌——反正表單名稱會緊接在後。移除標誌也會清空它。 |
-| **Favicon** | 表單開啟期間瀏覽器分頁中的圖示，取代 OneUptime 網站圖示。不超過 128 KB 的 PNG、JPEG、GIF、WebP、SVG 或 ICO 圖像；正方形的 PNG、SVG 或 ICO 效果最好。移除後恢復為 OneUptime 網站圖示。 |
+| **標誌替代文字** | 螢幕閱讀器朗讀的標誌內容：通常是您組織的名稱。有標誌時會詢問。留空時螢幕閱讀器會略過標誌——反正表單名稱會緊接在後。移除標誌也會清空它。 |
+| **網站圖示** | 表單開啟期間瀏覽器分頁中的圖示，取代 OneUptime 網站圖示。不超過 128 KB 的 PNG、JPEG、GIF、WebP、SVG 或 ICO 圖像；正方形的 PNG、SVG 或 ICO 效果最好。移除後恢復為 OneUptime 網站圖示。 |
 
 標誌會維持其所取代的 OneUptime 標誌的高度，較寬的標誌會配合頁面的寬度。每張圖像都會在儲存時檢查（無論來自儀表板、API、Terraform 還是工作流程）：它必須是在表單自己的專案中上傳的，屬於上述類型之一，並且不超過其限制。不屬於這些圖像的標誌會被以 "The logo must be a PNG, JPEG, GIF, WebP or SVG image." 拒絕，過大的標誌會被以 "The logo must be 512 KB or smaller." 拒絕，上傳已不存在（或在其他專案中上傳）的標誌會被以 "The logo's file could not be found. Upload the logo again." 拒絕。網站圖示也會以同樣的方式被拒絕： "The favicon must be a PNG, JPEG, GIF, WebP, SVG or ICO image."、 "The favicon must be 128 KB or smaller." 和 "The favicon's file could not be found. Upload the favicon again."。
 

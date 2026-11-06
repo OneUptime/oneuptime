@@ -71,7 +71,7 @@ Hoppa över det här steget om din server, ditt nätverk och din kanal inte beh�
 | **SASL Password**   | Nätverket vill att du loggar in på ditt konto. **SASL Username** tar kontots namn. | `IRC_SASL_PASSWORD`    |
 | **Channel Key**     | Kanalen har en nyckel (läge `+k`).                                                 | `IRC_CHANNEL_KEY`      |
 
-För att spara ett lösenord öppnar du **Arbetsflöden → Globala variabler** och klickar på **Skapa Arbetsflöde Variabel**. Skriv namnet i **Namn** och klicka på **Nästa**. Klistra in lösenordet i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**. Körningsloggar visar `[REDACTED]` i stället för värdet på en hemlig variabel.
+För att spara ett lösenord öppnar du **Arbetsflöden → Globala variabler** och klickar på **Skapa Arbetsflödesvariabel**. Skriv namnet i **Namn** och klicka på **Nästa**. Klistra in lösenordet i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**. Körningsloggar visar `[REDACTED]` i stället för värdet på en hemlig variabel.
 
 ### Bygg arbetsflödet
 

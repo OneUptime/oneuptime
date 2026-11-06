@@ -65,9 +65,9 @@ Uma mudança que começou antes é registrada, em vez disso, na linha do tempo d
 
 :::steps
 1. Abra o monitor e clique em **Linha do tempo de status** no menu lateral dele.
-2. Clique em **Criar: Monitor Status Evento**.
+2. Clique em **Criar: Evento de status do monitor**.
 3. Escolha o **Status do monitor**. **Começa em** é agora; defina um horário anterior se a mudança aconteceu antes.
-4. Clique em **Criar: Monitor Status Evento**. O novo status aparece na hora no monitor, e em cada página de status que o lista.
+4. Clique em **Criar: Evento de status do monitor**. O novo status aparece na hora no monitor, e em cada página de status que o lista.
 :::
 
 ### Pela API

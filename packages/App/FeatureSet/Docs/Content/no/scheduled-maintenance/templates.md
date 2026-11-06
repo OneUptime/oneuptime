@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Åpne malene
 
-Gå til **Planlagt vedlikehold → Innstillinger → Hendelsesmaler**. **Innstillinger** starter sammenslått i sidemenyen: utvid den først. Klikk på **Opprett Planlagt Vedlikehold Mal**.
+Gå til **Planlagt vedlikehold → Innstillinger → Hendelsesmaler**. **Innstillinger** starter sammenslått i sidemenyen: utvid den først. Klikk på **Opprett Mal for planlagt vedlikehold**.
 
 ### Gi malen et navn
 

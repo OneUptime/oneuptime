@@ -92,7 +92,7 @@ Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter f
 
 ### Noteskabeloner
 
-**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Planlagt Vedligeholdelse Note Skabelon** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
+**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Noteskabelon for planlagt vedligeholdelse** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
 
 ### Brugerdefinerede felter
 

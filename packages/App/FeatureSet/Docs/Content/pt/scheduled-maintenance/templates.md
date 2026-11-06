@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Abrir os modelos
 
-Vá em **Manutenção programada → Configurações → Modelos de eventos**. **Configurações** começa recolhida no menu lateral: expanda-a primeiro. Clique em **Criar: Agendado Manutenção Modelo**.
+Vá em **Manutenção programada → Configurações → Modelos de eventos**. **Configurações** começa recolhida no menu lateral: expanda-a primeiro. Clique em **Criar: Modelo de manutenção programada**.
 
 ### Dar nome ao modelo
 

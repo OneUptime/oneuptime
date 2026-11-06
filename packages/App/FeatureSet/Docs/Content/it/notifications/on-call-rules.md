@@ -33,9 +33,9 @@ La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messag
 | Scheda | Chiamate per | Riquadri per |
 | --- | --- | --- |
 | **Incidenti** | Incidenti | Gravità degli incidenti |
-| **Incidente Episodi** | Episodi che raggruppano incidenti | Gravità degli incidenti |
+| **Episodi di incidenti** | Episodi che raggruppano incidenti | Gravità degli incidenti |
 | **Avvisi** | Avvisi | Gravità degli avvisi |
-| **Avviso Episodi** | Episodi che raggruppano avvisi | Gravità degli avvisi |
+| **Episodi di avvisi** | Episodi che raggruppano avvisi | Gravità degli avvisi |
 
 Un episodio vi chiama tramite le proprie politiche di reperibilità, separatamente dagli incidenti o avvisi che contiene, per questo le sue regole hanno una scheda a parte. L'indirizzo della pagina indica la scheda aperta, per esempio `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; gli altri valori sono `incident-episodes` e `alert-episodes`, e senza `type` la pagina si apre su **Incidenti**.
 
@@ -64,7 +64,7 @@ Andate in **Impostazioni utente → Regole di reperibilità**, aprite la scheda 
 
 ### Scegliete il metodo
 
-Fate clic su **Aggiungi: Notifica Regola**. In **Metodo di notifica**, scegliete uno dei vostri metodi verificati; un metodo che non avete verificato non viene proposto.
+Fate clic su **Aggiungi: Regola di notifica**. In **Metodo di notifica**, scegliete uno dei vostri metodi verificati; un metodo che non avete verificato non viene proposto.
 
 ### Scegliete il suono di un push
 
@@ -72,7 +72,7 @@ Per un telefono, scegliete **Notifica push**: **Avviso critico** o **Standard**.
 
 ### Impostate il ritardo
 
-Scegliete **Notificami dopo**: **Immediatamente**, **5 minuti**, **10 minuti**, **15 minuti**, **30 minuti** o **1 ora**. Poi fate clic su **Aggiungi: Notifica Regola** nella finestra.
+Scegliete **Notificami dopo**: **Immediatamente**, **5 minuti**, **10 minuti**, **15 minuti**, **30 minuti** o **1 ora**. Poi fate clic su **Aggiungi: Regola di notifica** nella finestra.
 :::
 
 Il riquadro elenca le sue regole in ordine di ritardo, con **Metodo di notifica** e **Notifica dopo** per ciascuna.

@@ -142,7 +142,7 @@ Meld je steeds hetzelfde soort incident — hetzelfde titelpatroon, dezelfde ern
 3. Wijzig wat er deze keer anders is, loop dan de stappen door en meld zoals gewoonlijk.
 :::
 
-Heeft je project nog geen sjablonen, dan krijg je in plaats daarvan een dialoogvenster **No Incident Templates**, met een knop **Create Template** die je naar **Incidenten → Instellingen → Incident-sjablonen** brengt.
+Heeft je project nog geen sjablonen, dan krijg je in plaats daarvan een dialoogvenster **Geen incidentsjablonen**, met een knop **Create Template** die je naar **Incidenten → Instellingen → Incident-sjablonen** brengt.
 
 Sjablonen worden gebouwd met hun eigen wizard van vier stappen — **Sjablooninformatie**, **Incidentdetails**, **Getroffen middelen**, **Bereikbaarheid** — plus de stappen **Aangepaste velden** en **Aangepaste velden bij aanmaken** na **Getroffen middelen** als je project aangepaste incidentvelden heeft. De **Initiële incidentstatus**, **Eigenaren** en **Labels** van het sjabloon staan onder **Meer velden** aan het eind van **Incidentdetails**. **Getroffen middelen** vraagt zoals het meldformulier — **Monitoren**, dan **Monitorstatus wijzigen naar**, dan **Andere getroffen resources**, met **Beperken tot deze statuspagina's** onder **Meer velden** — behalve dat een sjabloon altijd om de monitorstatus vraagt: die geldt ook voor de monitoren die worden gekozen wanneer een incident vanuit het sjabloon wordt gemeld. Dit zijn de velden:
 
@@ -178,7 +178,7 @@ Een paar korte regels:
 De meeste incidenten zouden niet door een mens ingetypt moeten hoeven worden. De criteria van een monitor kunnen er een melden op het moment dat een filter overeenkomt:
 
 :::steps
-1. Open de monitor, kies **Criteria** in zijn zijmenu en klik op **Edit Monitoring Criteria**. (Een nieuwe monitor vraagt tijdens het aanmaken om dezelfde criteria.)
+1. Open de monitor, kies **Criteria** in zijn zijmenu en klik op **Bewakingscriteria bewerken**. (Een nieuwe monitor vraagt tijdens het aanmaken om dezelfde criteria.)
 2. Zet in het criteriafilter dat moet melden **Wanneer filters overeenkomen, verklaar een incident.** aan. Er verschijnt een sectie **Incident maken** met een knop **Incident toevoegen** — één criteriafilter kan meer dan één incident melden.
 3. Vul de velden van het incident in (zie hieronder) en sla op. De volgende keer dat het filter overeenkomt, wordt het incident gemeld en roept het zijn bereikbaarheidsbeleid op.
 :::

@@ -58,7 +58,7 @@ Reglerna skiljer sig åt i hur flera matchningar avgörs:
 - **Grupperingsregler**, **Incidentregler** och **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första matchningen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 - **Jourregler**, **Ägarregler**, **Etikettregler**, **Sekretessregler** och **Runbook-regler** verkar alla när de matchar. Jourpolicyer, ägare och etiketter som flera regler lägger till läggs till en gång.
 
-**Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Alert Rules**, för larm, och **Episode Rules**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel.
+**Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har två flikar: **Larmregler**, för larm, och **Episodregler**, som verkar på samma sätt på varje ny larmepisod. En ny regel börjar aktiverad; slå av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel.
 
 De flesta regler verkar på larm och episoder som skapas efter att du har sparat dem. För att tillämpa en ägar-, etikett- eller sekretessregel på dem som du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Påminnelseregler är undantaget: När du sparar en matchas varje öppet larm på nytt.
 
@@ -68,7 +68,7 @@ En regels villkor avgör vilka larm den verkar på, och läses som meningar: "Om
 
 | Villkor                                                       | Jämför med                                                                                                     |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Larm Allvarligheter**, **Larmetiketter**, **Övervakningsetiketter** | **Har någon av**, **Har alla** eller **Har ingen av** de värden som du väljer.                 |
+| **Monitorer**, **Allvarlighetsgrader för larm**, **Larmetiketter**, **Övervakningsetiketter** | **Har någon av**, **Har alla** eller **Har ingen av** de värden som du väljer.                 |
 | **Larmtitel**, **Larmbeskrivning**, **Övervakningsnamn**, **Övervakningsbeskrivning** | **Innehåller**, **Innehåller inte**, **Lika med**, **Inte lika med**, **Börjar med**, **Slutar med**, utan hänsyn till skiftläge, eller **Matchar mönster** och **Matchar inte mönster**, för ett reguljärt uttryck eller ett jokertecken `*`. |
 
 Med två eller fler villkor väljer du **Matcha alla**, där vart och ett måste gälla, eller **Matcha något**, där ett räcker. Episodregler matchar i stället en episods allvarlighetsgrad, etiketter, titel och beskrivning.
@@ -87,7 +87,7 @@ Klicka på **Skapa Alert On-Call Rule**. I **Matcha** matchar **Alla larm**, som
 I **Jourpolicyer** väljer du de **Jourpolicyer** som regeln larmar. Dess **Namn** följer dem, till exempel "Larma Platform on-call", tills du skriver ett eget, och en **Beskrivning** väntar under **Fler fält**. Skapa sedan regeln.
 :::
 
-En allvarlighetsgrad larmar ingen på egen hand: En jourregel som matchar **Larm Allvarligheter** är sättet att ställa in "larma databasteamet för varje High-larm". För att se vad som kördes för ett larm öppnar du dess sida **Jourexekveringar**. Varje person nås sedan på det sätt som de har ställt in under **Användarinställningar → Jourregler**, på fliken **Larm**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
+En allvarlighetsgrad larmar ingen på egen hand: En jourregel som matchar **Allvarlighetsgrader för larm** är sättet att ställa in "larma databasteamet för varje High-larm". För att se vad som kördes för ett larm öppnar du dess sida **Jourexekveringar**. Varje person nås sedan på det sätt som de har ställt in under **Användarinställningar → Jourregler**, på fliken **Larm**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 En regel larmar så snart ett larm matchar den. För att låta den vänta på arbetstid i stället svarar du **Endast under arbetstid** på **När ska den här regeln larma?** under **Fler fält**. **Arbetstid** börjar som måndag till fredag, 09:00 till 17:00, i din egen tidszon: välj andra dagar, en annan **Starttid** eller **Sluttid** eller en annan **Tidszon**, så säger en mening under valet vad som händer. I listan visar regeln sin arbetstid under namnet. Ett larm som matchar utanför de tiderna får en körning som väntar och inte larmar någon; när arbetstiden börjar larmar policyn sin första eskaleringsregel och eskalerar som vanligt. Bekräftas eller löses larmet först larmas ingen. Ändras larmet medan det väntar så att det nu matchar en regel som larmar direkt, till exempel för att dess allvarlighetsgrad höjs, börjar körningen larma genast, och larmets flöde säger varför. Två regler som larmar samma policy larmar den så snart någon av dem tillåter det: en regel för dina högsta allvarlighetsgrader som larmar direkt, bredvid en regel för resten som väntar på arbetstid, håller nätterna lugna.
 
@@ -130,7 +130,7 @@ Incidenten får larmets titel, beskrivning, monitor, berörda resurser och etike
 :::steps
 ### Välj vilka larm som ska påminnas om
 
-Klicka på **Skapa Alert Reminder Rule**. I **Matcha** låter du **Alla larm** vara valt för att påminna om varje larm, eller väljer **Endast larm som uppfyller villkoren** och sedan de **Larm Allvarligheter** och **Etiketter** som den gäller för.
+Klicka på **Skapa Alert Reminder Rule**. I **Matcha** låter du **Alla larm** vara valt för att påminna om varje larm, eller väljer **Endast larm som uppfyller villkoren** och sedan de **Allvarlighetsgrader för larm** och **Etiketter** som den gäller för.
 
 ### Ställ in intervallet
 
@@ -143,7 +143,7 @@ I **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur ofta �
 
 ### Anteckningsmallar
 
-**Larm → Inställningar → Anteckningsmallar** innehåller färdig text för privata anteckningar. Kortet **Mallar för privata anteckningar för larm** listar dem; **Skapa Larm Anteckning Mall** frågar efter **Mallnamn**, **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en privat anteckning på ett larm eller en episod, och när de bekräftar eller löser ett, och dess text kan redigeras innan den publiceras. Anteckningsmallar för larm är ren text: Till skillnad från anteckningsmallar för incidenter fyller de inte i några variabler.
+**Larm → Inställningar → Anteckningsmallar** innehåller färdig text för privata anteckningar. Kortet **Mallar för privata anteckningar för larm** listar dem; **Skapa Anteckningsmall för larm** frågar efter **Mallnamn**, **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en privat anteckning på ett larm eller en episod, och när de bekräftar eller löser ett, och dess text kan redigeras innan den publiceras. Anteckningsmallar för larm är ren text: Till skillnad från anteckningsmallar för incidenter fyller de inte i några variabler.
 
 ### Anpassade fält
 
@@ -170,7 +170,7 @@ Kortet **Nästa nummer** under det anger numret som nästa larm och nästa episo
 
 ## Arbetsflöden
 
-Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** och **On Delete Alert**, samma sak för **Larm Episod**, **Larm Tillstånd Tidslinje** och de andra, och åtgärder som **Create One Alert** och **Update One Alert**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
+Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** och **On Delete Alert**, samma sak för **Larmepisod**, **Tillståndstidslinje för larm** och de andra, och åtgärder som **Create One Alert** och **Update One Alert**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Vem som kan ändra dem
 

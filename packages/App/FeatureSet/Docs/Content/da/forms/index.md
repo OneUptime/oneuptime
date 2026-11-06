@@ -113,7 +113,7 @@ En skabelon og en formular sparer dig begge for at skrive den samme hændelse to
 | Hvad man ser | Dine monitorer, politikker, ejere og hvert felt | Formularens navn, beskrivelse og spørgsmål, og kun de valgmuligheder, du tilbyder |
 | Statussider | Det, skabelonen og oprettelsesformularen siger | Skjult, indtil en, der håndterer den, offentliggør hændelsen |
 
-De arbejder sammen. Giv en hændelsesformular en **Hændelse Skabelon** på dens side **Ved indsendelse**, og hver hændelse, den opretter, oprettes ud fra den skabelon: byg skabelonen til det, dit team har brug for på hændelsen, og formularen til det, du vil spørge indsenderen om.
+De arbejder sammen. Giv en hændelsesformular en **Hændelsesskabelon** på dens side **Ved indsendelse**, og hver hændelse, den opretter, oprettes ud fra den skabelon: byg skabelonen til det, dit team har brug for på hændelsen, og formularen til det, du vil spørge indsenderen om.
 
 ## Indsendelser
 

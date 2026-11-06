@@ -423,7 +423,7 @@ Chaque limite du travail que l'IA fait d'elle-même est désormais à activer ex
 | Paramètre | Avant | Maintenant |
 | --- | --- | --- |
 | **Gravité minimale à investiguer** (alertes) | Les deux niveaux de gravité les plus élevés du projet | Toutes les gravités |
-| **Re-investigation Cooldown (Minutes)** (incidents et alertes) | 30 minutes | Aucun délai : chaque incident et chaque alerte est investigué |
+| **Délai avant une nouvelle investigation (minutes)** (incidents et alertes) | 30 minutes | Aucun délai : chaque incident et chaque alerte est investigué |
 | **Nombre max d'investigations d'incidents simultanées**, **Nombre max d'investigations d'alertes simultanées** | 3, et une valeur que vous définissiez était bornée à 1–25 | Aucune limite : chaque investigation démarre aussitôt |
 | **Limite quotidienne de tâches de correctif IA pour les incidents**, **Limite quotidienne de tâches de correctif IA pour les alertes** | 25 par jour UTC | Aucune limite |
 | Le travail de l'IA hors incidents et alertes : le tri des analyses, et les tâches de correctif pour les exceptions, les analyses et les performances | 3 exécutions à la fois, 25 tâches de correctif par jour UTC | Aucune limite |

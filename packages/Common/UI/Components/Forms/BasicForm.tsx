@@ -1,3 +1,4 @@
+import readAsWritten from "../IsolatedText/ReadAsWritten";
 import API from "../../Utils/API/API";
 import UiAnalytics from "../../Utils/Analytics";
 import DropdownUtil from "../../Utils/Dropdown";
@@ -1443,7 +1444,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             {Boolean(props.description) && (
               <div className="text-sm text-gray-500 mb-5">
                 {typeof props.description === "string"
-                  ? translateString(props.description) ?? props.description
+                  ? readAsWritten(
+                      translateString(props.description) ?? props.description,
+                      translator.language,
+                    )
                   : props.description}
               </div>
             )}

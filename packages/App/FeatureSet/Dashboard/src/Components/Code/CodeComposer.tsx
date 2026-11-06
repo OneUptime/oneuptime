@@ -74,6 +74,31 @@ export interface ComponentProps {
 const MAX_TEXTAREA_HEIGHT_PX: number = 320;
 
 /*
+ * The box's floor: the lines it is drawn with (rows) and their padding. The
+ * box sizes itself to its text as it mounts, and on a page whose styles are
+ * still being written (the Tailwind runtime) that read came before the
+ * padding and the line height did, so the box was set to the bare lines and
+ * its first line - the placeholder - sat half hidden until something was
+ * typed, as the AI card's composer did (min-h-10 there). With the floor the
+ * box opens as tall as it is drawn whatever was read, and still grows with
+ * the text:
+ *
+ *   - two lines of 24px with 14px over them and 8px under: 70px;
+ *   - Code's first page, four lines of 28px with 16px over and 8px under:
+ *     136px - two of them, 80px, when the box cannot send.
+ */
+export const getCodeComposerFloorClassName: (data: {
+  isLarge: boolean;
+  isDisabled: boolean;
+}) => string = (data: { isLarge: boolean; isDisabled: boolean }): string => {
+  if (!data.isLarge) {
+    return "min-h-[70px]";
+  }
+
+  return data.isDisabled ? "min-h-[80px]" : "min-h-[136px]";
+};
+
+/*
  * What a chip says on hover: the whole of what it stands for - a note's
  * text, a link's address - where the chip itself shows only the start.
  */
@@ -268,9 +293,12 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               void send();
             }
           }}
-          className={`block w-full resize-none border-0 bg-transparent px-4 pb-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
-            props.notice ? "" : "rounded-t-2xl"
-          } ${
+          className={`block w-full resize-none border-0 bg-transparent px-4 pb-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${getCodeComposerFloorClassName(
+            {
+              isLarge: Boolean(props.isLarge),
+              isDisabled: Boolean(props.isDisabled),
+            },
+          )} ${props.notice ? "" : "rounded-t-2xl"} ${
             props.isLarge
               ? "pt-4 text-base leading-7 sm:text-[15px]"
               : "pt-3.5 text-sm leading-6"
