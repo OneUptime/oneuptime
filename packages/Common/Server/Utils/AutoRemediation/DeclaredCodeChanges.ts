@@ -783,16 +783,23 @@ export default class DeclaredCodeChanges {
         context.managedAsCode,
       );
 
+      const what: string = `${declaredCode?.name || "code"} code that declares ${
+        change
+          ? `the ${change.kindName} ${change.resourceName}`
+          : "the resource"
+      }`;
+      // A web address only: the Runner reports it, and it is a link where it lands.
+      const isWebAddress: boolean =
+        data.pullRequestUrl.startsWith("https://") ||
+        data.pullRequestUrl.startsWith("http://");
+
       await DeclaredCodeChanges.postFeedNote({
         suggestion,
         leadWithAuthor: false,
-        markdown: mdText`OneUptime AI opened a pull request to the ${
-          declaredCode?.name || "code"
-        } code that declares ${
-          change
-            ? `the ${change.kindName} ${change.resourceName}`
-            : "the resource"
-        }, so the next apply keeps the fix: [${data.title}](${data.pullRequestUrl})`.toString(),
+        markdown: (isWebAddress
+          ? mdText`OneUptime AI opened a pull request to the ${what}, so the next apply keeps the fix: [${data.title}](${data.pullRequestUrl})`
+          : mdText`OneUptime AI opened a pull request to the ${what}, so the next apply keeps the fix: ${data.title}`
+        ).toString(),
       });
     } catch (error) {
       logger.error(

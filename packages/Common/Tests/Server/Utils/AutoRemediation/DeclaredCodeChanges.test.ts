@@ -844,6 +844,28 @@ describe("DeclaredCodeChanges", () => {
       expect(item["userId"]).toBeUndefined();
     });
 
+    test("an address that is not a web one is named, never linked", async () => {
+      findRun.mockResolvedValue(linkedRun());
+
+      await DeclaredCodeChanges.onPullRequestOpened({
+        projectId: PROJECT_ID,
+        aiRunId: TASK_ID,
+        pullRequestUrl: "javascript:alert(1)",
+        title: "Scale web to 4 tasks",
+      });
+
+      const markdown: string = String(
+        (incidentFeed.mock.calls[0]![0] as Record<string, unknown>)[
+          "feedInfoInMarkdown"
+        ],
+      );
+
+      expect(markdown).toContain(
+        "so the next apply keeps the fix: Scale web to 4 tasks",
+      );
+      expect(markdown).not.toContain("javascript:");
+    });
+
     test("a reply's pull request: read from its task's first turn", async () => {
       const replyId: ObjectID = ObjectID.generate();
       const reply: AIRun = new AIRun();
