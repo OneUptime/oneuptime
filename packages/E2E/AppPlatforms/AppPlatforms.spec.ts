@@ -2598,6 +2598,38 @@ test.describe("in the reader's language", () => {
     expect(count!).toBeGreaterThan(countWord!);
     await screenshot(page, "app-platforms-overview-1280-fa");
 
+    /*
+     * #6149's review: the environment's name is set apart in its Persian
+     * heading (an isolate of its own), so its digits and dashes keep their
+     * order - left to right inside the heading read right to left - and
+     * the heading's Persian title stands at its start, on the right.
+     */
+    await open(page, `${CHECKOUT}?lang=fa`);
+    const environmentName: Locator = pageHeading(page).getByTestId(
+      "page-record-title-name",
+    );
+    await expect(environmentName).toHaveText(CHECKOUT_NAME);
+    expect(
+      await environmentName.evaluate((element: Element): string => {
+        return element.tagName;
+      }),
+    ).toBe("BDI");
+    await expect(environmentName).toHaveCSS("direction", "ltr");
+    const [first, second, third] = await wordLefts(environmentName, [
+      "4109",
+      "2277",
+      "8841",
+    ]);
+    expect(first!).toBeLessThan(second!);
+    expect(second!).toBeLessThan(third!);
+    const [titleLeft, nameEndLeft] = await wordLefts(pageHeading(page), [
+      PERSIAN["Cloud Environment"]!,
+      "8841",
+    ]);
+    expect(titleLeft!).toBeGreaterThan(nameEndLeft!);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-heading-1280-fa");
+
     await page.setViewportSize(PHONE);
     await open(page, `${CHECKOUT}?lang=fa`);
     await expect(pageHeading(page)).toContainText(

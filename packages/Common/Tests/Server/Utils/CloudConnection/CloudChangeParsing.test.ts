@@ -289,6 +289,53 @@ describe("an Azure Activity Log event", () => {
       "Rebooted by user. Someone with access caused it.",
     );
   });
+
+  /*
+   * #6149's follow-up: a title that ends with its own full stop was written
+   * "restarted.. Azure caused it.". Each part is one sentence now, and the
+   * page reads the cause back (CloudHealthDescription).
+   */
+  test("Resource Health's title keeps one full stop, or its own ? or !", () => {
+    const read: (properties: JSONObject) => string | undefined = (
+      properties: JSONObject,
+    ): string | undefined => {
+      return readAzureActivityEvent({
+        event: event({ category: { value: "ResourceHealth" }, properties }),
+        subscriptionId: SUB,
+      })?.description;
+    };
+
+    expect(
+      read({
+        title: "The virtual machine is being restarted.",
+        cause: "PlatformInitiated",
+      }),
+    ).toBe("The virtual machine is being restarted. Azure caused it.");
+    expect(
+      read({ title: "Rebooted by user...  ", cause: "UserInitiated" }),
+    ).toBe("Rebooted by user. Someone with access caused it.");
+    expect(read({ title: "Is it down?", cause: "PlatformInitiated" })).toBe(
+      "Is it down? Azure caused it.",
+    );
+    expect(read({ title: "Virtual machine is unavailable" })).toBe(
+      "Virtual machine is unavailable.",
+    );
+    expect(read({ cause: "PlatformInitiated" })).toBe("Azure caused it.");
+  });
+
+  test("Resource Health with nothing to say leaves its words to the recorder", () => {
+    const change: CloudChange | null = readAzureActivityEvent({
+      event: event({
+        category: { value: "ResourceHealth" },
+        properties: { currentHealthStatus: "Unavailable" },
+      }),
+      subscriptionId: SUB,
+    });
+
+    expect(change?.kind).toBe("health");
+    // Never "." alone: the recorder says who published it, for which account.
+    expect(change?.description).toBeUndefined();
+  });
 });
 
 describe("a Google Cloud audit log entry", () => {

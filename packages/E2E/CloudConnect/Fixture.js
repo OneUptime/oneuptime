@@ -1347,6 +1347,57 @@ function aiChange(minutesAgo, step, jobId, eventId) {
   );
 }
 
+/*
+ * ?changes=health: the Azure account's Changes hold what Azure published
+ * about its health, exactly as AzureChanges and the recorder write it - a
+ * Service Health incident, whose description is OneUptime's sentence (its
+ * kind, its tracking id, its stage), and a resource's health, whose
+ * description is Azure's own title and then what caused the change. The
+ * page words OneUptime's sentences in the reader's language and draws
+ * Azure's words as written (CloudHealthDescription).
+ */
+if (dataState === "connected" && params.get("changes") === "health") {
+  const azure = {
+    "oneuptime.change.source": "cloud-health",
+    "cloud.provider": "azure",
+    "cloud.account.id": "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b",
+    "oneuptime.cloud_account.id": AZURE_ACCOUNT_ID,
+  };
+
+  CHANGES.push(
+    cloudChange(
+      18,
+      {
+        eventType: "provider-event",
+        title:
+          "Azure Service Health: Network connectivity issues in West Europe (Active)",
+        description:
+          "Incident published by Azure, tracking id 7NQ8-TX0, stage Active.",
+      },
+      { ...azure, "oneuptime.cloud.operation": "ServiceHealth Incident" },
+    ),
+    cloudChange(
+      47,
+      {
+        eventType: "provider-event",
+        title: "Azure Resource Health: Available → Unavailable",
+        description:
+          "The virtual machine is being restarted for a planned platform update. Azure caused it.",
+      },
+      {
+        ...azure,
+        "oneuptime.cloud.operation": "ResourceHealth Unavailable",
+        "cloud.resource_id":
+          "/subscriptions/7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b/resourceGroups/web/providers/Microsoft.Compute/virtualMachines/vm-web-1",
+      },
+    ),
+  );
+  // Newest first, as the list reads them.
+  CHANGES.sort((left, right) => {
+    return right.time.getTime() - left.time.getTime();
+  });
+}
+
 if (dataState === "connected" && params.get("changes") === "ai") {
   /*
    * A rollback is the same operation on the same resource, and the recorder

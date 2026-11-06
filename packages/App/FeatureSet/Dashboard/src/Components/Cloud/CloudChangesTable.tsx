@@ -17,7 +17,11 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getReadingDirection } from "Common/Types/ReadingDirection";
+import {
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ChangeTitleDirection,
@@ -28,10 +32,17 @@ import {
   readCloudChangeTitleFacts,
   readCloudHealthTitleFacts,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
+import {
+  CloudHealthDescription,
+  CloudHealthDescriptionFacts,
+  getCloudHealthDescription,
+  readCloudHealthDescriptionFacts,
+} from "Common/Utils/Telemetry/CloudHealthDescription";
 import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  ReactNode,
   useMemo,
   useRef,
   useState,
@@ -281,6 +292,107 @@ export const CloudChangeTitle: FunctionComponent<{
   );
 };
 
+/*
+ * What a health event's line under its title says: the provider's own
+ * words as written, and OneUptime's own about the event in the reader's
+ * language (CloudHealthDescription) - null for a change with no words.
+ * An event of an older server, without its source, is drawn as written.
+ */
+export function getCloudHealthDetail(
+  change: ChangeEvent,
+  translator: Translator,
+): CloudHealthDescription | null {
+  const facts: CloudHealthDescriptionFacts | null =
+    readCloudHealthDescriptionFacts({
+      description: change.description,
+      attributes: change.attributes as JSONObject | undefined,
+    });
+
+  if (facts) {
+    return getCloudHealthDescription(facts, translator);
+  }
+
+  const written: string = (change.description || "").trim();
+
+  return written ? { written, worded: "" } : null;
+}
+
+/*
+ * Text with an identifier in it kept whole on its line: "Tracking-ID:
+ * 7NQ8-TX0." breaks before the identifier, never at its hyphen. The text as
+ * it is when the identifier is not in it.
+ */
+export function keepIdentifierWhole(
+  text: string,
+  identifier: string | undefined,
+): ReactNode {
+  const at: number = identifier ? text.indexOf(identifier) : -1;
+
+  if (!identifier || at < 0) {
+    return text;
+  }
+
+  return (
+    <>
+      {text.slice(0, at)}
+      <span
+        className="whitespace-nowrap"
+        data-testid="cloud-change-detail-identifier"
+      >
+        {identifier}
+      </span>
+      {text.slice(at + identifier.length)}
+    </>
+  );
+}
+
+/*
+ * The line under a health event's title. The provider's words are drawn as
+ * they were written - in English, as the clouds answer, and marked so
+ * (lang) - never translated or rewritten: OneUptime would be inventing
+ * what the provider said. OneUptime's own words about the event are in the
+ * reader's language. A line with OneUptime's words reads the reader's way,
+ * the provider's words set apart in it; a line of the provider's words
+ * alone reads its own way (dir="auto"), so an English line on a Persian
+ * page keeps its start, and its cut, at the end it is read to.
+ */
+export const CloudHealthDetail: FunctionComponent<{
+  detail: CloudHealthDescription;
+}> = (props: { detail: CloudHealthDescription }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const written: string = props.detail.written;
+  const worded: string = props.detail.worded;
+
+  return (
+    <div
+      className="mt-0.5 text-xs text-gray-500 line-clamp-2 break-words"
+      title={[written, worded].filter(Boolean).join(" ")}
+      dir={worded ? getReadingDirection(translator.language) : "auto"}
+      data-testid="cloud-change-detail"
+    >
+      {written ? (
+        <bdi
+          dir="auto"
+          lang={DEFAULT_LANGUAGE}
+          data-testid="cloud-change-detail-written"
+        >
+          {written}
+        </bdi>
+      ) : (
+        <></>
+      )}
+      {written && worded ? " " : ""}
+      {worded ? (
+        <span data-testid="cloud-change-detail-worded">
+          {keepIdentifierWhole(worded, props.detail.identifier)}
+        </span>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
 function readAttribute(change: ChangeEvent, key: string): string {
   const attributes: JSONObject | undefined = change.attributes as
     | JSONObject
@@ -497,15 +609,16 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           wrapMaxWidthClassName: "max-w-2xl",
           getElement: (change: ChangeEvent): ReactElement => {
             /*
-             * The provider's own words under a health event's title; an
-             * operation's description only repeats its row (who, where).
+             * Under a health event's title, what the provider and OneUptime
+             * said about it (CloudHealthDetail); an operation's description
+             * only repeats its row (who, where).
              */
-            const detail: string = isCloudHealthChange({
+            const detail: CloudHealthDescription | null = isCloudHealthChange({
               eventType: change.eventType,
               attributes: change.attributes as JSONObject | undefined,
             })
-              ? (change.description || "").trim()
-              : "";
+              ? getCloudHealthDetail(change, translator)
+              : null;
             const ai: CloudAiChange | null = readCloudAiChange({
               attributes: change.attributes as JSONObject | undefined,
             });
@@ -528,18 +641,7 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
                 >
                   <CloudChangeTitle change={change} />
                 </div>
-                {detail ? (
-                  <div
-                    className="mt-0.5 text-xs text-gray-500 line-clamp-2 break-words"
-                    title={detail}
-                    dir="auto"
-                    data-testid="cloud-change-detail"
-                  >
-                    {detail}
-                  </div>
-                ) : (
-                  <></>
-                )}
+                {detail ? <CloudHealthDetail detail={detail} /> : <></>}
                 {ai ? (
                   <CloudChangeAiLine
                     change={ai}
