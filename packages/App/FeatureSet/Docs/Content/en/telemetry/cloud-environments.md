@@ -4,6 +4,8 @@ A **Cloud Environment** is the place your containers run on a managed cloud plat
 
 Environments are listed in App Platforms, a product of their own: **App Platforms → Overview** groups them by platform and puts the ones that went quiet first, **App Platforms → All Apps** lists every app they run, and **App Platforms → All Environments** lists every one. The resources in your cloud accounts, such as virtual machines, buckets and managed databases, are in Cloud: see [Cloud Resources](/docs/telemetry/cloud-resources).
 
+To see one cloud account's environments or apps, filter **All Environments** or **All Apps** by the **Cloud Account** chip: it lists each account the environments are in, under its cloud, and keeps the accounts you pick, or every other one. On **Cloud → Overview**, the **App Platforms** card counts the environments and apps in your connected cloud accounts, and each count opens its list with the chip already set to those accounts. Clear the chip to see the whole list.
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tasks on Fargate or EC2, with per-task CPU and memory.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Services and jobs, also listed as serverless functions.
