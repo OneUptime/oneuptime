@@ -130,7 +130,10 @@ describe("readSecurityEventScope", () => {
   test.each([
     ["no key", { attributeValues: [DEVICE_ID] }],
     ["an empty key", { attributeKey: "  ", attributeValues: [DEVICE_ID] }],
-    ["a key that is not text", { attributeKey: 7, attributeValues: [DEVICE_ID] }],
+    [
+      "a key that is not text",
+      { attributeKey: 7, attributeValues: [DEVICE_ID] },
+    ],
     [
       "a key longer than any",
       {
@@ -194,16 +197,20 @@ describe("hasSecurityEventScopeMatch", () => {
     ["a scope naming nothing", { observables: [] }],
     [
       "an attribute with no values",
-      { observables: [], attributeKey: "networkDevice.id", attributeValues: [] },
+      {
+        observables: [],
+        attributeKey: "networkDevice.id",
+        attributeValues: [],
+      },
     ],
     [
       "values with no attribute",
       { observables: [], attributeValues: [DEVICE_ID] },
     ],
   ])("%s matches nothing", (_case: string, scope: unknown) => {
-    expect(
-      hasSecurityEventScopeMatch(scope as SecurityEventScope | null),
-    ).toBe(false);
+    expect(hasSecurityEventScopeMatch(scope as SecurityEventScope | null)).toBe(
+      false,
+    );
   });
 
   test("an identity to name matches", () => {

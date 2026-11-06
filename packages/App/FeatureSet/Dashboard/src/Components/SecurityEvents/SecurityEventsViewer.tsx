@@ -505,7 +505,13 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
       }),
       props.scope,
     );
-  }, [projectId?.toString(), timeWindow, searchFilters, facetFilters, scopeKey]);
+  }, [
+    projectId?.toString(),
+    timeWindow,
+    searchFilters,
+    facetFilters,
+    scopeKey,
+  ]);
 
   // --- What the page searches, for a hunt's page ---
 

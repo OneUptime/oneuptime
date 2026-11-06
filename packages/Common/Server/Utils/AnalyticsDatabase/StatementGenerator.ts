@@ -570,20 +570,26 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     columnRef: (columnName: string) => string | QualifiedColumn;
   }): Array<Statement> {
     const scope: SecurityEventScope | null = data.scope;
+    const observablesColumn: AnalyticsTableColumn | null =
+      this.model.getTableColumn("observables");
 
-    if (!scope) {
+    /*
+     * Only a table of security events - the one with observables - reads a
+     * security event scope: on any other (the logs, whose attributes are a
+     * map too) it matches nothing, so the key is never a way round the
+     * table's own filters.
+     */
+    if (
+      !scope ||
+      !observablesColumn ||
+      observablesColumn.type !== TableColumnType.ArrayText
+    ) {
       return [];
     }
 
     const branches: Array<Statement> = [];
-    const observablesColumn: AnalyticsTableColumn | null =
-      this.model.getTableColumn("observables");
 
-    if (
-      scope.observables.length > 0 &&
-      observablesColumn &&
-      observablesColumn.type === TableColumnType.ArrayText
-    ) {
+    if (scope.observables.length > 0) {
       branches.push(
         SQL`hasAny(${data.columnRef(observablesColumn.key)}, ${{
           value: scope.observables,

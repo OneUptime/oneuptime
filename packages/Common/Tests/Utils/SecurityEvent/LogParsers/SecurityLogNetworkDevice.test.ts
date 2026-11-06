@@ -113,9 +113,9 @@ describe("readLogNetworkDevice", () => {
     expect(
       String(device[NETWORK_DEVICE_NAME_ATTRIBUTE]).length,
     ).toBeLessThanOrEqual(255);
-    expect(String(device[NETWORK_DEVICE_NAME_ATTRIBUTE]).startsWith("fff")).toBe(
-      true,
-    );
+    expect(
+      String(device[NETWORK_DEVICE_NAME_ATTRIBUTE]).startsWith("fff"),
+    ).toBe(true);
   });
 });
 
@@ -151,22 +151,17 @@ describe("an event read from a device's syslog carries the device", () => {
       SSH_LINES.failedPasswordInvalidUser,
       SecurityLogFormat.SshSignIn,
     ],
-  ])(
-    "%s",
-    (_case: string, body: string, format: SecurityLogFormat): void => {
-      const events: Array<NormalizedSecurityEvent> = parseFromDevice(body);
+  ])("%s", (_case: string, body: string, format: SecurityLogFormat): void => {
+    const events: Array<NormalizedSecurityEvent> = parseFromDevice(body);
 
-      expect(events.length).toBeGreaterThan(0);
+    expect(events.length).toBeGreaterThan(0);
 
-      for (const event of events) {
-        expect(event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE]).toBe(format);
-        expect(event.attributes[NETWORK_DEVICE_ID_ATTRIBUTE]).toBe(DEVICE_ID);
-        expect(event.attributes[NETWORK_DEVICE_NAME_ATTRIBUTE]).toBe(
-          DEVICE_NAME,
-        );
-      }
-    },
-  );
+    for (const event of events) {
+      expect(event.attributes[SECURITY_LOG_FORMAT_ATTRIBUTE]).toBe(format);
+      expect(event.attributes[NETWORK_DEVICE_ID_ATTRIBUTE]).toBe(DEVICE_ID);
+      expect(event.attributes[NETWORK_DEVICE_NAME_ATTRIBUTE]).toBe(DEVICE_NAME);
+    }
+  });
 
   test("every PAN-OS record of a device carries it", () => {
     const bodies: Array<string> = Object.values(PAN_LINES);

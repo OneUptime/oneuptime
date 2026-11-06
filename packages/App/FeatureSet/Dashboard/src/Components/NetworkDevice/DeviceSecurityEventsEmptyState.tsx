@@ -143,7 +143,7 @@ const DeviceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
               slots={{
                 logs: (
                   <AppLink to={logsRoute} className={linkClassName}>
-                    {translator.translateText("Logs")}
+                    {translator.translateText("Logs") || "Logs"}
                   </AppLink>
                 ),
               }}
@@ -165,7 +165,7 @@ const DeviceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
                 slots={{
                   connections: (
                     <AppLink to={connectionsRoute} className={linkClassName}>
-                      {translator.translateText("Connections")}
+                      {translator.translateText("Connections") || "Connections"}
                     </AppLink>
                   ),
                 }}
@@ -176,7 +176,7 @@ const DeviceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
                 slots={{
                   connections: (
                     <AppLink to={connectionsRoute} className={linkClassName}>
-                      {translator.translateText("Connections")}
+                      {translator.translateText("Connections") || "Connections"}
                     </AppLink>
                   ),
                 }}
@@ -190,16 +190,19 @@ const DeviceSecurityEventsEmptyState: FunctionComponent<ComponentProps> = (
         className="mt-4 text-center text-xs leading-5 text-gray-500"
         data-testid={`${DEVICE_SECURITY_EVENTS_EMPTY_STATE_ID}-formats`}
       >
-        {translator.translateTemplate("Read in a device's syslog: {{formats}}.", {
-          formats: composedValue((sentence: Translator): string => {
-            return formatList(
-              deviceFormatTitles.map((title: string): string => {
-                return sentence.translateText(title) || title;
-              }),
-              sentence,
-            );
-          }),
-        })}
+        {translator.translateTemplate(
+          "Read in a device's syslog: {{formats}}.",
+          {
+            formats: composedValue((sentence: Translator): string => {
+              return formatList(
+                deviceFormatTitles.map((title: string): string => {
+                  return sentence.translateText(title) || title;
+                }),
+                sentence,
+              );
+            }),
+          },
+        )}
       </p>
     </div>
   );

@@ -259,7 +259,6 @@ export interface ResourceSecurityIdentity {
   logAttribute?: { key: string; value: string } | undefined;
 }
 
-
 export default class ResourceSecurity {
   @CaptureSpan()
   public static async read(data: {

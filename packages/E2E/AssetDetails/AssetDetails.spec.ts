@@ -614,7 +614,10 @@ test.describe("the device's Overview", () => {
    * The way back from Security Events: the device's Security card, named
    * by its name (its address is a private one, which names no machine for
    * sure) - the open case naming it, its week of events and findings, and
-   * its risk, each opening Security Events on it (?security=).
+   * its risk, each opening Security Events on it (?security=). Its week of
+   * events opens the device's own Security Events page (issue #5769),
+   * which reads what the card counts: the events naming it, or read from
+   * its own syslog.
    */
   test("its Security card: the case naming it, its week of events and findings, and its risk, each opening Security Events", async ({
     page,
@@ -632,14 +635,20 @@ test.describe("the device's Overview", () => {
 
     const events: Locator = card.getByTestId("resource-security-open");
     await expect(events).toHaveText("46");
-    const search: URL = new URL(
+    const week: URL = new URL(
       (await events.getAttribute("href"))!,
       "http://127.0.0.1",
     );
-    expect(search.pathname).toBe(`${dashboard}/security-events`);
-    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
-      "observable:edge-sw-07",
+    expect(week.pathname).toBe(
+      `${dashboard}/network-devices/${DEVICE_ID}/security-events`,
     );
+    // Over the card's week; the page carries the device's scope itself.
+    expect(week.searchParams.get("range")).toBe("Custom");
+    expect(
+      new Date(week.searchParams.get("end")!).getTime() -
+        new Date(week.searchParams.get("start")!).getTime(),
+    ).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(week.searchParams.get("search")).toBeNull();
     await expect(card).toContainText("27");
 
     const cases: Locator = card.getByTestId("resource-security-cases");
@@ -1631,5 +1640,217 @@ test.describe("why a detail is unknown (issue #5384)", () => {
     await expect(
       page.getByTestId("inventory-asset-details-unknown"),
     ).toContainText("Dieses Gerät meldet sie nicht über SNMP");
+  });
+});
+
+/*
+ * A NETWORK DEVICE'S SECURITY EVENTS PAGE (issue #5769), in a browser: the
+ * real page and the real Security Events explorer, on a Palo Alto Networks
+ * firewall. The page asks the server what the device's events are and
+ * every read it makes carries that scope; the firewall's own events - an
+ * intrusion it dropped, a connection it denied, failed sign-ins - are
+ * listed under a locked chip naming it, with no Hunts to save them to; and
+ * a device that has had none says how to get them.
+ */
+interface SecurityEventRead {
+  read: string;
+  scope: {
+    observables: Array<string>;
+    attributeKey?: string;
+    attributeValues?: Array<string>;
+  } | null;
+}
+
+async function openSecurityEvents(
+  page: Page,
+  query: string = "",
+): Promise<void> {
+  await page.goto(
+    `/network-devices/${DEVICE_ID}/security-events?page=security-events&scenario=dns${query}`,
+  );
+  await expect(page.getByTestId("fixture-page")).toBeVisible();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
+async function fixtureList<T>(
+  page: Page,
+  key: "securityScopeAsks" | "securityEventReads",
+): Promise<Array<T>> {
+  return await page.evaluate((name: string) => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __assetDetailsFixture: { state: Record<string, unknown> };
+          }
+        ).__assetDetailsFixture.state[name],
+      ),
+    );
+  }, key);
+}
+
+test.describe("the device's Security Events page", () => {
+  test("asks for the device's scope, and every read of its events carries it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSecurityEvents(page, "&security=news");
+    await expect(page.getByTestId("security-event-row").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    expect(await fixtureList(page, "securityScopeAsks")).toEqual([
+      { kind: "NetworkDevice", id: DEVICE_ID },
+    ]);
+
+    const reads: Array<SecurityEventRead> = await fixtureList(
+      page,
+      "securityEventReads",
+    );
+
+    expect(
+      reads.some((read: SecurityEventRead): boolean => {
+        return read.read === "list";
+      }),
+    ).toBe(true);
+    expect(
+      reads.some((read: SecurityEventRead): boolean => {
+        return read.read === "aggregate";
+      }),
+    ).toBe(true);
+
+    for (const read of reads) {
+      expect(read.scope).toEqual({
+        observables: ["core-fw-01", "CORE-FW-01"],
+        attributeKey: "networkDevice.id",
+        attributeValues: [DEVICE_ID],
+      });
+    }
+  });
+
+  test("lists the firewall's own events under a locked chip naming it, with no Hunts to keep them in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSecurityEvents(page, "&security=news");
+
+    const rows: Locator = page.getByTestId("security-event-row");
+    await expect(rows).toHaveCount(4, { timeout: 30000 });
+    await expect(rows.first()).toContainText(
+      "Apache.Log4j.Error.Log.Remote.Code.Execution dropped",
+    );
+    await expect(page.getByText("Denied connection from 203.0.113.99")).toBeVisible();
+    await expect(page.getByText("Failed sign-in for admin from 203.0.113.7")).toBeVisible();
+
+    const chip: Locator = page.getByTestId("locked-filter-chip");
+    await expect(chip).toContainText("Network Device");
+    await expect(chip).toContainText("core-fw-01");
+
+    await expect(
+      page.getByTestId("security-events-hunts-menu"),
+    ).toHaveCount(0);
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "device-security-events-1280-light");
+  });
+
+  test("an event opens its panel, as on the Events page: its addresses, and the cases and records it leads to", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSecurityEvents(page, "&security=news");
+
+    const rows: Locator = page.getByTestId("security-event-row");
+    await expect(rows.first()).toBeVisible({ timeout: 30000 });
+    await rows.nth(1).click();
+
+    // The drawer: what it was, between which addresses, and where it leads.
+    await expect(page.getByText("Principal IP", { exact: true })).toBeVisible();
+    await expect(page.getByText("Target IP", { exact: true })).toBeVisible();
+    await expect(page.getByText("Target Port", { exact: true })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Connected" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add to Case" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open Case" })).toBeVisible();
+    await shoot(page, "device-security-events-panel-1280-light");
+  });
+
+  test("a device that has had none says how to get them: its syslog to a probe, and Your logs on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSecurityEvents(page, "&security=quiet");
+
+    const empty: Locator = page.getByTestId("device-security-events-empty-state");
+    await expect(empty).toBeVisible({ timeout: 30000 });
+    await expect(empty).toContainText("No security events for this device yet");
+
+    const syslog: Locator = page.getByTestId(
+      "device-security-events-empty-state-syslog",
+    );
+    expect(
+      await syslog.getByRole("link", { name: "Logs" }).getAttribute("href"),
+    ).toBe(
+      `/dashboard/10000000-0000-4000-8000-000000000001/network-devices/${DEVICE_ID}/logs`,
+    );
+
+    const yourLogs: Locator = page.getByTestId(
+      "device-security-events-empty-state-your-logs",
+    );
+    await expect(yourLogs).toHaveAttribute("data-state", "off");
+    await expect(yourLogs).toContainText("Turn on Your logs");
+    expect(
+      await yourLogs
+        .getByRole("link", { name: "Connections" })
+        .getAttribute("href"),
+    ).toBe(
+      "/dashboard/10000000-0000-4000-8000-000000000001/security-events/connections",
+    );
+
+    // Never the project's setup guide: that is the Events page's.
+    await expect(page.locator("#security-events-empty-state")).toHaveCount(0);
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "device-security-events-empty-1280-light");
+  });
+
+  test("with Your logs on, it says so instead of asking", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSecurityEvents(page, "&security=quiet&logs=on");
+
+    const yourLogs: Locator = page.getByTestId(
+      "device-security-events-empty-state-your-logs",
+    );
+    await expect(yourLogs).toHaveAttribute("data-state", "on", {
+      timeout: 30000,
+    });
+    await expect(yourLogs).toContainText("Your logs is on");
+  });
+
+  test("at 390, dark: the list and its chip read whole, and nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSecurityEvents(page, "&security=news&theme=dark");
+
+    await expect(page.getByTestId("security-event-row").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("locked-filter-chip")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "device-security-events-390-dark");
   });
 });

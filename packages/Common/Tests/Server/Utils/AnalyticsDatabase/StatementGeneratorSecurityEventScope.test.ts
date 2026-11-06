@@ -87,6 +87,29 @@ class NoKeysModel extends AnalyticsBaseModel {
   }
 }
 
+// A table with an attributes map and no observables: the logs', say.
+class AttributesOnlyModel extends AnalyticsBaseModel {
+  public constructor() {
+    super({
+      tableName: "<attributes-only-table>",
+      singularName: "<singular>",
+      pluralName: "<plural>",
+      tableColumns: [
+        column("_id", TableColumnType.ObjectID),
+        column("attributes", TableColumnType.MapStringString, {
+          mapKeysColumn: "attributeKeys",
+        }),
+        column("attributeKeys", TableColumnType.ArrayText),
+      ],
+      crudApiPath: new Route("route"),
+      primaryKeys: ["_id"],
+      sortKeys: ["_id"],
+      partitionKey: "_id",
+      tableEngine: AnalyticsTableEngine.MergeTree,
+    });
+  }
+}
+
 // A table that has neither: some other signal's.
 class OtherSignalModel extends AnalyticsBaseModel {
   public constructor() {
@@ -117,7 +140,10 @@ describe("the securityEventScope synthetic key", () => {
     });
   });
 
-  function where(scope: unknown, rest: Record<string, unknown> = {}): Statement {
+  function where(
+    scope: unknown,
+    rest: Record<string, unknown> = {},
+  ): Statement {
     return generator.toWhereStatement({
       ...rest,
       [SECURITY_EVENT_SCOPE_QUERY_KEY]: scope,
@@ -195,9 +221,16 @@ describe("the securityEventScope synthetic key", () => {
     ["a scope naming nothing", { observables: [] }],
     [
       "an attribute with no values",
-      { observables: [], attributeKey: "networkDevice.id", attributeValues: [] },
+      {
+        observables: [],
+        attributeKey: "networkDevice.id",
+        attributeValues: [],
+      },
     ],
-    ["values with no attribute", { observables: [], attributeValues: [DEVICE_ID] }],
+    [
+      "values with no attribute",
+      { observables: [], attributeValues: [DEVICE_ID] },
+    ],
     ["only empty identities", { observables: ["", "   "] }],
     ["a string", "core-fw-1"],
     ["a list", ["core-fw-1"]],
@@ -313,6 +346,25 @@ describe("the scope on other tables", () => {
     } as any);
 
     expect(statement.query).toBe("AND 0");
+  });
+
+  test("a table of no security events matches nothing, even one with an attributes map: the key is no way round its own filters", () => {
+    const generator: StatementGenerator<AttributesOnlyModel> =
+      new StatementGenerator<AttributesOnlyModel>({
+        modelType: AttributesOnlyModel,
+        database: ClickhouseAppInstance,
+      });
+
+    const statement: Statement = generator.toWhereStatement({
+      [SECURITY_EVENT_SCOPE_QUERY_KEY]: {
+        observables: [],
+        attributeKey: "networkDevice.id",
+        attributeValues: [DEVICE_ID],
+      },
+    } as any);
+
+    expect(statement.query).toBe("AND 0");
+    expect(statement.query_params).toStrictEqual({});
   });
 
   test("the SecurityEvent table reads it with its own observables, attributes and attribute keys", () => {
