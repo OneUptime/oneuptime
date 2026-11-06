@@ -48,6 +48,17 @@ export interface ComponentProps {
    * they cut short in "..." (getSizedColumnsCss' clipsValueBoxes).
    */
   clipsValueBoxes?: boolean | undefined;
+  /*
+   * The rules changed after they were first written - a column sized for
+   * the first time, given back (Delete) or every one reset - told once
+   * they are on the page, before it is painted: a table that fits its card
+   * by measuring itself (the shared Table) measures again there, so the
+   * frame after Reset column widths is already fitted. Measured on the next
+   * frame instead, the table was drawn for a frame at the widths its values
+   * had been held at: Affected Resources about 340px wide in a 1214px card,
+   * the rows past the card's edge, then back to 187px.
+   */
+  onRulesChange?: (() => void) | undefined;
 }
 
 export const SIZED_COLUMNS_STYLE_ATTRIBUTE: string = "data-column-widths-style";
@@ -58,6 +69,11 @@ const SizedColumnsStyle: FunctionComponent<ComponentProps> = (
   const widths: ColumnWidths = useColumnWidthsSnapshot(props.store);
   const styleRef: React.RefObject<HTMLStyleElement> =
     useRef<HTMLStyleElement>(null);
+  // Whether the rules were written once: the first write changes nothing drawn.
+  const isWrittenRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const onRulesChangeRef: React.MutableRefObject<(() => void) | undefined> =
+    useRef<(() => void) | undefined>(props.onRulesChange);
+  onRulesChangeRef.current = props.onRulesChange;
 
   const sized: Array<SizedColumn> = props.columns.filter(
     (column: SizedColumn): boolean => {
@@ -92,7 +108,13 @@ const SizedColumnsStyle: FunctionComponent<ComponentProps> = (
 
     if (style.textContent !== css) {
       style.textContent = css;
+
+      if (isWrittenRef.current) {
+        onRulesChangeRef.current?.();
+      }
     }
+
+    isWrittenRef.current = true;
   });
 
   return (

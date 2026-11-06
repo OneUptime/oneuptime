@@ -16,13 +16,17 @@ import fs from "fs";
 import path from "path";
 
 /*
- * A cloud resource's Logs tab: what an AWS connection's stream delivered
- * from the CloudWatch Logs group AWS names after the resource. The stream
- * stamps each log with the resource's ARN as the cloud.resource_id resource
- * attribute (CloudLogGroups), so the tab asks for exactly that - never the
- * project's every log - and names the resource on its locked chip. The
- * resource's view shows the tab in its menu only for a kind of resource a
- * log group names: a function or a database has it, a bucket does not.
+ * A cloud resource's Logs tab: what its connection's stream delivered
+ * about it - an AWS connection's from the CloudWatch Logs group AWS names
+ * after the resource, an Azure connection's from its diagnostic setting, a
+ * Google Cloud connection's from Cloud Logging. The stream stamps each log
+ * with the resource's id as the cloud.resource_id resource attribute
+ * (CloudLogGroups), so the tab asks for exactly that - never the project's
+ * every log - names the resource on its locked chip, and says in its
+ * cloud's words how logs get there. The resource's view shows the tab in
+ * its menu only for a kind of resource with logs of its own: a function, a
+ * database or a web app has it; a bucket, an Azure virtual machine or an
+ * instance group does not.
  */
 
 const MODEL_ID: string = "0193c0de-3333-4aaa-8bbb-000000000003";
@@ -160,9 +164,13 @@ jest.mock(
 );
 
 import CloudResourceLogs, {
+  AZURE_RESOURCE_NO_LOGS_IN_RANGE,
+  AZURE_RESOURCE_NO_STREAMED_LOGS,
   CLOUD_RESOURCE_LOGS_NOT_FOUND,
   CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
   CLOUD_RESOURCE_NO_STREAMED_LOGS,
+  GCP_RESOURCE_NO_LOGS_IN_RANGE,
+  GCP_RESOURCE_NO_STREAMED_LOGS,
   getCloudResourceLogsQuery,
   getCloudResourceNoLogsMessage,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Logs";
@@ -194,6 +202,23 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
 });
+
+// Each cloud's empty sentences, and the action of the account's row they name.
+const EMPTY_SENTENCES_BY_ACTION: Array<[Array<string>, string]> = [
+  [
+    [
+      CLOUD_RESOURCE_NO_STREAMED_LOGS,
+      CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
+      AZURE_RESOURCE_NO_STREAMED_LOGS,
+      AZURE_RESOURCE_NO_LOGS_IN_RANGE,
+    ],
+    "Stream metrics and logs",
+  ],
+  [
+    [GCP_RESOURCE_NO_STREAMED_LOGS, GCP_RESOURCE_NO_LOGS_IN_RANGE],
+    "Stream logs",
+  ],
+];
 
 describe("a cloud resource's Logs tab", () => {
   test("asks for the logs stamped with the resource's ARN, and only those", async () => {
@@ -232,7 +257,70 @@ describe("a cloud resource's Logs tab", () => {
     expect(props["noLogsMessage"]).toContain("Stream metrics and logs");
   });
 
-  test("reads the resource's name, its ARN and whether its account streams, and nothing else of it", async () => {
+  test.each([
+    [
+      "aws",
+      "Stream metrics and logs",
+      CLOUD_RESOURCE_NO_STREAMED_LOGS,
+      CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
+    ],
+    [
+      "azure",
+      "Stream metrics and logs",
+      AZURE_RESOURCE_NO_STREAMED_LOGS,
+      AZURE_RESOURCE_NO_LOGS_IN_RANGE,
+    ],
+    [
+      "gcp",
+      "Stream logs",
+      GCP_RESOURCE_NO_STREAMED_LOGS,
+      GCP_RESOURCE_NO_LOGS_IN_RANGE,
+    ],
+    [
+      undefined,
+      "Stream metrics and logs",
+      CLOUD_RESOURCE_NO_STREAMED_LOGS,
+      CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
+    ],
+  ])(
+    "a %s resource says, in its cloud's words, how its logs get here and what to check once its account streams",
+    async (
+      provider: string | undefined,
+      action: string,
+      notStreaming: string,
+      inRange: string,
+    ) => {
+      getItemMock.mockResolvedValue({
+        name: "checkout",
+        providerResourceId: FUNCTION_ARN,
+        cloudProvider: provider,
+      });
+
+      render(<CloudResourceLogs {...PAGE_PROPS} />);
+      await screen.findByTestId("logs-viewer");
+
+      expect(lastViewerProps()["noLogsMessage"]).toBe(notStreaming);
+      expect(notStreaming).toContain(`choose ${action} in the account's row.`);
+
+      cleanup();
+      getItemMock.mockResolvedValue({
+        name: "checkout",
+        providerResourceId: FUNCTION_ARN,
+        cloudProvider: provider,
+        cloudConnection: {
+          streamKeyCreatedAt: new Date("2026-11-06T08:00:00.000Z"),
+        },
+      });
+
+      render(<CloudResourceLogs {...PAGE_PROPS} />);
+      await screen.findByTestId("logs-viewer");
+
+      expect(lastViewerProps()["noLogsMessage"]).toBe(inRange);
+      expect(inRange).toContain(`open ${action} in the account's row.`);
+    },
+  );
+
+  test("reads the resource's name, its ARN, its cloud and whether its account streams, and nothing else of it", async () => {
     getItemMock.mockResolvedValue({
       name: "checkout",
       providerResourceId: FUNCTION_ARN,
@@ -248,6 +336,7 @@ describe("a cloud resource's Logs tab", () => {
     ).toEqual({
       name: true,
       providerResourceId: true,
+      cloudProvider: true,
       cloudConnection: { streamKeyCreatedAt: true },
     });
   });
@@ -308,18 +397,15 @@ describe("a cloud resource's Logs tab", () => {
       } as never),
     ).toBe(CLOUD_RESOURCE_NO_LOGS_IN_RANGE);
     /*
-     * Both send the reader to the same place, named as the Dashboard draws
-     * it: the Connect page under Cloud, and the account's row there, whose
-     * menu holds Stream metrics and logs.
+     * Every one sends the reader to the same place, named as the Dashboard
+     * draws it: the Connect page under Cloud, and the account's row there,
+     * whose menu holds the cloud's streaming action.
      */
-    for (const sentence of [
-      CLOUD_RESOURCE_NO_STREAMED_LOGS,
-      CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
-    ]) {
-      expect(sentence).toContain("in Cloud > Connect, ");
-      expect(sentence).toContain(
-        "Stream metrics and logs in the account's row.",
-      );
+    for (const [sentences, action] of EMPTY_SENTENCES_BY_ACTION) {
+      for (const sentence of sentences) {
+        expect(sentence).toContain("in Cloud > Connect, ");
+        expect(sentence).toContain(`${action} in the account's row.`);
+      }
     }
     // Once it streams, the range comes first: the likelier reason.
     expect(
@@ -327,9 +413,19 @@ describe("a cloud resource's Logs tab", () => {
         "Nothing arrived from this resource's log group in this time range. Choose a longer range, ",
       ),
     ).toBe(true);
+    for (const sentence of [
+      AZURE_RESOURCE_NO_LOGS_IN_RANGE,
+      GCP_RESOURCE_NO_LOGS_IN_RANGE,
+    ]) {
+      expect(
+        sentence.startsWith(
+          "Nothing arrived from this resource in this time range. Choose a longer range, ",
+        ),
+      ).toBe(true);
+    }
   });
 
-  test("the place and the menu item it names are the Dashboard's own: Cloud > Connect, and the row's Stream metrics and logs", () => {
+  test("the place and the menu items they name are the Dashboard's own: Cloud > Connect, and the row's Stream metrics and logs or Stream logs", () => {
     const dashboardDir: string = path.resolve(
       __dirname,
       "../../../../App/FeatureSet/Dashboard/src",
@@ -349,9 +445,10 @@ describe("a cloud resource's Logs tab", () => {
     expect(sideMenu).toContain('title: "Cloud",');
     expect(sideMenu).toContain('title: "Connect",');
     expect(connections).toContain('title: "Stream metrics and logs",');
+    expect(connections).toContain('title: "Stream logs",');
   });
 
-  test("both are read in every language the Dashboard has, and left in English in none", () => {
+  test("all are read in every language the Dashboard has, and left in English in none", () => {
     const localesDir: string = path.resolve(
       __dirname,
       "../../../../App/FeatureSet/Dashboard/src/Locales",
@@ -369,10 +466,13 @@ describe("a cloud resource's Logs tab", () => {
         fs.readFileSync(path.join(localesDir, file), "utf8"),
       ) as Record<string, string>;
 
-      for (const key of [
-        CLOUD_RESOURCE_NO_STREAMED_LOGS,
-        CLOUD_RESOURCE_NO_LOGS_IN_RANGE,
-      ]) {
+      for (const [key, action] of EMPTY_SENTENCES_BY_ACTION.flatMap(
+        ([sentences, action]: [Array<string>, string]) => {
+          return sentences.map((sentence: string): [string, string] => {
+            return [sentence, action];
+          });
+        },
+      )) {
         const value: string | undefined = locale[key];
 
         expect({ file, has: typeof value === "string" }).toEqual({
@@ -391,7 +491,7 @@ describe("a cloud resource's Logs tab", () => {
            * menu inside a translated sentence.
            */
           const place: string = `${locale["Cloud"]} > ${locale["Connect"]}`;
-          const item: string = locale["Stream metrics and logs"]!;
+          const item: string = locale[action]!;
 
           expect({ file, place, named: value!.includes(place) }).toEqual({
             file,
@@ -473,6 +573,12 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     ["an RDS database", "aws", "AWS::RDS::DBInstance"],
     ["an Aurora cluster", "aws", "AWS::RDS::DBCluster"],
     ["an App Runner service", "aws", "AWS::AppRunner::Service"],
+    ["an Azure web app", "azure", "Microsoft.Web/sites"],
+    ["an Azure SQL database", "azure", "Microsoft.Sql/servers/databases"],
+    ["an Azure key vault", "azure", "Microsoft.KeyVault/vaults"],
+    ["a Cloud Run service", "gcp", "cloud_run_revision"],
+    ["a Compute Engine VM", "gcp", "gce_instance"],
+    ["a Cloud SQL instance", "gcp", "cloudsql_database"],
   ])("%s has Logs", async (_kind: string, provider: string, type: string) => {
     await openView({
       cloudResourceKind: "resource",
@@ -487,6 +593,11 @@ describe("the resource's menu has Logs for a kind a log group names", () => {
     ["an S3 bucket", "aws", "AWS::S3::Bucket"],
     ["an EC2 instance", "aws", "AWS::EC2::Instance"],
     ["an Azure function", "azure", "AWS::Lambda::Function"],
+    // Its own logs need an agent in it.
+    ["an Azure virtual machine", "azure", "Microsoft.Compute/virtualMachines"],
+    ["an Azure storage account", "azure", "Microsoft.Storage/storageAccounts"],
+    ["a Google Cloud instance group", "gcp", "instance_group"],
+    ["a Google Cloud type of no rule", "gcp", "k8s_container"],
     ["a resource of no type", "aws", undefined],
   ])(
     "%s has none",

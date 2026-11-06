@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import { truncateLongText } from "../Database/TruncateColumnValue";
 import OneUptimeDate from "../../../Types/Date";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
@@ -308,11 +309,14 @@ export default class RemediationVerifier {
         await AutoRemediationSuggestionService.updateOneById({
           id: suggestion.id,
           data: {
-            verificationNote: [data.verificationNote, rollback.summary]
-              .filter((part: string | undefined) => {
-                return Boolean(part);
-              })
-              .join(" "),
+            // The note and the rollback's summary, held to the column.
+            verificationNote: truncateLongText(
+              [data.verificationNote, rollback.summary]
+                .filter((part: string | undefined) => {
+                  return Boolean(part);
+                })
+                .join(" "),
+            ),
           } as never,
           props: { isRoot: true },
         });

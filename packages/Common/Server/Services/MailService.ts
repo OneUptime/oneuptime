@@ -95,6 +95,23 @@ export class MailService extends BaseService {
       body["SMTP_SCOPE"] = options.mailServer.scope || undefined;
       body["SMTP_OAUTH_PROVIDER_TYPE"] =
         options.mailServer.oauthProviderType || undefined;
+      /*
+       * The keys of a provider with an HTTP API of its own (Amazon SES,
+       * SendGrid, Mailgun, Postmark, Resend). Only the transport's own are
+       * set on the EmailServer (ProjectSmtpConfigService.toEmailServer), and
+       * the notification service reads them back the same way
+       * (MailService.getEmailServer).
+       */
+      body["SMTP_API_KEY"] = options.mailServer.apiKey || undefined;
+      body["SMTP_AWS_ACCESS_KEY_ID"] =
+        options.mailServer.awsAccessKeyId || undefined;
+      body["SMTP_AWS_SECRET_ACCESS_KEY"] =
+        options.mailServer.awsSecretAccessKey || undefined;
+      body["SMTP_AWS_REGION"] = options.mailServer.awsRegion || undefined;
+      body["SMTP_MAILGUN_DOMAIN"] =
+        options.mailServer.mailgunDomain || undefined;
+      body["SMTP_MAILGUN_REGION"] =
+        options.mailServer.mailgunRegion || undefined;
     }
 
     if (options?.userOnCallLogTimelineId) {

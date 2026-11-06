@@ -8,6 +8,7 @@ import {
   SubscriberStatusChoice,
 } from "./SubscriberFormChoices";
 import { getColumnChoiceField } from "../../Utils/Form/ColumnChoiceField";
+import { STATUS_PAGE_LANGUAGE_OPTIONS } from "./StatusPageLanguageOptions";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -173,6 +174,39 @@ export const getSubscriberWelcomeField: (
      */
     defaultValue: false,
     collapsibleSection: moreFields,
+  };
+};
+
+/*
+ * Email, SMS, Slack and Microsoft Teams Subscribers > Add and Edit: the
+ * language the subscriber's notifications are written in, folded under
+ * More fields - most subscribers follow the status page's default
+ * language, and only a team writing to people of another language picks
+ * one. Left empty (cleared), the subscriber follows the page's default,
+ * which `placeholder` names ("Page default (Deutsch)"); the server stores
+ * nothing for it (StatusPageSubscriberService). A webhook's payload is
+ * data, so the Webhook Subscribers list asks none.
+ */
+export const getSubscriberLanguageField: (data: {
+  moreFields: FormFieldCollapsibleSection<StatusPageSubscriber>;
+  placeholder: string;
+}) => SubscriberField = (data: {
+  moreFields: FormFieldCollapsibleSection<StatusPageSubscriber>;
+  placeholder: string;
+}): SubscriberField => {
+  return {
+    field: {
+      language: true,
+    },
+    title: SubscriberFormCopy.languageTitle,
+    description: SubscriberFormCopy.languageDescription,
+    stepId: SUBSCRIBER_INFO_STEP_ID,
+    fieldType: FormFieldSchemaType.Dropdown,
+    dropdownOptions: STATUS_PAGE_LANGUAGE_OPTIONS,
+    required: false,
+    placeholder: data.placeholder,
+    dataTestId: "subscriber-language",
+    collapsibleSection: data.moreFields,
   };
 };
 

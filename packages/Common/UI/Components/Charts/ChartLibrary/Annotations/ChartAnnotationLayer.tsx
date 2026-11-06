@@ -471,6 +471,15 @@ const ChartAnnotationLayer: React.FunctionComponent<
               onHoverChange(hover);
             };
 
+            /*
+             * A chip does something on a click when it opens a record or,
+             * clustered, its card. A lone event that opens nothing - the
+             * day a page is already about - is a mark to hover or focus,
+             * as a region without a click is: no button, no pointer.
+             */
+            const isActionable: boolean =
+              count > 1 || Boolean(cluster.markers[0]?.original.onClick);
+
             return (
               <g key={cluster.id} data-testid="chart-annotation-marker">
                 {/* Stem: ties the chip to its hairline across the rail gap. */}
@@ -488,10 +497,10 @@ const ChartAnnotationLayer: React.FunctionComponent<
                   data-testid="chart-annotation-chip"
                   data-annotation-count={String(count)}
                   data-annotation-kind={cluster.kind}
-                  role="button"
+                  role={isActionable ? "button" : "img"}
                   tabIndex={0}
                   aria-label={ariaLabel}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: isActionable ? "pointer" : "default" }}
                   onMouseEnter={(): void => {
                     onHoverChange(hover);
                   }}

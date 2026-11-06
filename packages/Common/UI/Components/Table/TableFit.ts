@@ -32,7 +32,10 @@
  * React-free on purpose: the rules are pure, and tested as such.
  */
 
-import { TABLE_NEARLY_FITS_WITHIN_IN_PX } from "./TableLayout";
+import {
+  TABLE_NEARLY_FITS_WITHIN_IN_PX,
+  TABLE_VALUE_GIVE_FLOOR_IN_PX,
+} from "./TableLayout";
 
 export enum TableFitStep {
   Rows = "rows",
@@ -60,6 +63,19 @@ export const TABLE_NARROW_BELOW_WIDTH_IN_PX: number = 768;
  * a card beside a side menu is narrower than TABLE_NARROW_BELOW_WIDTH_IN_PX.
  */
 export const TABLE_NARROW_WINDOW_BELOW_WIDTH_IN_PX: number = 1024;
+
+/*
+ * Below this width a table's own box is so narrow that its rows almost never
+ * fit it: beside a side menu at a 768-900px window a card is 430-560px wide,
+ * and there 347 of the product's 357 lists ran their rows under their
+ * sticky Actions column (#5485) - they are cards there now. So a table that
+ * has not been measured yet draws its loading placeholders as cards in such
+ * a box (isTableSkeletonDrawnAsCards): on a first visit at a tablet's width
+ * the placeholders were rows, which turned into cards once the first rows
+ * landed and were measured. A list whose rows do fit is drawn as rows once
+ * they are measured.
+ */
+export const TABLE_SKELETON_CARDS_BELOW_WIDTH_IN_PX: number = 576;
 
 export interface TableFitInput {
   // A window below 768px: rows are always cards.
@@ -236,6 +252,61 @@ export const getTableFitStateFor: (
   }
 
   return { step: step, neededWidths: state.neededWidths };
+};
+
+/*
+ * Whether a table's loading placeholders are drawn as cards: where its rows
+ * are cards (a phone, or a narrow box they were measured not to fit), and
+ * in a box narrower than TABLE_SKELETON_CARDS_BELOW_WIDTH_IN_PX, where they
+ * almost never fit. A box not measured yet says nothing. What a table keeps
+ * of its measurements is only that its rows did not fit, so a list whose
+ * rows do fit such a box - a list of two short columns - loads as cards'
+ * placeholders and is drawn as rows once they are measured.
+ */
+export const isTableSkeletonDrawnAsCards: (data: {
+  step: TableFitStep;
+  boxWidth: number | null;
+}) => boolean = (data: {
+  step: TableFitStep;
+  boxWidth: number | null;
+}): boolean => {
+  if (data.step === TableFitStep.Cards) {
+    return true;
+  }
+
+  if (data.boxWidth === null || data.boxWidth <= 0) {
+    return false;
+  }
+
+  return data.boxWidth < TABLE_SKELETON_CARDS_BELOW_WIDTH_IN_PX;
+};
+
+/*
+ * How far past a box of 48rem or more a table may run with everything
+ * given way and still be drawn given way, its rows scrolling the rest: up
+ * to 8rem, one value at the floor it gives way to. Such a box has no cards
+ * to turn to, so a table further past it than the narrow box's 2rem
+ * (TABLE_NEARLY_FITS_WITHIN_IN_PX) scrolled with every value whole -
+ * hundreds of pixels wider: in German, the alerts list beside a side menu
+ * was 887px given way and 1,220px whole, the incidents list 956px and
+ * 1,340px, in cards of 768-938px. Given way, at most one value's end is
+ * under the row's buttons, the rest of the row in sight; whole, half the
+ * row was out of sight.
+ */
+export const TABLE_WIDE_BOX_NEARLY_FITS_WITHIN_IN_PX: number =
+  TABLE_VALUE_GIVE_FLOOR_IN_PX;
+
+/*
+ * How far past its box a table given way may run and still be drawn given
+ * way (useTableScrollState): 2rem in a narrow box - past that it is drawn
+ * as cards - and 8rem in a box of 48rem or more.
+ */
+export const getTableNearlyFitsWithin: (boxWidth: number) => number = (
+  boxWidth: number,
+): number => {
+  return boxWidth >= TABLE_NARROW_BELOW_WIDTH_IN_PX
+    ? TABLE_WIDE_BOX_NEARLY_FITS_WITHIN_IN_PX
+    : TABLE_NEARLY_FITS_WITHIN_IN_PX;
 };
 
 /*

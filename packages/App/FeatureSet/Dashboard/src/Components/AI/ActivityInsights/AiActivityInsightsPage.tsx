@@ -340,14 +340,19 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
               : getAiInsightsPageSubtitle(props.noun)}
           </p>
         </div>
+        {/*
+          On one line where there is room; on a phone its words wrap
+          instead: German's "Alles, was die KI getan hat, in den
+          KI-Protokollen ansehen" ran 54 pixels past a 390-pixel screen.
+        */}
         <Link
           to={props.logsRoute}
-          className="flex items-center gap-1 whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          className="flex min-w-0 items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800 sm:whitespace-nowrap"
         >
           <span data-testid="ai-insights-logs-link">
             {translator.translateText("See everything AI did in AI Logs")}
           </span>
-          <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+          <Icon icon={IconProp.ChevronRight} className="h-4 w-4 flex-none" />
         </Link>
       </div>
 

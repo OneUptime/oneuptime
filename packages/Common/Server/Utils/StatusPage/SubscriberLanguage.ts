@@ -11,20 +11,22 @@ import {
  * A status page is shown in its default language (Default Language, on its
  * Branding page), and a visitor can read it in another from its footer.
  * Its notifications - incidents, their notes and states, scheduled
- * maintenance, announcements, postmortems - and the messages about a
- * subscription (the link to confirm it, the welcome, the link to manage
- * it) are written in the subscriber's language: the one they read the
- * page in when they signed up, or last changed their subscription there,
- * when that was not the page's default, and otherwise the page's default
- * language. A subscriber the team added, and
- * one who signed up before this, has none of their own, and follows the
- * page's default language - also when it changes. The uptime report is
- * still written in English.
+ * maintenance, announcements, postmortems, the uptime report - and the
+ * messages about a subscription (the link to confirm it, the welcome, the
+ * link to manage it) are written in the subscriber's language: the one
+ * they read the page in when they signed up, or last changed their
+ * subscription there, when that was not the page's default, or the one
+ * the team set on the Dashboard; otherwise the page's default language. A
+ * subscriber the team added without one, and one who signed up before
+ * this, has none of their own, and follows the page's default language -
+ * also when it changes.
  *
  * OneUptime's own words are what change: the subjects, headings, labels,
  * buttons and sentences of its default messages, OneUptime's default names
  * of states and severities, and dates. What the team wrote - titles, notes,
- * descriptions, a custom template - reads as written.
+ * descriptions, a custom template - reads as written; the values a custom
+ * template is filled with are in the page's default language
+ * (SubscriberTemplateValues).
  */
 
 export interface SubscriberWithLanguage {

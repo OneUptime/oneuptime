@@ -882,6 +882,14 @@ const DocsNav: NavGroup[] = [
         title: "Stream CloudWatch Metrics and Logs",
         url: "/docs/telemetry/cloud-streaming",
       },
+      {
+        title: "Stream Azure Monitor Metrics and Logs",
+        url: "/docs/telemetry/cloud-streaming-azure",
+      },
+      {
+        title: "Stream Google Cloud Logs",
+        url: "/docs/telemetry/cloud-streaming-google-cloud",
+      },
     ],
   },
   {
@@ -1584,6 +1592,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "SMTP",
         url: "/docs/emails/smtp",
+      },
+      {
+        title: "Email Providers",
+        url: "/docs/emails/email-providers",
       },
       {
         title: "Notification Rollup",

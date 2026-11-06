@@ -196,6 +196,11 @@ export default class CodeFixPullRequestRecord {
 
     pullRequest.pullRequestState = PullRequestState.Open;
 
+    /*
+     * The branches are copied whole, never cut like the texts above: a
+     * branch name cut to fit is another branch. Their columns hold any
+     * branch GitHub takes (AIAgentTaskPullRequest.headRefName).
+     */
     if (fields.headRefName) {
       pullRequest.headRefName = fields.headRefName;
     }

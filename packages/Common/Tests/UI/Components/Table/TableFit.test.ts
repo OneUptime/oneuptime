@@ -4,6 +4,8 @@ import {
   TABLE_FIT_STEPS,
   TABLE_NARROW_BELOW_WIDTH_IN_PX,
   TABLE_NARROW_WINDOW_BELOW_WIDTH_IN_PX,
+  TABLE_SKELETON_CARDS_BELOW_WIDTH_IN_PX,
+  TABLE_WIDE_BOX_NEARLY_FITS_WITHIN_IN_PX,
   TableFitInput,
   TableFitState,
   TableFitStep,
@@ -12,10 +14,15 @@ import {
   getPreviousTableFitStep,
   getTableFitStateAfterCannotFit,
   getTableFitStateFor,
+  getTableNearlyFitsWithin,
   isTableBoxNarrow,
   isTableFitStepAllowed,
+  isTableSkeletonDrawnAsCards,
 } from "../../../../UI/Components/Table/TableFit";
-import { TABLE_NEARLY_FITS_WITHIN_IN_PX } from "../../../../UI/Components/Table/TableLayout";
+import {
+  TABLE_NEARLY_FITS_WITHIN_IN_PX,
+  TABLE_VALUE_GIVE_FLOOR_IN_PX,
+} from "../../../../UI/Components/Table/TableLayout";
 
 /*
  * How a table fits the box it is drawn in (TableFit): as rows, folded (its
@@ -380,5 +387,97 @@ describe("where a table is drawn as its box changes", () => {
 
     // A box of 760 is still narrower than the 880 the rows needed.
     expect(getTableFitStateFor(fit, input({ boxWidth: 760 }))).toBe(fit);
+  });
+});
+
+/*
+ * "A first visit at a tablet width paints skeleton rows, then cards once
+ * measured" (#5485's follow-ups). A table's loading placeholders are shaped
+ * as it will most likely be drawn: cards where its rows are cards, and in a
+ * box narrower than 36rem - a card beside a side menu at a 768-900px
+ * window, where 347 of the product's 357 lists did not fit as rows.
+ */
+describe("the shape of a table's loading placeholders", () => {
+  test("cards where its rows are cards: a phone, or a box they were measured not to fit", () => {
+    expect(
+      isTableSkeletonDrawnAsCards({
+        step: TableFitStep.Cards,
+        boxWidth: 700,
+      }),
+    ).toBe(true);
+    expect(
+      isTableSkeletonDrawnAsCards({ step: TableFitStep.Cards, boxWidth: null }),
+    ).toBe(true);
+  });
+
+  test("cards in a box narrower than 36rem, rows or folded or not", () => {
+    expect(TABLE_SKELETON_CARDS_BELOW_WIDTH_IN_PX).toBe(576);
+
+    for (const step of [TableFitStep.Rows, TableFitStep.Folded]) {
+      expect(isTableSkeletonDrawnAsCards({ step: step, boxWidth: 430 })).toBe(
+        true,
+      );
+      expect(isTableSkeletonDrawnAsCards({ step: step, boxWidth: 575 })).toBe(
+        true,
+      );
+    }
+  });
+
+  test("rows in a box of 36rem or more: a tablet card rows may fit, folded, and every wider one", () => {
+    for (const boxWidth of [576, 724, 938, 1214]) {
+      expect(
+        isTableSkeletonDrawnAsCards({
+          step: TableFitStep.Folded,
+          boxWidth: boxWidth,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("a box not measured yet says nothing: the placeholders follow the step", () => {
+    expect(
+      isTableSkeletonDrawnAsCards({
+        step: TableFitStep.Folded,
+        boxWidth: null,
+      }),
+    ).toBe(false);
+    expect(
+      isTableSkeletonDrawnAsCards({ step: TableFitStep.Rows, boxWidth: 0 }),
+    ).toBe(false);
+  });
+
+  test("the width sits inside the narrow box's range, where cards are allowed at all", () => {
+    expect(TABLE_SKELETON_CARDS_BELOW_WIDTH_IN_PX).toBeLessThan(
+      TABLE_NARROW_BELOW_WIDTH_IN_PX,
+    );
+  });
+});
+
+/*
+ * "Alerts in German at 1280px still scroll: folded and given way, the list
+ * is about 40px too wide, past the 2rem window" (#5485's follow-ups). A box
+ * of 48rem or more has no cards to turn to: past the narrow box's 2rem a
+ * table scrolled with every value whole - in German, the alerts list 887px
+ * given way and 1,220px whole in cards of 768-874px. Such a box keeps a
+ * table given way up to 8rem past it, one value at its floor.
+ */
+describe("how far past its box a table given way stays given way", () => {
+  test("2rem in a box narrower than 48rem: past that its rows are cards", () => {
+    expect(getTableNearlyFitsWithin(430)).toBe(TABLE_NEARLY_FITS_WITHIN_IN_PX);
+    expect(getTableNearlyFitsWithin(767)).toBe(32);
+    expect(TABLE_CARDS_ABOVE_OVERFLOW_IN_PX).toBe(
+      getTableNearlyFitsWithin(TABLE_NARROW_BELOW_WIDTH_IN_PX - 1),
+    );
+  });
+
+  test("8rem - one value at the floor it gives way to - in a box of 48rem or more, which has no cards to turn to", () => {
+    expect(TABLE_WIDE_BOX_NEARLY_FITS_WITHIN_IN_PX).toBe(
+      TABLE_VALUE_GIVE_FLOOR_IN_PX,
+    );
+    expect(TABLE_WIDE_BOX_NEARLY_FITS_WITHIN_IN_PX).toBe(128);
+
+    for (const boxWidth of [768, 834, 938, 1214]) {
+      expect(getTableNearlyFitsWithin(boxWidth)).toBe(128);
+    }
   });
 });

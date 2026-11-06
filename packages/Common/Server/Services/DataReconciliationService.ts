@@ -75,6 +75,29 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * 0 is a tolerance: the two must agree exactly, as the column and the
+   * dashboard's form say, and as onBeforeCreate's own check lets through.
+   * The required-column check read 0 as missing, so a reconciliation made
+   * with it was refused as "tolerance is required". Any number is a value
+   * of it (onBeforeCreate refuses one below 0); anything else is still read
+   * as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      column === "tolerance" &&
+      typeof value === "number" &&
+      Number.isFinite(value)
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {

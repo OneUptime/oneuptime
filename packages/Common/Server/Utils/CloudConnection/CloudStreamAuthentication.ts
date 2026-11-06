@@ -21,19 +21,25 @@ import CloudStreamKeyedConnections from "./CloudStreamKeyedConnections";
 import CloudStreamKeys from "./CloudStreamKeys";
 
 /*
- * WHO A FIREHOSE DELIVERY IS FROM.
+ * WHO A STREAM'S DELIVERY IS FROM.
  *
  * Amazon Data Firehose sends the access key it was set up with in
- * X-Amz-Firehose-Access-Key. A stream key names its connection
- * (CloudStream.parseCloudStreamKey); the connection names its project and
- * the telemetry service its telemetry belongs to. So the project a
- * delivery is written to is the key's, and nothing the delivery's records
- * or its other headers say can change it.
+ * X-Amz-Firehose-Access-Key; a Pub/Sub push subscription sends it as the
+ * audience of the OIDC token Google signs for its push service account. A
+ * stream key names its connection (CloudStream.parseCloudStreamKey); the
+ * connection names its project and the telemetry service its telemetry
+ * belongs to. So the project a delivery is written to is the key's, and
+ * nothing the delivery's records or its other headers say can change it.
  *
  * A key is taken when its SHA-256 matches the connection's current key, or
  * the key that one replaced while it still works, and the connection:
  *
- *   - is an AWS connection, and turned on;
+ *   - is of the cloud the endpoint is for (Firehose's AWS, Pub/Sub's
+ *     Google Cloud), and turned on;
+ *   - for Google Cloud, sent the push with a token Google signed for the
+ *     push service account the key was made for (verifySender): the key
+ *     alone - readable in the subscription's settings by whoever may read
+ *     the project's - is not enough;
  *   - belongs to a project whose plan includes telemetry, that a master
  *     admin has not blocked, and that may be billed for it - the same
  *     admission every ingestion key is held to.
@@ -93,6 +99,21 @@ export const STREAM_NOT_ALLOWED_MESSAGE: string =
   "This OneUptime project's plan does not include telemetry.";
 export const STREAM_PROJECT_BLOCKED_MESSAGE: string =
   "This OneUptime project is blocked, and takes no telemetry until it is unblocked.";
+export const WRONG_STREAM_TOKEN_MESSAGE: string =
+  "This push's token is not one Google signed for the connection's push service account. In OneUptime, open Cloud > Connect, choose Stream logs on the connection, make a new key and run the command again.";
+export const STREAM_TOKEN_KEYS_UNAVAILABLE_MESSAGE: string =
+  "OneUptime could not read Google's token keys to check this push. Pub/Sub pushes it again.";
+
+/*
+ * What a pushing cloud's sender check says of a delivery whose key is
+ * right: taken, not the connection's sender, or not checkable now.
+ */
+export type CloudStreamSenderVerdict = "sender" | "not-sender" | "unavailable";
+
+export interface CloudStreamSender {
+  // Google Cloud: the push service account the connection's key was made for.
+  pushServiceAccount: string | null;
+}
 
 export default class CloudStreamAuthenticator {
   private static cache: InMemoryTTLCache<CachedStreamConnection | null> =
@@ -106,7 +127,17 @@ export default class CloudStreamAuthenticator {
   public static async authenticate(data: {
     accessKey: unknown;
     now: Date;
+    // The cloud the endpoint is for. AWS when not said: Firehose's.
+    provider?: CloudProvider | undefined;
+    /*
+     * Who sent it, beside the key: checked once the key is the
+     * connection's, before anything else is said of the connection.
+     */
+    verifySender?:
+      | ((sender: CloudStreamSender) => Promise<CloudStreamSenderVerdict>)
+      | undefined;
   }): Promise<CloudStreamAuthentication> {
+    const provider: CloudProvider = data.provider || CloudProvider.AWS;
     const parsed: { connectionId: string; secret: string } | null =
       parseCloudStreamKey(data.accessKey);
 
@@ -126,7 +157,7 @@ export default class CloudStreamAuthenticator {
 
     if (
       !connection ||
-      connection.provider !== CloudProvider.AWS ||
+      connection.provider !== provider ||
       !CloudStreamKeys.matchesAny((data.accessKey as string).trim(), liveHashes)
     ) {
       /*
@@ -138,6 +169,32 @@ export default class CloudStreamAuthenticator {
       return CloudStreamAuthenticator.wrongKey(
         connection && liveHashes.length > 0 ? connectionId : undefined,
       );
+    }
+
+    if (data.verifySender) {
+      const verdict: CloudStreamSenderVerdict = await data.verifySender({
+        pushServiceAccount: connection.keyHashes.pushServiceAccount || null,
+      });
+
+      if (verdict === "unavailable") {
+        // Not the sender's doing: said on no connection, and pushed again.
+        return {
+          isAuthorized: false,
+          reason: CloudStreamRefusalReason.WrongToken,
+          status: 503,
+          message: STREAM_TOKEN_KEYS_UNAVAILABLE_MESSAGE,
+        };
+      }
+
+      if (verdict !== "sender") {
+        return {
+          isAuthorized: false,
+          reason: CloudStreamRefusalReason.WrongToken,
+          status: 401,
+          message: WRONG_STREAM_TOKEN_MESSAGE,
+          connectionId,
+        };
+      }
     }
 
     if (!connection.isEnabled) {

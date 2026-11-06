@@ -2898,6 +2898,102 @@ describe("Test connection", () => {
     );
   });
 
+  /*
+   * cloud whoami answers a sentence a line, its verdict at the line's end
+   * ("Write identity: ..., which the agent signs in as for each change
+   * (the agent can NOT sign in as it, so every change fails: ...)"): a
+   * cloud account's output wraps, so the verdict is read without
+   * scrolling sideways. Another agent's test prints tables (docker node
+   * ls, pvesh), which keep their columns and scroll.
+   */
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: cloud whoami's output wraps its long lines, so each line's verdict is in sight",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const verdict: string =
+        "Write identity: oneuptime-ai-agent-write (resource group oneuptime-ai-agent), which the agent signs in as for each change (the agent can NOT sign in as it, so every change fails: the managed identity endpoint answered HTTP 400 and no token of the write identity oneuptime-ai-agent-write.)";
+      const running: ResourceAiAccessStatus = makeStatus({
+        resourceType: type,
+        aiSettingsSource: "agent_configuration",
+        aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+        gaps: [],
+        isRemediationReady: true,
+        agent: makeAgent({
+          posture: makePosture({ resourceType: type, allowWrites: true }),
+        }),
+      });
+
+      serve(running, {
+        test: async (): Promise<HTTPResponse<JSONObject>> => {
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              ok: true,
+              message: "The Cloud AI agent answered.",
+              results: [
+                {
+                  command: "cloud whoami",
+                  succeeded: true,
+                  exitCode: 0,
+                  output: `Cloud: Azure\n${verdict}`,
+                  errorMessage: null,
+                },
+              ],
+              status: running as unknown as JSONObject,
+            },
+            {},
+          );
+        },
+      });
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      await pickAgentAction(TEST_ACTION_TEST_ID);
+
+      const output: HTMLElement = await findTestId(
+        "ai-agent-test-result-output",
+      );
+
+      expect(output.tagName).toBe("PRE");
+      expect(output).toHaveTextContent(verdict);
+      expect(output).toHaveClass("whitespace-pre-wrap", "break-words");
+    },
+  );
+
+  test("another agent's test output keeps its columns: it scrolls, never wraps", async () => {
+    serve(makeStatus(), {
+      test: async (): Promise<HTTPResponse<JSONObject>> => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            ok: true,
+            message: "docker version worked.",
+            results: [
+              {
+                command: "docker version",
+                succeeded: true,
+                exitCode: 0,
+                output: "Client: Docker Engine - Community\n Version: 27.3.1",
+                errorMessage: null,
+              },
+            ],
+            status: makeStatus() as unknown as JSONObject,
+          },
+          {},
+        );
+      },
+    });
+    openAgentPage();
+
+    await pickAgentAction(TEST_ACTION_TEST_ID);
+
+    const output: HTMLElement = await findTestId("ai-agent-test-result-output");
+
+    expect(output).toHaveClass("overflow-auto");
+    expect(output).not.toHaveClass("whitespace-pre-wrap");
+    expect(output).not.toHaveClass("break-words");
+  });
+
   test("a refused test says what it needs, not what the server says about settings", async () => {
     serve(makeStatus(), {
       test: async (): Promise<HTTPErrorResponse> => {

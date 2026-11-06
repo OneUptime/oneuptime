@@ -111,18 +111,6 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
     reason:
       "Every field after the token is written once for each answer to Use This Account For (calls and SMS, SMS only, calls only) with a showIf for that answer alone: the one number the answer takes, the default switch whose help names what goes through the default, and the folded extra numbers. The step shows five rows at most - the account SID, the token, one number, the switch and the More fields line - and four for SMS only.",
   },
-  /*
-   * The mail server forms (Common/UI/Components/SmtpConfig): Server, then
-   * Sender. The Admin Dashboard's instance server is the same step without
-   * the Name, five rows; SmtpConfigFormsGuard pins both.
-   */
-  {
-    file: `${DASHBOARD}/Components/CustomSMTP/CustomSMTPTable.tsx`,
-    form: "ModelTable: Settings > Custom SMTP Config",
-    step: "server",
-    reason:
-      "The config's name over the four values every provider's SMTP settings page lists together - hostname, port, username and password, copied across in one go and changed together when a password is rotated - and one folded Advanced header (transport, TLS, sign-in type, OAuth). Moving the sign-in to the Sender step would split that copy-and-paste across a Next, and moving the name would set 'Name' beside 'From Name'.",
-  },
 ];
 
 const VIRTUAL_ROOT: string = "/repo";

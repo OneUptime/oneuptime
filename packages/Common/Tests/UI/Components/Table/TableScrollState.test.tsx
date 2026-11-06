@@ -197,6 +197,7 @@ describe("useTableScrollState", () => {
     expect(states[states.length - 1]).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
     expect(screen.getByText("fits")).toBeInTheDocument();
   });
@@ -217,6 +218,7 @@ describe("useTableScrollState", () => {
     expect(states[states.length - 1]).toEqual({
       isOverflowing: true,
       canStickHeader: false,
+      isSettling: false,
     });
     expect(screen.getByText("overflowing")).toBeInTheDocument();
   });
@@ -239,6 +241,7 @@ describe("useTableScrollState", () => {
     expect(states[states.length - 1]).toEqual({
       isOverflowing: false,
       canStickHeader: false,
+      isSettling: false,
     });
   });
 
@@ -263,6 +266,7 @@ describe("useTableScrollState", () => {
     expect(states[states.length - 1]).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -318,6 +322,7 @@ describe("useTableScrollState", () => {
     expect(states[states.length - 1]).toEqual({
       isOverflowing: true,
       canStickHeader: false,
+      isSettling: false,
     });
   });
 

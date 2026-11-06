@@ -133,6 +133,9 @@ Over every page's title, a trail such as *Project › Docker › Settings › Ow
 
 - **Lists keep themselves current.** When an incident or alert is created, acknowledged or resolved anywhere, the lists of incidents, alerts and episodes show it within seconds, without a refresh. While you are in the middle of something on a list, such as rows ticked or a dialog open, it waits, and catches up when you are done.
 - **On a phone, the filter chips fold away** behind **Filter**, so the list starts higher up. The chips you set stay in sight, with **Clear all**. Press **Filter** to see every chip, and again to fold them.
+- **Columns**, in a list's **⋯** menu, picks the columns the list shows and their order, and keeps them for you in this browser. A Project Owner or a Project Admin can tick **Show these columns to everyone in this project** there too: anyone who hasn't picked their own columns for that list sees them, and **Reset to project default** takes your own back to them.
+- **Compact rows**, in the same menu, draws every list's rows shorter, so a long list shows about a fifth more of them. It is kept in this browser.
+- **On a phone, or in a card too narrow for its rows, a list is drawn as cards, one per row.** The band over them says the order they are in, such as **Sorted by Name**: press it to pick the column to sort by, and **Ascending** or **Descending**.
 - **An incident's pages lead with its number.** Its heading, its step in the trail and the browser tab read `INC-42 Checkout is down`, and so do the dialogs that name it, so incidents that share a title are told apart. Alerts, scheduled maintenance events and episodes do the same.
 
 ## Searching for a page, a setting or an action

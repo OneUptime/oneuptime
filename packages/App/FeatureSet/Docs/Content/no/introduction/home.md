@@ -133,6 +133,9 @@ Over tittelen på hver side viser et spor som *Prosjekt › Docker › Innstilli
 
 - **Listene holder seg oppdatert selv.** Når en hendelse eller et varsel opprettes, bekreftes eller løses hvor som helst, viser listene over hendelser, varsler og episoder det i løpet av sekunder, uten å laste inn på nytt. Mens du er midt i noe på en liste, for eksempel med rader avkrysset eller en dialog åpen, venter den og tar igjen alt når du er ferdig.
 - **På en telefon foldes filterbrikkene sammen** bak **Filter**, så listen starter høyere opp. Brikkene du har satt, blir stående synlige, med **Tøm alt**. Trykk på **Filter** for å se alle brikkene, og en gang til for å folde dem sammen igjen.
+- **Kolonner**, i menyen **⋯** på en liste, velger hvilke kolonner listen viser og i hvilken rekkefølge, og husker dem for deg i denne nettleseren. En prosjekteier eller en prosjektadministrator kan også krysse av for **Vis disse kolonnene for alle i dette prosjektet** der: alle som ikke har valgt egne kolonner for listen, ser disse, og **Tilbakestill til prosjektets standard** setter dine egne tilbake til dem.
+- **Kompakte rader**, i samme meny, gjør radene i alle lister lavere, så en lang liste viser omtrent en femtedel flere av dem. Valget huskes i denne nettleseren.
+- **På en telefon, eller i et kort som er for smalt for radene sine, vises en liste som kort, ett per rad.** Båndet over dem sier hvilken rekkefølge de står i, for eksempel **Sortert etter Navn**: trykk på det for å velge kolonnen det sorteres etter, og **Stigende** eller **Synkende**.
 - **Sidene til en hendelse begynner med nummeret.** Overskriften, trinnet i sporet og nettleserfanen viser `INC-42 Checkout is down`, og det samme gjør dialogene som nevner den, så hendelser med samme tittel kan skilles fra hverandre. Varsler, planlagte vedlikeholdshendelser og episoder gjør det samme.
 
 ## Søk etter en side, en innstilling eller en handling
