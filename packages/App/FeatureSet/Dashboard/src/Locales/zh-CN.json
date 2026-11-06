@@ -21642,7 +21642,7 @@
   "{{phoneNumber}} has been released back to Twilio.": "{{phoneNumber}} 已释放回 Twilio。",
   "{{placeholder}} — replaced with a random unique string": "{{placeholder}} — replaced with a random unique string",
   "{{placeholder}} — replaced with current Unix timestamp": "{{placeholder}} — replaced with current Unix timestamp",
-  "{{position}} of {{total}}": "{{position}} of {{total}}",
+  "{{position}} of {{total}}": "第 {{position}} 个，共 {{total}} 个",
   "{{product}} documentation": "{{product}} 文档",
   "{{rate}} error rate": "错误率 {{rate}}",
   "{{resource}} components": "{{resource}}组件",

@@ -21642,7 +21642,7 @@
   "{{phoneNumber}} has been released back to Twilio.": "{{phoneNumber}} به Twilio بازگردانده شد.",
   "{{placeholder}} — replaced with a random unique string": "{{placeholder}} — replaced with a random unique string",
   "{{placeholder}} — replaced with current Unix timestamp": "{{placeholder}} — replaced with current Unix timestamp",
-  "{{position}} of {{total}}": "{{position}} of {{total}}",
+  "{{position}} of {{total}}": "{{position}} از {{total}}",
   "{{product}} documentation": "مستندات {{product}}",
   "{{rate}} error rate": "نرخ خطا {{rate}}",
   "{{resource}} components": "قطعه‌های {{resource}}",

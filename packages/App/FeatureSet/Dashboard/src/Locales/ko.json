@@ -21642,7 +21642,7 @@
   "{{phoneNumber}} has been released back to Twilio.": "{{phoneNumber}}을(를) Twilio에 반환했습니다.",
   "{{placeholder}} — replaced with a random unique string": "{{placeholder}} — replaced with a random unique string",
   "{{placeholder}} — replaced with current Unix timestamp": "{{placeholder}} — replaced with current Unix timestamp",
-  "{{position}} of {{total}}": "{{position}} of {{total}}",
+  "{{position}} of {{total}}": "{{position}} / {{total}}",
   "{{product}} documentation": "{{product}} 문서",
   "{{rate}} error rate": "오류율 {{rate}}",
   "{{resource}} components": "{{resource}} 구성 요소",

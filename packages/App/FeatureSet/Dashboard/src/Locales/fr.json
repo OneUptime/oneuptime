@@ -21642,7 +21642,7 @@
   "{{phoneNumber}} has been released back to Twilio.": "{{phoneNumber}} a été restitué à Twilio.",
   "{{placeholder}} — replaced with a random unique string": "{{placeholder}} — replaced with a random unique string",
   "{{placeholder}} — replaced with current Unix timestamp": "{{placeholder}} — replaced with current Unix timestamp",
-  "{{position}} of {{total}}": "{{position}} of {{total}}",
+  "{{position}} of {{total}}": "{{position}} sur {{total}}",
   "{{product}} documentation": "Documentation {{product}}",
   "{{rate}} error rate": "{{rate}} de taux d'erreur",
   "{{resource}} components": "Composants : {{resource}}",

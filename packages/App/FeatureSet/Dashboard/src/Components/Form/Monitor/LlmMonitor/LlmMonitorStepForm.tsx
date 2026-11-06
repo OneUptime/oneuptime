@@ -18,8 +18,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import Card from "Common/UI/Components/Card/Card";
+import CardFormSections from "Common/UI/Components/Card/CardFormSections";
 import { LLM_ISSUE_STYLES } from "../../../LlmConversations/LlmConversationCopy";
 import LlmMonitorPreview from "../../../LlmAlerts/LlmMonitorPreview";
 import { getLlmMonitorWindowOptions } from "../../../LlmAlerts/LlmMonitorWindow";
@@ -204,18 +204,23 @@ const LlmMonitorStepForm: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
-      <div>
-        <HorizontalRule />
-        <FieldLabelElement
+      {/*
+       * The preview is a section of the step of its own, as Monitor
+       * Criteria is (CardFormSections): a rule above it and a section's
+       * title, where a larger, lighter heading of its own read as a step
+       * above the sections round it.
+       */}
+      <CardFormSections
+        className="mt-6"
+        dataTestId="llm-monitor-preview-section"
+      >
+        <Card
           title="Preview"
           description="What this monitor would count right now, so you can check the settings before you save."
-          hideOptionalLabel={true}
-          isHeading={true}
-        />
-        <div className="mt-5 mb-5">
+        >
           <LlmMonitorPreview step={config} />
-        </div>
-      </div>
+        </Card>
+      </CardFormSections>
     </div>
   );
 };
