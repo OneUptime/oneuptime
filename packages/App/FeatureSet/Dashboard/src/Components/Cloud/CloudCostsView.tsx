@@ -7,6 +7,7 @@ import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import API from "Common/UI/Utils/API/API";
 import {
   PluralTemplate,
@@ -54,8 +55,13 @@ import CloudDailySpendChart from "./CloudDailySpendChart";
 import { getCloudCostTiles } from "./CloudOverviewTiles";
 import CloudStatStrip from "./CloudStatStrip";
 import CloudUnusualDaysCard, {
+  CloudUnusualDayRow,
   getCloudUnusualDayRows,
 } from "./CloudUnusualDaysCard";
+import {
+  getCloudUnusualDayMarkers,
+  getCloudUnusualDaysMarked,
+} from "./CloudUnusualDayMarkers";
 import {
   CloudAccountRow,
   CloudAccountsTotals,
@@ -68,7 +74,8 @@ import {
  *
  *   - The strip: the month so far against last month by now, what it is on
  *     course for, last month in full and what could be saved.
- *   - Daily spend: each of the last 30 days, a bar each.
+ *   - Daily spend: each of the last 30 days, a bar each, the unusual days
+ *     marked above their bars.
  *   - Unusual days: the days of the last two weeks that cost far more than
  *     usual, as budgets alert on them - when there are any.
  *   - Where the money goes: what cost the most in a period - by service,
@@ -111,9 +118,16 @@ export const NOT_READ_DESCRIPTION: string = translationKey(
 );
 const CloudDailySpendCard: FunctionComponent<{
   scope: Omit<CloudCostScope, "startDate" | "endDate">;
+  // The unusual days, marked above their bars.
+  unusualDays: Array<CloudUnusualDayRow>;
+  // Over every account: each mark names its account.
+  showAccounts: boolean;
 }> = (props: {
   scope: Omit<CloudCostScope, "startDate" | "endDate">;
+  unusualDays: Array<CloudUnusualDayRow>;
+  showAccounts: boolean;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [points, setPoints] = useState<Array<CloudCostPoint> | null>(null);
   const [error, setError] = useState<string>("");
   const [attempt, setAttempt] = useState<number>(0);
@@ -146,9 +160,25 @@ const CloudDailySpendCard: FunctionComponent<{
     };
   }, [scopeKey, attempt]);
 
+  const markers: Array<ChartTimeReferenceLineProps> = useMemo(():
+    | Array<ChartTimeReferenceLineProps>
+    | never => {
+    return getCloudUnusualDayMarkers({
+      rows: props.unusualDays,
+      currency: props.scope.currency,
+      translator,
+      showAccounts: props.showAccounts,
+    });
+  }, [props.unusualDays, props.scope.currency, props.showAccounts, translator]);
+
   return (
     <Card title={DAILY_SPEND_TITLE} description={DAILY_SPEND_DESCRIPTION}>
-      <div data-testid="cloud-daily-spend">
+      <div
+        data-testid="cloud-daily-spend"
+        data-unusual-days={getCloudUnusualDaysMarked(props.unusualDays).join(
+          ",",
+        )}
+      >
         {error ? (
           <ErrorMessage
             message={error}
@@ -165,6 +195,7 @@ const CloudDailySpendCard: FunctionComponent<{
           <CloudDailySpendChart
             points={points}
             currency={props.scope.currency}
+            markers={markers}
           />
         )}
       </div>
@@ -436,6 +467,11 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
     cloudAccountIds: props.cloudAccountId ? [props.cloudAccountId] : undefined,
     currency,
   };
+  // The same days the chart marks and the card under it lists.
+  const unusualDays: Array<CloudUnusualDayRow> = getCloudUnusualDayRows({
+    accounts: props.accounts,
+    currency,
+  });
 
   return (
     <Fragment>
@@ -448,9 +484,13 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
           savingsRoute: props.savingsRoute,
         })}
       />
-      <CloudDailySpendCard scope={scope} />
+      <CloudDailySpendCard
+        scope={scope}
+        unusualDays={unusualDays}
+        showAccounts={!props.cloudAccountId}
+      />
       <CloudUnusualDaysCard
-        rows={getCloudUnusualDayRows({ accounts: props.accounts, currency })}
+        rows={unusualDays}
         currency={currency}
         showAccounts={!props.cloudAccountId}
       />
