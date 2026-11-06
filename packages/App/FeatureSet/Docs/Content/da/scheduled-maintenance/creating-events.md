@@ -75,7 +75,7 @@ To ting udfylder formularen for dig undervejs:
 
 ## Start fra en ressource eller en skabelon
 
-På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en cloudressource, en tjeneste eller en netværkslokation åbner **Opret planlagt vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
+På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en cloudressource, et miljø i App-platforme, en tjeneste eller en netværkslokation åbner **Opret planlagt vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
 
 **Opret fra skabelon**, ved siden af knappen til at oprette, beder dig om at **Vælg skabelon for planlagt vedligeholdelse** og åbner derefter formularen udfyldt fra skabelonen. Se [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates).
 

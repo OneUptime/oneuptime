@@ -119,7 +119,7 @@ Il primo attributo che la telemetria porta dà il nome all'app, quindi anche un'
 - **Entrambi sono modifiche.** Ognuno è una linea tratteggiata nei grafici dell'app e dell'ambiente, una riga nel **Feed** dell'ambiente e un [evento di modifica](/docs/telemetry/change-events) che OneUptime AI legge quando indaga su un incidente nell'ambiente. **Distribuzioni recenti** in **Piattaforme applicative → Panoramica** elenca le più recenti.
 - **Per ogni app si registrano al massimo 12 nuove revisioni in un'ora.** Altrimenti una `service.version` che cambia a ogni build sarebbe una distribuzione al minuto.
 
-La pagina di un'app ha una **Panoramica** con le sue richieste, gli errori, la latenza, le istanze e le revisioni in esecuzione ora, una scheda **Revisioni** con i numeri di ogni revisione, le schede **Istanze**, **Registri** e **Tracce** filtrate sull'app, e una scheda **Raccomandazioni** con i monitor che OneUptime consiglia per l'app: operazioni non riuscite, raffiche di errori, traffico che si ferma e richieste lente, letti dagli span dell'app e dalla sua `http.server.request.duration`, ciascuno collegato all'ambiente dell'app. **Configura gli avvisi** la apre; per un'app il cui nome è troppo lungo per filtrarne la telemetria, apre invece i monitor consigliati del servizio dell'app, in **Servizi**.
+La pagina di un'app ha una **Panoramica** con le sue richieste, gli errori, la latenza, le istanze e le revisioni in esecuzione ora, una scheda **Revisioni** con i numeri di ogni revisione, le schede **Istanze**, **Registri** e **Tracce** filtrate sull'app, e una scheda **Raccomandazioni** con i monitor che OneUptime consiglia per l'app: operazioni non riuscite, raffiche di errori, traffico che si ferma e richieste lente, letti dagli span dell'app e dalla sua `http.server.request.duration`, ciascuno collegato all'ambiente dell'app. **Configura gli avvisi** la apre; per un'app il cui nome è troppo lungo per filtrarne la telemetria, apre invece i monitor consigliati del servizio dell'app, in **Servizi**. La scheda conta quelli ancora da configurare, e le **Raccomandazioni** dell'ambiente ne configurano uno su tutte le app in una volta.
 
 Un'app che non invia nulla per 30 giorni viene rimossa con le sue revisioni, così come una revisione che nessuna istanza segnala per 30 giorni, a meno che l'app la esegua ancora. Su un OneUptime self-hosted, `CLOUD_APP_RETENTION_DAYS` imposta i 30.
 
@@ -217,6 +217,10 @@ La **Panoramica** di un ambiente mostra:
 - Le schede **Registri**, **Tracce** e **Metriche**, filtrate sull'ambiente.
 
 Un ambiente che non ha ancora inviato nulla mostra **In attesa**. Uno la cui telemetria si ferma per 15 minuti mostra **Disconnesso**, e lo span, log o metrica successivo lo riporta a **Connesso**. Il tempo in cui OneUptime stesso era fermo o stava recuperando non conta nei 15 minuti.
+
+Le **Raccomandazioni** di un ambiente elencano i monitor che OneUptime consiglia per le sue app, con le app a cui ciascuno è destinato e quante lo hanno già: aggiungetene uno a un'app, o in una volta a tutte le app che ancora non lo hanno, e il menu laterale conta quelli ancora da configurare. Un'app il cui nome è troppo lungo per filtrarne la telemetria, o la cui piattaforma nessuna telemetria ha ancora nominato, non riceve alcun monitor ed è elencata alla fine, con il motivo. Ogni monitor è collegato all'ambiente.
+
+La sua scheda **Manutenzione programmata** elenca gli [eventi di manutenzione programmata](/docs/scheduled-maintenance/creating-events) che lo coprono, e **Crea evento di manutenzione programmata** vi apre il modulo con l'ambiente già scelto. Mentre uno è in corso, i monitor che leggono solo la telemetria dell'ambiente, come quelli consigliati delle sue app, non aprono incidenti né avvisi, e la sua **Panoramica** e la pagina di ogni app lo dicono finché l'evento non termina.
 
 ### Etichette e proprietari
 

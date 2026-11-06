@@ -75,7 +75,7 @@ Duas coisas preenchem o formulário para você no caminho:
 
 ## Começar por um recurso ou um modelo
 
-Na aba **Manutenção programada** de um host, um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, um host Docker ou Podman, um vCenter, uma nuvem OpenStack, um storage array, uma frota de IoT, um banco de dados, um recurso de nuvem, um serviço ou um site de rede, **Criar Evento de Manutenção Programada** abre o mesmo formulário com esse recurso já escolhido em **Outros recursos afetados**, e a aba lista os eventos que o afetam. A aba de um item de inventário escolhe o host, o serviço ou o cluster Kubernetes para o qual o item aponta.
+Na aba **Manutenção programada** de um host, um cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, um host Docker ou Podman, um vCenter, uma nuvem OpenStack, um storage array, uma frota de IoT, um banco de dados, um recurso de nuvem, um ambiente de Plataformas de aplicativos, um serviço ou um site de rede, **Criar Evento de Manutenção Programada** abre o mesmo formulário com esse recurso já escolhido em **Outros recursos afetados**, e a aba lista os eventos que o afetam. A aba de um item de inventário escolhe o host, o serviço ou o cluster Kubernetes para o qual o item aponta.
 
 **Criar a partir de modelo**, ao lado do botão de criar, pede que você use **Selecionar Modelo de Manutenção Programada** e depois abre o formulário preenchido a partir do modelo. Veja [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates).
 

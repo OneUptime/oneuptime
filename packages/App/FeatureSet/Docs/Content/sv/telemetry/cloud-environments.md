@@ -119,7 +119,7 @@ Det första attributet som telemetrin bär namnger appen, så en app på en plat
 - **Båda är ändringar.** Var och en är en streckad linje i appens och miljöns diagram, en rad i miljöns **Feed** och en [ändringshändelse](/docs/telemetry/change-events) som OneUptime AI läser när den utreder en incident i miljön. **Senaste distributioner** under **Appplattformar → Översikt** listar de nyaste.
 - **Högst 12 nya revisioner av en app registreras per timme.** En `service.version` som ändras med varje bygge skulle annars vara en distribution i minuten.
 
-En apps sida har en **Översikt** med dess begäranden, fel, latens, instanser och de revisioner som körs nu, en flik **Revisioner** med varje revisions siffror, flikarna **Instanser**, **Loggar** och **Spår**, filtrerade till appen, och en flik **Rekommendationer** med de monitorer som OneUptime rekommenderar för den: misslyckade åtgärder, felskurar, trafik som upphör och långsamma begäranden, lästa från appens egna spans och dess `http.server.request.duration`, var och en länkad till appens miljö. **Konfigurera larm** öppnar den; för en app vars namn är för långt för att filtrera dess telemetri på öppnar den i stället de rekommenderade monitorerna för appens tjänst under **Tjänster**.
+En apps sida har en **Översikt** med dess begäranden, fel, latens, instanser och de revisioner som körs nu, en flik **Revisioner** med varje revisions siffror, flikarna **Instanser**, **Loggar** och **Spår**, filtrerade till appen, och en flik **Rekommendationer** med de monitorer som OneUptime rekommenderar för den: misslyckade åtgärder, felskurar, trafik som upphör och långsamma begäranden, lästa från appens egna spans och dess `http.server.request.duration`, var och en länkad till appens miljö. **Konfigurera larm** öppnar den; för en app vars namn är för långt för att filtrera dess telemetri på öppnar den i stället de rekommenderade monitorerna för appens tjänst under **Tjänster**. Fliken räknar dem som återstår att konfigurera, och miljöns **Rekommendationer** konfigurerar en på alla appar på en gång.
 
 En app som inte skickar något på 30 dagar tas bort med sina revisioner, och det gör även en revision som ingen instans rapporterar på 30 dagar, om inte appen fortfarande kör den. På en egenhostad OneUptime anger `CLOUD_APP_RETENTION_DAYS` de 30.
 
@@ -217,6 +217,10 @@ En miljös **Översikt** visar:
 - Flikarna **Loggar**, **Spår** och **Mätvärden**, filtrerade på miljön.
 
 En miljö som ännu inte har skickat något visar **Väntar**. En vars telemetri slutar komma i 15 minuter visar **Frånkopplad**, och nästa spann, logg eller mätvärde tar tillbaka den till **Ansluten**. Tid då OneUptime självt var nere eller höll på att komma ikapp räknas inte in i de 15 minuterna.
+
+En miljös **Rekommendationer** listar de monitorer som OneUptime rekommenderar för dess appar, med de appar var och en är avsedd för och hur många som redan har den: lägg till en på en app, eller på en gång på alla appar som fortfarande saknar den, så räknar sidomenyn dem som återstår att konfigurera. En app vars namn är för långt för att filtrera dess telemetri på, eller vars plattform ingen telemetri har namngett ännu, erbjuds ingen och nämns sist, med orsaken. Varje monitor är länkad till miljön.
+
+Dess flik **Schemalagt underhåll** listar de [schemalagda underhållshändelser](/docs/scheduled-maintenance/creating-events) som täcker den, och **Skapa schemalagt underhållsevenemang** öppnar där formuläret med miljön redan vald. Medan en av dem pågår öppnar de monitorer som bara läser miljöns telemetri, som de rekommenderade monitorerna för dess appar, ingen incident och inget larm, och dess **Översikt** och varje apps sida säger det tills händelsen slutar.
 
 ### Etiketter och ägare
 

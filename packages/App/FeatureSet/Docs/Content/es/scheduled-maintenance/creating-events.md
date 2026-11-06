@@ -75,7 +75,7 @@ Hay dos cosas que rellenan el formulario por ti sobre la marcha:
 
 ## Empezar desde un recurso o una plantilla
 
-En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un recurso en la nube, un servicio o un sitio de red, **Crear evento de mantenimiento programado** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
+En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un recurso en la nube, un entorno de Plataformas de aplicaciones, un servicio o un sitio de red, **Crear evento de mantenimiento programado** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
 
 **Crear desde plantilla**, junto al botón de crear, te pide **Seleccionar plantilla de mantenimiento programado** y luego abre el formulario relleno a partir de la plantilla. Consulta [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates).
 

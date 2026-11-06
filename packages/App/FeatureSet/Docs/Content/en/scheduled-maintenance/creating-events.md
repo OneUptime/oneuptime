@@ -75,7 +75,7 @@ Two things fill the form in for you as you go:
 
 ## Start from a resource or a template
 
-On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
+On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, an App Platforms environment, a service or a network site, **Create Scheduled Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
 
 **Create from Template**, beside the create button, asks you to **Select Scheduled Maintenance Template**, then opens the form filled in from the template. See [Templates & Recurring Events](/docs/scheduled-maintenance/templates).
 

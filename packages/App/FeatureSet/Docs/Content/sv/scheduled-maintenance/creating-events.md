@@ -75,7 +75,7 @@ Två saker fyller i formuläret åt dig medan du arbetar:
 
 ## Börja från en resurs eller en mall
 
-På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en molnresurs, en tjänst eller en nätverksplats öppnar **Skapa schemalagt underhållsevenemang** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
+På fliken **Schemalagt underhåll** för en värd, ett Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-kluster, en Docker- eller Podman-värd, en vCenter, ett OpenStack-moln, en lagringsenhet, en IoT-flotta, en databas, en molnresurs, en miljö i Appplattformar, en tjänst eller en nätverksplats öppnar **Skapa schemalagt underhållsevenemang** samma formulär med den resursen redan vald under **Andra påverkade resurser**, och fliken listar de händelser som påverkar den. Fliken för ett inventarieobjekt väljer den värd, tjänst eller det Kubernetes-kluster som objektet pekar på.
 
 **Skapa från mall**, bredvid knappen för att skapa, ber dig att **Välj mall för schemalagt underhåll** och öppnar sedan formuläret ifyllt från mallen. Se [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates).
 

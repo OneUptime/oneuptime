@@ -218,3 +218,95 @@ describe("Apps and deploys, on Cloud Environments", () => {
     );
   });
 });
+
+const DASHBOARD: string = path.join(PACKAGES, "App/FeatureSet/Dashboard/src");
+
+function dashboardSource(file: string): string {
+  return fs.readFileSync(path.join(DASHBOARD, file), "utf8");
+}
+
+/*
+ * An environment's apps as a whole (#6165): its Recommendations page sets
+ * an app's recommended monitors up on every app at once, its Scheduled
+ * Maintenance tab lists the events that hold them, and an app's tab counts
+ * what is still to set up. The page says each as the Dashboard does it.
+ */
+describe("an environment's recommended monitors and its maintenance, on Cloud Environments", () => {
+  const whatYouGet: string = section(hub, "## What you get");
+
+  it("names the environment's Recommendations, which its side menu counts, and every app's monitor at once", () => {
+    const sideMenu: string = dashboardSource(
+      "Pages/AppPlatforms/View/SideMenu.tsx",
+    );
+    const page: string = dashboardSource(
+      "Components/Recommendations/CloudEnvironmentAppRecommendations.tsx",
+    );
+
+    expect(sideMenu).toContain("<CloudEnvironmentRecommendationsMenuItem");
+    expect(sideMenu).toContain('title: "Recommendations",');
+    expect(page).toContain('other: "Set up on {{created}} of {{count}} apps",');
+    expect(page).toContain('other: "Add to {{count}} Apps",');
+    expect(whatYouGet).toContain(
+      "An environment's **Recommendations** lists the monitors OneUptime recommends for its apps, with the apps each one is for and how many have it already: add one to an app, or to every app still without it at once, and the side menu counts the ones still to set up.",
+    );
+  });
+
+  it("says why an app is offered none, for each reason the page names", () => {
+    const page: string = dashboardSource(
+      "Components/Recommendations/CloudEnvironmentAppRecommendations.tsx",
+    );
+
+    expect(page).toContain(
+      '"Their names are too long to filter their telemetry by, so no monitor can watch one of them alone. Their telemetry is in this environment\'s tabs.",',
+    );
+    expect(page).toContain(
+      '"Offered once this environment\'s telemetry names its platform",',
+    );
+    expect(whatYouGet).toContain(
+      "An app whose name is too long to filter its telemetry by, or whose platform no telemetry has named yet, is offered none and is named at the end, with why.",
+    );
+  });
+
+  it("links each monitor it makes to the environment", () => {
+    expect(
+      dashboardSource(
+        "Components/Recommendations/CloudEnvironmentAppRecommendationPlan.ts",
+      ),
+    ).toContain(
+      "MonitorRecommendationCreateUtil.linkToCloudResource({\n        monitor: link.monitor,\n        cloudResourceId: new ObjectID(data.environmentId),\n      });",
+    );
+    expect(whatYouGet).toContain("Each monitor is linked to the environment.");
+  });
+
+  it("lists the events that cover it on its Scheduled Maintenance tab, and says while one holds it on its Overview and each app's page", () => {
+    expect(
+      dashboardSource("Components/CreateFromRecord/CreateFromRecord.ts"),
+    ).toContain(
+      "page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE,",
+    );
+    expect(
+      dashboardSource("Pages/AppPlatforms/View/ScheduledMaintenance.tsx"),
+    ).toContain("kind: CreateFromRecordKind.CloudEnvironment");
+    expect(dashboardSource("Pages/AppPlatforms/View/Overview.tsx")).toContain(
+      "scope={CloudEnvironmentMaintenanceNoticeScope.Environment}",
+    );
+    expect(dashboardSource("Pages/AppPlatforms/View/App.tsx")).toContain(
+      "scope={CloudEnvironmentMaintenanceNoticeScope.App}",
+    );
+    expect(whatYouGet).toContain(
+      "Its **Scheduled Maintenance** tab lists the [scheduled maintenance events](/docs/scheduled-maintenance/creating-events) that cover it, and **Create Scheduled Maintenance Event** there opens the form with the environment already picked.",
+    );
+    expect(whatYouGet).toContain(
+      "While one is in progress, the monitors that read only the environment's telemetry, such as its apps' recommended ones, open no incident or alert, and its **Overview** and each app's page say so until the event ends.",
+    );
+  });
+
+  it("counts, beside an app's Recommendations tab, the ones still to set up", () => {
+    expect(dashboardSource("Pages/AppPlatforms/View/App.tsx")).toContain(
+      "countBadge: recommendationsToSetUp || undefined,",
+    );
+    expect(apps).toContain(
+      "The tab counts the ones still to set up, and the environment's **Recommendations** sets one up on every app at once.",
+    );
+  });
+});

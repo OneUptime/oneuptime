@@ -75,7 +75,7 @@ Zwei Dinge füllen das Formular unterwegs für Sie aus:
 
 ## Von einer Ressource oder einer Vorlage aus beginnen
 
-Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, einer OpenStack-Cloud, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, einer Cloud-Ressource, eines Dienstes oder eines Netzwerkstandorts öffnet **Geplantes Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
+Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, einer OpenStack-Cloud, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, einer Cloud-Ressource, einer Umgebung in App-Plattformen, eines Dienstes oder eines Netzwerkstandorts öffnet **Geplantes Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
 
 **Aus Vorlage erstellen**, neben der Schaltfläche zum Erstellen, fragt nach **Vorlage für geplante Wartung auswählen** und öffnet dann das Formular, aus der Vorlage ausgefüllt. Siehe [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates).
 
