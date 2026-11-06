@@ -297,6 +297,8 @@ El cuadro de diálogo hace una sola pregunta, **¿Hasta dónde puede llegar la I
 
 El comando incluye una clave creada solo para el agente de esta cuenta, que sirve durante un día hasta que el agente se conecta con ella: vuelve a abrir el cuadro de diálogo para obtener una nueva. Solo quien puede restablecer el agente y editar la cuenta recibe una.
 
+En una cuenta de AWS que encontró una conexión que lee una AWS Organization, el cuadro de diálogo también pregunta **¿Qué cuentas?**: **Todas las cuentas de la organización** configura un agente en cada una de sus cuentas con un solo comando en el AWS CloudShell de la cuenta de administración, cada agente con su propia clave y el mismo rol de privilegios mínimos, y muestra qué agentes se conectaron.
+
 El agente se ejecuta todo el mes en tu cuenta, facturado por tu nube a sus precios de lista. En Google Cloud se ejecuta en una pequeña VM propia, en una red que no deja entrar nada; para un proyecto cuya organización no permite a ninguna VM una dirección IP externa, elige **Cloud Run** en **Dónde se ejecuta el agente**, en **Más campos**:
 
 | Nube | Qué se ejecuta | Aproximadamente |

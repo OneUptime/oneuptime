@@ -297,6 +297,8 @@ Het dialoogvenster stelt één vraag, **Hoe ver mag AI gaan?**: **Eerst aan mij 
 
 De opdracht bevat een sleutel die alleen voor de agent van dit account is gemaakt en een dag lang werkt totdat de agent ermee verbinding maakt: open het venster opnieuw voor een nieuwe. Alleen wie de agent mag resetten en het account mag bewerken, krijgt er een.
 
+Bij een AWS-account dat is gevonden door een koppeling die een AWS Organization leest, vraagt het dialoogvenster ook **Welke accounts?**: **Elk account van de organisatie** richt met één opdracht in de AWS CloudShell van het beheeraccount een agent in elk van haar accounts in, elke agent met een eigen sleutel en dezelfde rol met minimale rechten, en toont welke agents verbinding hebben gemaakt.
+
 De agent draait de hele maand in je account, door je cloud gefactureerd tegen de lijstprijzen ervan. In Google Cloud draait hij op een eigen kleine VM, in een netwerk dat niets binnenlaat; kies voor een project waarvan de organisatie geen enkele VM een extern IP-adres toestaat **Cloud Run** bij **Waar de agent draait**, onder **Meer velden**:
 
 | Cloud | Wat er draait | Ongeveer |

@@ -297,6 +297,8 @@ Der Dialog stellt eine einzige Frage, **Wie weit darf die KI gehen?**: **Mich zu
 
 Der Befehl enthält einen Schlüssel, der nur für den Agenten dieses Kontos erstellt wurde und einen Tag lang gilt, bis sich der Agent damit verbindet: Öffnen Sie den Dialog erneut, um einen neuen zu erhalten. Nur wer den Agenten zurücksetzen und das Konto bearbeiten darf, erhält einen.
 
+Bei einem AWS-Konto, das eine Verbindung gefunden hat, die eine AWS Organization liest, fragt der Dialog zusätzlich **Welche Konten?**: **Jedes Konto der Organisation** richtet mit einem Befehl in der AWS CloudShell des Verwaltungskontos in jedem ihrer Konten einen Agenten ein, jeden mit seinem eigenen Schlüssel und derselben Rolle mit minimalen Rechten, und listet auf, welche Agenten sich verbunden haben.
+
 Der Agent läuft den ganzen Monat in Ihrem Konto und wird von Ihrer Cloud zu deren Listenpreisen abgerechnet. In Google Cloud läuft er auf einer eigenen kleinen VM, in einem Netzwerk, das nichts hereinlässt; für ein Projekt, dessen Organisation keiner VM eine externe IP-Adresse erlaubt, wählen Sie unter **Weitere Felder** bei **Wo der Agent läuft** die Option **Cloud Run**:
 
 | Cloud | Was läuft | Etwa |

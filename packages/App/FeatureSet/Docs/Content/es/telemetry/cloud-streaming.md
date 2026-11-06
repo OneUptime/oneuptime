@@ -68,6 +68,7 @@ El cuadro pregunta cada pocos segundos qué ha llegado. Firehose entrega a los p
 | --- | --- |
 | **Todas las métricas, no solo las clave** | Transmite todas las métricas que CloudWatch tiene para la cuenta, incluidas las tuyas. AWS factura cada actualización de métrica que envía un flujo, así que puede costar muchas veces más |
 | **Regiones** | Desde dónde transmitir: al principio, las regiones en las que la conexión encontró recursos. Si se deja vacío, el comando transmite desde la región de AWS CloudShell. Como máximo 30 |
+| **Todas las cuentas de la organización** | Para una conexión que lee una AWS Organization: el comando, ejecutado en su cuenta de administración, también crea las mismas pilas en cada cuenta miembro mediante un StackSet, y en las cuentas que se unan después. Todos los grupos de registros o ninguno: los grupos con nombre son de una sola cuenta |
 | **Configurarlo de otra forma** | Los endpoints de métricas y de registros y la clave, para configurar los flujos con Terraform o la consola |
 
 **Descargar la plantilla** guarda la plantilla que despliega el comando, para desplegarla a tu manera.
@@ -130,6 +131,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Para una conexión que lee una AWS Organization, ejecute el comando del cuadro de diálogo en la cuenta de administración: si se transmitía la organización, también elimina las pilas de cada cuenta miembro y el StackSet.
 :::
 
 Para cambiar lo que transmite una pila, vuelve a abrir **Transmitir métricas y registros**, elige **Crear una clave nueva** y ejecuta el nuevo comando. La clave que reemplaza sigue funcionando 24 horas, así que no se rechaza ninguna entrega mientras se actualizan las pilas. Como máximo 3 claves reemplazadas funcionan a la vez.

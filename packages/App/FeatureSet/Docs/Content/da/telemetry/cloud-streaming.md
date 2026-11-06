@@ -68,6 +68,7 @@ Dialogen spørger med få sekunders mellemrum, hvad der er ankommet. Firehose le
 | --- | --- |
 | **Alle metrikker, ikke kun nøglemetrikkerne** | Streamer alle metrikker, CloudWatch har for kontoen, også dine egne. AWS fakturerer hver metrikopdatering, en stream sender, så det kan koste mange gange mere |
 | **Regioner** | Hvorfra der streames: til at begynde med de regioner, hvor forbindelsen fandt ressourcer. Står feltet tomt, streamer kommandoen fra AWS CloudShells egen region. Højst 30 |
+| **Hver konto i organisationen** | For en forbindelse, der læser en AWS Organization: kommandoen, kørt i administrationskontoen, opretter også de samme stakke i hver medlemskonto gennem et StackSet, og i konti, der kommer med senere. Alle loggrupper eller ingen: navngivne loggrupper hører til én konto |
 | **Sæt det op på en anden måde** | Endepunkterne for metrikker og logge og nøglen, til at sætte streamsne op med Terraform eller konsollen |
 
 **Download skabelonen** gemmer den skabelon, kommandoen udruller, så du kan udrulle den på din egen måde.
@@ -130,6 +131,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+For en forbindelse, der læser en AWS Organization, skal du køre dialogens kommando i administrationskontoen: Hvis organisationen blev streamet, sletter den også hver medlemskontos stakke og StackSettet.
 :::
 
 For at ændre, hvad en stak streamer, åbner du **Stream metrikker og logge** igen, vælger **Opret en ny nøgle** og kører den nye kommando. Den nøgle, den erstatter, virker i 24 timer endnu, så ingen levering afvises, mens stakkene opdateres. Højst 3 erstattede nøgler virker på én gang.

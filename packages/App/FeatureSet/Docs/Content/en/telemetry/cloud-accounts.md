@@ -297,6 +297,8 @@ The dialog asks one question, **How far may AI go?**: **Ask me first**, the defa
 
 The command holds a key made for this account's agent alone, which works for a day until the agent connects with it: open the dialog again for a new one. Only someone who may reset the agent and edit the account gets one.
 
+On an AWS account found by a connection that reads an AWS Organization, the dialog also asks **Which accounts?**: **Every account of the organization** sets an agent up in each of its accounts with one command in the management account's AWS CloudShell, each agent with its own key and the same least-privilege role, and lists which accounts' agents connected.
+
 The agent runs all month in your account, billed by your cloud at its list prices. On Google Cloud it runs on a small VM of its own, in a network that lets nothing in; for a project whose organization lets no VM have an external IP address, choose **Cloud Run** in **Where the agent runs**, under **More fields**:
 
 | Cloud | What runs | About |

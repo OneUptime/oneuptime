@@ -68,6 +68,7 @@ Het venster vraagt om de paar seconden wat er binnen is gekomen. Firehose levert
 | --- | --- |
 | **Elke metriek, niet alleen de kernmetrieken** | Streamt elke metriek die CloudWatch voor het account heeft, ook uw eigen. AWS rekent elke metriekupdate af die een stream verstuurt, dus het kan vele malen meer kosten |
 | **Regio's** | Waarvandaan te streamen: eerst de regio's waarin de koppeling resources vond. Leeg gelaten streamt de opdracht vanuit de eigen regio van AWS CloudShell. Hoogstens 30 |
+| **Elk account van de organisatie** | Voor een koppeling die een AWS Organization leest: de opdracht, uitgevoerd in het beheeraccount, maakt via een StackSet dezelfde stacks ook in elk lidaccount, en in accounts die later lid worden. Alle loggroepen of geen: benoemde loggroepen horen bij één account |
 | **Op een andere manier instellen** | De endpoints voor metrieken en logboeken en de sleutel, om de streams met Terraform of de console in te stellen |
 
 **Sjabloon downloaden** slaat het sjabloon op dat de opdracht implementeert, om het op uw eigen manier te implementeren.
@@ -130,6 +131,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Voer bij een koppeling die een AWS Organization leest de opdracht van het dialoogvenster uit in het beheeraccount: als de organisatie werd gestreamd, verwijdert hij ook de stacks van elk lidaccount en de StackSet.
 :::
 
 Om te wijzigen wat een stack streamt, opent u opnieuw **Metrieken en logboeken streamen**, kiest u **Nieuwe sleutel maken** en voert u de nieuwe opdracht uit. De sleutel die hij vervangt, blijft 24 uur werken, zodat geen levering wordt geweigerd terwijl de stacks worden bijgewerkt. Hoogstens 3 vervangen sleutels werken tegelijk.

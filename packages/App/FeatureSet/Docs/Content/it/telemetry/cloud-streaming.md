@@ -68,6 +68,7 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Firehose consegna entro 
 | --- | --- |
 | **Tutte le metriche, non solo quelle chiave** | Trasmette tutte le metriche che CloudWatch ha per l'account, comprese le tue. AWS addebita ogni aggiornamento di metrica che un flusso invia, quindi può costare molte volte di più |
 | **Regioni** | Da dove trasmettere: all'inizio, le regioni in cui la connessione ha trovato risorse. Se lasciato vuoto, il comando trasmette dalla regione di AWS CloudShell. Al massimo 30 |
+| **Ogni account dell'organizzazione** | Per una connessione che legge una AWS Organization: il comando, eseguito nel suo account di gestione, crea gli stessi stack anche in ogni account membro tramite uno StackSet, e negli account che entrano in seguito. Tutti i gruppi di log o nessuno: i gruppi con nome appartengono a un solo account |
 | **Configuralo in un altro modo** | Gli endpoint delle metriche e dei log e la chiave, per configurare i flussi con Terraform o la console |
 
 **Scarica il modello** salva il modello che il comando distribuisce, per distribuirlo a modo tuo.
@@ -130,6 +131,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Per una connessione che legge una AWS Organization, esegui il comando della finestra di dialogo nell'account di gestione: se l'organizzazione era trasmessa, elimina anche gli stack di ogni account membro e lo StackSet.
 :::
 
 Per cambiare ciò che uno stack trasmette, apri di nuovo **Trasmetti metriche e log**, scegli **Crea una nuova chiave** ed esegui il nuovo comando. La chiave che sostituisce continua a funzionare per 24 ore, così nessuna consegna viene rifiutata mentre gli stack si aggiornano. Al massimo 3 chiavi sostituite funzionano contemporaneamente.

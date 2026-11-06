@@ -297,6 +297,8 @@ Dialogen stiller ett spørsmål, **Hvor langt kan AI gå?**: **Spør meg først*
 
 Kommandoen inneholder en nøkkel som bare er laget for agenten til denne kontoen, og som virker i en dag til agenten kobler til med den: Åpne dialogen på nytt for en ny. Bare den som kan tilbakestille agenten og redigere kontoen, får en.
 
+På en AWS-konto som en tilkobling som leser en AWS Organization har funnet, spør dialogen også **Hvilke kontoer?**: **Hver konto i organisasjonen** setter opp en agent i hver av kontoene med én kommando i administrasjonskontoens AWS CloudShell, hver agent med sin egen nøkkel og den samme rollen med minst mulig tilgang, og viser hvilke agenter som har koblet til.
+
 Agenten kjører hele måneden i kontoen din, fakturert av skyen din til listeprisene. I Google Cloud kjører den på sin egen lille VM, i et nettverk som ikke slipper noe inn; for et prosjekt der organisasjonen ikke gir noen VM en ekstern IP-adresse, velger du **Cloud Run** under **Hvor agenten kjører** i **Flere felt**:
 
 | Sky | Hva som kjører | Omtrent |

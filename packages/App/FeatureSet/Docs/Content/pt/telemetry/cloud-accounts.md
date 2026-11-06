@@ -297,6 +297,8 @@ A caixa de diálogo faz uma única pergunta, **Até onde a IA pode ir?**: **Perg
 
 O comando contém uma chave criada só para o agente desta conta, que vale por um dia até o agente se conectar com ela: abra a caixa de diálogo de novo para obter uma nova. Só quem pode redefinir o agente e editar a conta recebe uma.
 
+Em uma conta da AWS encontrada por uma conexão que lê uma AWS Organization, a caixa de diálogo também pergunta **Quais contas?**: **Todas as contas da organização** configura um agente em cada uma de suas contas com um único comando no AWS CloudShell da conta de gerenciamento, cada agente com a própria chave e a mesma função de privilégio mínimo, e mostra quais agentes se conectaram.
+
 O agente roda o mês inteiro na sua conta, cobrado pela sua nuvem aos preços de tabela dela. No Google Cloud, ele roda em uma pequena VM própria, em uma rede que não deixa nada entrar; para um projeto cuja organização não permite endereço IP externo em nenhuma VM, escolha **Cloud Run** em **Onde o agente é executado**, em **Mais campos**:
 
 | Nuvem | O que roda | Cerca de |

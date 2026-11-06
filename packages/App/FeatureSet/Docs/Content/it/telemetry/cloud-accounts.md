@@ -297,6 +297,8 @@ La finestra di dialogo pone una sola domanda, **Fin dove può spingersi l'IA?**:
 
 Il comando contiene una chiave creata solo per l'agente di questo account, valida un giorno finché l'agente non si connette con essa: riapri la finestra per averne una nuova. Solo chi può reimpostare l'agente e modificare l'account ne riceve una.
 
+Su un account AWS trovato da una connessione che legge una AWS Organization, la finestra di dialogo chiede anche **Quali account?**: **Ogni account dell'organizzazione** configura un agente in ciascuno dei suoi account con un solo comando nell'AWS CloudShell dell'account di gestione, ogni agente con la propria chiave e lo stesso ruolo con privilegi minimi, e mostra quali agenti si sono connessi.
+
 L'agente gira tutto il mese nel tuo account, fatturato dal tuo cloud ai suoi prezzi di listino. Su Google Cloud gira su una piccola VM tutta sua, in una rete che non lascia entrare nulla; per un progetto la cui organizzazione non consente a nessuna VM un indirizzo IP esterno, scegli **Cloud Run** in **Dove viene eseguito l'agente**, in **Altri campi**:
 
 | Cloud | Cosa gira | Circa |

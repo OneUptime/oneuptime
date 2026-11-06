@@ -68,6 +68,7 @@ Dialogen frågar med några sekunders mellanrum vad som har kommit. Firehose lev
 | --- | --- |
 | **Alla mätvärden, inte bara nyckelmätvärdena** | Strömmar alla mätvärden som CloudWatch har för kontot, även dina egna. AWS debiterar varje mätvärdesuppdatering som en ström skickar, så det kan kosta många gånger mer |
 | **Regioner** | Varifrån det strömmas: först de regioner där anslutningen hittade resurser. Lämnas fältet tomt strömmar kommandot från AWS CloudShells egen region. Högst 30 |
+| **Varje konto i organisationen** | För en anslutning som läser en AWS Organization: kommandot, kört i hanteringskontot, skapar också samma stackar i varje medlemskonto genom ett StackSet, och i konton som går med senare. Alla logggrupper eller inga: namngivna logggrupper hör till ett konto |
 | **Konfigurera det på ett annat sätt** | Slutpunkterna för mätvärden och loggar och nyckeln, för att konfigurera strömmarna med Terraform eller konsolen |
 
 **Ladda ned mallen** sparar mallen som kommandot distribuerar, så att du kan distribuera den på ditt eget sätt.
@@ -130,6 +131,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+För en anslutning som läser en AWS Organization kör du dialogrutans kommando i hanteringskontot: om organisationen strömmades tar det också bort varje medlemskontos stackar och StackSettet.
 :::
 
 För att ändra vad en stack strömmar öppnar du **Strömma mätvärden och loggar** igen, väljer **Skapa en ny nyckel** och kör det nya kommandot. Nyckeln som den ersätter fungerar i 24 timmar till, så ingen leverans avvisas medan stackarna uppdateras. Högst 3 ersatta nycklar fungerar samtidigt.

@@ -68,6 +68,7 @@ La fenêtre demande toutes les quelques secondes ce qui est arrivé. Firehose li
 | --- | --- |
 | **Toutes les métriques, pas seulement les métriques clés** | Diffuse toutes les métriques que CloudWatch possède pour le compte, y compris les vôtres. AWS facture chaque mise à jour de métrique qu'envoie un flux, cela peut donc coûter bien plus cher |
 | **Régions** | D'où diffuser : au départ, les régions où la connexion a trouvé des ressources. Laissé vide, la commande diffuse depuis la région d'AWS CloudShell. Au plus 30 |
+| **Chaque compte de l'organisation** | Pour une connexion qui lit une AWS Organization : la commande, exécutée dans son compte de gestion, crée aussi les mêmes piles dans chaque compte membre via un StackSet, et dans les comptes qui rejoignent l'organisation plus tard. Tous les groupes de journaux ou aucun : les groupes nommés appartiennent à un seul compte |
 | **Configurer autrement** | Les points de terminaison des métriques et des journaux et la clé, pour configurer les flux avec Terraform ou la console |
 
 **Télécharger le modèle** enregistre le modèle que la commande déploie, pour le déployer à votre façon.
@@ -130,6 +131,8 @@ for REGION in us-east-1 eu-west-1; do
   aws cloudformation delete-stack --region "$REGION" --stack-name OneUptimeStream-6f1c3a2e
 done
 ```
+
+Pour une connexion qui lit une AWS Organization, exécutez la commande de la boîte de dialogue dans le compte de gestion : si l'organisation était diffusée, elle supprime aussi les piles de chaque compte membre et le StackSet.
 :::
 
 Pour changer ce qu'une pile diffuse, ouvrez de nouveau **Diffuser les métriques et les journaux**, choisissez **Créer une nouvelle clé** et exécutez la nouvelle commande. La clé qu'elle remplace fonctionne encore 24 heures, si bien qu'aucune livraison n'est refusée pendant la mise à jour des piles. Au plus 3 clés remplacées fonctionnent en même temps.
