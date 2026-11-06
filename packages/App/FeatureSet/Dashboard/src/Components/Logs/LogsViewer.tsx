@@ -3,7 +3,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import LogsViewer, {
   LogsSortField,
   LiveLogsOptions,
@@ -2676,7 +2676,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         label: "Traces",
         icon: IconProp.Layers,
         tooltip: buildTooltip(
-          "Open the traces explorer with this scope",
+          translationKey("Open the traces explorer with this scope"),
           buildTracesPivot().dropped,
         ),
         onClick: () => {
@@ -2689,7 +2689,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         label: "Metrics",
         icon: IconProp.ChartBar,
         tooltip: buildTooltip(
-          "Open the metrics explorer with this time window",
+          translationKey("Open the metrics explorer with this time window"),
           buildMetricsPivot().dropped,
         ),
         onClick: () => {
