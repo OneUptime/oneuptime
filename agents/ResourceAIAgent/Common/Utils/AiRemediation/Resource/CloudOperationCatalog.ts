@@ -133,6 +133,17 @@ export const CLOUD_RESOURCE_KINDS: ReadonlyArray<CloudResourceKindSpec> = [
   { provider: "aws", kind: "sqs-queue", displayName: "SQS queue" },
   { provider: "aws", kind: "elb-target-group", displayName: "target group" },
   { provider: "aws", kind: "elb-load-balancer", displayName: "load balancer" },
+  // App Platforms' own platforms on AWS: what an environment there runs.
+  {
+    provider: "aws",
+    kind: "apprunner-service",
+    displayName: "App Runner service",
+  },
+  {
+    provider: "aws",
+    kind: "beanstalk-environment",
+    displayName: "Elastic Beanstalk environment",
+  },
   {
     provider: "azure",
     kind: "app-service",
@@ -144,6 +155,12 @@ export const CLOUD_RESOURCE_KINDS: ReadonlyArray<CloudResourceKindSpec> = [
     displayName: "App Service plan",
   },
   { provider: "azure", kind: "container-app", displayName: "Container App" },
+  // Azure Container Instances: one group of containers that run together.
+  {
+    provider: "azure",
+    kind: "container-group",
+    displayName: "container group",
+  },
   {
     provider: "azure",
     kind: "virtual-machine",
@@ -185,7 +202,20 @@ export const CLOUD_RESOURCE_KINDS: ReadonlyArray<CloudResourceKindSpec> = [
     kind: "cloud-sql-instance",
     displayName: "Cloud SQL instance",
   },
+  {
+    provider: "gcp",
+    kind: "app-engine-service",
+    displayName: "App Engine service",
+  },
 ];
+
+// Names that take "an": a vowel, or an initialism read with one (RDS, SQS).
+const AN_NAME_REGEX: RegExp = /^(?:[AEIOUaeiou]|RDS\b|SQS\b)/;
+
+// "an ECS service", "a container group", "an Elastic Beanstalk environment".
+export function withCloudArticle(name: string): string {
+  return `${AN_NAME_REGEX.test(name) ? "an" : "a"} ${name}`;
+}
 
 export function getCloudResourceKind(
   provider: CloudCatalogProvider,
@@ -257,6 +287,17 @@ const AWS_LAMBDA_QUALIFIER_REGEX: RegExp =
 const AWS_SQS_NAME_REGEX: RegExp = /^[A-Za-z0-9_-]{1,80}(?:\.fifo)?$/;
 const AWS_ELB_NAME_REGEX: RegExp = /^[A-Za-z0-9-]{1,32}$/;
 const AWS_ELB_ID_REGEX: RegExp = /^[0-9a-f]{16}$/;
+// An App Runner service's name, and the 32 hex digits of its id.
+const AWS_APP_RUNNER_NAME_REGEX: RegExp = /^[A-Za-z0-9][A-Za-z0-9_-]{3,39}$/;
+const AWS_APP_RUNNER_ID_REGEX: RegExp = /^[0-9a-f]{32}$/;
+/*
+ * An Elastic Beanstalk application, as its ARN can carry it (one with a
+ * space in its name is not an ARN the catalog reads), and an environment
+ * of it: 4-40 letters, digits and hyphens, a hyphen at neither end.
+ */
+const AWS_BEANSTALK_APPLICATION_REGEX: RegExp = /^[A-Za-z0-9._-]{1,100}$/;
+const AWS_BEANSTALK_ENVIRONMENT_REGEX: RegExp =
+  /^[A-Za-z0-9][A-Za-z0-9-]{2,38}[A-Za-z0-9]$/;
 const DIGITS_REGEX: RegExp = /^[0-9]+$/;
 
 function refuseResource(errorMessage: string): CloudResourceParse {
@@ -420,6 +461,26 @@ function parseAwsArn(id: string): CloudResourceParse {
       resource.kind = "elb-load-balancer";
       resource.parts["name"] = slash[2] || "";
     }
+  } else if (
+    service === "apprunner" &&
+    slash.length === 3 &&
+    slash[0] === "service" &&
+    AWS_APP_RUNNER_NAME_REGEX.test(slash[1] || "") &&
+    AWS_APP_RUNNER_ID_REGEX.test(slash[2] || "")
+  ) {
+    resource.kind = "apprunner-service";
+    resource.parts["name"] = slash[1] || "";
+    resource.parts["serviceId"] = slash[2] || "";
+  } else if (
+    service === "elasticbeanstalk" &&
+    slash.length === 3 &&
+    slash[0] === "environment" &&
+    AWS_BEANSTALK_APPLICATION_REGEX.test(slash[1] || "") &&
+    AWS_BEANSTALK_ENVIRONMENT_REGEX.test(slash[2] || "")
+  ) {
+    resource.kind = "beanstalk-environment";
+    resource.parts["application"] = slash[1] || "";
+    resource.parts["name"] = slash[2] || "";
   }
 
   return { ok: true, resource };
@@ -438,6 +499,10 @@ const AZURE_KINDS_BY_TYPE: ReadonlyArray<{ typePath: string; kind: string }> = [
   { typePath: "microsoft.web/sites", kind: "app-service" },
   { typePath: "microsoft.web/serverfarms", kind: "app-service-plan" },
   { typePath: "microsoft.app/containerapps", kind: "container-app" },
+  {
+    typePath: "microsoft.containerinstance/containergroups",
+    kind: "container-group",
+  },
   { typePath: "microsoft.compute/virtualmachines", kind: "virtual-machine" },
   {
     typePath: "microsoft.compute/virtualmachinescalesets",
@@ -541,11 +606,18 @@ const GCP_REGION_REGEX: RegExp = /^[a-z]+-[a-z]+[0-9]{1,2}$/;
 const GCP_COMPUTE_NAME_REGEX: RegExp = /^[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
 const GCP_RUN_NAME_REGEX: RegExp = /^[a-z](?:[-a-z0-9]{0,47}[a-z0-9])?$/;
 const GCP_SQL_NAME_REGEX: RegExp = /^[a-z][a-z0-9-]{0,97}$/;
+// An App Engine service: lowercase letters, digits and -, no - at either end.
+const GCP_APP_ENGINE_SERVICE_REGEX: RegExp =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+// The API App Engine's apps are named under: /apps/<the app's project>/...
+const GCP_APP_ENGINE_HOST: string = "appengine.googleapis.com";
 
 /*
  * //<service>.googleapis.com/projects/<project>/..., the form Cloud Asset
  * Inventory names resources by. Cloud SQL is named by cloudsql (sqladmin is
- * read as the same).
+ * read as the same). App Engine names an app by its project under apps
+ * instead: //appengine.googleapis.com/apps/<project>/services/<service>.
  */
 function parseGcpResourceName(id: string): CloudResourceParse {
   const notName: string = `a Google Cloud resource is named by its full resource name, such as //run.googleapis.com/projects/my-project/locations/us-central1/services/web (got ${quoteCloudWord(id)})`;
@@ -556,12 +628,16 @@ function parseGcpResourceName(id: string): CloudResourceParse {
 
   const segments: Array<string> = id.slice(2).split("/");
   const host: string = segments[0] || "";
+  const scope: string =
+    host === GCP_APP_ENGINE_HOST && segments[1] === "apps"
+      ? "apps"
+      : "projects";
 
   if (
     !GCP_SERVICE_HOST_REGEX.test(host) ||
     segments.length < 3 ||
     segments.length > 12 ||
-    segments[1] !== "projects" ||
+    segments[1] !== scope ||
     !GCP_PROJECT_REGEX.test(segments[2] || "")
   ) {
     return refuseResource(notName);
@@ -637,6 +713,15 @@ function parseGcpResourceName(id: string): CloudResourceParse {
     GCP_SQL_NAME_REGEX.test(rest[1] || "")
   ) {
     resource.kind = "cloud-sql-instance";
+    resource.parts["name"] = rest[1] || "";
+  } else if (
+    scope === "apps" &&
+    rest.length === 2 &&
+    rest[0] === "services" &&
+    GCP_APP_ENGINE_SERVICE_REGEX.test(rest[1] || "")
+  ) {
+    // A service, whichever of its versions serve it.
+    resource.kind = "app-engine-service";
     resource.parts["name"] = rest[1] || "";
   }
 
@@ -853,6 +938,25 @@ function kindSpec(
   requiresHuman: boolean = false,
 ): CloudOperationKindSpec {
   return { provider, kind, tier, requiresHuman, apiCall, permissions };
+}
+
+/*
+ * A scale of an App Engine service: the instances of the one version that
+ * serves all of its traffic, when that version is scaled by hand (manual
+ * scaling) - an automatically scaled one is left to a person.
+ */
+function appEngineScaleKind(tier: ResourceCommandTier): CloudOperationKindSpec {
+  return kindSpec(
+    "gcp",
+    "app-engine-service",
+    tier,
+    "appengine.apps.services.versions.patch of manualScaling.instances (the version that serves all its traffic)",
+    [
+      "appengine.versions.update",
+      "appengine.versions.get",
+      "appengine.services.get",
+    ],
+  );
 }
 
 /*
@@ -1194,7 +1298,7 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
     aliases: [],
     runsOn: "agent",
     summary:
-      "restarts the service on the version it runs now: a new ECS deployment (a rolling replacement), or an App Service, Function App or Container App revision restart",
+      "restarts the service on the version it runs now: a new ECS deployment (a rolling replacement), an App Runner redeploy while it deploys its source's every new version on its own, an Elastic Beanstalk environment's app servers, an App Service, Function App or Container App revision restart, or a container group's containers",
     takesResource: true,
     kinds: [
       kindSpec(
@@ -1203,6 +1307,29 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
         SAFE,
         "ecs:UpdateService with forceNewDeployment",
         ["ecs:UpdateService", "ecs:DescribeServices"],
+      ),
+      /*
+       * App Runner has no restart: StartDeployment deploys the latest
+       * version of the service's source. The agent runs it only while the
+       * service deploys every new version on its own (automatic
+       * deployments), so the latest one is what runs now.
+       */
+      kindSpec(
+        "aws",
+        "apprunner-service",
+        RISKY,
+        "apprunner:StartDeployment (a redeploy of the version it runs, automatic deployments on)",
+        ["apprunner:StartDeployment", "apprunner:DescribeService"],
+      ),
+      kindSpec(
+        "aws",
+        "beanstalk-environment",
+        RISKY,
+        "elasticbeanstalk:RestartAppServer (every instance's app server, on the version it runs)",
+        [
+          "elasticbeanstalk:RestartAppServer",
+          "elasticbeanstalk:DescribeEnvironments",
+        ],
       ),
       kindSpec("azure", "app-service", RISKY, "Microsoft.Web/sites restart", [
         "Microsoft.Web/sites/restart/action",
@@ -1218,6 +1345,16 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
           "Microsoft.App/containerApps/read",
         ],
       ),
+      kindSpec(
+        "azure",
+        "container-group",
+        RISKY,
+        "Microsoft.ContainerInstance/containerGroups restart (its containers, in place)",
+        [
+          "Microsoft.ContainerInstance/containerGroups/restart/action",
+          "Microsoft.ContainerInstance/containerGroups/read",
+        ],
+      ),
     ],
     flags: [],
     undo: null,
@@ -1227,7 +1364,7 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
     name: "start-instance",
     aliases: [],
     runsOn: "agent",
-    summary: "starts a stopped instance or virtual machine",
+    summary: "starts a stopped instance, virtual machine or container group",
     takesResource: true,
     kinds: [
       kindSpec("aws", "ec2-instance", SAFE, "ec2:StartInstances", [
@@ -1246,6 +1383,16 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
         [
           "Microsoft.Compute/virtualMachines/start/action",
           "Microsoft.Compute/virtualMachines/read",
+        ],
+      ),
+      kindSpec(
+        "azure",
+        "container-group",
+        SAFE,
+        "Microsoft.ContainerInstance/containerGroups start",
+        [
+          "Microsoft.ContainerInstance/containerGroups/start/action",
+          "Microsoft.ContainerInstance/containerGroups/read",
         ],
       ),
       kindSpec("gcp", "compute-instance", SAFE, "compute.instances.start", [
@@ -1267,7 +1414,7 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
     aliases: [],
     runsOn: "agent",
     summary:
-      "raises a service's or group's desired count, within its limits: an ECS service's desired count, an Auto Scaling group's desired capacity, an App Service plan's or VM scale set's instance count, a Cloud Run service's minimum instances or a managed instance group's size",
+      "raises a service's or group's desired count, within its limits: an ECS service's desired count, an Auto Scaling group's desired capacity, an App Service plan's or VM scale set's instance count, a Cloud Run service's minimum instances, a managed instance group's size or the instances of an App Engine service's manually scaled version",
     takesResource: true,
     kinds: [
       kindSpec(
@@ -1325,6 +1472,7 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
           "compute.instanceGroupManagers.get",
         ],
       ),
+      appEngineScaleKind(SAFE),
     ],
     flags: [countFlag("out")],
     undo: {
@@ -1398,6 +1546,7 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
           "compute.instanceGroupManagers.get",
         ],
       ),
+      appEngineScaleKind(RISKY),
     ],
     flags: [countFlag("in")],
     undo: {
@@ -1478,7 +1627,7 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
     aliases: ["rollback-service"],
     runsOn: "agent",
     summary:
-      "moves a service back to the version it ran before (or to --to): an ECS service's previous task definition, a Lambda alias's previous version, an App Service slot swap back, a Container App's or Cloud Run service's traffic to its previous revision",
+      "moves a service back to the version it ran before (or to --to): an ECS service's previous task definition, a Lambda alias's previous version, an App Service slot swap back, a Container App's or Cloud Run service's traffic to its previous revision, or an App Engine service's traffic to its previous version",
     takesResource: true,
     kinds: [
       kindSpec(
@@ -1531,6 +1680,17 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
         "run.services.patch of its traffic (a revision of the same service)",
         ["run.services.update", "run.services.get", "run.revisions.list"],
       ),
+      kindSpec(
+        "gcp",
+        "app-engine-service",
+        RISKY,
+        "appengine.apps.services.patch of its traffic split (a version of the same service)",
+        [
+          "appengine.services.update",
+          "appengine.services.get",
+          "appengine.versions.list",
+        ],
+      ),
     ],
     flags: [
       {
@@ -1538,13 +1698,14 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
         kind: CloudParamKind.Version,
         valueLabel: "VERSION",
         description:
-          "the version to move to (a task definition family:revision, a Lambda version, a revision name); without it, the one before the current one",
+          "the version to move to (a task definition family:revision, a Lambda version, a revision or App Engine version name); without it, the one before the current one",
         required: false,
         kinds: [
           "ecs-service",
           "lambda-alias",
           "container-app",
           "cloud-run-service",
+          "app-engine-service",
         ],
       },
       {
@@ -1669,7 +1830,7 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
     aliases: [],
     runsOn: "agent",
     summary:
-      "stops an instance or virtual machine (an Azure VM is deallocated)",
+      "stops an instance, virtual machine or container group (an Azure VM is deallocated)",
     takesResource: true,
     kinds: [
       kindSpec(
@@ -1688,6 +1849,17 @@ export const CLOUD_OPERATIONS: ReadonlyArray<CloudOperationSpec> = [
         [
           "Microsoft.Compute/virtualMachines/deallocate/action",
           "Microsoft.Compute/virtualMachines/read",
+        ],
+        true,
+      ),
+      kindSpec(
+        "azure",
+        "container-group",
+        RISKY,
+        "Microsoft.ContainerInstance/containerGroups stop",
+        [
+          "Microsoft.ContainerInstance/containerGroups/stop/action",
+          "Microsoft.ContainerInstance/containerGroups/read",
         ],
         true,
       ),
@@ -2075,12 +2247,26 @@ const NEVER_OPERATIONS: ReadonlyArray<{
     reason:
       "instance types, snapshots and restores, and a group's minimum or maximum are never changed",
   },
+  {
+    words: [
+      "update-environment",
+      "rebuild-environment",
+      "swap-environment-cnames",
+      "pause-service",
+      "resume-service",
+    ],
+    reason:
+      "deploying a version to an Elastic Beanstalk environment, rebuilding one or swapping its URL, and pausing an App Runner service are left to a person",
+  },
 ];
 
 const ALIASES_OF_CHANGES: Readonly<Record<string, string>> = {
   restart: "restart-service",
   "force-new-deployment": "restart-service",
   redeploy: "restart-service",
+  "start-deployment": "restart-service",
+  "restart-app-server": "restart-service",
+  "migrate-traffic": "roll-back-service",
   start: "start-instance",
   "start-instances": "start-instance",
   "start-vm": "start-instance",
@@ -2446,7 +2632,7 @@ export function parseCloudCommand(
 
     return refuse(
       `cloud ${operation.name} is not available for ${
-        known ? `a ${known.displayName}` : "this resource"
+        known ? withCloudArticle(known.displayName) : "this resource"
       }: on ${CLOUD_CATALOG_PROVIDER_NAMES[provider]} it works on ${joinWords(
         describeCloudOperationKinds(operation, provider),
         "and",
@@ -2466,7 +2652,7 @@ export function parseCloudCommand(
 
       return refuse(
         `--${given.flag.name} does not apply to ${
-          known ? `a ${known.displayName}` : "this resource"
+          known ? withCloudArticle(known.displayName) : "this resource"
         } (${usage})`,
       );
     }
@@ -2833,7 +3019,7 @@ export function getCloudUndoCommand(data: {
     return {
       kind: "nothing",
       reason: `cloud ${undo.operation} does not work on ${
-        known ? `a ${known.displayName}` : "this resource"
+        known ? withCloudArticle(known.displayName) : "this resource"
       }, so cloud ${operation.name} has nothing to undo here: a person puts it back`,
     };
   }

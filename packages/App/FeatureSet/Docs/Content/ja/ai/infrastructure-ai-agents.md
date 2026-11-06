@@ -167,6 +167,8 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 
 コマンドには、プロジェクトのテレメトリ取り込みキーではなく、このアカウントのエージェント専用に作成されたキーが `ONEUPTIME_AI_AGENT_KEY` として含まれます。このキーはそのエージェントだけを接続し、テレメトリは送りません。エージェントがこのキーで接続するまで一日間有効で、それを過ぎたら **AI に問題を修正させる** をもう一度開いて新しいキーを取得します。エージェントがこのキーで接続すると、それまでのキーは使えなくなります。キーを受け取れるのは、エージェントをリセットでき、アカウントを編集できる人だけです。これらのキーより前に設定したエージェントは、セットアップ コマンドを再実行するまで取り込みキーで接続し続け、再実行した後は取り込みキーでは接続できなくなります。アカウントの **フィード** には、エージェントが新しいキーで接続したことと、そのキーを作成した人が示され、OneUptime が拒否したエージェントも、そのエージェントが自ら名乗った実行場所とともに記録されます。これらのキーより前に設定したエージェントが専用のキーに切り替わると、その記録には、それまで接続に使っていた取り込みキーの名前も示されます。そのキーは引き続きプロジェクト全体のテレメトリを送信できるので、このエージェント専用に作成したものであれば削除してください。
 
+**AWS Organization のすべてのアカウント。** AWS Organization を読み取る接続が見つけた AWS アカウントでは、**AI に問題を修正させる** で **どのアカウントに？** も尋ねます。**組織のすべてのアカウント** を選ぶと、組織の管理アカウントの AWS CloudShell で実行するコマンドを 1 つ作成します。CloudFormation StackSet `oneuptime-ai-agent` が各メンバーアカウントに同じエージェントを設定します。ロールは同じで最小権限も同じです。メンバーアカウントにはデフォルト VPC がないことがあるため、何も受け入れない専用の小さなネットワークで動作します。StackSets がデプロイしない管理アカウントには、専用のスタック `oneuptime-ai-agent` が作成されます。各エージェントは引き続き自分のアカウントのキーで接続します。ダイアログは編集できる各アカウントのキーを作成し、除外したアカウントを示します。各メンバーアカウントのスタックは自分のキーをパラメーターとして持ち、キーのアカウントとは別のアカウントで動作するエージェントは拒否されます。すべてのエージェントは US East (N. Virginia)、`us-east-1` で動作するため (AWS GovCloud と中国では CloudShell のリージョン)、どのリージョンからコマンドを再実行しても同じ StackSet が更新されます。ダイアログには各アカウントとそのエージェントの状態 (**接続済み**、**オフライン**、**待機中**) が表示され、`aws cloudformation list-stack-instances` で各メンバーアカウントのスタックを確認できます。後から組織に参加したアカウントにはまだキーがありません。OneUptime がそのアカウントを読み取ったら、コマンドを再実行してください。エージェントを削除するには、`aws cloudformation delete-stack-instances --no-retain-stacks` で StackSet のスタックを削除し、続いて StackSet と管理アカウントのスタックを削除します。
+
 何かを変更するには、コマンドをもう一度実行します。もう一度 **AI に問題を修正させる** を開くか、アカウントの **AI エージェント** ページで **変更** を選択し、表示されたコマンドを実行します。ロールには常に、有効にした変更だけが含まれます。クラウド アカウントの **AI** セクションには **ログ** と **AI エージェント** の二つのページがあり、エージェントの費用は [クラウド アカウントの接続](/docs/telemetry/cloud-accounts#ai-に問題を修正させる)に記載されています。**アクティビティ** の **フィード** には、エージェントの接続やリセットと、OneUptime AI がそこで行えることへの変更のすべてが、変更した人とともに記録されます。
 
 ### OneUptime への接続
@@ -436,16 +438,18 @@ VM はすべて正確に名前で指定します。govc は単なる名前を、
 
 | 変更 | AWS | Azure | Google Cloud |
 | -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
-| `restart-service` | 安全: ECS サービス | よりリスクが高い: App Service または Function App、Container App | — |
-| `start-instance` | 安全: EC2 インスタンス、RDS インスタンス | 安全: 仮想マシン | 安全: Compute Engine の VM |
-| `scale-out` | 安全: ECS サービス、Auto Scaling グループ | 安全: App Service プラン、VM スケール セット | 安全: Cloud Run サービス、マネージド インスタンス グループ |
-| `scale-in` | よりリスクが高い: ECS サービス、Auto Scaling グループ | よりリスクが高い: App Service プラン、VM スケール セット | よりリスクが高い: Cloud Run サービス、マネージド インスタンス グループ |
+| `restart-service` | 安全: ECS サービス；よりリスクが高い: App Runner サービス、Elastic Beanstalk 環境 | よりリスクが高い: App Service または Function App、Container App、コンテナー グループ | — |
+| `start-instance` | 安全: EC2 インスタンス、RDS インスタンス | 安全: 仮想マシン、コンテナー グループ | 安全: Compute Engine の VM |
+| `scale-out` | 安全: ECS サービス、Auto Scaling グループ | 安全: App Service プラン、VM スケール セット | 安全: Cloud Run サービス、マネージド インスタンス グループ、App Engine サービス |
+| `scale-in` | よりリスクが高い: ECS サービス、Auto Scaling グループ | よりリスクが高い: App Service プラン、VM スケール セット | よりリスクが高い: Cloud Run サービス、マネージド インスタンス グループ、App Engine サービス |
 | `reboot-instance` | よりリスクが高い: EC2 インスタンス、RDS インスタンス | よりリスクが高い: 仮想マシン、PostgreSQL フレキシブル サーバー、MySQL フレキシブル サーバー | よりリスクが高い: Compute Engine の VM、Cloud SQL インスタンス |
-| `roll-back-service` | よりリスクが高い: ECS サービス、Lambda エイリアス | よりリスクが高い: App Service または Function App、Container App | よりリスクが高い: Cloud Run サービス |
+| `roll-back-service` | よりリスクが高い: ECS サービス、Lambda エイリアス | よりリスクが高い: App Service または Function App、Container App | よりリスクが高い: Cloud Run サービス、App Engine サービス |
 | `set-concurrency` | よりリスクが高い: Lambda 関数 | — | よりリスクが高い: Cloud Run サービス |
 | `fail-over-database` | 常に人が必要: Aurora クラスター、RDS インスタンス | 常に人が必要: SQL フェールオーバー グループ | 常に人が必要: Cloud SQL インスタンス |
-| `stop-instance` | 常に人が必要: EC2 インスタンス | 常に人が必要: 仮想マシン | 常に人が必要: Compute Engine の VM |
+| `stop-instance` | 常に人が必要: EC2 インスタンス | 常に人が必要: 仮想マシン、コンテナー グループ | 常に人が必要: Compute Engine の VM |
 | `redrive-queue` | 常に人が必要: SQS キュー | — | — |
+
+**持続する修正。** スケール、同時実行数、ロールバックなど、コードが宣言している変更では、ステップの下にある **コードへのプルリクエストを作成** でその修正を持続させられます。OneUptime はリソースのタグとリポジトリのファイルから、Code に接続されたリポジトリでコードを探し、何かを作成する前にどのリポジトリにするかを確認したうえで、そのリポジトリで同じ変更をコードに加えるタスクを開始します。本番の変更と並行しても、その代わりにしてもかまいません。その後、ステップにはプルリクエストの状況とリンクが表示され、インシデントまたはアラートのフィード、つまり Slack と Microsoft Teams のチャンネルにも、誰が依頼したかと、作成されたプルリクエストへのリンクが表示されます。
 
 `scale-out` はグループの最大値の範囲内にとどまり、プラットフォームが最大値を設定していない場合は数を最大で倍にします。`scale-in` は最小値を下回ることも、ゼロにすることもありません。`roll-back-service` は前に動作していたバージョン、または `--to` で指定したバージョンに移ります。App Service ではデプロイ スロット(`--slot`)を元に戻すスワップを行います。書き出すと、変更は `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4` のようになります。
 
@@ -513,7 +517,7 @@ AI エージェントのページが何を示していても、エージェン�
 - **ホスト:** OneUptime のすべてのユニット(ホスト AI エージェント自身のものを含む `oneuptime-*`)、OpenTelemetry コレクター(`otelcol-contrib.service`、`otelcol.service`)、エージェントが動作する Docker エンジン(`docker.service`、`docker.socket`、`containerd.service`)、そしてエージェント自身のプロセスとその上位のプロセス。
 - **Proxmox:** エージェントは自分がどのゲストで動作しているかを判別できません。同じクラスターの VM やコンテナで動作している場合は、その VMID を `ONEUPTIME_AI_PROTECTED_TARGETS` に追加してください。VMware 上のエージェントの VM についても同様です。
 - **OpenStack クラウド:** エージェントは自分がどのインスタンスで動いているかを判別できません。同じクラウド上で動かす場合は、そのインスタンスを `instance:<id>` として `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。クラウドでは、このリストはあなた自身のもので、人の承認も含め、ほかのどの設定よりも優先されます。
-- **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent` とその中の書き込み ID `oneuptime-ai-agent-write`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウント `oneuptime-ai-agent` と `oneuptime-ai-agent-write` です。
+- **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック (組織のメンバーアカウントでは、組織の StackSet が作成した `StackSet-oneuptime-ai-agent-*` スタック)、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent` とその中の書き込み ID `oneuptime-ai-agent-write`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウント `oneuptime-ai-agent` と `oneuptime-ai-agent-write` です。
 
 ## 認証情報と最小権限
 
@@ -612,7 +616,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 ## 対象外のもの
 
-Kubernetes クラスターでは Kubernetes AI エージェントを使います。一つのクラウド AI エージェントが対応するのは一つの AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクトで、AWS Organization 全体に対応するエージェントはありません。組織やテナントを読み取る接続には、AI に修正させたいアカウント、サブスクリプション、プロジェクトごとにエージェントが必要です。コードで宣言されたリソースへの修正は提案のままで、OneUptime AI がそのコードに対してプルリクエストを作成することはありません。IoT フリートとネットワークデバイスには AI エージェントがありません。それらに対して操作するにはデバイスの認証情報が必要で、OneUptime AI はそれをお客様が実行する Runner を通じてのみ使います。
+Kubernetes クラスターでは Kubernetes AI エージェントを使います。一つのクラウド AI エージェントが対応するのは一つの AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクトです。AWS Organization では、一つのコマンドですべてのアカウントにエージェントを設定できます ([クラウド アカウント内で](#クラウド-アカウント内で) を参照)。ただし、Azure テナントや Google Cloud 組織を読み取る接続では、AI に修正させたいサブスクリプションやプロジェクトごとにエージェントが必要です。リソースを宣言しているコードへのプルリクエストは、人が依頼したときにだけ、Code に接続されたリポジトリで、コードが宣言している変更についてだけ作成されます。再起動は次の apply で元に戻されるものを何も残しません。IoT フリートとネットワークデバイスには AI エージェントがありません。それらに対して操作するにはデバイスの認証情報が必要で、OneUptime AI はそれをお客様が実行する Runner を通じてのみ使います。
 
 ## 次のステップ
 

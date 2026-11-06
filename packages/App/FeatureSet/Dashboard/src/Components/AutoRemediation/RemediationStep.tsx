@@ -1375,6 +1375,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
     ): boolean => {
       return expandedIds.has(getStepKey(kind));
     };
+    // The fix ran, or is running: its commands are read where they ran.
+    const hasRunStep: boolean = steps.some(
+      (step: RemediationFixStep): boolean => {
+        return step.kind === "run";
+      },
+    );
 
     // What can be done with the fix now.
     const canApprove: boolean = isRemediationFixApprovable(suggestion);
@@ -1486,6 +1492,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 plan={plan}
                 suggestionStatus={status}
                 isUnapprovable={isUnapprovablePlan}
+                /*
+                 * A step's pull request to the code is under the step as it
+                 * ran once the fix has a run step, and only there: with both
+                 * steps open, it was said twice.
+                 */
+                suggestionId={hasRunStep ? undefined : suggestionId}
               />
             ) : (
               <></>
@@ -1501,7 +1513,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
       if (kind === "run") {
         if (plan) {
-          return <RemediationCommandRunList plan={plan} />;
+          return (
+            <RemediationCommandRunList
+              plan={plan}
+              suggestionId={suggestionId}
+            />
+          );
         }
 
         if (mcpPlan) {
