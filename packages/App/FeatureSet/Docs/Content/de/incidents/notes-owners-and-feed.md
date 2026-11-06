@@ -249,7 +249,7 @@ Manche Einträge tragen zusätzliche Details – eine Eigentümerbenachrichtigun
 Die Kopfzeile der Karte hat außerdem ein Menü **Aktionen**, damit Sie handeln können, ohne die Zeitachse zu verlassen:
 
 - **Runbook ausführen** – startet ein [Runbook](/docs/runbooks/index) für diesen Vorfall.
-- **Bereitschaftsdienst-Richtlinie ausführen** – alarmiert eine Richtlinie auf Abruf. Eine archivierte Richtlinie alarmiert niemanden: Ihr Ausführungsprotokoll am Vorfall sagt, dass sie nicht ausgeführt wurde, weil die Richtlinie archiviert ist. Schalten Sie **Page them as observers** ein, um die Personen der Richtlinie stattdessen nur auf dem Laufenden zu halten: Ihre Antwort sagt nur, dass sie die Alarmierung gesehen haben, und der Vorfall wird nicht bestätigt.
+- **Bereitschaftsdienst-Richtlinie ausführen** – alarmiert eine Richtlinie auf Abruf. Eine archivierte Richtlinie alarmiert niemanden: Ihr Ausführungsprotokoll am Vorfall sagt, dass sie nicht ausgeführt wurde, weil die Richtlinie archiviert ist. Schalten Sie **Als Beobachter alarmieren** ein, um die Personen der Richtlinie stattdessen nur auf dem Laufenden zu halten: Ihre Antwort sagt nur, dass sie die Alarmierung gesehen haben, und der Vorfall wird nicht bestätigt.
 - **Öffentliche Notiz hinzufügen** – das Eingabefeld der Seite **Öffentliche Notizen** in einem Dialog: Notiz schreiben, dann **Post update**. Vorlagen, **Mit KI entwerfen**, Anhänge, **Statusseiten-Abonnenten benachrichtigen** samt Empfängern und **Vorschau** sind alle dabei. Die Notiz wird jetzt gepostet; um sie zurückzudatieren, wählen Sie **Posted now**.
 - **Private Notiz hinzufügen** – das Eingabefeld der Seite **Private Notizen** in einem Dialog: Notiz schreiben, dann **Add note**.
 

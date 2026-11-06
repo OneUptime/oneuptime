@@ -249,7 +249,7 @@ Algunos elementos llevan detalles adicionales —una notificación a propietario
 La cabecera de la tarjeta también tiene un menú **Acciones** para que puedas actuar sin salir de la cronología:
 
 - **Ejecutar runbook** — inicia un [runbook](/docs/runbooks/index) sobre este incidente.
-- **Ejecutar política de guardia** — avisa a una política bajo demanda. Una política archivada no avisa a nadie: su registro de ejecución en el incidente dice que no se ejecutó porque la política está archivada. Activa **Page them as observers** para mantener informadas a las personas de la política en su lugar: su respuesta solo dice que han visto el aviso, y el incidente no se reconoce.
+- **Ejecutar política de guardia** — avisa a una política bajo demanda. Una política archivada no avisa a nadie: su registro de ejecución en el incidente dice que no se ejecutó porque la política está archivada. Activa **Avisarles como observadores** para mantener informadas a las personas de la política en su lugar: su respuesta solo dice que han visto el aviso, y el incidente no se reconoce.
 - **Añadir nota pública** — el editor de la página **Notas públicas**, en un diálogo: escribe la nota y luego **Post update**. Las plantillas, **Redactar con IA**, los adjuntos, **Notificar a los suscriptores de la página de estado** con a quién llegará, y **Vista previa** están todos ahí. La nota se publica ahora; para ponerle una fecha anterior, elige **Posted now**.
 - **Añadir nota privada** — el editor de la página **Notas privadas**, en un diálogo: escribe la nota y luego **Add note**.
 

@@ -249,7 +249,7 @@ Alcune voci portano dettagli in più — una notifica ai proprietari elenca tutt
 L'intestazione della scheda ha anche un menu **Azioni** per agire senza lasciare la cronologia:
 
 - **Execute Runbook** — avvia un [runbook](/docs/runbooks/index) su questo incidente.
-- **Esegui criterio di reperibilità** — avvisa una policy su richiesta. Una policy archiviata non avvisa nessuno: il suo registro di esecuzione sull'incidente dice che non è stata eseguita perché la policy è archiviata. Attiva **Page them as observers** per tenere invece informate le persone della policy: la loro risposta dice solo che hanno visto la chiamata, e l'incidente non viene riconosciuto.
+- **Esegui criterio di reperibilità** — avvisa una policy su richiesta. Una policy archiviata non avvisa nessuno: il suo registro di esecuzione sull'incidente dice che non è stata eseguita perché la policy è archiviata. Attiva **Chiamali come osservatori** per tenere invece informate le persone della policy: la loro risposta dice solo che hanno visto la chiamata, e l'incidente non viene riconosciuto.
 - **Add Public Note** — l'editor della pagina **Note pubbliche**, in una finestra: scrivete la nota, poi **Post update**. I modelli, **Bozza con IA**, gli allegati, **Notify status page subscribers** con chi raggiungerà, e **Anteprima** sono tutti lì. La nota viene pubblicata adesso; per retrodatarla, scegliete **Posted now**.
 - **Aggiungi nota privata** — l'editor della pagina **Note private**, in una finestra: scrivete la nota, poi **Add note**.
 

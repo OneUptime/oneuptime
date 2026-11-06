@@ -249,7 +249,7 @@ Sommige items dragen extra details — een melding aan eigenaren noemt bijvoorbe
 De kop van de kaart heeft ook een menu **Acties**, zodat je kunt handelen zonder de tijdlijn te verlaten:
 
 - **Execute Runbook** — start een [runbook](/docs/runbooks/index) voor dit incident.
-- **Bereikbaarheidsdienstbeleid uitvoeren** — roep op verzoek een beleid op. Een gearchiveerd beleid roept niemand op: zijn uitvoeringslogboek op het incident zegt dat het niet is uitgevoerd omdat het beleid gearchiveerd is. Zet **Page them as observers** aan om de mensen van het beleid in plaats daarvan op de hoogte te houden: hun antwoord zegt alleen dat ze de oproep hebben gezien, en het incident wordt niet bevestigd.
+- **Bereikbaarheidsdienstbeleid uitvoeren** — roep op verzoek een beleid op. Een gearchiveerd beleid roept niemand op: zijn uitvoeringslogboek op het incident zegt dat het niet is uitgevoerd omdat het beleid gearchiveerd is. Zet **Als waarnemers oproepen** aan om de mensen van het beleid in plaats daarvan op de hoogte te houden: hun antwoord zegt alleen dat ze de oproep hebben gezien, en het incident wordt niet bevestigd.
 - **Add Public Note** — de editor van de pagina **Openbare notities**, in een dialoogvenster: schrijf de notitie, en daarna **Post update**. Sjablonen, **Concept met AI**, bijlagen, **Notify status page subscribers** met wie de notitie bereikt, en **Voorbeeld** zijn er allemaal. De notitie wordt nu geplaatst; om haar terug te dateren, kies je **Posted now**.
 - **Privénotitie toevoegen** — de editor van de pagina **Privénotities**, in een dialoogvenster: schrijf de notitie, en daarna **Add note**.
 

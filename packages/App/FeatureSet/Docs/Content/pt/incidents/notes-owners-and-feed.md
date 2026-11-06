@@ -249,7 +249,7 @@ Alguns itens trazem detalhes extras — uma notificação aos proprietários lis
 O cabeçalho do cartão também tem um menu **Ações** para você agir sem sair da linha do tempo:
 
 - **Execute Runbook** — inicia um [runbook](/docs/runbooks/index) neste incidente.
-- **Executar política de plantão** — aciona uma política sob demanda. Uma política arquivada não aciona ninguém: seu log de execução no incidente diz que ela não foi executada porque a política está arquivada. Ative **Page them as observers** para, em vez disso, manter as pessoas da política informadas: a resposta delas só diz que viram o acionamento, e o incidente não é confirmado.
+- **Executar política de plantão** — aciona uma política sob demanda. Uma política arquivada não aciona ninguém: seu log de execução no incidente diz que ela não foi executada porque a política está arquivada. Ative **Acioná-las como observadoras** para, em vez disso, manter as pessoas da política informadas: a resposta delas só diz que viram o acionamento, e o incidente não é confirmado.
 - **Add Public Note** — o editor da página **Notas públicas**, em uma caixa de diálogo: escreva a nota e depois **Post update**. Os modelos, **Rascunho com IA**, os anexos, **Notify status page subscribers** com quem ela alcançará, e **Pré-visualização** estão todos ali. A nota é publicada agora; para retroagi-la, escolha **Posted now**.
 - **Adicionar nota privada** — o editor da página **Notas privadas**, em uma caixa de diálogo: escreva a nota e depois **Add note**.
 

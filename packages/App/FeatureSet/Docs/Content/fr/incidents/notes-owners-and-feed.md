@@ -249,7 +249,7 @@ Certains éléments portent des détails supplémentaires — une notification a
 L'en-tête de la carte a aussi un menu **Actions** pour agir sans quitter la chronologie :
 
 - **Exécuter le runbook** — lance un [runbook](/docs/runbooks/index) sur cet incident.
-- **Exécuter la politique d'astreinte** — alerte une politique à la demande. Une politique archivée n'alerte personne : son journal d'exécution sur l'incident indique qu'elle n'a pas été exécutée parce que la politique est archivée. Activez **Page them as observers** pour plutôt tenir informées les personnes de la politique : leur réponse indique seulement qu'elles ont vu l'alerte, et l'incident n'est pas pris en compte.
+- **Exécuter la politique d'astreinte** — alerte une politique à la demande. Une politique archivée n'alerte personne : son journal d'exécution sur l'incident indique qu'elle n'a pas été exécutée parce que la politique est archivée. Activez **Les alerter comme observateurs** pour plutôt tenir informées les personnes de la politique : leur réponse indique seulement qu'elles ont vu l'alerte, et l'incident n'est pas pris en compte.
 - **Ajouter une note publique** — l'éditeur de la page **Notes publiques**, dans une boîte de dialogue : rédigez la note, puis **Post update**. Les modèles, **Rédiger avec l'IA**, les pièces jointes, **Notifier les abonnés à la page de statut** avec qui elle atteindra, et **Aperçu** sont tous là. La note est publiée maintenant ; pour l'antidater, choisissez **Posted now**.
 - **Ajouter une note privée** — l'éditeur de la page **Notes privées**, dans une boîte de dialogue : rédigez la note, puis **Add note**.
 
