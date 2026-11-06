@@ -959,7 +959,9 @@ jobs:
           # beside the side menu, dark German and Persian; about 0.6 minutes
           # on a runner), and the Cloud AI agent's own key 3 more the same day
           # (5 runs, about 0.3): the suite 10.2, the group 22.6, so Public
-          # Addresses (1.2, Chromium only) moved to group 12: 21.4.
+          # Addresses (1.2, Chromium only) moved to group 12: 21.4. Azure's
+          # write identity added 1 test the same day (a desktop's only, about
+          # 0.1): the suite 10.3, the group 21.5.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
