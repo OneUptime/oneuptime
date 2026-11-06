@@ -948,8 +948,9 @@ jobs:
           # database's and a stopped function's Logs, a row's attributes, the
           # empty list before and while the account streams, 1024 and 768
           # beside the side menu, dark German and Persian; about 0.6 minutes
-          # on a runner: the suite 9.9, the group 22.3), so Public Addresses
-          # (1.2, Chromium only) moved to group 12: 21.1.
+          # on a runner), and the Cloud AI agent's own key 3 more the same day
+          # (5 runs, about 0.3): the suite 10.2, the group 22.6, so Public
+          # Addresses (1.2, Chromium only) moved to group 12: 21.4.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
