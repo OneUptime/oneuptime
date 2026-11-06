@@ -36,8 +36,10 @@ import logger from "../Logger";
  *
  * Fails open: while the ids cannot be read, or there are more than
  * CLOUD_STREAM_MAX_KEYED_CONNECTIONS of them, a delivery's connection is
- * read as before. Cloud-neutral: a key's connection is a connection, of
- * whichever cloud streams.
+ * read as before. Cloud-neutral: a key's connection is a connection of a
+ * cloud that pushes with one - AWS's Firehose, Google Cloud's Pub/Sub. An
+ * Azure connection is read by OneUptime and holds no key, so none is held
+ * here.
  */
 
 export default class CloudStreamKeyedConnections {
@@ -59,7 +61,7 @@ export default class CloudStreamKeyedConnections {
     const connections: Array<CloudConnection> =
       await CloudConnectionService.findAllBy({
         query: {
-          provider: CloudProvider.AWS,
+          provider: QueryHelper.any([CloudProvider.AWS, CloudProvider.GCP]),
           streamKeyCreatedAt: QueryHelper.notNull(),
         },
         select: { _id: true },

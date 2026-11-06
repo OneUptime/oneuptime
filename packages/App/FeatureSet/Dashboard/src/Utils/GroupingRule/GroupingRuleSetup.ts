@@ -1,5 +1,12 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { toPeoplePickerIds } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
+  DEFAULT_RECORDS_TO_OPEN_EPISODE,
+  MAX_RECORDS_TO_OPEN_EPISODE,
+  MIN_RECORDS_TO_WAIT_FOR,
+  getRecordsToOpenEpisode,
+  isValidRecordsToOpenEpisode,
+} from "Common/Utils/Episode/EpisodeOpeningThreshold";
 
 /*
  * The plain-language half of the Incident and Alert Grouping Rules pages.
@@ -29,7 +36,12 @@ import { toPeoplePickerIds } from "Common/UI/Components/PeoplePicker/PeoplePicke
  *     (getMinutesSettingFoldedValue for the lifecycle switches);
  *   - who owns the episodes a rule opens asked with one people picker, where
  *     two dropdowns set a default assignee nothing ever showed (see
- *     EPISODE_OWNERS_FIELD_KEY).
+ *     EPISODE_OWNERS_FIELD_KEY);
+ *   - waiting for more incidents before opening an episode (issue #5374), a
+ *     switch and a count in the rule's More fields like the lifecycle
+ *     switches, read with the engines' own rule
+ *     (Common/Utils/Episode/EpisodeOpeningThreshold; see
+ *     MINIMUM_COUNT_FIELD_NAMES).
  *
  * React-free on purpose: App has no react (see
  * App/Tests/FeatureSetImportsStayReactFree.test.ts), and the node tests that
@@ -102,6 +114,43 @@ export const REOPEN_WINDOW_SETTING_FIELD_KEY: string = "reopenWindowSetting";
 export const RESOLVE_DELAY_SETTING_FIELD_KEY: string = "resolveDelaySetting";
 export const INACTIVITY_TIMEOUT_SETTING_FIELD_KEY: string =
   "inactivityTimeoutSetting";
+export const MINIMUM_COUNT_SETTING_FIELD_KEY: string = "minimumCountSetting";
+
+/*
+ * Wait for more incidents before opening an episode: a switch and a count,
+ * like the lifecycle switches and their minutes. The two models name the
+ * columns after what they count.
+ */
+export interface MinimumCountFieldNames {
+  enabled: string;
+  count: string;
+}
+
+export const MINIMUM_COUNT_FIELD_NAMES: Record<
+  GroupingRuleKind,
+  MinimumCountFieldNames
+> = {
+  [GroupingRuleKind.Incident]: {
+    enabled: "enableMinimumIncidentCount",
+    count: "minimumIncidentCount",
+  },
+  [GroupingRuleKind.Alert]: {
+    enabled: "enableMinimumAlertCount",
+    count: "minimumAlertCount",
+  },
+};
+
+/*
+ * The count the box starts with when the switch is turned on with nothing in
+ * it, the fewest it takes while on - waiting for one is not waiting - and
+ * the most (the engines' own limits).
+ */
+export const DEFAULT_MINIMUM_COUNT: number = DEFAULT_RECORDS_TO_OPEN_EPISODE;
+export const MIN_MINIMUM_COUNT: number = MIN_RECORDS_TO_WAIT_FOR;
+export const MAX_MINIMUM_COUNT: number = MAX_RECORDS_TO_OPEN_EPISODE;
+
+export const COUNT_VALIDATION_MESSAGE: string =
+  "Enter a whole number between {{min}} and {{max}}.";
 
 /*
  * Who owns the episodes a rule opens: Episode Owners, under On-Call &
@@ -201,6 +250,10 @@ export const GROUPING_RULE_COPY: {
   inactivityTimeoutTitle: string;
   inactivityTimeoutDescription: KindCopy;
   inactivityTimeoutSentence: KindCopy;
+  minimumCountTitle: KindCopy;
+  minimumCountDescription: KindCopy;
+  minimumCountSentence: KindCopy;
+  minimumCountLabel: KindCopy;
   summaryColumnTitle: string;
   episodeOwnersTitle: string;
   episodeOwnersDescription: string;
@@ -290,6 +343,33 @@ export const GROUPING_RULE_COPY: {
     [GroupingRuleKind.Incident]:
       "After {{minutes}} minutes without a new incident",
     [GroupingRuleKind.Alert]: "After {{minutes}} minutes without a new alert",
+  },
+  /*
+   * Wait for more incidents before opening an episode (issue #5374): a lone
+   * incident stays on its own, and several at once - an outage that trips
+   * many monitors - share one episode. The sentence's {{count}} is where the
+   * box is drawn.
+   */
+  minimumCountTitle: {
+    [GroupingRuleKind.Incident]: "Wait for more incidents",
+    [GroupingRuleKind.Alert]: "Wait for more alerts",
+  },
+  minimumCountDescription: {
+    [GroupingRuleKind.Incident]:
+      "Open an episode only when several matching incidents are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each incident stays on its own and pages only its own on-call policies.",
+    [GroupingRuleKind.Alert]:
+      "Open an episode only when several matching alerts are ongoing at once, such as an outage that trips many monitors, and put them all in it. Until then, each alert stays on its own and pages only its own on-call policies.",
+  },
+  minimumCountSentence: {
+    [GroupingRuleKind.Incident]:
+      "Open an episode once {{count}} matching incidents are ongoing",
+    [GroupingRuleKind.Alert]:
+      "Open an episode once {{count}} matching alerts are ongoing",
+  },
+  // The box's accessible name.
+  minimumCountLabel: {
+    [GroupingRuleKind.Incident]: "Minimum Incident Count",
+    [GroupingRuleKind.Alert]: "Minimum Alert Count",
   },
   summaryColumnTitle: "Grouping",
   episodeOwnersTitle: "Episode Owners",
@@ -471,6 +551,8 @@ export const GROUPING_SUMMARY_COPY: {
   fieldMonitorLabels: string;
   timeWindowOn: KindCopy;
   timeWindowOff: KindCopy;
+  opensOnceOngoing: KindCopy;
+  minimumCount: KindCopy;
   reopens: string;
   waitsBeforeResolving: string;
   resolvesWhenQuiet: KindCopy;
@@ -517,6 +599,21 @@ export const GROUPING_SUMMARY_COPY: {
       "New incidents keep joining until the episode is resolved",
     [GroupingRuleKind.Alert]:
       "New alerts keep joining until the episode is resolved",
+  },
+  opensOnceOngoing: {
+    [GroupingRuleKind.Incident]:
+      "Opens an episode once {{count}} matching incidents are ongoing",
+    [GroupingRuleKind.Alert]:
+      "Opens an episode once {{count}} matching alerts are ongoing",
+  },
+  /*
+   * What Wait for more incidents says on the folded More fields header:
+   * "Wait for more incidents: 3 incidents". Shared with the rest of the
+   * Dashboard.
+   */
+  minimumCount: {
+    [GroupingRuleKind.Incident]: "{{count}} incidents",
+    [GroupingRuleKind.Alert]: "{{count}} alerts",
   },
   reopens: "Reopens episodes resolved in the last {{duration}}",
   waitsBeforeResolving: "Waits {{duration}} before resolving",
@@ -1046,6 +1143,23 @@ export const getEffectiveTimeWindowMinutes: (
     : ENGINE_FALLBACK_TIME_WINDOW_MINUTES;
 };
 
+/*
+ * How many matching records the rule waits for before it opens an episode,
+ * read exactly as the engines read it (EpisodeOpeningThreshold): 1 - no wait
+ * - unless the switch is on with a usable count.
+ */
+export const getEffectiveMinimumCount: (
+  values: GroupingRuleValues,
+  kind: GroupingRuleKind,
+) => number = (values: GroupingRuleValues, kind: GroupingRuleKind): number => {
+  const names: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
+
+  return getRecordsToOpenEpisode({
+    enabled: values[names.enabled],
+    count: values[names.count],
+  });
+};
+
 export interface GroupingRuleSummary {
   // How incidents are split into episodes: "One episode per monitor".
   grouping: string;
@@ -1134,6 +1248,20 @@ export const getGroupingRuleSummary: (data: {
         });
 
   const details: Array<string> = [];
+
+  // Waits for more incidents before it opens an episode: said first.
+  const recordsToOpenEpisode: number = getEffectiveMinimumCount(
+    rule,
+    data.kind,
+  );
+
+  if (recordsToOpenEpisode > 1) {
+    details.push(
+      translate(GROUPING_SUMMARY_COPY.opensOnceOngoing[data.kind], {
+        count: recordsToOpenEpisode,
+      }),
+    );
+  }
 
   const reopenMinutes: number | null = getActiveMinutes(
     rule,
@@ -1227,6 +1355,7 @@ export const getGroupingRuleSummarySelect: (
   kind: GroupingRuleKind,
 ): Record<string, unknown> => {
   const names: GroupByFieldNames = GROUP_BY_FIELD_NAMES[kind];
+  const minimumCount: MinimumCountFieldNames = MINIMUM_COUNT_FIELD_NAMES[kind];
 
   const select: Record<string, unknown> = {
     [names.monitor]: true,
@@ -1236,6 +1365,8 @@ export const getGroupingRuleSummarySelect: (
     [names.monitorLabels]: true,
     enableTimeWindow: true,
     timeWindowMinutes: true,
+    [minimumCount.enabled]: true,
+    [minimumCount.count]: true,
     enableReopenWindow: true,
     reopenWindowMinutes: true,
     enableResolveDelay: true,
@@ -1300,6 +1431,169 @@ export const getMinutesSettingFoldedValue: (data: {
   return minutes === null
     ? ""
     : formatGroupingDuration({ minutes, translate: data.translate });
+};
+
+/*
+ * A count the box can hold while the switch is on, or null: a whole number
+ * from MIN_MINIMUM_COUNT to MAX_MINIMUM_COUNT. Accepts what a number input
+ * hands over (a string) as well as a stored number.
+ */
+export const parseMinimumCount: (value: unknown) => number | null = (
+  value: unknown,
+): number | null => {
+  let parsed: number = NaN;
+
+  if (typeof value === "number") {
+    parsed = value;
+  } else if (typeof value === "string" && WHOLE_NUMBER_TEXT.test(value)) {
+    parsed = Number(value.trim());
+  }
+
+  if (
+    !Number.isInteger(parsed) ||
+    parsed < MIN_MINIMUM_COUNT ||
+    parsed > MAX_MINIMUM_COUNT
+  ) {
+    return null;
+  }
+
+  return parsed;
+};
+
+/*
+ * The count of a switched-on setting must be one the box takes. A
+ * switched-off one is not checked: the engines do not read its count. Nor is
+ * a count the rule was saved with: the API takes only counts the engines act
+ * on (GroupingRuleCountCheck), and one of 1 waits for nothing, which the
+ * form shows as off (getMinimumCountDisplay).
+ */
+export const getMinimumCountValidationError: (data: {
+  enabled: unknown;
+  count: unknown;
+  translate: GroupingRuleTranslateFunction;
+}) => string | null = (data: {
+  enabled: unknown;
+  count: unknown;
+  translate: GroupingRuleTranslateFunction;
+}): string | null => {
+  if (data.enabled !== true) {
+    return null;
+  }
+
+  if (
+    data.count === undefined ||
+    data.count === null ||
+    isValidRecordsToOpenEpisode(data.count)
+  ) {
+    return null;
+  }
+
+  if (parseMinimumCount(data.count) === null) {
+    return data.translate(COUNT_VALIDATION_MESSAGE, {
+      min: MIN_MINIMUM_COUNT,
+      max: MAX_MINIMUM_COUNT,
+    });
+  }
+
+  return null;
+};
+
+/*
+ * What the setting shows: what the engines do with it. On with a count that
+ * waits for nothing - 1, or none - is off to the engines, so it shows off; a
+ * count typed into the box shows as typed, so its check can say what is
+ * wrong. Nothing is written until the person changes the setting, so a rule
+ * opened and saved keeps what it had.
+ */
+export const getMinimumCountDisplay: (data: {
+  enabled: unknown;
+  count: unknown;
+}) => { enabled: boolean; count: unknown } = (data: {
+  enabled: unknown;
+  count: unknown;
+}): { enabled: boolean; count: unknown } => {
+  if (data.enabled !== true) {
+    return { enabled: false, count: data.count };
+  }
+
+  if (typeof data.count === "string") {
+    return { enabled: true, count: data.count };
+  }
+
+  const count: number = getRecordsToOpenEpisode({
+    enabled: true,
+    count: data.count,
+  });
+
+  if (count > 1) {
+    return { enabled: true, count: count };
+  }
+
+  return { enabled: false, count: data.count };
+};
+
+/*
+ * The values the setting saves: its switch, and its count - as typed while
+ * it is on (so validation can say what is wrong), and always a usable number
+ * while it is off, so a cleared box is never saved into the column.
+ */
+export const getMinimumCountValues: (data: {
+  enabled: boolean;
+  count: unknown;
+}) => { enabled: boolean; count: number | string } = (data: {
+  enabled: boolean;
+  count: unknown;
+}): { enabled: boolean; count: number | string } => {
+  const parsed: number | null = parseMinimumCount(data.count);
+
+  if (parsed !== null) {
+    return { enabled: data.enabled, count: parsed };
+  }
+
+  if (data.enabled && typeof data.count === "string") {
+    return { enabled: true, count: data.count };
+  }
+
+  return { enabled: data.enabled, count: DEFAULT_MINIMUM_COUNT };
+};
+
+/*
+ * What the setting says on the folded header of the rule's More fields:
+ * "3 incidents" while it is on, or null while it is off - read the way the
+ * form draws it (getMinimumCountDisplay), so the chip and the switch never
+ * disagree. A count typed that the box does not take yet leaves the chip its
+ * name alone, until the field's own check says what is wrong.
+ */
+export const getMinimumCountFoldedValue: (data: {
+  enabled: unknown;
+  count: unknown;
+  kind: GroupingRuleKind;
+  translate: GroupingRuleTranslateFunction;
+}) => string | null = (data: {
+  enabled: unknown;
+  count: unknown;
+  kind: GroupingRuleKind;
+  translate: GroupingRuleTranslateFunction;
+}): string | null => {
+  const display: { enabled: boolean; count: unknown } = getMinimumCountDisplay({
+    enabled: data.enabled,
+    count: data.count,
+  });
+
+  if (!display.enabled) {
+    return null;
+  }
+
+  const count: number | null =
+    typeof display.count === "number"
+      ? display.count
+      : parseMinimumCount(display.count);
+
+  return count === null
+    ? ""
+    : data.translate(GROUPING_SUMMARY_COPY.minimumCount[data.kind], {
+        count: count,
+      });
 };
 
 /*
@@ -1493,6 +1787,7 @@ export const getGroupingRuleUiStrings: () => Array<string> =
     }
 
     add(MINUTES_VALIDATION_MESSAGE);
+    add(COUNT_VALIDATION_MESSAGE);
 
     return Array.from(strings);
   };

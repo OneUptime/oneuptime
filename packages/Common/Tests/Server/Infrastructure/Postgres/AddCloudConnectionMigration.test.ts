@@ -2,6 +2,7 @@ import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { AddCloudConnection1805400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805400000000-AddCloudConnection";
 import { AddCloudResourceCloudConnectionIndexAndKey1805450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805450000000-AddCloudResourceCloudConnectionIndexAndKey";
 import { AddCloudConnectionStreams1808992600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808992600000-AddCloudConnectionStreams";
+import { AddCloudConnectionStreamState1808995100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808995100000-AddCloudConnectionStreamState";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import CloudConnection from "../../../../Models/DatabaseModels/CloudConnection";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
@@ -27,8 +28,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * all the time.
  *
  * Later migrations add columns to "CloudConnection" (the streams' key,
- * when it was made and what they delivered): together with the table they
- * must give exactly the columns the model declares.
+ * when it was made and what they delivered, and where an Azure stream's
+ * event hubs were read to): together with the table they must give exactly
+ * the columns the model declares.
  */
 
 const TABLE_MIGRATION: string = "AddCloudConnection1805400000000";
@@ -49,6 +51,7 @@ const MIGRATIONS: Array<MigrationClass> = [
 // Every later migration that adds a column to "CloudConnection", oldest first.
 const COLUMN_MIGRATIONS: Array<MigrationClass> = [
   AddCloudConnectionStreams1808992600000,
+  AddCloudConnectionStreamState1808995100000,
 ];
 
 const MIGRATIONS_FOLDER: string = path.join(
