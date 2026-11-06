@@ -362,6 +362,39 @@ describe("open_code_pull_request", () => {
     }).not.toThrow();
   });
 
+  /*
+   * The pull request is open on GitHub before its row is written, so a row
+   * the database refuses is an uncapped pull request. Its base is the
+   * repository's default branch, which may be longer than the 100
+   * characters the column once held: the branch is recorded whole (a cut
+   * name is another branch) and passes the real length check.
+   */
+  test("records a 200-character default branch whole, within the model's real length check", async () => {
+    const defaultBranch: string = `release/${"r".repeat(192)}`;
+
+    expect(defaultBranch).toHaveLength(200);
+
+    mockHappyPath();
+    jest
+      .spyOn(GitHubUtil, "getDefaultBranchName")
+      .mockResolvedValue(defaultBranch);
+
+    await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      ctx,
+    );
+
+    const record: AIAgentTaskPullRequest = (
+      AIAgentTaskPullRequestService.create as unknown as jest.Mock
+    ).mock.calls[0][0].data;
+
+    expect(record.baseRefName).toBe(defaultBranch);
+
+    expect(() => {
+      return AIAgentTaskPullRequestService["checkMaxLengthOfFields"](record);
+    }).not.toThrow();
+  });
+
   test("refuses when the repository is at the open-PR cap it set", async () => {
     mockHappyPath();
     const cappedRepository: CodeRepositoryModel = buildRepository();
