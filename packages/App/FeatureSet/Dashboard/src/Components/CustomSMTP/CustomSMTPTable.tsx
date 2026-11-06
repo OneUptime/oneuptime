@@ -12,16 +12,19 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import {
+  EMAIL_PROVIDER_CHOICES,
   PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES,
   PROJECT_SMTP_CONFIG_FORM_COLUMNS,
   getProjectSmtpConfigFormFields,
-  getSmtpConfigFormSteps,
-  showsSmtpServerFields,
-  withoutValuesGraphIgnores,
+  getProjectSmtpConfigFormSteps,
+  withoutValuesTransportIgnores,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
+import EmailProviderSummary from "./EmailProviderSummary";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -42,16 +45,24 @@ import React, {
 } from "react";
 
 /*
- * Server (name, hostname, port, username, password, and a folded Advanced
- * section with the transport, TLS, sign-in type, OAuth and description),
- * then Sender. Built with the Admin Dashboard's instance mail server form
- * from one builder (SmtpConfigFormFields), once.
+ * Provider (name, the provider, and the description folded), then the step
+ * of the provider picked - an SMTP server's Server (and OAuth, when it signs
+ * in with OAuth), Microsoft Graph's OAuth, or Amazon SES's, SendGrid's,
+ * Mailgun's, Postmark's or Resend's own - then Sender. Built from the
+ * builder the Admin Dashboard's mail server forms share
+ * (SmtpConfigFormFields), once.
  */
 const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> =
-  getSmtpConfigFormSteps<ProjectSmtpConfig>();
+  getProjectSmtpConfigFormSteps();
 
 const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> =
   getProjectSmtpConfigFormFields();
+
+// The providers, as the table's filter offers them: by the name people know.
+const EMAIL_PROVIDER_FILTER_OPTIONS: Array<DropdownOption> =
+  EMAIL_PROVIDER_CHOICES.map((choice: CardSelectOption): DropdownOption => {
+    return { label: choice.title, value: choice.value };
+  });
 
 export interface ComponentProps {
   /*
@@ -122,7 +133,7 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Custom SMTP Configs",
           description:
-            "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.",
+            "Send this project's email through your own mail server, or through Amazon SES, SendGrid, Mailgun, Postmark, Resend or Microsoft Graph. A status page picks one under Subscriber Settings.",
         }}
         formSteps={SMTP_CONFIG_FORM_STEPS}
         name="Settings > Custom SMTP Config"
@@ -130,13 +141,14 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
         // Port 587 to start from: the column has no default.
         createInitialValues={PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES}
         /*
-         * A Microsoft Graph config is created without the hostname, port,
-         * username and password the form hid once Graph was picked.
+         * A config is created without what the form hid once its provider
+         * was picked: no hostname, port or password for an API provider or
+         * Microsoft Graph, and no key of another provider.
          */
         onBeforeCreate={async (
           item: ProjectSmtpConfig,
         ): Promise<ProjectSmtpConfig> => {
-          return withoutValuesGraphIgnores<ProjectSmtpConfig>(
+          return withoutValuesTransportIgnores<ProjectSmtpConfig>(
             item,
             PROJECT_SMTP_CONFIG_FORM_COLUMNS,
           );
@@ -171,15 +183,26 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
               hostname: true,
             },
           },
+          {
+            title: "Provider",
+            type: FieldType.Dropdown,
+            field: {
+              transportType: true,
+            },
+            filterDropdownOptions: EMAIL_PROVIDER_FILTER_OPTIONS,
+          },
         ]}
         /*
-         * What tells the configs apart at a glance: the name, the server
-         * mail goes through (Microsoft Graph has none) and who it comes
-         * from. The transport, the sign-in and the description are in the
-         * config's Edit dialog.
+         * What tells the configs apart at a glance: the name, what mail goes
+         * through - an SMTP server's host, or the provider and where it
+         * sends from (EmailProviderSummary) - and who it comes from. The
+         * sign-in and the description are in the config's Edit dialog.
          */
         selectMoreFields={{
           transportType: true,
+          amazonSesRegion: true,
+          mailgunDomain: true,
+          mailgunRegion: true,
         }}
         columns={[
           {
@@ -193,17 +216,10 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
             field: {
               hostname: true,
             },
-            title: "Server Host",
+            title: "Sends Through",
             type: FieldType.Text,
-            // Microsoft Graph sends with no server of the config's own.
             getElement: (item: ProjectSmtpConfig): ReactElement => {
-              if (
-                !showsSmtpServerFields(item, PROJECT_SMTP_CONFIG_FORM_COLUMNS)
-              ) {
-                return <span>Microsoft Graph</span>;
-              }
-
-              return <span>{item.hostname?.toString() || "-"}</span>;
+              return <EmailProviderSummary config={item} />;
             },
           },
           {
@@ -219,7 +235,7 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
       {showSMTPTestModal && currentSMTPTestConfig ? (
         <BasicFormModal
           title={`Send Test Email`}
-          description={`Send a test email to verify your SMTP config.`}
+          description={`Send a test email through this config, to check it works.`}
           formProps={{
             error: error,
             fields: [

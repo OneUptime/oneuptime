@@ -1192,6 +1192,51 @@ describe("Rum:ProcessSessionErasureRequests retry-or-fail", () => {
     );
   });
 
+  /*
+   * The failure reason is ClickHouse's or Postgres's own words, often longer
+   * than its varchar(500). Unheld, the requeue's own write was refused
+   * inside the catch: the attempt was never counted, the request stayed
+   * InProgress, and the stale reclaim ran it again as a first attempt - for
+   * ever, never Failed, no owner told.
+   */
+  test("an error longer than the reason's column is cut to it, and the attempt is still counted", async () => {
+    const harness: RetryHarness = installHarness();
+    const longError: string = `Code: 241. DB::Exception: Memory limit (for query) exceeded: ${"would use 9.31 GiB (attempt to allocate chunk of 4194304 bytes), maximum: 9.31 GiB. ".repeat(12)}`;
+    const failing: () => Promise<unknown> = (): Promise<unknown> => {
+      return Promise.reject(new Error(longError));
+    };
+
+    chunkService.executeQuery = failing;
+    sessionService.executeQuery = failing;
+
+    for (const request of [
+      buildRequest(0),
+      buildRequest(MAX_ERASURE_ATTEMPTS - 1),
+    ]) {
+      await processErasureRequest({
+        databaseName: databaseName,
+        request: request,
+      });
+    }
+
+    const requeue: { data: Record<string, unknown> } = harness.updateOneById
+      .mock.calls[0]![0] as never;
+
+    expect(requeue.data["status"]).toBe(RumSessionErasureRequestStatus.Pending);
+    expect(requeue.data["attempts"]).toBe(1);
+    expect((requeue.data["failureReason"] as string).length).toBe(500);
+    expect(longError.startsWith(requeue.data["failureReason"] as string)).toBe(
+      true,
+    );
+
+    expect(harness.markFailed).toHaveBeenCalledTimes(1);
+
+    const failed: { failureReason: string } = harness.markFailed.mock
+      .calls[0]![0] as never;
+
+    expect(failed.failureReason.length).toBe(500);
+  });
+
   test("a mail failure does not throw back into the job", async () => {
     const harness: RetryHarness = installHarness();
 

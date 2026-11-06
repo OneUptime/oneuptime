@@ -3,6 +3,9 @@ import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import EmailServer from "Common/Types/Email/EmailServer";
 import MailTransportType from "Common/Types/Email/MailTransportType";
+import { isMailgunDomain } from "Common/Types/Email/MailgunDomain";
+import { toMailgunRegion } from "Common/Types/Email/MailgunRegion";
+import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -56,9 +59,16 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
       throw new BadDataException("Global Config not found");
     }
 
+    /*
+     * The server's Custom SMTP settings send over SMTP or through Microsoft
+     * Graph; anything else stored there is read as SMTP. The providers with
+     * an HTTP API of their own are Email Server Types, each with settings of
+     * its own (getGlobalEmailProviderServer).
+     */
     const transportType: MailTransportType =
-      (globalConfig.smtpTransportType as MailTransportType) ||
-      MailTransportType.SMTP;
+      globalConfig.smtpTransportType === MailTransportType.MicrosoftGraph
+        ? MailTransportType.MicrosoftGraph
+        : MailTransportType.SMTP;
 
     /*
      * "config not yet set" detection: for SMTP we look at host/port/credentials;
@@ -183,6 +193,185 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
         (globalConfig.smtpOAuthProviderType as OAuthProviderType | undefined) ||
         undefined,
     };
+  };
+
+type GetGlobalEmailProviderServerFunction = (
+  transportType: MailTransportType,
+) => Promise<EmailServer>;
+
+/*
+ * The server's own settings for a provider with an HTTP API of its own -
+ * Email Server Type Amazon SES, Mailgun, Postmark or Resend - as the
+ * EmailServer MailService sends with: only that provider's key and sender.
+ * A setting left blank (or not what the provider takes: an AWS Region, a
+ * Mailgun domain) refuses the email with the field to fill in, stamped as
+ * the operator's to fix.
+ */
+export const getGlobalEmailProviderServer: GetGlobalEmailProviderServerFunction =
+  async (transportType: MailTransportType): Promise<EmailServer> => {
+    const globalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          amazonSesAccessKeyId: true,
+          amazonSesSecretAccessKey: true,
+          amazonSesRegion: true,
+          amazonSesFromEmail: true,
+          amazonSesFromName: true,
+          mailgunApiKey: true,
+          mailgunDomain: true,
+          mailgunRegion: true,
+          mailgunFromEmail: true,
+          mailgunFromName: true,
+          postmarkServerToken: true,
+          postmarkFromEmail: true,
+          postmarkFromName: true,
+          resendApiKey: true,
+          resendFromEmail: true,
+          resendFromName: true,
+        },
+      });
+
+    if (!globalConfig) {
+      throw new BadDataException("Global Config not found");
+    }
+
+    const notSet: (field: string) => BadDataException = (
+      field: string,
+    ): BadDataException => {
+      return new BadDataException(
+        `Email is configured to use ${transportType}, but its ${field} is not set. Please set it in the Admin Dashboard, under Settings > Emails: ` +
+          AdminDashboardClientURL.toString(),
+      ).asUserError();
+    };
+
+    const text: (value: string | undefined) => string = (
+      value: string | undefined,
+    ): string => {
+      return value?.trim() || "";
+    };
+
+    const sender: (
+      fromEmail: Email | undefined,
+      fromName: string | undefined,
+    ) => { fromEmail: Email; fromName: string } = (
+      fromEmail: Email | undefined,
+      fromName: string | undefined,
+    ): { fromEmail: Email; fromName: string } => {
+      if (!fromEmail || !fromEmail.toString().trim()) {
+        throw notSet("From Email");
+      }
+
+      return {
+        fromEmail: fromEmail,
+        // Without a name of its own, emails are from the product.
+        fromName: text(fromName) || ProductBrandingText.getProductName(),
+      };
+    };
+
+    const base: Pick<EmailServer, "transportType" | "username" | "password"> = {
+      transportType: transportType,
+      username: undefined,
+      password: undefined,
+    };
+
+    switch (transportType) {
+      case MailTransportType.AmazonSES: {
+        const accessKeyId: string = text(globalConfig.amazonSesAccessKeyId);
+        const secretAccessKey: string = text(
+          globalConfig.amazonSesSecretAccessKey,
+        );
+        const region: string = text(globalConfig.amazonSesRegion).toLowerCase();
+
+        if (!accessKeyId) {
+          throw notSet("Access Key ID");
+        }
+
+        if (!secretAccessKey) {
+          throw notSet("Secret Access Key");
+        }
+
+        if (!region || !isAwsRegion(region)) {
+          throw notSet("Region (an AWS Region code, such as us-east-1)");
+        }
+
+        return {
+          ...base,
+          ...sender(
+            globalConfig.amazonSesFromEmail,
+            globalConfig.amazonSesFromName,
+          ),
+          awsAccessKeyId: accessKeyId,
+          awsSecretAccessKey: secretAccessKey,
+          awsRegion: region,
+        };
+      }
+
+      case MailTransportType.Mailgun: {
+        const apiKey: string = text(globalConfig.mailgunApiKey);
+        const domain: string = text(globalConfig.mailgunDomain).toLowerCase();
+
+        if (!apiKey) {
+          throw notSet("API Key");
+        }
+
+        if (!domain || !isMailgunDomain(domain)) {
+          throw notSet("Domain (the sending domain, such as mg.example.com)");
+        }
+
+        return {
+          ...base,
+          ...sender(
+            globalConfig.mailgunFromEmail,
+            globalConfig.mailgunFromName,
+          ),
+          apiKey: apiKey,
+          mailgunDomain: domain,
+          mailgunRegion: toMailgunRegion(globalConfig.mailgunRegion),
+        };
+      }
+
+      case MailTransportType.Postmark: {
+        const serverToken: string = text(globalConfig.postmarkServerToken);
+
+        if (!serverToken) {
+          throw notSet("Server API Token");
+        }
+
+        return {
+          ...base,
+          ...sender(
+            globalConfig.postmarkFromEmail,
+            globalConfig.postmarkFromName,
+          ),
+          apiKey: serverToken,
+        };
+      }
+
+      case MailTransportType.Resend: {
+        const apiKey: string = text(globalConfig.resendApiKey);
+
+        if (!apiKey) {
+          throw notSet("API Key");
+        }
+
+        return {
+          ...base,
+          ...sender(globalConfig.resendFromEmail, globalConfig.resendFromName),
+          apiKey: apiKey,
+        };
+      }
+
+      default:
+        throw new BadDataException(
+          `${transportType} is not an email provider the server sends through with settings of its own.`,
+        );
+    }
   };
 
 type GetEmailServerTypeFunction = () => Promise<EmailServerType>;

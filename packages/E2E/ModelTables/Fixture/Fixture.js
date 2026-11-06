@@ -166,6 +166,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Project from "Common/Models/DatabaseModels/Project";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -959,9 +961,62 @@ const RUNBOOKS = isEmpty
         : []),
     ];
 
+// ------------------------------------------------------------ the project
+
+/*
+ * ?defaultColumns=incidents: the project keeps default columns for the
+ * incidents list (Project.defaultTableColumns) - Labels and Owners off -
+ * as a Project Owner set them from its Customize Columns; ?defaultColumns=none:
+ * it keeps none yet. The server's project (RECORDS.Project) has them, and so
+ * does the copy the page holds (ProjectUtil, from the Dashboard's project
+ * list), which is seeded once: a default saved from the page and read again
+ * after a reload is the page's. Left out, the page holds no project copy, as
+ * before.
+ */
+const PROJECT_DEFAULT_COLUMNS =
+  params.get("defaultColumns") === "incidents"
+    ? {
+        "incidents-table": {
+          order: [
+            "incidentNumber",
+            "title",
+            "currentIncidentState",
+            "incidentSeverity",
+            "monitors",
+            "declaredAt:declared",
+            "declaredAt:duration",
+            "labels",
+            "_id",
+          ],
+          hidden: ["labels", "_id"],
+        },
+      }
+    : null;
+
+const PROJECT = (() => {
+  const project = new Project();
+  project._id = PROJECT_ID;
+  project.name = "Acme Commerce";
+  if (PROJECT_DEFAULT_COLUMNS) {
+    project.defaultTableColumns = PROJECT_DEFAULT_COLUMNS;
+  }
+  return project;
+})();
+
+if (
+  params.get("defaultColumns") &&
+  !window.localStorage.getItem("project_" + PROJECT_ID)
+) {
+  window.localStorage.setItem(
+    "project_" + PROJECT_ID,
+    JSON.stringify(BaseModel.toJSON(PROJECT, Project)),
+  );
+}
+
 // ------------------------------------------------------------ the records
 
 const RECORDS = {
+  Project: [PROJECT],
   Incident: INCIDENTS,
   IncidentState: [IDENTIFIED, ACKNOWLEDGED, RESOLVED],
   IncidentSeverity: [CRITICAL, MAJOR, MINOR],

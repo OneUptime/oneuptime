@@ -105,6 +105,7 @@ import {
   getKubernetesClusterProvider,
 } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
+import { isCloudConnectionDeliveredResource } from "Common/Types/Cloud/CloudConnectionTelemetry";
 import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
@@ -3596,6 +3597,12 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
+      const getAttribute: (key: string) => string | null = (
+        key: string,
+      ): string | null => {
+        return this.getStringAttribute(data.attributes, key);
+      };
+
       /*
        * The app this resource belongs to - an ECS task definition family,
        * a Cloud Run service, a Container App - and the revision it runs
@@ -3603,13 +3610,13 @@ export default abstract class OtelIngestBaseService {
        * window, its revision once per revision: a revision the app never
        * ran is a deploy, and an older one that outlives the current one is
        * a rollback (CloudAppRevisionService), each written as a change
-       * event and a line in the environment's feed.
+       * event and a line in the environment's feed. What a cloud
+       * connection delivered itself - a stream's App Runner, Beanstalk or
+       * ECS logs - names no app (CloudAppIdentity says why).
        */
       const appIdentity: CloudAppIdentity | null = resolveCloudAppIdentity({
         platform: cloudPlatform,
-        getAttribute: (key: string): string | null => {
-          return this.getStringAttribute(data.attributes, key);
-        },
+        getAttribute,
       });
 
       let cloudAppId: ObjectID | null = null;
@@ -3636,13 +3643,15 @@ export default abstract class OtelIngestBaseService {
        * The metrics snapshot fold (OtelMetricsIngestService) resolves the
        * same chain over the same attributes, which is what lets the CPU /
        * memory point land on the row this call creates. The instance names
-       * its app and revision when the resource does.
+       * its app and revision when the resource does. A resource a cloud
+       * connection delivered is a log group's or a read's, never a running
+       * instance's: it records none, whatever it carries.
        */
-      const instanceName: string | null = resolveCloudInstanceName(
-        (key: string): string | null => {
-          return this.getStringAttribute(data.attributes, key);
-        },
-      );
+      const instanceName: string | null = isCloudConnectionDeliveredResource(
+        getAttribute,
+      )
+        ? null
+        : resolveCloudInstanceName(getAttribute);
       if (
         instanceName &&
         (await this.shouldRunMaintenance(

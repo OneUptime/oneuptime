@@ -25,7 +25,9 @@ const Step: <T extends GenericObject>(
    * Looked up the same way as the "Step 2 of 3" title narrow screens show
    * in place of this list, so the two never name a step differently.
    */
-  const title: string = translateString(props.step.title) ?? props.step.title;
+  const title: string = props.step.isTitleProductName
+    ? props.step.title
+    : translateString(props.step.title) ?? props.step.title;
 
   const isClickable: boolean =
     props.isClickable ?? props.state === FormStepState.COMPLETED;

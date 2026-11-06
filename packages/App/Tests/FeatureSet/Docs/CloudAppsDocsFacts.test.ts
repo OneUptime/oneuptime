@@ -2,6 +2,7 @@ import {
   MANAGED_CLOUD_PLATFORMS,
   ManagedCloudPlatformDescriptor,
 } from "Common/Types/Cloud/CloudPlatform";
+import { AWS_LOG_GROUP_PLATFORMS } from "Common/Types/Cloud/CloudLogGroups";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -161,6 +162,47 @@ describe("Apps and deploys, on Cloud Environments", () => {
         "utf8",
       ),
     ).toContain('UNKNOWN_SERVICE_NAME_PREFIX: string = "unknown_service"');
+  });
+
+  it("says a stream's CloudWatch Logs reach their environment and make no app, as discovery has it", () => {
+    const bullet: string | undefined = hub
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- **A stream's CloudWatch Logs count too.**");
+      });
+
+    expect(bullet).toBeDefined();
+    expect(bullet).toContain(
+      "[streams its CloudWatch Logs](/docs/telemetry/cloud-streaming)",
+    );
+    // Every platform a log group rule stamps on a stream's logs, named.
+    const names: Record<string, string> = {
+      aws_app_runner: "App Runner services",
+      aws_elastic_beanstalk: "Elastic Beanstalk environments",
+      aws_ecs: "ECS tasks and clusters",
+    };
+    expect([...AWS_LOG_GROUP_PLATFORMS].sort()).toEqual(
+      Object.keys(names).sort(),
+    );
+    for (const platform of AWS_LOG_GROUP_PLATFORMS) {
+      expect(bullet).toContain(names[platform]);
+    }
+    expect(bullet).toContain("on their environment's **Logs** tab");
+    expect(bullet).toContain(
+      "They make no app: an app is named by its own telemetry.",
+    );
+    // Discovery refuses an app to what a connection delivers.
+    expect(
+      fs.readFileSync(
+        path.join(
+          PACKAGES,
+          "Common/Server/Utils/Telemetry/CloudAppIdentity.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain(
+      "if (!descriptor || isCloudConnectionDeliveredResource(data.getAttribute)) {",
+    );
   });
 
   it("is linked from the page's opening bullets and from Deploys and Changes", () => {

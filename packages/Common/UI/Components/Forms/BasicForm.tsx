@@ -1485,7 +1485,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         },
                       )}
                       <span className="block font-medium text-gray-900">
-                        {translateString(activeStep.title) ?? activeStep.title}
+                        {activeStep.isTitleProductName
+                          ? activeStep.title
+                          : translateString(activeStep.title) ??
+                            activeStep.title}
                       </span>
                     </p>
                   </div>

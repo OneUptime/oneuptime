@@ -15,6 +15,8 @@ import {
   TABLE_HEADER_CONTENT_WRAP_CLASS_NAME,
   TABLE_HEADER_WRAP_ATTRIBUTE,
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
+  TABLE_ROWS_DRAWN_CLASS_NAME,
+  TABLE_ROWS_DRAWN_PROPERTY,
   TABLE_SHRINKABLE_ATTRIBUTE,
   TABLE_VALUE_ATTRIBUTE,
   TABLE_VALUE_GIVE_ATTRIBUTE,
@@ -29,6 +31,7 @@ import useTableScrollState, {
   TableCannotFit,
   TableScrollState,
   areGivenWayRulesDrawn,
+  areRowRulesDrawn,
   areTableFontsLoaded,
   getValueGiveKind,
 } from "../../../../UI/Components/Table/useTableScrollState";
@@ -368,6 +371,11 @@ interface ProbeProps {
   // How wide the row's name is as its words: 216px unless a test says.
   nameWidth?: number | undefined;
   onCannotFit?: ((cannotFit: TableCannotFit) => void) | undefined;
+  /*
+   * The rows say they are a table's rows (TableLayout's
+   * TABLE_ROWS_DRAWN_CLASS_NAME), as the shared Table's do.
+   */
+  areRowsTheTables?: boolean | undefined;
 }
 
 const rect: (width: number) => DOMRect = (width: number): DOMRect => {
@@ -436,7 +444,11 @@ function Probe(props: ProbeProps): ReactElement {
           }
         }}
       >
-        <tbody>
+        <tbody
+          className={
+            props.areRowsTheTables ? TABLE_ROWS_DRAWN_CLASS_NAME : undefined
+          }
+        >
           <tr>
             <td>
               <div
@@ -615,6 +627,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -636,6 +649,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -660,6 +674,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
     expect(tried(result)).toEqual([
       { fill: true, wrap: false, give: false },
@@ -697,6 +712,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -733,6 +749,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: true,
       canStickHeader: false,
+      isSettling: false,
     });
     expect(tried(result)).toEqual([
       { fill: true, wrap: false, give: false },
@@ -762,7 +779,106 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: true,
       canStickHeader: false,
+      isSettling: false,
     });
+  });
+
+  /*
+   * A box of 48rem or more has no cards to turn to: a table further past
+   * it given way than the narrow box's 2rem scrolled with every value
+   * whole, hundreds of pixels wider - in German beside a side menu, the
+   * alerts list 887px given way and 1,220px whole in cards of 768-874px.
+   * It stays given way up to 8rem past such a box, one value's floor.
+   */
+  test("in a box of 48rem or more, a table up to 8rem too wide given way stays given way: most of a row in sight, not half of it", () => {
+    // 119px over given way, 452px over whole, in a 768px card.
+    const result: ProbeResult = renderProbe(768, (giving: Giving) => {
+      return giving.give ? 887 : 1220;
+    });
+
+    expect(giveOf(0)).toBe("line");
+    expect(giveOf(2)).toBe("box");
+    expect(wrapOf()).toBe("true");
+    expect(lastState(result)).toEqual({
+      isOverflowing: true,
+      canStickHeader: false,
+      isSettling: false,
+    });
+  });
+
+  test("...and further past it than 8rem, it scrolls with every value whole, as before", () => {
+    // 129px over given way.
+    renderProbe(768, (giving: Giving) => {
+      return giving.give ? 897 : 1220;
+    });
+
+    expect(giveOf(0)).toBeNull();
+    expect(giveOf(2)).toBeNull();
+    expect(wrapOf()).toBeNull();
+  });
+
+  test("in a box narrower than 48rem, only 2rem: past that its rows are drawn as cards, and given way they are not kept", () => {
+    // 50px over given way in a 700px box.
+    renderProbe(700, (giving: Giving) => {
+      return giving.give ? 750 : 1000;
+    });
+
+    expect(giveOf(0)).toBeNull();
+    expect(giveOf(2)).toBeNull();
+
+    cleanup();
+
+    // 20px over: given way.
+    renderProbe(700, (giving: Giving) => {
+      return giving.give ? 720 : 1000;
+    });
+
+    expect(giveOf(0)).toBe("line");
+  });
+
+  /*
+   * A value is cut short only to the floor (8rem), never below it. One that
+   * does not give way - no wider than the floor (a count, a state's pill),
+   * or parts that would only be clipped (avatars) - was let go with the
+   * others while they gave way, and the table squeezed it far below its
+   * own width: in German at 960px the alerts list's state pills read "E."
+   * and "H.", the column 62px wide, to make room for a header of one long
+   * word. Each is held now at its own width or the floor, whichever is
+   * less (getValueFloorWidths).
+   */
+  test("while the values give way, each one that does not is held at its floor: never squeezed below its own width or 8rem", () => {
+    const heldWhileGiving: Array<Array<string | null>> = [];
+
+    renderProbe(938, (giving: Giving): number => {
+      if (giving.give) {
+        heldWhileGiving.push(
+          VALUES.map((_value: unknown, index: number): string | null => {
+            return wholeOf(index);
+          }),
+        );
+
+        // Never fits: the give reading is read as it is.
+        return 1300;
+      }
+
+      return 1500;
+    });
+
+    expect(heldWhileGiving.length).toBeGreaterThan(0);
+    // The host's name and the list give way; the count and the avatars stay whole.
+    expect(heldWhileGiving[0]).toEqual([null, "true", null, "true"]);
+  });
+
+  test("...and so they are in a table only just too wide, drawn given way", () => {
+    renderProbe(938, (giving: Giving) => {
+      return giving.give ? 958 : 1300;
+    });
+
+    expect(giveOf(1)).toBeNull();
+    expect(wholeOf(1)).toBe("true");
+    expect(wholeOf(3)).toBe("true");
+    expect(giveOf(2)).toBe("box");
+    expect(wholeOf(2)).toBeNull();
   });
 
   test("the table says it cannot fit, and how wide it was at its tightest", () => {
@@ -827,6 +943,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
     // Read once, as it is drawn: there was nothing to set free.
     expect(result.readings).toEqual([
@@ -873,6 +990,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -903,6 +1021,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 
@@ -937,6 +1056,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
+      isSettling: false,
     });
   });
 });
@@ -953,6 +1073,12 @@ describe("useTableScrollState gives way before the rows scroll", () => {
  */
 interface RulesSwitch {
   isOn: boolean;
+  /*
+   * Whether the rule of the rows' own class (TABLE_ROWS_DRAWN_CLASS_NAME)
+   * is on the page, where it differs from the give-way rules': as isOn
+   * unless a test says.
+   */
+  areRowsOn?: boolean | undefined;
 }
 
 type DrawRulesFunction = (rules: RulesSwitch) => void;
@@ -969,8 +1095,9 @@ const drawRulesWhen: DrawRulesFunction = (rules: RulesSwitch): void => {
           element,
           pseudo,
         );
+        const areRowsOn: boolean = rules.areRowsOn ?? rules.isOn;
 
-        if (!rules.isOn) {
+        if (!rules.isOn && !areRowsOn) {
           return style;
         }
 
@@ -979,15 +1106,24 @@ const drawRulesWhen: DrawRulesFunction = (rules: RulesSwitch): void => {
           TABLE_VALUE_GIVE_ATTRIBUTE,
         );
 
-        if (given === "box") {
+        if (rules.isOn && given === "box") {
           overrides["display"] = "grid";
         }
 
         if (
-          given === "line" ||
-          element.getAttribute(TABLE_FILL_ATTRIBUTE) === "true"
+          rules.isOn &&
+          (given === "line" ||
+            element.getAttribute(TABLE_FILL_ATTRIBUTE) === "true")
         ) {
           overrides["-webkit-line-clamp"] = "1";
+        }
+
+        // What the rows' own class sets (TABLE_ROWS_DRAWN_CLASS_NAME).
+        if (
+          areRowsOn &&
+          element.classList.contains(TABLE_ROWS_DRAWN_CLASS_NAME)
+        ) {
+          overrides[TABLE_ROWS_DRAWN_PROPERTY] = "1";
         }
 
         return new Proxy(style, {
@@ -1144,7 +1280,13 @@ describe("a table measured before the page has the rules it gives way by", () =>
     }
   });
 
-  test("still draws the rows as it read them meanwhile: scrolling, every value whole", () => {
+  /*
+   * Drawn as they were read - scrolling, every value whole - the rows ran
+   * past their card for a frame or more on a first visit before they
+   * folded or turned into cards: they are not shown until they are read
+   * again (isSettling), then shown as that reading draws them.
+   */
+  test("draws the rows as it read them meanwhile - scrolling, every value whole - and does not show them until they are read again", () => {
     const rules: RulesSwitch = { isOn: false };
     const frames: FakeFrames = fakeResizeObserver();
     const states: Array<TableScrollState> = [];
@@ -1167,9 +1309,21 @@ describe("a table measured before the page has the rules it gives way by", () =>
       expect(states[states.length - 1]).toEqual({
         isOverflowing: true,
         canStickHeader: false,
+        isSettling: true,
       });
       expect(giveOf(0)).toBeNull();
       expect(wrapOf()).toBeNull();
+
+      // Read again with the rules: no longer settling, whatever it reads.
+      rules.isOn = true;
+      frames.observe();
+      frames.runFrames();
+
+      expect(states[states.length - 1]).toEqual({
+        isOverflowing: true,
+        canStickHeader: false,
+        isSettling: false,
+      });
     } finally {
       frames.restore();
     }
@@ -1256,6 +1410,206 @@ describe("a table measured before the page has the rules it gives way by", () =>
     } finally {
       frames.restore();
     }
+  });
+});
+
+/*
+ * "A first visit at a tablet width paints skeleton rows, then cards once
+ * measured" (#5485's follow-ups). On a page's first list the commit that
+ * draws the first rows draws their classes for the first time, and the
+ * Dashboard's Tailwind runtime writes their rules only after it: the rows
+ * measured then are unstyled - too wide (painted running past their card
+ * for a frame or more) or too narrow (the runbooks list at 820px fitted
+ * its 530px card that way, was painted as rows, and was 628px wide and
+ * cards a frame later). The rows say they are a table's rows
+ * (TABLE_ROWS_DRAWN_CLASS_NAME); while the page has not written that
+ * class's rule, whatever they measure is not shown (isSettling) nor folded
+ * on, and they are read again on the next frame.
+ */
+describe("rows drawn before the page has the rules they are drawn by (a page's first list)", () => {
+  type DrawFunction = (data: {
+    told: Array<TableCannotFit>;
+    states: Array<TableScrollState>;
+    widthFor: (giving: Giving) => number;
+  }) => void;
+
+  const draw: DrawFunction = (data: {
+    told: Array<TableCannotFit>;
+    states: Array<TableScrollState>;
+    widthFor: (giving: Giving) => number;
+  }): void => {
+    render(
+      <Probe
+        boxWidth={938}
+        widthFor={data.widthFor}
+        values={VALUES}
+        readings={[]}
+        areRowsTheTables={true}
+        onState={(state: TableScrollState): void => {
+          data.states.push(state);
+        }}
+        onCannotFit={(cannotFit: TableCannotFit): void => {
+          data.told.push(cannotFit);
+        }}
+      />,
+    );
+  };
+
+  test("rows that fit unstyled are not shown: read again with their rules, they turn out too wide and say so then", () => {
+    const rules: RulesSwitch = { isOn: false };
+    const frames: FakeFrames = fakeResizeObserver();
+
+    drawRulesWhen(rules);
+
+    try {
+      const told: Array<TableCannotFit> = [];
+      const states: Array<TableScrollState> = [];
+
+      // Unstyled they fit (900px); styled, 1300px even given way.
+      draw({
+        told: told,
+        states: states,
+        widthFor: (giving: Giving): number => {
+          if (!rules.isOn) {
+            return 900;
+          }
+
+          return giving.give ? 1300 : 1500;
+        },
+      });
+
+      expect(states[states.length - 1]).toEqual({
+        isOverflowing: false,
+        canStickHeader: true,
+        isSettling: true,
+      });
+      expect(told).toEqual([]);
+
+      rules.isOn = true;
+      frames.observe();
+      frames.runFrames();
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+      expect(states[states.length - 1]?.isSettling).toBe(false);
+    } finally {
+      frames.restore();
+    }
+  });
+
+  test("rows too wide are not folded on either, even with the give-way rules on the page already: nothing is said until they are read again", () => {
+    const rules: RulesSwitch = { isOn: true, areRowsOn: false };
+    const frames: FakeFrames = fakeResizeObserver();
+
+    drawRulesWhen(rules);
+
+    try {
+      const told: Array<TableCannotFit> = [];
+      const states: Array<TableScrollState> = [];
+
+      draw({ told: told, states: states, widthFor: TOO_WIDE });
+
+      expect(told).toEqual([]);
+      expect(states[states.length - 1]?.isSettling).toBe(true);
+
+      rules.areRowsOn = true;
+      frames.observe();
+      frames.runFrames();
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+      expect(states[states.length - 1]?.isSettling).toBe(false);
+    } finally {
+      frames.restore();
+    }
+  });
+
+  test("rows whose rules are on the page are taken as they are drawn: shown at once, and folded on at once", () => {
+    const frames: FakeFrames = fakeResizeObserver();
+
+    drawRulesWhen({ isOn: true });
+
+    try {
+      const told: Array<TableCannotFit> = [];
+      const states: Array<TableScrollState> = [];
+
+      draw({ told: told, states: states, widthFor: TOO_WIDE });
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+      expect(
+        states.some((state: TableScrollState): boolean => {
+          return state.isSettling;
+        }),
+      ).toBe(false);
+    } finally {
+      frames.restore();
+    }
+  });
+
+  test("where nothing measures them again (no ResizeObserver), the rows are shown as they are read", () => {
+    expect(
+      (window as unknown as { ResizeObserver?: unknown }).ResizeObserver,
+    ).toBeUndefined();
+
+    drawRulesWhen({ isOn: false });
+
+    const told: Array<TableCannotFit> = [];
+    const states: Array<TableScrollState> = [];
+
+    draw({ told: told, states: states, widthFor: TOO_WIDE });
+
+    expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    expect(states[states.length - 1]).toEqual({
+      isOverflowing: true,
+      canStickHeader: false,
+      isSettling: false,
+    });
+  });
+});
+
+describe("areRowRulesDrawn", () => {
+  const tableOf: (markup: string) => HTMLElement = (
+    markup: string,
+  ): HTMLElement => {
+    const table: HTMLElement = document.createElement("table");
+
+    table.innerHTML = markup;
+    document.body.appendChild(table);
+
+    return table;
+  };
+
+  test("rows of the shared table: drawn once the page sets what their own class sets", () => {
+    const rules: RulesSwitch = { isOn: false };
+
+    drawRulesWhen(rules);
+
+    const table: HTMLElement = tableOf(
+      `<tbody class="${TABLE_ROWS_DRAWN_CLASS_NAME}"><tr><td><div>Checkout API</div></td></tr></tbody>`,
+    );
+
+    expect(areRowRulesDrawn(table)).toBe(false);
+
+    rules.isOn = true;
+
+    expect(areRowRulesDrawn(table)).toBe(true);
+  });
+
+  test("the loading placeholders, or rows a page draws itself, say nothing: taken as drawn", () => {
+    drawRulesWhen({ isOn: false });
+
+    expect(
+      areRowRulesDrawn(
+        tableOf(
+          "<tbody><tr><td><div>Loading...</div></td></tr></tbody><tbody></tbody>",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("the class sets a custom property no other class does, and the shared rows carry it", () => {
+    expect(TABLE_ROWS_DRAWN_PROPERTY).toBe("--ou-table-rows-drawn");
+    expect(TABLE_ROWS_DRAWN_CLASS_NAME).toBe(
+      `[${TABLE_ROWS_DRAWN_PROPERTY}:1]`,
+    );
   });
 });
 

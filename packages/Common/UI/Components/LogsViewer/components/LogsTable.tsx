@@ -149,6 +149,30 @@ export type LogsTableSortField = "time" | "severityText";
 // The list's own box: the rows, their loader and their empty state.
 export const LOGS_TABLE_TEST_ID: string = "logs-table";
 
+/*
+ * A log's message: its own line breaks kept, a run too long for the column
+ * broken where it must, and never narrower than 8rem.
+ */
+export const LOGS_TABLE_MESSAGE_CLASS_NAME: string =
+  "min-w-[8rem] whitespace-pre-wrap text-sm text-gray-800 [overflow-wrap:anywhere]";
+
+/*
+ * A sortable column's header (Time, Severity): a button, which Tailwind's
+ * base styles leave in the case it is written in - so it says it in
+ * capitals itself, like every other header of the row (SERVICE, MESSAGE).
+ */
+export const LOGS_TABLE_SORT_BUTTON_CLASS_NAME: string =
+  "flex items-center gap-2 text-left font-semibold uppercase tracking-wider text-gray-500 transition-colors hover:text-gray-700 focus:outline-none";
+
+/*
+ * The line under "No logs found": what to do, often a sentence or two from
+ * the page (how logs reach a cloud resource, an environment, a host). Gray
+ * 500 reads at 4.8:1 on white (gray 400 was 2.5:1), and its lines are
+ * balanced, so no word is left alone on the last one.
+ */
+export const LOGS_TABLE_EMPTY_HINT_CLASS_NAME: string =
+  "max-w-xl text-balance text-xs leading-5 text-gray-500";
+
 // What an empty list says, and the line under it when its host says nothing.
 export const LOGS_TABLE_EMPTY_TITLE: string = translationKey("No logs found");
 export const LOGS_TABLE_EMPTY_HINT: string = translationKey(
@@ -428,7 +452,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         >
           <button
             type="button"
-            className={`flex items-center gap-2 text-left font-semibold tracking-wider text-gray-500 transition-colors hover:text-gray-700 focus:outline-none ${
+            className={`${LOGS_TABLE_SORT_BUTTON_CLASS_NAME} ${
               activeSortField === "time" ? "text-gray-700" : ""
             }`}
             onClick={() => {
@@ -466,7 +490,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         >
           <button
             type="button"
-            className={`flex items-center gap-2 text-left font-semibold tracking-wider text-gray-500 transition-colors hover:text-gray-700 focus:outline-none ${
+            className={`${LOGS_TABLE_SORT_BUTTON_CLASS_NAME} ${
               activeSortField === "severityText" ? "text-gray-700" : ""
             }`}
             onClick={() => {
@@ -657,10 +681,19 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                 {/*
                                  * Read the way it is written (IsolatedText):
                                  * an English message on a Persian page keeps
-                                 * its full stop at its end.
+                                 * its full stop at its end. A word longer
+                                 * than the column breaks where it must
+                                 * (anywhere), so the column keeps to the
+                                 * list's width: an RDS line opens with one
+                                 * long run (its time, client, user and
+                                 * process), and break-words alone let it
+                                 * push the message past the list's edge.
+                                 * Breaking anywhere would also let a narrow
+                                 * list squeeze the column to a letter a
+                                 * line (a phone did): 8rem is its floor.
                                  */}
                                 <p
-                                  className="whitespace-pre-wrap break-words text-sm text-gray-800"
+                                  className={LOGS_TABLE_MESSAGE_CLASS_NAME}
                                   title={message}
                                 >
                                   {message ? (
@@ -828,7 +861,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
           <p className="text-sm font-medium text-gray-500">
             {translator.translateText(LOGS_TABLE_EMPTY_TITLE)}
           </p>
-          <p className="max-w-xl text-xs text-gray-400">
+          <p className={LOGS_TABLE_EMPTY_HINT_CLASS_NAME}>
             {translator.translateText(
               getLogsTableEmptyHint(props.emptyMessage),
             )}
