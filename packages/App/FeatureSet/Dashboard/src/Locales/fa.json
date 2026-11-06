@@ -45623,5 +45623,6 @@
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "لاگ‌هایی که ویژگی‌های منبع cloud.platform، cloud.account.id و cloud.region این محیط را دارند، اینجا نمایش داده می‌شوند؛ وقتی حساب AWS آن CloudWatch Logs را جریان دهد، آن لاگ‌ها هم اینجا نمایش داده می‌شوند: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را انتخاب کنید.",
   "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "در این بازهٔ زمانی چیزی از گروه لاگ این منبع نرسیده است. بازهٔ طولانی‌تری انتخاب کنید، یا بررسی کنید که حساب آن این گروه لاگ را جریان دهد: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را باز کنید.",
   "Page default ({{language}})": "پیش‌فرض صفحه ({{language}})",
-  "The language their notifications are written in.": "زبانی که اعلان‌هایشان به آن نوشته می‌شود."
+  "The language their notifications are written in.": "زبانی که اعلان‌هایشان به آن نوشته می‌شود.",
+  "{{language}} (default)": "{{language}} (پیش‌فرض)"
 }

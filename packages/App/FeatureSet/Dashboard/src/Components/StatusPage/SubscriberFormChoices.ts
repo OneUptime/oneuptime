@@ -97,11 +97,14 @@ export const SubscriberFormCopy: {
   /*
    * The language a subscriber's notifications are written in: its field and
    * its column, and what an empty one reads as - the status page's default
-   * language, named ("Page default (Deutsch)").
+   * language, named. The empty field says "Page default (Deutsch)"; a list's
+   * cell names the language first, "Deutsch (default)", so a column cut
+   * short to fit its table still says which language it is.
    */
   languageTitle: string;
   languageDescription: string;
   pageDefaultLanguage: string;
+  followsPageLanguage: string;
   /*
    * Every channel's list names its rows Subscriber(s) and adds one with
    * "Add" (the table's singularName / createVerb): these are the phrases
@@ -151,6 +154,7 @@ export const SubscriberFormCopy: {
     "The language their notifications are written in.",
   ),
   pageDefaultLanguage: translationKey("Page default ({{language}})"),
+  followsPageLanguage: translationKey("{{language}} (default)"),
   subscriberName: translationKey("Subscriber"),
   addButton: translationKey("Add Subscriber"),
   addDialogTitle: translationKey("Add New Subscriber"),

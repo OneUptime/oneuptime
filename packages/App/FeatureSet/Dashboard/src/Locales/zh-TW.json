@@ -45623,5 +45623,6 @@
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "帶有此環境的 cloud.platform、cloud.account.id 和 cloud.region 資源屬性的日誌會顯示在這裡；其 AWS 帳戶串流 CloudWatch Logs 後，這些日誌也會顯示在這裡：請在 雲端 > 連線 中，在該帳戶所在列選擇「串流指標和日誌」。",
   "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "在此時間範圍內，此資源的日誌群組沒有傳來任何內容。請選擇更長的時間範圍，或檢查其帳戶是否串流此日誌群組：請在 雲端 > 連線 中，在該帳戶所在列開啟「串流指標和日誌」。",
   "Page default ({{language}})": "頁面預設 ({{language}})",
-  "The language their notifications are written in.": "通知所用的語言。"
+  "The language their notifications are written in.": "通知所用的語言。",
+  "{{language}} (default)": "{{language}} (預設)"
 }

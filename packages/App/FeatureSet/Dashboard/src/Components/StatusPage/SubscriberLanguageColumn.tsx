@@ -21,9 +21,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * SubscriberLanguage): a visitor who read the page in another language
  * when they subscribed keeps it, and the team can set or clear one under
  * More fields (getSubscriberLanguageField). The list says which: the
- * subscriber's own language by name ("Deutsch (German)"), or "Page default
- * (Deutsch)", quieter, for one who follows the page - so a change of the
+ * subscriber's own language by name ("Deutsch (German)"), or "Deutsch
+ * (default)", quieter, for one who follows the page - so a change of the
  * page's default language is seen to move them with it.
+ *
+ * Each cell names the language first. A list beside the side menu, or in
+ * a language with long words, cuts its values short to fit its card
+ * (Table's give-way), and a cut "Page default (Deu..." would no longer
+ * say which language it is; "Deutsch (defa..." still does.
  */
 
 // The page's default language as a status page has it: English for none.
@@ -50,8 +55,24 @@ export const getSubscriberPageDefaultLanguageText: (
 };
 
 /*
+ * "Deutsch (default)": what a list says of a subscriber who follows the
+ * page's default language - the language first (see above).
+ */
+export const getSubscriberFollowsPageLanguageText: (
+  translator: Translator,
+  pageLanguage: string | null | undefined,
+) => string = (
+  translator: Translator,
+  pageLanguage: string | null | undefined,
+): string => {
+  return translator.translateTemplate(SubscriberFormCopy.followsPageLanguage, {
+    language: getStatusPageLanguageNativeName(getPageLanguage(pageLanguage)),
+  });
+};
+
+/*
  * A subscriber's language as text, for the list's export: their own by
- * name, or the page's default.
+ * name, or the page's default, as the cell says it.
  */
 export const getSubscriberLanguageText: (data: {
   translator: Translator;
@@ -64,7 +85,7 @@ export const getSubscriberLanguageText: (data: {
 }): string => {
   return data.language
     ? getStatusPageLanguageLabelOfCode(data.language)
-    : getSubscriberPageDefaultLanguageText(data.translator, data.pageLanguage);
+    : getSubscriberFollowsPageLanguageText(data.translator, data.pageLanguage);
 };
 
 export interface SubscriberLanguageCellProps {
@@ -88,7 +109,7 @@ export const SubscriberLanguageCell: FunctionComponent<
   return (
     <span className="text-gray-500" data-testid="subscriber-language-default">
       <TranslatedSentence
-        template={SubscriberFormCopy.pageDefaultLanguage}
+        template={SubscriberFormCopy.followsPageLanguage}
         slots={{
           language: (
             <IsolatedText

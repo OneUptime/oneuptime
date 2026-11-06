@@ -1,5 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import fs from "fs";
+import Path from "path";
 import {
   act,
   cleanup,
@@ -24,11 +26,13 @@ import {
  * page's default language (Common/Server/Utils/StatusPage/
  * SubscriberLanguage). The Email, SMS, Slack and Microsoft Teams subscriber
  * lists show which - the subscriber's own language by name ("Deutsch
- * (German)"), or "Page default (Deutsch)" for one who follows the page - and
+ * (German)"), or "Deutsch (default)" for one who follows the page, the
+ * language first so a cell cut short to fit its table still names it - and
  * their Add and Edit forms let the team pick one, or clear it to follow the
- * page, under More fields (SubscriberFormFields.getSubscriberLanguageField,
- * SubscriberLanguageColumn). Languages are named as the page's Languages
- * card names them (StatusPageLanguageOptions).
+ * page ("Page default (Deutsch)"), under More fields
+ * (SubscriberFormFields.getSubscriberLanguageField, SubscriberLanguageColumn).
+ * Languages are named as the page's Languages card names them
+ * (StatusPageLanguageOptions).
  *
  * The labels, the field and the column are tested on their own, then the
  * field through the real ModelForm with only the network stubbed: what is
@@ -137,11 +141,18 @@ import {
   STATUS_PAGE_LANGUAGE_OPTIONS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageLanguageOptions";
 import {
+  getSubscriberFollowsPageLanguageText,
   getSubscriberLanguageColumn,
   getSubscriberLanguageText,
   getSubscriberPageDefaultLanguageText,
   SubscriberLanguageCell,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberLanguageColumn";
+
+// The Dashboard's 17 locale files, by language.
+const DASHBOARD_LOCALES_DIR: string = Path.resolve(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Locales",
+);
 
 const SUBSCRIBER_ID: string = "00000005-0000-4000-8000-000000000005";
 const EMAIL_PLACEHOLDER: string = "subscriber@company.com";
@@ -163,6 +174,7 @@ const GERMAN: Translator = createTranslator((text: string) => {
   return (
     {
       "Page default ({{language}})": "Seitenstandard ({{language}})",
+      "{{language}} (default)": "{{language}} (Standard)",
     } as Record<string, string>
   )[text];
 }, "de");
@@ -283,6 +295,9 @@ describe("the Language field of a subscriber's Add and Edit forms", () => {
     expect(SubscriberFormCopy.pageDefaultLanguage).toBe(
       "Page default ({{language}})",
     );
+    expect(SubscriberFormCopy.followsPageLanguage).toBe(
+      "{{language}} (default)",
+    );
   });
 });
 
@@ -325,9 +340,65 @@ describe("the Language column of the subscriber lists", () => {
 
     const cell: HTMLElement = screen.getByTestId("subscriber-language-default");
 
-    expect(cell).toHaveTextContent("Page default (Deutsch)");
+    expect(cell).toHaveTextContent("Deutsch (default)");
     expect(cell).toHaveClass("text-gray-500");
     expect(screen.queryByTestId("subscriber-language-own")).toBeNull();
+  });
+
+  /*
+   * A list beside the side menu, or in a language with long words, cuts a
+   * value short to fit its card ("Page default (De..."): a cell that
+   * starts with the language still says which one it is when cut.
+   */
+  test("names the language first, so a cell cut short still says which", () => {
+    render(column.getElement!(subscriberWith()));
+
+    const cell: HTMLElement = screen.getByTestId("subscriber-language-default");
+
+    expect(cell.textContent?.startsWith("Deutsch")).toBe(true);
+    expect(cell.querySelector("bdi")).toHaveTextContent("Deutsch");
+
+    // Whatever the page's language, and in the reader's language too.
+    expect(getSubscriberFollowsPageLanguageText(ENGLISH, "ja")).toBe(
+      "日本語 (default)",
+    );
+    expect(getSubscriberFollowsPageLanguageText(GERMAN, "de")).toBe(
+      "Deutsch (Standard)",
+    );
+    expect(getSubscriberFollowsPageLanguageText(ENGLISH, undefined)).toBe(
+      "English (default)",
+    );
+  });
+
+  test("every Dashboard language words the cell with the language first", () => {
+    const files: Array<string> = fs
+      .readdirSync(DASHBOARD_LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json");
+      });
+
+    expect(files).toHaveLength(17);
+
+    for (const file of files) {
+      const words: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(Path.join(DASHBOARD_LOCALES_DIR, file), "utf8"),
+      );
+      const cell: unknown = words[SubscriberFormCopy.followsPageLanguage];
+
+      expect([file, typeof cell]).toEqual([file, "string"]);
+      expect([file, String(cell).startsWith("{{language}} ")]).toEqual([
+        file,
+        true,
+      ]);
+
+      // Worded apart from English everywhere but in English itself.
+      if (file !== "en.json") {
+        expect([file, cell]).not.toEqual([
+          file,
+          SubscriberFormCopy.followsPageLanguage,
+        ]);
+      }
+    }
   });
 
   test("a language's name reads its own way inside the cell", () => {
@@ -344,7 +415,7 @@ describe("the Language column of the subscriber lists", () => {
       "日本語 (Japanese)",
     );
     expect(column.getExportValue!(subscriberWith())).toBe(
-      "Page default (Deutsch)",
+      "Deutsch (default)",
     );
     expect(
       getSubscriberLanguageText({
@@ -352,7 +423,7 @@ describe("the Language column of the subscriber lists", () => {
         language: undefined,
         pageLanguage: undefined,
       }),
-    ).toBe("Page default (English)");
+    ).toBe("English (default)");
   });
 });
 

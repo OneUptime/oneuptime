@@ -45623,5 +45623,6 @@
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "Os logs aparecem aqui quando trazem os atributos de recurso cloud.platform, cloud.account.id e cloud.region deste ambiente, ou quando a conta AWS dele transmite o CloudWatch Logs: em Nuvem > Conectar, escolha Transmitir métricas e logs na linha da conta.",
   "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "Nada chegou do grupo de logs deste recurso neste intervalo de tempo. Escolha um intervalo maior, ou verifique se a conta dele transmite este grupo de logs: em Nuvem > Conectar, abra Transmitir métricas e logs na linha da conta.",
   "Page default ({{language}})": "Padrão da página ({{language}})",
-  "The language their notifications are written in.": "O idioma das notificações que recebe."
+  "The language their notifications are written in.": "O idioma das notificações que recebe.",
+  "{{language}} (default)": "{{language}} (padrão)"
 }
