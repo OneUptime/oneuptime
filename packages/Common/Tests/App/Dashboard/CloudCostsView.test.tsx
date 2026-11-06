@@ -81,6 +81,7 @@ jest.mock(
       default: (props?: {
         points: Array<CloudCostPoint>;
         currency: string;
+        markers?: Array<{ label: string; subtitle?: string }>;
       }): React.ReactElement => {
         const ReactActual: typeof React = jest.requireActual(
           "react",
@@ -98,6 +99,14 @@ jest.mock(
             ),
           ),
           "data-currency": props?.currency || "",
+          // The unusual days marked above their bars: each mark's words.
+          "data-marks": JSON.stringify(
+            (props?.markers || []).map(
+              (marker: { label: string; subtitle?: string }) => {
+                return [marker.label, marker.subtitle || ""];
+              },
+            ),
+          ),
         });
       },
     };
@@ -286,6 +295,62 @@ describe("every account's costs", () => {
     await openView();
 
     expect(screen.queryByTestId("cloud-unusual-days")).toBeNull();
+    // Nor a mark on the daily spend.
+    expect(screen.getByTestId("cloud-daily-spend")).toHaveAttribute(
+      "data-unusual-days",
+      "",
+    );
+    expect(await screen.findByTestId("daily-spend-chart-stub")).toHaveAttribute(
+      "data-marks",
+      "[]",
+    );
+  });
+
+  test("the unusual days marked on the daily spend, where their bars are: a mark a line of the card, naming its account", async () => {
+    await openView({
+      accounts: [
+        row({
+          ...WEB,
+          id: WEB_ROW,
+          costSummary: summary({
+            anomalies: [
+              {
+                day: "2026-11-19",
+                service: "AWS Lambda",
+                amount: 412,
+                usual: 180,
+              },
+              { day: "2026-11-17", service: "", amount: 2400, usual: 1500 },
+            ],
+          }),
+        }),
+        DATA,
+      ],
+    });
+
+    expect(screen.getByTestId("cloud-daily-spend")).toHaveAttribute(
+      "data-unusual-days",
+      "2026-11-19,2026-11-17",
+    );
+
+    const marks: Array<[string, string]> = JSON.parse(
+      (await screen.findByTestId("daily-spend-chart-stub")).getAttribute(
+        "data-marks",
+      ) || "[]",
+    ) as Array<[string, string]>;
+
+    expect(marks).toEqual([
+      ["AWS Lambda cost $412.00", "web-prod · 2.3 times its usual $180.00"],
+      [
+        "The whole account cost $2,400",
+        "web-prod · 1.6 times its usual $1,500",
+      ],
+    ]);
+    expect(marks).toHaveLength(
+      within(screen.getByTestId("cloud-unusual-days")).getAllByTestId(
+        "cloud-unusual-day",
+      ).length,
+    );
   });
 
   test("each of the last 30 days, read summed by day for every account", async () => {
@@ -487,6 +552,15 @@ describe("one account's Costs tab", () => {
     expect(
       within(unusual).queryByTestId("cloud-unusual-day-account"),
     ).toBeNull();
+
+    // Nor do its marks on the daily spend.
+    expect(
+      JSON.parse(
+        (await screen.findByTestId("daily-spend-chart-stub")).getAttribute(
+          "data-marks",
+        ) || "[]",
+      ),
+    ).toEqual([["AWS Lambda cost $412.00", "2.3 times its usual $180.00"]]);
   });
 
   /*

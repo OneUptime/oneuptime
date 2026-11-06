@@ -413,6 +413,8 @@ test.describe("one paste, whatever the cloud", () => {
         readScope: "account",
         roleArn: ROLE_ARN,
         readIntervalInMinutes: "10",
+        // AWS's costs per resource, under More fields: off until turned on.
+        resourceCosts: "off",
         // Data Security's levels, under More fields: off until chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",

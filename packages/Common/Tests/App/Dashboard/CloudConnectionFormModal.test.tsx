@@ -465,6 +465,8 @@ describe("every cloud, one paste", () => {
         dataSecurityResponse: "off",
         readIntervalInMinutes: "10",
         readScope: "account",
+        // AWS alone: what each resource costs, off until turned on.
+        resourceCosts: "off",
       },
       secrets: {},
     });
