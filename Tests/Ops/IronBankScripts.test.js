@@ -138,10 +138,17 @@ describe("PinRelease.js", () => {
       "ENV GIT_SHA=old",
       "",
     ].join("\n"),
+    values: [
+      "image:",
+      "  overrides:",
+      "    app: registry1.dso.mil/ironbank/oneuptime/app:1.0.0",
+      "    nginx: registry1.dso.mil/ironbank/oneuptime/ingress:1.0.0",
+      "",
+    ].join("\n"),
   };
   const release = { version: "2.3.4", digest: AMD64, gitSha: COMMIT };
 
-  test("moves every value of both files to the release", () => {
+  test("moves every value of its files to the release, and no other project's image in the Helm values", () => {
     expect(PinRelease.pin(files, release)).toEqual({
       manifest: files.manifest
         .split("1.0.0")
@@ -152,7 +159,31 @@ describe("PinRelease.js", () => {
         .join("2.3.4")
         .split("old")
         .join(COMMIT),
+      values: files.values.replace(
+        "oneuptime/app:1.0.0",
+        "oneuptime/app:2.3.4",
+      ),
     });
+    expect(
+      PinRelease.pin(
+        {
+          ...files,
+          manifest: files.manifest
+            .split("oneuptime/app")
+            .join("oneuptime/nginx"),
+          dockerfile: files.dockerfile
+            .split("oneuptime/app:enterprise-")
+            .join("oneuptime/nginx:"),
+        },
+        release,
+        PinRelease.PROJECTS.Ingress,
+      ).values,
+    ).toBe(
+      files.values.replace(
+        "oneuptime/ingress:1.0.0",
+        "oneuptime/ingress:2.3.4",
+      ),
+    );
   });
 
   test.each([
@@ -183,6 +214,12 @@ describe("PinRelease.js", () => {
     }).toThrow(
       "hardening_manifest.yaml: expected the first tag once, found it 0 times",
     );
+    expect(() => {
+      return PinRelease.pin(
+        { ...files, values: "image:\n  overrides: {}\n" },
+        release,
+      );
+    }).toThrow("expected the app image once, found it 0 times");
   });
 
   test("checks no edition on the images that have none (the ingress, the runner, the probe)", () => {

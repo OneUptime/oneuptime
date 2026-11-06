@@ -1,0 +1,8 @@
+$ openstack network agent list --host compute-01
+success: true
+exit code: 0
+
+[stdout]
+id                                    admin_state_up  agent_type                    alive  availability_zone  binary             heartbeat_timestamp  host
+2aba5fc2-5f63-430b-910e-9e78935552e7  true            OVN Controller Gateway agent  true                      ovn-controller     2026-11-05 05:29:21  compute-01
+ecfc2e3e-958e-58bc-95e9-55f6c4c52bba  true            OVN Neutron agent             true                      neutron-ovn-agent  2026-11-05 05:29:21  compute-01

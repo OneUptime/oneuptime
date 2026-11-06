@@ -221,7 +221,7 @@ flowchart TB
 | --- | --- |
 | 邮件 | 点击 **Escalate** 按钮，然后在打开的页面上点击 **Escalate** |
 | 短信和 WhatsApp | 消息中的链接会打开确认页面，那里也有 **Escalate** |
-| Telegram、Slack 和 Microsoft Teams | 打开 "Can't take it? Escalate" 链接，然后在打开的页面上点击 **Escalate** |
+| Telegram、Slack、Microsoft Teams 和 Mattermost | 打开 "Can't take it? Escalate" 链接，然后在打开的页面上点击 **Escalate** |
 | 电话 | 按 2。电话随后会说明发生了什么 |
 | 推送通知 | 点击它：事件、告警或片段会在 OneUptime On-Call 应用中打开，下方有 **Escalate** |
 | OneUptime | 事件、告警或片段顶部、状态按钮之后的 **升级** |

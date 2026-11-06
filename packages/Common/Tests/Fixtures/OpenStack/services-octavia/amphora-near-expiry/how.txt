@@ -1,0 +1,2 @@
+An amphora whose certificate expires in three weeks.
+Written into its row, three weeks from now: nothing on a runner gets near expiry on its own. baseline holds what a real amphora's certificate says here, and octavia-policy.txt what sets it.

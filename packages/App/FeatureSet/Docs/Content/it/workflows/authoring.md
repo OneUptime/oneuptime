@@ -13,6 +13,8 @@ Fai clic su un modello per vedere cosa fa: il suo trigger, i blocchi che lo comp
 
 I workflow vengono creati disattivati, quindi il loro trigger non li avvia finché non li attivi. Un nuovo workflow si apre nel **Costruttore**, la tela su cui lo progetti.
 
+Puoi anche descrivere un workflow ad Ask AI e lasciare che lo crei per te. Trova il trigger e i passaggi, li configura e li collega, e ti chiede di approvare il workflow prima di salvarlo. Un nuovo workflow parte disattivato: leggilo nel Builder, compila password, token o URL di webhook che ti ha lasciato, perché Ask AI non li chiede mai nella conversazione, e poi attivalo tu. Ask AI può modificare un workflow allo stesso modo. Dalla pagina di un workflow, "questo workflow" indica quello. Salva a tuo nome, quindi può fare solo ciò che puoi fare nel Builder, e il Builder mostra le modifiche appena vengono salvate.
+
 ## La tela
 
 Un workflow creato da zero si apre con un unico blocco tratteggiato con la scritta **Scegli cosa avvia questo flusso di lavoro**. Quel blocco è il punto di partenza: fai clic su di esso per scegliere un trigger. Un workflow creato da un modello si apre con i suoi blocchi già al loro posto.

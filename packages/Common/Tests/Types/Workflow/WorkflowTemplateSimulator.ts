@@ -49,8 +49,14 @@ import ComponentMetadata, {
   Argument,
   ComponentInputType,
   ComponentType,
+  NodeDataProp,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
+import {
+  isEmptyRecordField,
+  readRecordField,
+  takesEmptyValues,
+} from "../../../Types/Workflow/EmptyValues";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Dictionary from "../../../Types/Dictionary";
 import Exception from "../../../Types/Exception/Exception";
@@ -235,6 +241,7 @@ const PARSED_ARGUMENT_TYPES: Array<ComponentInputType> = [
 type ResolveArgumentsFunction = (
   storageMap: StorageMap,
   node: SimulatedNode,
+  nodes: Dictionary<SimulatedNode>,
 ) => JSONObject;
 
 /*
@@ -242,13 +249,15 @@ type ResolveArgumentsFunction = (
  * values are skipped; VMAPI.replaceValueInPlace substitutes, writing each
  * value as JSON for a JSON, Query or Select argument - escaped inside quotes,
  * the value itself on its own - (an object-valued argument is stringified,
- * substituted with escaping and parsed back); and a string left for one of
- * those three is parsed, with a template that built invalid JSON failing the
- * run — and the test — the way it fails the runner.
+ * substituted with escaping and parsed back), and a value with nothing in it
+ * comes through empty where that setting takes it (EmptyValues); and a string
+ * left for one of those three is parsed, with a template that built invalid
+ * JSON failing the run — and the test — the way it fails the runner.
  */
 const resolveArguments: ResolveArgumentsFunction = (
   storageMap: StorageMap,
   node: SimulatedNode,
+  nodes: Dictionary<SimulatedNode>,
 ): JSONObject => {
   const resolved: JSONObject = {};
 
@@ -263,6 +272,28 @@ const resolveArguments: ResolveArgumentsFunction = (
       storageMap as unknown as JSONObject,
       content as string,
       PARSED_ARGUMENT_TYPES.includes(argument.type),
+      takesEmptyValues({ metadata: node.metadata, argument: argument })
+        ? {
+            isEmptyPath: (path: string): boolean => {
+              return isEmptyRecordField(
+                readRecordField({
+                  path: path,
+                  getStep: (componentId: string): NodeDataProp | undefined => {
+                    const step: SimulatedNode | undefined = nodes[componentId];
+
+                    return step
+                      ? ({
+                          ...step,
+                          id: step.componentId,
+                        } as unknown as NodeDataProp)
+                      : undefined;
+                  },
+                  storageMap: storageMap as unknown as JSONObject,
+                }),
+              );
+            },
+          }
+        : undefined,
     ) as JSONValue;
 
     if (
@@ -800,7 +831,11 @@ export const runTemplate: RunTemplateFunction = async (
       trace.executed.push(componentId);
 
       const node: SimulatedNode = graph.nodes[componentId] as SimulatedNode;
-      const args: JSONObject = resolveArguments(trace.storage, node);
+      const args: JSONObject = resolveArguments(
+        trace.storage,
+        node,
+        graph.nodes,
+      );
       const result: StepResult = await executeStep({
         node: node,
         args: args,

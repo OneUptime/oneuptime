@@ -15,7 +15,7 @@ import { ChatProvider } from "../../../../App/FeatureSet/Dashboard/src/Component
 
 /*
  * Ask AI's LLM provider picker. Drawn only when a project has more than one
- * provider to choose between (AskAiDialog); when it is, it is a menu a
+ * provider to choose between (AskAiPanel); when it is, it is a menu a
  * keyboard and a screen reader can use, whose Escape closes the menu and
  * not the dialog around it, and which opens downwards from the composer at
  * the top of Ask AI's start.

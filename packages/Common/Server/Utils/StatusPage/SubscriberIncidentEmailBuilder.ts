@@ -10,6 +10,7 @@ import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { removeOpenStackReachFromDescription } from "../../../Types/OpenStack/OpenStackBlastRadius";
 import StatusPageSubscriberNotificationEventType from "../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import EmailColorUtil from "../../../Utils/Email/EmailColorUtil";
@@ -205,7 +206,10 @@ export default class SubscriberIncidentEmailBuilder {
         incident: data.incident,
         statusPages: data.statusPages,
         markdownVariables: {
-          incidentDescription: data.incident.description,
+          // What a cloud's failure reaches is for the team: see OPENSTACK_REACH_HEADING.
+          incidentDescription: removeOpenStackReachFromDescription(
+            data.incident.description,
+          ),
         },
       });
     }

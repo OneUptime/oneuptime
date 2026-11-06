@@ -70,7 +70,7 @@ Nie verzögert und nie mitgezählt:
 | Abonnenten von Statusseiten | Jede E-Mail, die Ihre Statusseite an Ihre eigenen Abonnenten sendet |
 | SLA-Verletzungen | Ein Vorfall, dessen Eigentümer Sie sind, verpasst seine SLA-Frist für Reaktion oder Lösung |
 
-Betroffen sind nur E-Mails. SMS, Anrufe, Push-Benachrichtigungen, WhatsApp, Telegram, Slack, Microsoft Teams und Webhooks werden sofort zugestellt, genau wie vorher — auch für die Benachrichtigungen, deren E-Mail zurückgehalten wurde.
+Betroffen sind nur E-Mails. SMS, Anrufe, Push-Benachrichtigungen, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost und Webhooks werden sofort zugestellt, genau wie vorher — auch für die Benachrichtigungen, deren E-Mail zurückgehalten wurde.
 
 ## Grenzen
 
@@ -105,7 +105,7 @@ Was er **nicht** berührt:
 
 - **Welche Benachrichtigungen Sie erhalten.** Das ist die Einstellung pro Ereignistyp und Kanal unter **Benutzereinstellungen → Benachrichtigungseinstellungen**, eine Seite weiter. Die Zusammenfassung und dieser Schalter ändern immer nur, in wie viele E-Mails diese Benachrichtigungen gepackt werden.
 - **Bereitschaftsalarmierung und Schicht-E-Mails**, **E-Mails zur Kontosicherheit**, **Abrechnungs-E-Mails**, Warnungen zum Zustand der Instanz und E-Mails an Statusseiten-Abonnenten. Nichts davon wird überhaupt je zusammengefasst, das Ausschalten ändert daran also nichts — siehe [Was nie zusammengefasst wird](#was-nie-zusammengefasst-wird).
-- **Alle anderen Kanäle.** SMS, Anrufe, Push, WhatsApp, Telegram, Slack, Microsoft Teams und Webhooks sind ohnehin sofort.
+- **Alle anderen Kanäle.** SMS, Anrufe, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost und Webhooks sind ohnehin sofort.
 
 ## Noch weniger E-Mails
 

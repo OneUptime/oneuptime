@@ -1,5 +1,6 @@
 import AppLink from "../AppLink/AppLink";
 import DataObservabilityApi from "./DataObservabilityApi";
+import FailingRowsModal from "./FailingRowsModal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -8,6 +9,10 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import { DataAssetColumn } from "Common/Types/DataObservability/DataAssetColumn";
+import {
+  DATA_CHECK_FORMATS,
+  DataCheckFormat,
+} from "Common/Types/DataObservability/DataCheckFormats";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   DATA_CHECK_ALERT_CONDITIONS,
@@ -18,6 +23,7 @@ import {
   DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES,
   doesAlertConditionNeedThreshold,
   isColumnCheckType,
+  isSampleableCheckType,
 } from "Common/Types/DataObservability/DataCheckType";
 import OneUptimeDate from "Common/Types/Date";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -49,6 +55,12 @@ export interface ComponentProps {
 const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
   (type: DataCheckType): DropdownOption => {
     return { value: type, label: type };
+  },
+);
+
+const FORMAT_OPTIONS: Array<DropdownOption> = DATA_CHECK_FORMATS.map(
+  (format: DataCheckFormat): DropdownOption => {
+    return { value: format, label: format };
   },
 );
 
@@ -122,6 +134,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const [alertError, setAlertError] = useState<string>("");
+  const [failingRowsOf, setFailingRowsOf] = useState<DataCheck | null>(null);
   const isForOneTable: boolean = Boolean(props.dataAssetId);
   const isPipeline: boolean = props.dataStoreKind === DataStoreKind.MongoDb;
   const columnOptions: Array<DropdownOption> = (props.columns || []).map(
@@ -225,12 +238,30 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
         onCreateSuccess={syncAlert}
         selectMoreFields={{
           dataAssetId: true,
+          lastRunAt: true,
           lastRunMessage: true,
           alertThreshold: true,
           monitorId: true,
           segmentColumn: true,
+          failingRowsSample: true,
+          isManagedByFile: true,
         }}
         actionButtons={[
+          {
+            title: "Failing Rows",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.List,
+            isVisible: (item: DataCheck): boolean => {
+              return (item.failingRowsSample || []).length > 0;
+            },
+            onClick: async (
+              item: DataCheck,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setFailingRowsOf(item);
+              onCompleteAction();
+            },
+          },
           {
             title: "Run Now",
             buttonStyleType: ButtonStyleType.NORMAL,
@@ -311,6 +342,19 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            field: { formatPreset: true },
+            stepId: "reads",
+            title: "Format",
+            description:
+              "The format every value must be in, or Custom to write a pattern.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: false,
+            dropdownOptions: FORMAT_OPTIONS,
+            showIf: (values: FormValues<DataCheck>): boolean => {
+              return values.checkType === DataCheckType.FormatMismatchPercent;
+            },
+          },
+          {
             field: { pattern: true },
             stepId: "reads",
             title: "Pattern",
@@ -319,7 +363,11 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             required: false,
             placeholder: "^[^@\\s]+@[^@\\s]+$",
             showIf: (values: FormValues<DataCheck>): boolean => {
-              return values.checkType === DataCheckType.FormatMismatchPercent;
+              return (
+                values.checkType === DataCheckType.FormatMismatchPercent &&
+                (!values.formatPreset ||
+                  values.formatPreset === DataCheckFormat.Custom)
+              );
             },
           },
           {
@@ -351,15 +399,48 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             stepId: "reads",
             title: isPipeline ? "Aggregation Pipeline" : "Query",
             description: isPipeline
-              ? "An aggregation pipeline, as JSON, ending in a document with a number named value. With Segment By, a segment and a number per document."
-              : "One SELECT returning a number. With Segment By, a segment and a number per row.",
+              ? "An aggregation pipeline, as JSON, that ends in a number named value."
+              : "One SELECT that returns a number, per segment with Segment By.",
             fieldType: FormFieldSchemaType.LongText,
-            required: false,
+            required: true,
             placeholder: isPipeline
               ? '[{ "$match": { "total": { "$lt": 0 } } }, { "$count": "value" }]'
               : "SELECT COUNT(*) FROM orders WHERE total < 0",
             showIf: (values: FormValues<DataCheck>): boolean => {
               return values.checkType === DataCheckType.CustomSql;
+            },
+          },
+          {
+            // A Failing Rows check wants the rows themselves, not a count of them.
+            field: { customSql: true },
+            stepId: "reads",
+            title: isPipeline ? "Aggregation Pipeline" : "Query",
+            description: isPipeline
+              ? "An aggregation pipeline, as JSON, that ends in the documents that should not exist. The check counts them."
+              : "One SELECT that returns the rows that should not exist. The check counts them.",
+            fieldType: FormFieldSchemaType.LongText,
+            required: true,
+            placeholder: isPipeline
+              ? '[{ "$match": { "total": { "$lt": 0 } } }]'
+              : "SELECT * FROM orders WHERE total < 0",
+            showIf: (values: FormValues<DataCheck>): boolean => {
+              return values.checkType === DataCheckType.FailingRows;
+            },
+          },
+          {
+            field: { samplePercent: true },
+            stepId: "reads",
+            title: "Sample Percent",
+            description:
+              "Read this percent of the rows instead of all of them. Leave it empty to read every row.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "10",
+            showIf: (values: FormValues<DataCheck>): boolean => {
+              return Boolean(
+                values.checkType &&
+                  isSampleableCheckType(values.checkType as DataCheckType),
+              );
             },
           },
           {
@@ -371,6 +452,9 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dropdown,
             required: false,
             dropdownOptions: columnOptions,
+            showIf: (values: FormValues<DataCheck>): boolean => {
+              return values.checkType !== DataCheckType.FailingRows;
+            },
           },
           {
             field: { intervalInMinutes: true },
@@ -468,6 +552,9 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
                       ? ` · ${translator.translateTemplate("by {{column}}", {
                           column: check.segmentColumn,
                         })}`
+                      : ""}
+                    {check.isManagedByFile
+                      ? ` · ${translator.translateText("From a file")}`
                       : ""}
                   </span>
                 </div>
@@ -567,6 +654,16 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
+      {failingRowsOf ? (
+        <FailingRowsModal
+          check={failingRowsOf}
+          onClose={() => {
+            setFailingRowsOf(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </>
   );
 };

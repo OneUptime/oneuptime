@@ -297,7 +297,10 @@ describe("the scripts", () => {
     // An exports map here would redirect every require("Common/...") (#4877).
     expect(common["exports"]).toBeUndefined();
     expect(common["name"]).toBe(PACKAGE_NAME);
-    expect(manifest.scripts["compile"]).toBe("tsc");
+    // The whole package's type check, in the heap it takes, as App's and the Dashboard's say too.
+    expect(manifest.scripts["compile"]).toBe(
+      'export NODE_OPTIONS="--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}" && tsc',
+    );
   });
 
   test("the smoke test names modules every build has, and checks the types in each module mode", () => {

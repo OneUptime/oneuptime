@@ -24,6 +24,7 @@ import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import UserMattermostService from "./UserMattermostService";
 import UserWebhookService from "./UserWebhookService";
 import CustomNotificationChannelService from "./CustomNotificationChannelService";
 import GlobalConfigService from "./GlobalConfigService";
@@ -116,6 +117,7 @@ import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../Models/DatabaseModels/UserMattermost";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
 import User from "../../Models/DatabaseModels/User";
@@ -211,6 +213,7 @@ export interface NotificationMethodDescriptor {
   userTelegramId?: ObjectID;
   userSlackId?: ObjectID;
   userMicrosoftTeamsId?: ObjectID;
+  userMattermostId?: ObjectID;
   userPushId?: ObjectID;
   userWebhookId?: ObjectID;
   customNotificationChannelId?: ObjectID;
@@ -616,12 +619,12 @@ type ChannelListFunction = () => Array<string>;
 /**
  * The channels no project setting can switch off. Push and Email are
  * zero-cost, Webhook is somebody else's endpoint, a Custom Channel is the
- * installation admin's own service, and Slack / Microsoft Teams ride on the
- * project's own workspace connection at no per-message cost, so nothing gates
- * them — which is what makes "a verified one of these survives"
+ * installation admin's own service, and Slack / Microsoft Teams / Mattermost
+ * ride on the project's own workspace connection at no per-message cost, so
+ * nothing gates them — which is what makes "a verified one of these survives"
  * a CERTAIN answer to "can this person still be paged" rather than a hopeful
  * one. Kept in step with OnCallReadinessService.isChannelEnabled, which
- * returns true for exactly these six unconditionally.
+ * returns true for exactly these seven unconditionally.
  *
  * A FUNCTION rather than a module-level constant, and that is load-bearing
  * rather than stylistic: this module and OnCallReadinessService import each
@@ -639,6 +642,7 @@ const channelsWithNoProjectSwitch: ChannelListFunction = (): Array<string> => {
     ReadinessMethodType.Email,
     ReadinessMethodType.Slack,
     ReadinessMethodType.MicrosoftTeams,
+    ReadinessMethodType.Mattermost,
     ReadinessMethodType.Webhook,
     ReadinessMethodType.CustomChannel,
   ];
@@ -771,6 +775,12 @@ export class Service extends ProjectReferencesService<Model> {
         userMicrosoftTeams: {
           microsoftTeamsUserId: true,
           microsoftTeamsUserName: true,
+          isVerified: true,
+          userId: true,
+        },
+        userMattermost: {
+          mattermostUserId: true,
+          mattermostUserName: true,
           isVerified: true,
           userId: true,
         },
@@ -930,6 +940,10 @@ export class Service extends ProjectReferencesService<Model> {
       {
         label: "Microsoft Teams",
         ownerUserId: notificationRuleItem.userMicrosoftTeams?.userId,
+      },
+      {
+        label: "Mattermost",
+        ownerUserId: notificationRuleItem.userMattermost?.userId,
       },
       { label: "Push", ownerUserId: notificationRuleItem.userPush?.userId },
       {
@@ -2333,6 +2347,47 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    // send Mattermost.
+    if (
+      notificationRuleItem.userMattermost?.mattermostUserId &&
+      notificationRuleItem.userMattermost?.isVerified
+    ) {
+      const attempted: boolean =
+        await this.deliverWorkspaceDirectMessageForRule({
+          workspaceType: WorkspaceType.Mattermost,
+          methodId: notificationRuleItem.userMattermost.id!,
+          workspaceUserId: notificationRuleItem.userMattermost.mattermostUserId,
+          notificationRuleItem: notificationRuleItem,
+          options: options,
+          logTimelineItem: logTimelineItem,
+          incident: incident,
+          alert: alert,
+          alertEpisode: alertEpisode,
+          incidentEpisode: incidentEpisode,
+          pageAgain: pageAgain,
+          personPage: personPage,
+        });
+
+      deliveryAttempted = deliveryAttempted || attempted;
+    }
+
+    if (
+      notificationRuleItem.userMattermost &&
+      !notificationRuleItem.userMattermost?.isVerified
+    ) {
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `Mattermost message not sent because the Mattermost account is not verified.`;
+      logTimelineItem.userMattermostId =
+        notificationRuleItem.userMattermost.id!;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     // send webhook.
     if (notificationRuleItem.userWebhook?.webhookUrl) {
       const webhookUrl: string = notificationRuleItem.userWebhook.webhookUrl;
@@ -3275,11 +3330,12 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The Slack and Microsoft Teams halves of deliverNotificationForRule. Both
-   * channels deliver the same way — the same generated message blocks handed
-   * to the same direct-message sender, with only the workspace type and the
-   * timeline method column differing — so one helper carries both instead of
-   * two more copies of the per-event ladder above.
+   * The Slack, Microsoft Teams and Mattermost halves of
+   * deliverNotificationForRule. The three channels deliver the same way — the
+   * same generated message blocks handed to the same direct-message sender,
+   * with only the workspace type and the timeline method column differing — so
+   * one helper carries them all instead of more copies of the per-event ladder
+   * above.
    *
    * Returns whether a delivery was attempted. `false` means this event type
    * has no workspace template, and the caller's fell-through guard turns that
@@ -3429,6 +3485,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
       data.logTimelineItem.userMicrosoftTeamsId = data.methodId;
+    }
+
+    if (data.workspaceType === WorkspaceType.Mattermost) {
+      data.logTimelineItem.userMattermostId = data.methodId;
     }
 
     const updatedLog: UserOnCallLogTimeline =
@@ -3956,6 +4016,13 @@ export class Service extends ProjectReferencesService<Model> {
       channels.push("Microsoft Teams");
     }
 
+    if (
+      notificationRuleItem.userMattermost?.mattermostUserId &&
+      notificationRuleItem.userMattermost?.isVerified
+    ) {
+      channels.push("Mattermost");
+    }
+
     if (notificationRuleItem.userWebhook?.webhookUrl) {
       channels.push("Webhook");
     }
@@ -4141,9 +4208,9 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Pick what to page the user on, and build an unsaved rule for each choice.
    *
-   * Zero-cost channels win: push, email, Slack and Microsoft Teams reach the
-   * most people for no money and no billing surprise, and there is no reason
-   * to pick between them, so a user who has several gets all of them. Only a
+   * Zero-cost channels win: push, email, Slack, Microsoft Teams and Mattermost
+   * reach the most people for no money and no billing surprise, and there is
+   * no reason to pick between them, so a user who has several gets all of them. Only a
    * user with none of these is worth spending on, and then just once, in
    * escalating-intrusiveness order.
    *
@@ -4268,6 +4335,31 @@ export class Service extends ProjectReferencesService<Model> {
       rule.userMicrosoftTeams = userMicrosoftTeams;
       rule.userMicrosoftTeamsId = userMicrosoftTeams.id!;
       chosen.push({ channelName: "Microsoft Teams", rule: rule });
+    }
+
+    const userMattermost: UserMattermost | null =
+      await UserMattermostService.findOneBy({
+        query: {
+          projectId: options.projectId,
+          userId: options.userId,
+          isVerified: true,
+        },
+        select: {
+          _id: true,
+          mattermostUserId: true,
+          mattermostUserName: true,
+          isVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (userMattermost) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      rule.userMattermost = userMattermost;
+      rule.userMattermostId = userMattermost.id!;
+      chosen.push({ channelName: "Mattermost", rule: rule });
     }
 
     /*
@@ -5318,13 +5410,14 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * ---------------------------------------------------------------------- *
-   * Workspace (Slack / Microsoft Teams) direct-message generators.
+   * Workspace (Slack / Microsoft Teams / Mattermost) direct-message generators.
    *
-   * One generator family serves BOTH workspace channels: the blocks are
-   * written in standard markdown, which SlackUtil slackifies and
-   * MicrosoftTeamsUtil renders into an adaptive card. Keep them to the block
-   * types both platforms implement (markdown / header / divider / buttons) —
-   * anything else throws NotImplementedException on Teams.
+   * One generator family serves EVERY workspace channel: the blocks are
+   * written in standard markdown, which SlackUtil slackifies,
+   * MicrosoftTeamsUtil renders into an adaptive card and MattermostUtil posts
+   * as it is written. Keep them to the block types every platform implements
+   * (markdown / header / divider / buttons) — anything else throws
+   * NotImplementedException on Teams.
    * ---------------------------------------------------------------------- *
    */
 
@@ -6765,7 +6858,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!data.isOptOut && !data.hasNotificationMethod) {
       throw new BadDataException(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost, Webhook, Custom Channel, Email, or Push notification is required",
       );
     }
   }
@@ -7001,6 +7094,7 @@ export class Service extends ProjectReferencesService<Model> {
         userTelegramId: true,
         userSlackId: true,
         userMicrosoftTeamsId: true,
+        userMattermostId: true,
         userPushId: true,
         userWebhookId: true,
         customNotificationChannelId: true,
@@ -7271,6 +7365,7 @@ export class Service extends ProjectReferencesService<Model> {
         userTelegramId: true,
         userSlackId: true,
         userMicrosoftTeamsId: true,
+        userMattermostId: true,
         userPushId: true,
         userWebhookId: true,
         customNotificationChannelId: true,
@@ -7437,6 +7532,9 @@ export class Service extends ProjectReferencesService<Model> {
     if (descriptor.userMicrosoftTeamsId) {
       rule.userMicrosoftTeamsId = descriptor.userMicrosoftTeamsId;
     }
+    if (descriptor.userMattermostId) {
+      rule.userMattermostId = descriptor.userMattermostId;
+    }
     if (descriptor.userWebhookId) {
       rule.userWebhookId = descriptor.userWebhookId;
     }
@@ -7473,6 +7571,9 @@ export class Service extends ProjectReferencesService<Model> {
     }
     if (descriptor.userMicrosoftTeamsId) {
       query["userMicrosoftTeamsId"] = descriptor.userMicrosoftTeamsId;
+    }
+    if (descriptor.userMattermostId) {
+      query["userMattermostId"] = descriptor.userMattermostId;
     }
     if (descriptor.userWebhookId) {
       query["userWebhookId"] = descriptor.userWebhookId;
@@ -7900,6 +8001,13 @@ export class Service extends ProjectReferencesService<Model> {
         props: props,
       });
       isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.Mattermost) {
+      row = await UserMattermostService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
     } else if (data.methodType === ReadinessMethodType.Webhook) {
       row = await UserWebhookService.findOneBy({
         query: query,
@@ -7965,6 +8073,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (methodType === ReadinessMethodType.MicrosoftTeams) {
       return rule.userMicrosoftTeamsId;
+    }
+
+    if (methodType === ReadinessMethodType.Mattermost) {
+      return rule.userMattermostId;
     }
 
     if (methodType === ReadinessMethodType.Webhook) {
@@ -8303,6 +8415,7 @@ export class Service extends ProjectReferencesService<Model> {
           userTelegramId: true,
           userSlackId: true,
           userMicrosoftTeamsId: true,
+          userMattermostId: true,
           userWebhookId: true,
           customNotificationChannelId: true,
         },

@@ -32,6 +32,8 @@ export const NESTABLE_CHILD_TYPES: Set<EntityType> = new Set<EntityType>([
   EntityType.KubernetesDeployment,
   EntityType.ProxmoxNode,
   EntityType.ProxmoxGuest,
+  EntityType.OpenStackHypervisor,
+  EntityType.OpenStackInstance,
   EntityType.VMwareCluster,
   EntityType.VMwareHost,
   EntityType.VMwareVirtualMachine,
@@ -49,6 +51,7 @@ export const NESTABLE_CHILD_TYPES: Set<EntityType> = new Set<EntityType>([
 export const CONTAINER_SPECIFICITY: Partial<Record<EntityType, number>> = {
   [EntityType.KubernetesCluster]: 0,
   [EntityType.ProxmoxCluster]: 0,
+  [EntityType.OpenStackCloud]: 0,
   /*
    * vSphere nests vCenter ⊃ cluster ⊃ ESXi host ⊃ VM; datastores sit
    * directly under the vCenter. The cluster is optional (standalone hosts
@@ -65,10 +68,12 @@ export const CONTAINER_SPECIFICITY: Partial<Record<EntityType, number>> = {
   [EntityType.KubernetesNode]: 2,
   [EntityType.KubernetesDeployment]: 2,
   [EntityType.ProxmoxNode]: 2,
+  [EntityType.OpenStackHypervisor]: 2,
   [EntityType.VMwareHost]: 2,
   [EntityType.DockerSwarmNode]: 2,
   [EntityType.KubernetesPod]: 3,
   [EntityType.ProxmoxGuest]: 3,
+  [EntityType.OpenStackInstance]: 3,
   [EntityType.VMwareVirtualMachine]: 3,
   [EntityType.DockerSwarmTask]: 3,
   [EntityType.Container]: 4,
@@ -90,6 +95,7 @@ export const REPLICA_GROUPABLE_TYPES: ReadonlySet<string> = new Set<string>([
   EntityType.Container,
   EntityType.DockerSwarmTask,
   EntityType.ProxmoxGuest,
+  EntityType.OpenStackInstance,
   EntityType.VMwareVirtualMachine,
 ]);
 

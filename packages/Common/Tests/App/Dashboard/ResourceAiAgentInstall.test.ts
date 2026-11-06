@@ -47,6 +47,7 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
   CLOUD_AI_RESOURCE_TYPES,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
@@ -54,6 +55,8 @@ import {
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   RESOURCE_AI_ALLOW_WRITES_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
+  RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { SETUP_GUIDE_URL_PLACEHOLDER } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
@@ -85,6 +88,7 @@ const COLLECTOR_DIRECTORIES: Record<ComposeInstalledAiResourceType, string> = {
   [AiResourceType.CephCluster]: "CephAgent",
   [AiResourceType.DatabaseServer]: "DatabaseAgent",
   [AiResourceType.Host]: "HostAIAgent",
+  [AiResourceType.OpenStackCloud]: "OpenStackAgent",
 };
 
 interface ComposeService {
@@ -189,7 +193,7 @@ function installerDirectory(
     "utf8",
   );
   const match: RegExpMatchArray | null = installer.match(
-    /^INSTALL_DIR="(?:\$\{INSTALL_DIR:-)?([^"}]+)\}?"/m,
+    /^(?:DEFAULT_)?INSTALL_DIR="(?:\$\{INSTALL_DIR:-)?([^"}]+)\}?"/m,
   );
 
   return match ? match[1]! : null;
@@ -229,6 +233,7 @@ describe("the agent's service", () => {
       "oneuptime-ceph-ai-agent",
       "oneuptime-database-ai-agent",
       "oneuptime-host-ai-agent",
+      "oneuptime-openstack-ai-agent",
     ]);
   });
 
@@ -1018,21 +1023,30 @@ describe("the write switch", () => {
       const commands: ResourceAiAgentWriteAccessCommands =
         getResourceAiAgentWriteAccessCommands(type);
 
+      // An OpenStack agent makes changes with a credential of their own, so it gets asked for one.
+      const credentialLines: string =
+        type === AiResourceType.OpenStackCloud
+          ? `\n${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV}=<the credential's ID>\n${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}=<the credential's secret>`
+          : "";
+
       expect(commands.allTargetsEnv).toBe(
-        `${RESOURCE_AI_ALLOW_WRITES_ENV}=true`,
+        `${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}`,
       );
       expect(commands.restartCommand).toContain(
         `compose up -d ${getResourceAiAgentServiceName(type)}`,
       );
 
-      if (type === AiResourceType.DatabaseServer) {
+      if (
+        type === AiResourceType.DatabaseServer ||
+        isReadOnlyAiResourceType(type)
+      ) {
         // A session id is not a target anyone can scope in advance.
         expect(commands.scopedEnv).toBeNull();
         expect(commands.scopedNote).toBeNull();
       } else {
         expect(commands.scopedEnv).toMatch(
           new RegExp(
-            `^${RESOURCE_AI_ALLOW_WRITES_ENV}=true\\n${RESOURCE_AI_WRITE_TARGETS_ENV}=\\S+$`,
+            `^${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}\\n${RESOURCE_AI_WRITE_TARGETS_ENV}=\\S+$`,
           ),
         );
         expect(commands.scopedNote).toContain("refused by the agent itself");
@@ -1085,6 +1099,11 @@ describe("the write switch", () => {
     "%s: the disclosure says what writes allow and what OneUptime never does",
     (type: ComposeInstalledAiResourceType) => {
       const disclosure: string = getResourceAiAgentWriteDisclosure(type);
+
+      if (isReadOnlyAiResourceType(type)) {
+        expect(disclosure).toMatch(/only reads/);
+        return;
+      }
 
       expect(disclosure).toMatch(/^Write access lets the agent /);
       expect(disclosure).toContain("OneUptime still holds the line");
@@ -1194,6 +1213,34 @@ describe("what AI may do, set where the agent runs", () => {
     },
   );
 
+  test("an OpenStack agent's variables say what fixes need, and its credential for them", () => {
+    const variables: Array<{ name: string; description: string }> =
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.OpenStackCloud,
+        resourceId: "71000000-0000-4000-8000-000000000001",
+        identity: "prod-eu",
+      }).variables;
+    const descriptionOf: (name: string) => string | undefined = (
+      name: string,
+    ): string | undefined => {
+      return variables.find((variable: { name: string }): boolean => {
+        return variable.name === name;
+      })?.description;
+    };
+
+    expect(
+      descriptionOf("ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID"),
+    ).toContain("stays read-only");
+    expect(
+      descriptionOf(
+        "ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET",
+      ),
+    ).toContain("Set both or neither");
+    expect(descriptionOf("ONEUPTIME_AI_ALLOW_WRITES")).toContain(
+      "true lets the agent apply fixes",
+    );
+  });
+
   test("a Docker host: how to do it with install.sh first, then the .env and the restart", () => {
     const instructions: AgentAiSettingsInstructions =
       getResourceAiAgentSettingsInstructions({
@@ -1295,10 +1342,12 @@ describe("what AI may do, set where the agent runs", () => {
 
       // The same .env lines first.
       expect(instructions.steps[0]!.ways[0]!.code).toBe(
-        getResourceAiAgentSettingsEnv({
-          investigation: true,
-          fixes: "RequireApproval",
-        }),
+        isReadOnlyAiResourceType(type)
+          ? "ONEUPTIME_AI_INVESTIGATION=true"
+          : getResourceAiAgentSettingsEnv({
+              investigation: true,
+              fixes: "RequireApproval",
+            }),
       );
       expect(instructions.steps[1]!.title).toBe(
         RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,

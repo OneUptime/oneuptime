@@ -6,7 +6,7 @@ Every command of the `oneuptime` CLI, with its arguments, options and defaults. 
 - [Global options](#global-options): The options every command takes.
 - [Login and contexts](#login-and-contexts): login and the context commands.
 - [Resource commands](#resource-commands): The operations, fields and actions of every resource.
-- [Other commands](#other-commands): deploy, dbt upload, whoami, resources, version and help.
+- [Other commands](#other-commands): deploy, dbt upload, data-checks apply, whoami, resources, version and help.
 :::
 
 ## The commands
@@ -322,6 +322,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--run-results <file>` | No | The run results to send | `run_results.json` in the target folder |
 | `--project <name>` | No | The dbt project's name, needed only when no manifest is sent | The manifest's project |
 | `--ingestion-key <key>` | No | A telemetry ingestion key of the project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
+### `oneuptime data-checks apply`
+
+Makes the project's data checks match a YAML file, so they are kept in a repository and reviewed like code. A mistake anywhere in the file applies nothing and exits with an error. The file's format is in [Checks and Reconciliations](/docs/data-observability/checks).
+
+```bash
+oneuptime data-checks apply <file> [--dry-run] [--prune]
+```
+
+| Option | Required | What it is | Default |
+| --- | --- | --- | --- |
+| `--dry-run` | No | Says what would change, and changes nothing | Off |
+| `--prune` | No | Deletes checks an earlier apply made that the file no longer names | Off |
 
 ### `oneuptime whoami`
 

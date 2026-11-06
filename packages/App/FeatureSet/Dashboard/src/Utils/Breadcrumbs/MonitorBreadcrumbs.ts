@@ -21,6 +21,10 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Monitors", "Microsoft Teams"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST,
+      ["Project", "Monitors", "Mattermost"],
+    ),
     // which chat workspaces are connected, and how to connect one
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_WORKSPACE_CONNECTIONS, [
       "Project",

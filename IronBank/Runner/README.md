@@ -20,7 +20,7 @@ certificates the release trusts out of the release's image, which
 Both images are Node.js 26 on Debian 13. It then installs the release's Debian
 packages, and sets the release's environment, entrypoint (`tini`), user and
 start command. The source is
-[IronBank/Runner](https://github.com/OneUptime/oneuptime/tree/master/IronBank/Runner)
+[IronBank/Runner](https://github.com/OneUptime/oneuptime/tree/main/IronBank/Runner)
 in OneUptime's repository.
 
 ## Running it

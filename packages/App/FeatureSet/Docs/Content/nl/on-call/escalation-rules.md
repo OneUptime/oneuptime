@@ -221,7 +221,7 @@ Elke oproep kunt u escaleren vanaf de plek waar hij u bereikte:
 | --- | --- |
 | E-mail | De knop **Escalate**, dan **Escalate** op de pagina die hij opent |
 | Sms en WhatsApp | De link in het bericht opent de bevestigingspagina, waarop ook **Escalate** staat |
-| Telegram, Slack en Microsoft Teams | De link "Can't take it? Escalate", dan **Escalate** op de pagina die hij opent |
+| Telegram, Slack, Microsoft Teams en Mattermost | De link "Can't take it? Escalate", dan **Escalate** op de pagina die hij opent |
 | Telefoongesprek | Druk op 2. Het gesprek vertelt daarna wat er is gebeurd |
 | Pushmelding | Tik erop: het incident, de waarschuwing of de episode opent in de OneUptime On-Call-app, met **Escalate** eronder |
 | OneUptime | **Escaleren** bovenaan het incident, de waarschuwing of de episode, na de statusknoppen |

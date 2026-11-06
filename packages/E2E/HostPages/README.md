@@ -37,6 +37,8 @@ The suite reads the pages the way someone who runs servers does:
   alerts" opening Recommendations with exactly those selected (`?select=`),
   and Details; a host that stopped reporting showing its connection card
   rather than a stale health, and one still starting no health at all;
+- a host on OpenStack (`?openstack=instance|hypervisor`): where it runs, each
+  line a link into the cloud, and a host on no cloud saying nothing of it;
 - a phone (390 wide: nothing scrolls sideways), dark mode (`?theme=dark`),
   German (`?lang=de`) and Persian (`?lang=fa`, right to left: a mount keeps
   its slashes where they were written).

@@ -57,9 +57,9 @@ Solo cuentan los problemas abiertos. Un problema cuyo riesgo se aceptó, o que n
 
 | Requisito | Qué pide | Comprobaciones |
 | --- | --- | --- |
-| Art. 5(1)(c) | Minimización de datos | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 5(1)(c) | Minimización de datos | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 5(1)(e) | Limitación del plazo de conservación | `stale-sensitive-data` |
-| Art. 25 | Protección de datos desde el diseño y por defecto | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 25 | Protección de datos desde el diseño y por defecto | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Encargados del tratamiento | `sensitive-data-to-ai` |
 | Art. 30 | Registro de las actividades de tratamiento | Lo cumple la propia Seguridad de datos |
 | Art. 32 | Seguridad del tratamiento | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
@@ -69,7 +69,7 @@ Solo cuentan los problemas abiertos. Un problema cuyo riesgo se aceptó, o que n
 
 | Requisito | Qué pide | Comprobaciones |
 | --- | --- | --- |
-| 1798.100(c) | Recogida limitada a lo necesario | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| 1798.100(c) | Recogida limitada a lo necesario | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | 1798.150 | Procedimientos de seguridad razonables | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ Solo cuentan los problemas abiertos. Un problema cuyo riesgo se aceptó, o que n
 | A.5.12 | Clasificación de la información | Lo cumple la propia Seguridad de datos |
 | A.5.15 | Control de acceso | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | Derechos de acceso | `unused-access` |
-| A.5.34 | Privacidad y protección de la PII | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| A.8.11 | Enmascaramiento de datos | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.5.34 | Privacidad y protección de la PII | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.8.11 | Enmascaramiento de datos | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | Prevención de la fuga de datos | `secrets-stored`, `secrets-in-telemetry` |
 | A.8.13 | Copia de seguridad de la información | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | A.8.15 | Registro de eventos | `access-not-logged` |
@@ -136,7 +136,7 @@ Solo cuentan los problemas abiertos. Un problema cuyo riesgo se aceptó, o que n
 
 | Requisito | Qué pide | Comprobaciones |
 | --- | --- | --- |
-| Art. 6 | Necesidad y limitación de la finalidad | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 6 | Necesidad y limitación de la finalidad | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 33 | Transferencia internacional de datos | `residency-violation` |
 | Art. 46 | Medidas de seguridad | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
@@ -145,7 +145,7 @@ Solo cuentan los problemas abiertos. Un problema cuyo riesgo se aceptó, o que n
 | Requisito | Qué pide | Comprobaciones |
 | --- | --- | --- |
 | Secc. 8(5) | Salvaguardas de seguridad razonables | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
-| Secc. 8(7) | Supresión cuando se ha cumplido la finalidad | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Secc. 8(7) | Supresión cuando se ha cumplido la finalidad | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Secc. 16 | Transferencia fuera de la India | `residency-violation` |
 
 ## Registro de actividades de tratamiento

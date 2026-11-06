@@ -1,0 +1,43 @@
+What this release installs, in the services' virtual environment:
+keystoneauth1             5.17.0
+osc-lib                   4.7.0
+oslo.messaging            18.3.1
+oslo.middleware           8.2.0
+osprofiler                4.4.0
+python-openstackclient    10.3.1
+
+What its pins say:
+opentelemetry-exporter-otlp===1.44.0
+opentelemetry-sdk===1.44.0
+osprofiler===4.4.0
+
+Whether the client offers --os-profile, which it only does with osprofiler installed:
+                 [--timing] [--os-beta-command] [--os-profile hmac-key]
+                 [--os-compute-api-version <compute-api-version>]
+--
+  --os-profile hmac-key
+                        HMAC key for encrypting profiling context data
+
+What was installed for the driver:
+grpcio                                   1.83.0
+opentelemetry-api                        1.44.0
+opentelemetry-exporter-otlp              1.44.0
+opentelemetry-exporter-otlp-proto-common 1.44.0
+opentelemetry-exporter-otlp-proto-grpc   1.44.0
+opentelemetry-exporter-otlp-proto-http   1.44.0
+opentelemetry-proto                      1.44.0
+opentelemetry-sdk                        1.44.0
+opentelemetry-semantic-conventions       0.65b0
+protobuf                                 7.35.1
+
+That did not come back from a restart. What is installed in its place:
+grpcio                                   1.83.0
+opentelemetry-api                        1.43.0
+opentelemetry-exporter-otlp              1.43.0
+opentelemetry-exporter-otlp-proto-common 1.43.0
+opentelemetry-exporter-otlp-proto-grpc   1.43.0
+opentelemetry-exporter-otlp-proto-http   1.43.0
+opentelemetry-proto                      1.43.0
+opentelemetry-sdk                        1.43.0
+opentelemetry-semantic-conventions       0.64b0
+protobuf                                 7.35.1

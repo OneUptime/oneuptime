@@ -100,7 +100,7 @@ Beyond the datastores, size the stateless workloads. Each runs with **no resourc
 | Ingress gateway | `nginx` | Request volume |
 | Telemetry writer, when turned on | `telemetryWriter` | Not with load: it batches every telemetry insert into ClickHouse, so it is sized to what ClickHouse can take |
 
-The chart bundles **KEDA**, so the app, workers, probes and the global Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
+The chart bundles **KEDA**, so the app, workers, probes and the global Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
 
 ## Starting tiers
 
@@ -130,7 +130,7 @@ The chart's built-in datastores run as **single instances** by default. For prod
 | **Valkey** | The chart does not replicate it. Point OneUptime at an external managed Redis or Valkey with automatic failover (`externalValkey`). OneUptime connects to a single host and port, so use the service's primary endpoint, not a cluster-mode one. |
 
 > [!WARNING]
-> Turning on either operator for an existing install starts a new, empty database: neither one copies the data of the single-instance database it replaces. Migrate your data as the chart's guides describe — for [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) and for [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
+> Turning on either operator for an existing install starts a new, empty database: neither one copies the data of the single-instance database it replaces. Migrate your data as the chart's guides describe — for [PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) and for [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md).
 
 ## Retention and how it affects storage
 

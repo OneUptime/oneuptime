@@ -35,6 +35,7 @@ You do not have to send anything for these. OneUptime records them from the tele
 | A runbook | A runbook OneUptime ran completes, fails, or is cancelled after it started | `runbook` |
 | A cloud change | A connected cloud account's activity log records a change: AWS CloudTrail, the Azure Activity Log or Google Cloud's Admin Activity audit log | `cloud` |
 | A provider event | The cloud provider publishes a health event about the account: AWS Health, Azure Service Health or Resource Health, or Google Cloud Service Health | `cloud-health` |
+| An OpenStack change | An OpenStack cloud's own notifications say what happened to one of its parts, or a probe's read of Nova does: see [Lifecycle events](/docs/telemetry/openstack#lifecycle-events) | `openstack` |
 
 - **The first version a service reports is its baseline, not a deploy.** A service that has run for months is not deployed the moment OneUptime starts receiving its telemetry.
 - **A rollback to a version seen in the last 30 days is not recorded,** because that version is not new. A rollback OneUptime AI runs is recorded as a fix.
@@ -50,7 +51,7 @@ A rollout needs the [Kubernetes agent](/docs/telemetry/kubernetes-agent), which 
 
 An app deploy needs the app to run on a [managed app platform](/docs/telemetry/cloud-environments#apps-and-deploys). It is recorded under the app's environment and drawn on the environment's charts and the app's own, and there a rollback to a revision the app ran before is recorded too.
 
-A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. Charts filtered to no resource leave a cloud account's activity log out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
+A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. Charts filtered to no resource leave a cloud account's activity log and an OpenStack cloud's changes out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
 
 ## Record a deploy from a pipeline
 

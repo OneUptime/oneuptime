@@ -9,6 +9,7 @@ import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeServ
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import ShortLinkService from "../../../Server/Services/ShortLinkService";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import MattermostUtil from "../../../Server/Utils/Workspace/Mattermost/Mattermost";
 import logger from "../../../Server/Utils/Logger";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
@@ -32,7 +33,7 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
- * The Slack / Microsoft Teams halves of deliverNotificationForRule, driven
+ * The Slack / Microsoft Teams / Mattermost halves of deliverNotificationForRule, driven
  * through the public executeNotificationRuleItem entrypoint exactly like the
  * older channels' characterisation suite. What is pinned:
  *
@@ -44,7 +45,7 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
  *   2. THE TIMELINE ROW. Written BEFORE the send (the message embeds its id
  *      via the acknowledge link), stamped with the right method FK column,
  *      status Sending, and "Sending Slack message." / "Sending Microsoft
- *      Teams message." as its message.
+ *      Teams message." / "Sending Mattermost message." as its message.
  *
  *   3. THE HANDOFF. The sender is handed the workspace type, the stored
  *      workspace user id, the timeline row id (so it can flip Sent/Error
@@ -53,7 +54,7 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
  *   4. FIRE-AND-FORGET. A sender rejection is caught and lands on the
  *      timeline row as Error; it never rejects the execution.
  *
- *   5. THE EVENT MAP. All four event types deliver on both channels, and the
+ *   5. THE EVENT MAP. All four event types deliver on every channel, and the
  *      blocks handed over are the event's own generator output (markdown with
  *      the acknowledge short-link inside).
  */
@@ -93,6 +94,7 @@ const SCHEDULE_ID: ObjectID = new ObjectID(
 
 const SLACK_USER_ID: string = "U0123ABCD";
 const TEAMS_USER_ID: string = "entra-object-id-1";
+const MATTERMOST_USER_ID: string = "abcdefghijklmnopqrstuvwxyz";
 const ACK_SHORT_URL: string = "https://oneuptime.example.com/l/abc123";
 
 type ExecuteOptions = Parameters<
@@ -104,6 +106,7 @@ interface TimelineRow {
   statusMessage: string | undefined;
   userSlackId: ObjectID | undefined;
   userMicrosoftTeamsId: ObjectID | undefined;
+  userMattermostId: ObjectID | undefined;
 }
 
 function flushMicrotasks(): Promise<void> {
@@ -163,7 +166,18 @@ function verifiedTeams(): JSONObject {
   } as unknown as JSONObject;
 }
 
-describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
+function verifiedMattermost(): JSONObject {
+  return {
+    userMattermost: {
+      id: METHOD_ID,
+      mattermostUserId: MATTERMOST_USER_ID,
+      mattermostUserName: "alice",
+      isVerified: true,
+    },
+  } as unknown as JSONObject;
+}
+
+describe("deliverNotificationForRule - Slack, Microsoft Teams and Mattermost", () => {
   let findRule: jest.SpyInstance;
   let sendDm: jest.SpyInstance;
   let timelineCreate: jest.SpyInstance;
@@ -284,6 +298,7 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
           statusMessage: data.statusMessage,
           userSlackId: data.userSlackId,
           userMicrosoftTeamsId: data.userMicrosoftTeamsId,
+          userMattermostId: data.userMattermostId,
         });
 
         return Promise.resolve({
@@ -456,6 +471,130 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
 
   /*
    * ----------------------------------------------------------------------- *
+   * (B2) The Mattermost path.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("a verified Mattermost method", () => {
+    beforeEach(() => {
+      findRule.mockResolvedValue(ruleItem(verifiedMattermost()) as never);
+    });
+
+    test("delivers with the Mattermost workspace type and the stored account id", async () => {
+      await execute();
+
+      expect(sendDm).toHaveBeenCalledTimes(1);
+
+      const arg: CapturedSendArg = sendArg();
+      expect(arg.workspaceType).toBe(WorkspaceType.Mattermost);
+      expect(arg.workspaceUserId).toBe(MATTERMOST_USER_ID);
+      expect(arg.userOnCallLogTimelineId.toString()).toBe(
+        TIMELINE_ID.toString(),
+      );
+    });
+
+    test("its timeline row is written first, stamped with userMattermostId and the Mattermost sending message", async () => {
+      await execute();
+
+      expect(timelineRows).toHaveLength(1);
+      expect(timelineRows[0]?.status).toBe(UserNotificationStatus.Sending);
+      expect(timelineRows[0]?.statusMessage).toBe(
+        "Sending Mattermost message.",
+      );
+      expect(timelineRows[0]?.userMattermostId?.toString()).toBe(
+        METHOD_ID.toString(),
+      );
+      expect(timelineRows[0]?.userSlackId).toBeUndefined();
+      expect(timelineRows[0]?.userMicrosoftTeamsId).toBeUndefined();
+
+      expect(timelineCreate.mock.invocationCallOrder[0] as number).toBeLessThan(
+        sendDm.mock.invocationCallOrder[0] as number,
+      );
+    });
+
+    test("the message says what happened and carries Acknowledge and Escalate, as the Slack message does", async () => {
+      await execute();
+
+      const text: string = markdownText();
+      expect(text).toContain("New incident assigned to you");
+      expect(text).toContain("INC-42");
+      expect(text).toContain(`[Acknowledge](${ACK_SHORT_URL})`);
+      expect(text).toContain("Escalate");
+      expect(text).toContain(
+        "https://oneuptime.example.com/dashboard/incident",
+      );
+    });
+
+    test("every event type delivers on Mattermost, with the acknowledge link", async () => {
+      for (const eventOverrides of [
+        {
+          userNotificationEventType: UserNotificationEventType.AlertCreated,
+          triggeredByIncidentId: undefined,
+          triggeredByAlertId: ALERT_ID,
+        },
+        {
+          userNotificationEventType:
+            UserNotificationEventType.AlertEpisodeCreated,
+          triggeredByIncidentId: undefined,
+          triggeredByAlertEpisodeId: ALERT_EPISODE_ID,
+        },
+        {
+          userNotificationEventType:
+            UserNotificationEventType.IncidentEpisodeCreated,
+          triggeredByIncidentId: undefined,
+          triggeredByIncidentEpisodeId: INCIDENT_EPISODE_ID,
+        },
+      ] as Array<Partial<ExecuteOptions>>) {
+        sendDm.mockClear();
+        await execute(eventOverrides);
+
+        expect(sendArg().workspaceType).toBe(WorkspaceType.Mattermost);
+        expect(markdownText()).toContain(`[Acknowledge](${ACK_SHORT_URL})`);
+      }
+    });
+
+    test("the page reaches Mattermost as one post, its links intact and a mention in its title notifying nobody", async () => {
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        id: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        title: "Checkout @channel is down",
+        incidentNumber: 42,
+        incidentNumberWithPrefix: "INC-42",
+      } as unknown as Incident as never);
+
+      await execute();
+
+      const message: string = MattermostUtil.toPost({
+        blocks: MattermostUtil.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: sendArg().messageBlocks,
+        }),
+        teamId: "t".repeat(26),
+      })["message"] as string;
+
+      expect(message).toContain(`[Acknowledge](${ACK_SHORT_URL})`);
+      expect(message).toContain("Escalate");
+      expect(message).toContain("INC-42");
+      expect(message).not.toContain("@channel");
+    });
+
+    test("a sender rejection lands on the timeline row, with the channel-named default", async () => {
+      sendDm.mockRejectedValue(new Error("") as never);
+
+      await expect(execute()).resolves.toBeUndefined();
+      await flushMicrotasks();
+
+      const arg: {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      } = timelineUpdate.mock.calls[0][0] as {
+        data: { status: UserNotificationStatus; statusMessage: string };
+      };
+      expect(arg.data.status).toBe(UserNotificationStatus.Error);
+      expect(arg.data.statusMessage).toBe("Error sending Mattermost message.");
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
    * (C) The verification gate.
    * -----------------------------------------------------------------------
    */
@@ -502,6 +641,68 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
       expect(timelineRows[0]?.statusMessage).toBe(
         "Microsoft Teams message not sent because the Microsoft Teams account is not verified.",
       );
+    });
+
+    test("an unverified Mattermost method behaves the same, with its own message and column", async () => {
+      findRule.mockResolvedValue(
+        ruleItem({
+          userMattermost: {
+            id: METHOD_ID,
+            mattermostUserId: MATTERMOST_USER_ID,
+            isVerified: false,
+          },
+        } as unknown as JSONObject) as never,
+      );
+
+      await execute();
+
+      expect(sendDm).not.toHaveBeenCalled();
+      expect(timelineRows).toHaveLength(1);
+      expect(timelineRows[0]?.status).toBe(UserNotificationStatus.Error);
+      expect(timelineRows[0]?.statusMessage).toBe(
+        "Mattermost message not sent because the Mattermost account is not verified.",
+      );
+      expect(timelineRows[0]?.userMattermostId?.toString()).toBe(
+        METHOD_ID.toString(),
+      );
+    });
+
+    test("a verified Mattermost relation whose account id is missing sends nothing", async () => {
+      findRule.mockResolvedValue(
+        ruleItem({
+          userMattermost: {
+            id: METHOD_ID,
+            isVerified: true,
+          },
+        } as unknown as JSONObject) as never,
+      );
+
+      await execute();
+
+      expect(sendDm).not.toHaveBeenCalled();
+      expect(timelineRows).toHaveLength(0);
+    });
+
+    /*
+     * The last line of defence (getNotificationMethodsNotOwnedByRuleOwner): a
+     * rule whose Mattermost account belongs to somebody else is not delivered,
+     * or the page would reach their account.
+     */
+    test("a Mattermost method owned by somebody other than the rule's owner is never sent to", async () => {
+      findRule.mockResolvedValue(
+        ruleItem({
+          userMattermost: {
+            id: METHOD_ID,
+            mattermostUserId: MATTERMOST_USER_ID,
+            isVerified: true,
+            userId: new ObjectID("abababab-abab-4bab-8bab-abababababab"),
+          },
+        } as unknown as JSONObject) as never,
+      );
+
+      await execute();
+
+      expect(sendDm).not.toHaveBeenCalled();
     });
 
     test("a verified relation whose address column is missing sends nothing (the same silent skip as every channel)", async () => {
@@ -682,6 +883,28 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
       );
       expect(workspaceTypes).toContain(WorkspaceType.Slack);
       expect(workspaceTypes).toContain(WorkspaceType.MicrosoftTeams);
+    });
+
+    test("delivers on Mattermost beside the others, one timeline row and one send each", async () => {
+      findRule.mockResolvedValue(
+        ruleItem({
+          ...verifiedSlack(),
+          ...verifiedTeams(),
+          ...verifiedMattermost(),
+        }) as never,
+      );
+
+      await execute();
+
+      expect(sendDm).toHaveBeenCalledTimes(3);
+      expect(timelineRows).toHaveLength(3);
+
+      const workspaceTypes: Array<WorkspaceType> = sendDm.mock.calls.map(
+        (call: Array<unknown>) => {
+          return (call[0] as { workspaceType: WorkspaceType }).workspaceType;
+        },
+      );
+      expect(workspaceTypes).toContain(WorkspaceType.Mattermost);
     });
   });
 });

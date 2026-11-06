@@ -210,6 +210,108 @@ export async function hasCloudConnectionReadEnded(data: {
   return Boolean(now) && now !== data.before;
 }
 
+/*
+ * A new stream key for an AWS connection's Firehose streams: the server
+ * answers it this once and keeps only its SHA-256. The key it replaces
+ * keeps working until previousKeyWorksUntil.
+ */
+export interface CloudStreamKeyMade {
+  streamKey: string;
+  createdAt: Date;
+  previousKeyWorksUntil: Date | null;
+}
+
+// The answer read as the key it is; a failure when it holds none.
+export function readCloudStreamKeyMade(
+  data: JSONObject | undefined,
+): CloudStreamKeyMade {
+  const streamKey: unknown = data?.["streamKey"];
+  const createdAt: Date = new Date(String(data?.["createdAt"] || ""));
+  const until: unknown = data?.["previousKeyWorksUntil"];
+
+  if (typeof streamKey !== "string" || !streamKey) {
+    throw new Error("The server did not return a stream key. Try again.");
+  }
+
+  return {
+    streamKey,
+    createdAt: Number.isFinite(createdAt.getTime()) ? createdAt : new Date(),
+    previousKeyWorksUntil:
+      typeof until === "string" && Number.isFinite(new Date(until).getTime())
+        ? new Date(until)
+        : null,
+  };
+}
+
+export async function makeCloudStreamKey(
+  connectionId: ObjectID,
+): Promise<CloudStreamKeyMade> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `${CLOUD_CONNECTION_API_PATH}/${connectionId.toString()}/stream-key`,
+      ),
+      headers: ModelAPI.getCommonHeaders(),
+      data: {},
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return readCloudStreamKeyMade(response.data);
+}
+
+// Every stream key of the connection stops working.
+export async function stopCloudStreaming(
+  connectionId: ObjectID,
+): Promise<void> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromURL(APP_API_URL).addRoute(
+        `${CLOUD_CONNECTION_API_PATH}/${connectionId.toString()}/stop-streaming`,
+      ),
+      headers: ModelAPI.getCommonHeaders(),
+      data: {},
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+}
+
+// While the streaming dialog is open, how often it asks what arrived.
+export const CLOUD_STREAM_POLL_MS: number = 5 * 1000;
+
+// When the connection's stream key was made, and what its streams delivered.
+export interface CloudStreamStatus {
+  streamKeyCreatedAt: Date | null;
+  streamSummary: JSONObject | null;
+}
+
+// What a connection's streams delivered, read again while the dialog waits.
+export async function readCloudStreamStatus(
+  connectionId: ObjectID,
+): Promise<CloudStreamStatus | null> {
+  const connection: CloudConnection | null =
+    await ModelAPI.getItem<CloudConnection>({
+      modelType: CloudConnection,
+      id: connectionId,
+      select: { streamKeyCreatedAt: true, streamSummary: true },
+    });
+
+  if (!connection) {
+    return null;
+  }
+
+  return {
+    streamKeyCreatedAt: connection.streamKeyCreatedAt
+      ? new Date(connection.streamKeyCreatedAt)
+      : null,
+    streamSummary: connection.streamSummary || null,
+  };
+}
+
 // The answer read as the setup it is; unavailable when it says nothing.
 export function readCloudConnectionAwsRoleSetup(
   data: JSONObject | undefined,

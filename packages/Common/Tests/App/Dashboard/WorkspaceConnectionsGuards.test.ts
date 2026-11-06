@@ -5,7 +5,10 @@ import {
   WORKSPACE_CONNECTIONS_PAGE_COPY,
   WORKSPACE_CONNECTION_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceConnectionCopy";
-import { WORKSPACE_MENU_ENTRY_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSideMenuSection";
+import {
+  WORKSPACE_MENU_ENTRY_TITLES,
+  WORKSPACE_SECTION_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSideMenuSection";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
@@ -15,9 +18,9 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
  * Rules that must hold across the Dashboard, read from its source so that a
  * menu or page added later is held to them the day it is written:
  *
- *  1. No side menu links to a Slack or Microsoft Teams page by hand. Those
- *     links come from useWorkspaceSideMenuSection, which lists only the
- *     workspaces the project has connected. The one exception is Project
+ *  1. No side menu links to a Slack, Microsoft Teams or Mattermost page by
+ *     hand. Those links come from useWorkspaceSideMenuSection, which lists
+ *     only the workspaces the project has connected. The one exception is Project
  *     Settings, where workspaces are connected: hiding the one that is not
  *     connected there would hide the only way to connect it.
  *  2. "Is Slack connected?" is asked of the shared store, which asks the
@@ -73,9 +76,10 @@ function stripComments(code: string): string {
 
 // The PageMap keys of every page that is about one chat workspace.
 const PRODUCT_WORKSPACE_PAGE: RegExp =
-  /_WORKSPACE_CONNECTION_(SLACK|MICROSOFT_TEAMS)$/;
+  /_WORKSPACE_CONNECTION_(SLACK|MICROSOFT_TEAMS|MATTERMOST)$/;
 const PRODUCT_CONNECT_PAGE: RegExp = /_WORKSPACE_CONNECTIONS$/;
-const SETTINGS_WORKSPACE_PAGE: RegExp = /_(SLACK|MICROSOFT_TEAMS)_INTEGRATION$/;
+const SETTINGS_WORKSPACE_PAGE: RegExp =
+  /_(SLACK|MICROSOFT_TEAMS|MATTERMOST)_INTEGRATION$/;
 
 const WORKSPACE_PAGE_KEYS: Array<string> = Object.keys(PageMap).filter(
   (key: string): boolean => {
@@ -89,7 +93,7 @@ const WORKSPACE_PAGE_KEYS: Array<string> = Object.keys(PageMap).filter(
 
 const READS_CONNECTION_ROW: RegExp = /modelType:\s*WorkspaceProjectAuthToken\b/;
 const PRODUCT_WORKSPACE_PAGE_FILE: RegExp =
-  /Pages\/[^/]+\/WorkspaceConnection(Slack|MicrosoftTeams)\.tsx$/;
+  /Pages\/[^/]+\/WorkspaceConnection(Slack|MicrosoftTeams|Mattermost)\.tsx$/;
 
 const HOOK_CALL: RegExp = /useWorkspaceSideMenuSection\(\{[\s\S]*?\}\)/g;
 
@@ -99,7 +103,7 @@ const HOOK_CALL: RegExp = /useWorkspaceSideMenuSection\(\{[\s\S]*?\}\)/g;
  */
 const HAND_WRITTEN_WORKSPACE_MENUS: Readonly<Record<string, string>> = {
   "Pages/Settings/SideMenu.tsx":
-    "Project Settings is where Slack and Microsoft Teams are connected, so both are always listed there.",
+    "Project Settings is where Slack, Microsoft Teams and Mattermost are connected, so all three are always listed there.",
 };
 
 const SIDE_MENUS: Array<string> = filesUnder(DASHBOARD_SRC, [".tsx"]).filter(
@@ -117,13 +121,15 @@ describe("1. menus list only the connected workspaces", () => {
         "INCIDENTS_WORKSPACE_CONNECTIONS",
         "USER_SETTINGS_SLACK_INTEGRATION",
         "SETTINGS_MICROSOFT_TEAMS_INTEGRATION",
+        "INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST",
+        "SETTINGS_MATTERMOST_INTEGRATION",
       ]),
     );
-    expect(WORKSPACE_PAGE_KEYS.length).toBeGreaterThanOrEqual(19);
+    expect(WORKSPACE_PAGE_KEYS.length).toBeGreaterThanOrEqual(27);
     expect(SIDE_MENUS.length).toBeGreaterThan(50);
   });
 
-  test("no side menu links to a Slack or Microsoft Teams page except through useWorkspaceSideMenuSection", () => {
+  test("no side menu links to a Slack, Microsoft Teams or Mattermost page except through useWorkspaceSideMenuSection", () => {
     const handWritten: Array<string> = [];
 
     for (const file of SIDE_MENUS) {
@@ -175,42 +181,49 @@ describe("1. menus list only the connected workspaces", () => {
     ]);
   });
 
-  test("each passes its own Slack and Microsoft Teams pages, and every product its own Workspace page", () => {
+  test("each passes its own Slack, Microsoft Teams and Mattermost pages, and every product its own Workspace page", () => {
     const expected: Record<string, Array<string>> = {
       "Pages/Alerts/SideMenu.tsx": [
         "ALERTS_WORKSPACE_CONNECTION_SLACK",
         "ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+        "ALERTS_WORKSPACE_CONNECTION_MATTERMOST",
         "ALERTS_WORKSPACE_CONNECTIONS",
       ],
       "Pages/Incidents/SideMenu.tsx": [
         "INCIDENTS_WORKSPACE_CONNECTION_SLACK",
         "INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+        "INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST",
         "INCIDENTS_WORKSPACE_CONNECTIONS",
       ],
       "Pages/Monitor/SideMenu.tsx": [
         "MONITORS_WORKSPACE_CONNECTION_SLACK",
         "MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+        "MONITORS_WORKSPACE_CONNECTION_MATTERMOST",
         "MONITORS_WORKSPACE_CONNECTIONS",
       ],
       "Pages/OnCallDuty/SideMenu.tsx": [
         "ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK",
         "ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+        "ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST",
         "ON_CALL_DUTY_WORKSPACE_CONNECTIONS",
       ],
       "Pages/ScheduledMaintenanceEvents/SideMenu.tsx": [
         "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK",
         "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+        "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST",
         "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS",
       ],
       "Pages/SecurityEvents/SideMenu.tsx": [
         "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
         "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+        "SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST",
         "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
       ],
       // Linking your own account: no page to send a project with nothing connected to.
       "Pages/UserSettings/SideMenu.tsx": [
         "USER_SETTINGS_SLACK_INTEGRATION",
         "USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION",
+        "USER_SETTINGS_MATTERMOST_INTEGRATION",
       ],
     };
 
@@ -251,6 +264,8 @@ const READS_CONNECTION_ROWS: Readonly<Record<string, string>> = {
     "the Slack connect page: shows the workspace's name and deletes the row to disconnect",
   "Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx":
     "the Microsoft Teams connect page: reads admin consent and deletes the row to disconnect",
+  "Components/Mattermost/MattermostIntegration.tsx":
+    "the Mattermost connect page: shows the server, the team and the bot, and deletes the row to disconnect",
   "Components/UserSettings/SetupChecklist/useSetupChecklist.ts":
     "the setup checklist probes the project and the person's own account link together, with its own unknown state",
 };
@@ -285,19 +300,21 @@ describe("2. whether a workspace is connected is asked in one place", () => {
     ).toEqual([]);
   });
 
-  test("the product Slack and Microsoft Teams pages all go through the gate", () => {
+  test("the product Slack, Microsoft Teams and Mattermost pages all go through the gate", () => {
     const pages: Array<string> = SOURCES.filter((file: string): boolean => {
       return PRODUCT_WORKSPACE_PAGE_FILE.test(relative(file));
     });
 
-    // Slack and Microsoft Teams for each of the six products.
-    expect(pages).toHaveLength(12);
+    // Slack, Microsoft Teams and Mattermost for each of the six products.
+    expect(pages).toHaveLength(18);
 
     for (const file of pages) {
       const code: string = fs.readFileSync(file, "utf8");
       const workspaceType: string = file.endsWith("Slack.tsx")
         ? "Slack"
-        : "MicrosoftTeams";
+        : file.endsWith("Mattermost.tsx")
+          ? "Mattermost"
+          : "MicrosoftTeams";
 
       expect({
         page: relative(file),
@@ -332,20 +349,22 @@ describe("3. every new sentence is in every locale, translated", () => {
     WORKSPACE_CONNECTIONS_PAGE_COPY.connected,
     WORKSPACE_CONNECTIONS_PAGE_COPY.notConnected,
     WORKSPACE_CONNECTIONS_PAGE_COPY.setUpNotifications,
-    ...[WorkspaceType.Slack, WorkspaceType.MicrosoftTeams].flatMap(
-      (workspaceType: WorkspaceType): Array<string> => {
-        const copy: (typeof WORKSPACE_CONNECTION_COPY)[WorkspaceType] =
-          WORKSPACE_CONNECTION_COPY[workspaceType];
+    ...[
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Mattermost,
+    ].flatMap((workspaceType: WorkspaceType): Array<string> => {
+      const copy: (typeof WORKSPACE_CONNECTION_COPY)[WorkspaceType] =
+        WORKSPACE_CONNECTION_COPY[workspaceType];
 
-        return [
-          copy.name,
-          copy.description,
-          copy.connectTitle,
-          copy.notConnectedTitle,
-          copy.notConnectedDescription,
-        ];
-      },
-    ),
+      return [
+        copy.name,
+        copy.description,
+        copy.connectTitle,
+        copy.notConnectedTitle,
+        copy.notConnectedDescription,
+      ];
+    }),
   ];
 
   test("there are seventeen locales", () => {
@@ -385,6 +404,31 @@ describe("3. every new sentence is in every locale, translated", () => {
       }),
     ).toEqual([]);
   });
+
+  /*
+   * The entry a project with nothing connected sees opens a page of every
+   * workspace, so it names none of them, in the section's own word.
+   */
+  test.each(
+    LOCALE_FILES.filter((file: string): boolean => {
+      return file !== "en.json";
+    }),
+  )(
+    "%s words the connect entry as its section, naming no workspace",
+    (file: string) => {
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"),
+      );
+      const title: string = locale[
+        WORKSPACE_MENU_ENTRY_TITLES.Connect
+      ] as string;
+      const section: string = locale[WORKSPACE_SECTION_TITLE] as string;
+
+      expect(title).not.toBe(WORKSPACE_MENU_ENTRY_TITLES.Connect);
+      expect(title).not.toMatch(/Slack|Teams|Mattermost/);
+      expect(title.toLowerCase()).toContain(section.toLowerCase());
+    },
+  );
 
   test("the sentences that told people to retype a settings path are gone from every locale", () => {
     for (const file of LOCALE_FILES) {

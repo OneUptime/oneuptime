@@ -1440,6 +1440,23 @@ async function handleApi(method, options) {
    * KubernetesResourceService answers them (Common/Tests/Helpers/
    * KubernetesPartReads, held to the service's own cases).
    */
+  // Which Magnum cluster a Kubernetes cluster is, as a project with no OpenStack answers.
+  if (
+    method === "POST" &&
+    parsed.pathname.includes(
+      "/openstack-resource/magnum-cluster-of-kubernetes-cluster/",
+    )
+  ) {
+    return ok({ link: null });
+  }
+
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/openstack-resource/placement-of-kubernetes-node/")
+  ) {
+    return ok({ placement: null });
+  }
+
   if (
     method === "POST" &&
     parsed.pathname.includes("/kubernetes-resource/needs-attention/")

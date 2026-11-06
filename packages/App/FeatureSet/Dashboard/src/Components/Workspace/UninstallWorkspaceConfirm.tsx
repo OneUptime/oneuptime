@@ -5,11 +5,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * Asks before a project's Slack or Microsoft Teams connection goes. It is
- * the one step on the settings pages that reaches every member: their own
- * connected accounts, and the notification method each set up with one, go
- * with it (WorkspaceProjectAuthTokenService). The notification rules and
- * summaries stay, for when the workspace is connected again.
+ * Asks before a project's Slack, Microsoft Teams or Mattermost connection
+ * goes. It is the one step on the settings pages that reaches every member:
+ * their own connected accounts, and the notification method each set up
+ * with one, go with it (WorkspaceProjectAuthTokenService). The notification
+ * rules and summaries stay, for when the workspace is connected again.
  */
 export const UNINSTALL_WORKSPACE_TITLE: string = translationKey(
   "Uninstall OneUptime from {{workspace}}?",
@@ -27,7 +27,7 @@ export const MANAGE_WORKSPACE_CONNECTION: string = translationKey(
 );
 
 export interface ComponentProps {
-  // "Slack", "Microsoft Teams": a name, the same in every language.
+  // "Slack", "Mattermost": a name, the same in every language.
   workspaceName: string;
   isUninstalling: boolean;
   // Why the last try failed; empty when it did not.

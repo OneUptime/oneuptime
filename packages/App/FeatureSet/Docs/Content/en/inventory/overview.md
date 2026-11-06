@@ -44,9 +44,9 @@ Every three hours, OneUptime removes the discovered items that have been silent 
 
 | Kind of item | Removed after this long without telemetry |
 | --- | --- |
-| Pods, deployments, Proxmox guests and VMware virtual machines | 1 day |
-| Kubernetes nodes and namespaces, Proxmox nodes, VMware hosts, clusters and datastores, and the databases and remote services your traces call | 7 days |
-| Services, hosts, Kubernetes, Proxmox and Ceph clusters, storage arrays, vCenters and Docker Swarm clusters | 30 days |
+| Pods, deployments, Proxmox guests, OpenStack instances and VMware virtual machines | 1 day |
+| Kubernetes nodes and namespaces, Proxmox nodes, OpenStack hypervisors, VMware hosts, clusters and datastores, and the databases and remote services your traces call | 7 days |
+| Services, hosts, Kubernetes, Proxmox and Ceph clusters, OpenStack clouds, storage arrays, vCenters and Docker Swarm clusters | 30 days |
 
 A relationship OneUptime discovered is removed once it has not been seen again for 30 days.
 

@@ -8,6 +8,7 @@ Forbind en AWS-konto, et Azure-abonnement eller et Google Cloud-projekt fra dash
 - [Google Cloud](#google-cloud): En tjenestekonto med seks roller, der kun kan læse.
 - [Hvad OneUptime læser](#hvad-oneuptime-læser): Ressourcer, metrikker, ændringer, sundhedshændelser og omkostninger, hvor ofte, og hvad det koster at læse dem.
 - [Cloudomkostninger og besparelser](/docs/telemetry/cloud-costs): Hvad hver konto koster, måderne at bruge mindre på og budgetter, der advarer.
+- [Stream CloudWatch-metrikker og -logge](/docs/telemetry/cloud-streaming): Hver metrik inden for minutter, og CloudWatch Logs, via Amazon Data Firehose.
 - [Datasikkerhed](#datasikkerhed): Hvad forbindelsen lader Datasikkerhed læse, og hvad hvert niveau tilføjer til kommandoen.
 - [Lad AI rette problemer](#lad-ai-rette-problemer): Én kommando mere, så kan OneUptime AI rette det, den finder.
 :::
@@ -320,7 +321,7 @@ En organisationspolitik, `iam.disableServiceAccountKeyCreation`, kan forbyde nø
 :::
 
 :::details Der vises ingen ressourcer
-Den første læsning viser hver ressource i kontoen, uanset om den rapporterer metrikker. Hvis en forbindelse ikke virker, siger **View error** under **Cloud → Forbind**, hvorfor dens seneste læsning mislykkedes.
+Den første læsning viser hver ressource i kontoen, uanset om den rapporterer metrikker. Hvis en forbindelse ikke virker, siger **Vis fejl** under **Cloud → Forbind**, hvorfor dens seneste læsning mislykkedes.
 :::
 
 :::details Nogle af organisationens konti mangler

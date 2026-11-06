@@ -193,7 +193,7 @@ const DataObservabilityPipelinesPage: FunctionComponent<
         cardProps={{
           title: "Pipelines",
           description:
-            "Every job that sends OpenLineage events - Airflow, Dagster, Spark, dbt, Flink - and every Fivetran connector and Airbyte connection that sends its syncs, with how its latest run went.",
+            "Every job that sends OpenLineage events, every Fivetran or Airbyte sync, and every scheduled job seen in your traces, with how its latest run went.",
           buttons: [
             {
               title: "Connect Fivetran or Airbyte",
@@ -206,7 +206,7 @@ const DataObservabilityPipelinesPage: FunctionComponent<
             },
           ],
         }}
-        noItemsMessage="No pipeline yet. Point OpenLineage, or Fivetran's or Airbyte's webhooks, at OneUptime, as Documentation shows: each job appears with its first run."
+        noItemsMessage="No pipeline yet. Send OpenLineage events, Fivetran or Airbyte webhooks, or traces from a scheduled job: each job appears with its first run."
         selectMoreFields={{
           lastErrorMessage: true,
           lastRunEndedAt: true,

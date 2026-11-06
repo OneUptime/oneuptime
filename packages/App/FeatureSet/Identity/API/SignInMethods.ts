@@ -23,7 +23,8 @@ import SsoSignInMethods from "Common/Server/Utils/SsoSignInMethods";
  *       Whether the whole server requires single sign-on, its instance-wide
  *       providers that are on, and - while it requires SSO - whether any
  *       project has a provider of its own. The Accounts pages offer only SSO
- *       while it is required.
+ *       while it is required. And whether the sign-in page offers sign-in
+ *       links emailed to the account (Types/Accounts/MagicLink).
  *
  *   GET /identity/project-sign-in-methods/:projectId
  *       The providers that sign people in to one project: its own, and the
@@ -66,6 +67,7 @@ router.get(
         isSsoRequired: methods.isSsoRequired,
         ssoProviders: methods.ssoProviders.map(toJson),
         hasProjectSsoProviders: methods.hasProjectSsoProviders,
+        isMagicLinkLoginEnabled: methods.isMagicLinkLoginEnabled,
       });
     } catch (err) {
       return next(err);

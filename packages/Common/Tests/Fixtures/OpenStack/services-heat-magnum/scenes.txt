@@ -1,0 +1,12 @@
+heat-baseline recorded
+heat-held-in-progress recorded
+heat-update-failed recorded
+heat-engine-down recorded
+heat-engine-restarted recorded
+heat-api-down recorded
+magnum-baseline recorded
+magnum-creating recorded
+magnum-failed recorded
+magnum-conductor-down recorded
+magnum-api-down recorded
+magnum-real-image recorded

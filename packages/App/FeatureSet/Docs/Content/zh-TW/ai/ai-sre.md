@@ -36,6 +36,7 @@ flowchart TB
 調查完成後，OneUptime AI 會發布包含以下部分的根本原因分析：
 
 - **Summary** ——被呼叫的工程師能在五秒內讀完的一兩句話。
+- **Impact** ——它影響了誰和什麼，以及調查是如何知道的：它影響了多少使用者或請求、從什麼時候開始（根據遙測資料統計，並說明統計的是什麼：失敗的請求不等於使用者），它波及的服務，以及預算正在被消耗的 SLO，附上每個 SLO 剩餘的錯誤預算和消耗的速度。每一項都帶有數字和得出方式，並附引用；資料顯示不出的內容會如實說明，絕不猜測。卡片在摘要正下方顯示它，使用者、服務和 SLO 各佔一行。
 - **Most likely root cause** ——假設，只帶有證據所支持的把握程度，每一項事實主張都附有出處。如果遙測資料不足，AI 會直接說明，並列出它檢查過的內容，而不是猜測。
 - **Evidence** ——支持或排除該假設的關鍵發現，每一項都附有出處。
 - **Ruled out** ——它檢查過的其他可能原因，例如最近的變更、容量限制、相依項目或底層的雲端，每一個都附有排除它的引用證據。卡片會每行列出一個。沒有檢查其他原因的分析不會有這一節。
@@ -66,9 +67,10 @@ OneUptime 根據它所知道的資訊做出判斷，從不依據分析的文字�
 - 基礎設施本身的指標，依照人們閱讀它們的方式讀取。`system.cpu.utilization` 和 `system.memory.utilization` 等主機指標依每個狀態各回報一次，各狀態加起來是 100%，因此對它們整體取一個平均值沒有任何意義。OneUptime AI 逐一讀取每個狀態（忙碌的 CPU 是 user 加 system），並可依容器、依掛載點或依任何其他屬性讀取任何指標。
 - Docker 或 Podman 主機的容器：依 CPU、記憶體或重新啟動次數排在最前的容器，以及已停止回報資料的容器。已停止的容器不會傳送零，而是什麼都不傳送，因此整台主機的數字會把它掩蓋。
 - 事件或警示發生前 2 小時內記錄的變更（部署、Kubernetes 滾動更新、設定變更以及 OneUptime 執行的修正），以及其中哪些因其服務的遙測資料而成為可疑變更：即某個服務在變更之後立即明顯變差。請參閱 [部署與變更](/docs/telemetry/change-events)。
-- 專案中與該事件共用監測器或標籤的已解決事件：每個是如何解決的，以及當 OneUptime AI 對其中一個的修正已通過驗證時，該修正執行了什麼，這樣再次發生時就能說出上次奏效的修正。私人事件不會列出。
+- 與事件或警示關聯的 SLO，以及計入其監測器的 SLO，最多 5 個：每個的狀態、相對其目標的情況、剩餘的錯誤預算以及消耗它的速度，分析會讀取這些內容來說明影響。
+- 專案中與該事件共用監測器或標籤的已解決事件：每個是如何解決的，以及當 OneUptime AI 對其中一個的修正已通過驗證時，該修正執行了什麼，這樣再次發生時就能說出上次奏效的修正。私人事件不會列出。警示的調查會以同樣的方式讀取專案中已解決的警示：其監測器的警示（先讀取同一主機、Pod 或佇列的警示），以及帶有其標籤的警示，包括每個是如何解決的，以及 OneUptime AI 為它做的已驗證修正。私人警示不會列出。
 
-**OneUptime AI** 卡片上的調查活動會說明它讀取了多少則未解決或最近的警示，以及是在哪些資源上。
+**OneUptime AI** 卡片上的調查活動會說明它讀取了多少則未解決或最近的警示，以及是在哪些資源上。App Platforms 環境會被稱為雲端環境。
 
 ### 新警示觸發時再次檢查
 
@@ -241,7 +243,7 @@ AI 代理程式頁面上的 **修正** 有四種設定（chart 的 `aiAgent.fixe
 自動模式的允許清單是逐詞與剖析後的指令進行比對的，而不是作為自由文字：`*` 只代表恰好一個詞（一個映像檔、一個名稱），絕不代表額外的物件、旗標或第二個 `-n`，並且指令使用的每個旗標都必須在項目中寫出。`kubectl set image deployment/web * -n web` 允許在 `web` 中為 `web` 使用新映像檔，僅此而已。項目必須寫出其動詞——以及 `rollout`、`set` 或 `create` 的子指令——而不能用 `*` 代替，並且在選用的開頭 `kubectl` 之後必須多於一個詞；違反這些規則的項目，例如 `scale` 或 `kubectl *`，永遠無法預先核准任何變更，儲存時會被拒絕。
 
 :::details 永遠不會執行的指令，以及指令如何被解讀
-有些指令 **永遠** 不會執行，無論處於何種模式，即使有人核准也不會。指令原則會拒絕它們，並且會執行三次——由伺服器的工具、由伺服器加入佇列的關卡，以及由 AI 代理程式在啟動 `kubectl` 之前：`exec`、`attach`、`cp`、`port-forward`、`proxy`、`debug`、`run`、`edit`、`apply`、`replace`、`diff`、kubectl 外掛程式以及不在其清單中的任何其他動詞，任何檔案輸入（`-f`、`-k`）或讀取檔案的輸出格式（`-o jsonpath-file=`、`-o go-template-file=`、`-o custom-columns-file=`、`--template`，以及沒有內嵌範本的單獨 `-o jsonpath`/`go-template`/`custom-columns`），憑證、模擬身分（`--as`、`--as-group`、`--as-uid`、`--as-user-extra`）、叢集選擇、`--kuberc`、原始 API 和詳細記錄的旗標，使用 **任何** 動詞操作的 Secret 物件——OneUptime AI 從不讀取、變更、刪除或建立 Secret，`create secret`、`create token` 和 `set env --resolve` 也隨之被拒絕——任何授予 RBAC 的操作（`create role`、`create clusterrole`、`create rolebinding`、`create clusterrolebinding`、`set subject`），`certificate approve`，`set serviceaccount`，帶 `--image` 的 `create deployment`、`create cronjob` 或 `create job`（`create job --from=cronjob/…` 仍屬於風險較高的變更），`expose --overrides` 或 `--override-type`（覆寫可以讓 kubectl 建立 Job、ClusterRoleBinding 或其他任何類型的物件，而不是 Service），不是 JSON 的 `patch` 本文（kubectl 會把它當作 YAML 讀取，而 YAML 的標籤可以寫出任何檢查都看不到的欄位），變更 Pod 範本的 ServiceAccount、磁碟區或安全性設定的修補（包括主機連接埠、使用者命名空間退出選項 `hostUsers` 和執行階段類別 `runtimeClassName`），取代 Pod 範本的整個部分而不是在其中設定欄位的修補（strategic-merge 的 `$patch: replace`、設定整個 `containers` 清單的 merge patch，或取代或移除 Pod 規格的 JSON patch）——這會在不提及的情況下丟棄那些設定——透過 `--all` 或選擇器而非名稱選中的 Namespace 物件上的標籤或註解，對 RBAC 物件、CustomResourceDefinitions、APIServices、准入 webhook 設定或准入原則的任何寫入——`patch`、`label`、`annotate`、`set`——帶 `--all-namespaces` 的寫入、`delete --all`，以及刪除命名空間、節點、磁碟區、CRD 或叢集角色。旗標的剖析方式與 kubectl 相同，因此被禁止的旗標或類型無法躲在另一個後面：組合的短旗標會逐個字母拆開（`-As` 會被識別），值為選用的旗標（`--cascade`、`--dry-run`、`--validate`）永遠不會吞掉下一個詞，並且除 `-n`/`--namespace`、`--request-timeout` 和 `--match-server-version` 之外的每個旗標都必須位於動詞之後（以及 `rollout`、`set`、`create`、`auth`、`cluster-info` 和 `top` 的子指令之後），因為 kubectl 會先選定指令再剖析旗標。AI 代理程式自帶固定版本的 kubectl（v1.36.5）並關閉 kuberc，因此在原則檢查之後，kuberc 檔案無法再為指令新增預設值或別名。它為每條指令提供一個指向已掛載權杖檔案的、用於其自身 ServiceAccount 的私人 kubeconfig，絕不提供權杖的副本。
+有些指令 **永遠** 不會執行，無論處於何種模式，即使有人核准也不會。指令原則會拒絕它們，並且會執行三次——由伺服器的工具、由伺服器加入佇列的關卡，以及由 AI 代理程式在啟動 `kubectl` 之前：`exec`、`attach`、`cp`、`port-forward`、`proxy`、`debug`、`run`、`edit`、`apply`、`replace`、`diff`、kubectl 外掛程式以及不在其清單中的任何其他動詞，任何檔案輸入（`-f`、`-k`）或讀取檔案的輸出格式（`-o jsonpath-file=`、`-o go-template-file=`、`-o custom-columns-file=`、`--template`，以及沒有內嵌範本的單獨 `-o jsonpath`/`go-template`/`custom-columns`），憑證、模擬身分（`--as`、`--as-group`、`--as-uid`、`--as-user-extra`）、叢集選擇、`--kuberc`、原始 API 和詳細記錄的旗標，使用 **任何** 動詞操作的 Secret 物件——OneUptime AI 從不讀取、變更、刪除或建立 Secret，`create secret`、`create token` 和 `set env --resolve` 也隨之被拒絕——任何授予 RBAC 的操作（`create role`、`create clusterrole`、`create rolebinding`、`create clusterrolebinding`、`set subject`），`certificate approve`，`set serviceaccount`，帶 `--image` 的 `create deployment`、`create cronjob` 或 `create job`（`create job --from=cronjob/…` 仍屬於風險較高的變更），`expose --overrides` 或 `--override-type`（覆寫可以讓 kubectl 建立 Job、ClusterRoleBinding 或其他任何類型的物件，而不是 Service），不是 JSON 的 `patch` 本文（kubectl 會把它當作 YAML 讀取，而 YAML 的標籤可以寫出任何檢查都看不到的欄位），變更 Pod 範本的 ServiceAccount、磁碟區或安全性設定的修補（包括主機連接埠、使用者命名空間退出選項 `hostUsers` 和執行階段類別 `runtimeClassName`），取代 Pod 範本的整個部分而不是在其中設定欄位的修補（strategic-merge 的 `$patch: replace`、設定整個 `containers` 清單的 merge patch，或取代或移除 Pod 規格的 JSON patch）——這會在不提及的情況下丟棄那些設定——透過 `--all` 或選擇器而非名稱選中的 Namespace 物件上的標籤或註解，對 RBAC 物件、CustomResourceDefinitions、APIServices、准入 webhook 設定或准入原則的任何寫入——`patch`、`label`、`annotate`、`set`——帶 `--all-namespaces` 的寫入、`delete --all`，以及刪除命名空間、節點、磁碟區、CRD 或叢集角色。旗標的剖析方式與 kubectl 相同，因此被禁止的旗標或類型無法躲在另一個後面：組合的短旗標會逐個字母拆開（`-As` 會被識別），值為選用的旗標（`--cascade`、`--dry-run`、`--validate`）永遠不會吞掉下一個詞，並且除 `-n`/`--namespace`、`--request-timeout` 和 `--match-server-version` 之外的每個旗標都必須位於動詞之後（以及 `rollout`、`set`、`create`、`auth`、`cluster-info` 和 `top` 的子指令之後），因為 kubectl 會先選定指令再剖析旗標。AI 代理程式自帶固定版本的 kubectl（v1.36.6）並關閉 kuberc，因此在原則檢查之後，kuberc 檔案無法再為指令新增預設值或別名。它為每條指令提供一個指向已掛載權杖檔案的、用於其自身 ServiceAccount 的私人 kubeconfig，絕不提供權杖的副本。
 :::
 
 ### AI 代理程式的 RBAC 限制什麼、不限制什麼
@@ -270,7 +272,7 @@ chart 的 RBAC 是獨立於原則的另一層，它限制的是 AI 代理程式�
 - **其他問題** ——AI 查看過的其他所有內容，依引發它們的來源分組（一個監測器就是一個問題，無論它為多少個 Pod 或節點觸發），最頻繁的排在最前：出現頻率、影響了哪些命名空間、工作負載、Pod 或節點、最新調查的發現和建議、AI 提出的修正結果如何，以及您的團隊和評分對這些發現的評價。出現不只一次的問題會被標記為 **週期性**、**本週新增** 或 **正在惡化**。
 - **問題發生的位置** ——出現最多的叢集部分，以及涉及了多少個不同的問題。
 - **在通知任何人之前發現** ——偵測器針對叢集自身遙測資料記錄的其他未關閉洞察。
-- **OneUptime AI 在此做了什麼** ——註腳：有多少次調查、修正和指令，其中有多少失敗，每天的調查次數，AI 提出的修正最終如何，已套用的修正是否解決了問題，以及 AI 自身工作中出了什麼問題（失敗的調查、代理程式從未領取的指令、被您的團隊駁回的發現），每一項都附有查看位置。
+- **OneUptime AI 在此做了什麼** ——註腳：有多少次調查、修正和指令，其中有多少失敗，每天的調查次數，AI 提出的修正最終如何，已套用的修正是否解決了問題，以及 AI 自身工作中出了什麼問題（失敗的調查、代理程式從未領取的指令、被您的團隊駁回的發現），每一項都附有查看位置。當修正是從 Slack 或 Microsoft Teams 核准的，它還會說明修正是在哪裡核准的：在 OneUptime 中、在 Slack 中或在 Microsoft Teams 中。
 
 如果專案的 **啟用 AI** 已關閉，或沒有 OneUptime AI 可以使用的 LLM 提供商，頁面會在頂端說明這一點：不會調查任何新內容，因此也不會出現任何新內容。
 
@@ -423,6 +425,8 @@ OneUptime AI 透過事件所影響的叢集或主機上的 AI 代理程式進行
 - **它做什麼，用淺白的話說。** 雲端變更會在其確切指令上方說明，例如「將 ECS 服務 checkout-api 擴充至 8 個工作」。這些文字從指令本身讀出，從不取自模型寫的內容，真正執行的是指令。
 - **同一變更以前的效果。** 如果 OneUptime AI 在過去 90 天內為其他事件和警示在同一叢集或資源上做過同一變更，該變更會說明它奏效了幾次，例如「先前在此處執行的 3 次全部有效」，並附上它所針對的每個事件和警示的連結；從未奏效時以紅色顯示。當驗證發現其修正奏效時，變更即算奏效；從未執行過的變更不計入。同一變更是指對同一物件的同一操作，無論其數值如何：擴到 6 和擴到 8 是同一變更。私人事件和警示既不列名也不計入。
 
+OneUptime AI 提出的運行手冊也會在 **核准並執行** 正上方說明同樣的內容：在過去 90 天裡，OneUptime AI 在此處為其他事件和警示執行它時，它奏效了幾次，並附上每一次的連結。OneUptime AI 在選擇運行手冊之前，也會讀取每個運行手冊的紀錄。
+
 OneUptime AI 在規劃之前會讀取同一份記錄：當證據與以前在此處奏效的修正相符時，它會先嘗試那個修正；對於沒有奏效的變更，除非說明為什麼現在會奏效，否則不會再次提出。
 
 ### 從 Slack 或 Microsoft Teams 核准或駁回修正
@@ -434,6 +438,8 @@ OneUptime AI 在規劃之前會讀取同一份記錄：當證據與以前在此�
 - **View in OneUptime** 會開啟事件或警示。
 
 按下按鈕時的檢查與卡片按鈕相同：您的聊天帳戶必須已連接到 OneUptime，您必須有權在專案中核准修正並檢視該事件或警示，而對叢集或資源的修正需要編輯它的權限。在訊息發布後發生了變化的修正會被拒絕，什麼都不會執行。在其他人核准或駁回修正之後按下按鈕，會說明是誰在何時這樣做的。事件或警示的動態會說明是誰核准或駁回了它，以及來自哪個聊天。
+
+忽略修正所需的權限與核准修正相同，在卡片上和在聊天中都一樣：在專案中啟動運行手冊執行的權限。在卡片上，它的按鈕是 **忽略修正**。修正獲得核准後，卡片上它的核准步驟也會說明是在哪裡核准的，例如「Maya Chen 已在 Slack 中核准」。
 
 ## OneUptime AI 先回應
 
@@ -459,7 +465,7 @@ OneUptime AI 在規劃之前會讀取同一份記錄：當證據與以前在此�
   - **OneUptime AI 的發現** ——最重要的幾件事，每件都附有其背後的事件和一個下一步：反覆出現的事件（出現頻率及其在全部中所佔的比例、是本週新出現的還是正在惡化、通常何時開始、引發它的監測器、AI 發現了什麼以及它建議的步驟）、沒有幫助或正在等待核准的修正、AI 沒有查看的事件及其原因（為有權變更的人附上通往決定此事的設定的路徑）、多個不同問題背後的服務或監測器、AI 自行修正了什麼，以及——當您的團隊核准了 AI 提出的每一項修正時——讓 AI 自行套用此類修正的方法。
   - **其他問題** ——AI 查看過的其餘內容，依引發它們的監測器分組（沒有監測器時依標題），最頻繁的排在最前：出現頻率、背後的監測器、影響了哪些主機、Pod 或其他部分、最新調查的發現和建議、AI 提出的修正結果如何，以及您的團隊和自動評分對這些發現的看法。
   - **反覆失敗的監測器** 和 **反覆失敗的服務** ——30 天內引發事件最多的監測器，以及受事件影響最多的服務，無論是否經過調查。
-  - **OneUptime AI 在此做了什麼** ——註腳：有多少次調查，以及 30 天內建立的事件中 AI 調查了多少，修正和指令及其中失敗的數量，每天的調查次數，修正和修正拉取請求的最終結果，以及 AI 為什麼沒有調查其他事件，並附有通往決定此事的 AI 設定的路徑。
+  - **OneUptime AI 在此做了什麼** ——註腳：有多少次調查，以及 30 天內建立的事件中 AI 調查了多少，修正和指令及其中失敗的數量，每天的調查次數，修正和修正拉取請求的最終結果，以及 AI 為什麼沒有調查其他事件，並附有通往決定此事的 AI 設定的路徑。當修正是從 Slack 或 Microsoft Teams 核准的，它還會說明修正是在哪裡核准的：在 OneUptime 中、在 Slack 中或在 Microsoft Teams 中。
 
   查看修正數量需要讀取自動補救建議的權限；沒有該權限時，這些數字會被省略，而不是顯示為零。
 - **日誌** （**事件 → 人工智慧 → 日誌**、**警示 → 人工智慧 → 日誌**）——每次調查、修正、修正拉取請求和指令，依時間由新到舊，每項都連結到其事件或警示。調查的摘要是其 TL;DR，如果無法寫出 TL;DR，則是其報告開頭的摘要。可以依某一類篩選，並使用 **載入較舊的項目** 往前翻頁。查看指令需要讀取 Runner 工作的權限，查看修正需要讀取自動補救建議的權限；頁面會說明它為您的角色省略了哪些類別。

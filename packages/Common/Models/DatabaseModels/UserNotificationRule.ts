@@ -10,6 +10,7 @@ import UserSMS from "./UserSMS";
 import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
+import UserMattermost from "./UserMattermost";
 import UserWebhook from "./UserWebhook";
 import UserWhatsApp from "./UserWhatsApp";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -85,9 +86,9 @@ const ADMIN_WRITE_PERMISSIONS: Array<Permission> = [
  * only EditProjectUserNotificationRule would leave the feature dead on arrival
  * for every project that already exists.
  *
- * Note the asymmetry with the nine notification-method models this rule points
+ * Note the asymmetry with the ten notification-method models this rule points
  * at (UserEmail, UserSMS, UserCall, UserPush, UserWhatsApp, UserTelegram,
- * UserSlack, UserMicrosoftTeams, UserWebhook). There, only `read` is widened. An administrator may see which
+ * UserSlack, UserMicrosoftTeams, UserMattermost, UserWebhook). There, only `read` is widened. An administrator may see which
  * methods a member has and repair the rules that route to them, but may never
  * create or edit a method on somebody else's behalf. Letting them would hand
  * any administrator a paging-hijack primitive - add a phone number or webhook
@@ -388,11 +389,12 @@ class UserNotificationRule extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   /*
-   * THE NINE METHOD RELATIONS BELOW ARE THE MOST DANGEROUS COLUMNS ON THIS
+   * THE TEN METHOD RELATIONS BELOW ARE THE MOST DANGEROUS COLUMNS ON THIS
    * MODEL. What follows applies to every one of them - userCall, userPush,
    * userSms, userWhatsApp, userTelegram, userSlack, userMicrosoftTeams,
-   * userWebhook and userEmail, in both their relation and their `*Id`
-   * spelling - and is written out once here rather than eighteen times.
+   * userMattermost, userWebhook and userEmail, in both their relation and
+   * their `*Id` spelling - and is written out once here rather than twenty
+   * times.
    *
    * A rule is a pair: the ownership column decides WHOSE pages select the row,
    * and the method relation decides WHERE those pages are delivered. The two
@@ -893,6 +895,73 @@ class UserNotificationRule extends BaseModel {
   /*
    * READ IS OWNER-ONLY ON THE RELATION, EVEN THOUGH THIS TABLE IS ADMIN-READABLE.
    *
+   * Widening the relation would re-open the exposure that reverting the
+   * method models was meant to close, by a different route. A read of this
+   * table is NOT pinned to the caller's own rows for an administrator - that is
+   * the whole point of the phase - and QueryPermission.checkRelationQueryPermission
+   * authorises each nested field with relatedModel.hasReadPermissions, a
+   * name-intersection in which Permission.CurrentUser is auto-granted to every
+   * authenticated caller. So `select: { userMattermost: { mattermostUserId: true } }`
+   * on somebody else's rule would hand back their raw Mattermost account id
+   * with no row scope anywhere in the path.
+   *
+   * The FK below stays admin-readable: an id is not sensitive, and it is what
+   * correlates a rule with the masked entry in OnCallReadinessService's
+   * ReadinessMethod { methodId, methodType, maskedIdentifier, isVerified }.
+   * That masked payload is the administrator's sanctioned view of a method.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userMattermostId",
+    type: TableColumnType.Entity,
+    modelType: UserMattermost,
+    title: "User Mattermost",
+    description:
+      "Relation to User Mattermost Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserMattermost;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userMattermostId" })
+  public userMattermost?: UserMattermost = undefined;
+
+  // Re-pointable by an administrator. Read the essay above `userCall` first.
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser, ...ADMIN_READ_PERMISSIONS],
+    update: [...ADMIN_WRITE_PERMISSIONS],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Mattermost ID",
+    description: "ID of User Mattermost in which this object belongs",
+    example: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userMattermostId?: ObjectID = undefined;
+
+  /*
+   * READ IS OWNER-ONLY ON THE RELATION, EVEN THOUGH THIS TABLE IS ADMIN-READABLE.
+   *
    * Widening the relation would re-open the exposure that reverting the seven
    * method models was meant to close, by a different route. A read of this
    * table is NOT pinned to the caller's own rows for an administrator - that is
@@ -1309,8 +1378,8 @@ class UserNotificationRule extends BaseModel {
    * An opt-out row is a rule that exists in order to send nothing. It carries a
    * `ruleType` and a severity exactly like a normal rule, sets `isOptOut` to true, and
    * holds NO notification-method relation at all — there is no userEmail, userSms,
-   * userCall, userPush, userWhatsApp, userTelegram, userSlack, userMicrosoftTeams
-   * or userWebhook on it, and that absence is the point rather than a
+   * userCall, userPush, userWhatsApp, userTelegram, userSlack, userMicrosoftTeams,
+   * userMattermost or userWebhook on it, and that absence is the point rather than a
    * misconfiguration.
    *
    * It exists because "this user has zero rules matching this ruleType and severity" is

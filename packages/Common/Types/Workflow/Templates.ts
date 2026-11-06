@@ -7696,6 +7696,63 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     },
   },
 
+  {
+    id: "openstack-compute-down-propose-disabling",
+    name: "Propose taking a failing OpenStack compute service out of scheduling",
+    description:
+      "When Compute Service Down fires on an OpenStack cloud, asks a person to approve disabling that nova-compute, so new instances stay off it.",
+    teaches:
+      "How a workflow proposes a fix that a person approves. It never makes the change itself.",
+    category: WorkflowTemplateCategory.Alerts,
+    icon: IconProp.WrenchScrewdriver,
+    workflowName: "Propose disabling a failing OpenStack compute service",
+    workflowDescription:
+      "Asks a person to approve disabling a nova-compute OpenStack reports down. Nothing changes until someone approves it. Fixes have to be allowed on the cloud first: until they are, the step takes its Error output and says what is missing.",
+    variables: [],
+    graph: columnGraph([
+      {
+        componentId: "alert-on-create-1",
+        metadataId: "alert-on-create",
+        componentType: ComponentType.Trigger,
+        args: {
+          select: {
+            ...ALERT_SELECT,
+            // Which host and service the alert is about, as OpenStack names them.
+            seriesLabels: true,
+          },
+        },
+      },
+      {
+        componentId: "if-compute-service-down-1",
+        metadataId: ComponentID.IfElse,
+        componentType: ComponentType.Component,
+        from: "success",
+        args: {
+          "input-1-type": ConditionValueType.Text,
+          "input-1":
+            "{{local.components.alert-on-create-1.returnValues.model.title}}",
+          operator: ConditionOperator.Contains,
+          "input-2-type": ConditionValueType.Text,
+          "input-2": "[OpenStack] Compute Service Down",
+        },
+      },
+      {
+        componentId: "propose-openstack-fix-1",
+        metadataId: ComponentID.OpenStackProposeFix,
+        componentType: ComponentType.Component,
+        from: "yes",
+        args: {
+          "alert-id":
+            "{{local.components.alert-on-create-1.returnValues.model._id}}",
+          command:
+            'openstack compute service set --disable --disable-reason "Reported down to OneUptime" {{local.components.alert-on-create-1.returnValues.model.seriesLabels.hostname}} nova-compute',
+          reason:
+            "OpenStack reports this nova-compute down. Disabling it keeps new instances off it, and leaves what runs there where it is.",
+        },
+      },
+    ]),
+  },
+
   /* ----------------------------- Monitors ----------------------------- */
   {
     id: "monitor-status-changed-slack",

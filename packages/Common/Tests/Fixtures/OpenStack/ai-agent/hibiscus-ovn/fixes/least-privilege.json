@@ -1,0 +1,62 @@
+[
+  {
+    "what": "DELETE /servers/{id}",
+    "status": 401
+  },
+  {
+    "what": "GET /servers/{id}",
+    "status": 401
+  },
+  {
+    "what": "PUT /os-services/force-down",
+    "status": 401
+  },
+  {
+    "what": "GET Keystone users",
+    "status": 401
+  },
+  {
+    "what": "GET Neutron's networks",
+    "status": 401
+  },
+  {
+    "what": "DELETE a Neutron agent",
+    "status": 401
+  },
+  {
+    "what": "GET Cinder's volumes",
+    "status": 401
+  },
+  {
+    "what": "POST /servers/{id}/action forceDelete",
+    "status": 403
+  },
+  {
+    "what": "POST /servers/{id}/action os-resetState",
+    "status": 403
+  },
+  {
+    "what": "POST /servers/{id}/action createImage",
+    "status": 403
+  },
+  {
+    "what": "POST /servers/{id}/action changePassword",
+    "status": 403
+  },
+  {
+    "what": "POST /servers/{id}/action os-stop",
+    "status": 403
+  },
+  {
+    "what": "POST /servers/{id}/action rebuild",
+    "status": 403
+  },
+  {
+    "what": "POST /servers/{id}/action lock",
+    "status": 403
+  },
+  {
+    "what": "POST /servers/{id}/action shelve",
+    "status": 403
+  }
+]

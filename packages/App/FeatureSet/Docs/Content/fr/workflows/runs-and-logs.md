@@ -18,6 +18,8 @@ Chaque fois qu'un workflow s'exécute, OneUptime enregistre ce qui s'est passé 
 
 Lancer une exécution depuis le **Constructeur** ouvre la même vue **Exécution du flux de travail**, qui suit déjà l'exécution : vous la regardez se dérouler au lieu de la chercher ensuite.
 
+Pour réessayer une exécution avec les mêmes valeurs, appuyez sur Exécuter à nouveau dans sa vue, ou dans le menu ⋯ de sa ligne. Une nouvelle exécution démarre depuis le déclencheur avec ce avec quoi cette exécution a commencé : la charge utile d'un webhook n'a donc pas besoin d'être renvoyée. Elle exécute le workflow tel qu'il est maintenant, vous pouvez donc modifier une étape et réessayer aussitôt. Ses étapes s'exécutent pour de vrai et, tant que le workflow est désactivé, c'est une exécution de test. Le panneau d'exécution du workflow dans le Builder propose les valeurs de la dernière exécution de la même façon. Le test d'une seule étape se relance depuis l'étape. Une exécution qui a commencé avec plus de 1 Mo de valeurs ne peut pas être relancée, pas plus qu'une exécution antérieure à la conservation de ces valeurs par OneUptime. Elles sont chiffrées et personne ne peut les lire via l'API.
+
 ## Statuts d'exécution
 
 ```mermaid title="Les statuts par lesquels passe une exécution"
@@ -126,7 +128,7 @@ Un bloc qui ne s'exécute pas révèle en général un problème de liaison. Ouv
 Ouvrez l'exécution et regardez l'étape. Une référence qui ne s'est pas résolue est signalée sur l'étape elle-même par un avertissement, et son paramètre dans le bloc **Reçu** est marqué **Non résolu**.
 
 - Si vous voyez le texte littéral `{{local.components.…}}`, la référence ne s'est pas résolue. C'est en général une faute de frappe dans l'ID du composant ou dans l'ID de la valeur de retour — rappelez-vous qu'il s'agit de l'**Identifiant** du bloc, pas du nom affiché dessus. Vérifiez aussi l'orthographe de `local.components` lui-même : `{{local.componets.api-get-1.returnValues.response-body}}` est envoyé comme texte littéral et l'exécution indique quand même **Exécuté**. Si l'exécution était un test **Run just this step**, le bloc précédent ne s'est pas exécuté du tout — exécutez plutôt tout le workflow.
-- Si vous voyez **Texte vide**, le bloc précédent s'est exécuté mais n'a pas produit ce champ.
+- Si vous voyez **Texte vide**, ou un trou dans un message, le bloc précédent s'est exécuté mais n'a rien dans ce champ. Soit l'enregistrement n'y contient aucune valeur, ce que l'onglet **Full Log** note sur une ligne à part, soit le bloc ne transmet pas le champ, ce dont l'étape avertit.
 
 Le même avertissement figure dans l'onglet **Full Log**, sur une ligne qui commence par `Warning:`.
 :::

@@ -47,6 +47,11 @@ import {
   parseSwitchCases,
 } from "../../../Types/Workflow/Components/SwitchCases";
 import { ConditionComparison } from "../../../Types/Workflow/Components/ConditionComparison";
+import { SELECT_FIELDS_NAME } from "../../../Types/Workflow/Components/BaseModel";
+import {
+  getFieldPathInRecord,
+  readsFieldNotPassedOn,
+} from "../../../Types/Workflow/PassedOnFields";
 import {
   ParsedReferencePath,
   ReferenceRootType,
@@ -56,6 +61,7 @@ import {
   looksLikeReferencePath,
   parseReferencePath,
   parseTemplateExpressions,
+  pathPastReturnValue,
 } from "../../../Types/Workflow/TemplateSyntax";
 
 export enum WorkflowLintSeverity {
@@ -75,6 +81,13 @@ export enum WorkflowLintRule {
   SelfReference = "SelfReference",
   ForwardReference = "ForwardReference",
   ReferenceToUnreachableComponent = "ReferenceToUnreachableComponent",
+  /*
+   * A setting reads a field of a record that the step reading the record does
+   * not pass on, so it is empty there however the record is. A chip says so
+   * when its step is opened; a workflow written by hand or through the API may
+   * never have one opened.
+   */
+  ReferenceToFieldNotPassedOn = "ReferenceToFieldNotPassedOn",
   DuplicateComponentId = "DuplicateComponentId",
   ComponentIdContainsDot = "ComponentIdContainsDot",
   UnreachableComponent = "UnreachableComponent",
@@ -802,6 +815,40 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               ),
             });
             continue;
+          }
+
+          const referencedReturnValue: ReturnValue | undefined =
+            returnValues.find((returnValue: ReturnValue) => {
+              return returnValue.id === returnValueId;
+            });
+          const pathPastValue: string = pathPastReturnValue(expression.inner);
+
+          if (
+            readsFieldNotPassedOn({
+              step: referencedNode.data,
+              returnValue: referencedReturnValue,
+              pathPastValue: pathPastValue,
+            })
+          ) {
+            addNodeIssue({
+              rule: WorkflowLintRule.ReferenceToFieldNotPassedOn,
+              severity: WorkflowLintSeverity.Warning,
+              argumentId: argument.id,
+              message: translateTemplate(
+                '"{{argument}}" reads {{field}} from "{{step}}", but that step does not pass it on, so it is empty here. Add it to the {{setting}} of that step.',
+                {
+                  argument: translatableTerm(argument.name),
+                  // It reads a field, or it would not have been asked about.
+                  field:
+                    getFieldPathInRecord(
+                      referencedReturnValue,
+                      pathPastValue,
+                    ) || "",
+                  step: referencedComponentId,
+                  setting: translatableTerm(SELECT_FIELDS_NAME),
+                },
+              ),
+            });
           }
 
           if (

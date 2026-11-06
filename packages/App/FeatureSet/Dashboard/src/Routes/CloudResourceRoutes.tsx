@@ -10,6 +10,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import CloudResourceOverview from "../Pages/Cloud/View/MonitoredResourceOverview";
 import CloudResourceSettings from "../Pages/Cloud/View/Settings";
 import CloudResourceMetrics from "../Pages/Cloud/View/Metrics";
+import CloudResourceLogs from "../Pages/Cloud/View/Logs";
 import CloudResourceFeed from "../Pages/Cloud/View/Feed";
 import CloudResourceOwners from "../Pages/Cloud/View/Owners";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
@@ -387,6 +388,16 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudResourceMetrics
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_METRICS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_LOGS)}
+          element={
+            <CloudResourceLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS] as Route}
             />
           }
         />

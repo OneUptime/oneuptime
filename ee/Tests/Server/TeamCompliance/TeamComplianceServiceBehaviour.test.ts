@@ -19,6 +19,7 @@ import TeamService from "Common/Server/Services/TeamService";
 import UserCallService from "Common/Server/Services/UserCallService";
 import UserEmailService from "Common/Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "Common/Server/Services/UserMicrosoftTeamsService";
+import UserMattermostService from "Common/Server/Services/UserMattermostService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserPushService from "Common/Server/Services/UserPushService";
 import UserService from "Common/Server/Services/UserService";
@@ -199,6 +200,7 @@ interface StubRule {
   userTelegramId?: ObjectID | undefined;
   userSlackId?: ObjectID | undefined;
   userMicrosoftTeamsId?: ObjectID | undefined;
+  userMattermostId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
   // The custom channel (#5332) the rule pages through, instead of a method.
   customNotificationChannelId?: ObjectID | undefined;
@@ -365,6 +367,7 @@ let userWhatsAppFindBy: jest.SpyInstance;
 let userTelegramFindBy: jest.SpyInstance;
 let userSlackFindBy: jest.SpyInstance;
 let userMicrosoftTeamsFindBy: jest.SpyInstance;
+let userMattermostFindBy: jest.SpyInstance;
 let userWebhookFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
 let alertSeverityFindBy: jest.SpyInstance;
@@ -401,6 +404,8 @@ function methodSpyFor(channel: ComplianceMethodChannel): jest.SpyInstance {
       return userSlackFindBy;
     case ComplianceNotificationChannel.MicrosoftTeams:
       return userMicrosoftTeamsFindBy;
+    case ComplianceNotificationChannel.Mattermost:
+      return userMattermostFindBy;
     case ComplianceNotificationChannel.Webhook:
       return userWebhookFindBy;
   }
@@ -434,7 +439,7 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
 }
 
 /*
- * The owner of the method behind each of a rule's nine method relations,
+ * The owner of the method behind each of a rule's ten method relations,
  * selected on the rule read itself - what the runtime checks before it sends
  * anything on a rule.
  */
@@ -447,6 +452,7 @@ const METHOD_OWNER_SELECT: Record<string, unknown> = {
   userTelegram: { userId: true },
   userSlack: { userId: true },
   userMicrosoftTeams: { userId: true },
+  userMattermost: { userId: true },
   userWebhook: { userId: true },
 };
 
@@ -539,6 +545,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   userMicrosoftTeamsFindBy = jest
     .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([] as never);
+  userMattermostFindBy = jest
+    .spyOn(UserMattermostService, "findBy")
     .mockResolvedValue([] as never);
   userWebhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -1011,6 +1020,11 @@ describe("method rules", () => {
       "No verified Microsoft Teams account configured for notifications",
     ],
     [
+      ComplianceRuleType.HasNotificationMattermostMethod,
+      ComplianceNotificationChannel.Mattermost,
+      "No verified Mattermost account configured for notifications",
+    ],
+    [
       ComplianceRuleType.HasNotificationWebhookMethod,
       ComplianceNotificationChannel.Webhook,
       "No webhook configured for notifications",
@@ -1466,7 +1480,7 @@ describe("on-call rules for any channel", () => {
     expect(readinessForUser).not.toHaveBeenCalled();
     /*
      * Which channels make a rule count is readiness's judgement, made once for
-     * all nine channels, so this path reads no channel column - and no
+     * all ten channels, so this path reads no channel column - and no
      * severity list - of its own.
      */
     expect(notificationRuleFindBy).not.toHaveBeenCalled();
@@ -1701,6 +1715,7 @@ describe("on-call rules for one channel", () => {
     [ComplianceNotificationChannel.Telegram, "userTelegramId"],
     [ComplianceNotificationChannel.Slack, "userSlackId"],
     [ComplianceNotificationChannel.MicrosoftTeams, "userMicrosoftTeamsId"],
+    [ComplianceNotificationChannel.Mattermost, "userMattermostId"],
     [ComplianceNotificationChannel.Webhook, "userWebhookId"],
   ];
 
@@ -1866,7 +1881,7 @@ describe("on-call rules for one channel", () => {
 
   /*
    * UserNotificationRuleService.executeNotificationRuleItem loads the owner of
-   * every one of a rule's nine methods and refuses the WHOLE rule - nothing
+   * every one of a rule's ten methods and refuses the WHOLE rule - nothing
    * is sent on any channel - when one of them is somebody else's. So a Call
    * rule on Ada's own verified phone that also names Grace's email never
    * rings Ada's phone. The owners are read the way the runtime reads them:
@@ -2838,13 +2853,16 @@ describe("project channel switches", () => {
 
   test.each<[string, Array<StubSetting>]>([
     [
-      "Push, Email, Slack, Microsoft Teams and webhook rules",
+      "Push, Email, Slack, Microsoft Teams, Mattermost and webhook rules",
       [
         setting({ ruleType: ComplianceRuleType.HasNotificationPushMethod }),
         setting({ ruleType: ComplianceRuleType.HasNotificationEmailMethod }),
         setting({ ruleType: ComplianceRuleType.HasNotificationSlackMethod }),
         setting({
           ruleType: ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+        }),
+        setting({
+          ruleType: ComplianceRuleType.HasNotificationMattermostMethod,
         }),
         setting({ ruleType: ComplianceRuleType.HasNotificationWebhookMethod }),
         setting({
@@ -2854,7 +2872,7 @@ describe("project channel switches", () => {
       ],
     ],
     [
-      "one rule on Push, Email, Slack, Microsoft Teams and webhooks together",
+      "one rule on Push, Email, Slack, Microsoft Teams, Mattermost and webhooks together",
       [
         setting({
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
@@ -2863,6 +2881,7 @@ describe("project channel switches", () => {
             ComplianceNotificationChannel.Email,
             ComplianceNotificationChannel.Slack,
             ComplianceNotificationChannel.MicrosoftTeams,
+            ComplianceNotificationChannel.Mattermost,
             ComplianceNotificationChannel.Webhook,
           ],
         }),
@@ -2943,6 +2962,9 @@ describe("the whole render", () => {
       setting({ ruleType: ComplianceRuleType.HasNotificationSlackMethod }),
       setting({
         ruleType: ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+      }),
+      setting({
+        ruleType: ComplianceRuleType.HasNotificationMattermostMethod,
       }),
       setting({ ruleType: ComplianceRuleType.HasNotificationWebhookMethod }),
       setting({ ruleType: ComplianceRuleType.HasIncidentOnCallRules }),
@@ -3104,7 +3126,7 @@ describe("the whole render", () => {
     for (const status of large.userComplianceStatuses) {
       expect(status.nonCompliantRules).toEqual([]);
     }
-    expect(large.complianceSettings).toHaveLength(13);
+    expect(large.complianceSettings).toHaveLength(14);
   });
 
   test("every read is root, every tenant-scoped read carries this project, and none is capped at 100", async () => {

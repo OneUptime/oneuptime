@@ -315,7 +315,8 @@ const actionFieldsCallOf: ActionFieldsCallFunction = (
   }
 
   return new RegExp(
-    `\\.\\.\\.get${kind}RuleActionFields<${model}>\\(\\), \\]\\}`,
+    // An OpenStack rule's project or domain folds after them, on the same step.
+    `\\.\\.\\.get${kind}RuleActionFields<${model}>\\(\\), (?:\\.\\.\\.getOpenStackRuleScopeFields<${model}>\\("(?:labels|owners)"\\), )?\\]\\}`,
   );
 };
 

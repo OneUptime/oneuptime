@@ -1,6 +1,8 @@
 enum EmailTemplateType {
   BlankTemplate = "BlankTemplate.hbs",
   ForgotPassword = "ForgotPassword.hbs",
+  // An account's sign-in link (Types/Accounts/MagicLink).
+  MagicLink = "MagicLink.hbs",
   ProbeOffline = "ProbeOffline.hbs",
   SignupWelcomeEmail = "SignupWelcomeEmail.hbs",
   CompleteRegistration = "CompleteRegistration.hbs",

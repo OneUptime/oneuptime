@@ -86,11 +86,11 @@ Ett projekts första policy kan göra det redan när den skapas: låt **Utlös d
 | **Inkommande samtal** | **Inkommande samtalspolicyer**: ett telefonnummer som ringer till den som har jour |
 | **Avancerad** | **Användaråsidosättningar**, **Exekveringsloggar** och **Arkiverade policyer** |
 | **Rapporter** | **Användarens jourtid**: hur länge varje person hade jour |
-| **Arbetsyta** | **Slack** och **Microsoft Teams**: regler som publicerar jourhändelser i en kanal |
+| **Arbetsyta** | **Slack**, **Microsoft Teams** och **Mattermost**: regler som publicerar jourhändelser i en kanal |
 | **Inställningar** | **Anpassade fält**, **Etikettregler** och **Ägarregler** |
 | **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: jour konfigurerad från kod |
 
-**Policyer**, **Scheman** och **Inkommande samtal** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på någon av dess sidor. **Arbetsyta** visar chattverktygen som projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har några.
+**Policyer**, **Scheman** och **Inkommande samtal** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på någon av dess sidor. **Arbetsyta** visar chattverktygen som projektet har anslutit, eller **Anslut en arbetsyta** när det inte har några.
 
 När du har jour för en policy visar klockan uppe till höger det. Klicka på den för att öppna **Mina jourpolicyer**: varje policy du har jour för, i alla dina projekt, och om du är nämnd direkt, via ett team eller via ett schema.
 

@@ -22,12 +22,13 @@
  *     or more with curl's exit code 22.
  *
  * Every call is appended to $STUB_DIR/curl.log, one line of arguments each.
- * `extraCases` is bash run after the arguments are read (`$url`, `$out`),
- * for the other addresses a script calls (the Proxmox VE API).
+ * `extraCases` is bash run after the arguments are read (`$url`, `$out`,
+ * `$fail`), for the other addresses a script calls (the Proxmox VE API,
+ * Keystone, a release archive).
  */
 
 const GITHUB_AGENTS_URL =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents";
+  "https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents";
 
 const WRITE_OUT_FORMAT = "%{http_code} %{content_type}";
 
@@ -44,7 +45,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -o) out="$2"; shift 2 ;;
     -w) format="$2"; shift 2 ;;
-    -H|--max-time|--connect-timeout) shift 2 ;;
+    -H|-X|--max-time|--connect-timeout|--retry|--cacert|--data-binary) shift 2 ;;
     --*) shift ;;
     -*f*) fail=1; shift ;;
     -*) shift ;;

@@ -29,6 +29,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { OpenStackPlacementOfService } from "../../../Components/OpenStack/Part/OpenStackPlacementOfHost";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceOverview, {
   RESOURCE_OVERVIEW_DETAILS_DESCRIPTION,
@@ -639,6 +640,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * What Security Events found about it this week, for whoever
          * may read it (Components/SecurityConnections).
          */}
+        <OpenStackPlacementOfService serviceId={modelId} />
         <ResourceSecurityCard
           kind={SecurityConnectionKind.Service}
           modelId={modelId}

@@ -363,6 +363,7 @@ const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
   kubernetesClusterId: translationKey("Kubernetes cluster"),
   dockerSwarmClusterId: translationKey("Docker Swarm cluster"),
   proxmoxClusterId: translationKey("Proxmox cluster"),
+  openStackCloudId: translationKey("OpenStack cloud"),
   vmwareVCenterId: translationKey("vCenter"),
   cephClusterId: translationKey("Ceph cluster"),
   storageArrayId: translationKey("storage array"),

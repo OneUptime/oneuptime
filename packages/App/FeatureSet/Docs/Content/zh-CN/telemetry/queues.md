@@ -303,7 +303,7 @@ service:
 - `delay` 等待 CloudWatch 发布一个周期（这需要几分钟），因此在此配置下，队列的 broker 指标会延迟 11 到 17 分钟到达：基于它们的监视器需要更长的窗口（见 [警报](#警报) 下的 **延迟到达的指标**）。
 - 一个接收器读取一个区域和一个命名空间：每个区域添加一个实例。
 
-**流式传输** 会在 CloudWatch 发布指标时推送它们。为 `AWS/SQS`（和 `AWS/SNS`）命名空间创建输出格式为 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，投递到目标为 HTTP 端点的 Amazon Data Firehose 流：即你的 Collector，并带有访问密钥。Firehose 只投递到 443 端口上的 `https://`，因此 Collector 需要证书和公开的 443 端口（例如在负载均衡器之后）：
+**流式传输中** 会在 CloudWatch 发布指标时推送它们。为 `AWS/SQS`（和 `AWS/SNS`）命名空间创建输出格式为 **OpenTelemetry 1.0** 的 CloudWatch Metric Stream，投递到目标为 HTTP 端点的 Amazon Data Firehose 流：即你的 Collector，并带有访问密钥。Firehose 只投递到 443 端口上的 `https://`，因此 Collector 需要证书和公开的 443 端口（例如在负载均衡器之后）：
 
 ```yaml
 extensions:
@@ -994,7 +994,7 @@ service:
 
 `rabbitmq.message.published.delta` 的每个点都是自上一次抓取以来发布的消息数，因此一个基于它、按 `resource.rabbitmq.queue.name` 过滤并在其窗口内求和的指标监视器，统计的就是该窗口内发布的数量：15 分钟内低于 1，就说明没有人在发布。每次 Collector 启动后，处理器都没有更早的值可供从队列的第一个点中减去，默认情况下会原样发送该点：也就是计数器的整个累计总数，仿佛队列曾经有过的每条消息都在一次抓取中发布。`initial_value: drop` 会扣下这个点，因此队列的副本从报告其计数器的第二次抓取开始。用同样的方式复制另一个计数器，每个计数器各用一条 `copy_metric` 语句和一个 `include` 条目。此时 ActiveMQ 的 JMX Scraper 必须通过这样的 Collector 发送，发送到 `otlp` 接收器而不是 `rabbitmq`；RocketMQ 的计数器在其 `prometheus` 接收器的管道中使用同样的两个处理器。
 
-**手动创建时**，按在该指标中指明队列的属性过滤；对于一个系统的所有队列，这些属性都相同：
+**By hand** 创建时，按在该指标中指明队列的属性过滤；对于一个系统的所有队列，这些属性都相同：
 
 | 何时警报 | 指标 | 过滤条件 | 聚合 |
 | --- | --- | --- | --- |

@@ -1,0 +1,10 @@
+$ openstack database instance list
+
+$ openstack database instance list --all-projects
+
+$ openstack datastore list
++--------------------------------------+-------+
+| ID                                   | Name  |
++--------------------------------------+-------+
+| fe732da8-019c-48ff-82ce-1ba3c498023f | mysql |
++--------------------------------------+-------+

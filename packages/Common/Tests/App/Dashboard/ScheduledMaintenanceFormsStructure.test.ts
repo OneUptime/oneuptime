@@ -342,7 +342,7 @@ describe("the scheduled maintenance forms", () => {
         "description",
         "startsAt",
         "endsAt",
-        `${ADVANCED}: owners, labels`,
+        `${ADVANCED}: owners, labels, dataStoreIds`,
       ],
       "resources-affected": [
         ...RESOURCE_ROWS,

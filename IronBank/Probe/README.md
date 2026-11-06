@@ -25,7 +25,7 @@ It then installs the release's Debian packages, the browsers' libraries
 (Playwright names them) and Microsoft's ODBC driver, whose package
 `hardening_manifest.yaml` pins by checksum. It sets the release's environment,
 entrypoint (`tini`) and start command. The source is
-[IronBank/Probe](https://github.com/OneUptime/oneuptime/tree/master/IronBank/Probe)
+[IronBank/Probe](https://github.com/OneUptime/oneuptime/tree/main/IronBank/Probe)
 in OneUptime's repository.
 
 The container runs as root, as the release's does: ping, traceroute and

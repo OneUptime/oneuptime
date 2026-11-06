@@ -1,6 +1,6 @@
 # Forbundne signaler
 
-En sikkerhedssag siger, hvilke brugere, værter og adresser den handler om. Forbundne signaler siger, hvilke af dem OneUptime allerede kender - dine værter, containerværter, Kubernetes-klynger, netværksenheder, cloud-ressourcer, serverløse funktioner, tjenester, de monitorer, der tjekker dem, og medlemmer - og hvad der skete på hver af dem omkring sagen: dens protokoller, spor og metrikker, de hændelser og advarsler, der er åbne på den, de monitorer, der overvåger den, og hvad der ændrede sig på den. Den søger også i selve dine protokoller og spor efter dem: en angribers adresse i en webservers adgangslog, en lækket e-mail i en applikations fejl. Omvendt siger siden for en vært, en klynge, en cloud-ressource, en tjeneste, en monitor eller et medlem, hvad Security Events har fundet om den.
+En sikkerhedssag siger, hvilke brugere, værter og adresser den handler om. Forbundne signaler siger, hvilke af dem OneUptime allerede kender - dine værter, containerværter, Kubernetes-klynger, OpenStack-clouds, netværksenheder, cloud-ressourcer, serverløse funktioner, tjenester, de monitorer, der tjekker dem, og medlemmer - og hvad der skete på hver af dem omkring sagen: dens protokoller, spor og metrikker, de hændelser og advarsler, der er åbne på den, de monitorer, der overvåger den, og hvad der ændrede sig på den. Den søger også i selve dine protokoller og spor efter dem: en angribers adresse i en webservers adgangslog, en lækket e-mail i en applikations fejl. Omvendt siger siden for en vært, en klynge, en cloud-ressource, en tjeneste, en monitor eller et medlem, hvad Security Events har fundet om den.
 
 :::cards
 - [Hvor du ser det](#hvor-du-ser-det): En sags side, en begivenheds fane, en entitets side og siderne for det, de nævner.
@@ -32,7 +32,7 @@ OneUptime slår hver værdi op blandt projektets poster, siger, hvor sikkert hve
 - **Forbundne signaler**, en side i hver sikkerhedssag: åbn en sag under **Produkter → Sikkerhedshændelser → Sikkerhedssager → Åbne sager**, og derefter **Forbundne signaler** efter **Entiteter** i dens menu.
 - **Forbundet**, en fane i hver sikkerhedsbegivenhed: åbn en begivenhed under **Produkter → Sikkerhedshændelser → Begivenheder**. Den viser, hvad begivenheden nævner, i timen omkring den.
 - En entitets side under **Produkter → Sikkerhedshændelser → Entitetsrisiko**: hvor OneUptime kender brugeren, værten eller adressen, omkring dens seneste sikkerhedsbegivenhed.
-- Et **Sikkerhed**-kort på siden for hver vært, Docker-vært, Podman-vært, Kubernetes-klynge, netværksenhed, cloud-ressource, serverløs funktion, tjeneste, monitor, hvert medlem og hvert inventarelement: de åbne sikkerhedssager, der nævner den, hvor mange sikkerhedsbegivenheder og fund der nævnte den i de seneste 7 dage, den alvorligste af dem og dens risiko. **Åbn i Security Events** åbner den der. En monitors kort handler om de værter og adresser, den tjekker.
+- Et **Sikkerhed**-kort på siden for hver vært, Docker-vært, Podman-vært, Kubernetes-klynge, OpenStack-cloud, netværksenhed, cloud-ressource, serverløs funktion, tjeneste, monitor, hvert medlem og hvert inventarelement: de åbne sikkerhedssager, der nævner den, hvor mange sikkerhedsbegivenheder og fund der nævnte den i de seneste 7 dage, den alvorligste af dem og dens risiko. **Åbn i Security Events** åbner den der. En monitors kort handler om de værter og adresser, den tjekker.
 - Et **Sikkerhed**-kort på en hændelses side, når en sikkerhedssag erklærede hændelsen (**Erklæret fra**), eller åbne sager nævner en vært eller klynge, den berører (**Åbne sager, der nævner det, den berører**).
 
 ## Hvordan en værdi matches
@@ -41,7 +41,7 @@ Hver bruger, vært og adresse, som en sag eller en begivenhed nævner, slås op 
 
 | Det, sagen eller begivenheden nævner | Matchet til | Hvor sikkert |
 | --- | --- | --- |
-| Et værts- eller domænenavn, der er det samme som navnet, en vært, en containervært, en klynge eller en netværksenhed rapporterer, eller et navn, en cloud-ressource svarer på | Den post | Præcist |
+| Et værts- eller domænenavn, der er det samme som navnet, en vært, en containervært, en klynge, en OpenStack-cloud eller en netværksenhed rapporterer, eller et navn, en cloud-ressource svarer på | Den post | Præcist |
 | Det samme navn, givet uden at sige, at det er en vært | Den post | Muligt |
 | En kort eller fuld form af en posts navn, som `web-1` og `web-1.acme.internal` | Den post | Muligt |
 | En offentlig IP-adresse, som kun én vært eller netværksenhed har, eller som kun én cloud-ressource svarer på | Den post | Præcist |
@@ -50,7 +50,7 @@ Hver bruger, vært og adresse, som en sag eller en begivenhed nævner, slås op 
 | En vært, en offentlig IP-adresse eller værten for en URL, som en monitor tjekker | Den monitor | Præcist |
 | En privat IP-adresse, som en monitor tjekker | Den monitor | Muligt |
 | Et medlems e-mail | Det medlem | Præcist |
-| Den post, en protokollinje blev sendt under, for de begivenheder, der læses fra dine protokoller | Den vært, klynge, cloud-ressource, serverløse funktion eller tjeneste | Præcist |
+| Den post, en protokollinje blev sendt under, for de begivenheder, der læses fra dine protokoller | Den vært, klynge, OpenStack-cloud, cloud-ressource, serverløse funktion eller tjeneste | Præcist |
 | Et rent brugernavn, en filhash eller en proces | Intet: ingen post er nøglet efter dem | - |
 
 - Et muligt match viser **Muligt match** ved siden af navnet og siger hvorfor. Det tælles aldrig med på postens side, og en hændelse, som sagen erklærer, knyttes aldrig til det.
@@ -94,7 +94,7 @@ Under posterne søger Forbundne signaler i dine protokoller og spor, i det samme
 
 ## Hændelser, som en sag erklærer
 
-**Erklær hændelse** på en sag, eller et playbook-trin, der erklærer en, knytter hændelsen til de værter, Docker- og Podman-værter, Kubernetes-klynger, netværksenheder, cloud-ressourcer og tjenester, som sagen er præcist forbundet med. Et playbook-trin, der tilkalder vagten, knytter den advarsel, det åbner, på samme måde; hver advarsel og hændelse, som en detektionsregel eller et threat intelligence-match åbner, knyttes til det, matchet præcist nævner, og hver, som Data Security åbner, til det datalager, den drejer sig om. Hændelsen vises på deres sider, og deres ejeres regler gælder for den, og dens feed nævner sagen, og hvad den blev knyttet til. Et muligt match knyttes aldrig, og det gør en monitor heller ikke: en hændelse på en monitor kan ændre dens status og vises på dens statussider.
+**Erklær hændelse** på en sag, eller et playbook-trin, der erklærer en, knytter hændelsen til de værter, Docker- og Podman-værter, Kubernetes-klynger, OpenStack-clouds, netværksenheder, cloud-ressourcer og tjenester, som sagen er præcist forbundet med. Et playbook-trin, der tilkalder vagten, knytter den advarsel, det åbner, på samme måde; hver advarsel og hændelse, som en detektionsregel eller et threat intelligence-match åbner, knyttes til det, matchet præcist nævner, og hver, som Data Security åbner, til det datalager, den drejer sig om. Hændelsen vises på deres sider, og deres ejeres regler gælder for den, og dens feed nævner sagen, og hvad den blev knyttet til. Et muligt match knyttes aldrig, og det gør en monitor heller ikke: en hændelse på en monitor kan ændre dens status og vises på dens statussider.
 
 ## OneUptime AI
 

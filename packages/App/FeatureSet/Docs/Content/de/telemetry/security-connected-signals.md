@@ -1,6 +1,6 @@
 # Verbundene Signale
 
-Ein Sicherheitsfall sagt, um welche Benutzer, Hosts und Adressen es geht. Verbundene Signale sagt, welche davon OneUptime bereits kennt - Ihre Hosts, Container-Hosts, Kubernetes-Cluster, Netzwerkgeräte, Cloud-Ressourcen, Serverless-Funktionen, Dienste, die Monitore, die sie prüfen, und Mitglieder - und was auf jedem davon rund um den Fall geschah: seine Protokolle, Traces und Metriken, die Vorfälle und Warnungen, die darauf offen sind, die Monitore, die ihn überwachen, und was sich daran geändert hat. Außerdem durchsucht es Ihre Protokolle und Traces selbst nach ihnen: die Adresse eines Angreifers im Zugriffsprotokoll eines Webservers, eine durchgesickerte E-Mail-Adresse im Fehler einer Anwendung. Umgekehrt sagt die Seite eines Hosts, eines Clusters, einer Cloud-Ressource, eines Dienstes, eines Monitors oder eines Mitglieds, was Sicherheitsereignisse darüber gefunden hat.
+Ein Sicherheitsfall sagt, um welche Benutzer, Hosts und Adressen es geht. Verbundene Signale sagt, welche davon OneUptime bereits kennt - Ihre Hosts, Container-Hosts, Kubernetes-Cluster, OpenStack-Clouds, Netzwerkgeräte, Cloud-Ressourcen, Serverless-Funktionen, Dienste, die Monitore, die sie prüfen, und Mitglieder - und was auf jedem davon rund um den Fall geschah: seine Protokolle, Traces und Metriken, die Vorfälle und Warnungen, die darauf offen sind, die Monitore, die ihn überwachen, und was sich daran geändert hat. Außerdem durchsucht es Ihre Protokolle und Traces selbst nach ihnen: die Adresse eines Angreifers im Zugriffsprotokoll eines Webservers, eine durchgesickerte E-Mail-Adresse im Fehler einer Anwendung. Umgekehrt sagt die Seite eines Hosts, eines Clusters, einer Cloud-Ressource, eines Dienstes, eines Monitors oder eines Mitglieds, was Sicherheitsereignisse darüber gefunden hat.
 
 :::cards
 - [Wo Sie es sehen](#wo-sie-es-sehen): Die Seite eines Falls, der Tab eines Ereignisses, die Seite einer Entität und die Seiten dessen, was sie nennen.
@@ -32,7 +32,7 @@ OneUptime sucht jeden Wert unter den Datensätzen des Projekts, sagt, wie sicher
 - **Verbundene Signale**, eine Seite jedes Sicherheitsfalls: Öffnen Sie einen Fall unter **Produkte → Sicherheitsereignisse → Sicherheitsfälle → Offene Fälle** und dann **Verbundene Signale** nach **Entitäten** in seinem Menü.
 - **Verbunden**, ein Tab jedes Sicherheitsereignisses: Öffnen Sie ein Ereignis unter **Produkte → Sicherheitsereignisse → Ereignisse**. Er listet, was das Ereignis nennt, in der Stunde rund um das Ereignis.
 - Die Seite einer Entität unter **Produkte → Sicherheitsereignisse → Entitätsrisiko**: wo OneUptime den Benutzer, den Host oder die Adresse kennt, rund um sein letztes Sicherheitsereignis.
-- Eine Karte **Sicherheit** auf der Seite jedes Hosts, Docker-Hosts, Podman-Hosts, Kubernetes-Clusters, Netzwerkgeräts, jeder Cloud-Ressource, jeder Serverless-Funktion, jedes Dienstes, Monitors, Mitglieds und Inventarelements: die offenen Sicherheitsfälle, die ihn nennen, wie viele Sicherheitsereignisse und Befunde ihn in den letzten 7 Tagen genannt haben, der schwerste davon und sein Risiko. **In Sicherheitsereignissen öffnen** öffnet ihn dort. Die Karte eines Monitors handelt von den Hosts und Adressen, die er prüft.
+- Eine Karte **Sicherheit** auf der Seite jedes Hosts, Docker-Hosts, Podman-Hosts, Kubernetes-Clusters, jeder OpenStack-Cloud, Netzwerkgeräts, jeder Cloud-Ressource, jeder Serverless-Funktion, jedes Dienstes, Monitors, Mitglieds und Inventarelements: die offenen Sicherheitsfälle, die ihn nennen, wie viele Sicherheitsereignisse und Befunde ihn in den letzten 7 Tagen genannt haben, der schwerste davon und sein Risiko. **In Sicherheitsereignissen öffnen** öffnet ihn dort. Die Karte eines Monitors handelt von den Hosts und Adressen, die er prüft.
 - Eine Karte **Sicherheit** auf der Seite eines Vorfalls, wenn ein Sicherheitsfall den Vorfall gemeldet hat (**Gemeldet aus**) oder offene Fälle einen Host oder Cluster nennen, den er betrifft (**Offene Fälle, die nennen, was der Vorfall betrifft**).
 
 ## Wie ein Wert zugeordnet wird
@@ -41,7 +41,7 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 
 | Was der Fall oder das Ereignis nennt | Zugeordnet zu | Wie sicher |
 | --- | --- | --- |
-| Ein Host- oder Domainname, der dem Namen entspricht, den ein Host, ein Container-Host, ein Cluster oder ein Netzwerkgerät meldet, oder ein Name, unter dem eine Cloud-Ressource antwortet | Diesem Datensatz | Exakt |
+| Ein Host- oder Domainname, der dem Namen entspricht, den ein Host, ein Container-Host, ein Cluster, eine OpenStack-Cloud oder ein Netzwerkgerät meldet, oder ein Name, unter dem eine Cloud-Ressource antwortet | Diesem Datensatz | Exakt |
 | Derselbe Name, ohne Angabe, dass es ein Host ist | Diesem Datensatz | Möglich |
 | Eine Kurz- oder Langform des Namens eines Datensatzes, etwa `web-1` und `web-1.acme.internal` | Diesem Datensatz | Möglich |
 | Eine öffentliche IP-Adresse, die nur ein Host oder Netzwerkgerät hat oder unter der nur eine Cloud-Ressource antwortet | Diesem Datensatz | Exakt |
@@ -50,7 +50,7 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 | Ein Host, eine öffentliche IP-Adresse oder der Host einer URL, die ein Monitor prüft | Diesem Monitor | Exakt |
 | Eine private IP-Adresse, die ein Monitor prüft | Diesem Monitor | Möglich |
 | Die E-Mail-Adresse eines Mitglieds | Diesem Mitglied | Exakt |
-| Der Datensatz, unter dem eine Protokollzeile gesendet wurde, für die Ereignisse aus Ihren Protokollen | Diesem Host, Cluster, dieser Cloud-Ressource, Serverless-Funktion oder diesem Dienst | Exakt |
+| Der Datensatz, unter dem eine Protokollzeile gesendet wurde, für die Ereignisse aus Ihren Protokollen | Diesem Host, Cluster, dieser OpenStack-Cloud, dieser Cloud-Ressource, Serverless-Funktion oder diesem Dienst | Exakt |
 | Ein bloßer Benutzername, ein Datei-Hash oder ein Prozess | Nichts: Kein Datensatz ist danach geschlüsselt | - |
 
 - Eine mögliche Übereinstimmung zeigt **Mögliche Übereinstimmung** neben ihrem Namen und sagt, warum. Sie wird auf der Seite des Datensatzes nie gezählt, und ein Vorfall, den der Fall meldet, wird nie mit ihr verknüpft.
@@ -94,7 +94,7 @@ Unter den Datensätzen durchsucht Verbundene Signale Ihre Protokolle und Traces 
 
 ## Vorfälle, die ein Fall meldet
 
-**Vorfall melden** auf einem Fall oder ein Playbook-Schritt, der einen meldet, verknüpft den Vorfall mit den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, Netzwerkgeräten, Cloud-Ressourcen und Diensten, mit denen der Fall exakt verbunden ist. Ein Playbook-Schritt, der die Bereitschaft alarmiert, verknüpft die Warnung, die er öffnet, auf dieselbe Weise; jede Warnung und jeder Vorfall, den eine Erkennungsregel oder ein Threat-Intelligence-Treffer öffnet, wird mit dem verknüpft, was der Treffer exakt nennt, und jeder, den Data Security öffnet, mit dem Datenspeicher, um den es geht. Der Vorfall erscheint auf ihren Seiten, die Regeln ihrer Besitzer gelten für ihn, und sein Feed nennt den Fall und das, womit er verknüpft wurde. Eine mögliche Übereinstimmung wird nie verknüpft, und ein Monitor auch nicht: Ein Vorfall auf einem Monitor kann seinen Status ändern und auf seinen Statusseiten erscheinen.
+**Vorfall melden** auf einem Fall oder ein Playbook-Schritt, der einen meldet, verknüpft den Vorfall mit den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, OpenStack-Clouds, Netzwerkgeräten, Cloud-Ressourcen und Diensten, mit denen der Fall exakt verbunden ist. Ein Playbook-Schritt, der die Bereitschaft alarmiert, verknüpft die Warnung, die er öffnet, auf dieselbe Weise; jede Warnung und jeder Vorfall, den eine Erkennungsregel oder ein Threat-Intelligence-Treffer öffnet, wird mit dem verknüpft, was der Treffer exakt nennt, und jeder, den Data Security öffnet, mit dem Datenspeicher, um den es geht. Der Vorfall erscheint auf ihren Seiten, die Regeln ihrer Besitzer gelten für ihn, und sein Feed nennt den Fall und das, womit er verknüpft wurde. Eine mögliche Übereinstimmung wird nie verknüpft, und ein Monitor auch nicht: Ein Vorfall auf einem Monitor kann seinen Status ändern und auf seinen Statusseiten erscheinen.
 
 ## OneUptime AI
 

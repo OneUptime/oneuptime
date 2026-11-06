@@ -6,6 +6,7 @@ import InventoryItemService from "../../../../../Server/Services/InventoryItemSe
 import KubernetesClusterService from "../../../../../Server/Services/KubernetesClusterService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import NetworkDeviceService from "../../../../../Server/Services/NetworkDeviceService";
+import OpenStackCloudService from "../../../../../Server/Services/OpenStackCloudService";
 import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
 import SecurityEntityRiskService from "../../../../../Server/Services/SecurityEntityRiskService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
@@ -576,6 +577,47 @@ describe("ResourceSecurity.read", () => {
       type: SecurityEntityType.Host,
       value: "prod-eu",
     });
+  });
+
+  test("an OpenStack cloud by its openstack.cloud.name, which every audit event names it by", async () => {
+    jest.spyOn(OpenStackCloudService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+      name: "prod-eu",
+    } as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.OpenStackCloud,
+    );
+
+    expect(security?.name).toBe("prod-eu");
+    expect(security?.values).toEqual(["prod-eu"]);
+    expect(security?.isSearchedByLogs).toBe(false);
+    expect(security?.entity).toEqual({
+      type: SecurityEntityType.Host,
+      value: "prod-eu",
+    });
+  });
+
+  test("an OpenStack cloud of no name is searched for by the logs it sent", async () => {
+    jest.spyOn(OpenStackCloudService, "findOneBy").mockResolvedValue({
+      id: HOST_ID,
+    } as never);
+
+    const security: ResourceSecurityJson | null = await read(
+      SecurityConnectionKind.OpenStackCloud,
+    );
+
+    expect(security?.values).toEqual([]);
+    expect(security?.isSearchedByLogs).toBe(true);
+    expect(security?.entity).toBeNull();
+  });
+
+  test("an OpenStack cloud the caller may not read is nobody's business", async () => {
+    jest
+      .spyOn(OpenStackCloudService, "findOneBy")
+      .mockResolvedValue(null as never);
+
+    expect(await read(SecurityConnectionKind.OpenStackCloud)).toBeNull();
   });
 
   test("a Docker host by its names", async () => {

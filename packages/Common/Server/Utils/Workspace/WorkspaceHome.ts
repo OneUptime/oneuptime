@@ -161,6 +161,7 @@ export const WORKSPACE_HOME_TEXT: {
   connect: {
     [WorkspaceType.Slack]: "Connect Slack account",
     [WorkspaceType.MicrosoftTeams]: "Connect Microsoft Teams account",
+    [WorkspaceType.Mattermost]: "Connect Mattermost account",
   },
   switchProject: "Switch project",
   switchButton: "Switch",
@@ -171,6 +172,7 @@ export const WORKSPACE_HOME_TEXT: {
 const WORKSPACE_NAMES: Record<WorkspaceType, string> = {
   [WorkspaceType.Slack]: "Slack",
   [WorkspaceType.MicrosoftTeams]: "Microsoft Teams",
+  [WorkspaceType.Mattermost]: "Mattermost",
 };
 
 /*

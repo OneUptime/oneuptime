@@ -185,7 +185,7 @@ flowchart TB
     field -->|"नहीं"| nothing
 ```
 
-**On Create**, **On Update** और **On Create or Update** रिकॉर्ड को अगले ब्लॉक तक भेजते हैं, उन फ़ील्ड के साथ जो आप ट्रिगर के **Fields to pass on** में चुनते हैं। उदाहरण के लिए, **Incident → On Create** ट्रिगर नई घटना आगे भेजता है, ताकि अगला ब्लॉक उसका शीर्षक, विवरण, गंभीरता या आपका चुना कोई भी दूसरा फ़ील्ड पढ़ सके, जैसे `{{local.components.incident-on-create-1.returnValues.model.title}}`। जो फ़ील्ड आपने नहीं चुना, वह खाली पहुँचता है।
+**On Create**, **On Update** और **On Create or Update** रिकॉर्ड को अगले ब्लॉक तक भेजते हैं, उन फ़ील्ड के साथ जो आप ट्रिगर के **Fields to pass on** में चुनते हैं। उदाहरण के लिए, **Incident → On Create** ट्रिगर नई घटना आगे भेजता है, ताकि अगला ब्लॉक उसका शीर्षक, विवरण, गंभीरता या आपका चुना कोई भी दूसरा फ़ील्ड पढ़ सके, जैसे `{{local.components.incident-on-create-1.returnValues.model.title}}`। जो फ़ील्ड आपने नहीं चुना, वह खाली पहुँचता है। यही बात उस फ़ील्ड पर भी लागू होती है जिसमें रिकॉर्ड के पास कुछ नहीं है, जैसे ऐसे अलर्ट का मॉनिटर जो किसी मॉनिटर ने नहीं बनाया।
 
 **On Create or Update** साथ में **What Happened** भी भेजता है: जब किसी नए रिकॉर्ड ने रन शुरू किया तो `created`, और जब किसी बदलाव ने किया तो `updated`, जैसे `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`। दोनों को अलग-अलग संभालने के लिए इसे किसी **If / Else** ब्लॉक में तुलना करें, या **Switch / Case** से हर एक के लिए अलग रास्ता लें।
 

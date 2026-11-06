@@ -12,6 +12,15 @@ import { getFileTypeIcon } from "../../../Types/File/FileTypeIcon";
 import { getMimeTypeLabel } from "../../../Types/File/MimeTypeLabel";
 import IconProp from "../../../Types/Icon/IconProp";
 import { getKnownFileSize, rememberFileSize } from "./KnownFileSizes";
+import {
+  DEFAULT_MAX_FILE_SIZE_IN_BYTES,
+  FilePickerLayout,
+  FilePickerPromptWords,
+  formatFileSizeLimit,
+  getFilePickerLayout,
+  getFilePickerPromptWords,
+  getMaxFileSizeInBytes,
+} from "./FilePickerLayout";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import FileModel from "../../../Models/DatabaseModels/File";
 import React, {
@@ -97,36 +106,10 @@ type BuildFileTypeErrorFunction = (fileNames: Array<string>) => string;
 type ResolveMimeTypeFunction = (file: File) => MimeType | undefined;
 type FormatFileSizeFunction = (file: FileModel) => string | null;
 
-// What any upload may be, unless the picker is given less.
-export const DEFAULT_MAX_FILE_SIZE_IN_BYTES: number = 10 * 1024 * 1024;
-
-type GetMaxFileSizeInBytesFunction = (value: number | undefined) => number;
-
-// The picker's limit: its own when it is a smaller positive number.
-export const getMaxFileSizeInBytes: GetMaxFileSizeInBytesFunction = (
-  value: number | undefined,
-): number => {
-  return typeof value === "number" &&
-    Number.isFinite(value) &&
-    value > 0 &&
-    value < DEFAULT_MAX_FILE_SIZE_IN_BYTES
-    ? value
-    : DEFAULT_MAX_FILE_SIZE_IN_BYTES;
-};
-
-type FormatFileSizeLimitFunction = (bytes: number) => string;
-
-// A limit as people read it: "512 KB", "1 MB", "1.5 MB".
-export const formatFileSizeLimit: FormatFileSizeLimitFunction = (
-  bytes: number,
-): string => {
-  const megabytes: number = bytes / (1024 * 1024);
-
-  if (megabytes >= 1) {
-    return `${Math.round(megabytes * 10) / 10} MB`;
-  }
-
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+export {
+  DEFAULT_MAX_FILE_SIZE_IN_BYTES,
+  formatFileSizeLimit,
+  getMaxFileSizeInBytes,
 };
 
 /*
@@ -149,14 +132,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   // One page can hold several pickers: each input has an id of its own.
   const inputId: string = useId();
 
-  // The most files a picker of several holds; none for no limit.
-  const maxFiles: number | null =
-    props.isMultiFilePicker &&
-    typeof props.maxFiles === "number" &&
-    Number.isFinite(props.maxFiles) &&
-    props.maxFiles > 0
-      ? Math.floor(props.maxFiles)
-      : null;
+  const layout: FilePickerLayout = getFilePickerLayout({
+    fileCount: filesModel.length,
+    isMultiFilePicker: props.isMultiFilePicker,
+    maxFiles: props.maxFiles,
+  });
+  const { maxFiles, isFull, showsPrompt, isCollapsed, isCompactPrompt } =
+    layout;
 
   const maxFileSizeBytes: number = getMaxFileSizeInBytes(
     props.maxFileSizeInBytes,
@@ -652,27 +634,19 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     },
   );
 
-  // A picker of several files that holds as many as it may.
-  const isFull: boolean = maxFiles !== null && filesModel.length >= maxFiles;
-
-  // The prompt to choose or drop files: an empty picker, or one of several.
-  const showsPrompt: boolean =
-    !isFull && (filesModel.length === 0 || Boolean(props.isMultiFilePicker));
-
-  /*
-   * A picker of one that holds its file shows the file alone: no empty drop
-   * zone above it. Its file chooser stays in the page, out of sight, for
-   * Replace to open - react-dropzone's open() clicks the input, and does
-   * nothing when there is none.
-   */
-  const isCollapsed: boolean = !isFull && !showsPrompt;
-
-  /*
-   * A picker of several that already lists files asks for more in a smaller
-   * zone: the files are what the reader came to see, and a second
-   * illustration the height of the dialog pushed them out of sight.
-   */
-  const isCompactPrompt: boolean = showsPrompt && filesModel.length > 0;
+  const promptWords: FilePickerPromptWords = getFilePickerPromptWords(
+    translator,
+    {
+      placeholder: props.placeholder,
+      hint: props.hint,
+      mimeTypes: props.mimeTypes,
+      maxFileSizeInBytes: props.maxFileSizeInBytes,
+      keepFilesInBrowser: props.keepFilesInBrowser,
+      isMultiFilePicker: props.isMultiFilePicker,
+      hasFiles: filesModel.length > 0,
+      isDragActive: isDragActive,
+    },
+  );
 
   // Whether a click or a key on the zone opens the file chooser.
   const canChoose: boolean = showsPrompt && !props.readOnly && !isLoading;
@@ -781,66 +755,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     ) : (
                       <></>
                     )}
-                    <span>
-                      {translator.translateText(
-                        props.placeholder
-                          ? props.placeholder
-                          : filesModel.length > 0
-                            ? "Add more files"
-                            : "Upload files",
-                      )}
-                    </span>
+                    <span>{promptWords.label}</span>
                   </label>
-                  <p className="text-gray-500">
-                    {translator.translateText(
-                      isDragActive
-                        ? props.keepFilesInBrowser
-                          ? "Release to add them."
-                          : "Release to start uploading."
-                        : filesModel.length > 0
-                          ? "Click to add more or drag & drop."
-                          : // A picker of one takes one file.
-                            props.isMultiFilePicker
-                            ? "Click to choose files or drag & drop."
-                            : "Click to choose a file or drag & drop.",
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {props.hint
-                      ? translator.translateText(props.hint)
-                      : props.mimeTypes && props.mimeTypes?.length > 0
-                        ? translator.translateTemplate(
-                            hasOwnLimit
-                              ? "Types: {{types}}. Max {{size}} each."
-                              : "Types: {{types}}. Max 10MB each.",
-                            {
-                              size: maxFileSize,
-                              types: props.mimeTypes
-                                .map((type: MimeType) => {
-                                  const enumKey: string | undefined =
-                                    Object.keys(MimeType)[
-                                      Object.values(MimeType).indexOf(type)
-                                    ];
-                                  return enumKey?.toUpperCase() || "";
-                                })
-                                .filter(
-                                  (
-                                    item: string | undefined,
-                                    pos: number,
-                                    array: Array<string | undefined>,
-                                  ) => {
-                                    return array.indexOf(item) === pos;
-                                  },
-                                )
-                                .join(", "),
-                            },
-                          )
-                        : hasOwnLimit
-                          ? translator.translateTemplate("Max {{size}} each.", {
-                              size: maxFileSize,
-                            })
-                          : translator.translateText("Max 10MB each.")}
-                  </p>
+                  <p className="text-gray-500">{promptWords.instruction}</p>
+                  <p className="text-xs text-gray-500">{promptWords.hint}</p>
                   {error && (
                     <p className="text-xs text-red-500 font-medium">{error}</p>
                   )}

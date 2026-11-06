@@ -102,6 +102,7 @@ const METRIC_FIELD_TITLES: Record<string, string> = {
   "Docker Swarm": "Docker Swarm Metric",
   Kubernetes: "Kubernetes Metric",
   Proxmox: "Proxmox Metric",
+  OpenStack: "OpenStack Metric",
   VMware: "VMware Metric",
   Ceph: "Ceph Metric",
   "Storage Array": "Storage Array Metric",
@@ -147,6 +148,12 @@ const TYPES: Array<InfrastructureType> = [
     stepForm: "ProxmoxMonitor/ProxmoxMonitorStepForm.tsx",
     picker: "ProxmoxMonitor/ProxmoxTemplatePicker.tsx",
     configurationTitle: "Proxmox Monitor Configuration",
+  },
+  {
+    name: "OpenStack",
+    stepForm: "OpenStackMonitor/OpenStackMonitorStepForm.tsx",
+    picker: "OpenStackMonitor/OpenStackTemplatePicker.tsx",
+    configurationTitle: "OpenStack Monitor Configuration",
   },
   {
     name: "VMware",
@@ -596,6 +603,11 @@ describe("a resource's Recommendations use the picker's category names", () => {
     ],
     [MonitorRecommendationResourceType.Ceph, "PG", "Placement Groups"],
     [MonitorRecommendationResourceType.Proxmox, "HA", "High Availability"],
+    [
+      MonitorRecommendationResourceType.OpenStack,
+      "Control Plane",
+      "Control Plane",
+    ],
     [MonitorRecommendationResourceType.VMware, "Host", "ESXi Host"],
   ])(
     "%s %s reads %s",

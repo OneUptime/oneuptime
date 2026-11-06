@@ -20,6 +20,8 @@ import LockedFilterChip, {
   COPIED_FEEDBACK_MS,
   COPIED_SEARCH_SYNTAX_ANNOUNCEMENT,
   COPY_FAILED_ANNOUNCEMENT,
+  LOCKED_FILTER_CHIP_CLASS_NAME,
+  LOCKED_FILTER_CHIP_VALUE_CLASS_NAME,
   LockedFilterTooltipContent,
   NO_SEARCH_SYNTAX_REASON,
   getLockedFilterChipAriaLabel,
@@ -149,6 +151,60 @@ describe("getLockedFilterChipAriaLabel", () => {
     expect(getLockedFilterChipAriaLabel("Cluster", "production", true)).toBe(
       "Cluster: production, locked filter. Press Enter to copy its search syntax.",
     );
+  });
+});
+
+/*
+ * An Azure resource's chip holds its whole ARM id, with no space to break
+ * at: on a phone it pushed the resource's page 280 pixels sideways. The
+ * chip is never wider than its row, and its value wraps inside it.
+ */
+describe("a long value", () => {
+  const ARM_ID: string =
+    "/subscriptions/5f0c2d7e-9a41-4f3b-8c6e-1d2a3b4c5d6e/resourceGroups/shop/providers/Microsoft.Compute/virtualMachines/shop-web-1";
+
+  test("the chip is never wider than its row, and the value breaks anywhere inside it; the key never does", () => {
+    expect(LOCKED_FILTER_CHIP_CLASS_NAME.split(" ")).toContain("max-w-full");
+    expect(LOCKED_FILTER_CHIP_VALUE_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "break-all"]),
+    );
+
+    render(
+      <LockedFilterChip displayKey="Azure resource" displayValue={ARM_ID} />,
+    );
+
+    const chip: HTMLElement = screen.getByTestId("locked-filter-chip");
+    const value: HTMLElement = within(chip).getByTestId(
+      "locked-filter-chip-value",
+    );
+    expect(chip.className.split(" ")).toContain("max-w-full");
+    expect(value).toHaveTextContent(ARM_ID);
+    expect(value.className.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "break-all"]),
+    );
+    expect(within(chip).getByText("Azure resource:").className).toContain(
+      "shrink-0",
+    );
+  });
+
+  test("with a detail, its button may shrink to the chip too", () => {
+    render(
+      <LockedFilterChip
+        displayKey="Azure resource"
+        displayValue={ARM_ID}
+        lockedDetail={{ searchToken: `@azuremonitor.resource_id:"${ARM_ID}"` }}
+      />,
+    );
+
+    const button: HTMLElement = within(
+      screen.getByTestId("locked-filter-chip"),
+    ).getByRole("button");
+    expect(button.className.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "max-w-full"]),
+    );
+    expect(
+      within(button).getByTestId("locked-filter-chip-value"),
+    ).toHaveTextContent(ARM_ID);
   });
 });
 

@@ -614,10 +614,13 @@ describe("Cloud fleet summary tooltips", () => {
     ).toEqual(Object.keys(CLOUD_FLEET_METRIC_DESCRIPTIONS).sort());
   });
 
+  /*
+   * The (i) is drawn by CloudStatTileTitle, the tile title Cloud's and App
+   * Platforms' strips share, right after the title's last word (#5646's
+   * review): the tile hands it its title and that title's own description.
+   */
   test("the strip renders the (i) beside each tile title", () => {
-    expect(component).toContain(
-      'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
-    );
+    expect(component).toContain('from "./CloudStatTileTitle";');
 
     const tile: string = between(
       component,
@@ -625,14 +628,26 @@ describe("Cloud fleet summary tooltips", () => {
       "{tile.value}",
     );
 
-    expect(tile).toContain("{tile.title}");
+    expect(countOf(tile, "<CloudStatTileTitle ")).toBe(1);
     expect(tile).toContain(
-      "<InfoTooltip label={tile.title} text={tile.description} />",
+      "<CloudStatTileTitle title={tile.title} description={tile.description} ",
     );
     // The tile is a plain card, not a link or button the (i) would nest in.
     expect(tile).not.toContain("<a ");
     expect(tile).not.toContain("<button");
     expect(tile).not.toContain("<AppLink");
+
+    // The title draws the (i) from those two, held to its last word or not.
+    const title: string = readCode("Components/Cloud/CloudStatTileTitle.tsx");
+
+    expect(title).toContain(
+      'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
+    );
+    expect(title).toContain(
+      "const info: ReactElement = props.description ? ( <InfoTooltip label={props.title} text={props.description} ",
+    );
+    expect(title).toContain("{words.lastWord} {info} </span>");
+    expect(title).toContain("{words.lastWord ? <></> : info}");
   });
 
   test("the fleet texts say which rows the counts include", () => {

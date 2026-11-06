@@ -61,6 +61,9 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Kubernetes audit logs",
   ),
+  [DetectionRuleDataKind.OpenStackAuditTrail]: translationKey(
+    "OpenStack audit trail",
+  ),
   [DetectionRuleDataKind.OneUptimeTraces]: translationKey("Traces"),
   [DetectionRuleDataKind.NetworkFlows]: translationKey("Network flows"),
   [DetectionRuleDataKind.OneUptimeAuditLog]: translationKey(
@@ -123,6 +126,9 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Send your clusters' audit logs to OneUptime and find security events in your logs.",
   ),
+  [DetectionRuleDataKind.OpenStackAuditTrail]: translationKey(
+    "Send your OpenStack cloud's notifications to its logs, install the agent's logs profile and find security events in your logs.",
+  ),
   [DetectionRuleDataKind.OneUptimeTraces]: translationKey(
     "Send traces to OneUptime and find security events in your traces.",
   ),
@@ -175,6 +181,8 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
     PageMap.SECURITY_EVENTS_DOCUMENTATION,
   [DetectionRuleDataKind.WebRequests]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.KubernetesAuditLogs]:
+    PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.OpenStackAuditTrail]:
     PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.OneUptimeTraces]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.NetworkFlows]: PageMap.SECURITY_EVENTS_CONNECTIONS,

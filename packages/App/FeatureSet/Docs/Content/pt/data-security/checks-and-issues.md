@@ -1,10 +1,10 @@
 # Verificações e problemas da Segurança de dados
 
-A Segurança de dados executa 33 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele.
+A Segurança de dados executa 34 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele.
 
 :::cards
 - [Como uma verificação decide](#como-uma-verificação-decide): Passa, falha ou não consegue determinar, e o quão grave é uma falha.
-- [Todas as verificações](#todas-as-verificações): Todas as 33, com o que cada uma verifica e como corrigir.
+- [Todas as verificações](#todas-as-verificações): Todas as 34, com o que cada uma verifica e como corrigir.
 - [Pontuação de risco](#pontuação-de-risco): Como os problemas são ordenados dentro de uma gravidade.
 - [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema.
 - [Corrigir daqui](#corrigir-daqui): Feche uma exposição, ou ative uma proteção que falta, com um clique.
@@ -87,6 +87,7 @@ A gravidade é dada para os dados de sensibilidade Restrito, Confidencial, Inter
 | Há senhas armazenadas em texto simples (`plaintext-passwords`) | Todo repositório, exceto telemetria | Um campo de senha contém valores que não são hashes de senha (bcrypt, argon2, scrypt ou PBKDF2). | Crítico / Crítico / Crítico / Crítico | Faça o hash das senhas com bcrypt, scrypt ou argon2, migre as armazenadas e faça todas as contas redefinirem a senha. |
 | Dados de produção foram copiados para um repositório que não é de produção (`production-data-in-non-production`) | Todo repositório, exceto telemetria | Valores encontrados em um repositório de produção também foram encontrados aqui, em um repositório de desenvolvimento, teste ou staging. | Alto / Médio / — / — | Substitua a cópia por dados mascarados ou sintéticos, e exclua os dados reais do repositório que não é de produção. |
 | Dados sensíveis que ninguém usou em 90 dias (`stale-sensitive-data`) | Todo repositório, exceto telemetria | O repositório contém dados sensíveis e não teve leituras nem gravações por 90 dias. | Médio / Baixo / — / — | Confirme que os dados não são mais necessários, e depois arquive-os com uma data de retenção, ou exclua-os. |
+| Uma nova coluna contém dados pessoais (`new-personal-data-column`) | Todo repositório, exceto telemetria | Uma coluna adicionada nos últimos 14 dias tem um nome que diz que ela contém dados pessoais. | Alto / Alto / Médio / Médio | Confirme que a coluna deve conter esses dados, e registre o motivo. Se não deve, exclua a coluna ou pare de escrever nela. |
 | Este repositório sensível não tem proprietário (`no-owner`) | Todo repositório | O repositório contém dados sensíveis e não tem proprietário. | Médio / Baixo / — / — | Adicione um proprietário na página **Proprietários** do repositório, ou uma regra de proprietário que corresponda às tags dele. |
 
 ### Telemetria

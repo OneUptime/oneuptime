@@ -21,8 +21,11 @@ import DataAlertService from "../../../../Server/Services/DataAlertService";
 import DataAssetLineageService from "../../../../Server/Services/DataAssetLineageService";
 import DataAssetService from "../../../../Server/Services/DataAssetService";
 import DataProductService from "../../../../Server/Services/DataProductService";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DataAssetKind from "../../../../Types/DataObservability/DataAssetKind";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
+import UserType from "../../../../Types/UserType";
 import {
   StoredRow,
   rowMatchesWhere,
@@ -45,6 +48,30 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const ASSET_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const NOW: Date = new Date("2026-11-04T12:00:00.000Z");
+
+/*
+ * The answer's reader: a project admin, who sees every alert, private or
+ * not. Which alerts each reader may see is DataTableAnswerPrivateAlerts'.
+ */
+const PROJECT_ADMIN: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
+  userId: new ObjectID("55555555-5555-4555-8555-000000000004"),
+  userType: UserType.User,
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: Permission.ProjectAdmin,
+          labelIds: [],
+          isBlockPermission: false,
+        },
+      ],
+    },
+  },
+};
 
 const CREATED: string = "33333333-3333-4333-8333-000000000001";
 const ACKNOWLEDGED: string = "33333333-3333-4333-8333-000000000002";
@@ -162,6 +189,7 @@ async function openAlertsOf(
     PROJECT_ID,
     ASSET_ID,
     NOW,
+    PROJECT_ADMIN,
   );
 
   expect(answer).not.toBeNull();

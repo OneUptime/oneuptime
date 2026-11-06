@@ -192,6 +192,55 @@ describe("the channels, as written and read back", () => {
     ]);
   });
 
+  test("a Mattermost channel keeps the address of a channel on a server, and nothing else", () => {
+    const channel: (channelId: string, url: string) => JSONObject = (
+      channelId: string,
+      url: string,
+    ): JSONObject => {
+      return {
+        channelId: channelId,
+        workspaceType: WorkspaceType.Mattermost,
+        name: "inc-42",
+        url: url,
+        state: WorkspaceChannelState.Members,
+        people: [],
+        peopleCount: 0,
+        viewer: WorkspaceChannelViewerStatus.In,
+      };
+    };
+
+    const read: WorkspaceRecordChannels =
+      WorkspaceChannelMembersUtil.channelsFromJSON({
+        channels: [
+          channel("m1", "https://chat.example.com/acme/channels/inc-42"),
+          channel("m2", "https://example.com/mattermost/acme/channels/inc-42"),
+          channel("m3", "https://chat.example.com@evil.test/acme/channels/x"),
+          channel("m4", "https://chat.example.com/acme/pl/abc"),
+          channel("m5", "javascript:alert(1)"),
+        ],
+      });
+
+    expect(
+      read.channels.map((item: WorkspaceRecordChannel) => {
+        return [item.channelId, item.workspaceType, item.url];
+      }),
+    ).toEqual([
+      [
+        "m1",
+        WorkspaceType.Mattermost,
+        "https://chat.example.com/acme/channels/inc-42",
+      ],
+      [
+        "m2",
+        WorkspaceType.Mattermost,
+        "https://example.com/mattermost/acme/channels/inc-42",
+      ],
+      ["m3", WorkspaceType.Mattermost, undefined],
+      ["m4", WorkspaceType.Mattermost, undefined],
+      ["m5", WorkspaceType.Mattermost, undefined],
+    ]);
+  });
+
   test("a person needs a key and a name; an id that is not one is dropped, and with it the picture", () => {
     const read: WorkspaceRecordChannels =
       WorkspaceChannelMembersUtil.channelsFromJSON({
@@ -277,6 +326,26 @@ describe("the channels, as written and read back", () => {
 });
 
 describe("the answer to adding people, as written and read back", () => {
+  test("somebody outside the Mattermost team reads back as that", () => {
+    const answer: WorkspaceChannelAddAnswer = {
+      results: [
+        {
+          userId: USER_ID,
+          name: "Alice Smith",
+          outcome: WorkspaceChannelAddOutcome.NotInTeam,
+        },
+      ],
+    };
+
+    expect(
+      WorkspaceChannelMembersUtil.addAnswerFromJSON(
+        JSON.parse(
+          JSON.stringify(WorkspaceChannelMembersUtil.addAnswerToJSON(answer)),
+        ),
+      ),
+    ).toEqual(answer);
+  });
+
   test("round-trips, with the channel's state when it took nobody", () => {
     const answer: WorkspaceChannelAddAnswer = {
       channelState: WorkspaceChannelState.Archived,

@@ -44,6 +44,7 @@ import AiResourceType, {
   AiResourceTypeInfo,
   CLOUD_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
   parseAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
@@ -235,6 +236,11 @@ const RESOURCE_SECTIONS: ReadonlyArray<ResourceSection> = [
     types: [AiResourceType.CephCluster],
   },
   {
+    title: "OpenStack clouds",
+    fixesHeading: "### Fixes on OpenStack clouds",
+    types: [AiResourceType.OpenStackCloud],
+  },
+  {
     title: "Database servers",
     fixesHeading: "### Fixes on database servers",
     types: [AiResourceType.DatabaseServer],
@@ -286,6 +292,7 @@ const TELEMETRY_PAGES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.AwsAccount]: "telemetry/cloud-accounts",
   [AiResourceType.AzureSubscription]: "telemetry/cloud-accounts",
   [AiResourceType.GoogleCloudProject]: "telemetry/cloud-accounts",
+  [AiResourceType.OpenStackCloud]: "telemetry/openstack",
 };
 
 const CLOUD_ACCOUNTS_PAGE: string = TELEMETRY_PAGES[AiResourceType.AwsAccount];
@@ -309,6 +316,7 @@ const COMPOSE_FILES: Readonly<Record<AiResourceType, string | null>> = {
   [AiResourceType.AwsAccount]: null,
   [AiResourceType.AzureSubscription]: null,
   [AiResourceType.GoogleCloudProject]: null,
+  [AiResourceType.OpenStackCloud]: "agents/OpenStackAgent/docker-compose.yml",
 };
 
 // The types whose agent a compose file runs: all but the cloud accounts.
@@ -1636,6 +1644,15 @@ describe("Infrastructure AI Agents docs", (): void => {
             type,
             root: true,
           });
+        } else if (type === AiResourceType.OpenStackCloud) {
+          // It reads clouds.yaml, which only its owner can, as the exporter does.
+          expect({
+            type,
+            owner: service.includes(
+              'user: "${OPENSTACK_EXPORTER_USER:-65532:65532}"',
+            ),
+            noCapabilities: DROPS_ALL_CAPABILITIES.test(service),
+          }).toEqual({ type, owner: true, noCapabilities: true });
         } else {
           expect({
             type,
@@ -1653,7 +1670,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
 
       expect(page.replace(/\s+/g, " ")).toContain(
-        "The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities.",
+        "The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities. The OpenStack AI agent runs as the owner of `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), with none either.",
       );
     });
 
@@ -2448,7 +2465,26 @@ describe("Infrastructure AI Agents docs", (): void => {
   describe("what a fix may run, against the command policy", (): void => {
     const fixes: string = section(page, "## How fixes work");
 
-    for (const resource of COMMAND_SECTIONS) {
+    it("says fixes on an OpenStack cloud need a second opt-in and a credential of their own", (): void => {
+      const openStack: string = oneLine(
+        section(fixes, "### Fixes on OpenStack clouds"),
+      );
+
+      expect(openStack).toContain("`ONEUPTIME_AI_ALLOW_WRITES=true` alone");
+      expect(openStack).toContain("the credential for changes");
+      expect(openStack).toContain("`openstack dry-run <change>`");
+      expect(openStack).toContain("with who approved it");
+      // The guide the model reads says the same.
+      expect(
+        evaluate(AiResourceType.OpenStackCloud, "openstack server stop x").tier,
+      ).toBe(ResourceCommandTier.Denied);
+    });
+
+    for (const resource of COMMAND_SECTIONS.filter(
+      (candidate: ResourceSection): boolean => {
+        return !candidate.types.some(isReadOnlyAiResourceType);
+      },
+    )) {
       const heading: string = resource.fixesHeading;
 
       it(`tiers every command in "${heading.replace("### ", "")}" as its row says`, (): void => {
@@ -2554,11 +2590,16 @@ describe("Infrastructure AI Agents docs", (): void => {
 
     it("picks the resource a fix round changes in the order the types are declared", (): void => {
       expect(oneLine(fixes)).toContain(
-        `gets the round, in this order: ${ALL_AI_RESOURCE_TYPES.map(
-          (type: AiResourceType): string => {
-            return infoOf(type).displayName;
+        `gets the round, in this order: ${ALL_AI_RESOURCE_TYPES.filter(
+          (type: AiResourceType): boolean => {
+            // A resource AI only reads never has fixes on, so never gets one.
+            return !isReadOnlyAiResourceType(type);
           },
-        ).join(", ")}. The round only changes that resource.`,
+        )
+          .map((type: AiResourceType): string => {
+            return infoOf(type).displayName;
+          })
+          .join(", ")}. The round only changes that resource.`,
       );
     });
   });
@@ -2814,8 +2855,12 @@ describe("Infrastructure AI Agents docs", (): void => {
   describe("the command allowlist", (): void => {
     const allowlist: string = section(page, "### The command allowlist");
 
-    it("shows a valid entry for every resource type, the one the AI agent page suggests", (): void => {
-      for (const type of ALL_AI_RESOURCE_TYPES) {
+    it("shows a valid entry for every resource type with fixes, the one the AI agent page suggests", (): void => {
+      for (const type of ALL_AI_RESOURCE_TYPES.filter(
+        (candidate: AiResourceType): boolean => {
+          return !isReadOnlyAiResourceType(candidate);
+        },
+      )) {
         const example: string = RESOURCE_AI_ALLOWLIST_EXAMPLES[type];
 
         expect({ type, shown: allowlist.includes(`\`${example}\``) }).toEqual({

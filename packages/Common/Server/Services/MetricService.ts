@@ -47,6 +47,11 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OldestKeyMap from "../../Utils/OldestKeyMap";
+import ModelPermission, {
+  CheckReadPermissionType,
+} from "../Types/AnalyticsDatabase/ModelPermission";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { MetricSeriesArrivalAggregates } from "../../Utils/Metrics/MetricSeriesArrivalUtil";
 
 const MAX_GROUP_BY_ATTRIBUTE_KEYS: number = 10;
 const MAX_GROUP_BY_ATTRIBUTE_KEY_LENGTH: number = 256;
@@ -116,6 +121,16 @@ const ENTITY_MV_ROUTES: ReadonlyArray<EntityMVRoute> = [
     keyForValue: null,
   },
 ];
+
+/*
+ * One series of a query, as readSeriesArrivals reads it: its grouped
+ * attribute keys (the same map a grouped read's rows carry, {} for an
+ * ungrouped query) and what its rows say about when they arrived.
+ */
+export interface MetricSeriesArrivalRow {
+  attributes: JSONObject;
+  aggregates: MetricSeriesArrivalAggregates;
+}
 
 export class MetricService extends AnalyticsDatabaseService<Metric> {
   /*
@@ -616,8 +631,14 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private getSanitizedGroupByAttributeKeys(
     aggregateBy: AggregateBy<Metric>,
   ): Array<string> {
+    return this.sanitizeGroupByAttributeKeys(aggregateBy.groupByAttributeKeys);
+  }
+
+  private sanitizeGroupByAttributeKeys(
+    rawKeys: Array<string> | undefined,
+  ): Array<string> {
     const keys: Array<string> = [];
-    for (const rawKey of aggregateBy.groupByAttributeKeys || []) {
+    for (const rawKey of rawKeys || []) {
       if (typeof rawKey !== "string") {
         continue;
       }
@@ -720,6 +741,156 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     return buckets;
+  }
+
+  /**
+   * When each series of a query got its data: one row per series - per
+   * value of the grouped attribute keys, as the grouped read groups them -
+   * or one row for an ungrouped query, over the query's window (its `time`).
+   * A metric row's `createdAt` is the second OneUptime's ingest wrote it, its
+   * `time` the moment its source says it measured; from them each row says
+   * the series' newest and oldest arrival, how many distinct minutes
+   * something of it arrived in, and when its newest data point (by `time`)
+   * arrived and what time it carries. MetricSeriesArrivalUtil turns that into
+   * a MetricSeriesArrival: how long nothing new has arrived, how late the
+   * data arrives, and how often.
+   *
+   * The metric monitor worker reads this when a query's data looks behind
+   * (an "All Values" criteria or a forecast must tell a series that is late
+   * from one that stopped), and only then: it reads the window's rows, as
+   * the grouped read does. The raw table always, never a rollup: the rollups
+   * keep no createdAt. Its own statement, so nothing a chart reads changes.
+   * Fails loud on a timeout, as the monitor's other reads do.
+   */
+  public async readSeriesArrivals(input: {
+    query: Query<Metric>;
+    groupByAttributeKeys?: Array<string> | undefined;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<MetricSeriesArrivalRow>> {
+    const attributeGroupKeys: Array<string> = this.sanitizeGroupByAttributeKeys(
+      input.groupByAttributeKeys,
+    );
+
+    const permitted: CheckReadPermissionType<Metric> =
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        input.query,
+        {
+          createdAt: true,
+          time: true,
+          ...(attributeGroupKeys.length > 0 ? { attributes: true } : {}),
+        },
+        input.props,
+      );
+
+    const statement: Statement = this.toSeriesArrivalsStatement({
+      query: this.withRawEntityKeyPrune(permitted.query),
+      attributeGroupKeys: attributeGroupKeys,
+      limit: input.limit,
+    });
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+    const responseJSON: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+
+    const rows: Array<MetricSeriesArrivalRow> = [];
+
+    for (const item of responseJSON.data || []) {
+      const attributes: unknown = item["attributes"];
+
+      rows.push({
+        attributes:
+          attributes && typeof attributes === "object"
+            ? (attributes as JSONObject)
+            : {},
+        aggregates: {
+          newestArrivalMs: Number(item["__arrival_newest"]) * 1000,
+          oldestArrivalMs: Number(item["__arrival_oldest"]) * 1000,
+          arrivalMinuteCount: Number(item["__arrival_minutes"]),
+          newestPointArrivalMs: Number(item["__arrival_newest_point"]) * 1000,
+          newestPointTimeMs: Number(item["__arrival_newest_point_time"]),
+        },
+      });
+    }
+
+    return rows;
+  }
+
+  /*
+   * The statement readSeriesArrivals runs: the window's rows, their
+   * createdAt and time - and the grouped keys' values, extracted one level
+   * down (`__attr_grp_<i>`) so the `map(...) AS attributes` above them never
+   * shadows the real column the WHERE reads - folded per series. Every
+   * value is bound as a parameter.
+   */
+  public toSeriesArrivalsStatement(input: {
+    query: Query<Metric>;
+    attributeGroupKeys: Array<string>;
+    limit: number;
+  }): Statement {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const whereStatement: Statement = this.statementGenerator.toWhereStatement(
+      input.query,
+    );
+
+    const statement: Statement = SQL``;
+
+    statement.append(
+      `SELECT toUnixTimestamp(max(createdAt)) AS __arrival_newest, toUnixTimestamp(min(createdAt)) AS __arrival_oldest, uniq(toStartOfMinute(createdAt)) AS __arrival_minutes, toUnixTimestamp(argMax(createdAt, time)) AS __arrival_newest_point, toUnixTimestamp64Milli(max(time)) AS __arrival_newest_point_time`,
+    );
+    this.appendAttributeGroupMapColumn(statement, input.attributeGroupKeys);
+
+    statement.append(SQL` FROM (`);
+    statement.append(`SELECT createdAt, time`);
+    this.appendAttributeGroupExtractionColumns(
+      statement,
+      input.attributeGroupKeys,
+    );
+    statement.append(
+      ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
+    );
+    statement.append(whereStatement);
+    statement.append(this.getRetentionReadFilter());
+    statement.append(SQL`) `);
+
+    if (input.attributeGroupKeys.length > 0) {
+      statement.append(SQL` GROUP BY `).append(
+        input.attributeGroupKeys
+          .map((_key: string, index: number): string => {
+            return `__attr_grp_${index}`;
+          })
+          .join(", "),
+      );
+    } else {
+      // An empty window would otherwise read one row of zeros.
+      statement.append(SQL` HAVING count() > 0`);
+    }
+
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(input.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "throw",
+        additionalSettings: {
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
+    );
+
+    return statement;
   }
 
   /**

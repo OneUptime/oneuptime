@@ -35,6 +35,7 @@ flowchart LR
 | Runbook | OneUptime이 실행한 Runbook이 시작된 뒤 완료되거나, 실패하거나, 취소될 때 | `runbook` |
 | 클라우드 변경 | 연결된 클라우드 계정의 활동 로그가 변경을 기록할 때: AWS CloudTrail, Azure 활동 로그 또는 Google Cloud의 Admin Activity 감사 로그 | `cloud` |
 | 공급자 이벤트 | 클라우드 공급자가 계정에 대한 상태 이벤트를 게시할 때: AWS Health, Azure Service Health 또는 Resource Health, 또는 Google Cloud Service Health | `cloud-health` |
+| OpenStack 변경 | OpenStack 클라우드 자체의 알림이 그 일부에 일어난 일을 알려 줄 때, 또는 Nova에 대한 프로브의 읽기: [수명 주기 이벤트](/docs/telemetry/openstack#라이프사이클-이벤트) 참조 | `openstack` |
 
 - **서비스가 처음 보고하는 버전은 배포가 아니라 기준선입니다.** 몇 달 동안 실행된 서비스가 OneUptime이 그 텔레메트리를 받기 시작한 순간에 배포되는 것은 아닙니다.
 - **최근 30일 안에 보고된 적 있는 버전으로의 롤백은 기록되지 않습니다.** 그 버전은 새것이 아니기 때문입니다. OneUptime AI가 실행한 롤백은 수정으로 기록됩니다.
@@ -50,7 +51,7 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 
 앱 배포에는 [관리형 앱 플랫폼](/docs/telemetry/cloud-environments#앱과-배포)에서 실행되는 앱이 필요합니다. 배포는 앱의 환경에 기록되고 환경 차트와 앱 자체의 차트에 그려지며, 그곳에서는 앱이 이전에 실행하던 리비전으로의 롤백도 기록됩니다.
 
-클라우드 변경과 공급자 이벤트에는 [연결된 클라우드 계정](/docs/telemetry/cloud-accounts)이 필요합니다. 각각은 OneUptime이 그 리소스를 나열하고 있으면 이름이 나온 클라우드 리소스에 연결되고, 그 리소스의 차트에 그려집니다. 유형은 작업에서 정해집니다. 작업 이름이 그렇게 말하면 `deployment`, `scaling` 또는 `rollback`, 그 밖에는 `config-change`, 상태 이벤트는 `provider-event`입니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그가 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
+클라우드 변경과 공급자 이벤트에는 [연결된 클라우드 계정](/docs/telemetry/cloud-accounts)이 필요합니다. 각각은 OneUptime이 그 리소스를 나열하고 있으면 이름이 나온 클라우드 리소스에 연결되고, 그 리소스의 차트에 그려집니다. 유형은 작업에서 정해집니다. 작업 이름이 그렇게 말하면 `deployment`, `scaling` 또는 `rollback`, 그 밖에는 `config-change`, 상태 이벤트는 `provider-event`입니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그와 OpenStack 클라우드의 변경이 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
 
 ## 파이프라인에서 배포 기록하기
 

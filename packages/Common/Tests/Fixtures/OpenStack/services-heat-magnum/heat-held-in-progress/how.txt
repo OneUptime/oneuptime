@@ -1,0 +1,2 @@
+Stacks held in CREATE_IN_PROGRESS and UPDATE_IN_PROGRESS.
+On their own: Heat's test resource is taking as long as it was told to, which reads the same as a resource that hangs.

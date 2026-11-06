@@ -40,8 +40,13 @@ const CloudDryRunNote: FunctionComponent<ComponentProps> = (
     now,
   );
   const checkedAt: Date = new Date(props.dryRun.checkedAt);
+  /*
+   * "5 minutes ago" in the reader's language ("vor 5 Minuten", "۵ دقیقه
+   * پیش"), as every date the Dashboard writes, counted from the clock the
+   * note reads its status at.
+   */
   const time: string = Number.isFinite(checkedAt.getTime())
-    ? OneUptimeDate.fromNow(checkedAt)
+    ? OneUptimeDate.fromNow(checkedAt, now)
     : "";
   const summary: string = (props.dryRun.summary || "").trim();
 

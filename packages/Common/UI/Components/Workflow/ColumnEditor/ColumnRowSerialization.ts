@@ -21,6 +21,15 @@ import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import { hasTemplatePlaceholder } from "../../../../Utils/TemplatePlaceholders";
 import {
+  CUSTOM_FIELDS_COLUMN,
+  getCustomFieldColumnId,
+  getCustomFieldName,
+} from "../../../../Types/Workflow/CustomFieldsColumn";
+import {
+  readLinkedRecordList,
+  writeLinkedRecordList,
+} from "../../../../Types/Workflow/LinkedRecordValue";
+import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
   DictionaryFilterOperatorOption,
@@ -37,7 +46,11 @@ import {
   findColumn,
   requiredWritableColumns,
 } from "../ModelSchema";
-import { controlForColumn, literalFitsControl } from "./ColumnControl";
+import {
+  controlForColumn,
+  controlForFilter,
+  literalFitsControl,
+} from "./ColumnControl";
 import { translationKey } from "../../../Utils/TranslateTemplate";
 import {
   ColumnValueMode,
@@ -106,7 +119,8 @@ const literalTextFor: LiteralTextForFunction = (
 export type ClassifyRowValueFunction = (
   control: ModelColumnControl,
   value: unknown,
-) => Pick<ModelColumnRow, "valueMode" | "text" | "rawValue">;
+) => Pick<ModelColumnRow, "valueMode" | "text" | "rawValue"> &
+  Partial<Pick<ModelColumnRow, "values">>;
 
 /**
  * Which of the three editing modes a stored value belongs in.
@@ -118,9 +132,32 @@ export type ClassifyRowValueFunction = (
 export const classifyRowValue: ClassifyRowValueFunction = (
   control: ModelColumnControl,
   value: unknown,
-): Pick<ModelColumnRow, "valueMode" | "text" | "rawValue"> => {
+): Pick<ModelColumnRow, "valueMode" | "text" | "rawValue"> &
+  Partial<Pick<ModelColumnRow, "values">> => {
   if (typeof value === "string" && containsTemplateExpression(value)) {
     return { valueMode: ColumnValueMode.Reference, text: value };
+  }
+
+  // A list of related records: their IDs, in the list's own control.
+  if (control === ModelColumnControl.RecordList) {
+    const ids: Array<string> | null = readLinkedRecordList(value);
+
+    if (ids) {
+      return { valueMode: ColumnValueMode.Literal, text: "", values: ids };
+    }
+  }
+
+  // Several of a custom field's options: as they are stored, in their order.
+  if (
+    control === ModelColumnControl.ChoiceList &&
+    literalFitsControl(control, value) &&
+    Array.isArray(value)
+  ) {
+    return {
+      valueMode: ColumnValueMode.Literal,
+      text: "",
+      values: value as Array<string>,
+    };
   }
 
   /*
@@ -144,6 +181,53 @@ export const classifyRowValue: ClassifyRowValueFunction = (
     text: literalTextFor(control, value),
     rawValue: value,
   };
+};
+
+export type IsCustomFieldBagFunction = (value: unknown) => boolean;
+
+/**
+ * Whether a stored customFields is a bag of custom fields, which is shown as a
+ * row for each. Anything else - a null that clears them all, a reference, an
+ * operator on the whole column, an empty bag - is one value of one column, and
+ * stays what it is.
+ */
+export const isCustomFieldBag: IsCustomFieldBagFunction = (
+  value: unknown,
+): boolean => {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (value as JSONObject)["_type"] === undefined &&
+    Object.keys(value as JSONObject).length > 0
+  );
+};
+
+type FlattenCustomFieldsFunction = (parsed: JSONObject) => JSONObject;
+
+/*
+ * The stored object with its bag of custom fields as a key for each, in place:
+ * the rows are in the order the keys were written, and go back in that order.
+ */
+const flattenCustomFields: FlattenCustomFieldsFunction = (
+  parsed: JSONObject,
+): JSONObject => {
+  const flat: JSONObject = {};
+
+  for (const key of Object.keys(parsed)) {
+    if (key !== CUSTOM_FIELDS_COLUMN || !isCustomFieldBag(parsed[key])) {
+      flat[key] = parsed[key] as JSONObject[string];
+      continue;
+    }
+
+    const bag: JSONObject = parsed[key] as JSONObject;
+
+    for (const name of Object.keys(bag)) {
+      flat[getCustomFieldColumnId(name)] = bag[name] as JSONObject[string];
+    }
+  }
+
+  return flat;
 };
 
 export type RowsFromParsedValueFunction = (
@@ -170,11 +254,14 @@ export const rowsFromParsedValue: RowsFromParsedValueFunction = (
 
   const isQuery: boolean = mode === ModelColumnEditorMode.Query;
   const rows: Array<ModelColumnRow> = [];
+  const flat: JSONObject = flattenCustomFields(parsed);
 
-  for (const key of Object.keys(parsed)) {
-    const value: unknown = parsed[key];
+  for (const key of Object.keys(flat)) {
+    const value: unknown = flat[key];
     const column: ModelSchemaColumn | undefined = findColumn(columns, key);
-    const control: ModelColumnControl = controlForColumn(column);
+    const control: ModelColumnControl = isQuery
+      ? controlForFilter(column)
+      : controlForColumn(column);
 
     if (!isQuery) {
       rows.push(
@@ -338,6 +425,25 @@ export const emitRowValue: EmitRowValueFunction = (
     return row.text;
   }
 
+  /*
+   * A list of related records, as a step writes one. An empty one is "", the
+   * marker for a field the record does not set: a row with nothing picked in
+   * it says nothing about the record's list, as a blank box says nothing about
+   * its field. Emptying a record's list is still a write of its own, in JSON.
+   */
+  if (control === ModelColumnControl.RecordList) {
+    return row.values.length > 0
+      ? (writeLinkedRecordList(row.values) as unknown as DictionaryEntryValue)
+      : "";
+  }
+
+  // Several of a custom field's options, in the same way.
+  if (control === ModelColumnControl.ChoiceList) {
+    return row.values.length > 0
+      ? (row.values as unknown as DictionaryEntryValue)
+      : "";
+  }
+
   return emitLiteralValue(control, row.text);
 };
 
@@ -452,13 +558,39 @@ export const rowsToEntryDictionary: RowsToEntryDictionaryFunction = (
       continue;
     }
 
-    const control: ModelColumnControl = controlForColumn(
-      findColumn(columns, row.columnId),
+    const column: ModelSchemaColumn | undefined = findColumn(
+      columns,
+      row.columnId,
     );
 
-    entries[row.columnId] = isQuery
-      ? buildOperatorValue(row, control)
-      : emitRowValue(row, control);
+    const value: DictionaryEntryValue = isQuery
+      ? buildOperatorValue(row, controlForFilter(column))
+      : emitRowValue(row, controlForColumn(column));
+
+    const customFieldName: string | null = getCustomFieldName(row.columnId);
+
+    if (customFieldName === null) {
+      entries[row.columnId] = value;
+      continue;
+    }
+
+    /*
+     * A custom field goes back under its column. A record drops one left blank,
+     * as buildColumnValueJson drops any other field left blank: this is the
+     * bag's own level, which that cannot see. A query keeps it, as a query
+     * keeps any condition on "".
+     */
+    if (!isQuery && value === "") {
+      continue;
+    }
+
+    const bag: Dictionary<DictionaryEntryValue> =
+      (entries[CUSTOM_FIELDS_COLUMN] as unknown as
+        | Dictionary<DictionaryEntryValue>
+        | undefined) || {};
+
+    bag[customFieldName] = value;
+    entries[CUSTOM_FIELDS_COLUMN] = bag as unknown as DictionaryEntryValue;
   }
 
   return entries;
@@ -510,7 +642,11 @@ export const rowIssue: RowIssueFunction = (
     return translationKey("This column takes a number.");
   }
 
-  if (control === ModelColumnControl.Date && isNaN(Date.parse(row.text))) {
+  if (
+    (control === ModelColumnControl.Date ||
+      control === ModelColumnControl.DateOnly) &&
+    isNaN(Date.parse(row.text))
+  ) {
     return translationKey("This column takes a date and time.");
   }
 

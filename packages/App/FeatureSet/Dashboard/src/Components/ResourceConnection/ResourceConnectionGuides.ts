@@ -475,6 +475,31 @@ export const getProxmoxClusterConnectionGuide: (
   );
 };
 
+export const getOpenStackCloudConnectionGuide: (
+  cloudName: string,
+  oneuptimeUrl: string,
+) => ResourceConnectionGuide = (
+  cloudName: string,
+  oneuptimeUrl: string,
+): ResourceConnectionGuide => {
+  return getComposeAgentConnectionGuide(
+    {
+      resourceNoun: translationKey("cloud"),
+      agentName: "OneUptime OpenStack Agent",
+      containerName: "oneuptime-openstack-agent",
+      nameVariable: "OPENSTACK_CLOUD_NAME",
+      installDescription: translationKey(
+        'Run the install script from the setup guide on a machine that can reach the OpenStack APIs. When it asks for the cloud name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
+      ),
+      troubleshootScriptUrl: troubleshootScript(
+        oneuptimeUrl,
+        InstallScriptName.OpenStackAgent,
+      ),
+    },
+    cloudName,
+  );
+};
+
 export const getCephClusterConnectionGuide: (
   clusterName: string,
   oneuptimeUrl: string,

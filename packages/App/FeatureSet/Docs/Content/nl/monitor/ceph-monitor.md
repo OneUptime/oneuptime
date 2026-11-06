@@ -159,6 +159,7 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 - **PG- en poolreeksen zijn er per pool**: er is geen meetwaarde voor het hele cluster, dus die sjablonen groeperen op `pool_id` en openen één incident per pool.
 - **Capaciteitsratio's** nemen aan beide kanten de **Som**. Beide komen uit dezelfde bevraging van de mgr, dus het resultaat is een echt percentage. **Inactive Placement Groups** gebruikt in plaats daarvan **Maximum** per pool, omdat een som bij een aftrekking de bevragingen zou optellen.
 - **Health-check-sjablonen** herstellen wanneer de check verdwijnt: hun herstelcriteria tellen een ontbrekende reeks als 0.
+- **Daemon Slow Operations** heeft één reeks per daemon, dus als geen enkele daemon nog een reeks heeft, valt er niets meer te lezen. Het herstelt dan alleen als `ceph_health_status` in hetzelfde venster is binnengekomen, zodat een gestopte agent niets sluit.
 
 Sommige waarschuwingen hebben geen sjabloon. Een onevenwichtige PG-verdeling vraagt om statistiek over meerdere reeksen die criteria niet kunnen berekenen. Een capaciteitsprognose vraagt om een groeicurve, die het dashboard van het cluster in plaats daarvan tekent. Voorspelde schijfuitval en achterstallige scrubbing hebben geen mgr-metric, en NVMe-oF, RBD-mirroring en cephadm hebben andere exporters nodig.
 

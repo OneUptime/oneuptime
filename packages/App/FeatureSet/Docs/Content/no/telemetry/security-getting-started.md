@@ -62,6 +62,7 @@ Kortet **Loggene dine**, øverst på **Tilkoblinger**, trenger ingen installasjo
 | AWS CloudTrail | Pålogginger til konsollen, endringer i AWS-kontoene dine og kall som AWS avviste |
 | Google Cloud-revisjonslogger | Endringer i Google Cloud-prosjektene dine, kall som Google avviste, og pålogginger i Google Workspace som deles med Google Cloud |
 | Azure-aktivitetslogger og Entra ID-logger | Endringer i Azure-abonnementene dine, varsler fra Defender for Cloud, og pålogginger og katalogendringer i Microsoft Entra ID |
+| OpenStack-revisjonsspor | Mislykkede pålogginger, rolletildelinger og endringer i Keystone, hva revisjonsfilteret så av hvert API, sikkerhetsgrupper som er åpnet mot hele verden og images som er gjort offentlige |
 | CEF | Trusler, blokkerte tilkoblinger og pålogginger fra brannmurer, IDS, WAF-er og andre sikkerhetsprodukter som sender Common Event Format |
 | LEEF | Det samme fra produkter som sender Log Event Extended Format, slik mange gjør for IBM QRadar |
 | Palo Alto Networks | Trusler, blokkerte tilkoblinger, GlobalProtect- og administratorpålogginger og konfigurasjonsendringer fra PAN-OS' egen syslog |

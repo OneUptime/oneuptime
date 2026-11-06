@@ -58,6 +58,8 @@ The suite reads the pages the way someone on call does:
   whose run it is), with dates in words or as a time, never as ISO strings;
 - the Deployments, StatefulSets, DaemonSets, Jobs, CronJobs and Pods lists'
   statuses, tones and per-namespace CPU;
+- a node on OpenStack (`?openstack=instance`): which instance, hypervisor and
+  zone its provider ID makes it, and a node on no OpenStack saying nothing of it;
 - a phone (390 wide: nothing scrolls sideways), dark mode (`?theme=dark`),
   German (`?lang=de`) and Persian (`?lang=fa`, right to left, Persian
   digits).

@@ -101,6 +101,7 @@ oneuptime resources
 | `oneuptime context list`, `use`, `current`, `delete` | 저장된 컨텍스트를 나열, 전환, 표시, 삭제합니다 | [인증](/docs/cli/authentication#컨텍스트) |
 | `oneuptime whoami` | 다음 명령이 사용할 URL과 API 키를 보여 주며, `--check`를 붙이면 OneUptime이 키를 받아들이는지도 보여 줍니다 | [인증](/docs/cli/authentication#cli가-사용할-값-확인) |
 | `oneuptime deploy` | 차트와 OneUptime AI를 위해 배포나 다른 변경을 기록합니다 | [배포 및 변경 사항](/docs/telemetry/change-events) |
+| `oneuptime data-checks apply` | 프로젝트의 데이터 검사를 저장소의 파일과 일치시킵니다 | [명령 참조](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | 빌드 후 dbt 프로젝트의 아티팩트를 데이터 관측 가능성으로 보냅니다 | [명령 참조](/docs/cli/command-reference#oneuptime-dbt-upload) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 한 종류의 레코드를 다룹니다 | [리소스 작업](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 리소스의 필드와 그것을 설정하는 플래그를 나열합니다 | [리소스 작업](/docs/cli/resource-operations#리소스의-필드-보기) |

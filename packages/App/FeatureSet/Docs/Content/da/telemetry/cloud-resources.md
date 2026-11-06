@@ -3,7 +3,7 @@
 **Cloud-ressourcer** viser IaaS- og PaaS-ressourcerne i dine AWS-, Azure- og Google Cloud-konti: virtuelle maskiner, diske, load balancere, buckets, administrerede databaser, caches, køer, API-gateways og resten. Hver ressource får sin egen side med sin type, region og konto, udbyderens eget ID for den, hver metrik, som udbyderen udgiver om den, samt ejere og etiketter som alle andre ressourcer i OneUptime. Du finder dem under **Cloud → Alle ressourcer**.
 
 > [!TIP]
-> Vil du hellere undgå at køre en collector? [Forbind en cloudkonto](/docs/telemetry/cloud-accounts) under **Cloud → Forbind**, så læser OneUptime selv disse metrikker.
+> Vil du hellere undgå at køre en collector? [Forbind en cloudkonto](/docs/telemetry/cloud-accounts) under **Cloud → Forbind**, så læser OneUptime selv disse metrikker. En AWS-konto kan også [streame sine metrikker og logge](/docs/telemetry/cloud-streaming) via Amazon Data Firehose.
 
 :::cards
 - [Forbind Azure](#forbind-azure): Læs alle ressourcer i et abonnement fra Azure Monitor.

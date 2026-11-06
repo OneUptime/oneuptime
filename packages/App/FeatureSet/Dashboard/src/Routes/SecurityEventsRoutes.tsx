@@ -55,6 +55,7 @@ import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
 import SecurityProtectedEntitiesPage from "../Pages/SecurityEvents/ProtectedEntities";
 import SecurityEventsWorkspaceConnectionSlackPage from "../Pages/SecurityEvents/WorkspaceConnectionSlack";
 import SecurityEventsWorkspaceConnectionMicrosoftTeamsPage from "../Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
+import SecurityEventsWorkspaceConnectionMattermostPage from "../Pages/SecurityEvents/WorkspaceConnectionMattermost";
 import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 import SecurityEventsAISettingsPage from "../Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../Pages/SecurityEvents/Settings/CasePriorities";
@@ -427,6 +428,24 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
+            ] || ""
+          }
+          element={
+            <SecurityEventsWorkspaceConnectionMattermostPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
+                ] as Route
+              }
+            />
+          }
+        />
         <PageRoute
           path={
             SecurityEventsRoutePath[
@@ -438,6 +457,9 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               slackPage={PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK}
               microsoftTeamsPage={
                 PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+              mattermostPage={
+                PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
               }
             />
           }

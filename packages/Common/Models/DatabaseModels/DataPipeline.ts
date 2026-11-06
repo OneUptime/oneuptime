@@ -1,3 +1,7 @@
+import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -74,6 +78,19 @@ const serverWrittenColumnAccess: {
   update: [],
 };
 
+@TableBillingAccessControl({
+  create: PlanType.Free,
+  read: PlanType.Free,
+  update: PlanType.Free,
+  delete: PlanType.Free,
+})
+@EnableMCP()
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
+})
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({

@@ -592,10 +592,22 @@ describe(`agents/VMwareAgent/${UNIT_FILE}`, () => {
     const verify = spawnSync("systemd-analyze", ["verify", file], {
       encoding: "utf8",
     });
-    expect({
-      status: verify.status,
-      output: `${verify.stdout}${verify.stderr}`.trim(),
-    }).toEqual({ status: 0, output: "" });
+    /*
+     * It loads what the unit pulls in as well, and says what it thinks of those: a
+     * distribution's own units are not ours to change (Ubuntu 26.04's use a directive its
+     * systemd removed). A line about anything else is about this unit, and still fails.
+     */
+    const aboutThisUnit = `${verify.stdout}${verify.stderr}`
+      .split("\n")
+      .filter((line) => {
+        return !/^\/(usr\/)?lib\/systemd\/system\//.test(line);
+      })
+      .join("\n")
+      .trim();
+    expect({ status: verify.status, output: aboutThisUnit }).toEqual({
+      status: 0,
+      output: "",
+    });
   });
 });
 

@@ -147,7 +147,7 @@ const BASE = {
 describe("install.sh, where its files come from", () => {
   const SERVED = "https://oneuptime.example.com/install/database-agent";
   const GITHUB =
-    "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent";
+    "https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/DatabaseAgent";
   const POSTGRES = {
     ...BASE,
     DATABASE_SYSTEM: "postgresql",
@@ -1526,6 +1526,26 @@ describe("install.sh, PostgreSQL's SQL checks", () => {
 
       expect(run.status).toBe(0);
       expect(run.envLine("DATABASE_TLS_SSLMODE")).toBe(sslmode);
+    },
+  );
+
+  // The same three choices, in the words of the driver the MySQL config's readings of Galera use.
+  test.each([
+    ["true", "false", "false"],
+    ["true", "true", "false"],
+    ["false", "true", "skip-verify"],
+    ["false", "false", "true"],
+  ])(
+    "TLS insecure %s, skip verify %s: the MySQL driver's tls %s",
+    (insecure, skipVerify, tls) => {
+      const run = runInstall(scratch(), {
+        ...POSTGRES,
+        DATABASE_TLS_INSECURE: insecure,
+        DATABASE_TLS_INSECURE_SKIP_VERIFY: skipVerify,
+      });
+
+      expect(run.status).toBe(0);
+      expect(run.envLine("DATABASE_TLS_MYSQL")).toBe(tls);
     },
   );
 

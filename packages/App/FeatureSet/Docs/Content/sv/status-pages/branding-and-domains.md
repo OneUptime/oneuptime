@@ -40,6 +40,8 @@ Logotypen, logotypen för mörkt tema, omslagsbilden och faviconen är filer som
 
 Din statussida visar bara bilder från sitt eget projekt; en bild som den inte kan visa utelämnas, som om sidan inte hade någon. Instrumentpanelen, API:et och Terraform läser sidans bilder på samma sätt: en bild från ett annat projekt kommer tillbaka som ingen bild alls. E-postmeddelandena som sidan skickar (till prenumeranter, och till privata användare om deras inloggning) visar dess logotyp på samma sätt: en logotyp som sidan inte kan visa utelämnas även från dem i stället för att visas som en trasig bild.
 
+De meddelandena har logotypen inuti sig, så den visas även där ett e-postprogram inte hämtar några bilder från internet eller inte når OneUptime: en PNG-, JPEG-, GIF-, WebP- eller SVG-logotyp följer med som en bild i storlek med meddelandets sidhuvud. En SVG-logotyp vars ord är text och inte former visas i stället från sin adress, eftersom servern inte har något typsnitt att rita orden med: gör om texten till konturer i ditt designverktyg, eller ladda upp en PNG.
+
 ### Tema
 
 Kortet **Tema**, direkt under logotypen, bestämmer hur sidan ser ut för sina besökare. Välj ett av dess tre val så sparas det direkt; det finns ingen knapp **Redigera**.

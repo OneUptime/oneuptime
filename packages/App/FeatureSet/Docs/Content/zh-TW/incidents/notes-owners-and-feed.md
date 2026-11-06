@@ -270,7 +270,7 @@ flowchart TB
 
 - **事件本身** —— `IncidentCreated`、`IncidentUpdated`、`IncidentStateChanged`。`IncidentUpdated` 項目記錄一次編輯變更了什麼：標題、描述、根本原因、補救備註、標籤、嚴重性、監測器及為其設定的狀態，以及加入或移出事件範圍的狀態頁面。每個變更了的值都有一行，依原樣儲存的值則沒有，所以儲存一張什麼都沒改的卡片，或者 API 用戶端或工作流程把事件依原樣寫回，完全不會新增項目。讀起來相同的文字就視為相同（行尾和前後空白除外），標籤只要是同一組就視為相同，與順序無關；被清除的值顯示為已移除，移除所有標籤顯示為「All labels removed.」。警示的 **Alert updated** 項目也是同樣的運作方式。
 - **備註和文件** —— `PublicNote`、`PrivateNote`、`RootCause`、`RemediationNotes`、`PostmortemNote`。`PostmortemNote` 項目在事後分析的備註變更時寫入，而不是每次儲存事後分析時都寫入。
-- **人員** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`，以及 `ChannelMemberAdded`，顯示為 **已新增頻道成員**，表示有人從事件頁面被新增到事件的 Slack 頻道。請參閱 [紀錄頻道中的成員](/docs/workspace-connections/slack#紀錄頻道中的成員)。
+- **人員** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`，以及 `ChannelMemberAdded`，顯示為 **已新增頻道成員**，表示有人從事件頁面被新增到事件的 Slack 或 Mattermost 頻道。請參閱 [紀錄頻道中的成員](/docs/workspace-connections/slack#紀錄頻道中的成員)。
 - **已連結的警示** —— `AlertLinked` 和 `AlertUnlinked`，顯示為 **警示已連結** 和 **警示已取消連結**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
@@ -306,7 +306,7 @@ flowchart TB
 - **來自事件範本** —— 範本帶有 **擁有者** 欄位：擁有該事件、並會在事件建立或更新時收到通知的人員和團隊，從與 **新增擁有者** 相同的清單中選擇。從範本建立事件時會預先填好他們，並在事件的 Slack 和 Microsoft Teams 頻道存在之後新增，因此邀請事件擁有者加入新頻道的通知規則也會邀請他們。儀表板，以及選擇了 **Incident Template** 的工作流程 **Create One Incident** 步驟，新增他們時不會發出「你已被新增」的通知；帶有範本的 [表單](/docs/forms/on-submit) 會通知他們，並把事件的 **事件已建立** 通知延後到他們被新增之後。請參閱 [宣告事件](/docs/incidents/declaring-incidents)。
 - **來自事件擁有者規則** —— 相符的規則在建立時自動新增擁有者。
 - **透過 API 建立時** —— 隨建立呼叫傳入的擁有者使用者和團隊，會以同樣的方式、在頻道存在之後新增，而且不會發出「你已被新增」的通知。
-- **手動** —— 在事件進行中的任何時候，使用 **擁有者** 頁面上的 **新增擁有者** 控制項；事件未關閉時，也可以使用 **概覽** 頁首中擁有者下方的 **新增**。
+- **By hand** —— 在事件進行中的任何時候，使用 **擁有者** 頁面上的 **新增擁有者** 控制項；事件未關閉時，也可以使用 **概覽** 頁首中擁有者下方的 **新增**。
 
 重複新增同一個人是安全的；已經指派的擁有者不會重複。
 
@@ -337,7 +337,7 @@ flowchart TB
 | **你已被新增**             | 你被新增為擁有者時。                                         | `You have been added as the owner of Incident {number} - {title}` |
 | **仍未解決**               | 一則提醒，由事件的下一次提醒時間驅動。                       | `[Reminder] Incident {number} is still {state} - {title}`      |
 
-每則通知都會透過此人在 **使用者設定 → 通知設定** 中開啟的管道發出——電子郵件、簡訊、語音通話、推播、WhatsApp、Telegram、Slack、Microsoft Teams 或 webhook——實際傳送什麼由這些設定決定。每位接收者都可以個別關閉其中每一項——每位使用者的設定分別表述為傳送給你事件已建立、備註已發布、狀態已變更、擁有者已新增、成員已指派以及仍未關閉提醒的通知。只想在狀態變更時接到電話的人，可以剛好只設定這一項。狀態變更代表什麼，請參閱 [事件狀態與嚴重程度](/docs/incidents/states-and-severities)。
+每則通知都會透過此人在 **使用者設定 → 通知設定** 中開啟的管道發出——電子郵件、簡訊、語音通話、推播、WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost 或 webhook——實際傳送什麼由這些設定決定。每位接收者都可以個別關閉其中每一項——每位使用者的設定分別表述為傳送給你事件已建立、備註已發布、狀態已變更、擁有者已新增、成員已指派以及仍未關閉提醒的通知。只想在狀態變更時接到電話的人，可以剛好只設定這一項。狀態變更代表什麼，請參閱 [事件狀態與嚴重程度](/docs/incidents/states-and-severities)。
 
 **沒有擁有者的事件也不會悄無聲息。** 如果事件完全沒有擁有者，通知工作會改為通知專案的擁有者，所以不會有任何遺漏。透過表單回報、且其範本帶有擁有者的事件，其 **事件已建立** 通知則會等待這些擁有者。每個被通知的人也會被附加到對應的動態項目中，所以事後你可以確切看到告訴了誰、傳到哪個位址。
 

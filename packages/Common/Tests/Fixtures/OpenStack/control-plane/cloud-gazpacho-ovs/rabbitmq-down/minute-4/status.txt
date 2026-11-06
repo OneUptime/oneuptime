@@ -1,0 +1,6 @@
+000 rabbitmq
+200 mysqld
+200 memcached
+200 network
+200 libvirt
+200 single-cloud

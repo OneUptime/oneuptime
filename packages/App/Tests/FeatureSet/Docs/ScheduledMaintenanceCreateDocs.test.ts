@@ -129,7 +129,7 @@ describe("the scheduled maintenance create form in the docs", () => {
 
   test("puts the options the form folds under More fields there", () => {
     expect(ENGLISH_GUIDE).toContain(
-      "**Owners** and **Labels** wait under **More fields**",
+      "**Owners**, **Labels** and **Data Observability Databases** wait under **More fields**",
     );
   });
 

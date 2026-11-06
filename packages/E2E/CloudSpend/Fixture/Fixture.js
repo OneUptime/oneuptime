@@ -24,9 +24,13 @@
  *             first read of each costs card fails); a second read answers
  *   ?lang=    de | fa (Persian, laid out right to left, as production does)
  *   ?theme=   dark adds html.dark (handled by server.js)
+ *   ?usage=   what OneUptime read of shop-web-1's CPU: learning (three
+ *             days of readings so far) | fits (busy enough for its size);
+ *             by default half its size would do
  *
  * Every read is recorded on window.__cloudSpendFixture: listRequests,
- * countRequests, itemRequests, aggregateRequests, creates, updates and
+ * countRequests, itemRequests, aggregateRequests, metricRequests (a
+ * resource's readings, for its right-sizing), creates, updates and
  * unhandled - anything the fixture does not model. The spec asserts
  * `unhandled` is empty.
  */
@@ -48,6 +52,10 @@ import CloudResourceRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/Cl
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import CloudCost from "Common/Models/AnalyticsModels/CloudCost";
+import Metric from "Common/Models/AnalyticsModels/Metric";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import { getCloudRightSizingRecommendationId } from "Common/Types/Cloud/CloudRightSizing";
+import { findCloudCostAnomalies } from "Common/Types/Cloud/CloudCostAnomaly";
 import Project from "Common/Models/DatabaseModels/Project";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -100,6 +108,9 @@ const FAILING = new Set(
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+const USAGE_SCENARIO = ["learning", "fits"].includes(params.get("usage"))
+  ? params.get("usage")
+  : "";
 
 await i18next.use(initReactI18next).init({
   lng: LANGUAGE,
@@ -248,6 +259,12 @@ const BILLED = {
         region: "us-west-2",
         resourceId: "",
         base: 21,
+        /*
+         * Yesterday a query ran away: about two and a half times its usual
+         * day - an unusual day on Costs, and a budget's alert.
+         */
+        spikeDaysAgo: 1,
+        spikeFactor: 2.5,
       },
     ],
   },
@@ -308,7 +325,14 @@ for (const [accountRow, billed] of Object.entries(BILLED)) {
       const swing = 1 + 0.12 * Math.sin(index / 2.3 + lineIndex);
       const growth = 1 + index / 400;
       const partial = day.getTime() === today.getTime() ? 0.4 : 1;
-      const cost = Math.round(line.base * swing * growth * partial * 100) / 100;
+      const spike =
+        line.spikeDaysAgo !== undefined &&
+        Math.round((today.getTime() - day.getTime()) / DAY) ===
+          line.spikeDaysAgo
+          ? line.spikeFactor
+          : 1;
+      const cost =
+        Math.round(line.base * swing * growth * partial * spike * 100) / 100;
       COST_ROWS.push({
         cloudAccountId: accountRow,
         day: new Date(day),
@@ -322,10 +346,24 @@ for (const [accountRow, billed] of Object.entries(BILLED)) {
   });
 }
 
-// An account's summary, as the server writes it after a read of its costs.
+/*
+ * When the accounts' costs were last read: two hours ago, but never before
+ * today's start. A summary read across midnight would end at yesterday -
+ * or, on a month's first day, at last month - while every page sums
+ * today's rows too, so between 00:00 and 02:00 UTC the Overview's month
+ * and Costs' breakdown would tell two different months.
+ */
+const COSTS_READ_AT = new Date(Math.max(LOADED_AT - 2 * HOUR, today.getTime()));
+
+/*
+ * An account's summary, as the server writes it after a read of its costs
+ * (CloudCostWriter.summarizePoints): its figures, and the days of its last
+ * two weeks that cost far more than usual.
+ */
 function costSummaryOf(accountRow) {
   const dailyTotals = new Map();
   const monthServices = new Map();
+  const dailyServiceTotals = new Map();
   const monthStart = startOfUtcMonth(NOW).getTime();
 
   for (const row of COST_ROWS) {
@@ -334,6 +372,9 @@ function costSummaryOf(accountRow) {
     }
     const key = toCloudCostDay(row.day);
     dailyTotals.set(key, (dailyTotals.get(key) || 0) + row.cost);
+    const services = dailyServiceTotals.get(key) || new Map();
+    services.set(row.service, (services.get(row.service) || 0) + row.cost);
+    dailyServiceTotals.set(key, services);
     if (row.day.getTime() >= monthStart) {
       monthServices.set(
         row.service,
@@ -342,12 +383,19 @@ function costSummaryOf(accountRow) {
     }
   }
 
-  return summarizeCloudAccountCosts({
+  const summary = summarizeCloudAccountCosts({
     dailyTotals,
     monthServices,
     currency: BILLED[accountRow].currency,
-    now: new Date(LOADED_AT - 2 * HOUR),
+    // Read a while ago, and today, whatever the hour: COST_ROWS reach today's part.
+    now: COSTS_READ_AT,
   });
+  const anomalies = findCloudCostAnomalies({
+    dailyServiceTotals,
+    latestDay: summary.latestDay,
+  });
+
+  return anomalies.length > 0 ? { ...summary, anomalies } : summary;
 }
 
 /*
@@ -359,6 +407,11 @@ const WEB_1 = uuid("82000000", 1);
 const ORDERS_DB = uuid("82000000", 2);
 const CACHE_1 = uuid("82000000", 3);
 const ETL_RUNNER = uuid("82000000", 4);
+// Sized by OneUptime from its own readings: no recommender speaks for them.
+const SHOP_WEB_1 = uuid("82000000", 5);
+const BATCH_1 = uuid("82000000", 6);
+const SHOP_WEB_1_ID =
+  "/subscriptions/5f0c2d7e-9a41-4f3b-8c6e-1d2a3b4c5d6e/resourceGroups/shop/providers/Microsoft.Compute/virtualMachines/shop-web-1";
 
 function recommendation(number, fields) {
   return {
@@ -499,6 +552,38 @@ const RECOMMENDATIONS = [
     effort: "VeryLow",
     source: "Google Cloud Recommender",
   }),
+  /*
+   * OneUptime's own right-sizing, as the savings lane keeps it: an EC2
+   * instance no recommender speaks for, sized from its CPU, its saving not
+   * known yet - AWS Cost Explorer bills it under its service only.
+   */
+  recommendation(8, {
+    recommendationId: getCloudRightSizingRecommendationId(BATCH_1),
+    cloudAccountId: DATA_LAKE,
+    cloudAccount: { name: "data-lake" },
+    provider: "aws",
+    kind: CloudSavingKind.Rightsize,
+    action: "Rightsize",
+    resourceName: "batch-1",
+    resourceType: "EC2 instance",
+    resourceId: "arn:aws:ec2:us-west-2:210987654321:instance/i-0batch1",
+    cloudResourceId: BATCH_1,
+    cloudResource: { name: "batch-1" },
+    region: "us-west-2",
+    currentConfiguration: "m5.4xlarge",
+    recommendedConfiguration: "m5.xlarge",
+    monthlySavings: 0,
+    effort: "Medium",
+    source: "OneUptime",
+    evidence: {
+      cpuP95Percent: 8,
+      cpuMaxPercent: 22,
+      memoryPeakPercent: null,
+      observedDays: 14,
+      factor: 4,
+      isSavingUpperBound: false,
+    },
+  }),
 ];
 
 function savingsSummaryOf(accountRow) {
@@ -528,7 +613,7 @@ function notRead(state, message) {
     projectedMonth: 0,
     last30Days: 0,
     topServices: [],
-    readAt: new Date(LOADED_AT - 2 * HOUR).toISOString(),
+    readAt: COSTS_READ_AT.toISOString(),
   };
 }
 
@@ -604,8 +689,10 @@ const ACCOUNTS = EMPTY
 
 /*
  * ---------------------------------------------------------------------------
- * Resources: three whose last read found something, and two environments
- * the accounts run apps in (App Platforms')
+ * Resources: three whose last read found something, three OneUptime sizes
+ * from its own readings (USAGE: one running hot, an Azure VM billed by name
+ * with half its size to spare, an EC2 instance kept among the ways to spend
+ * less), and two environments the accounts run apps in (App Platforms')
  * ---------------------------------------------------------------------------
  */
 function minutesAgo(minutes) {
@@ -657,14 +744,54 @@ const RESOURCES = EMPTY
         },
         healthSeverity: "warning",
       }),
+      // Running hot, and no recommender speaks for it: under-provisioned.
       resource(CACHE_1, {
         name: "sessions-cache",
         cloudProvider: "aws",
         cloudResourceType: "AWS::ElastiCache::CacheCluster",
         cloudRegion: "us-east-1",
         cloudAccountId: "123456789012",
+        providerResourceId:
+          "arn:aws:elasticache:us-east-1:123456789012:cluster:sessions-cache",
+        cloudProperties: { CacheNodeType: "cache.r6g.large" },
+        telemetryAttributes: {
+          Namespace: "AWS/ElastiCache",
+          "Dimensions.CacheClusterId": "sessions-cache",
+        },
         cloudReadings: { "aws/elasticache/cpuutilization": reading(99) },
         healthSeverity: "warning",
+      }),
+      /*
+       * An Azure VM its cloud bills by name and no recommender speaks for:
+       * half its size would do, and its saving is known.
+       */
+      resource(SHOP_WEB_1, {
+        name: "shop-web-1",
+        cloudProvider: "azure",
+        cloudResourceType: "Microsoft.Compute/virtualMachines",
+        cloudRegion: "westeurope",
+        cloudAccountId: "5f0c2d7e-9a41-4f3b-8c6e-1d2a3b4c5d6e",
+        cloudResourceGroup: "shop",
+        providerResourceId: SHOP_WEB_1_ID,
+        cloudProperties: { vmSize: "Standard_D8s_v5" },
+        telemetryAttributes: { "azuremonitor.resource_id": SHOP_WEB_1_ID },
+        cloudReadings: { percentage_cpu: reading(9) },
+      }),
+      // An EC2 instance OneUptime sized: kept among the ways to spend less.
+      resource(BATCH_1, {
+        name: "batch-1",
+        cloudProvider: "aws",
+        cloudResourceType: "AWS::EC2::Instance",
+        cloudRegion: "us-west-2",
+        cloudAccountId: "210987654321",
+        providerResourceId:
+          "arn:aws:ec2:us-west-2:210987654321:instance/i-0batch1",
+        cloudProperties: { InstanceType: "m5.4xlarge" },
+        telemetryAttributes: {
+          Namespace: "AWS/EC2",
+          "Dimensions.InstanceId": "i-0batch1",
+        },
+        cloudReadings: { "aws/ec2/cpuutilization": reading(6) },
       }),
       /*
        * A Compute Engine instance, as Cloud Asset Inventory lists it under
@@ -873,6 +1000,7 @@ const fixture = {
   countRequests: [],
   itemRequests: [],
   aggregateRequests: [],
+  metricRequests: [],
   creates: [],
   updates: [],
   apiRequests: [],
@@ -1032,6 +1160,8 @@ const EMPTY_TABLES = [
   "Alert",
   "IncidentState",
   "AlertState",
+  // A resource's Metrics card: no metric catalog in this workspace.
+  "MetricType",
 ];
 
 function isModelled(modelType) {
@@ -1148,6 +1278,7 @@ async function createRecord(options) {
     cloudAccountId: relationId(model.cloudAccount || model.cloudAccountId),
     alertThresholds: model.alertThresholds,
     alertOnProjection: model.alertOnProjection,
+    alertOnAnomaly: model.alertOnAnomaly,
     isEnabled: model.isEnabled,
     description: model.description || "",
   };
@@ -1220,6 +1351,12 @@ AnalyticsModelAPI.aggregate = async (options) => {
   const aggregateBy = options.aggregateBy || {};
   const query = aggregateBy.query || {};
   const groupBy = Object.keys(aggregateBy.groupBy || {});
+
+  // A resource's readings, as OneUptime's own right-sizing reads them.
+  if (options.modelType === Metric) {
+    return answerMetric(aggregateBy, query);
+  }
+
   fixture.aggregateRequests.push({
     modelName: tableName(options.modelType),
     interval: aggregateBy.aggregationInterval,
@@ -1307,7 +1444,95 @@ AnalyticsModelAPI.aggregate = async (options) => {
   };
 };
 
+/*
+ * The last 14 days of what OneUptime read of a resource's CPU and memory,
+ * by the attribute its readings are filed under: each figure one value
+ * over the window, its first reading two weeks back.
+ */
+const USAGE = {
+  /*
+   * Half its size would do - or (?usage=) it has been read for three days
+   * only, or it is busy enough for its size.
+   */
+  [SHOP_WEB_1_ID]:
+    USAGE_SCENARIO === "learning"
+      ? {
+          cpu: { [AggregationType.P95]: 12, [AggregationType.Max]: 30 },
+          samples: 864,
+          days: 3,
+        }
+      : USAGE_SCENARIO === "fits"
+        ? {
+            cpu: { [AggregationType.P95]: 48, [AggregationType.Max]: 76 },
+            samples: 20160,
+          }
+        : {
+            cpu: { [AggregationType.P95]: 12, [AggregationType.Max]: 30 },
+            samples: 20160,
+          },
+  "sessions-cache": {
+    cpu: { [AggregationType.P95]: 91, [AggregationType.Max]: 99 },
+    memory: 62,
+    samples: 4032,
+  },
+  "i-0batch1": {
+    cpu: { [AggregationType.P95]: 8, [AggregationType.Max]: 22 },
+    samples: 4032,
+  },
+};
+
+function answerMetric(aggregateBy, query) {
+  const attributes = query.attributes || {};
+  const names =
+    query.name instanceof Includes ? query.name.values : [query.name];
+  fixture.metricRequests.push({
+    aggregationType: aggregateBy.aggregationType,
+    interval: aggregateBy.aggregationInterval,
+    names: names.map(String),
+    attributes: JSON.parse(JSON.stringify(attributes)),
+  });
+
+  const usage = Object.entries(USAGE).find(([value]) => {
+    return Object.values(attributes).includes(value);
+  });
+
+  if (!usage) {
+    return { data: [] };
+  }
+
+  const readings = usage[1];
+  const isMemory = names.some((name) => {
+    return String(name).includes("memory");
+  });
+  // Its first reading in the window: two weeks back, or as long as it has been read.
+  const first = new Date(LOADED_AT - (readings.days || 14) * DAY);
+  let value = null;
+
+  if (aggregateBy.aggregationType === AggregationType.Count) {
+    value = isMemory ? null : readings.samples;
+  } else if (isMemory) {
+    value =
+      aggregateBy.aggregationType === AggregationType.Max
+        ? readings.memory ?? null
+        : null;
+  } else {
+    value = readings.cpu[aggregateBy.aggregationType] ?? null;
+  }
+
+  return value === null
+    ? { data: [] }
+    : { data: [{ timestamp: first, value }] };
+}
+
 AnalyticsModelAPI.getList = async (options) => {
+  /*
+   * A resource's Metrics card lists its metrics: none in this fixture, as
+   * for a resource whose provider has sent nothing in its window.
+   */
+  if (options.modelType === Metric) {
+    return { data: [], count: 0, skip: 0, limit: options.limit || 10 };
+  }
+
   fixture.unhandled.push({
     kind: "analytics-list",
     modelName: tableName(options.modelType),
@@ -1326,6 +1551,11 @@ AnalyticsModelAPI.count = async () => {
  * connected to the account.
  */
 function answerApi(method, url, body) {
+  // The Metrics card's attribute keys: none, as for no metric yet.
+  if (method === "POST" && url.endsWith("/telemetry/metrics/get-attributes")) {
+    return { attributes: [] };
+  }
+
   if (method === "POST" && url.endsWith("/security-case/resource-security")) {
     return {
       kind: body.kind,

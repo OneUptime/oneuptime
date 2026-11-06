@@ -303,7 +303,7 @@ service:
 - `delay` väntar på att CloudWatch publicerar en period (det tar några minuter), så med den här konfigurationen kommer en kös brokermätvärden 11 till 17 minuter sent: en monitor över dem behöver ett längre fönster (se **Fördröjda mätvärden** under [Larm](#larm)).
 - En receiver läser en region och ett namespace: lägg till en instans per region.
 
-**Strömning** skickar mätvärdena allteftersom CloudWatch publicerar dem. Skapa en CloudWatch Metric Stream för namespacen `AWS/SQS` (och `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som levererar till en Amazon Data Firehose-ström vars destination är en HTTP-slutpunkt: din collector, med en åtkomstnyckel. Firehose levererar bara till `https://` på port 443, så collectorn behöver ett certifikat och en offentlig port 443 (till exempel bakom en lastbalanserare):
+**Strömmar**: skickar mätvärdena allteftersom CloudWatch publicerar dem. Skapa en CloudWatch Metric Stream för namespacen `AWS/SQS` (och `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som levererar till en Amazon Data Firehose-ström vars destination är en HTTP-slutpunkt: din collector, med en åtkomstnyckel. Firehose levererar bara till `https://` på port 443, så collectorn behöver ett certifikat och en offentlig port 443 (till exempel bakom en lastbalanserare):
 
 ```yaml
 extensions:
@@ -994,7 +994,7 @@ service:
 
 Varje punkt i `rabbitmq.message.published.delta` är antalet meddelanden som publicerats sedan föregående skrapning, så en mätvärdesmonitor på den, filtrerad på `resource.rabbitmq.queue.name` och summerad över sitt fönster, räknar det som publicerades i det fönstret: under 1 under 15 minuter betyder att ingen publicerar. Efter varje start av collectorn har processorn inget tidigare värde att dra en kös första punkt från, och som standard skickar den punkten som den är: räknarens hela löpande summa, som om varje meddelande kön någonsin haft hade publicerats i en skrapning. `initial_value: drop` håller tillbaka den punkten, så att en kös kopia börjar med den andra skrapning som rapporterar dess räknare. Kopiera en annan räknare på samma sätt, med en `copy_metric`-sats och en `include`-post för varje. ActiveMQ:s JMX Scraper måste då skicka genom en sådan collector, till en `otlp`-receiver i stället för `rabbitmq`; RocketMQ:s räknare tar samma två processorer i pipelinen för dess `prometheus`-receiver.
 
-**Manuellt** filtrerar du på det attribut som namnger kön i det mätvärdet; det är samma för varje kö i ett system:
+**By hand** filtrerar du på det attribut som namnger kön i det mätvärdet; det är samma för varje kö i ett system:
 
 | Varna när | Mätvärde | Filter | Aggregering |
 | --- | --- | --- | --- |

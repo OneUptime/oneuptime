@@ -681,6 +681,30 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      title: t("navbar.items.openstackTitle", "OpenStack"),
+      keywords: [
+        "private cloud",
+        "nova",
+        "neutron",
+        "cinder",
+        "keystone",
+        "glance",
+        "hypervisors",
+        "instances",
+      ],
+      description: t(
+        "navbar.items.openstackDescription",
+        "Monitor OpenStack clouds, services, hypervisors and instances.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.OPENSTACK_CLOUDS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.OPENSTACK_CLOUDS],
+      icon: IconProp.Cloud,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
       title: t("navbar.items.vmwareTitle", "VMware"),
       keywords: [
         "vcenter",

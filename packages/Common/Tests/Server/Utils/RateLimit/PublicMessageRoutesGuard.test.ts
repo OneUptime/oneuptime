@@ -13,13 +13,15 @@ import ts from "typescript";
  * The routes anyone can call without signing in that send a message to a
  * contact the request names - a status page sign-up, a status page manage
  * link, a status page private user's password reset and sign-in link, an
- * account's password reset, the emails an account sign-up sends, and the
- * verification link a sign-in to an address not verified yet sends - are
+ * account's password reset and sign-in link, the emails an account sign-up
+ * sends, and the verification link a sign-in to an address not verified
+ * yet sends - are
  * each limited per caller and per contact by
  * PublicMessageRateLimit.assertMaySend. The route suites drive each one
  * (StatusPageSubscriberMessageLimits.test.ts here; in App,
  * PasswordResetAndSignUpEmailLimits.test.ts,
- * StatusPagePasswordResetLimits.test.ts and StatusPageMagicLink.test.ts);
+ * StatusPagePasswordResetLimits.test.ts, StatusPageMagicLink.test.ts and
+ * MagicLinkLogin.test.ts);
  * this guard holds the wiring
  * itself, read from the code with its comments removed:
  *
@@ -83,6 +85,23 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
     routePath: "/forgot-password",
     kind: PublicMessageKind.PasswordReset,
     branches: [["UserService.updateOneBy(", "MailService.sendMail("]],
+  },
+  {
+    /*
+     * An account's sign-in link. Asked before the address is even looked up
+     * - counted whether or not it has an account, so that a refusal says
+     * nothing about who has one.
+     */
+    file: AUTHENTICATION,
+    routePath: "/send-magic-link",
+    kind: PublicMessageKind.MagicLink,
+    branches: [
+      [
+        "UserService.findOneBy(",
+        "UserService.updateOneBy(",
+        "MailService.sendMail(",
+      ],
+    ],
   },
   {
     file: AUTHENTICATION,

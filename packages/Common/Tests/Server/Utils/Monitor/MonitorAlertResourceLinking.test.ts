@@ -151,6 +151,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     kubernetesClusterIds: [],
     serviceIds: [],
     proxmoxClusterIds: [],
+    openStackCloudIds: [],
     vmwareVCenterIds: [],
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
@@ -797,6 +798,7 @@ describe("Alerts link the resources their series identifies", () => {
     resourceContext = {
       ...emptyResourceContext(),
       proxmoxClusterIds: [],
+      openStackCloudIds: [],
       cephClusterIds: ["ceph-1"],
       dockerSwarmClusterIds: [],
       iotFleetIds: [],

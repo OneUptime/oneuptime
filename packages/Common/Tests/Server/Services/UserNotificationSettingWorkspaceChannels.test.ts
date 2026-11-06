@@ -1,6 +1,7 @@
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import MailService from "../../../Server/Services/MailService";
@@ -11,6 +12,7 @@ import logger from "../../../Server/Utils/Logger";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserMattermost from "../../../Models/DatabaseModels/UserMattermost";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import URL from "../../../Types/API/URL";
@@ -35,13 +37,14 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
  * "incident created and I own it", "I go on-call", and the ~40 other
  * NotificationSettingEventType rows. Its callers were all written before the
  * workspace channels existed, so they hand over payloads for the older
- * channels only — which is why the Slack / Microsoft Teams block SYNTHESISES
- * its markdown from the email subject + SMS body, exactly the way the
- * Telegram fallback body works. Pinned here:
+ * channels only — which is why the Slack / Microsoft Teams / Mattermost block
+ * SYNTHESISES its markdown from the email subject + SMS body, exactly the way
+ * the Telegram fallback body works. Pinned here:
  *
- *   1. THE TOGGLES. alertBySlack / alertByMicrosoftTeams each gate their own
- *      channel and nothing else, and a settings row with both off sends no
- *      workspace message at all (including not looking the methods up).
+ *   1. THE TOGGLES. alertBySlack / alertByMicrosoftTeams / alertByMattermost
+ *      each gate their own channel and nothing else, and a settings row with
+ *      all of them off sends no workspace message at all (including not
+ *      looking the methods up).
  *
  *   2. THE ADDRESSES. Only VERIFIED method rows are read, each one gets its
  *      own send, and a row whose address column is empty is skipped.
@@ -65,6 +68,8 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 const SLACK_USER_ID: string = "U0123ABCD";
 const SECOND_SLACK_USER_ID: string = "U0456EFGH";
 const TEAMS_USER_ID: string = "entra-object-id-1";
+const MATTERMOST_USER_ID: string = "pbxk4yq3wfgnxbk1t8h6y7o5ca";
+const SECOND_MATTERMOST_USER_ID: string = "qcyl5zr4xghoycl2u9i7z8p6db";
 
 const EVENT_TYPE: NotificationSettingEventType =
   NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
@@ -87,6 +92,7 @@ function settingsRow(
     alertByTelegram: false,
     alertBySlack: false,
     alertByMicrosoftTeams: false,
+    alertByMattermost: false,
     alertByWebhook: false,
     ...overrides,
   } as unknown as UserNotificationSetting;
@@ -124,6 +130,7 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
   let findSettings: jest.SpyInstance;
   let findSlacks: jest.SpyInstance;
   let findTeams: jest.SpyInstance;
+  let findMattermosts: jest.SpyInstance;
   let findEmails: jest.SpyInstance;
   let sendMail: jest.SpyInstance;
   let sendDm: jest.SpyInstance;
@@ -188,6 +195,15 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
         } as unknown as UserMicrosoftTeams,
       ] as never);
 
+    findMattermosts = jest
+      .spyOn(UserMattermostService, "findBy")
+      .mockResolvedValue([
+        {
+          id: new ObjectID("66666666-6666-4666-8666-666666666666"),
+          mattermostUserId: MATTERMOST_USER_ID,
+        } as unknown as UserMattermost,
+      ] as never);
+
     sendDm = jest
       .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
       .mockResolvedValue(undefined as never);
@@ -239,9 +255,10 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       expect(sendArgs()[0]?.workspaceType).toBe(WorkspaceType.Slack);
       expect(sendArgs()[0]?.workspaceUserId).toBe(SLACK_USER_ID);
       expect(findTeams).not.toHaveBeenCalled();
+      expect(findMattermosts).not.toHaveBeenCalled();
     });
 
-    test("alertByMicrosoftTeams on sends to Teams and never reads the Slack methods", async () => {
+    test("alertByMicrosoftTeams on sends to Teams and never reads the Slack or Mattermost methods", async () => {
       findSettings.mockResolvedValue(
         settingsRow({ alertByMicrosoftTeams: true }) as never,
       );
@@ -254,13 +271,47 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       expect(sendArgs()[0]?.workspaceType).toBe(WorkspaceType.MicrosoftTeams);
       expect(sendArgs()[0]?.workspaceUserId).toBe(TEAMS_USER_ID);
       expect(findSlacks).not.toHaveBeenCalled();
+      expect(findMattermosts).not.toHaveBeenCalled();
     });
 
-    test("both toggles on sends one message per channel", async () => {
+    test("alertByMattermost on sends a direct message to Mattermost and never reads the Slack or Teams methods", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByMattermost: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(sendDm).toHaveBeenCalledTimes(1);
+      expect(sendArgs()[0]?.workspaceType).toBe(WorkspaceType.Mattermost);
+      expect(sendArgs()[0]?.workspaceUserId).toBe(MATTERMOST_USER_ID);
+      expect(findSlacks).not.toHaveBeenCalled();
+      expect(findTeams).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The mocks above answer with whatever they are told, so a read that
+     * forgot the column would still pass them. The database would answer with
+     * no value, and the switch could never be on.
+     */
+    test("the setting is read with its Mattermost switch", async () => {
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      const read: { select: Record<string, boolean> } = findSettings.mock
+        .calls[0][0] as { select: Record<string, boolean> };
+
+      expect(read.select["alertByMattermost"]).toBe(true);
+    });
+
+    test("every toggle on sends one message per channel", async () => {
       findSettings.mockResolvedValue(
         settingsRow({
           alertBySlack: true,
           alertByMicrosoftTeams: true,
+          alertByMattermost: true,
         }) as never,
       );
 
@@ -268,7 +319,7 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
         notificationData(),
       );
 
-      expect(sendDm).toHaveBeenCalledTimes(2);
+      expect(sendDm).toHaveBeenCalledTimes(3);
       const workspaceTypes: Array<WorkspaceType> = sendArgs().map(
         (arg: CapturedSendArg) => {
           return arg.workspaceType;
@@ -276,9 +327,10 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       );
       expect(workspaceTypes).toContain(WorkspaceType.Slack);
       expect(workspaceTypes).toContain(WorkspaceType.MicrosoftTeams);
+      expect(workspaceTypes).toContain(WorkspaceType.Mattermost);
     });
 
-    test("both toggles off sends nothing and does not even look the methods up", async () => {
+    test("every toggle off sends nothing and does not even look the methods up", async () => {
       findSettings.mockResolvedValue(settingsRow() as never);
 
       await UserNotificationSettingService.sendUserNotification(
@@ -288,6 +340,7 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       expect(sendDm).not.toHaveBeenCalled();
       expect(findSlacks).not.toHaveBeenCalled();
       expect(findTeams).not.toHaveBeenCalled();
+      expect(findMattermosts).not.toHaveBeenCalled();
     });
 
     test("no monitor status-change setting sends nothing on any channel", async () => {
@@ -304,6 +357,7 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       ).not.toHaveBeenCalled();
       expect(findSlacks).not.toHaveBeenCalled();
       expect(findTeams).not.toHaveBeenCalled();
+      expect(findMattermosts).not.toHaveBeenCalled();
       expect(sendDm).not.toHaveBeenCalled();
     });
 
@@ -381,6 +435,83 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       expect(sendDm).toHaveBeenCalledTimes(1);
       expect(sendArgs()[0]?.workspaceUserId).toBe(SLACK_USER_ID);
     });
+
+    describe("of Mattermost accounts", () => {
+      beforeEach(() => {
+        findSettings.mockResolvedValue(
+          settingsRow({ alertByMattermost: true }) as never,
+        );
+      });
+
+      test("only VERIFIED rows are read, scoped to this user and project, for the account id alone", async () => {
+        await UserNotificationSettingService.sendUserNotification(
+          notificationData(),
+        );
+
+        const arg: {
+          query: { userId: ObjectID; projectId: ObjectID; isVerified: boolean };
+          select: Record<string, boolean>;
+          props: { isRoot: boolean };
+        } = findMattermosts.mock.calls[0][0] as {
+          query: { userId: ObjectID; projectId: ObjectID; isVerified: boolean };
+          select: Record<string, boolean>;
+          props: { isRoot: boolean };
+        };
+        expect(arg.query.userId.toString()).toBe(USER_ID.toString());
+        expect(arg.query.projectId.toString()).toBe(PROJECT_ID.toString());
+        expect(arg.query.isVerified).toBe(true);
+        expect(arg.select).toEqual({ mattermostUserId: true });
+        expect(arg.props.isRoot).toBe(true);
+      });
+
+      test("every linked account gets its own send", async () => {
+        findMattermosts.mockResolvedValue([
+          { mattermostUserId: MATTERMOST_USER_ID } as unknown as UserMattermost,
+          {
+            mattermostUserId: SECOND_MATTERMOST_USER_ID,
+          } as unknown as UserMattermost,
+        ] as never);
+
+        await UserNotificationSettingService.sendUserNotification(
+          notificationData(),
+        );
+
+        expect(sendDm).toHaveBeenCalledTimes(2);
+        const targets: Array<string> = sendArgs().map(
+          (arg: CapturedSendArg) => {
+            return arg.workspaceUserId;
+          },
+        );
+        expect(targets).toContain(MATTERMOST_USER_ID);
+        expect(targets).toContain(SECOND_MATTERMOST_USER_ID);
+      });
+
+      test("a row whose account id is empty is skipped rather than sent to nobody", async () => {
+        findMattermosts.mockResolvedValue([
+          { mattermostUserId: "" } as unknown as UserMattermost,
+          { mattermostUserId: MATTERMOST_USER_ID } as unknown as UserMattermost,
+        ] as never);
+
+        await UserNotificationSettingService.sendUserNotification(
+          notificationData(),
+        );
+
+        expect(sendDm).toHaveBeenCalledTimes(1);
+        expect(sendArgs()[0]?.workspaceUserId).toBe(MATTERMOST_USER_ID);
+      });
+
+      test("no connected account sends nothing, and the setting stays harmless", async () => {
+        findMattermosts.mockResolvedValue([] as never);
+
+        await expect(
+          UserNotificationSettingService.sendUserNotification(
+            notificationData(),
+          ),
+        ).resolves.toBeUndefined();
+
+        expect(sendDm).not.toHaveBeenCalled();
+      });
+    });
   });
 
   /*
@@ -448,6 +579,88 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       expect(sendArgs()[0]?.userId.toString()).toBe(USER_ID.toString());
       // The settings path has no on-call timeline row to flip.
       expect(sendArgs()[0]?.userOnCallLogTimelineId).toBeUndefined();
+    });
+
+    test("Mattermost gets the same message Slack and Microsoft Teams get", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({
+          alertBySlack: true,
+          alertByMicrosoftTeams: true,
+          alertByMattermost: true,
+        }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      const bodies: Array<string> = sendArgs().map((arg: CapturedSendArg) => {
+        return (arg.messageBlocks[0] as WorkspacePayloadMarkdown).text;
+      });
+
+      expect(bodies).toHaveLength(3);
+      expect(new Set(bodies).size).toBe(1);
+      expect(bodies[0]).toContain("🔔 **Incident created: Checkout is down**");
+    });
+
+    test("a subject with Markdown in it reaches Mattermost as text", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByMattermost: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData({
+          emailEnvelope: {
+            subject: "Incident [click](https://evil.example/) *now*",
+            templateType: EmailTemplateType.BlankTemplate,
+            vars: {},
+          } as unknown as EmailEnvelope,
+        }),
+      );
+
+      const text: string = firstBlockText();
+
+      expect(text).not.toContain("[click](https://evil.example/)");
+      expect(text).toContain("🔔 **Incident \\[click\\]");
+    });
+
+    test("neither subject nor SMS body sends Mattermost nothing, without reading its accounts", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByMattermost: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData({
+          emailEnvelope: {
+            subject: "",
+            templateType: EmailTemplateType.BlankTemplate,
+            vars: {},
+          } as unknown as EmailEnvelope,
+          smsMessage: { message: "" } as SMSMessage,
+        }),
+      );
+
+      expect(findMattermosts).not.toHaveBeenCalled();
+      expect(sendDm).not.toHaveBeenCalled();
+    });
+
+    test("the context ids ride along on a Mattermost message, with its log summary", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByMattermost: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      const arg: CapturedSendArg & { messageSummary?: string } =
+        sendArgs()[0] as CapturedSendArg & { messageSummary?: string };
+
+      expect(arg.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(arg.userId.toString()).toBe(USER_ID.toString());
+      expect(arg.incidentId?.toString()).toBe(INCIDENT_ID.toString());
+      expect(arg.messageSummary).toBe("Incident created: Checkout is down");
+      expect(arg.userOnCallLogTimelineId).toBeUndefined();
     });
   });
 
@@ -555,6 +768,32 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       await flushMicrotasks();
 
       expect(loggerError).toHaveBeenCalled();
+    });
+
+    test("a rejected Mattermost send is logged, and costs Slack and Microsoft Teams nothing", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({
+          alertBySlack: true,
+          alertByMicrosoftTeams: true,
+          alertByMattermost: true,
+        }) as never,
+      );
+      sendDm.mockImplementation(
+        (arg: { workspaceType: WorkspaceType }): Promise<void> => {
+          return arg.workspaceType === WorkspaceType.Mattermost
+            ? Promise.reject(new Error("mattermost server unreachable"))
+            : Promise.resolve();
+        },
+      );
+
+      await expect(
+        UserNotificationSettingService.sendUserNotification(notificationData()),
+      ).resolves.toBeUndefined();
+
+      await flushMicrotasks();
+
+      expect(sendDm).toHaveBeenCalledTimes(3);
+      expect(loggerError).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -62,6 +62,7 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, no necesit
 | AWS CloudTrail | Inicios de sesión en la consola, cambios en sus cuentas de AWS y llamadas que AWS rechazó |
 | Registros de auditoría de Google Cloud | Cambios en sus proyectos de Google Cloud, llamadas que Google rechazó e inicios de sesión de Google Workspace compartidos con Google Cloud |
 | Registros de actividad de Azure y de Entra ID | Cambios en sus suscripciones de Azure, alertas de Defender for Cloud, e inicios de sesión y cambios de directorio de Microsoft Entra ID |
+| Registro de auditoría de OpenStack | Inicios de sesión fallidos, concesiones de roles y cambios en Keystone, lo que el filtro de auditoría vio de cada API, grupos de seguridad abiertos al mundo e imágenes hechas públicas |
 | CEF | Amenazas, conexiones bloqueadas e inicios de sesión de firewalls, IDS, WAF y otros productos de seguridad que envían Common Event Format |
 | LEEF | Lo mismo de los productos que envían Log Event Extended Format, como hacen muchos para IBM QRadar |
 | Palo Alto Networks | Amenazas, conexiones bloqueadas, inicios de sesión de GlobalProtect y de administradores, y cambios de configuración del propio syslog de PAN-OS |

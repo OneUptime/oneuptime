@@ -131,15 +131,9 @@ function answer(status: ActiveMonitorLimitStatus | JSONObject | null): void {
   );
 }
 
-/*
- * The request fails. Thrown from an async function, so the rejection is a
- * native promise's that the code under test awaits - not one made ahead of
- * time that the zone.js shim reports as unhandled before it is awaited.
- */
+// The request fails.
 function failRequests(): void {
-  getSpy.mockImplementation((async (): Promise<never> => {
-    throw new Error("Network down");
-  }) as never);
+  getSpy.mockRejectedValue(new Error("Network down"));
 }
 
 function renderNotice(showWhen: ActiveMonitorLimitNoticeShowWhen): void {

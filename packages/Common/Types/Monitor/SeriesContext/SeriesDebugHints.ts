@@ -512,6 +512,255 @@ export default class SeriesDebugHints {
     return commands;
   }
 
+  /*
+   * The `openstack` CLI for the part a series names, with the labels the shipped
+   * templates group by. Every command reads and none changes anything.
+   *
+   * It runs against one region at a time, so a series that names its region asks
+   * that one: a host name can repeat between regions, and the shell's OS_REGION_NAME
+   * may be another's. That is a global option, so it comes before the command.
+   *
+   * Each host name is the one that command takes. Nova's workers say the short host
+   * name, which is what `--host` matches; hypervisors and Placement say the full
+   * name, which is what `hypervisor show` finds and `--host` does not. And the
+   * `status` label's word says whose it is: Nova writes its statuses in capitals,
+   * Cinder in lower case.
+   */
+  private static openstackCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    const label: (key: string) => string = (key: string): string => {
+      return SeriesLabelDisplay.findLabelValue(seriesLabels, [key]);
+    };
+    const quoted: (value: string) => string = (value: string): string => {
+      return SeriesDebugHints.quoteForShell(value);
+    };
+
+    const region: string = label("openstack.region.name");
+    const cli: string = region
+      ? `openstack --os-region-name ${quoted(region)}`
+      : "openstack";
+
+    const host: string = label("hostname");
+    const binary: string = label("service");
+
+    if (binary) {
+      const hostFlag: string = host ? ` --host ${quoted(host)}` : "";
+
+      if (binary.startsWith("nova-")) {
+        commands.push({
+          purpose: "The worker's state, and why it was disabled if it was",
+          command: `${cli} compute service list${hostFlag} --service ${quoted(binary)} --long`,
+        });
+
+        if (host && binary === "nova-compute") {
+          commands.push({
+            purpose: "The instances Nova has on this host",
+            command: `${cli} server list --all-projects --host ${quoted(host)}`,
+          });
+          commands.push({
+            purpose: "This host's hypervisor, and whether Nova can reach it",
+            command: `${cli} hypervisor list --matching ${quoted(host)} --long`,
+          });
+        }
+      } else if (binary.startsWith("cinder-")) {
+        commands.push({
+          purpose: "The service's state, and why it was disabled if it was",
+          command: `${cli} volume service list${hostFlag} --service ${quoted(binary)} --long`,
+        });
+        commands.push({
+          purpose: "How full the storage pools behind it are",
+          command: `${cli} volume backend pool list --long`,
+        });
+      } else {
+        commands.push({
+          purpose: "The agents on this host, and which of them are alive",
+          command: `${cli} network agent list${hostFlag} --long`,
+        });
+      }
+    } else if (host) {
+      commands.push({
+        purpose: "What the hypervisor has, and what Nova has promised on it",
+        command: `${cli} hypervisor show ${quoted(host)}`,
+      });
+    }
+
+    const instance: string = label("uuid");
+
+    if (instance) {
+      commands.push({
+        purpose: "The instance's status, host and any fault Nova recorded",
+        command: `${cli} server show ${quoted(instance)}`,
+      });
+      commands.push({
+        purpose: "What was done to the instance, and which step failed",
+        command: `${cli} server event list ${quoted(instance)} --long`,
+      });
+    }
+
+    const router: string = label("router_id");
+
+    if (router) {
+      commands.push({
+        purpose: "The router's status and its external gateway",
+        command: `${cli} router show ${quoted(router)}`,
+      });
+      commands.push({
+        purpose: "Which L3 agents hold the router, and which is active",
+        command: `${cli} network agent list --router ${quoted(router)} --long`,
+      });
+    }
+
+    const network: string = label("network_id");
+
+    if (network) {
+      commands.push({
+        purpose: "How many addresses each of the network's subnets has left",
+        command: `${cli} ip availability show ${quoted(network)}`,
+      });
+      commands.push({
+        purpose:
+          "The floating IPs taken from it, and the spare ones to release",
+        command: `${cli} floating ip list --network ${quoted(network)} --long`,
+      });
+    }
+
+    /*
+     * `id` and `name` mean something else on every series, so only the labels that
+     * are on a volume or a pool's series alone say that is what this one is.
+     */
+    if (Object.prototype.hasOwnProperty.call(seriesLabels, "volume_type")) {
+      const volume: string = label("id");
+
+      if (volume) {
+        commands.push({
+          purpose: "The volume's status, and what it is attached to",
+          command: `${cli} volume show ${quoted(volume)}`,
+        });
+      }
+    }
+
+    if (label("volume_backend_name")) {
+      commands.push({
+        purpose: "How full each storage pool is, and what its backend reports",
+        command: `${cli} volume backend pool list --long`,
+      });
+      commands.push({
+        purpose: "Whether the cinder-volume behind the pool is up",
+        command: `${cli} volume service list --service cinder-volume --long`,
+      });
+    }
+
+    const project: string = label("tenant_id");
+
+    if (project) {
+      commands.push({
+        purpose: "What the project has used of each quota",
+        command: `${cli} limits show --absolute --project ${quoted(project)}`,
+      });
+      commands.push({
+        purpose: "The project's quotas",
+        command: `${cli} quota show ${quoted(project)}`,
+      });
+    }
+
+    const status: string = label("status");
+
+    if (status && status === status.toUpperCase()) {
+      commands.push({
+        purpose: "The instances in this status, across every project",
+        command: `${cli} server list --all-projects --status ${quoted(status)} --long`,
+      });
+    } else if (status) {
+      commands.push({
+        purpose: "The volumes in this status, across every project",
+        command: `${cli} volume list --all-projects --status ${quoted(status)} --long`,
+      });
+    }
+
+    if (commands.length > 0) {
+      return commands;
+    }
+
+    return SeriesDebugHints.openstackServiceCommands({
+      cli,
+      serviceType: label("openstack_service"),
+    });
+  }
+
+  // What a whole API, or a count the exporter only keeps per region, is about.
+  private static openstackServiceCommands(input: {
+    cli: string;
+    serviceType: string;
+  }): Array<SeriesDebugCommand> {
+    const cli: string = input.cli;
+
+    switch (input.serviceType) {
+      case "identity":
+        return [
+          {
+            purpose: "Whether Keystone gives this credential a token",
+            command: `${cli} token issue`,
+          },
+        ];
+      case "compute":
+        return [
+          {
+            purpose: "Whether Nova's API answers, and the state of its workers",
+            command: `${cli} compute service list --long`,
+          },
+        ];
+      case "network":
+        return [
+          {
+            purpose:
+              "Whether Neutron's API answers, and which agents are alive",
+            command: `${cli} network agent list --long`,
+          },
+          {
+            purpose: "Each router's status",
+            command: `${cli} router list --long`,
+          },
+          {
+            purpose: "Each floating IP's status, and what it is attached to",
+            command: `${cli} floating ip list --long`,
+          },
+        ];
+      case "volume":
+        return [
+          {
+            purpose:
+              "Whether Cinder's API answers, and the state of its services",
+            command: `${cli} volume service list --long`,
+          },
+        ];
+      case "image":
+        return [
+          {
+            purpose: "Whether Glance's API answers",
+            command: `${cli} image list --limit 1`,
+          },
+        ];
+      default:
+        /*
+         * Placement has no commands of its own without the osc-placement plugin,
+         * and any series nothing above recognises still deserves a first command:
+         * where this region's APIs are.
+         */
+        return [
+          {
+            purpose: "Where this region publishes its APIs",
+            command:
+              input.serviceType === "placement"
+                ? `${cli} endpoint list --service placement`
+                : `${cli} endpoint list`,
+          },
+        ];
+    }
+  }
+
   /**
    * govc (the vSphere CLI from the govmomi project) against the vCenter
    * the agent scrapes. Every command below is an `info` / `usage` /
@@ -811,6 +1060,9 @@ export default class SeriesDebugHints {
 
       case MonitorType.Proxmox:
         return SeriesDebugHints.proxmoxCommands(seriesLabels);
+
+      case MonitorType.OpenStack:
+        return SeriesDebugHints.openstackCommands(seriesLabels);
 
       case MonitorType.VMware:
         return SeriesDebugHints.vmwareCommands(seriesLabels);

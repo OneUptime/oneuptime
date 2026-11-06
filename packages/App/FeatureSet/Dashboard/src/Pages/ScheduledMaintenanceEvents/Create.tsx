@@ -20,6 +20,7 @@ import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
@@ -91,6 +92,7 @@ import {
   SCHEDULED_NOTIFICATION_DESCRIPTION,
 } from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
 import getPublishAtFormField from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingFormFields";
+import { getDataStoresMaintenanceField } from "../../Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
 import { getColumnChoiceField } from "../../Utils/Form/ColumnChoiceField";
 import {
   CreatedRecordKind,
@@ -144,6 +146,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "DockerHost",
   "PodmanHost",
   "ProxmoxCluster",
+  "OpenStackCloud",
   "VMwareVCenter",
   "CephCluster",
   "StorageArray",
@@ -550,6 +553,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                 }),
                 /*
+                 * Whose data alerts stay quiet: few events name one, so it folds with what else
+                 * most people leave alone, and the resources step stays at what they do set.
+                 */
+                {
+                  ...getDataStoresMaintenanceField(),
+                  field: { dataStoreIds: true },
+                  stepId: "event",
+                  collapsibleSection: advancedSection,
+                },
+                /*
                  * The event's monitors, on their own: Change Monitor Status
                  * to right below acts on them, and the status pages that show
                  * them are suggested under the status page picker.
@@ -719,6 +732,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         proxmoxClusters={
                           values.proxmoxClusters as Array<ProxmoxCluster>
                         }
+                        openStackClouds={
+                          values.openStackClouds as Array<OpenStackCloud>
+                        }
                         vmwareVCenters={
                           values.vmwareVCenters as Array<VMwareVCenter>
                         }
@@ -764,6 +780,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
                           proxmoxClusters: payload.proxmoxClusters,
+                          openStackClouds: payload.openStackClouds,
                           vmwareVCenters: payload.vmwareVCenters,
                           cephClusters: payload.cephClusters,
                           storageArrays: payload.storageArrays,
@@ -812,6 +829,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       item.dockerHosts,
                       item.podmanHosts,
                       item.proxmoxClusters,
+                      item.openStackClouds,
                       item.vmwareVCenters,
                       item.cephClusters,
                       item.storageArrays,
@@ -843,6 +861,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         podmanHosts={item.podmanHosts as Array<PodmanHost>}
                         proxmoxClusters={
                           item.proxmoxClusters as Array<ProxmoxCluster>
+                        }
+                        openStackClouds={
+                          item.openStackClouds as Array<OpenStackCloud>
                         }
                         vmwareVCenters={
                           item.vmwareVCenters as Array<VMwareVCenter>
@@ -908,6 +929,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 },
                 {
                   field: { proxmoxClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { openStackClouds: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

@@ -866,7 +866,7 @@ describe("the image", () => {
 
   test("after the sources are in, and after the blog is cloned", () => {
     const sources: number = production.indexOf(
-      "COPY --chown=1000:1000 ./packages/Home /usr/src/app",
+      "COPY --chown=1000:1000 --exclude=Tests ./packages/Home /usr/src/app",
     );
 
     expect(sources).toBeGreaterThan(0);

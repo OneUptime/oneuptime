@@ -193,6 +193,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | AWS CloudTrail | CloudWatch Logs로 전달되는 추적을 컬렉터의 `awscloudwatch` 리시버로 읽음. **클라우드**에서 연결한 계정이면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음. **클라우드**에서 연결한 프로젝트면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음. **클라우드**에서 연결한 구독의 활동 로그면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
+| OpenStack 감사 기록 | 클라우드의 알림과 감사 필터를 `driver = log`로 로그에 보내고, 에이전트의 [로그 프로필](/docs/telemetry/openstack#누가-무엇을-했는가)이 읽음 |
 | CEF, LEEF | 제품의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
 | Palo Alto Networks, FortiGate, Cisco ASA | 방화벽 자체의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
 | Kubernetes 감사 로그 | API 서버의 감사 로그 파일을 컬렉터의 `filelog` 리시버로 읽음 |
@@ -339,7 +340,7 @@ OneUptime 14.0.84 이전에 저장된 이벤트는 프로세스 필드가 비어
 
 **헌트가 보안 이벤트를 찾음** 알림에는 헌트와 그 검색, 실행에서 찾은 이벤트 수와 읽은 구간이 담기고, 그 이벤트를 보여 주는 헌트 페이지로 연결됩니다. 이벤트 자체의 내용은 담기지 않습니다. 모두가 이메일과 푸시로 받으며, **사용자 설정 → 알림 설정** 에서 채널을 고릅니다. 다른 일상적인 이메일처럼 [이메일 묶음](/docs/emails/notification-rollup) 으로 보류될 수 있습니다.
 
-헌트가 찾은 내용을 Slack 또는 Microsoft Teams 에 게시하려면 **제품 → 보안 이벤트 → 워크스페이스 → Slack**(또는 **Microsoft Teams**)에서 [보안 케이스](/docs/telemetry/security-cases#slack-및-microsoft-teams-채널에-게시하기)를 게시하는 규칙 아래의 **헌트 규칙** 에 규칙을 추가합니다. 규칙은 게시할 채널(Microsoft Teams 에서는 채팅도)과, 원하면 대상 헌트를 **헌트 이름** 으로 정합니다. 이름이 입력한 텍스트와 같거나, 그것을 포함하거나, 그것으로 시작하거나 끝나는 헌트입니다. 예약된 실행이 이벤트를 찾을 때마다 헌트, 그 검색, 이벤트 수와 시점을 이벤트로 가는 링크와 함께 게시하며, 이벤트 자체의 말은 담지 않습니다. 헌트 규칙은 보안 플레이북을 설정할 수 있는 역할, 예를 들어 Project Owner, Project Admin 또는 Security Admin 이 설정합니다.
+헌트가 찾은 내용을 Slack, Microsoft Teams 또는 Mattermost 에 게시하려면 **제품 → 보안 이벤트 → 워크스페이스 → Slack**(또는 **Microsoft Teams**, **Mattermost**)에서 [보안 케이스](/docs/telemetry/security-cases#slack-microsoft-teams-및-mattermost-채널에-게시하기)를 게시하는 규칙 아래의 **헌트 규칙** 에 규칙을 추가합니다. 규칙은 게시할 채널(Microsoft Teams 에서는 채팅도)과, 원하면 대상 헌트를 **헌트 이름** 으로 정합니다. 이름이 입력한 텍스트와 같거나, 그것을 포함하거나, 그것으로 시작하거나 끝나는 헌트입니다. 예약된 실행이 이벤트를 찾을 때마다 헌트, 그 검색, 이벤트 수와 시점을 이벤트로 가는 링크와 함께 게시하며, 이벤트 자체의 말은 담지 않습니다. 헌트 규칙은 보안 플레이북을 설정할 수 있는 역할, 예를 들어 Project Owner, Project Admin 또는 Security Admin 이 설정합니다.
 
 ### 케이스에 이벤트 보관하기
 

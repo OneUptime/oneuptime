@@ -1,11 +1,11 @@
 "use strict";
 
 /**
- * How the release workflows run the e2e suite, and what keeps the master
+ * How the release workflows run the e2e suite, and what keeps the main
  * pipeline (test-release.yaml) both fast and honest.
  *
- * test-release.yaml runs on every push to master. A started run is allowed to
- * finish - it used to be cancelled by the next merge, so master went most
+ * test-release.yaml runs on every push to main. A started run is allowed to
+ * finish - it used to be cancelled by the next merge, so the branch went most
  * days without an e2e result - which makes three things load-bearing:
  *
  *   - every job has a timeout, or one hang holds the queue for six hours;
@@ -687,7 +687,7 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
             id: 42,
             tag_name: "9.9.9",
             draft: true,
-            target_commitish: "master",
+            target_commitish: "main",
           },
         ]),
         rest: { repos: { listReleases: jest.fn(), updateRelease } },
@@ -752,7 +752,7 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
 
     /*
      * The workflow token may not create a ref at a commit whose workflows
-     * differ from master's, so the publish is refused if master changed a
+     * differ from main's, so the publish is refused if main changed a
      * workflow during the run. That is not transient: retrying it only
      * waited out 150 seconds of back-off before failing with a bare 403.
      */
@@ -1003,7 +1003,7 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
     });
 
     test("not for a run of another branch", () => {
-      expect(publishRuns({ ref: "refs/heads/master" })).toBe(false);
+      expect(publishRuns({ ref: "refs/heads/main" })).toBe(false);
     });
   });
 });
@@ -1083,9 +1083,9 @@ describe(`${TERRAFORM_E2E}: each release run's suite is its own`, () => {
     );
   });
 
-  test("two pushes to master share a group, so the newer supersedes the older", () => {
-    expect(ownRunGroup("refs/heads/master", "1")).toEqual(
-      ownRunGroup("refs/heads/master", "2"),
+  test("two pushes to main share a group, so the newer supersedes the older", () => {
+    expect(ownRunGroup("refs/heads/main", "1")).toEqual(
+      ownRunGroup("refs/heads/main", "2"),
     );
   });
 
@@ -1102,21 +1102,21 @@ describe(`${TERRAFORM_E2E}: each release run's suite is its own`, () => {
 /*
  * HashiCorp asks the providers it lists as Partner for tests that run nightly
  * as a GitHub Action, so terraform-provider-e2e.yml also runs on a schedule.
- * The nightly run is master's, and its group is its own, worked out from
+ * The nightly run is main's, and its group is its own, worked out from
  * github.event.schedule, which GitHub sets on scheduled runs only. In the
- * group master's pushes share, a merge landing during the three-hour suite
+ * group main's pushes share, a merge landing during the three-hour suite
  * would cancel the nightly run, or the nightly run the merge's.
  */
 describe(`${TERRAFORM_E2E}: runs every night, in a group of its own`, () => {
   const suite = readYaml(TERRAFORM_E2E);
   const schedules = (suite.on && suite.on.schedule) || [];
 
-  // The group of one of the suite's runs on master, for the event's payload.
+  // The group of one of the suite's runs on main, for the event's payload.
   function masterRunGroup(runId, event) {
     return evaluateExpressions(suite.concurrency.group, {
       github: {
         workflow: suite.name,
-        ref: "refs/heads/master",
+        ref: "refs/heads/main",
         run_id: runId,
         event,
       },
@@ -1134,7 +1134,7 @@ describe(`${TERRAFORM_E2E}: runs every night, in a group of its own`, () => {
     expect(fields.slice(2)).toEqual(["*", "*", "*"]);
   });
 
-  test("a nightly run and a push to master never share a group, so neither cancels the other", () => {
+  test("a nightly run and a push to main never share a group, so neither cancels the other", () => {
     const nightly = masterRunGroup("1", { schedule: schedules[0].cron });
 
     expect(nightly).not.toEqual(masterRunGroup("2", {}));

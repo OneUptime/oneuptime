@@ -11,6 +11,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
@@ -77,6 +78,12 @@ const LINKED_RELATIONS: Array<LinkedRelation> = [
     model: ProxmoxCluster,
     joinTable: "MonitorProxmoxCluster",
     inverseColumn: "proxmoxClusterId",
+  },
+  {
+    column: "openStackClouds",
+    model: OpenStackCloud,
+    joinTable: "MonitorOpenStackCloud",
+    inverseColumn: "openStackCloudId",
   },
   {
     column: "vmwareVCenters",

@@ -3,7 +3,7 @@
 OneUptime एक ही रिपॉज़िटरी से बनता है और दो संस्करणों में आता है:
 
 - **Community Edition**: मॉनिटरिंग, इंसिडेंट और ऑब्ज़र्वेबिलिटी का पूरा प्लेटफ़ॉर्म, जिसमें SAML और OpenID Connect सिंगल साइन-ऑन भी शामिल है। यह Apache License 2.0 के तहत ओपन सोर्स है और किसी भी पैमाने पर ख़ुद होस्ट करने के लिए मुफ़्त है।
-- **Enterprise Edition**: Community Edition के साथ रिपॉज़िटरी की [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee) डायरेक्टरी के एंटरप्राइज़ मॉड्यूल। ये मॉड्यूल SCIM प्रोविजनिंग और गवर्नेंस तथा इंस्टेंस-प्रशासन की सुविधाएँ जोड़ते हैं। ये [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) के तहत लाइसेंस किए गए हैं, और प्रोडक्शन में इस्तेमाल के लिए आपके उपयोगकर्ताओं की संख्या के हिसाब से Enterprise लाइसेंस चाहिए।
+- **Enterprise Edition**: Community Edition के साथ रिपॉज़िटरी की [`ee/`](https://github.com/OneUptime/oneuptime/tree/main/ee) डायरेक्टरी के एंटरप्राइज़ मॉड्यूल। ये मॉड्यूल SCIM प्रोविजनिंग और गवर्नेंस तथा इंस्टेंस-प्रशासन की सुविधाएँ जोड़ते हैं। ये [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) के तहत लाइसेंस किए गए हैं, और प्रोडक्शन में इस्तेमाल के लिए आपके उपयोगकर्ताओं की संख्या के हिसाब से Enterprise लाइसेंस चाहिए।
 
 दोनों संस्करण अलग-अलग कंटेनर इमेज हैं। Community इमेज में `ee/` का कोई कोड नहीं है। OneUptime Cloud, Enterprise Edition पर चलता है, और क्लाउड पर आपका प्लान तय करता है कि इनमें से कौन-सी सुविधाएँ आपको मिलेंगी।
 
@@ -113,7 +113,7 @@ Community इमेज पर `IS_ENTERPRISE_EDITION=true` सेट करन�
 
 ## लाइसेंसिंग
 
-रिपॉज़िटरी के रूट की [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) फ़ाइल तय करती है कि कौन-सा लाइसेंस किस पर लागू होता है: `ee/` डायरेक्टरी की हर चीज़ [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE) के तहत है, तीसरे पक्ष के कंपोनेंट उन्हीं लाइसेंसों के तहत रहते हैं जिनके तहत उनके मालिक उन्हें देते हैं, और बाकी सब Apache License 2.0 के तहत है।
+रिपॉज़िटरी के रूट की [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/main/LICENSE) फ़ाइल तय करती है कि कौन-सा लाइसेंस किस पर लागू होता है: `ee/` डायरेक्टरी की हर चीज़ [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/main/ee/LICENSE) के तहत है, तीसरे पक्ष के कंपोनेंट उन्हीं लाइसेंसों के तहत रहते हैं जिनके तहत उनके मालिक उन्हें देते हैं, और बाकी सब Apache License 2.0 के तहत है।
 
 नया Enterprise Edition इंस्टॉल **14 दिन के ट्रायल** के रूप में चलता है, जिसकी गिनती उस समय से होती है जब इंस्टॉल पहली बार Enterprise Edition शुरू करता है। ट्रायल मूल्यांकन के लिए है: Enterprise Edition को प्रोडक्शन में इस्तेमाल करने के लिए OneUptime Enterprise License के तहत सब्सक्रिप्शन चाहिए। ट्रायल समाप्त होने से पहले लाइसेंस सक्रिय करें: उसके बाद SCIM, ऑडिट लॉगिंग और रिटेंशन ओवरराइड रुक जाते हैं और एंटरप्राइज़ कॉन्फ़िगरेशन केवल-पढ़ने योग्य हो जाता है ([जब लाइसेंस समाप्त हो जाए या न हो](#जब-लाइसेंस-समाप्त-हो-जाए-या-न-हो) देखें)। लाइसेंस पाने के लिए [sales@oneuptime.com](mailto:sales@oneuptime.com) से संपर्क करें।
 

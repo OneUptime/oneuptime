@@ -33,8 +33,8 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("covers all 38 monitor types", () => {
-    expect(ALL_TYPES).toHaveLength(38);
+  it("covers all 39 monitor types", () => {
+    expect(ALL_TYPES).toHaveLength(39);
   });
 
   it("ProbeCheck matches isProbableMonitor exactly", () => {
@@ -72,7 +72,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("family sizes are 15/2/1/7/10/1/1/1", () => {
+  it("family sizes are 15/2/1/7/11/1/1/1", () => {
     expect({
       probeCheck: typesInFamily(MonitorOverviewFamily.ProbeCheck).length,
       heartbeat: typesInFamily(MonitorOverviewFamily.Heartbeat).length,
@@ -88,7 +88,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
       heartbeat: 2,
       agent: 1,
       telemetry: 7,
-      infrastructure: 10,
+      infrastructure: 11,
       networkDevice: 1,
       probeStatus: 1,
       manual: 1,

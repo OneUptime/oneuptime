@@ -123,6 +123,11 @@ export const ProxmoxClusterNameLabelKeys: ReadonlyArray<string> = [
   "proxmox.cluster.name",
 ];
 
+export const OpenStackCloudNameLabelKeys: ReadonlyArray<string> = [
+  "resource.openstack.cloud.name",
+  "openstack.cloud.name",
+];
+
 export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
   "resource.ceph.cluster.name",
   "ceph.cluster.name",
@@ -313,6 +318,7 @@ export const AllResourceIdentityLabelKeys: ReadonlyArray<string> = [
   ...KubernetesClusterIdLabelKeys,
   ...KubernetesClusterNameLabelKeys,
   ...ProxmoxClusterNameLabelKeys,
+  ...OpenStackCloudNameLabelKeys,
   ...VMwareVCenterNameLabelKeys,
   ...CephClusterNameLabelKeys,
   ...StorageArrayNameLabelKeys,
@@ -340,6 +346,7 @@ export interface SeriesResourceRefs {
   kubernetesClusterNames: Array<string>;
   dockerSwarmClusterNames: Array<string>;
   proxmoxClusterNames: Array<string>;
+  openStackCloudNames: Array<string>;
   vmwareVCenterNames: Array<string>;
   cephClusterNames: Array<string>;
   storageArrayNames: Array<string>;
@@ -435,6 +442,10 @@ export default class SeriesResourceLabels {
       proxmoxClusterNames: this.collectLabelValues(
         seriesLabels,
         ProxmoxClusterNameLabelKeys,
+      ),
+      openStackCloudNames: this.collectLabelValues(
+        seriesLabels,
+        OpenStackCloudNameLabelKeys,
       ),
       vmwareVCenterNames: this.collectLabelValues(
         seriesLabels,

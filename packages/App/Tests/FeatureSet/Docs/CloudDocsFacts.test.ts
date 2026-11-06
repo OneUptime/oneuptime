@@ -508,18 +508,23 @@ describe("the menu paths", () => {
       expect(tabsOf(ENVIRONMENT_VIEW_SIDE_MENU)).toContain(tab);
     }
 
-    // A resource's, in Cloud: the provider's metrics and its changes.
+    /*
+     * A resource's, in Cloud: the provider's metrics and its changes - and,
+     * for a kind of resource a CloudWatch Logs group names, the logs an AWS
+     * stream delivered from it (Stream CloudWatch Metrics and Logs).
+     */
     for (const tab of [
       "Overview",
       "Documentation",
       "Metrics",
+      "Logs",
       "Changes",
       "Settings",
       "Owners",
     ]) {
       expect(tabsOf(CLOUD_VIEW_SIDE_MENU)).toContain(tab);
     }
-    for (const tab of ["Logs", "Traces", "Instances"]) {
+    for (const tab of ["Traces", "Instances"]) {
       expect(tabsOf(CLOUD_VIEW_SIDE_MENU)).not.toContain(tab);
     }
 

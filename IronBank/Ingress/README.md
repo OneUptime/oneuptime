@@ -19,7 +19,7 @@ which `hardening_manifest.yaml` pins by digest, onto Iron Bank's nginx 1.30
 image. Both images are nginx 1.30 from nginx.org on Alpine 3.24, with the same
 modules, `njs` included. It then adds the release's Alpine packages, and sets
 the release's environment and start command. The source is
-[IronBank/Ingress](https://github.com/OneUptime/oneuptime/tree/master/IronBank/Ingress)
+[IronBank/Ingress](https://github.com/OneUptime/oneuptime/tree/main/IronBank/Ingress)
 in OneUptime's repository.
 
 The container runs as root, as the release's does: its start script renders

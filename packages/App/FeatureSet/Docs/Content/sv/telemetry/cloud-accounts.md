@@ -8,6 +8,7 @@ Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt frå
 - [Google Cloud](#google-cloud): Ett tjänstkonto med sex skrivskyddade roller.
 - [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar, hälsohändelser och kostnader, hur ofta och vad det kostar att läsa dem.
 - [Molnkostnader och besparingar](/docs/telemetry/cloud-costs): Vad varje konto kostar, sätten att spendera mindre och budgetar som larmar.
+- [Strömma CloudWatch-mätvärden och -loggar](/docs/telemetry/cloud-streaming): Varje mätvärde inom några minuter, och CloudWatch Logs, via Amazon Data Firehose.
 - [Datasäkerhet](#datasäkerhet): Vad anslutningen låter Datasäkerhet läsa, och vad varje nivå lägger till i kommandot.
 - [Låt AI åtgärda problem](#låt-ai-åtgärda-problem): Ett kommando till, så kan OneUptime AI åtgärda det den hittar.
 :::
@@ -320,7 +321,7 @@ En organisationsprincip, `iam.disableServiceAccountKeyCreation`, kan förbjuda n
 :::
 
 :::details Inga resurser visas
-Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar mätvärden eller inte. Om en anslutning inte fungerar säger **View error** under **Moln → Anslut** varför dess senaste läsning misslyckades.
+Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar mätvärden eller inte. Om en anslutning inte fungerar säger **Visa fel** under **Moln → Anslut** varför dess senaste läsning misslyckades.
 :::
 
 :::details Några av organisationens konton saknas

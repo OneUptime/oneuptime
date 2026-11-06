@@ -226,7 +226,7 @@ const WAYS_IN: ReadonlyArray<WayIn> = [
 const LOGS_OPEN_ACTION: string = "Open Your logs";
 // What Your logs reads, as its card on Connections lists it.
 const LOG_FORMATS_LINE: string =
-  "SSH sign-ins · sudo · Windows events · AWS CloudTrail · Google Cloud audit logs · Azure activity and Entra ID logs · CEF · LEEF · Palo Alto Networks · Fortinet FortiGate · Cisco ASA · Kubernetes audit logs · Web attacks";
+  "SSH sign-ins · sudo · Windows events · AWS CloudTrail · Google Cloud audit logs · Azure activity and Entra ID logs · OpenStack audit trail · CEF · LEEF · Palo Alto Networks · Fortinet FortiGate · Cisco ASA · Kubernetes audit logs · Web attacks";
 
 // Computed colours the assertions compare against.
 const WHITE_RGB: string = "rgb(255, 255, 255)";
@@ -2790,7 +2790,7 @@ test.describe("connections: your logs and your SIEM", () => {
    */
   const LOG_KIND_GROUPS: ReadonlyArray<{ id: string; kinds: number }> = [
     { id: "servers", kinds: 3 },
-    { id: "cloud", kinds: 3 },
+    { id: "cloud", kinds: 4 },
     { id: "security-devices", kinds: 5 },
     { id: "applications", kinds: 2 },
   ];
@@ -3136,6 +3136,7 @@ test.describe("connections: your logs and your SIEM", () => {
     "AWS CloudTrail",
     "Google Cloud audit logs",
     "Azure activity and Entra ID logs",
+    "OpenStack audit trail",
     "CEF",
     "LEEF",
     "Palo Alto Networks",

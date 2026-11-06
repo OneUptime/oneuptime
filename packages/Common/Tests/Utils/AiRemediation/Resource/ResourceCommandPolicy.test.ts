@@ -11,6 +11,7 @@ import {
 } from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import DockerEngineCommandPolicy from "../../../../Utils/AiRemediation/Resource/DockerEngineCommandPolicy";
 import DockerSwarmCommandPolicy from "../../../../Utils/AiRemediation/Resource/DockerSwarmCommandPolicy";
+import OpenStackCommandPolicy from "../../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
 import ProxmoxCommandPolicy from "../../../../Utils/AiRemediation/Resource/ProxmoxCommandPolicy";
 import GovcCommandPolicy from "../../../../Utils/AiRemediation/Resource/GovcCommandPolicy";
 import CephCommandPolicy from "../../../../Utils/AiRemediation/Resource/CephCommandPolicy";
@@ -204,6 +205,7 @@ describe("routing", () => {
       [AiResourceType.AwsAccount]: AwsCloudCommandPolicy,
       [AiResourceType.AzureSubscription]: AzureCloudCommandPolicy,
       [AiResourceType.GoogleCloudProject]: GcpCloudCommandPolicy,
+      [AiResourceType.OpenStackCloud]: OpenStackCommandPolicy,
     };
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
@@ -228,6 +230,7 @@ describe("routing", () => {
       "cloud-aws",
       "cloud-azure",
       "cloud-gcp",
+      "openstack",
     ]);
   });
 

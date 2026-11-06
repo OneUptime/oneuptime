@@ -389,7 +389,9 @@ test(
         }),
       )
         .replace(/^(\s*listen\s+)7849\b/gm, `$1127.0.0.1:${httpPort}`)
-        .replace(/^(\s*listen\s+)7850\b/gm, `$1127.0.0.1:${tlsPort}`);
+        .replace(/^(\s*listen\s+)7850\b/gm, `$1127.0.0.1:${tlsPort}`)
+        // The template's own access_log lines name the image's log folder too.
+        .replace(/\/var\/log\/nginx\//g, `${prefix}/logs/`);
 
       fs.writeFileSync(path.join(prefix, "conf.d", "default.conf"), rendered);
 

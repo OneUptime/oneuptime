@@ -1,0 +1,2 @@
+A zone and a recordset PENDING, with the worker that would finish them stopped.
+On their own: Designate's worker is stopped, so the API's changes are accepted and nothing carries them out.

@@ -40,6 +40,8 @@ Het logo, het logo voor donker thema, de omslagafbeelding en de favicon zijn bes
 
 Uw statuspagina toont alleen afbeeldingen van haar eigen project; een afbeelding die ze niet kan tonen, wordt weggelaten, alsof de pagina er geen had. Het dashboard, de API en Terraform lezen de afbeeldingen van de pagina op dezelfde manier: een afbeelding van een ander project komt terug als helemaal geen afbeelding. De e-mails die de pagina stuurt (aan abonnees, en aan privégebruikers over hun aanmelding) tonen haar logo op dezelfde manier: een logo dat de pagina niet kan tonen, wordt ook daaruit weggelaten in plaats van als kapotte afbeelding te verschijnen.
 
+Die e-mails hebben het logo in zich, dus het verschijnt ook waar een e-mailprogramma geen afbeeldingen van internet laadt of OneUptime niet kan bereiken: een PNG-, JPEG-, GIF-, WebP- of SVG-logo gaat mee als een afbeelding op het formaat van de koptekst van de e-mail. Een SVG-logo waarvan de woorden tekst zijn in plaats van vormen, wordt in plaats daarvan vanaf zijn adres getoond, omdat de server geen lettertype heeft om de woorden mee te tekenen: zet de tekst in uw ontwerpprogramma om in contouren, of upload een PNG.
+
 ### Thema
 
 De kaart **Thema**, direct onder het logo, bepaalt hoe de pagina er voor haar bezoekers uitziet. Kies een van de drie keuzes en die wordt meteen opgeslagen; er is geen knop **Bewerken**.

@@ -103,7 +103,7 @@ Diverse serie portano il loro stato in un'**etichetta**, con un valore sempre pa
 | `purefa_host_connectivity_info` | `status`, con `details` | Host |
 | `purefa_drive_capacity_bytes` | `component_status` (il valore è la capacità del disco) | Disco |
 
-Una serie filtrata su uno stato negativo esiste solo finché qualcosa è in quello stato, quindi nessuna serie significa tutto in ordine. Per questo **Max sopra 0 scatta e 0 rientra** è la forma giusta per queste serie, ed è così che sono costruiti i modelli: i loro criteri di rientro contano una serie mancante come zero.
+Una serie filtrata su uno stato negativo esiste solo finché qualcosa è in quello stato, quindi nessuna serie significa tutto in ordine. Per questo **Max sopra 0 scatta e 0 rientra** è la forma giusta per queste serie, ed è così che sono costruiti i modelli: i loro criteri di rientro contano una serie mancante come zero. Quando non resta alcuna serie, un modello di questo tipo rientra solo se `purefa_info` o `purefb_info` è arrivato nella stessa finestra, quindi un array che ha smesso di riferire non chiude nulla.
 
 Nei filtri del monitor e nelle chiavi di raggruppamento, gli attributi dell'agente iniziano con `resource.` (`resource.storage.array.name`, `resource.storage.system`), mentre le etichette proprie di Pure no (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

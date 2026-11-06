@@ -67,6 +67,7 @@
     "forgotPassword": "¿Olvidó su contraseña?",
     "signInWithSso": "Iniciar sesión con SSO",
     "signInWithMicrosoft": "Iniciar sesión con Microsoft",
+    "emailSignInLink": "Enviarme un enlace de inicio de sesión",
     "noAccountPrompt": "¿No tiene una cuenta?",
     "registerLink": "Registrarse.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Generar códigos de respaldo",
       "skip": "Omitir por ahora",
       "generateFailed": "No se devolvió ningún código de respaldo. Vuelva a intentarlo desde Perfil de usuario > Autenticación de dos factores."
+    },
+    "magicLink": {
+      "title": "Terminar de iniciar sesión",
+      "subtitle": "Use el botón de abajo para terminar de iniciar sesión con el enlace de su correo.",
+      "submit": "Iniciar sesión",
+      "noLink": "Esta página necesita el enlace de inicio de sesión de su correo. Abra el enlace de nuevo o solicite uno nuevo.",
+      "turnedOff": "Los enlaces de inicio de sesión están desactivados en este servidor. Inicie sesión con su correo electrónico y contraseña.",
+      "requestNewLink": "Enviarme un enlace nuevo",
+      "backToSignIn": "Volver al inicio de sesión"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Le hemos enviado el enlace de restablecimiento de contraseña por correo electrónico. No olvide revisar la carpeta de spam.",
     "submitButton": "Enviar enlace de restablecimiento",
     "rememberPasswordPrompt": "¿Recuerda su contraseña?",
+    "loginLink": "Iniciar sesión."
+  },
+  "magicLink": {
+    "title": "Iniciar sesión con un enlace",
+    "subtitle": "Introduzca su correo electrónico y le enviaremos un enlace para iniciar sesión. No necesita contraseña.",
+    "submitButton": "Enviarme un enlace de inicio de sesión",
+    "sentTitle": "Revise su correo electrónico",
+    "sent": "Si {{email}} tiene una cuenta, le hemos enviado un enlace de inicio de sesión. Funciona una sola vez y caduca en {{minutes}} minutos.",
+    "notReceived": "¿No está en su bandeja de entrada? Revise la carpeta de spam o asegúrese de haber escrito la dirección con la que se registró.",
+    "sendAnother": "Enviar otro enlace",
+    "knowPasswordPrompt": "¿Conoce su contraseña?",
     "loginLink": "Iniciar sesión."
   },
   "resetPassword": {

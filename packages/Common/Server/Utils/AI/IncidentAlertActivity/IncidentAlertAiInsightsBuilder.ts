@@ -102,6 +102,8 @@ export interface IncidentAlertAiFixInput {
   createdAt: Date;
   // When a person approved it.
   approvedAt?: Date | undefined;
+  // Where: the AI card, Slack or Microsoft Teams (AutoRemediationApprovalSource).
+  approvedFrom?: string | undefined;
   subjectId: string;
 }
 
@@ -253,6 +255,7 @@ export default class IncidentAlertAiInsightsBuilder {
             verificationStatus: fix.verificationStatus,
             createdAt: fix.createdAt,
             approvedAt: fix.approvedAt,
+            approvedFrom: fix.approvedFrom,
             ...(input.subjectKind === "incident"
               ? { incidentId: fix.subjectId }
               : { alertId: fix.subjectId }),

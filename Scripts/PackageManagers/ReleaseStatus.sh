@@ -50,7 +50,7 @@ readonly CASK="Casks/$PACKAGE.rb"
 readonly WINGET="microsoft/winget-pkgs"
 readonly WINGET_ID="OneUptime.InfrastructureAgent"
 readonly WINGET_DIR="manifests/o/OneUptime/InfrastructureAgent"
-readonly GUIDE="https://github.com/OneUptime/oneuptime/blob/master/agents/InfrastructureAgent/RELEASING.md"
+readonly GUIDE="https://github.com/OneUptime/oneuptime/blob/main/agents/InfrastructureAgent/RELEASING.md"
 
 REPOSITORY_URL="${PACKAGE_REPOSITORY_URL:-https://packages.oneuptime.com}"
 # key@oneuptime.com, the release key the repositories are signed with.

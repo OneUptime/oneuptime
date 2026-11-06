@@ -16,6 +16,7 @@ import {
   USER_GROUPS_COPY,
   UserGroupStatusKind,
   UserGroupsWorkspaceCopy,
+  UserGroupWorkspaceType,
 } from "./UserGroupsCopy";
 import AppLink from "../../AppLink/AppLink";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -124,7 +125,8 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const view: WorkspaceUserGroupView = props.view;
-  const copy: UserGroupsWorkspaceCopy = USER_GROUPS_COPY[view.workspaceType];
+  const copy: UserGroupsWorkspaceCopy =
+    USER_GROUPS_COPY[view.workspaceType as UserGroupWorkspaceType];
   const status: UserGroupStatusKind = getUserGroupStatus(view);
   const tone: StatusTone = USER_GROUP_STATUS_TONES[status];
   const mention: string = getMention(view);

@@ -7,6 +7,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -102,6 +103,7 @@ export interface AffectedResourcesPayload {
   dockerHosts: Array<string> | undefined;
   podmanHosts: Array<string> | undefined;
   proxmoxClusters: Array<string> | undefined;
+  openStackClouds: Array<string> | undefined;
   vmwareVCenters: Array<string> | undefined;
   cephClusters: Array<string> | undefined;
   storageArrays: Array<string> | undefined;
@@ -126,6 +128,7 @@ export interface ComponentProps {
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
@@ -234,6 +237,14 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     icon: IconProp.Proxmox,
     modelType: ProxmoxCluster,
     key: "proxmoxClusters",
+    supportsLabels: true,
+  },
+  OpenStackCloud: {
+    label: "OpenStack Cloud",
+    pluralLabel: "OpenStack Clouds",
+    icon: IconProp.Cloud,
+    modelType: OpenStackCloud,
+    key: "openStackClouds",
     supportsLabels: true,
   },
   VMwareVCenter: {
@@ -782,6 +793,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         ...toItems(props.proxmoxClusters, "ProxmoxCluster", cache, failed),
       );
     }
+    if (resourceTypes.includes("OpenStackCloud")) {
+      items.push(
+        ...toItems(props.openStackClouds, "OpenStackCloud", cache, failed),
+      );
+    }
     if (resourceTypes.includes("VMwareVCenter")) {
       items.push(
         ...toItems(props.vmwareVCenters, "VMwareVCenter", cache, failed),
@@ -833,6 +849,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.dockerHosts,
     props.podmanHosts,
     props.proxmoxClusters,
+    props.openStackClouds,
     props.vmwareVCenters,
     props.cephClusters,
     props.storageArrays,
@@ -1431,6 +1448,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       dockerHosts: idsFor("DockerHost"),
       podmanHosts: idsFor("PodmanHost"),
       proxmoxClusters: idsFor("ProxmoxCluster"),
+      openStackClouds: idsFor("OpenStackCloud"),
       vmwareVCenters: idsFor("VMwareVCenter"),
       cephClusters: idsFor("CephCluster"),
       storageArrays: idsFor("StorageArray"),

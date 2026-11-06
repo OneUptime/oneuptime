@@ -152,6 +152,7 @@ function clonedTableNames(): Array<string> {
 const HISTORY_REFERENCES: Array<string> = [
   "UserOnCallLogTimeline.userCallId -> UserCall",
   "UserOnCallLogTimeline.userEmailId -> UserEmail",
+  "UserOnCallLogTimeline.userMattermostId -> UserMattermost",
   "UserOnCallLogTimeline.userMicrosoftTeamsId -> UserMicrosoftTeams",
   "UserOnCallLogTimeline.userNotificationRuleId -> UserNotificationRule",
   "UserOnCallLogTimeline.userPushId -> UserPush",

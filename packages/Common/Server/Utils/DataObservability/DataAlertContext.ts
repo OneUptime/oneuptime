@@ -2,6 +2,9 @@ import Alert from "../../../Models/DatabaseModels/Alert";
 import ChangeEvent from "../../../Models/AnalyticsModels/ChangeEvent";
 import DataAlert from "../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
+import DataAssetFeed, {
+  DataAssetFeedEventType,
+} from "../../../Models/DatabaseModels/DataAssetFeed";
 import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
 import DataAssetUsage from "../../../Models/DatabaseModels/DataAssetUsage";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
@@ -19,6 +22,7 @@ import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
 import ChangeEventService from "../../Services/ChangeEventService";
 import DataAlertService from "../../Services/DataAlertService";
+import DataAssetFeedService from "../../Services/DataAssetFeedService";
 import DataAssetLineageService from "../../Services/DataAssetLineageService";
 import DataAssetService from "../../Services/DataAssetService";
 import DataAssetUsageService from "../../Services/DataAssetUsageService";
@@ -46,16 +50,31 @@ import DataTableAnswerer, {
  *  - the table: fresh or late by its own rhythm, its open alerts, the data
  *    products it is part of (DataTableAnswer);
  *  - the alert this one is a consequence of, when it is one (DataAlertCause);
+ *    a private one is not named;
  *  - the pipelines that write it, each with its runs in the window - a
  *    failed run with its error;
  *  - the services seen writing it in their database spans, with how many
  *    of their writes failed, and their deploys and other changes in the
  *    window;
- *  - the tables it is built from, with the ones that are late.
+ *  - the tables it is built from, with the ones that are late;
+ *  - the columns of the table that changed in the window.
  *
  * Every read is bounded, and one that fails leaves its part out rather
  * than the investigation without the rest.
+ *
+ * Nobody in particular reads what this writes: the investigation's report
+ * goes to the alert's feed and its Slack and Microsoft Teams channels,
+ * which everyone who may see the alert reads. A private alert - seen only
+ * by its owners - is never named there, nor its title written.
  */
+
+const COLUMN_CHANGE_EVENTS: ReadonlyArray<DataAssetFeedEventType> = [
+  DataAssetFeedEventType.ColumnAdded,
+  DataAssetFeedEventType.ColumnRemoved,
+  DataAssetFeedEventType.ColumnRenamed,
+  DataAssetFeedEventType.ColumnTypeChanged,
+  DataAssetFeedEventType.ColumnNullabilityChanged,
+];
 
 const CHANGES_BEFORE_IN_HOURS: number = 24;
 const CHANGES_AFTER_IN_HOURS: number = 1;
@@ -147,13 +166,19 @@ export default class DataAlertContext {
             alertNumberWithPrefix: true,
             createdAt: true,
             currentAlertState: { name: true },
+            // A private cause is not named, as in this alert's feed (DataAlertCause).
+            isPrivate: true,
           },
           props: { isRoot: true },
         }),
         null,
       );
 
-      if (cause) {
+      if (cause?.isPrivate) {
+        sections.push(
+          "- This alert is a consequence of a private alert, open on what this table is built from. Only its owners may see it, so it is not named here.",
+        );
+      } else if (cause) {
         sections.push(
           `- This alert is a consequence of ${cause.alertNumberWithPrefix || "another alert"} "${clip(cause.title, 200)}"${cause.currentAlertState?.name ? ` (${cause.currentAlertState.name})` : ""}, opened ${when(cause.createdAt, data.now)}, on what this table is built from: investigate that one first.`,
         );
@@ -163,11 +188,13 @@ export default class DataAlertContext {
     let pipelineIds: Array<ObjectID> = [];
 
     if (dataAlert.dataAssetId) {
+      // For nobody in particular: the table's alerts that are not private.
       const answer: DataTableAnswer | null = await orNothing(
         DataTableAnswerer.answer(
           data.projectId,
           dataAlert.dataAssetId,
           data.now,
+          null,
         ),
         null,
       );
@@ -216,6 +243,13 @@ export default class DataAlertContext {
           dataAssetId: dataAlert.dataAssetId,
           now: data.now,
         })),
+        ...(await this.describeSchemaChanges({
+          projectId: data.projectId,
+          dataAssetId: dataAlert.dataAssetId,
+          windowStart,
+          windowEnd,
+          now: data.now,
+        })),
       );
     }
 
@@ -233,6 +267,36 @@ export default class DataAlertContext {
     );
 
     return sections.join("\n");
+  }
+
+  // A column that changed just before is often the whole story: a writer still using the old one fails.
+  private static async describeSchemaChanges(data: {
+    projectId: ObjectID;
+    dataAssetId: ObjectID;
+    windowStart: Date;
+    windowEnd: Date;
+    now: Date;
+  }): Promise<Array<string>> {
+    const changes: Array<DataAssetFeed> = await orNothing(
+      DataAssetFeedService.findBy({
+        query: {
+          projectId: data.projectId,
+          dataAssetId: data.dataAssetId,
+          dataAssetFeedEventType: QueryHelper.any([...COLUMN_CHANGE_EVENTS]),
+          postedAt: new InBetween(data.windowStart, data.windowEnd),
+        },
+        select: { feedInfoInMarkdown: true, postedAt: true },
+        sort: { postedAt: SortOrder.Descending },
+        limit: MAX_CHANGES,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      [] as Array<DataAssetFeed>,
+    );
+
+    return changes.map((change: DataAssetFeed): string => {
+      return `- Its columns changed ${when(change.postedAt, data.now)}: ${clip(change.feedInfoInMarkdown, MAX_ERROR_LENGTH)}`;
+    });
   }
 
   // Each writing pipeline's runs since the window began: a failed one names itself.

@@ -60,7 +60,17 @@ import ResourceCommandPolicy from "../../../../Utils/AiRemediation/Resource/Reso
 import {
   ResourceAutoExecutionVerdict,
   ResourceCommandPolicyResult,
+  tokenizeResourceCommand,
 } from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import {
+  getOpenStackDryRunCommand,
+  readOpenStackChange,
+} from "../../../../Utils/AiRemediation/Resource/OpenStackCommandPolicy";
+import {
+  OpenStackChangeReach,
+  describeOpenStackChangeReachCounts,
+  readOpenStackChangeReach,
+} from "../../../../Utils/AiRemediation/Resource/OpenStackChangeReach";
 import ResourceAiAccessService, {
   describeResourceNoun,
 } from "../../../Services/ResourceAiAccessService";
@@ -245,6 +255,9 @@ export { MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR };
  */
 export const AI_COMMAND_CLAIM_TIMEOUT_MS: number = 60_000;
 
+// How long the agent has to read what an OpenStack change touches.
+export const OPENSTACK_REACH_TIMEOUT_MS: number = 60_000;
+
 /*
  * The AIRun heartbeat is normally touched per agent step; command execution
  * happens INSIDE one tool call and can take minutes, so the wait loop
@@ -318,6 +331,9 @@ export type RemediationCommandMode = "Suggest" | "FullAuto";
  * command from the change (ChangeRollback), never the model.
  */
 export const ROLL_BACK_CHANGE_TOOL_NAME: string = "roll_back_change";
+
+// What a model can do about an evacuation the agent couldn't read in full. A workflow can't.
+const READ_THE_REACH_YOURSELF: string = ` Read them with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and say what you found.`;
 
 /*
  * Verbs that never run on their own in any mode, whatever the allowlist
@@ -462,6 +478,9 @@ interface CommandArgsParseResult {
 }
 
 export default class RemediationCommandToolkit {
+  // Why the last proposal was refused, command by command.
+  private lastProposalProblems: Array<string> = [];
+
   private options: RemediationCommandToolkitOptions;
   private executedCommands: Array<AiRemediationCommand> = [];
   private proposedPlan: AiRemediationCommandPlan | null = null;
@@ -1704,6 +1723,20 @@ export default class RemediationCommandToolkit {
       }
 
       /*
+       * What an OpenStack change touches, read before anything decides whether it
+       * runs, so the command carries it wherever it ends up: run, or proposed. What
+       * the agent says it would refuse is not kept, as for its write scope above.
+       */
+      const reachRefusal: string | null =
+        await this.inspectOpenStackReach(command);
+
+      if (reachRefusal) {
+        return this.failure(
+          `${reachRefusal} The command was neither run nor recorded.`,
+        );
+      }
+
+      /*
        * A cloud resource declared as code is only ever proposed: the next
        * apply would put the old value back, so a person decides (and
        * changes the code too).
@@ -2932,6 +2965,84 @@ export default class RemediationCommandToolkit {
   }
 
   /*
+   * What a change to an OpenStack cloud touches, read by the cloud's AI agent and
+   * kept on the command for the person approving it. Null when the command may go
+   * on: anything else is why it may not.
+   *
+   * An evacuation stands on this read. It always asks a person, and that person is
+   * to be told which instances and whose, so one the agent could not read in full is
+   * not proposed. Any other change can be proposed without it, and says so on its
+   * card: the agent reads what it touches again before it changes anything.
+   */
+  private async inspectOpenStackReach(
+    command: AiRemediationCommand,
+  ): Promise<string | null> {
+    if (
+      command.stepType !== RunbookStepType.ResourceCommand ||
+      command.resourceType !== AiResourceType.OpenStackCloud ||
+      !command.resourceId
+    ) {
+      return null;
+    }
+
+    const dryRun: string | null = getOpenStackDryRunCommand(command.command);
+
+    if (!dryRun) {
+      return null;
+    }
+
+    const isEvacuation: boolean =
+      readOpenStackChange(tokenizeResourceCommand(command.command).argv)
+        ?.requiresHuman === true;
+    let reach: OpenStackChangeReach | null = null;
+    let problem: string | null = null;
+
+    try {
+      const outcome: ResourceCommandJobOutcome =
+        await ResourceCommandJobRunner.run({
+          projectId: this.options.projectId,
+          aiRunId: this.options.aiRunId,
+          origin: RunnerJobOrigin.AiInvestigation,
+          resourceType: command.resourceType,
+          resourceId: new ObjectID(command.resourceId),
+          targetResourceAiAgentId: new ObjectID(command.runnerId),
+          command: dryRun,
+          stepId: `ai-reach-${command.sequence}`,
+          timeoutInMs: OPENSTACK_REACH_TIMEOUT_MS,
+          claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+        });
+
+      reach = readOpenStackChangeReach(outcome.output);
+
+      if (!reach) {
+        problem =
+          outcome.errorMessage ||
+          "its answer said nothing about what the change touches";
+      }
+    } catch (error: unknown) {
+      problem = error instanceof Error ? error.message : String(error);
+    }
+
+    if (reach) {
+      command.reach = reach;
+
+      if (reach.wouldBeRefused) {
+        return `The ${AI_RESOURCE_TYPE_INFO[command.resourceType].agentDisplayName} would refuse this: ${reach.wouldBeRefused}`;
+      }
+    }
+
+    if (isEvacuation && (!reach || !reach.isComplete)) {
+      return `An evacuation always asks a person, who is told which instances it touches and whose they are, and the ${
+        AI_RESOURCE_TYPE_INFO[command.resourceType].agentDisplayName
+      } could not read them all: ${
+        reach ? reach.problems[0] || "some did not answer" : problem
+      }. Nothing was proposed.${READ_THE_REACH_YOURSELF}`;
+    }
+
+    return null;
+  }
+
+  /*
    * A change Argo CD or Flux puts back never runs on its own, in any mode —
    * Bypass approval and the allowlist included: run unattended it would be
    * undone within seconds (Argo CD with self-heal) or at the next
@@ -3637,6 +3748,27 @@ export default class RemediationCommandToolkit {
     };
   }
 
+  /*
+   * One change, proposed by something that isn't a model: a workflow's step
+   * (OpenStackWorkflowFix). The road a model's proposal takes, to the same plan, and what
+   * was refused in words for a person, or null once it is the plan.
+   */
+  public async proposeOneCommand(command: JSONObject): Promise<string | null> {
+    const outcome: ToolCallOutcome = await this.proposeCommands({
+      commands: [command],
+    });
+
+    if (outcome.success) {
+      return null;
+    }
+
+    const problem: string = this.lastProposalProblems[0] || outcome.textForLlm;
+
+    return problem
+      .replace(/^Command 1: /, "")
+      .replace(READ_THE_REACH_YOURSELF, "");
+  }
+
   private async proposeCommands(args: JSONObject): Promise<ToolCallOutcome> {
     const commandsRaw: unknown = args["commands"];
 
@@ -3707,6 +3839,19 @@ export default class RemediationCommandToolkit {
 
         parsed.command.policyVerdict =
           AiRemediationCommandPolicyVerdict.RequiresApproval;
+
+        /*
+         * What it touches, from the cloud and not from the model. A change the
+         * agent says it would refuse is not put in front of a person.
+         */
+        const reachRefusal: string | null = await this.inspectOpenStackReach(
+          parsed.command,
+        );
+
+        if (reachRefusal) {
+          problems.push(`Command ${i + 1}: ${reachRefusal}`);
+          continue;
+        }
       } else {
         /*
          * Informational verdict for the approval card: AutoApproved
@@ -3728,6 +3873,8 @@ export default class RemediationCommandToolkit {
 
       commands.push(parsed.command);
     }
+
+    this.lastProposalProblems = problems;
 
     if (problems.length > 0) {
       return this.failure(
@@ -3757,6 +3904,16 @@ export default class RemediationCommandToolkit {
 
     this.proposedPlan = { commands };
 
+    const reachNotes: Array<string> = commands
+      .filter((command: AiRemediationCommand): boolean => {
+        return Boolean(command.reach);
+      })
+      .map((command: AiRemediationCommand): string => {
+        return `Command ${command.sequence}: ${describeOpenStackChangeReachCounts(
+          command.reach as OpenStackChangeReach,
+        )}`;
+      });
+
     return {
       success: true,
       textForLlm: `Recorded a plan of ${commands.length} command(s)${
@@ -3764,6 +3921,12 @@ export default class RemediationCommandToolkit {
           ? `, after the rollback recorded with ${ROLL_BACK_CHANGE_TOOL_NAME},`
           : ""
       } for human approval. Now finish your analysis: explain the diagnosis, why these commands, the risks, and what to verify afterwards.${
+        reachNotes.length > 0
+          ? `\n\nWhat the cloud's AI agent read these commands touch, which the person approving them is shown:\n- ${reachNotes.join(
+              "\n- ",
+            )}\nUse these numbers in your analysis, and no others.`
+          : ""
+      }${
         gitOpsNotes.length > 0
           ? `\n\nWho declares what these commands change:\n- ${gitOpsNotes.join(
               "\n- ",

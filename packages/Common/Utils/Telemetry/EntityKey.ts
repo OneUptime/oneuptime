@@ -167,6 +167,43 @@ export function keyForProxmoxCluster(
   });
 }
 
+export function keyForOpenStackCloud(
+  projectId: string,
+  cloudName: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.OpenStackCloud,
+    identifyingAttributes: { "openstack.cloud.name": cloudName },
+  });
+}
+
+/**
+ * One part of a cloud a span touched, by the kind and the id its
+ * OpenStackResource row holds (`OpenStackResourceKind`, `externalId`). The
+ * membership key ingest appends to a span from OSProfiler's driver whose request
+ * names the part, and the part's page queries by. Its cloud is in the identity,
+ * because a project can hold two clouds, and a restore can give two the same id.
+ */
+export function keyForOpenStackResource(
+  projectId: string,
+  resource: {
+    cloudName: string;
+    kind: string;
+    id: string;
+  },
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.OpenStackResource,
+    identifyingAttributes: {
+      "openstack.cloud.name": resource.cloudName,
+      "openstack.resource.kind": resource.kind,
+      "openstack.resource.id": resource.id,
+    },
+  });
+}
+
 /**
  * `ceph.cluster.name` is the cluster identity (matches the CephCluster
  * row's `name`, the project-unique join key written by
@@ -279,6 +316,33 @@ export function keyForKubernetesPod(
   return computeEntityKey({
     projectId,
     entityType: EntityType.KubernetesPod,
+    identifyingAttributes,
+  });
+}
+
+/**
+ * `k8s.cluster.name` + `k8s.node.name` is the node identity (mirrors the
+ * k8s.node resolver in `InventoryItem.extractEntities`, which is
+ * name-preferring and folds in the cluster only when the resource carries it).
+ * Pass the cluster's `clusterIdentifier` and the node's name.
+ */
+export function keyForKubernetesNode(
+  projectId: string,
+  data: {
+    clusterName?: string | null | undefined;
+    nodeName: string;
+  },
+): string {
+  const identifyingAttributes: Dictionary<string> = {};
+
+  if (isIdentityBearing(data.clusterName)) {
+    identifyingAttributes["k8s.cluster.name"] = data.clusterName;
+  }
+  identifyingAttributes["k8s.node.name"] = data.nodeName;
+
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.KubernetesNode,
     identifyingAttributes,
   });
 }

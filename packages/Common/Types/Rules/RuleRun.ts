@@ -53,6 +53,8 @@ export enum RuleRunType {
   CloudResourceOwnerRule = "CloudResourceOwnerRule",
   DashboardLabelRule = "DashboardLabelRule",
   DashboardOwnerRule = "DashboardOwnerRule",
+  DataAssetLabelRule = "DataAssetLabelRule",
+  DataAssetOwnerRule = "DataAssetOwnerRule",
   DataStoreLabelRule = "DataStoreLabelRule",
   DataStoreOwnerRule = "DataStoreOwnerRule",
   DatabaseServerLabelRule = "DatabaseServerLabelRule",
@@ -88,7 +90,9 @@ export enum RuleRunType {
   PodmanHostLabelRule = "PodmanHostLabelRule",
   PodmanHostOwnerRule = "PodmanHostOwnerRule",
   ProxmoxClusterLabelRule = "ProxmoxClusterLabelRule",
+  OpenStackCloudLabelRule = "OpenStackCloudLabelRule",
   ProxmoxClusterOwnerRule = "ProxmoxClusterOwnerRule",
+  OpenStackCloudOwnerRule = "OpenStackCloudOwnerRule",
   RumApplicationLabelRule = "RumApplicationLabelRule",
   RumApplicationOwnerRule = "RumApplicationOwnerRule",
   RunbookLabelRule = "RunbookLabelRule",
@@ -190,6 +194,8 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
   ),
   [RuleRunType.DashboardLabelRule]: metadata(Labels, "dashboard", "dashboards"),
   [RuleRunType.DashboardOwnerRule]: metadata(Owners, "dashboard", "dashboards"),
+  [RuleRunType.DataAssetLabelRule]: metadata(Labels, "table", "tables"),
+  [RuleRunType.DataAssetOwnerRule]: metadata(Owners, "table", "tables"),
   [RuleRunType.DataStoreLabelRule]: metadata(
     Labels,
     "data store",
@@ -321,10 +327,20 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
     "Proxmox cluster",
     "Proxmox clusters",
   ),
+  [RuleRunType.OpenStackCloudLabelRule]: metadata(
+    Labels,
+    "OpenStack cloud",
+    "OpenStack clouds",
+  ),
   [RuleRunType.ProxmoxClusterOwnerRule]: metadata(
     Owners,
     "Proxmox cluster",
     "Proxmox clusters",
+  ),
+  [RuleRunType.OpenStackCloudOwnerRule]: metadata(
+    Owners,
+    "OpenStack cloud",
+    "OpenStack clouds",
   ),
   [RuleRunType.RumApplicationLabelRule]: metadata(
     Labels,

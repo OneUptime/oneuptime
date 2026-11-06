@@ -357,13 +357,6 @@ const wireProbes: WireProbesFunction = (): void => {
         return model === data.modelType;
       })
     ) {
-      /*
-       * Thrown from inside the async body rather than returned as a
-       * pre-built rejected promise: zone.js reports the latter as an
-       * unhandled rejection in the microtask between construction and the
-       * await that catches it, which fills a passing run with alarming
-       * console noise.
-       */
       throw new Error("Refused");
     }
 

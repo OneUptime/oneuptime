@@ -15,6 +15,7 @@
  *                  so leaving them out is fine, but they are what people set.
  *                  On a query, the record ID leads, since "find this record"
  *                  is the commonest filter there is.
+ *   Custom fields - the project's own, each listed as a field of the record
  *   Other fields - everything else
  *   Filled in by OneUptime - a query only: Created At, Created by User, the
  *                  record number and the rest of what OneUptime stamps. They
@@ -24,13 +25,14 @@
  */
 
 import { ModelSchemaColumn } from "../ModelSchema";
-import { columnTypeLabel } from "./ColumnControl";
+import { columnPickLabel } from "./ColumnControl";
 import { ColumnUse, isSystemColumn } from "./ColumnUse";
 import { translationKey } from "../../../Utils/TranslateTemplate";
 
 export enum ColumnPickerGroupId {
   Required = "required",
   Main = "main",
+  Custom = "custom",
   Other = "other",
   System = "system",
 }
@@ -52,6 +54,9 @@ export interface GroupPickerColumnsOptions {
 }
 
 const PRIMARY_KEY_COLUMN: string = "_id";
+
+export const CUSTOM_FIELDS_GROUP_LABEL: string =
+  translationKey("Custom fields");
 
 type CompareColumnsFunction = (
   a: ModelSchemaColumn,
@@ -136,11 +141,14 @@ export const groupPickerColumns: GroupPickerColumnsFunction = (
 ): Array<ColumnPickerGroup> => {
   const required: Array<ModelSchemaColumn> = [];
   const main: Array<ModelSchemaColumn> = [];
+  const custom: Array<ModelSchemaColumn> = [];
   const other: Array<ModelSchemaColumn> = [];
   const system: Array<ModelSchemaColumn> = [];
 
   for (const column of options.columns) {
-    if (options.requiredColumnIds.includes(column.id)) {
+    if (column.customField) {
+      custom.push(column);
+    } else if (options.requiredColumnIds.includes(column.id)) {
       required.push(column);
     } else if (isMainColumn(column, options.use)) {
       main.push(column);
@@ -164,6 +172,12 @@ export const groupPickerColumns: GroupPickerColumnsFunction = (
       label: "Main fields",
       hint: mainGroupHint(options.use),
       columns: main.sort(primaryKeyThenTitle),
+    },
+    {
+      id: ColumnPickerGroupId.Custom,
+      label: CUSTOM_FIELDS_GROUP_LABEL,
+      // In the order the project gave them: the order its record's page shows.
+      columns: custom,
     },
     {
       id: ColumnPickerGroupId.Other,
@@ -214,6 +228,11 @@ export type IsColumnKeyInformativeFunction = (
 export const isColumnKeyInformative: IsColumnKeyInformativeFunction = (
   column: ModelSchemaColumn,
 ): boolean => {
+  // Named by a person, who said all there is to say about it.
+  if (column.customField) {
+    return false;
+  }
+
   return compact(column.id) !== compact(column.title || "");
 };
 
@@ -296,7 +315,7 @@ const scoreColumn: ScoreColumnFunction = (
       column.title || "",
       column.id,
       column.description || "",
-      columnTypeLabel(column),
+      columnPickLabel(column),
     ].join(" "),
   );
 

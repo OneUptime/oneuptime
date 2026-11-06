@@ -1,3 +1,5 @@
+import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
@@ -32,6 +34,7 @@ import Permission, {
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   isCloudAiResourceType,
+  isReadOnlyAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { getJestSpyOn } from "../../Spy";
@@ -115,6 +118,12 @@ const WIRING: Array<CreateWiring> = [
     modelType: Host,
     editPermission: Permission.EditHost,
   },
+  {
+    resourceType: AiResourceType.OpenStackCloud,
+    service: OpenStackCloudService,
+    modelType: OpenStackCloud,
+    editPermission: Permission.EditOpenStackCloud,
+  },
 ];
 
 const MASTER_ADMIN: DatabaseCommonInteractionProps = {
@@ -180,7 +189,7 @@ it("the wiring table covers every resource type", () => {
     }),
   ).toEqual(
     ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-      return !isCloudAiResourceType(type);
+      return !isCloudAiResourceType(type) && !isReadOnlyAiResourceType(type);
     }),
   );
 });

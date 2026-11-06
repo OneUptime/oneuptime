@@ -1,0 +1,2 @@
+Measures being processed, with gnocchi-metricd running.
+On its own: measures written, and gnocchi-metricd processing them.

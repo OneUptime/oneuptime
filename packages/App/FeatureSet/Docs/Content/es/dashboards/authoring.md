@@ -39,7 +39,7 @@ Las plantillas, según la categoría en la que las muestra el selector:
 | --- | --- |
 | Monitoreo y APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
 | Respuesta a incidentes | Incident Dashboard, Alert Dashboard |
-| Infraestructura | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
+| Infraestructura | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, OpenStack Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
 **Recomendadas** reúne Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard y Metrics Dashboard. Una plantilla es un punto de partida, no un vínculo: una vez creado el panel, cámbialo como quieras. La plantilla no vuelve a actualizarlo después.
 

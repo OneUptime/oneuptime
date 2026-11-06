@@ -19,6 +19,12 @@ export enum DataObservabilityMetricName {
   SecondsSinceChange = "oneuptime.data.table.seconds_since_change",
   SchemaChanges = "oneuptime.data.table.schema_changes",
   /*
+   * The changes among them that can break what reads the table: a column
+   * removed, renamed or retyped, or newly allowed to be empty. What
+   * "Schema Changed" alerts on; an added column stays on the timeline.
+   */
+  BreakingSchemaChanges = "oneuptime.data.table.breaking_schema_changes",
+  /*
    * How far past its usual time the table is, by the rule the catalog's
    * Late pill uses (DataAssetFreshness); 0 while it is on time. Written once
    * the table's rhythm is learned, so a monitor can alert on "late" from a
@@ -87,6 +93,13 @@ export const DATA_OBSERVABILITY_METRICS: ReadonlyArray<DataObservabilityMetricDe
       title: "Schema Changes",
       description:
         "How many columns were added, removed, renamed or changed since the collection before.",
+      unit: "",
+    },
+    {
+      name: DataObservabilityMetricName.BreakingSchemaChanges,
+      title: "Breaking Schema Changes",
+      description:
+        "How many columns were removed, renamed or retyped since the collection before, or newly allowed to be empty.",
       unit: "",
     },
     {

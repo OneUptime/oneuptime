@@ -9,6 +9,7 @@ import API from "Common/UI/Utils/API/API";
 import { hasOpenModalDialog } from "Common/UI/Utils/GlobalKeyboardShortcut";
 import { isPageRightToLeft } from "Common/UI/Utils/PageLanguage";
 import { getProductName } from "Common/UI/Utils/ProductBranding";
+import { PAGE_DOCK_END_CLASS_NAME } from "Common/UI/Utils/PageDock";
 import { usePageScrollLock } from "Common/UI/Utils/PageScrollLock";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -389,7 +390,7 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
       tabIndex={-1}
       role="region"
       aria-label={translator.translateText("Playlist player")}
-      className="fixed inset-0 z-40 flex flex-col overflow-hidden focus:outline-none"
+      className={`fixed inset-0 ${PAGE_DOCK_END_CLASS_NAME} z-40 flex flex-col overflow-hidden focus:outline-none`}
       style={{ background: "var(--ou-background-primary, #f8f9fb)" }}
       data-testid={PLAYLIST_PLAYER_TEST_ID}
       data-status={status}

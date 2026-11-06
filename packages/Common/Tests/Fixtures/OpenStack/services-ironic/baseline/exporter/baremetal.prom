@@ -1,0 +1,12 @@
+# HELP openstack_ironic_node node
+# TYPE openstack_ironic_node gauge
+openstack_ironic_node{console_enabled="false",deploy_kernel="",deploy_ramdisk="",id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",maintenance="false",maintenance_reason="",name="ou-node-available",power_state="",provision_state="available",resource_class="baremetal",retired="false",retired_reason=""} 1
+# HELP openstack_ironic_node_provision_updated_at node_provision_updated_at
+# TYPE openstack_ironic_node_provision_updated_at gauge
+openstack_ironic_node_provision_updated_at{id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",name="ou-node-available",provision_state="available"} 1.793853384e+09
+# HELP openstack_ironic_node_updated_at node_updated_at
+# TYPE openstack_ironic_node_updated_at gauge
+openstack_ironic_node_updated_at{id="21fdc1eb-471d-40dd-b0b9-cf9735477d53",name="ou-node-available",provision_state="available"} 1.793853384e+09
+# HELP openstack_ironic_up up
+# TYPE openstack_ironic_up gauge
+openstack_ironic_up 1

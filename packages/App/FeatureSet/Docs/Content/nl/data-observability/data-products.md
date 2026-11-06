@@ -9,7 +9,7 @@ Maak onder **Data Observability > Dataproducten** een dataproduct aan: geef het 
 - **Bijgewerkt vóór een tijdstip van de dag (UTC):** de gegevens van elke dag komen die dag binnen, vóór dat tijdstip. Vanaf dat tijdstip moet elke tabel die dag zijn gewijzigd; tot dan geldt de load van gisteren. Een load die altijd een half uur te laat is, is elke dag dat halve uur te laat.
 - **Een maximale leeftijd:** de laatste wijziging van geen enkele tabel mag ouder zijn dan dit.
 
-Elke vijf minuten worden de tabellen van elk product getoetst aan de SLA ervan. Het product is **Late** wanneer een van de tabellen te laat is, en de stand van zijn gegevens is die van de oudste laatste wijziging onder de tabellen. Het schrijft `oneuptime.data.product.late_tables` en `oneuptime.data.product.data_age`, zodat je de actualiteit van alle producten naast elkaar in een grafiek kunt zetten.
+Elke vijf minuten worden de tabellen van elk product getoetst aan de SLA ervan. Het product is **Te laat** wanneer een van de tabellen te laat is, en de stand van zijn gegevens is die van de oudste laatste wijziging onder de tabellen. Het schrijft `oneuptime.data.product.late_tables` en `oneuptime.data.product.data_age`, zodat je de actualiteit van alle producten naast elkaar in een grafiek kunt zetten.
 
 ## Op statuspagina's
 

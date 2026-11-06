@@ -1,8 +1,10 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import { findCloudCostAnomalies } from "../../../Types/Cloud/CloudCostAnomaly";
 import {
   CloudAccountCostSummary,
+  CloudCostAnomaly,
   CLOUD_COST_DEFAULT_CURRENCY,
   addUtcDays,
   addUtcMonths,
@@ -409,7 +411,9 @@ export default class CloudCostWriter {
 
   /*
    * Each account's summary from what is stored: its daily totals and this
-   * month's cost by service, in the currency most of its rows are in.
+   * month's cost by service, in the currency most of its rows are in - and
+   * the spend of its last full days that ran far above its usual, a
+   * service's or the account's (findCloudCostAnomalies).
    */
   public static async summarize(data: {
     projectId: ObjectID;
@@ -474,6 +478,8 @@ export default class CloudCostWriter {
 
       const dailyTotals: Map<string, number> = new Map();
       const monthServices: Map<string, number> = new Map();
+      // Each day's cost by service: what an unusual day is found in.
+      const dailyServiceTotals: Map<string, Map<string, number>> = new Map();
 
       for (const point of points) {
         if (point.currency !== currency) {
@@ -485,6 +491,14 @@ export default class CloudCostWriter {
           (dailyTotals.get(point.day) || 0) + point.amount,
         );
 
+        const services: Map<string, number> =
+          dailyServiceTotals.get(point.day) || new Map();
+        services.set(
+          point.service,
+          (services.get(point.service) || 0) + point.amount,
+        );
+        dailyServiceTotals.set(point.day, services);
+
         if (point.day >= monthStartDay) {
           monthServices.set(
             point.service,
@@ -493,15 +507,22 @@ export default class CloudCostWriter {
         }
       }
 
-      summaries.set(
-        cloudAccountId,
-        summarizeCloudAccountCosts({
-          dailyTotals,
-          monthServices,
-          currency,
-          now: data.now,
-        }),
-      );
+      const summary: CloudAccountCostSummary = summarizeCloudAccountCosts({
+        dailyTotals,
+        monthServices,
+        currency,
+        now: data.now,
+      });
+      const anomalies: Array<CloudCostAnomaly> = findCloudCostAnomalies({
+        dailyServiceTotals,
+        latestDay: summary.latestDay,
+      });
+
+      if (anomalies.length > 0) {
+        summary.anomalies = anomalies;
+      }
+
+      summaries.set(cloudAccountId, summary);
     }
 
     return summaries;

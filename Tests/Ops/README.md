@@ -179,7 +179,19 @@ once the database exists, `config.env` is left alone. The Docker Compose
 guide's "Change the database password" block is run as written, pasted whole:
 while PostgreSQL is not running it changes nothing, and while it runs it
 changes the password in PostgreSQL and in `config.env`. Its
-`docker-compose.override.yml` example is applied.
+`docker-compose.override.yml` example is applied. PostgreSQL's health check
+passes and leaves no error in its log, with the names `config.example.env`
+ships and with a role and database of an operator's own.
+
+### `ComposePostgresHealthcheck.test.js`
+
+The command Docker runs as PostgreSQL's health check, through a real shell with
+a stand-in `pg_isready`, which needs no database: it names the role and database
+the container created, read from the container's environment when it runs, and
+connects over TCP, so it passes only once the server other containers connect
+to is up. A check that names neither leaves `FATAL: role "root" does not exist`
+in the log every ten seconds. Every other probe of a PostgreSQL this repository
+starts is held to naming its role too.
 
 ### `ComposeDatastorePasswordRuntime.test.js`
 
@@ -534,6 +546,91 @@ exporter cannot read, warns when the cluster has more nodes than the list,
 falls back to `PVE_HOST` alone as `docker-compose.yml` does, and reports a
 list without its square brackets as the error that stops the collector.
 
+### `OpenStackAgentInstallers.test.js`
+
+Runs the OpenStack agent's `install.sh` for real in a scratch directory, with
+`docker`, `curl`, `id` and `chown` replaced by recording stubs, and three times with
+the real `curl` against a local server that answers as OneUptime and Keystone do.
+As with Proxmox and Ceph, running it again is the upgrade: every answer is read
+back from `.env` as Docker Compose reads it, the credential from `clouds.yaml`, an
+exported variable still overrides, nothing is asked again, a file the reader edited
+is kept as `<file>.bak.<timestamp>`, and the containers are recreated from `.env`
+alone. It also pins what is particular to OpenStack:
+
+- `clouds.yaml` is mode 600 and has one entry per region, named for the region,
+  because the exporter's series do not say which region they are from and the
+  collector stamps the entry's name on them;
+- a secret reaches the exporter as typed: 27 hostile values (`$`, quotes, `#`,
+  backslashes, YAML's own syntax and words, spaces at the ends, a tab, a line break)
+  go through the script's own helpers and are read back by a real YAML parser, by
+  JSON and by the script itself, and the real `curl` carries one to the server;
+- a secret is never on a command line, never echoed, and in no program's environment,
+  though it was exported, and no line of the script that names one runs a program;
+- the exporter's image runs as uid 65532, so a root-owned 0600 file would lock it
+  out: run as root the file goes to that user, and run as anyone else the exporter
+  runs as them (`OPENSTACK_EXPORTER_USER`);
+- a credential Keystone refuses, a region the catalog does not list, or a Keystone
+  that cannot be asked stops the install before anything is written, and on a re-run
+  leaves the running agent as it is;
+- your own exporter (`OPENSTACK_EXPORTER_ADDRESS`) asks for no credential, writes no
+  `clouds.yaml`, and turns the compose profile off.
+
+Where `docker compose` runs, the written `.env` is read back through the real
+`docker compose config`. CI must run that check; elsewhere it is skipped with the
+reason logged.
+
+### `OpenStackAgentTroubleshoot.test.js`
+
+Runs the OpenStack agent's `troubleshoot.sh` with the real `curl` against a local
+server that answers as a cloud's Keystone and services, an exporter and OneUptime do;
+`docker` is a stub that runs the curl it is asked to run. It pins the access check
+`access-matrix.py` is the real-cloud half of. OpenStack has no global read-only role,
+and Neutron and Cinder answer a plain reader with a `200` and only its own project,
+so a `200` is no proof: a list where every row has one project id, the credential's
+own, reads "may be own project only", and shared networks, their subnets and public
+images do not count as seeing another project. For each read in `access-matrix.py`
+(the suite holds the two lists together, and every read to the access rules file)
+it reports reads everything, may be own project only, refused or not deployed, says
+which pages and alerts go without it and what to do (each policy line it suggests
+must be in `access/policy/`), says which level the answers add up to, and warns when
+the credential's own project holds things, because where Cinder has
+`enforce_new_defaults` off any role on a project can write there. It replays what five
+real clouds answered each level, from `packages/Common/Tests/Fixtures/OpenStack`, and
+holds what it says of each read to the docs' table: Cinder's services and pools, which
+only level 1 reads, and Neutron's `409` on an empty project, which it reads as expected.
+It also pins the login (the credential and the token only ever on stdin, never on a command
+line), the small pages it asks for, the catalog, several regions, the exporter and
+the ownership of `clouds.yaml`, and the same script on an install without Docker.
+
+### `OpenStackAgentAccessTable.test.js`
+
+What the agent's docs say each level of access gets, against what real clouds answered.
+`openstack-e2e/access-table.py` writes the tables from the recordings in
+`packages/Common/Tests/Fixtures/OpenStack/<release>/access/`, one row per read and one
+column per level, and this fails when the table on the agent's README, its docs page or
+its in-app guide differs from what the script prints, so none is ever written from
+memory. It runs the script on recordings written in the test, for each rule that decides
+a cell, and holds the prose around the tables to the recordings: every write at level 1
+answers `401`, every write at level 2 is refused, and a plain reader created a volume
+everywhere but Hibiscus.
+
+### `OpenStackAgentWithoutDocker.test.js`
+
+Runs `install.sh --without-docker` for real, with `id`, `uname`, `useradd`, `chown`,
+`systemctl` and `curl` replaced by recording stubs and the install's folders under
+a scratch directory. Each release archive is held to a sha256 kept in the script. The
+stubs' archives are not the real ones, so the tests that need a download to pass run
+a copy of the script with its checksums replaced; the real script refuses them, and
+the suite pins that nothing changes when it does. It also pins that the versions are
+the ones `docker-compose.yml` pins; that files land where the units run them from,
+under a root umask of 077; that `clouds.yaml` belongs to the exporter's own system
+user; that `.env` is quoted for systemd, which reads it by rules of its own; that a
+re-run needs no flag and keeps every answer; that the README's uninstall removes what
+the install added; and that the units run what the installer put down, with the
+flags and defaults of `docker-compose.yml` and `systemd-analyze verify` (skipped
+without systemd, except in CI). The real release URLs, the archives' layout and
+systemd running these units are not checked here.
+
 ### `VMwareAgentWithoutDocker.test.js`
 
 The VMware agent also installs without Docker: the `otelcol-contrib` release
@@ -649,7 +746,7 @@ copies in.
 
 ### `AgentTroubleshootTokenCheck.test.js`
 
-Runs the ingestion-key check of the Ceph, Proxmox, VMware, Storage Array and
+Runs the ingestion-key check of the Ceph, Proxmox, OpenStack, VMware, Storage Array and
 Docker Swarm agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
 chart's (with `kubectl`, and the local `curl` and `sleep`, stubbed) against
 each answer a OneUptime server can give (GH#3978). Ingest refuses a bad key
@@ -667,7 +764,7 @@ The Docker Swarm check has no `/fluentd` fallback, so there an old server that
 does not refuse the key stays inconclusive.
 
 With the collector down there is no container environment to read, and the
-Ceph, Proxmox, VMware and Storage Array checks fall back to the `.env` their
+Ceph, Proxmox, OpenStack, VMware and Storage Array checks fall back to the `.env` their
 `install.sh` writes quoted for Docker Compose: the suite pins that they read
 it as Compose does, so the probe asks the URL and sends the key without the
 quotes.
@@ -1111,7 +1208,7 @@ The suite pins all of that, that the chart's default image, the server's
 the same, that build.yml builds the image on every pull request (and that each
 of its image jobs warms the base images of exactly the Dockerfiles it builds,
 after rendering them and before building them), and that test-release.yaml
-builds both architectures on every push to master with the `test` tags. Every
+builds both architectures on every push to main with the `test` tags. Every
 job of any workflow that builds from `Scripts/Dev/docker-compose.dev.yml` is
 held to the same warm-up rule, with the Dockerfiles it builds read from the
 compose file, what its services `depends_on` included. A build is read from a
@@ -1208,6 +1305,16 @@ What keeps the images free of the rest of what scanners reported, for every
   starts from a runtime stage that installs nothing and copies `/usr/src` out
   of a build pruned from the App's entry, `Migrate.ts`, the external
   calendar's worker and (Enterprise) ee/'s entry;
+- no layer of an image that ships holds a test folder, whether Common's or its
+  own. The check follows the folders through each stage, so a later `rm` in a
+  stage the image is built on does not count: they stay out of the copy
+  (`COPY --exclude=Tests`: the Probe, Home, the Test Server, and the Kubernetes
+  AI agent, cost agent and log tailer and the resource AI agent) or leave a
+  stage that does not ship before the image copies out of it (the App, the
+  Runner, Nginx). Only the two images that exist to run tests keep them: the
+  suite's own and the E2E image, whose fixtures import Common's test helpers,
+  which is also why `.dockerignore` cannot leave them out. Where docker answers,
+  BuildKit builds the Probe's copies through the real `.dockerignore`;
 - the collector version is the same everywhere the container agents run it or
   it is validated.
 
@@ -1287,7 +1394,7 @@ job then succeeds and cancels nothing. So the suite pins both sides:
 - its matrix is exactly the names of the workflows that run on `pull_request`,
   and those names are unique;
 - for a `pull_request` event, each of those workflows' groups evaluates to the
-  canceller's group for it, a push to master lands in a different group (a
+  canceller's group for it, a push to main lands in a different group (a
   merge's own push runs are never cancelled), and none of them runs on
   `closed`.
 
@@ -1298,7 +1405,7 @@ and throws on anything else.
 ### `ReleaseE2ePipeline.test.js`
 
 How the release workflows run the e2e suite. test-release.yaml runs on every
-push to master, and a run that has started now finishes (the next push waits
+push to main, and a run that has started now finishes (the next push waits
 as the one pending run), so the suite pins what that makes load-bearing: one
 concurrency group without `cancel-in-progress`; a timeout on every job; every
 checkout at the triggering commit, never `ref: ${{ github.ref }}` (a branch
@@ -1340,14 +1447,14 @@ release.yml now passes its run id as the `release_run_id` input, which the
 group reads first. The suite checks that the call passes only inputs the
 workflow declares (GitHub refuses to start a run that passes any other), and
 works the group out, with `Utils/WorkflowExpression.js`, for two release runs
-(different groups), two pushes to master and two pushes to one pull request
+(different groups), two pushes to main and two pushes to one pull request
 (one group each, so the newest still supersedes).
 
 terraform-provider-e2e.yml also runs every night: HashiCorp asks the providers
 it lists as Partner for tests that run nightly as a GitHub Action. The suite
 checks that it is scheduled once a day, every day, and that a nightly run's
 group, read from `github.event.schedule` (which GitHub sets on scheduled runs
-only), is not the one master's pushes share, so a merge that lands during the
+only), is not the one main's pushes share, so a merge that lands during the
 nightly run neither cancels it nor is cancelled by it.
 
 The same workflow runs the provider's acceptance tests, written with
@@ -1433,7 +1540,7 @@ The suite runs the script against a fake GitHub (nothing here reaches the
 network) and pins the range: from the newest published release older than this
 one, as numbers, drafts and prereleases left out, to the commit the run built.
 Then the changes: every pull request once, every commit pushed straight to
-master (GitHub answers those with the release gate, which is no answer), and
+main (GitHub answers those with the release gate, which is no answer), and
 neither the gate nor the version bump. Then the sorting of real titles, in both
 forms the repository writes them, with a label over a title and what mends the
 repository under Maintenance; a title staying text, so that `/install/<agent>`
@@ -1601,7 +1708,7 @@ they import, with Common's own compiler options (the generator's
 `tsconfig.json` extends `packages/Common/tsconfig.json`). No workflow ran it,
 and it failed with about 10,700 errors before anyone looked. The suite pins
 that `.github/workflows/terraform-provider-generation.yml` runs it in one step,
-on every pull request and every push to master, after installing Common,
+on every pull request and every push to main, after installing Common,
 `Scripts` and the generator in the same job (what its imports resolve from),
 before the provider is generated, with nothing that lets it fail quietly, and
 with the generator's unit tests still running when it fails.
@@ -1659,7 +1766,7 @@ at any depth, `"<rootDir>/build/"` for one directory of the package.
 ### `OssScannerImage.test.js`
 
 `.oss-scanner/` is OneUptime's enrolment in Anthropic's OSS Scanner, which
-builds `.oss-scanner/Dockerfile` from master and studies the image with no
+builds `.oss-scanner/Dockerfile` from main and studies the image with no
 network (`.oss-scanner/README.md`). Nothing else runs those files, so the
 suite holds them to the repository:
 
@@ -1915,6 +2022,22 @@ python3 -m unittest discover -s Tests/Ops/agent-ebpf-e2e/tests -v
 ```
 
 See [its README](agent-ebpf-e2e/README.md) for what it checks and how to run it.
+
+### `OpenStackServicesRig.test.js`
+
+The rig for the services a cloud may not run (`record-services` in `test.openstack-e2e.yaml`, and `openstack-e2e/services-*.sh`), checked without a DevStack, because one takes half an hour to deploy on shared runners. It pins that the job runs only when asked and that a filtered-out entry skips every step. It runs each group's script start to finish with every wait answered and every command line stubbed, which proves no state but finds what `set -u` or a typo would otherwise find an hour into a run, and that a scene going wrong costs only itself. It runs `record.sh` against a stub of each service, for the reads each one has and the names the importer keeps, and `import-services-recording.py` on a recording written in the test, for what it keeps, what it scrubs, and the fixtures it must never touch.
+
+### `openstack-e2e/`
+
+Not part of `npm test`: it deploys a real OpenStack with DevStack, builds a known
+estate on it, breaks it in the ways that page operators and records what its APIs
+and openstack-exporter answer, for the OpenStack product's tests to replay. It
+needs a machine it can give over to DevStack, and runs in its own workflow,
+"OpenStack E2E", by hand, once a week, and when the agent or the rig changes.
+`OpenStackAgentConfig.test.js` (in `npm test`) checks its scripts parse, and the
+agent's files.
+
+See [its README](openstack-e2e/README.md) for what it records and how to use it.
 
 ## Utils
 

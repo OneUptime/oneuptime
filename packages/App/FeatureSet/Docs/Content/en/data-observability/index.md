@@ -1,6 +1,6 @@
 # Data Observability
 
-Data Observability watches the tables your company relies on, in PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena, and tells you when their data is late, missing, wrong or broken, before the people who use it notice. It learns each table's rhythm on its own, reads each database's catalog and never a row, and ties every data problem to the pipeline run, the deploy or the upstream table behind it.
+Data Observability watches the tables your company relies on, in PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redshift, Snowflake, BigQuery, ClickHouse, Databricks and Athena, and tells you when their data is late, missing, wrong or broken, before the people who use it notice. It learns each table's rhythm on its own, reads each database's catalog so that no value leaves it, and ties every data problem to the pipeline run, the deploy or the upstream table behind it.
 
 It answers four questions:
 
@@ -26,7 +26,7 @@ flowchart TB
 ```
 
 1. **Connect a database** with a read-only login. A database Data Security already knows is watched with nothing to do, and so is every BigQuery dataset your Google Cloud connection found. A database in a private network is read by a probe you run there.
-2. **Every five minutes** OneUptime reads each database's catalog and statistics: every table and view, its columns, rows and size, and when it last changed. No table is scanned and no row is read.
+2. **Every five minutes** OneUptime reads each database's catalog and statistics: every table and view, its columns, rows and size, and when it last changed. No table is scanned, and on MongoDB only the field names of its newest documents are read. A path in a bucket can be watched the same way.
 3. **Each table's rhythm is learned**: how often it usually changes. A table that misses its rhythm is late; one whose rows drop, or whose columns change, says so.
 4. **Recommended alerts** turn each of those into a monitor you choose to have, and checks you add read what a table holds.
 5. **Lineage** says which tables feed which, so an alert on a table whose source broke first is that source's consequence: one issue, not ten.
@@ -36,12 +36,13 @@ flowchart TB
 - **It is part of the rest of OneUptime.** A data alert is an ordinary alert: it pages through on-call, opens incidents, shows on status pages and counts against SLOs. The services your traces show writing a table, and their deploys, are next to every table alert.
 - **Nothing to configure per table.** Rhythms, schedules and usual run times are learned from what each table and pipeline does, and a monitor recommended for a database covers every table in it, including ones created later.
 - **One issue per cause.** An alert whose upstream table, pipeline or database already has an alert open joins that alert as its consequence, already acknowledged, so a broken load pages once.
+- **Every alert explains itself.** It ranks the likely cause, says what depends on the table and who owns it, and learns from what you say about it: mark one **Not an Issue** and the same thing stays quiet next time.
 - **OneUptime AI knows your data.** Investigations of data alerts start from the table's writers, runs and upstream tables; Ask AI, Slack, Microsoft Teams and AI agents can ask whether a table is fresh; and a check can be written from a sentence. See [OneUptime AI and the API](/docs/data-observability/ai-and-api).
 
 ## Before you begin
 
 - **A role that can set it up.** Project Owners, Project Admins and Telemetry Admins connect databases. Anyone who may edit data assets adds checks, reconciliations and data products; Viewers read what it found. See [Permission Reference](/docs/permissions/reference).
-- **A read-only login on each database.** [Connect a Database](/docs/data-observability/connect) lists the least each engine needs.
+- **A read-only login on each database.** [Connect a Database](/docs/data-observability/connect) lists the least each engine needs. OneUptime suggests the databases your traces, cloud accounts and Database Monitoring already know of.
 
 ## Quick start
 
@@ -58,6 +59,12 @@ Within five minutes its tables appear under **Tables**, each with its rows, size
 
 On **Databases**, choose **Recommended Alerts** for the database, and add the ones you want: a table that is late, one whose rows fall sharply or run unusually low, one whose columns change, and a database that stops reporting. Each is an ordinary monitor: on-call, owners, maintenance windows and status pages work as for any other.
 :::
+
+## What it costs
+
+On OneUptime Cloud, the first 100 tables of a project are free. Each table after that costs $1 a month, and $0.25 above 1,000. Views are free, and so are the tables of a database you stop watching. A check with an alert is billed as an active monitor. **Databases** and **Overview** show how many tables your project watches and what they cost, and [Pricing](https://oneuptime.com/pricing) has a calculator.
+
+A self-hosted OneUptime pays nothing for tables.
 
 ## Next steps
 

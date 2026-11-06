@@ -1,0 +1,1 @@
+{"resources": [{"updated_time": "2026-11-05T08:00:09Z", "creation_time": "2026-11-05T08:00:09Z", "logical_resource_id": "held", "resource_name": "held", "physical_resource_id": "ou-stack-creating-held-kds5gfkj5q47", "resource_status": "CREATE_IN_PROGRESS", "resource_status_reason": "state changed", "resource_type": "OS::Heat::TestResource", "required_by": []}]}

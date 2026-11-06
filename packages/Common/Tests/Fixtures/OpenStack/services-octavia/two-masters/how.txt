@@ -1,0 +1,2 @@
+An active-standby pair whose rows both say MASTER.
+Written into its row: what a split pair reads as. Nothing here split it.

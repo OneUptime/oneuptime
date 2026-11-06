@@ -100,7 +100,7 @@ PostgreSQL が保存するのはテレメトリではなく、設定と運用上
 | イングレスゲートウェイ | `nginx` | リクエスト量 |
 | テレメトリライター (有効にした場合) | `telemetryWriter` | 負荷では増えません。すべてのテレメトリの挿入を ClickHouse にまとめて送るため、ClickHouse が受け止められる量に合わせてサイジングします |
 
-チャートには **KEDA** が同梱されており、アプリ、ワーカー、プローブ、グローバル Runner をキューの滞留に応じてスケールできます。`keda.enabled` と、各サービス自身の `keda.enabled` (たとえば `app.keda.enabled`) をあわせて有効にしてください。まだ KEDA がないクラスターでは、最初のインストールに追加の手順が必要です。チャートの [KEDA ガイド](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md)を参照してください。KEDA が管理しないサービスは、代わりに CPU またはメモリのオートスケーラー (`autoscaling`) を使えます。
+チャートには **KEDA** が同梱されており、アプリ、ワーカー、プローブ、グローバル Runner をキューの滞留に応じてスケールできます。`keda.enabled` と、各サービス自身の `keda.enabled` (たとえば `app.keda.enabled`) をあわせて有効にしてください。まだ KEDA がないクラスターでは、最初のインストールに追加の手順が必要です。チャートの [KEDA ガイド](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)を参照してください。KEDA が管理しないサービスは、代わりに CPU またはメモリのオートスケーラー (`autoscaling`) を使えます。
 
 ## 開始時の段階
 
@@ -130,7 +130,7 @@ PostgreSQL が保存するのはテレメトリではなく、設定と運用上
 | **Valkey** | チャートでは複製されません。自動フェイルオーバーのある外部のマネージド Redis または Valkey を OneUptime の接続先に指定します (`externalValkey`)。OneUptime は単一のホストとポートに接続するため、クラスターモードのエンドポイントではなく、サービスのプライマリエンドポイントを使ってください。 |
 
 > [!WARNING]
-> 既存のインストールでどちらかのオペレーターを有効にすると、新しい空のデータベースが起動します。どちらも、置き換える単一インスタンスのデータベースのデータをコピーしません。チャートのガイドに従ってデータを移行してください。[PostgreSQL](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) 用と [ClickHouse](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md) 用があります。
+> 既存のインストールでどちらかのオペレーターを有効にすると、新しい空のデータベースが起動します。どちらも、置き換える単一インスタンスのデータベースのデータをコピーしません。チャートのガイドに従ってデータを移行してください。[PostgreSQL](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigratePostgresStandaloneToOperator.md) 用と [ClickHouse](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/MigrateClickhouseStandaloneToOperator.md) 用があります。
 
 ## 保持期間とストレージへの影響
 

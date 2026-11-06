@@ -67,7 +67,7 @@ Auch Workflows öffnen Vorfälle: Der [Huntress](/docs/integrations/huntress)-Wo
 
 Beim Anlegen führt OneUptime die Automatisierung aus, die Sie konfiguriert haben: Datenschutzregeln, Eigentümerregeln, Beschriftungsregeln, Bereitschaftsregeln und Runbook-Regeln. Alle Bereitschaftsrichtlinien am Vorfall – von Hand angehängt, aus einer Vorlage übernommen oder von einer zutreffenden Bereitschaftsregel hinzugefügt – werden parallel ausgeführt.
 
-Eigentümer werden über die Kanäle benachrichtigt, die jeder von ihnen unter **Benutzereinstellungen → Benachrichtigungseinstellungen** eingeschaltet hat: E-Mail, SMS, Sprachanruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams oder Webhook. Hat ein Vorfall überhaupt keine Eigentümer, geht die Benachrichtigung an die Projekteigentümer, statt verloren zu gehen.
+Eigentümer werden über die Kanäle benachrichtigt, die jeder von ihnen unter **Benutzereinstellungen → Benachrichtigungseinstellungen** eingeschaltet hat: E-Mail, SMS, Sprachanruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost oder Webhook. Hat ein Vorfall überhaupt keine Eigentümer, geht die Benachrichtigung an die Projekteigentümer, statt verloren zu gehen.
 
 Ist der Vorfall auf einer Statusseite sichtbar und sind Abonnentenbenachrichtigungen eingeschaltet, erfahren es auch die Abonnenten: die Abonnenten jeder Statusseite, die einen seiner Monitore führt, oder nur die der Seiten, auf die Sie ihn beschränkt haben. Unter [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience) erfahren Sie, wie Sie jeder Zielgruppe ihre eigene Statusseite geben.
 
@@ -160,7 +160,7 @@ Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen �
 | **Übersicht** | **Alle Vorfälle**, **Aktive Vorfälle** und **Postmortem-Analysen** – die zweite trägt ein rotes Badge mit der Anzahl der Vorfälle in einem Status über dem behobenen Status, die dritte listet das Postmortem jedes Vorfalls auf, zum Filtern nach Eigentümer, Schweregrad oder Status. |
 | **Episoden** | Vorfallsepisoden, eine eigene Funktion zur Gruppierung mit eigenen Seiten. |
 | **KI** | **Einblicke**, **Protokolle**, **Einstellungen**: was die OneUptime-KI aus Ihren Vorfällen gelernt und alles, was sie für sie getan hat, und was sie selbstständig tun darf – mit den Regeln, welche Vorfälle sie untersucht und behebt. Siehe [AI SRE](/docs/ai/ai-sre). |
-| **Arbeitsbereich** | Die Chat-Arbeitsbereiche, die dieses Projekt verbunden hat: **Slack**, **Microsoft Teams** oder beide, jeweils mit ihren Benachrichtigungsregeln für Vorfälle. Ist keiner verbunden, enthält er **Slack oder Teams verbinden**, eine Seite, die beide zeigt und erklärt, wie man sie verbindet. |
+| **Arbeitsbereich** | Die Chat-Arbeitsbereiche, die dieses Projekt verbunden hat: **Slack**, **Microsoft Teams** und **Mattermost**, jeweils mit ihren Benachrichtigungsregeln für Vorfälle. Ist keiner verbunden, enthält er **Arbeitsbereich verbinden**, eine Seite, die alle drei zeigt und erklärt, wie man sie verbindet. |
 | **Regeln** | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Erinnerungsregeln**. |
 | **Einstellungen** | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Postmortem-Status**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Messungen**, **Verknüpfte Warnungen**, **Episodenzugehörigkeit**, **Nummerierung**. |
 

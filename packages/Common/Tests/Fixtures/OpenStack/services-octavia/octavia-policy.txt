@@ -1,0 +1,18 @@
+$ oslopolicy-policy-generator --namespace octavia
+"load-balancer:read": "rule:load-balancer:observer_and_owner or rule:load-balancer:global_observer or rule:load-balancer:member_and_owner or rule:load-balancer:admin"
+"load-balancer:read-global": "rule:load-balancer:global_observer or rule:load-balancer:admin"
+"load-balancer:read-quota": "rule:load-balancer:observer_and_owner or rule:load-balancer:global_observer or rule:load-balancer:member_and_owner or rule:load-balancer:quota-admin or rule:load-balancer:admin"
+"load-balancer:read-quota-global": "rule:load-balancer:global_observer or rule:load-balancer:quota-admin or rule:load-balancer:admin"
+"context_is_admin": "role:admin"
+"load-balancer:admin": "is_admin:True or role:admin"
+"load-balancer:global_observer": "role:admin"
+"load-balancer:member_and_owner": "rule:project-member"
+"load-balancer:observer_and_owner": "rule:project-reader"
+"os_load-balancer_api:amphora:get_all": "rule:load-balancer:admin"
+"os_load-balancer_api:amphora:get_one": "rule:load-balancer:admin"
+"os_load-balancer_api:amphora:delete": "rule:load-balancer:admin"
+"os_load-balancer_api:amphora:put_config": "rule:load-balancer:admin"
+"os_load-balancer_api:amphora:put_failover": "rule:load-balancer:admin"
+"os_load-balancer_api:amphora:get_stats": "rule:load-balancer:admin"
+$ [certificates] and [house_keeping] on this cloud
+(all at their defaults)

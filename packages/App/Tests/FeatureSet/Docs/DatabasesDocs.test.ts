@@ -3730,7 +3730,8 @@ done`;
           return metric.source === "agent-query";
         });
 
-      expect(fromTheAgentQuery.length).toBe(4);
+      // PostgreSQL's four, and the two of Galera's that an alert reads.
+      expect(fromTheAgentQuery.length).toBe(6);
       for (const metric of fromTheAgentQuery) {
         expect({
           metric: metric.metricName,
@@ -3746,7 +3747,11 @@ done`;
       expect(readConfig("postgresql").split("\n")).toContain(
         `      receivers: [postgresql, ${receiver}]`,
       );
+      expect(readConfig("mysql").split("\n")).toContain(
+        `      receivers: [mysql, ${receiver}]`,
+      );
       expect(collected).toContain("`DATABASE_TLS_SSLMODE`");
+      expect(collected).toContain("`DATABASE_TLS_MYSQL`");
     });
   });
 });

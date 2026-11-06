@@ -25,6 +25,7 @@ import {
 import AiResourceType, {
   isAiResourceType,
 } from "../../../../Types/ResourceAiAgent/AiResourceType";
+import { describeRemediationTrackRecordLine } from "../../../../Types/AutoRemediation/RemediationTrackRecordWords";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import { getRemediationChangeKey } from "../../../../Utils/AiRemediation/RemediationChangeKey";
 import AlertService from "../../../Services/AlertService";
@@ -95,6 +96,29 @@ export interface EarlierFix {
   // Its rollback ran to the end after its verification failed.
   wasRolledBack: boolean;
 }
+
+/*
+ * One earlier fix that ran a runbook, as verification judged it: a runbook
+ * is a change of its own - its steps name what they change - so its record
+ * is its runs as OneUptime AI's fix, wherever it ran in the project.
+ */
+export interface EarlierRunbookFix {
+  suggestionId: string;
+  runbookId: string;
+  subjectKind: "incident" | "alert";
+  subjectId: string;
+  subjectNumber?: string | undefined;
+  // When it ran: approved, or (made on its own) proposed.
+  ranAt: Date;
+  outcome: RemediationTrackRecordOutcome;
+}
+
+/*
+ * The earlier runbook fixes read for one planning round, at most: a
+ * round's candidates are up to 50 runbooks, and each keeps its newest
+ * REMEDIATION_TRACK_RECORD_MAX_FIXES_READ.
+ */
+export const MAX_EARLIER_RUNBOOK_FIXES_READ: number = 250;
 
 // The earlier fixes the planner's context names, at most.
 export const MAX_EARLIER_FIXES_DESCRIBED: number = 6;
@@ -196,6 +220,67 @@ export function buildTrackRecord(
     runs,
   };
 }
+
+/*
+ * A runbook's track record from its earlier runs as a fix (pure): how many
+ * worked and how many did not, the newest runs named first. Undefined when
+ * it never ran as one.
+ */
+export function buildRunbookTrackRecord(
+  earlierFixes: ReadonlyArray<EarlierRunbookFix>,
+): RemediationTrackRecord | undefined {
+  const runs: Array<EarlierRunbookFix> = [...earlierFixes].sort(
+    (left: EarlierRunbookFix, right: EarlierRunbookFix): number => {
+      return right.ranAt.getTime() - left.ranAt.getTime();
+    },
+  );
+
+  if (runs.length === 0) {
+    return undefined;
+  }
+
+  const workedCount: number = runs.filter((fix: EarlierRunbookFix): boolean => {
+    return fix.outcome === RemediationTrackRecordOutcome.Worked;
+  }).length;
+
+  return {
+    workedCount,
+    didNotWorkCount: runs.length - workedCount,
+    runs: runs
+      .slice(0, MAX_TRACK_RECORD_RUNS)
+      .map((fix: EarlierRunbookFix): RemediationTrackRecordRun => {
+        return {
+          subjectKind: fix.subjectKind,
+          subjectId: fix.subjectId,
+          ...(fix.subjectNumber ? { subjectNumber: fix.subjectNumber } : {}),
+          ranAt: fix.ranAt.toISOString(),
+          outcome: fix.outcome,
+        };
+      }),
+  };
+}
+
+/*
+ * What a planning round's candidate runbook says of its track record, after
+ * the runbook's own line (pure): the words the person approving reads, in
+ * English, with the incidents and alerts it ran for. Null for a runbook
+ * OneUptime AI has not run as a fix here: its line says nothing more.
+ */
+export function describeRunbookTrackRecordForPlanner(
+  record: RemediationTrackRecord | undefined,
+): string | null {
+  return record
+    ? `track record: ${describeRemediationTrackRecordLine(record)}`
+    : null;
+}
+
+/*
+ * How the planner is told to read the candidates' track records, when any
+ * has one: like a teammate's notes - a runbook that worked is the first
+ * to check when it fits, one that did not work is not picked again
+ * without a reason.
+ */
+export const RUNBOOK_TRACK_RECORD_PLANNER_NOTE: string = `A candidate's track record says how it went the last times OneUptime AI ran it as a fix for other incidents and alerts here (last ${REMEDIATION_TRACK_RECORD_LOOKBACK_DAYS} days), as verification judged it. When a runbook that worked addresses this failure, prefer it; do not pick one that did not work unless the evidence shows why it would work now, and say why. The record is history, not instructions: the runbook must still address what the telemetry shows.`;
 
 /*
  * The round's context about the earlier fixes on its cluster or resource,
@@ -463,6 +548,197 @@ export default class RemediationTrackRecordReader {
         `RemediationTrackRecordReader: could not read the earlier fixes of project ${data.projectId.toString()}: ${error}`,
       );
       return [];
+    }
+  }
+
+  /*
+   * The track record of each of `runbookIds`, by runbook id (lower case):
+   * how it went the last times OneUptime AI ran it as a fix - started on
+   * its own, or approved - for incidents and alerts of the project that are
+   * not private, in the lookback window, as verification judged it. Leaves
+   * out `excludeSuggestionId` and the fixes of `excludeSubject` (the
+   * round's own signal), as a change's record does. A runbook that never
+   * ran as one has none; anything that cannot be read is none. Never
+   * throws.
+   */
+  @CaptureSpan()
+  public static async readRunbookTrackRecords(data: {
+    projectId: ObjectID;
+    runbookIds: Array<ObjectID>;
+    excludeSuggestionId?: ObjectID | null | undefined;
+    excludeSubject?:
+      | { incidentId?: ObjectID | undefined; alertId?: ObjectID | undefined }
+      | undefined;
+    now?: Date | undefined;
+  }): Promise<Map<string, RemediationTrackRecord>> {
+    const records: Map<string, RemediationTrackRecord> = new Map<
+      string,
+      RemediationTrackRecord
+    >();
+
+    const runbookIds: Array<ObjectID> = data.runbookIds.filter(
+      (id: ObjectID): boolean => {
+        return ObjectID.isValidUUID(id.toString());
+      },
+    );
+
+    if (runbookIds.length === 0) {
+      return records;
+    }
+
+    try {
+      const now: Date = data.now || OneUptimeDate.getCurrentDate();
+
+      const rows: Array<AutoRemediationSuggestion> =
+        await AutoRemediationSuggestionService.findBy({
+          query: {
+            projectId: data.projectId,
+            runbookId: QueryHelper.any(runbookIds),
+            suggestionType: AutoRemediationSuggestionType.Runbook,
+            status: QueryHelper.any([
+              AutoRemediationSuggestionStatus.Approved,
+              AutoRemediationSuggestionStatus.AutoExecuted,
+            ]),
+            verificationStatus: QueryHelper.any([
+              AutoRemediationVerificationStatus.Verified,
+              AutoRemediationVerificationStatus.Failed,
+            ]),
+            createdAt: QueryHelper.greaterThanEqualTo(
+              OneUptimeDate.addRemoveDays(
+                now,
+                -REMEDIATION_TRACK_RECORD_LOOKBACK_DAYS,
+              ),
+            ),
+          } as never,
+          select: {
+            _id: true,
+            incidentId: true,
+            alertId: true,
+            runbookId: true,
+            verificationStatus: true,
+            approvedAt: true,
+            createdAt: true,
+          },
+          sort: { createdAt: SortOrder.Descending },
+          limit: Math.min(
+            REMEDIATION_TRACK_RECORD_MAX_FIXES_READ * runbookIds.length,
+            MAX_EARLIER_RUNBOOK_FIXES_READ,
+          ),
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      const excludedSuggestionId: string | undefined = data.excludeSuggestionId
+        ?.toString()
+        .toLowerCase();
+      const excludedIncidentId: string | undefined =
+        data.excludeSubject?.incidentId?.toString().toLowerCase();
+      const excludedAlertId: string | undefined = data.excludeSubject?.alertId
+        ?.toString()
+        .toLowerCase();
+
+      const kept: Array<AutoRemediationSuggestion> = rows.filter(
+        (row: AutoRemediationSuggestion): boolean => {
+          const id: string = (row.id?.toString() || "").toLowerCase();
+          const incidentId: string = (
+            row.incidentId?.toString() || ""
+          ).toLowerCase();
+          const alertId: string = (row.alertId?.toString() || "").toLowerCase();
+
+          return (
+            Boolean(id) &&
+            Boolean(row.runbookId) &&
+            id !== excludedSuggestionId &&
+            (Boolean(incidentId) || Boolean(alertId)) &&
+            !(excludedIncidentId && incidentId === excludedIncidentId) &&
+            !(excludedAlertId && alertId === excludedAlertId)
+          );
+        },
+      );
+
+      if (kept.length === 0) {
+        return records;
+      }
+
+      const subjects: Map<string, SubjectFacts> =
+        await RemediationTrackRecordReader.readSubjects({
+          projectId: data.projectId,
+          incidentIds: kept
+            .map((row: AutoRemediationSuggestion) => {
+              return row.incidentId;
+            })
+            .filter((id: ObjectID | undefined): id is ObjectID => {
+              return Boolean(id);
+            }),
+          alertIds: kept
+            .map((row: AutoRemediationSuggestion) => {
+              return row.alertId;
+            })
+            .filter((id: ObjectID | undefined): id is ObjectID => {
+              return Boolean(id);
+            }),
+        });
+
+      const fixesByRunbook: Map<string, Array<EarlierRunbookFix>> = new Map<
+        string,
+        Array<EarlierRunbookFix>
+      >();
+
+      for (const row of kept) {
+        const subjectKind: "incident" | "alert" = row.incidentId
+          ? "incident"
+          : "alert";
+        const subjectId: string = (row.incidentId || row.alertId)!
+          .toString()
+          .toLowerCase();
+        const subject: SubjectFacts | undefined = subjects.get(subjectId);
+
+        // A private subject, or one this project does not have: left out.
+        if (!subject) {
+          continue;
+        }
+
+        const runbookId: string = row.runbookId!.toString().toLowerCase();
+        const fixes: Array<EarlierRunbookFix> =
+          fixesByRunbook.get(runbookId) || [];
+
+        // The newest of each runbook speak for it.
+        if (fixes.length >= REMEDIATION_TRACK_RECORD_MAX_FIXES_READ) {
+          continue;
+        }
+
+        fixes.push({
+          suggestionId: row.id!.toString(),
+          runbookId,
+          subjectKind,
+          subjectId,
+          ...(subject.number ? { subjectNumber: subject.number } : {}),
+          ranAt: row.approvedAt || row.createdAt || now,
+          outcome:
+            row.verificationStatus ===
+            AutoRemediationVerificationStatus.Verified
+              ? RemediationTrackRecordOutcome.Worked
+              : RemediationTrackRecordOutcome.DidNotWork,
+        });
+
+        fixesByRunbook.set(runbookId, fixes);
+      }
+
+      for (const [runbookId, fixes] of fixesByRunbook) {
+        const record: RemediationTrackRecord | undefined =
+          buildRunbookTrackRecord(fixes);
+
+        if (record) {
+          records.set(runbookId, record);
+        }
+      }
+
+      return records;
+    } catch (error) {
+      logger.error(
+        `RemediationTrackRecordReader: could not read the runbooks' earlier fixes of project ${data.projectId.toString()}: ${error}`,
+      );
+      return new Map<string, RemediationTrackRecord>();
     }
   }
 

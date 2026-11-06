@@ -64,6 +64,7 @@ flowchart TB
 | Аккаунт AWS | `aws` | ИИ-агент облака | `AWS_ACCOUNT_ID` (пусто: аккаунт, в котором он работает) | `cloud` — одна операция из фиксированного каталога, никогда не команда `aws` | API AWS с собственными ролями IAM |
 | Подписка Azure | `azure` | ИИ-агент облака | `AZURE_SUBSCRIPTION_ID` (её задаёт команда настройки агента) | `cloud` — одна операция из фиксированного каталога, никогда не команда `az` | Azure Resource Manager от имени управляемого удостоверения его Container App |
 | Проект Google Cloud | `gcp` (или `google-cloud`) | ИИ-агент облака | `GOOGLE_CLOUD_PROJECT` (пусто: проект, в котором он работает) | `cloud` — одна операция из фиксированного каталога, никогда не команда `gcloud` | API Google Cloud от имени собственного сервисного аккаунта |
+| Облако OpenStack | `openstack` | ИИ-агент OpenStack | `OPENSTACK_CLOUD_NAME` | команды `openstack` (в агенте нет бинарного файла `openstack`). Он только читает, пока вы не включите [исправления](#исправления-в-облаках-openstack) | API облака, с учётными данными приложения из `clouds.yaml` |
 
 Серверы баз данных: у ИИ-агента баз данных есть диагностика для PostgreSQL, MySQL (а также MariaDB и Percona Server), Redis (а также Valkey, KeyDB и Dragonfly) и MongoDB. Для любой другой СУБД он ничего не выполняет и сообщает об этом на странице ИИ-агента базы данных.
 
@@ -82,6 +83,7 @@ flowchart TB
 | Аккаунт AWS | `cloud whoami` |
 | Подписка Azure | `cloud whoami` |
 | Проект Google Cloud | `cloud whoami` |
+| Облако OpenStack | `openstack endpoint list`, `openstack compute service list` |
 
 На рабочем узле Docker Swarm команда `docker node ls` завершается ошибкой: ИИ-агент Docker Swarm должен работать на узле-менеджере. Агент, запущенный на рабочем узле, не регистрируется для кластера, пока его узел не станет менеджером, а установщик Docker Swarm не устанавливает его на узел, который не является менеджером.
 
@@ -93,7 +95,7 @@ flowchart TB
 
 ### Рядом с коллектором
 
-Для Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph и серверов баз данных агент работает рядом с коллектором, который вы уже используете для этого ресурса, и разделяет его `.env`: у него уже есть `ONEUPTIME_URL`, ключ приёма данных и имя ресурса. `docker-compose.yml` каждого коллектора поставляет агента как ещё один сервис, а его `install.sh` запускает его.
+Для Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack и серверов баз данных агент работает рядом с коллектором, который вы уже используете для этого ресурса, и разделяет его `.env`: у него уже есть `ONEUPTIME_URL`, ключ приёма данных и имя ресурса. `docker-compose.yml` каждого коллектора поставляет агента как ещё один сервис, а его `install.sh` запускает его.
 
 | Ресурс | Коллектор | Сервис ИИ-агента (и контейнер) | Где он настраивается |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -104,8 +106,9 @@ flowchart TB
 | VMware vCenter | [Агент VMware](/docs/telemetry/vmware#ии-агент) | `oneuptime-vmware-ai-agent` | `agents/VMwareAgent/docker-compose.yml` |
 | Кластер Ceph | [Агент Ceph](/docs/telemetry/ceph#ии-агент) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`, с собственным клиентом Ceph агента в `./ceph` |
 | Сервер баз данных | [Агент баз данных](/docs/telemetry/databases#ии-агент) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
+| Облако OpenStack | [Агент OpenStack](/docs/telemetry/openstack#ии-агент) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`, с учётными данными в `clouds.yaml` |
 
-Коллектор, установленный до появления ИИ-агента, пока его не запускает. Запустите его `install.sh` ещё раз: теперь он запускает и ИИ-агента (установщики Proxmox, VMware, Ceph, баз данных и Docker Swarm скачивают текущий `docker-compose.yml`, в котором есть сервис ИИ-агента). Если вы управляете файлами сами, добавьте сервис из `docker-compose.yml` коллектора в свой и выполните `docker compose up -d`. Страница ИИ-агента ресурса показывает точный сервис для этого ресурса с уже подставленным именем.
+Коллектор, установленный до появления ИИ-агента, пока его не запускает. Запустите его `install.sh` ещё раз: теперь он запускает и ИИ-агента (установщики Proxmox, VMware, Ceph, OpenStack, баз данных и Docker Swarm скачивают текущий `docker-compose.yml`, в котором есть сервис ИИ-агента). Если вы управляете файлами сами, добавьте сервис из `docker-compose.yml` коллектора в свой и выполните `docker compose up -d`. Страница ИИ-агента ресурса показывает точный сервис для этого ресурса с уже подставленным именем.
 
 Без установщиков ИИ-агент Docker — это одна команда `docker run`:
 
@@ -160,9 +163,9 @@ sudo bash install.sh
 
 ### Подключение к OneUptime
 
-Агент регистрируется с **той же идентичностью, которую сообщает коллектор** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, …; `ONEUPTIME_AI_AGENT_RESOURCE_NAME` её переопределяет), поэтому он обслуживает ровно тот ресурс, который создала телеметрия коллектора. Если в OneUptime ещё нет ресурса с таким именем, регистрация создаёт его, поэтому имя, отличающееся от имени коллектора, даёт вам второй, пустой ресурс вместо ошибки. База данных регистрируется по `DATABASE_SERVER_ID`, если он задан, иначе по своей СУБД, адресу и порту; `DATABASE_SERVER_ID`, который не является базой данных этого проекта, отклоняется.
+Агент регистрируется с **той же идентичностью, которую сообщает коллектор** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, `OPENSTACK_CLOUD_NAME`, …; `ONEUPTIME_AI_AGENT_RESOURCE_NAME` её переопределяет), поэтому он обслуживает ровно тот ресурс, который создала телеметрия коллектора. Если в OneUptime ещё нет ресурса с таким именем, регистрация создаёт его, поэтому имя, отличающееся от имени коллектора, даёт вам второй, пустой ресурс вместо ошибки. База данных регистрируется по `DATABASE_SERVER_ID`, если он задан, иначе по своей СУБД, адресу и порту; `DATABASE_SERVER_ID`, который не является базой данных этого проекта, отклоняется.
 
-Если коллектор всё ещё использует имя по умолчанию (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`), каждый ресурс, установленный с этим значением, отправляет данные в один и тот же ресурс в OneUptime, и команды для него могут попасть на любой из них. Агент предупреждает об этом в своём журнале; дайте каждому ресурсу уникальное имя и на коллекторе, и на агенте.
+Если коллектор всё ещё использует имя по умолчанию (`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`, `openstack`), каждый ресурс, установленный с этим значением, отправляет данные в один и тот же ресурс в OneUptime, и команды для него могут попасть на любой из них. Агент предупреждает об этом в своём журнале; дайте каждому ресурсу уникальное имя и на коллекторе, и на агенте.
 
 Он аутентифицируется с помощью ключа приёма телеметрии проекта (первого заданного из `ONEUPTIME_API_KEY`, `ONEUPTIME_TELEMETRY_INGESTION_KEY` и `ONEUPTIME_SERVICE_TOKEN`, которые коллекторы уже задают) и получает собственный ключ. Все его вызовы — это HTTPS-запросы `POST` к `<ONEUPTIME_URL>/resource-ai-agent-ingest/…`: он регистрируется один раз при запуске, отправляет heartbeat каждые 30 секунд (он считается подключённым в течение 5 минут после последнего), запрашивает работу каждые 3 секунды и отключается при остановке. Второй агент с той же идентичностью отклоняется, пока первый подключён: контейнер, который корректно останавливается, отключается, поэтому его замена принимается сразу, а после сбоя или kill замена занимает его место, как только старый агент ничего не отправит в течение 40 секунд после первого отказа. Если замену всё ещё отклоняют через 10 минут, ту же идентичность использует другой работающий агент: агент записывает ошибку об этом и запрашивает работу только раз в 5 минут, пока вы не дадите каждому ресурсу собственное имя или не остановите другого агента. В проекте может быть не более 250 ИИ-агентов ресурсов, и в час регистрируются не более 30 новых. Когда достигнуто 250, агенты, от которых не было вестей 7 дней, удаляются, чтобы освободить место для нового (ресурс сохраняет свои настройки ИИ, а такой агент, вернувшись, просто регистрируется заново).
 
@@ -231,6 +234,27 @@ ONEUPTIME_AI_ALLOW_WRITES=true
 - `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average`, `govc metric.ls /DC/vm/web-01`, `govc object.collect -s /DC/vm/web-01 runtime.powerState` (только свойства времени выполнения и состояния), `govc host.service.ls -host esx-01`, `govc host.date.info -host esx-01`, `govc tags.ls`.
 - Никогда: флаги подключения, учётных данных, TLS и отладки (`-u`, `-k`, `-cert`, `-debug`, `-dump`, …), гостевые операции (`guest.*`), доступ к файлам хранилищ данных, `esxcli`, `env` и любые команды не из списка.
 
+### Облака OpenStack
+
+В агенте нет бинарного файла `openstack` и нет оболочки. Команда записывается в грамматике `openstack` — слова команды, затем ID, затем параметры в виде `--name value` — и агент превращает её ровно в один `GET` к сервису, который на неё отвечает (Nova, Neutron, Cinder, Glance, Placement или Keystone), со своими учётными данными. `-f table|json` выбирает формат вывода, а `--os-region-name REGION` — другой регион. `--name=value` отклоняется, как и `-c`. ID должен быть ID: список их выводит, а по имени поиск никогда не выполняется.
+
+- Инстансы: `openstack server list --all-projects --limit 50 --host compute-01`, а сузить выборку можно с помощью `--status`, `--name`, `--project`, `--availability-zone` и `--changes-since`; `openstack server show 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11` и `openstack server event list 358ee736-ba74-40ba-a0f6-0a1f8d6c2b11`, которая называет запрос, стоящий за каждым событием с инстансом (`req-...`), а также `server event show` с ID этого запроса.
+- Вычисления и ёмкость: `openstack compute service list`, `openstack hypervisor list`, `openstack aggregate list`, `openstack availability zone list`, `openstack flavor list`, `openstack resource provider list`, а также `hypervisor show`, `resource provider show`, `resource provider usage show` и `resource provider inventory list` с ID.
+- Сеть: `openstack network agent list`, `openstack network list`, `openstack subnet list`, `openstack router list`, `openstack floating ip list`, `openstack ip availability list` и `show` с ID для каждой, кроме последней; `port show` с ID и `openstack port list --limit 50 --host compute-01` с одним из `--server`, `--network`, `--router`, `--device-id`, `--host` или `--project`.
+- Хранилище и образы: `openstack volume service list`, `openstack volume backend pool list`, `openstack volume list --all-projects --limit 50`, `openstack volume snapshot list --all-projects --limit 50`, `openstack volume backup list --all-projects --limit 50`, `openstack image list`, а также `volume show` и `image show` с ID.
+- То, что облако может и не запускать, если его каталог называет это: `openstack share list --all-projects --limit 50`, `openstack share service list` и `openstack share pool list` для Manila; `openstack zone list --all-projects --limit 50` и `openstack recordset list f5201d9a-2f25-4b1c-a253-405f7f357742 --all-projects` для записей одной зоны в Designate; `openstack container list` для Swift, который показывает только проект самих учётных данных; `openstack database instance list` для Trove, во всех проектах, что разрешено только администратору; и `openstack metric status` для очереди и обработчиков Gnocchi.
+- Устройство облака: `openstack endpoint list`, `openstack service list`, `openstack region list`, `openstack project list`, `openstack domain list` и `project show` с ID.
+- Список по всем арендаторам должен содержать `--limit N` (до 200) и продолжается с `--marker ID`. Любой другой список останавливается на 100 строках, если не указано иное, и сообщает, что есть ещё. Агент никогда сам не переходит по ссылке `next`.
+- Никогда: всё, что меняет облако — это делает только [исправление](#исправления-в-облаках-openstack), — а также пользователи, учётные данные, назначения ролей и токены Keystone, консоли и журналы консолей, секреты Barbican, `--os-cloud` и любые другие параметры входа или конечной точки.
+
+`user_data` инстанса, его пароль администратора, `direct_url` образа, `provider_auth` тома и всё остальное, помеченное как секрет, маскируются до того, как вывод попадёт к модели или в журнал.
+
+Остановленный `nova-compute` оставляет его инстансы в состоянии `ACTIVE`, поэтому расследование опирается на `state` сервиса (`down`) и `host_status` инстансов (`UNKNOWN`).
+
+Расследование не начинается с нуля. Для инцидента или оповещения, связанного с облаком, OneUptime AI получает то, что страница облака показывает в разделе **Требует внимания**: недоступные сервисы, а также хосты, инстансы, тома и пулы, с которыми проблемы. Если серия инцидента называет часть облака, ИИ также узнаёт, что она тянет за собой (её радиус поражения: инстансы, проекты, узлы Kubernetes и хосты), какие атрибуты выбирают её журналы и что менялось в облаке примерно в это время.
+
+Дальше он идёт по запросу. `server event list` выводит ID запроса каждого действия, а `search_logs` принимает этот ID как атрибут (`openstack.request_root_id`), чтобы прочитать, что о нём записал каждый сервис. Отчёт цитирует каждую выполненную команду с её выводом, как и для `kubectl`. Журналам нужен профиль [журналов сервисов](/docs/telemetry/openstack#журналы-служб), а изменениям — [события жизненного цикла](/docs/telemetry/openstack#события-жизненного-цикла): без них эти чтения вернутся пустыми.
+
 ### Кластеры Ceph
 
 - Кластер: `ceph status` (или `ceph -s`), `ceph health detail`, `ceph df detail`, `ceph versions`, `ceph progress`, `ceph quorum_status`, `ceph log last 100`.
@@ -291,7 +315,7 @@ OneUptime сам читает аккаунт AWS, подписку Azure или 
 
 После выполнения исправления OneUptime следит за мониторами инцидента или оповещения. Если они не восстанавливаются, выполняется откат плана, и OneUptime AI составляет ещё один план, учитывая неудачную попытку, — не более двух раундов на инцидент или оповещение. В режиме **Автоматически** этот второй раунд запрашивает подтверждение; в режиме **Без подтверждения** он тоже выполняется сам. Для исправлений без присмотра действует предохранитель — не более трёх на ресурс в час: сверх этого, а также пока другой раунд OneUptime AI без присмотра ещё меняет или проверяет тот же ресурс, раунд предлагает свой план на подтверждение вместо выполнения.
 
-Инцидент или оповещение получает одну полосу ИИ-исправлений. Если он связан с кластером Kubernetes, у которого включены исправления, выполняется раунд кластера и ни одного раунда ресурса. Иначе раунд получает первый связанный ресурс с включёнными исправлениями и готовым агентом в таком порядке: хост Docker, хост Podman, кластер Docker Swarm, кластер Proxmox, VMware vCenter, кластер Ceph, сервер баз данных, хост, аккаунт AWS, подписка Azure, проект Google Cloud. Раунд меняет только этот ресурс.
+Инцидент или оповещение получает одну полосу ИИ-исправлений. Если он связан с кластером Kubernetes, у которого включены исправления, выполняется раунд кластера и ни одного раунда ресурса. Иначе раунд получает первый связанный ресурс с включёнными исправлениями и готовым агентом в таком порядке: хост Docker, хост Podman, кластер Docker Swarm, кластер Proxmox, VMware vCenter, кластер Ceph, сервер баз данных, хост, аккаунт AWS, подписка Azure, проект Google Cloud, облако OpenStack. Раунд меняет только этот ресурс.
 
 ### Безопасные, более рискованные и запрещённые
 
@@ -357,6 +381,21 @@ OneUptime сам читает аккаунт AWS, подписку Azure или 
 | **Всегда человек** | `ceph osd set pause` (останавливает весь клиентский ввод-вывод), `ceph osd pool set rbd size 3` (и `min_size`) |
 | **Никогда** | `ceph osd purge 3` (а также destroy, rm, lost, изменения карты CRUSH), `ceph osd pool delete rbd` (а также создание, переименование или любые другие настройки пула), `ceph auth ls`, `ceph config-key ls`, `ceph tell osd.3 injectargs --debug-osd 20`, `ceph --id admin status`, `config`, `daemon`, изменения fs и mon, `mgr module enable`, `orch apply`, `crash rm` |
 
+### Исправления в облаках OpenStack
+
+В агенте нет бинарного файла `openstack`. Каждое изменение — это один вызов API облака, который оно называет, выполняемый с учётными данными, которые агент держит только для изменений. У изменения одна запись, в порядке, показанном ниже: другой порядок флагов, сокращение или флаг, который принимает и настоящий клиент, отклоняются, поэтому то, что одобряет человек, то, что называет запись списка разрешённых команд, и то, что выполняется, — одни и те же слова. Перед изменением агент читает то, чего оно касается, и отказывается его вносить, если не может это прочитать.
+
+|                     | Команды |
+| ------------------- | -------- |
+| **Безопасные** | `openstack server start 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server reboot --soft 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --enable compute-01 nova-compute`, `openstack network agent set --enable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **Более рискованные** | `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack server migrate live 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --disable --disable-reason maintenance compute-01 nova-compute`, `openstack network agent set --disable d7e6c5b4-a392-4180-b6f5-e4d3c2b1a098` |
+| **Всегда человек** | `openstack server evacuate 358ee736-ba74-40ba-a354-7ead413c5df6` — эвакуация любого числа инстансов, в любом режиме и независимо от списка разрешённых команд, потому что Nova принимает её, только когда хост уже недоступен |
+| **Никогда** | `openstack server delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume delete 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack project delete 9aee824cac87464292adffc328de1662`, `openstack user list`, `openstack role add --user a --project b c`, `openstack quota set --instances 100 abc`, `openstack security group delete abc`, `openstack server set --state active 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack volume set --state available 358ee736-ba74-40ba-a354-7ead413c5df6`, `openstack compute service set --down compute-01 nova-compute`, `openstack server stop 358ee736-ba74-40ba-a354-7ead413c5df6` и любая команда, которой нет в этом списке |
+
+Карточка исправления сообщает, сколько инстансов и проектов затрагивает изменение и какие именно, как их прочитал агент: `openstack dry-run <change>` — это такое чтение, и расследование тоже может его выполнить. Эвакуация, которую агент не может прочитать целиком, не предлагается. Каждое исправление — это событие изменения в ленте каждой затронутой им части и самого облака, с указанием, кто его одобрил. Холодный `server migrate` оставляет инстанс в состоянии `VERIFY_RESIZE`, пока человек его не подтвердит, а OneUptime AI этого не делает никогда.
+
+Исправления здесь выключены, пока вы не согласитесь дважды, в отличие от других ресурсов: одного `ONEUPTIME_AI_ALLOW_WRITES=true` недостаточно — **Что может делать ИИ** остаётся в состоянии «Выключено», и без учётных данных для изменений агент вообще ничего не сделает. [Руководство по агенту OpenStack](/docs/telemetry/openstack#учётные-данные-для-изменений) объясняет, как создать эти учётные данные с минимально необходимыми правами для каждого способа развёртывания облака.
+
 ### Исправления на серверах баз данных
 
 `12345` ниже — это идентификатор сеанса в том виде, в каком его выводит `db sessions`: pid в PostgreSQL, id в processlist MySQL, id клиента Redis или opid в MongoDB. Агент сначала находит сеанс и никогда не трогает собственное подключение, поток сервера или репликации, а также несуществующий сеанс.
@@ -413,9 +452,10 @@ OneUptime сам читает аккаунт AWS, подписку Azure или 
 - Запись, которая никогда не может заранее одобрить изменение, отклоняется: команда только для чтения (чтению подтверждение не нужно никогда), команда, которую политика запрещает, или команда для другого вида ресурсов. В списке не более 50 записей длиной не более 500 символов.
 - Запись с `*` на месте цели (`docker stop *` заранее одобряет остановку **любого** контейнера) перед сохранением просит вас подтвердить.
 - Путь Proxmox — это одно слово, поэтому в нём не может быть `*`: пишите по одной записи на гостевую систему, например `pvesh create /nodes/pve1/qemu/100/status/shutdown`.
+- В облаке OpenStack запись для эвакуации отклоняется при сохранении: она всегда спрашивает человека, поэтому ничего не одобрила бы заранее.
 - Ничто в списке не отменяет изменение, которое всегда требует человека, или команду, которую политика запрещает.
 
-По одной допустимой записи для каждого ресурса: `docker stop web` (Docker и Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (базы данных), `systemctl stop nginx` (хосты), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud).
+По одной допустимой записи для каждого ресурса: `docker stop web` (Docker и Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (базы данных), `systemctl stop nginx` (хосты), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud), `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6` (облака OpenStack).
 
 ### Кто может его менять
 
@@ -449,6 +489,7 @@ OneUptime сам читает аккаунт AWS, подписку Azure или 
 | Серверы баз данных | `session:<id>` | `session:*` |
 | Хосты | полные имена юнитов (`nginx.service`), `pid:<pid>` для процесса, `journal` для очистки журнала | `nginx.service,app-*` |
 | Облачные аккаунты | ID ресурса: ARN, ID ресурса Azure в нижнем регистре или полное имя ресурса Google Cloud | `arn:aws:ecs:*:123456789012:service/prod/*` |
+| Облака OpenStack | `instance:<id>`, `host:<name>` и `agent:<id>` для того, что называет изменение, и `destination:<name>` для места, куда переносится инстанс. Запись — это `project:<id>`, `host:<name>` или `instance:<id>`, и только они: любое другое значение оставляет агента в режиме только чтения. Агент читает, в каком проекте и на каком хосте находится инстанс, непосредственно перед его изменением |
 
 ### Что агент защищает сам
 
@@ -459,6 +500,7 @@ OneUptime AI никогда не меняет самого агента или �
 - **Серверы баз данных:** собственный сеанс агента.
 - **Хосты:** каждый юнит OneUptime (`oneuptime-*`, включая юнит самого ИИ-агента хоста), коллектор OpenTelemetry (`otelcol-contrib.service`, `otelcol.service`), движок Docker, в котором он работает (`docker.service`, `docker.socket`, `containerd.service`), а также собственный процесс агента и процессы над ним.
 - **Proxmox:** агент не может определить, в какой гостевой системе он работает. Если он работает в ВМ или контейнере того же кластера, добавьте этот VMID в `ONEUPTIME_AI_PROTECTED_TARGETS`; то же самое сделайте с ВМ агента в VMware.
+- **Облака OpenStack:** агент не может определить, в каком инстансе он работает. Если он работает в том же облаке, добавьте этот инстанс в `ONEUPTIME_AI_PROTECTED_TARGETS` как `instance:<id>`. В облаке этот список — ваш, и он главнее любых других настроек, включая одобрение человека.
 - **Облачные аккаунты:** всё, что создала команда настройки агента: на AWS — стек `oneuptime-ai-agent`, его кластер и сервис ECS и роли `OneUptimeAiAgentTask` и `OneUptimeAiAgentWrite`; в Azure — группа ресурсов `oneuptime-ai-agent`; в Google Cloud — ВМ или сервис Cloud Run `oneuptime-ai-agent` и его сервисный аккаунт.
 
 ## Учётные данные и минимальные привилегии
@@ -474,8 +516,9 @@ OneUptime AI никогда не меняет самого агента или �
 | Сервер баз данных | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (учётная запись коллектора) или `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`, если они заданы; `DATABASE_ENDPOINT` и настройки TLS | Учётная запись мониторинга коллектора (`pg_monitor` в PostgreSQL) | Собственная учётная запись агента, которой разрешено отправлять сигналы другим сеансам: `pg_signal_backend` (PostgreSQL), `CONNECTION_ADMIN` (MySQL 8), `+client\|kill` (ACL Redis), действие `killop` (MongoDB) |
 | Хост | Ничего: он работает привилегированно от root в пространствах имён хоста | Оставьте `ONEUPTIME_AI_ALLOW_WRITES` незаданной | `ONEUPTIME_AI_WRITE_TARGETS` с юнитами, которые ИИ может менять |
 | Облачные аккаунты | Удостоверение места, где он работает: на AWS — роль его задачи ECS, которая может лишь принимать роль записи из `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN`; в Azure — управляемое удостоверение его Container App; в Google Cloud — сервисный аккаунт, от имени которого работает его ВМ или сервис Cloud Run | Ничего: OneUptime читает аккаунт через его подключение только для чтения | Роль, которую пишет его команда настройки: разрешения включённых изменений и нужных им чтений, и ничего больше. На AWS каждое изменение принимает `OneUptimeAiAgentWrite` с политикой сеанса только для этого изменения на этом ресурсе |
+| Облако OpenStack | Для изменений — `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` и `_SECRET`, собственные учётные данные приложения: как их создать, описано в [руководстве](/docs/telemetry/openstack#учётные-данные-для-изменений). Для чтения — учётные данные приложения в `clouds.yaml`, которые читает экспортёр коллектора (`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS` или `ONEUPTIME_AI_OPENSTACK_CLOUD` для другой записи), либо `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, если они заданы, вместе с `OPENSTACK_AUTH_URL`; `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
 
-В README коллекторов есть точные команды: команды `pveum` для токена исправлений Proxmox ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), роль vSphere для исправлений ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), права Ceph на чтение и исправления ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) и права баз данных для каждой СУБД ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)). Роль ИИ-агента облака пишет его команда настройки: выключите изменение и выполните команду снова, и его разрешения уйдут из роли.
+В README коллекторов есть точные команды: команды `pveum` для токена исправлений Proxmox ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)), роль vSphere для исправлений ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)), права Ceph на чтение и исправления ([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)) и права баз данных для каждой СУБД ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)). Роль ИИ-агента облака пишет его команда настройки: выключите изменение и выполните команду снова, и его разрешения уйдут из роли.
 
 ## Модель безопасности
 
@@ -492,8 +535,8 @@ OneUptime AI никогда не меняет самого агента или �
 - Одна программа в виде списка аргументов, никогда не через оболочку: конвейеры, перенаправления, `;`, `&&` и `$(…)` отклоняются до любого запуска, как и `sudo`.
 - Окружение, собранное для этой одной команды: ничего из собственного окружения агента (ни его ключ приёма данных, ни его настройки прокси) не попадает в программу, а `docker`, `govc` и `ceph` получают для этой одной команды личный пустой домашний каталог в `/tmp`. CLI `docker` получает пустой личный `DOCKER_CONFIG`, поэтому никакой контекст или помощник учётных данных не может изменить, куда он указывает; `govc` получает учётные данные в своём окружении, никогда в командной строке; `ceph` получает собственные `--conf`, `--keyring` и `--id` агента, и команда не может выбрать другие.
 - Ограничение времени (не более 2 минут), после которого программа принудительно завершается; вывод ограничен 50 КБ.
-- Секреты в выводе (значения переменных окружения в `docker inspect`, пароли cloud-init Proxmox, ключи, токены и пароли в журналах и командных строках) маскируются на агенте до того, как вывод его покинет, и ещё раз в OneUptime перед сохранением или показом модели.
-- Контейнеры работают с корневой файловой системой только для чтения. ИИ-агенты Proxmox, VMware, Ceph и баз данных работают под UID 1000 без каких-либо capabilities.
+- Секреты в выводе (значения переменных окружения в `docker inspect`, пароли cloud-init Proxmox, `user_data` OpenStack, ключи, токены и пароли в журналах и командных строках) маскируются на агенте до того, как вывод его покинет, и ещё раз в OneUptime перед сохранением или показом модели.
+- Контейнеры работают с корневой файловой системой только для чтения. ИИ-агенты Proxmox, VMware, Ceph и баз данных работают под UID 1000 без каких-либо capabilities. ИИ-агент OpenStack работает от имени владельца `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), тоже без них.
 - ИИ-агент облака вообще не запускает программ: `cloud` называет одну операцию его каталога, которую агент выполняет как один соответствующий ей вызов API с учётными данными места, где он работает. Чтения выполняются в OneUptime, через подключение аккаунта только для чтения.
 
 ### Сокет Docker и ИИ-агент хоста — это root на хосте
@@ -520,7 +563,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-Используйте имя контейнера вашего ресурса: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (с `podman` вместо `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. У сервиса агента баз данных нет фиксированного имени контейнера, поэтому используйте `docker compose logs --tail=100 oneuptime-database-ai-agent` и `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` в `/opt/oneuptime-database-agent`. ИИ-агент хоста использует сеть хоста, поэтому `curl -s http://127.0.0.1:3877/status` работает прямо на хосте.
+Используйте имя контейнера вашего ресурса: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (с `podman` вместо `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-openstack-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. У сервиса агента баз данных нет фиксированного имени контейнера, поэтому используйте `docker compose logs --tail=100 oneuptime-database-ai-agent` и `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` в `/opt/oneuptime-database-agent`. ИИ-агент хоста использует сеть хоста, поэтому `curl -s http://127.0.0.1:3877/status` работает прямо на хосте.
 
 ИИ-агент облака работает в своём облаке, и у него нет контейнера для `exec`: читайте его журнал во встроенной оболочке облака командой `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` или `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (в Cloud Run — `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`), а его статус — на странице **ИИ-агент** аккаунта, которая показывает ту же команду.
 
@@ -550,7 +593,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `cloud … is not one of the changes this agent may make` | Включите это изменение в разделе **Дополнительные поля** окна **Разрешить ИИ устранять проблемы** и выполните команду снова: она также даст роли агента разрешения этого изменения. |
 | `the agent only changes resources that carry the …` | Добавьте ресурсу тег `oneuptime-ai=allow` (в Google Cloud — метку) или настройте агента заново без тега. |
 
-В README агентов [Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) и [баз данных](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent), а также в README [ИИ-агента хоста](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent) есть таблица устранения неполадок для их собственных ошибок подключения.
+В README агентов [Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent) и [баз данных](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent), а также в README [ИИ-агента хоста](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) есть таблица устранения неполадок для их собственных ошибок подключения.
 
 ## Что не охвачено
 

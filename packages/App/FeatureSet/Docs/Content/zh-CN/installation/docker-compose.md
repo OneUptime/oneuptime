@@ -372,6 +372,7 @@ Docker Compose 在一台服务器上为每个服务只运行一个副本，适�
 | **密钥** | `config.env` 中没有任何值仍是 `please-change-this-to-random-value` 占位值。请参阅 [生成随机密钥](#生成随机密钥)。对于以占位值 `DATABASE_PASSWORD` 启动过的安装，请参阅 [更改数据库密码](#更改数据库密码)。 |
 | **HTTPS** | 人们通过 HTTPS 访问 OneUptime，并且已设置 `HTTP_PROTOCOL=https`。请参阅 [设置 HTTPS](#设置-https)。 |
 | **注册** | 团队成员都有账号后，在 Admin Dashboard 的 **设置 > 认证** 下关闭 **允许注册**。 |
+| **登录链接** | 登录页面可以通过电子邮件发送登录链接，这需要邮件服务器。如果不需要，请在 Admin Dashboard 的 **设置 > 认证** 下关闭 **允许使用电子邮件链接登录**。请参阅 [使用电子邮件链接登录](/docs/introduction/your-account#使用电子邮件链接登录)。 |
 | **防火墙** | 只有端口 80 和 443（以及 SSH）对互联网开放。OneUptime 只在 `127.0.0.1` 上发布 PostgreSQL 的端口 5400。你自己发布的其他端口，请用云服务商的防火墙关闭：`ufw` 规则不适用于 Docker 发布的端口。 |
 | **访问者地址** | Admin Dashboard 的 **OneUptime 健康状况** 页面没有提示多人从同一个地址登录。参见[访问者地址](#访问者地址)。 |
 | **备份** | 每天备份 PostgreSQL，并把副本移出服务器。请参阅 [备份与恢复](#备份与恢复)。 |

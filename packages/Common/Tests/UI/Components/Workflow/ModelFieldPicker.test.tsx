@@ -478,7 +478,7 @@ describe("Fields to pass on", () => {
 
     expect(kept).toHaveTextContent("Kept as JSON");
     expect(kept).toHaveTextContent(
-      "“currentIncidentState” passes on the whole related record.",
+      "“currentIncidentState” passes on only the ID of the related record.",
     );
     expect(kept).toHaveTextContent("“title” has an unexpected value.");
     expect(harness.onChange).not.toHaveBeenCalled();

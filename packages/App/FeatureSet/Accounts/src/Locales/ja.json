@@ -67,6 +67,7 @@
     "forgotPassword": "パスワードをお忘れですか？",
     "signInWithSso": "SSO でサインイン",
     "signInWithMicrosoft": "Microsoft でサインイン",
+    "emailSignInLink": "サインインリンクをメールで受け取る",
     "noAccountPrompt": "アカウントをお持ちでない方は",
     "registerLink": "登録。",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "バックアップコードを生成",
       "skip": "今はスキップ",
       "generateFailed": "バックアップコードが返されませんでした。ユーザープロファイル > 二要素認証 からもう一度お試しください。"
+    },
+    "magicLink": {
+      "title": "サインインを完了する",
+      "subtitle": "下のボタンを使って、メールに記載されたリンクでサインインを完了してください。",
+      "submit": "サインイン",
+      "noLink": "このページにはメールに記載されたサインインリンクが必要です。リンクをもう一度開くか、新しいリンクをリクエストしてください。",
+      "turnedOff": "このサーバーではサインインリンクが無効になっています。メールアドレスとパスワードでサインインしてください。",
+      "requestNewLink": "新しいリンクをメールで受け取る",
+      "backToSignIn": "サインインに戻る"
     }
   },
   "register": {
@@ -148,6 +158,17 @@
     "submitButton": "パスワードリセットリンクを送信",
     "rememberPasswordPrompt": "パスワードを覚えていますか？",
     "loginLink": "ログイン。"
+  },
+  "magicLink": {
+    "title": "リンクでサインイン",
+    "subtitle": "メールアドレスを入力すると、サインイン用のリンクをお送りします。パスワードは不要です。",
+    "submitButton": "サインインリンクを送信",
+    "sentTitle": "メールを確認してください",
+    "sent": "{{email}}のアカウントがある場合、サインインリンクを送信しました。リンクは1回のみ有効で、{{minutes}}分後に期限切れになります。",
+    "notReceived": "受信トレイに見当たりませんか？迷惑メールフォルダを確認するか、登録したメールアドレスを入力したか確認してください。",
+    "sendAnother": "別のリンクを送信",
+    "knowPasswordPrompt": "パスワードをご存じですか？",
+    "loginLink": "サインイン。"
   },
   "resetPassword": {
     "title": "パスワードをリセット",

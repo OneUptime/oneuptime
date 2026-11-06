@@ -6,6 +6,7 @@ import UserAgentDevice, {
   UserAgentClientHints,
 } from "../../../../Server/Utils/RequestOrigin/UserAgentDevice";
 import { generatedTexts } from "../../../Helpers/GeneratedTexts";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { describe, expect, it, test } from "@jest/globals";
 
 /*
@@ -387,16 +388,19 @@ describe("headers it cannot place describe nothing", () => {
 
   it("reads only the start of a long header, and quickly", () => {
     const longTail: string = "A".repeat(2 * 1024 * 1024);
-    const startedAt: number = Date.now();
+    const timed: FastestRun<Array<string | undefined>> = fastestRun({
+      run: (): Array<string | undefined> => {
+        return [
+          describeUserAgent(CHROME_MAC + longTail),
+          // A token past the part that is read is not read.
+          describeUserAgent("A".repeat(MAX_USER_AGENT_LENGTH) + " curl/8.4.0"),
+        ];
+      },
+      limitInMs: 1000,
+    });
 
-    expect(describeUserAgent(CHROME_MAC + longTail)).toBe(
-      "Chrome 130 on macOS",
-    );
-    // A token past the part that is read is not read.
-    expect(
-      describeUserAgent("A".repeat(MAX_USER_AGENT_LENGTH) + " curl/8.4.0"),
-    ).toBeUndefined();
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.result).toEqual(["Chrome 130 on macOS", undefined]);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 

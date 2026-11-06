@@ -17,6 +17,7 @@ import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
@@ -99,6 +100,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "DockerHost",
   "PodmanHost",
   "ProxmoxCluster",
+  "OpenStackCloud",
   "VMwareVCenter",
   "CephCluster",
   "StorageArray",
@@ -374,6 +376,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters={
                           values.proxmoxClusters as Array<ProxmoxCluster>
                         }
+                        openStackClouds={
+                          values.openStackClouds as Array<OpenStackCloud>
+                        }
                         vmwareVCenters={
                           values.vmwareVCenters as Array<VMwareVCenter>
                         }
@@ -417,6 +422,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
                           proxmoxClusters: payload.proxmoxClusters,
+                          openStackClouds: payload.openStackClouds,
                           vmwareVCenters: payload.vmwareVCenters,
                           cephClusters: payload.cephClusters,
                           storageArrays: payload.storageArrays,
@@ -462,6 +468,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       item.dockerHosts,
                       item.podmanHosts,
                       item.proxmoxClusters,
+                      item.openStackClouds,
                       item.vmwareVCenters,
                       item.cephClusters,
                       item.storageArrays,
@@ -496,6 +503,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         podmanHosts={item.podmanHosts as Array<PodmanHost>}
                         proxmoxClusters={
                           item.proxmoxClusters as Array<ProxmoxCluster>
+                        }
+                        openStackClouds={
+                          item.openStackClouds as Array<OpenStackCloud>
                         }
                         vmwareVCenters={
                           item.vmwareVCenters as Array<VMwareVCenter>
@@ -574,6 +584,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 {
                   field: { proxmoxClusters: true },
+                  stepId: "on-call",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { openStackClouds: true },
                   stepId: "on-call",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

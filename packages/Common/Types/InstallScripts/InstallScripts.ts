@@ -11,7 +11,7 @@
  * (packages/App/Dockerfile.tpl copies it to /usr/src/<sourceDirectory>), and
  * the App serves the files from there (FeatureSet/Install), so a script and
  * every file it downloads are always those of the release the reader runs,
- * never GitHub's master branch. The script downloads its files from
+ * never GitHub's main branch. The script downloads its files from
  * <ONEUPTIME_URL>/install/<name>/<file>: the OneUptime it reports to.
  *
  *   /install/<name>          the entry's install script
@@ -36,6 +36,7 @@ export enum InstallScriptName {
   DockerSwarmAgent = "docker-swarm-agent",
   HostAiAgent = "host-ai-agent",
   KubernetesAgent = "kubernetes-agent",
+  OpenStackAgent = "openstack-agent",
   PodmanAgent = "podman-agent",
   ProxmoxAgent = "proxmox-agent",
   StorageArrayAgent = "storage-array-agent",
@@ -181,6 +182,48 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
     sourceDirectory: "HelmChart/Public/kubernetes-agent",
     script: null,
     files: [TROUBLESHOOT_SCRIPT_FILE],
+  },
+  /*
+   * clouds.yaml holds the credential, so it is generated on the agent's machine
+   * and never served. The access files are for whoever makes the credential, who
+   * may have no OneUptime checkout to hand: install.sh downloads neither.
+   */
+  {
+    name: InstallScriptName.OpenStackAgent,
+    title: "OpenStack agent",
+    sourceDirectory: "agents/OpenStackAgent",
+    script: INSTALL_SCRIPT_FILE,
+    files: [
+      INSTALL_SCRIPT_FILE,
+      "docker-compose.yml",
+      "otel-collector-config.yaml",
+      "systemd/oneuptime-openstack-agent.service",
+      "systemd/oneuptime-openstack-agent-native.service",
+      "systemd/oneuptime-openstack-exporter-native.service",
+      "systemd/oneuptime-openstack-quota-exporter-native.service",
+      "access/application-credential-access-rules.json",
+      "access/access-rules-for-cloud.py",
+      "access/policy/keystone.yaml",
+      "access/policy/neutron.yaml",
+      "access/policy/nova.yaml",
+      "access/policy/placement.yaml",
+      // The credential the AI agent makes changes with, kept apart from the one it reads with.
+      "access/write-application-credential-access-rules.json",
+      "access/policy/write-nova.yaml",
+      "control-plane-targets.py",
+      // The optional logs profile, on each controller and compute node.
+      "install-logs.sh",
+      "docker-compose.logs.yml",
+      "otel-collector-logs-files.yaml",
+      "otel-collector-logs-journald.yaml",
+      "systemd/oneuptime-openstack-logs-native.service",
+      // The optional traces profile, on each machine whose services are traced.
+      "install-traces.sh",
+      "docker-compose.traces.yml",
+      "otel-collector-traces.yaml",
+      "systemd/oneuptime-openstack-traces-native.service",
+      TROUBLESHOOT_SCRIPT_FILE,
+    ],
   },
   {
     name: InstallScriptName.PodmanAgent,

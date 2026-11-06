@@ -13,6 +13,7 @@ import {
   CloudResourceKind,
   isCloudResourceKindResource,
 } from "Common/Types/Cloud/CloudResourceKind";
+import { canCloudResourceHaveStreamedLogs } from "Common/Types/Cloud/CloudLogGroups";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -47,20 +48,31 @@ const CloudResourceViewLayout: FunctionComponent<
 
   const [cloudResourceKind, setCloudResourceKind] =
     useState<CloudResourceKind | null>(null);
+  // Whether its menu has Logs: a kind of resource a log group names.
+  const [hasStreamedLogs, setHasStreamedLogs] = useState<boolean>(false);
 
   useEffect(() => {
     let ignore: boolean = false;
     setCloudResourceKind(null);
+    setHasStreamedLogs(false);
 
     ModelAPI.getItem({
       modelType: CloudResource,
       id: modelId,
       select: {
         cloudResourceKind: true,
+        cloudProvider: true,
+        cloudResourceType: true,
       },
     })
       .then((item: CloudResource | null): void => {
         if (!ignore) {
+          setHasStreamedLogs(
+            canCloudResourceHaveStreamedLogs({
+              provider: item?.cloudProvider,
+              type: item?.cloudResourceType,
+            }),
+          );
           /*
            * A row that is not there is drawn as a resource, so its tabs say
            * it was not found where it was looked for.
@@ -105,7 +117,9 @@ const CloudResourceViewLayout: FunctionComponent<
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getCloudBreadcrumbs(path)}
-      sideMenu={<SideMenu modelId={modelId} />}
+      sideMenu={
+        <SideMenu modelId={modelId} hasStreamedLogs={hasStreamedLogs} />
+      }
     >
       {cloudResourceKind ? <Outlet /> : <PageLoader isVisible={true} />}
     </ModelPage>

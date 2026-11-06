@@ -40,6 +40,8 @@ Il logo, il logo per il tema scuro, l'immagine di copertina e la favicon sono fi
 
 La vostra pagina di stato mostra solo immagini del proprio progetto; un'immagine che non può mostrare viene omessa, come se la pagina non ne avesse. La dashboard, l'API e Terraform leggono le immagini della pagina allo stesso modo: un'immagine di un altro progetto torna come nessuna immagine. Le email che la pagina invia (agli iscritti, e agli utenti privati riguardo al loro accesso) mostrano il suo logo allo stesso modo: un logo che la pagina non può mostrare viene omesso anche da esse, invece di comparire come immagine rotta.
 
+Queste email portano il logo al loro interno, quindi si vede anche dove un client di posta non carica immagini da internet o non riesce a raggiungere OneUptime: un logo PNG, JPEG, GIF, WebP o SVG entra come un'immagine delle dimensioni dell'intestazione dell'email. Un logo SVG le cui parole sono testo, e non forme, viene invece mostrato dal suo indirizzo, perché il server non ha alcun font con cui disegnare le parole: convertite il testo in tracciati nel vostro strumento di progettazione, oppure caricate un PNG.
+
 ### Tema
 
 La scheda **Tema**, subito sotto il logo, decide come appare la pagina ai suoi visitatori. Scegliete una delle sue tre opzioni e viene salvata subito; non c'è un pulsante **Modifica**.

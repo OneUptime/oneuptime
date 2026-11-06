@@ -1214,7 +1214,7 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
 
     await expect(kept).toContainText("Kept as JSON");
     await expect(kept).toContainText(
-      "“currentIncidentState” passes on the whole related record. Pick the fields of it the next steps need.",
+      "“currentIncidentState” passes on only the ID of the related record. Pick the fields of it the next steps need.",
     );
     await expect(kept).toContainText(
       "Your workflow keeps running unchanged. Edit the JSON below, or click Start over to pick the fields from the list.",

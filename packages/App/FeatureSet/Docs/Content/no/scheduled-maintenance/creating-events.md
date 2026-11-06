@@ -35,7 +35,7 @@ Gå til **Planlagt vedlikehold → Alle hendelser** og klikk på **Opprett planl
 
 ### Si hva som skjer og når
 
-Skriv inn en **Tittel**, og legg til en **Beskrivelse** hvis det hjelper: den er Markdown, og den vises på statussidene dine. **Begynner den** er allerede neste hele time på klokken din, og **Slutter den** en time senere; endre dem bare når de er feil. Flytter du **Begynner den**, flyttes **Slutter den** med, så vinduet beholder lengden sin. **Eiere** og **Etiketter** venter under **Flere felt**, sammenslått.
+Skriv inn en **Tittel**, og legg til en **Beskrivelse** hvis det hjelper: den er Markdown, og den vises på statussidene dine. **Begynner den** er allerede neste hele time på klokken din, og **Slutter den** en time senere; endre dem bare når de er feil. Flytter du **Begynner den**, flyttes **Slutter den** med, så vinduet beholder lengden sin. **Eiere**, **Etiketter** og **Data Observability Databaser** venter under **Flere felt**, sammenslått.
 
 ### Velg hva det berører
 
@@ -75,7 +75,7 @@ To ting fyller ut skjemaet for deg underveis:
 
 ## Start fra en ressurs eller en mal
 
-På fanen **Planlagt vedlikehold** for en vert, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, et lagringssystem, en IoT-flåte, en database, en tjeneste eller en nettverkslokasjon åpner **Opprett planlagt vedlikeholdshendelse** det samme skjemaet med den ressursen allerede valgt under **Andre berørte ressurser**, og fanen viser hendelsene som berører den. Fanen for et inventarelement velger verten, tjenesten eller Kubernetes-klyngen elementet peker på.
+På fanen **Planlagt vedlikehold** for en vert, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vert, en vCenter, en OpenStack-sky, et lagringssystem, en IoT-flåte, en database, en tjeneste eller en nettverkslokasjon åpner **Opprett planlagt vedlikeholdshendelse** det samme skjemaet med den ressursen allerede valgt under **Andre berørte ressurser**, og fanen viser hendelsene som berører den. Fanen for et inventarelement velger verten, tjenesten eller Kubernetes-klyngen elementet peker på.
 
 **Opprett fra mal**, ved siden av opprettingsknappen, ber deg om å **Velg mal for planlagt vedlikehold** og åpner deretter skjemaet utfylt fra malen. Se [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates).
 

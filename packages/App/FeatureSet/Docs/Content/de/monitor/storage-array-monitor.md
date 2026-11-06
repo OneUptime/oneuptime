@@ -103,7 +103,7 @@ Mehrere Serien tragen ihren Zustand in einem **Label**, mit einem Wert, der imme
 | `purefa_host_connectivity_info` | `status`, mit `details` | Host |
 | `purefa_drive_capacity_bytes` | `component_status` (der Wert ist die Kapazität des Laufwerks) | Laufwerk |
 
-Eine auf einen schlechten Zustand gefilterte Serie existiert nur, solange sich etwas in diesem Zustand befindet, also bedeutet keine Serie gesund. Deshalb ist **Max über 0 löst aus und 0 erholt sich** die richtige Form für sie, und so sind die Vorlagen gebaut: Ihre Erholungskriterien zählen eine fehlende Serie als null.
+Eine auf einen schlechten Zustand gefilterte Serie existiert nur, solange sich etwas in diesem Zustand befindet, also bedeutet keine Serie gesund. Deshalb ist **Max über 0 löst aus und 0 erholt sich** die richtige Form für sie, und so sind die Vorlagen gebaut: Ihre Erholungskriterien zählen eine fehlende Serie als null. Bleibt gar keine Serie übrig, erholt sich eine solche Vorlage nur, wenn `purefa_info` oder `purefb_info` im selben Fenster eingetroffen ist, sodass ein Array, das nicht mehr berichtet, nichts schließt.
 
 In Monitorfiltern und Gruppierungsschlüsseln beginnen die Attribute des Agenten mit `resource.` (`resource.storage.array.name`, `resource.storage.system`), Pures eigene Labels dagegen nicht (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 

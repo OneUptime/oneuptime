@@ -1,14 +1,17 @@
 import PageComponentProps from "../../PageComponentProps";
+import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
+import { getWorkflowRunAgainAction } from "Common/UI/Components/Workflow/RunAgain/RunAgainAction";
+import WorkflowRunWindow, {
+  OpenWorkflowRun,
+} from "Common/UI/Components/Workflow/RunAgain/WorkflowRunWindow";
 import { getWorkflowRunDownloadActions } from "Common/UI/Components/Workflow/DownloadWorkflowRun";
 import {
-  WorkflowRunExport,
   getWorkflowRunExportFromWorkflowLog,
   getWorkflowRunStartedBy,
 } from "Common/UI/Components/Workflow/WorkflowRunExport";
@@ -29,7 +32,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   // The run open in the modal: what it shows, and what Download saves.
-  const [openRun, setOpenRun] = useState<WorkflowRunExport | null>(null);
+  const [openRun, setOpenRun] = useState<OpenWorkflowRun | null>(null);
+  // Changed when a new run starts from the open run, so the list shows it.
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
 
   return (
     <Fragment>
@@ -73,6 +78,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               name: true,
               email: true,
             },
+            // Whether the row and the run's window offer Run again.
+            canRunAgain: true,
           }}
           actionButtons={[
             {
@@ -83,11 +90,20 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 item: WorkflowLogs,
                 onCompleteAction: VoidFunction,
               ) => {
-                setOpenRun(getWorkflowRunExportFromWorkflowLog(item));
+                setOpenRun({ run: getWorkflowRunExportFromWorkflowLog(item) });
 
                 onCompleteAction();
               },
             },
+            // Run again, in the row's ⋯ menu, on a run that can be.
+            getWorkflowRunAgainAction({
+              onStarted: (run: WorkflowLogs) => {
+                setOpenRun({
+                  run: getWorkflowRunExportFromWorkflowLog(run),
+                  isNewRun: true,
+                });
+              },
+            }),
             // Download log and Download run as JSON, in the row's ⋯ menu.
             ...getWorkflowRunDownloadActions(),
           ]}
@@ -100,6 +116,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Looks like this workflow did not run so far in the last 30 days."
           }
           showRefreshButton={true}
+          refreshToggle={refreshToggle}
           viewPageRoute={Navigation.getCurrentRoute()}
           filters={[
             {
@@ -208,11 +225,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         {openRun && (
-          <WorkflowLogModal
-            title="Workflow Run"
-            logs={openRun.logs}
-            stepTrace={openRun.stepTrace}
-            run={openRun}
+          <WorkflowRunWindow
+            openRun={openRun}
+            onRunStarted={() => {
+              setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+            }}
             onClose={() => {
               setOpenRun(null);
             }}

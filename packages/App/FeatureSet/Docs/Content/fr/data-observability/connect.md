@@ -9,12 +9,16 @@ Observabilité des données lit chaque base de données avec un compte qui ne li
 
 ## Choisir qui se connecte
 
-Dans **Observabilité des données > Bases de données**, choisissez **Connect a Database**, puis :
+Dans **Observabilité des données > Bases de données**, choisissez **Connecter une base de données**, puis :
 
-- **OneUptime connects** : collez une chaîne de connexion. Elle est stockée chiffrée, utilisée uniquement par les workers de OneUptime, et n'est plus jamais affichée.
-- **A probe in my network connects** : choisissez l'une de vos sondes et indiquez la variable d'environnement de la sonde qui contient la chaîne de connexion, comme `ORDERS_DB_URL`. La chaîne de connexion ne quitte jamais votre réseau. Voir [Sondes personnalisées](/docs/probe/custom-probe).
+- **OneUptime se connecte** : collez une chaîne de connexion. Elle est stockée chiffrée, utilisée uniquement par les workers de OneUptime, et n'est plus jamais affichée.
+- **Une sonde de mon réseau se connecte** : choisissez l'une de vos sondes et indiquez la variable d'environnement de la sonde qui contient la chaîne de connexion, comme `ORDERS_DB_URL`. La chaîne de connexion ne quitte jamais votre réseau. Voir [Sondes personnalisées](/docs/probe/custom-probe).
 
 Une base de données déjà connectée pour Sécurité des données est elle aussi surveillée, sans rien connecter, tout comme chaque jeu de données BigQuery trouvé par votre [connexion cloud](/docs/telemetry/cloud-accounts).
+
+## Bases de données que vous pourriez connecter
+
+**Bases de données que vous pourriez connecter**, sous **Bases de données**, liste ce que votre projet connaît déjà et que personne n'a connecté : les bases de données avec lesquelles vos traces communiquent, celles de vos comptes cloud, et celles que Database Monitoring surveille. **Connecter** démarre le formulaire à partir de ce que l'on sait de chacune, avec une chaîne de connexion à renseigner. **Masquer** l'empêche de revenir. Rien n'est lu tant que vous ne la connectez pas.
 
 ## Un compte en lecture seule, par moteur
 
@@ -30,7 +34,7 @@ La chaîne de connexion : `postgres://oneuptime_reader:...@orders-db.internal:54
 @tab MySQL and MariaDB
 ```sql
 CREATE USER 'oneuptime_reader'@'%' IDENTIFIED BY '...';
-GRANT SHOW VIEW ON orders.* TO 'oneuptime_reader'@'%';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_reader'@'%';
 GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_reader'@'%';
 ```
 
@@ -140,13 +144,24 @@ MongoDB est lu par son propre pilote : `mongodb+srv://oneuptime_reader:...@clust
 | Contrôles | Toutes les 15 minutes, toutes les heures, toutes les 6 heures ou tous les jours, selon chacun |
 | Lignage et dernières lectures tirés de l'historique des requêtes | Une fois par heure, en remontant jusqu'à la dernière lecture |
 
-Chaque instruction s'exécute en lecture seule, avec un délai d'expiration d'instruction et de verrou là où le moteur en dispose. La chaîne de connexion n'est jamais journalisée et elle est retirée de chaque message d'erreur. Une statistique que le compte n'a pas le droit de lire est omise, avec un avertissement sur la base de données, et ne fait jamais échouer la collecte.
+Chaque instruction s'exécute en lecture seule, avec un délai d'expiration d'instruction et de verrou là où le moteur en dispose. La chaîne de connexion n'est jamais journalisée et elle est retirée de chaque message d'erreur. Une statistique que le compte n'a pas le droit de lire est omise, avec un avertissement sur la base de données, et ne fait jamais échouer la collecte. Les connexions vers des adresses privées sont refusées sur OneUptime Cloud : utilisez une sonde.
+
+## Réplicas en lecture
+
+Un réplica en lecture PostgreSQL ou SQL Server ne fait pas avancer ses compteurs d'écriture, si bien qu'une table peut y sembler inchangée alors qu'elle change. OneUptime voit que c'est un réplica, écarte les compteurs, le signale sur la base de données, et se rabat sur la taille et les lignes de la table. Connectez le primaire quand vous le pouvez, ou nommez une [colonne de fraîcheur](/docs/data-observability/table-health) pour les tables qui comptent.
+
+## Chemins de stockage
+
+Tout ce sur quoi vous comptez n'est pas dans une base de données. Un export qui arrive chaque nuit dans un bucket est aussi en retard, ou aussi court, que n'importe quelle table. Sous **Chemins de stockage**, choisissez **Modifier les chemins** pour un bucket trouvé par votre [connexion cloud](/docs/telemetry/cloud-accounts), sur Amazon S3, Google Cloud Storage ou un compte de stockage Azure, et nommez les chemins qui comptent, un par ligne. Sur Azure, commencez chacun par le nom de son conteneur.
+
+Chaque chemin apparaît alors sous **Tables** : son objet le plus récent est sa dernière modification, ses objets sont ses lignes, et leur taille est sa taille, et les mêmes alertes s'appliquent. Seuls les noms, tailles et heures sont lus, jamais un objet. Un chemin qui contient plus de 10000 objets n'a ni nombre exact, ni taille exacte, ni objet le plus récent exact, et le signale : nommez-en un plus étroit.
 
 ## Dépannage
 
 - **La base de données affiche le statut Échec.** Son message indique pourquoi : un hôte que OneUptime ne peut pas joindre, un compte refusé, un mode TLS que le serveur n'accepte pas. Pour une base de données à l'intérieur de votre réseau, connectez-la via une sonde.
 - **Les tables n'affichent aucune dernière modification.** Le compte ne peut pas lire les statistiques du moteur : accordez ce que liste l'onglet de votre moteur, ou attendez que les lignes d'une table aient changé deux fois.
 - **Une table manque.** Elle se trouve dans un schéma que le compte ne peut pas utiliser, ou elle est exclue sur la base de données. Accordez `USAGE` sur son schéma, ou supprimez l'exclusion.
+- **Une table MySQL n'a aucune colonne.** Le compte a besoin de `REFERENCES`, comme ci-dessus : il montre les colonnes d'une table sans donner aucune lecture de ses lignes.
 
 ## Prochaines étapes
 

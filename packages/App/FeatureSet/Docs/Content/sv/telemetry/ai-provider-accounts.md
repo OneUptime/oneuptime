@@ -49,7 +49,7 @@ Under **Testa** klickar du på **Testa anslutningen**. OneUptime läser användn
 Klicka på **Anslut**. Den första läsningen startar inom en minut och hämtar de senaste 30 dagarna.
 :::
 
-Anslutna konton listas under rutorna, med **Status** och **Senast läst**. **Läs nu** läser direkt, **Testa** kontrollerar de sparade inställningarna igen, **Stäng av** slutar läsa och behåller det som lästs, och **Redigera** ändrar inställningarna: en hemlighet som lämnas tom behåller den sparade. **View error** visar varför en läsning misslyckades, utan någon hemlighet.
+Anslutna konton listas under rutorna, med **Status** och **Senast läst**. **Läs nu** läser direkt, **Testa** kontrollerar de sparade inställningarna igen, **Stäng av** slutar läsa och behåller det som lästs, och **Redigera** ändrar inställningarna: en hemlighet som lämnas tom behåller den sparade. **Visa fel** visar varför en läsning misslyckades, utan någon hemlighet.
 
 ## Vad varje leverantör ger
 

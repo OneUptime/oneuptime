@@ -57,9 +57,9 @@ Alleen openstaande problemen tellen mee. Een probleem waarvan het risico is geac
 
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
-| Art. 5(1)(c) | Minimale gegevensverwerking | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 5(1)(c) | Minimale gegevensverwerking | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 5(1)(e) | Opslagbeperking | `stale-sensitive-data` |
-| Art. 25 | Gegevensbescherming door ontwerp en door standaardinstellingen | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 25 | Gegevensbescherming door ontwerp en door standaardinstellingen | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Verwerkers | `sensitive-data-to-ai` |
 | Art. 30 | Register van verwerkingsactiviteiten | Voldaan door Gegevensbeveiliging zelf |
 | Art. 32 | Beveiliging van de verwerking | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
@@ -69,7 +69,7 @@ Alleen openstaande problemen tellen mee. Een probleem waarvan het risico is geac
 
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
-| 1798.100(c) | Verzameling beperkt tot wat nodig is | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| 1798.100(c) | Verzameling beperkt tot wat nodig is | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | 1798.150 | Redelijke beveiligingsprocedures | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ Alleen openstaande problemen tellen mee. Een probleem waarvan het risico is geac
 | A.5.12 | Classificatie van informatie | Voldaan door Gegevensbeveiliging zelf |
 | A.5.15 | Toegangsbeveiliging | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | Toegangsrechten | `unused-access` |
-| A.5.34 | Privacy en bescherming van persoonsgegevens | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| A.8.11 | Maskeren van gegevens | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.5.34 | Privacy en bescherming van persoonsgegevens | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.8.11 | Maskeren van gegevens | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | Voorkomen van datalekken | `secrets-stored`, `secrets-in-telemetry` |
 | A.8.13 | Back-up van informatie | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | A.8.15 | Logging | `access-not-logged` |
@@ -136,7 +136,7 @@ Alleen openstaande problemen tellen mee. Een probleem waarvan het risico is geac
 
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
-| Art. 6 | Noodzakelijkheid en doelbinding | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Art. 6 | Noodzakelijkheid en doelbinding | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 33 | Internationale doorgifte van gegevens | `residency-violation` |
 | Art. 46 | Beveiligingsmaatregelen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
@@ -145,7 +145,7 @@ Alleen openstaande problemen tellen mee. Een probleem waarvan het risico is geac
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
 | Sec. 8(5) | Redelijke beveiligingswaarborgen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
-| Sec. 8(7) | Wissing zodra het doel is bereikt | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| Sec. 8(7) | Wissing zodra het doel is bereikt | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Sec. 16 | Doorgifte buiten India | `residency-violation` |
 
 ## Verwerkingsregister

@@ -51,6 +51,30 @@ const MAX_EACH_BLOCKS_PER_EXPANSION: number = 100;
 type WriteValueFunction = (value: JSONValue) => string;
 
 /*
+ * A template that tells a value with nothing in it from a reference to nothing
+ * at all: what a workflow's settings ask for (Types/Workflow/EmptyValues).
+ *
+ * Without it - an incident or alert template, a schedule - a {{...}} that finds
+ * nothing is left as written, and null is written as "null", so a mistyped name
+ * shows. With it, the same is still true of a reference to something that is
+ * not there, but a path that ran into nothing - a null, or a list too short to
+ * hold the item - is that value being empty, and comes through empty: nothing
+ * in text, inside a JSON string and as a whole setting's null, and null on its
+ * own in a JSON document. An alert no monitor raised has no monitor, so a
+ * message's {{...model.monitor.name}} has nothing to say. It has no mistake to
+ * show either, and it used to go out in the message as written (issue 5761).
+ */
+export interface EmptyValueOptions {
+  /*
+   * Whether a path that found nothing, and ran into nothing on its way, is
+   * empty all the same: a field of a record its step does not pass on.
+   */
+  isEmptyPath?: ((path: string) => boolean) | undefined;
+  // Told the path of each reference that came through empty.
+  onEmptyValue?: ((path: string) => void) | undefined;
+}
+
+/*
  * Where a value lands in a JSON document decides how it is written.
  *
  * Inside a string - "title": "{{x}}" - a value is text, escaped so the string
@@ -79,6 +103,13 @@ class JSONValueSlots {
   private readonly slotStart: string = `\u0000${Text.generateRandomText(16)}:`;
 
   private static readonly SLOT_END: string = "\u0000";
+
+  // How a value inside a string is written, as the template's other text is.
+  private readonly writeText: WriteValueFunction;
+
+  public constructor(writeText: WriteValueFunction) {
+    this.writeText = writeText;
+  }
 
   public add(value: JSONValue): string {
     this.values.push(value);
@@ -122,7 +153,7 @@ class JSONValueSlots {
       output +=
         textBefore +
         (isInsideString
-          ? VMUtil.serializeValueForJSON(writeValueAsText(value))
+          ? VMUtil.serializeValueForJSON(this.writeText(value))
           : writeValueAsJSON(value));
 
       // What was written is whole: it neither ends a string nor escapes on.
@@ -143,6 +174,16 @@ const writeValueAsText: WriteValueAsTextFunction = (
   return typeof value === "object" && value !== null
     ? JSON.stringify(value, null, 2)
     : `${value}`;
+};
+
+/*
+ * The same for a template with EmptyValueOptions: a value with nothing in it is
+ * written as nothing, never as the word "null" in the middle of a message.
+ */
+const writeValueAsTextOrNothing: WriteValueAsTextFunction = (
+  value: JSONValue,
+): string => {
+  return value === null || value === undefined ? "" : writeValueAsText(value);
 };
 
 type WriteValueAsJSONFunction = (value: JSONValue) => string;
@@ -176,14 +217,16 @@ const writeValueAsJSON: WriteValueAsJSONFunction = (
 
 type GetValueWriterFunction = (
   slots: JSONValueSlots | null,
+  writeText: WriteValueAsTextFunction,
 ) => WriteValueFunction;
 
 // Into a JSON document a value goes as a slot; into anything else as text.
 const getValueWriter: GetValueWriterFunction = (
   slots: JSONValueSlots | null,
+  writeText: WriteValueAsTextFunction,
 ): WriteValueFunction => {
   return (value: JSONValue): string => {
-    return slots ? slots.add(value) : writeValueAsText(value);
+    return slots ? slots.add(value) : writeText(value);
   };
 };
 
@@ -209,6 +252,7 @@ export default class VMUtil {
     storageMap: JSONObject,
     valueToReplaceInPlace: string,
     isJSON: boolean | undefined,
+    emptyValues?: EmptyValueOptions | undefined,
   ): string {
     let didStringify: boolean = false;
 
@@ -262,7 +306,7 @@ export default class VMUtil {
        */
       const rawValue: JSONValue | undefined =
         firstMatch && firstMatch.text === valueToReplaceInPlaceCopy.trim()
-          ? VMUtil.deepFind(storageMap, firstMatch.inner)
+          ? VMUtil.findValue([storageMap], firstMatch.inner, emptyValues)
           : undefined;
 
       if (rawValue !== undefined) {
@@ -290,10 +334,13 @@ export default class VMUtil {
          * resolved value of "50$" or "a$&b" rewrote itself using the matched
          * text. A function replacement is taken literally.
          */
+        const writeText: WriteValueAsTextFunction = emptyValues
+          ? writeValueAsTextOrNothing
+          : writeValueAsText;
         const slots: JSONValueSlots | null = isJSONDocument
-          ? new JSONValueSlots()
+          ? new JSONValueSlots(writeText)
           : null;
-        const writeValue: WriteValueFunction = getValueWriter(slots);
+        const writeValue: WriteValueFunction = getValueWriter(slots, writeText);
 
         valueToReplaceInPlaceCopy = VMUtil.renderEachLoops({
           template: valueToReplaceInPlaceCopy,
@@ -302,14 +349,16 @@ export default class VMUtil {
             eachPathScope: storageMap,
           },
           writeValue: writeValue,
+          emptyValues: emptyValues,
           budget: { remaining: MAX_EACH_BLOCKS_PER_EXPANSION },
           renderText: (text: string): string => {
             return replaceTemplatePlaceholders(
               text,
               (placeholder: TemplatePlaceholder): string => {
-                const value: JSONValue = VMUtil.deepFind(
-                  storageMap,
+                const value: JSONValue = VMUtil.findValue(
+                  [storageMap],
                   placeholder.inner,
+                  emptyValues,
                 );
 
                 // Skip replacement if the variable is not found in the storageMap.
@@ -370,7 +419,9 @@ export default class VMUtil {
     isJSON: boolean | undefined,
     renderTextOutsideLoops?: ((text: string) => string) | undefined,
   ): string {
-    const slots: JSONValueSlots | null = isJSON ? new JSONValueSlots() : null;
+    const slots: JSONValueSlots | null = isJSON
+      ? new JSONValueSlots(writeValueAsText)
+      : null;
 
     const expanded: string = VMUtil.renderEachLoops({
       template: template,
@@ -378,7 +429,7 @@ export default class VMUtil {
         lookupChain: [storageMap],
         eachPathScope: storageMap,
       },
-      writeValue: getValueWriter(slots),
+      writeValue: getValueWriter(slots, writeValueAsText),
       budget: { remaining: MAX_EACH_BLOCKS_PER_EXPANSION },
       renderText:
         renderTextOutsideLoops ||
@@ -412,6 +463,7 @@ export default class VMUtil {
     template: string;
     scope: EachLoopScope;
     writeValue: WriteValueFunction;
+    emptyValues?: EmptyValueOptions | undefined;
     budget: EachBlockBudget;
     renderText: (text: string) => string;
   }): string {
@@ -536,6 +588,7 @@ export default class VMUtil {
             template: iterationBody,
             scope: iterationScope,
             writeValue: data.writeValue,
+            emptyValues: data.emptyValues,
             budget: isObjectElement
               ? { remaining: MAX_EACH_BLOCKS_PER_EXPANSION }
               : data.budget,
@@ -544,6 +597,7 @@ export default class VMUtil {
                 iterationScope,
                 text,
                 data.writeValue,
+                data.emptyValues,
               );
             },
           }),
@@ -571,6 +625,7 @@ export default class VMUtil {
     scope: EachLoopScope,
     body: string,
     writeValue: WriteValueFunction,
+    emptyValues?: EmptyValueOptions | undefined,
   ): string {
     type ReplaceVariablesFunction = (text: string) => string;
 
@@ -584,15 +639,14 @@ export default class VMUtil {
       return replaceLoopVariablePlaceholders(
         text,
         (placeholder: TemplatePlaceholder): string => {
-          for (const candidate of scope.lookupChain) {
-            const foundValue: JSONValue = VMUtil.deepFind(
-              candidate,
-              placeholder.inner.trim(),
-            );
+          const foundValue: JSONValue = VMUtil.findValue(
+            scope.lookupChain,
+            placeholder.inner.trim(),
+            emptyValues,
+          );
 
-            if (foundValue !== undefined) {
-              return writeValue(foundValue);
-            }
+          if (foundValue !== undefined) {
+            return writeValue(foundValue);
           }
 
           return placeholder.text; // leave unresolved
@@ -652,6 +706,112 @@ export default class VMUtil {
     return value;
   }
 
+  /*
+   * What a {{path}} stands for, looking in each place in turn: the first value
+   * found, or undefined for none, which a template leaves as written. A value
+   * that is there is never changed by what the options say about empty ones,
+   * wherever in the list it is.
+   */
+  private static findValue(
+    candidates: Array<JSONObject>,
+    path: string,
+    emptyValues: EmptyValueOptions | undefined,
+  ): JSONValue {
+    for (const candidate of candidates) {
+      const value: JSONValue = VMUtil.deepFind(candidate, path);
+
+      if (value !== undefined) {
+        if (value === null) {
+          emptyValues?.onEmptyValue?.(path);
+        }
+
+        return value;
+      }
+    }
+
+    if (!emptyValues) {
+      return undefined;
+    }
+
+    const isEmpty: boolean =
+      candidates.some((candidate: JSONObject): boolean => {
+        return VMUtil.runsIntoNothing(candidate, path);
+      }) || Boolean(emptyValues.isEmptyPath?.(path));
+
+    if (!isEmpty) {
+      return undefined;
+    }
+
+    emptyValues.onEmptyValue?.(path);
+
+    return null;
+  }
+
+  /**
+   * Whether a path that deepFind finds nothing at ran into nothing on its way:
+   * a null - the monitor of an alert no monitor raised, the model of a Find One
+   * that found no record - or a list too short to hold the item it asks for.
+   * What it reads is there to be empty. A key that is simply not there says no
+   * such thing, so it is false: nothing tells that apart from a mistyped one.
+   */
+  @CaptureSpan()
+  public static runsIntoNothing(obj: JSONObject, path: string): boolean {
+    let current: JSONValue = obj;
+
+    for (const key of path.split(".")) {
+      if (!key) {
+        return false;
+      }
+
+      if (current === null) {
+        return true;
+      }
+
+      if (typeof current !== "object") {
+        return false;
+      }
+
+      const openBracketIndex: number = key.indexOf("[");
+      const closeBracketIndex: number = key.indexOf("]");
+
+      if (openBracketIndex === -1 || closeBracketIndex === -1) {
+        current = (current as JSONObject)[key] as JSONValue;
+        continue;
+      }
+
+      const list: JSONValue = (current as JSONObject)[
+        key.slice(0, openBracketIndex)
+      ] as JSONValue;
+
+      if (list === null) {
+        return true;
+      }
+
+      if (!Array.isArray(list)) {
+        return false;
+      }
+
+      const indexText: string = key.slice(
+        openBracketIndex + 1,
+        closeBracketIndex,
+      );
+      const index: number =
+        indexText === "last" ? list.length - 1 : parseInt(indexText);
+
+      if (isNaN(index) || (index < 0 && indexText !== "last")) {
+        return false;
+      }
+
+      if (index < 0 || index >= list.length) {
+        return true;
+      }
+
+      current = list[index] as JSONValue;
+    }
+
+    return current === null;
+  }
+
   @CaptureSpan()
   public static deepFind(obj: JSONObject, path: string): JSONValue {
     const paths: Array<string> = path.split(".");
@@ -699,10 +859,65 @@ export default class VMUtil {
       } else if (current && current[key] !== undefined) {
         current = current[key];
       } else {
-        return undefined;
+        /*
+         * A key with a dot of its own: a custom field called "Release 1.2" is
+         * read as customFields.Release 1.2, which splits into two segments.
+         * Only a path that found nothing is tried this way, so nothing that
+         * resolved before reads differently.
+         */
+        const joined: { value: JSONValue; lastIndex: number } | null =
+          VMUtil.findDottedKey(current, paths, i);
+
+        if (!joined) {
+          return undefined;
+        }
+
+        current = joined.value;
+        i = joined.lastIndex;
       }
     }
 
     return current;
+  }
+
+  private static findDottedKey(
+    current: unknown,
+    paths: Array<string>,
+    start: number,
+  ): { value: JSONValue; lastIndex: number } | null {
+    if (!current || typeof current !== "object") {
+      return null;
+    }
+
+    /*
+     * From the keys there are, not from the path: joining the path's segments one more at a time
+     * and looking each up reads the whole joined text every time, which is the square of the
+     * path's length on a long one (GroupingPathBracketsLinearTime). The first segments that make
+     * a key win, so the key taking the fewest segments does.
+     */
+    let found: { value: JSONValue; lastIndex: number } | null = null;
+
+    for (const key of Object.keys(current as JSONObject)) {
+      const value: JSONValue | undefined = (current as JSONObject)[key];
+
+      if (value === undefined || !key.includes(".")) {
+        continue;
+      }
+
+      const segments: Array<string> = key.split(".");
+      const lastIndex: number = start + segments.length - 1;
+
+      if (
+        lastIndex < paths.length &&
+        (!found || lastIndex < found.lastIndex) &&
+        segments.every((segment: string, offset: number): boolean => {
+          return paths[start + offset] === segment;
+        })
+      ) {
+        found = { value: value, lastIndex: lastIndex };
+      }
+    }
+
+    return found;
   }
 }

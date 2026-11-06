@@ -131,6 +131,10 @@ export const WORKSPACE_AFFECTED_RESOURCE_KIND_LABELS: Readonly<
     label: "Proxmox Cluster",
     pluralLabel: "Proxmox Clusters",
   },
+  [AiAffectedResourceKind.OpenStackCloud]: {
+    label: "OpenStack Cloud",
+    pluralLabel: "OpenStack Clouds",
+  },
   [AiAffectedResourceKind.VMwareVCenter]: {
     label: "vCenter",
     pluralLabel: "vCenters",

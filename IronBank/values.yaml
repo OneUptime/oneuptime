@@ -1,0 +1,67 @@
+# The Helm values that run OneUptime from Iron Bank: every image the chart runs
+# by default comes from Registry1 (registry1.dso.mil), the US Department of
+# Defense's registry of hardened images. "Installing from Registry1" in
+# IronBank/README.md says how to install with this file, and what differs from a
+# stock install.
+#
+# OneUptime's own four images reach Registry1 once Iron Bank has approved them.
+# Scripts/IronBank/PinRelease.js moves their tags with the projects they are
+# built from, and Tests/Ops/IronBankProjects.test.js holds them to those
+# projects. HelmChart/Tests/suites/iron-bank.sh renders the chart with this
+# file, and iron-bank-install.sh installs it on a cluster.
+image:
+  # The App's image on Iron Bank is the Enterprise Edition. Production use of it
+  # needs a license; without one, an install runs as a 14-day trial, which is
+  # for evaluation.
+  type: enterprise-edition
+  overrides:
+    app: registry1.dso.mil/ironbank/oneuptime/app:14.0.102
+    nginx: registry1.dso.mil/ironbank/oneuptime/ingress:14.0.102
+    runner: registry1.dso.mil/ironbank/oneuptime/runner:14.0.102
+    probe: registry1.dso.mil/ironbank/oneuptime/probe:14.0.102
+    postgres: registry1.dso.mil/ironbank/opensource/postgres/postgresql:17.11
+    clickhouse: registry1.dso.mil/ironbank/opensource/clickhouse:26.3.20.7
+    valkey: registry1.dso.mil/ironbank/opensource/valkey-io/valkey:9.1.3
+    # The cleanup CronJobs (cronJobs.cleanup), off by default.
+    kubectl: registry1.dso.mil/ironbank/opensource/kubernetes/kubectl:v1.36.6
+
+# A docker-registry Secret in the release's namespace, holding your Registry1
+# username and CLI secret.
+imagePullSecrets:
+  - name: registry1
+
+# `helm test` runs OneUptime's test image, which is not on Iron Bank.
+testHook:
+  enabled: false
+
+# Iron Bank's datastores run as users of their own, where the images a stock
+# install runs start as root and take ownership of their volumes. fsGroup gives
+# that user its volume, and OnRootMismatch saves each restart from walking all
+# of it.
+postgresql:
+  primary:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+      runAsGroup: 1001
+      fsGroup: 1001
+      fsGroupChangePolicy: OnRootMismatch
+
+clickhouse:
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 998
+    fsGroup: 998
+    fsGroupChangePolicy: OnRootMismatch
+
+valkey:
+  master:
+    # To turn on valkey.master.persistence, also add `dir /data` to
+    # valkey.commonConfiguration: this image works in /home/data, and the chart
+    # mounts the volume at /data.
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+      runAsGroup: 1001
+      fsGroup: 1001
+      fsGroupChangePolicy: OnRootMismatch

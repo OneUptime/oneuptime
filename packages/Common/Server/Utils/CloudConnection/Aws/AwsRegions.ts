@@ -1,3 +1,4 @@
+import { isAwsRegion } from "../../../../Types/Cloud/AwsRegionCode";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 
 /*
@@ -55,42 +56,10 @@ export const AWS_ALL_COMMERCIAL_REGIONS: ReadonlyArray<string> = [
 ];
 
 /*
- * A Region code: two to four letter groups and a number, such as
- * us-east-1, eu-central-2 or us-gov-west-1. Read part by part.
+ * A Region code (us-east-1, eu-central-2, us-gov-west-1): the one rule,
+ * shared with the dashboard's streaming dialog.
  */
-export function isAwsRegion(value: string): boolean {
-  const parts: Array<string> = value.trim().toLowerCase().split("-");
-
-  if (parts.length < 3 || parts.length > 4 || value.length > 25) {
-    return false;
-  }
-
-  const number: string = parts[parts.length - 1]!;
-
-  if (!number || number.length > 2) {
-    return false;
-  }
-
-  for (const character of number) {
-    if (character < "0" || character > "9") {
-      return false;
-    }
-  }
-
-  for (const part of parts.slice(0, -1)) {
-    if (!part) {
-      return false;
-    }
-
-    for (const character of part) {
-      if (character < "a" || character > "z") {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
+export { isAwsRegion };
 
 // The Regions a connection names, checked; at most 40.
 export function validateAwsRegions(regions: Array<string>): void {

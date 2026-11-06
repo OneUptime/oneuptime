@@ -25,7 +25,16 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import Label from "./Label";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 /*
  * ONE TABLE OR VIEW OF A CONNECTED DATA STORE, AS DATA OBSERVABILITY SEES IT.
@@ -376,6 +385,64 @@ export default class DataAsset extends BaseModel {
     nullable: true,
   })
   public description?: string = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description: "Labels to group and filter tables by.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "DataAssetLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "dataAssetId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Row Count Change Tolerance (%)",
+    description:
+      "A change in rows this small counts as none here, raised each time such an alert is marked not an issue.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public rowCountChangeTolerancePercent?: number = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Freshness Column",
+    description:
+      "A timestamp column that says when a row was written. Its latest value says when the table last changed, where the database's own counters cannot.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public freshnessColumn?: string = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

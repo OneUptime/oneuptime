@@ -67,6 +67,7 @@
     "forgotPassword": "Mot de passe oublié ?",
     "signInWithSso": "Se connecter avec SSO",
     "signInWithMicrosoft": "Se connecter avec Microsoft",
+    "emailSignInLink": "M'envoyer un lien de connexion",
     "noAccountPrompt": "Vous n'avez pas de compte ?",
     "registerLink": "Inscription.",
     "twoFactor": {
@@ -114,6 +115,15 @@
       "generate": "Générer des codes de secours",
       "skip": "Ignorer pour le moment",
       "generateFailed": "Aucun code de secours n'a été renvoyé. Veuillez réessayer depuis Profil utilisateur > Authentification à deux facteurs."
+    },
+    "magicLink": {
+      "title": "Terminer la connexion",
+      "subtitle": "Utilisez le bouton ci-dessous pour terminer la connexion avec le lien reçu par e-mail.",
+      "submit": "Se connecter",
+      "noLink": "Cette page nécessite le lien de connexion reçu par e-mail. Ouvrez à nouveau le lien ou demandez-en un nouveau.",
+      "turnedOff": "Les liens de connexion sont désactivés sur ce serveur. Veuillez vous connecter avec votre e-mail et votre mot de passe.",
+      "requestNewLink": "M'envoyer un nouveau lien",
+      "backToSignIn": "Retour à la connexion"
     }
   },
   "register": {
@@ -147,6 +157,17 @@
     "successMessage": "Nous vous avons envoyé le lien de réinitialisation du mot de passe par e-mail. N'oubliez pas de vérifier le dossier spam.",
     "submitButton": "Envoyer le lien de réinitialisation",
     "rememberPasswordPrompt": "Vous vous souvenez de votre mot de passe ?",
+    "loginLink": "Connexion."
+  },
+  "magicLink": {
+    "title": "Se connecter avec un lien",
+    "subtitle": "Saisissez votre adresse e-mail et nous vous enverrons un lien pour vous connecter. Aucun mot de passe n'est nécessaire.",
+    "submitButton": "M'envoyer un lien de connexion",
+    "sentTitle": "Consultez vos e-mails",
+    "sent": "Si {{email}} correspond à un compte, un lien de connexion est en route. Il ne fonctionne qu'une fois et expire dans {{minutes}} minutes.",
+    "notReceived": "Pas dans votre boîte de réception ? Vérifiez vos spams ou assurez-vous d'avoir saisi l'adresse utilisée lors de votre inscription.",
+    "sendAnother": "Envoyer un autre lien",
+    "knowPasswordPrompt": "Vous connaissez votre mot de passe ?",
     "loginLink": "Connexion."
   },
   "resetPassword": {

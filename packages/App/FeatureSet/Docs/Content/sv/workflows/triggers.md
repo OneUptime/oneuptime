@@ -185,7 +185,7 @@ flowchart TB
     field -->|"Nej"| nothing
 ```
 
-**On Create**, **On Update** och **On Create or Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fields to pass on**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt.
+**On Create**, **On Update** och **On Create or Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fields to pass on**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt. Detsamma gäller ett fält där posten inte har något, som monitorn för ett larm som ingen monitor har utlöst.
 
 **On Create or Update** skickar också vidare **What Happened**: `created` när en ny post startade körningen, och `updated` när en ändring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. För att hantera de två olika jämför du det i ett **If / Else**-block, eller tar en väg för vardera med **Switch / Case**.
 

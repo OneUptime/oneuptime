@@ -49,8 +49,8 @@ resources:
       value: "f506cb3de8b34cd94e9014d247b39e9dfd7effad79edad3ab67096dc3c1b6b0e"
 
 # The engineers the onboarding request names, by their Platform One (Repo1)
-# usernames. Iron Bank's pipeline refuses a manifest until these are filled in.
+# usernames.
 maintainers:
-  - name: "FIXME"
-    username: "FIXME"
+  - name: "Nawaz Dhandala"
+    username: "oneuptime"
     email: "hello@oneuptime.com"

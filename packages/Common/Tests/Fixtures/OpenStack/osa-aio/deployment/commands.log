@@ -1,0 +1,65 @@
+$ openstack-ansible openstack.osa.cinder --tags cinder-config
+[exit 0]
+
+$ openstack project create --domain default oneuptime-monitoring
+openstack user create --domain default --password <password> oneuptime-monitoring
+openstack role add --project oneuptime-monitoring --user oneuptime-monitoring admin
+[exit 0]
+
+$ apt-get install -y curl
+[exit 0]
+
+$ curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/access/application-credential-access-rules.json
+curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/access/access-rules-for-cloud.py
+openstack catalog list -f json | python3 access-rules-for-cloud.py \
+  application-credential-access-rules.json > access-rules-for-this-cloud.json
+openstack application credential create oneuptime-agent \
+  --role admin \
+  --access-rules "$(cat access-rules-for-this-cloud.json)" \
+  --expiration 2027-11-05T13:30:56
+[exit 0]
+
+$ curl -fsSL http://172.29.236.100:8099/install/openstack-agent -o install.sh && bash install.sh
+[exit 0]
+
+$ cd /opt/oneuptime-openstack-agent
+docker compose ps
+docker compose logs -f oneuptime-openstack-agent
+[exit 124]
+
+$ openstack-ansible openstack.osa.rabbitmq_server --tags rabbitmq-config
+[exit 0]
+
+$ openstack-ansible openstack.osa.haproxy
+[exit 0]
+
+$ curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/install-logs.sh
+sudo bash install-logs.sh journald
+[exit 0]
+
+$ openstack application credential delete oneuptime-agent || true
+[exit 0]
+
+$ openstack role create oneuptime_monitoring
+openstack project create --domain default --description "OneUptime monitoring: holds nothing" oneuptime-monitoring
+openstack quota set --instances 0 --cores 0 --ram 0 --key-pairs 0 oneuptime-monitoring
+openstack quota set --volumes 0 --gigabytes 0 --snapshots 0 --backups 0 --backup-gigabytes 0 oneuptime-monitoring
+openstack quota set --networks 0 --subnets 0 --ports 0 --routers 0 --floating-ips 0 --secgroups 0 --secgroup-rules 0 oneuptime-monitoring
+openstack user create --domain default --password <password> oneuptime-monitoring
+openstack role add --project oneuptime-monitoring --user oneuptime-monitoring oneuptime_monitoring
+openstack role add --project oneuptime-monitoring --user oneuptime-monitoring reader
+[exit 0]
+
+$ curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/access/policy/nova.yaml
+curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/access/policy/neutron.yaml
+curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/access/policy/placement.yaml
+curl -fsSLO http://172.29.236.100:8099/install/openstack-agent/access/policy/keystone.yaml
+[exit 0]
+
+$ openstack-ansible openstack.osa.nova --tags nova-policy-override
+[exit 0]
+
+$ openstack application credential create oneuptime-agent \
+  --expiration 2027-11-05T13:45:45
+[exit 0]
+

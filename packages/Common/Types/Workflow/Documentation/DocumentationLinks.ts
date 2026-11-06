@@ -77,6 +77,7 @@ export const WorkflowDocsPaths: {
   readonly javascriptCheck: string;
   readonly fromOtherTools: string;
   readonly zabbix: string;
+  readonly openStack: string;
   readonly json: string;
   readonly conditions: string;
   readonly switchCase: string;
@@ -114,6 +115,7 @@ export const WorkflowDocsPaths: {
   javascriptCheck: "/workflows/components#check-with-javascript",
   fromOtherTools: "/workflows/components#incidents-and-alerts-from-other-tools",
   zabbix: "/workflows/components#zabbix",
+  openStack: "/workflows/components#propose-an-openstack-fix",
   json: "/workflows/components#json",
   conditions: "/workflows/components#conditions",
   switchCase: "/workflows/components#switch-case",

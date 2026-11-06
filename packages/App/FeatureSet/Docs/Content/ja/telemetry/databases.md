@@ -211,7 +211,7 @@ OneUptime Database Agent は、**PostgreSQL**、**MySQL / MariaDB**、**SQL Serv
 
 **1 つのエージェントで 1 台のデータベースサーバーを監視します**。エージェントが送るすべてのものに ID が付与されるため、サーバーごとに 1 つのエージェント (1 つのインストールディレクトリ) を実行し、レプリカを個別のページで見たい場合はレプリカごとに 1 つ実行してください。
 
-エージェントは [DatabaseAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) にあります: `docker-compose.yml`、レシーバーごとの Collector 設定 (`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`)、`install.sh`、`troubleshoot.sh`、systemd ユニットです。フォークや互換の代替エンジンは、そのファミリーの設定を実行して自分の名前を報告します。`DATABASE_SYSTEM=mariadb` は `configs/mysql.yaml` を実行し、データベースは MariaDB として表示されます。
+エージェントは [DatabaseAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) にあります: `docker-compose.yml`、レシーバーごとの Collector 設定 (`configs/postgresql.yaml`、`configs/mysql.yaml`、`configs/sqlserver.yaml`、`configs/oracledb.yaml`、`configs/redis.yaml`、`configs/mongodb.yaml`、`configs/elasticsearch.yaml`、`configs/memcached.yaml`)、`install.sh`、`troubleshoot.sh`、systemd ユニットです。フォークや互換の代替エンジンは、そのファミリーの設定を実行して自分の名前を報告します。`DATABASE_SYSTEM=mariadb` は `configs/mysql.yaml` を実行し、データベースは MariaDB として表示されます。
 
 ### 始める前に
 
@@ -343,6 +343,7 @@ DATABASE_PASSWORD='a-strong-password'
 DATABASE_TLS_INSECURE=true
 DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_TLS_SSLMODE=disable
+DATABASE_TLS_MYSQL=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
@@ -378,6 +379,7 @@ docker compose up -d
 | `DATABASE_TLS_INSECURE` | いいえ | `true` (デフォルト) は TLS なしで接続し、`false` は TLS を有効にします |
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | いいえ | `true` は Collector のイメージが信頼しない証明書 (自己署名、プライベート CA) を受け入れます。デフォルトは `false` |
 | `DATABASE_TLS_SSLMODE` | いいえ | PostgreSQL: 上の二つの設定を libpq の `sslmode` で表したもので、設定ファイル自身の SQL チェックに使います。`DATABASE_TLS_INSECURE` が `true` の間は `disable`、`DATABASE_TLS_INSECURE_SKIP_VERIFY` が `true` のときは `require`、それ以外は `verify-full` です。`install.sh` が書き込みます。デフォルトは `disable` |
+| `DATABASE_TLS_MYSQL` | いいえ | MySQL と MariaDB: ドライバーの `tls` と同じ二つの設定を表したもので、設定ファイルが Galera を読み取る際に使います。`DATABASE_TLS_INSECURE` が `true` の間は `false`、`DATABASE_TLS_INSECURE_SKIP_VERIFY` が `true` のときは `skip-verify`、それ以外は `true` です。`install.sh` が決めるので、マニフェストでは自分で設定してください。デフォルトは `false` |
 | `DATABASE_COLLECTION_INTERVAL` | いいえ | エンジンの統計情報を読み取る間隔。デフォルトは `30s` |
 | `DATABASE_QUERY_EVENTS` | いいえ | `true` にすると、クエリサンプルとトップクエリをログとして送信します (PostgreSQL、MySQL、MongoDB、SQL Server、Oracle)。クエリのテキストを含みます。デフォルトは `false` |
 | `DATABASE_SERVER_ID` | いいえ | OneUptime がすでに表示しているデータベースの ID (その **ドキュメント** タブにあらかじめ入力されています)。データはそのデータベースに直接入り、報告するアドレスが何であっても (またはアドレスがなくても) そのページに表示されます。Kubernetes やプライベート IP ではこの方法を使います。取り込みキーが属するプロジェクトのデータベースである必要があります |
@@ -398,6 +400,8 @@ docker compose up -d
 PostgreSQL レシーバーの `postgresqlreceiver.preciselagmetrics` フィーチャーゲートはデフォルトで有効で、レプリケーションの時間遅延を `postgresql.wal.lag` ではなく `postgresql.wal.delay` として記録しますが、このメトリクスはアップストリームでは無効です。そのためエージェントはこれを有効にしています。各設定には、ほかの任意のメトリクスがコメントで列挙されています。どれも同じ方法で有効にできます。データベースの概要にある **エンジンのメトリクス** セクションには、この表のエンジンごとに厳選したセットが表示されます (Elasticsearch / OpenSearch ではクラスターのヘルス、ノード、未割り当てのシャード、保留中のタスク、JVM ヒープ、ディスクの空き容量、検索とインデックス作成。Memcached では接続、メモリ、アイテム、get のヒットとミス、コマンド、エビクション)。**メトリクス** タブにはすべてがあります。そこでは、概要に表示されるメトリクスは概要と同じ値 (系列は同じ方法で結合され、カウンターは毎秒のレート) を示し、その方法を説明するキャプション (_系列の合計_、_毎秒、全系列_) が付きます。それ以外の行は系列の平均を示し、属性でリストを絞り込んでいる間はすべての行が平均を示します。MariaDB は `mysql.buffer_pool.limit` を、レシーバーが宣言するバイト数ではなくバッファプールのページ数として報告するため、MariaDB のデータベースではその行とグラフはページ単位で読みます。MariaDB には `Innodb_rows_*` ステータスカウンターがないため、レシーバーは MariaDB について `mysql.row_operations` を送らず、MariaDB の概要には **行操作** グラフがありません。行の読み取りと書き込みは **ハンドラー操作** に表示されます。
 
 PostgreSQL の設定ファイルは、Collector の `sqlquery` レシーバーを使い、同じ間隔でサーバーに独自の 4 つの問い合わせも行います。稼働時間 (`postgresql.uptime`、`pg_postmaster_start_time()` から)、最も古いトランザクション ID の経過 (`postgresql.xid.oldest_age`、`pg_database` の中で最大の `age(datfrozenxid)`)、最も古い開いたままのトランザクションが開いている時間 (`postgresql.transaction.longest_duration`)、ロックを待っているセッションの数 (`postgresql.sessions.waiting_on_lock`) で、最後の 2 つは `pg_stat_activity` から読みます。`postgresql` レシーバーはこのどれも報告しませんが、再起動、開いたまま放置されたトランザクション、ロック待ちの列、そして迫りつつあるトランザクション ID の周回 (wraparound) を示すのはこれらです。PostgreSQL は経過が 21 億付近になると書き込みを受け付けなくなるため、10 億から確認が必要になり、15 億から重大になります。`pg_monitor` でこれらをまかなえます。このクエリは `DATABASE_TLS_SSLMODE` で接続し、空白を含むパスワードではログインできません (空白を `+` として送るため)。`install.sh` はこれを警告します。独自の Collector では、`configs/postgresql.yaml` の `sqlquery/oneuptime` レシーバーをその `metrics` パイプラインにコピーしてください。
+
+MySQL の設定ファイルは、`mysql` レシーバーが Galera クラスターについて何も報告しないため、同じ `sqlquery` レシーバーを同じ間隔で使って、サーバーが Galera クラスターのどこにいるかも読み取ります。クラスターのノード数(`mysql.wsrep.cluster_size`)、このノードの状態(`mysql.wsrep.local_state`、4 が Synced)、意図的に同期から外すよう求められた回数(`mysql.wsrep.desync_count`)、そのためにレプリケーションが一時停止した度合い(`mysql.wsrep.flow_control_paused`)、適用待ちの書き込みセットの数(`mysql.wsrep.local_recv_queue`)です。上記のログイン以外は何も必要ありません。`SHOW GLOBAL STATUS` を読むだけで、接続は `DATABASE_TLS_MYSQL` の指定どおりに行います。どのクラスターにも属さないサーバーはこれらを送らず、不調とは見なされません。**Galera Node Out of Sync** はこれらを読み取り、バックアップのために `wsrep_desync` で誰かが外したノードでは発火しません。
 
 データベースの **バージョン** は、レシーバーが報告する場合はレシーバーから取得します: `db.system.version` (MySQL / MariaDB、MongoDB)、`redis.version` (Redis、KeyDB)、`oracle.db.version` (Oracle)、`elasticsearch.node.version` (Elasticsearch / OpenSearch)。PostgreSQL、SQL Server、Memcached のレシーバーは報告しないため、エージェントだけの場合、これらのデータベースにはバージョンが表示されません。Kubernetes、Docker、Podman でも動いているデータベースは、コンテナーイメージのバージョンを表示します。
 
@@ -528,6 +532,8 @@ spec:
               value: "false"
             - name: DATABASE_TLS_SSLMODE
               value: "disable"
+            - name: DATABASE_TLS_MYSQL
+              value: "false"
             - name: DATABASE_COLLECTION_INTERVAL
               value: "30s"
             - name: DATABASE_QUERY_EVENTS
@@ -621,7 +627,7 @@ processors:
 | エンジン | 異常 | 機能低下 |
 | --- | --- | --- |
 | PostgreSQL | 接続数が `max_connections` の 95%、トランザクション ID が周回の限界に近い | 接続数が `max_connections` の 80%、トランザクション ID が周回に向けて古くなっている、リプレイで 30 秒遅れているレプリカ、WAL で 1 GB 遅れているレプリカ、再起動、一時間開いたままのトランザクション、ロックを待つセッション、500 GB 以上のデータベース |
-| MySQL / MariaDB | — | 136 接続、実行中の 50 スレッド、バッファプールの 75% がダーティ、30 秒遅れているレプリカ、再起動 |
+| MySQL / MariaDB | — | 136 接続、実行中の 50 スレッド、バッファプールの 75% がダーティ、30 秒遅れているレプリカ、再起動、誰も依頼していないのに同期が外れた Galera ノード |
 | SQL Server | — | 90% 未満のバッファキャッシュヒット率、300 秒未満のページの予測保持期間、ブロックされたセッション、メモリを待っているクエリ |
 | Oracle | 90% 使用済みの表領域 | — |
 | Redis / Valkey / KeyDB / Dragonfly | — | メモリが `maxmemory` の 90%、256 MB 使用時に 1.5 の断片化率、9,000 クライアント、再起動 |

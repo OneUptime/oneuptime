@@ -19,7 +19,7 @@
  * answers for a tag with whatever image it holds under that tag, and the
  * daemon takes that answer without asking Docker Hub. The e2e jobs of
  * test-release.yaml and release.yml pull OneUptime's own images from Docker
- * Hub under tags every master push or release pushes again
+ * Hub under tags every main push or release pushes again
  * (oneuptime/app:enterprise-<version>-test, ...): through a mirror holding an
  * older image under the same tag, they would test that older image and pass.
  *
@@ -76,6 +76,9 @@ const MIRRORED_JOBS = {
   // Pulls the release the Iron Bank project pins, by digest, then Grype,
   // Trivy, ClamAV and the datastores AppImageRuntime.test.js starts.
   "iron-bank.yml: preflight": "fetch_resources.sh",
+  // Pulls the releases all four projects pin, by digest, then the cluster's
+  // node image (iron-bank-install.sh).
+  "iron-bank.yml: install": "fetch_resources.sh",
 };
 
 /*

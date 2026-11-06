@@ -147,6 +147,7 @@ const PAGES: Array<string> = [
   "Pages/Cloud/View/MonitoredResourceOverview",
   "Pages/Cloud/View/Settings",
   "Pages/Cloud/View/Metrics",
+  "Pages/Cloud/View/Logs",
   "Pages/Cloud/View/Feed",
   "Pages/Cloud/View/Owners",
   "Pages/Cloud/View/Documentation",
@@ -339,7 +340,7 @@ describe("an environment at an address from before the split", () => {
     expect(landedOn()).toBe(`${APP_PLATFORMS}/${ROW_ID}/traces`);
   });
 
-  test("the row's kind is read once, and nothing else of it", async () => {
+  test("the row is read once in each view: its kind, and in Cloud's whether its menu has Logs", async () => {
     await visit(`${CLOUD}/${ROW_ID}/logs`);
 
     // Cloud's view reads it, forwards, and App Platforms' reads it again.
@@ -348,7 +349,15 @@ describe("an environment at an address from before the split", () => {
         return [request.modelType.name, request.id.toString(), request.select];
       }),
     ).toEqual([
-      ["CloudResource", ROW_ID, { cloudResourceKind: true }],
+      [
+        "CloudResource",
+        ROW_ID,
+        {
+          cloudResourceKind: true,
+          cloudProvider: true,
+          cloudResourceType: true,
+        },
+      ],
       ["CloudResource", ROW_ID, { cloudResourceKind: true }],
     ]);
   });
@@ -362,6 +371,8 @@ describe("a cloud resource", () => {
   test.each([
     ["", "Pages/Cloud/View/MonitoredResourceOverview"],
     ["/metrics", "Pages/Cloud/View/Metrics"],
+    // What a stream delivered from the resource's log group.
+    ["/logs", "Pages/Cloud/View/Logs"],
     ["/changes", "Pages/Cloud/View/Changes"],
     ["/settings", "Pages/Cloud/View/Settings"],
   ])("…/cloud/:id%s stays in Cloud", async (suffix: string, page: string) => {
@@ -379,6 +390,13 @@ describe("a cloud resource", () => {
     expect(pageName()).toBe("Pages/Cloud/View/Metrics");
   });
 
+  test("at an App Platforms Logs address, it lands on its own Logs in Cloud", async () => {
+    await visit(`${APP_PLATFORMS}/${ROW_ID}/logs?query=timeout`);
+
+    expect(landedOn()).toBe(`${CLOUD}/${ROW_ID}/logs?query=timeout`);
+    expect(pageName()).toBe("Pages/Cloud/View/Logs");
+  });
+
   test("at a tab only environments have, it lands on its Overview in Cloud", async () => {
     await visit(`${APP_PLATFORMS}/${ROW_ID}/instances`);
 
@@ -387,9 +405,9 @@ describe("a cloud resource", () => {
   });
 
   test("a tab Cloud's resources do not have is Page Not Found, under the resource's menu", async () => {
-    await visit(`${CLOUD}/${ROW_ID}/logs`);
+    await visit(`${CLOUD}/${ROW_ID}/traces`);
 
-    expect(landedOn()).toBe(`${CLOUD}/${ROW_ID}/logs`);
+    expect(landedOn()).toBe(`${CLOUD}/${ROW_ID}/traces`);
     expect(pageName()).toBe("Pages/PageNotFound/PageNotFound");
     expect(viewTitle()).toBe("Cloud Resource");
   });

@@ -2,7 +2,7 @@
 
 /**
  * The Compile workflow (.github/workflows/compile.yml) type-checks every
- * package on every pull request and every push to master.
+ * package on every pull request and every push to main.
  *
  * Its core packages compile in four jobs, not one job each - a job's fixed
  * cost (runner, checkout, Node, Common's install) was most of its run time.

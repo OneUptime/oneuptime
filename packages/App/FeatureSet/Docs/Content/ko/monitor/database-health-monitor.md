@@ -396,7 +396,7 @@ Database Health 모니터에서 표현식은 다음 변수에 접근할 수 있�
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
-표현식에서 메트릭 하나를 읽으려면 `metrics` 객체 전체에 인덱스로 접근하세요. 시리즈 이름에 점이 들어 있어 중괄호 안에 넣을 수 없습니다.
+표현식에서 메트릭 하나를 읽으려면 시리즈 이름을 점째로 중괄호 안에 쓰거나 `metrics` 객체 전체에 인덱스로 접근하세요. 둘 다 동작합니다.
 
 ```javascript
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90

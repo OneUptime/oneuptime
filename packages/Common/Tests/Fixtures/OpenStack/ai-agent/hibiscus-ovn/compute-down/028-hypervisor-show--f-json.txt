@@ -1,0 +1,20 @@
+$ openstack hypervisor show 758c3bf7-7336-465f-a997-618968d14595 -f json
+success: true
+exit code: 0
+
+[stdout]
+{
+  "id": "758c3bf7-7336-465f-a997-618968d14595",
+  "hypervisor_hostname": "compute-01.example.internal",
+  "state": "down",
+  "status": "enabled",
+  "hypervisor_type": "QEMU",
+  "hypervisor_version": 8002002,
+  "host_ip": "10.1.0.196",
+  "service": {
+    "id": "996eaedd-257d-4e81-adf9-aab7c387b172",
+    "host": "compute-01",
+    "disabled_reason": null
+  },
+  "uptime": " 05:29:36 up 12 min,  0 user,  load average: 2.28, 2.02, 1.19\n"
+}

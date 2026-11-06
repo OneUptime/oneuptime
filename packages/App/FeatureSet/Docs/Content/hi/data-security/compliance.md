@@ -57,9 +57,9 @@ flowchart TB
 
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
-| अनुच्छेद 5(1)(c) | डेटा न्यूनीकरण | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| अनुच्छेद 5(1)(c) | डेटा न्यूनीकरण | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | अनुच्छेद 5(1)(e) | भंडारण की सीमा | `stale-sensitive-data` |
-| अनुच्छेद 25 | डिज़ाइन से और डिफ़ॉल्ट रूप से डेटा संरक्षण | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| अनुच्छेद 25 | डिज़ाइन से और डिफ़ॉल्ट रूप से डेटा संरक्षण | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | अनुच्छेद 28 | प्रोसेसर | `sensitive-data-to-ai` |
 | अनुच्छेद 30 | प्रोसेसिंग गतिविधियों के रिकॉर्ड | खुद डेटा सुरक्षा से पूरी होती है |
 | अनुच्छेद 32 | प्रोसेसिंग की सुरक्षा | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
@@ -69,7 +69,7 @@ flowchart TB
 
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
-| 1798.100(c) | सिर्फ़ उतना संग्रह जितना ज़रूरी है | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| 1798.100(c) | सिर्फ़ उतना संग्रह जितना ज़रूरी है | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | 1798.150 | उचित सुरक्षा प्रक्रियाएं | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ flowchart TB
 | A.5.12 | जानकारी का वर्गीकरण | खुद डेटा सुरक्षा से पूरी होती है |
 | A.5.15 | एक्सेस नियंत्रण | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | एक्सेस अधिकार | `unused-access` |
-| A.5.34 | PII की गोपनीयता और संरक्षण | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| A.8.11 | डेटा मास्किंग | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.5.34 | PII की गोपनीयता और संरक्षण | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| A.8.11 | डेटा मास्किंग | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | डेटा लीकेज की रोकथाम | `secrets-stored`, `secrets-in-telemetry` |
 | A.8.13 | जानकारी का बैकअप | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | A.8.15 | लॉगिंग | `access-not-logged` |
@@ -136,7 +136,7 @@ flowchart TB
 
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
-| अनुच्छेद 6 | ज़रूरत और उद्देश्य की सीमा | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| अनुच्छेद 6 | ज़रूरत और उद्देश्य की सीमा | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | अनुच्छेद 33 | डेटा का अंतरराष्ट्रीय ट्रांसफ़र | `residency-violation` |
 | अनुच्छेद 46 | सुरक्षा उपाय | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
@@ -145,7 +145,7 @@ flowchart TB
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
 | धारा 8(5) | उचित सुरक्षा उपाय | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
-| धारा 8(7) | उद्देश्य पूरा होने पर मिटाना | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
+| धारा 8(7) | उद्देश्य पूरा होने पर मिटाना | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | धारा 16 | भारत के बाहर ट्रांसफ़र | `residency-violation` |
 
 ## प्रोसेसिंग का रिकॉर्ड

@@ -69,6 +69,11 @@ import useAiLaneSwitchStates, {
   AiLaneSwitchRead,
 } from "../AI/useAiLaneSwitchStates";
 import RemediationCodeFix from "./RemediationCodeFix";
+import RemediationTrackRecordLine from "./RemediationTrackRecordLine";
+import {
+  parseRemediationTrackRecord,
+  RemediationTrackRecord,
+} from "Common/Types/AutoRemediation/RemediationTrackRecord";
 import RemediationFixFact, {
   RemediationFixFactVisual,
 } from "./RemediationFixFact";
@@ -92,6 +97,7 @@ import {
   REMOVED_SSH_PLAN_NOTE,
 } from "./RemediationFixStepDetails";
 import {
+  REMEDIATION_FIX_DISMISS,
   REMEDIATION_FIX_FAILED_COUNT,
   REMEDIATION_FIX_HIDE_DETAILS,
   REMEDIATION_FIX_REVIEW_AND_APPROVE,
@@ -449,14 +455,18 @@ export function getActionErrorTitle(
   if (action === "dry-run") {
     return CLOUD_DRY_RUN_COPY.dryRunActionError;
   }
+  /*
+   * "fix", as Dismiss fix and every other line of the step say it - never
+   * "suggestion", the model's name for it.
+   */
   if (action === "dismiss") {
     if (isAlreadyStarted(statusAfterReload)) {
       return translationKey(
-        "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below",
+        "Could not save your action: the fix was not dismissed — it had already started; see its commands below",
       );
     }
     return translationKey(
-      "Could not save your action: the suggestion was not dismissed",
+      "Could not save your action: the fix was not dismissed",
     );
   }
   return translationKey("Could not save your action");
@@ -664,6 +674,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               // No rule: the project's own pick, named as it is (not "Rule: ...").
               autoRemediationRuleId: true,
               runbookNameSnapshot: true,
+              // How the proposed runbook went the last times it ran.
+              runbookTrackRecord: true,
               rationaleMarkdown: true,
               runbookId: true,
               runbookExecutionId: true,
@@ -686,6 +698,8 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 name: true,
                 email: true,
               },
+              // The card, Slack or Microsoft Teams: said beside who approved it.
+              approvedFrom: true,
               dismissedAt: true,
               dismissedByUser: {
                 _id: true,
@@ -1405,6 +1419,18 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         : "plan";
     const isActionErrorOnThisFix: boolean =
       Boolean(actionError) && failedSuggestionId === suggestionId;
+    /*
+     * How the runbook a fix waits to start went the last times OneUptime AI
+     * ran it for other incidents and alerts here: what the person approving
+     * it weighs, over Approve & Run, as a change of a plan says it under the
+     * change. Gone once it is decided, as a change's is once it ran.
+     */
+    const runbookTrackRecord: RemediationTrackRecord | undefined =
+      !isCommandPlan &&
+      !isMcpFix &&
+      status === AutoRemediationSuggestionStatus.Suggested
+        ? parseRemediationTrackRecord(suggestion.runbookTrackRecord)
+        : undefined;
 
     const renderStepDetails: (kind: RemediationFixStepKind) => ReactElement = (
       kind: RemediationFixStepKind,
@@ -1531,10 +1557,15 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               <></>
             )}
 
+            {/*
+              Its own words, never the shared Dismiss: that reads as Hide
+              in most languages, and declining a fix is not hiding it.
+            */}
             {isDismissShown ? (
               <Button
-                title="Dismiss"
+                title={REMEDIATION_FIX_DISMISS}
                 icon={IconProp.Close}
+                dataTestId="remediation-dismiss-button"
                 buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
                 buttonSize={ButtonSize.Small}
                 disabled={isBusy}
@@ -1616,6 +1647,17 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                 className="h-4 w-4 flex-shrink-0"
               />
             </button>
+          ) : (
+            <></>
+          )}
+
+          {runbookTrackRecord ? (
+            <div data-testid="remediation-runbook-track-record">
+              <RemediationTrackRecordLine
+                record={runbookTrackRecord}
+                className=""
+              />
+            </div>
           ) : (
             <></>
           )}

@@ -122,6 +122,7 @@ export const SECURITY_CONNECTION_KIND_NOUNS: Readonly<
   [SecurityConnectionKind.DockerHost]: "Docker host",
   [SecurityConnectionKind.PodmanHost]: "Podman host",
   [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
+  [SecurityConnectionKind.OpenStackCloud]: "OpenStack cloud",
   [SecurityConnectionKind.NetworkDevice]: "Network device",
   [SecurityConnectionKind.CloudResource]: "Cloud resource",
   [SecurityConnectionKind.ServerlessFunction]: "Serverless function",

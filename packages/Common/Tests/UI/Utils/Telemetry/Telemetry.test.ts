@@ -7,6 +7,9 @@ import URL from "../../../../Types/API/URL";
  * with its own Config mock. All OpenTelemetry packages are replaced with
  * recording fakes: nothing here should register a real global tracer, patch
  * fetch/XHR, or try to export spans over the network.
+ *
+ * `init` fetches the SDK with import() and these await it. What it loads and
+ * when, and the real SDK's spans, are in Tests/UI/Telemetry.
  */
 
 interface TelemetryConfig {
@@ -28,7 +31,7 @@ interface SpanProcessorLike {
 }
 
 interface TelemetryClass {
-  init: (data: { serviceName: string }) => void;
+  init: (data: { serviceName: string }) => Promise<void>;
   setGlobalAttributes: (attributes: {
     [key: string]: string | undefined;
   }) => void;
@@ -41,10 +44,9 @@ interface Recorded {
     resource: unknown;
     spanProcessors: Array<unknown>;
   }>;
-  registerCalls: Array<{ contextManager: unknown }>;
+  registerCalls: Array<{ contextManager?: unknown } | undefined>;
   resourceAttributes: Array<{ [key: string]: string }>;
   instrumentations: Array<{ instrumentations: Array<unknown> }>;
-  zoneContextManagers: number;
   fetchInstrumentations: number;
   xhrInstrumentations: number;
 }
@@ -75,7 +77,6 @@ const loadTelemetry: (config: TelemetryConfig) => {
     registerCalls: [],
     resourceAttributes: [],
     instrumentations: [],
-    zoneContextManagers: 0,
     fetchInstrumentations: 0,
     xhrInstrumentations: 0,
   };
@@ -91,17 +92,6 @@ const loadTelemetry: (config: TelemetryConfig) => {
           config.BrowserOpenTelemetryExporterOtlpEndpoint,
         BrowserOpenTelemetryExporterOtlpIngestionKey:
           config.BrowserOpenTelemetryExporterOtlpIngestionKey,
-      };
-    });
-
-    jest.doMock("@opentelemetry/context-zone", () => {
-      return {
-        ZoneContextManager: class {
-          public readonly kind: string = "zone";
-          public constructor() {
-            recorded.zoneContextManagers++;
-          }
-        },
       };
     });
 
@@ -182,7 +172,7 @@ const loadTelemetry: (config: TelemetryConfig) => {
             recorded.providerConfigs.push(providerConfig);
           }
 
-          public register(options: { contextManager: unknown }): void {
+          public register(options?: { contextManager?: unknown }): void {
             recorded.registerCalls.push(options);
           }
         },
@@ -190,8 +180,8 @@ const loadTelemetry: (config: TelemetryConfig) => {
     });
 
     /*
-     * requireActual loads Telemetry unmocked while its own imports resolve
-     * through the doMock'd fakes in this isolated registry.
+     * requireActual loads Telemetry unmocked while its own imports, and the
+     * SDK it import()s later, resolve through the doMock'd fakes.
      */
     Telemetry = (
       jest.requireActual("../../../../UI/Utils/Telemetry/Telemetry") as {
@@ -227,13 +217,13 @@ describe("UI Telemetry", () => {
   });
 
   describe("init gating", () => {
-    it("does nothing when telemetry is disabled, even if fully configured", () => {
+    it("does nothing when telemetry is disabled, even if fully configured", async () => {
       const { Telemetry, recorded } = loadTelemetry({
         ...ENABLED_CONFIG,
         DisableTelemetry: true,
       });
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       expect(recorded.exporterOptions).toHaveLength(0);
       expect(recorded.providerConfigs).toHaveLength(0);
@@ -241,26 +231,26 @@ describe("UI Telemetry", () => {
       expect(recorded.instrumentations).toHaveLength(0);
     });
 
-    it("does nothing when no endpoint is configured", () => {
+    it("does nothing when no endpoint is configured", async () => {
       const { Telemetry, recorded } = loadTelemetry({
         ...ENABLED_CONFIG,
         BrowserOpenTelemetryExporterOtlpEndpoint: null,
       });
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       expect(recorded.exporterOptions).toHaveLength(0);
       expect(recorded.providerConfigs).toHaveLength(0);
       expect(recorded.instrumentations).toHaveLength(0);
     });
 
-    it("does nothing when the browser ingestion key is missing", () => {
+    it("does nothing when the browser ingestion key is missing", async () => {
       const { Telemetry, recorded } = loadTelemetry({
         ...ENABLED_CONFIG,
         BrowserOpenTelemetryExporterOtlpIngestionKey: "",
       });
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       expect(recorded.exporterOptions).toHaveLength(0);
       expect(recorded.providerConfigs).toHaveLength(0);
@@ -269,10 +259,10 @@ describe("UI Telemetry", () => {
   });
 
   describe("init when enabled", () => {
-    it("exports to <endpoint>/v1/traces with the browser ingestion key header", () => {
+    it("exports to <endpoint>/v1/traces with the browser ingestion key header", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       expect(recorded.exporterOptions).toEqual([
         {
@@ -282,7 +272,7 @@ describe("UI Telemetry", () => {
       ]);
     });
 
-    it("builds the traces URL from an endpoint without a path", () => {
+    it("builds the traces URL from an endpoint without a path", async () => {
       const { Telemetry, recorded } = loadTelemetry({
         ...ENABLED_CONFIG,
         BrowserOpenTelemetryExporterOtlpEndpoint: URL.fromString(
@@ -290,17 +280,17 @@ describe("UI Telemetry", () => {
         ),
       });
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       expect(recorded.exporterOptions[0]!.url).toBe(
         "http://localhost:4318/v1/traces",
       );
     });
 
-    it("tags the resource with the given service name", () => {
+    it("tags the resource with the given service name", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
 
-      Telemetry.init({ serviceName: "status-page" });
+      await Telemetry.init({ serviceName: "status-page" });
 
       expect(recorded.resourceAttributes).toEqual([
         { [SERVICE_NAME_KEY]: "status-page" },
@@ -311,10 +301,10 @@ describe("UI Telemetry", () => {
       });
     });
 
-    it("wires a batch processor around the exporter followed by the global attribute processor", () => {
+    it("wires a batch processor around the exporter followed by the global attribute processor", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       const processors: Array<unknown> =
         recorded.providerConfigs[0]!.spanProcessors;
@@ -332,22 +322,18 @@ describe("UI Telemetry", () => {
       expect(typeof globalProcessor.shutdown).toBe("function");
     });
 
-    it("registers the provider with a Zone context manager", () => {
+    it("registers the provider with the SDK's default context manager", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
-      expect(recorded.registerCalls).toHaveLength(1);
-      expect(recorded.zoneContextManagers).toBe(1);
-      expect(
-        (recorded.registerCalls[0]!.contextManager as { kind: string }).kind,
-      ).toBe("zone");
+      expect(recorded.registerCalls).toEqual([undefined]);
     });
 
-    it("instruments fetch and XMLHttpRequest", () => {
+    it("instruments fetch and XMLHttpRequest", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
 
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       expect(recorded.instrumentations).toHaveLength(1);
       expect(
@@ -361,9 +347,9 @@ describe("UI Telemetry", () => {
   });
 
   describe("global RUM attributes", () => {
-    it("stamps nothing onto spans when no attributes have been set", () => {
+    it("stamps nothing onto spans when no attributes have been set", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       const span: FakeSpan = makeSpan();
       getGlobalAttributeProcessor(recorded).onStart(span);
@@ -371,11 +357,11 @@ describe("UI Telemetry", () => {
       expect(span.attributes).toEqual({});
     });
 
-    it("stamps attributes set BEFORE init onto every new span", () => {
+    it("stamps attributes set BEFORE init onto every new span", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
 
       Telemetry.setGlobalAttributes({ userId: "user-1", projectId: "proj-1" });
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       const processor: SpanProcessorLike =
         getGlobalAttributeProcessor(recorded);
@@ -394,9 +380,9 @@ describe("UI Telemetry", () => {
       });
     });
 
-    it("stamps attributes set AFTER init onto spans started afterwards", () => {
+    it("stamps attributes set AFTER init onto spans started afterwards", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
       const processor: SpanProcessorLike =
         getGlobalAttributeProcessor(recorded);
 
@@ -412,9 +398,9 @@ describe("UI Telemetry", () => {
       expect(after.attributes).toEqual({ userId: "user-2" });
     });
 
-    it("supports arbitrary extra keys", () => {
+    it("supports arbitrary extra keys", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       Telemetry.setGlobalAttributes({ statusPageId: "sp-1", tenant: "acme" });
 
@@ -424,9 +410,9 @@ describe("UI Telemetry", () => {
       expect(span.attributes).toEqual({ statusPageId: "sp-1", tenant: "acme" });
     });
 
-    it("ignores empty and undefined values", () => {
+    it("ignores empty and undefined values", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       Telemetry.setGlobalAttributes({
         userId: "",
@@ -440,9 +426,9 @@ describe("UI Telemetry", () => {
       expect(span.attributes).toEqual({ other: "kept" });
     });
 
-    it("merges successive calls and overwrites a key with a new non-empty value", () => {
+    it("merges successive calls and overwrites a key with a new non-empty value", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       Telemetry.setGlobalAttributes({ userId: "user-1", projectId: "proj-1" });
       Telemetry.setGlobalAttributes({ projectId: "proj-2" });
@@ -456,9 +442,9 @@ describe("UI Telemetry", () => {
       });
     });
 
-    it("cannot clear a previously set attribute: empty values keep the stale one", () => {
+    it("cannot clear a previously set attribute: empty values keep the stale one", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
 
       Telemetry.setGlobalAttributes({ userId: "user-1", projectId: "proj-1" });
       // e.g. logout / leaving a project
@@ -473,22 +459,23 @@ describe("UI Telemetry", () => {
       });
     });
 
-    it("accepts attributes without throwing when telemetry is disabled", () => {
+    it("accepts attributes without throwing when telemetry is disabled", async () => {
       const { Telemetry, recorded } = loadTelemetry({
         ...ENABLED_CONFIG,
         DisableTelemetry: true,
       });
 
-      expect(() => {
-        Telemetry.setGlobalAttributes({ userId: "user-1" });
-        Telemetry.init({ serviceName: "dashboard" });
-      }).not.toThrow();
+      Telemetry.setGlobalAttributes({ userId: "user-1" });
+
+      await expect(
+        Telemetry.init({ serviceName: "dashboard" }),
+      ).resolves.toBeUndefined();
       expect(recorded.providerConfigs).toHaveLength(0);
     });
 
     it("processor lifecycle hooks are inert and resolve immediately", async () => {
       const { Telemetry, recorded } = loadTelemetry(ENABLED_CONFIG);
-      Telemetry.init({ serviceName: "dashboard" });
+      await Telemetry.init({ serviceName: "dashboard" });
       const processor: SpanProcessorLike =
         getGlobalAttributeProcessor(recorded);
 

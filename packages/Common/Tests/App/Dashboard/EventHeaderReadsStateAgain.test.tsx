@@ -207,16 +207,8 @@ function respond(kind: HeaderKind): void {
     if (request.modelType === kind.timelineModel) {
       reads["timeline"] = (reads["timeline"] || 0) + 1;
 
-      /*
-       * A read that fails is an async function that throws, not
-       * Promise.reject: the header's imports load zone.js, whose patched
-       * Promise reports a rejected one as unhandled although the header
-       * catches it.
-       */
       if (isTimelineDown) {
-        return (async (): Promise<never> => {
-          throw new Error("Network Error");
-        })();
+        return Promise.reject(new Error("Network Error"));
       }
 
       return Promise.resolve(

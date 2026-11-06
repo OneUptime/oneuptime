@@ -29,13 +29,21 @@ import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperD
 
 export interface ComponentProps {
   modelId: ObjectID;
+  /*
+   * A kind of resource whose logs an AWS stream files under it - a
+   * function, a database (canCloudResourceHaveStreamedLogs): its menu has
+   * Logs, after Metrics.
+   */
+  hasStreamedLogs?: boolean | undefined;
 }
 
 /*
  * A cloud resource's menu in Cloud. Its metrics are what its provider's
- * monitoring publishes about it, so it has no logs, traces or instances of
- * its own; it has the Changes its account's activity log records. An
- * environment's menu is App Platforms' (Pages/AppPlatforms/View/SideMenu).
+ * monitoring publishes about it, so it has no traces or instances of its
+ * own; it has the Changes its account's activity log records, and - for a
+ * kind of resource a CloudWatch Logs group names - the logs a stream
+ * delivers. An environment's menu is App Platforms'
+ * (Pages/AppPlatforms/View/SideMenu).
  */
 const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -113,6 +121,20 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.ChartBar}
         />
+        {props.hasStreamedLogs ? (
+          <SideMenuItem
+            link={{
+              title: "Logs",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Terminal}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Feed",

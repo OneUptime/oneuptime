@@ -59,6 +59,12 @@ export default class MonitorWorkspaceMessages {
         projectId: projectId!,
       });
 
+    const mattermostBlocks: WorkspaceMessageBlock[] =
+      await SlackMonitorMessages.getMonitorCreateMessageBlocks({
+        monitorId: monitorId,
+        projectId: projectId!,
+      });
+
     return [
       {
         workspaceType: WorkspaceType.Slack,
@@ -67,6 +73,10 @@ export default class MonitorWorkspaceMessages {
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
         messageBlocks: microsoftTeamsBlocks,
+      },
+      {
+        workspaceType: WorkspaceType.Mattermost,
+        messageBlocks: mattermostBlocks,
       },
     ];
   }

@@ -62,6 +62,7 @@ O cartão **Seus logs**, no topo de **Conexões**, não precisa de instalação.
 | AWS CloudTrail | Logins no console, mudanças feitas nas suas contas da AWS e chamadas que a AWS recusou |
 | Logs de auditoria do Google Cloud | Mudanças feitas nos seus projetos do Google Cloud, chamadas que o Google recusou e logins do Google Workspace compartilhados com o Google Cloud |
 | Logs de atividade do Azure e do Entra ID | Mudanças feitas nas suas assinaturas do Azure, alertas do Defender for Cloud, e logins e mudanças de diretório do Microsoft Entra ID |
+| Trilha de auditoria do OpenStack | Logins que falharam, concessões e mudanças de papéis no Keystone, o que o filtro de auditoria viu de cada API, grupos de segurança abertos para o mundo e imagens tornadas públicas |
 | CEF | Ameaças, conexões bloqueadas e logins de firewalls, IDS, WAFs e outros produtos de segurança que enviam Common Event Format |
 | LEEF | O mesmo dos produtos que enviam Log Event Extended Format, como muitos fazem para o IBM QRadar |
 | Palo Alto Networks | Ameaças, conexões bloqueadas, logins do GlobalProtect e de administradores, e alterações de configuração do próprio syslog do PAN-OS |

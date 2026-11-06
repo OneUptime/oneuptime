@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
@@ -730,6 +731,93 @@ test.describe("the Hosts list", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoSidewaysScroll(page);
     await screenshot(page, "hosts-list-persian-phone");
+  });
+});
+
+test.describe("a host on OpenStack", () => {
+  const CLOUD: string = "71000000-0000-4000-8000-000000000009";
+  const INSTANCE: string = "2e1cfc3e-0001-4c2e-a4fc-c5cf0f2db585";
+  const HYPERVISOR: string = "RegionOne/compute-01.acme.example";
+
+  test("a guest says which instance it is, on which hypervisor, in which zone and whose", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openHost(page, HOST_IDS["db01"]!, "openstack=instance");
+
+    const card: Locator = page.getByTestId("host-openstack-placement");
+    await expect(card).toContainText("This host is an OpenStack instance");
+    const cloudPath: string = `/dashboard/${PROJECT_ID}/openstack/${CLOUD}`;
+    for (const [testId, words, href] of [
+      ["openstack-placement-cloud", "acme-prod", cloudPath],
+      [
+        "openstack-placement-instance",
+        "web-1",
+        `${cloudPath}/instances/${INSTANCE}`,
+      ],
+      [
+        "openstack-placement-hypervisor",
+        "compute-01.acme.example",
+        `${cloudPath}/hypervisors/${encodeURIComponent(HYPERVISOR)}`,
+      ],
+      ["openstack-placement-project", "acme-payments", cloudPath],
+      ["openstack-placement-zone", "az-1", cloudPath],
+    ] as Array<[string, string, string]>) {
+      const row: Locator = card.getByTestId(testId);
+      await expect(row).toContainText(words);
+      await expect(row.getByRole("link")).toHaveAttribute(
+        "href",
+        new RegExp(`^${escapeRegExp(href)}`),
+      );
+    }
+    await screenshot(page, "host-on-openstack");
+  });
+
+  test("the machine a hypervisor runs on says so, and is no instance of itself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openHost(page, HOST_IDS["db01"]!, "openstack=hypervisor");
+
+    const card: Locator = page.getByTestId("host-openstack-placement");
+    await expect(card).toContainText(
+      "This machine is one of an OpenStack cloud's hypervisors",
+    );
+    await expect(card.getByTestId("openstack-placement-instance")).toHaveCount(
+      0,
+    );
+    await expect(
+      card.getByTestId("openstack-placement-hypervisor"),
+    ).toContainText("compute-01.acme.example");
+  });
+
+  test("a host on no cloud says nothing of OpenStack at all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openHost(page, HOST_IDS["db01"]!);
+
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return (await recorded(page)).apiRequests.some(
+          (request: { url: string }): boolean => {
+            return request.url.includes("/placement-of-host/");
+          },
+        );
+      })
+      .toBe(true);
+    await expect(page.getByTestId("host-openstack-placement")).toHaveCount(0);
+    await expect(page.getByText("On OpenStack")).toHaveCount(0);
+  });
+
+  test("it fits a phone", async ({ page }: { page: Page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openHost(page, HOST_IDS["db01"]!, "openstack=instance");
+    await expect(page.getByTestId("host-openstack-placement")).toBeVisible();
+    await expectNoSidewaysScroll(page);
   });
 });
 

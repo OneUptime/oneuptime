@@ -1,0 +1,2 @@
+$ gnocchi status
+/home/runner/work/oneuptime/oneuptime/Tests/Ops/openstack-e2e/record.sh: line 501: gnocchi: command not found

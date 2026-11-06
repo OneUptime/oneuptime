@@ -3,6 +3,7 @@ import AlertLabelRule from "../Models/DatabaseModels/AlertLabelRule";
 import CephClusterLabelRule from "../Models/DatabaseModels/CephClusterLabelRule";
 import CloudResourceLabelRule from "../Models/DatabaseModels/CloudResourceLabelRule";
 import DashboardLabelRule from "../Models/DatabaseModels/DashboardLabelRule";
+import DataAssetLabelRule from "../Models/DatabaseModels/DataAssetLabelRule";
 import DataStoreLabelRule from "../Models/DatabaseModels/DataStoreLabelRule";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -23,6 +24,7 @@ import OnCallDutyPolicyLabelRule from "../Models/DatabaseModels/OnCallDutyPolicy
 import OnCallDutyPolicyScheduleLabelRule from "../Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
 import PodmanHostLabelRule from "../Models/DatabaseModels/PodmanHostLabelRule";
 import ProxmoxClusterLabelRule from "../Models/DatabaseModels/ProxmoxClusterLabelRule";
+import OpenStackCloudLabelRule from "../Models/DatabaseModels/OpenStackCloudLabelRule";
 import RumApplicationLabelRule from "../Models/DatabaseModels/RumApplicationLabelRule";
 import RunbookLabelRule from "../Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceLabelRule from "../Models/DatabaseModels/ScheduledMaintenanceLabelRule";
@@ -66,6 +68,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   CephClusterLabelRule,
   CloudResourceLabelRule,
   DashboardLabelRule,
+  DataAssetLabelRule,
   DataStoreLabelRule,
   DatabaseServerLabelRule,
   DockerHostLabelRule,
@@ -83,6 +86,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   OnCallDutyPolicyScheduleLabelRule,
   PodmanHostLabelRule,
   ProxmoxClusterLabelRule,
+  OpenStackCloudLabelRule,
   RumApplicationLabelRule,
   RunbookLabelRule,
   ScheduledMaintenanceLabelRule,
@@ -105,6 +109,7 @@ const RESOURCES_WITH_GENERIC_CRITERIA: ReadonlyArray<string> = [
   "CloudResource",
   "ServerlessFunction",
   "DataStore",
+  "DataAsset",
 ];
 
 /*

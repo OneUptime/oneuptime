@@ -103,7 +103,7 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 | `purefa_host_connectivity_info` | `status`，并带有 `details` | 一台主机 |
 | `purefa_drive_capacity_bytes` | `component_status`(值为驱动器的容量) | 一个驱动器 |
 
-过滤到某个不良状态的序列只在有对象处于该状态时才存在，因此没有序列就意味着健康。这就是为什么 **Max 大于 0 时触发、为 0 时恢复** 是适合它们的形式，模板也是这样构建的：它们的恢复条件把缺失的序列计为零。
+过滤到某个不良状态的序列只在有对象处于该状态时才存在，因此没有序列就意味着健康。这就是为什么 **Max 大于 0 时触发、为 0 时恢复** 是适合它们的形式，模板也是这样构建的：它们的恢复条件把缺失的序列计为零。当完全没有序列时，这类模板只有在同一时间窗口内收到 `purefa_info` 或 `purefb_info` 才会恢复，因此已停止上报的阵列不会关闭任何内容。
 
 在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
 

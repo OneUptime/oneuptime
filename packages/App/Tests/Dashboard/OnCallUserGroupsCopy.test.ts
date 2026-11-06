@@ -30,6 +30,7 @@ import {
   USER_GROUP_TIME_TEXT,
   USER_GROUPS_COPY,
   UserGroupStatusKind,
+  UserGroupWorkspaceType,
 } from "../../FeatureSet/Dashboard/src/Components/OnCallPolicy/UserGroups/UserGroupsCopy";
 
 /*
@@ -584,7 +585,9 @@ describe("in every language the Dashboard speaks", () => {
 
     const own: Array<string> = [
       ...Object.values(USER_GROUPS_COPY).flatMap(
-        (copy: (typeof USER_GROUPS_COPY)[WorkspaceType]): Array<string> => {
+        (
+          copy: (typeof USER_GROUPS_COPY)[UserGroupWorkspaceType],
+        ): Array<string> => {
           return [
             copy.title,
             copy.description,

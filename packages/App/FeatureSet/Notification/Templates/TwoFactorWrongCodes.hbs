@@ -4,7 +4,20 @@
 
 {{> EmailTitle title="Wrong two factor codes were entered for your account." }}
 
-{{> InfoBlock info=(concat "Someone entered the password of your " (brandNameHtml) " account, then entered wrong codes at the second step of signing in. To keep your account safe, each next code now waits before it is checked: one minute at first, then longer after each wrong code, up to an hour.")}}
+{{!--
+  What the last wrong code's sign-in began with
+  (AuthenticationEmail.sendTwoFactorWrongCodesEmail). It decides what the owner
+  should do: a new password shuts out whoever holds the old one, but somebody
+  reading the mailbox can ask for another link, so they are told to secure the
+  mailbox first.
+--}}
+{{#ifCond isMagicLinkSignIn "true"}}
+{{> InfoBlock info=(concat "Someone opened a sign-in link emailed to you for your " (brandNameHtml) " account, then entered wrong codes at the second step of signing in.")}}
+{{else}}
+{{> InfoBlock info=(concat "Someone entered the password of your " (brandNameHtml) " account, then entered wrong codes at the second step of signing in.")}}
+{{/ifCond}}
+
+{{> InfoBlock info="To keep your account safe, each next code now waits before it is checked: one minute at first, then longer after each wrong code, up to an hour."}}
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Wrong codes in a row:" plainText=wrongCodeCount }}
@@ -14,7 +27,11 @@
 
 {{> InfoBlock info="<strong>If this was you</strong>, check that your phone sets its clock automatically, then try again when the wait is over. A backup code or a security key also signs you in."}}
 
+{{#ifCond isMagicLinkSignIn "true"}}
+{{> InfoBlock info=(concat "<strong>If this was not you</strong>, someone can read your email. First, change your email account's password and remove any forwarding you did not set up: a new " (brandNameHtml) " password alone does not stop them asking for another link. Then reset your " (brandNameHtml) " password: any link already sent stops working, and the wait ends for you.")}}
+{{else}}
 {{> InfoBlock info="<strong>If this was not you</strong>, someone knows your password. Reset it now: the old password stops working, and the wait ends for you."}}
+{{/ifCond}}
 
 {{> ButtonBlock buttonText="Reset your password" buttonUrl=forgotPasswordUrl }}
 

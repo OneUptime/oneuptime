@@ -57,9 +57,9 @@ flowchart TB
 
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
-| Art. 5(1)(c) | کمینه‌سازی داده | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Art. 5(1)(c) | کمینه‌سازی داده | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Art. 5(1)(e) | محدودیت ذخیره‌سازی | `stale-sensitive-data` |
-| Art. 25 | حفاظت از داده در طراحی و به‌طور پیش‌فرض | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Art. 25 | حفاظت از داده در طراحی و به‌طور پیش‌فرض | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Art. 28 | پردازشگران | `sensitive-data-to-ai` |
 | Art. 30 | سوابق فعالیت‌های پردازش | با خود امنیت داده برآورده می‌شود |
 | Art. 32 | امنیت پردازش | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `encryption-in-transit-not-enforced`، `weak-tls`، `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable`، `access-not-logged`، `shared-key-access`، `object-acls-enabled`، `many-readers`، `unused-access`، `secrets-stored`، `plaintext-passwords`، `secrets-in-telemetry` |
@@ -69,7 +69,7 @@ flowchart TB
 
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
-| 1798.100(c) | گردآوری محدود به آنچه لازم است | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| 1798.100(c) | گردآوری محدود به آنچه لازم است | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | 1798.150 | رویه‌های امنیتی معقول | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
 
 ### HIPAA
@@ -114,8 +114,8 @@ flowchart TB
 | A.5.12 | طبقه‌بندی اطلاعات | با خود امنیت داده برآورده می‌شود |
 | A.5.15 | کنترل دسترسی | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
 | A.5.18 | حقوق دسترسی | `unused-access` |
-| A.5.34 | حریم خصوصی و حفاظت از PII | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
-| A.8.11 | پوشاندن داده | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| A.5.34 | حریم خصوصی و حفاظت از PII | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| A.8.11 | پوشاندن داده | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | A.8.12 | پیشگیری از نشت داده | `secrets-stored`، `secrets-in-telemetry` |
 | A.8.13 | پشتیبان‌گیری از اطلاعات | `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable` |
 | A.8.15 | ثبت لاگ | `access-not-logged` |
@@ -136,7 +136,7 @@ flowchart TB
 
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
-| Art. 6 | ضرورت و محدودیت هدف | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Art. 6 | ضرورت و محدودیت هدف | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Art. 33 | انتقال بین‌المللی داده | `residency-violation` |
 | Art. 46 | تدابیر امنیتی | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
 
@@ -145,7 +145,7 @@ flowchart TB
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
 | Sec. 8(5) | تدابیر حفاظتی امنیتی معقول | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
-| Sec. 8(7) | پاک کردن داده پس از برآورده شدن هدف | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
+| Sec. 8(7) | پاک کردن داده پس از برآورده شدن هدف | `production-data-in-non-production`، `stale-sensitive-data`, `new-personal-data-column`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Sec. 16 | انتقال به بیرون از هند | `residency-violation` |
 
 ## سوابق پردازش

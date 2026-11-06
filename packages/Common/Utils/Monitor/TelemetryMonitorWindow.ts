@@ -53,6 +53,8 @@ export default class TelemetryMonitorWindow {
         return this.fromRollingTime(step?.podmanMonitor?.rollingTime);
       case MonitorType.Proxmox:
         return this.fromRollingTime(step?.proxmoxMonitor?.rollingTime);
+      case MonitorType.OpenStack:
+        return this.fromRollingTime(step?.openstackMonitor?.rollingTime);
       case MonitorType.VMware:
         return this.fromRollingTime(step?.vmwareMonitor?.rollingTime);
       case MonitorType.DockerSwarm:

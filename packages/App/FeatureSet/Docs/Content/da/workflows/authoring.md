@@ -13,6 +13,8 @@ Klik på en skabelon for at se, hvad den gør: dens trigger, de blokke, den best
 
 Workflows oprettes slået fra, så deres trigger ikke starter dem, før du slår dem til. Et nyt workflow åbner i **Bygger**, lærredet hvor du designer det.
 
+Du kan også beskrive et workflow for Ask AI og lade det bygge det for dig. Det finder triggeren og trinnene, sætter dem op og forbinder dem og beder dig godkende workflowet, før det gemmes. Et nyt workflow starter slået fra: læs det i Builder, udfyld adgangskoder, tokens eller webhook-URL'er, det har ladet stå til dig, for Ask AI spørger aldrig om dem i samtalen, og slå det derefter selv til. Ask AI kan ændre et workflow på samme måde. På et workflows side betyder "dette workflow" netop det. Det gemmer som dig, så det kan kun gøre det, du kan gøre i Builder, og Builder viser ændringerne, så snart de er gemt.
+
 ## Lærredet
 
 Et workflow fra bunden åbner med en enkelt stiplet blok med teksten **Vælg, hvad der starter denne arbejdsgang**. Den blok er udgangspunktet — klik på den for at vælge en trigger. Et workflow, der er oprettet fra en skabelon, åbner med sine blokke allerede på plads.

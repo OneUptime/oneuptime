@@ -7,6 +7,7 @@ import PodmanHostService from "../../Services/PodmanHostService";
 import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
+import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
 import StorageArrayService from "../../Services/StorageArrayService";
@@ -21,6 +22,7 @@ import {
   keyForHost,
   keyForKubernetesCluster,
   keyForProxmoxCluster,
+  keyForOpenStackCloud,
   keyForStorageArray,
   keyForVMwareVCenter,
 } from "../../../Utils/Telemetry/EntityKey";
@@ -357,6 +359,11 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
       attributeKey: "resource.proxmox.cluster.name",
       entityKeyFor: keyForProxmoxCluster,
       findIdentifiers: findIdentifierColumn(ProxmoxClusterService, "name"),
+    },
+    openStackCloudId: {
+      attributeKey: "resource.openstack.cloud.name",
+      entityKeyFor: keyForOpenStackCloud,
+      findIdentifiers: findIdentifierColumn(OpenStackCloudService, "name"),
     },
     vmwareVCenterId: {
       attributeKey: "resource.vmware.vcenter.name",

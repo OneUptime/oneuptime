@@ -18,6 +18,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.MONITORS_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Monitor Settings
@@ -195,6 +197,11 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
   [PageMap.NETWORK_DEVICE_LINKS]: `device-links`,
+  /*
+   * Many devices' SNMP walk (issue #5548). A static segment, which React
+   * Router ranks above a device's dynamic id, as `discovery` is.
+   */
+  [PageMap.NETWORK_SNMP_WALK]: `snmp-walk`,
 };
 
 export const SloRoutePath: Dictionary<string> = {
@@ -332,6 +339,89 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.PROXMOX_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.PROXMOX_ARCHIVED]: `archived`,
+};
+
+export const OpenStackRoutePath: Dictionary<string> = {
+  [PageMap.OPENSTACK_CLOUD_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL]: `${RouteParams.ModelID}/services/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS]: `${RouteParams.ModelID}/hypervisors`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL]: `${RouteParams.ModelID}/hypervisors/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL]: `${RouteParams.ModelID}/instances/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORKS]: `${RouteParams.ModelID}/networks`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL]: `${RouteParams.ModelID}/networks/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS]: `${RouteParams.ModelID}/routers`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL]: `${RouteParams.ModelID}/routers/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS]: `${RouteParams.ModelID}/floating-ips`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES]: `${RouteParams.ModelID}/bare-metal`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL]: `${RouteParams.ModelID}/bare-metal/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL]: `${RouteParams.ModelID}/volumes/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOLS]: `${RouteParams.ModelID}/storage-pools`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL]: `${RouteParams.ModelID}/storage-pools/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES]: `${RouteParams.ModelID}/images`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS]: `${RouteParams.ModelID}/flavors`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL]: `${RouteParams.ModelID}/flavors/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES]: `${RouteParams.ModelID}/availability-zones`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL]: `${RouteParams.ModelID}/availability-zones/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES]: `${RouteParams.ModelID}/aggregates`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL]: `${RouteParams.ModelID}/aggregates/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS]: `${RouteParams.ModelID}/subnets`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL]: `${RouteParams.ModelID}/subnets/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL]: `${RouteParams.ModelID}/floating-ips/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS]: `${RouteParams.ModelID}/network-agents`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]: `${RouteParams.ModelID}/network-agents/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]: `${RouteParams.ModelID}/snapshots`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]: `${RouteParams.ModelID}/images/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS]: `${RouteParams.ModelID}/stacks`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]: `${RouteParams.ModelID}/stacks/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]: `${RouteParams.ModelID}/kubernetes-clusters`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: `${RouteParams.ModelID}/kubernetes-clusters/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARES]: `${RouteParams.ModelID}/shares`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]: `${RouteParams.ModelID}/shares/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS]: `${RouteParams.ModelID}/load-balancers`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL]: `${RouteParams.ModelID}/load-balancers/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL]: `${RouteParams.ModelID}/load-balancer-pools/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL]: `${RouteParams.ModelID}/amphorae/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES]: `${RouteParams.ModelID}/dns-zones`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL]: `${RouteParams.ModelID}/dns-zones/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS]: `${RouteParams.ModelID}/object-containers`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL]: `${RouteParams.ModelID}/object-containers/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]: `${RouteParams.ModelID}/databases`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL]: `${RouteParams.ModelID}/databases/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]: `${RouteParams.ModelID}/projects`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: `${RouteParams.ModelID}/domains`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY]: `${RouteParams.ModelID}/control-plane/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL]: `${RouteParams.ModelID}/projects/${RouteParams.SubModelID}`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]: `${RouteParams.ModelID}/capacity`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SPEND]: `${RouteParams.ModelID}/spend`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES]: `${RouteParams.ModelID}/status-pages`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: `${RouteParams.ModelID}/checks`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.OPENSTACK_DOCUMENTATION]: `documentation`,
+  [PageMap.OPENSTACK_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.OPENSTACK_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.OPENSTACK_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.OPENSTACK_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.OPENSTACK_ARCHIVED]: `archived`,
 };
 
 export const VMwareRoutePath: Dictionary<string> = {
@@ -591,6 +681,7 @@ export const AppPlatformsRoutePath: Dictionary<string> = {
 export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -887,6 +978,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   // AI, at the address Incidents' and Alerts' AI settings pages have.
   [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
@@ -961,6 +1054,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SERVICES]: `tables/${RouteParams.ModelID}/services`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_CHECKS]: `tables/${RouteParams.ModelID}/checks`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]: `tables/${RouteParams.ModelID}/lineage`,
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS]: `tables/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_SETTINGS]: `tables/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_DELETE]: `tables/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_OBSERVABILITY_STORES]: "stores",
@@ -974,6 +1068,12 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: "reconciliations",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS]: "settings",
+  [PageMap.DATA_OBSERVABILITY_STORAGE_PATHS]: "storage-paths",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: "bi-dashboards",
   [PageMap.DATA_OBSERVABILITY_SPEND]: "spend",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: `data-products/${RouteParams.ModelID}`,
@@ -1177,6 +1277,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   [PageMap.INCIDENT_CREATE]: "create",
 
@@ -1270,6 +1372,8 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.ALERTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Alert Episodes
@@ -1345,6 +1449,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS]:
     "workspace-connections",
   [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: "create",
@@ -1413,6 +1519,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: `telemetry-settings`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
+  [PageMap.SETTINGS_MATTERMOST_INTEGRATION]: "mattermost-integration",
   [PageMap.SETTINGS_VIDEO_CALLS]: "video-calls",
 
   [PageMap.SETTINGS_DOMAINS]: "domains",
@@ -1499,6 +1606,8 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST]:
+    "workspace-connection-mattermost",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Incoming Call Policy
@@ -1532,6 +1641,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]:
     "microsoft-teams-integration",
+  [PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION]: "mattermost-integration",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS]: "on-call-logs",
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
@@ -1596,6 +1706,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST]
     }`,
   ),
 
@@ -1825,6 +1941,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTION_MATTERMOST]
     }`,
   ),
 
@@ -2201,6 +2323,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_MATTERMOST]
     }`,
   ),
 
@@ -2706,6 +2834,15 @@ const RouteMap: Dictionary<Route> = {
         ScheduledMaintenanceEventsRoutePath[
           PageMap
             .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+        ]
+      }`,
+    ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]:
+    new Route(
+      `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+        ScheduledMaintenanceEventsRoutePath[
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
         ]
       }`,
     ),
@@ -3755,6 +3892,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_SNMP_WALK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_SNMP_WALK]
+    }`,
+  ),
+
   // Network Sites
 
   [PageMap.NETWORK_SITE_ROOT]: new Route(
@@ -4494,6 +4637,492 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // OpenStack
+
+  [PageMap.OPENSTACK_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/*`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_TOPOLOGY]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SERVICES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SERVICE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISORS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_HYPERVISOR_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_INSTANCE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_NETWORKS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_ROUTERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_ROUTER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IPS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_VOLUMES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_VOLUMES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_VOLUME_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOLS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STORAGE_POOL_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_IMAGES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_IMAGES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FLAVORS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FLAVOR_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AVAILABILITY_ZONE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AGGREGATE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SUBNETS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SUBNET_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FLOATING_IP_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_NETWORK_AGENT_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SNAPSHOTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_IMAGE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STACKS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STACK_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTAINER_CLUSTER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SHARES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SHARE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOAD_BALANCER_POOL_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AMPHORA_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DATABASE_INSTANCE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DNS_ZONE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_OBJECT_CONTAINER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DOMAINS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CONTROL_PLANE_DEPENDENCY]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_PROJECTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_PROJECT_DETAIL]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+  [PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CAPACITY]
+    }`,
+  ),
+  [PageMap.OPENSTACK_CLOUD_VIEW_SPEND]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SPEND]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_STATUS_PAGES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_TRACES]
+    }`,
+  ),
+  [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_ARCHIVED]
+    }`,
+  ),
   // VMware
 
   [PageMap.VMWARE_ROOT]: new Route(
@@ -5922,6 +6551,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_LOGS]
+    }`,
+  ),
+
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_FEED]
@@ -6993,6 +7628,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MATTERMOST]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]
@@ -7519,6 +8160,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[
+        PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MATTERMOST
+      ]
+    }`,
+  ),
+
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]
@@ -7863,6 +8512,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_OWNERS]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE]
@@ -7948,6 +8603,50 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_RECONCILIATIONS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORAGE_PATHS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORAGE_PATHS]
     }`,
   ),
 
@@ -8236,6 +8935,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION]
     }`,
   ),
 
@@ -8546,6 +9251,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_MATTERMOST_INTEGRATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_MATTERMOST_INTEGRATION]
     }`,
   ),
 

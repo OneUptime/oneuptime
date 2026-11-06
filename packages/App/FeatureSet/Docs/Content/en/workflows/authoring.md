@@ -13,6 +13,8 @@ Click a template to see what it does: its trigger, the blocks it is made of, and
 
 Workflows are created switched off, so their trigger doesn't start them until you turn them on. A new workflow opens in the **Builder**, the canvas where you design it.
 
+You can also describe a workflow to Ask AI and let it build one for you. It finds the trigger and the steps, sets them up and connects them, and asks you to approve the workflow before it is saved. A new workflow starts turned off: read it in the Builder, fill in any password, token or webhook URL it left for you, because Ask AI never asks for those in the conversation, and then turn it on yourself. Ask AI can change a workflow the same way. Asked from a workflow's page, "this workflow" means that one. It saves as you, so it can only do what you can do in the Builder, and the Builder shows its changes as soon as they are saved.
+
 ## The canvas
 
 A workflow from scratch opens with a single dashed block reading **Choose what starts this workflow**. That block is the starting point — click it to pick a trigger. A workflow created from a template opens with its blocks already in place.

@@ -1,0 +1,2 @@
+The same about a minute later, with the traffic still flowing.
+Nothing changed but the traffic, so what stats_* says here minus what it says in baseline is a rate over about a minute.

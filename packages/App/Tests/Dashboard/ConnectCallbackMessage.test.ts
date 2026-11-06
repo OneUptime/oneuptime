@@ -130,6 +130,7 @@ describe("what a code reads as", () => {
     expect(titles).toEqual([
       "Slack was not connected",
       "Microsoft Teams was not connected",
+      "Mattermost was not connected",
       "GitHub was not connected",
       "Zoom was not connected",
       "Google Meet was not connected",
@@ -148,6 +149,7 @@ describe("what a code reads as", () => {
     ).toEqual([
       "You do not have permission to connect this project to Slack.",
       "You do not have permission to connect this project to Microsoft Teams.",
+      "You do not have permission to connect this project to Mattermost.",
       "You do not have permission to add code repositories to this project.",
       // Zoom, Google Meet and Microsoft Teams meetings share one question.
       "You do not have permission to connect video call providers in this project.",
@@ -492,6 +494,12 @@ describe("the pages the callbacks send the browser to are the Dashboard's", () =
           PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
         [ConnectStartPage.UserSettings]:
           PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
+      },
+      [ConnectProvider.Mattermost]: {
+        [ConnectStartPage.ProjectSettings]:
+          PageMap.SETTINGS_MATTERMOST_INTEGRATION,
+        [ConnectStartPage.UserSettings]:
+          PageMap.USER_SETTINGS_MATTERMOST_INTEGRATION,
       },
       [ConnectProvider.GitHub]: {
         [ConnectStartPage.ProjectSettings]: PageMap.CODE,

@@ -93,17 +93,17 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]:
     "a Home tab: Scheduled Maintenance > Ongoing Events is offered",
   [PageMap.MONITORS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.ALERTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]:
-    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+    "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.INCIDENT_EPISODE_CREATE]:
     "an episode is created from Incidents > All Episodes, which is offered",
   [PageMap.ALERT_EPISODE_CREATE]:

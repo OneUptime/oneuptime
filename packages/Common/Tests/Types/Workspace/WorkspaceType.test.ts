@@ -24,6 +24,21 @@ describe("getWorkspaceTypeDisplayName", () => {
     expect(getWorkspaceTypeDisplayName(WorkspaceType.Slack)).toBe("Slack");
   });
 
+  test("renders Mattermost as-is", () => {
+    expect(getWorkspaceTypeDisplayName(WorkspaceType.Mattermost)).toBe(
+      "Mattermost",
+    );
+  });
+
+  test("Mattermost is stored as its own value", () => {
+    expect(WorkspaceType.Mattermost).toBe("Mattermost");
+    expect(Object.values(WorkspaceType)).toEqual([
+      "Slack",
+      "MicrosoftTeams",
+      "Mattermost",
+    ]);
+  });
+
   test("every workspace type yields a non-empty display name", () => {
     for (const type of Object.values(WorkspaceType)) {
       const label: string = getWorkspaceTypeDisplayName(type);

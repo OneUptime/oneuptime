@@ -166,6 +166,11 @@ export default class MonitorTemplateSyncFieldUtil {
         "clusterIdentifier",
         "Proxmox cluster",
       ],
+      [MonitorType.OpenStack]: [
+        "openstackMonitor",
+        "cloudIdentifier",
+        "OpenStack cloud",
+      ],
       [MonitorType.DockerSwarm]: [
         "dockerSwarmMonitor",
         "clusterIdentifier",

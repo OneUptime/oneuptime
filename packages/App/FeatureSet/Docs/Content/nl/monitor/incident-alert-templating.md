@@ -433,7 +433,7 @@ Een netwerkapparaat wordt bij elke poll gepingd en alleen via SNMP doorlopen als
 | `collectionIssueSummary` | Eén regel over elke niet-beschikbare groep, klaar voor een titel. Leeg als alles werd verzameld. | `string` |
 | `metrics` | De verzamelde waarden, op reeksnaam. | `Object` |
 
-De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.connections.used.percent`, en een pad leest elke punt als een stap in een object, dus een template kan geen enkele waarde uit `metrics` halen. Zet `{{metrics}}` in zijn geheel, als JSON, of gebruik `{{collectionIssueSummary}}`. Een metriek die niet werd verzameld ontbreekt in `metrics`; ze is geen nul. Om op één waarde te handelen, vergelijk je haar in het criterium met een [JavaScript-expressie](/docs/monitor/javascript-expression).
+De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.connections.used.percent`, en een template kan er toch een uitpikken: schrijf de hele naam na `metrics.`, zoals in `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Zet `{{metrics}}` in zijn geheel, als JSON, of gebruik `{{collectionIssueSummary}}`. Een metriek die niet werd verzameld ontbreekt in `metrics`; ze is geen nul. Om op één waarde te handelen, vergelijk je haar in het criterium met een [JavaScript-expressie](/docs/monitor/javascript-expression).
 
 ### Monitoren van externe statuspagina's
 
@@ -452,7 +452,7 @@ De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.co
 
 ### Metriek- en infrastructuurmonitoren
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-, Ceph-, Storage Array- en IoT Device-monitoren hebben één eigen variabele:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- en IoT Device-monitoren hebben één eigen variabele:
 
 | Variabele | Wat ze bevat | Type |
 | --- | --- | --- |

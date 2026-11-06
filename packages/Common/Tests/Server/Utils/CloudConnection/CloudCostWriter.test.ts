@@ -383,6 +383,60 @@ describe("an account's summary from what is stored", () => {
     ]);
   });
 
+  test("the days of its last two weeks that cost far more than usual, by service and in all, in its currency only", () => {
+    const points: Array<CloudCostSeriesPoint> = [];
+
+    // Three weeks of $100 of EC2 and $20 of S3 a day, through today.
+    for (let day: number = 1; day <= 20; day++) {
+      const text: string = `2026-11-${String(day).padStart(2, "0")}`;
+      points.push(point({ day: text, amount: 100 }));
+      points.push(point({ day: text, service: "Amazon S3", amount: 20 }));
+    }
+
+    // Yesterday, S3 in two Regions came to three times its usual day.
+    points.push(
+      point({
+        day: "2026-11-19",
+        service: "Amazon S3",
+        region: "eu-west-1",
+        amount: 40,
+      }),
+    );
+    // Today's, late and in part, is never judged.
+    points.push(point({ day: "2026-11-20", amount: 900 }));
+    // Nor a stray row in another currency.
+    points.push(
+      point({
+        day: "2026-11-18",
+        service: "AWS Glue",
+        currency: "EUR",
+        amount: 1,
+      }),
+    );
+
+    const summary: CloudAccountCostSummary = CloudCostWriter.summarizePoints({
+      points,
+      cloudAccountIds: [ACCOUNT_ROW.toString()],
+      now: NOW,
+    }).get(ACCOUNT_ROW.toString())!;
+
+    expect(summary.latestDay).toBe("2026-11-20");
+    expect(summary.anomalies).toEqual([
+      { day: "2026-11-19", service: "Amazon S3", amount: 60, usual: 20 },
+    ]);
+
+    // An account with nothing unusual keeps none.
+    expect(
+      CloudCostWriter.summarizePoints({
+        points: points.filter((entry: CloudCostSeriesPoint): boolean => {
+          return entry.region !== "eu-west-1";
+        }),
+        cloudAccountIds: [ACCOUNT_ROW.toString()],
+        now: NOW,
+      }).get(ACCOUNT_ROW.toString())!.anomalies,
+    ).toBeUndefined();
+  });
+
   test("the window a summary needs: last month and the 30 days back, through today", () => {
     expect(CloudCostWriter.getSummaryWindow(NOW)).toEqual({
       start: new Date("2026-10-01T00:00:00.000Z"),

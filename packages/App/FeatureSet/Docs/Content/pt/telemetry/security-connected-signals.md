@@ -1,6 +1,6 @@
 # Sinais conectados
 
-Um caso de segurança diz a quais usuários, hosts e endereços se refere. Sinais conectados diz quais deles o OneUptime já conhece - os seus hosts, hosts de contêineres, clusters do Kubernetes, dispositivos de rede, recursos de nuvem, funções serverless, serviços, os monitores que os verificam e membros - e o que acontecia em cada um em torno do caso: os seus registros, traços e métricas, os incidentes e alertas abertos nele, os monitores que o vigiam e o que mudou nele. Ele também os procura nos seus próprios registros e traços: o endereço de um atacante no registro de acesso de um servidor web, um e-mail vazado no erro de uma aplicação. No sentido inverso, a página de um host, de um cluster, de um recurso de nuvem, de um serviço, de um monitor ou de um membro diz o que o Security Events encontrou sobre ele.
+Um caso de segurança diz a quais usuários, hosts e endereços se refere. Sinais conectados diz quais deles o OneUptime já conhece - os seus hosts, hosts de contêineres, clusters do Kubernetes, nuvens OpenStack, dispositivos de rede, recursos de nuvem, funções serverless, serviços, os monitores que os verificam e membros - e o que acontecia em cada um em torno do caso: os seus registros, traços e métricas, os incidentes e alertas abertos nele, os monitores que o vigiam e o que mudou nele. Ele também os procura nos seus próprios registros e traços: o endereço de um atacante no registro de acesso de um servidor web, um e-mail vazado no erro de uma aplicação. No sentido inverso, a página de um host, de um cluster, de um recurso de nuvem, de um serviço, de um monitor ou de um membro diz o que o Security Events encontrou sobre ele.
 
 :::cards
 - [Onde você vê](#onde-você-vê): A página de um caso, a aba de um evento, a página de uma entidade e as páginas do que eles nomeiam.
@@ -32,7 +32,7 @@ O OneUptime procura cada valor entre os itens do projeto, diz o quão certa é c
 - **Sinais conectados**, uma página de cada caso de segurança: abra um caso em **Produtos → Eventos de segurança → Casos de segurança → Casos abertos** e depois **Sinais conectados** após **Entidades** no menu dele.
 - **Conectado**, uma aba de cada evento de segurança: abra um evento em **Produtos → Eventos de segurança → Eventos**. Ela lista o que o evento nomeia, na hora em torno dele.
 - A página de uma entidade, em **Produtos → Eventos de segurança → Risco de entidades**: onde o OneUptime conhece o usuário, o host ou o endereço, em torno do seu último evento de segurança.
-- Um cartão **Segurança** na página de cada host, host do Docker, host do Podman, cluster do Kubernetes, dispositivo de rede, recurso de nuvem, função serverless, serviço, monitor, membro e item de inventário: os casos de segurança abertos que o nomeiam, quantos eventos de segurança e descobertas o nomearam nos últimos 7 dias, o mais grave deles e o seu risco. **Abrir em Security Events** o abre lá. O cartão de um monitor trata dos hosts e endereços que ele verifica.
+- Um cartão **Segurança** na página de cada host, host do Docker, host do Podman, cluster do Kubernetes, nuvem OpenStack, dispositivo de rede, recurso de nuvem, função serverless, serviço, monitor, membro e item de inventário: os casos de segurança abertos que o nomeiam, quantos eventos de segurança e descobertas o nomearam nos últimos 7 dias, o mais grave deles e o seu risco. **Abrir em Security Events** o abre lá. O cartão de um monitor trata dos hosts e endereços que ele verifica.
 - Um cartão **Segurança** na página de um incidente, quando um caso de segurança declarou o incidente (**Declarado a partir de**) ou casos abertos nomeiam um host ou cluster que ele afeta (**Casos abertos que nomeiam o que ele afeta**).
 
 ## Como um valor é correspondido
@@ -41,7 +41,7 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 
 | O que o caso ou o evento nomeia | Correspondido a | Certeza |
 | --- | --- | --- |
-| Um nome de host ou de domínio igual ao nome que um host, um host de contêineres, um cluster ou um dispositivo de rede informa, ou um nome em que um recurso de nuvem responde | Esse item | Exata |
+| Um nome de host ou de domínio igual ao nome que um host, um host de contêineres, um cluster, uma nuvem OpenStack ou um dispositivo de rede informa, ou um nome em que um recurso de nuvem responde | Esse item | Exata |
 | O mesmo nome, dado sem dizer que é um host | Esse item | Possível |
 | Uma forma curta ou completa do nome de um item, como `web-1` e `web-1.acme.internal` | Esse item | Possível |
 | Um endereço IP público que só um host ou dispositivo de rede tem, ou em que só um recurso de nuvem responde | Esse item | Exata |
@@ -50,7 +50,7 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 | Um host, um endereço IP público ou o host de uma URL que um monitor verifica | Esse monitor | Exata |
 | Um endereço IP privado que um monitor verifica | Esse monitor | Possível |
 | O e-mail de um membro | Esse membro | Exata |
-| O item sob o qual uma linha de registro foi enviada, para os eventos lidos dos seus registros | Esse host, cluster, recurso de nuvem, função serverless ou serviço | Exata |
+| O item sob o qual uma linha de registro foi enviada, para os eventos lidos dos seus registros | Esse host, cluster, nuvem OpenStack, recurso de nuvem, função serverless ou serviço | Exata |
 | Um simples nome de usuário, um hash de arquivo ou um processo | Nada: nenhum item é identificado por eles | - |
 
 - Uma possível correspondência mostra **Possível correspondência** ao lado do nome e diz por quê. Ela nunca é contada na página do item, e um incidente que o caso declara nunca é vinculado a ela.
@@ -94,7 +94,7 @@ Abaixo dos itens, Sinais conectados procura nos seus registros e traços, no mes
 
 ## Incidentes que um caso declara
 
-**Declarar incidente** num caso, ou a etapa de um playbook que declara um, vincula o incidente aos hosts, hosts do Docker e do Podman, clusters do Kubernetes, dispositivos de rede, recursos de nuvem e serviços aos quais o caso está conectado de forma exata. A etapa de um playbook que aciona o plantão vincula da mesma forma o alerta que abre; cada alerta e incidente que uma regra de detecção ou uma correspondência de inteligência de ameaças abre é vinculado ao que a correspondência nomeia de forma exata, e cada um que o Data Security abre, ao armazenamento de dados a que se refere. O incidente aparece nas páginas deles e as regras dos seus proprietários se aplicam a ele, e o seu feed nomeia o caso e aquilo a que foi vinculado. Uma possível correspondência nunca é vinculada, nem um monitor: um incidente num monitor pode mudar o seu status e aparecer nas suas páginas de status.
+**Declarar incidente** num caso, ou a etapa de um playbook que declara um, vincula o incidente aos hosts, hosts do Docker e do Podman, clusters do Kubernetes, nuvens OpenStack, dispositivos de rede, recursos de nuvem e serviços aos quais o caso está conectado de forma exata. A etapa de um playbook que aciona o plantão vincula da mesma forma o alerta que abre; cada alerta e incidente que uma regra de detecção ou uma correspondência de inteligência de ameaças abre é vinculado ao que a correspondência nomeia de forma exata, e cada um que o Data Security abre, ao armazenamento de dados a que se refere. O incidente aparece nas páginas deles e as regras dos seus proprietários se aplicam a ele, e o seu feed nomeia o caso e aquilo a que foi vinculado. Uma possível correspondência nunca é vinculada, nem um monitor: um incidente num monitor pode mudar o seu status e aparecer nas suas páginas de status.
 
 ## OneUptime AI
 
