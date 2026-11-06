@@ -14,6 +14,7 @@ import {
   MAX_POSTURE_LIST_ENTRIES,
   MAX_POSTURE_STRING_LENGTH,
   RESOURCE_AI_AGENT_API_KEY_ENVS,
+  RESOURCE_AI_AGENT_KEY_ENV,
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
@@ -97,7 +98,11 @@ export type IdentityDetails = Record<string, string | number | null>;
 export interface AgentConfig {
   // Base URL of OneUptime, without a trailing slash.
   oneuptimeUrl: string;
-  // The first non-empty of RESOURCE_AI_AGENT_API_KEY_ENVS: the ingestion key.
+  /*
+   * The first non-empty of RESOURCE_AI_AGENT_API_KEY_ENVS: the ingestion key
+   * the collector uses, or a Cloud AI agent's own key (its setup command
+   * sets RESOURCE_AI_AGENT_KEY_ENV).
+   */
   apiKey: string;
   // Which variable the key came from (never the key), or null.
   apiKeySource: string | null;
@@ -837,7 +842,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
 
   if (!apiKey) {
     problems.push(
-      `None of ${RESOURCE_AI_AGENT_API_KEY_ENVS.join(", ")} is set. Set one of them ${WHERE_TO_SET} to the telemetry ingestion key the collector uses.`,
+      `None of ${RESOURCE_AI_AGENT_API_KEY_ENVS.join(", ")} is set. Set one of them ${WHERE_TO_SET} to the telemetry ingestion key the collector uses (a Cloud AI agent's setup command sets ${RESOURCE_AI_AGENT_KEY_ENV} to its account's own key).`,
     );
   }
 

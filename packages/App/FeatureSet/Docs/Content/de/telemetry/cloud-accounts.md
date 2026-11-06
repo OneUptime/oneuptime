@@ -296,6 +296,8 @@ OneUptime AI liest beim Untersuchen jedes verbundene Konto, mit dem oben beschri
 
 Der Dialog stellt eine einzige Frage, **Wie weit darf die KI gehen?**: **Mich zuerst fragen**, die Voreinstellung, bei der OneUptime AI jede Korrektur vorschlägt und eine Person sie mit einem Klick genehmigt, oder **Sichere Korrekturen selbstständig anwenden**, bei der sichere Änderungen selbstständig laufen und riskantere weiterhin auf eine Genehmigung warten. Alles andere hat unter **Weitere Felder** eine sichere Voreinstellung. Dann zeigt er einen einzigen Befehl, geschrieben für dieses Konto: Führen Sie ihn in AWS CloudShell, Azure Cloud Shell oder Google Cloud Shell aus, angemeldet als jemand, der Rollen im Konto erstellen darf. Der Befehl erstellt eine Rolle, die nur die eingeschalteten Änderungen vornehmen darf, und startet damit den Cloud-KI-Agenten in Ihrem Konto. Der Agent verbindet sich innerhalb weniger Minuten von selbst, und der Dialog meldet es: Es gibt nichts zurückzukopieren.
 
+Der Befehl enthält einen Schlüssel, der nur für den Agenten dieses Kontos erstellt wurde und einen Tag lang gilt, bis sich der Agent damit verbindet: Öffnen Sie den Dialog erneut, um einen neuen zu erhalten. Nur wer den Agenten zurücksetzen und das Konto bearbeiten darf, erhält einen.
+
 Der Agent läuft den ganzen Monat in Ihrem Konto und wird von Ihrer Cloud zu deren Listenpreisen abgerechnet. In Google Cloud läuft er auf einer eigenen kleinen VM, in einem Netzwerk, das nichts hereinlässt; für ein Projekt, dessen Organisation keiner VM eine externe IP-Adresse erlaubt, wählen Sie unter **Weitere Felder** bei **Wo der Agent läuft** die Option **Cloud Run**:
 
 | Cloud | Was läuft | Etwa |

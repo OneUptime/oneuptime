@@ -296,6 +296,8 @@ OneUptime AI leest elk gekoppeld account tijdens het onderzoeken, met de alleen-
 
 Het dialoogvenster stelt één vraag, **Hoe ver mag AI gaan?**: **Eerst aan mij vragen**, de standaard, waarbij OneUptime AI elke fix voorstelt en iemand die met één klik goedkeurt, of **Veilige problemen zelf oplossen**, waarbij veilige wijzigingen vanzelf worden uitgevoerd en riskantere nog steeds op goedkeuring wachten. Al het andere heeft een veilige standaard onder **Meer velden**. Daarna toont het één opdracht, geschreven voor dit account: voer die uit in AWS CloudShell, Azure Cloud Shell of Google Cloud Shell, aangemeld als iemand die rollen in het account mag aanmaken. De opdracht maakt een rol aan die alleen de ingeschakelde wijzigingen mag doorvoeren, en start daarmee de Cloud-AI-agent in je account. De agent maakt binnen een paar minuten zelf verbinding, en het dialoogvenster meldt dat: je hoeft niets terug te plakken.
 
+De opdracht bevat een sleutel die alleen voor de agent van dit account is gemaakt en een dag lang werkt totdat de agent ermee verbinding maakt: open het venster opnieuw voor een nieuwe. Alleen wie de agent mag resetten en het account mag bewerken, krijgt er een.
+
 De agent draait de hele maand in je account, door je cloud gefactureerd tegen de lijstprijzen ervan. In Google Cloud draait hij op een eigen kleine VM, in een netwerk dat niets binnenlaat; kies voor een project waarvan de organisatie geen enkele VM een extern IP-adres toestaat **Cloud Run** bij **Waar de agent draait**, onder **Meer velden**:
 
 | Cloud | Wat er draait | Ongeveer |

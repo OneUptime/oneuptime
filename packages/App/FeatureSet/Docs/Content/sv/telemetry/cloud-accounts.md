@@ -296,6 +296,8 @@ OneUptime AI läser varje anslutet konto medan den utreder, med den skrivskyddad
 
 Dialogrutan ställer en fråga, **Hur långt får AI gå?**: **Fråga mig först**, standardvalet, där OneUptime AI föreslår varje åtgärd och en människa godkänner den med ett klick, eller **Åtgärda problem på egen hand när det är säkert**, där säkra ändringar körs av sig själva och mer riskfyllda fortfarande väntar på godkännande. Allt annat har ett säkert standardvärde under **Fler fält**. Sedan visar den ett kommando, skrivet för det här kontot: kör det i AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell, inloggad som någon som får skapa roller i kontot. Kommandot skapar en roll som bara får göra de påslagna ändringarna och startar Moln-AI-agenten med den i ditt konto. Agenten ansluter av sig själv inom några minuter, och dialogrutan säger det: det finns inget att klistra in tillbaka.
 
+Kommandot innehåller en nyckel som bara har skapats för det här kontots agent och som fungerar i ett dygn tills agenten ansluter med den: Öppna dialogrutan igen för att få en ny. Bara den som får återställa agenten och redigera kontot får en.
+
 Agenten körs hela månaden i ditt konto och faktureras av ditt moln till dess listpriser. I Google Cloud körs den på en egen liten VM, i ett nätverk som inte släpper in något; för ett projekt vars organisation inte tillåter någon VM en extern IP-adress väljer du **Cloud Run** under **Var agenten körs** i **Fler fält**:
 
 | Moln | Vad som körs | Ungefär |

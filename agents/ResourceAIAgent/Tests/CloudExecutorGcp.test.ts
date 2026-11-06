@@ -199,6 +199,8 @@ describe("Google Cloud: whoami", () => {
       "Cloud: Google Cloud",
       `Project: ${P} (number ${GCP_PROJECT_NUMBER})`,
       `Signed in as: ${IDENTITY}`,
+      // An agent set up before the write account (CloudExecutorGcpWriteAccount.test.ts).
+      "Write service account: none (ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT is not set): changes use the agent's own service account, with whatever it allows",
       "Changes: allowed (ONEUPTIME_AI_ALLOW_WRITES=true)",
       "Enabled changes: start-instance, scale-out, scale-in, reboot-instance, roll-back-service, set-concurrency, fail-over-database, stop-instance (every change of the catalog: ONEUPTIME_AI_CLOUD_OPERATIONS is not set)",
       "Required tag: none (ONEUPTIME_AI_CLOUD_REQUIRED_TAG is not set)",
@@ -969,9 +971,12 @@ describe("Google Cloud: identity and posture", () => {
         `//run.googleapis.com/projects/${P}/locations/*/services/oneuptime-ai-agent`,
         `//compute.googleapis.com/projects/${P}/zones/*/instances/oneuptime-ai-agent`,
         `//iam.googleapis.com/projects/${P}/serviceAccounts/oneuptime-ai-agent@*`,
+        // The account its changes run as, which the setup command makes.
+        `//iam.googleapis.com/projects/${P}/serviceAccounts/oneuptime-ai-agent-write@*`,
         `//run.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/*/services/oneuptime-ai-agent`,
         `//compute.googleapis.com/projects/${GCP_PROJECT_NUMBER}/zones/*/instances/oneuptime-ai-agent`,
         `//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/serviceAccounts/oneuptime-ai-agent@*`,
+        `//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/serviceAccounts/oneuptime-ai-agent-write@*`,
         `//run.googleapis.com/projects/${P}/locations/us-central1/services/oneuptime-ai-agent-eu`,
         `//run.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/us-central1/services/oneuptime-ai-agent-eu`,
       ],

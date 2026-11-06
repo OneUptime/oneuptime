@@ -296,6 +296,8 @@ OneUptime AI reads every connected account while it investigates, with the read-
 
 The dialog asks one question, **How far may AI go?**: **Ask me first**, the default, where OneUptime AI proposes each fix and a person approves it with one click, or **Fix safe problems on its own**, where safe changes run on their own and riskier ones still wait for approval. Everything else has a safe default under **More fields**. It then shows one command, written for this account: run it in AWS CloudShell, Azure Cloud Shell or Google Cloud Shell, signed in as someone who may create roles in the account. The command creates a role that may make only the changes turned on, and starts the Cloud AI agent with it in your account. The agent connects on its own within a few minutes, and the dialog says so: there is nothing to paste back.
 
+The command holds a key made for this account's agent alone, which works for a day until the agent connects with it: open the dialog again for a new one. Only someone who may reset the agent and edit the account gets one.
+
 The agent runs all month in your account, billed by your cloud at its list prices. On Google Cloud it runs on a small VM of its own, in a network that lets nothing in; for a project whose organization lets no VM have an external IP address, choose **Cloud Run** in **Where the agent runs**, under **More fields**:
 
 | Cloud | What runs | About |

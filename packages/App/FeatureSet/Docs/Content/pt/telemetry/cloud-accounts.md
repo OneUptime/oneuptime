@@ -296,6 +296,8 @@ O OneUptime AI lê toda conta conectada enquanto investiga, com o acesso somente
 
 A caixa de diálogo faz uma única pergunta, **Até onde a IA pode ir?**: **Perguntar antes**, o padrão, em que o OneUptime AI propõe cada correção e uma pessoa a aprova com um clique, ou **Corrigir problemas seguros por conta própria**, em que as alterações seguras são executadas sozinhas e as mais arriscadas continuam aguardando aprovação. Todo o resto tem um padrão seguro em **Mais campos**. Depois ela mostra um comando, escrito para esta conta: execute-o no AWS CloudShell, no Azure Cloud Shell ou no Google Cloud Shell, conectado como alguém que pode criar funções na conta. O comando cria uma função que só pode fazer as alterações ativadas e inicia com ela o agente de IA de nuvem na sua conta. O agente se conecta sozinho em poucos minutos, e a caixa de diálogo avisa: não há nada para colar de volta.
 
+O comando contém uma chave criada só para o agente desta conta, que vale por um dia até o agente se conectar com ela: abra a caixa de diálogo de novo para obter uma nova. Só quem pode redefinir o agente e editar a conta recebe uma.
+
 O agente roda o mês inteiro na sua conta, cobrado pela sua nuvem aos preços de tabela dela. No Google Cloud, ele roda em uma pequena VM própria, em uma rede que não deixa nada entrar; para um projeto cuja organização não permite endereço IP externo em nenhuma VM, escolha **Cloud Run** em **Onde o agente é executado**, em **Mais campos**:
 
 | Nuvem | O que roda | Cerca de |

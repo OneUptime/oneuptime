@@ -21,6 +21,7 @@ import {
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   RESOURCE_AI_AGENT_API_KEY_ENVS,
   RESOURCE_AI_AGENT_IMAGE_REPOSITORY,
+  RESOURCE_AI_AGENT_KEY_ENV,
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
   isTransientResourceAiAgentRegistrationRefusal,
@@ -29,10 +30,12 @@ import {
 /*
  * The agent's identity with OneUptime, and how it gets one.
  *
- * The agent registers with the collector's ingestion key, its resource type
- * and the resource's identity (the one the collector reports); the server
- * answers with an agent id and a key that authenticate every later call,
- * and the OneUptime resource it resolved. Registration is retried FOREVER —
+ * The agent registers with the collector's ingestion key - a Cloud AI
+ * agent with its cloud account's own key instead, which registers that
+ * account's agent and nothing else - its resource type and the resource's
+ * identity (the one the collector reports); the server answers with an
+ * agent id and a key that authenticate every later call, and the OneUptime
+ * resource it resolved. Registration is retried FOREVER —
  * a server that is restarting, an older server without this API, a refusal
  * an operator has to fix — because the agent has nothing else to do, and
  * exiting would only turn a readable log line into a restart loop.
@@ -201,6 +204,27 @@ function describeRefusal(
 
   if (reason === "agent_cap_reached") {
     return `OneUptime refused the registration: ${serverMessage}`;
+  }
+
+  /*
+   * A Cloud AI agent set up before its account's own key, once the account
+   * has one: the ingestion key no longer connects it. The server says the
+   * way out (run the setup command again, which carries the key).
+   */
+  if (reason === "agent_key_required") {
+    return `OneUptime refused the project's telemetry ingestion key for this Cloud AI agent: ${serverMessage}`;
+  }
+
+  /*
+   * A Cloud AI agent's own key that no longer connects it: replaced by a
+   * newer one, revoked by Reset agent, or its account was removed. The
+   * server says which way out there is; nothing about an ingestion key.
+   */
+  if (
+    (response.status === 401 || response.status === 403) &&
+    context.apiKeySource === RESOURCE_AI_AGENT_KEY_ENV
+  ) {
+    return `OneUptime refused the agent's key (${RESOURCE_AI_AGENT_KEY_ENV}): ${serverMessage}`;
   }
 
   if (response.status === 401 || response.status === 403) {
