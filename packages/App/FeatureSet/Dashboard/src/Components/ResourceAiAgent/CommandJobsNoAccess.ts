@@ -28,7 +28,7 @@ export function getCommandJobsNoAccessState(
       permissions: PermissionGate.getReadPermissionsOfItsKind(new RunnerJob()),
     }),
     translate: (text: string): string => {
-      return translator.translateText(text);
+      return translator.translateText(text) || text;
     },
   });
 }
