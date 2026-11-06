@@ -11,7 +11,7 @@ The script is **read-only** — it only runs `SELECT` queries and
 ## Run it
 
 ```console
-curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/diagnose.sh
+curl -sLO https://raw.githubusercontent.com/OneUptime/oneuptime/main/HelmChart/Public/diagnose.sh
 chmod +x diagnose.sh
 
 # Auto-detects namespace and helm release name

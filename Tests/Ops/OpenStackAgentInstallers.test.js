@@ -2984,7 +2984,7 @@ describe("install.sh, as the upgrade", () => {
 describe("where its files come from", () => {
   const SERVED = `${URL}/install/${INSTALL_NAME}`;
   const GITHUB =
-    "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/OpenStackAgent";
+    "https://raw.githubusercontent.com/OneUptime/oneuptime/main/agents/OpenStackAgent";
 
   function downloads(dir) {
     return readIfExists(path.join(dir, "curl.log"))

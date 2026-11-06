@@ -676,7 +676,7 @@ describe("install-traces.sh with Docker", () => {
     expect(run.status).toBe(0);
     expect(run.output).toContain("Downloading them from GitHub");
     expect(machine.log("curl").join("\n")).toContain(
-      "raw.githubusercontent.com/OneUptime/oneuptime/master/agents/OpenStackAgent",
+      "raw.githubusercontent.com/OneUptime/oneuptime/main/agents/OpenStackAgent",
     );
   });
 });
