@@ -18,7 +18,6 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectReferencesService from "./ProjectReferencesService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
-import ProductBrandingText from "../Utils/ProductBrandingText";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import { PROJECT_TWILIO_CONFIG_SELECT } from "../Utils/TwilioConfigSelect";
 import ProjectService, { CurrentPlan } from "./ProjectService";
@@ -79,7 +78,6 @@ import {
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StatusPageSubscriberResources from "../Utils/StatusPage/StatusPageSubscriberResources";
 import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
 import {
@@ -4591,136 +4589,6 @@ export class Service extends ProjectReferencesService<Model> {
     logger.debug(statusPagesToNotify, {} as LogAttributes);
 
     return statusPagesToNotify;
-  }
-
-  @CaptureSpan()
-  public async testSubscriberWebhook(data: {
-    webhookUrl: string;
-    statusPageId: ObjectID;
-  }): Promise<void> {
-    // basic validation - must be a valid URL
-    let parsedUrl: URL;
-    try {
-      parsedUrl = URL.fromString(data.webhookUrl);
-    } catch {
-      throw new BadDataException("Invalid Webhook URL");
-    }
-
-    // get the status page info
-    const statusPage: StatusPage | null = await StatusPageService.findOneById({
-      id: data.statusPageId,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        name: true,
-        pageTitle: true,
-        projectId: true,
-        _id: true,
-      },
-    });
-
-    if (!statusPage) {
-      throw new BadDataException("Status page not found");
-    }
-
-    const statusPageName: string =
-      statusPage.pageTitle || statusPage.name || "Status Page";
-    const statusPageURL: string = await StatusPageService.getStatusPageURL(
-      statusPage.id!,
-    );
-
-    try {
-      await StatusPageSubscriberWebhookUtil.sendWebhookNotification({
-        webhookUrl: parsedUrl,
-        payload: {
-          eventType: "TestNotification",
-          statusPageId: statusPage.id!.toString(),
-          statusPageName: statusPageName,
-          statusPageUrl: statusPageURL,
-          unsubscribeUrl: "",
-          data: {
-            message: `This is a test notification from ${ProductBrandingText.getProductName()}. Your webhook is configured correctly.`,
-          },
-        },
-      });
-    } catch (error) {
-      logger.error("Error sending test webhook notification:", {
-        projectId: statusPage?.projectId?.toString(),
-      } as LogAttributes);
-      logger.error(error, {
-        projectId: statusPage?.projectId?.toString(),
-      } as LogAttributes);
-      throw error;
-    }
-  }
-
-  @CaptureSpan()
-  public async testSlackWebhook(data: {
-    webhookUrl: string;
-    statusPageId: ObjectID;
-  }): Promise<void> {
-    // Validate the webhook URL
-    if (!data.webhookUrl.startsWith("https://hooks.slack.com/services/")) {
-      throw new BadDataException("Invalid Slack webhook URL");
-    }
-
-    // Get status page info
-    const statusPage: StatusPage | null = await StatusPageService.findOneById({
-      id: data.statusPageId,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        name: true,
-        pageTitle: true,
-        projectId: true,
-        _id: true,
-      },
-    });
-
-    if (!statusPage) {
-      throw new BadDataException("Status page not found");
-    }
-
-    // Create test notification message
-    const statusPageName: string =
-      statusPage.pageTitle || statusPage.name || "Status Page";
-    const statusPageURL: string = await StatusPageService.getStatusPageURL(
-      statusPage.id!,
-    );
-
-    // Create markdown message for Slack: the page's name as text.
-    const markdownMessage: string =
-      mdText`## Test Notification - ${statusPageName}
-
-**This is a test notification from OneUptime.**
-
-You have successfully configured Slack notifications for this status page.
-
-You will receive real-time notifications for:
-- Incidents
-- Scheduled Maintenance Events
-- Status Updates
-- Announcements
-
-[View Status Page](${statusPageURL})`.toString();
-
-    // Send the test notification
-    try {
-      await SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(data.webhookUrl),
-        text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
-      });
-    } catch (error) {
-      logger.error("Error sending test Slack notification:", {
-        projectId: statusPage?.projectId?.toString(),
-      } as LogAttributes);
-      logger.error(error, {
-        projectId: statusPage?.projectId?.toString(),
-      } as LogAttributes);
-      throw error;
-    }
   }
 }
 
