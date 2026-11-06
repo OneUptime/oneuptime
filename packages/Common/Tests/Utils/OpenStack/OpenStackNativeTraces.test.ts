@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import {
   OpenStackTraceRecording,
   RecordedSpan,
@@ -172,12 +173,16 @@ describe("a span of oslo.middleware's", () => {
   test("a long hostile URL costs a read of it and no more", () => {
     const url: string = `http://${"a".repeat(200000)}/${"b/".repeat(200000)}?${"c=".repeat(200000)}`;
     const attributes: JSONObject = { "http.method": "GET", "http.url": url };
-    const before: number = Date.now();
-
-    read({ attributes });
 
     // Deterministic work, measured only to catch something quadratic: 400000 segments.
-    expect(Date.now() - before).toBeLessThan(5000);
+    const reading: FastestRun<OpenStackDriverSpan> = fastestRun({
+      run: (): OpenStackDriverSpan => {
+        return read({ attributes });
+      },
+      limitInMs: 5000,
+    });
+
+    expect(reading.inMs).toBeLessThan(5000);
   });
 });
 
