@@ -24,6 +24,7 @@ import {
   getChangeTitleForReader,
   getCloudChangeTitleSentence,
   readCloudChangeTitleFacts,
+  readCloudHealthTitleFacts,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
@@ -97,19 +98,26 @@ export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
 /*
  * What changed, in the reader's language: an operation the activity log
  * recorded worded from its operation, resource and outcome; a health
- * event, or any other change, by its own title.
+ * event with its frame and state worded, the provider's event as written;
+ * any other change by its own title.
  */
 export function getCloudChangeTitleText(
   change: ChangeEvent,
   translator: Translator,
 ): string {
+  const stored: {
+    title: string | undefined;
+    attributes: JSONObject | undefined;
+  } = {
+    title: change.title,
+    attributes: change.attributes as JSONObject | undefined,
+  };
+
   return getChangeTitleForReader({
     title: change.title,
     eventType: change.eventType,
-    facts: readCloudChangeTitleFacts({
-      title: change.title,
-      attributes: change.attributes as JSONObject | undefined,
-    }),
+    facts: readCloudChangeTitleFacts(stored),
+    health: readCloudHealthTitleFacts(stored),
     translator,
     options: { setsValuesApart: true },
   });
@@ -181,8 +189,7 @@ export const CloudChangeTitle: FunctionComponent<{
 
 function readAttribute(change: ChangeEvent, key: string): string {
   const attributes: JSONObject | undefined = change.attributes as
-    | JSONObject
-    | undefined;
+    JSONObject | undefined;
   const value: unknown = attributes ? attributes[key] : undefined;
 
   return typeof value === "string" ? value.trim() : "";

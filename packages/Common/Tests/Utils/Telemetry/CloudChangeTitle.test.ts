@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import Dictionary from "../../../Types/Dictionary";
 import {
   createTranslator,
@@ -12,11 +14,17 @@ import {
 } from "../../../Utils/Telemetry/ChangeEventFields";
 import {
   CLOUD_CHANGE_TITLE_SENTENCES,
+  CLOUD_HEALTH_STATE_WORDS,
+  CLOUD_HEALTH_TITLE_SENTENCES,
   CloudChangeTitleFacts,
+  CloudHealthSource,
+  CloudHealthTitleFacts,
   getChangeTitleForReader,
   getCloudChangeTitle,
+  getCloudHealthTitle,
   readCloudChangeTitleFacts,
   readCloudChangeTitleFactsJson,
+  readCloudHealthTitleFacts,
   readResourceFromCloudChangeTitle,
 } from "../../../Utils/Telemetry/CloudChangeTitle";
 import {
@@ -482,5 +490,221 @@ describe("in every language", () => {
     expect(getCloudChangeTitle(facts, untranslated)).toBe(
       "Failed: DeleteLoadBalancer on web-alb",
     );
+  });
+});
+
+/*
+ * A cloud's health event is stored with the English title its connector
+ * writes. Pages word its frame and the state the provider reports in the
+ * reader's language; the event is the provider's words, drawn as written.
+ */
+describe("a health event's title", () => {
+  function health(title: string): {
+    title: string;
+    attributes: Dictionary<string>;
+  } {
+    return {
+      title,
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.CloudHealth,
+        [ChangeEventAttribute.CloudOperation]: "AWS_EC2_OPERATIONAL_ISSUE",
+      },
+    };
+  }
+
+  function factsOf(title: string): CloudHealthTitleFacts {
+    const facts: CloudHealthTitleFacts | null = readCloudHealthTitleFacts(
+      health(title),
+    );
+
+    expect(facts).not.toBeNull();
+    return facts!;
+  }
+
+  test.each([
+    "AWS Health: EC2 operational issue (open)",
+    "AWS Health: EC2 operational issue (closed)",
+    "AWS Health: RDS maintenance scheduled (upcoming)",
+    "AWS Health: EC2 operational issue",
+    "Azure Service Health: Network connectivity issues in West Europe (Active)",
+    "Azure Service Health: Network connectivity issues in West Europe (Resolved)",
+    "Azure Service Health: an event",
+    "Azure Resource Health: Available → Unavailable",
+    "Azure Resource Health: Unavailable",
+    "Azure Resource Health: The virtual machine is starting",
+    "Google Cloud Service Health: Cloud SQL latency in us-central1 (active)",
+    "Google Cloud Service Health: Cloud SQL latency in us-central1 (closed)",
+  ])(
+    "reads back as its connector stored it, in English: %s",
+    (title: string) => {
+      expect(getCloudHealthTitle(factsOf(title))).toBe(title);
+    },
+  );
+
+  test("the event is the provider's words, and the state the one it reports", () => {
+    expect(factsOf("AWS Health: EC2 operational issue (open)")).toEqual({
+      source: CloudHealthSource.Aws,
+      event: "EC2 operational issue",
+      status: "open",
+    });
+    expect(factsOf("Azure Resource Health: Degraded → Available")).toEqual({
+      source: CloudHealthSource.AzureResource,
+      event: "Available",
+      status: "Degraded",
+    });
+  });
+
+  test("a state no provider reports stays in the event, as written, so nothing is cut wrongly", () => {
+    expect(factsOf("AWS Health: EC2 issue (investigating)")).toEqual({
+      source: CloudHealthSource.Aws,
+      event: "EC2 issue (investigating)",
+      status: "",
+    });
+    // AWS's state, written in an Azure Service Health title: not Azure's own.
+    expect(factsOf("Azure Service Health: Outage (open)").status).toBe("");
+    // An arrow between words that are no states is the title's own.
+    expect(factsOf("Azure Resource Health: Restart → Stop requested")).toEqual({
+      source: CloudHealthSource.AzureResource,
+      event: "Restart → Stop requested",
+      status: "",
+    });
+  });
+
+  test("a cloud change, any other change, or a health title of another shape has no health facts", () => {
+    expect(
+      readCloudHealthTitleFacts({
+        title: "AWS Health: EC2 operational issue (open)",
+        attributes: cloudAttributes(),
+      }),
+    ).toBeNull();
+    expect(
+      readCloudHealthTitleFacts({
+        title: "AWS Health: EC2 operational issue (open)",
+        attributes: {},
+      }),
+    ).toBeNull();
+    expect(
+      readCloudHealthTitleFacts(health("Scheduled maintenance of EC2")),
+    ).toBeNull();
+    expect(readCloudHealthTitleFacts(health("AWS Health: "))).toBeNull();
+    expect(readCloudHealthTitleFacts(health(""))).toBeNull();
+  });
+
+  test("each connector still starts its titles the way they are read", () => {
+    const read: (file: string) => string = (file: string): string => {
+      return fs.readFileSync(
+        path.join(__dirname, "../../../Server/Utils/CloudConnection", file),
+        "utf8",
+      );
+    };
+
+    expect(read("Aws/AwsChanges.ts")).toContain("title: `AWS Health: ${");
+    expect(read("Azure/AzureChanges.ts")).toContain(
+      "title: `Azure Service Health: ${",
+    );
+    expect(read("Azure/AzureChanges.ts")).toContain(
+      "title: `Azure Resource Health: ${",
+    );
+    expect(read("Azure/AzureChanges.ts")).toContain("→ ");
+    expect(read("Gcp/GcpChanges.ts")).toContain(
+      "title: `Google Cloud Service Health: ${",
+    );
+  });
+
+  test("German, Japanese and Persian say the frame and the state in their words, the event as written", () => {
+    expect(
+      getCloudHealthTitle(
+        factsOf("AWS Health: EC2 operational issue (open)"),
+        dashboardTranslator("de"),
+      ),
+    ).toBe("AWS Health: EC2 operational issue (offen)");
+    expect(
+      getCloudHealthTitle(
+        factsOf("Azure Resource Health: Available → Unavailable"),
+        dashboardTranslator("de"),
+      ),
+    ).toBe("Azure Resource Health: Verfügbar → Nicht verfügbar");
+    expect(
+      getCloudHealthTitle(
+        factsOf("AWS Health: RDS maintenance scheduled (upcoming)"),
+        dashboardTranslator("ja"),
+      ),
+    ).toBe("AWS Health: RDS maintenance scheduled (予定)");
+    expect(
+      withoutIsolateMarks(
+        getCloudHealthTitle(
+          factsOf("Google Cloud Service Health: Cloud SQL latency (closed)"),
+          dashboardTranslator("fa"),
+        ),
+      ),
+    ).toBe("Google Cloud Service Health: Cloud SQL latency (بسته‌شده)");
+  });
+
+  test("a Persian title drawn on a page sets its own state apart in the Latin frame", () => {
+    expect(
+      getCloudHealthTitle(
+        factsOf("AWS Health: EC2 operational issue (open)"),
+        dashboardTranslator("fa"),
+        { setsValuesApart: true },
+      ),
+    ).toBe(`AWS Health: EC2 operational issue (${isolated("باز")})`);
+  });
+
+  test("every language has each frame with its values, and its own word for each state", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const sentences of Object.values(CLOUD_HEALTH_TITLE_SENTENCES)) {
+        for (const sentence of [sentences.event, sentences.eventWithStatus]) {
+          expect({
+            language,
+            sentence,
+            values: getTemplatePlaceholders(words[sentence] || "").sort(),
+          }).toEqual({
+            language,
+            sentence,
+            values: getTemplatePlaceholders(sentence).sort(),
+          });
+        }
+      }
+
+      for (const states of Object.values(CLOUD_HEALTH_STATE_WORDS)) {
+        for (const word of Object.values(states)) {
+          expect({ language, word, worded: Boolean(words[word]) }).toEqual({
+            language,
+            word,
+            worded: true,
+          });
+
+          // A word new for these titles is each language's own (Dutch rightly writes open as open).
+          if (language !== "en" && ["closed", "upcoming"].includes(word)) {
+            expect({ language, word, english: words[word] === word }).toEqual({
+              language,
+              word,
+              english: false,
+            });
+          }
+        }
+      }
+    }
+  });
+
+  test("a page calls a health event by its worded title, a cloud change still by its facts", () => {
+    expect(
+      getChangeTitleForReader({
+        title: "AWS Health: EC2 operational issue (closed)",
+        facts: null,
+        health: factsOf("AWS Health: EC2 operational issue (closed)"),
+        translator: dashboardTranslator("de"),
+      }),
+    ).toBe("AWS Health: EC2 operational issue (geschlossen)");
+    expect(
+      getChangeTitleForReader({
+        title: "Failed: DeleteLoadBalancer on web-alb",
+        facts: { operation: OPERATION, resource: RESOURCE, failed: true },
+        health: factsOf("AWS Health: EC2 operational issue (closed)"),
+        translator: dashboardTranslator("de"),
+      }),
+    ).toBe("Fehlgeschlagen: DeleteLoadBalancer für web-alb");
   });
 });

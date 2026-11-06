@@ -250,9 +250,12 @@ describe("a cloud resource's and an account's Changes", () => {
     }
   });
 
-  test("a health event and a deploy keep their own titles", () => {
+  test("a health event's frame and state read in the reader's language, AWS's event as written; a deploy keeps its title", () => {
     expect(getCloudChangeTitleText(HEALTH_ROW, dashboardTranslator("de"))).toBe(
-      "AWS Health: EC2 operational issue (open)",
+      "AWS Health: EC2 operational issue (offen)",
+    );
+    expect(getCloudChangeTitleText(HEALTH_ROW, dashboardTranslator("en"))).toBe(
+      HEALTH_ROW.title,
     );
     expect(getCloudChangeTitleText(DEPLOY_ROW, dashboardTranslator("de"))).toBe(
       "Deploy checkout 2.3.1",
@@ -376,7 +379,7 @@ describe("a change's title as the Changes list draws it", () => {
   test("a health event, a deploy or a change with no title draws no boxes", async () => {
     let title: HTMLElement = await drawTitle("de", HEALTH_ROW);
     expect(values(title)).toHaveLength(0);
-    expect(title.textContent).toBe("AWS Health: EC2 operational issue (open)");
+    expect(title.textContent).toBe("AWS Health: EC2 operational issue (offen)");
     cleanup();
 
     title = await drawTitle("de", DEPLOY_ROW);
@@ -404,6 +407,27 @@ describe("the markers on a chart", () => {
         dashboardTranslator("de"),
       ),
     ).toBe("Fehlgeschlagen: DeleteLoadBalancer für web-alb");
+  });
+
+  test("a health event's marker has its frame and state in the reader's language", () => {
+    expect(
+      getChangeEventMarkerTitle(
+        {
+          title: HEALTH_ROW.title,
+          attributes: HEALTH_ROW.attributes as JSONObject,
+        },
+        dashboardTranslator("de"),
+      ),
+    ).toBe("AWS Health: EC2 operational issue (offen)");
+    expect(
+      getChangeEventMarkerTitle(
+        {
+          title: "Azure Resource Health: Available → Unavailable",
+          attributes: HEALTH_ROW.attributes as JSONObject,
+        },
+        dashboardTranslator("fr"),
+      ),
+    ).toBe("Azure Resource Health : Disponible → Indisponible");
   });
 
   test("any other change's marker keeps its title", () => {
