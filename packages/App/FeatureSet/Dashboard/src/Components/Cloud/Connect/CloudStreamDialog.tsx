@@ -714,11 +714,15 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
               label={say(
                 translationKey("Every log group of the account, new ones too"),
               )}
-              description={say(
+              description={`${say(
                 translationKey(
                   "In each Region, every log group but Firehose's own. A busy account's logs can cost far more than its metrics.",
                 ),
-              )}
+              )} ${say(
+                translationKey(
+                  "AWS allows one account-wide log subscription per Region: if another tool, such as a SIEM, already holds it, the command says so and sets nothing up.",
+                ),
+              )}`}
               isChecked={choices.everyLogGroup}
               dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-every-log-group`}
               onChange={(value: boolean) => {
@@ -759,6 +763,11 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                     {say(
                       translationKey(
                         "One a line: a log group's name, in the Region beside, or its ARN, in its own Region.",
+                      ),
+                    )}{" "}
+                    {say(
+                      translationKey(
+                        "The command checks each group first and sets nothing up if one is not there or already has two subscription filters, the most AWS allows.",
                       ),
                     )}
                   </p>

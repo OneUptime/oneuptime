@@ -47,6 +47,8 @@ Ve a **Nube → Conectar** y, en la fila de la cuenta de AWS, elige **Transmitir
 
 Para los registros, indica los **Grupos de registros** uno por línea, por nombre en la **Región** de al lado o por ARN en su propia región, o elige **Todos los grupos de registros de la cuenta, también los nuevos**. Un comando suscribe como máximo 50 grupos de registros por nombre, en como máximo 10 regiones.
 
+AWS permite una sola suscripción de registros para toda la cuenta por región y dos filtros de suscripción por grupo de registros. Antes de desplegar nada, el comando comprueba ambas cosas: si otra herramienta, como un SIEM, ya tiene la suscripción de toda la cuenta de una región, o un grupo de registros que indicaste no existe o ya tiene dos filtros de suscripción, dice cuál y no configura nada.
+
 ### Crear una clave de flujo
 
 Elige **Crear una clave de flujo**. La clave solo se muestra esta vez, en el comando: OneUptime solo guarda su SHA-256.
@@ -93,6 +95,7 @@ Un grupo de registros se archiva bajo un recurso cuando AWS le dio el nombre de 
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Cada registro lleva el ID del recurso como `cloud.resource_id`, y los registros de una función Lambda llevan además `faas.name`, así que también aparecen en la función en Serverless. Un grupo de registros con otro nombre se transmite igualmente, bajo su cuenta y su región. La gravedad de un registro es la que indica su mensaje, tal como la escribe Lambda.
 
@@ -166,6 +169,10 @@ Comprueba que el comando terminó en cada región sin errores: `aws cloudformati
 
 :::details La conexión dice Flujo rechazado
 El cuadro y la información emergente de la fila dicen por qué. Una clave incorrecta significa que las pilas funcionan con una clave que ya no sirve: crea una clave nueva y vuelve a ejecutar el comando. Firehose sigue enviando lo que guarda, y se acepta en cuanto la clave es la correcta.
+:::
+
+:::details El comando dice `Nothing was set up`
+Las líneas de arriba dicen por qué, cada una con su región o su grupo de registros. Si otra herramienta tiene la suscripción de registros de toda la cuenta de una región, indica en su lugar los grupos de registros que quieres transmitir, o quita la política de esa herramienta. Si un grupo de registros ya tiene dos filtros de suscripción, quita uno o deja fuera el grupo. Si el grupo de registros no existe, comprueba su nombre y su región, o indica su ARN. Después, vuelve a ejecutar el comando.
 :::
 
 :::details Los registros de una función Lambda no aparecen en su página

@@ -47,6 +47,8 @@ flowchart TB
 
 對於日誌，請在 **日誌群組** 中每行填寫一個，可以是旁邊 **地區** 中的名稱，也可以是位於其本身區域的 ARN；或者選擇 **帳戶的所有日誌群組，包括新建立的**。一個指令最多以名稱訂閱 50 個日誌群組，最多涵蓋 10 個區域。
 
+AWS 每個區域只允許一個帳戶層級的日誌訂閱，每個日誌群組最多兩個訂閱篩選條件。指令在部署任何內容之前會檢查這兩點：如果另一個工具（例如 SIEM）已佔用某個區域的帳戶層級訂閱，或者你指定的日誌群組不存在或已有兩個訂閱篩選條件，它會說明是哪一個，並且不設定任何內容。
+
 ### 建立串流金鑰
 
 選擇 **建立串流金鑰**。金鑰只會在指令中顯示這一次：OneUptime 只保存它的 SHA-256。
@@ -93,6 +95,7 @@ flowchart TB
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 每筆日誌都以 `cloud.resource_id` 攜帶資源的 ID，Lambda 函式的日誌還攜帶 `faas.name`，因此它們也會顯示在 Serverless 中的該函式上。其他名稱的日誌群組同樣會被串流，歸於其帳戶和區域之下。日誌的嚴重性就是其訊息中依 Lambda 的寫法註明的嚴重性。
 
@@ -166,6 +169,10 @@ OneUptime 會依照 Firehose 預期的方式回應每次傳送：
 
 :::details 連線顯示串流遭拒
 對話方塊和該列的工具提示會說明原因。金鑰錯誤表示堆疊正在使用已失效的金鑰執行：請建立新金鑰並重新執行指令。Firehose 會繼續傳送它保留的內容，金鑰正確後就會被接收。
+:::
+
+:::details 指令顯示 `Nothing was set up`
+上面的行說明了原因，每行都附有對應的區域或日誌群組。如果另一個工具佔用了某個區域的帳戶層級日誌訂閱，請改為指定要串流的日誌群組，或移除該工具的政策。如果某個日誌群組已有兩個訂閱篩選條件，請移除其中一個，或不包含該群組。如果沒有這樣的日誌群組，請檢查其名稱和區域，或提供其 ARN。然後再次執行指令。
 :::
 
 :::details Lambda 函式的日誌沒有顯示在其頁面上

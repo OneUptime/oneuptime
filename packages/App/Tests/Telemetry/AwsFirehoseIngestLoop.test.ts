@@ -486,6 +486,72 @@ describe("streamed metrics, through the real metrics ingest", () => {
   });
 });
 
+describe("Every metric, through the real metrics ingest", () => {
+  test("a resource's own aggregate is its one row, the stream's summary; its splits store nothing", async () => {
+    const concurrency: (
+      dimensions: Record<string, string>,
+      sum: number,
+    ) => JSONObject = (
+      dimensions: Record<string, string>,
+      sum: number,
+    ): JSONObject => {
+      return openTelemetryMetric({
+        namespace: "AWS/Lambda",
+        metricName: "ConcurrentExecutions",
+        dimensions,
+        unit: "1",
+        count: 1,
+        sum,
+        min: sum,
+        max: sum,
+      });
+    };
+
+    await ingest(
+      await decode([
+        openTelemetryRecord([
+          openTelemetryRequest([
+            concurrency(
+              { FunctionName: "checkout", Resource: "checkout:7" },
+              6,
+            ),
+            concurrency({ FunctionName: "checkout" }, 8),
+            concurrency(
+              {
+                FunctionName: "checkout",
+                Resource: "checkout:7",
+                ExecutedVersion: "7",
+              },
+              6,
+            ),
+          ]),
+        ]),
+      ]),
+    );
+
+    const rows: Array<JSONObject> = rowsFor(MetricService);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        name: "amazonaws.com/aws/lambda/concurrentexecutions",
+        metricPointType: MetricPointType.Summary,
+        sum: 8,
+      }),
+    );
+    expect(rows[0]!["attributes"]).toEqual(
+      expect.objectContaining({ "Dimensions.FunctionName": "checkout" }),
+    );
+    expect(
+      Object.keys(rows[0]!["attributes"] as JSONObject).filter(
+        (key: string): boolean => {
+          return key.startsWith("Dimensions.");
+        },
+      ),
+    ).toEqual(["Dimensions.FunctionName"]);
+  });
+});
+
 describe("streamed logs, through the real logs ingest", () => {
   test("rows carry the function's id, account, Region, severity and faas.name", async () => {
     await ingest(

@@ -59,6 +59,7 @@ import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingSe
 import ProjectService from "Common/Server/Services/ProjectService";
 import CloudStreamActivity from "Common/Server/Utils/CloudConnection/CloudStreamActivity";
 import CloudStreamAuthenticator from "Common/Server/Utils/CloudConnection/CloudStreamAuthentication";
+import CloudStreamKeyedConnections from "Common/Server/Utils/CloudConnection/CloudStreamKeyedConnections";
 import CloudStreamKeys from "Common/Server/Utils/CloudConnection/CloudStreamKeys";
 import {
   createExpressApp,
@@ -213,6 +214,9 @@ function connectionRow(data: {
 }
 
 let rows: Map<string, CloudConnection>;
+// Reads of one connection, and of every connection that holds a stream key.
+let connectionReads: number;
+let keyedReads: number;
 
 function nextRequestId(): string {
   requestCounter++;
@@ -345,6 +349,8 @@ beforeEach(() => {
   ledger = new Map();
 
   rows = new Map();
+  connectionReads = 0;
+  keyedReads = 0;
   rows.set(
     CONNECTION_A.toString(),
     connectionRow({
@@ -373,8 +379,23 @@ beforeEach(() => {
   jest
     .spyOn(CloudConnectionService, "findOneById")
     .mockImplementation((async (data: { id: ObjectID }) => {
+      connectionReads++;
       return rows.get(data.id.toString()) || null;
     }) as never);
+  // Every connection that holds a stream key: the rows with hashes.
+  CloudStreamKeyedConnections.reset();
+  jest
+    .spyOn(CloudStreamKeyedConnections, "readIds")
+    .mockImplementation(async (): Promise<Array<string>> => {
+      keyedReads++;
+      return Array.from(rows.values())
+        .filter((connection: CloudConnection): boolean => {
+          return Boolean(connection.streamKeyHashes);
+        })
+        .map((connection: CloudConnection): string => {
+          return connection.id!.toString();
+        });
+    });
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest
     .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
@@ -951,6 +972,202 @@ describe("the key metrics, as the connection's read writes them", () => {
         })
         .sort(),
     ).toEqual([20, 40]);
+  });
+});
+
+describe("Every metric: a resource's chart without a group-by", () => {
+  const FUNCTION: Record<string, string> = { FunctionName: "checkout" };
+  const ALIAS: Record<string, string> = {
+    FunctionName: "checkout",
+    Resource: "checkout:live",
+  };
+  const VERSION: Record<string, string> = {
+    FunctionName: "checkout",
+    Resource: "checkout:live",
+    ExecutedVersion: "7",
+  };
+
+  function lambda(
+    metricName: string,
+    dimensions: Record<string, string>,
+    sum: number,
+  ): JSONObject {
+    return openTelemetryMetric({
+      namespace: "AWS/Lambda",
+      metricName,
+      dimensions,
+      unit: "1",
+      count: 1,
+      sum,
+      min: sum,
+      max: sum,
+    });
+  }
+
+  // The filter the function's Metrics page charts it by (CloudMonitoredResourceScope).
+  function functionFilter(): Record<string, string> {
+    const resource: CloudMonitoredResource | null =
+      resolveCloudMonitoredResource({
+        metricName: "amazonaws.com/AWS/Lambda/Invocations",
+        attributes: {
+          Namespace: "AWS/Lambda",
+          "Dimensions.FunctionName": "checkout",
+          "resource.cloud.account.id": ACCOUNT_ID,
+          "resource.cloud.region": REGION,
+        },
+      });
+
+    expect(resource?.resourceType).toBe("AWS::Lambda::Function");
+
+    return resource!.telemetryAttributes;
+  }
+
+  // What a chart of the resource sums with no group-by: every queued point its filter matches.
+  function chartOf(
+    filter: Record<string, string>,
+    metricName: string,
+  ): { total: number; series: number } {
+    let total: number = 0;
+    let series: number = 0;
+
+    for (const job of metricJobs) {
+      for (const resource of job.body["resourceMetrics"] as Array<JSONObject>) {
+        const resourceAttributes: Record<string, unknown> =
+          TelemetryUtil.getAttributes({
+            prefixKeysWithString: "resource",
+            items: (resource["resource"] as JSONObject)[
+              "attributes"
+            ] as JSONArray,
+          });
+
+        for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
+          for (const metric of scope["metrics"] as Array<JSONObject>) {
+            if (metric["name"] !== metricName) {
+              continue;
+            }
+
+            const points: Array<JSONObject> = ((
+              (metric["gauge"] || metric["summary"]) as JSONObject
+            )["dataPoints"] || []) as Array<JSONObject>;
+
+            for (const point of points) {
+              const stored: Record<string, unknown> = {
+                ...resourceAttributes,
+                ...TelemetryUtil.getAttributes({
+                  prefixKeysWithString: "",
+                  items: point["attributes"] as JSONArray,
+                }),
+              };
+              const isMatched: boolean = Object.entries(filter).every(
+                ([key, value]: [string, string]): boolean => {
+                  return stored[key] === value;
+                },
+              );
+
+              if (isMatched) {
+                total += (point["asDouble"] ?? point["sum"]) as number;
+                series++;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return { total, series };
+  }
+
+  test("is the resource's own series once - never its aggregate and its splits summed - for a key metric and for any other", async () => {
+    const reply: FirehoseReply = await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            // A key metric: the read writes the function's own 120.
+            lambda("Invocations", FUNCTION, 120),
+            lambda("Invocations", ALIAS, 100),
+            lambda("Invocations", VERSION, 100),
+            // Not a key one (Every metric): CloudWatch says the function ran 8 at once.
+            lambda("ConcurrentExecutions", ALIAS, 6),
+            lambda("ConcurrentExecutions", FUNCTION, 8),
+            lambda("ConcurrentExecutions", VERSION, 6),
+          ]),
+        ]),
+      ],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+
+    const filter: Record<string, string> = functionFilter();
+
+    expect(chartOf(filter, "amazonaws.com/AWS/Lambda/Invocations")).toEqual({
+      total: 120,
+      series: 1,
+    });
+    expect(
+      chartOf(filter, "amazonaws.com/AWS/Lambda/ConcurrentExecutions"),
+    ).toEqual({ total: 8, series: 1 });
+  });
+
+  test("a split that comes in a later delivery than its resource's aggregate is left out, for any metric", async () => {
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([lambda("ConcurrentExecutions", FUNCTION, 8)]),
+        ]),
+      ],
+    });
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            lambda("ConcurrentExecutions", ALIAS, 6),
+            lambda("ConcurrentExecutions", VERSION, 6),
+          ]),
+        ]),
+      ],
+    });
+
+    expect(
+      chartOf(
+        functionFilter(),
+        "amazonaws.com/AWS/Lambda/ConcurrentExecutions",
+      ),
+    ).toEqual({ total: 8, series: 1 });
+  });
+
+  test("the account's own metrics, in its own namespaces too, are kept whole: no resource's chart reads them", async () => {
+    await deliver({
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "Checkout/Orders",
+              metricName: "Placed",
+              dimensions: { Stage: "prod" },
+              unit: "1",
+              count: 3,
+              sum: 42,
+              min: 10,
+              max: 20,
+            }),
+            lambda("ConcurrentExecutions", {}, 9),
+          ]),
+        ]),
+      ],
+    });
+
+    const points: Map<string, Array<JSONObject>> = queuedPoints();
+
+    expect(points.get("amazonaws.com/Checkout/Orders/Placed")).toHaveLength(1);
+    expect(
+      points.get("amazonaws.com/AWS/Lambda/ConcurrentExecutions"),
+    ).toHaveLength(1);
+    expect(
+      chartOf(
+        functionFilter(),
+        "amazonaws.com/AWS/Lambda/ConcurrentExecutions",
+      ),
+    ).toEqual({ total: 0, series: 0 });
   });
 });
 
@@ -1570,6 +1787,146 @@ describe("who a delivery is from", () => {
 
     expect(reply.status).toBe(403);
     expect(metricJobs).toHaveLength(0);
+  });
+});
+
+describe("refused deliveries cost nothing and say nothing", () => {
+  // A connection nobody made, new on every call.
+  let inventedSoFar: number = 0;
+
+  function inventedKey(): string {
+    inventedSoFar++;
+
+    return keyOf(
+      new ObjectID(
+        `99999999-9999-4999-8999-${inventedSoFar.toString(16).padStart(12, "0")}`,
+      ),
+      "c3",
+    );
+  }
+
+  test("a hundred deliveries naming connections nobody made: each refused alike, not one connection read, nothing noted", async () => {
+    const replies: Array<FirehoseReply> = [];
+
+    for (let index: number = 0; index < 100; index++) {
+      replies.push(
+        await deliver({
+          key: inventedKey(),
+          records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+        }),
+      );
+    }
+
+    for (const reply of replies) {
+      expectFirehoseAnswer(reply, { status: 401 });
+      expect(reply.body["errorMessage"]).toBe(replies[0]!.body["errorMessage"]);
+    }
+
+    await settle();
+
+    // One read of the connections that hold a key, and none of a connection.
+    expect(keyedReads).toBe(1);
+    expect(connectionReads).toBe(0);
+    expect(summaries.size).toBe(0);
+    expect(metricJobs).toHaveLength(0);
+
+    // The streams of a real key are taken as before, into the key's project.
+    const reply: FirehoseReply = await deliver({
+      key: KEY_A,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+    expect(metricJobs).toHaveLength(1);
+    expect(metricJobs[0]!.projectId).toBe(PROJECT_A.toString());
+  });
+
+  test("a wrong key on a connection that streams nothing - never set up, or stopped - is refused, and noted nowhere", async () => {
+    rows.get(CONNECTION_A.toString())!.streamKeyHashes =
+      undefined as unknown as JSONObject;
+
+    const reply: FirehoseReply = await deliver({
+      key: keyOf(CONNECTION_A, "ff"),
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 401 });
+
+    await settle();
+
+    expect(summaries.size).toBe(0);
+    expect(connectionReads).toBe(0);
+  });
+
+  test("a wrong key on a connection that holds a key is noted on it, so the person setting the stream up sees why", async () => {
+    const reply: FirehoseReply = await deliver({
+      key: keyOf(CONNECTION_A, "ff"),
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 401 });
+
+    await settle();
+
+    expect(summaries.get(CONNECTION_A.toString())?.lastRefusal?.reason).toBe(
+      CloudStreamRefusalReason.WrongKey,
+    );
+    // The other project's connection hears nothing of it.
+    expect(summaries.has(CONNECTION_B.toString())).toBe(false);
+  });
+
+  test("Stop streaming: the stacks' next delivery is refused at once, without a read, and noted nowhere", async () => {
+    expectFirehoseAnswer(
+      await deliver({
+        key: KEY_A,
+        records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+      }),
+      { status: 200 },
+    );
+    expect(connectionReads).toBe(1);
+
+    jest
+      .spyOn(CloudConnectionService, "updateColumnsByIdWithoutHooks")
+      .mockImplementation((async () => {
+        rows.get(CONNECTION_A.toString())!.streamKeyHashes =
+          undefined as unknown as JSONObject;
+      }) as never);
+    await CloudConnectionService.stopStreaming(CONNECTION_A);
+    await settle();
+    summaries.clear();
+
+    const reply: FirehoseReply = await deliver({
+      key: KEY_A,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 401 });
+
+    await settle();
+
+    expect(connectionReads).toBe(1);
+    expect(summaries.size).toBe(0);
+    expect(metricJobs).toHaveLength(1);
+  });
+
+  test("the project is the key's alone, among refused deliveries too: B's key keeps writing into B", async () => {
+    for (let index: number = 0; index < 20; index++) {
+      await deliver({
+        key: inventedKey(),
+        records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+      });
+    }
+
+    await deliver({
+      key: KEY_B,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expect(
+      metricJobs.map((job: { projectId: string }) => {
+        return job.projectId;
+      }),
+    ).toEqual([PROJECT_B.toString()]);
   });
 });
 

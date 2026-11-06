@@ -47,6 +47,8 @@ Gå till **Moln → Anslut** och välj **Strömma mätvärden och loggar** på A
 
 För loggar anger du **Logggrupper**, en per rad, med namn i **Region** bredvid eller med ARN i sin egen region, eller så väljer du **Alla kontots logggrupper, även nya**. Ett kommando prenumererar på högst 50 logggrupper med namn, i högst 10 regioner.
 
+AWS tillåter en kontoomfattande loggprenumeration per region och två prenumerationsfilter per logggrupp. Innan kommandot distribuerar något kontrollerar det båda: om ett annat verktyg, till exempel en SIEM, redan har en regions kontoomfattande prenumeration, eller om en logggrupp som du angav inte finns eller redan har två prenumerationsfilter, säger det vilken och konfigurerar ingenting.
+
 ### Skapa en strömnyckel
 
 Välj **Skapa en strömnyckel**. Nyckeln visas bara den här enda gången, i kommandot: OneUptime sparar bara dess SHA-256.
@@ -93,6 +95,7 @@ En logggrupp arkiveras under en resurs när AWS har namngett den efter en:
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Varje logg bär resursens ID som `cloud.resource_id`, och en Lambda-funktions loggar bär också `faas.name`, så de visas även på funktionen under Serverless. En logggrupp med ett annat namn strömmas ändå, under sitt konto och sin region. En loggs allvarlighetsgrad är den som dess meddelande anger, så som Lambda skriver den.
 
@@ -166,6 +169,10 @@ Kontrollera att kommandot blev klart i varje region utan fel: `aws cloudformatio
 
 :::details Anslutningen säger Strömmen avvisad
 Dialogen och radens knappbeskrivning säger varför. En fel nyckel betyder att stackarna körs med en nyckel som inte fungerar längre: skapa en ny nyckel och kör kommandot igen. Firehose fortsätter att skicka det den håller, och det tas emot så snart nyckeln är rätt.
+:::
+
+:::details Kommandot säger `Nothing was set up`
+Raderna ovanför säger varför, var och en med sin region eller logggrupp. När ett annat verktyg har en regions kontoomfattande loggprenumeration anger du i stället de logggrupper som ska strömmas, eller tar bort verktygets princip. När en logggrupp redan har två prenumerationsfilter tar du bort ett av dem eller utelämnar gruppen. När logggruppen inte finns kontrollerar du dess namn och region, eller anger dess ARN. Kör sedan kommandot igen.
 :::
 
 :::details En Lambda-funktions loggar visas inte på dess sida

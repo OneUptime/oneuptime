@@ -13,10 +13,14 @@ import CloudStreamAuthenticator, {
   STREAM_PROJECT_BLOCKED_MESSAGE,
   WRONG_STREAM_KEY_MESSAGE,
 } from "../../../../Server/Utils/CloudConnection/CloudStreamAuthentication";
+import CloudStreamKeyedConnections from "../../../../Server/Utils/CloudConnection/CloudStreamKeyedConnections";
 import CloudStreamKeys from "../../../../Server/Utils/CloudConnection/CloudStreamKeys";
 import LlmConnectionPullRunner from "../../../../Server/Utils/LlmObservability/LlmConnectionPullRunner";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
+  CLOUD_STREAM_KEYED_CONNECTIONS_MISS_REFRESH_MS,
+  CLOUD_STREAM_KEYED_CONNECTIONS_REFRESH_MS,
+  CLOUD_STREAM_MAX_KEYED_CONNECTIONS,
   CLOUD_STREAM_PREVIOUS_KEY_GRACE_MS,
   CloudStreamRefusalReason,
   buildCloudStreamKey,
@@ -32,7 +36,11 @@ import ObjectID from "../../../../Types/ObjectID";
  * within a day; the connection must be an AWS connection that is on, in a
  * project that takes telemetry, is not blocked and may be billed. What a
  * connection holds is read once a minute, and at once after its key
- * changes. `jest` is the global one.
+ * changes. A key naming a connection that holds no stream key costs no
+ * read at all (CloudStreamKeyedConnections, whose one read of every keyed
+ * connection is modelled from the same rows), and a wrong key is noted on
+ * its connection only while the connection holds a key. `jest` is the
+ * global one.
  */
 
 const PROJECT_A: ObjectID = new ObjectID(
@@ -51,6 +59,9 @@ const NOW: Date = new Date("2026-11-04T10:00:00.000Z");
 
 let rows: Map<string, CloudConnection>;
 let reads: number;
+// Reads of every connection that holds a stream key (CloudStreamKeyedConnections).
+let keyedReads: number;
+let keyedReadFails: boolean;
 let blocked: boolean;
 let telemetryAllowed: boolean;
 let paymentRequired: boolean;
@@ -103,6 +114,8 @@ async function authenticate(
 beforeEach(() => {
   rows = new Map();
   reads = 0;
+  keyedReads = 0;
+  keyedReadFails = false;
   blocked = false;
   telemetryAllowed = true;
   paymentRequired = false;
@@ -149,6 +162,25 @@ beforeEach(() => {
       reads++;
       return rows.get(data.id.toString()) || null;
     }) as never);
+  // The one read of every connection that holds a key: the rows with hashes.
+  CloudStreamKeyedConnections.reset();
+  jest
+    .spyOn(CloudStreamKeyedConnections, "readIds")
+    .mockImplementation(async (): Promise<Array<string>> => {
+      keyedReads++;
+
+      if (keyedReadFails) {
+        throw new Error("Postgres is away");
+      }
+
+      return Array.from(rows.values())
+        .filter((connection: CloudConnection): boolean => {
+          return Boolean(connection.streamKeyHashes);
+        })
+        .map((connection: CloudConnection): string => {
+          return connection.id!.toString();
+        });
+    });
   jest
     .spyOn(ProjectService, "isProjectBlocked")
     .mockImplementation(async () => {
@@ -410,6 +442,268 @@ describe("a connection whose telemetry service is gone", () => {
     expect(ensure).toHaveBeenCalledTimes(1);
     expect(result.isAuthorized && result.serviceName).toBe(
       "Amazon Web Services",
+    );
+  });
+});
+
+describe("refused deliveries cost nothing", () => {
+  /*
+   * An id nobody made, new on every call: a test never meets an id an
+   * earlier test left in the per-connection cache.
+   */
+  let inventedSoFar: number = 0;
+
+  function invented(): string {
+    inventedSoFar++;
+    const hex: string = inventedSoFar.toString(16).padStart(12, "0");
+
+    return key(new ObjectID(`99999999-9999-4999-8999-${hex}`), "c3");
+  }
+
+  test("a key naming a connection that holds no stream key costs no read, however many ids are invented", async () => {
+    for (let index: number = 0; index < 200; index++) {
+      expect(await authenticate(invented())).toEqual({
+        isAuthorized: false,
+        reason: CloudStreamRefusalReason.WrongKey,
+        status: 401,
+        message: WRONG_STREAM_KEY_MESSAGE,
+        connectionId: undefined,
+      });
+    }
+
+    // One read of every keyed connection, and not one of a connection.
+    expect(keyedReads).toBe(1);
+    expect(reads).toBe(0);
+  });
+
+  test("a connection that streams nothing is refused without a read, and noted nowhere", async () => {
+    rows.set(
+      CONNECTION_A.toString(),
+      row({ id: CONNECTION_A, projectId: PROJECT_A, hashes: null }),
+    );
+
+    expect(await authenticate(KEY_A)).toEqual(
+      expect.objectContaining({
+        isAuthorized: false,
+        reason: CloudStreamRefusalReason.WrongKey,
+        connectionId: undefined,
+      }),
+    );
+    expect(reads).toBe(0);
+  });
+
+  test("invented ids never push a streaming connection out of the cache", async () => {
+    expect((await authenticate(KEY_A)).isAuthorized).toBe(true);
+
+    // More invented ids than the cache holds connections.
+    for (let index: number = 0; index < 6000; index++) {
+      await authenticate(invented());
+    }
+
+    expect((await authenticate(KEY_A)).isAuthorized).toBe(true);
+    expect(reads).toBe(1);
+  });
+
+  test(`an id not held is looked for again at most every ${CLOUD_STREAM_KEYED_CONNECTIONS_MISS_REFRESH_MS / 1000} seconds: a key made on another server is known within seconds`, async () => {
+    const connectionC: ObjectID = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+    const keyC: string = key(connectionC, "d4");
+
+    expect((await authenticate(KEY_A)).isAuthorized).toBe(true);
+    expect(keyedReads).toBe(1);
+
+    // Another server makes the first key of connection C.
+    rows.set(
+      connectionC.toString(),
+      row({
+        id: connectionC,
+        projectId: PROJECT_A,
+        hashes: {
+          current: {
+            hash: CloudStreamKeys.hash(keyC),
+            createdAt: NOW.toISOString(),
+          },
+        },
+      }),
+    );
+
+    const soon: Date = new Date(
+      NOW.getTime() + CLOUD_STREAM_KEYED_CONNECTIONS_MISS_REFRESH_MS - 1,
+    );
+    expect((await authenticate(keyC, soon)).isAuthorized).toBe(false);
+    expect(keyedReads).toBe(1);
+
+    const later: Date = new Date(
+      NOW.getTime() + CLOUD_STREAM_KEYED_CONNECTIONS_MISS_REFRESH_MS,
+    );
+    expect(await authenticate(keyC, later)).toEqual(
+      expect.objectContaining({
+        isAuthorized: true,
+        connectionId: connectionC,
+      }),
+    );
+    expect(keyedReads).toBe(2);
+
+    // And invented ids at that moment do not read again: one read a window.
+    await authenticate(invented(), later);
+    await authenticate(invented(), later);
+    expect(keyedReads).toBe(2);
+  });
+
+  test(`every keyed connection is read again every ${CLOUD_STREAM_KEYED_CONNECTIONS_REFRESH_MS / 1000} seconds: a stream stopped on another server is refused here without a read`, async () => {
+    expect((await authenticate(KEY_A)).isAuthorized).toBe(true);
+
+    // Another server stops A's streams.
+    rows.set(
+      CONNECTION_A.toString(),
+      row({ id: CONNECTION_A, projectId: PROJECT_A, hashes: null }),
+    );
+    CloudStreamAuthenticator.forget(CONNECTION_A);
+
+    expect(
+      (
+        await authenticate(
+          KEY_A,
+          new Date(NOW.getTime() + CLOUD_STREAM_KEYED_CONNECTIONS_REFRESH_MS),
+        )
+      ).isAuthorized,
+    ).toBe(false);
+    expect(keyedReads).toBe(2);
+    expect(reads).toBe(1);
+  });
+
+  test("a key made on this server is known here at once, and a stream stopped here is refused here at once", async () => {
+    const connectionC: ObjectID = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+
+    expect(await CloudStreamKeyedConnections.mayHoldKey(connectionC, NOW)).toBe(
+      false,
+    );
+
+    CloudStreamKeyedConnections.keyMade(connectionC);
+    expect(await CloudStreamKeyedConnections.mayHoldKey(connectionC, NOW)).toBe(
+      true,
+    );
+
+    CloudStreamKeyedConnections.keysStopped(CONNECTION_A);
+    expect(
+      await CloudStreamKeyedConnections.mayHoldKey(CONNECTION_A, NOW),
+    ).toBe(false);
+    expect(keyedReads).toBe(1);
+  });
+
+  test("however many deliveries ask at once, the keyed connections are read once", async () => {
+    await Promise.all(
+      [0, 1, 2, 3, 4, 5, 6, 7].map(() => {
+        return authenticate(invented());
+      }),
+    );
+
+    expect(keyedReads).toBe(1);
+    expect(reads).toBe(0);
+  });
+
+  test("fails open: while the keyed connections cannot be read, each delivery's connection is read as before", async () => {
+    keyedReadFails = true;
+
+    expect((await authenticate(KEY_A)).isAuthorized).toBe(true);
+    expect((await authenticate(invented())).isAuthorized).toBe(false);
+    expect((await authenticate(invented())).isAuthorized).toBe(false);
+
+    expect(reads).toBe(3);
+    // A failing read is not tried again on every delivery.
+    expect(keyedReads).toBe(1);
+  });
+
+  test("past the most kept, an id not among them is read as before", async () => {
+    jest
+      .spyOn(CloudStreamKeyedConnections, "readIds")
+      .mockImplementation(async (limit: number): Promise<Array<string>> => {
+        keyedReads++;
+        expect(limit).toBe(CLOUD_STREAM_MAX_KEYED_CONNECTIONS + 1);
+        return Array.from(
+          { length: limit },
+          (_value: unknown, index: number): string => {
+            return `aaaaaaaa-aaaa-4aaa-8aaa-${index
+              .toString(16)
+              .padStart(12, "0")}`;
+          },
+        );
+      });
+
+    expect((await authenticate(KEY_A)).isAuthorized).toBe(true);
+    expect((await authenticate(key(CONNECTION_B, "ee"))).isAuthorized).toBe(
+      false,
+    );
+    expect(reads).toBe(2);
+  });
+});
+
+describe("a wrong key is noted on its connection only while the connection holds a key", () => {
+  test("a connection that holds a key is named, so its summary says why its deliveries are refused", async () => {
+    expect(await authenticate(key(CONNECTION_A, "ff"))).toEqual(
+      expect.objectContaining({
+        reason: CloudStreamRefusalReason.WrongKey,
+        connectionId: CONNECTION_A,
+      }),
+    );
+  });
+
+  test("a connection whose keys were stopped on another server - not yet read again here - is named nowhere", async () => {
+    // This server still holds A among the keyed connections: it reads A, which holds no key.
+    expect((await authenticate(KEY_A)).isAuthorized).toBe(true);
+    rows.set(
+      CONNECTION_A.toString(),
+      row({ id: CONNECTION_A, projectId: PROJECT_A, hashes: null }),
+    );
+    CloudStreamAuthenticator.forget(CONNECTION_A);
+
+    expect(await authenticate(key(CONNECTION_A, "ff"))).toEqual(
+      expect.objectContaining({
+        isAuthorized: false,
+        reason: CloudStreamRefusalReason.WrongKey,
+        connectionId: undefined,
+      }),
+    );
+    expect(reads).toBe(2);
+  });
+
+  test("a connection whose only keys are past their day is named nowhere", async () => {
+    rows.set(
+      CONNECTION_A.toString(),
+      row({
+        id: CONNECTION_A,
+        projectId: PROJECT_A,
+        hashes: {
+          previous: [
+            {
+              hash: CloudStreamKeys.hash(KEY_A_OLD),
+              expiresAt: new Date(NOW.getTime() - 1000).toISOString(),
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(await authenticate(KEY_A_OLD)).toEqual(
+      expect.objectContaining({
+        isAuthorized: false,
+        reason: CloudStreamRefusalReason.WrongKey,
+        connectionId: undefined,
+      }),
+    );
+  });
+
+  test("the key's own refusals - turned off, the plan - need the right key, and are named as before", async () => {
+    telemetryAllowed = false;
+
+    expect(await authenticate(KEY_A)).toEqual(
+      expect.objectContaining({
+        reason: CloudStreamRefusalReason.NotAllowed,
+        connectionId: CONNECTION_A,
+      }),
     );
   });
 });

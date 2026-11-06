@@ -629,6 +629,23 @@ jobs:
           Tests/Server/Services/CloudResourceMonitoredSweepsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated CloudConnection into an isolated schema and makes
+      # a connection's stream keys at the same moment, every one held at its
+      # read until all have read: the compare-and-set over the jsonb
+      # streamKeyHashes keeps every key, as only a real database can show.
+      - name: Test stream keys made at once against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_STREAM_KEY_TESTS: "true"
+          CLOUD_STREAM_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_STREAM_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_STREAM_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CloudStreamKeyRotationPostgres.test.ts
+          --forceExit
+
       # Clones the migrated tables a Traffic page's names are read from
       # (Address Names, devices, hosts, cloud resources, Kubernetes) into an
       # isolated schema and resolves names against them: whole-value address

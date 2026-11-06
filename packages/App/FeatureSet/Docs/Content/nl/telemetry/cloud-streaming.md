@@ -47,6 +47,8 @@ Ga naar **Cloud → Koppelen** en kies in de rij van het AWS-account **Metrieken
 
 Geef voor logboeken de **Loggroepen** op, één per regel, op naam in de **Regio** ernaast of op ARN in hun eigen regio, of kies **Elke loggroep van het account, ook nieuwe**. Eén opdracht abonneert hoogstens 50 loggroepen op naam, in hoogstens 10 regio's.
 
+AWS staat per regio één accountbreed logboekabonnement toe en twee abonnementsfilters per loggroep. Voordat de opdracht iets uitrolt, controleert die beide: als een ander hulpmiddel, zoals een SIEM, het accountbrede abonnement van een regio al gebruikt, of als een loggroep die u noemde niet bestaat of al twee abonnementsfilters heeft, zegt die welke en zet die niets op.
+
 ### Een streamsleutel maken
 
 Kies **Streamsleutel maken**. De sleutel wordt alleen deze ene keer getoond, in de opdracht: OneUptime bewaart alleen de SHA-256 ervan.
@@ -93,6 +95,7 @@ Een loggroep wordt onder een resource opgeslagen als AWS hem naar een resource n
 | `/aws/apprunner/<service>/<service-id>/<log>` | `AWS::AppRunner::Service` |
 | `/aws/elasticbeanstalk/<environment>/<log>` | `AWS::ElasticBeanstalk::Environment` |
 | `/aws/ecs/containerinsights/<cluster>/performance` | `AWS::ECS::Cluster` |
+| `/aws/vendedlogs/states/<state-machine>-Logs` | `AWS::StepFunctions::StateMachine` |
 
 Elk logboek draagt de ID van de resource als `cloud.resource_id`, en de logboeken van een Lambda-functie dragen ook `faas.name`, zodat ze ook bij de functie onder Serverless verschijnen. Een loggroep met een andere naam wordt toch gestreamd, onder zijn account en regio. De ernst van een logboek is die welke het bericht noemt, zoals Lambda die schrijft.
 
@@ -166,6 +169,10 @@ Controleer of de opdracht in elke regio zonder fouten klaar is: `aws cloudformat
 
 :::details De koppeling zegt Stream geweigerd
 Het venster en de tooltip van de rij zeggen waarom. Een verkeerde sleutel betekent dat de stacks draaien met een sleutel die niet meer werkt: maak een nieuwe sleutel en voer de opdracht opnieuw uit. Firehose blijft versturen wat het vasthoudt, en dat wordt aangenomen zodra de sleutel klopt.
+:::
+
+:::details De opdracht zegt `Nothing was set up`
+De regels erboven zeggen waarom, elk met de regio of loggroep. Gebruikt een ander hulpmiddel het accountbrede logboekabonnement van een regio, noem dan in plaats daarvan de loggroepen om te streamen, of verwijder het beleid van dat hulpmiddel. Heeft een loggroep al twee abonnementsfilters, verwijder er dan een of laat de groep weg. Bestaat de loggroep niet, controleer dan de naam en de regio, of geef de ARN op. Voer de opdracht daarna opnieuw uit.
 :::
 
 :::details De logboeken van een Lambda-functie verschijnen niet op haar pagina
