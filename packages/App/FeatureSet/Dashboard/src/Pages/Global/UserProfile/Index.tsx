@@ -8,6 +8,7 @@ import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import { getUserChosenLanguage } from "Common/Types/UserLanguage";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
 import {
   getUserLanguageLabelOfCode,
@@ -22,6 +23,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const { i18n } = useTranslation();
   return (
     <CardModelDetail
       cardProps={{
@@ -42,8 +44,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
          */
         const language: string = getUserChosenLanguage(user);
 
-        if (language && language !== getDashboardLanguage()) {
-          void switchDashboardLanguage(language);
+        if (language && language !== getDashboardLanguage(i18n)) {
+          void switchDashboardLanguage(i18n, language);
         }
       }}
       isEditable={true}

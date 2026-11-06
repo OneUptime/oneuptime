@@ -1,5 +1,6 @@
 import UserLanguageUtil from "Common/UI/Utils/UserLanguage";
 import React, { FunctionComponent, ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import {
   getDashboardLanguage,
@@ -21,14 +22,16 @@ import {
  * save a pick). A read that fails changes nothing.
  */
 const UserLanguageInit: FunctionComponent = (): ReactElement => {
+  const { i18n } = useTranslation();
+
   useAsyncEffect(async () => {
     const language: string = await UserLanguageUtil.readSignedInUserLanguage();
 
-    if (!language || language === getDashboardLanguage()) {
+    if (!language || language === getDashboardLanguage(i18n)) {
       return;
     }
 
-    await switchDashboardLanguage(language);
+    await switchDashboardLanguage(i18n, language);
   }, []);
 
   return <></>;

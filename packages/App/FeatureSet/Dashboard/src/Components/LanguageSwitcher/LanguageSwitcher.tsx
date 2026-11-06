@@ -46,7 +46,7 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
   const switchLanguage: (nextLanguage: string) => Promise<void> = async (
     nextLanguage: string,
   ): Promise<void> => {
-    await switchDashboardLanguage(nextLanguage);
+    await switchDashboardLanguage(i18n, nextLanguage);
     await UserLanguageUtil.saveSignedInUserLanguage(nextLanguage);
   };
 

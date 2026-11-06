@@ -170,6 +170,8 @@ function makeUser() {
       : "test@oneuptime.com",
   );
   user.timezone = isEmpty ? undefined : "Europe/London";
+  // The language they picked (User.language): none on the empty profile.
+  user.language = isEmpty ? undefined : "de";
   return user;
 }
 
