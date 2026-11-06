@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "Bara om {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Bara om {{first}}, {{second}} och {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Bara om {{first}}, {{second}} eller {{third}}",
+  "AI Agent Keys": "AI-agentnycklar",
   "Anyone who hasn't picked their own columns for this list sees these.": "Alla som inte har valt egna kolumner för den här listan ser dessa.",
   "Default Table Columns": "Standardtabellkolumner",
+  "Making a key for this agent…": "Skapar en nyckel för den här agenten…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime skickade ingen nyckel för den här agenten. Försök igen.",
   "Remove default": "Ta bort standard",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Ersätter listans standardkolumner. Alla som har valt egna behåller dem.",
   "Reset to project default": "Återställ till projektets standard",
   "Show these columns to everyone in this project": "Visa de här kolumnerna för alla i det här projektet",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandot innehåller en nyckel som bara har skapats för den här agenten. Kör det inom ett dygn, eller öppna den här dialogrutan igen för att få en ny.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} återställdes, och dess nyckel fungerar inte längre. Kör dess konfigurationskommando igen för att ansluta den: Ändra visar det.",
   "These are this project's default columns for this list. Changes you save are only for you.": "Det här är projektets standardkolumner för den här listan. Ändringar du sparar gäller bara dig.",
   "This list has default columns for everyone in this project.": "Den här listan har standardkolumner för alla i det här projektet.",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Kommandon som AI körde när en incident eller ett larm utreddes eller åtgärdades visas också på den incidenten eller det larmet.",
-  "Seeing the commands needs permission to read Runner jobs.": "För att se kommandona krävs behörighet att läsa Runner-jobb."
+  "Seeing the commands needs permission to read Runner jobs.": "För att se kommandona krävs behörighet att läsa Runner-jobb.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Detta återkallar nyckeln för {{agentName}} direkt. Agenten förblir frånkopplad tills du kör dess konfigurationskommando igen: Ändra visar det, med en ny nyckel."
 }

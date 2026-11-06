@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "सिर्फ़ तब, जब {{first}} या {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} और {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "सिर्फ़ तब, जब {{first}}, {{second}} या {{third}}",
+  "AI Agent Keys": "AI एजेंट कुंजियाँ",
   "Anyone who hasn't picked their own columns for this list sees these.": "जिन्होंने इस सूची के लिए अपने कॉलम नहीं चुने हैं, वे सभी यही देखते हैं।",
   "Default Table Columns": "डिफ़ॉल्ट टेबल कॉलम",
+  "Making a key for this agent…": "इस एजेंट के लिए कुंजी बनाई जा रही है…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime ने इस एजेंट के लिए कोई कुंजी नहीं भेजी। फिर से प्रयास करें।",
   "Remove default": "डिफ़ॉल्ट हटाएँ",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "इस सूची के डिफ़ॉल्ट कॉलम बदल देता है। जिन्होंने अपने कॉलम चुने हैं, उनके वही रहते हैं।",
   "Reset to project default": "प्रोजेक्ट डिफ़ॉल्ट पर रीसेट करें",
   "Show these columns to everyone in this project": "इस प्रोजेक्ट में सभी को ये कॉलम दिखाएँ",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "इस कमांड में केवल इसी एजेंट के लिए बनाई गई कुंजी है। इसे एक दिन के भीतर चलाएँ, या नई कुंजी के लिए यह डायलॉग फिर से खोलें।",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} को रीसेट कर दिया गया, और उसकी कुंजी अब काम नहीं करती। इसे कनेक्ट करने के लिए इसकी सेटअप कमांड फिर से चलाएँ: बदलें इसे दिखाता है।",
   "These are this project's default columns for this list. Changes you save are only for you.": "ये इस सूची के लिए इस प्रोजेक्ट के डिफ़ॉल्ट कॉलम हैं। आप जो बदलाव सहेजेंगे, वे सिर्फ़ आपके लिए होंगे।",
   "This list has default columns for everyone in this project.": "इस सूची में इस प्रोजेक्ट के सभी लोगों के लिए डिफ़ॉल्ट कॉलम हैं।",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "किसी घटना या अलर्ट की जाँच या सुधार के दौरान AI ने जो कमांड चलाए, वे उस घटना या अलर्ट पर भी दिखते हैं।",
-  "Seeing the commands needs permission to read Runner jobs.": "कमांड देखने के लिए Runner जॉब पढ़ने की अनुमति चाहिए।"
+  "Seeing the commands needs permission to read Runner jobs.": "कमांड देखने के लिए Runner जॉब पढ़ने की अनुमति चाहिए।",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "इससे {{agentName}} की कुंजी तुरंत रद्द हो जाती है। जब तक आप इसकी सेटअप कमांड फिर से नहीं चलाते, यह डिस्कनेक्ट रहता है: बदलें इसे नई कुंजी के साथ दिखाता है।"
 }

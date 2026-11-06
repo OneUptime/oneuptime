@@ -382,15 +382,12 @@ export function getCloudStreamKeyMetricFilters(): Array<{
     }
 
     const existing:
-      { Namespace: string; MetricNames: Array<string> } | undefined =
-      filters.find(
-        (filter: {
-          Namespace: string;
-          MetricNames: Array<string>;
-        }): boolean => {
-          return filter.Namespace === namespace.namespace;
-        },
-      );
+      | { Namespace: string; MetricNames: Array<string> }
+      | undefined = filters.find(
+      (filter: { Namespace: string; MetricNames: Array<string> }): boolean => {
+        return filter.Namespace === namespace.namespace;
+      },
+    );
 
     if (existing) {
       for (const metricName of metricNames) {

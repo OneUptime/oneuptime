@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "Solo si {{first}} o {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Solo si {{first}}, {{second}} y {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Solo si {{first}}, {{second}} o {{third}}",
+  "AI Agent Keys": "Claves del agente de IA",
   "Anyone who hasn't picked their own columns for this list sees these.": "Quien no haya elegido sus propias columnas para esta lista ve estas.",
   "Default Table Columns": "Columnas de tabla predeterminadas",
+  "Making a key for this agent…": "Creando una clave para este agente…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime no envió ninguna clave para este agente. Vuelve a intentarlo.",
   "Remove default": "Quitar las columnas predeterminadas",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Reemplaza las columnas predeterminadas de esta lista. Quien haya elegido las suyas las conserva.",
   "Reset to project default": "Restablecer los valores predeterminados del proyecto",
   "Show these columns to everyone in this project": "Mostrar estas columnas a todos en este proyecto",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "El comando incluye una clave creada solo para este agente. Ejecútalo en el plazo de un día o vuelve a abrir este cuadro de diálogo para obtener una nueva.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "Se restableció el {{agent}} y su clave ya no funciona. Vuelve a ejecutar su comando de configuración para conectarlo: Cambiar lo muestra.",
   "These are this project's default columns for this list. Changes you save are only for you.": "Estas son las columnas predeterminadas de este proyecto para esta lista. Los cambios que guardes son solo para ti.",
   "This list has default columns for everyone in this project.": "Esta lista tiene columnas predeterminadas para todos en este proyecto.",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Los comandos que ejecutó la IA mientras investigaba o corregía un incidente o una alerta también aparecen en ese incidente o esa alerta.",
-  "Seeing the commands needs permission to read Runner jobs.": "Ver los comandos requiere permiso para leer los trabajos de los Runners."
+  "Seeing the commands needs permission to read Runner jobs.": "Ver los comandos requiere permiso para leer los trabajos de los Runners.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Esto revoca al instante la clave del {{agentName}}. Queda desconectado hasta que vuelvas a ejecutar su comando de configuración: Cambiar lo muestra, con una clave nueva."
 }

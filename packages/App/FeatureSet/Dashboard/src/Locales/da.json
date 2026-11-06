@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "Kun hvis {{first}} eller {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Kun hvis {{first}}, {{second}} og {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Kun hvis {{first}}, {{second}} eller {{third}}",
+  "AI Agent Keys": "AI-agentnøgler",
   "Anyone who hasn't picked their own columns for this list sees these.": "Alle, der ikke har valgt deres egne kolonner til denne liste, ser disse.",
   "Default Table Columns": "Standardtabelkolonner",
+  "Making a key for this agent…": "Opretter en nøgle til denne agent…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime sendte ingen nøgle til denne agent. Prøv igen.",
   "Remove default": "Fjern standard",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Erstatter denne listes standardkolonner. Alle, der har valgt deres egne, beholder dem.",
   "Reset to project default": "Nulstil til projektets standard",
   "Show these columns to everyone in this project": "Vis disse kolonner for alle i dette projekt",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Kommandoen indeholder en nøgle, der kun er lavet til denne agent. Kør den inden for en dag, eller åbn denne dialog igen for at få en ny.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} blev nulstillet, og dens nøgle virker ikke længere. Kør dens opsætningskommando igen for at forbinde den: Skift viser den.",
   "These are this project's default columns for this list. Changes you save are only for you.": "Dette er projektets standardkolonner for denne liste. Ændringer, du gemmer, gælder kun for dig.",
   "This list has default columns for everyone in this project.": "Denne liste har standardkolonner for alle i dette projekt.",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Kommandoer, som AI kørte under undersøgelse eller rettelse af en hændelse eller advarsel, vises også på den pågældende hændelse eller advarsel.",
-  "Seeing the commands needs permission to read Runner jobs.": "For at se kommandoerne skal du have tilladelse til at læse Runner-job."
+  "Seeing the commands needs permission to read Runner jobs.": "For at se kommandoerne skal du have tilladelse til at læse Runner-job.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dette tilbagekalder straks nøglen til {{agentName}}. Agenten forbliver afbrudt, indtil du kører dens opsætningskommando igen: Skift viser den med en ny nøgle."
 }

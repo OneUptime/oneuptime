@@ -20,6 +20,8 @@ import {
   AWS_CLOUD_AI_AGENT_TASK_ROLE_NAME,
   AWS_CLOUD_AI_AGENT_WRITE_ROLE_NAME,
   GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
+  GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+  getGcpServiceAccountEmail,
 } from "../../../Types/ResourceAiAgent/CloudAiAgentNames";
 import {
   ResourceAiAgentPosture,
@@ -61,8 +63,9 @@ import { CloudChange } from "./CloudConnectorTypes";
  *     OneUptimeAiAgentTask) and the roles the agent reports it runs with;
  *   - Azure: the agent's managed identity, by the object id the agent
  *     reports (the Activity Log's caller);
- *   - Google Cloud: the agent's service account, by its setup's name in
- *     this project and the account the agent reports.
+ *   - Google Cloud: the agent's service accounts - its own, and the write
+ *     account its changes run as, with a token for each change - by their
+ *     setup's names in this project and the accounts the agent reports.
  *
  * And it is tied to the fix it belongs to by WHEN and WHAT: the agent's
  * change job (a RunnerJob of the account, a fix's or its rollback's, never
@@ -206,10 +209,19 @@ export function getCloudAiAgentPrincipals(data: {
 
   if (data.provider === CloudProvider.GCP) {
     principals.gcpServiceAccounts = unique([
-      principals.accountId
-        ? `${GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID}@${principals.accountId}.iam.gserviceaccount.com`
-        : "",
+      ...(principals.accountId
+        ? [
+            GCP_CLOUD_AI_AGENT_SERVICE_ACCOUNT_ID,
+            GCP_CLOUD_AI_AGENT_WRITE_SERVICE_ACCOUNT_ID,
+          ].map((serviceAccountId: string): string => {
+            return getGcpServiceAccountEmail({
+              serviceAccountId,
+              projectId: principals.accountId,
+            });
+          })
+        : []),
       readDetail(data.posture, "gcpServiceAccount"),
+      readDetail(data.posture, "gcpWriteServiceAccount"),
     ]);
   }
 

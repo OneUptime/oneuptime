@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "فقط اگر {{first}} یا {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "فقط اگر {{first}}، {{second}} و {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "فقط اگر {{first}}، {{second}} یا {{third}}",
+  "AI Agent Keys": "کلیدهای عامل هوش مصنوعی",
   "Anyone who hasn't picked their own columns for this list sees these.": "هر کسی که ستون‌های خودش را برای این فهرست انتخاب نکرده، همین‌ها را می‌بیند.",
   "Default Table Columns": "ستون‌های پیش‌فرض جدول",
+  "Making a key for this agent…": "در حال ساختن کلید برای این عامل…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime کلیدی برای این عامل نفرستاد. دوباره تلاش کنید.",
   "Remove default": "حذف پیش‌فرض",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "ستون‌های پیش‌فرض این فهرست را جایگزین می‌کند. هر کس ستون‌های خودش را انتخاب کرده، همان‌ها را نگه می‌دارد.",
   "Reset to project default": "بازنشانی به پیش‌فرض پروژه",
   "Show these columns to everyone in this project": "نمایش این ستون‌ها به همه در این پروژه",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "این فرمان کلیدی دارد که فقط برای این عامل ساخته شده است. آن را ظرف یک روز اجرا کنید، یا برای کلید تازه این پنجره را دوباره باز کنید.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} بازنشانی شد و کلیدش دیگر کار نمی‌کند. برای وصل کردنش فرمان راه‌اندازی‌اش را دوباره اجرا کنید: «تغییر» آن را نشان می‌دهد.",
   "These are this project's default columns for this list. Changes you save are only for you.": "این‌ها ستون‌های پیش‌فرض این پروژه برای این فهرست هستند. تغییراتی که ذخیره می‌کنید فقط برای خودتان است.",
   "This list has default columns for everyone in this project.": "این فهرست برای همه در این پروژه ستون‌های پیش‌فرض دارد.",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "فرمان‌هایی که هوش مصنوعی هنگام بررسی یا اصلاح یک حادثه یا هشدار اجرا کرد، روی همان حادثه یا هشدار هم نمایش داده می‌شوند.",
-  "Seeing the commands needs permission to read Runner jobs.": "دیدن فرمان‌ها به مجوز خواندن کارهای Runner نیاز دارد."
+  "Seeing the commands needs permission to read Runner jobs.": "دیدن فرمان‌ها به مجوز خواندن کارهای Runner نیاز دارد.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "این کار کلید {{agentName}} را بی‌درنگ باطل می‌کند. تا وقتی فرمان راه‌اندازی‌اش را دوباره اجرا نکنید قطع می‌ماند: «تغییر» آن را با کلیدی تازه نشان می‌دهد."
 }

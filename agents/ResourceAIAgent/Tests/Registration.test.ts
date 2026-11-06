@@ -326,7 +326,7 @@ describe("the retry schedule", () => {
       assert.strictEqual(keyRefused.delayMs, OPERATOR_ACTION_RETRY_MS);
       assert.match(
         keyRefused.message,
-        /Check ONEUPTIME_API_KEY \/ ONEUPTIME_TELEMETRY_INGESTION_KEY \/ ONEUPTIME_SERVICE_TOKEN/,
+        /Check ONEUPTIME_AI_AGENT_KEY \/ ONEUPTIME_API_KEY \/ ONEUPTIME_TELEMETRY_INGESTION_KEY \/ ONEUPTIME_SERVICE_TOKEN/,
       );
     }
 
@@ -347,6 +347,86 @@ describe("the retry schedule", () => {
     assert.strictEqual(
       plan({ kind: "other", status: 400, message: "HTTP 400" }).delayMs,
       OPERATOR_ACTION_RETRY_MS,
+    );
+  });
+
+  /*
+   * A Cloud AI agent that connects with its account's own key: refused, the
+   * server's message says the way out (run the setup command again), and
+   * nothing about an ingestion key.
+   */
+  test("a Cloud AI agent's own key refused: the server's way out, every 5 minutes", () => {
+    const context: RegistrationContext = {
+      resourceType: AiResourceType.AwsAccount,
+      identitySource: "AWS_ACCOUNT_ID",
+      apiKeySource: "ONEUPTIME_AI_AGENT_KEY",
+    };
+    const message: string =
+      "This Cloud AI agent key is not the cloud account's: it was replaced by a newer one, revoked by Reset agent, never connected within a day of being made, or its account was removed. Run the agent's setup command again: Change on the account's AI agent page in OneUptime shows it.";
+
+    for (const status of [401, 403]) {
+      const refused: RegistrationRetryPlan = planRegistrationRetry({
+        response: response({
+          kind: "auth",
+          status,
+          body: { message },
+          message,
+        }),
+        consecutiveFailures: 1,
+        context,
+      });
+
+      assert.strictEqual(refused.category, "refused");
+      assert.strictEqual(refused.delayMs, OPERATOR_ACTION_RETRY_MS);
+      assert.strictEqual(
+        refused.message,
+        `OneUptime refused the agent's key (ONEUPTIME_AI_AGENT_KEY): ${message}`,
+      );
+      assert.doesNotMatch(refused.message, /ingestion key/);
+    }
+  });
+
+  test("an agent set up before keys of their own, once its account has one: the server's message, every 5 minutes", () => {
+    const message: string =
+      "This cloud account's Cloud AI agent connects with a key of its own, so the project's telemetry ingestion key no longer connects it. Run the agent's setup command again: Change on the account's AI agent page in OneUptime shows it, with its key.";
+    const refused: RegistrationRetryPlan = planRegistrationRetry({
+      response: response({
+        kind: "auth",
+        status: 403,
+        body: { reason: "agent_key_required", message },
+        message,
+      }),
+      consecutiveFailures: 1,
+      context: {
+        resourceType: AiResourceType.GoogleCloudProject,
+        apiKeySource: "ONEUPTIME_API_KEY",
+      },
+    });
+
+    assert.strictEqual(refused.category, "refused");
+    assert.strictEqual(refused.delayMs, OPERATOR_ACTION_RETRY_MS);
+    assert.strictEqual(
+      refused.message,
+      `OneUptime refused the project's telemetry ingestion key for this Cloud AI agent: ${message}`,
+    );
+  });
+
+  test("a Cloud AI agent's own key past its account's registrations a minute: waits as told", () => {
+    assert.strictEqual(
+      planRegistrationRetry({
+        response: response({
+          kind: "transient",
+          status: 429,
+          retryAfterSeconds: 45,
+          message: "HTTP 429",
+        }),
+        consecutiveFailures: 1,
+        context: {
+          resourceType: AiResourceType.AzureSubscription,
+          apiKeySource: "ONEUPTIME_AI_AGENT_KEY",
+        },
+      }).delayMs,
+      45_000,
     );
   });
 

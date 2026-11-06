@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "Alleen als {{first}} of {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Alleen als {{first}}, {{second}} en {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Alleen als {{first}}, {{second}} of {{third}}",
+  "AI Agent Keys": "AI-agentsleutels",
   "Anyone who hasn't picked their own columns for this list sees these.": "Iedereen die voor deze lijst geen eigen kolommen heeft gekozen, ziet deze.",
   "Default Table Columns": "Standaard tabelkolommen",
+  "Making a key for this agent…": "Sleutel voor deze agent wordt gemaakt…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime heeft geen sleutel voor deze agent gestuurd. Probeer het opnieuw.",
   "Remove default": "Standaard verwijderen",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Vervangt de standaardkolommen van deze lijst. Wie eigen kolommen heeft gekozen, houdt die.",
   "Reset to project default": "Terugzetten naar projectstandaard",
   "Show these columns to everyone in this project": "Deze kolommen aan iedereen in dit project tonen",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "De opdracht bevat een sleutel die alleen voor deze agent is gemaakt. Voer hem binnen een dag uit, of open dit venster opnieuw voor een nieuwe.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "De {{agent}} is gereset en zijn sleutel werkt niet meer. Voer zijn installatieopdracht opnieuw uit om hem te verbinden: Wijzigen toont hem.",
   "These are this project's default columns for this list. Changes you save are only for you.": "Dit zijn de standaardkolommen van dit project voor deze lijst. Wijzigingen die u opslaat, gelden alleen voor u.",
   "This list has default columns for everyone in this project.": "Deze lijst heeft standaardkolommen voor iedereen in dit project.",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Opdrachten die AI uitvoerde bij het onderzoeken of oplossen van een incident of waarschuwing staan ook bij dat incident of die waarschuwing.",
-  "Seeing the commands needs permission to read Runner jobs.": "Om de opdrachten te zien, hebt u toestemming nodig om Runner-taken te lezen."
+  "Seeing the commands needs permission to read Runner jobs.": "Om de opdrachten te zien, hebt u toestemming nodig om Runner-taken te lezen.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Hiermee wordt de sleutel van de {{agentName}} direct ingetrokken. De agent blijft losgekoppeld totdat u zijn installatieopdracht opnieuw uitvoert: Wijzigen toont hem, met een nieuwe sleutel."
 }

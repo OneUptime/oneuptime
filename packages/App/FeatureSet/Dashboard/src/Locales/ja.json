@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "次のすべてに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "次のいずれかに当てはまる場合のみ: {{first}}、{{second}}、{{third}}",
+  "AI Agent Keys": "AI エージェントのキー",
   "Anyone who hasn't picked their own columns for this list sees these.": "このリストで自分の列を選んでいない人には、これらの列が表示されます。",
   "Default Table Columns": "デフォルトのテーブル列",
+  "Making a key for this agent…": "このエージェントのキーを作成しています…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime からこのエージェントのキーが届きませんでした。もう一度お試しください。",
   "Remove default": "デフォルトを削除",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "このリストのデフォルトの列を置き換えます。自分の列を選んだ人はそのまま使えます。",
   "Reset to project default": "プロジェクトのデフォルトにリセット",
   "Show these columns to everyone in this project": "このプロジェクトの全員にこれらの列を表示",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "このコマンドには、このエージェント専用に作成されたキーが含まれています。1 日以内に実行するか、このダイアログをもう一度開いて新しいキーを取得してください。",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} はリセットされ、そのキーは使えなくなりました。接続するにはセットアップ コマンドをもう一度実行してください。コマンドは「変更」で表示されます。",
   "These are this project's default columns for this list. Changes you save are only for you.": "これはこのプロジェクトでこのリストに設定されたデフォルトの列です。保存した変更はあなただけに適用されます。",
   "This list has default columns for everyone in this project.": "このリストには、このプロジェクトの全員向けのデフォルトの列があります。",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "インシデントやアラートの調査・修正中に AI が実行したコマンドは、そのインシデントやアラートにも表示されます。",
-  "Seeing the commands needs permission to read Runner jobs.": "コマンドを表示するには、Runner のジョブを読み取る権限が必要です。"
+  "Seeing the commands needs permission to read Runner jobs.": "コマンドを表示するには、Runner のジョブを読み取る権限が必要です。",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "{{agentName}} のキーをすぐに無効にします。セットアップ コマンドをもう一度実行するまで、エージェントは切断されたままになります。コマンドは新しいキーとともに「変更」で表示されます。"
 }

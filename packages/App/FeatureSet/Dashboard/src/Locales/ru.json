@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "Только если {{first}} или {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Только если {{first}}, {{second}} и {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Только если {{first}}, {{second}} или {{third}}",
+  "AI Agent Keys": "Ключи ИИ-агента",
   "Anyone who hasn't picked their own columns for this list sees these.": "Их видят все, кто не выбрал свои столбцы для этого списка.",
   "Default Table Columns": "Столбцы таблиц по умолчанию",
+  "Making a key for this agent…": "Создаётся ключ для этого агента…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime не прислал ключ для этого агента. Повторите попытку.",
   "Remove default": "Убрать столбцы по умолчанию",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Заменяет столбцы этого списка по умолчанию. У тех, кто выбрал свои, они останутся.",
   "Reset to project default": "Сбросить к настройкам проекта по умолчанию",
   "Show these columns to everyone in this project": "Показывать эти столбцы всем в этом проекте",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Команда содержит ключ, созданный только для этого агента. Выполните её в течение суток или откройте это окно снова, чтобы получить новый.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "{{agent}} сброшен, и его ключ больше не работает. Выполните его команду настройки ещё раз, чтобы подключить его: её показывает «Изменить».",
   "These are this project's default columns for this list. Changes you save are only for you.": "Это столбцы этого проекта по умолчанию для этого списка. Изменения, которые вы сохраните, будут только у вас.",
   "This list has default columns for everyone in this project.": "У этого списка есть столбцы по умолчанию для всех в этом проекте.",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Команды, которые ИИ выполнил при расследовании или исправлении инцидента или оповещения, также отображаются на этом инциденте или оповещении.",
-  "Seeing the commands needs permission to read Runner jobs.": "Чтобы видеть команды, нужно разрешение на чтение заданий Runner."
+  "Seeing the commands needs permission to read Runner jobs.": "Чтобы видеть команды, нужно разрешение на чтение заданий Runner.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Ключ, который использует {{agentName}}, будет сразу отозван. Агент останется отключённым, пока вы снова не выполните его команду настройки: её показывает «Изменить», с новым ключом."
 }

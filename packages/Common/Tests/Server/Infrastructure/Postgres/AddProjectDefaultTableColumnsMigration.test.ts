@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProjectDefaultTableColumns1808994400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994400000-AddProjectDefaultTableColumns";
+import { AddProjectDefaultTableColumns1808994500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994500000-AddProjectDefaultTableColumns";
 
 /*
  * The migration behind Project.defaultTableColumns (default columns per
@@ -17,7 +17,7 @@ import { AddProjectDefaultTableColumns1808994400000 } from "../../../../Server/I
  * different order on fresh installs than on upgraded ones).
  */
 
-const MIGRATION_TIMESTAMP: string = "1808994400000";
+const MIGRATION_TIMESTAMP: string = "1808994500000";
 
 const MIGRATION_BASE_NAME: string = "AddProjectDefaultTableColumns";
 
@@ -61,13 +61,13 @@ const makeQueryRunner: MakeQueryRunnerFunction = (): MakeQueryRunnerResult => {
 
 async function upStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddProjectDefaultTableColumns1808994400000().up(runner);
+  await new AddProjectDefaultTableColumns1808994500000().up(runner);
   return statements;
 }
 
 async function downStatements(): Promise<Array<string>> {
   const { runner, statements } = makeQueryRunner();
-  await new AddProjectDefaultTableColumns1808994400000().down(runner);
+  await new AddProjectDefaultTableColumns1808994500000().down(runner);
   return statements;
 }
 
@@ -114,13 +114,13 @@ describe("executing it", () => {
 
   test("is a MigrationInterface whose two steps are still named up and down", () => {
     const migration: MigrationInterface =
-      new AddProjectDefaultTableColumns1808994400000();
+      new AddProjectDefaultTableColumns1808994500000();
 
     expect(typeof migration.up).toBe("function");
     expect(typeof migration.down).toBe("function");
     expect(
       Object.getOwnPropertyNames(
-        AddProjectDefaultTableColumns1808994400000.prototype,
+        AddProjectDefaultTableColumns1808994500000.prototype,
       ).sort(),
     ).toEqual(["constructor", "down", "up"]);
   });
@@ -141,11 +141,11 @@ describe("the migration runs", () => {
 
   test("it is in the exported migration list, exactly once", () => {
     expect(SchemaMigrations).toContain(
-      AddProjectDefaultTableColumns1808994400000,
+      AddProjectDefaultTableColumns1808994500000,
     );
     expect(
       SchemaMigrations.filter((migration: unknown): boolean => {
-        return migration === AddProjectDefaultTableColumns1808994400000;
+        return migration === AddProjectDefaultTableColumns1808994500000;
       }),
     ).toHaveLength(1);
   });
@@ -156,14 +156,14 @@ describe("the migration runs", () => {
    * the boot the second time.
    */
   test("its declared name, its class name and its timestamp agree", () => {
-    expect(new AddProjectDefaultTableColumns1808994400000().name).toBe(
+    expect(new AddProjectDefaultTableColumns1808994500000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
-    expect(AddProjectDefaultTableColumns1808994400000.name).toBe(
+    expect(AddProjectDefaultTableColumns1808994500000.name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(
-      AddProjectDefaultTableColumns1808994400000.name.match(
+      AddProjectDefaultTableColumns1808994500000.name.match(
         CLASS_TIMESTAMP,
       )?.[1],
     ).toBe(MIGRATION_TIMESTAMP);
@@ -181,7 +181,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddProjectDefaultTableColumns1808994400000,
+      AddProjectDefaultTableColumns1808994500000,
     );
 
     expect(position).toBeGreaterThan(-1);

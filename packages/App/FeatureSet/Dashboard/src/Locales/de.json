@@ -45351,14 +45351,20 @@
   "Only if {{first}} or {{second}}": "Nur wenn {{first}} oder {{second}}",
   "Only if {{first}}, {{second}} and {{third}}": "Nur wenn {{first}}, {{second}} und {{third}}",
   "Only if {{first}}, {{second}} or {{third}}": "Nur wenn {{first}}, {{second}} oder {{third}}",
+  "AI Agent Keys": "KI-Agent-Schlüssel",
   "Anyone who hasn't picked their own columns for this list sees these.": "Alle, die für diese Liste keine eigenen Spalten gewählt haben, sehen diese.",
   "Default Table Columns": "Standard-Tabellenspalten",
+  "Making a key for this agent…": "Schlüssel für diesen Agenten wird erstellt…",
+  "OneUptime did not send a key for this agent. Try again.": "OneUptime hat keinen Schlüssel für diesen Agenten gesendet. Versuchen Sie es erneut.",
   "Remove default": "Standard entfernen",
   "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Ersetzt die Standardspalten dieser Liste. Wer eigene gewählt hat, behält sie.",
   "Reset to project default": "Auf Projektstandard zurücksetzen",
   "Show these columns to everyone in this project": "Diese Spalten allen in diesem Projekt anzeigen",
+  "The command holds a key made for this agent alone. Run it within a day, or open this dialog again for a new one.": "Der Befehl enthält einen Schlüssel, der nur für diesen Agenten erstellt wurde. Führen Sie ihn innerhalb eines Tages aus, oder öffnen Sie diesen Dialog erneut, um einen neuen zu erhalten.",
+  "The {{agent}} was reset, and its key no longer works. Run its setup command again to connect it: Change shows it.": "Der {{agent}} wurde zurückgesetzt, und sein Schlüssel funktioniert nicht mehr. Führen Sie seinen Einrichtungsbefehl erneut aus, um ihn zu verbinden: Ändern zeigt ihn an.",
   "These are this project's default columns for this list. Changes you save are only for you.": "Dies sind die Standardspalten dieses Projekts für diese Liste. Änderungen, die Sie speichern, gelten nur für Sie.",
   "This list has default columns for everyone in this project.": "Diese Liste hat Standardspalten für alle in diesem Projekt.",
   "Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.": "Befehle, die die KI beim Untersuchen oder Beheben eines Vorfalls oder einer Warnung ausgeführt hat, erscheinen auch bei diesem Vorfall bzw. dieser Warnung.",
-  "Seeing the commands needs permission to read Runner jobs.": "Um die Befehle zu sehen, benötigen Sie die Berechtigung zum Lesen von Runner-Jobs."
+  "Seeing the commands needs permission to read Runner jobs.": "Um die Befehle zu sehen, benötigen Sie die Berechtigung zum Lesen von Runner-Jobs.",
+  "This revokes the {{agentName}}'s key at once. It stays disconnected until you run its setup command again: Change shows it, with a new key.": "Dadurch wird der Schlüssel, den der {{agentName}} verwendet, sofort widerrufen. Er bleibt getrennt, bis Sie seinen Einrichtungsbefehl erneut ausführen: Ändern zeigt ihn mit einem neuen Schlüssel an."
 }

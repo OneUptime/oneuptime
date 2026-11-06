@@ -377,6 +377,81 @@ describe("redactLogString", () => {
   });
 });
 
+/*
+ * A Cloud AI agent's own key (Types/CloudConnection/CloudAiAgentKey) names
+ * itself: ouca_, its cloud account's id, then 64 hex digits. Its secret goes
+ * wherever it is in a text - a refusal quoted in prose, a value under a name
+ * no rule knows - and the account's id stays, which says whose agent it was.
+ */
+describe("a Cloud AI agent's own key", () => {
+  const ACCOUNT: string = "33333333-3333-4333-8333-333333333333";
+  const SECRET: string = "0123456789abcdef".repeat(4);
+  const KEY: string = `ouca_${ACCOUNT}_${SECRET}`;
+  const LENGTH: number = 400000;
+
+  it("loses its secret wherever it is, and keeps its account's id", () => {
+    for (const text of [
+      `registration refused for ${KEY} (replaced)`,
+      `{"value":"${KEY}","attempt":3}`,
+      `the agent sent [${KEY}]`,
+      `${KEY}`,
+      `KEY IS ${KEY.toUpperCase()}`,
+    ]) {
+      const output: string = redactLogString(text);
+
+      expect({
+        text,
+        holdsTheSecret: output.toLowerCase().includes(SECRET),
+      }).toEqual({
+        text,
+        holdsTheSecret: false,
+      });
+      expect(output.toLowerCase()).toContain(`ouca_${ACCOUNT}_`);
+      expect(output).toContain(REDACTED);
+    }
+
+    expect(redactLogString(`refused ${KEY} at 12:00`)).toBe(
+      `refused ouca_${ACCOUNT}_${REDACTED} at 12:00`,
+    );
+  });
+
+  it("goes in an object too, under a name no rule knows", () => {
+    expect(serialize({ value: KEY, attempt: 3 })).not.toContain(SECRET);
+  });
+
+  it("leaves what only looks like one alone", () => {
+    for (const text of [
+      "ouca_ is the prefix of a Cloud AI agent's key",
+      `ouca_${ACCOUNT}`,
+      `ouca_not-an-id_${SECRET}`,
+    ]) {
+      expect(redactLogString(text)).toBe(text);
+    }
+  });
+
+  it.each([
+    ["the prefix over and over", "ouca_".repeat(LENGTH / 5)],
+    [
+      "an account's id over and over, with no secret",
+      `ouca_${ACCOUNT}_`.repeat(LENGTH / 42),
+    ],
+    ["a key that never ends", `ouca_${ACCOUNT}_${"a".repeat(LENGTH)}`],
+    ["keys run together", KEY.repeat(LENGTH / KEY.length)],
+  ])(
+    "is looked for in time in line with the text: %s",
+    (_label: string, text: string) => {
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          redactLogString(text);
+        },
+        limitInMs: 2000,
+      });
+
+      expect(timed.inMs).toBeLessThan(2000);
+    },
+  );
+});
+
 describe("redactLogValue - safety properties", () => {
   it("does not mutate the caller's object", () => {
     const body: Record<string, unknown> = { password: SENTINEL };

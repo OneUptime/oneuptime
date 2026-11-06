@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * so every list shows its own columns, or each person's own, as it did
  * before. Adding it is a catalogue change, not a rewrite.
  */
-export class AddProjectDefaultTableColumns1808994400000
+export class AddProjectDefaultTableColumns1808994500000
   implements MigrationInterface
 {
-  public name = "AddProjectDefaultTableColumns1808994400000";
+  public name = "AddProjectDefaultTableColumns1808994500000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
