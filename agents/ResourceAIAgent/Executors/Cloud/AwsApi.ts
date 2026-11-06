@@ -36,6 +36,7 @@ export const STS_API_VERSION: string = "2011-06-15";
 export const EC2_API_VERSION: string = "2016-11-15";
 export const RDS_API_VERSION: string = "2014-10-31";
 export const AUTOSCALING_API_VERSION: string = "2011-01-01";
+export const ELASTIC_BEANSTALK_API_VERSION: string = "2010-12-01";
 
 // A 12-digit AWS account id.
 export const AWS_ACCOUNT_PATTERN: RegExp = /^[0-9]{12}$/;
