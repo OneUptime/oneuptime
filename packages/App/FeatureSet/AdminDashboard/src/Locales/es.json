@@ -1832,6 +1832,13 @@
   "Copied": "Copiado",
   "Status: {{status}}": "Estado: {{status}}",
   "Loading content": "Cargando contenido",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Estas son las columnas predeterminadas de este proyecto para esta lista. Los cambios que guardes son solo para ti.",
+  "Show these columns to everyone in this project": "Mostrar estas columnas a todos en este proyecto",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Reemplaza las columnas predeterminadas de esta lista. Quien haya elegido las suyas las conserva.",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Quien no haya elegido sus propias columnas para esta lista ve estas.",
+  "This list has default columns for everyone in this project.": "Esta lista tiene columnas predeterminadas para todos en este proyecto.",
+  "Remove default": "Quitar las columnas predeterminadas",
+  "Reset to project default": "Restablecer los valores predeterminados del proyecto",
   "markdownCallouts": {
     "caution": "Precaución",
     "danger": "Peligro",

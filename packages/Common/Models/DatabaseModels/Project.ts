@@ -2675,6 +2675,48 @@ export default class Project extends TenantModel {
   })
   public defaultNetworkTopologyLayout?: string = undefined;
 
+  /*
+   * The columns each of the project's lists shows, and their order, for
+   * everyone who has not chosen columns of their own for it: a list's key
+   * (a ModelTable's userPreferencesKey) to { order, hidden } column ids
+   * (Types/Table/DefaultTableColumns). A Project Owner or Admin sets a
+   * list's from its Customize Columns ("Show these columns to everyone in
+   * this project"); a person's own choice wins over it, and Reset to
+   * default brings them back to it. Empty: every list shows its own
+   * columns, as it always did. Refused by ProjectService unless it reads as
+   * layouts, and read through DefaultTableColumnsUtil.parse. It comes with
+   * the project list the Dashboard reads as it starts, so a list draws the
+   * project's columns from its first paint.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Default Table Columns",
+    description:
+      "The columns each list shows, and their order, for everyone in the project who has not chosen their own: a list's key to its column ids in order and the ones hidden. Empty: every list shows its own columns.",
+    example:
+      '{"incidents-table": {"order": ["incidentNumber", "title", "currentIncidentState"], "hidden": ["labels"]}}',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public defaultTableColumns?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

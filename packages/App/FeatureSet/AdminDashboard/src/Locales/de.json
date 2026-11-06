@@ -1832,6 +1832,13 @@
   "Copied": "Kopiert",
   "Status: {{status}}": "Zustand: {{status}}",
   "Loading content": "Inhalt wird geladen",
+  "These are this project's default columns for this list. Changes you save are only for you.": "Dies sind die Standardspalten dieses Projekts für diese Liste. Änderungen, die Sie speichern, gelten nur für Sie.",
+  "Show these columns to everyone in this project": "Diese Spalten allen in diesem Projekt anzeigen",
+  "Replaces this list's default columns. Anyone who picked their own keeps theirs.": "Ersetzt die Standardspalten dieser Liste. Wer eigene gewählt hat, behält sie.",
+  "Anyone who hasn't picked their own columns for this list sees these.": "Alle, die für diese Liste keine eigenen Spalten gewählt haben, sehen diese.",
+  "This list has default columns for everyone in this project.": "Diese Liste hat Standardspalten für alle in diesem Projekt.",
+  "Remove default": "Standard entfernen",
+  "Reset to project default": "Auf Projektstandard zurücksetzen",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",
