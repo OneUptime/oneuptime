@@ -122,12 +122,56 @@ wait_for() { # wait_for <seconds> <kubectl args...>: kubectl ... --timeout=<what
   return 1
 }
 # A workload that never got Ready: nothing downstream of it measures
-# anything, so stop, with what its pods say (e.g. the app's npm install).
+# anything, so stop, with what its pods say (e.g. the app's npm install), what
+# Kubernetes saw (a probe's own error is only in the events), and what the
+# container runtime and the kernel saw (#6184: on k3s under ubuntu-26.04 a
+# container ran, logged nothing and answered no exec probe). Gathered with
+# set -e off, so one failing look never hides the rest.
 not_ready() { # not_ready <namespace> <deploy/name>
   local f="${OUT}/not-ready-$1.txt"
-  kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1" describe pods >"$f" 2>&1 || true
-  kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1" logs "$2" --all-containers --prefix >>"$f" 2>&1 || true
-  die "$2 in namespace $1 is not Ready; its pods are described in $f"
+  (
+    set +e
+    not_ready_facts "$1" "$2"
+  ) >"$f" 2>&1
+  die "$2 in namespace $1 is not Ready; what its pods, Kubernetes, the runtime and the kernel said is in $f"
+}
+not_ready_facts() { # not_ready_facts <namespace> <deploy/name>
+  local kc=(kubectl --kubeconfig "${KC}" --request-timeout=60s -n "$1") probe node
+  local -a argv
+  echo "=== kubectl describe pods"
+  "${kc[@]}" describe pods
+  echo "=== events"
+  "${kc[@]}" get events --sort-by=.lastTimestamp -o wide
+  echo "=== logs of $2"
+  "${kc[@]}" logs "$2" --all-containers --prefix --timestamps
+  echo "=== kubectl exec $2 -- true"
+  timeout 60 "${kc[@]}" exec "$2" -- true
+  echo "exit $?"
+  probe="$("${kc[@]}" get "$2" -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.exec.command}')"
+  if [ -n "${probe}" ]; then
+    mapfile -t argv < <(printf '%s' "${probe}" | python3 -I -c 'import json, sys; print("\n".join(json.load(sys.stdin)))')
+    echo "=== its readiness probe, by hand: ${argv[*]}"
+    timeout 60 "${kc[@]}" exec "$2" -- "${argv[@]}"
+    echo "exit $?"
+  fi
+  for node in ${NODES}; do
+    echo "=== ${node}: the runtime's containers in namespace $1"
+    node_sh "${node}" "NS='$1' CRICTL='$(crictl_cmd)'; $(cat "${HERE}/container-facts.sh")"
+  done
+  echo "=== kernel messages (AppArmor, seccomp, audit, oops)"
+  sudo dmesg | grep -iE 'apparmor|audit|denied|seccomp|segfault|oops|call trace' | tail -n 100
+  case "${PLATFORM}" in
+    k3s)
+      echo "=== k3s's journal"
+      sudo journalctl -u k3s --no-pager -n 300
+      ;;
+    kind)
+      for node in ${NODES}; do
+        echo "=== ${node}: containerd's journal"
+        node_sh "${node}" "journalctl -u containerd --no-pager -n 200"
+      done
+      ;;
+  esac
 }
 h() { helm --kubeconfig "${KC}" "$@"; }
 retry() { # retry <attempts> <cmd...>
