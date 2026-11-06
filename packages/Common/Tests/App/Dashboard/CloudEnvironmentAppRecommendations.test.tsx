@@ -233,7 +233,10 @@ function monitorFor(app: CloudApp, templateId: string): Monitor {
   return monitor;
 }
 
-function dismissalFor(appId: string, templateId: string): RecommendationDismissal {
+function dismissalFor(
+  appId: string,
+  templateId: string,
+): RecommendationDismissal {
   const dismissal: RecommendationDismissal = new RecommendationDismissal();
   const record: Record<string, unknown> = dismissal as unknown as Record<
     string,
@@ -489,10 +492,12 @@ describe("what the environment is offered", () => {
         .sort(),
     ).toEqual([MonitorType.Metrics, MonitorType.Traces].sort());
     expect(
-      (listCallsOf(RecommendationDismissal)[0]!["query"] as Record<
-        string,
-        unknown
-      >)["resourceType"],
+      (
+        listCallsOf(RecommendationDismissal)[0]!["query"] as Record<
+          string,
+          unknown
+        >
+      )["resourceType"],
     ).toBe(MonitorRecommendationResourceType.CloudApp);
   });
 
@@ -516,9 +521,7 @@ describe("what the environment is offered", () => {
 
     expect(checkout).toHaveTextContent("checkout-api");
     expect(checkout).toHaveTextContent("cluster production");
-    expect(
-      within(checkout).getByRole("link").getAttribute("href"),
-    ).toBe(
+    expect(within(checkout).getByRole("link").getAttribute("href")).toBe(
       `${ENVIRONMENT_PAGE}/apps/${IDS["checkoutApi"]}?tab=Recommendations`,
     );
   });
@@ -606,7 +609,9 @@ describe("adding monitors to every app at once", () => {
     expect(
       screen.getByText("checkout-api - Failed Operations"),
     ).toBeInTheDocument();
-    expect(screen.getByText("inventory - Failed Operations")).toBeInTheDocument();
+    expect(
+      screen.getByText("inventory - Failed Operations"),
+    ).toBeInTheDocument();
 
     await createFromPanel();
 
@@ -836,7 +841,11 @@ describe("the count beside the page in the environment's menu", () => {
         <CloudEnvironmentRecommendationsMenuItem
           link={{
             title: "Recommendations",
-            to: { toString: () => `${ENVIRONMENT_PAGE}/recommendations` } as never,
+            to: {
+              toString: (): string => {
+                return `${ENVIRONMENT_PAGE}/recommendations`;
+              },
+            } as never,
           }}
           environmentId={new ObjectID(ENVIRONMENT_ID)}
         />

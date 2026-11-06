@@ -94,12 +94,7 @@ export function getAppPlatformsBreadcrumbs(
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SCHEDULED_MAINTENANCE,
-      [
-        "Project",
-        "App Platforms",
-        "View Environment",
-        "Scheduled Maintenance",
-      ],
+      ["Project", "App Platforms", "View Environment", "Scheduled Maintenance"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS,

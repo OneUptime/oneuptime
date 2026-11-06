@@ -244,7 +244,9 @@ function renderNotice(scope: CloudEnvironmentMaintenanceNoticeScope): void {
 }
 
 async function notice(): Promise<HTMLElement> {
-  return await screen.findByTestId(CLOUD_ENVIRONMENT_MAINTENANCE_NOTICE_TEST_ID);
+  return await screen.findByTestId(
+    CLOUD_ENVIRONMENT_MAINTENANCE_NOTICE_TEST_ID,
+  );
 }
 
 const WHITESPACE: RegExp = /\s+/g;
@@ -330,7 +332,10 @@ describe("on an app's page", () => {
     events = [
       event({
         title: "Database failover",
-        endsAt: OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1),
+        endsAt: OneUptimeDate.addRemoveHours(
+          OneUptimeDate.getCurrentDate(),
+          -1,
+        ),
       }),
     ];
 
@@ -375,7 +380,9 @@ describe("on the environment's Overview", () => {
 
     renderNotice(CloudEnvironmentMaintenanceNoticeScope.Environment);
 
-    expect(textOf(await notice())).toContain("Migration covers this environment");
+    expect(textOf(await notice())).toContain(
+      "Migration covers this environment",
+    );
     expect(screen.queryByText("Patch")).toBeNull();
   });
 });

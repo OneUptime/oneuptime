@@ -609,9 +609,7 @@ describe("while maintenance holds the app's environment", () => {
     );
 
     expect(notice).toHaveTextContent("Under maintenance");
-    expect(notice).toHaveTextContent(
-      "covers this app's environment until",
-    );
+    expect(notice).toHaveTextContent("covers this app's environment until");
     expect(notice).toHaveTextContent(
       "Until then, the app's monitors open no incidents or alerts.",
     );
@@ -626,9 +624,8 @@ describe("while maintenance holds the app's environment", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      screen
-        .getByTestId("cloud-app-header")
-        .compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen.getByTestId("cloud-app-header").compareDocumentPosition(notice) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

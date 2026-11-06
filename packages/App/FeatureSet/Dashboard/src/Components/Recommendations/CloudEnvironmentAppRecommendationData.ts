@@ -45,7 +45,11 @@ export async function loadCloudEnvironmentAppRecommendationResources(data: {
       ModelAPI.getItem<CloudResource>({
         modelType: CloudResource,
         id: data.environmentId,
-        select: { cloudPlatform: true, cloudAccountId: true, cloudRegion: true },
+        select: {
+          cloudPlatform: true,
+          cloudAccountId: true,
+          cloudRegion: true,
+        },
       }),
       ModelAPI.getList<CloudApp>({
         modelType: CloudApp,

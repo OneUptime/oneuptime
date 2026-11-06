@@ -54,10 +54,7 @@ export function getCloudEnvironmentKeyOfFilter(
     return null;
   }
 
-  const record: Record<string, unknown> = attributes as Record<
-    string,
-    unknown
-  >;
+  const record: Record<string, unknown> = attributes as Record<string, unknown>;
 
   const platform: string = readPinnedText(
     record[CLOUD_ENVIRONMENT_PLATFORM_ATTRIBUTE],

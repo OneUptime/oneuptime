@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
@@ -224,8 +229,9 @@ const CloudEnvironmentMaintenanceNotice: FunctionComponent<ComponentProps> = (
             to={eventsRoute}
             className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
           >
-            {translator.translateText(CLOUD_ENVIRONMENT_MAINTENANCE_VIEW_EVENTS) ||
-              CLOUD_ENVIRONMENT_MAINTENANCE_VIEW_EVENTS}
+            {translator.translateText(
+              CLOUD_ENVIRONMENT_MAINTENANCE_VIEW_EVENTS,
+            ) || CLOUD_ENVIRONMENT_MAINTENANCE_VIEW_EVENTS}
           </AppLink>
         }
       >
@@ -252,9 +258,7 @@ const CloudEnvironmentMaintenanceNotice: FunctionComponent<ComponentProps> = (
             values={
               isEndAhead && endsAt
                 ? {
-                    time: OneUptimeDate.getDateAsCompactLocalString(
-                      endsAt,
-                    ),
+                    time: OneUptimeDate.getDateAsCompactLocalString(endsAt),
                   }
                 : undefined
             }

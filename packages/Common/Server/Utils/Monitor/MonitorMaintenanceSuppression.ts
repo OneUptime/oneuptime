@@ -277,15 +277,21 @@ export default class MonitorMaintenanceSuppression {
      * query reads one can be silenced by an environment's maintenance, so
      * only such a monitor pays for the lookup on this account.
      */
-    const environmentKeys: Array<string | null> =
-      this.readCloudEnvironmentKeys(input.monitor);
+    const environmentKeys: Array<string | null> = this.readCloudEnvironmentKeys(
+      input.monitor,
+    );
     const readsOnlyEnvironments: boolean =
       environmentKeys.length > 0 &&
       environmentKeys.every((key: string | null): boolean => {
         return Boolean(key);
       });
 
-    if (!hasSeries && !namesHeldKind && !watchesData && !readsOnlyEnvironments) {
+    if (
+      !hasSeries &&
+      !namesHeldKind &&
+      !watchesData &&
+      !readsOnlyEnvironments
+    ) {
       return result;
     }
 

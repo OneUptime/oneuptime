@@ -255,9 +255,11 @@ const CHECKOUT_HELD: HeldRow = {
 };
 
 describe("the environment each query of a monitor reads", () => {
-  test.each(APP_TEMPLATES.map((template: CloudAppAlertTemplate) => {
-    return [template.id, template];
-  }))(
+  test.each(
+    APP_TEMPLATES.map((template: CloudAppAlertTemplate) => {
+      return [template.id, template];
+    }),
+  )(
     "the app's recommended monitor %s reads its environment, in its one query",
     (_id: string, template: CloudAppAlertTemplate) => {
       expect(
@@ -530,9 +532,11 @@ describe("MonitorMaintenanceSuppression.getMaintenanceSuppression, for an enviro
     jest.restoreAllMocks();
   });
 
-  test.each(APP_TEMPLATES.map((template: CloudAppAlertTemplate) => {
-    return [template.id, template];
-  }))(
+  test.each(
+    APP_TEMPLATES.map((template: CloudAppAlertTemplate) => {
+      return [template.id, template];
+    }),
+  )(
     "the app's recommended monitor %s is silenced while its environment is held",
     async (_id: string, template: CloudAppAlertTemplate) => {
       events = [ongoingEvent([CHECKOUT_HELD])];

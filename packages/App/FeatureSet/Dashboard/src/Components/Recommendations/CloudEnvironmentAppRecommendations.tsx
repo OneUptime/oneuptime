@@ -145,13 +145,14 @@ const CloudEnvironmentAppRecommendations: FunctionComponent<ComponentProps> = (
 
   const source: GroupedRecommendationsSource =
     useMemo((): GroupedRecommendationsSource => {
-      const getAppRoute: (resource: CloudAccountRecommendationResource) => Route =
-        (resource: CloudAccountRecommendationResource): Route => {
-          return getCloudAppRecommendationsRoute({
-            environmentId: environmentId,
-            appId: resource.resourceId,
-          });
-        };
+      const getAppRoute: (
+        resource: CloudAccountRecommendationResource,
+      ) => Route = (resource: CloudAccountRecommendationResource): Route => {
+        return getCloudAppRecommendationsRoute({
+          environmentId: environmentId,
+          appId: resource.resourceId,
+        });
+      };
 
       return {
         testIdPrefix: "cloud-environment-recommendation",

@@ -220,12 +220,10 @@ export function useRecommendationsToSetUpCount(data: {
       }
 
       try {
-        const read: number | undefined = await loadRecommendationsToSetUpCount(
-          {
-            resourceType: data.resourceType,
-            resourceId: data.resourceId,
-          },
-        );
+        const read: number | undefined = await loadRecommendationsToSetUpCount({
+          resourceType: data.resourceType,
+          resourceId: data.resourceId,
+        });
 
         if (isMounted()) {
           setCount(read);

@@ -67,7 +67,9 @@ function listSources(directory: string): Array<string> {
 
 describe("an environment's Recommendations", () => {
   test("its page draws every app's recommendations for the environment in view", () => {
-    const page: string = readCode("Pages/AppPlatforms/View/Recommendations.tsx");
+    const page: string = readCode(
+      "Pages/AppPlatforms/View/Recommendations.tsx",
+    );
 
     expect(page).toContain(
       "const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);",
@@ -88,9 +90,9 @@ describe("an environment's Recommendations", () => {
       "RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_RECOMMENDATIONS]",
     );
     expect(entry).toContain("environmentId={props.modelId}");
-    expect(menu.indexOf("<CloudEnvironmentRecommendationsMenuItem")).toBeLessThan(
-      menu.indexOf('title: "Documentation"'),
-    );
+    expect(
+      menu.indexOf("<CloudEnvironmentRecommendationsMenuItem"),
+    ).toBeLessThan(menu.indexOf('title: "Documentation"'));
   });
 
   test("an account's and an environment's are one component, each with its own words and elements", () => {
@@ -99,7 +101,7 @@ describe("an environment's Recommendations", () => {
       "Components/Recommendations/CloudEnvironmentAppRecommendations.tsx",
     ]) {
       expect(readCode(file)).toContain(
-        'import GroupedMonitorRecommendations, {',
+        "import GroupedMonitorRecommendations, {",
       );
     }
 
@@ -122,9 +124,7 @@ describe("an environment's scheduled maintenance", () => {
       "Pages/AppPlatforms/View/ScheduledMaintenance.tsx",
     );
 
-    expect(page).toContain(
-      "query.cloudResources = new Includes([modelId]);",
-    );
+    expect(page).toContain("query.cloudResources = new Includes([modelId]);");
     expect(page).toContain(
       "createFrom={{kind: CreateFromRecordKind.CloudEnvironment, id: modelId}}",
     );
@@ -152,9 +152,9 @@ describe("an environment's scheduled maintenance", () => {
     expect(overview).toContain(
       "<CloudEnvironmentMaintenanceNotice environmentId={modelId} scope={CloudEnvironmentMaintenanceNoticeScope.Environment} />",
     );
-    expect(
-      overview.indexOf("<CloudEnvironmentMaintenanceNotice"),
-    ).toBeLessThan(overview.indexOf("<ResourceOverview icon="));
+    expect(overview.indexOf("<CloudEnvironmentMaintenanceNotice")).toBeLessThan(
+      overview.indexOf("<ResourceOverview icon="),
+    );
   });
 
   test("an app's page says it of the app, under its header and before its tabs", () => {
@@ -205,7 +205,9 @@ describe("a resource's own Scheduled Maintenance tab", () => {
     expect(table).toContain(
       'export const AFFECTED_RESOURCES_COLUMN_TITLE: string = "Affected Resources";',
     );
-    expect(table).toContain("if (!leaveOutAffectedResources) {return columns;}");
+    expect(table).toContain(
+      "if (!leaveOutAffectedResources) {return columns;}",
+    );
     expect(table).toContain('title: "Affected Resources",');
     expect(table).toContain("columns={columnsOfThisList([");
   });

@@ -8,8 +8,10 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import CloudAccountRecommendationPlan from "./CloudAccountRecommendationPlan";
-import { CloudAccountRecommendationResources } from "./CloudAccountRecommendationData";
-import { CloudAccountRecommendationCoverage } from "./CloudAccountRecommendationData";
+import {
+  CloudAccountRecommendationCoverage,
+  CloudAccountRecommendationResources,
+} from "./CloudAccountRecommendationData";
 import CloudEnvironmentAppRecommendationPlan from "./CloudEnvironmentAppRecommendationPlan";
 import {
   loadCloudEnvironmentAppRecommendationCoverage,

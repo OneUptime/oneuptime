@@ -955,8 +955,10 @@ const GroupedMonitorRecommendations: FunctionComponent<ComponentProps> = (
           {reasons.map((reason: GroupedRecommendationsNotListedReason) => {
             const listed: ReadonlyArray<GroupedRecommendationGap> =
               gaps.byReason[reason.reason] || [];
-            const shown: ReadonlyArray<GroupedRecommendationGap> =
-              listed.slice(0, NOT_LISTED_NAMES_SHOWN);
+            const shown: ReadonlyArray<GroupedRecommendationGap> = listed.slice(
+              0,
+              NOT_LISTED_NAMES_SHOWN,
+            );
 
             return (
               <li

@@ -79,7 +79,8 @@ function app(data: {
     resourceName: data.name,
     context: buildCloudAppRecommendationContext({
       environmentId: ENVIRONMENT_ID,
-      environment: data.environment === undefined ? ENVIRONMENT : data.environment,
+      environment:
+        data.environment === undefined ? ENVIRONMENT : data.environment,
       telemetryAttributes: data.attributes,
     }),
     ...(data.detail ? { detail: data.detail } : {}),
@@ -278,9 +279,9 @@ describe("an environment's apps, as one group", () => {
       });
     }
 
-    expect(
-      CloudAccountRecommendationPlan.getCounts(groupsOf()).available,
-    ).toBe(3 * TEMPLATE_IDS.length);
+    expect(CloudAccountRecommendationPlan.getCounts(groupsOf()).available).toBe(
+      3 * TEMPLATE_IDS.length,
+    );
   });
 
   test("an environment with no app offers nothing, and no group", () => {
@@ -309,9 +310,7 @@ describe("what covers a recommendation, app by app", () => {
       dismissed: 0,
     });
     // The monitor that covers it, for "View monitor".
-    expect(
-      row.targets[0]!.monitorId?.toString(),
-    ).toBeTruthy();
+    expect(row.targets[0]!.monitorId?.toString()).toBeTruthy();
   });
 
   test("the same recommendation of another app is another monitor: the staging app's covers nothing in production", () => {
@@ -492,7 +491,9 @@ describe("what one Add creates", () => {
       expect(getCloudEnvironmentKeyOfFilter(filter)).toBe(
         "aws_ecs|123456789012|us-east-1",
       );
-      expect(filter).toEqual(item.target.resource.context.cloudAppTelemetryFilters);
+      expect(filter).toEqual(
+        item.target.resource.context.cloudAppTelemetryFilters,
+      );
     }
 
     // The production and staging apps each get their own monitor.

@@ -213,7 +213,6 @@ function isLabelsColumn(title: string | null, fields: Array<string>): boolean {
   );
 }
 
-// Every column that lists labels, in every table a file declares.
 /*
  * The list a `columns` attribute is given: the array itself, or the array a
  * call is handed last - a list that leaves a column out on one page passes
@@ -230,6 +229,7 @@ function columnListOf(
   return expression;
 }
 
+// Every column that lists labels, in every table a file declares.
 function labelColumnsIn(fileName: string, text: string): Array<LabelColumn> {
   const source: ts.SourceFile = ts.createSourceFile(
     fileName,
