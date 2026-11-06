@@ -45795,5 +45795,6 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "通知に使う言語です。",
-  "{{language}} (default)": "{{language}} (デフォルト)"
+  "{{language}} (default)": "{{language}} (デフォルト)",
+  "Resize the filters": "フィルターの幅を変更"
 }

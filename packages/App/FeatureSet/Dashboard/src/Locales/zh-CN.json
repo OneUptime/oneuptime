@@ -45795,5 +45795,6 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "通知所用的语言。",
-  "{{language}} (default)": "{{language}} (默认)"
+  "{{language}} (default)": "{{language}} (默认)",
+  "Resize the filters": "调整过滤器的宽度"
 }

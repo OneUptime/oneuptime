@@ -45795,5 +45795,6 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "Sproget, deres notifikationer skrives på.",
-  "{{language}} (default)": "{{language}} (standard)"
+  "{{language}} (default)": "{{language}} (standard)",
+  "Resize the filters": "Ændr bredden på filtrene"
 }

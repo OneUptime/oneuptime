@@ -45795,5 +45795,6 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "El idioma de sus notificaciones.",
-  "{{language}} (default)": "{{language}} (predeterminado)"
+  "{{language}} (default)": "{{language}} (predeterminado)",
+  "Resize the filters": "Cambiar el ancho de los filtros"
 }
