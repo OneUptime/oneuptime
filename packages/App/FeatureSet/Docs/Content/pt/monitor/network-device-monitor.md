@@ -790,12 +790,12 @@ As páginas **Incidentes** e **Alertas** do dispositivo, em **Atividade** no men
 
 ### Padrões de campos personalizados
 
-Se o seu projeto define campos personalizados de monitor — fabricante, item de configuração, serviço responsável, o que o seu CMDB precisar —, um modelo de monitor pode preenchê-los. Abra o modelo em **Monitores → Configurações → Modelos** e defina os **Custom Field Defaults** dele.
+Se o seu projeto define campos personalizados de monitor — fabricante, item de configuração, serviço responsável, o que o seu CMDB precisar —, um modelo de monitor pode preenchê-los. Abra o modelo em **Monitores → Configurações → Modelos** e defina os **Valores padrão de campos personalizados** dele.
 
 Todo monitor criado a partir desse modelo depois disso carrega esses valores: os que você cria com **Criar Monitor a partir de Modelo**, e os que uma regra de importação automática ou uma política de alertas cria quando uma [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) traz mil dispositivos de uma vez.
 
 - Um campo deixado em branco no modelo não é um padrão: cada monitor continua respondendo por ele, então um modelo pode definir o fabricante para uma frota inteira de switches enquanto o item de configuração continua sendo de cada dispositivo.
-- Os padrões valem quando um monitor é criado, não para monitores que já existem. **Sync Custom Fields to Linked Monitors**, no mesmo cartão, os leva para os monitores existentes. Ele sobrescreve os campos que o modelo define, incluindo valores digitados à mão, e a confirmação dele nomeia esses campos antes; os campos que o modelo deixa em branco nunca são tocados.
+- Os padrões valem quando um monitor é criado, não para monitores que já existem. **Sincronizar campos personalizados com os monitores vinculados**, no mesmo cartão, os leva para os monitores existentes. Ele sobrescreve os campos que o modelo define, incluindo valores digitados à mão, e a confirmação dele nomeia esses campos antes; os campos que o modelo deixa em branco nunca são tocados.
 
 Um simples **Sincronizar a partir do Modelo** não mexe nos campos personalizados: enviar critérios ou um intervalo nunca regrava os valores dos seus monitores.
 

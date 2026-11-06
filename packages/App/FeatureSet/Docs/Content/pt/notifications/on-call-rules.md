@@ -33,9 +33,9 @@ A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens d
 | Aba | Acionamentos de | Cartões para |
 | --- | --- | --- |
 | **Incidentes** | Incidentes | Gravidades de incidente |
-| **Incidente Episódios** | Episódios que agrupam incidentes | Gravidades de incidente |
+| **Episódios de incidentes** | Episódios que agrupam incidentes | Gravidades de incidente |
 | **Alertas** | Alertas | Gravidades de alerta |
-| **Alerta Episódios** | Episódios que agrupam alertas | Gravidades de alerta |
+| **Episódios de alertas** | Episódios que agrupam alertas | Gravidades de alerta |
 
 Um episódio aciona você pelas próprias políticas de plantão, à parte dos incidentes ou alertas que ele contém, por isso as regras dele ficam em uma aba própria. O endereço da página indica a aba aberta, por exemplo `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; os outros valores são `incident-episodes` e `alert-episodes`, e sem `type` a página abre em **Incidentes**.
 
@@ -64,7 +64,7 @@ Vá até **Configurações do usuário → Regras de Plantão**, abra a aba do t
 
 ### Escolha o método
 
-Clique em **Adicionar: Notificação Regra**. Em **Método de notificação**, escolha um dos seus métodos verificados; um método que você não verificou não é oferecido.
+Clique em **Adicionar: Regra de notificação**. Em **Método de notificação**, escolha um dos seus métodos verificados; um método que você não verificou não é oferecido.
 
 ### Escolha como o push toca
 
@@ -72,7 +72,7 @@ Para um telefone, escolha **Notificação push**: **Alerta crítico** ou **Norma
 
 ### Defina o atraso
 
-Escolha **Notificar-me após**: **Imediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** ou **1 hora**. Depois clique em **Adicionar: Notificação Regra** na caixa.
+Escolha **Notificar-me após**: **Imediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** ou **1 hora**. Depois clique em **Adicionar: Regra de notificação** na caixa.
 :::
 
 O cartão lista as regras dele em ordem de atraso, com **Método de notificação** e **Notificar após** para cada uma.

@@ -34,7 +34,7 @@ Sidan visar monitorerna du lägger på den som resurser, och incidenter når sid
 ## I korthet
 
 - **Skapas med ett namn.** En ny statussida frågar bara efter sitt **Namn**; **Beskrivning** och **Etiketter** väntar under **Fler fält**. Resurser, varumärke och domäner ställer du in efteråt.
-- **Resurser är det besökarna ser.** Varje rad på sidan är en **Statussida Resurs**: en monitor (eller monitorgrupp) med eget visningsnamn, egen knappbeskrivning och egna upptidsval. Grupper delar upp en lång sida i sektioner och kan kapslas.
+- **Resurser är det besökarna ser.** Varje rad på sidan är en **Statussideresurs**: en monitor (eller monitorgrupp) med eget visningsnamn, egen knappbeskrivning och egna upptidsval. Grupper delar upp en lång sida i sektioner och kan kapslas.
 - **En förhandsgransknings-URL från första dagen.** Varje statussida får en förhandsgranskningslänk, så att du kan se den innan det finns en anpassad domän.
 - **Rutterna för besökare beror på inställningar.** Incidenter, episoder, meddelanden och schemalagda händelser visas bara så länge deras reglage i **Vad din statussida visar** (under **Avancerade inställningar**) är på, och prenumerationssidan bara så länge **Visa prenumerantsida** är på.
 - **Vem som får se den är ett enda val.** Alla med länken, bara personer som loggar in (privata användare, SAML- eller OIDC-SSO) eller alla med lösenordet, på sidans skärm **Åtkomst**, med en valfri IP-tillåtelselista under **Fler inställningar**.

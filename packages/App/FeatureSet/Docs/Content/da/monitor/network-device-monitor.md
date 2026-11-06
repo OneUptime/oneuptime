@@ -790,12 +790,12 @@ Enhedens sider **Hændelser** og **Advarsler**, under **Aktivitet** i dens menu,
 
 ### Standardværdier for brugerdefinerede felter
 
-Hvis dit projekt definerer brugerdefinerede monitorfelter — producent, konfigurationselement, ansvarlig tjeneste, hvad end din CMDB har brug for —, kan en monitorskabelon udfylde dem. Åbn skabelonen fra **Monitorer → Indstillinger → Skabeloner**, og sæt dens **Custom Field Defaults**.
+Hvis dit projekt definerer brugerdefinerede monitorfelter — producent, konfigurationselement, ansvarlig tjeneste, hvad end din CMDB har brug for —, kan en monitorskabelon udfylde dem. Åbn skabelonen fra **Monitorer → Indstillinger → Skabeloner**, og sæt dens **Standardværdier for brugerdefinerede felter**.
 
 Hver monitor, der derefter laves ud fra den skabelon, får de værdier med: dem, du opretter med **Opret overvågning fra skabelon**, og dem, som en auto-importregel eller en advarselspolitik opretter, når en [discovery-scanning](#find-enheder-med-en-netværksscanning) henter tusind enheder ind på én gang.
 
 - Et felt, der står tomt på skabelonen, er ikke en standard: hver monitor bliver ved med at udfylde det selv, så en skabelon kan sætte producenten for en hel switchflåde, mens konfigurationselementet forbliver pr. enhed.
-- Standarder gælder, når en monitor oprettes, ikke for monitorer, der allerede findes. **Sync Custom Fields to Linked Monitors**, på samme kort, skubber dem ud på de eksisterende monitorer. Den overskriver de felter, skabelonen sætter, inklusive værdier skrevet i hånden, og dens bekræftelse nævner de felter først; felter, som skabelonen lader stå tomme, røres aldrig.
+- Standarder gælder, når en monitor oprettes, ikke for monitorer, der allerede findes. **Synkroniser brugerdefinerede felter til tilknyttede monitorer**, på samme kort, skubber dem ud på de eksisterende monitorer. Den overskriver de felter, skabelonen sætter, inklusive værdier skrevet i hånden, og dens bekræftelse nævner de felter først; felter, som skabelonen lader stå tomme, røres aldrig.
 
 En almindelig **Synkronisér fra skabelon** lader brugerdefinerede felter være: at skubbe kriterier eller et interval ud omskriver aldrig værdierne på dine monitorer.
 

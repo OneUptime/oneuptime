@@ -41,8 +41,8 @@ Table API godtar Basic-autentisering: användarens namn och lösenord, kodade ti
 
    Använd `printf`, inte `echo`: `echo` lägger till en radbrytning, som kodas tillsammans med resten och förstör autentiseringsuppgifterna.
 
-2. Gå i OneUptime till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**. Ge den namnet `SERVICENOW_AUTH` och klicka på **Nästa**.
-3. Klistra in det kodade värdet i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+2. Gå i OneUptime till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflödesvariabel**. Ge den namnet `SERVICENOW_AUTH` och klicka på **Nästa**.
+3. Klistra in det kodade värdet i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 :::
 
 ## Skapa en ServiceNow-incident för varje incident

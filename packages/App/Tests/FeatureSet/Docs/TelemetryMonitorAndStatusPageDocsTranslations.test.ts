@@ -236,35 +236,16 @@ interface FlatLookupLabel {
  * Labels drawn from their whole text by one flat lookup, by page: the
  * source line that draws each passes it to a Button, a MoreMenuItem or a
  * Modal, which translate their text with translateString alone.
+ *
+ * The monitor pages' Edit Monitoring Criteria, the resource panel's Edit
+ * Group, the group form's Edit Status Page Group and the branding page's
+ * Edit Images and Edit Default Bar Color left this list once every
+ * language worded the whole phrase:
+ * the flat lookup and the template now draw the same words everywhere, and
+ * the pages name them as any label.
  */
 const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
-  [LOGS_MONITOR]: [
-    {
-      label: "Edit Monitoring Criteria",
-      file: "App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria.tsx",
-      literal: /editButtonText="Edit Monitoring Criteria"/,
-    },
-  ],
-  [TRACES_MONITOR]: [
-    {
-      label: "Edit Monitoring Criteria",
-      file: "App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria.tsx",
-      literal: /editButtonText="Edit Monitoring Criteria"/,
-    },
-  ],
-  [EXCEPTIONS_MONITOR]: [
-    {
-      label: "Edit Monitoring Criteria",
-      file: "App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria.tsx",
-      literal: /editButtonText="Edit Monitoring Criteria"/,
-    },
-  ],
   [RESOURCES_AND_GROUPS]: [
-    {
-      label: "Edit Group",
-      file: "App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageResourcePanel.tsx",
-      literal: /title="Edit Group"/,
-    },
     {
       label: "Edit group",
       file: "Common/UI/Components/StatusPage/ResourceGroupNavigator.tsx",
@@ -276,27 +257,9 @@ const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
       literal: /text="Delete group"/,
     },
     {
-      label: "Edit Status Page Group",
-      file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Resources.tsx",
-      literal:
-        /title=\{\s*groupFormMode === GroupFormMode\.Create\s*\?\s*"Create New Status Page Group"\s*:\s*"Edit Status Page Group"\s*\}/,
-    },
-    {
       label: "Add Row",
       file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Resources.tsx",
       literal: /addButtonLabel="Add Row"/,
-    },
-  ],
-  [BRANDING_AND_DOMAINS]: [
-    {
-      label: "Edit Images",
-      file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
-      literal: /editButtonText=\{"Edit Images"\}/,
-    },
-    {
-      label: "Edit Default Bar Color",
-      file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
-      literal: /editButtonText=\{"Edit Default Bar Color"\}/,
     },
   ],
 };
@@ -1492,15 +1455,19 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("read a flat lookup as the locale's wording, or the English where it has none", () => {
     // Translated in German, left in English in Danish.
-    expect(flatLabel("de", "Edit Monitoring Criteria")).toBe(
-      "Überwachungskriterien bearbeiten",
+    expect(flatLabel("de", "Edit Notification Settings")).toBe(
+      "Benachrichtigungseinstellungen bearbeiten",
     );
-    expect(flatLabel("da", "Edit Monitoring Criteria")).toBe(
-      "Edit Monitoring Criteria",
+    expect(flatLabel("da", "Edit Notification Settings")).toBe(
+      "Edit Notification Settings",
     );
     // Where the template would have drawn something else.
-    expect(drawnActionLabel("da", "Edit Monitoring Criteria")).not.toBe(
-      "Edit Monitoring Criteria",
+    expect(drawnActionLabel("da", "Edit Notification Settings")).not.toBe(
+      "Edit Notification Settings",
+    );
+    // A phrase every language words whole reads the same either way.
+    expect(flatLabel("da", "Edit Monitoring Criteria")).toBe(
+      drawnActionLabel("da", "Edit Monitoring Criteria"),
     );
     // No locale has the whole of Add Row.
     expect(flatLabel("fr", "Add Row")).toBe("Add Row");

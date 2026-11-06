@@ -744,7 +744,7 @@ URL에는 참조가 절대 포함되지 않습니다. 대신 그 사람이 저�
 
 로그와 트레이스 탭, 그리고 오류 탭의 서버 쪽 절반은 로그, 트레이스, 예외 페이지와 같은 권한으로 읽습니다. 그 권한이 없는 역할은 권한 이름이 적힌 잠긴 탭을 봅니다. 서버가 표시한 행은 녹화 자체가 관찰한 트레이스에 고정해 녹화의 시계 위에 놓입니다. 패널은 고정이 성공했는지("server times anchored via 6 traces"), 또는 행의 시각이 대략적인지 알려 줍니다.
 
-패널의 검색 상자(`/`)는 자유 텍스트와 토큰을 받습니다. `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. 범위 선택기로 어떤 탭이든 재생 위치 앞뒤 ±30초로 좁힐 수 있습니다. 패널은 직접 스크롤하기 전까지 재생 위치를 따라가며, **Resume following** 레이블(또는 `M`)이 따라가기를 다시 켭니다.
+패널의 검색 상자(`/`)는 자유 텍스트와 토큰을 받습니다. `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. 범위 선택기로 어떤 탭이든 재생 위치 앞뒤 ±30초로 좁힐 수 있습니다. 패널은 직접 스크롤하기 전까지 재생 위치를 따라가며, **다시 따라가기** 레이블(또는 `M`)이 따라가기를 다시 켭니다.
 
 ### 키보드 단축키
 

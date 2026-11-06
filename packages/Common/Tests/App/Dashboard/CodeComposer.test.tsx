@@ -104,7 +104,9 @@ jest.mock("../../../UI/Components/EntityDropdown/EntityDropdown", () => {
   };
 });
 
-import CodeComposer from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeComposer";
+import CodeComposer, {
+  getCodeComposerFloorClassName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeComposer";
 import {
   getNoteChipLabel,
   NOTE_CHIP_LENGTH,
@@ -576,6 +578,81 @@ describe("the box", () => {
     renderComposer();
     expect(input()).toHaveAttribute("rows", "2");
     expect(input().className).toContain("text-sm");
+  });
+
+  /*
+   * The box sizes itself to its text as it mounts. On a page whose styles
+   * were still being written that read came before the padding and the line
+   * height did, and the box was set to its bare lines, its first line - the
+   * placeholder - half hidden until something was typed, as the AI card's
+   * composer once was. A floor of the lines it is drawn with and their
+   * padding keeps it whole whatever was read.
+   */
+  const floorOf: (box: HTMLElement) => number | null = (
+    box: HTMLElement,
+  ): number | null => {
+    const match: RegExpMatchArray | null = box.className.match(
+      /(?:^|\s)min-h-\[(\d+)px\]/,
+    );
+    return match ? Number(match[1]) : null;
+  };
+
+  // 1 Tailwind step is 4px: leading-7 is 28px, pt-3.5 is 14px.
+  const drawnHeightOf: (box: HTMLElement) => number = (
+    box: HTMLElement,
+  ): number => {
+    const step: (name: string) => number = (name: string): number => {
+      const match: RegExpMatchArray | null = box.className.match(
+        new RegExp(`(?:^|\\s)${name}-(\\d+(?:\\.5)?)(?:\\s|$)`),
+      );
+      expect(match).not.toBeNull();
+      return Number(match![1]) * 4;
+    };
+
+    return (
+      Number(box.getAttribute("rows")) * step("leading") +
+      step("pt") +
+      step("pb")
+    );
+  };
+
+  test("the box opens as tall as it is drawn, its first line whole, on every page it is on", () => {
+    const boxes: Array<Partial<React.ComponentProps<typeof CodeComposer>>> = [
+      { isLarge: true },
+      { isLarge: true, isDisabled: true },
+      {},
+      { isDisabled: true },
+    ];
+
+    for (const props of boxes) {
+      renderComposer(props);
+
+      expect(floorOf(input())).not.toBeNull();
+      expect(floorOf(input())).toBe(drawnHeightOf(input()));
+      cleanup();
+    }
+  });
+
+  test("the floors: Code's first page 136px (80px when it cannot send), a task's reply box 70px", () => {
+    expect(
+      getCodeComposerFloorClassName({ isLarge: true, isDisabled: false }),
+    ).toBe("min-h-[136px]");
+    expect(
+      getCodeComposerFloorClassName({ isLarge: true, isDisabled: true }),
+    ).toBe("min-h-[80px]");
+    expect(
+      getCodeComposerFloorClassName({ isLarge: false, isDisabled: false }),
+    ).toBe("min-h-[70px]");
+    expect(
+      getCodeComposerFloorClassName({ isLarge: false, isDisabled: true }),
+    ).toBe("min-h-[70px]");
+  });
+
+  test("the floor is a floor, not a height: the box still grows with its text", () => {
+    renderComposer({ isLarge: true });
+
+    expect(input().className).not.toMatch(/(?:^|\s)(?:h|max-h)-\[136px\]/);
+    expect(input().style.height).not.toBe("136px");
   });
 });
 

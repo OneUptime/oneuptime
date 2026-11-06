@@ -101,7 +101,7 @@ Para ser avisado antes, altere o valor do filtro **Expires In Days** no critéri
 :::details Adicionar o aviso a um monitor criado antes de ele existir
 Monitores criados antes de o OneUptime adicionar este aviso não têm um critério de "vence em breve". Para adicioná-lo:
 
-1. No monitor, abra **Configuração → Critérios** e clique em **Editar: Critérios de Monitoramento**.
+1. No monitor, abra **Configuração → Critérios** e clique em **Editar critérios de monitoramento**.
 2. Clique em **Adicionar critérios**. Defina o filtro dele como **Is Valid Certificate** / **Verdadeiro**, clique em **Adicionar filtro** e defina o segundo como **Expires In Days** / **Menor ou igual a** / `14`. Deixe **Condição de correspondência** em **Todos** (ela aparece abaixo dos filtros quando há dois).
 3. Em **Ações**, ative **Quando os filtros corresponderem, criar um alerta.** e deixe **Quando os filtros corresponderem, alterar o status do monitor.** desativado, para que ele crie um alerta e não mude o status do monitor.
 4. Arraste o novo critério para cima do critério que marca o monitor como no ar, e salve.

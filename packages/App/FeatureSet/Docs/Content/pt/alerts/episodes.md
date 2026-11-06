@@ -129,7 +129,7 @@ flowchart TB
     grouped -->|"Entra em um episódio"| none["Nada mais é executado"]
 ```
 
-- **Um novo episódio** executa as **Políticas de plantão** da regra, mais as de qualquer regra correspondente na aba **Episode Rules** de **Alertas → Regras → Regras de Plantão**.
+- **Um novo episódio** executa as **Políticas de plantão** da regra, mais as de qualquer regra correspondente na aba **Regras de episódios** de **Alertas → Regras → Regras de Plantão**.
 - **Um alerta que entra em um episódio aberto** executa apenas suas próprias políticas. As do episódio não são executadas de novo.
 - **Um alerta que aguarda mais alertas** também executa apenas suas próprias políticas. Quando **Aguardar mais alertas** está ativado e as políticas da regra são as únicas que acionam, um alerta isolado não aciona ninguém até que haja alertas suficientes em andamento.
 - **Responder ao acionamento de um episódio** confirma o episódio e, com ele, cada alerta que ele contém.
@@ -175,7 +175,7 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA** |
 | **Avançado** | **Registros de auditoria**, **Excluir episódio** |
 
-**Desenvolvedores** e **Avançado** começam recolhidas. Na **Visão geral**, o cabeçalho mostra os **Proprietários** do episódio, equipes primeiro, e o primeiro bloco, **Criado**, diz quando o episódio foi criado — **Automaticamente**, quando uma regra de agrupamento o abriu. O cartão **O que aconteceu** abre a página — a descrição do episódio e a sua **Causa raiz** — depois **Alerts in this episode** e o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Mover episódio para** no menu **⋯**.
+**Desenvolvedores** e **Avançado** começam recolhidas. Na **Visão geral**, o cabeçalho mostra os **Proprietários** do episódio, equipes primeiro, e o primeiro bloco, **Criado**, diz quando o episódio foi criado — **Automaticamente**, quando uma regra de agrupamento o abriu. O cartão **O que aconteceu** abre a página — a descrição do episódio e a sua **Causa raiz** — depois **Alertas neste episódio** e o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Mover episódio para** no menu **⋯**.
 
 **Alertas → Episódios ativos** lista os episódios que ainda não foram resolvidos, e o selo ao lado os conta.
 

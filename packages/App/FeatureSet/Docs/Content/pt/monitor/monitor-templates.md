@@ -35,7 +35,7 @@ flowchart TB
 :::steps
 ### Abrir Modelos
 
-Acesse **Monitores → Configurações → Modelos** e clique em **Criar: Monitor Modelo**.
+Acesse **Monitores → Configurações → Modelos** e clique em **Criar: Modelo de monitor**.
 
 ### Dar um nome ao modelo
 
@@ -47,17 +47,17 @@ Em **Padrões do Monitor**, escolha o **Tipo de monitor**, com o mesmo seletor d
 
 ### Definir os critérios e o intervalo
 
-Em **Critérios**, preencha o que verificar e os critérios, como em [Criar monitor](/docs/monitor/create-monitor#critérios). O cartão **Template sync settings** no topo permite proteger campos das sincronizações (veja [Manter valores próprios de cada monitor](#manter-valores-próprios-de-cada-monitor)). Para um tipo de monitor que as sondas verificam, a última etapa, **Intervalo**, pede o **Intervalo de monitoramento**. Clique em **Criar: Monitor Modelo** na última etapa.
+Em **Critérios**, preencha o que verificar e os critérios, como em [Criar monitor](/docs/monitor/create-monitor#critérios). O cartão **Template sync settings** no topo permite proteger campos das sincronizações (veja [Manter valores próprios de cada monitor](#manter-valores-próprios-de-cada-monitor)). Para um tipo de monitor que as sondas verificam, a última etapa, **Intervalo**, pede o **Intervalo de monitoramento**. Clique em **Criar: Modelo de monitor** na última etapa.
 :::
 
-O modelo é adicionado à lista. Abra-o para ver a página dele, com um cartão para cada parte: **Informações do modelo**, **Padrões do Monitor**, **Critérios de Monitoramento**, **Intervalo de monitoramento** (com **Concordância Mínima de Sondas**), **Rótulos**, **Custom Field Defaults** (quando o projeto tem campos personalizados de monitor) e **Monitores Vinculados**. Você altera cada parte no próprio cartão, por exemplo com **Editar: Critérios** ou **Editar: Intervalo**.
+O modelo é adicionado à lista. Abra-o para ver a página dele, com um cartão para cada parte: **Informações do modelo**, **Padrões do Monitor**, **Critérios de Monitoramento**, **Intervalo de monitoramento** (com **Concordância Mínima de Sondas**), **Rótulos**, **Valores padrão de campos personalizados** (quando o projeto tem campos personalizados de monitor) e **Monitores Vinculados**. Você altera cada parte no próprio cartão, por exemplo com **Editar critérios** ou **Editar intervalo**.
 
 ## Criar monitores a partir de um modelo
 
 - **Monitor novo.** Clique em **Criar monitor** na linha do modelo na lista, ou em **Criar Monitor a partir de Modelo** na página dele. **Criar monitor** abre com o tipo e as configurações do modelo preenchidos; altere o que precisar e crie. O monitor novo fica vinculado ao modelo.
 - **Monitores que você já tem.** Em **Monitores Vinculados**, clique em **Vincular Monitores Existentes** e escolha-os. Eles mantêm as configurações até você sincronizar.
 
-Os valores definidos em **Custom Field Defaults** são gravados em cada monitor criado a partir do modelo, inclusive nos monitores que as regras de importação automática e as políticas de alerta criam a partir dele.
+Os valores definidos em **Valores padrão de campos personalizados** são gravados em cada monitor criado a partir do modelo, inclusive nos monitores que as regras de importação automática e as políticas de alerta criam a partir dele.
 
 ## Sincronizar alterações com os monitores vinculados
 
@@ -68,7 +68,7 @@ Editar um modelo altera apenas o modelo. Para copiar uma alteração para os mon
 | **Sincronizar Critérios com Monitores Vinculados** | Os critérios e as configurações da etapa, como destinos e opções de requisição, exceto os campos protegidos | O intervalo de monitoramento, a concordância mínima de sondas, o nome, a descrição, os rótulos e os valores dos campos personalizados |
 | **Intervalo de Sincronização com Monitores Vinculados** | O intervalo de monitoramento e a concordância mínima de sondas | Os critérios, o nome, a descrição, os rótulos e os valores dos campos personalizados |
 | **Sincronizar Rótulos com Monitores Vinculados** | Os rótulos, e nada mais | Todo o resto |
-| **Sync Custom Fields to Linked Monitors** | Os campos personalizados para os quais o modelo tem um padrão, substituindo o que cada monitor tinha | Os campos personalizados que o modelo deixa em branco, e todo o resto |
+| **Sincronizar campos personalizados com os monitores vinculados** | Os campos personalizados para os quais o modelo tem um padrão, substituindo o que cada monitor tinha | Os campos personalizados que o modelo deixa em branco, e todo o resto |
 
 Para sincronizar um único monitor, clique em **Sincronizar a partir do Modelo** na linha dele em **Monitores Vinculados**. Isso copia os critérios e as configurações da etapa (exceto os campos protegidos), o intervalo de monitoramento, a concordância mínima de sondas e os rótulos, e deixa como estão o nome, a descrição e os valores dos campos personalizados do monitor. **Desvincular do Modelo** desconecta um monitor; ele mantém as configurações.
 
@@ -85,7 +85,7 @@ Acesse **Monitores → Configurações → Modelos** e abra o modelo.
 
 ### Editar os critérios dele
 
-No cartão **Critérios de Monitoramento**, clique em **Editar: Critérios**.
+No cartão **Critérios de Monitoramento**, clique em **Editar critérios**.
 
 ### Proteger os campos
 
@@ -116,7 +116,7 @@ As opções disponíveis dependem do tipo de monitor. Elas incluem destinos e po
 Em modelos com várias etapas, os valores protegidos são associados pelos IDs das etapas. Monitores de etapa única criados de forma independente também podem receber um modelo de etapa única. Se uma etapa protegida não puder ser associada, a sincronização é rejeitada antes de qualquer monitor ser atualizado, para que uma etapa nova ou reordenada não copie por engano o destino ou as credenciais de outra etapa.
 
 > [!IMPORTANT]
-> Antes de alterar o tipo de monitor de um modelo salvo (com **Editar: Padrões do Monitor**), remova em **Editar: Critérios** as exclusões que não se aplicam ao novo tipo. Todas as exclusões de um modelo precisam existir para o tipo de monitor dele.
+> Antes de alterar o tipo de monitor de um modelo salvo (com **Editar padrões do monitor**), remova em **Editar critérios** as exclusões que não se aplicam ao novo tipo. Todas as exclusões de um modelo precisam existir para o tipo de monitor dele.
 
 ## Configuração por API
 

@@ -46,9 +46,9 @@ Il resto di questa pagina costruisce il workflow. Serve:
 ## Salvare il token
 
 :::steps
-1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Flusso di lavoro Variabile**.
+1. Vai su **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**.
 2. Chiamala `GITHUB_TOKEN` e fai clic su **Avanti**.
-3. Incolla il token in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**.
+3. Incolla il token in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 :::
 
 Una variabile segreta viene sostituita da `[REDACTED]` nei log delle esecuzioni, quindi il token non compare mai in un'esecuzione.

@@ -97,7 +97,7 @@ I det øyeblikket et varsel opprettes, går OneUptime gjennom disse trinnene, i 
 
 1. **Det får et nummer og en tilstand.** Varselnummeret kommer fra en teller per prosjekt og vises med prefikset ditt (`ALT-42`). Varselet starter i opprettelsestilstanden din, med mindre skjemaet, API-et, en arbeidsflyt eller Spør AI valgte en annen.
 2. **Personvernregler kjører først**, slik at alt etter dem vet om varselet er privat.
-3. **Feeden og chatverktøyene dine får vite om det.** En oppføring **Varsel opprettet** skrives i **Varsel Feed**, og kanalene som Slack- og Microsoft Teams-reglene dine nevner, får beskjed; en regel kan opprette en kanal for varselet.
+3. **Feeden og chatverktøyene dine får vite om det.** En oppføring **Varsel opprettet** skrives i **Varselsfeed**, og kanalene som Slack- og Microsoft Teams-reglene dine nevner, får beskjed; en regel kan opprette en kanal for varselet.
 4. **Eiere og etiketter legges til**: de som monitorens kriterier eller forespørselen nevner, deretter de fra samsvarende eier- og etikettregler.
 5. **Vaktregler legger til policyene sine**, deretter starter runbook-regler de samsvarende runbookene.
 6. **Vaktpolicyer kjører.** Hver policy på varselet tilkaller personene sine parallelt; at én feiler, stopper ikke de andre. Deretter erklærer den første samsvarende hendelsesregelen en hendelse ut fra varselet, med en gang eller når ventetiden er over.
@@ -126,7 +126,7 @@ Reglene, eierne, feeden og den første tilstanden skjer likevel i begge tilfelle
 
 Et bytte til en annen tilstand ber deg bekrefte, med et valgfritt privat notat sammenfoldet under **Legg til et privat notat**. Hva hver tilstand gjør, står på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities).
 
-Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fyller ut sidene **Rotårsak** og **Utbedring** og legger til **Eiere**. Menyen **Handlinger** i **Varsel Feed** kjører også en runbook med **Execute Runbook**, eller tilkaller flere personer med **Kjør vakttjenesteretningslinje**.
+Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fyller ut sidene **Rotårsak** og **Utbedring** og legger til **Eiere**. Menyen **Handlinger** i **Varselsfeed** kjører også en runbook med **Kjør runbook**, eller tilkaller flere personer med **Kjør vakttjenesteretningslinje**.
 
 ## Hva hver side av et varsel viser
 
@@ -142,7 +142,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 
 **Oversikt**, **Undersøkelse**, **Team** og **Notater** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
 
-- **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står først i toppen. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **OneUptime AI** med **Spør OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
+- **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står først i toppen. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **OneUptime AI** med **Spør OneUptime AI** nederst, og **Varselsfeed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
 - **Tilstandstidslinje** — hver tilstand varselet har vært i, når og hvor lenge. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hendelser** — hendelsene varselet er en del av, med **Knytt til hendelsen** og **Erklær hendelse**.
 - **Innstillinger** — **Hvem kan se dette varselet** med bryteren **Privat varsel**, og **Påminnelser** med **Send påminnelser**. Hver bryter lagrer i det øyeblikket du slår den om.
