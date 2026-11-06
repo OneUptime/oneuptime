@@ -51,8 +51,7 @@ import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import {
-  CLOUD_STREAM_LOGS_PATH,
-  CLOUD_STREAM_METRICS_PATH,
+  CLOUD_STREAM_PATHS,
   CLOUD_STREAM_URL_PREFIX,
 } from "../../Types/CloudConnection/CloudStream";
 import Exception from "../../Types/Exception/Exception";
@@ -271,13 +270,14 @@ export const isVercelLogDrainPath: (path: string) => boolean = (
 };
 
 /*
- * The Amazon Data Firehose endpoint an AWS connection streams to
- * (/aws-firehose/v1/metrics and /logs, also under /telemetry) reads its
- * body raw: it answers in Firehose's own contract, a body too large too,
- * which a body parser's own refusal would not keep. Matched as the router
- * matches it - in any case, with or without a trailing slash - since a
- * path the router sends there that a body parser read first would reach
- * the endpoint with its body gone.
+ * The endpoints a cloud connection streams to - Amazon Data Firehose's
+ * (/aws-firehose/v1/metrics and /logs) and Pub/Sub's (/gcp-pubsub/v1/logs),
+ * also under /telemetry - read their bodies raw: each answers in its
+ * sender's own contract, a body too large too, which a body parser's own
+ * refusal would not keep. Matched as the router matches them - in any
+ * case, with or without a trailing slash - since a path the router sends
+ * there that a body parser read first would reach the endpoint with its
+ * body gone.
  */
 export const isCloudStreamPath: (path: string) => boolean = (
   path: string,
@@ -288,7 +288,7 @@ export const isCloudStreamPath: (path: string) => boolean = (
     normalized = normalized.slice(0, -1);
   }
 
-  return [CLOUD_STREAM_METRICS_PATH, CLOUD_STREAM_LOGS_PATH].some(
+  return CLOUD_STREAM_PATHS.some(
     (streamPath: string): boolean => {
       return (
         normalized === streamPath ||

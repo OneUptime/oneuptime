@@ -28,6 +28,7 @@ import {
   FIREHOSE_ACCESS_KEY_HEADER,
   FIREHOSE_SOURCE_ARN_HEADER,
 } from "Common/Types/CloudConnection/CloudStream";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
@@ -36,6 +37,11 @@ import {
   gunzipBounded,
 } from "../Utils/AwsFirehose/CloudWatchLogs";
 import FirehoseDeliveryLedger from "../Utils/AwsFirehose/FirehoseDeliveryLedger";
+import {
+  CloudStreamBodyTooLarge,
+  drainCloudStreamBody,
+  readCloudStreamBody,
+} from "../Utils/CloudStreamBody";
 import {
   FirehoseEnvelopeReading,
   readFirehoseEnvelope,
@@ -141,6 +147,7 @@ export default class AwsFirehoseIngestService {
         await CloudStreamAuthenticator.authenticate({
           accessKey: req.headers[FIREHOSE_ACCESS_KEY_HEADER],
           now,
+          provider: CloudProvider.AWS,
         });
 
       if (!authentication.isAuthorized) {
@@ -198,7 +205,11 @@ export default class AwsFirehoseIngestService {
       let body: Buffer;
 
       try {
-        body = await AwsFirehoseIngestService.readBody(req);
+        body = await readCloudStreamBody(req, CLOUD_STREAM_MAX_REQUEST_BYTES).catch(
+          (error: unknown): never => {
+            throw error instanceof CloudStreamBodyTooLarge ? new TooLarge() : error;
+          },
+        );
 
         if (encoding === "gzip") {
           body = await gunzipBounded(
@@ -413,96 +424,15 @@ export default class AwsFirehoseIngestService {
   }
 
   /*
-   * The body as sent, at most CLOUD_STREAM_MAX_REQUEST_BYTES: a declared
-   * length over it is refused before a byte is read, and a body that grows
-   * past it is let go of as it does (TooLarge).
+   * The body as sent is read by readCloudStreamBody, at most
+   * CLOUD_STREAM_MAX_REQUEST_BYTES: a declared length over it is refused
+   * before a byte is read, and a body that grows past it is let go of as it
+   * does (TooLarge).
    */
-  private static async readBody(req: ExpressRequest): Promise<Buffer> {
-    if (Buffer.isBuffer(req.body)) {
-      if (req.body.length > CLOUD_STREAM_MAX_REQUEST_BYTES) {
-        throw new TooLarge();
-      }
-
-      return req.body;
-    }
-
-    /*
-     * A body something read before this route (a body parser StartServer
-     * did not leave the path to) is gone: said at once, as a failure
-     * Firehose sends again, rather than waited for until the socket times
-     * out.
-     */
-    if ((req as { readableEnded?: boolean }).readableEnded === true) {
-      throw new Error(
-        "The delivery's body was read before the stream endpoint could read it.",
-      );
-    }
-
-    const declared: number = parseInt(
-      headerValueToString(req.headers["content-length"]) || "",
-      10,
-    );
-
-    if (
-      Number.isFinite(declared) &&
-      declared > CLOUD_STREAM_MAX_REQUEST_BYTES
-    ) {
-      AwsFirehoseIngestService.drain(req);
-      throw new TooLarge();
-    }
-
-    return await new Promise<Buffer>(
-      (resolve: (body: Buffer) => void, reject: (error: Error) => void) => {
-        const chunks: Array<Uint8Array> = [];
-        let received: number = 0;
-        let isDone: boolean = false;
-
-        const onData: (chunk: Buffer | string) => void = (
-          chunk: Buffer | string,
-        ): void => {
-          if (isDone) {
-            return;
-          }
-
-          const buffer: Buffer = Buffer.isBuffer(chunk)
-            ? chunk
-            : Buffer.from(chunk, "utf8");
-          received += buffer.length;
-
-          if (received > CLOUD_STREAM_MAX_REQUEST_BYTES) {
-            isDone = true;
-            chunks.length = 0;
-            req.removeListener("data", onData);
-            req.resume();
-            reject(new TooLarge());
-            return;
-          }
-
-          chunks.push(new Uint8Array(buffer));
-        };
-
-        req.on("data", onData);
-        req.on("end", () => {
-          if (!isDone) {
-            isDone = true;
-            resolve(Buffer.concat(chunks));
-          }
-        });
-        req.on("error", (error: Error) => {
-          if (!isDone) {
-            isDone = true;
-            reject(error);
-          }
-        });
-      },
-    );
-  }
 
   // An unread body is let go of, so the connection can carry the next one.
   private static drain(req: ExpressRequest): void {
-    if (typeof req.resume === "function") {
-      req.resume();
-    }
+    drainCloudStreamBody(req);
   }
 
   private static isTooLarge(error: unknown): boolean {
