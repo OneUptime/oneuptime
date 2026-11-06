@@ -837,15 +837,16 @@ describe("useTableScrollState gives way before the rows scroll", () => {
   });
 
   /*
-   * A value is cut short only by giving way, and to no less than the floor
-   * (8rem). One that does not give way - no wider than the floor (a count,
-   * a state's pill), or parts that would only be clipped (avatars) - was
-   * let go with the others while they gave way, and the table squeezed it
-   * far below its own width: in German at 960px the alerts list's state
-   * pills read "E." and "H.", the column 62px wide, to make room for a
-   * header of one long word.
+   * A value is cut short only to the floor (8rem), never below it. One that
+   * does not give way - no wider than the floor (a count, a state's pill),
+   * or parts that would only be clipped (avatars) - was let go with the
+   * others while they gave way, and the table squeezed it far below its
+   * own width: in German at 960px the alerts list's state pills read "E."
+   * and "H.", the column 62px wide, to make room for a header of one long
+   * word. Each is held now at its own width or the floor, whichever is
+   * less (getValueFloorWidths).
    */
-  test("while the values give way, each one that does not is held whole: never squeezed below its own width", () => {
+  test("while the values give way, each one that does not is held at its floor: never squeezed below its own width or 8rem", () => {
     const heldWhileGiving: Array<Array<string | null>> = [];
 
     renderProbe(938, (giving: Giving): number => {

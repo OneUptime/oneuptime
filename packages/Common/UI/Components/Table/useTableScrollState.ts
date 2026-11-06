@@ -338,6 +338,33 @@ export const getWholeValueWidths: (
 };
 
 /*
+ * How narrow each value may be squeezed while a table's values give way,
+ * by how it would be cut short (getValueGiveKind): one that gives way - a
+ * line, or a box - is cut short by its give, never below the floor its
+ * classes hold it to (null: nothing more to hold it by); any other is held
+ * at its own width or the floor (8rem), whichever is less. Let go, a value
+ * that does not give way was squeezed by the table far below both - a
+ * state's pill, whose word ends in "..." of its own, read "E." - and a
+ * block of words wider than the floor, which no measure gives way, kept no
+ * floor at all. Exported for its tests.
+ */
+export const getValueFloorWidths: (data: {
+  kinds: ReadonlyArray<TableValueGiveKind>;
+  wholeWidths: ReadonlyArray<number>;
+}) => Array<number | null> = (data: {
+  kinds: ReadonlyArray<TableValueGiveKind>;
+  wholeWidths: ReadonlyArray<number>;
+}): Array<number | null> => {
+  return data.wholeWidths.map((whole: number, index: number): number | null => {
+    if (data.kinds[index]) {
+      return null;
+    }
+
+    return Math.min(whole || 0, TABLE_VALUE_GIVE_FLOOR_IN_PX);
+  });
+};
+
+/*
  * Every value back to how it is drawn, before a measurement starts: none
  * held whole.
  */
@@ -377,12 +404,19 @@ export const keepWholeWhatFits: (data: {
   values: Array<HTMLElement>;
   // Each value's width whole (getWholeValueWidths).
   wholeWidths: Array<number>;
+  /*
+   * The width each value is held at while it is not whole - its floor
+   * (getValueFloorWidths), null for one held by its give alone - which a
+   * value tried whole and given back is held at again. Absent: none.
+   */
+  floorWidths?: ReadonlyArray<number | null> | undefined;
   // The rows' names set free, which are never cut shorter for a value.
   names: Array<HTMLElement>;
   fitsNow: () => boolean;
 }) => void = (data: {
   values: Array<HTMLElement>;
   wholeWidths: Array<number>;
+  floorWidths?: ReadonlyArray<number | null> | undefined;
   names: Array<HTMLElement>;
   fitsNow: () => boolean;
 }): void => {
@@ -497,9 +531,19 @@ export const keepWholeWhatFits: (data: {
     for (const index of column.indexes) {
       const value: HTMLElement = data.values[index] as HTMLElement;
       const givenKind: string | null = givenKinds[index] || null;
+      const floorWidth: number | null = data.floorWidths?.[index] ?? null;
 
-      value.removeAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
-      value.style.removeProperty(TABLE_VALUE_WHOLE_WIDTH_PROPERTY);
+      if (floorWidth !== null) {
+        // Held at its floor again, as the reading held it.
+        value.setAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE, "true");
+        value.style.setProperty(
+          TABLE_VALUE_WHOLE_WIDTH_PROPERTY,
+          `${floorWidth}px`,
+        );
+      } else {
+        value.removeAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
+        value.style.removeProperty(TABLE_VALUE_WHOLE_WIDTH_PROPERTY);
+      }
 
       if (givenKind) {
         value.setAttribute(TABLE_VALUE_GIVE_ATTRIBUTE, givenKind);
@@ -835,10 +879,18 @@ const useTableScrollState: (data: {
         values.length > 0 ? getWholeValueWidths(values) : [];
 
       /*
+       * How narrow each value may be squeezed while the values give way:
+       * one that gives way, to the floor its give says (null: no hold); any
+       * other, to its own width or the floor, whichever is less
+       * (getValueFloorWidths). Read once the kinds are.
+       */
+      let floorWidths: Array<number | null> = [];
+
+      /*
        * Every value held whole - or, while the values give way, every value
-       * but those that do: a value is cut short only by giving way, to no
-       * less than the floor. One that does not give way - no wider than the
-       * floor, or a box of parts that would only be clipped - was let go
+       * that does not give way held at its floor: a value is cut short only
+       * to the floor, never below it. One that does not give way - no wider
+       * than the floor, or parts that would only be clipped - was let go
        * with the rest, and a value whose parts end in "..." of their own
        * was squeezed far below the floor: in German at 960px the alerts
        * list's state pills read "E." and "H." to make room for a header of
@@ -847,14 +899,23 @@ const useTableScrollState: (data: {
       const holdValuesWholeUnlessGiving: SetFillFunction = (
         isGiving: boolean,
       ): void => {
-        values.forEach((value: HTMLElement, index: number) => {
-          const isHeld: boolean = !isGiving || !(kinds && kinds[index]);
+        if (isGiving) {
+          floorWidths = getValueFloorWidths({
+            kinds: kinds || [],
+            wholeWidths: wholeWidths,
+          });
+        }
 
-          if (isHeld) {
+        values.forEach((value: HTMLElement, index: number) => {
+          const heldWidth: number | null = isGiving
+            ? floorWidths[index] ?? null
+            : wholeWidths[index] || 0;
+
+          if (heldWidth !== null) {
             value.setAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE, "true");
             value.style.setProperty(
               TABLE_VALUE_WHOLE_WIDTH_PROPERTY,
-              `${wholeWidths[index] || 0}px`,
+              `${heldWidth}px`,
             );
           } else {
             value.removeAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
@@ -896,6 +957,7 @@ const useTableScrollState: (data: {
             keepWholeWhatFits({
               values: values,
               wholeWidths: wholeWidths,
+              floorWidths: floorWidths,
               names: names.filter((name: HTMLElement): boolean => {
                 return name.getAttribute(TABLE_FILL_ATTRIBUTE) === "true";
               }),

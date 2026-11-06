@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import {
+  getValueFloorWidths,
   getWholeValueWidths,
   keepWholeWhatFits,
   releaseWholeValues,
@@ -334,6 +335,54 @@ describe("keepWholeWhatFits", () => {
     );
   });
 
+  /*
+   * A value that does not give way is held at its floor while the others
+   * do (getValueFloorWidths): tried whole and given back, it is held there
+   * again - let go, the table squeezed it below its floor ("E." for a
+   * state's pill).
+   */
+  test("a value given back after it was tried whole is held at its floor again, not let go", () => {
+    // A block of words 320px whole, cut to 200 by the table; whole, the row is 1020px in 900.
+    const layout: Layout = layOut({
+      values: [{ whole: 320, cut: 200, column: 1 }],
+      selfCut: [0],
+      base: 700,
+      box: 900,
+    });
+
+    keepWholeWhatFits({
+      values: layout.values,
+      wholeWidths: [320],
+      floorWidths: [128],
+      names: [],
+      fitsNow: fitsIn(layout, 900),
+    });
+
+    expect(layout.values[0]).toHaveAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE, "true");
+    expect(
+      layout.values[0]!.style.getPropertyValue(TABLE_VALUE_WHOLE_WIDTH_PROPERTY),
+    ).toBe("128px");
+  });
+
+  test("...and one held by its give alone is let go as before, its give back on it", () => {
+    const layout: Layout = layOut({
+      values: [{ whole: 320, cut: 128, isGiven: true, column: 1 }],
+      base: 700,
+      box: 900,
+    });
+
+    keepWholeWhatFits({
+      values: layout.values,
+      wholeWidths: [320],
+      floorWidths: [null],
+      names: [],
+      fitsNow: fitsIn(layout, 900),
+    });
+
+    expect(layout.values[0]).not.toHaveAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
+    expect(layout.values[0]).toHaveAttribute(TABLE_VALUE_GIVE_ATTRIBUTE, "line");
+  });
+
   test("nothing cut short: nothing is touched, nothing is read twice", () => {
     let reads: number = 0;
     const layout: Layout = layOut({
@@ -424,5 +473,39 @@ describe("holding a value whole", () => {
     expect(getWholeValueWidths([value])).toEqual([213]);
     expect(widths).toEqual(["max-content"]);
     expect(value.style.getPropertyValue("width")).toBe("");
+  });
+});
+
+/*
+ * How narrow a value may be squeezed while a table's values give way
+ * (getValueFloorWidths): one that gives way to its give; any other to its
+ * own width or the 8rem floor, whichever is less.
+ */
+describe("getValueFloorWidths", () => {
+  test("a value that gives way - a line, a box - is held by its give: no floor of its own", () => {
+    expect(
+      getValueFloorWidths({ kinds: ["line", "box"], wholeWidths: [214, 320] }),
+    ).toEqual([null, null]);
+  });
+
+  test("a value no wider than the floor - a count, a state's pill - is held at its own width", () => {
+    expect(
+      getValueFloorWidths({ kinds: [null, null], wholeWidths: [18, 92] }),
+    ).toEqual([18, 92]);
+  });
+
+  test("a wider one that does not give way - a block of words, avatars - is held at the floor, 8rem", () => {
+    expect(
+      getValueFloorWidths({ kinds: [null, null], wholeWidths: [320, 160] }),
+    ).toEqual([128, 128]);
+  });
+
+  test("each by its own kind, in the values' order", () => {
+    expect(
+      getValueFloorWidths({
+        kinds: ["line", null, "box", null],
+        wholeWidths: [214, 18, 320, 160],
+      }),
+    ).toEqual([null, 18, null, 128]);
   });
 });
