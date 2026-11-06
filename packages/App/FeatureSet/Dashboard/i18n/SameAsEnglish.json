@@ -38,6 +38,7 @@
   "CLI",
   "CPU",
   "CPU %",
+  "CPU.*high",
   "Ceph",
   "ChatGPT Enterprise",
   "Chrome",

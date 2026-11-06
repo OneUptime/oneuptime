@@ -698,6 +698,8 @@
     "{{count}} minutes",
     "{{count}} mon",
     "{{count}} mons",
+    "{{count}} note",
+    "{{count}} notes",
     "{{count}} option",
     "{{count}} options",
     "{{count}} placement group",

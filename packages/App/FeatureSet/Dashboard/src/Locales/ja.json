@@ -24321,7 +24321,7 @@
   "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "AI はこの{{noun}}でコマンドを実行しません。OneUptime が既に持っているデータで引き続き調査します。",
   "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "AI による調査はデフォルトで有効です。{{agent}} が接続すると、ここでインシデントやアラートを調査するたびに、OneUptime AI はこの{{noun}}で {{commands}} を実行します。修正は許可するまで無効のままです。",
   "AI settings": "AI 設定",
-  "Added from what the picked monitors are linked to: {{names}}.": "Added from what the picked monitors are linked to: {{names}}.",
+  "Added from what the picked monitors are linked to: {{names}}.": "選択したモニターのリンク先から追加しました: {{names}}。",
   "Added from what the picked monitors are linked to: {{names}}._one": "Added from what the picked monitor is linked to: {{names}}.",
   "Alert #{{number}}": "アラート #{{number}}",
   "Alert #{{number}}: {{title}}": "アラート #{{number}}: {{title}}",
