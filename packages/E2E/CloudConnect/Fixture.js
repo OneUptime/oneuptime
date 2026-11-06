@@ -2056,11 +2056,18 @@ function accountFilterOf(wanted) {
   return wanted === undefined ? undefined : { is: String(wanted) };
 }
 
-// Cloud > All Resources' list and its chip's reads, a page at a time.
+/*
+ * A list of resources by kind - Cloud > All Resources' list and its chip's
+ * reads, and an account's recommendations' read of its resources - a page
+ * at a time. Recorded as every resource read is, and with the kind, the
+ * account filter and what it selects.
+ */
 function listAllResources(args) {
   const query = args.query || {};
   state.listRequests.push({
     model: "CloudResource",
+    cloudProvider: String(query.cloudProvider || ""),
+    cloudAccountIds: plainValues(query.cloudAccountId),
     cloudResourceKind: query.cloudResourceKind,
     isArchived: query.isArchived,
     accountFilter: accountFilterOf(query.cloudAccountId),

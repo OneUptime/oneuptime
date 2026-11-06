@@ -23,7 +23,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * in Japanese. What to read - one account, or every account of its
  * organization - changes the command and what the read asks for. And
  * Cloud > Accounts: the accounts the connections read, each one's
- * Overview and Resources.
+ * Overview and Resources; and Cloud > All Resources by cloud account.
  *
  * The screenshots under output/playwright/cloud-connect-ui are for the
  * people who review the page.
@@ -642,9 +642,27 @@ test.describe("the connected accounts", () => {
       .getByTestId("cloud-connection-resource-count")
       .first();
     await expect(count).toHaveText("46 resources");
-    await expect(
-      page.getByRole("link", { name: "46 resources" }),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/cloud/resources`);
+    /*
+     * The way to them is All Resources with its Cloud Account chip set to
+     * the account the connection reads (#6149's follow-up): the count opens
+     * what it counted.
+     */
+    const resources: URL = new URL(
+      (await page
+        .getByRole("link", { name: "46 resources" })
+        .getAttribute("href")) || "",
+      "http://127.0.0.1",
+    );
+    expect(resources.pathname).toBe(`/dashboard/${PROJECT_ID}/cloud/resources`);
+    expect(
+      JSON.parse(
+        resources.searchParams.get("cloud-monitored-resources-table-facets") ||
+          "{}",
+      ),
+    ).toEqual({
+      facetSelections: { cloudAccountId: ["123456789012"] },
+      facetOperators: { cloudAccountId: "is" },
+    });
     await expect(
       page.getByTestId("cloud-connection-regions").first(),
     ).toHaveText("us-east-1, eu-west-1");
