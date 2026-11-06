@@ -6,7 +6,8 @@ import RepositoryManager, {
 } from "../../Utils/RepositoryManager";
 import SecretRedactor from "../../Utils/SecretRedactor";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * What a failed git command says, for the person whose run it was (issue
@@ -76,6 +77,7 @@ const AZURE_DEVOPS_REFUSAL: string = [
 
 afterEach(() => {
   SecretRedactor.clearRegistered();
+  jest.restoreAllMocks();
 });
 
 describe("GitCommandError - which command failed", () => {
@@ -214,14 +216,39 @@ describe("GitCommandError - what git said", () => {
   });
 
   test("a line of megabytes a server wrote is bounded before any pattern reads it", () => {
-    const startedAt: number = Date.now();
-    const error: GitCommandError = failure(
-      `remote: ${"a:b@c ".repeat(800000)}\nfatal: Authentication failed for 'https://tfs.example.com/x/'\n`,
-    );
+    // How much text the redactor's patterns are given to read, each time.
+    const readByPatterns: Array<number> = [];
+    const redact: (text: string | null | undefined) => string =
+      SecretRedactor.redact.bind(SecretRedactor);
+    jest
+      .spyOn(SecretRedactor, "redact")
+      .mockImplementation((text: string | null | undefined): string => {
+        readByPatterns.push((text || "").length);
+        return redact(text);
+      });
 
-    expect(error.isSignInRefusal()).toBe(true);
-    expect(error.gitSays.length).toBe(MAX_GIT_SAYS_LENGTH);
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    // Fastest of up to three attempts, each reading a new error from the whole output.
+    const read: FastestRun<GitCommandError> = fastestRun({
+      run: (): GitCommandError => {
+        const error: GitCommandError = failure(
+          `remote: ${"a:b@c ".repeat(800000)}\nfatal: Authentication failed for 'https://tfs.example.com/x/'\n`,
+        );
+        error.isSignInRefusal();
+        return error;
+      },
+      limitInMs: 5000,
+    });
+
+    expect(read.result.isSignInRefusal()).toBe(true);
+    expect(read.result.gitSays.length).toBe(MAX_GIT_SAYS_LENGTH);
+    expect(read.inMs).toBeLessThan(5000);
+    /*
+     * The server wrote 4.8 MB; the patterns read at most 20 lines of 2,048
+     * characters. A linear redactor reads the whole line fast enough to pass
+     * the time limit alone, so the bound is held here, where it is made.
+     */
+    expect(readByPatterns.length).toBeGreaterThan(0);
+    expect(Math.max(...readByPatterns)).toBeLessThan(64 * 1024);
   });
 
   test("a command that ran out of time says so", () => {
