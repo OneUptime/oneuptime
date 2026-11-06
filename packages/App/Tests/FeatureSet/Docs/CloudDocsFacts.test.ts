@@ -1167,10 +1167,13 @@ describe("the in-app guide's tabs", () => {
     const guide: string = readSource(CLOUD_SETUP_GUIDE);
 
     expect(SHAPE_TABS).toEqual(["Sidecar collector", "SDK direct"]);
+    // Keys of the locale files: the card words each tab in the reader's language.
     expect(guide).toContain(
-      'const SIDECAR_COLLECTOR: string = "Sidecar collector";',
+      'const SIDECAR_COLLECTOR: string = translationKey("Sidecar collector");',
     );
-    expect(guide).toContain('const SDK_DIRECT: string = "SDK direct";');
+    expect(guide).toContain(
+      'const SDK_DIRECT: string = translationKey("SDK direct");',
+    );
 
     for (const page of [HUB, ...PLATFORM_PAGES]) {
       const labels: Array<string> = tabLabels(englishPage(page));

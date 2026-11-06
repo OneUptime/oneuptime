@@ -132,10 +132,15 @@ const CARD_TABLES: ReadonlyArray<string> = [
   "BaseModelTable",
 ];
 
-// What holds cards as its sections.
+/*
+ * What holds cards as its sections: a card's (CardSections, a page's More
+ * settings) or a form's (CardFormSections, whose cards are the sections of
+ * the card or dialog the form is drawn in).
+ */
 const SECTIONING: ReadonlyArray<string> = [
   "CardSections",
   "AdvancedPageSection",
+  "CardFormSections",
 ];
 
 // Framed holders that are not cards themselves: folds and dialogs.

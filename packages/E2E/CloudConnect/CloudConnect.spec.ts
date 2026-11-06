@@ -3225,10 +3225,27 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         }),
       );
       expect(titles).not.toContain("Failed: DeleteLoadBalancer on web-alb");
+      /*
+       * What AWS Health published: its frame, its state and its kind of
+       * event in the reader's words, the service as AWS names it - from the
+       * title and the type the row keeps, as every health event was kept.
+       */
+      expect(titles).toContain(
+        wordIn(reader.locale, "AWS Health: {{event}} (open)", {
+          event: wordIn(reader.locale, "{{service}} operational issue", {
+            service: "EC2",
+          }),
+        }),
+      );
+      expect(titles).not.toContain("AWS Health: EC2 operational issue (open)");
       await expectTitleValuesWhole(page);
       /*
-       * Each line in its own direction: a change worded in Persian reads
-       * right to left, the health event's English left to right.
+       * Each line the way its words read: every title here is worded in
+       * the reader's language, so in Persian every one reads right to left
+       * - the health event's too, though its first words are "AWS
+       * Health:", which read by its first letter put its event and its
+       * state in the wrong order (the UI review of #6149). The provider's
+       * own English words under it read left to right.
        */
       const directions: Array<string> = await page
         .getByTestId("cloud-change-title")
@@ -3237,10 +3254,18 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
             return getComputedStyle(element).direction;
           });
         });
-      expect(directions).toContain("ltr");
-      if (reader.code === "fa") {
-        expect(directions).toContain("rtl");
-      }
+      expect(directions.length).toBeGreaterThan(1);
+      expect(new Set(directions)).toEqual(
+        new Set([reader.code === "fa" ? "rtl" : "ltr"]),
+      );
+      const healthLine: Locator = page
+        .getByTestId("cloud-change-title")
+        .filter({ hasText: "AWS Health" });
+      await expect(healthLine).toHaveCount(1);
+      await expect(healthLine).toHaveCSS(
+        "direction",
+        reader.code === "fa" ? "rtl" : "ltr",
+      );
       await expect(page.getByTestId("cloud-change-detail")).toHaveCSS(
         "direction",
         "ltr",
@@ -3425,6 +3450,36 @@ test.describe("OneUptime AI's changes, on an account's Changes", () => {
     await openAccounts(page, AI_CHANGES_PATH);
 
     const [rollback, fix] = await waitForAiLines(page);
+
+    /*
+     * A rollback is titled as the recorder titles any change - the same
+     * operation on the same resource as its fix - and only its line says it
+     * undid the fix: no word is added to its title. Both rows are as the
+     * recorder writes them: CloudTrail's operation with its service, the
+     * resource by the name the inventory holds, and the kind of change
+     * classifyCloudChange gives an ECS UpdateService - a deploy.
+     */
+    if (isDesktop()) {
+      const aiRows: Locator = page
+        .getByRole("row")
+        .filter({ has: page.getByTestId("cloud-change-ai") });
+
+      await expect(aiRows).toHaveCount(2);
+
+      for (const index of [0, 1]) {
+        const row: Locator = aiRows.nth(index);
+
+        await expect(row.getByTestId("cloud-change-title-value")).toHaveText([
+          "ecs:UpdateService",
+          "checkout",
+        ]);
+        await expect(row.getByTestId("cloud-change-title")).toHaveText(
+          "ecs:UpdateService on checkout",
+        );
+        await expect(row.getByText("Deploy", { exact: true })).toBeVisible();
+        await expect(row).not.toContainText("rolled back");
+      }
+    }
 
     await expect(
       fix.getByRole("link", { name: "Fix for incident #18" }),

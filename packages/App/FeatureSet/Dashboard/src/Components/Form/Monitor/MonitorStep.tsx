@@ -55,7 +55,7 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/Fo
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { getMonitorStepMoreFieldsItems } from "./MonitorMoreFields";
 import Card from "Common/UI/Components/Card/Card";
-import CardSectionsOnPhones from "Common/UI/Components/Card/CardSectionsOnPhones";
+import CardFormSections from "Common/UI/Components/Card/CardFormSections";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -1005,12 +1005,12 @@ return {
   };
 
   /*
-   * The step's cards are drawn in the page's card or the edit dialog: on a
-   * phone they are its sections, a rule above each, rather than frames
-   * inside its frame (CardSectionsOnPhones, CriteriaEditorLayout).
+   * The step's cards are drawn in the page's card or the edit dialog: at
+   * every width they are its sections, a rule above each, rather than
+   * frames inside its frame (CardFormSections, CriteriaEditorLayout).
    */
   return (
-    <CardSectionsOnPhones className="mt-5 space-y-6">
+    <CardFormSections className="mt-5 space-y-6">
       <MonitorTemplateSyncFields
         monitorType={props.monitorType}
         value={monitorStep}
@@ -2609,7 +2609,7 @@ return {
           {criteriaElement}
         </Card>
       )}
-    </CardSectionsOnPhones>
+    </CardFormSections>
   );
 };
 

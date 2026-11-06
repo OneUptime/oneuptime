@@ -119,7 +119,7 @@ export const CodeEditorPlaceholder: FunctionComponent<
             {statusError ? (
               <FieldError
                 message={statusError}
-                className="min-w-0 break-words text-red-700"
+                className="min-w-0 break-words"
               />
             ) : (
               <div className="h-4" />

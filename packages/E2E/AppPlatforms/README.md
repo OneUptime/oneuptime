@@ -57,8 +57,10 @@ Owner and label rules come in each kind: App Platforms' own, Cloud's own
 (never listed here), and one made before the split, for both, which wears the
 **Also in Cloud** pill.
 
-Lists are filtered on the query's plain values, `Includes`, `EqualToOrNull`,
-`NotNull`, `InBetween`, `GreaterThan` and ids, and sorted as the server sorts
+Lists are filtered on the query's plain values, `Includes`, `IncludesNone` (a
+chip set to "is not", which, as the server's `NOT IN`, never matches an empty
+column), `EqualToOrNull`, `NotNull`, `InBetween`, `GreaterThan` and ids, and
+sorted as the server sorts
 them, dates and numbers by value. The telemetry explorers (an
 environment's Metrics, Logs and Traces) read an environment that has sent no
 logs or spans in the range. Any route not listed above renders a "Not

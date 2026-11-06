@@ -45,6 +45,7 @@ import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { Amber500, Indigo500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -687,6 +688,8 @@ function serialize(query) {
       plain[field] = { equalToOrNull: String(value.value) };
     } else if (value instanceof Includes) {
       plain[field] = { includes: value.values.map(String) };
+    } else if (value instanceof IncludesNone) {
+      plain[field] = { includesNone: value.values.map(String) };
     } else if (value && typeof value === "object" && value._type) {
       plain[field] = { [value._type]: String(value.value ?? "") };
     } else if (value instanceof ObjectID) {
@@ -728,6 +731,23 @@ function rowMatches(row, query) {
       if (
         !idsOf(row[field]).some((entry) => {
           return allowed.includes(entry);
+        })
+      ) {
+        return false;
+      }
+      continue;
+    }
+    /*
+     * A chip set to "is not" (Cloud Account): none of those values - and,
+     * as the server's NOT IN reads it, never a column that holds nothing.
+     */
+    if (wanted instanceof IncludesNone) {
+      const refused = wanted.values.map(String);
+      const held = idsOf(row[field]);
+      if (
+        held.length === 0 ||
+        held.some((entry) => {
+          return refused.includes(entry);
         })
       ) {
         return false;

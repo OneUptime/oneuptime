@@ -1094,7 +1094,7 @@ const AIInsightViewPage: FunctionComponent<
                       )}
                     </div>
                     {isTriageFailed && triageRun?.errorMessage ? (
-                      <p className="mt-2 text-xs text-red-500">
+                      <p className="mt-2 text-xs text-red-700">
                         {triageRun.errorMessage}
                       </p>
                     ) : (

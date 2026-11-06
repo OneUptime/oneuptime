@@ -322,7 +322,7 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
         defaultCollapsed={false}
       >
         <div>
-          {loadError && <p className="text-xs text-red-500">{loadError}</p>}
+          {loadError && <p className="text-xs text-red-700">{loadError}</p>}
           {!loadError && dataSources.length === 0 && (
             <p className="text-xs text-gray-400">
               {translator.translateText(

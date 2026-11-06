@@ -2,6 +2,7 @@ import DashboardVariablesModal from "../../../../App/FeatureSet/Dashboard/src/Co
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../UI/Components/Forms/Fields/FieldError";
 /*
  * The main entry, not "/extend-expect": the latter no longer ships type
  * declarations, so every jest-dom matcher in this file fails to typecheck and
@@ -464,6 +465,66 @@ describe("Dashboard Variables modal", () => {
     });
   });
 
+  /*
+   * A variable always has a source - another is picked in its place, never
+   * none - so its dropdown offers no clear button, as a required pick's
+   * does not. Its clear did nothing: the dialog ignores an empty pick, so
+   * the source stayed as it was.
+   */
+  describe("a variable's source", () => {
+    // The plain dropdown's clear button (react-select's clear indicator).
+    const CLEAR_INDICATOR: string = ".ou-select__clear-indicator";
+
+    // The control of each variable's Source dropdown.
+    const sourceControls: () => Array<Element> = (): Array<Element> => {
+      return screen
+        .getAllByRole("combobox", { name: "Variable source" })
+        .map((source: HTMLElement): Element => {
+          const control: Element | null = source.closest(".ou-select__control");
+
+          expect(control).not.toBeNull();
+          return control as Element;
+        });
+    };
+
+    test("has no clear button: one is always picked", () => {
+      renderModal();
+
+      addVariableRow();
+
+      const controls: Array<Element> = sourceControls();
+
+      expect(controls).toHaveLength(1);
+      expect(controls[0]!.textContent).toContain("Telemetry Attribute");
+      expect(controls[0]!.querySelector(CLEAR_INDICATOR)).toBeNull();
+    });
+
+    test("an existing variable's source has none either, whatever it is", () => {
+      renderModal([
+        {
+          id: "v-team",
+          name: "team",
+          type: DashboardVariableType.ProjectLabel,
+          labelOptions: [],
+        },
+        {
+          id: "v-region",
+          name: "region",
+          type: DashboardVariableType.CustomList,
+          customListValues: "eu,us",
+        },
+      ]);
+
+      const controls: Array<Element> = sourceControls();
+
+      expect(controls).toHaveLength(2);
+
+      for (const control of controls) {
+        expect(control.querySelector(CLEAR_INDICATOR)).toBeNull();
+      }
+    });
+  });
+
   describe("name validation is unaffected by the fix", () => {
     test("a row with an invalid name blocks saving but not the attribute pick", () => {
       renderModal();
@@ -478,6 +539,49 @@ describe("Dashboard Variables modal", () => {
       expect(
         screen.getByText("Letters, digits and underscore only"),
       ).toBeInTheDocument();
+      expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+    });
+
+    /*
+     * What is wrong with a variable's name is said under it as every
+     * field's error is (FieldError): in the error's own red - a light red
+     * of its own read at 3.8:1 - said at once, and read as it is written.
+     */
+    test("what is wrong with a name is said under it in every field's red", () => {
+      renderModal();
+
+      addVariableRow();
+      typeInto(NAME_PLACEHOLDER, "9 bad name");
+
+      const line: HTMLElement = screen
+        .getByText("Letters, digits and underscore only")
+        .closest("[data-testid='error-message']") as HTMLElement;
+
+      expect(line).not.toBeNull();
+      expect(line).toHaveAttribute("role", "alert");
+      expect(line).toHaveClass(
+        "mt-1",
+        "text-[11px]",
+        FIELD_ERROR_COLOR_CLASS_NAME,
+      );
+      expect(line.className).not.toContain("text-red-500");
+    });
+
+    test("a name used twice is said under the second, in the same red", () => {
+      renderModal();
+
+      addVariableRow();
+      addVariableRow();
+
+      for (const field of screen.getAllByPlaceholderText(NAME_PLACEHOLDER)) {
+        fireEvent.change(field, { target: { value: "cluster" } });
+      }
+
+      const line: HTMLElement = screen
+        .getByText("Duplicate name")
+        .closest("[data-testid='error-message']") as HTMLElement;
+
+      expect(line).toHaveClass(FIELD_ERROR_COLOR_CLASS_NAME);
       expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
     });
 

@@ -20,10 +20,13 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ChangeTitleDirection,
   CloudChangeTitleFacts,
+  getChangeTitleDirection,
   getChangeTitleForReader,
   getCloudChangeTitleSentence,
   readCloudChangeTitleFacts,
+  readCloudHealthTitleFacts,
 } from "Common/Utils/Telemetry/CloudChangeTitle";
 import React, {
   FunctionComponent,
@@ -97,21 +100,53 @@ export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
 /*
  * What changed, in the reader's language: an operation the activity log
  * recorded worded from its operation, resource and outcome; a health
- * event, or any other change, by its own title.
+ * event with its frame and state worded, the provider's event as written;
+ * any other change by its own title.
  */
 export function getCloudChangeTitleText(
   change: ChangeEvent,
   translator: Translator,
 ): string {
+  const stored: {
+    title: string | undefined;
+    attributes: JSONObject | undefined;
+  } = {
+    title: change.title,
+    attributes: change.attributes as JSONObject | undefined,
+  };
+
   return getChangeTitleForReader({
     title: change.title,
     eventType: change.eventType,
-    facts: readCloudChangeTitleFacts({
-      title: change.title,
-      attributes: change.attributes as JSONObject | undefined,
-    }),
+    facts: readCloudChangeTitleFacts(stored),
+    health: readCloudHealthTitleFacts(stored),
     translator,
     options: { setsValuesApart: true },
+  });
+}
+
+/*
+ * Which way a change's title line reads (getChangeTitleDirection): a title
+ * worded in the reader's language reads their way - a Persian health event
+ * right to left, though its first words are "AWS Health:" - and any other
+ * title its own way.
+ */
+export function getCloudChangeTitleDirection(
+  change: ChangeEvent,
+  translator: Translator,
+): ChangeTitleDirection {
+  const stored: {
+    title: string | undefined;
+    attributes: JSONObject | undefined;
+  } = {
+    title: change.title,
+    attributes: change.attributes as JSONObject | undefined,
+  };
+
+  return getChangeTitleDirection({
+    facts: readCloudChangeTitleFacts(stored),
+    health: readCloudHealthTitleFacts(stored),
+    translator,
   });
 }
 
@@ -200,6 +235,8 @@ export interface ComponentProps {
 const CloudChangesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // The reader's: a title worded in their language reads their way.
+  const translator: Translator = useTranslator();
   const scopeKey: string = JSON.stringify(
     getCloudChangesAttributeFilter(props.scope),
   );
@@ -407,18 +444,19 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
             });
 
             /*
-             * Each line in its own direction (dir="auto"): a change worded
-             * in Persian reads right to left, a health event's English
-             * title and its provider's words left to right, so an English
-             * line on a Persian page keeps its start, and its cut, at the
-             * end it is read to. The values a title sets apart are not
-             * counted.
+             * Each line in its own direction: a title worded in the
+             * reader's language reads their way - a Persian one right to
+             * left, a health event's too, though it starts with "AWS
+             * Health:" (getCloudChangeTitleDirection) - and a title as
+             * written, or the provider's words under it, its own way
+             * (dir="auto"), so an English line on a Persian page keeps its
+             * start, and its cut, at the end it is read to.
              */
             return (
               <div className="min-w-0">
                 <div
                   className="text-sm font-medium text-gray-900 break-words"
-                  dir="auto"
+                  dir={getCloudChangeTitleDirection(change, translator)}
                   data-testid="cloud-change-title"
                 >
                   <CloudChangeTitle change={change} />

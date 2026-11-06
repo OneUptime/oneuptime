@@ -1,4 +1,7 @@
-import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
+import FilePicker, {
+  FILE_PICKER_ERROR_TEST_ID,
+} from "../../../UI/Components/FilePicker/FilePicker";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../UI/Components/Forms/Fields/FieldError";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
@@ -720,5 +723,107 @@ describe("several pickers on one page", () => {
     expect(ids).toHaveLength(2);
     expect(ids[0]).not.toBe("");
     expect(new Set(ids).size).toBe(2);
+  });
+});
+
+/*
+ * Why the picker refused a file is drawn as every field's error is
+ * (FieldError): in the error's own red, which reads at 6.5:1 on the white
+ * zone - the light red it had was 3.8:1 - said at once, and read the way it
+ * is written on a page read the other way.
+ */
+describe("a refusal is drawn as every field's error is", () => {
+  type RedsOfFunction = (element: HTMLElement) => Array<string>;
+
+  const redsOf: RedsOfFunction = (element: HTMLElement): Array<string> => {
+    return Array.from(element.classList).filter((token: string): boolean => {
+      return token.startsWith("text-red-");
+    });
+  };
+
+  test("on an empty picker, under its prompt", async () => {
+    render(<FilePicker mimeTypes={[MimeType.png]} dataTestId="picker" />);
+
+    await drop(dropZone("picker"), [
+      makeFile("setup.exe", "application/x-msdownload"),
+    ]);
+
+    const refusal: HTMLElement = await screen.findByTestId(
+      FILE_PICKER_ERROR_TEST_ID,
+    );
+
+    expect(refusal).toHaveTextContent(
+      '"setup.exe" is not a type of file this field takes.',
+    );
+    expect(refusal).toHaveAttribute("role", "alert");
+    expect(refusal).toHaveClass("text-xs", "font-medium");
+    expect(redsOf(refusal)).toEqual([FIELD_ERROR_COLOR_CLASS_NAME]);
+  });
+
+  test("on a full picker of several, under its note", async () => {
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={1}
+        mimeTypes={[MimeType.png]}
+        initialValue={[
+          heldFile("one.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+        ]}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("setup.exe", "application/x-msdownload"),
+    ]);
+
+    const refusal: HTMLElement = await screen.findByTestId(
+      FILE_PICKER_ERROR_TEST_ID,
+    );
+
+    expect(refusal).toHaveAttribute("role", "alert");
+    expect(redsOf(refusal)).toEqual([FIELD_ERROR_COLOR_CLASS_NAME]);
+  });
+
+  test("on a picker of one holding its file, under the file", async () => {
+    render(
+      <FilePicker
+        mimeTypes={[MimeType.png]}
+        initialValue={heldFile(
+          "contract.png",
+          "aaaaaaaa-0000-4000-8000-000000000001",
+        )}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("notes.exe", "application/x-msdownload"),
+    ]);
+
+    const refusal: HTMLElement = await screen.findByTestId(
+      FILE_PICKER_ERROR_TEST_ID,
+    );
+
+    expect(refusal).toHaveAttribute("role", "alert");
+    expect(refusal).toHaveClass("text-xs", "font-medium", "text-left");
+    expect(redsOf(refusal)).toEqual([FIELD_ERROR_COLOR_CLASS_NAME]);
+  });
+
+  test("the field's own error is its own line, in the same red", () => {
+    render(
+      <FilePicker
+        mimeTypes={[MimeType.png]}
+        dataTestId="picker"
+        error="Add a file."
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("error-message");
+
+    expect(line).toHaveTextContent("Add a file.");
+    expect(line).toHaveClass("text-sm");
+    expect(redsOf(line)).toEqual([FIELD_ERROR_COLOR_CLASS_NAME]);
+    expect(screen.queryByTestId(FILE_PICKER_ERROR_TEST_ID)).toBeNull();
   });
 });

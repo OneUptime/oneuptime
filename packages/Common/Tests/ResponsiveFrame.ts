@@ -6,9 +6,10 @@ import { mediaPrecedenceOf, splitVariants } from "./ResponsiveVisibility";
  * and the shadow - for markup styled with Tailwind utilities. The frame
  * counterpart of ResponsiveSpacing.ts, and read the same way: jsdom has no
  * stylesheet, so to it a box drawn only from sm up and one drawn at every
- * width look alike. A card that is a section on a phone only
- * (Card/CardSectionsOnPhones) is held to "the card it always was, from sm
- * up" with these.
+ * width look alike. A card that is a section of the form it is in
+ * (Card/CardFormSections) is held to "a section at every width, with no
+ * frame from sm up either" with these, and the criteria editor's bands to
+ * "framed from sm up".
  *
  * Scope: the border width family (border, border-x/y, border-s/e/t/r/b/l;
  * 1px, 0, 2, 4, 8 or an arbitrary px length), the radius family (rounded,
