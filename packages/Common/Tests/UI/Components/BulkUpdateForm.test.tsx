@@ -130,19 +130,18 @@ describe("BulkUpdateForm", () => {
     expect(queryByText(/failed/)).toBeNull();
   });
 
-  test("names real numbers when the selection was truncated", () => {
-    const { getByText } = renderForm({
+  test("names real numbers when the selection was truncated: how many of how many, in the count", () => {
+    const { getByText, queryByText } = renderForm({
       selectedItems: makeRows(5),
       isAllItemsSelected: true,
       isSelectionTruncated: true,
       totalMatchingItemsCount: 24318,
     });
 
-    expect(
-      getByText(
-        new RegExp(`Selected 5 of ${(24318).toLocaleString()} matching Labels`),
-      ),
-    ).toBeTruthy();
+    expect(getByText(`5 of ${(24318).toLocaleString()} selected`)).toBeTruthy();
+    // The count says it: no three-sentence note under the bar.
+    expect(queryByText(/You can only select/)).toBeNull();
+    expect(queryByText(/matching Labels/)).toBeNull();
   });
 
   test("stays quiet when a full selection happens to sit on the ceiling", () => {
@@ -152,7 +151,7 @@ describe("BulkUpdateForm", () => {
      * exactly the ceiling was told its selection had been cut short when
      * nothing had been dropped at all.
      */
-    const { queryByText } = renderForm({
+    const { getByText, queryByText } = renderForm({
       selectedItems: makeRows(LIMIT_PER_PROJECT),
       isAllItemsSelected: true,
       isSelectionTruncated: false,
@@ -160,6 +159,10 @@ describe("BulkUpdateForm", () => {
     });
 
     expect(queryByText(/matching Labels/)).toBeNull();
+    expect(queryByText(/ of .* selected$/)).toBeNull();
+    expect(
+      getByText(`${LIMIT_PER_PROJECT.toLocaleString()} Labels Selected`),
+    ).toBeTruthy();
   });
 
   test("clearing the selection calls back", () => {

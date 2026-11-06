@@ -1,3 +1,5 @@
+import { LongWordHyphenation } from "../HyphenatedWords/LongWords";
+
 /*
  * How a table draws its header row, its rows and its cells (Table,
  * TableHeader, TableRow and the TableSkeletonRows a table shows while it
@@ -127,6 +129,30 @@ export const TABLE_HEADER_WRAP_ATTRIBUTE: string = "data-wrap-headers";
 
 export const TABLE_HEADER_CONTENT_WRAP_CLASS_NAME: string =
   "[[data-wrap-headers=true]_&]:whitespace-normal";
+
+/*
+ * ...and a long word in the reader's language - a German compound,
+ * "Warnungsnummer" (Alert Number) - breaks where its language hyphenates
+ * it, with a hyphen: one word of 14 letters set the column's width over
+ * values a third as wide ("ALT-10"), and in German at 1280px beside the
+ * side menu the alerts list ran past its card, or its state pills were cut
+ * to "E." to make room. Only a word of TABLE_HEADER_HYPHENATED_WORD_LENGTH
+ * letters or more, each in a span of its own (HyphenatedWords), and five
+ * letters at least either side of the hyphen: Firefox and Safari hyphenate
+ * whatever word ends a line, where the shorter words of a name wrap whole
+ * ("Betroffene / Ressourcen"). A name left in English is never hyphenated:
+ * the page says lang="en", and English names were written to fit. Only
+ * while the header row wraps: on one line, nothing breaks.
+ */
+export const TABLE_HEADER_HYPHENATED_WORD_LENGTH: number = 12;
+
+export const TABLE_HEADER_LONG_WORD_CLASS_NAME: string =
+  "hyphens-auto [hyphenate-limit-chars:12_5_5] [-webkit-hyphenate-limit-before:5] [-webkit-hyphenate-limit-after:5]";
+
+export const TABLE_HEADER_LONG_WORDS: LongWordHyphenation = {
+  minimumWordLength: TABLE_HEADER_HYPHENATED_WORD_LENGTH,
+  longWordClassName: TABLE_HEADER_LONG_WORD_CLASS_NAME,
+};
 
 /*
  * The header row stays under the page's top bar (MasterPage publishes its
@@ -463,9 +489,24 @@ export const TABLE_VALUE_GIVE_FLOOR_IN_PX: number = 128;
  * scrolls as it was, every value whole and its header on one line - it has
  * the scroll's room to show them in - and in a box narrower than 48rem it
  * is drawn as cards instead (TableFit). In German at 1280px the alerts list
- * was 19px past its card given way, and 147px past it drawn whole.
+ * was 19px past its card given way, and 147px past it drawn whole. A box of
+ * 48rem or more, which has no cards to turn to, keeps a table given way up
+ * to 8rem past it (TableFit's TABLE_WIDE_BOX_NEARLY_FITS_WITHIN_IN_PX).
  */
 export const TABLE_NEARLY_FITS_WITHIN_IN_PX: number = 32;
+
+/*
+ * What the rows of a table say of themselves - a custom property only
+ * their own class sets - so the table's measuring can tell whether the
+ * page has written the rules they are drawn by (useTableScrollState's
+ * areRowRulesDrawn). Its loading placeholders never carry it: on a page's
+ * first list the commit that draws the first rows draws it first, and the
+ * Dashboard's Tailwind runtime writes its rule, with every other class new
+ * in that commit, only after it.
+ */
+export const TABLE_ROWS_DRAWN_PROPERTY: string = "--ou-table-rows-drawn";
+
+export const TABLE_ROWS_DRAWN_CLASS_NAME: string = "[--ou-table-rows-drawn:1]";
 
 export const TABLE_VALUE_GIVE_CLASS_NAME: string = [
   "data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:line-clamp-1",

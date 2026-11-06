@@ -14,8 +14,8 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import Card from "Common/UI/Components/Card/Card";
+import CardFormSections from "Common/UI/Components/Card/CardFormSections";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
@@ -467,16 +467,24 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
         ]}
       />
 
-      <div>
-        <HorizontalRule />
-        <FieldLabelElement
+      {/*
+       * What the monitor reads now is a section of the step of its own, as
+       * Monitor Criteria is (CardFormSections): a rule above it and a
+       * section's title. It was a rule and a larger, lighter heading of its
+       * own inside the configuration section, which read as a step above
+       * the sections round it.
+       */}
+      <CardFormSections
+        className="mt-6"
+        dataTestId="profile-monitor-preview-section"
+      >
+        <Card
           title={PROFILE_MONITOR_PREVIEW_TITLE}
           description={PROFILE_MONITOR_PREVIEW_DESCRIPTION}
-          hideOptionalLabel={true}
-          isHeading={true}
-        />
-        <div className="mt-4 mb-5">{renderPreview()}</div>
-      </div>
+        >
+          {renderPreview()}
+        </Card>
+      </CardFormSections>
     </div>
   );
 };

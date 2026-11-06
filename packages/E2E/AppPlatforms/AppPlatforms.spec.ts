@@ -16,8 +16,10 @@ import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
  * Read the way a person reads them: the Overview's fleet strip, its recent
  * deploys and its environments grouped by platform; All Apps, an
  * environment's Apps and one app's page - its revisions and deploys, its
- * instances, logs and traces; an environment's page and every tab of it,
- * under App Platforms' trail and side menu; All Environments, Archived
+ * instances, logs and traces, and the monitors recommended for it, which
+ * Set up alerts opens and makes in one step; an environment's page and
+ * every tab of it, under App Platforms' trail and side menu; All
+ * Environments, Archived
  * and the rules, which list environments and never a cloud resource, and
  * show a rule made before the split with a pill that says why; the old Cloud
  * addresses of an environment, which open it here, and the App Platforms
@@ -107,12 +109,25 @@ interface AnalyticsRequest {
   entryOnly: boolean;
 }
 
+// A monitor an app's Recommendations tab made, as the fixture kept it.
+interface CreatedMonitor {
+  modelName: string;
+  name: string;
+  monitorType: string;
+  scope: Record<string, string> | null;
+  metricName: string | null;
+  spanStatuses: Array<number> | null;
+  serviceIds: Array<string>;
+  cloudResourceIds: Array<string>;
+}
+
 interface Recorded {
   listRequests: Array<ListRequest>;
   analyticsRequests: Array<AnalyticsRequest>;
   countRequests: Array<ListRequest>;
   itemRequests: Array<{ modelName: string; id: string }>;
   apiRequests: Array<{ method: string; url: string }>;
+  creates: Array<CreatedMonitor>;
   unhandled: Array<Record<string, unknown>>;
 }
 
@@ -184,6 +199,49 @@ async function recorded(page: Page): Promise<Recorded> {
     return (window as unknown as { __appPlatformsFixture: Recorded })
       .__appPlatformsFixture;
   });
+}
+
+/*
+ * A list's address with its Cloud Account chip set, as Cloud's Overview
+ * links it (AppPlatformsListRoutes): the list's facet state under the URL
+ * parameter its facet bar reads. "is", unless the chip was turned round.
+ */
+function accountChipQuery(
+  tableId: string,
+  accountIds: Array<string>,
+  operator: "is" | "is_not" = "is",
+): string {
+  return `${tableId}-facets=${encodeURIComponent(
+    JSON.stringify({
+      facetSelections: { cloudAccountId: accountIds },
+      facetOperators: { cloudAccountId: operator },
+    }),
+  )}`;
+}
+
+/*
+ * Where each of a text's pieces starts on the screen, from the left: the
+ * order a reader sees them in, whatever order they are written in.
+ */
+async function leftEdgesOf(
+  locator: Locator,
+  pieces: Array<string>,
+): Promise<Array<number>> {
+  return await locator.evaluate(
+    (element: Element, wanted: Array<string>): Array<number> => {
+      const text: Node = element.firstChild!;
+      const written: string = text.textContent || "";
+      const range: Range = document.createRange();
+
+      return wanted.map((piece: string): number => {
+        const at: number = written.indexOf(piece);
+        range.setStart(text, at);
+        range.setEnd(text, at + piece.length);
+        return range.getBoundingClientRect().left;
+      });
+    },
+    pieces,
+  );
 }
 
 /*
@@ -878,6 +936,80 @@ test.describe("an environment's pages", () => {
     }
   });
 
+  /*
+   * Its Documentation is the platform's setup guide in the reader's
+   * language (#6060): the picker's lines, the steps and their tabs are the
+   * reader's words, and the commands and configurations stay as typed.
+   */
+  test("its Documentation guide reads in German, and in Persian right to left on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const sentences: Array<string> = [
+      "Tasks on Amazon Elastic Container Service, on Fargate or EC2 launch types.",
+      "An ECS cluster, and a task definition you can revise",
+      "Pick a Server key, or create one — the commands below update to use it.",
+    ];
+
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT}/documentation?lang=de`);
+    const guide: Locator = page.getByTestId("setup-guide");
+    for (const english of sentences) {
+      await expect(guide).toContainText(GERMAN[english]!);
+      await expect(guide).not.toContainText(english);
+    }
+    await expect(guide.getByRole("tab")).toContainText([
+      GERMAN["Sidecar collector"]!,
+      "SDK direct",
+    ]);
+    // A command stays as it is typed.
+    await expect(guide).toContainText("aws secretsmanager create-secret");
+    await screenshot(page, "app-platforms-environment-documentation-de-1280");
+
+    /*
+     * The task definition's steps name more of the console's English labels
+     * than German words: a list in the reader's language reads its way.
+     */
+    await expect(
+      guide.getByTestId("setup-guide-step-3").locator("ol").first(),
+    ).toHaveCSS("direction", "ltr");
+
+    await page.setViewportSize(PHONE);
+    await open(page, `${CHECKOUT}/documentation?lang=fa`);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    for (const english of sentences) {
+      await expect(page.getByTestId("setup-guide")).toContainText(
+        PERSIAN[english]!,
+      );
+    }
+    /*
+     * Every block reads right to left (the UI review of #6149): the steps
+     * through the AWS console name more English labels than Persian
+     * words, and laid out by their letters they read left to right, their
+     * numbers on the wrong side.
+     */
+    const consoleSteps: Locator = page
+      .getByTestId("setup-guide-step-3")
+      .locator("ol")
+      .first();
+    await expect(consoleSteps).toHaveCSS("direction", "rtl");
+    expect(
+      await consoleSteps
+        .locator(":scope > li")
+        .evaluateAll((items: Array<Element>): Array<string> => {
+          return items.map((item: Element): string => {
+            return getComputedStyle(item).direction;
+          });
+        }),
+    ).not.toContain("ltr");
+    await expect(
+      page.getByTestId("setup-guide-step-3").locator("h3 + p"),
+    ).toHaveCSS("direction", "rtl");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-documentation-fa-390");
+  });
+
   test("its Logs and Traces are scoped to its platform, account and region", async ({
     page,
   }: {
@@ -1099,13 +1231,17 @@ test.describe("apps and their deploys", () => {
     await expect(page.getByTestId("cloud-app-header-revision")).toHaveText(
       "Revision 43 · Deployed 25 minutes ago · Replaced 42",
     );
-    // Alerts that work out of the box: its service's recommended monitors.
+    /*
+     * Alerts that work out of the box: its own recommended monitors, on its
+     * Recommendations tab - a button of the page, not a link to its
+     * service's, which another app of the image can share.
+     */
+    await expect(
+      header.getByRole("button", { name: "Set up alerts" }),
+    ).toBeVisible();
     await expect(
       header.getByRole("link", { name: "Set up alerts" }),
-    ).toHaveAttribute(
-      "href",
-      `${DASHBOARD}/service/${CHECKOUT_SERVICE_ID}/recommendations`,
-    );
+    ).toHaveCount(0);
     await expect(
       header.getByRole("link", { name: "checkout-api" }),
     ).toHaveAttribute("href", `${DASHBOARD}/service/${CHECKOUT_SERVICE_ID}`);
@@ -1116,6 +1252,7 @@ test.describe("apps and their deploys", () => {
       "Instances",
       "Logs",
       "Traces",
+      "Recommendations",
     ]);
 
     // Its numbers, its live tasks, and the revisions they run right now.
@@ -1161,6 +1298,128 @@ test.describe("apps and their deploys", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-app-overview-390");
+  });
+
+  /*
+   * Set up alerts opens the app's own recommended monitors - its requests
+   * failing, bursting, stopping and slowing - and each one it makes reads
+   * the app's spans or request durations by the filter its Traces tab
+   * reads them by, never by a service, and is linked to its environment.
+   */
+  test("Set up alerts opens its Recommendations, and makes its five monitors for it in one step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, CHECKOUT_APP);
+
+    await page
+      .getByTestId("cloud-app-header")
+      .getByRole("button", { name: "Set up alerts" })
+      .click();
+
+    const recommendationsTab: Locator = page.getByRole("tab", {
+      name: "Recommendations",
+    });
+    await expect(recommendationsTab).toHaveAttribute("aria-selected", "true");
+    await expect(recommendationsTab).toBeFocused();
+
+    const panel: Locator = page.getByRole("tabpanel");
+    await expect(panel).toContainText(
+      "Monitors OneUptime recommends for this app, from the requests its OpenTelemetry reports.",
+    );
+    await expect(panel).toContainText("0 of 5 recommended monitors created");
+    for (const name of [
+      "Failed Operations",
+      "Error Burst",
+      "Traffic Stopped",
+      "High Request Latency (p95)",
+      "Severe Request Latency (p99)",
+    ]) {
+      await expect(panel.getByText(name, { exact: true })).toBeVisible();
+    }
+
+    // Its own row and its environment's, read with the person's rights.
+    const items: Array<{ modelName: string; id: string }> = (
+      await recorded(page)
+    ).itemRequests;
+    expect(
+      items.filter((item: { modelName: string; id: string }): boolean => {
+        return item.modelName === "CloudApp";
+      }).length,
+    ).toBe(2);
+    await screenshot(page, "app-platforms-app-recommendations-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-app-recommendations-390");
+
+    /*
+     * Beside the side menu at a tablet's width the six tabs wrap rather
+     * than run past the page: the row scrolled it sideways from 768px.
+     */
+    await page.setViewportSize(TABLET);
+    await expectNoSidewaysScroll(page);
+    await expect(recommendationsTab).toBeVisible();
+    await screenshot(page, "app-platforms-app-recommendations-768");
+    await page.setViewportSize(LAPTOP);
+
+    // Every section's Select all - errors, throughput, latency - then one Create.
+    const selectAll: Locator = panel.getByRole("button", {
+      name: /^Select all \d+$/,
+    });
+    await expect(selectAll).toHaveCount(3);
+    for (let section: number = 0; section < 3; section++) {
+      await selectAll.first().click();
+    }
+    await expect(selectAll).toHaveCount(0);
+    await panel
+      .getByRole("button", { name: "Create 5 Selected Monitors" })
+      .first()
+      .click();
+    await page.getByRole("button", { name: "Create Monitors" }).last().click();
+
+    // A clean run closes its panel, and the tab reads what covers each again.
+    await expect(panel).toContainText("5 of 5 recommended monitors created");
+
+    const filter: Record<string, string> = {
+      "resource.cloud.platform": "aws_ecs",
+      "resource.cloud.account.id": "4109-2277-8841",
+      "resource.cloud.region": "us-east-1",
+      "resource.aws.ecs.cluster.arn":
+        "arn:aws:ecs:us-east-1:4109-2277-8841:cluster/production",
+      "resource.aws.ecs.task.family": "checkout-api",
+    };
+    const creates: Array<CreatedMonitor> = (await recorded(page)).creates;
+    expect(
+      creates
+        .map((created: CreatedMonitor): string => {
+          return `${created.name} (${created.monitorType})`;
+        })
+        .sort(),
+    ).toEqual([
+      "checkout-api - Error Burst (Traces)",
+      "checkout-api - Failed Operations (Traces)",
+      "checkout-api - High Request Latency (p95) (Metrics)",
+      "checkout-api - Severe Request Latency (p99) (Metrics)",
+      "checkout-api - Traffic Stopped (Traces)",
+    ]);
+    for (const created of creates) {
+      expect(created.scope, created.name).toEqual(filter);
+      expect(created.serviceIds, created.name).toEqual([]);
+      expect(created.cloudResourceIds, created.name).toEqual([CHECKOUT_ID]);
+    }
+    expect(
+      creates
+        .filter((created: CreatedMonitor): boolean => {
+          return created.monitorType === "Metrics";
+        })
+        .map((created: CreatedMonitor): string | null => {
+          return created.metricName;
+        }),
+    ).toEqual(["http.server.request.duration", "http.server.request.duration"]);
+    await screenshot(page, "app-platforms-app-recommendations-created-1280");
   });
 
   test("Revisions lists every revision newest first: the one it runs, the one still draining, the one retired", async ({
@@ -1677,6 +1936,214 @@ test.describe("All Environments and Archived", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-environments-390");
+  });
+
+  /*
+   * Cloud's Overview counts the environments and apps in the accounts it
+   * reads, and each count opens its list with the Cloud Account chip set
+   * to those accounts (#6060): the list arrives holding just them, the chip
+   * drawn set, and clearing it lists everything again.
+   */
+  test("a list opened with the Cloud Account chip set holds that account's environments, and All Apps their apps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"])}`,
+    );
+
+    await expect(
+      page.getByText("Showing 1-2 of 2 cloud environments"),
+    ).toBeVisible();
+    for (const name of ENVIRONMENT_NAMES.slice(0, 2)) {
+      await expect(
+        page.getByRole("link", { name: name }).first(),
+      ).toBeVisible();
+    }
+    for (const name of ENVIRONMENT_NAMES.slice(2)) {
+      await expect(page.getByRole("link", { name: name })).toHaveCount(0);
+    }
+    const chip: Locator = page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: /^Cloud Account · / });
+    await expect(chip).toContainText("4109-2277-8841");
+    const environmentReads: Array<ListRequest> = (
+      await recorded(page)
+    ).listRequests.filter((request: ListRequest): boolean => {
+      return (
+        request.modelName === "CloudResource" &&
+        request.query["cloudAccountId"] !== undefined
+      );
+    });
+    expect(environmentReads.length).toBeGreaterThan(0);
+    expect(
+      JSON.stringify(
+        environmentReads[environmentReads.length - 1]!.query["cloudAccountId"],
+      ),
+    ).toContain("4109-2277-8841");
+    await screenshot(page, "app-platforms-environments-account-chip-1280");
+
+    // Clear the chip: every environment again.
+    await page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: /^Clear Cloud Account/ })
+      .click();
+    await expect(
+      page.getByText("Showing 1-6 of 6 cloud environments"),
+    ).toBeVisible();
+
+    // The chip offers each account the environments are in, once, under its cloud.
+    await page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: /^Cloud Account$/ })
+      .click();
+    const offered: Locator = page.getByRole("listbox").getByRole("option");
+    await expect(offered).toHaveText([
+      /4109-2277-8841/,
+      /core-prod-sub/,
+      /acme-prod/,
+    ]);
+    await expect(page.getByRole("listbox")).toContainText("AWS");
+    await expect(page.getByRole("listbox")).toContainText("Azure");
+    await expect(page.getByRole("listbox")).toContainText("Google Cloud");
+    await screenshot(page, "app-platforms-environments-account-chip-open-1280");
+    await page.mouse.click(5, 5);
+
+    // All Apps, as Cloud's count of apps opens it: the apps of those two environments.
+    await open(
+      page,
+      `${APP_PLATFORMS}/apps?${accountChipQuery("app-platforms-apps-table", ["4109-2277-8841"])}`,
+    );
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(3);
+    for (const [index, name] of [
+      "billing-api",
+      "checkout-api",
+      "inventory",
+    ].entries()) {
+      await expect(rows.nth(index)).toContainText(name);
+    }
+    await expect(
+      page
+        .getByTestId("facet-filter-bar")
+        .getByRole("button", { name: /^Cloud Account · / }),
+    ).toContainText("4109-2277-8841");
+    await screenshot(page, "app-platforms-apps-account-chip-1280");
+  });
+
+  /*
+   * The UI review of #6149: turned round, the chip keeps every other
+   * account's environments - and on All Apps their apps - and it says so in
+   * the reader's words. In Persian an account id after the chip's Persian
+   * name read with its digit groups the wrong way round ("8841-2277-4109"):
+   * it is set apart from the name now, and reads whole.
+   */
+  test("the Cloud Account chip turned to 'is not', in English, German and Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"], "is_not")}`,
+    );
+
+    await expect(
+      page.getByText("Showing 1-4 of 4 cloud environments"),
+    ).toBeVisible();
+    for (const name of ENVIRONMENT_NAMES.slice(2)) {
+      await expect(
+        page.getByRole("link", { name: name }).first(),
+      ).toBeVisible();
+    }
+    for (const name of ENVIRONMENT_NAMES.slice(0, 2)) {
+      await expect(page.getByRole("link", { name: name })).toHaveCount(0);
+    }
+    await expect(
+      page
+        .getByTestId("facet-filter-bar")
+        .getByRole("button", { name: "Cloud Account · not 4109-2277-8841" }),
+    ).toBeVisible();
+
+    // All Apps: the apps of every other account's environments.
+    await open(
+      page,
+      `${APP_PLATFORMS}/apps?${accountChipQuery("app-platforms-apps-table", ["4109-2277-8841"], "is_not")}`,
+    );
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(3);
+    for (const [index, name] of ["api", "reports", "worker"].entries()) {
+      await expect(rows.nth(index)).toContainText(name);
+    }
+
+    // In German, every word of the chip: its value and its popover.
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"], "is_not")}&lang=de`,
+    );
+    const germanChip: Locator = page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", {
+        name: `${GERMAN["Cloud Account"]} · nicht 4109-2277-8841`,
+      });
+    await expect(germanChip).toBeVisible();
+    await germanChip.click();
+    await expect(page.getByRole("dialog").getByRole("textbox")).toHaveAttribute(
+      "placeholder",
+      `${GERMAN["Cloud Account"]} suchen...`,
+    );
+    await page.keyboard.press("Escape");
+
+    // In Persian, the account id reads whole after the chip's Persian name.
+    await open(
+      page,
+      `${APP_PLATFORMS}/environments?${accountChipQuery("cloud-resources-table", ["4109-2277-8841"])}&lang=fa`,
+    );
+    const value: Locator = page
+      .getByTestId("facet-filter-bar")
+      .getByTestId("filter-chip-value");
+    await expect(value).toHaveText("4109-2277-8841");
+    const [first, middle, last] = await leftEdgesOf(value, [
+      "4109",
+      "2277",
+      "8841",
+    ]);
+    expect(first!).toBeLessThan(middle!);
+    expect(middle!).toBeLessThan(last!);
+    await screenshot(page, "app-platforms-environments-account-chip-fa-1280");
+
+    /*
+     * On a phone, read right to left, the chip's popover opens towards the
+     * left from the chip's right edge: All Apps' reached past the screen's
+     * left edge and the page scrolled sideways. It keeps the page's 16px
+     * margin now.
+     */
+    await page.setViewportSize(PHONE);
+    await open(page, `${APP_PLATFORMS}/apps?lang=fa`);
+    await page.getByTestId("facet-filter-bar-toggle").click();
+    await page
+      .getByTestId("facet-filter-bar")
+      .getByRole("button", { name: PERSIAN["Cloud Account"]! })
+      .click();
+    const popover: Locator = page.getByRole("dialog");
+    await expect(popover.getByRole("textbox")).toBeVisible();
+    // At rest: a dialog grows in.
+    await expect
+      .poll(async (): Promise<number> => {
+        return await popover.evaluate((element: Element): number => {
+          return element.getAnimations({ subtree: true }).length;
+        });
+      })
+      .toBe(0);
+    const box: Box = await boxOf(popover);
+    expect(box.x).toBeGreaterThanOrEqual(16 - 0.5);
+    expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width - 16 + 0.5);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-apps-account-chip-open-fa-390");
   });
 
   test("Archived lists archived environments, and has none yet", async ({

@@ -627,6 +627,8 @@ Selvhostede installasjoner kan endre dette med miljøvariabler på appen:
 
 ## Varsler på en ressurs
 
+En ressurs i en [tilkoblet konto](/docs/telemetry/cloud-accounts) får på fanen **Anbefalinger** tilbud om monitorene OneUptime anbefaler for typen, hver opprettet i ett trinn. Slik varsler du om en annen måling den rapporterer:
+
 :::steps
 1. Åpne ressursen og fanen **Målinger**, som viser hver metrikk leverandøren rapporterer om den.
 2. Åpne en metrikk for å vise den som diagram i metrikkutforskeren, allerede filtrert til ressursen.

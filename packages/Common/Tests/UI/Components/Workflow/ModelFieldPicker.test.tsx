@@ -47,6 +47,7 @@ jest.mock("../../../../UI/Components/CodeEditor/CodeEditor", () => {
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../Types/JSON";
 import { ADD_FIELDS_LIST_MAX_HEIGHT } from "../../../../UI/Components/Workflow/FieldPicker/AddFieldsPanel";
+import { FIELD_ERROR_COLOR_CLASS_NAME } from "../../../../UI/Components/Forms/Fields/FieldError";
 import ModelFieldPicker, {
   FieldPickerMode,
 } from "../../../../UI/Components/Workflow/ModelFieldPicker";
@@ -1202,7 +1203,12 @@ describe("a list left with nothing in it", () => {
     expect(message).toHaveTextContent(/^Pick at least one field\.$/);
     expect(screen.queryByText("Fields to pass on is required.")).toBeNull();
     expect(message).toHaveAttribute("role", "alert");
-    expect(message).toHaveClass("text-red-600");
+    // In every field's red (FieldError's), placed under the list.
+    expect(message).toHaveClass(
+      FIELD_ERROR_COLOR_CLASS_NAME,
+      "pt-1",
+      "text-sm",
+    );
     // The list is drawn as the field in error it is.
     expect(
       screen.getByTestId(`${harness.testId}-chips`).parentElement,

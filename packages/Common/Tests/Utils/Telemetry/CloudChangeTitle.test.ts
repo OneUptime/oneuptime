@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import Dictionary from "../../../Types/Dictionary";
 import {
   createTranslator,
@@ -11,12 +13,26 @@ import {
   ChangeEventStatus,
 } from "../../../Utils/Telemetry/ChangeEventFields";
 import {
+  AWS_HEALTH_EVENT_KIND_WORDS,
+  AZURE_RESOURCE_HEALTH_CHANGE_SENTENCE,
+  AZURE_RESOURCE_HEALTH_STATES,
   CLOUD_CHANGE_TITLE_SENTENCES,
+  CLOUD_HEALTH_STATUS_SENTENCES,
+  CLOUD_HEALTH_TITLE_SENTENCES,
+  CLOUD_HEALTH_UNNAMED_EVENTS,
   CloudChangeTitleFacts,
+  CloudHealthSource,
+  CloudHealthTitleFacts,
+  describeAwsHealthEventType,
+  getChangeTitleDirection,
   getChangeTitleForReader,
   getCloudChangeTitle,
+  getCloudHealthTitle,
+  parseAwsHealthEventType,
   readCloudChangeTitleFacts,
   readCloudChangeTitleFactsJson,
+  readCloudHealthTitleFacts,
+  readCloudHealthTitleFactsJson,
   readResourceFromCloudChangeTitle,
 } from "../../../Utils/Telemetry/CloudChangeTitle";
 import {
@@ -382,6 +398,105 @@ describe("what a page calls a change", () => {
   });
 });
 
+/*
+ * Which way a page lays a change's title out (the UI review of #6149). A
+ * health title in Persian starts with its cloud's name - "AWS Health:" -
+ * and a line read by its first letter (dir="auto") was laid out left to
+ * right: its event and its state stood in the wrong order for someone
+ * reading from the right. A title OneUptime words for the reader reads
+ * their way; any other title its own.
+ */
+describe("which way a change's title reads", () => {
+  const HEALTH: CloudHealthTitleFacts = {
+    source: CloudHealthSource.Aws,
+    event: "EC2 operational issue",
+    status: "open",
+    awsEventTypeCode: "AWS_EC2_OPERATIONAL_ISSUE",
+  };
+  const CHANGE: CloudChangeTitleFacts = {
+    operation: OPERATION,
+    resource: RESOURCE,
+    failed: false,
+  };
+
+  test("a worded title reads the reader's way: right to left in Persian, left to right in every other language", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const reader: Translator = dashboardTranslator(language);
+      const way: string = language === "fa" ? "rtl" : "ltr";
+
+      expect({
+        language,
+        health: getChangeTitleDirection({
+          facts: null,
+          health: HEALTH,
+          translator: reader,
+        }),
+        change: getChangeTitleDirection({
+          facts: CHANGE,
+          translator: reader,
+        }),
+        failed: getChangeTitleDirection({
+          facts: { ...CHANGE, resource: "", failed: true },
+          translator: reader,
+        }),
+      }).toEqual({ language, health: way, change: way, failed: way });
+    }
+  });
+
+  test("so does every health source and state, the frame alone too", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    for (const health of [
+      { source: CloudHealthSource.AzureService, event: "Outage", status: "" },
+      {
+        source: CloudHealthSource.AzureResource,
+        event: "Unavailable",
+        status: "Available",
+      },
+      {
+        source: CloudHealthSource.GoogleCloud,
+        event: "an incident",
+        status: "closed",
+      },
+    ] as Array<CloudHealthTitleFacts>) {
+      expect(
+        getChangeTitleDirection({ facts: null, health, translator: persian }),
+      ).toBe("rtl");
+    }
+  });
+
+  test("a title as written reads its own way: an operation alone, a deploy's, a pipeline's", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    expect(
+      getChangeTitleDirection({
+        facts: { operation: "CreateBucket", resource: "", failed: false },
+        translator: persian,
+      }),
+    ).toBe("auto");
+    expect(getChangeTitleDirection({ facts: null, translator: persian })).toBe(
+      "auto",
+    );
+    expect(
+      getChangeTitleDirection({
+        facts: undefined,
+        health: null,
+        translator: persian,
+      }),
+    ).toBe("auto");
+  });
+
+  test("a change's facts come first, as its title is worded from them", () => {
+    expect(
+      getChangeTitleDirection({
+        facts: { operation: "CreateBucket", resource: "", failed: false },
+        health: HEALTH,
+        translator: dashboardTranslator("fa"),
+      }),
+    ).toBe("auto");
+  });
+});
+
 describe("in every language", () => {
   const facts: CloudChangeTitleFacts = {
     operation: OPERATION,
@@ -482,5 +597,520 @@ describe("in every language", () => {
     expect(getCloudChangeTitle(facts, untranslated)).toBe(
       "Failed: DeleteLoadBalancer on web-alb",
     );
+  });
+});
+
+/*
+ * A cloud's health event is stored with the English title its connector
+ * writes. Pages word its frame and the state the provider reports in the
+ * reader's language, each state inside its own sentence, and OneUptime's
+ * own words in the event - AWS's event type said in words, and what a
+ * connector writes when the provider names nothing. The provider's own
+ * words are drawn as written.
+ */
+describe("a health event's title", () => {
+  function health(
+    title: string,
+    operation: string = "AWS_EC2_OPERATIONAL_ISSUE",
+  ): {
+    title: string;
+    attributes: Dictionary<string>;
+  } {
+    return {
+      title,
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.CloudHealth,
+        [ChangeEventAttribute.CloudOperation]: operation,
+      },
+    };
+  }
+
+  function factsOf(
+    title: string,
+    operation: string = "AWS_EC2_OPERATIONAL_ISSUE",
+  ): CloudHealthTitleFacts {
+    const facts: CloudHealthTitleFacts | null = readCloudHealthTitleFacts(
+      health(title, operation),
+    );
+
+    expect(facts).not.toBeNull();
+    return facts!;
+  }
+
+  // Every sentence a health title is worded in, and the words in it.
+  const HEALTH_SENTENCES: Array<string> = [
+    ...Object.values(CLOUD_HEALTH_TITLE_SENTENCES),
+    ...Object.values(CLOUD_HEALTH_STATUS_SENTENCES).flatMap(
+      (sentences: Readonly<Record<string, string>> | undefined) => {
+        return Object.values(sentences || {});
+      },
+    ),
+    AZURE_RESOURCE_HEALTH_CHANGE_SENTENCE,
+    ...Object.values(AWS_HEALTH_EVENT_KIND_WORDS),
+  ];
+  const HEALTH_WORDS: Array<string> = [
+    ...Object.values(AZURE_RESOURCE_HEALTH_STATES),
+    ...Object.values(CLOUD_HEALTH_UNNAMED_EVENTS).map(
+      (word: string | undefined): string => {
+        return word || "";
+      },
+    ),
+  ];
+
+  test.each([
+    ["AWS Health: EC2 operational issue (open)", "AWS_EC2_OPERATIONAL_ISSUE"],
+    ["AWS Health: EC2 operational issue (closed)", "AWS_EC2_OPERATIONAL_ISSUE"],
+    [
+      "AWS Health: RDS maintenance scheduled (upcoming)",
+      "AWS_RDS_MAINTENANCE_SCHEDULED",
+    ],
+    ["AWS Health: EC2 operational issue", "AWS_EC2_OPERATIONAL_ISSUE"],
+    [
+      "AWS Health: EBS volume lost (open)",
+      // A kind no rule words: the connector's words, as written.
+      "AWS_EBS_VOLUME_LOST",
+    ],
+    [
+      "Azure Service Health: Network connectivity issues in West Europe (Active)",
+      "ServiceHealth Incident",
+    ],
+    [
+      "Azure Service Health: Network connectivity issues in West Europe (Resolved)",
+      "ServiceHealth Incident",
+    ],
+    ["Azure Service Health: an event", "ServiceHealth"],
+    ["Azure Service Health: an event (Active)", "ServiceHealth"],
+    [
+      "Azure Resource Health: Available → Unavailable",
+      "ResourceHealth Unavailable",
+    ],
+    ["Azure Resource Health: Unavailable", "ResourceHealth Unavailable"],
+    ["Azure Resource Health: changed", "ResourceHealth changed"],
+    [
+      "Azure Resource Health: The virtual machine is starting",
+      "ResourceHealth changed",
+    ],
+    [
+      "Google Cloud Service Health: Cloud SQL latency in us-central1 (active)",
+      "INCIDENT",
+    ],
+    [
+      "Google Cloud Service Health: Cloud SQL latency in us-central1 (closed)",
+      "INCIDENT",
+    ],
+    ["Google Cloud Service Health: an incident (closed)", "INCIDENT"],
+  ])(
+    "reads back as its connector stored it, in English: %s",
+    (title: string, operation: string) => {
+      expect(getCloudHealthTitle(factsOf(title, operation))).toBe(title);
+    },
+  );
+
+  test("the event is the provider's words, the state the one it reports, AWS's type kept when the event is its words", () => {
+    expect(factsOf("AWS Health: EC2 operational issue (open)")).toEqual({
+      source: CloudHealthSource.Aws,
+      event: "EC2 operational issue",
+      status: "open",
+      awsEventTypeCode: "AWS_EC2_OPERATIONAL_ISSUE",
+    });
+    expect(
+      factsOf("Azure Resource Health: Degraded → Available", "ResourceHealth"),
+    ).toEqual({
+      source: CloudHealthSource.AzureResource,
+      event: "Available",
+      status: "Degraded",
+    });
+    expect(
+      factsOf(
+        "Azure Service Health: Outage in West Europe (Active)",
+        "ServiceHealth Incident",
+      ),
+    ).toEqual({
+      source: CloudHealthSource.AzureService,
+      event: "Outage in West Europe",
+      status: "Active",
+    });
+  });
+
+  test("AWS's type is not kept for an event its words do not make: a title cut short, another type", () => {
+    // The recorder cuts a long title with an ellipsis: its event is no longer the type's words.
+    expect(
+      factsOf("AWS Health: EC2 operational iss…").awsEventTypeCode,
+    ).toBeUndefined();
+    expect(
+      factsOf(
+        "AWS Health: EC2 operational issue (open)",
+        "AWS_RDS_OPERATIONAL_ISSUE",
+      ).awsEventTypeCode,
+    ).toBeUndefined();
+    // A row with no operation kept.
+    expect(
+      readCloudHealthTitleFacts({
+        title: "AWS Health: EC2 operational issue (open)",
+        attributes: {
+          [ChangeEventAttribute.Source]: ChangeEventSource.CloudHealth,
+        },
+      })?.awsEventTypeCode,
+    ).toBeUndefined();
+    // Only AWS's events have a type of AWS's.
+    expect(
+      factsOf(
+        "Google Cloud Service Health: EC2 operational issue (active)",
+        "AWS_EC2_OPERATIONAL_ISSUE",
+      ).awsEventTypeCode,
+    ).toBeUndefined();
+  });
+
+  test("a state no provider reports stays in the event, as written, so nothing is cut wrongly", () => {
+    expect(factsOf("AWS Health: EC2 issue (investigating)")).toEqual({
+      source: CloudHealthSource.Aws,
+      event: "EC2 issue (investigating)",
+      status: "",
+    });
+    // AWS's state, written in an Azure Service Health title: not Azure's own.
+    expect(factsOf("Azure Service Health: Outage (open)").status).toBe("");
+    // An arrow between words that are no states is the title's own.
+    expect(factsOf("Azure Resource Health: Restart → Stop requested")).toEqual({
+      source: CloudHealthSource.AzureResource,
+      event: "Restart → Stop requested",
+      status: "",
+    });
+    // A name of the object's own ("constructor") is no state of any provider's.
+    expect(factsOf("AWS Health: EC2 issue (constructor)").status).toBe("");
+    expect(
+      factsOf("Azure Resource Health: constructor → toString").status,
+    ).toBe("");
+  });
+
+  test("a cloud change, any other change, or a health title of another shape has no health facts", () => {
+    expect(
+      readCloudHealthTitleFacts({
+        title: "AWS Health: EC2 operational issue (open)",
+        attributes: cloudAttributes(),
+      }),
+    ).toBeNull();
+    expect(
+      readCloudHealthTitleFacts({
+        title: "AWS Health: EC2 operational issue (open)",
+        attributes: {},
+      }),
+    ).toBeNull();
+    expect(
+      readCloudHealthTitleFacts(health("Scheduled maintenance of EC2")),
+    ).toBeNull();
+    expect(readCloudHealthTitleFacts(health("AWS Health: "))).toBeNull();
+    expect(readCloudHealthTitleFacts(health(""))).toBeNull();
+  });
+
+  test("each connector still writes its titles the way they are read", () => {
+    const read: (file: string) => string = (file: string): string => {
+      return fs.readFileSync(
+        path.join(__dirname, "../../../Server/Utils/CloudConnection", file),
+        "utf8",
+      );
+    };
+
+    const aws: string = read("Aws/AwsChanges.ts");
+    const azure: string = read("Azure/AzureChanges.ts");
+    const gcp: string = read("Gcp/GcpChanges.ts");
+
+    expect(aws).toContain(
+      "title: `AWS Health: ${describeAwsHealthEventType(code)}${",
+    );
+    expect(aws).toContain('status ? ` (${status})` : ""');
+    // AWS's type is kept as the operation, which the title's kind is worded from.
+    expect(aws).toContain("operation: code,");
+    expect(azure).toContain("title: `Azure Service Health: ${");
+    expect(azure).toContain('title || "an event"');
+    expect(azure).toContain('stage ? ` (${stage})` : ""');
+    expect(azure).toContain("title: `Azure Resource Health: ${");
+    expect(azure).toContain("→ ");
+    expect(azure).toContain('title || "changed"');
+    expect(gcp).toContain("title: `Google Cloud Service Health: ${");
+    expect(gcp).toContain('"an incident"');
+    expect(gcp).toContain('state ? ` (${state.toLowerCase()})` : ""');
+  });
+
+  test("an old row - its title and its operation, as every health event was kept - reads in the reader's language", () => {
+    // What the recorder wrote before the facts were read: nothing but these.
+    const row: { title: string; attributes: Dictionary<string> } = {
+      title: "AWS Health: EC2 operational issue (closed)",
+      attributes: {
+        [ChangeEventAttribute.Source]: ChangeEventSource.CloudHealth,
+        [ChangeEventAttribute.CloudProvider]: "aws",
+        [ChangeEventAttribute.CloudOperation]: "AWS_EC2_OPERATIONAL_ISSUE",
+      },
+    };
+
+    expect(
+      getChangeTitleForReader({
+        title: row.title,
+        facts: readCloudChangeTitleFacts(row),
+        health: readCloudHealthTitleFacts(row),
+        translator: dashboardTranslator("de"),
+      }),
+    ).toBe("AWS Health: EC2-Betriebsstörung (geschlossen)");
+  });
+
+  describe("AWS's kinds of event", () => {
+    test("each reads in English word for word as the connector titles it, whatever the service", () => {
+      for (const kind of Object.keys(AWS_HEALTH_EVENT_KIND_WORDS)) {
+        for (const service of ["EC2", "RDS", "ELASTICLOADBALANCING"]) {
+          const code: string = `AWS_${service}_${kind}`;
+          const facts: CloudHealthTitleFacts = factsOf(
+            `AWS Health: ${describeAwsHealthEventType(code)} (open)`,
+            code,
+          );
+
+          expect(facts.awsEventTypeCode).toBe(code);
+          expect(getCloudHealthTitle(facts)).toBe(
+            `AWS Health: ${describeAwsHealthEventType(code)} (open)`,
+          );
+        }
+      }
+    });
+
+    test("a code reads as its service and its kind", () => {
+      expect(parseAwsHealthEventType("AWS_EC2_OPERATIONAL_ISSUE")).toEqual({
+        service: "EC2",
+        kind: "OPERATIONAL_ISSUE",
+      });
+      expect(
+        parseAwsHealthEventType("AWS_EC2_SYSTEM_REBOOT_MAINTENANCE_SCHEDULED"),
+      ).toEqual({
+        service: "EC2",
+        kind: "SYSTEM_REBOOT_MAINTENANCE_SCHEDULED",
+      });
+      expect(parseAwsHealthEventType("AWS_EC2")).toBeNull();
+      expect(parseAwsHealthEventType("AWS")).toBeNull();
+      expect(parseAwsHealthEventType("")).toBeNull();
+    });
+
+    test("the connector's words for a code are unchanged", () => {
+      expect(describeAwsHealthEventType("AWS_EC2_OPERATIONAL_ISSUE")).toBe(
+        "EC2 operational issue",
+      );
+      expect(
+        describeAwsHealthEventType("AWS_RDS_PLANNED_LIFECYCLE_EVENT"),
+      ).toBe("RDS planned lifecycle event");
+      expect(describeAwsHealthEventType("AWS")).toBe("AWS");
+      expect(describeAwsHealthEventType("")).toBe("");
+    });
+
+    test("a kind is worded in the reader's language, the service as AWS names it", () => {
+      expect(
+        getCloudHealthTitle(
+          factsOf("AWS Health: EC2 operational issue (open)"),
+          dashboardTranslator("de"),
+        ),
+      ).toBe("AWS Health: EC2-Betriebsstörung (offen)");
+      expect(
+        getCloudHealthTitle(
+          factsOf(
+            "AWS Health: RDS maintenance scheduled (upcoming)",
+            "AWS_RDS_MAINTENANCE_SCHEDULED",
+          ),
+          dashboardTranslator("fr"),
+        ),
+      ).toBe("AWS Health : Maintenance planifiée RDS (à venir)");
+      expect(
+        getCloudHealthTitle(
+          factsOf(
+            "AWS Health: EKS planned lifecycle event (upcoming)",
+            "AWS_EKS_PLANNED_LIFECYCLE_EVENT",
+          ),
+          dashboardTranslator("ja"),
+        ),
+      ).toBe("AWS Health: EKS の計画されたライフサイクルイベント (予定)");
+    });
+
+    test("a kind no rule words stays as the connector wrote it, its state still worded", () => {
+      expect(
+        getCloudHealthTitle(
+          factsOf("AWS Health: EBS volume lost (open)", "AWS_EBS_VOLUME_LOST"),
+          dashboardTranslator("de"),
+        ),
+      ).toBe("AWS Health: EBS volume lost (offen)");
+    });
+  });
+
+  test("German, Chinese, Japanese and Persian say the frame and the state in their words", () => {
+    expect(
+      getCloudHealthTitle(
+        factsOf("Azure Resource Health: Available → Unavailable", "x"),
+        dashboardTranslator("de"),
+      ),
+    ).toBe("Azure Resource Health: Verfügbar → Nicht verfügbar");
+    // An issue that is open, not a file opened: the state is worded in its sentence.
+    expect(
+      getCloudHealthTitle(
+        factsOf("AWS Health: EC2 operational issue (open)"),
+        dashboardTranslator("zh-CN"),
+      ),
+    ).toBe("AWS Health：EC2 运行问题（未解决）");
+    expect(
+      getCloudHealthTitle(
+        factsOf(
+          "Google Cloud Service Health: Cloud SQL latency (active)",
+          "INCIDENT",
+        ),
+        dashboardTranslator("zh-TW"),
+      ),
+    ).toBe("Google Cloud Service Health：Cloud SQL latency（進行中）");
+    expect(
+      getCloudHealthTitle(
+        factsOf("Azure Service Health: Outage (Resolved)", "ServiceHealth"),
+        dashboardTranslator("ja"),
+      ),
+    ).toBe("Azure Service Health: Outage (解決済み)");
+    expect(
+      withoutIsolateMarks(
+        getCloudHealthTitle(
+          factsOf(
+            "Google Cloud Service Health: Cloud SQL latency (closed)",
+            "INCIDENT",
+          ),
+          dashboardTranslator("fa"),
+        ),
+      ),
+    ).toBe("Google Cloud Service Health: Cloud SQL latency (بسته‌شده)");
+  });
+
+  test("what a connector writes when the provider names nothing is said in the reader's words", () => {
+    expect(
+      getCloudHealthTitle(
+        factsOf("Azure Service Health: an event (Active)", "ServiceHealth"),
+        dashboardTranslator("de"),
+      ),
+    ).toBe("Azure Service Health: ein Ereignis (Aktiv)");
+    expect(
+      getCloudHealthTitle(
+        factsOf("Azure Resource Health: changed", "ResourceHealth changed"),
+        dashboardTranslator("de"),
+      ),
+    ).toBe("Azure Resource Health: geändert");
+    expect(
+      getCloudHealthTitle(
+        factsOf("Google Cloud Service Health: an incident", "INCIDENT"),
+        dashboardTranslator("fr"),
+      ),
+    ).toBe("Google Cloud Service Health : un incident");
+    // A provider's own words that happen to be OneUptime's for another source stay as written.
+    expect(
+      getCloudHealthTitle(
+        factsOf("Google Cloud Service Health: changed", "INCIDENT"),
+        dashboardTranslator("de"),
+      ),
+    ).toBe("Google Cloud Service Health: changed");
+  });
+
+  test("a Persian title drawn on a page sets its Latin words apart", () => {
+    expect(
+      getCloudHealthTitle(
+        factsOf("AWS Health: EC2 operational issue (open)"),
+        dashboardTranslator("fa"),
+        { setsValuesApart: true },
+      ),
+    ).toBe(`AWS Health: ${isolated(`مشکل عملیاتی ${isolated("EC2")}`)} (باز)`);
+  });
+
+  test("every language has each sentence with its values, worded its own way", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const sentence of HEALTH_SENTENCES) {
+        expect({
+          language,
+          sentence,
+          values: getTemplatePlaceholders(words[sentence] || "").sort(),
+        }).toEqual({
+          language,
+          sentence,
+          values: getTemplatePlaceholders(sentence).sort(),
+        });
+      }
+
+      if (language === "en") {
+        continue;
+      }
+
+      // A state's sentence and a kind are worded; a frame is the provider's name, which may read the same.
+      for (const sentence of [
+        ...Object.values(CLOUD_HEALTH_STATUS_SENTENCES).flatMap(
+          (sentences: Readonly<Record<string, string>> | undefined) => {
+            return Object.values(sentences || {});
+          },
+        ),
+        ...Object.values(AWS_HEALTH_EVENT_KIND_WORDS),
+      ]) {
+        expect({
+          language,
+          sentence,
+          english: words[sentence] === sentence,
+        }).toEqual({ language, sentence, english: false });
+      }
+
+      for (const word of HEALTH_WORDS) {
+        expect({
+          language,
+          word,
+          worded: Boolean(words[word]) && words[word] !== word,
+        }).toEqual({ language, word, worded: true });
+      }
+    }
+  });
+
+  test("a page calls a health event by its worded title, a cloud change still by its facts", () => {
+    expect(
+      getChangeTitleForReader({
+        title: "AWS Health: EC2 operational issue (closed)",
+        facts: null,
+        health: factsOf("AWS Health: EC2 operational issue (closed)"),
+        translator: dashboardTranslator("de"),
+      }),
+    ).toBe("AWS Health: EC2-Betriebsstörung (geschlossen)");
+    expect(
+      getChangeTitleForReader({
+        title: "Failed: DeleteLoadBalancer on web-alb",
+        facts: { operation: OPERATION, resource: RESOURCE, failed: true },
+        health: factsOf("AWS Health: EC2 operational issue (closed)"),
+        translator: dashboardTranslator("de"),
+      }),
+    ).toBe("Fehlgeschlagen: DeleteLoadBalancer für web-alb");
+  });
+
+  describe("as an API answer carries them", () => {
+    test("facts of every shape read back", () => {
+      for (const facts of [
+        factsOf("AWS Health: EC2 operational issue (open)"),
+        factsOf("Azure Resource Health: Degraded → Available", "x"),
+        factsOf("Google Cloud Service Health: Cloud SQL latency", "INCIDENT"),
+      ]) {
+        expect(
+          readCloudHealthTitleFactsJson(JSON.parse(JSON.stringify(facts))),
+        ).toEqual(facts);
+      }
+    });
+
+    test("anything else is no facts", () => {
+      for (const value of [
+        null,
+        undefined,
+        "AWS Health: EC2 operational issue (open)",
+        [],
+        { source: "aws-health", event: "EC2", status: "" },
+        { source: CloudHealthSource.Aws, event: "", status: "" },
+        { source: CloudHealthSource.Aws, event: "EC2", status: 1 },
+        { source: CloudHealthSource.Aws, event: 5, status: "open" },
+        {
+          source: CloudHealthSource.Aws,
+          event: "EC2 operational issue",
+          status: "open",
+          awsEventTypeCode: 7,
+        },
+      ]) {
+        expect(readCloudHealthTitleFactsJson(value)).toBeNull();
+      }
+    });
   });
 });

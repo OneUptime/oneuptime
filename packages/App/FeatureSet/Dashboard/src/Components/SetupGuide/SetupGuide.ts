@@ -108,6 +108,16 @@ export interface SetupGuideKeyStep {
 }
 
 export interface SetupGuideContent {
+  /*
+   * The language the guide's own words are written in, when it is the
+   * reader's (CloudSetupGuide words every sentence with the reader's
+   * translator): its markdown and its steps' descriptions are laid out
+   * that language's way - a Persian guide right to left, every block,
+   * though a step of console labels holds more English letters than
+   * Persian ones. Left out, a guide written in English reads its own way
+   * on any page, each block by most of its letters.
+   */
+  language?: string | undefined;
   keyStep?: SetupGuideKeyStep | undefined;
   /*
    * This answer's steps send OneUptime no telemetry, so there is no key to pick. Only for an

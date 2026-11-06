@@ -108,3 +108,109 @@ describe("getChipPopoverShift - a chip's popover stays on the screen", () => {
     ).toBe(0);
   });
 });
+
+/*
+ * On a page read right to left (Persian) a popover hangs from its chip's
+ * right edge and opens towards the left. On a 390px phone App Platforms'
+ * Cloud Account chip ended 280px from the screen's left, and its 288px
+ * popover reached 8px past the screen's left edge: the page scrolled
+ * sideways, as it did on the right before (the UI review of #6149).
+ */
+describe("getChipPopoverShift - on a page read right to left", () => {
+  test("a popover that fits stays under its chip", () => {
+    expect(
+      getChipPopoverShift({
+        chipLeft: 235,
+        chipRight: 352,
+        popoverWidth: POPOVER,
+        screenWidth: PHONE,
+        isRightToLeft: true,
+      }),
+    ).toBe(0);
+  });
+
+  test("Cloud Account on a 390px phone: moves right to start 16px from the screen's left edge", () => {
+    const chipRight: number = 280;
+    const shift: number = getChipPopoverShift({
+      chipLeft: 162,
+      chipRight: chipRight,
+      popoverWidth: POPOVER,
+      screenWidth: PHONE,
+      isRightToLeft: true,
+    });
+
+    expect(shift).toBe(24);
+    expect(chipRight + shift - POPOVER).toBe(CHIP_POPOVER_SCREEN_MARGIN);
+  });
+
+  test("starting exactly at the margin is a fit", () => {
+    expect(
+      getChipPopoverShift({
+        chipLeft: 200,
+        chipRight: CHIP_POPOVER_SCREEN_MARGIN + POPOVER,
+        popoverWidth: POPOVER,
+        screenWidth: PHONE,
+        isRightToLeft: true,
+      }),
+    ).toBe(0);
+  });
+
+  test("never past the margin on the right, however far left its chip sits", () => {
+    const chipRight: number = 300;
+    const wide: number = 384;
+    const shift: number = getChipPopoverShift({
+      chipLeft: 200,
+      chipRight: chipRight,
+      popoverWidth: wide,
+      screenWidth: PHONE,
+      isRightToLeft: true,
+    });
+
+    expect(chipRight + shift).toBe(PHONE - CHIP_POPOVER_SCREEN_MARGIN);
+  });
+
+  test("the same chip moves the other way, and by its own overflow, from where it hangs", () => {
+    // Read left to right, the popover hangs from the chip's left: 76px too far right.
+    expect(
+      getChipPopoverShift({
+        chipLeft: 162,
+        chipRight: 280,
+        popoverWidth: POPOVER,
+        screenWidth: PHONE,
+      }),
+    ).toBe(76);
+    // Read right to left, it hangs from the chip's right: 24px too far left.
+    expect(
+      getChipPopoverShift({
+        chipLeft: 162,
+        chipRight: 280,
+        popoverWidth: POPOVER,
+        screenWidth: PHONE,
+        isRightToLeft: true,
+      }),
+    ).toBe(24);
+  });
+
+  test("whole pixels, and nothing to measure moves nothing", () => {
+    expect(
+      Number.isInteger(
+        getChipPopoverShift({
+          chipLeft: 160.2,
+          chipRight: 279.6,
+          popoverWidth: POPOVER,
+          screenWidth: PHONE,
+          isRightToLeft: true,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      getChipPopoverShift({
+        chipLeft: 0,
+        chipRight: Number.NaN,
+        popoverWidth: POPOVER,
+        screenWidth: PHONE,
+        isRightToLeft: true,
+      }),
+    ).toBe(0);
+  });
+});

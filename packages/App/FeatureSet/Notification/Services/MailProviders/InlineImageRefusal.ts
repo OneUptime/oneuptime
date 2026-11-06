@@ -19,6 +19,14 @@
  *     ("attachments.0.content_id"), or HTTP 413, too large.
  *   - Microsoft Graph: HTTP 400 whose error names an attachment or the
  *     message's size, or HTTP 413.
+ *   - Amazon SES: HTTP 413 (RequestEntityTooLargeException), or a 400
+ *     MessageRejected whose words name an attachment or the size.
+ *   - Mailgun: HTTP 413, or a 400 whose words name the message's size.
+ *   - Postmark: HTTP 413 (over its 10 MB), ErrorCode 411 (an attachment of
+ *     a type it does not send), or an ErrorCode 300 refusal whose words name
+ *     an attachment or the size.
+ *   - Resend: HTTP 413, its invalid_attachment error, or a 400 or 422 whose
+ *     words name an attachment or the size.
  *   - SMTP: a server that will not take the message for its size or its
  *     parts. Its enhanced status code says so where it gives one (RFC
  *     3463): 5.2.3 (message length exceeds an administrative limit), 5.3.4
@@ -86,6 +94,33 @@ const readEnhancedStatus: (response: unknown) => SmtpEnhancedStatus | null = (
 
 const ATTACHMENTS_FIELD: string = "attachments";
 
+/*
+ * Whether a provider's words are about the email's attachments or its size,
+ * read as plain text (lowercased includes), linear in the words.
+ */
+const ATTACHMENT_OR_SIZE_WORDS: ReadonlyArray<string> = [
+  "attachment",
+  "content_id",
+  "contentid",
+  "content id",
+  "inline",
+  "too large",
+  "too big",
+  "size",
+  "length",
+  "exceeds",
+];
+
+const namesAttachmentOrSize: (words: string) => boolean = (
+  words: string,
+): boolean => {
+  const lower: string = (words || "").toLowerCase();
+
+  return ATTACHMENT_OR_SIZE_WORDS.some((word: string): boolean => {
+    return lower.includes(word);
+  });
+};
+
 export default class InlineImageRefusal {
   // SendGrid's answer to a Mail Send, from its status and its errors' fields.
   public static isSendgridRefusal(
@@ -118,6 +153,63 @@ export default class InlineImageRefusal {
 
     return (
       statusCode === 400 && GRAPH_ATTACHMENT_ERROR_PATTERN.test(errorDetail)
+    );
+  }
+
+  // Amazon SES's answer to a SendEmail, from its status, error name and words.
+  public static isAmazonSesRefusal(
+    statusCode: number,
+    errorCode: string,
+    message: string,
+  ): boolean {
+    if (statusCode === 413 || errorCode === "RequestEntityTooLargeException") {
+      return true;
+    }
+
+    return (
+      statusCode === 400 &&
+      errorCode === "MessageRejected" &&
+      namesAttachmentOrSize(message)
+    );
+  }
+
+  // Mailgun's answer to a messages.mime, from its status and its words.
+  public static isMailgunRefusal(statusCode: number, message: string): boolean {
+    if (statusCode === 413) {
+      return true;
+    }
+
+    return statusCode === 400 && namesAttachmentOrSize(message);
+  }
+
+  // Postmark's answer to a send, from its status, its ErrorCode and words.
+  public static isPostmarkRefusal(
+    statusCode: number,
+    errorCode: number | undefined,
+    message: string,
+  ): boolean {
+    if (statusCode === 413 || errorCode === 411) {
+      return true;
+    }
+
+    return (
+      statusCode === 422 && errorCode === 300 && namesAttachmentOrSize(message)
+    );
+  }
+
+  // Resend's answer to a send, from its status, its error's name and words.
+  public static isResendRefusal(
+    statusCode: number,
+    errorName: string,
+    message: string,
+  ): boolean {
+    if (statusCode === 413 || errorName === "invalid_attachment") {
+      return true;
+    }
+
+    return (
+      (statusCode === 400 || statusCode === 422) &&
+      namesAttachmentOrSize(message)
     );
   }
 

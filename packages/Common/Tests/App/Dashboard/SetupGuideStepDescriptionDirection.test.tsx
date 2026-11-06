@@ -54,4 +54,50 @@ describe("a step's description", () => {
     // No letter to read: it follows the page.
     expect(descriptionOf(result, 3)).not.toHaveAttribute("dir");
   });
+
+  /*
+   * A guide worded whole in the reader's language says which way its words
+   * read (SetupGuideContent.language), and every description reads that
+   * way: a Persian sentence naming more English labels than it has Persian
+   * words was laid out left to right (the UI review of #6149).
+   */
+  test("of a guide in the reader's language reads that language's way, whatever its letters", () => {
+    const CONSOLE_HEAVY: string =
+      "در AWS Console، Amazon Elastic Container Service و Task definitions را باز کنید.";
+
+    const result: RenderResult = render(
+      <div dir="rtl">
+        <SetupGuideSteps
+          direction="rtl"
+          steps={[
+            {
+              title: "Task definition",
+              description: CONSOLE_HEAVY,
+              content: <p>Body</p>,
+            },
+            { title: "No letters", description: "1234", content: <p /> },
+          ]}
+        />
+      </div>,
+    );
+
+    expect(descriptionOf(result, 1)).toHaveAttribute("dir", "rtl");
+    expect(descriptionOf(result, 2)).toHaveAttribute("dir", "rtl");
+    cleanup();
+
+    // Read by its letters, the same sentence would turn left to right.
+    const byLetters: RenderResult = render(
+      <SetupGuideSteps
+        steps={[
+          {
+            title: "Task definition",
+            description: CONSOLE_HEAVY,
+            content: <p>Body</p>,
+          },
+        ]}
+      />,
+    );
+
+    expect(descriptionOf(byLetters, 1)).toHaveAttribute("dir", "ltr");
+  });
 });

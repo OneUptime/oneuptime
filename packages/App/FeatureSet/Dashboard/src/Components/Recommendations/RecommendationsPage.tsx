@@ -24,6 +24,12 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
+  /*
+   * The resource, when the page is a tab of a record's own page (an App
+   * Platforms app's) rather than a route of its own: by default it is the
+   * route's own record.
+   */
+  resourceId?: ObjectID | undefined;
 }
 
 /*
@@ -40,7 +46,8 @@ export interface ComponentProps {
 const RecommendationsPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelId: ObjectID =
+    props.resourceId || Navigation.getLastParamAsObjectID(1);
 
   const [resource, setResource] = useState<BaseModel | null>(null);
   const [resourceContext, setResourceContext] =
@@ -142,6 +149,15 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
         resourceContext={resourceContext}
         resourceContextNote={RecommendationResourceRegistry.describeContext({
           resourceType: props.resourceType,
+          context: resourceContext,
+        })}
+        cardDescription={RecommendationResourceRegistry.getCardDescription({
+          resourceType: props.resourceType,
+          context: resourceContext,
+        })}
+        linkCreatedMonitor={RecommendationResourceRegistry.getMonitorLinker({
+          resourceType: props.resourceType,
+          resourceId: modelId,
           context: resourceContext,
         })}
       />

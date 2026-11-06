@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddGroupingRuleMinimumCount1808994560000, and moved into a migration of its
+ * AddGroupingRuleMinimumCount1808994700000, and moved into a migration of its
  * own: "Incident" and "Alert" already hold rows, so their indexes are built
  * online, without blocking the incidents and alerts written meanwhile. Each
  * is partial - only the records a grouping rule holds back until enough of
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * the next record of the group arrives. Safe to run again after a stop part
  * way.
  */
-export class AddGroupingWaitKeyIndexes1808994570000
+export class AddGroupingWaitKeyIndexes1808994710000
   implements MigrationInterface
 {
-  public name: string = "AddGroupingWaitKeyIndexes1808994570000";
+  public name: string = "AddGroupingWaitKeyIndexes1808994710000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

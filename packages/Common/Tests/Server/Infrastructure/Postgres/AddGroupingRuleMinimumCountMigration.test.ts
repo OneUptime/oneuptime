@@ -1,7 +1,7 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddCloudAccountAiAgentKeys1808994400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994400000-AddCloudAccountAiAgentKeys";
-import { AddGroupingRuleMinimumCount1808994560000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994560000-AddGroupingRuleMinimumCount";
-import { AddGroupingWaitKeyIndexes1808994570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994570000-AddGroupingWaitKeyIndexes";
+import { AddEmailProviderSettings1808994600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994600000-AddEmailProviderSettings";
+import { AddGroupingRuleMinimumCount1808994700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994700000-AddGroupingRuleMinimumCount";
+import { AddGroupingWaitKeyIndexes1808994710000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808994710000-AddGroupingWaitKeyIndexes";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -28,8 +28,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * recorded against a fake QueryRunner.
  */
 
-const COLUMN_MIGRATION: string = "AddGroupingRuleMinimumCount1808994560000";
-const INDEX_MIGRATION: string = "AddGroupingWaitKeyIndexes1808994570000";
+const COLUMN_MIGRATION: string = "AddGroupingRuleMinimumCount1808994700000";
+const INDEX_MIGRATION: string = "AddGroupingWaitKeyIndexes1808994710000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 const INCIDENT_INDEX: string = `CREATE INDEX "IDX_0e3a062eee0590da9f8b45bd85" ON "Incident" ("groupingWaitKey", "createdAt") WHERE "groupingWaitKey" IS NOT NULL AND "deletedAt" IS NULL`;
@@ -38,8 +38,8 @@ const ALERT_INDEX: string = `CREATE INDEX "IDX_d4d29d92155c66bee78492d27d" ON "A
 type MigrationClass = new () => MigrationInterface;
 
 const MIGRATIONS: Array<MigrationClass> = [
-  AddGroupingRuleMinimumCount1808994560000,
-  AddGroupingWaitKeyIndexes1808994570000,
+  AddGroupingRuleMinimumCount1808994700000,
+  AddGroupingWaitKeyIndexes1808994710000,
 ];
 
 async function record(
@@ -94,10 +94,10 @@ afterEach(() => {
 
 describe("the grouping rule minimum count migrations", () => {
   test("name themselves after their timestamps", () => {
-    expect(new AddGroupingRuleMinimumCount1808994560000().name).toBe(
+    expect(new AddGroupingRuleMinimumCount1808994700000().name).toBe(
       COLUMN_MIGRATION,
     );
-    expect(new AddGroupingWaitKeyIndexes1808994570000().name).toBe(
+    expect(new AddGroupingWaitKeyIndexes1808994710000().name).toBe(
       INDEX_MIGRATION,
     );
   });
@@ -106,7 +106,7 @@ describe("the grouping rule minimum count migrations", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddGroupingRuleMinimumCount1808994560000,
+      AddGroupingRuleMinimumCount1808994700000,
     );
 
     for (const migration of MIGRATIONS) {
@@ -118,16 +118,16 @@ describe("the grouping rule minimum count migrations", () => {
     }
 
     expect(at).toBeGreaterThan(
-      registered.indexOf(AddCloudAccountAiAgentKeys1808994400000),
+      registered.indexOf(AddEmailProviderSettings1808994600000),
     );
-    expect(registered[at + 1]).toBe(AddGroupingWaitKeyIndexes1808994570000);
-    expect(timestampOf(AddGroupingWaitKeyIndexes1808994570000)).toBeGreaterThan(
-      timestampOf(AddGroupingRuleMinimumCount1808994560000),
+    expect(registered[at + 1]).toBe(AddGroupingWaitKeyIndexes1808994710000);
+    expect(timestampOf(AddGroupingWaitKeyIndexes1808994710000)).toBeGreaterThan(
+      timestampOf(AddGroupingRuleMinimumCount1808994700000),
     );
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddGroupingRuleMinimumCount1808994560000),
+        timestampOf(AddGroupingRuleMinimumCount1808994700000),
       );
     }
   });
@@ -151,7 +151,7 @@ describe("the grouping rule minimum count migrations", () => {
 
   test("add the switches off, the counts at 3 and the marks empty - nothing backfilled", async () => {
     const steps: Array<string> = await record(
-      new AddGroupingRuleMinimumCount1808994560000(),
+      new AddGroupingRuleMinimumCount1808994700000(),
       "up",
     );
 
@@ -177,11 +177,11 @@ describe("the grouping rule minimum count migrations", () => {
   });
 
   test("build the two partial indexes online, outside a transaction", async () => {
-    const migration: AddGroupingWaitKeyIndexes1808994570000 =
-      new AddGroupingWaitKeyIndexes1808994570000();
+    const migration: AddGroupingWaitKeyIndexes1808994710000 =
+      new AddGroupingWaitKeyIndexes1808994710000();
 
     expect(migration.transaction).toBe(false);
-    expect(new AddGroupingRuleMinimumCount1808994560000()).not.toHaveProperty(
+    expect(new AddGroupingRuleMinimumCount1808994700000()).not.toHaveProperty(
       "transaction",
       false,
     );
@@ -193,13 +193,13 @@ describe("the grouping rule minimum count migrations", () => {
 
   test("down drops the indexes online, then the columns, in the reverse order", async () => {
     expect(
-      await record(new AddGroupingWaitKeyIndexes1808994570000(), "down"),
+      await record(new AddGroupingWaitKeyIndexes1808994710000(), "down"),
     ).toEqual([
       `online: DROP INDEX "public"."IDX_d4d29d92155c66bee78492d27d"`,
       `online: DROP INDEX "public"."IDX_0e3a062eee0590da9f8b45bd85"`,
     ]);
     expect(
-      await record(new AddGroupingRuleMinimumCount1808994560000(), "down"),
+      await record(new AddGroupingRuleMinimumCount1808994700000(), "down"),
     ).toEqual([
       `ALTER TABLE "Alert" DROP COLUMN "groupingWaitKey"`,
       `ALTER TABLE "AlertGroupingRule" DROP COLUMN "minimumAlertCount"`,

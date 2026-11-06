@@ -23,14 +23,15 @@ export enum CardSurface {
   // One section of the card it is in.
   Section = "section",
   /*
-   * A card of its own from sm up, and one section of the card or dialog it
-   * is drawn in on a phone (CardSectionsOnPhones): there every frame and
-   * its padding come off the width of the fields inside it, and the card or
-   * dialog around it already frames it. Not a Section: what reads the
-   * surface for a section's look (a table, a list, a detail card, a ruled
-   * body) draws a card's here.
+   * One section of the form it is drawn in, at every width
+   * (CardFormSections): the cards of a form's step, in the padded body of
+   * the card or dialog the form is in, which already frames them. Not a
+   * Section: a section of CardSections pads itself as a card does, and
+   * what reads the surface for a section's look (a table, a list, a detail
+   * card, a ruled body) reaches out to that card's edges. Here the card or
+   * dialog pads its body, and those draw a card's look.
    */
-  SectionOnPhones = "section-on-phones",
+  FormSection = "form-section",
 }
 
 export const CardSurfaceContext: React.Context<CardSurface> =
@@ -45,9 +46,9 @@ export const useIsCardSection: () => boolean = (): boolean => {
   return useCardSurface() === CardSurface.Section;
 };
 
-// Whether a card here is a section of the card it is in on a phone only.
-export const useIsCardSectionOnPhones: () => boolean = (): boolean => {
-  return useCardSurface() === CardSurface.SectionOnPhones;
+// Whether a card here is a section of the form it is drawn in.
+export const useIsCardFormSection: () => boolean = (): boolean => {
+  return useCardSurface() === CardSurface.FormSection;
 };
 
 /*

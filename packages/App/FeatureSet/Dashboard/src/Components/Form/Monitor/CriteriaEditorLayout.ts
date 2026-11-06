@@ -8,10 +8,10 @@
  * and the alert's description editor, in a sixth frame (its fold), was
  * 166px wide. It is 260px now, its title field 287px.
  *
- * From sm up nothing here changes. On a phone:
+ * The step's cards are sections of the page's card or the dialog at
+ * every width (MonitorStep draws them in CardFormSections). From sm up
+ * nothing here changes. On a phone:
  *
- * - the step's cards are sections of the page's card or the dialog
- *   (MonitorStep draws them in CardSectionsOnPhones);
  * - the criteria's box is the one frame round its fields;
  * - inside it, Filters, Actions and Settings, a filter's box and an
  *   action's box reach out over the 12px the box around them pads by

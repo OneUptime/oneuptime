@@ -19,12 +19,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * added without rewriting its table; nothing is backfilled. The marks'
  * indexes are on tables projects already have rows in, so they are built
  * online, in the migration registered right after this one:
- * AddGroupingWaitKeyIndexes1808994570000.
+ * AddGroupingWaitKeyIndexes1808994710000.
  */
-export class AddGroupingRuleMinimumCount1808994560000
+export class AddGroupingRuleMinimumCount1808994700000
   implements MigrationInterface
 {
-  public name: string = "AddGroupingRuleMinimumCount1808994560000";
+  public name: string = "AddGroupingRuleMinimumCount1808994700000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

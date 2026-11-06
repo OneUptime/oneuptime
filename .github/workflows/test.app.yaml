@@ -526,13 +526,20 @@ jobs:
           # its Runners that take no AI code fixes the same day) joined it from
           # group 13 on 2026-11-03, when those runs took this group's step 14.1
           # to 20.4 minutes, about 19: about 21.5.
+          # Model Tables grew to 196 tests on 2026-11-06 (#6025: a first
+          # visit's frames, cards' placeholders in a narrow card, German
+          # headers hyphenated, the 8rem window of a wide card, default
+          # columns per project, no frame past the card after Reset or
+          # Delete, and a laptop's Select All keeping the keyboard's place):
+          # each half 98 tests, about 5.6 minutes locally with CI=1, about
+          # 7.0 on a runner by its 88 tests' 6.3 - this group 22.7. Global
+          # Runners (2.2) moved to group 19: about 20.5.
           - group: 4
             workflow_builder_shard: 1/2
             model_tables_shard: 1/2
             suites: >-
               test-workflow-builder-ui
               test-model-tables-ui
-              test-global-runners-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
@@ -786,12 +793,21 @@ jobs:
           # group's suites sum to 22.2 minutes on a runner of median speed.
           # Dashboard Table Thresholds (2.2) moved to the new group 18: about
           # 20.
+          # Cloud Recommendations (11 tests, 46 seconds locally with its bundle,
+          # Chromium only: a cloud account's recommended monitors grouped by
+          # type of resource, adding one to every resource of a type, what was
+          # made and dismissed, a viewer, a refused create, a resource's own
+          # Recommendations tab and the Scheduled Maintenance tab of a resource
+          # an event holds, at 1280 and 390 pixels, dark, German and Persian)
+          # joined it on 2026-11-06, the lightest group with no suite still
+          # growing: about 21.5.
           - group: 7
             suites: >-
               test-profiles-ui
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
+              test-cloud-recommendations-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -943,6 +959,14 @@ jobs:
           # tests to Cloud Connect the same day (about 0.7 minutes: the suite
           # 9.3, the group 22.3), so Resource Onboarding (0.6) moved to group
           # 16: 21.7.
+          # A cloud resource's Logs page with a stream's rows added 8 tests to
+          # Cloud Connect on 2026-11-06 (14 runs on its desktop and phone: a
+          # database's and a stopped function's Logs, a row's attributes, the
+          # empty list before and while the account streams, 1024 and 768
+          # beside the side menu, dark German and Persian; about 0.6 minutes
+          # on a runner), and the Cloud AI agent's own key 3 more the same day
+          # (5 runs, about 0.3): the suite 10.2, the group 22.6, so Public
+          # Addresses (1.2, Chromium only) moved to group 12: 21.4.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -950,7 +974,6 @@ jobs:
               test-cloud-connect-ui
               test-host-collectors-ui
               test-vmware-host-page-ui
-              test-public-addresses-ui
               test-docker-swarm-pages-ui
               test-container-host-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
@@ -1162,6 +1185,9 @@ jobs:
           # 2026-11-03, when the last two runs (master's of 2026-11-02 23:47
           # and 14.0.102's first gate run) took this group 23.2 and 23.0:
           # about 21.5.
+          # Security Operations gained two tests on 2026-11-06 (#6025: the
+          # Russian case queue's titles and assignees whole at a 1280 and a
+          # 1216 laptop, about 6 seconds locally): 21.0.
           - group: 11
             suites: >-
               test-security-operations-ui
@@ -1215,7 +1241,9 @@ jobs:
           # 18: about 19.5. Permissions Per Tab (0.5, Chromium only) moved here
           # from group 8 on 2026-11-04, when Cloud Connect's German and Persian
           # tests and the Cloud agent follow-ups' together took that group
-          # past 22: 19.8.
+          # past 22: 19.8. Public Addresses (1.2, Chromium only) moved here
+          # from group 8 on 2026-11-06, when Cloud Connect's streamed resource
+          # Logs took that group past 22: 21.0.
           - group: 12
             suites: >-
               test-code-ui
@@ -1223,6 +1251,7 @@ jobs:
               test-acknowledgement-timeout-ui
               test-new-version-ui
               test-permissions-per-tab-ui
+              test-public-addresses-ui
           # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
           # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
           # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)
@@ -1361,6 +1390,10 @@ jobs:
           # Status Timeline (2.3 minutes on both of the last two runs) moved to
           # the new group 17 on 2026-11-03, when they took this group 24.0 and
           # 24.1: about 21.5.
+          # Model Tables' second half grew to 98 tests on 2026-11-06 (#6025,
+          # see group 4: about 6.7 on a runner) and Metrics AI to 3.5 (a
+          # Prometheus metric's long name breaking after its underscores):
+          # this group 22.5. Host Pages (1.6) moved to group 20: about 20.9.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1370,7 +1403,6 @@ jobs:
               test-topology-ui
               test-runbook-triggers-ui
               test-kubernetes-events-ui
-              test-host-pages-ui
           # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
           # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
           # 28 minutes and groups 6, 7, 9, 12 and 13 to 24 to 26: Monitor
@@ -1472,14 +1504,20 @@ jobs:
           # 390 pixels, dark, German and Persian. Two groups of their own, because
           # the product's pages are still joining it and it outgrew one on
           # 2026-11-05: no group had the room for it.
+          # Global Runners (2.2) joined this one from group 4 on 2026-11-06,
+          # when Model Tables grew there (#6025): about 13.8.
           - group: 19
             openstack_pages_shard: 1/2
             suites: >-
               test-openstack-pages-ui
+              test-global-runners-ui
+          # Host Pages (1.6) joined this one from group 15 the same day, when
+          # Model Tables' second half and Metrics AI grew there: about 13.2.
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
               test-openstack-pages-ui
+              test-host-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1710,6 +1748,8 @@ jobs:
             output/playwright/cloud-connect-ui/test-results
             output/playwright/app-platforms-ui/*.png
             output/playwright/app-platforms-ui/test-results
+            output/playwright/cloud-recommendations-ui/*.png
+            output/playwright/cloud-recommendations-ui/test-results
             output/playwright/cloud-spend-ui/*.png
             output/playwright/cloud-spend-ui/test-results
             output/playwright/host-collectors-ui/*.png

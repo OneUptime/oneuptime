@@ -238,6 +238,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       parentModelType: ScheduledMaintenance,
       // Only maintenance events can be attached to a network site.
       includeNetworkSite: true,
+      // A maintenance event holds cloud resources, as incidents and alerts do.
+      includeCloudResource: true,
     }),
   ];
 
@@ -769,6 +771,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               _id: true,
               projectId: true,
             },
+            cloudResources: {
+              name: true,
+              _id: true,
+              projectId: true,
+              // Opens an environment in App Platforms, a resource in Cloud.
+              cloudResourceKind: true,
+            },
             networkSites: {
               name: true,
               _id: true,
@@ -924,6 +933,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   _id: true,
                   projectId: true,
                 },
+                cloudResources: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                  cloudResourceKind: true,
+                },
                 networkSites: {
                   name: true,
                   _id: true,
@@ -956,6 +971,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     dockerSwarmClusters={item.dockerSwarmClusters || []}
                     iotFleets={item.iotFleets || []}
                     databaseServers={item.databaseServers || []}
+                    cloudResources={item.cloudResources || []}
                     networkSites={item.networkSites || []}
                     services={item.services || []}
                   />

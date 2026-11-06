@@ -6,6 +6,8 @@ Send OneUptimes e-mail gennem din egen mailserver. Et projekt tilføjer SMTP-kon
 - **OAuth 2.0**: til Microsoft 365 og Google Workspace, hvor grundlæggende godkendelse ofte er slået fra.
 - **Ingen**: til relay-servere, der ikke kræver godkendelse.
 
+Vil du sende gennem Amazon SES, SendGrid, Mailgun, Postmark eller Resend i stedet for en mailserver, så se [E-mailudbydere](/docs/emails/email-providers).
+
 ```mermaid title="Hvilken mailserver sender hvad"
 flowchart TB
     SP["E-mail fra en statusside"] --> Q{"Brugerdefineret SMTP-konfiguration<br/>valgt til siden?"}
@@ -17,7 +19,7 @@ flowchart TB
 I en selvhostet installation er OneUptimes egen mailserver den, der er angivet i Admin Dashboard. En statusside vælger sin SMTP-konfiguration på sin side **Abonnementsindstillinger**, i kortet **Brugerdefineret SMTP**.
 
 :::cards
-- [Tilføj en mailserver](#tilføj-en-smtp-server): To trin, alt andet foldet væk.
+- [Tilføj en mailserver](#tilføj-en-smtp-server): Nogle få trin, alt andet foldet væk.
 - [Microsoft 365](#konfiguration-af-microsoft-365): OAuth med en appregistrering i Entra.
 - [Google Workspace](#konfiguration-af-google-workspace): OAuth med en tjenestekonto.
 - [Fejlfinding](#fejlfinding): Almindelige fejl, og hvad de betyder.
@@ -25,7 +27,7 @@ I en selvhostet installation er OneUptimes egen mailserver den, der er angivet i
 
 ## Tilføj en SMTP-server
 
-Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, i kortet **Brugerdefinerede SMTP-konfigurationer** under **Yderligere indstillinger**. I en selvhostet installation angives den server, som OneUptime selv sender fra, under **Admin Dashboard > Indstillinger > Notifikationer > E-mails**, i kortet **Tilpassede e-mail- og SMTP-indstillinger**. Begge formularer spørger om det samme, i to trin.
+Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, i kortet **Brugerdefinerede SMTP-konfigurationer** under **Yderligere indstillinger**. I en selvhostet installation angives den server, som OneUptime selv sender fra, under **Admin Dashboard > Indstillinger > Notifikationer > E-mails**, i kortet **Tilpassede e-mail- og SMTP-indstillinger**. Begge formularer spørger om serveren og afsenderen; et projekts formular spørger først om en **Udbyder**.
 
 :::steps
 ### Åbn formularen
@@ -37,13 +39,17 @@ Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > N
 Åbn **Indstillinger** i Admin Dashboard og derefter **Notifikationer > E-mails** i sidemenuen (**Notifikationer** er foldet sammen fra start). Klik i kortet **E-mail-serverindstillinger** på **Rediger server**, og sæt **E-mailservertype** til `Custom SMTP`. Klik derefter på **Rediger SMTP-konfig** i kortet **Tilpassede e-mail- og SMTP-indstillinger**, som vises nedenunder.
 :::
 
+### Vælg udbyderen
+
+Et projekts formular åbner på trinnet **Udbyder**: angiv **Navn**, og lad **SMTP-server** være valgt for at sende gennem en mailserver. Vil du i stedet sende gennem Microsoft Graph eller en [e-mailudbyder](/docs/emails/email-providers), vælger du den her. **Beskrivelse**, en note til dit team, er foldet sammen under **Flere felter**. Instansens formular har ikke trinnet **Udbyder**.
+
 ### Udfyld trinnet Server
 
-I trinnet **Server** angiver du **Navn** (kun projektkonfigurationer), **Værtsnavn**, **Port** (en ny projektkonfiguration starter på `587`), **Brugernavn** og **Adgangskode**.
+I trinnet **Server** angiver du **Værtsnavn**, **Port** (en ny projektkonfiguration starter på `587`), **Brugernavn** og **Adgangskode**.
 
 ### Tjek Flere felter
 
-Alt andet er foldet sammen under **Flere felter** i slutningen af trinnet **Server**. Mens det er foldet sammen, fortæller overskriften, hvordan mail sendes, for eksempel "Mail sendes via SMTP med login med brugernavn og adgangskode. TLS er påkrævet." Åbn det kun, hvis du skal ændre en af indstillingerne i tabellen nedenfor.
+Serverens øvrige indstillinger er foldet sammen under **Flere felter** i slutningen af trinnet **Server**. Mens det er foldet sammen, fortæller overskriften, hvordan mail sendes, for eksempel "Mail sendes via SMTP med login med brugernavn og adgangskode. TLS er påkrævet." Åbn det kun, hvis du skal ændre en af indstillingerne i tabellen nedenfor. I et projekts formular har OAuth-felterne deres eget trin, **OAuth**, efter **Server**.
 
 ### Udfyld trinnet Afsender
 
@@ -60,13 +66,13 @@ Det er indstillingerne under **Flere felter**:
 
 | Felt | Hvad det gør |
 | --- | --- |
-| **Transport** | `SMTP` (standarden) eller `Microsoft Graph` til en Microsoft 365-lejer, hvor SMTP AUTH er slået fra. Valg af Microsoft Graph skjuler værtsnavn, port, brugernavn og adgangskode og viser OAuth-felterne. |
+| **Transport** | `SMTP` (standarden) eller `Microsoft Graph` til en Microsoft 365-lejer, hvor SMTP AUTH er slået fra. Valg af Microsoft Graph skjuler værtsnavn, port, brugernavn og adgangskode og viser OAuth-felterne. Kun i instansens formular: et projekt vælger i stedet sin **Udbyder**. |
 | **Kræv TLS** | Slået til for en ny projektkonfiguration. Send kun mail over en krypteret forbindelse med et gyldigt certifikat. Når dette er slået fra, kontrolleres certifikatet ikke. Port 465 er altid krypteret. Når det er slået fra, krypteres mail på andre porte kun, hvis serveren tilbyder det. |
 | **Godkendelsestype** | `Username and Password` (standarden), `OAuth` eller `None` til et relay, der ikke kræver login. |
-| **OAuth-felter** | **OAuth-udbydertype**, **OAuth-klient-ID**, **OAuth-klienthemmelighed**, **OAuth-token-URL** og **OAuth-omfang**, som vises, når OAuth eller Microsoft Graph er valgt. |
-| **Beskrivelse** | En note til dit team (kun projektkonfigurationer). |
+| **OAuth-felter** | **OAuth-udbydertype**, **OAuth-klient-ID**, **OAuth-klienthemmelighed**, **OAuth-token-URL** og **OAuth-omfang**, som vises, når OAuth eller Microsoft Graph er valgt. Et projekts formular spørger om dem i sit trin **OAuth**. |
+| **Beskrivelse** | En note til dit team (kun projektkonfigurationer), i trinnet **Udbyder**. |
 
-**Microsoft Graph.** Åbn **Flere felter**, sæt **Transport** til `Microsoft Graph`, og udfyld en Azure-app, der har programtilladelsen **Mail.Send**: dens klient-id og klienthemmelighed, token-URL'en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. Mail sendes fra postkassen for **E-mail fra**, som skal være en licenseret postkasse i din lejer.
+**Microsoft Graph.** I et projekts formular vælger du `Microsoft Graph` som **Udbyder**; i instansens formular åbner du **Flere felter** og sætter **Transport** til `Microsoft Graph`. Udfyld derefter en Azure-app, der har programtilladelsen **Mail.Send**: dens klient-id og klienthemmelighed, token-URL'en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. Mail sendes fra postkassen for **E-mail fra**, som skal være en licenseret postkasse i din lejer.
 
 > [!NOTE]
 > På OneUptime Cloud skal et projekts mailserver kunne nås via internettet: en vært, der slås op til en privat eller intern adresse, afvises. I en selvhostet installation er private adresser tilladt, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`; loopback- og link-local-adresser afvises altid. Instansens egen mailserver kontrolleres ikke på denne måde.
@@ -90,7 +96,7 @@ sequenceDiagram
     O->>M: Sender e-mailen
 ```
 
-**Godkendelsestype** og OAuth-felterne findes under **Flere felter** i formularens trin Server. For at logge ind med OAuth udfylder du:
+**Godkendelsestype** findes under **Flere felter** i formularens trin Server. I instansens formular findes OAuth-felterne også der, og i et projekts formular i trinnet **OAuth**. For at logge ind med OAuth udfylder du:
 
 | Felt | Beskrivelse |
 | --- | --- |
@@ -309,6 +315,7 @@ Kontrollér **E-mail fra**: din server skal tillade afsendelse fra den. Kig dere
 ## Næste trin
 
 :::cards
+- [E-mailudbydere](/docs/emails/email-providers): Send i stedet gennem Amazon SES, SendGrid, Mailgun, Postmark eller Resend.
 - [Notifikationsoversigt](/docs/emails/notification-rollup): Hvordan OneUptime samler bølger af e-mails til ejere.
 - [Abonnenter og meddelelser](/docs/status-pages/subscribers): Send e-mail til en statussides abonnenter via en SMTP-konfiguration i projektet.
 :::

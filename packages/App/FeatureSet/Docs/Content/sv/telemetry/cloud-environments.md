@@ -32,6 +32,7 @@ flowchart TB
 - **Miljön samlar allt.** Varje arbetsbelastning med samma plattform, konto och region hamnar i en och samma miljö. Tjänsterna behåller sina egna rader under **Tjänster**.
 - **Varje uppgift som körs är en instans.** Miljöns flik **Instanser** listar uppgifterna, instanserna eller replikerna som körs, med CPU och minne i realtid där plattformen kan leverera dem.
 - **Varje tjänst är en app.** En ECS-tjänst, en Cloud Run-tjänst eller en Container App är en app i sin miljö, och OneUptime sparar de revisioner den kör: se [Appar och distributioner](#appar-och-distributioner).
+- **Strömmade CloudWatch-loggar räknas också.** Ett AWS-konto som [strömmar sina CloudWatch-loggar](/docs/telemetry/cloud-streaming) lägger loggarna från sina App Runner-tjänster, Elastic Beanstalk-miljöer samt ECS-uppgifter och -kluster på fliken **Loggar** i deras miljö, och miljön dyker upp med dem om ingen app har rapporterat till den ännu. De skapar ingen app: en app namnges efter sin egen telemetri.
 
 ## Innan du börjar
 
@@ -118,7 +119,7 @@ Det första attributet som telemetrin bär namnger appen, så en app på en plat
 - **Båda är ändringar.** Var och en är en streckad linje i appens och miljöns diagram, en rad i miljöns **Feed** och en [ändringshändelse](/docs/telemetry/change-events) som OneUptime AI läser när den utreder en incident i miljön. **Senaste distributioner** under **Appplattformar → Översikt** listar de nyaste.
 - **Högst 12 nya revisioner av en app registreras per timme.** En `service.version` som ändras med varje bygge skulle annars vara en distribution i minuten.
 
-En apps sida har en **Översikt** med dess begäranden, fel, latens, instanser och de revisioner som körs nu, en flik **Revisioner** med varje revisions siffror, och flikarna **Instanser**, **Loggar** och **Spår**, filtrerade till appen. **Konfigurera larm** öppnar de rekommenderade monitorerna för appens tjänst under **Tjänster**.
+En apps sida har en **Översikt** med dess begäranden, fel, latens, instanser och de revisioner som körs nu, en flik **Revisioner** med varje revisions siffror, flikarna **Instanser**, **Loggar** och **Spår**, filtrerade till appen, och en flik **Rekommendationer** med de monitorer som OneUptime rekommenderar för den: misslyckade åtgärder, felskurar, trafik som upphör och långsamma begäranden, lästa från appens egna spans och dess `http.server.request.duration`, var och en länkad till appens miljö. **Konfigurera larm** öppnar den; för en app vars namn är för långt för att filtrera dess telemetri på öppnar den i stället de rekommenderade monitorerna för appens tjänst under **Tjänster**.
 
 En app som inte skickar något på 30 dagar tas bort med sina revisioner, och det gör även en revision som ingen instans rapporterar på 30 dagar, om inte appen fortfarande kör den. På en egenhostad OneUptime anger `CLOUD_APP_RETENTION_DAYS` de 30.
 

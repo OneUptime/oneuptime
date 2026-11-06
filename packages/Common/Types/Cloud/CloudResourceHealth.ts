@@ -101,6 +101,16 @@ export interface CloudResourceReading {
   value: number;
   // ISO time of the datapoint.
   time: string;
+  /*
+   * The name the metric is stored under, where the key leaves part of it
+   * out: an Azure metric's stored name ends with the aggregation its
+   * definition calls primary (getAzureStoredMetricName), which only the
+   * read knows, while its key does not say it (getCloudReadingKey). A
+   * monitor of the metric reads that name (CloudAlertTemplates). Absent
+   * for AWS and Google Cloud, whose keys give the whole name, and on
+   * readings written before it was kept.
+   */
+  metric?: string | undefined;
 }
 
 // Readings by key (getCloudReadingKey): "aws/ec2/statuscheckfailed".
@@ -392,7 +402,15 @@ export function readCloudResourceReadings(
       continue;
     }
 
-    readings[key.toLowerCase()] = { value: number, time: time.toISOString() };
+    const metric: unknown = record["metric"];
+
+    readings[key.toLowerCase()] = {
+      value: number,
+      time: time.toISOString(),
+      ...(typeof metric === "string" && metric.trim()
+        ? { metric: metric.trim() }
+        : {}),
+    };
   }
 
   return readings;

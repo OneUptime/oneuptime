@@ -1946,6 +1946,8 @@ describe("Scheduled maintenance overview page", () => {
       "dockerSwarmClusters",
       "iotFleets",
       "databaseServers",
+      // A held cloud resource silences the monitors reading its metrics.
+      "cloudResources",
       "networkSites",
       "services",
     ];
@@ -1998,6 +2000,7 @@ describe("Scheduled maintenance overview page", () => {
         "DockerSwarmCluster",
         "IoTFleet",
         "DatabaseServer",
+        "CloudResource",
         "NetworkSite",
         "Service",
       ]);

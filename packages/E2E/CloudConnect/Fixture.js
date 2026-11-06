@@ -30,6 +30,7 @@ import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/
 import CloudResourceIncidentsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Incidents";
 import CloudResourceAlertsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Alerts";
 import CloudResourceChangesPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Changes";
+import CloudResourceLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Logs";
 import PageMap from "../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
@@ -47,8 +48,11 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Log from "Common/Models/AnalyticsModels/Log";
+import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import Project from "Common/Models/DatabaseModels/Project";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { getCloudAiAgentKeyEditRefusal } from "Common/Types/AI/ResourceAiAccessPermissions";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -63,8 +67,26 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
+import {
+  NIGHTLY_EXPORT_LOG_GROUP,
+  NIGHTLY_EXPORT_REGION,
+  ORDERS_DB_LOG_GROUP,
+  ORDERS_DB_REGION,
+  STREAM_CONNECTION_ID,
+  STREAM_SERVICE_ID,
+  STREAM_SERVICE_NAME,
+  buildStreamedLogs,
+  countStreamedLogs,
+  listStreamedLogs,
+  logGroupResourceId,
+  streamedLogsAttributeKeys,
+  streamedLogsAttributeValues,
+  streamedLogsFacets,
+  streamedLogsHistogram,
+} from "./StreamedLogs";
 
 /*
  * The fixture page: the real Cloud > Connect page in the real Cloud layout
@@ -143,6 +165,16 @@ import { setPageLanguage } from "Common/UI/Utils/PageLanguage";
  *               longer works)
  *   ?https=1    the page is a OneUptime on an HTTPS address (server.js):
  *               Firehose delivers to no other
+ *
+ * A resource's Logs page (/dashboard/<project>/cloud/<resource>/logs)
+ * draws what the stream delivered from the log group AWS names after the
+ * resource, as the Firehose ingest writes it (StreamedLogs): orders-db's
+ * PostgreSQL log of the last hour, and nightly-export's last two runs, three
+ * and four days ago. Its list, count, histogram, facets and attribute
+ * lookups are answered as the server answers them, every read recorded
+ * on state.logReads; a log read the fixture does not model lands on
+ * state.unhandled. The viewer's live subscription is recorded on
+ * state.realtime, and nothing is ever sent on it.
  *
  * window.__cloudConnectFixture.deliver() makes the first delivery arrive,
  * as it does a few minutes after the stream's command finished. The page says
@@ -577,6 +609,8 @@ function cloudResource(id, fields) {
     projectId: new ObjectID(PROJECT_ID),
     cloudProvider: "aws",
     cloudAccountId: "123456789012",
+    // The AWS connection reads it, as it reads every resource of the account.
+    cloudConnectionId: new ObjectID(STREAM_CONNECTION_ID),
     isArchived: false,
     labels: [],
     ...fields,
@@ -690,7 +724,11 @@ const AWS_RESOURCES = [
     name: "orders-db",
     cloudResourceKind: "resource",
     cloudResourceType: "AWS::RDS::DBInstance",
-    providerResourceId: "orders-db",
+    // Its ARN, as the inventory lists it and its log group's rule names it.
+    providerResourceId: logGroupResourceId(
+      ORDERS_DB_LOG_GROUP,
+      ORDERS_DB_REGION,
+    ),
     cloudRegion: "eu-west-1",
     otelCollectorStatus: "connected",
     lastSeenAt: new Date(NOW - 3 * MINUTE),
@@ -721,7 +759,10 @@ const AWS_RESOURCES = [
     name: "nightly-export",
     cloudResourceKind: "resource",
     cloudResourceType: "AWS::Lambda::Function",
-    providerResourceId: "nightly-export",
+    providerResourceId: logGroupResourceId(
+      NIGHTLY_EXPORT_LOG_GROUP,
+      NIGHTLY_EXPORT_REGION,
+    ),
     cloudRegion: "us-east-1",
     otelCollectorStatus: "disconnected",
     lastSeenAt: new Date(NOW - 3 * 24 * 60 * MINUTE),
@@ -1022,34 +1063,67 @@ const CHANGES =
 const AI_FIX_ID = "80000000-0000-4000-8000-000000000001";
 const AI_FIX_INCIDENT_ID = "70000000-0000-4000-8000-000000000001";
 const AI_SESSION = "oneuptime-ai-scale-out-9f2c61d0";
+// The ECS service the fix scaled out, as the account's inventory holds it.
+const CHECKOUT_SERVICE_ARN =
+  "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout";
+const CHECKOUT_SERVICE_ID = "40000000-0000-4000-8000-0000000000c1";
 
-function aiChange(minutesAgo, step, title) {
+/*
+ * One change the agent made, exactly as the recorder writes it
+ * (buildCloudChangeEntry): CloudTrail's operation is the service and the
+ * event name ("ecs:UpdateService"), which classifyCloudChange calls a
+ * deploy; the title names the resource by the name the inventory holds,
+ * which is kept beside it with the resource's row; the description says
+ * who ran it on the cloud's id. The fix and its rollback are two jobs of
+ * the agent's, each its own CloudTrail event.
+ */
+function aiChange(minutesAgo, step, jobId, eventId) {
   return cloudChange(
     minutesAgo,
     {
-      eventType: "scaling",
-      title: title,
-      description: `${AI_SESSION} ran UpdateService in account 123456789012 (us-east-1), on checkout.`,
+      eventType: "deployment",
+      title: "ecs:UpdateService on checkout",
+      description: `${AI_SESSION} ran ecs:UpdateService in account 123456789012 (us-east-1), on ${CHECKOUT_SERVICE_ARN}.`,
     },
     {
+      "oneuptime.cloud.operation": "ecs:UpdateService",
+      "oneuptime.cloud.event_id": eventId,
       "oneuptime.change.status": "succeeded",
       "cloud.region": "us-east-1",
       "oneuptime.cloud.actor": AI_SESSION,
-      "oneuptime.cloud.operation": "UpdateService",
+      "cloud.resource_id": CHECKOUT_SERVICE_ARN,
+      "oneuptime.resource.type": "CloudResource",
+      "oneuptime.resource.id": CHECKOUT_SERVICE_ID,
+      "oneuptime.cloud.resource_name": "checkout",
       "oneuptime.change.made_by": "oneuptime-ai",
-      "oneuptime.runner_job.id": "90000000-0000-4000-8000-000000000001",
+      "oneuptime.runner_job.id": jobId,
+      "oneuptime.ai.step": step,
       "oneuptime.auto_remediation_suggestion.id": AI_FIX_ID,
       "oneuptime.ai_run.id": "60000000-0000-4000-8000-000000000001",
-      "oneuptime.ai.step": step,
       "oneuptime.incident.id": AI_FIX_INCIDENT_ID,
     },
   );
 }
 
 if (dataState === "connected" && params.get("changes") === "ai") {
+  /*
+   * A rollback is the same operation on the same resource, and the recorder
+   * titles it the same way: its step (oneuptime.ai.step) is what says it
+   * undid the fix.
+   */
   CHANGES.push(
-    aiChange(39, "fix", "UpdateService on checkout"),
-    aiChange(30, "rollback", "UpdateService on checkout (rolled back)"),
+    aiChange(
+      39,
+      "fix",
+      "90000000-0000-4000-8000-000000000001",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b01",
+    ),
+    aiChange(
+      30,
+      "rollback",
+      "90000000-0000-4000-8000-000000000002",
+      "4c3b2a19-0e8d-4f7c-9b6a-5d4e3f2a1b02",
+    ),
   );
   // Newest first, as the list reads them.
   CHANGES.sort((left, right) => {
@@ -1164,7 +1238,16 @@ const state = {
   // Every stream key made, by connection, and every Stop streaming.
   streamKeys: [],
   streamStops: [],
+  // What a resource's Logs page read: its list, count, chart and facets.
+  logReads: [],
+  // A log read the fixture does not model.
+  unhandled: [],
+  // The logs viewer's live subscriptions.
+  realtime: [],
 };
+
+// What the AWS connection's stream delivered from CloudWatch Logs.
+const STREAMED_LOGS = buildStreamedLogs(PROJECT_ID, NOW);
 
 /*
  * What a test answers, for the cloud it tests - the form's own cloud, or a
@@ -1701,6 +1784,26 @@ ModelAPI.getList = async (args) => {
     return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
 
+  /*
+   * The services a logs viewer names its rows by: the AWS connection's
+   * telemetry service, which its stream writes into.
+   */
+  if (args.modelType === Service) {
+    state.listRequests.push({ model: "Service" });
+    const service = Object.assign(new Service(), {
+      _id: STREAM_SERVICE_ID,
+      name: STREAM_SERVICE_NAME,
+      serviceColor: new Color("#f59e0b"),
+    });
+    return { data: [service], count: 1, skip: 0, limit: args.limit };
+  }
+
+  // A resource's Logs page has no saved views yet.
+  if (args.modelType === LogSavedView) {
+    state.listRequests.push({ model: "LogSavedView" });
+    return { data: [], count: 0, skip: 0, limit: args.limit };
+  }
+
   // The project's Server key (the Cloud AI agent connects with its own).
   if (args.modelType === TelemetryIngestionKey) {
     state.listRequests.push({ model: "TelemetryIngestionKey" });
@@ -1801,7 +1904,25 @@ ModelAPI.getItem = async (args) => {
     const found = AWS_RESOURCES.find((item) => {
       return item._id === args.id.toString();
     });
-    return found ? Object.assign(new CloudResource(), found) : null;
+    if (!found) {
+      return null;
+    }
+    const item = Object.assign(new CloudResource(), found);
+    /*
+     * The connection that reads it, as far as a page asks of it: its name,
+     * and whether it streams (a stream key, as ?stream= sets it).
+     */
+    const reading = connections.find((entry) => {
+      return entry.id.toString() === String(found.cloudConnectionId);
+    });
+    if (args.select && args.select.cloudConnection && reading) {
+      item.cloudConnection = Object.assign(new CloudConnection(), {
+        _id: reading.id.toString(),
+        name: reading.name,
+        streamKeyCreatedAt: reading.streamKeyCreatedAt,
+      });
+    }
+    return item;
   }
 
   state.itemAsks++;
@@ -1837,6 +1958,16 @@ ModelAPI.count = async (args) => {
 
 // What changed in an account or a resource, newest first.
 AnalyticsModelAPI.getList = async (args) => {
+  // A resource's streamed logs, newest first, a page at a time.
+  if (args.modelType === Log) {
+    state.logReads.push({
+      kind: "list",
+      attributes: JSON.parse(JSON.stringify(args.query?.attributes || {})),
+      skip: Number(args.skip || 0),
+      limit: Number(args.limit || 10),
+    });
+    return listStreamedLogs(STREAMED_LOGS, args, state.unhandled);
+  }
   state.listRequests.push({
     model: "ChangeEvent",
     attributes: JSON.parse(JSON.stringify(args.query?.attributes || {})),
@@ -1860,6 +1991,13 @@ AnalyticsModelAPI.getList = async (args) => {
 };
 
 AnalyticsModelAPI.count = async (modelType, query) => {
+  if (modelType === Log) {
+    state.logReads.push({
+      kind: "count",
+      attributes: JSON.parse(JSON.stringify(query?.attributes || {})),
+    });
+    return countStreamedLogs(STREAMED_LOGS, query, state.unhandled);
+  }
   if (modelType !== ChangeEvent) {
     return 0;
   }
@@ -1936,8 +2074,43 @@ API.get = async (options) => {
   return new HTTPResponse(200, {}, {});
 };
 
+/*
+ * The logs viewer's own endpoints, answered over the streamed rows as
+ * TelemetryAPI answers them. Any other telemetry read is not modelled.
+ */
+const LOG_ENDPOINTS = {
+  "/telemetry/logs/histogram": (body) => {
+    return streamedLogsHistogram(STREAMED_LOGS, body, state.unhandled);
+  },
+  "/telemetry/logs/facets": (body) => {
+    return streamedLogsFacets(STREAMED_LOGS, body, state.unhandled);
+  },
+  "/telemetry/logs/get-attributes": () => {
+    return streamedLogsAttributeKeys(STREAMED_LOGS);
+  },
+  "/telemetry/logs/get-attribute-values": (body) => {
+    return streamedLogsAttributeValues(STREAMED_LOGS, body);
+  },
+};
+
 API.post = async (options) => {
   const url = options.url.toString();
+
+  if (url.includes("/telemetry/")) {
+    const route = url.slice(url.indexOf("/telemetry/"));
+    const body = options.data || {};
+    const endpoint = LOG_ENDPOINTS[route];
+    state.logReads.push({
+      kind: route,
+      attributes: JSON.parse(JSON.stringify(body.attributes || {})),
+      facetKeys: body.facetKeys || [],
+    });
+    if (!endpoint) {
+      state.unhandled.push({ kind: "api", path: route });
+      return new HTTPResponse(200, {}, {});
+    }
+    return new HTTPResponse(200, endpoint(body), {});
+  }
 
   if (url.includes("/resource-ai-access/")) {
     const route = url.slice(url.indexOf("/resource-ai-access/"));
@@ -2130,6 +2303,20 @@ API.post = async (options) => {
   return new HTTPResponse(200, {}, {});
 };
 
+/*
+ * The logs viewer listens for new rows. The subscription is recorded and
+ * nothing is ever sent: no socket leaves the page.
+ */
+function subscribe(listen) {
+  state.realtime.push({
+    model: listen && listen.modelType ? new listen.modelType().tableName : "",
+    eventType: listen ? listen.eventType : undefined,
+  });
+  return () => {};
+}
+Realtime.listenToAnalyticsModelEvent = subscribe;
+Realtime.listenToModelEvent = subscribe;
+
 // What App.tsx does for every page: the router's hooks, handed to Navigation.
 function useNavigationHooks() {
   Navigation.setNavigateHook(useNavigate());
@@ -2209,6 +2396,7 @@ const RESOURCE_INCIDENTS_ROUTE =
   RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS];
 const RESOURCE_ALERTS_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW_ALERTS];
 const RESOURCE_CHANGES_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW_CHANGES];
+const RESOURCE_LOGS_ROUTE = RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS];
 
 const FixtureAccountTopology = withNavigation(
   CloudAccountTopologyPage,
@@ -2257,6 +2445,10 @@ const FixtureResourceAlerts = withNavigation(
 const FixtureResourceChanges = withNavigation(
   CloudResourceChangesPage,
   RESOURCE_CHANGES_ROUTE,
+);
+const FixtureResourceLogs = withNavigation(
+  CloudResourceLogsPage,
+  RESOURCE_LOGS_ROUTE,
 );
 
 // A page the Connect page links to that is not modelled: says where it is.
@@ -2351,6 +2543,10 @@ function FixtureApp() {
           <Route
             path={RESOURCE_CHANGES_ROUTE.toString()}
             element={<FixtureResourceChanges />}
+          />
+          <Route
+            path={RESOURCE_LOGS_ROUTE.toString()}
+            element={<FixtureResourceLogs />}
           />
         </Route>
         <Route path="*" element={<StubPage />} />
