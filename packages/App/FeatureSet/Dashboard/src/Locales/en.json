@@ -45994,5 +45994,18 @@
   "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.": "Low Free Storage and Connections Near the Limit are offered once the account's inventory lists the instance.",
   "Connections Near the Limit alerts at {{threshold}} connections: 90% of {{limit}}, the default limit of a {{instanceClass}} instance running {{engine}}. If its parameter group, {{parameterGroup}}, sets max_connections, change the monitor's threshold to 90% of that.": "Connections Near the Limit alerts at {{threshold}} connections: 90% of {{limit}}, the default limit of a {{instanceClass}} instance running {{engine}}. If its parameter group, {{parameterGroup}}, sets max_connections, change the monitor's threshold to 90% of that.",
   "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.": "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
-  "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.": "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view."
+  "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.": "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+  "Response activity": "Response activity",
+  "Affects {{products}}.": "Affects {{products}}.",
+  "Azure caused it.": "Azure caused it.",
+  "Azure published a health advisory.": "Azure published a health advisory.",
+  "Azure published a security advisory.": "Azure published a security advisory.",
+  "Azure published an advisory that needs your action.": "Azure published an advisory that needs your action.",
+  "Azure published an incident.": "Azure published an incident.",
+  "Azure published planned maintenance.": "Azure published planned maintenance.",
+  "Published by Azure.": "Published by Azure.",
+  "Published by the cloud provider for account {{account}}.": "Published by the cloud provider for account {{account}}.",
+  "Published by {{provider}} for account {{account}}.": "Published by {{provider}} for account {{account}}.",
+  "Someone with access caused it.": "Someone with access caused it.",
+  "Tracking ID: {{trackingId}}.": "Tracking ID: {{trackingId}}."
 }

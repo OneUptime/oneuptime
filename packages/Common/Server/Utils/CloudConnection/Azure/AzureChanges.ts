@@ -2,6 +2,11 @@ import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { JSONObject } from "../../../../Types/JSON";
 import { readObject, readText } from "../../LlmObservability/LlmProviderHttp";
 import { CloudChange } from "../CloudConnectorTypes";
+import {
+  asOneSentence,
+  AZURE_RESOURCE_HEALTH_CAUSE_SENTENCES,
+  AzureResourceHealthCause,
+} from "../../../../Utils/Telemetry/CloudHealthDescription";
 
 /*
  * WHAT CHANGED IN AN AZURE SUBSCRIPTION, AND WHAT AZURE SAYS ABOUT ITS
@@ -146,6 +151,24 @@ export function readAzureActivityEvent(data: {
     const previous: string = propertyOf(event, "previousHealthStatus");
     const cause: string = propertyOf(event, "cause");
     const title: string = propertyOf(event, "title");
+    /*
+     * Azure's title, then what caused the change, each one sentence: a
+     * title that ends with its own full stop keeps one ("... restarted.
+     * Azure caused it.", never "restarted.."). The page reads the cause
+     * back to word it in the reader's language (CloudHealthDescription).
+     */
+    const parts: Array<string> = [
+      asOneSentence(title),
+      cause === "PlatformInitiated"
+        ? AZURE_RESOURCE_HEALTH_CAUSE_SENTENCES[
+            AzureResourceHealthCause.Platform
+          ]
+        : cause === "UserInitiated"
+          ? AZURE_RESOURCE_HEALTH_CAUSE_SENTENCES[AzureResourceHealthCause.User]
+          : "",
+    ].filter((part: string): boolean => {
+      return part.length > 0;
+    });
 
     return {
       ...base,
@@ -158,19 +181,8 @@ export function readAzureActivityEvent(data: {
           ? `${previous ? `${previous} → ` : ""}${current}`
           : title || "changed"
       }`,
-      description: [
-        title,
-        cause === "PlatformInitiated"
-          ? "Azure caused it"
-          : cause === "UserInitiated"
-            ? "Someone with access caused it"
-            : "",
-      ]
-        .filter((part: string): boolean => {
-          return part.length > 0;
-        })
-        .join(". ")
-        .concat("."),
+      // Nothing to say: the recorder says who published it, for which account.
+      description: parts.length > 0 ? parts.join(" ") : undefined,
     };
   }
 
