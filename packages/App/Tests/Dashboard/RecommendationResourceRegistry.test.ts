@@ -2190,11 +2190,20 @@ describe("RecommendationResourceRegistry", () => {
         expect(
           describeCloud(rds({ ...LISTED, DBInstanceClass: "db.serverless" })),
         ).toBe(
-          "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a db.serverless instance yet. To alert on its connections, open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+          "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a db.serverless instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
         );
         expect(describeCloud(rds({ ...LISTED, Engine: "sqlserver-se" }))).toBe(
-          "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. To alert on the connections of an instance running sqlserver-se, open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+          "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
         );
+        /*
+         * The engine is never named as the inventory writes it: AWS's
+         * identifiers ("oracle-se2-cdb") read as code in a sentence.
+         */
+        for (const engine of ["sqlserver-se", "oracle-se2-cdb", "db2-ae"]) {
+          expect(
+            describeCloud(rds({ ...LISTED, Engine: engine })),
+          ).not.toContain(engine);
+        }
       });
 
       test("names the limit its line assumes when the parameter group is the team's own, and says nothing on an engine's default group", () => {
@@ -2203,7 +2212,7 @@ describe("RecommendationResourceRegistry", () => {
             rds({ ...LISTED, DBParameterGroupName: "prod-postgres16" }),
           ),
         ).toBe(
-          "Connections Near the Limit alerts at 90% of 1,691, the default connection limit of a db.r6g.large instance running PostgreSQL. Its parameter group, prod-postgres16, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.",
+          "Connections Near the Limit alerts at 1,521 connections: 90% of 1,691, the default limit of a db.r6g.large instance running PostgreSQL. If its parameter group, prod-postgres16, sets max_connections, change the monitor's threshold to 90% of that.",
         );
         expect(
           describeCloud(
@@ -2224,7 +2233,7 @@ describe("RecommendationResourceRegistry", () => {
             }),
           ),
         ).toBe(
-          "Low Free Storage is offered once the account's inventory lists the instance's allocated storage. Connections Near the Limit alerts at 90% of 60, the default connection limit of a db.t3.micro instance running MySQL. Its parameter group, orders-mysql8, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.",
+          "Low Free Storage is offered once the account's inventory lists the instance's allocated storage. Connections Near the Limit alerts at 54 connections: 90% of 60, the default limit of a db.t3.micro instance running MySQL. If its parameter group, orders-mysql8, sets max_connections, change the monitor's threshold to 90% of that.",
         );
       });
 

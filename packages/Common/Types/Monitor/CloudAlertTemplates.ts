@@ -582,6 +582,11 @@ function buildFormula(formula: CloudAlertFormula): MetricFormulaConfigData {
   };
 }
 
+// A count of connections in a criteria's words, as its other numbers are written: "1,521".
+function formatConnections(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
 // An RDS instance's connection limit, when it is a usable one: a positive number.
 function readConnectionLimit(value: unknown): number | null {
   const limit: number = Number(value);
@@ -657,7 +662,7 @@ function describeCriteria(
       return `Triggers when every reading of the past ${minutes} is ${template.thresholdLabel}${
         limit === null
           ? ""
-          : ` (${getCloudConnectionsThreshold(limit)} of ${limit} connections)`
+          : ` (${formatConnections(getCloudConnectionsThreshold(limit))} of ${formatConnections(limit)} connections)`
       }.`;
   }
 }
@@ -1171,7 +1176,7 @@ const READ_FROM_CLOUDWATCH: string =
  * the monitor reads the same readings either way.
  */
 const READ_SLOWLY_FROM_CLOUDWATCH: string =
-  "Read from Amazon CloudWatch by the account's connection once an hour, whether or not the account streams its metrics: a stream would bring the same two readings a day an hour or two sooner, which changes nothing here.";
+  "Read from Amazon CloudWatch by the account's connection once an hour, whether or not the account streams its metrics: a stream would not make it fire sooner.";
 const READ_FROM_AZURE_MONITOR: string =
   "Read from Azure Monitor by the subscription's connection.";
 const READ_FROM_CLOUD_MONITORING: string =
@@ -1466,7 +1471,7 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
     name: "Connections Near the Limit",
     summary:
       "Connections stay at 90% or more of the instance's limit for 30 minutes.",
-    description: `Fires when every reading of DatabaseConnections (Average) in the past 30 minutes is at or above ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of the instance's connection limit: past the limit, new connections are refused. The limit is the default max_connections of its class and engine, worked out from the class's memory as RDS does - about 60 on a db.t3.micro running MySQL, about 1,700 on a db.r6g.large running PostgreSQL - and taken from AWS's table for Aurora MySQL. A parameter group of your own that sets max_connections moves it: then change the monitor's threshold to ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of that. Offered once the account's inventory lists the instance's class and engine: MySQL, MariaDB, PostgreSQL, Aurora MySQL or Aurora PostgreSQL. ${READ_FROM_CLOUDWATCH}`,
+    description: `Fires when every reading of DatabaseConnections (Average) in the past 30 minutes is at or above ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of the instance's connection limit: past the limit, new connections are refused. The limit is the default max_connections of its class and engine, as RDS works it out from the class's memory: about 60 on a db.t3.micro running MySQL, about 1,700 on a db.r6g.large running PostgreSQL. If the instance's parameter group sets max_connections, change the threshold to ${CLOUD_CONNECTIONS_HIGH_PERCENT}% of that. Offered for MySQL, MariaDB, PostgreSQL and Aurora once the account's inventory lists the instance's class and engine. ${READ_FROM_CLOUDWATCH}`,
     category: "Utilization",
     severity: "Warning",
     provider: AWS,
@@ -1722,7 +1727,7 @@ const AWS_TEMPLATES: Array<CloudAlertTemplate> = [
     id: "cloud-aws-acm-certificate-expiring",
     name: "Certificate Expiring",
     summary: `The certificate expires in ${CLOUD_CERTIFICATE_EXPIRY_DAYS} days or fewer.`,
-    description: `Fires when every reading of DaysToExpiry (Minimum) in the past 2 days is ${CLOUD_CERTIFICATE_EXPIRY_DAYS} or fewer, or the past 2 days hold none: ACM publishes it twice a day for every certificate, and stops once one expires. ACM renews a certificate it issued 45 to 60 days before it expires, and starts warning at 30 days when it cannot, so one with 30 days left is one it could not renew - imported, not in use, or its DNS validation record gone - with a month to fix it. Clears with the first reading after it is renewed or imported again. ${READ_SLOWLY_FROM_CLOUDWATCH}`,
+    description: `Fires when every reading of DaysToExpiry (Minimum) in the past 2 days is ${CLOUD_CERTIFICATE_EXPIRY_DAYS} or fewer, or the past 2 days hold none: ACM publishes it twice a day, and stops once the certificate expires. ACM renews the certificates it issued 45 to 60 days before they expire, so one with ${CLOUD_CERTIFICATE_EXPIRY_DAYS} days left is imported, not in use, or failing its validation, with a month to fix it. Clears with the first reading after it is renewed or imported again. ${READ_SLOWLY_FROM_CLOUDWATCH}`,
     category: "Availability",
     severity: "Warning",
     provider: AWS,

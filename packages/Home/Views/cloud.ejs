@@ -742,7 +742,7 @@
                 <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Recommended Monitors</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">The alerts each resource needs, ready to turn on</h3>
-              <p class="mt-4 text-lg text-gray-600">OneUptime recommends <%= cloudRecommendedMonitors.monitorCount %> monitors for <%= cloudRecommendedMonitors.resourceTypeCount %> kinds of cloud resource: an instance failing its status checks, a database running out of storage or near its connection limit, a function's errors, a queue's oldest message, a certificate about to expire. Add one to a resource, or to every resource of its type in an account at once. Each watches the metrics the connection already reads, on a line made for that resource, and is linked to it.</p>
+              <p class="mt-4 text-lg text-gray-600">OneUptime recommends <%= cloudRecommendedMonitors.monitorCount %> monitors for <%= cloudRecommendedMonitors.resourceTypeCount %> kinds of cloud resource: an instance failing its status checks, a database running out of storage or near its connection limit, a function's errors, a queue backing up, a certificate about to expire. Add one to a resource, or to every resource of its type in an account at once.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -754,19 +754,19 @@
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  One resource, or every resource of a type at once
+                  Thresholds set from each resource's own limits
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Lines that fit the resource: its own connection limit, its storage, its certificate's days left
+                  Incidents and alerts on the resource's page
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Quiet while scheduled maintenance holds the resource
+                  Quiet during the resource's scheduled maintenance
                 </li>
               </ul>
               <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
@@ -797,7 +797,7 @@
                     <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5" data-recommended-monitor="<%= row.templateId %>">
                       <div class="min-w-0">
                         <div class="text-[10px] font-medium uppercase tracking-wide text-gray-500"><%= row.resourceTypeLabel %></div>
-                        <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs font-semibold text-gray-900"><span><%= row.name %></span><span class="text-[10px] font-semibold uppercase <%= row.severity === 'Critical' ? 'text-red-600' : 'text-amber-600' %>"><%= row.severity %></span></div>
+                        <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-gray-900"><span><%= row.name %></span><span class="rounded-full px-1.5 py-px text-[10px] font-semibold ring-1 ring-inset <%= row.severity === 'Critical' ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-amber-50 text-amber-800 ring-amber-200' %>"><%= row.severity %></span></div>
                         <div class="mt-0.5 text-[10px] text-gray-500">Set up on <%= row.createdCount %> of <%= row.resourceCount %> resources</div>
                       </div>
                       <% if (row.createdCount >= row.resourceCount) { %>
@@ -809,7 +809,7 @@
                     <% } %>
                     <div class="flex items-center gap-2 pt-1 text-[10px] text-gray-500">
                       <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                      Each one read from the metrics the connection already reads
+                      Read from the metrics the connection already collects
                     </div>
                   </div>
                 </div>

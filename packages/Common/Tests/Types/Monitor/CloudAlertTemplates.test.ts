@@ -371,7 +371,7 @@ describe("the cloud alert template library", () => {
     };
     // But one over a metric published a few times a day, which a stream makes no sooner that matters.
     const slowSource: string =
-      "Read from Amazon CloudWatch by the account's connection once an hour, whether or not the account streams its metrics: a stream would bring the same two readings a day an hour or two sooner, which changes nothing here.";
+      "Read from Amazon CloudWatch by the account's connection once an hour, whether or not the account streams its metrics: a stream would not make it fire sooner.";
 
     for (const cloudTemplate of ALL) {
       expect(cloudTemplate.description).toContain(
@@ -1839,7 +1839,7 @@ describe("Connections Near the Limit", () => {
       EvaluateOverTimeType.AllValues,
     );
     expect(unhealthy!.data!.description).toBe(
-      "Triggers when every reading of the past 30 minutes is at or above 90% of its connection limit (1521 of 1691 connections).",
+      "Triggers when every reading of the past 30 minutes is at or above 90% of its connection limit (1,521 of 1,691 connections).",
     );
     expect(unhealthy!.data!.name).toBe(
       "Connections Near the Limit - at or above 90% of its connection limit",

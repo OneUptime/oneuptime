@@ -474,7 +474,7 @@ describe("a cloud resource's Recommendations tab", () => {
 
     expect(
       await screen.findByText(
-        "Connections Near the Limit alerts at 90% of 1,691, the default connection limit of a db.r6g.large instance running PostgreSQL. Its parameter group, prod-postgres16, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.",
+        "Connections Near the Limit alerts at 1,521 connections: 90% of 1,691, the default limit of a db.r6g.large instance running PostgreSQL. If its parameter group, prod-postgres16, sets max_connections, change the monitor's threshold to 90% of that.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Connections Near the Limit")).toBeInTheDocument();
@@ -498,10 +498,11 @@ describe("a cloud resource's Recommendations tab", () => {
     expect(screen.queryByText("Connections Near the Limit")).toBeNull();
     expect(
       screen.getByText(
-        /Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora/,
+        "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/running sqlserver-se/)).toBeInTheDocument();
+    // AWS's identifier for the engine reads as code: the note never names it.
+    expect(screen.queryByText(/sqlserver-se/)).toBeNull();
   });
 
   test("an ACM certificate is offered Certificate Expiring, made to run once an hour over 2 days", async () => {

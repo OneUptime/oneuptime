@@ -218,15 +218,49 @@ describe("cloud.ejs: Recommended Monitors", () => {
       "an instance failing its status checks",
       "a database running out of storage or near its connection limit",
       "a function's errors",
-      "a queue's oldest message",
+      "a queue backing up",
       "a certificate about to expire",
       "Add one to a resource, or to every resource of its type in an account at once.",
-      "Each watches the metrics the connection already reads, on a line made for that resource, and is linked to it.",
-      "One resource, or every resource of a type at once",
-      "Lines that fit the resource: its own connection limit, its storage, its certificate's days left",
-      "Quiet while scheduled maintenance holds the resource",
+      "Thresholds set from each resource's own limits",
+      "Incidents and alerts on the resource's page",
+      "Quiet during the resource's scheduled maintenance",
+      "Read from the metrics the connection already collects",
     ]) {
       expect(section).toContain(claim);
+    }
+  });
+
+  /*
+   * A short paragraph and four points, none saying another's words again:
+   * the paragraph said "one resource or every resource of a type" and "a
+   * line made for that resource", and two points said both once more.
+   */
+  test("says each thing once: a short paragraph, and four points that add to it", () => {
+    const paragraph: string = section.slice(
+      section.indexOf('<p class="mt-4 text-lg text-gray-600">'),
+      section.indexOf("</p>"),
+    );
+    const points: Array<string> = section
+      .slice(section.indexOf("<ul"), section.indexOf("</ul>"))
+      .split("<li")
+      .slice(1);
+
+    expect(points).toHaveLength(4);
+    // As long as the page's other features' paragraphs, not twice as long.
+    expect(paragraph.length).toBeLessThan(420);
+    expect(paragraph).not.toContain("on a line made for");
+    for (const point of points) {
+      // The point's own words: what follows its check mark.
+      const text: string = point
+        .slice(
+          point.indexOf("</svg>") + "</svg>".length,
+          point.indexOf("</li>"),
+        )
+        .trim();
+
+      expect(text).not.toContain("every resource of a type");
+      // One line beside its check mark on a laptop, as the other features' points.
+      expect(`${text}: ${text.length <= 55}`).toBe(`${text}: true`);
     }
   });
 
@@ -264,10 +298,16 @@ describe("cloud.ejs: Recommended Monitors", () => {
         expect(rowHtml).not.toContain("All set up");
       }
 
-      // A Critical one in red, a Warning in amber, as the product draws them.
+      /*
+       * Its severity as a pill, as the product's badge draws it: a
+       * Critical one red, a Warning amber - in the product's own case.
+       */
       expect(rowHtml).toContain(
-        row.severity === "Critical" ? "text-red-600" : "text-amber-600",
+        row.severity === "Critical"
+          ? "bg-red-50 text-red-700 ring-red-200"
+          : "bg-amber-50 text-amber-800 ring-amber-200",
       );
+      expect(rowHtml).not.toContain("uppercase text-");
     }
   });
 
@@ -313,6 +353,7 @@ describe("cloud.ejs: Recommended Monitors", () => {
       "add one to a resource, or to every resource of its type at once",
       "Each monitor reads the key metrics the connection reads",
       "is linked to its resource",
+      "its incidents and alerts are listed on the resource's page",
       "fires once the certificate has 30 days or fewer left",
       "judged against 90% of the connection limit of its class and engine",
       "its monitors open no incident or alert",

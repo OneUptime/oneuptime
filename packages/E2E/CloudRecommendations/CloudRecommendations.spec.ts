@@ -704,7 +704,7 @@ test.describe("a cloud resource's Recommendations", () => {
 
     await expect(
       page.getByText(
-        "Connections Near the Limit alerts at 90% of 1,691, the default connection limit of a db.r6g.large instance running PostgreSQL. Its parameter group, orders-postgres16, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.",
+        "Connections Near the Limit alerts at 1,521 connections: 90% of 1,691, the default limit of a db.r6g.large instance running PostgreSQL. If its parameter group, orders-postgres16, sets max_connections, change the monitor's threshold to 90% of that.",
       ),
     ).toBeVisible();
     await expect(
@@ -717,6 +717,37 @@ test.describe("a cloud resource's Recommendations", () => {
     await page.setViewportSize(PHONE);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "cloud-resource-recommendations-rds-390");
+
+    /*
+     * In German and in Persian the note says the same two numbers, written
+     * the reader's way, and names the group as AWS writes it.
+     */
+    await open(page, `${resourcePage(ORDERS_DB, "recommendations")}?lang=de`);
+    const germanNote: Locator = page.getByText("„Connections Near the Limit“", {
+      exact: false,
+    });
+    await expect(germanNote).toContainText("1.521 Verbindungen");
+    await expect(germanNote).toContainText("90 % von 1.691");
+    await expect(germanNote).toContainText("orders-postgres16");
+    await expectNoSidewaysScroll(page);
+
+    await open(page, `${resourcePage(ORDERS_DB, "recommendations")}?lang=fa`);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    const persianNote: Locator = page.getByText(
+      "«Connections Near the Limit»",
+      {
+        exact: false,
+      },
+    );
+    await expect(persianNote).toContainText(
+      new Intl.NumberFormat("fa").format(1521),
+    );
+    await expect(persianNote).toContainText(
+      new Intl.NumberFormat("fa").format(1691),
+    );
+    await expect(persianNote).toContainText("orders-postgres16");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "cloud-resource-recommendations-rds-390-fa");
 
     // One its inventory has not listed yet: both of its own wait for it, said once.
     await page.setViewportSize(LAPTOP);

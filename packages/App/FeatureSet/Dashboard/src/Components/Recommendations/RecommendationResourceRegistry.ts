@@ -25,6 +25,7 @@ import {
   CloudAlertTemplate,
   getCloudAlertTemplatesFor,
   getCloudAlertTemplatesForType,
+  getCloudConnectionsThreshold,
   getCloudMonitoringServiceName,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
@@ -345,9 +346,13 @@ export function readCloudResourceRecommendationContext(
 /*
  * What an RDS instance's page says of its Connections Near the Limit: why
  * it waits or is not offered, or - when its parameter group is one of the
- * team's own, which may set max_connections - the limit its line is a
- * share of, so they can check it. Nothing when the class's default is the
- * limit (an engine's default group) or nothing is known of the group.
+ * team's own, which may set max_connections - the line it alerts at and the
+ * limit that line is a share of, so they can check it before they add it.
+ * Nothing when the class's default is the limit (an engine's default group)
+ * or nothing is known of the group: the monitor's criteria say its line.
+ *
+ * The line comes first, in connections: it is the number the monitor will
+ * alert at, and the one to compare with the group's max_connections.
  */
 function describeCloudConnectionLimit(
   reading: RdsConnectionLimitReading | null | undefined,
@@ -368,8 +373,11 @@ function describeCloudConnectionLimit(
     }
 
     return translator.translateTemplate(
-      "Connections Near the Limit alerts at 90% of {{limit}}, the default connection limit of a {{instanceClass}} instance running {{engine}}. Its parameter group, {{parameterGroup}}, is one of your own: if it sets max_connections, change the monitor's threshold to 90% of that.",
+      "Connections Near the Limit alerts at {{threshold}} connections: 90% of {{limit}}, the default limit of a {{instanceClass}} instance running {{engine}}. If its parameter group, {{parameterGroup}}, sets max_connections, change the monitor's threshold to 90% of that.",
       {
+        threshold: translator.formatNumber(
+          getCloudConnectionsThreshold(reading.limit.limit),
+        ),
         limit: translator.formatNumber(reading.limit.limit),
         instanceClass: reading.limit.instanceClass,
         engine: RDS_CONNECTION_ENGINE_NAMES[reading.limit.engine],
@@ -379,6 +387,13 @@ function describeCloudConnectionLimit(
     );
   }
 
+  /*
+   * What to do instead is said as every other recommendation note says it
+   * ("You can still alert on it: open a metric on its Metrics tab ..."). An
+   * engine the class does not limit is not named: the inventory writes it
+   * as AWS's identifier ("sqlserver-se"), which reads as code in a sentence,
+   * and the instance's page names its engine already.
+   */
   switch (reading.gap) {
     case RdsConnectionLimitGap.NotListed:
       return translator.translateTemplate(
@@ -386,15 +401,13 @@ function describeCloudConnectionLimit(
       );
     case RdsConnectionLimitGap.UnknownClass:
       return translator.translateTemplate(
-        "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. To alert on its connections, open DatabaseConnections on its Metrics tab and create a monitor from the view.",
+        "Connections Near the Limit is not offered: OneUptime does not know the connection limit of a {{instanceClass}} instance yet. You can still alert on its connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
         { instanceClass: reading.instanceClass || "" },
         { setsValuesApart: true },
       );
     case RdsConnectionLimitGap.NoClassLimit:
-      return translator.translateTemplate(
-        "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. To alert on the connections of an instance running {{engine}}, open DatabaseConnections on its Metrics tab and create a monitor from the view.",
-        { engine: reading.engine || "" },
-        { setsValuesApart: true },
+      return translator.translateText(
+        "Connections Near the Limit is for MySQL, MariaDB, PostgreSQL and Aurora, whose connection limit follows their class. You can still alert on this instance's connections: open DatabaseConnections on its Metrics tab and create a monitor from the view.",
       );
     default:
       return undefined;
