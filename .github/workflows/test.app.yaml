@@ -1550,7 +1550,10 @@ jobs:
           # phone's week, the current-time dot, the lines between days and the
           # blocks' stripes - and a canvas's zoom buttons in three languages,
           # about 40 seconds locally): its 4.4 minutes planned as 5.0, this
-          # group about 20.7 and group 13 about 17.6.
+          # group about 20.7 and group 13 about 17.6. Its UI review added 5
+          # more the same day (two blocks at once in a Persian and an English
+          # week, and a chart's time axis in three languages, about 18
+          # seconds locally): planned as 5.3, this group about 21.0.
           - group: 20
             openstack_pages_shard: 2/2
             suites: >-
