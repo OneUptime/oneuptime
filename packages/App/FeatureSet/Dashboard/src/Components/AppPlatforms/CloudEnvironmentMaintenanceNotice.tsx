@@ -252,7 +252,7 @@ const CloudEnvironmentMaintenanceNotice: FunctionComponent<ComponentProps> = (
             values={
               isEndAhead && endsAt
                 ? {
-                    time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    time: OneUptimeDate.getDateAsCompactLocalString(
                       endsAt,
                     ),
                   }

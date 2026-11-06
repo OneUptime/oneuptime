@@ -677,6 +677,56 @@ test.describe("a cloud resource's Scheduled Maintenance", () => {
     await screenshot(page, "cloud-resource-scheduled-maintenance-390");
   });
 
+  /*
+   * Every event the tab lists holds the resource, so an Affected Resources
+   * column only said orders-db again - cut short beside the side menu,
+   * where the list has the least room. The tab leaves it out, in every
+   * language; the column's title is still the event table's elsewhere.
+   */
+  test("leaves out the Affected Resources column, which would only name the resource again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, words] of [
+      ["", null],
+      ["&lang=de", GERMAN],
+      ["&lang=fa", PERSIAN],
+    ] as Array<[string, Record<string, string> | null]>) {
+      const title: string = words ? words["Title"]! : "Title";
+      const affected: string = words
+        ? words["Affected Resources"]!
+        : "Affected Resources";
+      const suffix: string = query ? `-${query.slice(6)}` : "";
+
+      await page.setViewportSize(LAPTOP);
+      await open(
+        page,
+        `${resourcePage(ORDERS_DB, "scheduled-maintenance")}?maintenance=held${query}`,
+      );
+
+      const head: Locator = page.locator("table thead");
+      await expect(page.locator("table tbody tr")).toHaveCount(2);
+      await expect(head).toContainText(title);
+      await expect(head).not.toContainText(affected);
+      await screenshot(
+        page,
+        `cloud-resource-scheduled-maintenance-columns-1280${suffix}`,
+      );
+
+      // On a phone each event is a card: none names the resource again.
+      await page.setViewportSize(PHONE);
+      await expect(
+        page.getByRole("term").filter({ hasText: affected }),
+      ).toHaveCount(0);
+      await expectNoSidewaysScroll(page);
+      await screenshot(
+        page,
+        `cloud-resource-scheduled-maintenance-columns-390${suffix}`,
+      );
+    }
+  });
+
   test("a resource no event holds has none", async ({
     page,
   }: {

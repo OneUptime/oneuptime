@@ -308,7 +308,7 @@ describe("on an app's page", () => {
 
     expect(banner).toHaveTextContent("Under maintenance");
     expect(textOf(banner)).toContain(
-      `ECS cluster upgrade covers this app's environment until ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+      `ECS cluster upgrade covers this app's environment until ${OneUptimeDate.getDateAsCompactLocalString(
         IN_TWO_HOURS,
       )}. Until then, the app's monitors open no incidents or alerts.`,
     );
@@ -357,7 +357,7 @@ describe("on the environment's Overview", () => {
     renderNotice(CloudEnvironmentMaintenanceNoticeScope.Environment);
 
     expect(textOf(await notice())).toContain(
-      `ECS cluster upgrade covers this environment until ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+      `ECS cluster upgrade covers this environment until ${OneUptimeDate.getDateAsCompactLocalString(
         IN_TWO_HOURS,
       )}. Until then, the monitors of its apps open no incidents or alerts.`,
     );
