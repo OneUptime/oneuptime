@@ -278,7 +278,7 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
     return clampFacetSidebarWidth(
       drawn > 0
         ? drawn
-        : (propsRef.current.width ?? FACET_SIDEBAR_DEFAULT_WIDTH_IN_PX),
+        : propsRef.current.width ?? FACET_SIDEBAR_DEFAULT_WIDTH_IN_PX,
       maxWidth,
     );
   };
@@ -290,7 +290,10 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
   };
 
   // As wide as the names the sidebar lists need: a double-click, End, Enter.
-  const readFitWidth: (panel: HTMLElement, maxWidth: number) => number | null = (
+  const readFitWidth: (
+    panel: HTMLElement,
+    maxWidth: number,
+  ) => number | null = (
     panel: HTMLElement,
     maxWidth: number,
   ): number | null => {
@@ -652,7 +655,10 @@ const FacetSidebarResizeHandle: FunctionComponent<ComponentProps> = (
       onKeyDown={onKeyDown}
       onFocus={onFocus}
     >
-      <span aria-hidden="true" className={FACET_SIDEBAR_RESIZE_LINE_CLASS_NAME} />
+      <span
+        aria-hidden="true"
+        className={FACET_SIDEBAR_RESIZE_LINE_CLASS_NAME}
+      />
     </div>
   );
 };

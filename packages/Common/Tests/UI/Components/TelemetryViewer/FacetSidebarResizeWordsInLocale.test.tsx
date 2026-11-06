@@ -86,7 +86,10 @@ const readLocale: (language: string) => Record<string, unknown> = (
     localeCache.set(
       language,
       JSON.parse(
-        fs.readFileSync(path.join(LOCALE_DIRECTORY, `${language}.json`), "utf8"),
+        fs.readFileSync(
+          path.join(LOCALE_DIRECTORY, `${language}.json`),
+          "utf8",
+        ),
       ) as Record<string, unknown>,
     );
   }
@@ -134,11 +137,7 @@ describe("the words of the filters sidebar's edge in every language", () => {
           key,
           "string",
         ]);
-        expect([language, key, value === text]).toEqual([
-          language,
-          key,
-          false,
-        ]);
+        expect([language, key, value === text]).toEqual([language, key, false]);
         expect([language, key, placeholdersOf(value as string)]).toEqual([
           language,
           key,

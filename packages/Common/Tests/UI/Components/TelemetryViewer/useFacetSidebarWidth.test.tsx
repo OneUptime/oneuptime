@@ -390,8 +390,9 @@ describe("the same person's page in another tab", () => {
   });
 
   test("a sidebar no longer drawn stops listening", () => {
-    const removeListener: jest.SpiedFunction<typeof window.removeEventListener> =
-      jest.spyOn(window, "removeEventListener");
+    const removeListener: jest.SpiedFunction<
+      typeof window.removeEventListener
+    > = jest.spyOn(window, "removeEventListener");
 
     render(<Reader name="a" />);
     cleanup();

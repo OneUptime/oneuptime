@@ -68,9 +68,7 @@ export const isFacetSidebarRightToLeft: (element: Element) => boolean = (
  * none) and not drawn over the row (absolute, fixed) - a screen reader's
  * "Excluded" after a name, an exclude button over the count.
  */
-const isInFlow: (element: Element) => boolean = (
-  element: Element,
-): boolean => {
+const isInFlow: (element: Element) => boolean = (element: Element): boolean => {
   const style: CSSStyleDeclaration | null = getComputedStyleOf(element);
 
   if (!style) {

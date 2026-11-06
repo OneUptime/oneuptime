@@ -181,9 +181,7 @@ describe("the facets + list area below md", () => {
     expect(FACET_SIDEBAR_WIDTH_CLASS_NAME).toBe(
       "md:w-[var(--ou-facet-sidebar-width,14rem)] md:max-w-[50%]",
     );
-    expect(sidebar()).toHaveClass(
-      ...FACET_SIDEBAR_WIDTH_CLASS_NAME.split(" "),
-    );
+    expect(sidebar()).toHaveClass(...FACET_SIDEBAR_WIDTH_CLASS_NAME.split(" "));
 
     /*
      * Unprefixed, these are the regression: a 14rem sidebar at every width,

@@ -47,10 +47,11 @@ const getPersonId: () => string = (): string => {
 };
 
 // Where a person's width is stored, as the storage event names it.
-export const getFacetSidebarWidthStorageKey: (preferenceKey: string) => string =
-  (preferenceKey: string): string => {
-    return `${UserPreferenceType.FacetSidebarWidth}.${preferenceKey}`;
-  };
+export const getFacetSidebarWidthStorageKey: (
+  preferenceKey: string,
+) => string = (preferenceKey: string): string => {
+  return `${UserPreferenceType.FacetSidebarWidth}.${preferenceKey}`;
+};
 
 export const readStoredFacetSidebarWidth: (
   preferenceKey: string,
@@ -107,14 +108,18 @@ class FacetSidebarWidthMemory {
 
   public get(preferenceKey: string): number | null {
     if (!this.widths.has(preferenceKey)) {
-      this.widths.set(preferenceKey, readStoredFacetSidebarWidth(preferenceKey));
+      this.widths.set(
+        preferenceKey,
+        readStoredFacetSidebarWidth(preferenceKey),
+      );
     }
 
     return this.widths.get(preferenceKey) ?? null;
   }
 
   public set(preferenceKey: string, width: number | null): void {
-    const kept: number | null = width === null ? null : readFacetSidebarWidth(width);
+    const kept: number | null =
+      width === null ? null : readFacetSidebarWidth(width);
 
     writeStoredFacetSidebarWidth(preferenceKey, kept);
     this.update(preferenceKey, kept);
@@ -125,7 +130,7 @@ class FacetSidebarWidthMemory {
     this.update(preferenceKey, readStoredFacetSidebarWidth(preferenceKey));
   }
 
-  // Everything forgotten: the next read is the browser's (tests, sign-out).
+  // Everything forgotten: the next read is the browser's.
   public clear(): void {
     this.widths.clear();
     this.notify();
@@ -140,7 +145,10 @@ class FacetSidebarWidthMemory {
   }
 
   private update(preferenceKey: string, width: number | null): void {
-    if (this.widths.has(preferenceKey) && this.widths.get(preferenceKey) === width) {
+    if (
+      this.widths.has(preferenceKey) &&
+      this.widths.get(preferenceKey) === width
+    ) {
       return;
     }
 
@@ -157,7 +165,10 @@ class FacetSidebarWidthMemory {
 
 const memory: FacetSidebarWidthMemory = new FacetSidebarWidthMemory();
 
-// Forget what this page holds, so the next read is the browser's.
+/*
+ * Forget what this page holds, so the next read is the browser's: a test
+ * that starts afresh. Signing out leaves the page, which forgets it anyway.
+ */
 export const forgetFacetSidebarWidths: () => void = (): void => {
   memory.clear();
 };
@@ -170,9 +181,8 @@ const subscribe: (listener: () => void) => () => void = (
 
 const useFacetSidebarWidth: () => UseFacetSidebarWidthResult =
   (): UseFacetSidebarWidthResult => {
-    const preferenceKey: string = getFacetSidebarWidthPreferenceKey(
-      getPersonId(),
-    );
+    const preferenceKey: string =
+      getFacetSidebarWidthPreferenceKey(getPersonId());
 
     const getSnapshot: () => number | null = useCallback((): number | null => {
       return memory.get(preferenceKey);

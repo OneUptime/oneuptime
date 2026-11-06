@@ -275,9 +275,10 @@ describe("getKeyboardResizedFacetSidebarWidth: a key on the edge", () => {
       kind: "width",
       width: MIN,
     });
-    expect(pressKey({ key: "ArrowRight", width: 450, maxWidth: 450 })).toEqual(
-      { kind: "width", width: 450 },
-    );
+    expect(pressKey({ key: "ArrowRight", width: 450, maxWidth: 450 })).toEqual({
+      kind: "width",
+      width: 450,
+    });
   });
 
   test("Home makes it as narrow as it goes", () => {
@@ -404,7 +405,11 @@ describe("getFacetSidebarFitWidth: a double-click fits the names it lists", () =
 
   test("with no names listed there is nothing to fit", () => {
     expect(
-      getFacetSidebarFitWidth({ width: 224, nameShortfalls: [], maxWidth: MAX }),
+      getFacetSidebarFitWidth({
+        width: 224,
+        nameShortfalls: [],
+        maxWidth: MAX,
+      }),
     ).toBeNull();
     expect(
       getFacetSidebarFitWidth({
@@ -414,7 +419,11 @@ describe("getFacetSidebarFitWidth: a double-click fits the names it lists", () =
       }),
     ).toBeNull();
     expect(
-      getFacetSidebarFitWidth({ width: NaN, nameShortfalls: [4], maxWidth: MAX }),
+      getFacetSidebarFitWidth({
+        width: NaN,
+        nameShortfalls: [4],
+        maxWidth: MAX,
+      }),
     ).toBeNull();
   });
 

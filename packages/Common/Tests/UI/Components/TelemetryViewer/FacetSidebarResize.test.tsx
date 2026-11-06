@@ -8,7 +8,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import TelemetryFacetSidebar from "../../../../UI/Components/TelemetryViewer/components/TelemetryFacetSidebar";
 import LogsFacetSidebar from "../../../../UI/Components/LogsViewer/components/LogsFacetSidebar";
@@ -339,7 +345,11 @@ const storedWidth: () => string | null = (): string | null => {
   return window.localStorage.getItem(STORAGE_KEY);
 };
 
-type PointerType = "pointerDown" | "pointerMove" | "pointerUp" | "pointerCancel";
+type PointerType =
+  | "pointerDown"
+  | "pointerMove"
+  | "pointerUp"
+  | "pointerCancel";
 
 const pointer: (
   element: HTMLElement,
@@ -679,7 +689,10 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
       renderSidebar();
       const { handle } = layOutPage();
       const dialogHears: jest.Mock = jest.fn();
-      document.addEventListener("keydown", dialogHears as unknown as EventListener);
+      document.addEventListener(
+        "keydown",
+        dialogHears as unknown as EventListener,
+      );
 
       pointer(handle, "pointerDown", 230);
       pointer(handle, "pointerMove", 300);
@@ -702,7 +715,10 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
       renderSidebar();
       const { handle } = layOutPage();
       const pageHears: jest.Mock = jest.fn();
-      document.addEventListener("keydown", pageHears as unknown as EventListener);
+      document.addEventListener(
+        "keydown",
+        pageHears as unknown as EventListener,
+      );
 
       drag(handle, 230, [300]);
       act(() => {
@@ -722,7 +738,10 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
       renderSidebar();
       const { handle } = layOutPage();
       const pageHears: jest.Mock = jest.fn();
-      document.addEventListener("keydown", pageHears as unknown as EventListener);
+      document.addEventListener(
+        "keydown",
+        pageHears as unknown as EventListener,
+      );
 
       pointer(handle, "pointerDown", 230);
       pointer(handle, "pointerMove", 300);
@@ -810,7 +829,9 @@ describe.each(SIDEBARS)("%s", (_name: string, sidebar: () => ReactElement) => {
     test("a press on the edge selects no text and clicks nothing under it", () => {
       const parentClick: jest.Mock = jest.fn();
       // A card or a row the explorer stands in, listening for clicks.
-      render(<div onClick={parentClick as unknown as () => void}>{sidebar()}</div>);
+      render(
+        <div onClick={parentClick as unknown as () => void}>{sidebar()}</div>,
+      );
       const { handle } = layOutPage();
 
       let isDefaultAllowed: boolean = true;
@@ -1246,11 +1267,19 @@ describe("how the edge looks", () => {
   };
 
   test("its hit area covers the 12px gap and 4px of the sidebar, and adds nothing to the row", () => {
-    const tokens: Array<string> = tokensOf(FACET_SIDEBAR_RESIZE_HANDLE_CLASS_NAME);
+    const tokens: Array<string> = tokensOf(
+      FACET_SIDEBAR_RESIZE_HANDLE_CLASS_NAME,
+    );
 
     // 16px wide, pulled 16px back over the gap and the sidebar's edge, and 12px off the list.
     expect(tokens).toEqual(
-      expect.arrayContaining(["-ml-4", "w-4", "-mr-3", "flex-none", "self-stretch"]),
+      expect.arrayContaining([
+        "-ml-4",
+        "w-4",
+        "-mr-3",
+        "flex-none",
+        "self-stretch",
+      ]),
     );
     // -16 + 16 - 12 = -12: the row's gap-3 is all that stands between sidebar and list.
     expect(-16 + 16 - 12 + 12).toBe(0);
@@ -1268,7 +1297,9 @@ describe("how the edge looks", () => {
   });
 
   test("its line shows only while it is pointed at, has the focus or is dragged", () => {
-    const tokens: Array<string> = tokensOf(FACET_SIDEBAR_RESIZE_LINE_CLASS_NAME);
+    const tokens: Array<string> = tokensOf(
+      FACET_SIDEBAR_RESIZE_LINE_CLASS_NAME,
+    );
 
     expect(tokens).toEqual(
       expect.arrayContaining([
@@ -1332,7 +1363,9 @@ describe("how the edge looks", () => {
       <FacetSidebarResizeHandle
         panelRef={React.createRef<HTMLElement>()}
         width={null}
-        onWidthChange={onWidthChange as unknown as (width: number | null) => void}
+        onWidthChange={
+          onWidthChange as unknown as (width: number | null) => void
+        }
       />,
     );
     const handle: HTMLElement = screen.getByTestId(
