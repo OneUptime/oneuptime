@@ -44,6 +44,14 @@ export interface CardSelectOption {
    * would otherwise be shown translated.
    */
   isUserContent?: boolean | undefined;
+  /*
+   * The title is a product's name (Resend, Postmark, Amazon SES): drawn as
+   * given, never looked up, as a brand's name is never translated - and a
+   * name that is interface text too ("Resend") would otherwise be shown as
+   * that text's translation ("Erneut senden"). The description is still
+   * looked up.
+   */
+  isTitleProductName?: boolean | undefined;
 }
 
 export interface CardSelectOptionGroup {
@@ -427,6 +435,15 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     text: string,
   ): string => {
     return option.isUserContent ? text : translator.translateText(text) || text;
+  };
+
+  // A card's title, in the reader's language - or as given, for a product's name.
+  const getOptionTitle: (option: CardSelectOption) => string = (
+    option: CardSelectOption,
+  ): string => {
+    return option.isTitleProductName
+      ? option.title
+      : getOptionText(option, option.title);
   };
 
   const searchInputRef: React.RefObject<HTMLInputElement> =
@@ -936,7 +953,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                 isSelected ? "text-gray-900" : "text-gray-900"
               }`}
             >
-              {getOptionText(option, option.title)}
+              {getOptionTitle(option)}
             </span>
             <span
               className={`mt-1 block text-sm ${
@@ -999,7 +1016,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         })}
         <div className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-gray-900">
-            {getOptionText(option, option.title)}
+            {getOptionTitle(option)}
           </span>
           <span className="mt-0.5 block text-xs leading-5 text-gray-500">
             {getOptionText(option, option.description)}
@@ -1054,7 +1071,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         })}
         <div className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-gray-900">
-            {getOptionText(option, option.title)}
+            {getOptionTitle(option)}
           </span>
           <span className="mt-0.5 block text-sm text-gray-500">
             {getOptionText(option, option.description)}
@@ -1137,7 +1154,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
               className="block text-sm font-medium text-gray-900"
               data-testid="card-select-summary-title"
             >
-              {getOptionText(selectedOption, selectedOption.title)}
+              {getOptionTitle(selectedOption)}
             </span>
             <span className="mt-0.5 block text-xs leading-5 text-gray-500">
               {getOptionText(selectedOption, selectedOption.description)}

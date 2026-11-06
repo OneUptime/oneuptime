@@ -3,6 +3,7 @@ import URL from "../API/URL";
 import Email from "../Email";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
+import MailgunRegion from "./MailgunRegion";
 import MailTransportType from "./MailTransportType";
 import OAuthProviderType from "./OAuthProviderType";
 import SMTPAuthenticationType from "./SMTPAuthenticationType";
@@ -41,4 +42,22 @@ export default interface EmailServer {
   tokenUrl?: URL | undefined; // OAuth token endpoint URL (e.g., https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token)
   scope?: string | undefined; // OAuth scope(s), space-separated (e.g., https://outlook.office365.com/.default)
   oauthProviderType?: OAuthProviderType | undefined; // OAuth grant type: Client Credentials or JWT Bearer
+
+  /*
+   * The keys of the providers that send through an HTTP API of their own.
+   * Each transport reads only its own:
+   *
+   *   - Amazon SES: awsAccessKeyId, awsSecretAccessKey and awsRegion, an
+   *     IAM access key allowed ses:SendEmail and the Region the sender's
+   *     identity is verified in;
+   *   - SendGrid, Postmark and Resend: apiKey (Postmark's server API token);
+   *   - Mailgun: apiKey, mailgunDomain (the sending domain, such as
+   *     mg.example.com) and mailgunRegion (US or EU).
+   */
+  apiKey?: string | undefined;
+  awsAccessKeyId?: string | undefined;
+  awsSecretAccessKey?: string | undefined;
+  awsRegion?: string | undefined;
+  mailgunDomain?: string | undefined;
+  mailgunRegion?: MailgunRegion | undefined;
 }
