@@ -406,6 +406,8 @@
     "Cloud Troubleshooting": "رفع اشکال ابر",
     "Connect a Cloud Account": "اتصال یک حساب ابری",
     "Stream CloudWatch Metrics and Logs": "جریان‌دادن متریک‌ها و لاگ‌های CloudWatch",
+    "Stream Azure Monitor Metrics and Logs": "جریان‌دادن متریک‌ها و لاگ‌های Azure Monitor",
+    "Stream Google Cloud Logs": "جریان‌دادن لاگ‌های Google Cloud",
     "Cloud Costs and Savings": "هزینه‌ها و صرفه‌جویی‌های ابر",
     "Cloud Resources (IaaS & PaaS)": "منابع ابری (IaaS و PaaS)",
     "AI / LLM Observability": "مشاهده‌پذیری هوش مصنوعی / LLM",

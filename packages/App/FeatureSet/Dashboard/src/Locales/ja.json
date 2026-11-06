@@ -45409,7 +45409,7 @@
   "Reading is on, since {{time}}: OneUptime reads the event hubs in subscription {{subscription}} every minute.": "{{time}} から読み取りがオンです。OneUptime はサブスクリプション {{subscription}} のイベント ハブを毎分読み取っています。",
   "Receiving. The last events came {{time}}.": "受信中です。最後のイベントは {{time}} に届きました。",
   "Receiving. The last push came {{time}}.": "受信中です。最後のプッシュは {{time}} に届きました。",
-  "Resource group": "リソースグループ",
+  "Resource group name": "リソースグループ名",
   "Resource logs alone: the connection keeps reading metrics on its schedule.": "リソースログのみ: 接続はスケジュールどおりにメトリクスを読み取り続けます。",
   "Run it as a project Owner, or as someone who may make service accounts, Pub/Sub topics and log sinks in these projects.": "プロジェクトのオーナー、またはこれらのプロジェクトでサービス アカウント、Pub/Sub トピック、ログシンクを作成できるユーザーとして実行してください。",
   "Run it as someone who may make resource groups and role assignments, and change diagnostic settings, in these subscriptions: an Owner, or a Contributor who is also a User Access Administrator.": "これらのサブスクリプションでリソースグループとロールの割り当てを作成し、診断設定を変更できるユーザーとして実行してください。Owner、または User Access Administrator でもある Contributor です。",

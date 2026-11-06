@@ -45409,7 +45409,7 @@
   "Reading is on, since {{time}}: OneUptime reads the event hubs in subscription {{subscription}} every minute.": "Läsning är på sedan {{time}}: OneUptime läser händelsehubbarna i prenumerationen {{subscription}} varje minut.",
   "Receiving. The last events came {{time}}.": "Tar emot. De senaste händelserna kom {{time}}.",
   "Receiving. The last push came {{time}}.": "Tar emot. Den senaste pushen kom {{time}}.",
-  "Resource group": "Resursgrupp",
+  "Resource group name": "Resursgruppens namn",
   "Resource logs alone: the connection keeps reading metrics on its schedule.": "Bara resursloggar: anslutningen fortsätter att läsa mätvärden enligt sitt schema.",
   "Run it as a project Owner, or as someone who may make service accounts, Pub/Sub topics and log sinks in these projects.": "Kör det som projektägare, eller som någon som får skapa tjänstkonton, Pub/Sub-ämnen och loggsinkar i de här projekten.",
   "Run it as someone who may make resource groups and role assignments, and change diagnostic settings, in these subscriptions: an Owner, or a Contributor who is also a User Access Administrator.": "Kör det som någon som får skapa resursgrupper och rolltilldelningar och ändra diagnostikinställningar i de här prenumerationerna: en Owner, eller en Contributor som också är User Access Administrator.",

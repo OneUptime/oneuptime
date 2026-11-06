@@ -45409,7 +45409,7 @@
   "Reading is on, since {{time}}: OneUptime reads the event hubs in subscription {{subscription}} every minute.": "خواندن از {{time}} روشن است: OneUptime هر دقیقه هاب‌های رویداد اشتراک {{subscription}} را می‌خواند.",
   "Receiving. The last events came {{time}}.": "در حال دریافت. آخرین رویدادها {{time}} رسیدند.",
   "Receiving. The last push came {{time}}.": "در حال دریافت. آخرین ارسال {{time}} رسید.",
-  "Resource group": "گروه منابع",
+  "Resource group name": "نام گروه منابع",
   "Resource logs alone: the connection keeps reading metrics on its schedule.": "فقط لاگ‌های منابع: اتصال خواندن متریک‌ها را طبق زمان‌بندی‌اش ادامه می‌دهد.",
   "Run it as a project Owner, or as someone who may make service accounts, Pub/Sub topics and log sinks in these projects.": "آن را با نقش Owner پروژه اجرا کنید، یا به‌عنوان کسی که می‌تواند در این پروژه‌ها حساب سرویس، موضوع Pub/Sub و سینک لاگ بسازد.",
   "Run it as someone who may make resource groups and role assignments, and change diagnostic settings, in these subscriptions: an Owner, or a Contributor who is also a User Access Administrator.": "آن را به‌عنوان کسی اجرا کنید که در این اشتراک‌ها بتواند گروه منابع و انتساب نقش بسازد و تنظیم‌های عیب‌یابی را تغییر دهد: یک Owner، یا Contributorی که User Access Administrator هم باشد.",

@@ -45409,7 +45409,7 @@
   "Reading is on, since {{time}}: OneUptime reads the event hubs in subscription {{subscription}} every minute.": "La lecture est activée depuis {{time}} : OneUptime lit chaque minute les hubs d'événements de l'abonnement {{subscription}}.",
   "Receiving. The last events came {{time}}.": "Réception en cours. Les derniers événements sont arrivés {{time}}.",
   "Receiving. The last push came {{time}}.": "Réception en cours. Le dernier envoi est arrivé {{time}}.",
-  "Resource group": "Groupe de ressources",
+  "Resource group name": "Nom du groupe de ressources",
   "Resource logs alone: the connection keeps reading metrics on its schedule.": "Les journaux de ressources seuls : la connexion continue de lire les métriques selon son planning.",
   "Run it as a project Owner, or as someone who may make service accounts, Pub/Sub topics and log sinks in these projects.": "Exécutez-la en tant que propriétaire du projet, ou en tant que personne autorisée à créer des comptes de service, des sujets Pub/Sub et des récepteurs de journaux dans ces projets.",
   "Run it as someone who may make resource groups and role assignments, and change diagnostic settings, in these subscriptions: an Owner, or a Contributor who is also a User Access Administrator.": "Exécutez-la en tant que personne autorisée à créer des groupes de ressources et des attributions de rôles, et à modifier les paramètres de diagnostic, dans ces abonnements : un Owner, ou un Contributor qui est aussi User Access Administrator.",

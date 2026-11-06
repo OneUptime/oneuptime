@@ -448,7 +448,7 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
               </div>
               <div className="grid grid-cols-1 gap-3">
                 <CloudStreamCopyRow
-                  label={say(translationKey("Resource group"))}
+                  label={say(translationKey("Resource group name"))}
                   value={setup.names.resourceGroup}
                   dataTestId={cloudStreamPart("resource-group")}
                 />

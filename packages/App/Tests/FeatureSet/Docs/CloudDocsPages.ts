@@ -38,6 +38,9 @@ export const CLOUD_ACCOUNTS: string = "telemetry/cloud-accounts";
 export const CLOUD_COSTS: string = "telemetry/cloud-costs";
 export const CLOUD_RESOURCES: string = "telemetry/cloud-resources";
 export const CLOUD_STREAMING: string = "telemetry/cloud-streaming";
+export const CLOUD_STREAMING_AZURE: string = "telemetry/cloud-streaming-azure";
+export const CLOUD_STREAMING_GOOGLE_CLOUD: string =
+  "telemetry/cloud-streaming-google-cloud";
 
 export interface CloudDocsPage {
   page: string;
@@ -54,6 +57,11 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
   { page: CLOUD_TROUBLESHOOTING, navTitle: "Cloud Troubleshooting" },
   { page: CLOUD_ACCOUNTS, navTitle: "Connect a Cloud Account" },
   { page: CLOUD_STREAMING, navTitle: "Stream CloudWatch Metrics and Logs" },
+  {
+    page: CLOUD_STREAMING_AZURE,
+    navTitle: "Stream Azure Monitor Metrics and Logs",
+  },
+  { page: CLOUD_STREAMING_GOOGLE_CLOUD, navTitle: "Stream Google Cloud Logs" },
   { page: CLOUD_COSTS, navTitle: "Cloud Costs and Savings" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
@@ -214,6 +222,19 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
   ],
   // The streaming page names no console label: its bold words are the dialog's.
   [CLOUD_STREAMING]: [],
+  // The Azure roles the command needs, and the one it gives the connection's app.
+  [CLOUD_STREAMING_AZURE]: [
+    "Owner",
+    "Contributor",
+    "User Access Administrator",
+    "Azure Event Hubs Data Receiver",
+  ],
+  // The Google Cloud roles the command needs, and the two it grants.
+  [CLOUD_STREAMING_GOOGLE_CLOUD]: [
+    "Owner",
+    "Service Account OpenID Connect Identity Token Creator",
+    "Pub/Sub Publisher",
+  ],
 };
 
 /*
@@ -359,6 +380,25 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A connected AWS account.",
     "A project owner or admin.",
     "AWS CloudShell in that account",
+    "An HTTPS address, on a self-hosted OneUptime.",
+  ],
+  [CLOUD_STREAMING_AZURE]: [
+    "An event hub in each region.",
+    "OneUptime reads them.",
+    "The reads leave streamed metrics to the stream.",
+    "Nothing is lost while OneUptime cannot read.",
+    "A connected Azure subscription.",
+    "A project owner or admin.",
+    "Azure Cloud Shell",
+    "A way out to Azure, on a self-hosted OneUptime.",
+  ],
+  [CLOUD_STREAMING_GOOGLE_CLOUD]: [
+    "A log sink in each project.",
+    "Two checks on every push.",
+    "Nothing is lost while OneUptime cannot take it.",
+    "A connected Google Cloud project.",
+    "A project owner or admin.",
+    "Google Cloud Shell",
     "An HTTPS address, on a self-hosted OneUptime.",
   ],
 };

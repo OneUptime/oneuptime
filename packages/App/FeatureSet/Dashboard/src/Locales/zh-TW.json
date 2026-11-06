@@ -45409,7 +45409,7 @@
   "Reading is on, since {{time}}: OneUptime reads the event hubs in subscription {{subscription}} every minute.": "讀取已於 {{time}} 開啟：OneUptime 每分鐘讀取訂用帳戶 {{subscription}} 中的事件中樞。",
   "Receiving. The last events came {{time}}.": "正在接收。最近的事件於 {{time}} 抵達。",
   "Receiving. The last push came {{time}}.": "正在接收。最近一次推送於 {{time}} 抵達。",
-  "Resource group": "資源群組",
+  "Resource group name": "資源群組名稱",
   "Resource logs alone: the connection keeps reading metrics on its schedule.": "僅資源日誌：連線會繼續依排程讀取指標。",
   "Run it as a project Owner, or as someone who may make service accounts, Pub/Sub topics and log sinks in these projects.": "請以專案擁有者身分執行，或以可在這些專案中建立服務帳戶、Pub/Sub 主題和日誌接收器的人員身分執行。",
   "Run it as someone who may make resource groups and role assignments, and change diagnostic settings, in these subscriptions: an Owner, or a Contributor who is also a User Access Administrator.": "請以可在這些訂用帳戶中建立資源群組和角色指派、並變更診斷設定的人員身分執行：Owner，或同時是 User Access Administrator 的 Contributor。",

@@ -45409,7 +45409,7 @@
   "Reading is on, since {{time}}: OneUptime reads the event hubs in subscription {{subscription}} every minute.": "पढ़ना {{time}} से चालू है: OneUptime सब्सक्रिप्शन {{subscription}} के इवेंट हब हर मिनट पढ़ता है।",
   "Receiving. The last events came {{time}}.": "प्राप्त हो रहा है। आख़िरी इवेंट {{time}} आए।",
   "Receiving. The last push came {{time}}.": "प्राप्त हो रहा है। आख़िरी पुश {{time}} आया।",
-  "Resource group": "संसाधन समूह",
+  "Resource group name": "संसाधन समूह का नाम",
   "Resource logs alone: the connection keeps reading metrics on its schedule.": "केवल संसाधन लॉग: कनेक्शन अपने शेड्यूल पर मेट्रिक्स पढ़ता रहता है।",
   "Run it as a project Owner, or as someone who may make service accounts, Pub/Sub topics and log sinks in these projects.": "इसे प्रोजेक्ट Owner के रूप में चलाएँ, या ऐसे व्यक्ति के रूप में जो इन प्रोजेक्ट में सर्विस अकाउंट, Pub/Sub टॉपिक और लॉग सिंक बना सकता हो।",
   "Run it as someone who may make resource groups and role assignments, and change diagnostic settings, in these subscriptions: an Owner, or a Contributor who is also a User Access Administrator.": "इसे ऐसे व्यक्ति के रूप में चलाएँ जो इन सब्सक्रिप्शन में संसाधन समूह और भूमिका असाइनमेंट बना सकता हो, और डायग्नोस्टिक सेटिंग बदल सकता हो: Owner, या ऐसा Contributor जो User Access Administrator भी हो।",

@@ -9,6 +9,8 @@ Verbinden Sie ein AWS-Konto, ein Azure-Abonnement oder ein Google-Cloud-Projekt 
 - [Was OneUptime liest](#was-oneuptime-liest): Ressourcen, Metriken, Änderungen, Integritätsereignisse und Kosten, wie oft, und was das Lesen kostet.
 - [Cloud-Kosten und Einsparungen](/docs/telemetry/cloud-costs): Was jedes Konto kostet, wie Sie weniger ausgeben, und Budgets, die warnen.
 - [CloudWatch-Metriken und -Protokolle streamen](/docs/telemetry/cloud-streaming): Jede Metrik innerhalb von Minuten, und CloudWatch Logs, über Amazon Data Firehose.
+- [Azure-Monitor-Metriken und -Protokolle streamen](/docs/telemetry/cloud-streaming-azure): Schlüsselmetriken innerhalb von Minuten, und Ressourcenprotokolle, gelesen aus Event Hubs in Ihrem Abonnement.
+- [Google-Cloud-Protokolle streamen](/docs/telemetry/cloud-streaming-google-cloud): Jedes Protokoll, sobald es geschrieben wird, gepusht über Pub/Sub.
 - [Datensicherheit](#datensicherheit): Was die Verbindung Datensicherheit lesen lässt und was jede Stufe dem Befehl hinzufügt.
 - [KI Probleme beheben lassen](#ki-probleme-beheben-lassen): Ein weiterer Befehl, und OneUptime AI kann beheben, was es findet.
 :::

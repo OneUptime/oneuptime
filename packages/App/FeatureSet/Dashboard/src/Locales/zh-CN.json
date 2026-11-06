@@ -45409,7 +45409,7 @@
   "Reading is on, since {{time}}: OneUptime reads the event hubs in subscription {{subscription}} every minute.": "读取已于 {{time}} 开启：OneUptime 每分钟读取订阅 {{subscription}} 中的事件中心。",
   "Receiving. The last events came {{time}}.": "正在接收。最近的事件于 {{time}} 到达。",
   "Receiving. The last push came {{time}}.": "正在接收。最近一次推送于 {{time}} 到达。",
-  "Resource group": "资源组",
+  "Resource group name": "资源组名称",
   "Resource logs alone: the connection keeps reading metrics on its schedule.": "仅资源日志：连接继续按计划读取指标。",
   "Run it as a project Owner, or as someone who may make service accounts, Pub/Sub topics and log sinks in these projects.": "请以项目所有者身份运行，或以可在这些项目中创建服务账号、Pub/Sub 主题和日志接收器的人员身份运行。",
   "Run it as someone who may make resource groups and role assignments, and change diagnostic settings, in these subscriptions: an Owner, or a Contributor who is also a User Access Administrator.": "请以可在这些订阅中创建资源组和角色分配、并更改诊断设置的人员身份运行：Owner，或同时是 User Access Administrator 的 Contributor。",
