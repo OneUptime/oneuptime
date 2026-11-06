@@ -964,13 +964,23 @@ describe("both forms", () => {
       });
     }
 
-    // The scope each OAuth app takes, Microsoft Graph's first.
+    // The scope each OAuth app takes, Microsoft Graph's first, each written whole.
     expect(fieldFor(GLOBAL_FIELDS, "smtpScope").description).toBe(
       SMTP_OAUTH_SCOPE_DESCRIPTION,
     );
+    expect(
+      SMTP_OAUTH_SCOPE_DESCRIPTION.startsWith(
+        "Microsoft Graph: https://graph.microsoft.com/.default.",
+      ),
+    ).toBe(true);
     expect(SMTP_OAUTH_SCOPE_DESCRIPTION).toContain(
-      "For Microsoft Graph: https://graph.microsoft.com/.default.",
+      "Microsoft 365 SMTP: https://outlook.office365.com/.default.",
     );
+    expect(SMTP_OAUTH_SCOPE_DESCRIPTION).toContain(
+      "Google: https://mail.google.com/",
+    );
+    // App's ShortDescriptionsGuard holds field descriptions to 150 characters.
+    expect(SMTP_OAUTH_SCOPE_DESCRIPTION.length).toBeLessThanOrEqual(150);
   });
 
   test("fold their options into one section each, folded on create and edit", () => {

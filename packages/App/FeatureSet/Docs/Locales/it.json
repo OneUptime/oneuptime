@@ -407,6 +407,8 @@
     "Cloud Troubleshooting": "Risoluzione dei problemi cloud",
     "Connect a Cloud Account": "Collegare un account cloud",
     "Stream CloudWatch Metrics and Logs": "Trasmettere metriche e log di CloudWatch",
+    "Stream Azure Monitor Metrics and Logs": "Trasmettere metriche e log di Azure Monitor",
+    "Stream Google Cloud Logs": "Trasmettere i log di Google Cloud",
     "Cloud Costs and Savings": "Costi e risparmi del cloud",
     "Cloud Resources (IaaS & PaaS)": "Risorse cloud (IaaS e PaaS)",
     "AI / LLM Observability": "Osservabilità IA / LLM",

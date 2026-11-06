@@ -9,6 +9,8 @@ Connect an AWS account, an Azure subscription or a Google Cloud project from the
 - [What OneUptime reads](#what-oneuptime-reads): Resources, metrics, changes, health events and costs, how often, and what reading them costs.
 - [Cloud Costs and Savings](/docs/telemetry/cloud-costs): What each account costs, the ways to spend less, and budgets that alert.
 - [Stream CloudWatch Metrics and Logs](/docs/telemetry/cloud-streaming): Every metric within minutes, and CloudWatch Logs, through Amazon Data Firehose.
+- [Stream Azure Monitor Metrics and Logs](/docs/telemetry/cloud-streaming-azure): Key metrics within minutes, and resource logs, read from event hubs in your subscription.
+- [Stream Google Cloud Logs](/docs/telemetry/cloud-streaming-google-cloud): Every log as it is written, pushed through Pub/Sub.
 - [Data security](#data-security): What the connection lets Data Security read, and what each level adds to the command.
 - [Let AI fix problems](#let-ai-fix-problems): One more command, and OneUptime AI can fix what it finds.
 :::

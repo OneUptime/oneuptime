@@ -4136,6 +4136,15 @@ function streamLine(page: Page): Locator {
   return page.getByTestId("cloud-connection-stream");
 }
 
+// One part of the open streaming dialog, by its test id's last word.
+function streamPart(page: Page, name: string): Locator {
+  return streamDialog(page).getByTestId(`cloud-stream-${name}`);
+}
+
+// The rows after AWS's: the Azure subscription, then the Google Cloud project.
+const AZURE_ROW: number = 1;
+const GCP_ROW: number = 2;
+
 test.describe("streaming an AWS account's metrics and logs", () => {
   test("from the AWS row: one question, three steps, and the command waits for its key", async ({
     page,
@@ -4424,20 +4433,41 @@ test.describe("streaming an AWS account's metrics and logs", () => {
     await expect(streamLine(page)).toHaveCount(0);
   });
 
-  test("only an AWS account streams, and a OneUptime that is not on HTTPS says why it cannot", async ({
+  test("each cloud streams from its own row, and a OneUptime that is not on HTTPS says why Firehose and Pub/Sub cannot deliver", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, "state=connected");
 
-    // Contoso production, the Azure subscription, is the second row.
-    await openRowMenu(page, 1);
+    // Contoso production, the Azure subscription, streams its metrics and logs.
+    await openRowMenu(page, AZURE_ROW);
     await expect(page.getByRole("menuitem", { name: "Test" })).toBeVisible();
     await expect(
       page.getByRole("menuitem", { name: "Stream metrics and logs" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Stream logs" }),
+    ).toHaveCount(0);
+    // Nothing streams yet: nothing to stop.
+    await expect(
+      page.getByRole("menuitem", { name: "Stop streaming" }),
     ).toHaveCount(0);
     await page.keyboard.press("Escape");
+
+    // The Google Cloud project streams its logs: Cloud Monitoring pushes no metrics.
+    await openRowMenu(page, GCP_ROW);
+    await expect(
+      page.getByRole("menuitem", { name: "Stream metrics and logs" }),
+    ).toHaveCount(0);
+    await page.getByRole("menuitem", { name: "Stream logs" }).click();
+    await expect(streamDialog(page)).toHaveAttribute("data-provider", "gcp");
+    await expect(streamPart(page, "problem")).toContainText(
+      "Pub/Sub pushes to https:// addresses only, and this OneUptime is not served over HTTPS.",
+    );
+    await expect(streamCommand(page)).toHaveCount(0);
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
 
     await openRowMenu(page, 0);
     await page
@@ -4524,6 +4554,687 @@ test.describe("streaming an AWS account's metrics and logs", () => {
     );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "stream-dialog-fa");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Streaming an Azure subscription's metrics and resource logs - Azure
+ * Monitor's diagnostic settings send them to event hubs OneUptime reads
+ * every minute - and a Google Cloud project's logs, pushed through Pub/Sub,
+ * from their rows: each dialog's one question and three steps, the
+ * subscriptions or the projects under More fields, reading turned on or a
+ * key made, the first events waited for, why a read failed or a push was
+ * refused, and Stop streaming with the command that deletes what each
+ * command made. Their resources' pages gain the Logs their streams give.
+ * ---------------------------------------------------------------------------
+ */
+
+const AZURE_CONNECTION: string = "20000000-0000-4000-8000-000000000002";
+const GCP_CONNECTION: string = "20000000-0000-4000-8000-000000000003";
+// Contoso production's subscription, and another to stream beside it.
+const AZURE_SUBSCRIPTION: string = "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b";
+const AZURE_OTHER_SUBSCRIPTION: string = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
+const PUBSUB_ENDPOINT: string =
+  "https://oneuptime.example.com/telemetry/gcp-pubsub/v1/logs";
+// What Pub/Sub signs the Google Cloud connection's pushes as.
+const PUSH_SERVICE_ACCOUNT: string =
+  "oneuptime-push-20000000@acme-prod.iam.gserviceaccount.com";
+// The fixture's Azure and Google Cloud resources (Fixture.js OTHER_CLOUD_RESOURCES).
+const AZURE_WEB_APP: string = "40000000-0000-4000-8000-000000000101";
+const AZURE_VM: string = "40000000-0000-4000-8000-000000000102";
+const GCE_INSTANCE: string = "40000000-0000-4000-8000-000000000103";
+const GCE_GROUP: string = "40000000-0000-4000-8000-000000000104";
+
+interface StreamStart {
+  id: string;
+  hostSubscriptionId: string;
+}
+
+// Every time reading an Azure connection's event hubs was turned on, and where.
+async function streamStarts(page: Page): Promise<Array<StreamStart>> {
+  return (
+    (await fixture(page)) as unknown as { streamStarts: Array<StreamStart> }
+  ).streamStarts;
+}
+
+async function openRowStreaming(
+  page: Page,
+  data: {
+    query: string;
+    row: number;
+    action: string;
+    locale?: Record<string, string> | undefined;
+  },
+): Promise<void> {
+  await open(page, data.query);
+  await openRowMenu(page, data.row);
+  await page
+    .getByRole("menuitem", { name: wordIn(data.locale || {}, data.action) })
+    .click();
+  await expect(streamDialog(page)).toBeVisible();
+}
+
+async function deliverFrom(page: Page, provider: string): Promise<void> {
+  await page.evaluate((cloud: string) => {
+    (
+      window as unknown as {
+        __cloudConnectFixture: { deliver: (provider: string) => void };
+      }
+    ).__cloudConnectFixture.deliver(cloud);
+  }, provider);
+}
+
+test.describe("streaming an Azure subscription and a Google Cloud project", () => {
+  test("the list: each cloud's row says how its stream is doing, in its own cloud's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(
+      page,
+      "state=connected&https=1&stream=receiving&azurestream=failing&gcpstream=waiting",
+    );
+
+    // AWS's, Azure's and Google Cloud's rows, in that order.
+    const lines: Locator = streamLine(page);
+    await expect(lines).toHaveCount(3);
+    await expect(lines.nth(0)).toHaveText("Streaming");
+    await expect(lines.nth(1)).toHaveText("Stream failing");
+    await expect(lines.nth(1)).toHaveAttribute(
+      "title",
+      /^The event hubs could not be read, /,
+    );
+    await expect(lines.nth(2)).toHaveText("Stream waiting");
+    await expect(lines.nth(2)).toHaveAttribute(
+      "title",
+      /^Waiting for the first push\. Pub\/Sub pushes a log within a minute/,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-clouds-list");
+  });
+
+  test("Azure: one question, three steps; a connection that has read no subscription asks for them under the question, and reading turns on where the command makes the event hubs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected",
+      row: AZURE_ROW,
+      action: "Stream metrics and logs",
+    });
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Stream metrics and logs" }),
+    ).toBeVisible();
+    await expect(streamDialog(page)).toHaveAttribute("data-provider", "azure");
+
+    // One question, three answers, metrics by default.
+    const question: Locator = streamDialog(page).getByRole("radiogroup", {
+      name: "What should it stream?",
+    });
+    await expect(question.getByRole("radio")).toHaveCount(3);
+    await expect(
+      question.getByRole("radio", { name: /^Metrics Every key metric/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    // Three numbered steps: reading, the command, the first events.
+    for (const [index, title] of [
+      [1, "Turn on reading"],
+      [2, "Run this in Azure Cloud Shell"],
+      [3, "Wait for the first events"],
+    ] as Array<[number, string]>) {
+      await expect(
+        streamDialog(page).getByTestId(`setup-guide-step-${index}`),
+      ).toContainText(title);
+    }
+
+    // Its last read reached no subscription: no command, nothing to read yet.
+    await expect(streamPart(page, "problem")).toHaveText(
+      "List at least one subscription to stream from.",
+    );
+    await expect(streamCommand(page)).toHaveCount(0);
+    await expect(streamPart(page, "start-reading")).toBeDisabled();
+
+    // So the dialog asks for them under its question, not under More fields.
+    const asked: Locator = streamPart(page, "subscriptions-asked");
+    await expect(asked).toBeVisible();
+    await expect(asked).toContainText(
+      "Subscription IDs, separated by commas: this connection has read none yet.",
+    );
+    await expect(streamPart(page, "more-fields")).not.toContainText(
+      "Subscriptions",
+    );
+    await asked
+      .getByLabel("Subscriptions")
+      .fill(`${AZURE_SUBSCRIPTION}, ${AZURE_OTHER_SUBSCRIPTION}`);
+
+    // Turn on reading starts where its step's words start.
+    const [words, button]: Array<FrameBox> = await boxesInOneFrame([
+      streamPart(page, "start").locator("p").first(),
+      streamPart(page, "start-reading"),
+    ]);
+    expect(Math.abs(button!.x - words!.x)).toBeLessThanOrEqual(1);
+
+    await streamPart(page, "more-fields")
+      .getByRole("button", { name: "More fields" })
+      .click();
+
+    // The connection's own app; the first subscription holds the event hubs.
+    await expect(streamPart(page, "problem")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      "local APP='00001111-aaaa-2222-bbbb-3333cccc4444'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      `local HOST='${AZURE_SUBSCRIPTION}'`,
+    );
+    await expect(streamCommand(page)).toContainText(
+      `for SUB in '${AZURE_SUBSCRIPTION}' '${AZURE_OTHER_SUBSCRIPTION}'; do`,
+    );
+    await expect(streamPart(page, "open-shell")).toHaveAttribute(
+      "href",
+      "https://shell.azure.com",
+    );
+    await expect(streamPart(page, "resource-group")).toContainText(
+      "oneuptime-stream-20000000",
+    );
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "no-key",
+    );
+    // Nothing was asked of the server yet.
+    expect(await streamStarts(page)).toEqual([]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-azure-dialog");
+
+    await streamPart(page, "start-reading").click();
+
+    await expect(streamPart(page, "reading")).toContainText(
+      `OneUptime reads the event hubs in subscription ${AZURE_SUBSCRIPTION} every minute.`,
+    );
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "waiting",
+    );
+    expect(await streamStarts(page)).toEqual([
+      { id: AZURE_CONNECTION, hostSubscriptionId: AZURE_SUBSCRIPTION },
+    ]);
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await streamPart(page, "reading").scrollIntoViewIfNeeded();
+    await shoot(page, "stream-azure-reading");
+
+    // Closed: the row says the stream waits for its first events.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await expect(streamLine(page)).toHaveText("Stream waiting");
+    await expect(streamLine(page)).toHaveAttribute("data-state", "waiting");
+  });
+
+  test("Azure: opened while reading is on, it starts where the event hubs are read; the first events say what came from which region", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it says: a desktop's.");
+
+    await openRowStreaming(page, {
+      query: "state=connected&azurestream=reading",
+      row: AZURE_ROW,
+      action: "Stream metrics and logs",
+    });
+
+    await expect(streamPart(page, "reading")).toContainText(AZURE_SUBSCRIPTION);
+    await expect(streamPart(page, "start-reading")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      `local HOST='${AZURE_SUBSCRIPTION}'`,
+    );
+
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "waiting");
+    await expect(live).toContainText("Waiting for the first events.");
+
+    // Azure Monitor sent them: the next read of the event hubs finds them.
+    await deliverFrom(page, "azure");
+
+    // The dialog asks every five seconds: nothing to press.
+    await expect(live).toHaveAttribute("data-state", "receiving", {
+      timeout: 12000,
+    });
+    await expect(live).toContainText("Receiving. The last events came");
+    const sources: Locator = streamPart(page, "sources");
+    await expect(sources).toContainText(
+      "Metrics of 3 resource types from westeurope",
+    );
+    await expect(sources).toContainText(
+      "Logs of 2 categories from northeurope",
+    );
+    await expect(
+      dialog(page).getByTestId("modal-footer-close-button"),
+    ).toHaveText("Done");
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-azure-receiving");
+
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(streamLine(page)).toHaveText("Streaming");
+  });
+
+  test("Azure: event hubs its app may not read: the row says the stream fails, and the dialog says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&azurestream=failing");
+
+    await expect(streamLine(page)).toHaveText("Stream failing");
+    await expect(streamLine(page)).toHaveAttribute(
+      "title",
+      /The connection's app may not read the event hubs\./,
+    );
+
+    await openRowMenu(page, AZURE_ROW);
+    await page
+      .getByRole("menuitem", { name: "Stream metrics and logs" })
+      .click();
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "refused");
+    await expect(live).toContainText("The event hubs could not be read");
+    await expect(live).toContainText(
+      "it gives the app the Azure Event Hubs Data Receiver role on its resource group",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-azure-failing");
+  });
+
+  test("Azure: Stop streaming asks first, and hands over the command that deletes the diagnostic settings, then the event hubs' group", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&azurestream=receiving");
+
+    await expect(streamLine(page)).toHaveText("Streaming");
+
+    await openRowMenu(page, AZURE_ROW);
+    await page.getByRole("menuitem", { name: "Stop streaming" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "OneUptime stops reading the event hubs of Contoso production at once",
+    );
+    const command: Locator = dialog(page).getByTestId(
+      "cloud-connection-stop-streaming",
+    );
+    await expect(command).toContainText(
+      "The event hubs and the diagnostic settings stay in Azure, and Azure bills them, until they are deleted.",
+    );
+    // Where its event hubs are read: the only subscription it knows.
+    await expect(command).toContainText(
+      `for SUB in '${AZURE_SUBSCRIPTION}'; do`,
+    );
+    await expect(command).toContainText(
+      'az monitor diagnostic-settings delete --name OneUptime-20000000 --resource "$ID"',
+    );
+    await expect(command).toContainText(
+      'az group delete --subscription "$SUB" --name oneuptime-stream-20000000 --yes --no-wait',
+    );
+    // Twenty lines, drawn 240px tall at most: the question and its buttons stay in view.
+    const [codeBox]: Array<FrameBox> = await boxesInOneFrame([
+      command.locator("pre").locator(".."),
+    ]);
+    expect(codeBox!.height).toBeLessThanOrEqual(241);
+    await expect(submit(page)).toBeInViewport();
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-azure-stop");
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+    expect((await streamState(page)).streamStops).toEqual([AZURE_CONNECTION]);
+    // Read no more: the row says nothing of a stream.
+    await expect(streamLine(page)).toHaveCount(0);
+  });
+
+  test("Google Cloud: Stream logs, which logs, three steps; the key goes in the command, and More fields names the account its pushes are signed as", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&https=1",
+      row: GCP_ROW,
+      action: "Stream logs",
+    });
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Stream logs" }),
+    ).toBeVisible();
+    await expect(streamDialog(page)).toHaveAttribute("data-provider", "gcp");
+    // The connection is turned off: what Pub/Sub pushes is refused until it is on.
+    await expect(streamPart(page, "turned-off")).toContainText(
+      "This connection is turned off, so what Pub/Sub pushes is refused.",
+    );
+
+    // One question, three answers, warnings and errors by default.
+    const question: Locator = streamDialog(page).getByRole("radiogroup", {
+      name: "Which logs should it stream?",
+    });
+    await expect(question.getByRole("radio")).toHaveCount(3);
+    await expect(
+      question.getByRole("radio", { name: /^Warnings and errors/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    for (const [index, title] of [
+      [1, "Make a stream key"],
+      [2, "Run this in Google Cloud Shell"],
+      [3, "Wait for the first push"],
+    ] as Array<[number, string]>) {
+      await expect(
+        streamDialog(page).getByTestId(`setup-guide-step-${index}`),
+      ).toContainText(title);
+    }
+
+    // The topic in the project of the connection's service account; a sink in each project it reads.
+    await expect(streamCommand(page)).toContainText(
+      "local PROJECT='acme-prod'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      `local ENDPOINT='${PUBSUB_ENDPOINT}'`,
+    );
+    await expect(streamCommand(page)).toContainText(
+      "local FILTER='severity>=WARNING'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      "local STREAM_KEY='<YOUR_STREAM_KEY>'",
+    );
+    await expect(streamCommand(page)).toContainText(
+      "for SOURCE in 'acme-prod'; do",
+    );
+    await expect(streamPart(page, "needs-key")).toBeVisible();
+    await expect(streamPart(page, "open-shell")).toHaveAttribute(
+      "href",
+      "https://shell.cloud.google.com/?show=terminal",
+    );
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "no-key",
+    );
+    expect((await streamState(page)).streamKeys).toEqual([]);
+
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-gcp-dialog");
+
+    await streamPart(page, "make-key").click();
+
+    await expect(streamPart(page, "key-made")).toContainText(
+      "Key made. The command below holds it, and it is shown only here",
+    );
+    await expect(streamCommand(page)).toContainText(
+      `local STREAM_KEY='oucs_${GCP_CONNECTION}_`,
+    );
+    await expect(streamCommand(page)).not.toContainText("<YOUR_STREAM_KEY>");
+    await expect(streamPart(page, "needs-key")).toHaveCount(0);
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "waiting",
+    );
+    expect((await streamState(page)).streamKeys).toEqual([GCP_CONNECTION]);
+
+    // Another way: the endpoint, the account the pushes are signed as, the key as their audience.
+    await streamPart(page, "more-fields")
+      .getByRole("button", { name: "More fields" })
+      .click();
+    await expect(streamPart(page, "projects")).toHaveValue("acme-prod");
+    await expect(streamPart(page, "push-endpoint")).toContainText(
+      PUBSUB_ENDPOINT,
+    );
+    await expect(streamPart(page, "push-service-account")).toContainText(
+      PUSH_SERVICE_ACCOUNT,
+    );
+    await expect(streamPart(page, "audience")).toContainText(
+      `oucs_${GCP_CONNECTION}_`,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await streamPart(page, "elsewhere").scrollIntoViewIfNeeded();
+    await shoot(page, "stream-gcp-key-made");
+
+    // Closed: the row says the stream waits for its first push.
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(dialog(page)).toHaveCount(0);
+    await expect(streamLine(page)).toHaveText("Stream waiting");
+  });
+
+  test("Google Cloud: a filter of one's own goes in each sink, and none written stops the command; every log leaves out the Data Access audit logs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "What it does: a desktop's.");
+
+    await openRowStreaming(page, {
+      query: "state=connected&https=1",
+      row: GCP_ROW,
+      action: "Stream logs",
+    });
+
+    await streamDialog(page)
+      .getByRole("radio", { name: /^A filter of your own/ })
+      .click();
+    await expect(streamPart(page, "problem")).toHaveText(
+      "Write the filter, in the Cloud Logging query language.",
+    );
+    await expect(streamCommand(page)).toHaveCount(0);
+
+    await streamPart(page, "filter").fill(
+      'resource.type="cloud_run_revision" AND severity>=ERROR',
+    );
+    await expect(streamPart(page, "problem")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      `local FILTER='resource.type="cloud_run_revision" AND severity>=ERROR'`,
+    );
+    await shoot(page, "stream-gcp-filter");
+
+    await streamDialog(page)
+      .getByRole("radio", { name: /^Every log/ })
+      .click();
+    await expect(streamPart(page, "filter")).toHaveCount(0);
+    await expect(streamCommand(page)).toContainText(
+      `local FILTER='NOT log_id("cloudaudit.googleapis.com/data_access")'`,
+    );
+  });
+
+  test("Google Cloud: a push not signed for the connection: the row says it was refused, and the dialog says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected&https=1&gcpstream=refused");
+
+    await expect(streamLine(page)).toHaveText("Stream refused");
+    await expect(streamLine(page)).toHaveAttribute(
+      "title",
+      /A push was not signed by Google for this connection's push service account\./,
+    );
+
+    await openRowMenu(page, GCP_ROW);
+    await page.getByRole("menuitem", { name: "Stream logs" }).click();
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "refused");
+    await expect(live).toContainText("The last push was refused");
+    await expect(live).toContainText(
+      "it sets the push subscription to sign as that service account",
+    );
+    // A key made before cannot be shown again: a new one, to run it again.
+    await expect(streamPart(page, "make-key")).toHaveText("Make a new key");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-gcp-refused");
+  });
+
+  test("Google Cloud: the first push says which logs came from where; Stop streaming hands over the command that deletes the sinks, the subscription, the topic and the push service account", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&https=1&gcpstream=waiting",
+      row: GCP_ROW,
+      action: "Stream logs",
+    });
+
+    const live: Locator = streamPart(page, "live");
+    await expect(live).toHaveAttribute("data-state", "waiting");
+    await expect(live).toContainText("Waiting for the first push.");
+
+    await deliverFrom(page, "gcp");
+
+    await expect(live).toHaveAttribute("data-state", "receiving", {
+      timeout: 12000,
+    });
+    await expect(live).toContainText("Receiving. The last push came");
+    // A project's logs: the project is named beside the region.
+    await expect(streamPart(page, "sources")).toContainText(
+      "Entries of 3 logs from europe-west1 (acme-prod)",
+    );
+    await live.scrollIntoViewIfNeeded();
+    await shoot(page, "stream-gcp-receiving");
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+    await expect(streamLine(page)).toHaveText("Streaming");
+
+    await openRowMenu(page, GCP_ROW);
+    await page.getByRole("menuitem", { name: "Stop streaming" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "Every stream key of Google Cloud acme-prod stops working at once, and what Pub/Sub pushes is refused from now on.",
+    );
+    const command: Locator = dialog(page).getByTestId(
+      "cloud-connection-stop-streaming",
+    );
+    await expect(command).toContainText(
+      "The log sinks, the topic and its push subscription stay in Google Cloud, and Pub/Sub keeps pushing, until they are deleted.",
+    );
+    await expect(command).toContainText("for SOURCE in 'acme-prod'; do");
+    await expect(command).toContainText(
+      'gcloud logging sinks delete oneuptime-stream-20000000 --project "$SOURCE" --quiet',
+    );
+    await expect(command).toContainText(
+      "gcloud pubsub subscriptions delete oneuptime-stream-20000000-push --project 'acme-prod' --quiet",
+    );
+    await expect(command).toContainText(
+      "gcloud pubsub topics delete oneuptime-stream-20000000 --project 'acme-prod' --quiet",
+    );
+    await expect(command).toContainText(
+      `gcloud iam service-accounts delete '${PUSH_SERVICE_ACCOUNT}' --project 'acme-prod' --quiet`,
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-gcp-stop");
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+    expect((await streamState(page)).streamStops).toEqual([GCP_CONNECTION]);
+    await expect(streamLine(page)).toHaveCount(0);
+  });
+
+  test("a web app's page and a Compute Engine instance's have their streamed Logs; a virtual machine's and an instance group's have none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "The side menu beside the page: a desktop's.");
+
+    for (const [id, name, hasLogs] of [
+      [AZURE_WEB_APP, "checkout-web", true],
+      [GCE_INSTANCE, "orders-worker-1", true],
+      [AZURE_VM, "build-agent-1", false],
+      [GCE_GROUP, "orders-workers", false],
+    ] as Array<[string, string, boolean]>) {
+      await openAccounts(page, `${RESOURCE_PATH}/${id}?state=connected`);
+      // Drawn once the resource is read, and its menu with it.
+      await expect(cardTitled(page, "Details")).toBeVisible();
+      await expect(page.getByText(name).first()).toBeVisible();
+      await expect(
+        sideMenu(page).getByRole("link", { name: "Metrics", exact: true }),
+      ).toBeVisible();
+
+      const logs: Locator = sideMenu(page).getByRole("link", {
+        name: "Logs",
+        exact: true,
+      });
+
+      if (hasLogs) {
+        await expect(logs).toHaveAttribute(
+          "href",
+          `${RESOURCE_PATH}/${id}/logs`,
+        );
+      } else {
+        await expect(logs).toHaveCount(0);
+      }
+
+      if (id === AZURE_WEB_APP) {
+        await shoot(page, "stream-azure-web-app-menu");
+      }
+    }
+  });
+
+  test("dark and German: the Azure dialog reads in German, and fits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&azurestream=receiving&theme=dark&lang=de",
+      row: AZURE_ROW,
+      action: "Stream metrics and logs",
+      locale: GERMAN,
+    });
+
+    expect(wordIn(GERMAN, "Turn on reading")).not.toBe("Turn on reading");
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-1"),
+    ).toContainText(wordIn(GERMAN, "Turn on reading"));
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-3"),
+    ).toContainText(wordIn(GERMAN, "Wait for the first events"));
+    await expect(streamPart(page, "live")).toHaveAttribute(
+      "data-state",
+      "receiving",
+    );
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-azure-dialog-dark-de");
+  });
+
+  test("Persian: the Google Cloud dialog is laid out right to left, the command and the filter left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRowStreaming(page, {
+      query: "state=connected&https=1&lang=fa",
+      row: GCP_ROW,
+      action: "Stream logs",
+      locale: PERSIAN,
+    });
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    expect(wordIn(PERSIAN, "Wait for the first push")).not.toBe(
+      "Wait for the first push",
+    );
+    await expect(
+      streamDialog(page).getByTestId("setup-guide-step-3"),
+    ).toContainText(wordIn(PERSIAN, "Wait for the first push"));
+    // Code reads left to right on every page, and so does a Cloud Logging query.
+    await expect(streamCommand(page).locator("pre").first()).toHaveCSS(
+      "direction",
+      "ltr",
+    );
+    await streamDialog(page)
+      .getByRole("radio", {
+        name: new RegExp(`^${wordIn(PERSIAN, "A filter of your own")}`),
+      })
+      .click();
+    await expect(streamPart(page, "filter")).toHaveAttribute("dir", "ltr");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await shoot(page, "stream-gcp-dialog-fa");
   });
 });
 

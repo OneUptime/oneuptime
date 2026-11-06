@@ -159,6 +159,16 @@ export default class AzureArm {
     return EntraTokenClient.getEndpoints(this.options.cloud).managementBaseUrl;
   }
 
+  /*
+   * A token for one of the cloud's data planes - an Event Hubs namespace's
+   * own address, https://<namespace>.servicebus.windows.net - signed in as
+   * the app. The role the app holds there decides what it may do: Azure
+   * Event Hubs Data Receiver, read only.
+   */
+  public async getDataPlaneToken(resource: string): Promise<string> {
+    return await this.tokens.getAccessToken(resource);
+  }
+
   // The suffix of the cloud's storage hosts: blob.<suffix>, queue.<suffix>.
   public getStorageSuffix(): string {
     return AZURE_STORAGE_SUFFIXES[this.options.cloud];
