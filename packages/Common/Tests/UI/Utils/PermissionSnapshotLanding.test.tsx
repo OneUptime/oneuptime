@@ -7,6 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, render, screen } from "@testing-library/react";
+import type { Mock } from "jest-mock";
 import fs from "fs";
 import path from "path";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -193,7 +194,7 @@ describe("what is told", () => {
   });
 
   test("another project's snapshot is told too: a page that reads several projects reads it", () => {
-    const told: jest.Mock<() => void> = jest.fn<() => void>();
+    const told: Mock<() => void> = jest.fn<() => void>();
     const stop: () => void = PermissionUtil.subscribeToSnapshots(told);
 
     PermissionUtil.setProjectPermissions(ownerOf(OTHER_PROJECT_ID));
@@ -209,7 +210,7 @@ describe("what is told", () => {
   });
 
   test("nobody is told after they stop listening", () => {
-    const told: jest.Mock<() => void> = jest.fn<() => void>();
+    const told: Mock<() => void> = jest.fn<() => void>();
     const stop: () => void = PermissionUtil.subscribeToSnapshots(told);
 
     stop();
