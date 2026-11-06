@@ -27,8 +27,12 @@ import {
   RESOURCE_SECURITY_WINDOW_IN_DAYS,
   ResourceSecurityCaseJson,
   ResourceSecurityJson,
+  ResourceSecurityScopeJson,
+  SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectionKind,
 } from "../../../../Types/SecurityCase/SecurityConnection";
+import { NETWORK_DEVICE_ID_ATTRIBUTE } from "../../../../Types/NetworkDevice/NetworkDeviceTelemetryAttribute";
+import { SecurityEventScope } from "../../../../Types/SecurityEvent/SecurityEventScope";
 import {
   SecurityEntity,
   SecurityEntityType,
@@ -198,6 +202,41 @@ export enum ResourceAddressOwnership {
   Checked = "Checked",
 }
 
+// The values a record is searched for, and whether by its logs instead.
+export interface ResourceSecurityValues {
+  values: Array<string>;
+  isSearchedByLogs: boolean;
+}
+
+/*
+ * The scope a record's Security Events page reads under: the spellings of
+ * its identities in the events' observables, or - a record searched for by
+ * its logs - the log resource "Your logs" events name, or the attribute
+ * ingest writes on its own lines. Either is the record's.
+ */
+export function getResourceSecurityEventScope(data: {
+  id: ObjectID;
+  values: Array<string>;
+  isSearchedByLogs: boolean;
+  logAttribute?: { key: string; value: string } | undefined;
+}): SecurityEventScope {
+  const scope: SecurityEventScope = {
+    observables: data.isSearchedByLogs
+      ? []
+      : getObservableSearchValues(data.values),
+  };
+
+  if (data.logAttribute) {
+    scope.attributeKey = data.logAttribute.key;
+    scope.attributeValues = [data.logAttribute.value];
+  } else if (data.isSearchedByLogs) {
+    scope.attributeKey = SECURITY_LOG_RESOURCE_ID_ATTRIBUTE;
+    scope.attributeValues = [data.id.toString()];
+  }
+
+  return scope;
+}
+
 export interface ResourceSecurityIdentity {
   name: string;
   // Names and addresses, before the public addresses are held to being nobody else's.
@@ -211,7 +250,15 @@ export interface ResourceSecurityIdentity {
   isSearchedByLogs: boolean;
   // Searched for by its logs when it has no name or address of its own to search for.
   isSearchedByLogsWithoutValues?: boolean | undefined;
+  /*
+   * The attribute ingest writes on every line of the record's own logs, and
+   * carries onto every security event read from one: a network device's
+   * `networkDevice.id`. Its events are the record's whatever they name - a
+   * firewall's denied connections name the hosts on either side of it.
+   */
+  logAttribute?: { key: string; value: string } | undefined;
 }
+
 
 export default class ResourceSecurity {
   @CaptureSpan()
@@ -266,24 +313,8 @@ export default class ResourceSecurity {
       return result;
     }
 
-    const ownValues: Array<string> = identity.isSearchedByLogs
-      ? []
-      : await this.keepOwnAddresses({
-          projectId: data.projectId,
-          id: data.id,
-          values: getRecordSecurityValues({
-            names: identity.names,
-            addresses: identity.addresses,
-          }),
-          ownership:
-            identity.addressOwnership ||
-            ResourceAddressOwnership.HostsAndDevices,
-        });
-    const isSearchedByLogs: boolean =
-      identity.isSearchedByLogs ||
-      (Boolean(identity.isSearchedByLogsWithoutValues) &&
-        ownValues.length === 0);
-    const values: Array<string> = isSearchedByLogs ? [] : ownValues;
+    const { values, isSearchedByLogs }: ResourceSecurityValues =
+      await this.readValues({ ...data, identity });
 
     result.values = values;
     result.isSearchedByLogs = isSearchedByLogs;
@@ -293,6 +324,7 @@ export default class ResourceSecurity {
         projectId: data.projectId,
         values: getObservableSearchValues(values),
         ...(isSearchedByLogs ? { logResourceId: data.id } : {}),
+        ...(identity.logAttribute ? { attribute: identity.logAttribute } : {}),
         startTime,
         endTime: now,
         // Only the events of the sources the caller may read.
@@ -321,6 +353,81 @@ export default class ResourceSecurity {
     }
 
     return result;
+  }
+
+  /*
+   * What the record's own Security Events page reads under (issue #5769):
+   * the events naming its exact identities - the ones its Security card
+   * counts by - or read from its own logs, over any window the page picks.
+   * Null when it is not this project's, or the caller may not read it.
+   *
+   * Unlike the card, read whether or not the project has had an event this
+   * week: the page's window can reach further back than the card's.
+   */
+  @CaptureSpan()
+  public static async readScope(data: {
+    projectId: ObjectID;
+    kind: SecurityConnectionKind;
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ResourceSecurityScopeJson | null> {
+    const identity: ResourceSecurityIdentity | null =
+      await this.readIdentity(data);
+
+    if (!identity) {
+      return null;
+    }
+
+    const { values, isSearchedByLogs }: ResourceSecurityValues =
+      await this.readValues({ ...data, identity });
+
+    return {
+      kind: data.kind,
+      id: data.id.toString(),
+      name: identity.name,
+      values,
+      isSearchedByLogs,
+      scope: getResourceSecurityEventScope({
+        id: data.id,
+        values,
+        isSearchedByLogs,
+        logAttribute: identity.logAttribute,
+      }),
+    };
+  }
+
+  /*
+   * The values a record is searched for: its names, and each public address
+   * it holds alone - or none, when it is searched for by its logs.
+   */
+  private static async readValues(data: {
+    projectId: ObjectID;
+    id: ObjectID;
+    identity: ResourceSecurityIdentity;
+  }): Promise<ResourceSecurityValues> {
+    const identity: ResourceSecurityIdentity = data.identity;
+    const ownValues: Array<string> = identity.isSearchedByLogs
+      ? []
+      : await this.keepOwnAddresses({
+          projectId: data.projectId,
+          id: data.id,
+          values: getRecordSecurityValues({
+            names: identity.names,
+            addresses: identity.addresses,
+          }),
+          ownership:
+            identity.addressOwnership ||
+            ResourceAddressOwnership.HostsAndDevices,
+        });
+    const isSearchedByLogs: boolean =
+      identity.isSearchedByLogs ||
+      (Boolean(identity.isSearchedByLogsWithoutValues) &&
+        ownValues.length === 0);
+
+    return {
+      values: isSearchedByLogs ? [] : ownValues,
+      isSearchedByLogs,
+    };
   }
 
   /*
@@ -481,6 +588,11 @@ export default class ResourceSecurity {
             ? { type: SecurityEntityType.Host, value: device.name }
             : null,
           isSearchedByLogs: false,
+          // What the probe received from it: its syslog, and what was read from it.
+          logAttribute: {
+            key: NETWORK_DEVICE_ID_ATTRIBUTE,
+            value: data.id.toString(),
+          },
         };
       }
       case SecurityConnectionKind.CloudResource: {

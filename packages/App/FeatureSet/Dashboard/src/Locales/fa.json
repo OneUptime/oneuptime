@@ -45621,5 +45621,18 @@
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`، واردشده به پروژه، با Secret Manager API فعال (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "نقطه پایانی OTLP",
   "Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes, or once its AWS account streams CloudWatch Logs: in Cloud > Connect, choose Stream metrics and logs in the account's row.": "لاگ‌هایی که ویژگی‌های منبع cloud.platform، cloud.account.id و cloud.region این محیط را دارند، اینجا نمایش داده می‌شوند؛ وقتی حساب AWS آن CloudWatch Logs را جریان دهد، آن لاگ‌ها هم اینجا نمایش داده می‌شوند: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را انتخاب کنید.",
-  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "در این بازهٔ زمانی چیزی از گروه لاگ این منبع نرسیده است. بازهٔ طولانی‌تری انتخاب کنید، یا بررسی کنید که حساب آن این گروه لاگ را جریان دهد: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را باز کنید."
+  "Nothing arrived from this resource's log group in this time range. Choose a longer range, or check that its account streams this log group: in Cloud > Connect, open Stream metrics and logs in the account's row.": "در این بازهٔ زمانی چیزی از گروه لاگ این منبع نرسیده است. بازهٔ طولانی‌تری انتخاب کنید، یا بررسی کنید که حساب آن این گروه لاگ را جریان دهد: در ابر > اتصال، در ردیف حساب «جریان‌دادن متریک‌ها و لاگ‌ها» را باز کنید.",
+  "Events from any source that name one of these. A private address is left out: another network can use it too.": "Events from any source that name one of these. A private address is left out: another network can use it too.",
+  "Every security event read from the syslog this device sends the probe, whatever it names.": "Every security event read from the syslog this device sends the probe, whatever it names.",
+  "Its own logs": "Its own logs",
+  "Naming it": "Naming it",
+  "No security events for this device yet": "No security events for this device yet",
+  "Read in a device's syslog: {{formats}}.": "Read in a device's syslog: {{formats}}.",
+  "Send this device's syslog to a probe. Its {{logs}} page says how.": "Send this device's syslog to a probe. Its {{logs}} page says how.",
+  "The Events search cannot spell this as one search: it reads the device's own logs, or what names it.": "The Events search cannot spell this as one search: it reads the device's own logs, or what names it.",
+  "The security events about this device: read from its own logs, or naming it.": "The security events about this device: read from its own logs, or naming it.",
+  "The security events of this device could not be read.": "The security events of this device could not be read.",
+  "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.": "They appear here when OneUptime finds them in the syslog this device sends a probe - blocked connections and threats, VPN and administrator sign-ins - or when events from any other source name this device.",
+  "Turn on Your logs, on the Security Events {{connections}} page.": "Turn on Your logs, on the Security Events {{connections}} page.",
+  "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page.": "Your logs is on: every minute, OneUptime reads this project's new logs for security events. See the Security Events {{connections}} page."
 }

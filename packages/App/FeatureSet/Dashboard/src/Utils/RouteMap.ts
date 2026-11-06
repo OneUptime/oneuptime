@@ -177,6 +177,7 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.NETWORK_DEVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.NETWORK_DEVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.NETWORK_DEVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_DEVICE_ARCHIVED]: `archived`,
@@ -3770,6 +3771,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS]
     }`,
   ),
 

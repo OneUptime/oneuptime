@@ -36,8 +36,8 @@ export interface ComponentProps {
 
 /*
  * A device's own menu. Open: what most visits are for - is it OK
- * (Overview), its ports, its numbers, its traffic and logs, and what alerts
- * on it. Folded: the vendor tables some devices report and the SNMP walk
+ * (Overview), its ports, its numbers, its traffic and logs, the security
+ * events about it (issue #5769), and what alerts on it. Folded: the vendor tables some devices report and the SNMP walk
  * that finds what a device exposes (More), managing it from code
  * (Developer), and its owners, settings and delete (Manage). Activity is
  * the incidents and alerts linked to it (issue #5341), each with how many
@@ -174,6 +174,21 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Logs}
+        />
+        {/*
+         * The security events about the device, beside the logs they are
+         * read from (issue #5769): its own syslog's, and any other
+         * source's that name it.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Security Events",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ShieldCheck}
         />
         <SideMenuItem
           link={{

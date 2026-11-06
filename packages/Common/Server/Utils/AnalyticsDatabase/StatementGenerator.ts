@@ -6,6 +6,11 @@ import {
   getExceptionSpanScopeFingerprints,
   parseExceptionSpanScope,
 } from "../../../Types/Telemetry/ExceptionSpanScope";
+import {
+  SECURITY_EVENT_SCOPE_QUERY_KEY,
+  SecurityEventScope,
+  readSecurityEventScope,
+} from "../../../Types/SecurityEvent/SecurityEventScope";
 import GroupBy from "../../Types/AnalyticsDatabase/GroupBy";
 import Query from "../../Types/AnalyticsDatabase/Query";
 import Select from "../../Types/AnalyticsDatabase/Select";
@@ -552,6 +557,90 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
   }
 
+  /*
+   * The branches a security event scope ORs (Types/SecurityEvent/
+   * SecurityEventScope), each over a column this model has: the events
+   * naming any of the record's identities, then the events carrying its
+   * attribute. The attribute branch asks the map's key column first, as the
+   * Security card's count does, so its bloom index skips the granules no
+   * event of the record is in.
+   */
+  private toSecurityEventScopeBranches(data: {
+    scope: SecurityEventScope | null;
+    columnRef: (columnName: string) => string | QualifiedColumn;
+  }): Array<Statement> {
+    const scope: SecurityEventScope | null = data.scope;
+
+    if (!scope) {
+      return [];
+    }
+
+    const branches: Array<Statement> = [];
+    const observablesColumn: AnalyticsTableColumn | null =
+      this.model.getTableColumn("observables");
+
+    if (
+      scope.observables.length > 0 &&
+      observablesColumn &&
+      observablesColumn.type === TableColumnType.ArrayText
+    ) {
+      branches.push(
+        SQL`hasAny(${data.columnRef(observablesColumn.key)}, ${{
+          value: scope.observables,
+          type: TableColumnType.ArrayText,
+        }})`,
+      );
+    }
+
+    const attributeValues: Array<string> = scope.attributeValues || [];
+    const attributesColumn: AnalyticsTableColumn | null =
+      this.model.getTableColumn("attributes");
+
+    if (
+      scope.attributeKey &&
+      attributeValues.length > 0 &&
+      attributesColumn &&
+      attributesColumn.type === TableColumnType.MapStringString
+    ) {
+      const branch: Statement = SQL`(`;
+      const keysColumn: AnalyticsTableColumn | null =
+        attributesColumn.mapKeysColumn
+          ? this.model.getTableColumn(attributesColumn.mapKeysColumn)
+          : null;
+
+      if (keysColumn && keysColumn.type === TableColumnType.ArrayText) {
+        branch.append(
+          SQL`has(${data.columnRef(keysColumn.key)}, ${{
+            value: scope.attributeKey,
+            type: TableColumnType.Text,
+          }}) AND `,
+        );
+      }
+
+      branch.append(
+        attributeValues.length === 1
+          ? SQL`${data.columnRef(attributesColumn.key)}[${{
+              value: scope.attributeKey,
+              type: TableColumnType.Text,
+            }}] = ${{
+              value: attributeValues[0]!,
+              type: TableColumnType.Text,
+            }}`
+          : SQL`${data.columnRef(attributesColumn.key)}[${{
+              value: scope.attributeKey,
+              type: TableColumnType.Text,
+            }}] IN ${{
+              value: new Includes(attributeValues),
+              type: TableColumnType.Text,
+            }}`,
+      );
+      branch.append(SQL`)`);
+      branches.push(branch);
+    }
+
+    return branches;
+  }
+
   private appendMapKeyPresenceFilter(input: {
     whereStatement: Statement;
     mapColumn: AnalyticsTableColumn;
@@ -832,6 +921,49 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             }}`,
           );
         }
+
+        whereStatement.append(SQL`)`);
+        continue;
+      }
+
+      /*
+       * "securityEventScope" is a synthetic query key (not a column): the
+       * security events about one record, as its own Security Events page
+       * reads them (Types/SecurityEvent/SecurityEventScope):
+       *   (hasAny(observables, [...]) OR
+       *    (has(attributeKeys, 'k') AND attributes['k'] IN (...)))
+       * - the events naming one of its identities, or read from its own
+       * logs. Either branch alone when the scope has only one. A scope
+       * left with no branch - malformed, empty, or on a model without the
+       * columns - is AND 0: a record's page narrows, and must never widen
+       * to every event. Every value is parameter-bound.
+       */
+      if (key === SECURITY_EVENT_SCOPE_QUERY_KEY) {
+        if (first) {
+          first = false;
+        } else {
+          whereStatement.append(SQL` `);
+        }
+
+        const branches: Array<Statement> = this.toSecurityEventScopeBranches({
+          scope: readSecurityEventScope(value),
+          columnRef,
+        });
+
+        if (branches.length === 0) {
+          whereStatement.append(SQL`AND 0`);
+          continue;
+        }
+
+        whereStatement.append(SQL`AND (`);
+
+        branches.forEach((branch: Statement, index: number) => {
+          if (index > 0) {
+            whereStatement.append(SQL` OR `);
+          }
+
+          whereStatement.append(branch);
+        });
 
         whereStatement.append(SQL`)`);
         continue;
