@@ -45655,7 +45655,7 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` schakelt in Node.js de resourcedetector {{detector}} in. Andere talen schakelen hem in met: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, aangemeld bij het project, met de Secret Manager API ingeschakeld (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "OTLP-endpoint",
-  "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to. On AWS that needs Costs per resource on.": "Een kostenpost houdt de tags die hij had toen hij werd gelezen: de labels van een factuurexport van Google Cloud, anders de tags van de resource waaraan hij wordt toegerekend. Bij AWS moet Kosten per resource daarvoor aan staan.",
+  "Each cost keeps the tags it had when it was read.": "Elke kostenpost houdt de tags die hij had toen hij werd gelezen.",
   "An app's cost is what its platform bills it by name. Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.": "De kosten van een app zijn wat het platform de app op naam in rekening brengt. Amazon ECS rekent zijn taken af en App Service zijn plannen, dus de kosten van hun apps blijven bij hun omgeving.",
   "Commitments": "Toezeggingen",
   "Committed use discounts": "Kortingen voor toegezegd gebruik",
@@ -45688,7 +45688,7 @@
   "Utilization not reported": "Benutting niet gemeld",
   "{{percent}} utilized": "{{percent}} benut",
   "{{what}} cost {{amount}}": "{{what}} kostte {{amount}}",
-  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.": "Azure en Google Cloud noemen bij elke kostenpost de resource. AWS doet dat zodra Kosten per resource is ingeschakeld in de instellingen van de koppeling, inclusief de 14 dagen ervoor.",
+  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings.": "Azure en Google Cloud noemen bij elke kostenpost de resource. AWS doet dat zodra Kosten per resource is ingeschakeld in de instellingen van de koppeling.",
   "Covers all eligible spend": "Dekt alle in aanmerking komende uitgaven",
   "Reads what each resource costs from Cost Explorer, once resource-level data is turned on in the account's Cost Management preferences. A few more Cost Explorer requests a day, at $0.01 each.": "Leest uit Cost Explorer wat elke resource kost, zodra gegevens op resourceniveau zijn ingeschakeld in de Cost Management-voorkeuren van het account. Een paar extra Cost Explorer-verzoeken per dag, à $0,01 per stuk.",
   "Tag key": "Tagsleutel",
@@ -45730,5 +45730,7 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "De taal van hun meldingen.",
-  "{{language}} (default)": "{{language}} (standaard)"
+  "{{language}} (default)": "{{language}} (standaard)",
+  "AWS costs carry tags once Costs per resource is turned on in their connection's settings.": "AWS-kosten hebben tags zodra Kosten per resource is ingeschakeld in de instellingen van hun koppeling.",
+  "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.": "Voer de instelopdracht van de koppeling opnieuw uit: daarmee mag de koppeling Savings Plans en Reserved Instances lezen."
 }

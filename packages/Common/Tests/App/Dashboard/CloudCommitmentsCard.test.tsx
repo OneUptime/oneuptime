@@ -32,11 +32,21 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import CloudCommitmentsCard, {
   COMMITMENTS_SHOWN,
   COMMITMENTS_TITLE,
+  COMMITMENT_KIND_CLASS_NAME,
+  COMMITMENT_KIND_LABEL_CLASS_NAME,
   getCloudCommitmentCoverageWords,
   getCloudCommitmentKindsToShow,
   getCloudCommitmentRows,
   getCloudCommitmentUseWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCommitmentsCard";
+import {
+  COMMITMENT_SETUP_STEPS,
+  COST_SETUP_DOCS_PATHS,
+  COST_SETUP_STEPS,
+  getCloudCommitmentSetupStep,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostWords";
+import { cloudConnectionDocsUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectApi";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudAccountRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/UseCloudAccounts";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -49,6 +59,9 @@ import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.js
  * account whose commitments could not be read with why; nothing at all
  * when no account has anything to say.
  */
+
+// A Tailwind variant keyed to the window's width (sm:, md:, lg:...).
+const SCREEN_VARIANT: RegExp = /(^|\s)(sm|md|lg|xl|2xl):/;
 
 // A translator over one of the Dashboard's locale files, as the page reads it.
 function translatorOf(
@@ -315,6 +328,7 @@ describe("the words of a line", () => {
       headline: "97% utilized",
       detail: "$210.00 unused",
       hasUnused: true,
+      isReported: true,
     });
     expect(
       getCloudCommitmentUseWords({
@@ -322,7 +336,12 @@ describe("the words of a line", () => {
         currency: "USD",
         translator: english,
       }),
-    ).toEqual({ headline: "Fully utilized", detail: "", hasUnused: false });
+    ).toEqual({
+      headline: "Fully utilized",
+      detail: "",
+      hasUnused: false,
+      isReported: true,
+    });
     expect(
       getCloudCommitmentUseWords({
         figures: DATA.savingsSummary!.commitments!.kinds[0]!,
@@ -333,6 +352,7 @@ describe("the words of a line", () => {
       headline: "Utilization not reported",
       detail: "",
       hasUnused: false,
+      isReported: false,
     });
     // No commitment: nothing to say of its use.
     expect(
@@ -363,6 +383,82 @@ describe("the words of a line", () => {
         translator: german,
       })!.headline,
     ).not.toContain("utilized");
+  });
+});
+
+describe("what to do when an account's are not read", () => {
+  test("a refusal on every cloud, and Google Cloud with no billing export named; nothing where no step fits", () => {
+    for (const provider of [
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]) {
+      expect(
+        getCloudCommitmentSetupStep({
+          provider,
+          state: CloudCostState.NotAllowed,
+        }),
+      ).toBe(COMMITMENT_SETUP_STEPS[provider]);
+      // A failed read is tried again tomorrow; a read one needs nothing.
+      expect(
+        getCloudCommitmentSetupStep({ provider, state: CloudCostState.Failed }),
+      ).toBeUndefined();
+      expect(
+        getCloudCommitmentSetupStep({
+          provider,
+          state: CloudCostState.Reading,
+        }),
+      ).toBeUndefined();
+    }
+
+    // Google Cloud reads them from the billing export, as its costs.
+    expect(
+      getCloudCommitmentSetupStep({
+        provider: CloudProvider.GCP,
+        state: CloudCostState.NotSetUp,
+      }),
+    ).toBe(COST_SETUP_STEPS[CloudProvider.GCP]);
+    // A GovCloud account, an Azure offer Cost Management does not answer for.
+    expect(
+      getCloudCommitmentSetupStep({
+        provider: CloudProvider.AWS,
+        state: CloudCostState.NotSetUp,
+      }),
+    ).toBeUndefined();
+    expect(
+      getCloudCommitmentSetupStep({
+        provider: CloudProvider.Azure,
+        state: CloudCostState.NotSetUp,
+      }),
+    ).toBeUndefined();
+    // A cloud the card does not know: no step.
+    expect(
+      getCloudCommitmentSetupStep({
+        provider: "oracle",
+        state: CloudCostState.NotAllowed,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("Azure's and Google Cloud's steps are their costs' own; AWS's names what it reads", () => {
+    expect(COMMITMENT_SETUP_STEPS[CloudProvider.Azure]).toBe(
+      COST_SETUP_STEPS[CloudProvider.Azure],
+    );
+    expect(COMMITMENT_SETUP_STEPS[CloudProvider.GCP]).toBe(
+      COST_SETUP_STEPS[CloudProvider.GCP],
+    );
+    expect(COMMITMENT_SETUP_STEPS[CloudProvider.AWS]).toContain(
+      "Savings Plans and Reserved Instances",
+    );
+  });
+
+  test("in the reader's language", () => {
+    expect(
+      german.hasTranslation(COMMITMENT_SETUP_STEPS[CloudProvider.AWS]),
+    ).toBe(true);
+    expect(
+      german.translateText(COMMITMENT_SETUP_STEPS[CloudProvider.AWS]),
+    ).toContain("Einrichtungsbefehl");
   });
 });
 
@@ -453,6 +549,95 @@ describe("the card", () => {
       within(refused).getByTestId("cloud-commitment-message"),
     ).toHaveAttribute("dir", "auto");
     expect(within(refused).queryByTestId("cloud-commitment-kind")).toBeNull();
+
+    /*
+     * What to do, in the reader's words, after the cloud's: the step and
+     * its cloud's section of the guide, as Accounts left out says it - so
+     * a phone that cuts the cloud's words at three lines still says it.
+     */
+    const step: HTMLElement = within(refused).getByTestId(
+      "cloud-commitment-step",
+    );
+    expect(step).toHaveTextContent(
+      "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.",
+    );
+    const guide: HTMLElement = within(step).getByRole("link", {
+      name: "Read the guide",
+    });
+    expect(guide).toHaveAttribute(
+      "href",
+      cloudConnectionDocsUrl(
+        COST_SETUP_DOCS_PATHS[CloudProvider.AWS],
+      ).toString(),
+    );
+    expect(guide).toHaveAttribute("target", "_blank");
+    expect(guide).toHaveAttribute("rel", "noopener noreferrer");
+    // After the cloud's words, never before them.
+    expect(
+      within(refused)
+        .getByTestId("cloud-commitment-message")
+        .compareDocumentPosition(step) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Accounts that were read have no step.
+    for (const row of rows.slice(0, 3)) {
+      expect(within(row).queryByTestId("cloud-commitment-step")).toBeNull();
+    }
+  });
+
+  test("Google Cloud's utilization, which its export does not say, is drawn quieter than a figure", async () => {
+    await openCard();
+
+    const notReported: HTMLElement = within(
+      screen.getAllByTestId("cloud-commitment-account")[1]!,
+    ).getByTestId("cloud-commitment-use");
+    expect(notReported).toHaveTextContent("Utilization not reported");
+    expect(notReported).toHaveAttribute("data-reported", "false");
+    expect(notReported).toHaveClass("text-gray-500");
+    expect(notReported).not.toHaveClass("font-medium");
+
+    const reported: HTMLElement = within(
+      screen.getAllByTestId("cloud-commitment-account")[0]!,
+    ).getAllByTestId("cloud-commitment-use")[0]!;
+    expect(reported).toHaveAttribute("data-reported", "true");
+    expect(reported).toHaveClass("font-medium", "text-gray-900");
+  });
+
+  test("a kind's line is laid out by its account's column, not the window: three side by side, its name over two, or one under another", async () => {
+    await openCard();
+
+    const shop: HTMLElement = screen.getAllByTestId(
+      "cloud-commitment-account",
+    )[0]!;
+    const kind: HTMLElement = within(shop).getAllByTestId(
+      "cloud-commitment-kind",
+    )[0]!;
+
+    // The account's column is the container the line is measured by.
+    expect(kind.parentElement!.parentElement).toHaveClass(
+      "[container-type:inline-size]",
+    );
+    expect(kind.className).toBe(COMMITMENT_KIND_CLASS_NAME);
+    expect((kind.firstElementChild as HTMLElement).className).toBe(
+      COMMITMENT_KIND_LABEL_CLASS_NAME,
+    );
+    expect(COMMITMENT_KIND_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "grid-cols-1",
+        "[@container(min-width:22rem)]:grid-cols-2",
+        "[@container(min-width:34rem)]:grid-cols-3",
+      ]),
+    );
+    // Its name over the two figures, then beside them.
+    expect(COMMITMENT_KIND_LABEL_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "[@container(min-width:22rem)]:col-span-2",
+        "[@container(min-width:34rem)]:col-span-1",
+      ]),
+    );
+    // Never the window's width: a record page's side menu halves the card.
+    expect(COMMITMENT_KIND_CLASS_NAME).not.toMatch(SCREEN_VARIANT);
+    expect(COMMITMENT_KIND_LABEL_CLASS_NAME).not.toMatch(SCREEN_VARIANT);
   });
 
   test("an organization's management account says its figures are every account's", async () => {
@@ -479,13 +664,61 @@ describe("the card", () => {
     );
   });
 
-  test("on an account's own Costs: its name, not a link to where it already is", async () => {
+  test("on an account's own Costs: the page is the account's, so its kinds come first, its name nowhere", async () => {
     await openCard({ accounts: [SHOP], isOneAccount: true });
 
+    const row: HTMLElement = screen.getByTestId("cloud-commitment-account");
     expect(screen.queryByTestId("cloud-commitment-account-name")).toBeNull();
-    expect(screen.getByTestId("cloud-commitment-account")).toHaveTextContent(
-      "shop-prod",
+    expect(row).not.toHaveTextContent("shop-prod");
+    // No logo either: the row is the kinds alone.
+    expect(row.firstElementChild).toHaveClass("[container-type:inline-size]");
+    expect(within(row).getAllByTestId("cloud-commitment-kind")).toHaveLength(2);
+    expect(
+      (row.firstElementChild as HTMLElement).firstElementChild,
+    ).toHaveAttribute("data-testid", "cloud-commitment-kinds");
+  });
+
+  test("on an account's own Costs, not read: its state, its cloud's words and what to do - still no name", async () => {
+    await openCard({ accounts: [REFUSED], isOneAccount: true });
+
+    const row: HTMLElement = screen.getByTestId("cloud-commitment-account");
+    expect(row).not.toHaveTextContent("staging");
+    expect(row).toHaveTextContent("Needs permission");
+    expect(
+      within(row).getByTestId("cloud-commitment-message"),
+    ).toHaveTextContent("ce:GetSavingsPlansCoverage");
+    expect(within(row).getByTestId("cloud-commitment-step")).toHaveTextContent(
+      COMMITMENT_SETUP_STEPS[CloudProvider.AWS],
     );
+  });
+
+  test("an organization's figures on its management account's own page: the note first, no name", async () => {
+    const organization: CloudAccountRow = account({
+      name: "management",
+      summary: commitments({
+        isOrganization: true,
+        kinds: [
+          figures({
+            kind: CloudCommitmentKind.SavingsPlans,
+            coveredSpend: 10,
+            onDemandSpend: 10,
+            commitmentSpend: 10,
+            unusedSpend: 0,
+          }),
+        ],
+      }),
+    });
+
+    await openCard({ accounts: [organization], isOneAccount: true });
+
+    const row: HTMLElement = screen.getByTestId("cloud-commitment-account");
+    expect(row).not.toHaveTextContent("management");
+    const note: HTMLElement = within(row).getByTestId(
+      "cloud-commitment-organization",
+    );
+    expect(note).toHaveTextContent("Every account of the organization");
+    // Nothing above it to keep apart from.
+    expect(note).not.toHaveClass("mt-0.5");
   });
 
   test(`the first ${COMMITMENTS_SHOWN}, then the rest on asking`, async () => {

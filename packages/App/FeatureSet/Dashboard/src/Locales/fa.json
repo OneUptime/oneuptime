@@ -45655,7 +45655,7 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` تشخیص‌دهندهٔ منبع {{detector}} را در Node.js روشن می‌کند. زبان‌های دیگر آن را با این‌ها روشن می‌کنند: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`، واردشده به پروژه، با Secret Manager API فعال (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "نقطه پایانی OTLP",
-  "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to. On AWS that needs Costs per resource on.": "هر هزینه تگ‌هایی را که هنگام خوانده‌شدن داشت نگه می‌دارد: برچسب‌های خروجی صورت‌حساب Google Cloud، وگرنه تگ‌های منبعی که هزینه به آن تعلق می‌گیرد. در AWS برای این کار باید «هزینه به تفکیک منبع» روشن باشد.",
+  "Each cost keeps the tags it had when it was read.": "هر هزینه تگ‌هایی را که هنگام خوانده‌شدن داشت نگه می‌دارد.",
   "An app's cost is what its platform bills it by name. Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.": "هزینهٔ یک برنامه همان چیزی است که بسترش به نام آن صورت‌حساب می‌کند. Amazon ECS وظایفش و App Service طرح‌هایش را صورت‌حساب می‌کند، پس هزینهٔ برنامه‌های آن‌ها به محیطشان تعلق می‌ماند.",
   "Commitments": "تعهدها",
   "Committed use discounts": "تخفیف‌های استفادهٔ تعهدشده",
@@ -45688,7 +45688,7 @@
   "Utilization not reported": "میزان استفاده گزارش نشده",
   "{{percent}} utilized": "{{percent}} استفاده‌شده",
   "{{what}} cost {{amount}}": "هزینهٔ {{what}}: {{amount}}",
-  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.": "Azure و Google Cloud منبع هر هزینه را مشخص می‌کنند. AWS هم وقتی «هزینه به تفکیک منبع» در تنظیمات اتصالش روشن شود این کار را می‌کند، از جمله برای ۱۴ روز پیش از آن.",
+  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings.": "Azure و Google Cloud منبع هر هزینه را مشخص می‌کنند. AWS هم وقتی «هزینه به تفکیک منبع» در تنظیمات اتصالش روشن شود این کار را می‌کند.",
   "Covers all eligible spend": "همهٔ هزینه‌های واجد شرایط را پوشش می‌دهد",
   "Reads what each resource costs from Cost Explorer, once resource-level data is turned on in the account's Cost Management preferences. A few more Cost Explorer requests a day, at $0.01 each.": "وقتی داده‌های سطح منبع در تنظیمات Cost Management حساب روشن باشد، هزینهٔ هر منبع را از Cost Explorer می‌خواند. روزانه چند درخواست بیشتر به Cost Explorer، هر کدام ۰٫۰۱ دلار.",
   "Tag key": "کلید تگ",
@@ -45730,5 +45730,7 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "زبانی که اعلان‌هایشان به آن نوشته می‌شود.",
-  "{{language}} (default)": "{{language}} (پیش‌فرض)"
+  "{{language}} (default)": "{{language}} (پیش‌فرض)",
+  "AWS costs carry tags once Costs per resource is turned on in their connection's settings.": "هزینه‌های AWS وقتی «هزینه به تفکیک منبع» در تنظیمات اتصالشان روشن شود تگ می‌گیرند.",
+  "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.": "دستور راه‌اندازی اتصال را دوباره اجرا کنید: به اتصال اجازه می‌دهد Savings Plans و Reserved Instances را بخواند."
 }

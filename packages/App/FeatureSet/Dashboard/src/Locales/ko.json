@@ -45655,7 +45655,7 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS`는 Node.js에서 {{detector}} 리소스 감지기를 켭니다. 다른 언어에서는 다음으로 켭니다: {{others}}.",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "프로젝트에 로그인하고 Secret Manager API를 사용 설정한 `gcloud`(`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "OTLP 엔드포인트",
-  "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to. On AWS that needs Costs per resource on.": "비용에는 읽은 시점의 태그가 남습니다. Google Cloud 결제 내보내기의 라벨이며, 없으면 청구된 리소스의 태그입니다. AWS에서는 리소스별 비용을 켜야 합니다.",
+  "Each cost keeps the tags it had when it was read.": "각 비용에는 읽은 시점의 태그가 남습니다.",
   "An app's cost is what its platform bills it by name. Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.": "앱의 비용은 플랫폼이 그 앱의 이름으로 청구하는 금액입니다. Amazon ECS는 작업을, App Service는 플랜을 청구하므로 해당 앱의 비용은 환경의 비용으로 남습니다.",
   "Commitments": "약정",
   "Committed use discounts": "약정 사용 할인",
@@ -45688,7 +45688,7 @@
   "Utilization not reported": "사용률이 보고되지 않음",
   "{{percent}} utilized": "{{percent}} 사용됨",
   "{{what}} cost {{amount}}": "{{what}} 비용 {{amount}}",
-  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.": "Azure와 Google Cloud는 각 비용의 리소스를 알려 줍니다. AWS도 연결 설정에서 리소스별 비용을 켜면 알려 주며, 그 이전 14일도 포함됩니다.",
+  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings.": "Azure와 Google Cloud는 각 비용의 리소스를 알려 줍니다. AWS도 연결 설정에서 리소스별 비용을 켜면 알려 줍니다.",
   "Covers all eligible spend": "대상 지출을 모두 충당",
   "Reads what each resource costs from Cost Explorer, once resource-level data is turned on in the account's Cost Management preferences. A few more Cost Explorer requests a day, at $0.01 each.": "계정의 Cost Management 기본 설정에서 리소스 수준 데이터를 켜면 Cost Explorer에서 각 리소스의 비용을 읽습니다. 하루에 Cost Explorer 요청이 몇 건 늘며, 건당 $0.01입니다.",
   "Tag key": "태그 키",
@@ -45730,5 +45730,7 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "알림이 작성되는 언어입니다.",
-  "{{language}} (default)": "{{language}} (기본값)"
+  "{{language}} (default)": "{{language}} (기본값)",
+  "AWS costs carry tags once Costs per resource is turned on in their connection's settings.": "AWS 비용에는 연결 설정에서 리소스별 비용을 켜면 태그가 붙습니다.",
+  "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.": "연결의 설정 명령을 다시 실행하세요. 연결이 Savings Plans와 예약 인스턴스를 읽을 수 있게 됩니다."
 }

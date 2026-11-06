@@ -44,12 +44,16 @@ import CloudCostBreakdownCard, {
   ENVIRONMENTS_NONE_COST,
   APPS_NONE_COST,
   BREAKDOWN_EMPTY,
+  TAGS_AWS_NOTE,
   TAGS_EMPTY,
   TAGS_NOTE,
   TAG_VALUE_NONE_COST,
   getCloudCostBreakdownEmptyText,
+  hasAwsCostsWithoutResources,
   scopeCloudCostPlatformLists,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostBreakdownCard";
+import { RESOURCE_COSTS_DOCS_PATH } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostWords";
+import { cloudConnectionDocsUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectApi";
 import { BREAKDOWN_REST_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostBreakdown";
 import {
   CloudCostDimension,
@@ -333,6 +337,11 @@ function restLines(breakdown: HTMLElement): Array<[string, string]> {
     });
 }
 
+// Where turning on AWS's costs per resource is explained.
+const RESOURCE_COSTS_GUIDE: string = cloudConnectionDocsUrl(
+  RESOURCE_COSTS_DOCS_PATH,
+).toString();
+
 function tagRequests(): Array<AggregateBy<CloudCost>> {
   return aggregateSpy.mock.calls
     .map((call: Array<any>): AggregateBy<CloudCost> => {
@@ -506,6 +515,40 @@ describe("by tag", () => {
       within(breakdown).getByTestId("cloud-cost-breakdown-tag"),
     ).toBeInTheDocument();
     expect(breakdown).toHaveTextContent(TAGS_NOTE);
+
+    /*
+     * web-prod is an AWS account read without its resources: how AWS costs
+     * come to carry tags, and the guide to it.
+     */
+    const note: HTMLElement = within(breakdown).getByTestId(
+      "cloud-cost-breakdown-tags-note",
+    );
+    expect(note).toHaveTextContent(`${TAGS_NOTE} ${TAGS_AWS_NOTE}`);
+    expect(
+      within(note).getByRole("link", { name: "Read the guide" }),
+    ).toHaveAttribute("href", RESOURCE_COSTS_GUIDE);
+  });
+
+  test("every AWS account reads its costs per resource: the note says what tags a cost keeps, and nothing of AWS", async () => {
+    const tagged: CloudAccountRow = row({
+      id: WEB_ROW,
+      name: "web-prod",
+      accountId: "123456789012",
+      costSummary: summary({
+        tagKeys: [{ key: "team", amount: 900 }],
+        resources: { state: CloudCostState.Reading },
+      }),
+    });
+    const breakdown: HTMLElement = await openCard({ accounts: [tagged, DATA] });
+
+    await breakDownBy("tag");
+
+    const note: HTMLElement = await within(breakdown).findByTestId(
+      "cloud-cost-breakdown-tags-note",
+    );
+    expect(note).toHaveTextContent(TAGS_NOTE);
+    expect(note).not.toHaveTextContent(TAGS_AWS_NOTE);
+    expect(within(note).queryByRole("link")).toBeNull();
   });
 
   test("another tag picked: its values read and listed", async () => {
@@ -593,26 +636,111 @@ describe("by resource", () => {
 
     await breakDownBy("resourceId");
 
-    await waitFor(() => {
-      expect(breakdown).toHaveTextContent(BREAKDOWN_RESOURCES_NOTE);
-    });
-
-    const notRead: HTMLElement = within(breakdown).getByTestId(
+    const notRead: HTMLElement = await within(breakdown).findByTestId(
       "cloud-cost-breakdown-resources-not-read",
     );
     expect(notRead).toHaveTextContent(BREAKDOWN_RESOURCES_NOT_READ_TITLE);
+
+    /*
+     * Both AWS accounts read their costs per resource, or say why they
+     * cannot: no word on turning it on.
+     */
+    expect(breakdown).not.toHaveTextContent(BREAKDOWN_RESOURCES_NOTE);
+    expect(
+      within(breakdown).queryByTestId("cloud-cost-breakdown-resources-note"),
+    ).toBeNull();
 
     const accounts: Array<HTMLElement> = within(notRead).getAllByTestId(
       "cloud-cost-breakdown-resources-not-read-account",
     );
     expect(accounts).toHaveLength(1);
-    expect(accounts[0]).toHaveTextContent("web-prod");
-    expect(accounts[0]).toHaveTextContent(
+    expect(accounts[0]).toHaveTextContent("web-prod · Not set up");
+
+    /*
+     * The cloud's words on a line of their own, in their own direction:
+     * a page read right to left never runs them into the state.
+     */
+    const message: HTMLElement = within(accounts[0]!).getByTestId(
+      "cloud-cost-breakdown-resources-not-read-message",
+    );
+    expect(message.tagName).toBe("P");
+    expect(message).toHaveAttribute("dir", "auto");
+    expect(message).toHaveTextContent(
       "Resource-level data is not turned on for this account.",
     );
+    expect(message).toHaveClass("line-clamp-3");
+
+    // Then the guide, once, after the list.
+    const guides: Array<HTMLElement> = within(breakdown).getAllByRole("link", {
+      name: "Read the guide",
+    });
+    expect(guides).toHaveLength(1);
+    expect(guides[0]).toHaveAttribute("href", RESOURCE_COSTS_GUIDE);
+    expect(notRead).toContainElement(guides[0]!);
   });
 
-  test("every account's read, or none asked for: no list", async () => {
+  test("an AWS account read without its resources and another that cannot be read: why AWS names none, the list, then the guide once", async () => {
+    const refused: CloudAccountRow = row({
+      id: DATA_ROW,
+      name: "data-lake",
+      accountId: "210987654321",
+      costSummary: summary({
+        resources: {
+          state: CloudCostState.NotAllowed,
+          message:
+            "The role may not read costs per resource (ce:GetCostAndUsageWithResources).",
+        },
+      }),
+    });
+    answers["resourceId"] = [{ resourceId: "", value: 10 }];
+
+    const breakdown: HTMLElement = await openCard({
+      accounts: [WEB, refused],
+    });
+
+    await breakDownBy("resourceId");
+
+    const note: HTMLElement = await within(breakdown).findByTestId(
+      "cloud-cost-breakdown-resources-note",
+    );
+    expect(note).toHaveTextContent(BREAKDOWN_RESOURCES_NOTE);
+    // The guide follows the list, not the note, when both are drawn.
+    expect(within(note).queryByRole("link")).toBeNull();
+    expect(
+      within(breakdown).getAllByRole("link", { name: "Read the guide" }),
+    ).toHaveLength(1);
+    expect(
+      within(breakdown).getByTestId(
+        "cloud-cost-breakdown-resources-not-read-account",
+      ),
+    ).toHaveTextContent("data-lake · Needs permission");
+  });
+
+  test("Azure and Google Cloud alone, or an AWS account whose costs are not read at all: nothing under the list", async () => {
+    const unread: CloudAccountRow = row({
+      id: WEB_ROW,
+      name: "web-prod",
+      accountId: "123456789012",
+      costSummary: summary({ state: CloudCostState.NotAllowed }),
+    });
+    answers["resourceId"] = [{ resourceId: "", value: 10 }];
+
+    const breakdown: HTMLElement = await openCard({ accounts: [unread, DATA] });
+
+    await breakDownBy("resourceId");
+
+    await waitFor(() => {
+      expect(
+        within(breakdown).queryByTestId("cloud-cost-breakdown-loading"),
+      ).toBeNull();
+    });
+    expect(
+      within(breakdown).queryByTestId("cloud-cost-breakdown-resources-help"),
+    ).toBeNull();
+    expect(breakdown).not.toHaveTextContent(BREAKDOWN_RESOURCES_NOTE);
+  });
+
+  test("every account's read, or none asked for: no list - and with an AWS account read without its resources, why it names none and the guide", async () => {
     answers["resourceId"] = [];
 
     const breakdown: HTMLElement = await openCard();
@@ -627,10 +755,69 @@ describe("by resource", () => {
         "cloud-cost-breakdown-resources-not-read",
       ),
     ).toBeNull();
+
+    // The guide at the end of the note: the one next step.
+    const note: HTMLElement = within(breakdown).getByTestId(
+      "cloud-cost-breakdown-resources-note",
+    );
+    const guide: HTMLElement = within(note).getByRole("link", {
+      name: "Read the guide",
+    });
+    expect(guide).toHaveAttribute("href", RESOURCE_COSTS_GUIDE);
+    expect(guide).toHaveAttribute("target", "_blank");
+    expect(guide).toHaveAttribute("rel", "noopener noreferrer");
   });
 });
 
 describe("the helpers", () => {
+  test("an AWS account whose costs are read without their resources: the setting is off", () => {
+    expect(hasAwsCostsWithoutResources([WEB])).toBe(true);
+    // Google Cloud names every resource; a page with no account says nothing.
+    expect(hasAwsCostsWithoutResources([DATA])).toBe(false);
+    expect(hasAwsCostsWithoutResources([])).toBe(false);
+    // Read with its resources, or saying why it cannot: the setting is on.
+    for (const state of [
+      CloudCostState.Reading,
+      CloudCostState.NotSetUp,
+      CloudCostState.NotAllowed,
+      CloudCostState.Failed,
+    ]) {
+      expect(
+        hasAwsCostsWithoutResources([
+          row({
+            id: WEB_ROW,
+            costSummary: summary({ resources: { state } }),
+          }),
+        ]),
+      ).toBe(false);
+    }
+    // Its costs not read at all, or never: the gaps card says why instead.
+    expect(
+      hasAwsCostsWithoutResources([
+        row({
+          id: WEB_ROW,
+          costSummary: summary({ state: CloudCostState.NotAllowed }),
+        }),
+      ]),
+    ).toBe(false);
+    expect(
+      hasAwsCostsWithoutResources([row({ id: WEB_ROW, costSummary: null })]),
+    ).toBe(false);
+    // One such account among others is enough.
+    expect(
+      hasAwsCostsWithoutResources([
+        DATA,
+        row({
+          id: DATA_ROW,
+          costSummary: summary({
+            resources: { state: CloudCostState.Reading },
+          }),
+        }),
+        WEB,
+      ]),
+    ).toBe(true);
+  });
+
   test("an empty list says what it breaks down by", () => {
     const text: (
       dimension: CloudCostDimension,

@@ -30,7 +30,14 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
-import { COST_STATE_LABELS, formatCloudMoney } from "./CloudCostWords";
+import { READ_THE_GUIDE } from "./CloudCostSetupSteps";
+import {
+  COST_SETUP_DOCS_PATHS,
+  COST_STATE_LABELS,
+  formatCloudMoney,
+  getCloudCommitmentSetupStep,
+} from "./CloudCostWords";
+import { cloudConnectionDocsUrl } from "./Connect/CloudConnectApi";
 import CloudConnectionLogo from "./Connect/CloudConnectionLogo";
 import { CloudAccountRow } from "./UseCloudAccounts";
 
@@ -50,8 +57,10 @@ import { CloudAccountRow } from "./UseCloudAccounts";
  * Its figures are each cloud's own, kind by kind: a reservation and a
  * savings plan can each count the same machine's spend as theirs to cover,
  * so they are never added together. An account whose commitments could
- * not be read says why. Nothing is drawn when no account has anything to
- * say.
+ * not be read says why, in its cloud's words, and what to do, in the
+ * reader's, with its cloud's section of the guide - as Accounts left out
+ * does. On an account's own Costs the account is the page's, so the card
+ * names it nowhere. Nothing is drawn when no account has anything to say.
  */
 
 export const COMMITMENTS_TITLE: string = translationKey("Commitments");
@@ -247,14 +256,22 @@ export function getCloudCommitmentCoverageWords(data: {
 }
 
 /*
- * What of a kind is used, in words: "97% used" and "$210 unused", all of
- * it - or that its cloud does not say; nothing for no commitment.
+ * What of a kind is used, in words: "97% utilized" and "$210 unused", all
+ * of it - or that its cloud does not say (isReported false, drawn quieter
+ * than a figure); nothing for no commitment.
  */
+export interface CloudCommitmentUseWords {
+  headline: string;
+  detail: string;
+  hasUnused: boolean;
+  isReported: boolean;
+}
+
 export function getCloudCommitmentUseWords(data: {
   figures: CloudCommitmentKindFigures;
   currency: string;
   translator: Translator;
-}): { headline: string; detail: string; hasUnused: boolean } | null {
+}): CloudCommitmentUseWords | null {
   if (!hasCloudCommitment(data.figures)) {
     return null;
   }
@@ -270,6 +287,7 @@ export function getCloudCommitmentUseWords(data: {
         COMMITMENT_USE_NOT_REPORTED,
       detail: "",
       hasUnused: false,
+      isReported: false,
     };
   }
 
@@ -282,6 +300,7 @@ export function getCloudCommitmentUseWords(data: {
         COMMITMENT_ALL_USED,
       detail: "",
       hasUnused: false,
+      isReported: true,
     };
   }
 
@@ -297,6 +316,7 @@ export function getCloudCommitmentUseWords(data: {
       }),
     }),
     hasUnused: unused > 0,
+    isReported: true,
   };
 }
 
@@ -307,9 +327,136 @@ const STATE_COLORS: Readonly<Record<string, Color>> = {
   [CloudCostState.Failed]: Red,
 };
 
+/*
+ * A kind's line, laid out by the width its account's column has - a
+ * container query, since an account's own page leaves the card half the
+ * window beside its side menu: its name, what it covers and what of it is
+ * used side by side with room for three; its name over the two figures
+ * with room for two; one under another on a phone.
+ */
+export const COMMITMENT_KIND_CLASS_NAME: string =
+  "grid grid-cols-1 gap-x-6 gap-y-1 [@container(min-width:22rem)]:grid-cols-2 [@container(min-width:34rem)]:grid-cols-3";
+export const COMMITMENT_KIND_LABEL_CLASS_NAME: string =
+  "text-sm text-gray-700 [@container(min-width:22rem)]:col-span-2 [@container(min-width:34rem)]:col-span-1";
+
+// One kind of an account's commitments: its name, what it covers, what of it is used.
+const CloudCommitmentKindLine: FunctionComponent<{
+  figures: CloudCommitmentKindFigures;
+  provider: string;
+  currency: string;
+}> = (props: {
+  figures: CloudCommitmentKindFigures;
+  provider: string;
+  currency: string;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const coverage: {
+    headline: string;
+    detail: string;
+    percent: number | null;
+  } = getCloudCommitmentCoverageWords({
+    figures: props.figures,
+    currency: props.currency,
+    translator,
+  });
+  const use: CloudCommitmentUseWords | null = getCloudCommitmentUseWords({
+    figures: props.figures,
+    currency: props.currency,
+    translator,
+  });
+  const label: string = getCloudCommitmentKindLabel({
+    provider: props.provider,
+    kind: props.figures.kind,
+  });
+
+  return (
+    <div
+      className={COMMITMENT_KIND_CLASS_NAME}
+      data-testid="cloud-commitment-kind"
+      data-kind={props.figures.kind}
+    >
+      <div className={COMMITMENT_KIND_LABEL_CLASS_NAME}>
+        {translator.translateText(label) || label}
+      </div>
+      <div className="min-w-0">
+        <div
+          className="text-sm font-medium text-gray-900"
+          data-testid="cloud-commitment-coverage"
+        >
+          {coverage.headline}
+        </div>
+        {coverage.percent !== null ? (
+          <div
+            className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
+            aria-hidden="true"
+          >
+            {coverage.percent > 0 ? (
+              <div
+                className="h-full rounded-full bg-indigo-500"
+                data-testid="cloud-commitment-coverage-bar"
+                style={{
+                  width: `${Math.max(2, Math.min(100, coverage.percent))}%`,
+                }}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+        {coverage.detail ? (
+          <div
+            className="mt-1 text-xs text-gray-600"
+            data-testid="cloud-commitment-coverage-detail"
+          >
+            {coverage.detail}
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+      <div className="min-w-0">
+        {use ? (
+          <>
+            <div
+              className={
+                use.isReported
+                  ? "text-sm font-medium text-gray-900"
+                  : "text-sm text-gray-500"
+              }
+              data-testid="cloud-commitment-use"
+              data-reported={use.isReported ? "true" : "false"}
+            >
+              {use.headline}
+            </div>
+            {use.detail ? (
+              <div
+                className={`mt-1 text-xs ${
+                  use.hasUnused ? "text-amber-700" : "text-gray-600"
+                }`}
+                data-testid="cloud-commitment-use-detail"
+              >
+                {use.detail}
+              </div>
+            ) : (
+              <></>
+            )}
+          </>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export interface ComponentProps {
   accounts: Array<CloudAccountRow>;
-  // On one account's own Costs: its name is the page's, so it is not linked.
+  /*
+   * On one account's own Costs: the page is the account's, so the card
+   * names it nowhere - its kinds, or why they are not read, come first.
+   */
   isOneAccount?: boolean | undefined;
 }
 
@@ -338,6 +485,18 @@ const CloudCommitmentsCard: FunctionComponent<ComponentProps> = (
             const name: string = row.account.name || row.account.accountId;
             const isRead: boolean =
               row.summary.state === CloudCostState.Reading;
+            // What to do, in the reader's language, beside the cloud's words.
+            const step: string | undefined = isRead
+              ? undefined
+              : getCloudCommitmentSetupStep({
+                  provider: row.account.provider,
+                  state: row.summary.state,
+                });
+            const docsPath: string | undefined =
+              COST_SETUP_DOCS_PATHS[row.account.provider as CloudProvider];
+            // Over every account, its name; on its own page, its state alone.
+            const hasHeading: boolean = !props.isOneAccount || !isRead;
+            const isOrganization: boolean = Boolean(row.summary.isOrganization);
 
             return (
               <li
@@ -346,50 +505,66 @@ const CloudCommitmentsCard: FunctionComponent<ComponentProps> = (
                 data-testid="cloud-commitment-account"
                 data-state={row.summary.state}
               >
-                <CloudConnectionLogo
-                  provider={row.account.provider}
-                  size="sm"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    {props.isOneAccount ? (
-                      <span className="min-w-0 break-words text-sm font-medium text-gray-900">
-                        <bdi>{name}</bdi>
-                      </span>
-                    ) : (
-                      <AppLink
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route,
-                          { modelId: row.account.id },
-                        )}
-                        className="min-w-0 break-words text-sm font-medium text-gray-900 hover:underline"
-                        dataTestId="cloud-commitment-account-name"
-                      >
-                        <bdi>{name}</bdi>
-                      </AppLink>
-                    )}
-                    {!isRead ? (
-                      <Pill
-                        text={
-                          COST_STATE_LABELS[
-                            row.summary.state as CloudCostState
-                          ] || row.summary.state
-                        }
-                        color={STATE_COLORS[row.summary.state] || Gray500}
-                      />
-                    ) : (
-                      <></>
-                    )}
-                  </div>
-                  {row.summary.isOrganization ? (
-                    <p className="mt-0.5 text-xs text-gray-500">
+                {props.isOneAccount ? (
+                  <></>
+                ) : (
+                  <CloudConnectionLogo
+                    provider={row.account.provider}
+                    size="sm"
+                  />
+                )}
+                <div className="min-w-0 flex-1 [container-type:inline-size]">
+                  {hasHeading ? (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {props.isOneAccount ? (
+                        <></>
+                      ) : (
+                        <AppLink
+                          to={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route,
+                            { modelId: row.account.id },
+                          )}
+                          className="min-w-0 break-words text-sm font-medium text-gray-900 hover:underline"
+                          dataTestId="cloud-commitment-account-name"
+                        >
+                          <bdi>{name}</bdi>
+                        </AppLink>
+                      )}
+                      {!isRead ? (
+                        <Pill
+                          text={
+                            COST_STATE_LABELS[
+                              row.summary.state as CloudCostState
+                            ] || row.summary.state
+                          }
+                          color={STATE_COLORS[row.summary.state] || Gray500}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  {isOrganization ? (
+                    <p
+                      className={`${
+                        hasHeading ? "mt-0.5 " : ""
+                      }text-xs text-gray-500`}
+                      data-testid="cloud-commitment-organization"
+                    >
                       {translator.translateText(COMMITMENT_ORGANIZATION)}
                     </p>
                   ) : (
                     <></>
                   )}
                   {!isRead && row.summary.message ? (
-                    // The cloud's own words, in their own direction.
+                    /*
+                     * The cloud's own words, nearly always English: in
+                     * their own direction, as a line of their own, so a
+                     * page read right to left never runs them into the
+                     * state beside them.
+                     */
                     <p
                       dir="auto"
                       className="mt-1 line-clamp-3 break-words text-xs text-gray-600"
@@ -400,110 +575,49 @@ const CloudCommitmentsCard: FunctionComponent<ComponentProps> = (
                   ) : (
                     <></>
                   )}
+                  {step ? (
+                    <p
+                      className="mt-1 text-xs text-gray-600"
+                      data-testid="cloud-commitment-step"
+                    >
+                      {translator.translateText(step)}
+                      {docsPath ? (
+                        <>
+                          {" "}
+                          <a
+                            href={cloudConnectionDocsUrl(docsPath).toString()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="whitespace-nowrap font-medium text-indigo-600 hover:text-indigo-700"
+                          >
+                            {translator.translateText(READ_THE_GUIDE)}
+                          </a>
+                        </>
+                      ) : (
+                        <></>
+                      )}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
                   {row.kinds.length > 0 ? (
-                    <div className="mt-2 space-y-3">
+                    <div
+                      className={
+                        hasHeading || isOrganization
+                          ? "mt-2 space-y-3"
+                          : "space-y-3"
+                      }
+                      data-testid="cloud-commitment-kinds"
+                    >
                       {row.kinds.map(
                         (figures: CloudCommitmentKindFigures): ReactElement => {
-                          const coverage: {
-                            headline: string;
-                            detail: string;
-                            percent: number | null;
-                          } = getCloudCommitmentCoverageWords({
-                            figures,
-                            currency: row.summary.currency,
-                            translator,
-                          });
-                          const use: {
-                            headline: string;
-                            detail: string;
-                            hasUnused: boolean;
-                          } | null = getCloudCommitmentUseWords({
-                            figures,
-                            currency: row.summary.currency,
-                            translator,
-                          });
-                          const label: string = getCloudCommitmentKindLabel({
-                            provider: row.account.provider,
-                            kind: figures.kind,
-                          });
-
                           return (
-                            <div
+                            <CloudCommitmentKindLine
                               key={figures.kind}
-                              className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-3"
-                              data-testid="cloud-commitment-kind"
-                              data-kind={figures.kind}
-                            >
-                              <div className="text-sm text-gray-700">
-                                {translator.translateText(label) || label}
-                              </div>
-                              <div className="min-w-0">
-                                <div
-                                  className="text-sm font-medium text-gray-900"
-                                  data-testid="cloud-commitment-coverage"
-                                >
-                                  {coverage.headline}
-                                </div>
-                                {coverage.percent !== null ? (
-                                  <div
-                                    className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
-                                    aria-hidden="true"
-                                  >
-                                    {coverage.percent > 0 ? (
-                                      <div
-                                        className="h-full rounded-full bg-indigo-500"
-                                        data-testid="cloud-commitment-coverage-bar"
-                                        style={{
-                                          width: `${Math.max(2, Math.min(100, coverage.percent))}%`,
-                                        }}
-                                      />
-                                    ) : (
-                                      <></>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <></>
-                                )}
-                                {coverage.detail ? (
-                                  <div
-                                    className="mt-1 text-xs text-gray-600"
-                                    data-testid="cloud-commitment-coverage-detail"
-                                  >
-                                    {coverage.detail}
-                                  </div>
-                                ) : (
-                                  <></>
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                {use ? (
-                                  <>
-                                    <div
-                                      className="text-sm font-medium text-gray-900"
-                                      data-testid="cloud-commitment-use"
-                                    >
-                                      {use.headline}
-                                    </div>
-                                    {use.detail ? (
-                                      <div
-                                        className={`mt-1 text-xs ${
-                                          use.hasUnused
-                                            ? "text-amber-700"
-                                            : "text-gray-600"
-                                        }`}
-                                        data-testid="cloud-commitment-use-detail"
-                                      >
-                                        {use.detail}
-                                      </div>
-                                    ) : (
-                                      <></>
-                                    )}
-                                  </>
-                                ) : (
-                                  <></>
-                                )}
-                              </div>
-                            </div>
+                              figures={figures}
+                              provider={row.account.provider}
+                              currency={row.summary.currency}
+                            />
                           );
                         },
                       )}

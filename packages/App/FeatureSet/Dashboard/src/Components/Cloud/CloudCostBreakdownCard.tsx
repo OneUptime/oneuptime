@@ -1,6 +1,9 @@
 import Route from "Common/Types/API/Route";
 import { CloudCostState, CloudCostTagKey } from "Common/Types/Cloud/CloudCost";
-import { getManagedCloudPlatformLabel } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudProvider,
+  getManagedCloudPlatformLabel,
+} from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -50,7 +53,13 @@ import {
   fetchCloudCostPlatformLists,
   mergeCloudCostTagKeys,
 } from "./CloudCostReads";
-import { COST_STATE_LABELS, formatCloudMoney } from "./CloudCostWords";
+import { READ_THE_GUIDE } from "./CloudCostSetupSteps";
+import {
+  COST_STATE_LABELS,
+  RESOURCE_COSTS_DOCS_PATH,
+  formatCloudMoney,
+} from "./CloudCostWords";
+import { cloudConnectionDocsUrl } from "./Connect/CloudConnectApi";
 import { CloudAccountRow } from "./UseCloudAccounts";
 
 /*
@@ -76,8 +85,13 @@ export const BREAKDOWN_EMPTY: string = translationKey(
   "Nothing cost anything in this period.",
 );
 export const BREAKDOWN_TOTAL: string = translationKey("{{amount}} in all");
+/*
+ * Under the breakdown by resource, while an AWS account's costs are read
+ * without their resources (its connection's Costs per resource is off):
+ * why its spend is not billed to one, and the guide to turning it on.
+ */
 export const BREAKDOWN_RESOURCES_NOTE: string = translationKey(
-  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.",
+  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings.",
 );
 /*
  * The AWS accounts whose costs per resource could not be read, each with
@@ -116,8 +130,17 @@ export const APPS_NOTE: string = translationKey(
  */
 export const TAG_PICKER_LABEL: string = translationKey("Tag key");
 export const TAGS_EMPTY: string = translationKey("No costs carry tags yet.");
+// Under the breakdown by tag: why a cost carries an old value of a tag.
 export const TAGS_NOTE: string = translationKey(
-  "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to. On AWS that needs Costs per resource on.",
+  "Each cost keeps the tags it had when it was read.",
+);
+/*
+ * After it, while an AWS account's costs are read without their resources:
+ * an AWS cost carries the tags of the resource it is billed to, so none
+ * without Costs per resource.
+ */
+export const TAGS_AWS_NOTE: string = translationKey(
+  "AWS costs carry tags once Costs per resource is turned on in their connection's settings.",
 );
 export const TAG_VALUE_NONE_COST: string = translationKey(
   "Nothing that carries this tag cost anything in this period.",
@@ -173,6 +196,26 @@ export function getCloudCostBreakdownEmptyText(data: {
   }
 
   return BREAKDOWN_EMPTY;
+}
+
+/*
+ * Whether an AWS account's costs are read without their resources: its
+ * connection's Costs per resource is off, as a summary with no word on
+ * resources says (CloudAccountCostSummary.resources). Only then do the
+ * breakdowns by resource and by tag say how AWS names them - an account
+ * that reads them, or says why it cannot, needs no such word, and Azure
+ * and Google Cloud name every resource anyway.
+ */
+export function hasAwsCostsWithoutResources(
+  accounts: Array<CloudAccountRow>,
+): boolean {
+  return accounts.some((account: CloudAccountRow): boolean => {
+    return (
+      account.provider === CloudProvider.AWS &&
+      account.costSummary?.state === CloudCostState.Reading &&
+      !account.costSummary.resources
+    );
+  });
 }
 
 const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
@@ -435,6 +478,24 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
     },
   );
 
+  // An AWS account whose costs are read without their resources: say how.
+  const isAwsWithoutResources: boolean = hasAwsCostsWithoutResources(
+    props.accounts,
+  );
+
+  // Where turning on AWS's costs per resource is explained.
+  const guideLink: ReactElement = (
+    <a
+      href={cloudConnectionDocsUrl(RESOURCE_COSTS_DOCS_PATH).toString()}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="whitespace-nowrap font-medium text-indigo-600 hover:text-indigo-700"
+      data-testid="cloud-cost-breakdown-resources-guide"
+    >
+      {translator.translateText(READ_THE_GUIDE)}
+    </a>
+  );
+
   const tagOptions: Array<DropdownOption> = tagKeys.map(
     (entry: CloudCostTagKey): DropdownOption => {
       // A tag's key as its cloud writes it, never looked up as a word.
@@ -594,20 +655,28 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-            {dimension === "resourceId" ? (
-              <div className="mt-4 space-y-1 text-xs text-gray-500">
-                <p>{translator.translateText(BREAKDOWN_RESOURCES_NOTE)}</p>
+            {dimension === "resourceId" &&
+            (isAwsWithoutResources || resourcesNotRead.length > 0) ? (
+              <div
+                className="mt-4 space-y-3 text-xs text-gray-500"
+                data-testid="cloud-cost-breakdown-resources-help"
+              >
+                {isAwsWithoutResources ? (
+                  <p data-testid="cloud-cost-breakdown-resources-note">
+                    {translator.translateText(BREAKDOWN_RESOURCES_NOTE)}
+                    {resourcesNotRead.length === 0 ? <> {guideLink}</> : <></>}
+                  </p>
+                ) : (
+                  <></>
+                )}
                 {resourcesNotRead.length > 0 ? (
-                  <div
-                    className="pt-2"
-                    data-testid="cloud-cost-breakdown-resources-not-read"
-                  >
+                  <div data-testid="cloud-cost-breakdown-resources-not-read">
                     <p className="font-medium text-gray-700">
                       {translator.translateText(
                         BREAKDOWN_RESOURCES_NOT_READ_TITLE,
                       )}
                     </p>
-                    <ul className="mt-1 space-y-1">
+                    <ul className="mt-1 space-y-2">
                       {resourcesNotRead.map(
                         (account: CloudAccountRow): ReactElement => {
                           const status: {
@@ -621,7 +690,7 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
                               className="break-words"
                               data-testid="cloud-cost-breakdown-resources-not-read-account"
                             >
-                              <span className="font-medium text-gray-700">
+                              <p className="text-gray-700">
                                 {translator.translateTemplate(
                                   BREAKDOWN_RESOURCES_NOT_READ,
                                   {
@@ -632,10 +701,21 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
                                       ) || COST_STATE_LABELS[status.state],
                                   },
                                 )}
-                              </span>
+                              </p>
                               {status.message ? (
-                                // The cloud's own words, as it wrote them.
-                                <span dir="auto"> {status.message}</span>
+                                /*
+                                 * The cloud's own words, as it wrote them:
+                                 * a line of their own in their own
+                                 * direction, so a page read right to left
+                                 * never runs them into the state above.
+                                 */
+                                <p
+                                  dir="auto"
+                                  className="line-clamp-3 break-words"
+                                  data-testid="cloud-cost-breakdown-resources-not-read-message"
+                                >
+                                  {status.message}
+                                </p>
                               ) : (
                                 <></>
                               )}
@@ -644,6 +724,7 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
                         },
                       )}
                     </ul>
+                    <p className="mt-2">{guideLink}</p>
                   </div>
                 ) : (
                   <></>
@@ -654,8 +735,19 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
                 {translator.translateText(APPS_NOTE)}
               </p>
             ) : dimension === "tag" ? (
-              <p className="mt-4 text-xs text-gray-500">
+              <p
+                className="mt-4 text-xs text-gray-500"
+                data-testid="cloud-cost-breakdown-tags-note"
+              >
                 {translator.translateText(TAGS_NOTE)}
+                {isAwsWithoutResources ? (
+                  <>
+                    {" "}
+                    {translator.translateText(TAGS_AWS_NOTE)} {guideLink}
+                  </>
+                ) : (
+                  <></>
+                )}
               </p>
             ) : (
               <></>

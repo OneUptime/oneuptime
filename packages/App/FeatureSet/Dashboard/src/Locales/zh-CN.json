@@ -45655,7 +45655,7 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` 在 Node.js 中开启 {{detector}} 资源检测器。其他语言的开启方式：{{others}}。",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "已登录到该项目并已启用 Secret Manager API（`gcloud services enable secretmanager.googleapis.com`）的 `gcloud`",
   "OTLP Endpoint": "OTLP 端点",
-  "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to. On AWS that needs Costs per resource on.": "成本会保留读取时的标记：Google Cloud 账单导出的标签，否则为其计费资源的标记。在 AWS 上，这需要开启“按资源的成本”。",
+  "Each cost keeps the tags it had when it was read.": "每笔成本都会保留读取时的标记。",
   "An app's cost is what its platform bills it by name. Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.": "应用的成本是其平台按名称向它计费的部分。Amazon ECS 按任务计费，App Service 按计划计费，因此其应用的成本仍归其环境。",
   "Commitments": "承诺",
   "Committed use discounts": "承诺使用折扣",
@@ -45688,7 +45688,7 @@
   "Utilization not reported": "未报告使用率",
   "{{percent}} utilized": "已使用 {{percent}}",
   "{{what}} cost {{amount}}": "{{what}} 花费 {{amount}}",
-  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.": "Azure 和 Google Cloud 会注明每笔成本对应的资源。在连接设置中开启“按资源的成本”后，AWS 也会注明，包括之前的 14 天。",
+  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings.": "Azure 和 Google Cloud 会注明每笔成本对应的资源。在连接设置中开启“按资源的成本”后，AWS 也会注明。",
   "Covers all eligible spend": "覆盖所有符合条件的支出",
   "Reads what each resource costs from Cost Explorer, once resource-level data is turned on in the account's Cost Management preferences. A few more Cost Explorer requests a day, at $0.01 each.": "在账户的 Cost Management 偏好设置中开启资源级数据后，从 Cost Explorer 读取每个资源的成本。每天多几次 Cost Explorer 请求，每次 $0.01。",
   "Tag key": "标记键",
@@ -45730,5 +45730,7 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "通知所用的语言。",
-  "{{language}} (default)": "{{language}} (默认)"
+  "{{language}} (default)": "{{language}} (默认)",
+  "AWS costs carry tags once Costs per resource is turned on in their connection's settings.": "在连接设置中开启“按资源的成本”后，AWS 成本才会带有标记。",
+  "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.": "重新运行连接的设置命令：它让连接可以读取 Savings Plans 和预留实例。"
 }

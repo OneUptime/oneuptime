@@ -45655,7 +45655,7 @@
   "`OTEL_NODE_RESOURCE_DETECTORS` turns on the {{detector}} resource detector in Node.js. Other languages turn it on with: {{others}}.": "`OTEL_NODE_RESOURCE_DETECTORS` Node.js में {{detector}} रिसोर्स डिटेक्टर चालू करता है। दूसरी भाषाएँ इसे इनसे चालू करती हैं: {{others}}।",
   "`gcloud`, signed in to the project, with the Secret Manager API enabled (`gcloud services enable secretmanager.googleapis.com`)": "`gcloud`, प्रोजेक्ट में साइन इन किया हुआ, Secret Manager API सक्षम के साथ (`gcloud services enable secretmanager.googleapis.com`)",
   "OTLP Endpoint": "OTLP एंडपॉइंट",
-  "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to. On AWS that needs Costs per resource on.": "लागत पढ़े जाने के समय के टैग अपने पास रखती है: Google Cloud बिलिंग निर्यात के लेबल, नहीं तो उस संसाधन के टैग जिस पर उसका बिल बनता है। AWS पर इसके लिए प्रति संसाधन लागत चालू होनी चाहिए।",
+  "Each cost keeps the tags it had when it was read.": "हर लागत पढ़े जाने के समय के टैग अपने पास रखती है।",
   "An app's cost is what its platform bills it by name. Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.": "किसी ऐप की लागत वह है जो उसका प्लेटफ़ॉर्म उसके नाम से बिल करता है। Amazon ECS अपने कार्यों का और App Service अपने प्लान का बिल बनाता है, इसलिए उनके ऐप की लागत उनके परिवेश की रहती है।",
   "Commitments": "प्रतिबद्धताएँ",
   "Committed use discounts": "प्रतिबद्ध उपयोग छूट",
@@ -45688,7 +45688,7 @@
   "Utilization not reported": "उपयोग की जानकारी नहीं दी गई",
   "{{percent}} utilized": "{{percent}} इस्तेमाल हुआ",
   "{{what}} cost {{amount}}": "{{what}} की लागत {{amount}} रही",
-  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.": "Azure और Google Cloud हर लागत का संसाधन बताते हैं। कनेक्शन की सेटिंग में प्रति संसाधन लागत चालू करने के बाद AWS भी बताता है, पिछले 14 दिनों सहित।",
+  "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings.": "Azure और Google Cloud हर लागत का संसाधन बताते हैं। कनेक्शन की सेटिंग में प्रति संसाधन लागत चालू करने के बाद AWS भी बताता है।",
   "Covers all eligible spend": "सारा पात्र खर्च कवर करता है",
   "Reads what each resource costs from Cost Explorer, once resource-level data is turned on in the account's Cost Management preferences. A few more Cost Explorer requests a day, at $0.01 each.": "खाते की Cost Management प्राथमिकताओं में संसाधन-स्तर का डेटा चालू होने पर Cost Explorer से पढ़ता है कि हर संसाधन की कितनी लागत है। रोज़ Cost Explorer के कुछ और अनुरोध, हर एक $0.01 का।",
   "Tag key": "टैग कुंजी",
@@ -45730,5 +45730,7 @@
   "SendGrid": "SendGrid",
   "SendGrid API Key": "SendGrid API Key",
   "The language their notifications are written in.": "वह भाषा जिसमें उनकी सूचनाएं लिखी जाती हैं।",
-  "{{language}} (default)": "{{language}} (डिफ़ॉल्ट)"
+  "{{language}} (default)": "{{language}} (डिफ़ॉल्ट)",
+  "AWS costs carry tags once Costs per resource is turned on in their connection's settings.": "कनेक्शन की सेटिंग में प्रति संसाधन लागत चालू करने के बाद AWS लागतों पर टैग आते हैं।",
+  "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.": "कनेक्शन का सेटअप कमांड फिर से चलाएँ: इससे कनेक्शन Savings Plans और Reserved Instances पढ़ सकता है।"
 }

@@ -381,6 +381,46 @@ function breakdownTotal(page: Page): Locator {
   return page.getByTestId("cloud-cost-breakdown-total");
 }
 
+/*
+ * How a commitment kind's line is laid out, read from its boxes in one
+ * frame: its name, what it covers and what of it is used side by side; its
+ * name over the two figures, side by side; or one under another. The card
+ * lays it out by the width its account's column has, not the window's.
+ */
+async function kindLineLayout(kind: Locator): Promise<string> {
+  const [label, coverage, use] = await boxesInOneFrame([
+    kind.locator(":scope > div").first(),
+    kind.getByTestId("cloud-commitment-coverage"),
+    kind.getByTestId("cloud-commitment-use"),
+  ]);
+  const onOneRow: (a: FrameBox, b: FrameBox) => boolean = (
+    a: FrameBox,
+    b: FrameBox,
+  ): boolean => {
+    return Math.abs(a.y - b.y) < 2;
+  };
+  const isUnder: (a: FrameBox, b: FrameBox) => boolean = (
+    a: FrameBox,
+    b: FrameBox,
+  ): boolean => {
+    return a.y >= b.y + b.height - 0.5;
+  };
+
+  if (onOneRow(label!, coverage!) && onOneRow(coverage!, use!)) {
+    return "side by side";
+  }
+
+  if (onOneRow(coverage!, use!) && isUnder(coverage!, label!)) {
+    return "name over two";
+  }
+
+  if (isUnder(coverage!, label!) && isUnder(use!, coverage!)) {
+    return "one under another";
+  }
+
+  return `unlike any: ${JSON.stringify({ label, coverage, use })}`;
+}
+
 // What a breakdown by environment, app or tag says the rest came to, by kind.
 async function breakdownRest(page: Page): Promise<Array<[string, string]>> {
   return await page
@@ -1261,17 +1301,45 @@ test.describe("Costs", () => {
         return row[0];
       }),
     ).toEqual(expect.arrayContaining(["etl-runner-1", "acme-analytics-raw"]));
-    await expect(page.getByTestId("cloud-cost-breakdown")).toContainText(
-      "AWS does once Costs per resource is turned on in its connection's settings, including the 14 days before.",
+    // web-prod's connection reads no costs per resource: how AWS names them.
+    await expect(
+      page.getByTestId("cloud-cost-breakdown-resources-note"),
+    ).toHaveText(
+      "Azure and Google Cloud name the resource each cost is for. AWS does once Costs per resource is turned on in its connection's settings.",
     );
     const notRead: Locator = page.getByTestId(
       "cloud-cost-breakdown-resources-not-read-account",
     );
     await expect(notRead).toHaveCount(1);
     await expect(notRead).toContainText("data-lake · Not set up");
-    await expect(notRead).toContainText(
+    /*
+     * The read's own words on a line of their own, under the account and
+     * its state, never run into them.
+     */
+    const notReadMessage: Locator = notRead.getByTestId(
+      "cloud-cost-breakdown-resources-not-read-message",
+    );
+    await expect(notReadMessage).toContainText(
       "Resource-level data is not turned on for this account.",
     );
+    await expect(notReadMessage).toHaveAttribute("dir", "auto");
+    const [stateLine, messageLine] = await boxesInOneFrame([
+      notRead.locator("p").first(),
+      notReadMessage,
+    ]);
+    expect(messageLine!.y).toBeGreaterThanOrEqual(
+      stateLine!.y + stateLine!.height - 0.5,
+    );
+    // Then the guide to turning it on, once.
+    const resourcesGuide: Locator = page
+      .getByTestId("cloud-cost-breakdown")
+      .getByRole("link", { name: "Read the guide" });
+    await expect(resourcesGuide).toHaveCount(1);
+    const resourcesGuideUrl: URL = new URL(
+      (await resourcesGuide.getAttribute("href")) || "",
+    );
+    expect(resourcesGuideUrl.pathname).toBe("/docs/telemetry/cloud-costs");
+    expect(resourcesGuideUrl.hash).toBe("#costs-per-resource");
 
     /*
      * The accounts left out of these figures, with why: one may not read
@@ -1373,13 +1441,19 @@ test.describe("Costs", () => {
       ),
     ).toHaveCount(0);
 
-    // Its own commitments, its name not a link to the page it is on.
+    /*
+     * Its own commitments: the page is the account's, so the card names it
+     * nowhere - its kinds come first, under its ways to spend less.
+     */
     const commitment: Locator = page.getByTestId("cloud-commitment-account");
     await expect(commitment).toHaveCount(1);
-    await expect(commitment).toContainText("web-prod");
+    await expect(commitment).not.toContainText("web-prod");
     await expect(
       commitment.getByTestId("cloud-commitment-account-name"),
     ).toHaveCount(0);
+    await expect(commitment.getByTestId("cloud-commitment-kind")).toHaveCount(
+      2,
+    );
 
     // Only this account's costs are summed.
     for (const request of (await recorded(page)).aggregateRequests) {
@@ -1398,6 +1472,14 @@ test.describe("Costs", () => {
     ).toHaveCount(0);
     await expect(savings.nth(0)).toContainText("$410.50");
     await expect(savings.nth(3)).toContainText("$36.80");
+    // Its commitments under them, as Savings shows them over every account.
+    const [ownSavings, ownCommitments] = await boxesInOneFrame([
+      page.locator("#cloud-account-savings-table-body"),
+      page.getByTestId("cloud-commitments"),
+    ]);
+    expect(ownCommitments!.y).toBeGreaterThan(
+      ownSavings!.y + ownSavings!.height - 0.5,
+    );
 
     await expectNoSidewaysScroll(page);
     await screenshot(page, "cloud-account-costs-1280");
@@ -1945,25 +2027,64 @@ test.describe("Savings", () => {
     );
     await expect(accounts.nth(2)).not.toContainText("Reservations");
 
-    // data-lake's role may not read them: why, and what to do, in its words.
+    // data-lake's role may not read them: why, in its words, then what to do.
     await expect(accounts.nth(3)).toHaveAttribute("data-state", "not-allowed");
     await expect(accounts.nth(3)).toContainText("Needs permission");
     await expect(
       accounts.nth(3).getByTestId("cloud-commitment-message"),
     ).toContainText("Run the setup command again to allow it.");
-
-    // Above the ways to spend less.
-    const [commitments, table] = await boxesInOneFrame([
-      card,
-      page.locator("#cloud-savings-table-body"),
-    ]);
-    expect(table!.y).toBeGreaterThan(
-      commitments!.y + commitments!.height - 0.5,
+    const step: Locator = accounts.nth(3).getByTestId("cloud-commitment-step");
+    await expect(step).toContainText(
+      "Run the connection's setup command again: it lets the connection read Savings Plans and Reserved Instances.",
     );
+    const guide: URL = new URL(
+      (await step
+        .getByRole("link", { name: "Read the guide" })
+        .getAttribute("href")) || "",
+    );
+    expect(guide.pathname).toBe("/docs/telemetry/cloud-costs");
+    expect(guide.hash).toBe("#amazon-web-services");
+
+    // Under the ways to spend less: what the page is for comes first.
+    await expect(page.locator("#cloud-savings-table-body > tr")).toHaveCount(8);
+    const [table, commitments] = await boxesInOneFrame([
+      page.locator("#cloud-savings-table-body"),
+      card,
+    ]);
+    expect(commitments!.y).toBeGreaterThan(table!.y + table!.height - 0.5);
+
+    // A kind's name, what it covers and what of it is used, side by side.
+    const firstKind: Locator = kinds.nth(0);
+    await expect
+      .poll(async () => {
+        return await kindLineLayout(firstKind);
+      })
+      .toBe("side by side");
     await screenshot(page, "cloud-savings-1280-commitments");
 
-    await page.setViewportSize(PHONE);
+    /*
+     * Beside the side menu at 768 the card is half the window: the kind's
+     * name over its two figures, which stay side by side.
+     */
+    await page.setViewportSize({ width: 768, height: 900 });
+    await expect
+      .poll(async () => {
+        return await kindLineLayout(firstKind);
+      })
+      .toBe("name over two");
     await expectNoSidewaysScroll(page);
+    await screenshot(page, "cloud-savings-768-commitments");
+
+    // A phone: one under another.
+    await page.setViewportSize(PHONE);
+    await expect
+      .poll(async () => {
+        return await kindLineLayout(firstKind);
+      })
+      .toBe("one under another");
+    await expectNoSidewaysScroll(page);
+    // What to do stays whole on a phone, where the cloud's words are cut.
+    await expect(step).toBeVisible();
     await screenshot(page, "cloud-savings-390-commitments");
   });
 });

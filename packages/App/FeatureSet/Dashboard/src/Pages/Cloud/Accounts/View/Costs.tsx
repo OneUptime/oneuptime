@@ -15,9 +15,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 /*
  * A cloud account's Costs: what it costs from its cloud's own billing - the
  * month so far and where it is heading, each day of the last 30, where the
- * money goes - how much of it its commitments cover and how much of them is
- * used, when it has any, and the ways its cloud's recommender says it could
- * spend less, the largest first.
+ * money goes - the ways its cloud's recommender says it could spend less,
+ * the largest first, and how much of its spend its commitments cover and
+ * how much of them is used, when it has any: in the order Savings shows
+ * them over every account.
  */
 const CloudAccountCosts: FunctionComponent<
   PageComponentProps
@@ -45,12 +46,12 @@ const CloudAccountCosts: FunctionComponent<
         accounts={read.accounts}
         cloudAccountId={modelId}
       />
-      <CloudCommitmentsCard accounts={read.accounts} isOneAccount={true} />
       <CloudSavingsTable
         id="cloud-account-savings-table"
         cloudAccountId={modelId}
         currency={read.totals.costs.currency}
       />
+      <CloudCommitmentsCard accounts={read.accounts} isOneAccount={true} />
     </Fragment>
   );
 };

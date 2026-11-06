@@ -27,10 +27,11 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * Cloud > Savings: how to spend less, from your clouds' own recommenders -
  * AWS Cost Optimization Hub, Azure Advisor, Google Cloud's Recommender.
  * The strip says what could be saved a month and in what way (smaller
- * sizes, idle resources, commitments); Commitments says how much of the
- * spend the commitments the accounts have cover and how much of them is
- * used; the table lists every recommendation, the largest first; the
- * accounts whose recommendations are not read follow, with why and what to
+ * sizes, idle resources, commitments), and the table under it lists every
+ * recommendation, the largest first - what the page is for, so it comes
+ * first. Commitments follows: how much of the spend the commitments the
+ * accounts already have cover, and how much of them is used. The accounts
+ * whose recommendations are not read close the page, with why and what to
  * do. Before any are read, it says what each cloud needs.
  */
 
@@ -94,11 +95,11 @@ const CloudSavings: FunctionComponent<
           </div>
         </Card>
       )}
-      <CloudCommitmentsCard accounts={read.accounts} />
       <CloudSavingsTable
         id="cloud-savings-table"
         currency={read.totals.savings.currency}
       />
+      <CloudCommitmentsCard accounts={read.accounts} />
       <CloudCostGapsCard
         rows={gaps}
         kind="savings"

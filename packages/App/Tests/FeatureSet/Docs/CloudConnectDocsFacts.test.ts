@@ -591,7 +591,7 @@ describe("Cloud Costs and Savings", () => {
     );
   });
 
-  it("is where the Dashboard's cost and savings steps link, on each cloud's heading", () => {
+  it("is where the Dashboard's cost and savings steps link, on each cloud's heading, and where turning on AWS's costs per resource is", () => {
     const words: string = source("costWords");
     const anchors: Set<string> = anchorsOf("en", CLOUD_COSTS);
     const links: Array<string> = Array.from(
@@ -601,7 +601,20 @@ describe("Cloud Costs and Savings", () => {
     });
 
     expect(links.sort()).toEqual(
-      ["amazon-web-services", "google-cloud", "microsoft-azure"].sort(),
+      [
+        "amazon-web-services",
+        "costs-per-resource",
+        "google-cloud",
+        "microsoft-azure",
+      ].sort(),
+    );
+    // Costs per resource is its own heading, under AWS's section.
+    expect(costsSection("Amazon Web Services")).toContain(
+      "### Costs per resource",
+    );
+    // Commitments link where costs do: each cloud's own section.
+    expect(source("commitmentsCard")).toContain(
+      "COST_SETUP_DOCS_PATHS[row.account.provider as CloudProvider]",
     );
     // Savings link where costs do: each cloud's own section.
     expect(words).toContain(
@@ -1040,9 +1053,12 @@ describe("Cloud Costs and Savings", () => {
     expect(where).toContain(
       "Amazon ECS bills its tasks and App Service its plans, so their apps' costs stay their environment's.",
     );
-    // Tags: the export's labels, else the resource's, kept as read.
+    // Tags: kept as read, and on AWS only with Costs per resource.
     expect(card).toContain(
-      "A cost keeps the tags it had when it was read: the labels of a Google Cloud billing export, else the tags of the resource it is billed to.",
+      '"Each cost keeps the tags it had when it was read."',
+    );
+    expect(card).toContain(
+      '"AWS costs carry tags once Costs per resource is turned on in their connection\'s settings."',
     );
     expect(where).toContain(
       "A cost keeps the tags it had when it was read: a Google Cloud billing export's labels, else the tags of the resource it is billed to, which on AWS needs Costs per resource.",
